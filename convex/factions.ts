@@ -64,9 +64,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     authUserId != null
       ? await ctx.db
           .query('group_members')
-          .withIndex('by_user_status', (q) =>
-            q.eq('user_id', authUserId).eq('status', 'active')
-          )
+          .withIndex('by_user_status', (q) => q.eq('user_id', authUserId).eq('status', 'active'))
           .take(500)
       : [];
 
