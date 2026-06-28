@@ -104,9 +104,11 @@ export const getBySlug = query({
       (group): group is NonNullable<(typeof groupsWithNulls)[number]> => group !== null
     );
 
+    // biome-ignore lint/suspicious/noExplicitAny: runQuery return type is circular via generated api
     const faqAsked: any = await ctx.runQuery(api.faq.askedBy, {
       profile_id: profile.user_id,
     });
+    // biome-ignore lint/suspicious/noExplicitAny: runQuery return type is circular via generated api
     const faqAnswers: any = await ctx.runQuery(api.faq.answeredBy, {
       profile_id: profile.user_id,
     });
