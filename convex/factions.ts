@@ -1,3 +1,4 @@
+import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { FactionInputSchema } from '../src/game/schema/faction';
@@ -42,9 +43,8 @@ function normalizeFactionData(input: unknown) {
   return parsed.data;
 }
 
-async function loadFactionEditorPageBySlug(ctx: QueryCtx, slug: string) {
-  const userId = await requireAuthUserId(ctx);
-
+/** Faction detail page bundle (view, edit, and sheet preview). */
+async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
   const row = await ctx.db
     .query('factions')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
@@ -59,10 +59,14 @@ async function loadFactionEditorPageBySlug(ctx: QueryCtx, slug: string) {
 
   const group = row.group_id ? await ctx.db.get('groups', row.group_id) : null;
 
-  const memberships = await ctx.db
-    .query('group_members')
-    .withIndex('by_user_status', (q) => q.eq('user_id', userId).eq('status', 'active'))
-    .take(500);
+  const authUserId = await getAuthUserId(ctx);
+  const memberships =
+    authUserId != null
+      ? await ctx.db
+          .query('group_members')
+          .withIndex('by_user_status', (q) => q.eq('user_id', authUserId).eq('status', 'active'))
+          .take(500)
+      : [];
 
   const groups = await groupsForFactionAndMemberships(ctx, row.group_id, memberships);
 
@@ -104,7 +108,7 @@ async function loadFactionEditorPageBySlug(ctx: QueryCtx, slug: string) {
 
 export const getBySlug = query({
   args: { slug: v.string() },
-  handler: async (ctx, args) => loadFactionEditorPageBySlug(ctx, args.slug),
+  handler: async (ctx, args) => loadFactionDetailPageBySlug(ctx, args.slug),
 });
 
 export const list = query({
@@ -332,11 +336,6 @@ export const getFullBySlug = query({
       group: group,
     };
   },
-});
-
-export const getEditorPageBySlug = query({
-  args: { slug: v.string() },
-  handler: async (ctx, args) => loadFactionEditorPageBySlug(ctx, args.slug),
 });
 
 export const getCreatePageContext = query({

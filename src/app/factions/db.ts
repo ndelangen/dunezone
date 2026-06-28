@@ -71,7 +71,7 @@ export type FactionPageGroupAccess = {
   }>;
 };
 
-export type FactionEditorPageData = {
+export type FactionDetailPageData = {
   faction: FactionEntry;
   owner: Doc<'profiles'>;
   group: Doc<'groups'> | null;
@@ -80,9 +80,7 @@ export type FactionEditorPageData = {
   groupAccess: FactionPageGroupAccess | null;
 };
 
-export async function loadFactionBySlug(slug: string): Promise<FactionEditorPageData> {
-  // Delegate to the editor-page loader so callers get the full shape
-  // expected by `useFaction`'s `initialData`.
+export async function loadFactionBySlug(slug: string): Promise<FactionDetailPageData> {
   return await loadFaction(slug);
 }
 
@@ -106,7 +104,7 @@ export async function loadFactionsByGroup(groupId: string): Promise<FactionEntry
 export function useFaction(
   slug: string,
   options?: {
-    initialData?: FactionEditorPageData;
+    initialData?: FactionDetailPageData;
   }
 ) {
   const liveData = useQuery(api.factions.getBySlug, { slug });
@@ -300,14 +298,10 @@ export type FactionCreatePageData = {
   memberships: Doc<'group_members'>[];
 };
 
-export async function loadFaction(slug: string): Promise<FactionEditorPageData> {
-  const result = await db.query<FactionEditorPageData>(api.factions.getBySlug, {
+export async function loadFaction(slug: string): Promise<FactionDetailPageData> {
+  return await db.query<FactionDetailPageData>(api.factions.getBySlug, {
     slug,
   });
-  return {
-    ...result,
-    faction: toFactionEntry(result.faction as unknown as FactionRow),
-  };
 }
 
 export async function loadFactionCreatePageContext(): Promise<FactionCreatePageData> {
@@ -320,8 +314,4 @@ export function useFactionCreatePageContext(options?: { initialData?: FactionCre
   return {
     ...result,
   };
-}
-
-export function useFactionEditorPageBySlug(slug: string) {
-  return useQuery(api.factions.getEditorPageBySlug, { slug });
 }

@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 
 const confirmFn = createServerFn({ method: 'GET' })
-  .inputValidator((searchParams: unknown) => {
+  .validator((searchParams: unknown) => {
     if (searchParams && typeof searchParams === 'object' && 'next' in searchParams) {
       return searchParams;
     }
