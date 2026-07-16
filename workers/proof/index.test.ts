@@ -117,3 +117,43 @@ describe('proof Worker producer boundaries', () => {
     expect(send).not.toHaveBeenCalled();
   });
 });
+
+describe('proof Worker Queue delivery boundary', () => {
+  test('acknowledges an unexpected extra message without requesting a Queue retry', async () => {
+    const { env } = environment();
+    const first = {
+      id: 'invalid-first',
+      attempts: 1,
+      body: { invalid: true },
+      ack: vi.fn(),
+      retry: vi.fn(),
+      timestamp: new Date(),
+    };
+    const extra = {
+      id: 'unexpected-extra',
+      attempts: 1,
+      body: { invalid: true },
+      ack: vi.fn(),
+      retry: vi.fn(),
+      timestamp: new Date(),
+    };
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    await proofWorker.queue(
+      {
+        queue: 'faction-sheet-one-pdf-proof',
+        messages: [first, extra],
+        ackAll: vi.fn(),
+        retryAll: vi.fn(),
+      },
+      env,
+      {} as ExecutionContext
+    );
+
+    expect(first.ack).toHaveBeenCalledOnce();
+    expect(first.retry).not.toHaveBeenCalled();
+    expect(extra.ack).toHaveBeenCalledOnce();
+    expect(extra.retry).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('"reason":"exhausted"'));
+  });
+});

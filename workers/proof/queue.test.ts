@@ -11,6 +11,7 @@ const wakeUp = createProofWakeUp(
 
 const successReport = { outcome: 'success' } as ProofReport;
 const failedReport = { outcome: 'failed' } as ProofReport;
+const acquireClaim = async () => true;
 
 function delivery(
   body: unknown = wakeUp,
@@ -30,7 +31,7 @@ describe('proof Queue consumer acknowledgment policy', () => {
     const message = delivery();
     const consumer = new ProofQueueConsumer(vi.fn());
 
-    await expect(consumer.consume(message, async () => report)).resolves.toEqual({
+    await expect(consumer.consume(message, acquireClaim, async () => report)).resolves.toEqual({
       action: 'ack',
       reason,
     });
@@ -43,12 +44,13 @@ describe('proof Queue consumer acknowledgment policy', () => {
     const message = delivery({ ...wakeUp, faction: { id: 'forbidden' } });
     const consumer = new ProofQueueConsumer(vi.fn());
 
-    await expect(consumer.consume(message, run)).resolves.toEqual({
+    await expect(consumer.consume(message, acquireClaim, run)).resolves.toEqual({
       action: 'ack',
       reason: 'invalid',
     });
     expect(run).not.toHaveBeenCalled();
     expect(message.ack).toHaveBeenCalledOnce();
+    expect(message.retry).not.toHaveBeenCalled();
   });
 
   test('acks a handled end-to-end capture timeout without automatic redelivery', async () => {
@@ -60,7 +62,9 @@ describe('proof Queue consumer acknowledgment policy', () => {
     } as ProofReport;
     const consumer = new ProofQueueConsumer(vi.fn());
 
-    await expect(consumer.consume(message, async () => timeoutReport)).resolves.toEqual({
+    await expect(
+      consumer.consume(message, acquireClaim, async () => timeoutReport)
+    ).resolves.toEqual({
       action: 'ack',
       reason: 'failed',
     });
@@ -71,15 +75,16 @@ describe('proof Queue consumer acknowledgment policy', () => {
   test('acks a repeated trigger id after the first handled delivery', async () => {
     const run = vi.fn(async () => successReport);
     const consumer = new ProofQueueConsumer(vi.fn());
-    await consumer.consume(delivery(), run);
+    await consumer.consume(delivery(), acquireClaim, run);
     const duplicate = delivery();
 
-    await expect(consumer.consume(duplicate, run)).resolves.toEqual({
+    await expect(consumer.consume(duplicate, acquireClaim, run)).resolves.toEqual({
       action: 'ack',
       reason: 'duplicate',
     });
     expect(run).toHaveBeenCalledOnce();
     expect(duplicate.ack).toHaveBeenCalledOnce();
+    expect(duplicate.retry).not.toHaveBeenCalled();
   });
 
   test('acks a concurrent attempt as busy without opening an overlapping browser', async () => {
@@ -91,38 +96,41 @@ describe('proof Queue consumer acknowledgment policy', () => {
         })
     );
     const consumer = new ProofQueueConsumer(vi.fn());
-    const firstPromise = consumer.consume(delivery(), run);
+    const firstPromise = consumer.consume(delivery(), acquireClaim, run);
     const concurrent = delivery(createProofWakeUp(Date.now(), crypto.randomUUID()));
 
-    await expect(consumer.consume(concurrent, run)).resolves.toEqual({
+    await expect(consumer.consume(concurrent, acquireClaim, run)).resolves.toEqual({
       action: 'ack',
       reason: 'busy',
     });
     expect(run).toHaveBeenCalledOnce();
     expect(concurrent.ack).toHaveBeenCalledOnce();
+    expect(concurrent.retry).not.toHaveBeenCalled();
     finishFirst?.(successReport);
     await firstPromise;
   });
 
-  test('retries unexpected orchestration failure with a bounded delay before exhaustion', async () => {
+  test('acks unexpected orchestration failure as exhausted without requesting redelivery', async () => {
     const run = async () => {
       throw new Error('Worker orchestration failed');
     };
-    const consumer = new ProofQueueConsumer(vi.fn());
-    const retryable = delivery(wakeUp, 2);
-    await expect(consumer.consume(retryable, run)).resolves.toEqual({
-      action: 'retry',
-      reason: 'unexpected',
-    });
-    expect(retryable.retry).toHaveBeenCalledExactlyOnceWith({ delaySeconds: 60 });
-    expect(retryable.ack).not.toHaveBeenCalled();
+    const log = vi.fn();
+    const consumer = new ProofQueueConsumer(log);
+    const message = delivery();
 
-    const exhausted = delivery(wakeUp, 3);
-    await expect(consumer.consume(exhausted, run)).resolves.toEqual({
+    await expect(consumer.consume(message, acquireClaim, run)).resolves.toEqual({
       action: 'ack',
       reason: 'exhausted',
     });
-    expect(exhausted.ack).toHaveBeenCalledOnce();
-    expect(exhausted.retry).not.toHaveBeenCalled();
+    expect(message.ack).toHaveBeenCalledOnce();
+    expect(message.retry).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'ack',
+        attempts: 1,
+        error: 'Worker orchestration failed',
+        reason: 'exhausted',
+      })
+    );
   });
 });

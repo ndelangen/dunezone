@@ -167,10 +167,14 @@ describe('executeOnePdfProof', () => {
     const consumer = new ProofQueueConsumer(vi.fn());
     let report: Awaited<ReturnType<typeof proof.run>> | undefined;
 
-    const consumePromise = consumer.consume(message, async () => {
-      report = await proof.run();
-      return report;
-    });
+    const consumePromise = consumer.consume(
+      message,
+      async () => true,
+      async () => {
+        report = await proof.run();
+        return report;
+      }
+    );
     await vi.advanceTimersByTimeAsync(BROWSER_CLEANUP_GRACE_MS);
     await expect(consumePromise).resolves.toEqual({ action: 'ack', reason: 'failed' });
 

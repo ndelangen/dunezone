@@ -6,9 +6,6 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "upload_source_maps": true,
-  "limits": {
-    "cpu_ms": 300000
-  },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
@@ -44,8 +41,7 @@
         "queue": "faction-sheet-one-pdf-proof",
         "max_batch_size": 1,
         "max_batch_timeout": 1,
-        "max_retries": 2,
-        "retry_delay": 60,
+        "max_retries": 0,
         "max_concurrency": 1
       }
     ]

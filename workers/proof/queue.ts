@@ -2,8 +2,6 @@ import type { ProofReport } from './core';
 import { type ProofWakeUp, parseProofWakeUp } from './dispatch';
 
 const MAX_RECENT_TRIGGER_IDS = 32;
-const MAX_DELIVERY_ATTEMPTS = 3;
-const RETRY_DELAY_SECONDS = 60;
 
 export type ProofQueueDelivery = {
   id: string;
@@ -13,12 +11,15 @@ export type ProofQueueDelivery = {
   retry(options?: { delaySeconds?: number }): void;
 };
 
-export type ProofQueueDisposition =
-  | {
-      action: 'ack';
-      reason: 'completed' | 'failed' | 'invalid' | 'duplicate' | 'busy' | 'exhausted';
-    }
-  | { action: 'retry'; reason: 'unexpected' };
+export type ProofQueueDisposition = {
+  action: 'ack';
+  reason: 'completed' | 'failed' | 'invalid' | 'duplicate' | 'busy' | 'exhausted';
+};
+
+export type ProofOneShotClaim = (
+  wakeUp: ProofWakeUp,
+  message: ProofQueueDelivery
+) => Promise<boolean>;
 
 export class ProofQueueConsumer {
   private running = false;
@@ -31,6 +32,7 @@ export class ProofQueueConsumer {
 
   async consume(
     message: ProofQueueDelivery,
+    acquireClaim: ProofOneShotClaim,
     runProof: (wakeUp: ProofWakeUp) => Promise<ProofReport>
   ): Promise<ProofQueueDisposition> {
     let wakeUp: ProofWakeUp;
@@ -56,6 +58,13 @@ export class ProofQueueConsumer {
 
     this.running = true;
     try {
+      const acquired = await acquireClaim(wakeUp, message);
+      if (!acquired) {
+        this.remember(wakeUp.triggerId);
+        message.ack();
+        this.logDelivery(message, 'ack', 'duplicate', wakeUp);
+        return { action: 'ack', reason: 'duplicate' };
+      }
       const report = await runProof(wakeUp);
       this.remember(wakeUp.triggerId);
       message.ack();
@@ -63,14 +72,9 @@ export class ProofQueueConsumer {
       this.logDelivery(message, 'ack', reason, wakeUp, undefined, report);
       return { action: 'ack', reason };
     } catch (error) {
-      if (message.attempts >= MAX_DELIVERY_ATTEMPTS) {
-        message.ack();
-        this.logDelivery(message, 'ack', 'exhausted', wakeUp, error);
-        return { action: 'ack', reason: 'exhausted' };
-      }
-      message.retry({ delaySeconds: RETRY_DELAY_SECONDS });
-      this.logDelivery(message, 'retry', 'unexpected', wakeUp, error);
-      return { action: 'retry', reason: 'unexpected' };
+      message.ack();
+      this.logDelivery(message, 'ack', 'exhausted', wakeUp, error);
+      return { action: 'ack', reason: 'exhausted' };
     } finally {
       this.running = false;
     }
@@ -87,7 +91,7 @@ export class ProofQueueConsumer {
 
   private logDelivery(
     message: ProofQueueDelivery,
-    action: 'ack' | 'retry',
+    action: 'ack',
     reason: ProofQueueDisposition['reason'],
     wakeUp?: ProofWakeUp,
     error?: unknown,

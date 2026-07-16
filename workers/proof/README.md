@@ -4,18 +4,21 @@ This is a non-production proof harness for exactly one faction-sheet PDF. Convex
 durable control plane. The Queue carries only a wake-up signal:
 
 ```text
-annual inert Cron (temporarily armed for one observation window)
-  -> stateless Convex empty/eligible poll
+annual inert Cron (not exercised)
+authenticated manual enqueue
   -> one minimal Queue message
   -> independent Queue consumer invocation
+  -> conditional fixed-key R2 claim
   -> before checkpoint -> one Browser Session -> PDF -> private R2 -> after checkpoint
 ```
 
 The Queue message contains only `schemaVersion`, `scheduledCutoff`, and diagnostic `triggerId`. It
 contains no faction payload, target id, claim, backlog state, or asset authority. This proof has no
-publisher schema or durable lease yet. Configuration-level consumer concurrency one plus a bounded
-in-process busy/duplicate guard prevent overlapping proof browsers; Ticket 2 replaces that proof
-guard with the real Convex lease.
+publisher schema or durable lease yet. Before any Convex checkpoint or Browser work, the consumer
+conditionally creates the fixed `proof/default-limit-experiment.claim.json` marker in the private R2
+bucket. Strong consistency lets exactly one isolate win; configuration-level concurrency one and the
+in-process guard remain secondary proof defenses. The marker is temporary proof state, not backlog
+or publication authority, and Ticket 2 replaces it with the real Convex lease.
 
 ## Local verification
 
@@ -38,8 +41,9 @@ tmp/asset-publishing-proof/local-proof.pdf
 tmp/asset-publishing-proof/storybook-reference.pdf
 ```
 
-The unit suite also verifies empty versus eligible dispatch, minimal message validation, duplicate
-and busy acknowledgement, bounded unexpected-error retry, render timeout, invalid PDF structure, R2
+The unit suite also verifies empty versus eligible dispatch, minimal message validation, two fresh
+consumer instances contending on one R2 claim backend, claim-store failure, duplicate and busy
+acknowledgement, zero-retry unexpected-error handling, render timeout, invalid PDF structure, R2
 failure, Convex checkpoint failure, and browser cleanup. There is no client-disconnect or Durable
 Object evidence path.
 
@@ -77,9 +81,10 @@ bunx wrangler r2 bucket dev-url get tanstack-start-asset-publisher-proof
 bunx wrangler r2 bucket domain list tanstack-start-asset-publisher-proof
 ```
 
-Expected: the bucket exists, its `r2.dev` URL is disabled, and it has no custom domain. Delete the
-old `proof/faction-sheet.pdf` object before collecting new evidence if it still exists. Do not delete
-the bucket.
+Expected: the bucket exists, its `r2.dev` URL is disabled, and it has no custom domain. Delete both
+`proof/default-limit-experiment.claim.json` and `proof/faction-sheet.pdf` before collecting new
+evidence if either exists, then verify the strongly consistent bucket object list is empty. Do not
+delete the bucket.
 
 Create exactly one Queue before deploying the Worker:
 
@@ -89,9 +94,14 @@ bunx wrangler queues list
 ```
 
 The checked config binds that Queue as producer `PROOF_QUEUE` and consumer with batch size one,
-consumer concurrency one, two retries, and a 60-second retry delay. It explicitly requests
-`limits.cpu_ms: 300000` so the Free-account proof does not accidentally measure only the default
-30-second Queue CPU limit. The checked Cron is the inert annual `0 0 1 1 *` schedule.
+consumer concurrency one, and `max_retries: 0`. It deliberately omits the entire Worker `limits`
+block, so this final experiment measures the actual default Queue-consumer CPU allowance on the
+Workers Free account. The checked Cron is the inert annual `0 0 1 1 *` schedule.
+
+The first deployment attempt is recorded history: Cloudflare rejected the reviewed custom
+`limits.cpu_ms: 300000` setting on Workers Free before any consumer, Browser Session, Cron, or R2
+write ran. That rejection authorized only this one default-limit, zero-retry experiment; it is not
+permission to add another CPU setting or broaden the evidence run.
 
 ## Production Convex proof endpoints
 
@@ -149,9 +159,9 @@ bun run proof:test
 bun run proof:dry-run
 ```
 
-The dry-run must list `CPU Time: 300000 ms` or otherwise show that `limits.cpu_ms: 300000` was
-accepted. The real Workers Free deploy must also accept that limit. If Wrangler or Cloudflare rejects
-it for the Free account, stop and record NO-GO; do not fall back to an accidental 30-second test.
+The dry-run must show the Queue, Browser, R2, Static Assets, and inert annual-Cron configuration. It
+must not show a custom Worker CPU limit. Do not add a `limits` block if Wrangler reports the
+provider default.
 
 The first deployment keeps the annual Cron and uses a placeholder only to discover the workers.dev
 origin. It must not invoke Browser Run:
@@ -179,7 +189,8 @@ rm -f "$PROOF_SECRETS_FILE"
 unset PROOF_SECRETS_FILE
 ```
 
-Do not arm a frequent Cron until the manual Queue proof succeeds.
+Do not arm a frequent or positive Cron at any point in this final experiment. The annual Cron stays
+inert throughout; the only wake-up is the one authenticated manual message below.
 
 `PROOF_RENDER_TIMEOUT_MS=45000` is one end-to-end Browser capture deadline covering Browser launch,
 navigation, readiness, bounds validation, PDF generation, and parsing. It is not reset per phase.
@@ -189,7 +200,7 @@ ordinary handled failure. Code rejects a deadline above six minutes, leaving at 
 seconds including cleanup before the future eight-minute production soft budget and far more before
 the Queue's 15-minute wall limit.
 
-## Manual Queue message first
+## One manual Queue message
 
 Start a tail before sending anything:
 
@@ -198,8 +209,8 @@ bunx wrangler tail faction-sheet-one-pdf-proof --format json \
   | tee /tmp/faction-sheet-queue-proof-tail.jsonl
 ```
 
-Send one explicit minimal message through the authenticated enqueue-only producer endpoint. The
-installed Wrangler CLI does not expose a direct Queue-message command:
+Send exactly one explicit minimal message through the authenticated enqueue-only producer endpoint.
+The installed Wrangler CLI does not expose a direct Queue-message command:
 
 ```bash
 export PROOF_TRIGGER_ID="$(uuidgen | tr '[:upper:]' '[:lower:]')"
@@ -213,15 +224,17 @@ curl -fsS -X POST "$WORKER_URL/__proof/enqueue" \
   --data "$PROOF_MESSAGE"
 ```
 
-The endpoint validates and enqueues that message; it never captures inline. An empty request body is
-also allowed and generates a fresh cutoff and trigger id.
+The endpoint validates and enqueues that message; it never captures inline. Do not invoke it a
+second time, even after a failed or ambiguous consumer result. An empty request body remains locally
+supported but is not used for final evidence because the explicit message identifies the sole run.
 
 Require a Queue-consumer log with `action: "ack"`, `reason: "completed"`, attempt metadata, and a
 proof report showing:
 
 - `outcome: "success"` and `browserCloseOutcome: "closed"`;
 - exactly two pages within 0.5 mm of `150 x 195`;
-- one R2 operation and two correlated Convex calls;
+- one conditional claim-marker Class A write before proof work, one PDF R2 operation in the report,
+  and two correlated Convex calls;
 - finite before/after Convex latency, PDF bytes, browser duration, and wall duration;
 - empty console and request-failure arrays.
 
@@ -229,6 +242,9 @@ Download through authenticated Wrangler access into the same ignored comparison 
 
 ```bash
 mkdir -p tmp/asset-publishing-proof
+bunx wrangler r2 object get \
+  tanstack-start-asset-publisher-proof/proof/default-limit-experiment.claim.json \
+  --remote --file=tmp/asset-publishing-proof/default-limit-experiment.claim.json
 bunx wrangler r2 object get \
   tanstack-start-asset-publisher-proof/proof/faction-sheet.pdf \
   --remote --file=tmp/asset-publishing-proof/deployed-queue-proof.pdf
@@ -262,142 +278,22 @@ Record the exact three paths, hashes, reference identities printed by the regres
 and comparison result. Compare both pages for fonts, artwork, backgrounds, clipping, and physical
 size. A verbal comparison without reproducible files and hashes is not accepted evidence.
 
-## Failure and delivery observations
+## Failure and delivery policy
 
 The checked unit tests are the authoritative deterministic coverage for invalid checkpoint,
-render-timeout, invalid PDF, R2 failure, Convex failure, duplicate/busy delivery, and bounded retry.
-For deployed evidence, use only Queue executions; never restore the old inline HTTP or Durable Object
-path.
+render-timeout, invalid PDF, R2 failure, Convex failure, duplicate/busy delivery, and unexpected
+orchestration failure. Every delivery path acknowledges; none calls `message.retry`, and the Queue
+configuration permits no provider redelivery.
 
-To observe ordinary render failure, temporarily deploy `PROOF_FAILURE_MODE` as `render_timeout` or
-`reporting_error_after_capture`, send one manual Queue message, and then restore `none`. Each handled
-failure must log `action: "ack"`, `reason: "failed"`, zero R2 operations, and a closed browser. An
-unexpected orchestration throw retries at 60 seconds and is acknowledged as exhausted on attempt
-three; ordinary capture/checkpoint outcomes are acknowledged immediately to avoid a retry storm.
+The fixed claim is attempted before `runOnePdfProof`. A failed precondition means another isolate
+already won: acknowledge/log `duplicate` and do no Convex, Browser, or PDF work. A claim PUT error is
+acknowledged/logged `exhausted` and starts no proof work; because the sole attempt is then ambiguous,
+the deployed experiment is NO-GO.
 
-Sending the exact same `PROOF_MESSAGE` twice can demonstrate the bounded in-process duplicate guard
-when both deliveries reach the same isolate. Treat that as proof-harness evidence only, not durable
-deduplication. `max_concurrency: 1` is the account-level overlap fence for this proof; Ticket 2 must
-use Convex leases.
-
-## One bounded Cron observation window
-
-Keep the tail running. Run the entire observation from one shell with fail-closed cleanup armed
-before changing either control. Cleanup first forces Convex to `empty`, then restores the annual
-Cron. The helper verifies the empty endpoint; Cloudflare schedule verification still requires the
-dashboard because this Wrangler version has no trigger-list command.
-
-```bash
-set -Eeuo pipefail
-
-verify_convex_empty() {
-  local trigger_id cutoff response
-  trigger_id="$(uuidgen | tr '[:upper:]' '[:lower:]')"
-  cutoff="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
-  response="$(curl -fsS "$CONVEX_PROOF_ELIGIBILITY_URL" \
-    -H "Authorization: Bearer $CONVEX_PROOF_TOKEN" \
-    -H 'Content-Type: application/json' \
-    --data "{\"schemaVersion\":1,\"scheduledCutoff\":\"$cutoff\",\"triggerId\":\"$trigger_id\"}")"
-  test "$(printf '%s' "$response" | jq -r '.eligibility')" = 'empty'
-}
-
-cleanup_proof_window() {
-  set_and_verify_empty || {
-    printf '%s\n' \
-      'UNVERIFIED CLEANUP: eligibility could not be proven empty.' \
-      'Do not restore or continue the observation; recover manually and record NO-GO.' >&2
-    return 1
-  }
-  bunx wrangler triggers deploy \
-    --name faction-sheet-one-pdf-proof \
-    --triggers '0 0 1 1 *' || {
-    printf '%s\n' \
-      'UNVERIFIED CLEANUP: eligibility is empty, but annual Cron restoration failed.' \
-      'Recover manually and record NO-GO.' >&2
-    return 1
-  }
-  printf '%s\n' \
-    'Cleanup submitted. Allow up to 15 minutes for trigger propagation.' \
-    'Do not call cleanup complete until the Cloudflare dashboard shows only 0 0 1 1 *' \
-    'and the tail shows no further frequent-trigger invocation after propagation.'
-}
-
-set_and_verify_empty() {
-  printf '%s' 'empty' \
-    | bunx convex env set ASSET_PUBLISHING_PROOF_ELIGIBILITY --prod
-  verify_convex_empty
-}
-
-cleanup_verified=0
-cleanup_on_exit() {
-  local original_status="$?"
-  trap - EXIT HUP INT TERM
-  if test "$cleanup_verified" != '1'; then
-    if ! cleanup_proof_window; then
-      printf '%s\n' \
-        'FAIL-CLOSED: automatic cleanup failed; this observation is unverified/NO-GO.' \
-        'Perform manual recovery before any further proof work.' >&2
-    else
-      printf '%s\n' \
-        'FAIL-CLOSED: cleanup commands ran, but propagation was not verified.' \
-        'This observation remains unverified/NO-GO until manual dashboard/tail verification.' >&2
-    fi
-    exit 97
-  fi
-  exit "$original_status"
-}
-trap cleanup_on_exit EXIT
-trap 'exit 129' HUP
-trap 'exit 130' INT
-trap 'exit 143' TERM
-
-set_and_verify_empty
-
-bunx wrangler triggers deploy \
-  --name faction-sheet-one-pdf-proof \
-  --triggers '*/15 * * * *'
-```
-
-Allow up to 15 minutes for the schedule change to propagate. Verify the Cloudflare dashboard shows
-only `*/15 * * * *`. The empty firing must log `result: "empty"` and show no Queue send, browser
-invocation, R2 operation, or Convex checkpoint write. Then switch only the stateless proof mode:
-
-```bash
-printf '%s' 'eligible' \
-  | bunx convex env set ASSET_PUBLISHING_PROOF_ELIGIBILITY --prod
-```
-
-Observe the **FIRST** `result: "enqueued"` dispatch log. Before waiting for or inspecting the Queue
-consumer, immediately disable and verify eligibility:
-
-```bash
-set_and_verify_empty
-```
-
-Only after that command succeeds may you correlate the separate Queue-consumer invocation by
-`triggerId` and wait for one successful PDF. A failure to set or verify `empty` is immediate
-unverified/NO-GO and requires manual recovery; do not continue waiting as if the observation were
-safe. After the consumer result is recorded, restore the annual Cron through the ordered cleanup:
-
-```bash
-cleanup_proof_window
-```
-
-Allow up to 15 minutes for restoration to propagate. Confirm the eligibility probe is `empty`, the
-Cloudflare dashboard shows only `0 0 1 1 *`, and no further frequent invocation appears after the
-propagation window. Only then run `trap - EXIT HUP INT TERM` and record cleanup complete. If the
-shell is interrupted earlier, the EXIT/signal trap attempts the same ordered cleanup and exits 97;
-it never swallows failure or marks the run safe. Once the manual propagation checks pass, finish with:
-
-```bash
-cleanup_verified=1
-trap - EXIT HUP INT TERM
-```
-
-An unverified cleanup attempt is not cleanup completion.
-
-If the poll or Queue send fails, the Cron logs the error and performs no browser work. Convex remains
-authoritative; the later Cron is the retry.
+Do not deploy a failure mode or run deployed render-timeout, post-capture-failure, duplicate, busy,
+or positive-Cron Browser captures. Those paths remain unit-test evidence only. Keep
+`PROOF_FAILURE_MODE=none`, keep Convex eligibility `empty`, and preserve `max_concurrency: 1` as the
+proof-only overlap fence. Ticket 2 must replace that fence with Convex leases.
 
 ## Free-tier GO / NO-GO gate
 
@@ -411,20 +307,47 @@ Decision: GO | NO-GO
 Empty Cron CPU / outcome / Queue sends:
 Eligible Cron CPU / outcome / Queue sends:
 Queue consumer CPU / wall / memory / subrequests / exceededCpu:
-300000 ms CPU limit deploy acceptance / rejection:
-Queue message attempts / ack-or-retry result:
+Custom-limit rejection evidence reference:
+Default-limit confirmation / custom CPU setting absent:
+Queue message attempts / ack result:
 Browser Session duration / close outcome / daily usage:
 PDF bytes / pages / physical size / visual comparison:
-R2 operations / object verification:
+R2 claim-marker Class A write / PDF write / object verification:
 Convex before+after latency:
-Failure-mode outcomes:
 Unexpected console or network errors:
 Reason and follow-up:
 ```
 
-GO requires Cloudflare to accept the explicit 300000 ms limit and the independent Queue consumer to
-complete reliably on the actual Workers Free account without `exceededCpu` and with comfortable
-measured margin. A rejected limit, accidental default-30-second deployment, exceeded-resource result,
-unreadable or incorrectly sized PDF, unclosed browser, bytes passing through Convex, false success,
-unverified Cron cleanup, or unclear consumer metrics is NO-GO and returns to technical planning. Do
-not proceed to Ticket 2 and do not silently reintroduce Durable Objects.
+The Empty/Eligible Cron fields must record that both observations were intentionally not run and the
+annual trigger remained inert. GO requires the one independent default-limit Queue consumer to
+produce one clean, readable, correctly sized two-page PDF, close Browser Run, write once to private
+R2 after its single successful claim-marker write, complete both stateless Convex checkpoints, and
+leave unambiguous correlated metrics. Any
+`exceededCpu`, memory termination, unclosed or unclear Browser cleanup, invalid or unreadable output,
+unexpected extra delivery, or ambiguous evidence is definitive NO-GO. Do not send another message,
+proceed to Ticket 2, or silently reintroduce Durable Objects after NO-GO.
+
+## Cleanup after evidence
+
+After recording GO or NO-GO, remove the temporary Worker (which also removes its inert annual
+trigger), Queue, scoped Convex variables, claim marker, and proof PDF object. Retain the private
+Standard R2 bucket, but verify it is empty and still has neither `r2.dev` access nor a custom domain.
+
+```bash
+bunx wrangler delete --name faction-sheet-one-pdf-proof
+bunx wrangler queues delete faction-sheet-one-pdf-proof
+bunx convex env remove ASSET_PUBLISHING_PROOF_SECRET --prod
+bunx convex env remove ASSET_PUBLISHING_PROOF_ELIGIBILITY --prod
+bunx wrangler r2 object delete \
+  tanstack-start-asset-publisher-proof/proof/default-limit-experiment.claim.json --remote
+bunx wrangler r2 object delete \
+  tanstack-start-asset-publisher-proof/proof/faction-sheet.pdf --remote
+bunx wrangler r2 bucket info tanstack-start-asset-publisher-proof --json
+bunx wrangler r2 bucket dev-url get tanstack-start-asset-publisher-proof
+bunx wrangler r2 bucket domain list tanstack-start-asset-publisher-proof
+```
+
+Cleanup is complete only when the Worker and Queue no longer exist, both scoped Convex variables are
+absent, the strongly consistent R2 object list in the Cloudflare dashboard or API is empty, and the
+retained bucket remains private. The aggregate bucket-info object counter may lag and is not enough
+on its own. Remove local secret files and unset proof tokens as well. Do not delete the empty bucket.

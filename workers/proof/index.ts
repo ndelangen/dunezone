@@ -7,6 +7,7 @@ import type {
 } from '@cloudflare/playwright';
 
 import { handleProofCaptureAsset } from './capture-route';
+import { acquireDefaultLimitExperimentClaim } from './claim';
 import { sendConvexProofCheckpoint } from './convex';
 import {
   type CapturedPdf,
@@ -377,10 +378,25 @@ export const proofWorker = {
   async queue(batch: MessageBatch<unknown>, env: Env): Promise<void> {
     const [message, ...unexpectedExtras] = batch.messages;
     for (const extra of unexpectedExtras) {
-      extra.retry({ delaySeconds: 60 });
+      extra.ack();
+      console.error(
+        JSON.stringify({
+          event: 'asset_publishing_proof_queue_delivery',
+          messageId: extra.id,
+          attempts: extra.attempts,
+          action: 'ack',
+          reason: 'exhausted',
+          error: 'Queue delivered more than the configured one-message batch',
+        })
+      );
     }
     if (!message) return;
-    await queueConsumer.consume(message, async () => await runOnePdfProof(env));
+    await queueConsumer.consume(
+      message,
+      async (wakeUp, delivery) =>
+        await acquireDefaultLimitExperimentClaim(env.PROOF_BUCKET, wakeUp, delivery),
+      async () => await runOnePdfProof(env)
+    );
   },
 } satisfies ExportedHandler<Env, unknown>;
 

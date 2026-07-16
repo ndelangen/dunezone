@@ -26,10 +26,11 @@ describe('proof deployment-safe defaults', () => {
     expect(wranglerConfig).toContain('"binding": "PROOF_QUEUE"');
     expect(wranglerConfig.match(/"queue": "faction-sheet-one-pdf-proof"/g)).toHaveLength(2);
     expect(wranglerConfig).toContain('"max_batch_size": 1');
-    expect(wranglerConfig).toContain('"max_retries": 2');
-    expect(wranglerConfig).toContain('"retry_delay": 60');
+    expect(wranglerConfig).toContain('"max_retries": 0');
     expect(wranglerConfig).toContain('"max_concurrency": 1');
-    expect(wranglerConfig).toContain('"cpu_ms": 300000');
+    expect(wranglerConfig).not.toContain('"retry_delay"');
+    expect(wranglerConfig).not.toContain('"limits"');
+    expect(wranglerConfig).not.toContain('"cpu_ms"');
     expect(wranglerConfig).not.toContain('durable_objects');
     expect(wranglerConfig).not.toContain('migrations');
     expect(wranglerConfig).not.toContain('PROOF_EXECUTOR');
@@ -85,29 +86,21 @@ describe('proof deployment-safe defaults', () => {
     expect(runbook).toContain('do not enable an independent\nCloudflare Git auto-deploy');
   });
 
-  test('locks fail-closed Cron cleanup ordering and positive-dispatch shutdown', () => {
+  test('forbids arming a frequent Cron or running deployed failure-mode captures', () => {
     const runbook = readFileSync(new URL('workers/proof/README.md', repositoryRoot), 'utf8');
-    const cleanupStart = runbook.indexOf('cleanup_proof_window()');
-    const cleanupEnd = runbook.indexOf('\n}\n\nset_and_verify_empty()', cleanupStart);
-    const cleanup = runbook.slice(cleanupStart, cleanupEnd);
-    const emptyStart = runbook.indexOf('set_and_verify_empty()');
-    const emptyEnd = runbook.indexOf('\n}', emptyStart);
-    const setEmpty = runbook.slice(emptyStart, emptyEnd);
-    const positiveDispatch = runbook.indexOf('FIRST** `result: "enqueued"`');
-    const disableAfterDispatch = runbook.indexOf('set_and_verify_empty', positiveDispatch);
-    const waitAfterDisable = runbook.indexOf('wait for one successful PDF', disableAfterDispatch);
 
-    expect(cleanupStart).toBeGreaterThan(-1);
-    expect(cleanup.indexOf('set_and_verify_empty')).toBeLessThan(
-      cleanup.indexOf('wrangler triggers deploy')
-    );
-    expect(setEmpty.indexOf('convex env set ASSET_PUBLISHING_PROOF_ELIGIBILITY')).toBeLessThan(
-      setEmpty.indexOf('verify_convex_empty')
-    );
-    expect(runbook).not.toContain('cleanup_proof_window || true');
-    expect(runbook).toContain('exit 97');
-    expect(positiveDispatch).toBeGreaterThan(-1);
-    expect(disableAfterDispatch).toBeGreaterThan(positiveDispatch);
-    expect(waitAfterDisable).toBeGreaterThan(disableAfterDispatch);
+    expect(runbook).toContain('Do not arm a frequent or positive Cron');
+    expect(runbook).toContain('Do not deploy a failure mode');
+    expect(runbook).not.toContain("--triggers '*/15 * * * *'");
+    expect(runbook).not.toContain("printf '%s' 'eligible'");
+  });
+
+  test('documents the temporary R2 one-shot marker and deletes both proof objects', () => {
+    const runbook = readFileSync(new URL('workers/proof/README.md', repositoryRoot), 'utf8');
+
+    expect(runbook).toContain('proof/default-limit-experiment.claim.json');
+    expect(runbook.match(/bunx wrangler r2 object delete/g)).toHaveLength(2);
+    expect(runbook).toContain('temporary proof state');
+    expect(runbook).toContain('Ticket 2 replaces it with the real Convex lease');
   });
 });
