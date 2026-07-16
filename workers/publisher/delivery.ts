@@ -10,7 +10,7 @@ const ASSET_TYPE = 'faction_sheet' as const;
 const TOKEN_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const NO_STORE = 'no-store';
 const FACTION_ID_PATTERN = /^[0-9a-z]{16,64}$/;
-const PUBLIC_ROUTE_PATTERN = /^\/factions\/([0-9a-z]{16,64})\/sheet\.pdf$/;
+const PUBLIC_ROUTE_PATTERN = /^\/published\/factions\/([0-9a-z]{16,64})\/sheet\.pdf$/;
 
 export type PublicAssetCache = {
   match(request: Request): Promise<Response | undefined>;
@@ -240,7 +240,7 @@ async function r2BodyResponse(
 
 export function factionSheetPublicPath(factionId: string): string {
   if (!FACTION_ID_PATTERN.test(factionId)) throw new Error('Invalid Convex faction id');
-  return `/factions/${encodeURIComponent(factionId)}/sheet.pdf`;
+  return `/published/factions/${encodeURIComponent(factionId)}/sheet.pdf`;
 }
 
 export async function handlePublicAssetRequest(
@@ -250,7 +250,7 @@ export async function handlePublicAssetRequest(
   dependencies: DeliveryDependencies = {}
 ): Promise<Response | null> {
   const url = new URL(request.url);
-  const ownsNamespace = url.pathname === '/factions' || url.pathname.startsWith('/factions/');
+  const ownsNamespace = url.pathname === '/published' || url.pathname.startsWith('/published/');
   if (!ownsNamespace) return null;
 
   const route = PUBLIC_ROUTE_PATTERN.exec(url.pathname);

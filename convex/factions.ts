@@ -4,6 +4,7 @@ import { v } from 'convex/values';
 import { FactionInputSchema } from '../src/game/schema/faction';
 import type { Doc, Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
+import { factionSheetPublishingStatus } from './assetPublishingStatus';
 import { parseFactionInput, reconcileFactionSheetTargetForSave } from './lib/factionSheetTargets';
 import { isActiveGroupMember, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
@@ -93,6 +94,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     memberships,
     groups,
     groupAccess,
+    assetPublishing: await factionSheetPublishingStatus(ctx, row._id),
   };
 }
 

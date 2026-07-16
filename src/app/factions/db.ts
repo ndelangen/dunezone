@@ -11,6 +11,7 @@ import {
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
+import type { PublicAssetPublishingStatusProjection } from '../../../convex/assetPublishingStatus';
 
 export type Faction = FactionInput;
 export type FactionData = FactionInput;
@@ -78,6 +79,7 @@ export type FactionDetailPageData = {
   memberships: Doc<'group_members'>[];
   groups: Doc<'groups'>[];
   groupAccess: FactionPageGroupAccess | null;
+  assetPublishing: PublicAssetPublishingStatusProjection;
 };
 
 export async function loadFactionBySlug(slug: string): Promise<FactionDetailPageData> {
@@ -117,6 +119,7 @@ export function useFaction(
     memberships: result.data?.memberships,
     groups: result.data?.groups,
     groupAccess: result.data?.groupAccess ?? null,
+    assetPublishing: result.data?.assetPublishing ?? { status: null },
   };
 }
 

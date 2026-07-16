@@ -788,7 +788,7 @@ export const getPublicMetadata = query({
       .unique();
     if (!target) return null;
 
-    const stablePath = `/factions/${encodeURIComponent(target.faction_id)}/sheet.pdf`;
+    const stablePath = `/published/factions/${encodeURIComponent(target.faction_id)}/sheet.pdf`;
     const publication =
       target.published_generation === undefined ||
       target.published_renderer_version === undefined ||

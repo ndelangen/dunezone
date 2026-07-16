@@ -21,8 +21,8 @@ const config = defineConfig({
     // devtools(),
     tanstackStart({
       srcDirectory: './src/app',
-      // Netlify serves `dist/client` as static files — prerender must run or there is no HTML to host.
-      // `crawlLinks: false` keeps this to the default `/` + SPA shell only (no full-site crawl).
+      // Both the Worker release assembly and Netlify rollback consume `dist/client`.
+      // Prerender must run or there is no SPA shell; do not crawl the authenticated app.
       prerender: {
         concurrency: Math.max(1, os.cpus().length),
         crawlLinks: false,

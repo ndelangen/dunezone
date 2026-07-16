@@ -27,13 +27,33 @@ function client(env: Env, config: ReturnType<typeof parsePublisherConfig>) {
   });
 }
 
+function isReservedWorkerPath(pathname: string): boolean {
+  return (
+    pathname === '/__asset-publisher' ||
+    pathname.startsWith('/__asset-publisher/') ||
+    pathname === '/published' ||
+    pathname.startsWith('/published/') ||
+    pathname === '/publisher-capture' ||
+    pathname === '/publisher-capture.html' ||
+    pathname.startsWith('/publisher-capture/')
+  );
+}
+
+function reservedNotFound(): Response {
+  return Response.json(
+    { error: 'Not found' },
+    { status: 404, headers: { 'Cache-Control': 'no-store' } }
+  );
+}
+
 export const publisherWorker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const publicAsset = await handlePublicAssetRequest(request, env, ctx);
     if (publicAsset) return publicAsset;
     const capture = await handleCaptureRoute(request, env);
     if (capture) return capture;
-    if (new URL(request.url).pathname === '/__asset-publisher/health') {
+    const pathname = new URL(request.url).pathname;
+    if (pathname === '/__asset-publisher/health') {
       return Response.json(
         {
           ok: true,
@@ -45,6 +65,7 @@ export const publisherWorker = {
         { headers: { 'Cache-Control': 'no-store' } }
       );
     }
+    if (isReservedWorkerPath(pathname)) return reservedNotFound();
     return env.ASSETS.fetch(request);
   },
 

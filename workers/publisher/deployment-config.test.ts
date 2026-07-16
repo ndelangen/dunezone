@@ -7,6 +7,9 @@ import { describe, expect, test } from 'vitest';
 const config = JSON.parse(
   readFileSync(path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc'), 'utf8')
 ) as Record<string, unknown>;
+const packageConfig = JSON.parse(
+  readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8')
+) as { scripts: Record<string, string> };
 
 describe('disabled production deployment shape', () => {
   test('is inert and unprovisioned by default', () => {
@@ -83,14 +86,34 @@ describe('disabled production deployment shape', () => {
     });
   });
 
-  test('routes public assets, capture document, and isolated bundle through the Worker', () => {
+  test('keeps the SPA asset-first and reserves only published, capture, and operational paths', () => {
+    expect(config.assets).toMatchObject({
+      directory: './dist',
+      binding: 'ASSETS',
+      html_handling: 'none',
+      not_found_handling: 'single-page-application',
+    });
     expect((config.assets as { run_worker_first?: string[] }).run_worker_first).toEqual([
+      '/__asset-publisher',
       '/__asset-publisher/*',
-      '/factions',
-      '/factions/*',
+      '/published',
+      '/published/*',
+      '/publisher-capture',
       '/publisher-capture.html',
       '/publisher-capture/*',
     ]);
+    expect(JSON.stringify(config.assets)).not.toContain('"/factions');
+  });
+
+  test('builds the SPA and capture bundle into one validated Worker release unit', () => {
+    expect(packageConfig.scripts['publisher:assets']).toContain('bun run app:build');
+    expect(packageConfig.scripts['publisher:assets']).toContain(
+      'vite build --config workers/publisher/vite.config.ts'
+    );
+    expect(packageConfig.scripts['publisher:assets']).toContain(
+      'scripts/assemble-publisher-assets.ts'
+    );
+    expect(packageConfig.scripts['publisher:dry-run']).toContain('bun run publisher:assets');
   });
 
   test('ignores publisher secret files while retaining the tracked example', () => {

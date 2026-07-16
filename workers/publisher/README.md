@@ -25,7 +25,10 @@ The capture shell, HTML, and isolated bundle revalidate the host-only render cap
 exact Convex snapshot endpoint before serving. Capture diagnostics retain at most an artwork
 origin plus a redacted marker, never userinfo, path, query, or fragment data.
 
-Public delivery serves only `/factions/<Convex faction id>/sheet.pdf` from the private R2 binding.
+Public delivery serves only `/published/factions/<Convex faction id>/sheet.pdf` from the private R2
+binding. The `/published` prefix deliberately separates Worker-owned delivery from ordinary SPA
+routes such as `/factions/<slug>`. Malformed or unknown published paths fail closed and never fall
+through to the SPA shell.
 Signed publication tokens are verified locally before cache or R2 access. Cache API entries use the
 Worker request origin plus the exact stable path and exact valid token; unrelated query parameters
 are discarded. Cache API contents are data-center local and this Worker does not implement
@@ -45,11 +48,17 @@ allowance from the generic documentation.
 
 ## Local checks
 
+`publisher:assets` first builds the complete TanStack SPA, then builds the isolated capture bundle,
+combines both outputs into `workers/publisher/dist`, omits Netlify's `_redirects`, creates the
+Cloudflare SPA `index.html` as an exact copy of `_shell.html`, and enforces the Workers Free asset
+count plus the 25 MiB per-file limit. Set `VITE_CONVEX_URL` to the intended build-time Convex URL.
+
 ```bash
 bun run publisher:types
 bun run publisher:typecheck
 bun run publisher:test
 bun run publisher:assets
+bun run publisher:assets:check
 bun run publisher:font-regression
 bun run publisher:dry-run
 bun run publisher:startup

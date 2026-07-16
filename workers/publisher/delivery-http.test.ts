@@ -12,7 +12,10 @@ const representation: AssetRepresentation = {
 };
 
 function request(headers: HeadersInit = {}, method: 'GET' | 'HEAD' = 'GET'): Request {
-  return new Request('https://assets.example.test/factions/id/sheet.pdf', { method, headers });
+  return new Request('https://assets.example.test/published/factions/id/sheet.pdf', {
+    method,
+    headers,
+  });
 }
 
 describe('RFC-aligned delivery evaluator', () => {

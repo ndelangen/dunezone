@@ -840,8 +840,8 @@ describe('read-only eligibility and public projection', () => {
         cacheToken: CACHE_ONE,
         r2Etag: 'etag-one',
         bytes: 1_234,
-        stablePath: `/factions/${encodeURIComponent(factionId)}/sheet.pdf`,
-        href: `/factions/${encodeURIComponent(factionId)}/sheet.pdf?v=${encodeURIComponent(CACHE_ONE)}`,
+        stablePath: `/published/factions/${encodeURIComponent(factionId)}/sheet.pdf`,
+        href: `/published/factions/${encodeURIComponent(factionId)}/sheet.pdf?v=${encodeURIComponent(CACHE_ONE)}`,
       },
     });
     expect(Object.keys(metadata ?? {}).sort()).toEqual([
@@ -887,8 +887,8 @@ describe('read-only eligibility and public projection', () => {
       factionId,
       publication: {
         cacheToken: CACHE_ONE,
-        stablePath: `/factions/${encodeURIComponent(factionId)}/sheet.pdf`,
-        href: `/factions/${encodeURIComponent(factionId)}/sheet.pdf?v=${encodeURIComponent(CACHE_ONE)}`,
+        stablePath: `/published/factions/${encodeURIComponent(factionId)}/sheet.pdf`,
+        href: `/published/factions/${encodeURIComponent(factionId)}/sheet.pdf?v=${encodeURIComponent(CACHE_ONE)}`,
       },
     });
   });

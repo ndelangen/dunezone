@@ -56,7 +56,9 @@ function publisherEnv(now: number): Env {
     ASSET_PUBLISHER_POLL_SECRET: 'poll-secret-not-shared',
     ASSET_PUBLISHER_EXECUTOR_SECRET: 'executor-secret-not-shared',
     ASSET_PUBLISHER_CACHE_TOKEN_SECRET: createCacheSigningSecret(),
-    ASSETS: { fetch: vi.fn() },
+    ASSETS: {
+      fetch: vi.fn(async () => new Response('<html>spa shell</html>', { status: 200 })),
+    },
     BROWSER: {},
     ASSET_BUCKET: {},
     PUBLISH_QUEUE: { send: vi.fn() },
@@ -82,11 +84,15 @@ afterEach(() => {
 
 describe('publisher Worker structured-log security boundary', () => {
   test.each([
-    '/factions',
-    '/factions/',
-    '/factions/mutable-slug/sheet.pdf',
-    '/factions/extra',
-  ])('owns the full faction namespace without Static Assets fallthrough: %s', async (pathname) => {
+    '/published',
+    '/published/',
+    '/published/factions/mutable-slug/sheet.pdf',
+    '/published/extra',
+    '/__asset-publisher',
+    '/__asset-publisher/unknown',
+    '/publisher-capture',
+    '/publisher-capture/unknown.js',
+  ])('owns reserved namespaces without Static Assets fallthrough: %s', async (pathname) => {
     const currentEnv = publisherEnv(Date.now());
     const waitUntil = vi.fn();
     const response = await publisherWorker.fetch(
@@ -98,6 +104,26 @@ describe('publisher Worker structured-log security boundary', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
     expect(waitUntil).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    '/',
+    '/factions',
+    '/factions/mutable-slug',
+    '/factions/j57c8t9m2q4w6e8r0y2u4i6o8p0a2s4d/sheet.pdf',
+    '/rulesets/example',
+    '/public/app-hash.js',
+  ])('leaves ordinary application routes and assets to Static Assets: %s', async (pathname) => {
+    const currentEnv = publisherEnv(Date.now());
+    const response = await publisherWorker.fetch(
+      new Request(`https://assets.example.com${pathname}`),
+      currentEnv,
+      { waitUntil: vi.fn() } as unknown as ExecutionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('spa shell');
+    expect(currentEnv.ASSETS.fetch).toHaveBeenCalledOnce();
   });
 
   test.each(SIGNED_URLS)('Cron redacts a rejected poll URL: %s', async (signedUrl) => {

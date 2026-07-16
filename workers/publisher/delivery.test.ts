@@ -142,7 +142,7 @@ describe('public faction-sheet delivery', () => {
     const bucket = { get: vi.fn(), head: vi.fn() } as PublicAssetBucket;
     const cacheState = cache();
     const namespace404 = await handlePublicAssetRequest(
-      new Request('https://assets.example.com/factions/mutable-slug/sheet.pdf'),
+      new Request('https://assets.example.com/published/factions/mutable-slug/sheet.pdf'),
       env(bucket),
       context(),
       { cache: cacheState.value }
@@ -151,7 +151,7 @@ describe('public faction-sheet delivery', () => {
     expect(namespace404?.headers.get('Cache-Control')).toBe('no-store');
     await expect(
       handlePublicAssetRequest(
-        new Request('https://assets.example.com/not-factions'),
+        new Request(`https://assets.example.com/factions/${FACTION_ID}/sheet.pdf`),
         env(bucket),
         context(),
         { cache: cacheState.value }

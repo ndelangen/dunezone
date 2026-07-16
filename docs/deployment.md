@@ -1,9 +1,15 @@
 # Deployment
 
-## Netlify
+## Current production and planned Worker cutover
 
-Application deploys to Netlify as a Single Page Application (SPA).
-Production deploys are orchestrated by GitHub Actions: deploy Convex first, then publish `dist/client` to Netlify.
+Production currently deploys to Netlify as a Single Page Application (SPA). The repository is being
+prepared to move the application, public generated assets, capture surface, and publisher into one
+Cloudflare Worker release unit. This source preparation does not provision or deploy that Worker,
+change `SITE_URL`, or activate publishing.
+
+At the approved cutover, the Cloudflare Worker becomes the only canonical application host. Keep
+the last known-good Netlify release only as rollback infrastructure; do not run Netlify and
+Cloudflare as competing routine production deployers.
 
 ## Build Process
 
@@ -17,17 +23,43 @@ Production deploys are orchestrated by GitHub Actions: deploy Convex first, then
 - Assets directory: `public`
 - Public directory: `public`
 
-## Routing
+**Unified Worker release build**:
+
+```bash
+VITE_CONVEX_URL=https://example.convex.cloud bun run publisher:assets
+```
+
+This builds `dist/client`, builds the isolated publisher capture bundle, and assembles both into
+`workers/publisher/dist`. The assembly omits Netlify-only `_redirects`, copies TanStack's
+`_shell.html` to the `index.html` required by Cloudflare SPA fallback, and fails when the Workers
+Free 20,000-file limit or 25 MiB per-file limit is exceeded.
+
+## Routing and ownership
 
 **Redirects file**: [`public/_redirects`](../public/_redirects)
 
-All routes redirect to `index.html` for client-side routing:
+Netlify rewrites missing routes to TanStack's SPA shell for client-side routing:
 
 ```
-/*    /index.html   200
+/*    /_shell.html   200
 ```
 
 This ensures TanStack Router handles all routes on the client side.
+
+Cloudflare Static Assets uses `not_found_handling: "single-page-application"`. Requests are
+asset-first by default, so ordinary navigation and hashed static files avoid a Worker invocation.
+Only these namespaces are Worker-first:
+
+| Namespace | Owner |
+| --- | --- |
+| `/published` and `/published/*` | Stable public generated-asset delivery; malformed paths fail closed. |
+| `/__asset-publisher` and `/__asset-publisher/*` | Health and capability-gated operational routes. |
+| `/publisher-capture`, `/publisher-capture.html`, `/publisher-capture/*` | Capability-gated capture document and bundle. |
+| Everything else, including `/factions/*` | Static asset lookup, then SPA `index.html` fallback. |
+
+The faction-sheet delivery path is
+`/published/factions/<Convex faction id>/sheet.pdf`. The `/published` prefix prevents collision with
+the user-facing `/factions/<slug>` SPA route.
 
 ## Environment Variables
 
@@ -59,6 +91,13 @@ On every push to `main`:
 5. Deploy `dist/client` to Netlify with **`deploy --no-build --prod`** (token + site id). **`--no-build`** is required so the CLI does not run `netlify.toml`’s `build.command` via `@netlify/build`; that path can finish as a **draft** deploy and skip updating the production URL even when `--prod` is present.
 
 The Netlify publish step runs only if Convex deploy, migration verification, and build succeed.
+The reusable verification workflow also builds and dry-runs the unified Worker release without
+deploying it.
+
+The future approved cutover keeps the same release authority and order: verify → tolerant Convex
+deploy → required migrations → unified Worker build → infrastructure/readiness checks → Worker
+deploy → smoke tests → separately guarded activation. Only after that cutover should routine
+Netlify publication be removed; retain its last known-good release for rollback.
 
 ## Netlify One-Time Setup
 
@@ -78,7 +117,7 @@ If you prefer **no** Netlify Git builds at all (Actions only), disconnect the re
 
 On push to `main`, [`.github/workflows/deploy-main.yml`](../.github/workflows/deploy-main.yml) runs **`bun run migrations:deploy`** after **`bun run convex:deploy`**. That starts and waits for all widen migrations in [`convex/migration-guards.json`](../convex/migration-guards.json) (including `profiles_from_users_v1`). No separate manual migration step is required when this workflow succeeds.
 
-## Deployment Flow
+## Current deployment flow
 
 ```mermaid
 flowchart LR
@@ -88,6 +127,9 @@ flowchart LR
     Build --> NetlifyDeploy[Deploy dist/client]
     NetlifyDeploy --> Live[Live Site]
 ```
+
+No checked-in workflow currently provisions Cloudflare resources, installs publisher secrets,
+deploys the Worker, changes `SITE_URL`, or activates Cron/Convex publishing.
 
 ## Convex Breaking Migrations (Required)
 

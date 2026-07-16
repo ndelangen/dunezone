@@ -1,4 +1,3 @@
-import { cpSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,22 +10,7 @@ export default defineConfig({
   root: repositoryRoot,
   publicDir: false,
   resolve: { tsconfigPaths: true },
-  plugins: [
-    viteReact(),
-    {
-      name: 'copy-publisher-public-assets',
-      closeBundle() {
-        cpSync(
-          path.join(repositoryRoot, 'public'),
-          path.join(repositoryRoot, 'workers/publisher/dist'),
-          {
-            recursive: true,
-            filter: (source) => path.basename(source) !== '_redirects',
-          }
-        );
-      },
-    },
-  ],
+  plugins: [viteReact()],
   build: {
     outDir: path.join(repositoryRoot, 'workers/publisher/dist'),
     emptyOutDir: true,
