@@ -1,9 +1,10 @@
-import type { Page } from '@cloudflare/playwright';
+import type { Browser, Page } from '@cloudflare/playwright';
 import { describe, expect, test, vi } from 'vitest';
 
 import {
   assertCaptureDiagnostics,
   assertCapturedPdfOutput,
+  PublisherBrowserSession,
   publisherCaptureCookies,
   registerCaptureDiagnostics,
 } from './browser';
@@ -102,5 +103,15 @@ describe('production capture output validation', () => {
     });
     expect(capabilityCookie).not.toHaveProperty('domain');
     expect(capabilityCookie?.url).not.toContain(capability);
+  });
+
+  test('closes the provider Browser session exactly once', async () => {
+    const close = vi.fn(async () => {});
+    const browser = { close } as unknown as Browser;
+    const session = new PublisherBrowserSession(browser, 'https://publisher.example.com');
+
+    await session.close();
+
+    expect(close).toHaveBeenCalledOnce();
   });
 });

@@ -300,6 +300,11 @@ async function checkProofPdf(
       );
     }
 
+    invariant(
+      (await page.locator('[aria-label="Troop Token"]').count()) > 0,
+      'Preview troops with omitted optional modifiers must render as bounded TroopToken components'
+    );
+
     const bytes = await page.pdf({
       displayHeaderFooter: false,
       margin: { top: 0, right: 0, bottom: 0, left: 0 },

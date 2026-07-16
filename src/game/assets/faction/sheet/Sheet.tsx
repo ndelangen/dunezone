@@ -17,13 +17,6 @@ function isPreviewSheet(props: SheetProps): props is PreviewSheet {
   return 'background' in props;
 }
 
-// Type guard to check if a troop is Preview type (has star/striped properties)
-function isPreviewTroop(
-  troop: AssetSheet['troops'][0] | PreviewSheet['troops'][0]
-): troop is PreviewSheet['troops'][0] {
-  return 'star' in troop || 'striped' in troop;
-}
-
 // Type guard to check if a leader is Preview type (is an object, not a string)
 function isPreviewLeader(
   leader: AssetSheet['leaders'][0] | PreviewSheet['leaders'][0]
@@ -141,40 +134,44 @@ export function FactionSheetPage2(props: SheetProps) {
                 <div className={styles.subtitle}>Troops</div>
                 <div className={styles.troops}>
                   {props.troops.map((t) => {
-                    if (isPreviewTroop(t) && isPreviewSheet(props)) {
+                    if (isPreviewSheet(props)) {
+                      const previewTroop = t as PreviewSheet['troops'][0];
                       return (
-                        <div key={`${t.image}-${t.name}`} className={styles.troop}>
+                        <div
+                          key={`${previewTroop.image}-${previewTroop.name}`}
+                          className={styles.troop}
+                        >
                           <div>
                             <TroopToken
                               background={props.background}
-                              image={t.image}
-                              star={t.star}
-                              striped={t.striped}
+                              image={previewTroop.image}
+                              star={previewTroop.star}
+                              striped={previewTroop.striped}
                             />
                           </div>
                           <section>
-                            <div className={styles.head}>{t.name}</div>
+                            <div className={styles.head}>{previewTroop.name}</div>
                             <div className={styles.text}>
-                              <MarkdownContent>{t.description}</MarkdownContent>
+                              <MarkdownContent>{previewTroop.description}</MarkdownContent>
                             </div>
                           </section>
 
-                          {t.back && (
+                          {previewTroop.back && (
                             <>
                               <img className={styles.icon} src="/vector/icon/flip.svg" alt="Flip" />
                               <div>to:</div>
                               <div>
                                 <TroopToken
                                   background={props.background}
-                                  image={t.back.image}
-                                  star={t.back.star}
-                                  striped={t.back.striped}
+                                  image={previewTroop.back.image}
+                                  star={previewTroop.back.star}
+                                  striped={previewTroop.back.striped}
                                 />
                               </div>
                               <section>
-                                <div className={styles.head}>{t.back.name}</div>
+                                <div className={styles.head}>{previewTroop.back.name}</div>
                                 <div className={styles.text}>
-                                  <MarkdownContent>{t.back.description}</MarkdownContent>
+                                  <MarkdownContent>{previewTroop.back.description}</MarkdownContent>
                                 </div>
                               </section>
                             </>

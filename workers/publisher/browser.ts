@@ -247,12 +247,10 @@ export class PublisherBrowserSession {
   }
 
   async close(): Promise<void> {
-    const results = await Promise.allSettled([
-      this.context?.close() ?? Promise.resolve(),
-      this.browser.close(),
-    ]);
-    const rejected = results.find((result) => result.status === 'rejected');
-    if (rejected?.status === 'rejected') throw rejected.reason;
+    // Browser.close() owns the provider session lifecycle and closes all contexts. Closing the
+    // context concurrently races the CDP connection teardown and can turn a normal provider close
+    // into a rejected close promise even though the session has already ended.
+    await this.browser.close();
   }
 }
 
