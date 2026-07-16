@@ -1,12 +1,22 @@
 # Deployment
 
-## Current production and inert Worker release
+## Current production and scheduled Worker release
 
 The ordered `main` workflow deploys the already-provisioned unified Cloudflare Worker after Convex
-and required migrations. The checked-in release remains inert: both publisher flags are `false`,
-there are zero Cron triggers, and no workflow step changes `SITE_URL`, OAuth configuration, Worker
-mode, secrets, or infrastructure. The final Netlify publish is retained temporarily as the rollback
-build and runs only after the Worker health smoke succeeds.
+and required migrations. The checked-in Worker release is persistently scheduled: both publisher
+flags are `true` and exactly one `*/15 * * * *` Cron is source controlled. The Convex control plane
+remains the durable execution authority.
+
+**Release prerequisite: Convex publisher config and singleton must both be paused before this
+scheduled Worker release is merged or deployed.** Deploying the Worker and Cron against paused
+Convex must produce an empty poll, no Queue message, and no Browser Run. The workflow does not call
+the operator endpoint or mutate publisher data; a separate explicitly approved operator action is
+required to activate Convex later. Once that activation happens, ordinary `main` deploys preserve
+the scheduled Worker configuration instead of reverting it to an inert release.
+
+No workflow step changes `SITE_URL`, OAuth configuration, secrets, or infrastructure outside the
+checked-in Worker bindings. The final Netlify publish is retained temporarily as the rollback build
+and runs only after the Worker health smoke succeeds.
 
 The later canonical-host cutover and publisher activation remain separately approved operations.
 Cloudflare Git Builds stays disconnected so GitHub Actions remains the only ordered release
@@ -27,7 +37,7 @@ authority.
 **Unified Worker release build**:
 
 ```bash
-VITE_CONVEX_URL=https://example.convex.cloud bun run publisher:assets
+VITE_CONVEX_URL=https://exuberant-finch-263.eu-west-1.convex.cloud bun run publisher:assets
 ```
 
 This builds `dist/client`, builds the isolated publisher capture bundle, and assembles both into
@@ -97,14 +107,15 @@ On every push to `main`:
 2. `bun run convex:deploy`
 3. `bun run migrations:deploy` (auto-run + await required Convex migrations)
 4. Fail-closed Worker preflight: exact `main` SHA and clean tracked source, required protected CI
-   inputs, stable source-controlled Worker/Queue/R2 names, `false/false` flags, zero Cron, workers.dev
-   origin, renderer version, max items `1`, and required secret names.
+   inputs, exact production `VITE_CONVEX_URL`, stable source-controlled Worker/Queue/R2 names,
+   `true/true` flags, one exact `*/15 * * * *` Cron, workers.dev origin, renderer identity, max items
+   `1`, and required secret names.
 5. Check generated Worker bindings, typecheck, build the SPA and capture bundle once with the
    protected `VITE_CONVEX_URL`, re-check the assembled asset limits, and reject generated source
    drift.
 6. Dry-run the exact assembled release, then deploy the checked-in Wrangler configuration in
    strict mode. The Worker version tag is the full `GITHUB_SHA`.
-7. Smoke the exact checked-in workers.dev health URL and require `false/false`, max items `1`, exact
+7. Smoke the exact checked-in workers.dev health URL and require `true/true`, max items `1`, exact
    renderer support/manifest agreement, `Cache-Control: no-store`, and the deployed Git SHA tag.
 8. Deploy the already-built `dist/client` to Netlify with **`deploy --no-build --prod`** as the final
    rollback step. **`--no-build`** prevents a second Netlify-side build.
@@ -115,12 +126,11 @@ Wrangler validates the three checked-in required Worker secret names against the
 the workflow never lists, reads, rotates, or installs their values. Explicit Queue and R2 names in
 `workers/publisher/wrangler.jsonc` prevent automatic resource naming or substitution.
 
-The sole external prerequisite for merging this slice is a least-privilege token installed as
-`CLOUDFLARE_API_TOKEN` in the protected GitHub `production` environment and scoped to the one
-Cloudflare account. Follow the current Cloudflare token-permission reference and validate the
-smallest permission set needed to update the existing Worker and Queue bindings; do not grant or
+The protected `CLOUDFLARE_API_TOKEN` must remain scoped to the one Cloudflare account and the
+smallest permission set needed to update the existing Worker and Queue bindings. Do not grant or
 exercise resource provisioning, secret-management, billing, domain, or unrelated-resource access.
-Do not merge while the token is absent.
+Do not merge this scheduled release while the token is absent or while either Convex publisher
+config or singleton is active.
 
 ## Netlify One-Time Setup
 
@@ -147,16 +157,38 @@ flowchart LR
     Git[Push main] --> GHA[GitHub Actions]
     GHA --> ConvexDeploy[Deploy tolerant Convex state]
     ConvexDeploy --> Migrations[Run and verify required migrations]
-    Migrations --> Preflight[Fail-closed inert Worker preflight]
+    Migrations --> Preflight[Fail-closed scheduled Worker preflight]
     Preflight --> Build[Build one unified release]
     Build --> DryRun[Wrangler dry-run]
     DryRun --> WorkerDeploy[Strict Worker deploy tagged with Git SHA]
-    WorkerDeploy --> Smoke[Inert workers.dev health smoke]
+    WorkerDeploy --> Smoke[true/true workers.dev health smoke]
     Smoke --> NetlifyDeploy[Refresh Netlify rollback build last]
 ```
 
 No checked-in workflow provisions Cloudflare resources, installs or reads publisher secrets,
-changes `SITE_URL`, changes OAuth, arms Cron, activates publishing, or sends Queue work.
+changes `SITE_URL`, changes OAuth, calls the operator activation endpoint, mutates publisher data,
+or sends Queue work. Wrangler applies the exact source-controlled Cron as part of the Worker release;
+the workflow has no flag or trigger overlay.
+
+## First scheduled-release observation
+
+The current repository scripts have no supported read-only Wrangler command that reports deployed
+Cron trigger shape: `wrangler triggers` only deploys changes, and deployment status does not expose
+the schedule. CI therefore validates the exact source configuration, while live trigger readback
+remains an operator runbook step.
+
+After the first merged scheduled release:
+
+1. Reconfirm through authorized read-only Convex state that the publisher config and singleton are
+   both paused; confirm the Queue is empty and Browser Run has zero active sessions.
+2. Require the deploy smoke to report `publisherEnabled=true`, `cronDispatchEnabled=true`, max items
+   `1`, exact renderer identity, and the merged full Git SHA.
+3. Read the Worker trigger in the Cloudflare dashboard and require exactly one
+   `*/15 * * * *` schedule. Do not use the mutating `wrangler triggers deploy` command for readback.
+4. Observe at least one `asset_publisher_cron` log with `result: "empty"`, then reconfirm no Queue
+   message and no Browser session were created.
+5. Keep Convex paused until the separate operator activation is explicitly approved. The deployment
+   workflow must not perform that activation.
 
 ## Convex Breaking Migrations (Required)
 

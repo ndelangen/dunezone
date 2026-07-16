@@ -1,10 +1,10 @@
-# Disabled production faction-sheet publisher
+# Scheduled production faction-sheet publisher
 
 This is the production-shaped, one-item publisher surface. Its stable Cloudflare resources are
-provisioned, but execution remains inert:
+provisioned, and the persistent release configuration is ready for scheduled polling:
 
-- `PUBLISHER_ENABLED` and `CRON_DISPATCH_ENABLED` are `false`;
-- the Cron trigger list is empty;
+- `PUBLISHER_ENABLED` and `CRON_DISPATCH_ENABLED` are `true`;
+- the Cron trigger list contains exactly one `*/15 * * * *` schedule;
 - the production Queue and dedicated private R2 bucket are named explicitly;
 - capture and Convex HTTP URLs use the intended workers.dev and regional Convex origins;
 - the configured semantic renderer is `faction-sheet-v1`; the separate SHA-256 renderer id
@@ -81,17 +81,20 @@ bun run publisher:startup
 
 The protected `main` workflow runs the release gates after Convex deploy and required migrations:
 source/config preflight, generated-type check, typecheck, one production-URL asset build, assembled
-asset check, clean-source check, Wrangler dry-run, strict SHA-tagged deploy, and inert workers.dev
-health smoke. Netlify refreshes the same `dist/client` only afterward as rollback. The workflow does
-not provision resources, install/read secrets, change flags/Cron/routes, or activate publishing.
+asset check, clean-source check, Wrangler dry-run, strict SHA-tagged deploy, and `true/true`
+workers.dev health smoke. Netlify refreshes the same `dist/client` only afterward as rollback. The
+workflow does not provision resources, install/read secrets, override flags/Cron/routes, call the
+operator endpoint, mutate publisher data, or activate Convex.
 
 Do not merge the CI deployment slice until the protected GitHub `production` environment contains
 the account-scoped least-privilege `CLOUDFLARE_API_TOKEN`. `CLOUDFLARE_ACCOUNT_ID` is a protected
 environment variable; the API token is a protected secret. The exact Queue and R2 names remain in
 `wrangler.jsonc`, and required Worker secret names are validated by Wrangler during deploy.
 
-Deploy this configuration only through Ticket 6's inert gate: the stable private bucket and Queue
-must be reverified, the disabled-first publication-admission migration/counter must pass, and the
-three Worker secrets must be installed before the first deployment. The checked-in flags remain
-`false/false` and no Cron is attached. Run inert health/routing checks and the separately approved
-one-item measurement before adding the 15-minute Cron or activating Convex/Worker execution.
+**Release prerequisite: Convex publisher config and singleton must both be paused before this
+scheduled Worker release is merged or deployed.** The stable private bucket and Queue must be
+reverified, the disabled-first publication-admission migration/counter must pass, and the three
+Worker secrets must be installed. Deploy `true/true` plus the exact 15-minute Cron against paused
+Convex, observe at least one empty Cron with no Queue message or Browser Run, and only then consider
+the separately approved Convex operator activation. Normal `main` deploys after that activation keep
+this same scheduled source configuration; they never re-run or reverse the activation transition.

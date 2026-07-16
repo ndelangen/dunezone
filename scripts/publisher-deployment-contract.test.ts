@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
   PUBLISHER_ORIGIN,
+  PUBLISHER_PRODUCTION_CONVEX_URL,
   PUBLISHER_RENDERER_VERSION,
   readPublisherConfig,
   validatePublisherDeployContract,
@@ -14,15 +15,15 @@ function ciEnvironment(): NodeJS.ProcessEnv {
     GITHUB_REF: 'refs/heads/main',
     CLOUDFLARE_ACCOUNT_ID: 'b'.repeat(32),
     CLOUDFLARE_API_TOKEN: 'not-a-real-token',
-    VITE_CONVEX_URL: 'https://example.convex.cloud',
+    VITE_CONVEX_URL: PUBLISHER_PRODUCTION_CONVEX_URL,
   };
 }
 
 function health() {
   return {
     ok: true,
-    publisherEnabled: false,
-    cronDispatchEnabled: false,
+    publisherEnabled: true,
+    cronDispatchEnabled: true,
     maxItems: 1,
     supportedRendererVersion: PUBLISHER_RENDERER_VERSION,
     rendererSupport: {
@@ -42,33 +43,47 @@ function health() {
 }
 
 describe('publisher CI deployment contract', () => {
-  test('accepts the reviewed inert source-controlled configuration', () => {
+  test('accepts the reviewed scheduled source-controlled configuration', () => {
     expect(() =>
       validatePublisherDeployContract(readPublisherConfig(), ciEnvironment())
     ).not.toThrow();
   });
 
   test.each([
-    ['PUBLISHER_ENABLED', 'true'],
-    ['CRON_DISPATCH_ENABLED', 'true'],
+    ['PUBLISHER_ENABLED', 'false'],
+    ['CRON_DISPATCH_ENABLED', 'false'],
     ['EXECUTOR_MAX_ITEMS', '2'],
+    ['CONVEX_POLL_URL', 'https://replacement.convex.site/asset-publishing/poll'],
   ])('fails closed when %s changes', (name, value) => {
     const config = structuredClone(readPublisherConfig());
     (config.vars as Record<string, unknown>)[name] = value;
     expect(() => validatePublisherDeployContract(config, ciEnvironment())).toThrow();
   });
 
-  test('fails closed when a Cron or alternate resource name enters the config', () => {
+  test('fails closed when the exact Cron or a resource name changes', () => {
     const cronConfig = structuredClone(readPublisherConfig());
-    cronConfig.triggers = { crons: ['*/15 * * * *'] };
+    cronConfig.triggers = { crons: [] };
     expect(() => validatePublisherDeployContract(cronConfig, ciEnvironment())).toThrow();
+
+    const extraCronConfig = structuredClone(readPublisherConfig());
+    extraCronConfig.triggers = { crons: ['*/15 * * * *', '0 0 * * *'] };
+    expect(() => validatePublisherDeployContract(extraCronConfig, ciEnvironment())).toThrow();
 
     const bucketConfig = structuredClone(readPublisherConfig());
     (bucketConfig.r2_buckets as Array<Record<string, unknown>>)[0].bucket_name = 'replacement';
     expect(() => validatePublisherDeployContract(bucketConfig, ciEnvironment())).toThrow();
   });
 
-  test('accepts health only when inert flags, renderer support, origin, and Git SHA match', () => {
+  test('fails closed unless VITE_CONVEX_URL is the exact production deployment', () => {
+    expect(() =>
+      validatePublisherDeployContract(readPublisherConfig(), {
+        ...ciEnvironment(),
+        VITE_CONVEX_URL: 'https://example.convex.cloud',
+      })
+    ).toThrow(/exact production Convex deployment URL/);
+  });
+
+  test('accepts health only when active flags, renderer support, origin, and Git SHA match', () => {
     expect(() =>
       validatePublisherHealth(
         readPublisherConfig(),
@@ -81,8 +96,8 @@ describe('publisher CI deployment contract', () => {
   });
 
   test.each([
-    ['publisherEnabled', true],
-    ['cronDispatchEnabled', true],
+    ['publisherEnabled', false],
+    ['cronDispatchEnabled', false],
     ['maxItems', 2],
   ])('rejects unsafe health field %s', (name, value) => {
     const response = health() as Record<string, unknown>;

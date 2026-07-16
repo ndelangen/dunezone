@@ -2,13 +2,22 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import {
+  PUBLISHER_RENDERER_CONTRACT,
+  PUBLISHER_RENDERER_VERSION,
+} from '../workers/publisher/renderer-contract';
+import { rendererManifest } from '../workers/publisher/renderer-manifest.generated';
+
 export const PUBLISHER_WORKER_NAME = 'faction-sheet-asset-publisher';
 export const PUBLISHER_QUEUE_NAME = 'faction-sheet-asset-publisher';
 export const PUBLISHER_BUCKET_NAME = 'tanstack-start-faction-sheet-assets';
 export const PUBLISHER_ORIGIN = 'https://faction-sheet-asset-publisher.ndelangen.workers.dev';
-export const PUBLISHER_RENDERER_VERSION = 'faction-sheet-v1';
+export const PUBLISHER_PRODUCTION_CONVEX_URL = 'https://exuberant-finch-263.eu-west-1.convex.cloud';
+export { PUBLISHER_RENDERER_VERSION };
 
 const CONFIG_PATH = path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc');
+const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.convex.site';
+const PUBLISHER_CRON = '*/15 * * * *';
 const REQUIRED_SECRETS = [
   'ASSET_PUBLISHER_CACHE_TOKEN_SECRET',
   'ASSET_PUBLISHER_POLL_SECRET',
@@ -71,7 +80,14 @@ export function validatePublisherDeployContract(
     'CLOUDFLARE_ACCOUNT_ID must be a 32-character account ID'
   );
   requiredEnvironment(environment, 'CLOUDFLARE_API_TOKEN');
-  absoluteHttpsUrl(requiredEnvironment(environment, 'VITE_CONVEX_URL'), 'VITE_CONVEX_URL');
+  const convexUrl = absoluteHttpsUrl(
+    requiredEnvironment(environment, 'VITE_CONVEX_URL'),
+    'VITE_CONVEX_URL'
+  );
+  invariant(
+    convexUrl.href === `${PUBLISHER_PRODUCTION_CONVEX_URL}/`,
+    'VITE_CONVEX_URL must be the exact production Convex deployment URL'
+  );
 
   invariant(config.name === PUBLISHER_WORKER_NAME, 'Worker name changed unexpectedly');
   invariant(config.main === './index.ts', 'Worker entrypoint changed unexpectedly');
@@ -84,23 +100,27 @@ export function validatePublisherDeployContract(
 
   const vars = object(config.vars, 'vars');
   exactJson(
+    vars,
     {
-      PUBLISHER_ENABLED: vars.PUBLISHER_ENABLED,
-      CRON_DISPATCH_ENABLED: vars.CRON_DISPATCH_ENABLED,
-      CAPTURE_BASE_URL: vars.CAPTURE_BASE_URL,
-      SUPPORTED_RENDERER_VERSION: vars.SUPPORTED_RENDERER_VERSION,
-      EXECUTOR_MAX_ITEMS: vars.EXECUTOR_MAX_ITEMS,
-    },
-    {
-      PUBLISHER_ENABLED: 'false',
-      CRON_DISPATCH_ENABLED: 'false',
+      PUBLISHER_ENABLED: 'true',
+      CRON_DISPATCH_ENABLED: 'true',
       CAPTURE_BASE_URL: PUBLISHER_ORIGIN,
+      CONVEX_POLL_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/poll`,
+      CONVEX_EXECUTOR_BASE_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/executor`,
+      CONVEX_RENDER_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/render`,
       SUPPORTED_RENDERER_VERSION: PUBLISHER_RENDERER_VERSION,
       EXECUTOR_MAX_ITEMS: '1',
+      SOFT_DEADLINE_MS: '480000',
+      UPLOAD_MARGIN_MS: '120000',
+      BROWSER_CAPTURE_TIMEOUT_MS: '45000',
+      BROWSER_CLEANUP_GRACE_MS: '15000',
+      PDF_MAX_BYTES: '2000000',
+      QUEUE_MAX_PRE_OWNERSHIP_ATTEMPTS: '2',
+      QUEUE_RETRY_DELAY_SECONDS: '60',
     },
-    'inert Worker variables'
+    'scheduled Worker variables'
   );
-  exactJson(config.triggers, { crons: [] }, 'Cron configuration');
+  exactJson(config.triggers, { crons: [PUBLISHER_CRON] }, 'Cron configuration');
   exactJson(
     config.r2_buckets,
     [{ binding: 'ASSET_BUCKET', bucket_name: PUBLISHER_BUCKET_NAME }],
@@ -122,7 +142,26 @@ export function validatePublisherDeployContract(
     },
     'Queue bindings'
   );
+  exactJson(config.browser, { binding: 'BROWSER' }, 'Browser binding');
+  exactJson(
+    config.version_metadata,
+    { binding: 'CF_VERSION_METADATA' },
+    'Worker version metadata binding'
+  );
   exactJson(config.secrets, { required: REQUIRED_SECRETS }, 'required Worker secret names');
+
+  invariant(rendererManifest.schemaVersion === 1, 'Renderer manifest schema changed unexpectedly');
+  invariant(
+    rendererManifest.rendererVersion === PUBLISHER_RENDERER_VERSION &&
+      vars.SUPPORTED_RENDERER_VERSION === rendererManifest.rendererVersion,
+    'Configured renderer version does not match the source manifest'
+  );
+  invariant(
+    /^[0-9a-f]{64}$/.test(rendererManifest.digest) &&
+      rendererManifest.rendererId === `faction-sheet/sha256:${rendererManifest.digest}`,
+    'Renderer source identity is invalid'
+  );
+  exactJson(rendererManifest.contract, PUBLISHER_RENDERER_CONTRACT, 'renderer source contract');
 
   const origin = absoluteHttpsUrl(PUBLISHER_ORIGIN, 'publisher origin');
   invariant(origin.pathname === '/', 'Publisher origin must not contain a path');
@@ -154,8 +193,8 @@ export function validatePublisherHealth(
   );
   invariant(cacheControl === 'no-store', 'Health response must be non-cacheable');
   invariant(health.ok === true, 'Health response is not ok');
-  invariant(health.publisherEnabled === false, 'Publisher must remain inert');
-  invariant(health.cronDispatchEnabled === false, 'Cron dispatch must remain inert');
+  invariant(health.publisherEnabled === true, 'Publisher must be enabled');
+  invariant(health.cronDispatchEnabled === true, 'Cron dispatch must be enabled');
   invariant(health.maxItems === 1, 'Publisher maxItems must remain one');
   invariant(
     health.supportedRendererVersion === vars.SUPPORTED_RENDERER_VERSION,

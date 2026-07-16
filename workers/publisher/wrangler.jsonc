@@ -47,7 +47,7 @@
       }
     ]
   },
-  "triggers": { "crons": [] },
+  "triggers": { "crons": ["*/15 * * * *"] },
   "secrets": {
     "required": [
       "ASSET_PUBLISHER_CACHE_TOKEN_SECRET",
@@ -56,8 +56,8 @@
     ]
   },
   "vars": {
-    "PUBLISHER_ENABLED": "false",
-    "CRON_DISPATCH_ENABLED": "false",
+    "PUBLISHER_ENABLED": "true",
+    "CRON_DISPATCH_ENABLED": "true",
     "CAPTURE_BASE_URL": "https://faction-sheet-asset-publisher.ndelangen.workers.dev",
     "CONVEX_POLL_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/poll",
     "CONVEX_EXECUTOR_BASE_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor",

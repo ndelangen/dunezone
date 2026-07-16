@@ -11,12 +11,12 @@ const packageConfig = JSON.parse(
   readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8')
 ) as { scripts: Record<string, string> };
 
-describe('disabled production deployment shape', () => {
-  test('is provisioned but remains inert with no Cron', () => {
-    expect(config.triggers).toEqual({ crons: [] });
+describe('scheduled production deployment shape', () => {
+  test('keeps exactly one 15-minute Cron and active Worker flags in source control', () => {
+    expect(config.triggers).toEqual({ crons: ['*/15 * * * *'] });
     expect(config.vars).toMatchObject({
-      PUBLISHER_ENABLED: 'false',
-      CRON_DISPATCH_ENABLED: 'false',
+      PUBLISHER_ENABLED: 'true',
+      CRON_DISPATCH_ENABLED: 'true',
       CAPTURE_BASE_URL: 'https://faction-sheet-asset-publisher.ndelangen.workers.dev',
       CONVEX_POLL_URL: 'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/poll',
       SUPPORTED_RENDERER_VERSION: 'faction-sheet-v1',
@@ -147,7 +147,7 @@ describe('disabled production deployment shape', () => {
     expect(biome.files.includes).toContain('!**/workers/publisher/worker-configuration.d.ts');
   });
 
-  test('keeps the main deploy ordered, inert, source-exact, and Netlify-last', () => {
+  test('keeps the main deploy ordered, scheduled, source-exact, and Netlify-last', () => {
     const workflow = readFileSync(
       path.resolve(process.cwd(), '.github/workflows/deploy-main.yml'),
       'utf8'
@@ -155,7 +155,7 @@ describe('disabled production deployment shape', () => {
     const orderedSteps = [
       'Deploy Convex',
       'Run and verify required migrations',
-      'Preflight exact inert Worker release',
+      'Preflight exact scheduled Worker release',
       'Check generated Worker types',
       'Typecheck Worker release',
       'Build unified Worker release',
@@ -163,7 +163,7 @@ describe('disabled production deployment shape', () => {
       'Verify release build kept merged source exact',
       'Dry-run exact Worker release',
       'Deploy exact Worker release',
-      'Smoke inert Worker release',
+      'Smoke scheduled Worker release',
       'Deploy rollback build to Netlify',
     ];
     let previous = -1;
@@ -181,5 +181,23 @@ describe('disabled production deployment shape', () => {
     expect(workflow).not.toContain('--triggers');
     expect(workflow).not.toContain('--secrets-file');
     expect(workflow).not.toContain('name: Generate app artifacts');
+    expect(workflow).not.toContain('/asset-publishing/operator');
+    expect(workflow).not.toContain('assetPublisherOperator');
+    expect(workflow).not.toContain('requeueCurrentFactionSheetCanary');
+    expect(workflow).not.toMatch(/wrangler queues[^\n]*send/);
+  });
+
+  test('documents the paused Convex prerequisite outside the non-mutating deploy workflow', () => {
+    const deploymentGuide = readFileSync(path.resolve(process.cwd(), 'docs/deployment.md'), 'utf8');
+    const workerGuide = readFileSync(
+      path.resolve(process.cwd(), 'workers/publisher/README.md'),
+      'utf8'
+    );
+    const prerequisite =
+      'Convex publisher config and singleton must both be paused before this scheduled Worker release is merged or deployed.';
+    expect(deploymentGuide.replace(/\s+/g, ' ')).toContain(prerequisite);
+    expect(workerGuide.replace(/\s+/g, ' ')).toContain(prerequisite);
+    expect(deploymentGuide).toContain('result: "empty"');
+    expect(deploymentGuide).toContain('Keep Convex paused until the separate operator activation');
   });
 });
