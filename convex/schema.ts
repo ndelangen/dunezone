@@ -66,6 +66,75 @@ export default defineSchema({
     .index('by_group_id', ['group_id'])
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted']),
+  asset_targets: defineTable({
+    faction_id: v.id('factions'),
+    asset_type: v.literal('faction_sheet'),
+    desired_generation: v.number(),
+    desired_renderer_version: v.string(),
+    published_generation: v.optional(v.number()),
+    published_renderer_version: v.optional(v.string()),
+    published_cache_token: v.optional(v.string()),
+    published_r2_etag: v.optional(v.string()),
+    published_bytes: v.optional(v.number()),
+    published_at: v.optional(v.number()),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('leased'),
+      v.literal('current'),
+      v.literal('cooldown')
+    ),
+    next_eligible_at: v.number(),
+    attempt_count: v.number(),
+    last_error: v.optional(v.string()),
+    batch_token: v.optional(v.string()),
+    claim_token: v.optional(v.string()),
+    claimed_generation: v.optional(v.number()),
+    claimed_renderer_version: v.optional(v.string()),
+    lease_expires_at: v.optional(v.number()),
+    claim_payload_hash: v.optional(v.string()),
+    last_completed_batch_token: v.optional(v.string()),
+    last_completed_claim_token: v.optional(v.string()),
+  })
+    .index('by_faction_id_and_asset_type', ['faction_id', 'asset_type'])
+    .index('by_asset_type_and_status_and_next_eligible_at', [
+      'asset_type',
+      'status',
+      'next_eligible_at',
+    ])
+    .index('by_asset_type_and_status_and_lease_expires_at', [
+      'asset_type',
+      'status',
+      'lease_expires_at',
+    ])
+    .index('by_batch_token', ['batch_token']),
+  asset_claim_snapshots: defineTable({
+    target_id: v.id('asset_targets'),
+    faction_id: v.id('factions'),
+    asset_type: v.literal('faction_sheet'),
+    batch_token: v.string(),
+    claim_token: v.string(),
+    generation: v.number(),
+    renderer_version: v.string(),
+    lease_expires_at: v.number(),
+    payload_hash: v.string(),
+    payload: v.any(),
+  }).index('by_target_id', ['target_id']),
+  asset_type_configs: defineTable({
+    asset_type: v.literal('faction_sheet'),
+    status: v.union(v.literal('disabled'), v.literal('active'), v.literal('paused')),
+    active_renderer_version: v.string(),
+    updated_at: v.number(),
+  }).index('by_asset_type', ['asset_type']),
+  asset_publisher_state: defineTable({
+    key: v.literal('singleton'),
+    status: v.union(v.literal('disabled'), v.literal('active'), v.literal('paused')),
+    batch_token: v.optional(v.string()),
+    batch_lease_expires_at: v.optional(v.number()),
+    cooldown_until: v.number(),
+    daily_browser_utc_date: v.string(),
+    daily_browser_ms: v.number(),
+    next_lane: v.union(v.literal('foreground'), v.literal('rollout')),
+  }).index('by_key', ['key']),
   rulesets: defineTable({
     name: v.string(),
     slug: v.string(),

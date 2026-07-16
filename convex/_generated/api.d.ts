@@ -8,12 +8,15 @@
  * @module
  */
 
+import type * as assetPublisher from "../assetPublisher.js";
 import type * as auth from "../auth.js";
 import type * as e2e from "../e2e.js";
 import type * as factions from "../factions.js";
 import type * as faq from "../faq.js";
 import type * as groups from "../groups.js";
 import type * as http from "../http.js";
+import type * as lib_assetPublisherHttp from "../lib/assetPublisherHttp.js";
+import type * as lib_assetPublisherSchemas from "../lib/assetPublisherSchemas.js";
 import type * as lib_assetPublishingProof from "../lib/assetPublishingProof.js";
 import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
 import type * as lib_ids from "../lib/ids.js";
@@ -36,12 +39,15 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  assetPublisher: typeof assetPublisher;
   auth: typeof auth;
   e2e: typeof e2e;
   factions: typeof factions;
   faq: typeof faq;
   groups: typeof groups;
   http: typeof http;
+  "lib/assetPublisherHttp": typeof lib_assetPublisherHttp;
+  "lib/assetPublisherSchemas": typeof lib_assetPublisherSchemas;
   "lib/assetPublishingProof": typeof lib_assetPublishingProof;
   "lib/faqRulesetList": typeof lib_faqRulesetList;
   "lib/ids": typeof lib_ids;
