@@ -21,6 +21,7 @@ import { FormTooltip } from '@app/components/form/FormTooltip';
 import { Toolbar } from '@app/components/generic/layout';
 import { Card } from '@app/components/generic/surfaces/Card';
 import { UIButton } from '@app/components/generic/ui/UIButton';
+import { factionAssetPublishingCopy } from '@app/factions/assetPublishingStatus';
 import { loadFaction } from '@app/factions/db';
 import { FactionInputSchema } from '@game/schema/faction';
 
@@ -46,7 +47,7 @@ function FactionEditPage() {
   const profile = useCurrentProfile();
   const [editorErrors, setEditorErrors] = useState<string[]>([]);
 
-  const { faction, group } = useFaction(factionId, { initialData: loaderData });
+  const { faction, group, assetPublishing } = useFaction(factionId, { initialData: loaderData });
   if (!profile?.data?.user_id) {
     return (
       <Card>
@@ -77,28 +78,40 @@ function FactionEditPage() {
     }
     setEditorErrors([]);
     void (async () => {
-      const entry = await updateFaction.mutateAsync({ input: parsed.data, id: faction._id });
-      const newSlug = entry.slug;
-      if (newSlug !== factionId) {
-        navigate({
-          to: '/factions/$factionId/edit',
-          params: { factionId: newSlug },
-          replace: true,
-        });
+      try {
+        const entry = await updateFaction.mutateAsync({ input: parsed.data, id: faction._id });
+        const newSlug = entry.slug;
+        if (newSlug !== factionId) {
+          navigate({
+            to: '/factions/$factionId/edit',
+            params: { factionId: newSlug },
+            replace: true,
+          });
+        }
+      } catch {
+        // Mutation state renders the stable save failure feedback below.
       }
     })();
   };
+
+  const saveState = updateFaction.isPending
+    ? 'saving'
+    : updateFaction.isError
+      ? 'error'
+      : updateFaction.data
+        ? 'saved'
+        : 'idle';
 
   return (
     <>
       <Toolbar>
         <Toolbar.Left>
-          <FormTooltip content="Save changes">
+          <FormTooltip content={updateFaction.isPending ? 'Saving…' : 'Save changes'}>
             <UIButton
               type="button"
               iconOnly
               aria-label="Save changes"
-              disabled={false}
+              disabled={updateFaction.isPending}
               onClick={() => editorRef.current?.submit()}
             >
               <Save size={16} aria-hidden />
@@ -149,6 +162,9 @@ function FactionEditPage() {
         </Toolbar.Left>
 
         <Toolbar.Right>
+          <p className={styles.toolbarGroupAccess} role="status">
+            {factionAssetPublishingCopy(assetPublishing.status, saveState)}
+          </p>
           {group ? (
             <div className={styles.toolbarGroupAccess}>
               <span className={styles.groupStatusLabel}>Group access:</span>{' '}

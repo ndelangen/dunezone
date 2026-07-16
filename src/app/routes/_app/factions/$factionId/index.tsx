@@ -9,6 +9,7 @@ import { FormTooltip } from '@app/components/form/FormTooltip';
 import { ButtonGroup, Toolbar } from '@app/components/generic/layout';
 import { UIButton } from '@app/components/generic/ui/UIButton';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
+import { factionAssetPublishingCopy } from '@app/factions/assetPublishingStatus';
 
 export const Route = createFileRoute('/_app/factions/$factionId/')({
   loader: async ({ params }) => {
@@ -125,7 +126,7 @@ function FactionDetailMain({ factionId }: { factionId: string }) {
   const rulesetsSeed = loaderData?.rulesets;
   const matches = useMatches();
 
-  const { faction, memberships, groupAccess, owner } = useFaction(factionId, {
+  const { faction, memberships, groupAccess, owner, assetPublishing } = useFaction(factionId, {
     initialData: factionSeed,
   });
   const factionRow = faction;
@@ -205,6 +206,11 @@ function FactionDetailMain({ factionId }: { factionId: string }) {
         </Link>{' '}
         (opens without site chrome; use the browser print dialog for PDF)
       </p>
+
+      <section>
+        <h3>Public assets</h3>
+        <p>{factionAssetPublishingCopy(assetPublishing.status)}</p>
+      </section>
 
       <section>
         <h3>Group</h3>
