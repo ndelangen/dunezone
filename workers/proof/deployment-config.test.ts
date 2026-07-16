@@ -79,7 +79,8 @@ describe('proof deployment-safe defaults', () => {
   test('keeps production Convex deployment in the ordered main-branch GitHub Action', () => {
     const runbook = readFileSync(new URL('workers/proof/README.md', repositoryRoot), 'utf8');
 
-    expect(runbook).toContain('bunx convex deploy --dry-run --verbose');
+    expect(runbook).toContain('bunx convex deploy --dry-run');
+    expect(runbook).not.toContain('convex deploy --dry-run --verbose');
     expect(runbook).not.toContain('bunx convex deploy --verbose --message');
     expect(runbook).toContain('Deploy production');
     expect(runbook).toContain('must merge to');
@@ -102,5 +103,18 @@ describe('proof deployment-safe defaults', () => {
     expect(runbook.match(/bunx wrangler r2 object delete/g)).toHaveLength(2);
     expect(runbook).toContain('temporary proof state');
     expect(runbook).toContain('Ticket 2 replaces it with the real Convex lease');
+  });
+
+  test('builds valid manual JSON and detaches the Queue consumer before deleting resources', () => {
+    const runbook = readFileSync(new URL('workers/proof/README.md', repositoryRoot), 'utf8');
+    const detach = runbook.indexOf('wrangler queues consumer remove');
+    const deleteWorker = runbook.indexOf('wrangler delete --name');
+    const deleteQueue = runbook.indexOf('wrangler queues delete');
+
+    expect(runbook).toContain('export PROOF_MESSAGE="$(jq -cn');
+    expect(runbook).not.toContain('\'{\\"schemaVersion\\":1');
+    expect(detach).toBeGreaterThan(-1);
+    expect(deleteWorker).toBeGreaterThan(detach);
+    expect(deleteQueue).toBeGreaterThan(deleteWorker);
   });
 });

@@ -120,7 +120,7 @@ require no schema or index change:
 
 ```bash
 test -z "${CONVEX_DEPLOY_KEY:-}" || { echo 'Refusing a deploy key' >&2; exit 1; }
-bunx convex deploy --dry-run --verbose
+bunx convex deploy --dry-run
 ```
 
 Do not deploy production Convex functions from this workstation. The reviewed change must merge to
@@ -215,9 +215,10 @@ The installed Wrangler CLI does not expose a direct Queue-message command:
 ```bash
 export PROOF_TRIGGER_ID="$(uuidgen | tr '[:upper:]' '[:lower:]')"
 export PROOF_CUTOFF="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
-export PROOF_MESSAGE="$(printf \
-  '{\"schemaVersion\":1,\"scheduledCutoff\":\"%s\",\"triggerId\":\"%s\"}' \
-  "$PROOF_CUTOFF" "$PROOF_TRIGGER_ID")"
+export PROOF_MESSAGE="$(jq -cn \
+  --arg scheduledCutoff "$PROOF_CUTOFF" \
+  --arg triggerId "$PROOF_TRIGGER_ID" \
+  '{schemaVersion:1, scheduledCutoff:$scheduledCutoff, triggerId:$triggerId}')"
 curl -fsS -X POST "$WORKER_URL/__proof/enqueue" \
   -H "Authorization: Bearer $PROOF_TRIGGER_TOKEN" \
   -H 'Content-Type: application/json' \
@@ -334,6 +335,8 @@ trigger), Queue, scoped Convex variables, claim marker, and proof PDF object. Re
 Standard R2 bucket, but verify it is empty and still has neither `r2.dev` access nor a custom domain.
 
 ```bash
+bunx wrangler queues consumer remove \
+  faction-sheet-one-pdf-proof faction-sheet-one-pdf-proof
 bunx wrangler delete --name faction-sheet-one-pdf-proof
 bunx wrangler queues delete faction-sheet-one-pdf-proof
 bunx convex env remove ASSET_PUBLISHING_PROOF_SECRET --prod
