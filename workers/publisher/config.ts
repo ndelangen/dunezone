@@ -6,7 +6,7 @@ export type PublisherConfig = {
   convexExecutorBaseUrl: string;
   convexRenderUrl: string;
   supportedRendererVersion: string;
-  supportedRendererVersions: readonly ['faction-sheet-v1', 'faction-sheet-v2'];
+  supportedRendererVersions: readonly ['faction-sheet-v3'];
   maxItems: 1 | 2;
   softDeadlineMs: number;
   uploadMarginMs: number;

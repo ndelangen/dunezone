@@ -7,8 +7,9 @@ provisioned, and the persistent release configuration is ready for scheduled pol
 - the Cron trigger list contains exactly one `*/15 * * * *` schedule;
 - the production Queue and dedicated private R2 bucket are named explicitly;
 - capture and Convex HTTP URLs use the intended workers.dev and regional Convex origins;
-- the primary semantic renderer is `faction-sheet-v2`, while exact compatibility support remains
-  `[faction-sheet-v1, faction-sheet-v2]`; the separate SHA-256 renderer id
+- the primary semantic renderer and exact executable support set are `faction-sheet-v3`; Convex
+  still recognizes v1/v2 publication and rollback metadata, while rollback execution uses the
+  previously verified v2 Worker release; the separate SHA-256 renderer id
   identifies the exact assembled release for telemetry and canary checks;
 - poll and executor secrets are distinct required bindings and are not checked in.
 - the Convex-only activation secret is distinct from every publisher boundary secret and is not

@@ -107,12 +107,23 @@ async function seedCurrentTargets(
 
 async function createPaused(
   t: Seeded['t'],
-  targetRendererVersion: 'faction-sheet-v1' | 'faction-sheet-v2' = 'faction-sheet-v1'
+  targetRendererVersion:
+    | 'faction-sheet-v1'
+    | 'faction-sheet-v2'
+    | 'faction-sheet-v3' = 'faction-sheet-v1'
 ) {
   return await t.mutation(internal.assetRollouts.createPaused, {
     targetRendererVersion,
   });
 }
+
+test('the control plane accepts v3 while retaining known rollback versions', async () => {
+  const { t } = await seedCurrentTargets(1);
+  await expect(createPaused(t, 'faction-sheet-v3')).resolves.toMatchObject({
+    targetRendererVersion: 'faction-sheet-v3',
+    status: 'paused',
+  });
+});
 
 async function resumeAndDrainDiscovery(t: Seeded['t'], rolloutId: Id<'asset_rollouts'>) {
   await t.mutation(internal.assetRollouts.resume, { rolloutId });

@@ -62,7 +62,7 @@
     "CONVEX_POLL_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/poll",
     "CONVEX_EXECUTOR_BASE_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor",
     "CONVEX_RENDER_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/render",
-    "SUPPORTED_RENDERER_VERSION": "faction-sheet-v2",
+    "SUPPORTED_RENDERER_VERSION": "faction-sheet-v3",
     "EXECUTOR_MAX_ITEMS": "2",
     "SOFT_DEADLINE_MS": "240000",
     "UPLOAD_MARGIN_MS": "120000",

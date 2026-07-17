@@ -132,7 +132,7 @@ describe('publisher CI deployment contract', () => {
     };
     extraRenderer.rendererSupport.supportedRendererVersions = [
       ...PUBLISHER_SUPPORTED_RENDERER_VERSIONS,
-      'faction-sheet-v3',
+      'faction-sheet-v2',
     ];
     expect(() =>
       validatePublisherHealth(

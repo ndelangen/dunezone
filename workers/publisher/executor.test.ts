@@ -199,21 +199,20 @@ describe('one-item owned batch execution', () => {
     });
   });
 
-  test('one retained Browser session executes a v2 canary followed by a legacy v1 backlog item', async () => {
-    const legacyClaim: ClaimedTarget = {
+  test('one retained Browser session executes two v3 items', async () => {
+    const secondClaim: ClaimedTarget = {
       ...claim,
-      targetId: 'legacy-v1-target',
-      factionId: 'legacy-v1-faction',
+      targetId: 'second-v3-target',
+      factionId: 'second-v3-faction',
       claimToken: 'claim-token-0000000000000002',
-      rendererVersion: 'faction-sheet-v1',
       payloadHash: 'b'.repeat(64),
       renderCapability: 'render-capability-token-000000002',
     };
-    const claimed = [claim, legacyClaim];
+    const claimed = [claim, secondClaim];
     const claimNext = vi.fn(async () => claimed.shift() ?? ({ status: 'empty' } as const));
     const { dependencies, spies } = setup({ claim: claimNext });
     dependencies.client.revalidate = vi.fn(async (exactClaim) => {
-      const owned = exactClaim.targetId === legacyClaim.targetId ? legacyClaim : claim;
+      const owned = exactClaim.targetId === secondClaim.targetId ? secondClaim : claim;
       return {
         status: 'valid' as const,
         leaseExpiresAt: owned.leaseExpiresAt,
@@ -590,9 +589,12 @@ describe('one-item owned batch execution', () => {
     expect(spies.release).toHaveBeenCalledOnce();
   });
 
-  test('an unknown faction-sheet-v3 claim fails before Browser capture and R2', async () => {
+  test.each([
+    'faction-sheet-v1',
+    'faction-sheet-v2',
+  ])('a legacy %s claim fails before Browser capture and R2', async (rendererVersion) => {
     const { dependencies, spies } = setup({
-      claimResult: { ...claim, rendererVersion: 'faction-sheet-v3' },
+      claimResult: { ...claim, rendererVersion },
     });
     const report = await executeOwnedBatch(dependencies, config, acquisition, NOW);
     expect(report).toMatchObject({

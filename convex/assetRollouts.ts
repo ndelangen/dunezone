@@ -7,7 +7,8 @@ import {
   CURRENT_FACTION_SHEET_RENDERER_VERSION,
   FACTION_SHEET_ASSET_TYPE,
   INITIAL_FACTION_SHEET_RENDERER_VERSION,
-  isSupportedFactionSheetRendererVersion,
+  isKnownFactionSheetRendererVersion,
+  PREVIOUS_FACTION_SHEET_RENDERER_VERSION,
 } from './lib/assetPublisherConstants';
 import { BROWSER_RESERVATION_MS, FREE_BROWSER_ALLOWANCE_MS } from './lib/assetPublisherLimits';
 import type { MutationCtx, QueryCtx } from './types';
@@ -19,6 +20,7 @@ export const EFFECTIVE_PUBLISHER_MAX_ITEMS = 2;
 
 const rendererValidator = v.union(
   v.literal(INITIAL_FACTION_SHEET_RENDERER_VERSION),
+  v.literal(PREVIOUS_FACTION_SHEET_RENDERER_VERSION),
   v.literal(CURRENT_FACTION_SHEET_RENDERER_VERSION)
 );
 
@@ -38,7 +40,7 @@ function isNonterminal(status: RolloutStatus): boolean {
 }
 
 function supportedRenderer(version: string): boolean {
-  return isSupportedFactionSheetRendererVersion(version);
+  return isKnownFactionSheetRendererVersion(version);
 }
 
 async function exactConfig(ctx: ReadCtx) {

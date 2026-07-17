@@ -16,11 +16,13 @@ import {
   CURRENT_FACTION_SHEET_RENDERER_VERSION,
   FACTION_SHEET_ASSET_TYPE,
   INITIAL_FACTION_SHEET_RENDERER_VERSION,
+  PREVIOUS_FACTION_SHEET_RENDERER_VERSION,
 } from './lib/factionSheetTargets';
 import type { MutationCtx } from './types';
 
 const rendererValidator = v.union(
   v.literal(INITIAL_FACTION_SHEET_RENDERER_VERSION),
+  v.literal(PREVIOUS_FACTION_SHEET_RENDERER_VERSION),
   v.literal(CURRENT_FACTION_SHEET_RENDERER_VERSION)
 );
 const targetPrerequisiteValidator = v.literal(FACTION_SHEET_TARGET_ACTIVATION_PREREQUISITE);

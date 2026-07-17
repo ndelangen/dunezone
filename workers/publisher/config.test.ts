@@ -36,8 +36,8 @@ describe('publisher lifecycle configuration', () => {
       config.browserCaptureTimeoutMs + config.browserCleanupGraceMs + 5_000
     ).toBeLessThanOrEqual(config.softDeadlineMs);
     expect(config.softDeadlineMs - config.uploadMarginMs).toBe(120_000);
-    expect(config.supportedRendererVersion).toBe('faction-sheet-v2');
-    expect(config.supportedRendererVersions).toEqual(['faction-sheet-v1', 'faction-sheet-v2']);
+    expect(config.supportedRendererVersion).toBe('faction-sheet-v3');
+    expect(config.supportedRendererVersions).toEqual(['faction-sheet-v3']);
   });
 
   test('allows only the measured one- and two-item executor candidates', () => {
