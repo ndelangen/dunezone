@@ -98,7 +98,7 @@ Dune card/faction rendering, Storybook, and static art live here. `generated/` h
 - [User Data Contract](./user-data-contract.md) - What belongs in `users` vs `profiles`
 - [State Management](./state-management.md) - TanStack Query, cache patterns
 - [Membership](./membership.md) - Group membership approval flow
-- [Deployment](./deployment.md) - Netlify deployment process
+- [Deployment](./deployment.md) - Cloudflare Worker deployment process
 - [Convex Migrations](./convex-migrations.md) - Required widen/migrate/verify/narrow runbook + CI/deploy guards
 - [UI Component Hierarchy](./technical/ui-component-hierarchy.md) - Composition layers, dependency direction, CSS ownership
 - [UI Design Decisions](./technical/ui-design-decisions.md) - Accepted UI semantics and consistency defaults

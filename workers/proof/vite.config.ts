@@ -21,10 +21,7 @@ export default defineConfig({
         cpSync(
           path.join(repositoryRoot, 'public'),
           path.join(repositoryRoot, 'workers/proof/dist'),
-          {
-            recursive: true,
-            filter: (source) => path.basename(source) !== '_redirects',
-          }
+          { recursive: true }
         );
       },
     },

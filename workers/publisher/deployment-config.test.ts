@@ -23,6 +23,7 @@ describe('scheduled production deployment shape', () => {
     });
     expect(config.workers_dev).toBe(true);
     expect(config.preview_urls).toBe(false);
+    expect(config.routes).toEqual([{ pattern: 'dune.zone', custom_domain: true }]);
   });
 
   test('removes queue-era bindings and keeps the cron CPU cap explicit', () => {
@@ -46,7 +47,6 @@ describe('scheduled production deployment shape', () => {
       'utf8'
     );
     expect(source).not.toContain('r2.dev');
-    expect(config).not.toHaveProperty('routes');
   });
 
   test('declares only cache-token and executor secret bindings', () => {

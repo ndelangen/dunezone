@@ -35,6 +35,7 @@ export type CloudflareDriftDependencies = {
 
 export type CloudflareDriftReport = {
   worker: string;
+  domainCount: number;
   bindingCount: number;
   secretCount: number;
   cronCount: number;
@@ -180,6 +181,16 @@ function expectedBindings(wrangler: JsonRecord): string[] {
   return bindings.sort();
 }
 
+function expectedWorkerDomains(wrangler: JsonRecord, worker: string): string[] {
+  const domains: string[] = [];
+  for (const value of array(wrangler.routes, 'Wrangler routes')) {
+    const route = record(value, 'Wrangler route');
+    if (route.custom_domain !== true) continue;
+    domains.push(`${string(route.pattern, 'Wrangler Custom Domain')}|${worker}`);
+  }
+  return domains.sort();
+}
+
 function liveBinding(value: unknown): string | null {
   const binding = record(value, 'Worker binding');
   const name = string(binding.name, 'Worker binding name');
@@ -243,12 +254,14 @@ export async function checkCloudflareLiveDrift(
   const failures: string[] = [];
 
   const encodedWorker = encodeURIComponent(contract.publisherWorker);
-  const [settingsResponse, secretsResponse, schedulesResponse, queues] = await Promise.all([
-    client.get(`/workers/scripts/${encodedWorker}/settings`),
-    client.get(`/workers/scripts/${encodedWorker}/secrets`),
-    client.get(`/workers/scripts/${encodedWorker}/schedules`),
-    allQueues(client),
-  ]);
+  const [settingsResponse, secretsResponse, schedulesResponse, domainsResponse, queues] =
+    await Promise.all([
+      client.get(`/workers/scripts/${encodedWorker}/settings`),
+      client.get(`/workers/scripts/${encodedWorker}/secrets`),
+      client.get(`/workers/scripts/${encodedWorker}/schedules`),
+      client.get(`/workers/domains?service=${encodedWorker}`),
+      allQueues(client),
+    ]);
 
   const settings = record(settingsResponse.result, 'Worker settings');
   const bindings = array(settings.bindings, 'Worker bindings')
@@ -300,6 +313,20 @@ export async function checkCloudflareLiveDrift(
     'Wrangler Cron triggers'
   ).map((value) => string(value, 'Wrangler Cron trigger'));
   compareExactSet(failures, 'Worker Cron drift', expectedCrons, liveCrons);
+
+  const liveDomains = array(domainsResponse.result, 'Worker Custom Domains').map((value) => {
+    const domain = record(value, 'Worker Custom Domain');
+    return `${string(domain.hostname, 'Worker Custom Domain hostname')}|${string(
+      domain.service,
+      'Worker Custom Domain service'
+    )}`;
+  });
+  compareExactSet(
+    failures,
+    'Worker Custom Domain drift',
+    expectedWorkerDomains(wrangler, contract.publisherWorker),
+    liveDomains
+  );
 
   const ownedQueues = queues.filter((queue) =>
     string(queue.queue_name, 'Queue name').startsWith(contract.ownedQueuePrefix)
@@ -366,6 +393,7 @@ export async function checkCloudflareLiveDrift(
   }
   return {
     worker: contract.publisherWorker,
+    domainCount: liveDomains.length,
     bindingCount: bindings.length,
     secretCount: liveSecrets.length,
     cronCount: liveCrons.length,

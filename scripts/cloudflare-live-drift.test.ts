@@ -57,6 +57,7 @@ function liveFetcher(
     queueConsumers?: number;
     cron?: string;
     publisherBucketPublic?: boolean;
+    workerDomains?: string[];
     denied?: boolean;
   } = {}
 ) {
@@ -88,6 +89,15 @@ function liveFetcher(
     }
     if (url.pathname.endsWith(`/workers/scripts/${WORKER}/schedules`)) {
       return envelope({ schedules: [{ cron: options.cron ?? '*/5 * * * *' }] });
+    }
+    if (url.pathname.endsWith('/workers/domains')) {
+      return envelope(
+        (options.workerDomains ?? ['dune.zone']).map((hostname) => ({
+          hostname,
+          service: WORKER,
+          zone_name: 'dune.zone',
+        }))
+      );
     }
     if (url.pathname.endsWith('/queues')) {
       return envelope(
@@ -155,14 +165,19 @@ describe('Cloudflare live drift check', () => {
       })
     ).resolves.toEqual({
       worker: WORKER,
+      domainCount: 1,
       bindingCount: 12,
       secretCount: 2,
       cronCount: 1,
       queueCount: 1,
       bucketCount: 2,
     });
-    expect(live.requests).toHaveLength(10);
+    expect(live.requests).toHaveLength(11);
     expect(new Set(live.requests.map((request) => request.method))).toEqual(new Set(['GET']));
+    expect(
+      live.requests.find((request) => request.url.pathname.endsWith('/workers/domains'))?.url
+        .searchParams
+    ).toEqual(new URLSearchParams({ service: WORKER }));
     expect(
       live.requests.every((request) => request.authorization === 'Bearer read-only-token')
     ).toBe(true);
@@ -190,6 +205,26 @@ describe('Cloudflare live drift check', () => {
         fetcher: live.fetcher,
       })
     ).rejects.toThrow(/Worker Cron drift[\s\S]*r2\.dev drift/);
+  });
+
+  test('reports a missing or unexpected Worker Custom Domain', async () => {
+    const missing = liveFetcher({ workerDomains: [] });
+    await expect(
+      checkCloudflareLiveDrift({
+        accountId: ACCOUNT_ID,
+        apiToken: 'read-only-token',
+        fetcher: missing.fetcher,
+      })
+    ).rejects.toThrow(/Worker Custom Domain drift: missing dune\.zone/);
+
+    const extra = liveFetcher({ workerDomains: ['dune.zone', 'legacy.example.com'] });
+    await expect(
+      checkCloudflareLiveDrift({
+        accountId: ACCOUNT_ID,
+        apiToken: 'read-only-token',
+        fetcher: extra.fetcher,
+      })
+    ).rejects.toThrow(/Worker Custom Domain drift: unexpected legacy\.example\.com/);
   });
 
   test('fails closed on an API error without exposing the token', async () => {

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import {
+  APPLICATION_ORIGIN,
   PUBLISHER_ORIGIN,
   PUBLISHER_PRODUCTION_CONVEX_URL,
   PUBLISHER_RENDERER_VERSION,
@@ -90,6 +91,19 @@ describe('publisher CI deployment contract', () => {
         'a'.repeat(40),
         `${PUBLISHER_ORIGIN}/__asset-publisher/health`,
         'no-store'
+      )
+    ).not.toThrow();
+  });
+
+  test('accepts the exact release on the canonical application origin', () => {
+    expect(() =>
+      validatePublisherHealth(
+        readPublisherConfig(),
+        health(),
+        'a'.repeat(40),
+        `${APPLICATION_ORIGIN}/__asset-publisher/health`,
+        'no-store',
+        APPLICATION_ORIGIN
       )
     ).not.toThrow();
   });

@@ -1,7 +1,0 @@
-# Production: GitHub Actions (`.github/workflows/deploy-main.yml`) runs Convex + migrations,
-# builds `dist/client`, then `netlify deploy --prod`. Skipping Netlify’s own build on `main`
-# avoids a second “preview” deploy you would have to promote manually.
-[build]
-  publish = "dist/client"
-  command = "echo 'skip'"
-  ignore = "if [ \"$BRANCH\" = \"main\" ]; then exit 0; else exit 1; fi"

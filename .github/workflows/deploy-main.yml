@@ -91,10 +91,8 @@ jobs:
       - name: Smoke scheduled Worker release
         run: bun run ./scripts/publisher-deployment-contract.ts smoke
 
-      # --no-build: skip netlify.toml build.command; without it the CLI runs @netlify/build first
-      # and can publish as a draft even when --prod is set (prebuilt dist/client only).
-      - name: Deploy rollback build to Netlify
-        run: npx --yes netlify-cli@latest deploy --dir "./dist/client" --no-build --prod --message "GitHub Actions production deploy"
+      - name: Set canonical Convex site URL
+        run: bunx convex env set SITE_URL https://dune.zone --prod
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_DEPLOYMENT: ${{ secrets.CONVEX_DEPLOYMENT }}

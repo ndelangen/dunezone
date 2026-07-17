@@ -76,10 +76,6 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   if (![...paths].some((file) => file.startsWith('publisher-capture/'))) {
     throw new Error('Publisher Static Assets are missing the capture bundle');
   }
-  if (paths.has('_redirects')) {
-    throw new Error('Netlify _redirects must not be included in the Worker release unit');
-  }
-
   const shell = readFileSync(path.join(directory, '_shell.html'));
   const index = readFileSync(path.join(directory, 'index.html'));
   if (!shell.equals(index)) {
@@ -104,7 +100,6 @@ export function assemblePublisherAssets(
   assertDirectory(publisherDirectory, 'Publisher capture build');
 
   for (const entry of readdirSync(appDirectory, { withFileTypes: true })) {
-    if (entry.name === '_redirects') continue;
     cpSync(path.join(appDirectory, entry.name), path.join(publisherDirectory, entry.name), {
       recursive: entry.isDirectory(),
       force: true,

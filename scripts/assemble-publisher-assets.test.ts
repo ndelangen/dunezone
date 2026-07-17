@@ -25,7 +25,6 @@ function fixture() {
   mkdirSync(path.join(app, 'public'), { recursive: true });
   mkdirSync(path.join(publisher, 'publisher-capture'), { recursive: true });
   writeFileSync(path.join(app, '_shell.html'), '<html>spa shell</html>');
-  writeFileSync(path.join(app, '_redirects'), '/* /_shell.html 200');
   writeFileSync(path.join(app, 'public', 'app-hash.js'), 'application');
   writeFileSync(path.join(publisher, 'publisher-capture.html'), '<html>capture</html>');
   writeFileSync(path.join(publisher, 'publisher-capture', 'entry-hash.js'), 'capture');
@@ -39,7 +38,7 @@ afterEach(() => {
 });
 
 describe('publisher Static Assets assembly', () => {
-  test('combines the SPA and capture outputs without Netlify routing metadata', () => {
+  test('combines the SPA and capture outputs for Cloudflare Static Assets', () => {
     const { app, publisher } = fixture();
     const report = assemblePublisherAssets(app, publisher);
 
@@ -48,7 +47,6 @@ describe('publisher Static Assets assembly', () => {
     expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe(
       '<html>spa shell</html>'
     );
-    expect(() => readFileSync(path.join(publisher, '_redirects'))).toThrow();
     expect(report.largestAsset.bytes).toBeGreaterThan(0);
   });
 

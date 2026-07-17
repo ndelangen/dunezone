@@ -12,6 +12,7 @@ import { rendererManifest } from '../workers/publisher/renderer-manifest.generat
 export const PUBLISHER_WORKER_NAME = 'faction-sheet-asset-publisher';
 export const PUBLISHER_BUCKET_NAME = 'tanstack-start-faction-sheet-assets';
 export const PUBLISHER_ORIGIN = 'https://faction-sheet-asset-publisher.ndelangen.workers.dev';
+export const APPLICATION_ORIGIN = 'https://dune.zone';
 export const PUBLISHER_PRODUCTION_CONVEX_URL = 'https://exuberant-finch-263.eu-west-1.convex.cloud';
 export { PUBLISHER_RENDERER_VERSION, PUBLISHER_SUPPORTED_RENDERER_VERSIONS };
 
@@ -89,10 +90,12 @@ export function validatePublisherDeployContract(
   invariant(config.main === './index.ts', 'Worker entrypoint changed unexpectedly');
   invariant(config.workers_dev === true, 'workers.dev must remain enabled');
   invariant(config.preview_urls === false, 'preview URLs must remain disabled');
-  invariant(
-    !('routes' in config) && !('route' in config),
-    'Custom routes are outside this deployment slice'
+  exactJson(
+    config.routes,
+    [{ pattern: new URL(APPLICATION_ORIGIN).hostname, custom_domain: true }],
+    'application Custom Domain'
   );
+  invariant(!('route' in config), 'The singular route form is not allowed');
 
   const vars = object(config.vars, 'vars');
   exactJson(
@@ -156,7 +159,8 @@ export function validatePublisherHealth(
   healthValue: unknown,
   expectedGitSha: string,
   responseUrl: string,
-  cacheControl: string | null
+  cacheControl: string | null,
+  expectedOrigin = PUBLISHER_ORIGIN
 ): void {
   invariant(
     /^[0-9a-f]{40}$/.test(expectedGitSha),
@@ -166,7 +170,7 @@ export function validatePublisherHealth(
   const health = object(healthValue, 'health response');
   const rendererSupport = object(health.rendererSupport, 'health rendererSupport');
   const identity = object(health.identity, 'health identity');
-  const configuredOrigin = new URL(PUBLISHER_ORIGIN).origin;
+  const configuredOrigin = new URL(expectedOrigin).origin;
   invariant(
     new URL(responseUrl).origin === configuredOrigin,
     'Health response came from an unexpected origin'
@@ -236,33 +240,40 @@ async function run(): Promise<void> {
   }
   if (command === 'smoke') {
     const githubSha = requiredEnvironment(process.env, 'GITHUB_SHA');
-    let lastFailure: unknown;
-    for (let attempt = 1; attempt <= 6; attempt += 1) {
-      try {
-        const response = await fetch(`${PUBLISHER_ORIGIN}/__asset-publisher/health`, {
-          headers: { Accept: 'application/json' },
-          redirect: 'error',
-          signal: AbortSignal.timeout(5_000),
+    for (const origin of [PUBLISHER_ORIGIN, APPLICATION_ORIGIN]) {
+      let lastFailure: unknown;
+      for (let attempt = 1; attempt <= 12; attempt += 1) {
+        try {
+          const response = await fetch(`${origin}/__asset-publisher/health`, {
+            headers: { Accept: 'application/json' },
+            redirect: 'error',
+            signal: AbortSignal.timeout(5_000),
+          });
+          invariant(response.status === 200, `Publisher health returned HTTP ${response.status}`);
+          const health = await response.json();
+          validatePublisherHealth(
+            config,
+            health,
+            githubSha,
+            response.url,
+            response.headers.get('Cache-Control'),
+            origin
+          );
+          console.log(`Publisher health smoke passed for ${githubSha} at ${origin}.`);
+          lastFailure = undefined;
+          break;
+        } catch (error) {
+          lastFailure = error;
+          if (attempt < 12) await new Promise((resolve) => setTimeout(resolve, 5_000));
+        }
+      }
+      if (lastFailure) {
+        throw new Error(`Publisher health did not become ready at ${origin}`, {
+          cause: lastFailure,
         });
-        invariant(response.status === 200, `Publisher health returned HTTP ${response.status}`);
-        const health = await response.json();
-        validatePublisherHealth(
-          config,
-          health,
-          githubSha,
-          response.url,
-          response.headers.get('Cache-Control')
-        );
-        console.log(`Publisher health smoke passed for ${githubSha} at ${PUBLISHER_ORIGIN}.`);
-        return;
-      } catch (error) {
-        lastFailure = error;
-        if (attempt < 6) await new Promise((resolve) => setTimeout(resolve, 5_000));
       }
     }
-    throw new Error('Publisher health smoke did not observe the exact deployed release', {
-      cause: lastFailure,
-    });
+    return;
   }
   throw new Error('Expected command: preflight or smoke');
 }
