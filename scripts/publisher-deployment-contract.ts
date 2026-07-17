@@ -109,7 +109,7 @@ export function validatePublisherDeployContract(
       CONVEX_EXECUTOR_BASE_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/executor`,
       CONVEX_RENDER_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/render`,
       SUPPORTED_RENDERER_VERSION: PUBLISHER_RENDERER_VERSION,
-      EXECUTOR_MAX_ITEMS: '1',
+      EXECUTOR_MAX_ITEMS: '2',
       SOFT_DEADLINE_MS: '240000',
       UPLOAD_MARGIN_MS: '120000',
       BROWSER_CAPTURE_TIMEOUT_MS: '45000',
@@ -195,7 +195,7 @@ export function validatePublisherHealth(
   invariant(health.ok === true, 'Health response is not ok');
   invariant(health.publisherEnabled === true, 'Publisher must be enabled');
   invariant(health.cronDispatchEnabled === true, 'Cron dispatch must be enabled');
-  invariant(health.maxItems === 1, 'Publisher maxItems must remain one');
+  invariant(health.maxItems === 2, 'Publisher maxItems must match the size-two canary');
   invariant(
     health.supportedRendererVersion === vars.SUPPORTED_RENDERER_VERSION,
     'Health renderer version does not match checked-in configuration'

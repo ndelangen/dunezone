@@ -151,6 +151,17 @@ describe('publisher Worker structured-log security boundary', () => {
     });
   });
 
+  test('health reports the configured size-two executor without changing Queue batch shape', async () => {
+    const environment = publisherEnv();
+    (environment as unknown as { EXECUTOR_MAX_ITEMS: string }).EXECUTOR_MAX_ITEMS = '2';
+    const response = await publisherWorker.fetch(
+      new Request('https://publisher.example.com/__asset-publisher/health'),
+      environment,
+      { waitUntil: vi.fn() } as unknown as ExecutionContext
+    );
+    await expect(response.json()).resolves.toMatchObject({ maxItems: 2 });
+  });
+
   test('health never advertises an unsupported renderer version as compatible', async () => {
     const environment = publisherEnv();
     (environment as unknown as { SUPPORTED_RENDERER_VERSION: string }).SUPPORTED_RENDERER_VERSION =

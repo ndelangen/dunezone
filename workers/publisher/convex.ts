@@ -280,7 +280,8 @@ export class ConvexPublisherClient {
     claim: ExactClaim,
     r2Etag: string,
     bytes: number,
-    deadlineAt?: number
+    deadlineAt?: number,
+    retainBatch = false
   ): Promise<'completed' | 'stale'> {
     const body = okRecord(
       await this.postExecutor(
@@ -290,6 +291,7 @@ export class ConvexPublisherClient {
           ...claim,
           r2Etag,
           bytes,
+          ...(retainBatch ? { retainBatch: true } : {}),
         },
         deadlineAt
       )
@@ -300,11 +302,21 @@ export class ConvexPublisherClient {
     return body.status;
   }
 
-  async fail(claim: ExactClaim, error: string, deadlineAt?: number): Promise<'failed' | 'stale'> {
+  async fail(
+    claim: ExactClaim,
+    error: string,
+    deadlineAt?: number,
+    retainBatch = false
+  ): Promise<'failed' | 'stale'> {
     const body = okRecord(
       await this.postExecutor(
         'fail',
-        { schemaVersion: 1, ...claim, error: publisherErrorMessage(error).slice(0, 2_000) },
+        {
+          schemaVersion: 1,
+          ...claim,
+          error: publisherErrorMessage(error).slice(0, 2_000),
+          ...(retainBatch ? { retainBatch: true } : {}),
+        },
         deadlineAt
       )
     );
@@ -314,9 +326,17 @@ export class ConvexPublisherClient {
     return body.status;
   }
 
-  async release(claim: ExactClaim, deadlineAt?: number): Promise<'released' | 'stale'> {
+  async release(
+    claim: ExactClaim,
+    deadlineAt?: number,
+    retainBatch = false
+  ): Promise<'released' | 'stale'> {
     const body = okRecord(
-      await this.postExecutor('release', { schemaVersion: 1, ...claim }, deadlineAt)
+      await this.postExecutor(
+        'release',
+        { schemaVersion: 1, ...claim, ...(retainBatch ? { retainBatch: true } : {}) },
+        deadlineAt
+      )
     );
     if (body.status !== 'released' && body.status !== 'stale') {
       throw new Error('Convex exact release response is invalid');

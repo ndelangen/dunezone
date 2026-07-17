@@ -4,7 +4,12 @@ import {
 } from '../../src/app/capture/publisher-diagnostics';
 import { browserAvailable, openPublisherBrowser } from './browser';
 import { handleCaptureRoute } from './capture-route';
-import { isCronDispatchEnabled, isPublisherEnabled, parsePublisherConfig } from './config';
+import {
+  configuredMaxItems,
+  isCronDispatchEnabled,
+  isPublisherEnabled,
+  parsePublisherConfig,
+} from './config';
 import { ConvexPublisherClient } from './convex';
 import { handlePublicAssetRequest } from './delivery';
 import { createWakeUp, dispatchWakeUp } from './dispatch';
@@ -65,7 +70,7 @@ export const publisherWorker = {
           ok: true,
           publisherEnabled: isPublisherEnabled(env),
           cronDispatchEnabled: isCronDispatchEnabled(env),
-          maxItems: 1,
+          maxItems: configuredMaxItems(env),
           supportedRendererVersion: rendererManifest.rendererVersion,
           rendererSupport: {
             supportedRendererVersions: [rendererManifest.rendererVersion],

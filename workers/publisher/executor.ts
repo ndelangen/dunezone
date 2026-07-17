@@ -77,6 +77,22 @@ export type OwnedBatchTelemetryContext = {
   triggerId: string;
 };
 
+export type OwnedBatchItemTelemetry = {
+  index: 0 | 1;
+  workLane: 'foreground' | 'rollout';
+  claimCorrelationHash: string | null;
+  rendererId: string;
+  rendererMismatch: boolean;
+  outcome: 'completed' | 'stale' | 'failed';
+  failureClass: PublisherFailureClass | null;
+  pdf: {
+    bytes: number | null;
+    pages: number | null;
+    widthMm: number | null;
+    heightMm: number | null;
+  };
+};
+
 export type OwnedBatchTelemetry = {
   schemaVersion: typeof PUBLISHER_TELEMETRY_SCHEMA_VERSION;
   identity?: PublisherBuildIdentity;
@@ -84,12 +100,14 @@ export type OwnedBatchTelemetry = {
     messageId?: string;
     attempt?: number;
     name?: string;
-    lane: 'foreground' | 'rollout';
+    lane: 'foreground' | 'rollout' | 'mixed';
     triggerId?: string;
   };
   batchCorrelationHash: string | null;
-  configuredMaxItems: 1;
-  effectiveMaxItems: 1;
+  configuredMaxItems: 1 | 2;
+  effectiveMaxItems: 1 | 2;
+  stopReason: 'max_items' | 'empty' | 'stale' | 'failure' | 'systemic' | 'deadline';
+  batchReleased: boolean;
   phasesMs: ReturnType<OwnedTelemetry['snapshot']>['phasesMs'];
   workerObservedWallMs: number;
   platform: {
@@ -134,19 +152,9 @@ export type OwnedBatchTelemetry = {
   };
   minimumLeaseMarginMs: number | null;
   leaseMarginsMs: ReturnType<OwnedTelemetry['snapshot']>['leaseMarginsMs'];
-  item: {
-    claimCorrelationHash: string | null;
-    rendererId: string;
-    rendererMismatch: boolean;
-    outcome: 'completed' | 'stale' | 'failed';
-    failureClass: PublisherFailureClass | null;
-    pdf: {
-      bytes: number | null;
-      pages: number | null;
-      widthMm: number | null;
-      heightMm: number | null;
-    };
-  } | null;
+  items: OwnedBatchItemTelemetry[];
+  /** Compatibility projection for existing one-item report consumers. */
+  item: OwnedBatchItemTelemetry | null;
 };
 
 function errorMessage(error: unknown): string {
@@ -171,13 +179,6 @@ function failureClass(error: unknown): PublisherFailureClass | null {
 function failureDiagnostic(value: PublisherFailureClass | null): string | undefined {
   if (value === null) return undefined;
   return `asset publisher ${value.replaceAll('_', ' ')}`;
-}
-
-function hasStatus(
-  status: OwnedBatchReport['status'],
-  expected: OwnedBatchReport['status']
-): boolean {
-  return status === expected;
 }
 
 function exact(claim: ClaimedTarget): ExactClaim {
@@ -389,16 +390,22 @@ export async function executeOwnedBatch(
   let ownedCheckpointDeadlineAt = executorDeadlineAt;
   let claim: ClaimedTarget | undefined;
   let latestLeaseExpiresAt: number | null = null;
-  let pdfBytes: number | null = null;
-  let pdfPages: number | null = null;
-  let pdfWidthMm: number | null = null;
-  let pdfHeightMm: number | null = null;
-  let uploaded = false;
-  let completed = false;
-  let staleItem = false;
+  type ItemState = {
+    claim: ClaimedTarget;
+    pdfBytes: number | null;
+    pdfPages: number | null;
+    pdfWidthMm: number | null;
+    pdfHeightMm: number | null;
+    uploaded: boolean;
+    completed: boolean;
+    stale: boolean;
+    error?: unknown;
+  };
+  const itemStates: ItemState[] = [];
   let uncertainClaim = false;
-  let releaseUnclaimedBatch = false;
+  let batchReleased = false;
   let status: OwnedBatchReport['status'] = 'systemic_stop';
+  let stopReason: OwnedBatchTelemetry['stopReason'] = 'systemic';
   let outcomeError: unknown;
 
   const closeAndSettle = async (): Promise<void> => {
@@ -425,6 +432,7 @@ export async function executeOwnedBatch(
     measuredLifecycleMs = measuredBrowserMs;
     if (dependencies.now() >= settlementDeadlineAt) {
       status = 'systemic_stop';
+      stopReason = 'deadline';
       outcomeError ??= new Error(
         'Browser usage could not be settled inside the post-lifecycle control-plane window'
       );
@@ -444,11 +452,13 @@ export async function executeOwnedBatch(
     }
     if (measuredBrowserMs > acquisition.browserReservationMs) {
       status = 'systemic_stop';
+      stopReason = 'systemic';
       outcomeError = new Error(
         `Browser lifecycle overran its reservation: ${measuredBrowserMs} ms > ${acquisition.browserReservationMs} ms`
       );
     } else if (!browserSettled) {
       status = 'systemic_stop';
+      stopReason = 'systemic';
       outcomeError ??= new Error('Exact Browser reservation settlement was stale');
     }
   };
@@ -467,10 +477,12 @@ export async function executeOwnedBatch(
       )
     );
     if (!available) {
-      await telemetry.convex('releaseBatch', async () =>
-        dependencies.client.releaseBatch(acquisition.batchToken, 'no_browser', executorDeadlineAt)
-      );
+      batchReleased =
+        (await telemetry.convex('releaseBatch', async () =>
+          dependencies.client.releaseBatch(acquisition.batchToken, 'no_browser', executorDeadlineAt)
+        )) === 'released';
       status = 'systemic_stop';
+      stopReason = 'systemic';
       outcomeError = new Error('Browser Run acquisition is unavailable');
       return;
     }
@@ -514,153 +526,196 @@ export async function executeOwnedBatch(
     }
     dependencies.fault?.('after_browser_open');
 
-    let claimResult: ClaimResult;
-    try {
-      claimResult = await telemetry.convex('claim', async () =>
-        dependencies.client.claim(acquisition.batchToken, browserOperationDeadlineAt)
-      );
-    } catch (firstClaimError) {
+    while (itemStates.length < config.maxItems) {
+      claim = undefined;
+      let claimResult: ClaimResult;
       try {
         claimResult = await telemetry.convex('claim', async () =>
           dependencies.client.claim(acquisition.batchToken, browserOperationDeadlineAt)
         );
-      } catch (replayError) {
-        uncertainClaim = true;
-        throw new Error('Claim response was lost and exact replay could not prove its outcome', {
-          cause: replayError,
-        });
+      } catch (firstClaimError) {
+        try {
+          claimResult = await telemetry.convex('claim', async () =>
+            dependencies.client.claim(acquisition.batchToken, browserOperationDeadlineAt)
+          );
+        } catch (replayError) {
+          uncertainClaim = true;
+          throw new Error('Claim response was lost and exact replay could not prove its outcome', {
+            cause: replayError,
+          });
+        }
+        if (claimResult.status === 'claimed') {
+          claim = claimResult;
+          latestLeaseExpiresAt = claim.leaseExpiresAt;
+          telemetry.observeLease('claim', latestLeaseExpiresAt);
+          itemStates.push({
+            claim,
+            pdfBytes: null,
+            pdfPages: null,
+            pdfWidthMm: null,
+            pdfHeightMm: null,
+            uploaded: false,
+            completed: false,
+            stale: false,
+          });
+          throw new Error(
+            'Claim response was lost; recovered the exact claim for failure cleanup',
+            {
+              cause: firstClaimError,
+            }
+          );
+        }
       }
-      if (claimResult.status === 'claimed') {
-        claim = claimResult;
-        latestLeaseExpiresAt = claim.leaseExpiresAt;
-        telemetry.observeLease('claim', latestLeaseExpiresAt);
-        throw new Error('Claim response was lost; recovered the exact claim for failure cleanup', {
-          cause: firstClaimError,
-        });
+
+      if (claimResult.status !== 'claimed') {
+        if (claimResult.status === 'empty') {
+          status = itemStates.some((item) => item.completed) ? 'completed' : 'empty';
+          stopReason = 'empty';
+          if (itemStates.length === 0) outcomeError = new Error('empty');
+        } else {
+          status = 'systemic_stop';
+          stopReason = claimResult.status === 'stale' ? 'stale' : 'systemic';
+          outcomeError = new Error(claimResult.status);
+        }
+        return;
       }
-    }
 
-    if (claimResult.status !== 'claimed') {
-      releaseUnclaimedBatch = true;
-      status = claimResult.status === 'empty' ? 'empty' : 'systemic_stop';
-      outcomeError = new Error(claimResult.status);
-      return;
-    }
-    claim = claimResult;
-    latestLeaseExpiresAt = claim.leaseExpiresAt;
-    telemetry.observeLease('claim', latestLeaseExpiresAt);
-    dependencies.fault?.('after_claim');
-    if (claim.rendererVersion !== config.supportedRendererVersion) {
-      status = 'systemic_stop';
-      outcomeError = new Error('Claim renderer is not supported by this deployment');
-      return;
-    }
-
-    const captureDeadlineAt = Math.min(
-      browserOperationDeadlineAt,
-      dependencies.now() + config.browserCaptureTimeoutMs
-    );
-    const capture = await telemetry.phase('capture', async () =>
-      withinDeadline(
-        () =>
-          (browser as BrowserSession).capture(
-            (claim as ClaimedTarget).renderCapability,
-            remaining(captureDeadlineAt, dependencies.now)
-          ),
-        captureDeadlineAt,
-        dependencies.now,
-        'Browser capture'
-      )
-    );
-    pdfBytes = capture.bytes.byteLength;
-    pdfPages = capture.pageCount;
-    pdfWidthMm = capture.pageWidthMm;
-    pdfHeightMm = capture.pageHeightMm;
-    if (capture.bytes.byteLength === 0 || capture.bytes.byteLength > config.pdfMaxBytes) {
-      throw new Error('Captured PDF is empty or exceeds the configured byte limit');
-    }
-    assertCapturedPdfOutput(capture);
-    dependencies.fault?.('after_render');
-
-    assertUploadTime(
-      browserOperationDeadlineAt,
-      claim.leaseExpiresAt,
-      config.uploadMarginMs,
-      dependencies.now()
-    );
-    const revalidated = await telemetry.convex('revalidate', async () =>
-      dependencies.client.revalidate(exact(claim as ClaimedTarget), browserOperationDeadlineAt)
-    );
-    if (revalidated.status !== 'valid') {
-      if ('leaseExpiresAt' in revalidated) {
-        latestLeaseExpiresAt = Math.min(latestLeaseExpiresAt, revalidated.leaseExpiresAt);
-        telemetry.observeLease('lastPreUpload', latestLeaseExpiresAt);
+      claim = claimResult;
+      latestLeaseExpiresAt = claim.leaseExpiresAt;
+      telemetry.observeLease('claim', latestLeaseExpiresAt);
+      const item: ItemState = {
+        claim,
+        pdfBytes: null,
+        pdfPages: null,
+        pdfWidthMm: null,
+        pdfHeightMm: null,
+        uploaded: false,
+        completed: false,
+        stale: false,
+      };
+      itemStates.push(item);
+      dependencies.fault?.('after_claim');
+      if (claim.rendererVersion !== config.supportedRendererVersion) {
+        throw new Error('Claim renderer is not supported by this deployment');
       }
-      await telemetry.convex('release', async () =>
-        dependencies.client.release(exact(claim as ClaimedTarget), browserOperationDeadlineAt)
+
+      const captureDeadlineAt = Math.min(
+        browserOperationDeadlineAt,
+        dependencies.now() + config.browserCaptureTimeoutMs
       );
-      status = 'stale';
-      staleItem = true;
-      outcomeError = new Error(revalidated.status);
-      return;
-    }
-    latestLeaseExpiresAt = Math.min(latestLeaseExpiresAt, revalidated.leaseExpiresAt);
-    if (
-      revalidated.factionId !== claim.factionId ||
-      revalidated.assetType !== claim.assetType ||
-      revalidated.payloadHash !== claim.payloadHash
-    ) {
-      throw new Error('Revalidation identity does not match the exact claim');
-    }
-    assertUploadTime(
-      browserOperationDeadlineAt,
-      revalidated.leaseExpiresAt,
-      config.uploadMarginMs,
-      dependencies.now()
-    );
-    telemetry.observeLease('lastPreUpload', latestLeaseExpiresAt);
-    dependencies.fault?.('before_upload');
-    const stored = await withinDeadline(
-      () =>
-        conditionallyPutFactionSheet(
-          {
-            head: async (key) =>
-              await telemetry.r2('head', async () => dependencies.bucket.head(key)),
-            put: async (key, value, options) =>
-              await telemetry.r2('put', async () => dependencies.bucket.put(key, value, options)),
-          },
-          claim as ClaimedTarget,
-          capture.bytes
-        ),
-      browserOperationDeadlineAt,
-      dependencies.now,
-      'Stable R2 write'
-    );
-    uploaded = true;
-    telemetry.observeLease('postR2', latestLeaseExpiresAt);
-    dependencies.fault?.('after_upload');
-    dependencies.fault?.('before_completion');
-    let completion: 'completed' | 'stale';
-    try {
-      completion = await telemetry.convex('complete', async () =>
-        dependencies.client.complete(
-          exact(claim as ClaimedTarget),
-          stored.etag,
-          capture.bytes.byteLength,
-          browserOperationDeadlineAt
+      const capture = await telemetry.phase('capture', async () =>
+        withinDeadline(
+          () =>
+            (browser as BrowserSession).capture(
+              (claim as ClaimedTarget).renderCapability,
+              remaining(captureDeadlineAt, dependencies.now)
+            ),
+          captureDeadlineAt,
+          dependencies.now,
+          'Browser capture'
         )
       );
-    } finally {
-      telemetry.observeLease('postCompletion', latestLeaseExpiresAt);
+      item.pdfBytes = capture.bytes.byteLength;
+      item.pdfPages = capture.pageCount;
+      item.pdfWidthMm = capture.pageWidthMm;
+      item.pdfHeightMm = capture.pageHeightMm;
+      if (capture.bytes.byteLength === 0 || capture.bytes.byteLength > config.pdfMaxBytes) {
+        throw new Error('Captured PDF is empty or exceeds the configured byte limit');
+      }
+      assertCapturedPdfOutput(capture);
+      dependencies.fault?.('after_render');
+
+      assertUploadTime(
+        browserOperationDeadlineAt,
+        claim.leaseExpiresAt,
+        config.uploadMarginMs,
+        dependencies.now()
+      );
+      const revalidated = await telemetry.convex('revalidate', async () =>
+        dependencies.client.revalidate(exact(claim as ClaimedTarget), browserOperationDeadlineAt)
+      );
+      if (revalidated.status !== 'valid') {
+        if ('leaseExpiresAt' in revalidated) {
+          latestLeaseExpiresAt = Math.min(latestLeaseExpiresAt, revalidated.leaseExpiresAt);
+          telemetry.observeLease('lastPreUpload', latestLeaseExpiresAt);
+        }
+        await telemetry.convex('release', async () =>
+          dependencies.client.release(
+            exact(claim as ClaimedTarget),
+            browserOperationDeadlineAt,
+            true
+          )
+        );
+        item.stale = true;
+        item.error = new Error(revalidated.status);
+        status = 'stale';
+        stopReason = 'stale';
+        outcomeError = item.error;
+        return;
+      }
+      latestLeaseExpiresAt = Math.min(latestLeaseExpiresAt, revalidated.leaseExpiresAt);
+      if (
+        revalidated.factionId !== claim.factionId ||
+        revalidated.assetType !== claim.assetType ||
+        revalidated.payloadHash !== claim.payloadHash
+      ) {
+        throw new Error('Revalidation identity does not match the exact claim');
+      }
+      assertUploadTime(
+        browserOperationDeadlineAt,
+        revalidated.leaseExpiresAt,
+        config.uploadMarginMs,
+        dependencies.now()
+      );
+      telemetry.observeLease('lastPreUpload', latestLeaseExpiresAt);
+      dependencies.fault?.('before_upload');
+      const stored = await withinDeadline(
+        () =>
+          conditionallyPutFactionSheet(
+            {
+              head: async (key) =>
+                await telemetry.r2('head', async () => dependencies.bucket.head(key)),
+              put: async (key, value, options) =>
+                await telemetry.r2('put', async () => dependencies.bucket.put(key, value, options)),
+            },
+            claim as ClaimedTarget,
+            capture.bytes
+          ),
+        browserOperationDeadlineAt,
+        dependencies.now,
+        'Stable R2 write'
+      );
+      item.uploaded = true;
+      telemetry.observeLease('postR2', latestLeaseExpiresAt);
+      dependencies.fault?.('after_upload');
+      dependencies.fault?.('before_completion');
+      let completion: 'completed' | 'stale';
+      try {
+        completion = await telemetry.convex('complete', async () =>
+          dependencies.client.complete(
+            exact(claim as ClaimedTarget),
+            stored.etag,
+            capture.bytes.byteLength,
+            browserOperationDeadlineAt,
+            true
+          )
+        );
+      } finally {
+        telemetry.observeLease('postCompletion', latestLeaseExpiresAt);
+      }
+      if (completion === 'stale') {
+        item.stale = true;
+        item.error = new Error('stale');
+        status = 'stale';
+        stopReason = 'stale';
+        outcomeError = item.error;
+        return;
+      }
+      item.completed = true;
+      dependencies.fault?.('after_completion');
     }
-    if (completion === 'stale') {
-      status = 'stale';
-      staleItem = true;
-      return;
-    }
-    completed = true;
-    dependencies.fault?.('after_completion');
     status = 'completed';
+    stopReason = 'max_items';
   };
 
   try {
@@ -668,67 +723,84 @@ export async function executeOwnedBatch(
   } catch (error) {
     outcomeError = error;
     const deadlineFailure = /deadline/i.test(errorMessage(error));
+    const currentItem = itemStates.at(-1);
+    if (currentItem && !currentItem.completed && !currentItem.stale) currentItem.error = error;
     status = invalidReservation
       ? 'systemic_stop'
-      : completed
+      : currentItem?.completed
         ? 'completed'
-        : uncertainClaim || deadlineFailure || (launchAttempted && !browserOpened)
+        : uncertainClaim ||
+            deadlineFailure ||
+            (launchAttempted && !browserOpened) ||
+            claim?.rendererVersion !== config.supportedRendererVersion
           ? 'systemic_stop'
           : 'failed';
-    if (claim && !completed) {
+    stopReason = deadlineFailure
+      ? 'deadline'
+      : status === 'systemic_stop'
+        ? 'systemic'
+        : status === 'failed'
+          ? 'failure'
+          : 'max_items';
+    if (claim && !currentItem?.completed && !currentItem?.stale) {
+      const unsupportedRenderer = claim.rendererVersion !== config.supportedRendererVersion;
       await bestEffort(
         async () =>
-          await telemetry.convex('fail', async () =>
-            dependencies.client.fail(
-              exact(claim as ClaimedTarget),
-              failureDiagnostic(failureClass(error)) ?? 'asset publisher operational failure',
-              ownedCheckpointDeadlineAt
-            )
+          await telemetry.convex(unsupportedRenderer ? 'release' : 'fail', async () =>
+            unsupportedRenderer
+              ? dependencies.client.release(
+                  exact(claim as ClaimedTarget),
+                  ownedCheckpointDeadlineAt,
+                  true
+                )
+              : dependencies.client.fail(
+                  exact(claim as ClaimedTarget),
+                  failureDiagnostic(failureClass(error)) ?? 'asset publisher operational failure',
+                  ownedCheckpointDeadlineAt,
+                  true
+                )
           ),
         uncertainClaim ? 'recovered_claim' : 'owned_failure'
       );
     } else if (!launchAttempted && !invalidReservation) {
-      await bestEffort(
-        async () =>
-          await telemetry.convex('releaseBatch', async () =>
+      try {
+        batchReleased =
+          (await telemetry.convex('releaseBatch', async () =>
             dependencies.client.releaseBatch(
               acquisition.batchToken,
               'no_browser',
               ownedOutcomeDeadlineAt
             )
-          ),
-        'no_browser_batch_release'
-      );
+          )) === 'released';
+      } catch (releaseError) {
+        console.error(
+          serializePublisherLogEvent({
+            event: 'asset_publisher_checkpoint_error',
+            label: 'no_browser_batch_release',
+            failureClass: failureClass(releaseError),
+          })
+        );
+      }
     }
   } finally {
     await closeAndSettle();
   }
 
-  if (claim && claim.rendererVersion !== config.supportedRendererVersion) {
-    await bestEffort(
-      async () =>
-        await telemetry.convex('release', async () =>
-          dependencies.client.release(exact(claim as ClaimedTarget), ownedOutcomeDeadlineAt)
-        ),
-      'unsupported_renderer'
-    );
-  }
-  if (
-    browserSettled &&
-    !uncertainClaim &&
-    (releaseUnclaimedBatch || claim?.workLane === 'rollout')
-  ) {
-    await bestEffort(
-      async () =>
-        await telemetry.convex('releaseBatch', async () =>
+  if (browserSettled && !uncertainClaim && !batchReleased) {
+    try {
+      batchReleased =
+        (await telemetry.convex('releaseBatch', async () =>
           dependencies.client.releaseBatch(
             acquisition.batchToken,
             'after_settlement',
             ownedOutcomeDeadlineAt
           )
-        ),
-      releaseUnclaimedBatch ? 'unclaimed_batch_release' : 'rollout_checkpointed_batch_release'
-    );
+        )) === 'released';
+    } catch (error) {
+      outcomeError ??= error;
+      status = 'systemic_stop';
+      stopReason = 'systemic';
+    }
   } else if (uncertainClaim) {
     // The Convex release mutation also rejects while any target or snapshot owns this batch.
     // Retaining the singleton fence is the safe outcome when exact claim replay cannot be proven.
@@ -736,6 +808,7 @@ export async function executeOwnedBatch(
 
   if (browserOpened && !browserClosed) {
     status = 'systemic_stop';
+    stopReason = 'systemic';
     outcomeError ??= new Error('Browser cleanup did not complete within the lifecycle deadline');
   }
 
@@ -745,12 +818,30 @@ export async function executeOwnedBatch(
   const observedBrowserOpened = browserOpened || observedLateCleanup !== null;
   const observedBrowserClosed = browserClosed || observedLateCleanup?.close.closed === true;
   const observedSessionId = browserSessionId ?? observedLateCleanup?.sessionId ?? null;
-  const [batchCorrelationHash, claimCorrelationHash, sessionCorrelationHash] = await Promise.all([
+  const [batchCorrelationHash, sessionCorrelationHash, itemTelemetry] = await Promise.all([
     safeTelemetryCorrelationHash('batch', acquisition.batchToken),
-    claim ? safeTelemetryCorrelationHash('claim', claim.claimToken) : Promise.resolve(null),
     observedSessionId
       ? safeTelemetryCorrelationHash('browser_session', observedSessionId)
       : Promise.resolve(null),
+    Promise.all(
+      itemStates.map(
+        async (item, index): Promise<OwnedBatchItemTelemetry> => ({
+          index: index as 0 | 1,
+          workLane: item.claim.workLane ?? 'foreground',
+          claimCorrelationHash: await safeTelemetryCorrelationHash('claim', item.claim.claimToken),
+          rendererId: rendererManifest.rendererId,
+          rendererMismatch: item.claim.rendererVersion !== config.supportedRendererVersion,
+          outcome: item.completed ? 'completed' : item.stale ? 'stale' : 'failed',
+          failureClass: item.completed ? null : failureClass(item.error),
+          pdf: {
+            bytes: item.pdfBytes,
+            pages: item.pdfPages,
+            widthMm: item.pdfWidthMm,
+            heightMm: item.pdfHeightMm,
+          },
+        })
+      )
+    ),
   ]);
   browserSessionCorrelationHash = sessionCorrelationHash;
   const invocationFailureClass =
@@ -764,6 +855,9 @@ export async function executeOwnedBatch(
         ? 'late_opened_close_timeout'
         : 'late_opened_close_failed'
     : null;
+  const lanes = new Set(itemTelemetry.map((item) => item.workLane));
+  const queueLane: OwnedBatchTelemetry['queue']['lane'] =
+    lanes.size > 1 ? 'mixed' : (itemTelemetry[0]?.workLane ?? 'foreground');
   const telemetryReport: OwnedBatchTelemetry = {
     schemaVersion: PUBLISHER_TELEMETRY_SCHEMA_VERSION,
     ...(telemetryContext ? { identity: telemetryContext.identity } : {}),
@@ -776,11 +870,13 @@ export async function executeOwnedBatch(
             triggerId: telemetryContext.triggerId,
           }
         : {}),
-      lane: claim?.workLane ?? 'foreground',
+      lane: queueLane,
     },
     batchCorrelationHash,
     configuredMaxItems: config.maxItems,
-    effectiveMaxItems: 1,
+    effectiveMaxItems: config.maxItems,
+    stopReason,
+    batchReleased,
     phasesMs: telemetrySnapshot.phasesMs,
     workerObservedWallMs: Math.max(0, observedAt - startedAt),
     platform: {
@@ -793,16 +889,10 @@ export async function executeOwnedBatch(
     },
     logicalCalls: telemetrySnapshot.logicalCalls,
     counts: {
-      claimed: claim ? 1 : 0,
-      completed: claim && completed ? 1 : 0,
-      stale: claim && staleItem ? 1 : 0,
-      failed:
-        claim &&
-        !completed &&
-        !staleItem &&
-        (hasStatus(status, 'failed') || hasStatus(status, 'systemic_stop'))
-          ? 1
-          : 0,
+      claimed: itemStates.length,
+      completed: itemStates.filter((item) => item.completed).length,
+      stale: itemStates.filter((item) => item.stale).length,
+      failed: itemStates.filter((item) => !item.completed && !item.stale).length,
       terminalError: 0,
     },
     invocationFailureClass,
@@ -842,22 +932,12 @@ export async function executeOwnedBatch(
     },
     minimumLeaseMarginMs: telemetrySnapshot.minimumLeaseMarginMs,
     leaseMarginsMs: telemetrySnapshot.leaseMarginsMs,
-    item: claim
-      ? {
-          claimCorrelationHash,
-          rendererId: rendererManifest.rendererId,
-          rendererMismatch: claim.rendererVersion !== config.supportedRendererVersion,
-          outcome: completed ? 'completed' : staleItem ? 'stale' : 'failed',
-          failureClass: invocationFailureClass,
-          pdf: {
-            bytes: pdfBytes,
-            pages: pdfPages,
-            widthMm: pdfWidthMm,
-            heightMm: pdfHeightMm,
-          },
-        }
-      : null,
+    items: itemTelemetry,
+    item: itemTelemetry[0] ?? null,
   };
+
+  const uploaded = itemStates.some((item) => item.uploaded);
+  const completed = itemStates.some((item) => item.completed);
 
   return {
     status,

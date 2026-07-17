@@ -66,6 +66,7 @@ async function exactClaimArgs(
     claimToken: string;
     generation: number;
     rendererVersion: string;
+    retainBatch?: boolean;
   }
 ) {
   const targetId: Id<'asset_targets'> | null = await ctx.runQuery(
@@ -79,6 +80,7 @@ async function exactClaimArgs(
     claimToken: body.claimToken,
     generation: body.generation,
     rendererVersion: body.rendererVersion,
+    retainBatch: body.retainBatch ?? false,
   };
 }
 

@@ -41,6 +41,7 @@ const exactClaimArgs = {
   claimToken: v.string(),
   generation: v.number(),
   rendererVersion: v.string(),
+  retainBatch: v.optional(v.boolean()),
 };
 
 type PublisherReadCtx = Pick<QueryCtx, 'db'>;
@@ -230,6 +231,7 @@ function parseExactClaim(args: {
   claimToken: string;
   generation: number;
   rendererVersion: string;
+  retainBatch?: boolean;
 }) {
   const result = exactClaimSchema.safeParse({
     targetId: args.targetId,
@@ -731,7 +733,7 @@ export const completeClaim = internalMutation({
         status: 'pending',
         next_eligible_at: now,
       });
-      await releaseBatchIfOwned(ctx, args.batchToken);
+      if (!args.retainBatch) await releaseBatchIfOwned(ctx, args.batchToken);
       return { status: 'stale' as const };
     }
 
@@ -755,7 +757,7 @@ export const completeClaim = internalMutation({
       rollout_id: undefined,
       rollout_item_id: undefined,
     });
-    if (!rolloutClaim) await releaseBatchIfOwned(ctx, args.batchToken);
+    if (!rolloutClaim && !args.retainBatch) await releaseBatchIfOwned(ctx, args.batchToken);
     return {
       status: 'completed' as const,
       replay: false,
@@ -793,7 +795,7 @@ export const failClaim = internalMutation({
         status: 'pending',
         next_eligible_at: now,
       });
-      await releaseBatchIfOwned(ctx, args.batchToken);
+      if (!args.retainBatch) await releaseBatchIfOwned(ctx, args.batchToken);
       return { status: 'stale' as const };
     }
 
@@ -815,7 +817,7 @@ export const failClaim = internalMutation({
         last_error: failure.data.error,
       });
     }
-    if (!rolloutClaim) await releaseBatchIfOwned(ctx, args.batchToken);
+    if (!rolloutClaim && !args.retainBatch) await releaseBatchIfOwned(ctx, args.batchToken);
     return { status: 'failed' as const, nextEligibleAt };
   },
 });
@@ -846,7 +848,7 @@ export const releaseClaim = internalMutation({
         next_eligible_at: now,
       });
     }
-    if (!rolloutClaim) await releaseBatchIfOwned(ctx, args.batchToken);
+    if (!rolloutClaim && !args.retainBatch) await releaseBatchIfOwned(ctx, args.batchToken);
     return { status: 'released' as const };
   },
 });

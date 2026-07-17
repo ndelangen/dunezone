@@ -1,6 +1,6 @@
 # Scheduled production faction-sheet publisher
 
-This is the production-shaped, one-item publisher surface. Its stable Cloudflare resources are
+This is the production-shaped, sequential publisher surface. Its stable Cloudflare resources are
 provisioned, and the persistent release configuration is ready for scheduled polling:
 
 - `PUBLISHER_ENABLED` and `CRON_DISPATCH_ENABLED` are `true`;
@@ -60,7 +60,10 @@ See [MEASUREMENT.md](./MEASUREMENT.md) for the pre-measurement telemetry contrac
 metrics Ticket 6 must join from Cloudflare, and the Ticket 7 scaling work that remains blocked.
 Convex now contains a disabled-first rollout control plane with page-50 discovery and batch-retaining
 rollout checkpoints, but no rollout is created or resumed by deployment. Promotion reports are
-recommendation-only; `EXECUTOR_MAX_ITEMS` remains exactly `1`.
+recommendation-only. `EXECUTOR_MAX_ITEMS` accepts `1` or `2`; the checked-in functional canary is
+`2`, while Queue message batch size and concurrency remain `1`. One consumer invocation acquires
+one Convex batch, opens one Browser Session, checkpoints at most two items sequentially, then
+settles and releases the exact batch once.
 
 The only executable semantic renderer remains the release's embedded `faction-sheet-v1` contract.
 The rollout operator schema and mutation both reject any other string. Supporting a future candidate

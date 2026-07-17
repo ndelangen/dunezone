@@ -341,6 +341,129 @@ describe('publisher batch and exact claim state machine', () => {
     expect(finalTargets.filter((target) => target.status === 'pending')).toHaveLength(2);
   });
 
+  test('retains one exact foreground batch across two completions until final settlement and release', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { t } = await seed();
+    await addSecondTarget(t);
+    const first = await acquireAndClaim(t);
+    await expect(
+      t.mutation(internal.assetPublisher.completeClaim, {
+        ...exact(first),
+        retainBatch: true,
+        r2Etag: 'etag-size-two-first',
+        bytes: 1_234,
+        cacheToken: CACHE_ONE,
+      })
+    ).resolves.toMatchObject({ status: 'completed', replay: false });
+    await expect(
+      t.run(async (ctx) =>
+        ctx.db
+          .query('asset_publisher_state')
+          .withIndex('by_key', (q) => q.eq('key', 'singleton'))
+          .unique()
+      )
+    ).resolves.toMatchObject({ batch_token: BATCH_ONE });
+
+    const second = await t.mutation(internal.assetPublisher.claimOne, {
+      batchToken: BATCH_ONE,
+      claimToken: CLAIM_TWO,
+    });
+    if (second.status !== 'claimed') throw new Error(`Expected second claim, got ${second.status}`);
+    expect(second.targetId).not.toBe(first.targetId);
+    await expect(
+      t.mutation(internal.assetPublisher.completeClaim, {
+        ...exact(second),
+        retainBatch: true,
+        r2Etag: 'etag-size-two-second',
+        bytes: 2_345,
+        cacheToken: CACHE_TWO,
+      })
+    ).resolves.toMatchObject({ status: 'completed', replay: false });
+    await expect(
+      t.mutation(internal.assetPublisher.claimOne, {
+        batchToken: BATCH_ONE,
+        claimToken: 'claim-token-0000000000000003',
+      })
+    ).resolves.toEqual({ status: 'empty' });
+    await expect(
+      t.mutation(internal.assetPublisher.settleBrowserReservation, {
+        batchToken: BATCH_ONE,
+        measuredBrowserMs: 12_000,
+      })
+    ).resolves.toMatchObject({ status: 'settled' });
+    await expect(
+      t.mutation(internal.assetPublisher.releaseBatch, {
+        batchToken: BATCH_ONE,
+        mode: 'after_settlement',
+      })
+    ).resolves.toMatchObject({ status: 'released' });
+
+    const final = await t.run(async (ctx) => ({
+      targets: await ctx.db.query('asset_targets').take(3),
+      snapshots: await ctx.db.query('asset_claim_snapshots').take(3),
+      state: await ctx.db
+        .query('asset_publisher_state')
+        .withIndex('by_key', (q) => q.eq('key', 'singleton'))
+        .unique(),
+    }));
+    expect(final.targets.filter((target) => target.status === 'current')).toHaveLength(2);
+    expect(final.targets.filter((target) => target.status === 'leased')).toHaveLength(0);
+    expect(final.snapshots).toHaveLength(0);
+    expect(final.state?.batch_token).toBeUndefined();
+    expect(final.state?.browser_reservation_batch_token).toBeUndefined();
+  });
+
+  test('retained foreground failure clears the exact second claim before final batch release', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { t } = await seed();
+    await addSecondTarget(t);
+    const first = await acquireAndClaim(t);
+    await t.mutation(internal.assetPublisher.completeClaim, {
+      ...exact(first),
+      retainBatch: true,
+      r2Etag: 'etag-retained-first',
+      bytes: 1_234,
+      cacheToken: CACHE_ONE,
+    });
+    const second = await t.mutation(internal.assetPublisher.claimOne, {
+      batchToken: BATCH_ONE,
+      claimToken: CLAIM_TWO,
+    });
+    if (second.status !== 'claimed') throw new Error(`Expected second claim, got ${second.status}`);
+    await expect(
+      t.mutation(internal.assetPublisher.failClaim, {
+        ...exact(second),
+        retainBatch: true,
+        error: 'Second item failed normally',
+      })
+    ).resolves.toMatchObject({ status: 'failed' });
+    const retained = await t.run(async (ctx) => ({
+      target: await ctx.db.get('asset_targets', second.targetId),
+      snapshots: await ctx.db.query('asset_claim_snapshots').take(3),
+      state: await ctx.db
+        .query('asset_publisher_state')
+        .withIndex('by_key', (q) => q.eq('key', 'singleton'))
+        .unique(),
+    }));
+    expect(retained.target).toMatchObject({ status: 'cooldown' });
+    expect(retained.target?.claim_token).toBeUndefined();
+    expect(retained.snapshots).toHaveLength(0);
+    expect(retained.state?.batch_token).toBe(BATCH_ONE);
+
+    await t.mutation(internal.assetPublisher.settleBrowserReservation, {
+      batchToken: BATCH_ONE,
+      measuredBrowserMs: 12_000,
+    });
+    await expect(
+      t.mutation(internal.assetPublisher.releaseBatch, {
+        batchToken: BATCH_ONE,
+        mode: 'after_settlement',
+      })
+    ).resolves.toMatchObject({ status: 'released' });
+  });
+
   test('concurrent duplicate claim calls converge on one exact target claim', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);

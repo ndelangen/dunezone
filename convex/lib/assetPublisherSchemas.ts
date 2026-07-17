@@ -97,6 +97,7 @@ export const claimRequestSchema = z.strictObject({
 
 export const exactClaimRequestSchema = exactClaimSchema.extend({
   schemaVersion: z.literal(1),
+  retainBatch: z.boolean().optional(),
 });
 
 export const completeRequestSchema = exactClaimRequestSchema.extend({

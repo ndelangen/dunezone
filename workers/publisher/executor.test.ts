@@ -618,7 +618,8 @@ describe('one-item owned batch execution', () => {
       expect(spies.fail).toHaveBeenCalledWith(
         expect.any(Object),
         'asset publisher operational failure',
-        expect.any(Number)
+        expect.any(Number),
+        true
       );
       for (const sentinel of sentinels) expect(serialized).not.toContain(sentinel);
       expect(serialized).not.toContain('x'.repeat(1_000));
@@ -640,9 +641,10 @@ describe('one-item owned batch execution', () => {
     expect(spies.fail).toHaveBeenCalledWith(
       expect.objectContaining({ targetId: claim.targetId, claimToken: claim.claimToken }),
       'asset publisher operational failure',
-      expect.any(Number)
+      expect.any(Number),
+      true
     );
-    expect(spies.releaseBatch).not.toHaveBeenCalled();
+    expect(spies.releaseBatch).toHaveBeenCalledOnce();
     expect(spies.put).not.toHaveBeenCalled();
   });
 
@@ -874,5 +876,167 @@ describe('one-item owned batch execution', () => {
     if (point === 'after_completion') {
       expect(report).toMatchObject({ status: 'completed', completed: true });
     }
+  });
+});
+
+describe('size-two owned batch execution', () => {
+  const sizeTwoConfig: PublisherConfig = { ...config, maxItems: 2 };
+  const secondClaim: ClaimedTarget = {
+    ...claim,
+    targetId: 'target-two',
+    factionId: 'faction-two',
+    claimToken: 'claim-token-0000000000000002',
+    payloadHash: 'b'.repeat(64),
+    renderCapability: 'render-capability-token-000000002',
+  };
+
+  test('checkpoints two foreground successes under one Browser and releases once after settlement', async () => {
+    const claimNext = vi.fn().mockResolvedValueOnce(claim).mockResolvedValueOnce(secondClaim);
+    const { dependencies, spies } = setup({ claim: claimNext });
+    dependencies.client.revalidate = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: 'valid',
+        leaseExpiresAt: claim.leaseExpiresAt,
+        factionId: claim.factionId,
+        assetType: claim.assetType,
+        payloadHash: claim.payloadHash,
+      })
+      .mockResolvedValueOnce({
+        status: 'valid',
+        leaseExpiresAt: secondClaim.leaseExpiresAt,
+        factionId: secondClaim.factionId,
+        assetType: secondClaim.assetType,
+        payloadHash: secondClaim.payloadHash,
+      });
+    const report = await executeOwnedBatch(dependencies, sizeTwoConfig, acquisition, NOW);
+
+    expect(report).toMatchObject({
+      status: 'completed',
+      browserOpened: true,
+      browserClosed: true,
+      browserSettled: true,
+      telemetry: {
+        configuredMaxItems: 2,
+        effectiveMaxItems: 2,
+        stopReason: 'max_items',
+        batchReleased: true,
+        counts: { claimed: 2, completed: 2, stale: 0, failed: 0 },
+        items: [
+          { index: 0, outcome: 'completed' },
+          { index: 1, outcome: 'completed' },
+        ],
+      },
+    });
+    expect(claimNext).toHaveBeenCalledTimes(2);
+    expect(spies.openBrowser).toHaveBeenCalledOnce();
+    expect(spies.capture).toHaveBeenCalledTimes(2);
+    expect(spies.complete).toHaveBeenCalledTimes(2);
+    expect(spies.complete).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ targetId: claim.targetId }),
+      expect.any(String),
+      expect.any(Number),
+      expect.any(Number),
+      true
+    );
+    expect(spies.complete).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ targetId: secondClaim.targetId }),
+      expect.any(String),
+      expect.any(Number),
+      expect.any(Number),
+      true
+    );
+    expect(spies.complete).toHaveBeenCalledBefore(spies.settleBrowser);
+    expect(spies.settleBrowser).toHaveBeenCalledBefore(spies.releaseBatch);
+    expect(spies.settleBrowser).toHaveBeenCalledOnce();
+    expect(spies.releaseBatch).toHaveBeenCalledOnce();
+  });
+
+  test('a second empty claim stops cleanly after one compatible success', async () => {
+    const claimNext = vi
+      .fn()
+      .mockResolvedValueOnce(claim)
+      .mockResolvedValueOnce({ status: 'empty' as const });
+    const { dependencies, spies } = setup({ claim: claimNext });
+    const report = await executeOwnedBatch(dependencies, sizeTwoConfig, acquisition, NOW);
+
+    expect(report).toMatchObject({
+      status: 'completed',
+      completed: true,
+      telemetry: {
+        stopReason: 'empty',
+        batchReleased: true,
+        counts: { claimed: 1, completed: 1, stale: 0, failed: 0 },
+      },
+    });
+    expect(claimNext).toHaveBeenCalledTimes(2);
+    expect(spies.capture).toHaveBeenCalledOnce();
+    expect(spies.releaseBatch).toHaveBeenCalledOnce();
+  });
+
+  test('a second ordinary failure checkpoints exactly and does not attempt a third item', async () => {
+    const claimNext = vi.fn().mockResolvedValueOnce(claim).mockResolvedValueOnce(secondClaim);
+    const { dependencies, spies } = setup({ claim: claimNext });
+    spies.capture
+      .mockResolvedValueOnce({
+        bytes: new Uint8Array(3),
+        pageCount: 2,
+        pageWidthMm: 150,
+        pageHeightMm: 195,
+        consoleErrors: [],
+        requestFailures: [],
+        pageErrors: [],
+        httpErrors: [],
+      })
+      .mockRejectedValueOnce(new Error('second capture failed'));
+
+    const report = await executeOwnedBatch(dependencies, sizeTwoConfig, acquisition, NOW);
+    expect(report).toMatchObject({
+      status: 'failed',
+      completed: true,
+      telemetry: {
+        stopReason: 'failure',
+        batchReleased: true,
+        counts: { claimed: 2, completed: 1, stale: 0, failed: 1 },
+      },
+    });
+    expect(claimNext).toHaveBeenCalledTimes(2);
+    expect(spies.fail).toHaveBeenCalledOnce();
+    expect(spies.fail).toHaveBeenCalledBefore(spies.settleBrowser);
+    expect(spies.settleBrowser).toHaveBeenCalledBefore(spies.releaseBatch);
+  });
+
+  test('a second stale item releases exact ownership and ends the loop', async () => {
+    const claimNext = vi.fn().mockResolvedValueOnce(claim).mockResolvedValueOnce(secondClaim);
+    const { dependencies, spies } = setup({ claim: claimNext });
+    vi.mocked(dependencies.client.revalidate)
+      .mockResolvedValueOnce({
+        status: 'valid',
+        leaseExpiresAt: claim.leaseExpiresAt,
+        factionId: claim.factionId,
+        assetType: claim.assetType,
+        payloadHash: claim.payloadHash,
+      })
+      .mockResolvedValueOnce({ status: 'stale' });
+
+    const report = await executeOwnedBatch(dependencies, sizeTwoConfig, acquisition, NOW);
+    expect(report).toMatchObject({
+      status: 'stale',
+      telemetry: {
+        stopReason: 'stale',
+        batchReleased: true,
+        counts: { claimed: 2, completed: 1, stale: 1, failed: 0 },
+      },
+    });
+    expect(claimNext).toHaveBeenCalledTimes(2);
+    expect(spies.release).toHaveBeenCalledWith(
+      expect.objectContaining({ targetId: secondClaim.targetId }),
+      expect.any(Number),
+      true
+    );
+    expect(spies.release).toHaveBeenCalledBefore(spies.settleBrowser);
+    expect(spies.settleBrowser).toHaveBeenCalledBefore(spies.releaseBatch);
   });
 });

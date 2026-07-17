@@ -63,7 +63,9 @@ async function unexpectedTelemetry(
     },
     batchCorrelationHash: await safeTelemetryCorrelationHash('batch', acquisition.batchToken),
     configuredMaxItems: config.maxItems,
-    effectiveMaxItems: 1,
+    effectiveMaxItems: config.maxItems,
+    stopReason: 'systemic',
+    batchReleased: false,
     phasesMs: { acquire: context.acquireDurationMs },
     workerObservedWallMs: Math.max(0, now - startedAt),
     platform: {
@@ -114,6 +116,7 @@ async function unexpectedTelemetry(
       postCompletion: null,
       cleanupStart: null,
     },
+    items: [],
     item: null,
   };
 }
@@ -132,7 +135,7 @@ export async function consumePublisherMessage(
       lane: 'foreground' as const,
     },
     configuredMaxItems: config.maxItems,
-    effectiveMaxItems: 1 as const,
+    effectiveMaxItems: config.maxItems,
   };
   let wakeUp: PublisherWakeUp;
   try {
@@ -236,8 +239,8 @@ export async function consumePublisherMessage(
     };
   }
   message.ack();
-  const { item, ...invocationTelemetry } = report.telemetry;
-  if (item) {
+  const { item: _compatibilityItem, items, ...invocationTelemetry } = report.telemetry;
+  for (const item of items) {
     dependencies.log(
       boundedPublisherTelemetryEvent({
         event: 'asset_publisher_item_telemetry',

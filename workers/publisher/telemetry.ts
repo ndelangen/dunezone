@@ -214,7 +214,10 @@ function queueSchema(value: unknown): Record<string, unknown> {
     messageId: boundedText(source.messageId, 128),
     attempt: nonnegativeInteger(source.attempt),
     name: boundedText(source.name, 128),
-    lane: source.lane === 'foreground' || source.lane === 'rollout' ? source.lane : null,
+    lane:
+      source.lane === 'foreground' || source.lane === 'rollout' || source.lane === 'mixed'
+        ? source.lane
+        : null,
     triggerId: boundedText(source.triggerId, 128),
   };
 }
@@ -297,6 +300,9 @@ function itemSchema(value: unknown): Record<string, unknown> | null {
   const source = record(value);
   const pdf = record(source.pdf);
   return {
+    index: source.index === 0 || source.index === 1 ? source.index : null,
+    workLane:
+      source.workLane === 'foreground' || source.workLane === 'rollout' ? source.workLane : null,
     claimCorrelationHash: correlationHash(source.claimCorrelationHash),
     rendererId: rendererManifest.rendererId,
     rendererMismatch: boolean(source.rendererMismatch),
@@ -347,8 +353,23 @@ function invocationTelemetrySchema(event: Record<string, unknown>): Record<strin
     identity: identitySchema(event.identity),
     queue: queueSchema(event.queue),
     batchCorrelationHash: correlationHash(event.batchCorrelationHash),
-    configuredMaxItems: event.configuredMaxItems === 1 ? 1 : null,
-    effectiveMaxItems: event.effectiveMaxItems === 1 ? 1 : null,
+    configuredMaxItems:
+      event.configuredMaxItems === 1 || event.configuredMaxItems === 2
+        ? event.configuredMaxItems
+        : null,
+    effectiveMaxItems:
+      event.effectiveMaxItems === 1 || event.effectiveMaxItems === 2
+        ? event.effectiveMaxItems
+        : null,
+    stopReason: allowlistedValue(event.stopReason, [
+      'max_items',
+      'empty',
+      'stale',
+      'failure',
+      'systemic',
+      'deadline',
+    ]),
+    batchReleased: boolean(event.batchReleased),
     phasesMs: phaseSchema(event.phasesMs),
     workerObservedWallMs: nonnegativeNumber(event.workerObservedWallMs),
     platform: {
@@ -410,8 +431,14 @@ function operationalEventSchema(event: Record<string, unknown>): Record<string, 
     failureClass: allowlistedFailureClass(event.failureClass),
     identity: identitySchema(event.identity),
     queue: queueSchema(event.queue),
-    configuredMaxItems: event.configuredMaxItems === 1 ? 1 : undefined,
-    effectiveMaxItems: event.effectiveMaxItems === 1 ? 1 : undefined,
+    configuredMaxItems:
+      event.configuredMaxItems === 1 || event.configuredMaxItems === 2
+        ? event.configuredMaxItems
+        : undefined,
+    effectiveMaxItems:
+      event.effectiveMaxItems === 1 || event.effectiveMaxItems === 2
+        ? event.effectiveMaxItems
+        : undefined,
   };
 }
 
@@ -462,7 +489,8 @@ export class OwnedTelemetry {
 
   observeLease(checkpoint: PublisherLeaseCheckpoint, leaseExpiresAt: number): void {
     const margin = Math.max(0, leaseExpiresAt - this.now());
-    this.leaseMargins[checkpoint] = margin;
+    const prior = this.leaseMargins[checkpoint];
+    this.leaseMargins[checkpoint] = prior === null ? margin : Math.min(prior, margin);
   }
 
   recordPhase(phase: PublisherPhase, durationMs: number): void {

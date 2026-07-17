@@ -235,6 +235,60 @@ describe('Queue acknowledgement and retry policy', () => {
     expect(result.report?.telemetry.browser.sessionCorrelationHash).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  test('a size-two owned outcome emits two bounded item events and one aggregate invocation event', async () => {
+    const delivery = message(wakeUp);
+    const acquired: Extract<AcquireResult, { status: 'acquired' }> = {
+      status: 'acquired',
+      replay: false,
+      batchToken: 'batch-token-0000000000000001',
+      leaseExpiresAt: NOW + 720_000,
+      browserReservationMs: 240_000,
+      dailyBrowserMs: 240_000,
+    };
+    const deps = dependencies(async () => acquired);
+    const first = await deps.client.claim(acquired.batchToken);
+    if (first.status !== 'claimed') throw new Error('Expected first fixture claim');
+    const second = {
+      ...first,
+      targetId: 'target-two',
+      factionId: 'faction-two',
+      claimToken: 'claim-token-0000000000000002',
+      payloadHash: 'b'.repeat(64),
+      renderCapability: 'render-capability-token-000000002',
+    };
+    deps.client.claim = vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    deps.client.revalidate = async (exactClaim) => {
+      const source = exactClaim.targetId === second.targetId ? second : first;
+      return {
+        status: 'valid',
+        leaseExpiresAt: source.leaseExpiresAt,
+        factionId: source.factionId,
+        assetType: source.assetType,
+        payloadHash: source.payloadHash,
+      };
+    };
+
+    const result = await consumePublisherMessage(delivery.value, { ...config, maxItems: 2 }, deps);
+    expect(result.report?.telemetry).toMatchObject({
+      configuredMaxItems: 2,
+      effectiveMaxItems: 2,
+      batchReleased: true,
+      counts: { claimed: 2, completed: 2, stale: 0, failed: 0 },
+      items: [{ index: 0 }, { index: 1 }],
+    });
+    expect(deps.log).toHaveBeenCalledTimes(3);
+    const events = vi.mocked(deps.log).mock.calls.map(([event]) => event.event);
+    expect(events).toEqual([
+      'asset_publisher_item_telemetry',
+      'asset_publisher_item_telemetry',
+      'asset_publisher_invocation_telemetry',
+    ]);
+    const serialized = JSON.stringify(vi.mocked(deps.log).mock.calls);
+    expect(serialized).not.toContain(acquired.batchToken);
+    expect(serialized).not.toContain(first.claimToken);
+    expect(serialized).not.toContain(second.claimToken);
+  });
+
   test('a pre-claim systemic stop emits no item event or failed-item count', async () => {
     const delivery = message(wakeUp);
     const acquired: Extract<AcquireResult, { status: 'acquired' }> = {

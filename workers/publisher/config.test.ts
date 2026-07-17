@@ -38,6 +38,14 @@ describe('publisher lifecycle configuration', () => {
     expect(config.softDeadlineMs - config.uploadMarginMs).toBe(120_000);
   });
 
+  test('allows only the measured one- and two-item executor candidates', () => {
+    expect(parsePublisherConfig(env({ EXECUTOR_MAX_ITEMS: '1' })).maxItems).toBe(1);
+    expect(parsePublisherConfig(env({ EXECUTOR_MAX_ITEMS: '2' })).maxItems).toBe(2);
+    expect(() => parsePublisherConfig(env({ EXECUTOR_MAX_ITEMS: '3' }))).toThrow(
+      'EXECUTOR_MAX_ITEMS must be between 1 and 2'
+    );
+  });
+
   test('rejects phase settings that could consume the cleanup and settlement margin', () => {
     expect(() =>
       parsePublisherConfig(

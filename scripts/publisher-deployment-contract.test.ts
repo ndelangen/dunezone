@@ -24,7 +24,7 @@ function health() {
     ok: true,
     publisherEnabled: true,
     cronDispatchEnabled: true,
-    maxItems: 1,
+    maxItems: 2,
     supportedRendererVersion: PUBLISHER_RENDERER_VERSION,
     rendererSupport: {
       supportedRendererVersions: [PUBLISHER_RENDERER_VERSION],
@@ -52,7 +52,7 @@ describe('publisher CI deployment contract', () => {
   test.each([
     ['PUBLISHER_ENABLED', 'false'],
     ['CRON_DISPATCH_ENABLED', 'false'],
-    ['EXECUTOR_MAX_ITEMS', '2'],
+    ['EXECUTOR_MAX_ITEMS', '1'],
     ['CONVEX_POLL_URL', 'https://replacement.convex.site/asset-publishing/poll'],
   ])('fails closed when %s changes', (name, value) => {
     const config = structuredClone(readPublisherConfig());
@@ -98,7 +98,7 @@ describe('publisher CI deployment contract', () => {
   test.each([
     ['publisherEnabled', false],
     ['cronDispatchEnabled', false],
-    ['maxItems', 2],
+    ['maxItems', 1],
   ])('rejects unsafe health field %s', (name, value) => {
     const response = health() as Record<string, unknown>;
     response[name] = value;

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { createRenderCapability } from '../../convex/lib/assetPublisherHttp';
-import { parseClaim } from './convex';
+import { ConvexPublisherClient, type ExactClaim, parseClaim } from './convex';
 import { MAX_RENDER_CAPABILITY_BYTES } from './render-capability';
 
 const batchToken = 'b'.repeat(32);
@@ -130,5 +130,43 @@ describe('Convex claimed target parsing', () => {
         'Convex claimed target response is invalid'
       );
     }
+  });
+});
+
+describe('retained foreground checkpoint requests', () => {
+  test('sends the additive retainBatch flag only for retained complete/fail/release calls', async () => {
+    const requests: Array<{ path: string; body: Record<string, unknown> }> = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      const path = new URL(String(input)).pathname;
+      requests.push({ path, body: JSON.parse(String(init?.body)) as Record<string, unknown> });
+      const status = path.endsWith('/complete')
+        ? 'completed'
+        : path.endsWith('/fail')
+          ? 'failed'
+          : 'released';
+      return Response.json({ ok: true, status });
+    };
+    const client = new ConvexPublisherClient({
+      pollUrl: 'https://convex.example.com/poll',
+      executorBaseUrl: 'https://convex.example.com/executor',
+      pollToken: 'poll-token',
+      executorToken: 'executor-token',
+      fetcher,
+    });
+    const exact: ExactClaim = {
+      targetId: 'target-one',
+      batchToken,
+      claimToken,
+      generation: 1,
+      rendererVersion: 'faction-sheet-v1',
+    };
+
+    await client.complete(exact, 'etag-one', 1_234, undefined, true);
+    await client.fail(exact, 'bounded failure', undefined, true);
+    await client.release(exact, undefined, true);
+    await client.release(exact);
+
+    expect(requests.slice(0, 3).map(({ body }) => body.retainBatch)).toEqual([true, true, true]);
+    expect(requests[3]?.body).not.toHaveProperty('retainBatch');
   });
 });

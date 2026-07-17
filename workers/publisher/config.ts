@@ -6,7 +6,7 @@ export type PublisherConfig = {
   convexExecutorBaseUrl: string;
   convexRenderUrl: string;
   supportedRendererVersion: string;
-  maxItems: 1;
+  maxItems: 1 | 2;
   softDeadlineMs: number;
   uploadMarginMs: number;
   browserCaptureTimeoutMs: number;
@@ -25,6 +25,10 @@ function integer(name: string, value: string, minimum: number, maximum: number):
     throw new Error(`${name} must be between ${minimum} and ${maximum}`);
   }
   return parsed;
+}
+
+export function configuredMaxItems(env: Pick<Env, 'EXECUTOR_MAX_ITEMS'>): 1 | 2 {
+  return integer('EXECUTOR_MAX_ITEMS', env.EXECUTOR_MAX_ITEMS, 1, 2) as 1 | 2;
 }
 
 function absoluteHttpsUrl(name: string, value: string): string {
@@ -46,7 +50,7 @@ export function parsePublisherConfig(env: Env): PublisherConfig {
   if (String(env.SUPPORTED_RENDERER_VERSION) !== rendererManifest.rendererVersion) {
     throw new Error('Configured renderer must equal the embedded renderer compatibility version');
   }
-  const maxItems = integer('EXECUTOR_MAX_ITEMS', env.EXECUTOR_MAX_ITEMS, 1, 1);
+  const maxItems = configuredMaxItems(env);
   const softDeadlineMs = integer('SOFT_DEADLINE_MS', env.SOFT_DEADLINE_MS, 1, 240_000);
   const uploadMarginMs = integer('UPLOAD_MARGIN_MS', env.UPLOAD_MARGIN_MS, 120_000, 120_000);
   const browserCaptureTimeoutMs = integer(
@@ -75,7 +79,7 @@ export function parsePublisherConfig(env: Env): PublisherConfig {
     ),
     convexRenderUrl: absoluteHttpsUrl('CONVEX_RENDER_URL', env.CONVEX_RENDER_URL),
     supportedRendererVersion: rendererManifest.rendererVersion,
-    maxItems: maxItems as 1,
+    maxItems,
     softDeadlineMs,
     uploadMarginMs,
     browserCaptureTimeoutMs,
