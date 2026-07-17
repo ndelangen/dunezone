@@ -129,6 +129,13 @@ describe('Cloudflare live drift check', () => {
       'utf8'
     );
     expect(workflow).toContain('pull_request_target:');
+    expect(workflow).toContain('branches: [main]');
+    expect(workflow).toContain('types: [opened, synchronize, reopened, ready_for_review, edited]');
+    expect(workflow).not.toContain("github.event.pull_request.base.ref == 'main'");
+    expect(workflow).toContain('actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5');
+    expect(workflow).toContain(
+      'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0'
+    );
     expect(workflow).toContain(`ref: $${'{'}{ github.event.pull_request.base.sha || github.sha }}`);
     expect(workflow).toContain('persist-credentials: false');
     expect(workflow).toContain(
