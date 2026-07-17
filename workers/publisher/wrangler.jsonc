@@ -35,41 +35,21 @@
       "bucket_name": "tanstack-start-faction-sheet-assets"
     }
   ],
-  "queues": {
-    "producers": [{ "binding": "PUBLISH_QUEUE", "queue": "faction-sheet-asset-publisher" }],
-    "consumers": [
-      {
-        "queue": "faction-sheet-asset-publisher",
-        "max_batch_size": 1,
-        "max_batch_timeout": 1,
-        "max_retries": 2,
-        "max_concurrency": 1
-      }
-    ]
-  },
-  "triggers": { "crons": ["*/15 * * * *"] },
+  "triggers": { "crons": ["*/5 * * * *"] },
   "secrets": {
-    "required": [
-      "ASSET_PUBLISHER_CACHE_TOKEN_SECRET",
-      "ASSET_PUBLISHER_POLL_SECRET",
-      "ASSET_PUBLISHER_EXECUTOR_SECRET"
-    ]
+    "required": ["ASSET_PUBLISHER_CACHE_TOKEN_SECRET", "ASSET_PUBLISHER_EXECUTOR_SECRET"]
   },
   "vars": {
     "PUBLISHER_ENABLED": "true",
     "CRON_DISPATCH_ENABLED": "true",
     "CAPTURE_BASE_URL": "https://faction-sheet-asset-publisher.ndelangen.workers.dev",
-    "CONVEX_POLL_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/poll",
     "CONVEX_EXECUTOR_BASE_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor",
     "CONVEX_RENDER_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/render",
     "SUPPORTED_RENDERER_VERSION": "faction-sheet-v3",
-    "EXECUTOR_MAX_ITEMS": "2",
     "SOFT_DEADLINE_MS": "240000",
     "UPLOAD_MARGIN_MS": "120000",
     "BROWSER_CAPTURE_TIMEOUT_MS": "45000",
     "BROWSER_CLEANUP_GRACE_MS": "15000",
-    "PDF_MAX_BYTES": "8000000",
-    "QUEUE_MAX_PRE_OWNERSHIP_ATTEMPTS": "2",
-    "QUEUE_RETRY_DELAY_SECONDS": "60"
+    "PDF_MAX_BYTES": "8000000"
   }
 }

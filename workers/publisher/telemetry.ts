@@ -1,7 +1,7 @@
 import { serializePublisherLogEvent } from '../../src/app/capture/publisher-diagnostics';
 import { rendererManifest } from './renderer-manifest.generated';
 
-export const PUBLISHER_TELEMETRY_SCHEMA_VERSION = 1 as const;
+export const PUBLISHER_TELEMETRY_SCHEMA_VERSION = 2 as const;
 export const MAX_CORRELATION_INPUT_BYTES = 512;
 export const MAX_TELEMETRY_EVENT_BYTES = 8_192;
 
@@ -13,7 +13,6 @@ export type PublisherFailureClass =
   | 'conflict'
   | 'no_claim'
   | 'operational_failure'
-  | 'quota_or_reservation'
   | 'renderer'
   | 'stale'
   | 'storage_guard'
@@ -28,7 +27,6 @@ const PUBLISHER_FAILURE_CLASSES = new Set<PublisherFailureClass>([
   'conflict',
   'no_claim',
   'operational_failure',
-  'quota_or_reservation',
   'renderer',
   'stale',
   'storage_guard',
@@ -69,8 +67,7 @@ export type PublisherPhase =
   | 'release'
   | 'releaseBatch'
   | 'browserClose'
-  | 'lateBrowserClose'
-  | 'settleBrowser';
+  | 'lateBrowserClose';
 
 export type PublisherConvexOperation =
   | 'acquire'
@@ -79,8 +76,7 @@ export type PublisherConvexOperation =
   | 'complete'
   | 'fail'
   | 'release'
-  | 'releaseBatch'
-  | 'settleBrowser';
+  | 'releaseBatch';
 
 export type PublisherLogicalCalls = {
   convex: Record<PublisherConvexOperation, number>;
@@ -105,7 +101,6 @@ function emptyConvexCalls(): Record<PublisherConvexOperation, number> {
     fail: 0,
     release: 0,
     releaseBatch: 0,
-    settleBrowser: 0,
   };
 }
 
@@ -208,12 +203,11 @@ function identitySchema(value: unknown): Record<string, unknown> | undefined {
   };
 }
 
-function queueSchema(value: unknown): Record<string, unknown> {
+function executionSchema(value: unknown): Record<string, unknown> {
   const source = record(value);
   return {
-    messageId: boundedText(source.messageId, 128),
-    attempt: nonnegativeInteger(source.attempt),
-    name: boundedText(source.name, 128),
+    source: source.source === 'scheduled' ? source.source : null,
+    scheduledTime: boundedText(source.scheduledTime, 64),
     lane:
       source.lane === 'foreground' || source.lane === 'rollout' || source.lane === 'mixed'
         ? source.lane
@@ -240,7 +234,6 @@ function phaseSchema(value: unknown): Record<string, unknown> {
     'releaseBatch',
     'browserClose',
     'lateBrowserClose',
-    'settleBrowser',
   ];
   return Object.fromEntries(phases.map((phase) => [phase, nonnegativeNumber(source[phase])]));
 }
@@ -272,7 +265,6 @@ function logicalCallsSchema(value: unknown): Record<string, unknown> {
     'fail',
     'release',
     'releaseBatch',
-    'settleBrowser',
   ];
   return {
     convex: Object.fromEntries(
@@ -322,7 +314,7 @@ function itemTelemetrySchema(event: Record<string, unknown>): Record<string, unk
     event: 'asset_publisher_item_telemetry',
     schemaVersion: PUBLISHER_TELEMETRY_SCHEMA_VERSION,
     identity: identitySchema(event.identity),
-    queue: queueSchema(event.queue),
+    execution: executionSchema(event.execution),
     batchCorrelationHash: correlationHash(event.batchCorrelationHash),
     minimumLeaseMarginMs: nonnegativeNumber(event.minimumLeaseMarginMs),
     leaseMarginsMs: leaseSchema(event.leaseMarginsMs),
@@ -332,12 +324,9 @@ function itemTelemetrySchema(event: Record<string, unknown>): Record<string, unk
 
 function invocationTelemetrySchema(event: Record<string, unknown>): Record<string, unknown> {
   const browser = record(event.browser);
-  const quota = record(event.quota);
   return {
     event: 'asset_publisher_invocation_telemetry',
     schemaVersion: PUBLISHER_TELEMETRY_SCHEMA_VERSION,
-    action: allowlistedValue(event.action, ['ack']),
-    reason: allowlistedValue(event.reason, ['consumer_owned_outcome']),
     status: allowlistedValue(event.status, [
       'completed',
       'empty',
@@ -347,20 +336,12 @@ function invocationTelemetrySchema(event: Record<string, unknown>): Record<strin
     ]),
     browserOpened: boolean(event.browserOpened),
     browserClosed: boolean(event.browserClosed),
-    browserSettled: boolean(event.browserSettled),
     uploaded: boolean(event.uploaded),
     completed: boolean(event.completed),
     identity: identitySchema(event.identity),
-    queue: queueSchema(event.queue),
+    execution: executionSchema(event.execution),
     batchCorrelationHash: correlationHash(event.batchCorrelationHash),
-    configuredMaxItems:
-      event.configuredMaxItems === 1 || event.configuredMaxItems === 2
-        ? event.configuredMaxItems
-        : null,
-    effectiveMaxItems:
-      event.effectiveMaxItems === 1 || event.effectiveMaxItems === 2
-        ? event.effectiveMaxItems
-        : null,
+    maxItems: event.maxItems === 2 ? 2 : null,
     stopReason: allowlistedValue(event.stopReason, [
       'max_items',
       'empty',
@@ -400,13 +381,6 @@ function invocationTelemetrySchema(event: Record<string, unknown>): Record<strin
       providerCloseReason: null,
       providerOutcomeSource: 'browser_run_history_required',
     },
-    quota: {
-      reservedMs: nonnegativeNumber(quota.reservedMs),
-      measuredLifecycleMs: nonnegativeNumber(quota.measuredLifecycleMs),
-      settled: boolean(quota.settled),
-      dailyAccountedAfterReservationMs: nonnegativeNumber(quota.dailyAccountedAfterReservationMs),
-      denialReason: null,
-    },
     minimumLeaseMarginMs: nonnegativeNumber(event.minimumLeaseMarginMs),
     leaseMarginsMs: leaseSchema(event.leaseMarginsMs),
   };
@@ -415,7 +389,6 @@ function invocationTelemetrySchema(event: Record<string, unknown>): Record<strin
 function operationalEventSchema(event: Record<string, unknown>): Record<string, unknown> {
   const eventName = allowlistedValue(event.event, [
     'asset_publisher_cron',
-    'asset_publisher_queue',
     'asset_publisher_checkpoint_error',
     'asset_publisher_capability_validation_error',
   ]);
@@ -425,20 +398,12 @@ function operationalEventSchema(event: Record<string, unknown>): Record<string, 
     reason: boundedLabel(event.reason),
     result: boundedLabel(event.result),
     status: boundedLabel(event.status, 64),
-    messageId: boundedText(event.messageId, 128),
     triggerId: boundedText(event.triggerId, 128),
     label: boundedLabel(event.label, 64),
     failureClass: allowlistedFailureClass(event.failureClass),
     identity: identitySchema(event.identity),
-    queue: queueSchema(event.queue),
-    configuredMaxItems:
-      event.configuredMaxItems === 1 || event.configuredMaxItems === 2
-        ? event.configuredMaxItems
-        : undefined,
-    effectiveMaxItems:
-      event.effectiveMaxItems === 1 || event.effectiveMaxItems === 2
-        ? event.effectiveMaxItems
-        : undefined,
+    execution: executionSchema(event.execution),
+    maxItems: event.maxItems === 2 ? 2 : undefined,
   };
 }
 

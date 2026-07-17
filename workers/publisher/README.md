@@ -1,17 +1,17 @@
 # Scheduled production faction-sheet publisher
 
-This is the production-shaped, sequential publisher surface. Its stable Cloudflare resources are
-provisioned, and the persistent release configuration is ready for scheduled polling:
+This is the production-shaped, sequential publisher surface. Its persistent release configuration
+runs the owned publisher directly from one scheduled Worker invocation:
 
 - `PUBLISHER_ENABLED` and `CRON_DISPATCH_ENABLED` are `true`;
-- the Cron trigger list contains exactly one `*/15 * * * *` schedule;
-- the production Queue and dedicated private R2 bucket are named explicitly;
+- the Cron trigger list contains exactly one `*/5 * * * *` schedule;
+- the dedicated private R2 bucket is named explicitly;
 - capture and Convex HTTP URLs use the intended workers.dev and regional Convex origins;
 - the primary semantic renderer and exact executable support set are `faction-sheet-v3`; Convex
   still recognizes v1/v2 publication and rollback metadata, while rollback execution uses the
   previously verified v2 Worker release; the separate SHA-256 renderer id
   identifies the exact assembled release for telemetry and canary checks;
-- poll and executor secrets are distinct required bindings and are not checked in.
+- one narrow executor secret is a required binding and is not checked in;
 - the Convex-only activation secret is distinct from every publisher boundary secret and is not
   checked in; it authenticates only initialize, pause, disable, guarded activate, and the strict
   rollout create/pause/resume/cancel/rollback/progress operation union.
@@ -22,12 +22,10 @@ provisioned, and the persistent release configuration is ready for scheduled pol
   mismatched values fail closed before signing, Cache API access, or R2 access. Ticket 6 must
   provision the identical generated value in both the Convex and Worker secret stores.
 
-The Queue payload is only `{ schemaVersion, scheduledCutoff, triggerId }`. Convex owns all batch,
-claim, retry, snapshot, publication, and Browser reservation state. R2 metadata is diagnostic only.
-The 240-second work deadline and fixed 240-second Browser reservation cannot be extended by phase
-settings. A separate 30-second post-lifecycle window may only settle definitely closed Browser
-usage; it is bounded well inside the 15-minute Queue wall and cannot perform more Browser, R2, or
-publication work.
+The scheduled handler acquires one Convex batch directly. Convex owns all batch, claim, retry,
+snapshot, and publication state; R2 metadata is diagnostic only. The 240-second work deadline is a
+single-invocation lifecycle bound, not a Browser quota reservation. Browser work stops early enough
+to preserve cleanup and final Convex checkpoint time.
 
 The capture shell, HTML, and isolated bundle revalidate the host-only render capability against the
 exact Convex snapshot endpoint before serving. Capture diagnostics retain at most an artwork
@@ -52,20 +50,14 @@ The Worker accepts exactly the 8,000,000-byte PDF cap, so admitted objects accou
 already-admitted stable objects may still be overwritten at the cap. Faction saves never consult
 this counter and remain immediate.
 
-The Worker intentionally has no `limits.cpu_ms` block. Current Queue documentation describes a
-30-second default consumer CPU limit, while the real Workers Free proof rejected a custom limit and
-successfully measured the actual default at 270 ms CPU for one PDF. Ticket 6 must preserve the
-no-custom-limit configuration and re-measure the production one-item path rather than infer a Free
-allowance from the generic documentation.
+The Worker intentionally has no `limits.cpu_ms` block. A real production two-item invocation used
+291 ms CPU and 19,091 ms wall time, comfortably inside the 30-second CPU limit for a sub-hour Cron
+on Workers Paid.
 
-See [MEASUREMENT.md](./MEASUREMENT.md) for the pre-measurement telemetry contract, the production
-metrics Ticket 6 must join from Cloudflare, and the Ticket 7 scaling work that remains blocked.
 Convex now contains a disabled-first rollout control plane with page-50 discovery and batch-retaining
-rollout checkpoints, but no rollout is created or resumed by deployment. Promotion reports are
-recommendation-only. `EXECUTOR_MAX_ITEMS` accepts `1` or `2`; the checked-in functional canary is
-`2`, while Queue message batch size and concurrency remain `1`. One consumer invocation acquires
-one Convex batch, opens one Browser Session, checkpoints at most two items sequentially, then
-settles and releases the exact batch once.
+rollout checkpoints, but no rollout is created or resumed by deployment. One scheduled invocation
+acquires one Convex batch, opens one Browser Session, checkpoints at most two items sequentially,
+closes the Browser, and releases the exact batch once.
 
 The release keeps its existing embedded renderer support set. Every accepted claim uses the current
 A4 capture/PDF behavior; there is no separate legacy-geometry rendering path.
@@ -104,13 +96,13 @@ operator endpoint, mutate publisher data, or activate Convex.
 
 Do not merge the CI deployment slice until the protected GitHub `production` environment contains
 the account-scoped least-privilege `CLOUDFLARE_API_TOKEN`. `CLOUDFLARE_ACCOUNT_ID` is a protected
-environment variable; the API token is a protected secret. The exact Queue and R2 names remain in
+environment variable; the API token is a protected secret. The exact R2 name remains in
 `wrangler.jsonc`, and required Worker secret names are validated by Wrangler during deploy.
 
 **Release prerequisite: Convex publisher config and singleton must both be paused before this
-scheduled Worker release is merged or deployed.** The stable private bucket and Queue must be
-reverified, the disabled-first publication-admission migration/counter must pass, and the three
-Worker secrets must be installed. Deploy `true/true` plus the exact 15-minute Cron against paused
-Convex, observe at least one empty Cron with no Queue message or Browser Run, and only then consider
+scheduled Worker release is merged or deployed.** The stable private bucket must be reverified, the
+disabled-first publication-admission and paid-plan cleanup migrations must pass, and both Worker
+secrets must be installed. Deploy `true/true` plus the exact five-minute Cron against paused Convex,
+observe at least one empty Cron with no Browser Run, and only then consider
 the separately approved Convex operator activation. Normal `main` deploys after that activation keep
 this same scheduled source configuration; they never re-run or reverse the activation transition.

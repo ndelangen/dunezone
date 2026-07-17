@@ -1,3 +1,2 @@
-ASSET_PUBLISHER_POLL_SECRET=replace-with-distinct-local-poll-secret
 ASSET_PUBLISHER_EXECUTOR_SECRET=replace-with-distinct-local-executor-secret
 ASSET_PUBLISHER_CACHE_TOKEN_SECRET=generate-an-s1-prefixed-32-byte-base64url-secret

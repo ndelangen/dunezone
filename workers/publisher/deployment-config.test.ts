@@ -12,33 +12,20 @@ const packageConfig = JSON.parse(
 ) as { scripts: Record<string, string> };
 
 describe('scheduled production deployment shape', () => {
-  test('keeps exactly one 15-minute Cron and active Worker flags in source control', () => {
-    expect(config.triggers).toEqual({ crons: ['*/15 * * * *'] });
+  test('keeps exactly one five-minute Cron and active Worker flags in source control', () => {
+    expect(config.triggers).toEqual({ crons: ['*/5 * * * *'] });
     expect(config.vars).toMatchObject({
       PUBLISHER_ENABLED: 'true',
       CRON_DISPATCH_ENABLED: 'true',
       CAPTURE_BASE_URL: 'https://faction-sheet-asset-publisher.ndelangen.workers.dev',
-      CONVEX_POLL_URL: 'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/poll',
       SUPPORTED_RENDERER_VERSION: 'faction-sheet-v3',
-      EXECUTOR_MAX_ITEMS: '2',
     });
     expect(config.workers_dev).toBe(true);
     expect(config.preview_urls).toBe(false);
   });
 
-  test('uses one bounded Queue consumer and no alternate authority', () => {
-    expect(config.queues).toEqual({
-      producers: [{ binding: 'PUBLISH_QUEUE', queue: 'faction-sheet-asset-publisher' }],
-      consumers: [
-        {
-          queue: 'faction-sheet-asset-publisher',
-          max_batch_size: 1,
-          max_batch_timeout: 1,
-          max_retries: 2,
-          max_concurrency: 1,
-        },
-      ],
-    });
+  test('uses direct scheduled execution and no alternate authority', () => {
+    expect(config).not.toHaveProperty('queues');
     expect(config).not.toHaveProperty('d1_databases');
     expect(config).not.toHaveProperty('kv_namespaces');
     expect(config).not.toHaveProperty('durable_objects');
@@ -61,13 +48,9 @@ describe('scheduled production deployment shape', () => {
     expect(config).not.toHaveProperty('routes');
   });
 
-  test('declares cache-token plus separate generated poll/executor secret bindings', () => {
+  test('declares only cache-token and executor secret bindings', () => {
     expect(config.secrets).toEqual({
-      required: [
-        'ASSET_PUBLISHER_CACHE_TOKEN_SECRET',
-        'ASSET_PUBLISHER_POLL_SECRET',
-        'ASSET_PUBLISHER_EXECUTOR_SECRET',
-      ],
+      required: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET', 'ASSET_PUBLISHER_EXECUTOR_SECRET'],
     });
     const source = readFileSync(
       path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc'),

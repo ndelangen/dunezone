@@ -20,10 +20,8 @@ import {
   exactClaimRequestSchema,
   failRequestSchema,
   operatorRequestSchema,
-  pollRequestSchema,
   releaseBatchRequestSchema,
   rolloutOperatorRequestSchema,
-  settleBrowserRequestSchema,
 } from './lib/assetPublisherSchemas';
 import {
   handleAssetPublishingProofCheckpoint,
@@ -38,17 +36,14 @@ const http = httpRouter();
 
 auth.addHttpRoutes(http);
 
-function publisherBoundarySecret(boundary: 'poll' | 'executor') {
-  const poll = process.env.ASSET_PUBLISHER_POLL_SECRET;
+function publisherExecutorSecret() {
   const executor = process.env.ASSET_PUBLISHER_EXECUTOR_SECRET;
-  if (!poll || !executor || poll === executor) return undefined;
-  return boundary === 'poll' ? poll : executor;
+  return executor || undefined;
 }
 
 function activationBoundarySecret() {
   const activation = process.env.ASSET_PUBLISHER_ACTIVATION_SECRET;
   const otherPublisherSecrets = [
-    process.env.ASSET_PUBLISHER_POLL_SECRET,
     process.env.ASSET_PUBLISHER_EXECUTOR_SECRET,
     process.env.ASSET_PUBLISHER_RENDER_CAPABILITY_SECRET,
     process.env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET,
@@ -82,24 +77,6 @@ async function exactClaimArgs(
     retainBatch: body.retainBatch ?? false,
   };
 }
-
-http.route({
-  path: '/asset-publishing/poll',
-  method: 'POST',
-  handler: httpAction(async (ctx, request) => {
-    return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherBoundarySecret('poll'),
-      schema: pollRequestSchema,
-      execute: async (body) => {
-        const result: { eligibility: 'empty' | 'eligible' } = await ctx.runQuery(
-          internal.assetPublisher.hasEligibleWork,
-          { cutoff: Date.parse(body.scheduledCutoff) }
-        );
-        return { ok: true, ...result, ...body };
-      },
-    });
-  }),
-});
 
 http.route({
   path: '/asset-publishing/operator',
@@ -228,7 +205,7 @@ http.route({
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherBoundarySecret('executor'),
+      expectedSecret: publisherExecutorSecret(),
       schema: acquireRequestSchema,
       execute: async (body) => {
         const result = await ctx.runMutation(internal.assetPublisher.acquireBatch, {
@@ -245,7 +222,7 @@ http.route({
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherBoundarySecret('executor'),
+      expectedSecret: publisherExecutorSecret(),
       schema: claimRequestSchema,
       execute: async (body) => {
         const capabilitySecret = process.env.ASSET_PUBLISHER_RENDER_CAPABILITY_SECRET;
@@ -277,35 +254,16 @@ http.route({
 });
 
 http.route({
-  path: '/asset-publishing/executor/settle-browser',
-  method: 'POST',
-  handler: httpAction(async (ctx, request) => {
-    return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherBoundarySecret('executor'),
-      schema: settleBrowserRequestSchema,
-      execute: async (body) => ({
-        ok: true,
-        ...(await ctx.runMutation(internal.assetPublisher.settleBrowserReservation, {
-          batchToken: body.batchToken,
-          measuredBrowserMs: body.measuredBrowserMs,
-        })),
-      }),
-    });
-  }),
-});
-
-http.route({
   path: '/asset-publishing/executor/release-batch',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherBoundarySecret('executor'),
+      expectedSecret: publisherExecutorSecret(),
       schema: releaseBatchRequestSchema,
       execute: async (body) => ({
         ok: true,
         ...(await ctx.runMutation(internal.assetPublisher.releaseBatch, {
           batchToken: body.batchToken,
-          mode: body.mode,
         })),
       }),
     });
@@ -317,7 +275,7 @@ http.route({
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherBoundarySecret('executor'),
+      expectedSecret: publisherExecutorSecret(),
       schema: exactClaimRequestSchema,
       execute: async (body) => {
         const claim = await exactClaimArgs(ctx, body);
@@ -335,7 +293,7 @@ http.route({
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherBoundarySecret('executor'),
+      expectedSecret: publisherExecutorSecret(),
       schema: completeRequestSchema,
       execute: async (body) => {
         const cacheSecret = process.env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET;
@@ -366,7 +324,7 @@ http.route({
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherBoundarySecret('executor'),
+      expectedSecret: publisherExecutorSecret(),
       schema: failRequestSchema,
       execute: async (body) => {
         const claim = await exactClaimArgs(ctx, body);
@@ -387,7 +345,7 @@ http.route({
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherBoundarySecret('executor'),
+      expectedSecret: publisherExecutorSecret(),
       schema: exactClaimRequestSchema,
       execute: async (body) => {
         const claim = await exactClaimArgs(ctx, body);

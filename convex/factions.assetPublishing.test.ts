@@ -92,8 +92,10 @@ describe('faction save target reconciliation', () => {
     });
     expect(state.publisherState).toEqual([]);
     await expect(
-      t.query(internal.assetPublisher.hasEligibleWork, { cutoff: NOW })
-    ).resolves.toEqual({ eligibility: 'empty' });
+      t.mutation(internal.assetPublisher.acquireBatch, {
+        batchToken: 'pre-seed-batch-token-00000001',
+      })
+    ).resolves.toEqual({ status: 'empty', reason: 'disabled' });
     await expect(
       t.query(api.assetPublisher.getPublicMetadata, {
         factionId: faction._id,
@@ -394,6 +396,53 @@ describe('faction save target reconciliation', () => {
 });
 
 describe('faction-sheet target migrations', () => {
+  test('clears the retired Browser quota ledger while paused', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const t = convexTest(schema, modules);
+    migrationsTest.register(t);
+    await t.run(async (ctx) => {
+      await ctx.db.insert('asset_publisher_state', {
+        key: 'singleton',
+        status: 'paused',
+        cooldown_until: 0,
+        daily_browser_utc_date: '2026-07-16',
+        daily_browser_ms: 291,
+        browser_reservation_batch_token: BATCH,
+        browser_reservation_utc_date: '2026-07-16',
+        browser_reserved_ms: 240_000,
+        last_browser_settlement_batch_token: BATCH,
+        last_browser_settlement_ms: 19_091,
+        last_browser_release_batch_token: BATCH,
+        last_browser_release_mode: 'after_settlement',
+        next_lane: 'foreground',
+      });
+    });
+
+    const ids = ['asset_publisher_paid_plan_cleanup_v1'];
+    await t.mutation(api.migrations.runRequired, { ids });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await expect(
+      t.query(api.migrations.assertReadyForNarrow, { required: ids })
+    ).resolves.toMatchObject({ ok: true, required: ids });
+
+    const state = await t.run(async (ctx) => await ctx.db.query('asset_publisher_state').unique());
+    expect(state).toMatchObject({ status: 'paused', next_lane: 'foreground' });
+    for (const field of [
+      'daily_browser_utc_date',
+      'daily_browser_ms',
+      'browser_reservation_batch_token',
+      'browser_reservation_utc_date',
+      'browser_reserved_ms',
+      'last_browser_settlement_batch_token',
+      'last_browser_settlement_ms',
+      'last_browser_release_batch_token',
+      'last_browser_release_mode',
+    ]) {
+      expect(state).not.toHaveProperty(field);
+    }
+  });
+
   test('publication-admission initialization refuses non-disabled publisher state', async () => {
     const t = convexTest(schema, modules);
     migrationsTest.register(t);

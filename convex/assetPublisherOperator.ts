@@ -2,8 +2,6 @@ import { v } from 'convex/values';
 
 import type { Doc } from './_generated/dataModel';
 import { internalMutation } from './_generated/server';
-import { FREE_BROWSER_ALLOWANCE_MS } from './lib/assetPublisherLimits';
-import { publisherTokenSchema } from './lib/assetPublisherSchemas';
 import {
   assertFirstPublicationCounterReady,
   exactPublisherStateOrNull,
@@ -27,18 +25,6 @@ const rendererValidator = v.union(
 );
 const targetPrerequisiteValidator = v.literal(FACTION_SHEET_TARGET_ACTIVATION_PREREQUISITE);
 const storagePrerequisiteValidator = v.literal(FACTION_SHEET_STORAGE_ACTIVATION_PREREQUISITE);
-// Freeze both evidence-backed compare-and-swap amounts. These maintenance values must not follow a
-// later change to the normal acquisition reservation policy.
-const HISTORICAL_BROWSER_USAGE_RECONCILIATION_RESERVATION_MS = 8 * 60 * 1_000;
-const DEPLOYED_BROWSER_USAGE_RECONCILIATION_RESERVATION_MS = 4 * 60 * 1_000;
-
-function isReconciliableBrowserReservation(value: number): boolean {
-  return (
-    value === HISTORICAL_BROWSER_USAGE_RECONCILIATION_RESERVATION_MS ||
-    value === DEPLOYED_BROWSER_USAGE_RECONCILIATION_RESERVATION_MS
-  );
-}
-
 async function exactConfigOrNull(ctx: MutationCtx) {
   const configs = await ctx.db
     .query('asset_type_configs')
@@ -217,90 +203,6 @@ export const requeueCurrentFactionSheetCanary = internalMutation({
   },
 });
 
-function currentUtcDate() {
-  return new Date(Date.now()).toISOString().slice(0, 10);
-}
-
-/**
- * One-shot reconciliation for a provider-observed Browser total after an
- * ambiguous close retained a conservative reservation. The exact comparison
- * fields make the cleared reservation a compare-and-swap, not a generic quota
- * adjustment.
- */
-export const reconcileCurrentBrowserUsage = internalMutation({
-  args: {
-    expectedUtcDate: v.string(),
-    expectedDailyBrowserMs: v.number(),
-    expectedBrowserReservationBatchToken: v.string(),
-    expectedBrowserReservationUtcDate: v.string(),
-    expectedBrowserReservedMs: v.number(),
-    replacementDailyBrowserMs: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const today = currentUtcDate();
-    if (args.expectedUtcDate !== today || args.expectedBrowserReservationUtcDate !== today) {
-      throw new Error('Browser usage reconciliation requires the current UTC accounting date');
-    }
-    if (
-      !publisherTokenSchema.safeParse(args.expectedBrowserReservationBatchToken).success ||
-      !Number.isSafeInteger(args.expectedDailyBrowserMs) ||
-      args.expectedDailyBrowserMs < 0 ||
-      !isReconciliableBrowserReservation(args.expectedBrowserReservedMs) ||
-      !Number.isSafeInteger(args.replacementDailyBrowserMs) ||
-      args.replacementDailyBrowserMs < 0 ||
-      args.replacementDailyBrowserMs > FREE_BROWSER_ALLOWANCE_MS ||
-      args.replacementDailyBrowserMs >= args.expectedDailyBrowserMs
-    ) {
-      throw new Error('Invalid Browser usage reconciliation values');
-    }
-
-    const [config, state] = await Promise.all([
-      exactConfigOrNull(ctx),
-      exactPublisherStateOrNull(ctx),
-    ]);
-    if (config?.status !== 'paused' || state?.status !== 'paused') {
-      throw new Error('Browser usage reconciliation requires paused publisher controls');
-    }
-    if (state.batch_token !== undefined || state.batch_lease_expires_at !== undefined) {
-      throw new Error('Browser usage reconciliation requires no owned publisher batch');
-    }
-
-    const [ownedTarget, ownedSnapshot] = await Promise.all([
-      ctx.db
-        .query('asset_targets')
-        .withIndex('by_batch_token', (q) => q.gte('batch_token', ''))
-        .first(),
-      ctx.db.query('asset_claim_snapshots').withIndex('by_batch_token').first(),
-    ]);
-    if (ownedTarget || ownedSnapshot) {
-      throw new Error('Browser usage reconciliation requires no owned claims or snapshots');
-    }
-    if (
-      state.daily_browser_utc_date !== args.expectedUtcDate ||
-      state.daily_browser_ms !== args.expectedDailyBrowserMs ||
-      state.browser_reservation_batch_token !== args.expectedBrowserReservationBatchToken ||
-      state.browser_reservation_utc_date !== args.expectedBrowserReservationUtcDate ||
-      state.browser_reserved_ms !== args.expectedBrowserReservedMs
-    ) {
-      throw new Error('Browser usage reconciliation state does not match expected accounting');
-    }
-
-    await ctx.db.patch(state._id, {
-      daily_browser_ms: args.replacementDailyBrowserMs,
-      browser_reservation_batch_token: undefined,
-      browser_reservation_utc_date: undefined,
-      browser_reserved_ms: undefined,
-    });
-    return {
-      status: 'reconciled' as const,
-      utcDate: args.expectedUtcDate,
-      previousDailyBrowserMs: args.expectedDailyBrowserMs,
-      dailyBrowserMs: args.replacementDailyBrowserMs,
-      clearedReservationBatchToken: args.expectedBrowserReservationBatchToken,
-    };
-  },
-});
-
 async function assertExactPrerequisite(
   ctx: MutationCtx,
   prerequisite:
@@ -323,7 +225,7 @@ async function assertExactPrerequisite(
 /**
  * Private operator transition. The authenticated HTTP boundary supplies the
  * exact renderer and both prerequisite literals; this mutation itself performs
- * no secret, Worker, Queue, or R2 work.
+ * no secret, Worker, Browser, or R2 work.
  */
 export const activate = internalMutation({
   args: {

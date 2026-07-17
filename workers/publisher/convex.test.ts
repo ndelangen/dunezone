@@ -147,9 +147,7 @@ describe('retained foreground checkpoint requests', () => {
       return Response.json({ ok: true, status });
     };
     const client = new ConvexPublisherClient({
-      pollUrl: 'https://convex.example.com/poll',
       executorBaseUrl: 'https://convex.example.com/executor',
-      pollToken: 'poll-token',
       executorToken: 'executor-token',
       fetcher,
     });

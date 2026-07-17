@@ -73,6 +73,8 @@ Current widen migrations include:
 - `faction_sheet_targets_verify_v1` (bounded proof of zero missing or duplicate active-faction targets)
 - `faction_sheet_publication_admissions_v1` (backfills the structural first-publication marker after
   initializing its bounded counter while the publisher is disabled)
+- `asset_publisher_paid_plan_cleanup_v1` (while the publisher is paused or disabled, clears the
+  retired Workers Free Browser quota reservation and settlement ledger)
 
 The `profiles_backfill_guard` narrow-phase entry exists only so deploy polling treats `profiles_from_users_v1` as required alongside schema narrow prerequisites; it is not a schema change.
 
@@ -86,6 +88,10 @@ the persisted counter from at most 876 already-admitted/published targets, and f
 footprint exceeds 875 or disagrees with an existing counter. New save/backfill targets dual-write
 `first_publication_admitted: false`. Activation remains blocked until the marker migration succeeds
 and the bounded admitted-target count exactly matches the persisted counter.
+
+The paid-plan cleanup guard requires the quota-ledger cleanup before a later schema narrow removes
+the nine optional compatibility fields. The cleanup refuses to run while the publisher singleton is
+active; pause it before the widen migration deploy.
 
 ## Automated production flow (fail-closed)
 

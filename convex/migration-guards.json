@@ -36,6 +36,11 @@
       "requires": []
     },
     {
+      "id": "asset_publisher_paid_plan_cleanup_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
       "id": "profiles_backfill_guard",
       "phase": "narrow",
       "requires": ["profiles_from_users_v1"]
@@ -49,6 +54,11 @@
       "id": "faction_sheet_publication_admissions_guard",
       "phase": "narrow",
       "requires": ["faction_sheet_publication_admissions_v1"]
+    },
+    {
+      "id": "asset_publisher_paid_plan_cleanup_guard",
+      "phase": "narrow",
+      "requires": ["asset_publisher_paid_plan_cleanup_v1"]
     },
     {
       "id": "groups_slug_narrow",

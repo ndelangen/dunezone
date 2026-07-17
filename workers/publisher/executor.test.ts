@@ -16,27 +16,22 @@ import { fakeR2Object } from './test-helpers';
 const NOW = Date.parse('2026-07-16T12:00:00.000Z');
 const config: PublisherConfig = {
   captureBaseUrl: 'https://publisher.example.com',
-  convexPollUrl: 'https://convex.example.com/poll',
   convexExecutorBaseUrl: 'https://convex.example.com/executor',
   convexRenderUrl: 'https://convex.example.com/render',
   supportedRendererVersion: rendererManifest.rendererVersion,
   supportedRendererVersions: rendererManifest.supportedRendererVersions,
-  maxItems: 1,
+  maxItems: 2,
   softDeadlineMs: 240_000,
   uploadMarginMs: 120_000,
   browserCaptureTimeoutMs: 45_000,
   browserCleanupGraceMs: 5,
   pdfMaxBytes: 8_000_000,
-  queueMaxPreOwnershipAttempts: 2,
-  queueRetryDelaySeconds: 60,
 };
 const acquisition: Extract<AcquireResult, { status: 'acquired' }> = {
   status: 'acquired',
   replay: false,
   batchToken: 'batch-token-0000000000000001',
   leaseExpiresAt: NOW + 720_000,
-  browserReservationMs: 240_000,
-  dailyBrowserMs: 240_000,
 };
 const claim: ClaimedTarget = {
   status: 'claimed',
@@ -81,7 +76,6 @@ function setup(
 ) {
   const fail = vi.fn(async (_claim: ExactClaim, _error: string) => 'failed' as const);
   const release = vi.fn(async (_claim: ExactClaim) => 'released' as const);
-  const settleBrowser = vi.fn(async () => 'settled' as const);
   const releaseBatch = vi.fn(async () => 'released' as const);
   const complete = vi.fn(options.complete ?? (async () => 'completed' as const));
   const revalidate = vi.fn(async () => {
@@ -121,10 +115,15 @@ function setup(
   });
   const close = vi.fn(options.close ?? (async () => undefined));
   const openBrowser = vi.fn(async () => ({ capture, close }));
+  let defaultClaimCalls = 0;
   const dependencies: OwnedBatchDependencies = {
     client: {
-      claim: options.claim ?? (async () => options.claimResult ?? claim),
-      settleBrowser,
+      claim:
+        options.claim ??
+        (async () =>
+          defaultClaimCalls++ === 0
+            ? (options.claimResult ?? claim)
+            : { status: 'empty' as const }),
       releaseBatch,
       revalidate,
       complete,
@@ -148,7 +147,6 @@ function setup(
     spies: {
       fail,
       release,
-      settleBrowser,
       releaseBatch,
       complete,
       revalidate,
@@ -162,23 +160,21 @@ function setup(
 }
 
 describe('one-item owned batch execution', () => {
-  test('renders, closes, settles, revalidates, conditionally uploads, and completes', async () => {
+  test('renders, closes, revalidates, conditionally uploads, and completes', async () => {
     const { dependencies, spies } = setup();
     const report = await executeOwnedBatch(dependencies, config, acquisition, NOW);
     expect(report).toMatchObject({
       status: 'completed',
       browserOpened: true,
       browserClosed: true,
-      browserSettled: true,
       uploaded: true,
       completed: true,
     });
     expect(spies.revalidate).toHaveBeenCalledBefore(spies.put);
     expect(spies.put).toHaveBeenCalledBefore(spies.complete);
-    expect(spies.complete).toHaveBeenCalledBefore(spies.settleBrowser);
+    expect(spies.complete).toHaveBeenCalledBefore(spies.releaseBatch);
     expect(report.telemetry).toMatchObject({
-      configuredMaxItems: 1,
-      effectiveMaxItems: 1,
+      maxItems: 2,
       platform: {
         cpuMs: null,
         wallMs: null,
@@ -187,7 +183,7 @@ describe('one-item owned batch execution', () => {
         source: 'cloudflare_analytics_required',
       },
       logicalCalls: {
-        convex: { claim: 1, revalidate: 1, complete: 1, settleBrowser: 1 },
+        convex: { claim: 2, revalidate: 1, complete: 1, releaseBatch: 1 },
         r2: { head: 1, put: 1 },
         cache: { match: 0, put: 0 },
       },
@@ -233,10 +229,8 @@ describe('one-item owned batch execution', () => {
       status: 'completed',
       browserOpened: true,
       browserClosed: true,
-      browserSettled: true,
       telemetry: {
-        configuredMaxItems: 2,
-        effectiveMaxItems: 2,
+        maxItems: 2,
         counts: { claimed: 2, completed: 2, failed: 0 },
         items: [
           { rendererMismatch: false, outcome: 'completed' },
@@ -248,26 +242,19 @@ describe('one-item owned batch execution', () => {
     expect(spies.capture).toHaveBeenCalledTimes(2);
     expect(spies.put).toHaveBeenCalledTimes(2);
     expect(spies.complete).toHaveBeenCalledTimes(2);
-    expect(spies.settleBrowser).toHaveBeenCalledOnce();
     expect(spies.releaseBatch).toHaveBeenCalledOnce();
   });
 
-  test('a rollout checkpoint releases the retained batch only after Browser settlement', async () => {
+  test('a rollout checkpoint releases the retained batch after Browser cleanup', async () => {
     const rolloutClaim = { ...claim, workLane: 'rollout' as const };
     const { dependencies, spies } = setup({ claimResult: rolloutClaim });
     const report = await executeOwnedBatch(dependencies, config, acquisition, NOW);
     expect(report).toMatchObject({
       status: 'completed',
-      browserSettled: true,
-      telemetry: { queue: { lane: 'rollout' } },
+      telemetry: { execution: { lane: 'rollout' } },
     });
-    expect(spies.complete).toHaveBeenCalledBefore(spies.settleBrowser);
-    expect(spies.settleBrowser).toHaveBeenCalledBefore(spies.releaseBatch);
-    expect(spies.releaseBatch).toHaveBeenCalledWith(
-      acquisition.batchToken,
-      'after_settlement',
-      expect.any(Number)
-    );
+    expect(spies.complete).toHaveBeenCalledBefore(spies.releaseBatch);
+    expect(spies.releaseBatch).toHaveBeenCalledWith(acquisition.batchToken, expect.any(Number));
   });
 
   test('empty and duplicate/busy-fenced claims close without upload', async () => {
@@ -275,17 +262,15 @@ describe('one-item owned batch execution', () => {
       const { dependencies, spies } = setup({ claimResult: { status } });
       const report = await executeOwnedBatch(dependencies, config, acquisition, NOW);
       expect(report.browserClosed, status).toBe(true);
-      expect(report.browserSettled, status).toBe(true);
       expect(spies.releaseBatch, status).toHaveBeenCalledWith(
         acquisition.batchToken,
-        'after_settlement',
         expect.any(Number)
       );
       expect(spies.put, status).not.toHaveBeenCalled();
     }
   });
 
-  test('Browser unavailability refunds the untouched reservation and opens no browser', async () => {
+  test('Browser unavailability releases the untouched batch and opens no browser', async () => {
     const { dependencies, spies } = setup({ browserAvailable: false });
     const report = await executeOwnedBatch(dependencies, config, acquisition, NOW);
     expect(report).toMatchObject({ status: 'systemic_stop', browserOpened: false });
@@ -295,11 +280,7 @@ describe('one-item owned batch execution', () => {
       browser: { outcome: 'not_opened' },
       item: null,
     });
-    expect(spies.releaseBatch).toHaveBeenCalledWith(
-      acquisition.batchToken,
-      'no_browser',
-      expect.any(Number)
-    );
+    expect(spies.releaseBatch).toHaveBeenCalledWith(acquisition.batchToken, expect.any(Number));
     expect(spies.openBrowser).not.toHaveBeenCalled();
   });
 
@@ -436,7 +417,6 @@ describe('one-item owned batch execution', () => {
         status: 'systemic_stop',
         browserOpened: false,
         browserClosed: false,
-        browserSettled: false,
         telemetry: {
           phasesMs: { browserLaunch: 100, lateBrowserWait: 900 },
           browser: { outcome: 'late_launch_unresolved_fenced' },
@@ -458,29 +438,28 @@ describe('one-item owned batch execution', () => {
     }
   });
 
-  test('an invalid reservation remains a systemic stop without changing batch ownership', async () => {
+  test('an invalid lifecycle budget stops before opening a Browser', async () => {
     const { dependencies, spies } = setup();
     const report = await executeOwnedBatch(
       dependencies,
-      { ...config, browserCleanupGraceMs: 5_000 },
-      { ...acquisition, browserReservationMs: 10_000 },
+      { ...config, softDeadlineMs: 10_000, browserCleanupGraceMs: 6_000 },
+      acquisition,
       NOW
     );
-    expect(report).toMatchObject({ status: 'systemic_stop', browserOpened: false });
-    expect(spies.releaseBatch).not.toHaveBeenCalled();
+    expect(report).toMatchObject({ status: 'failed', browserOpened: false });
+    expect(spies.releaseBatch).toHaveBeenCalledOnce();
     expect(spies.openBrowser).not.toHaveBeenCalled();
   });
 
-  test('a launch failure keeps the conservative reservation and opens no replacement', async () => {
+  test('a launch failure releases the batch and opens no replacement', async () => {
     const { dependencies, spies } = setup();
     dependencies.openBrowser = async () => await Promise.reject(new Error('launch failed'));
     const report = await executeOwnedBatch(dependencies, config, acquisition, NOW);
     expect(report.status).toBe('systemic_stop');
-    expect(spies.releaseBatch).not.toHaveBeenCalled();
-    expect(spies.settleBrowser).not.toHaveBeenCalled();
+    expect(spies.releaseBatch).toHaveBeenCalledOnce();
   });
 
-  test('cleanup timeout leaves Browser usage conservatively unsettled', async () => {
+  test('cleanup timeout retains batch ownership', async () => {
     const { dependencies, spies } = setup({ close: async () => await new Promise(() => {}) });
     const report = await executeOwnedBatch(
       dependencies,
@@ -489,7 +468,7 @@ describe('one-item owned batch execution', () => {
       NOW
     );
     expect(report).toMatchObject({ status: 'systemic_stop', browserClosed: false });
-    expect(spies.settleBrowser).not.toHaveBeenCalled();
+    expect(spies.releaseBatch).not.toHaveBeenCalled();
   });
 
   test('a post-completion close failure remains an invocation cleanup failure, not an item failure', async () => {
@@ -684,7 +663,7 @@ describe('one-item owned batch execution', () => {
       claim.renderCapability,
       'browser-session-sensitive-0001',
       'Bearer SECRET_BEARER_TOKEN',
-      'POLL_SECRET_SENTINEL',
+      'EXECUTOR_SECRET_SENTINEL',
       'EXECUTOR_SECRET_SENTINEL',
       'PAYLOAD_SECRET_SENTINEL',
     ];
@@ -720,7 +699,7 @@ describe('one-item owned batch execution', () => {
       },
     });
     const report = await executeOwnedBatch(dependencies, config, acquisition, NOW);
-    expect(report).toMatchObject({ status: 'failed', browserClosed: true, browserSettled: true });
+    expect(report).toMatchObject({ status: 'failed', browserClosed: true });
     expect(spies.fail).toHaveBeenCalledWith(
       expect.objectContaining({ targetId: claim.targetId, claimToken: claim.claimToken }),
       'asset publisher operational failure',
@@ -731,7 +710,7 @@ describe('one-item owned batch execution', () => {
     expect(spies.put).not.toHaveBeenCalled();
   });
 
-  test('an unprovable claim outcome settles closed-browser usage but retains the claim fence', async () => {
+  test('an unprovable claim outcome closes the Browser but retains the claim fence', async () => {
     const { dependencies, spies } = setup({
       claim: async () => await Promise.reject(new Error('response unavailable')),
     });
@@ -739,45 +718,9 @@ describe('one-item owned batch execution', () => {
     expect(report).toMatchObject({
       status: 'systemic_stop',
       browserClosed: true,
-      browserSettled: true,
     });
     expect(spies.fail).not.toHaveBeenCalled();
-    expect(spies.settleBrowser).toHaveBeenCalledOnce();
     expect(spies.releaseBatch).not.toHaveBeenCalled();
-  });
-
-  test('real client and HTTP settle a measurable post-lifecycle overrun at actual usage', async () => {
-    let current = NOW;
-    let settlementBody: Record<string, unknown> | undefined;
-    const fetcher: typeof fetch = async (_input, init) => {
-      settlementBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
-      return Response.json({ ok: true, status: 'settled' });
-    };
-    const client = new ConvexPublisherClient({
-      pollUrl: 'https://convex.example.com/poll',
-      executorBaseUrl: 'https://convex.example.com/executor',
-      pollToken: 'poll-token',
-      executorToken: 'executor-token',
-      fetcher,
-      now: () => current,
-    });
-    const { dependencies, spies } = setup({ now: () => current });
-    dependencies.client.settleBrowser = client.settleBrowser.bind(client);
-    dependencies.openBrowser = async () => ({
-      capture: spies.capture,
-      close: async () => {
-        current = NOW + 241_000;
-      },
-    });
-    const report = await executeOwnedBatch(dependencies, config, acquisition, NOW);
-    expect(settlementBody).toMatchObject({
-      schemaVersion: 1,
-      batchToken: acquisition.batchToken,
-      measuredBrowserMs: 241_000,
-    });
-    expect(report.status).toBe('systemic_stop');
-    expect(report).toMatchObject({ browserClosed: true, browserSettled: true });
-    expect(report.error).toBe('asset publisher quota or reservation');
   });
 
   test.each([
@@ -785,77 +728,11 @@ describe('one-item owned batch execution', () => {
     'storage_limit',
   ] as const)('the real client accepts the bounded %s revalidation response', async (status) => {
     const client = new ConvexPublisherClient({
-      pollUrl: 'https://convex.example.com/poll',
       executorBaseUrl: 'https://convex.example.com/executor',
-      pollToken: 'poll-token',
       executorToken: 'executor-token',
       fetcher: async () => Response.json({ ok: true, status }),
     });
     await expect(client.revalidate(claim)).resolves.toEqual({ status });
-  });
-
-  test('an overrun beyond the settlement window keeps the reservation unsettled', async () => {
-    let current = NOW;
-    const fetcher = vi.fn<typeof fetch>(async () => Response.json({ ok: true, status: 'settled' }));
-    const client = new ConvexPublisherClient({
-      pollUrl: 'https://convex.example.com/poll',
-      executorBaseUrl: 'https://convex.example.com/executor',
-      pollToken: 'poll-token',
-      executorToken: 'executor-token',
-      fetcher,
-      now: () => current,
-    });
-    const { dependencies, spies } = setup({ now: () => current });
-    dependencies.client.settleBrowser = client.settleBrowser.bind(client);
-    dependencies.openBrowser = async () => ({
-      capture: spies.capture,
-      close: async () => {
-        current = NOW + 520_000;
-      },
-    });
-    const report = await executeOwnedBatch(dependencies, config, acquisition, NOW);
-    expect(report).toMatchObject({
-      status: 'systemic_stop',
-      browserClosed: true,
-      browserSettled: false,
-    });
-    expect(fetcher).not.toHaveBeenCalled();
-    expect(spies.releaseBatch).not.toHaveBeenCalled();
-  });
-
-  test('a stalled real HTTP settlement times out and keeps the reservation unsettled', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(NOW);
-    try {
-      const fetcher: typeof fetch = async () => await new Promise<Response>(() => {});
-      const client = new ConvexPublisherClient({
-        pollUrl: 'https://convex.example.com/poll',
-        executorBaseUrl: 'https://convex.example.com/executor',
-        pollToken: 'poll-token',
-        executorToken: 'executor-token',
-        fetcher,
-        now: Date.now,
-      });
-      const { dependencies, spies } = setup({ now: Date.now });
-      dependencies.client.settleBrowser = client.settleBrowser.bind(client);
-      dependencies.openBrowser = async () => ({
-        capture: spies.capture,
-        close: async () => {
-          vi.setSystemTime(NOW + 241_000);
-        },
-      });
-      const execution = executeOwnedBatch(dependencies, config, acquisition, NOW);
-      await vi.advanceTimersByTimeAsync(30_000);
-      const report = await execution;
-      expect(report).toMatchObject({
-        status: 'systemic_stop',
-        browserClosed: true,
-        browserSettled: false,
-      });
-      expect(spies.releaseBatch).not.toHaveBeenCalled();
-    } finally {
-      vi.useRealTimers();
-    }
   });
 
   test('one absolute deadline stops a stalled capture and never opens a replacement browser', async () => {
@@ -892,7 +769,7 @@ describe('one-item owned batch execution', () => {
     }
   });
 
-  test('an unprovable post-ownership Convex header stall still closes, settles, and returns', async () => {
+  test('an unprovable post-ownership Convex header stall still closes and returns', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
     try {
@@ -926,10 +803,8 @@ describe('one-item owned batch execution', () => {
       expect(report).toMatchObject({
         status: 'systemic_stop',
         browserClosed: true,
-        browserSettled: true,
       });
       expect(spies.close).toHaveBeenCalledOnce();
-      expect(spies.settleBrowser).toHaveBeenCalledOnce();
     } finally {
       vi.useRealTimers();
     }
@@ -950,11 +825,7 @@ describe('one-item owned batch execution', () => {
     expect(['failed', 'systemic_stop', 'completed']).toContain(report.status);
     if (point === 'after_lease') {
       expect(spies.openBrowser).not.toHaveBeenCalled();
-      expect(spies.releaseBatch).toHaveBeenCalledWith(
-        acquisition.batchToken,
-        'no_browser',
-        expect.any(Number)
-      );
+      expect(spies.releaseBatch).toHaveBeenCalledWith(acquisition.batchToken, expect.any(Number));
     }
     if (point === 'after_completion') {
       expect(report).toMatchObject({ status: 'completed', completed: true });
@@ -973,7 +844,7 @@ describe('size-two owned batch execution', () => {
     renderCapability: 'render-capability-token-000000002',
   };
 
-  test('checkpoints two foreground successes under one Browser and releases once after settlement', async () => {
+  test('checkpoints two foreground successes under one Browser and releases once after cleanup', async () => {
     const claimNext = vi.fn().mockResolvedValueOnce(claim).mockResolvedValueOnce(secondClaim);
     const { dependencies, spies } = setup({ claim: claimNext });
     dependencies.client.revalidate = vi
@@ -998,10 +869,8 @@ describe('size-two owned batch execution', () => {
       status: 'completed',
       browserOpened: true,
       browserClosed: true,
-      browserSettled: true,
       telemetry: {
-        configuredMaxItems: 2,
-        effectiveMaxItems: 2,
+        maxItems: 2,
         stopReason: 'max_items',
         batchReleased: true,
         counts: { claimed: 2, completed: 2, stale: 0, failed: 0 },
@@ -1031,9 +900,7 @@ describe('size-two owned batch execution', () => {
       expect.any(Number),
       true
     );
-    expect(spies.complete).toHaveBeenCalledBefore(spies.settleBrowser);
-    expect(spies.settleBrowser).toHaveBeenCalledBefore(spies.releaseBatch);
-    expect(spies.settleBrowser).toHaveBeenCalledOnce();
+    expect(spies.complete).toHaveBeenCalledBefore(spies.releaseBatch);
     expect(spies.releaseBatch).toHaveBeenCalledOnce();
   });
 
@@ -1087,8 +954,7 @@ describe('size-two owned batch execution', () => {
     });
     expect(claimNext).toHaveBeenCalledTimes(2);
     expect(spies.fail).toHaveBeenCalledOnce();
-    expect(spies.fail).toHaveBeenCalledBefore(spies.settleBrowser);
-    expect(spies.settleBrowser).toHaveBeenCalledBefore(spies.releaseBatch);
+    expect(spies.fail).toHaveBeenCalledBefore(spies.releaseBatch);
   });
 
   test('a second stale item releases exact ownership and ends the loop', async () => {
@@ -1119,7 +985,6 @@ describe('size-two owned batch execution', () => {
       expect.any(Number),
       true
     );
-    expect(spies.release).toHaveBeenCalledBefore(spies.settleBrowser);
-    expect(spies.settleBrowser).toHaveBeenCalledBefore(spies.releaseBatch);
+    expect(spies.release).toHaveBeenCalledBefore(spies.releaseBatch);
   });
 });

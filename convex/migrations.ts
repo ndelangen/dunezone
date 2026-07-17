@@ -36,6 +36,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_sheet_targets_verify_v1: internal.migrations.faction_sheet_targets_verify_v1,
   faction_sheet_publication_admissions_v1:
     internal.migrations.faction_sheet_publication_admissions_v1,
+  asset_publisher_paid_plan_cleanup_v1: internal.migrations.asset_publisher_paid_plan_cleanup_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -237,6 +238,28 @@ export const faction_sheet_publication_admissions_v1 = migrations.define({
   },
 });
 
+/** Clears the retired Workers Free Browser quota ledger from the publisher singleton. */
+export const asset_publisher_paid_plan_cleanup_v1 = migrations.define({
+  table: 'asset_publisher_state',
+  batchSize: 1,
+  migrateOne: async (_ctx, state) => {
+    if (state.status === 'active') {
+      throw new Error('Paid-plan publisher cleanup requires paused or disabled publisher state');
+    }
+    return {
+      daily_browser_utc_date: undefined,
+      daily_browser_ms: undefined,
+      browser_reservation_batch_token: undefined,
+      browser_reservation_utc_date: undefined,
+      browser_reserved_ms: undefined,
+      last_browser_settlement_batch_token: undefined,
+      last_browser_settlement_ms: undefined,
+      last_browser_release_batch_token: undefined,
+      last_browser_release_mode: undefined,
+    };
+  },
+});
+
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([
@@ -248,6 +271,7 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.faction_sheet_targets_backfill_v1,
   internal.migrations.faction_sheet_targets_verify_v1,
   internal.migrations.faction_sheet_publication_admissions_v1,
+  internal.migrations.asset_publisher_paid_plan_cleanup_v1,
 ]);
 
 export const runRequired = mutation({

@@ -4,6 +4,8 @@ import {
   PUBLISHER_ORIGIN,
   PUBLISHER_PRODUCTION_CONVEX_URL,
   PUBLISHER_RENDERER_VERSION,
+  PUBLISHER_SMOKE_ATTEMPTS,
+  PUBLISHER_SMOKE_RETRY_MS,
   PUBLISHER_SUPPORTED_RENDERER_VERSIONS,
   readPublisherConfig,
   validatePublisherDeployContract,
@@ -50,12 +52,17 @@ describe('publisher CI deployment contract', () => {
     ).not.toThrow();
   });
 
+  test('allows Cloudflare propagation for nearly three minutes before failing smoke', () => {
+    expect((PUBLISHER_SMOKE_ATTEMPTS - 1) * PUBLISHER_SMOKE_RETRY_MS).toBeGreaterThanOrEqual(
+      150_000
+    );
+  });
+
   test.each([
     ['PUBLISHER_ENABLED', 'false'],
     ['CRON_DISPATCH_ENABLED', 'false'],
-    ['EXECUTOR_MAX_ITEMS', '1'],
     ['PDF_MAX_BYTES', '8000001'],
-    ['CONVEX_POLL_URL', 'https://replacement.convex.site/asset-publishing/poll'],
+    ['CONVEX_EXECUTOR_BASE_URL', 'https://replacement.convex.site/asset-publishing/executor'],
   ])('fails closed when %s changes', (name, value) => {
     const config = structuredClone(readPublisherConfig());
     (config.vars as Record<string, unknown>)[name] = value;
@@ -68,7 +75,7 @@ describe('publisher CI deployment contract', () => {
     expect(() => validatePublisherDeployContract(cronConfig, ciEnvironment())).toThrow();
 
     const extraCronConfig = structuredClone(readPublisherConfig());
-    extraCronConfig.triggers = { crons: ['*/15 * * * *', '0 0 * * *'] };
+    extraCronConfig.triggers = { crons: ['*/5 * * * *', '0 0 * * *'] };
     expect(() => validatePublisherDeployContract(extraCronConfig, ciEnvironment())).toThrow();
 
     const bucketConfig = structuredClone(readPublisherConfig());

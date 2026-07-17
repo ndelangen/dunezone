@@ -158,14 +158,7 @@ function exact(claim: Awaited<ReturnType<typeof acquireAndClaimRollout>>) {
 }
 
 async function settleAndRelease(t: Seeded['t'], batchToken: string) {
-  await t.mutation(internal.assetPublisher.settleBrowserReservation, {
-    batchToken,
-    measuredBrowserMs: 0,
-  });
-  await t.mutation(internal.assetPublisher.releaseBatch, {
-    batchToken,
-    mode: 'after_settlement',
-  });
+  await t.mutation(internal.assetPublisher.releaseBatch, { batchToken });
 }
 
 describe('renderer rollout control plane', () => {
@@ -510,14 +503,12 @@ describe('renderer rollout control plane', () => {
     vi.setSystemTime(NOW);
     const keys = [
       'ASSET_PUBLISHER_ACTIVATION_SECRET',
-      'ASSET_PUBLISHER_POLL_SECRET',
       'ASSET_PUBLISHER_EXECUTOR_SECRET',
       'ASSET_PUBLISHER_RENDER_CAPABILITY_SECRET',
       'ASSET_PUBLISHER_CACHE_TOKEN_SECRET',
     ] as const;
     const prior = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
     process.env.ASSET_PUBLISHER_ACTIVATION_SECRET = 'rollout-activation-secret';
-    process.env.ASSET_PUBLISHER_POLL_SECRET = 'rollout-poll-secret';
     process.env.ASSET_PUBLISHER_EXECUTOR_SECRET = 'rollout-executor-secret';
     process.env.ASSET_PUBLISHER_RENDER_CAPABILITY_SECRET = 'rollout-render-secret';
     process.env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET = 'rollout-cache-secret';
@@ -541,7 +532,7 @@ describe('renderer rollout control plane', () => {
               operation: 'create_paused',
               targetRendererVersion: 'faction-sheet-v1',
             },
-            'rollout-poll-secret'
+            'rollout-executor-secret'
           )
         ).status
       ).toBe(404);
@@ -579,7 +570,7 @@ describe('renderer rollout control plane', () => {
       });
       await expect(progress.clone().json()).resolves.toMatchObject({
         effectiveMaxItems: 2,
-        etaInputs: { dispatchIntervalMinutes: 15 },
+        etaInputs: { dispatchIntervalMinutes: 5 },
       });
       expect(progress.status).toBe(200);
       const serialized = JSON.stringify(await progress.json());

@@ -42,8 +42,6 @@ export async function insertDisabledPublisherState(ctx: MutationCtx) {
     key: 'singleton',
     status: 'disabled',
     cooldown_until: 0,
-    daily_browser_utc_date: new Date(Date.now()).toISOString().slice(0, 10),
-    daily_browser_ms: 0,
     next_lane: 'foreground',
   });
   const state = await ctx.db.get('asset_publisher_state', id);

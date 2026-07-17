@@ -1,18 +1,15 @@
 import { publisherErrorMessage } from '../../src/app/capture/publisher-diagnostics';
-import type { PublisherWakeUp } from './dispatch';
 import { postJson } from './http';
 import { isRenderCapability } from './render-capability';
 
 export type AcquireResult =
-  | { status: 'empty'; reason: 'disabled' | 'no_eligible_work' | 'browser_quota' }
-  | { status: 'busy'; leaseExpiresAt?: number; reason?: 'browser_reservation' }
+  | { status: 'empty'; reason: 'disabled' | 'no_eligible_work' }
+  | { status: 'busy'; leaseExpiresAt?: number }
   | {
       status: 'acquired';
       replay: boolean;
       batchToken: string;
       leaseExpiresAt: number;
-      browserReservationMs: number;
-      dailyBrowserMs: number;
     };
 
 export type ExactClaim = {
@@ -58,28 +55,11 @@ function okRecord(value: unknown): Record<string, unknown> {
   return value;
 }
 
-export function parsePoll(value: unknown, wakeUp: PublisherWakeUp): 'empty' | 'eligible' {
-  const body = okRecord(value);
-  if (
-    (body.eligibility !== 'empty' && body.eligibility !== 'eligible') ||
-    body.schemaVersion !== wakeUp.schemaVersion ||
-    body.scheduledCutoff !== wakeUp.scheduledCutoff ||
-    body.triggerId !== wakeUp.triggerId
-  ) {
-    throw new Error('Convex poll response is invalid or mismatched');
-  }
-  return body.eligibility;
-}
-
 export function parseAcquire(value: unknown): AcquireResult {
   const body = okRecord(value);
   if (body.schemaVersion !== 1) throw new Error('Convex acquire response schema is invalid');
   if (body.status === 'empty') {
-    if (
-      body.reason !== 'disabled' &&
-      body.reason !== 'no_eligible_work' &&
-      body.reason !== 'browser_quota'
-    ) {
+    if (body.reason !== 'disabled' && body.reason !== 'no_eligible_work') {
       throw new Error('Convex empty acquisition reason is invalid');
     }
     return { status: 'empty', reason: body.reason };
@@ -88,22 +68,16 @@ export function parseAcquire(value: unknown): AcquireResult {
     if (body.leaseExpiresAt !== undefined && !finite(body.leaseExpiresAt)) {
       throw new Error('Convex busy lease is invalid');
     }
-    if (body.reason !== undefined && body.reason !== 'browser_reservation') {
-      throw new Error('Convex busy reason is invalid');
-    }
     return {
       status: 'busy',
       ...(finite(body.leaseExpiresAt) ? { leaseExpiresAt: body.leaseExpiresAt } : {}),
-      ...(body.reason === 'browser_reservation' ? { reason: body.reason } : {}),
     };
   }
   if (
     body.status !== 'acquired' ||
     typeof body.replay !== 'boolean' ||
     !token(body.batchToken) ||
-    !finite(body.leaseExpiresAt) ||
-    !positiveInteger(body.browserReservationMs) ||
-    !finite(body.dailyBrowserMs)
+    !finite(body.leaseExpiresAt)
   ) {
     throw new Error('Convex acquired batch response is invalid');
   }
@@ -112,8 +86,6 @@ export function parseAcquire(value: unknown): AcquireResult {
     replay: body.replay,
     batchToken: body.batchToken,
     leaseExpiresAt: body.leaseExpiresAt,
-    browserReservationMs: body.browserReservationMs,
-    dailyBrowserMs: body.dailyBrowserMs,
   };
 }
 
@@ -164,25 +136,12 @@ export function parseClaim(value: unknown): ClaimResult {
 export class ConvexPublisherClient {
   constructor(
     private readonly options: {
-      pollUrl: string;
       executorBaseUrl: string;
-      pollToken: string;
       executorToken: string;
       fetcher?: typeof fetch;
       now?: () => number;
     }
   ) {}
-
-  async poll(wakeUp: PublisherWakeUp, deadlineAt?: number): Promise<'empty' | 'eligible'> {
-    return parsePoll(
-      await postJson(this.options.pollUrl, this.options.pollToken, wakeUp, {
-        deadlineAt,
-        fetcher: this.options.fetcher,
-        now: this.options.now,
-      }),
-      wakeUp
-    );
-  }
 
   async acquire(batchToken: string, deadlineAt?: number): Promise<AcquireResult> {
     return parseAcquire(
@@ -196,35 +155,9 @@ export class ConvexPublisherClient {
     );
   }
 
-  async settleBrowser(
-    batchToken: string,
-    measuredBrowserMs: number,
-    deadlineAt?: number
-  ): Promise<'settled' | 'stale'> {
+  async releaseBatch(batchToken: string, deadlineAt?: number): Promise<'released' | 'stale'> {
     const body = okRecord(
-      await this.postExecutor(
-        'settle-browser',
-        {
-          schemaVersion: 1,
-          batchToken,
-          measuredBrowserMs,
-        },
-        deadlineAt
-      )
-    );
-    if (body.status !== 'settled' && body.status !== 'stale') {
-      throw new Error('Convex browser settlement response is invalid');
-    }
-    return body.status;
-  }
-
-  async releaseBatch(
-    batchToken: string,
-    mode: 'no_browser' | 'after_settlement',
-    deadlineAt?: number
-  ): Promise<'released' | 'stale'> {
-    const body = okRecord(
-      await this.postExecutor('release-batch', { schemaVersion: 1, batchToken, mode }, deadlineAt)
+      await this.postExecutor('release-batch', { schemaVersion: 1, batchToken }, deadlineAt)
     );
     if (body.status !== 'released' && body.status !== 'stale') {
       throw new Error('Convex batch release response is invalid');

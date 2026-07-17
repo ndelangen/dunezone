@@ -30,10 +30,7 @@ type BrowserSession = Pick<PublisherBrowserSession, 'capture' | 'close'> & {
   sessionId?(): string;
 };
 
-const SETTLEMENT_MARGIN_MS = 5_000;
-const POST_LIFECYCLE_SETTLEMENT_WINDOW_MS = 30_000;
-const QUEUE_WALL_LIMIT_MS = 15 * 60 * 1_000;
-const QUEUE_ACK_MARGIN_MS = 60_000;
+const POST_BROWSER_CHECKPOINT_MARGIN_MS = 5_000;
 
 export type FailurePoint =
   | 'after_lease'
@@ -48,7 +45,7 @@ export type FailurePoint =
 export type OwnedBatchDependencies = {
   client: Pick<
     ConvexPublisherClient,
-    'claim' | 'settleBrowser' | 'releaseBatch' | 'revalidate' | 'complete' | 'fail' | 'release'
+    'claim' | 'releaseBatch' | 'revalidate' | 'complete' | 'fail' | 'release'
   >;
   bucket: AssetBucket;
   browserAvailable: () => Promise<boolean>;
@@ -61,7 +58,6 @@ export type OwnedBatchReport = {
   status: 'completed' | 'empty' | 'stale' | 'failed' | 'systemic_stop';
   browserOpened: boolean;
   browserClosed: boolean;
-  browserSettled: boolean;
   uploaded: boolean;
   completed: boolean;
   error?: string;
@@ -71,9 +67,7 @@ export type OwnedBatchReport = {
 export type OwnedBatchTelemetryContext = {
   acquireDurationMs: number;
   identity: PublisherBuildIdentity;
-  messageId: string;
-  queueAttempt: number;
-  queueName: string;
+  scheduledTime: string;
   triggerId: string;
 };
 
@@ -96,16 +90,14 @@ export type OwnedBatchItemTelemetry = {
 export type OwnedBatchTelemetry = {
   schemaVersion: typeof PUBLISHER_TELEMETRY_SCHEMA_VERSION;
   identity?: PublisherBuildIdentity;
-  queue: {
-    messageId?: string;
-    attempt?: number;
-    name?: string;
+  execution: {
+    source: 'scheduled';
+    scheduledTime?: string;
     lane: 'foreground' | 'rollout' | 'mixed';
     triggerId?: string;
   };
   batchCorrelationHash: string | null;
-  configuredMaxItems: 1 | 2;
-  effectiveMaxItems: 1 | 2;
+  maxItems: 2;
   stopReason: 'max_items' | 'empty' | 'stale' | 'failure' | 'systemic' | 'deadline';
   batchReleased: boolean;
   phasesMs: ReturnType<OwnedTelemetry['snapshot']>['phasesMs'];
@@ -143,13 +135,6 @@ export type OwnedBatchTelemetry = {
     providerCloseReason: null;
     providerOutcomeSource: 'browser_run_history_required';
   };
-  quota: {
-    reservedMs: number;
-    measuredLifecycleMs: number | null;
-    settled: boolean;
-    dailyAccountedAfterReservationMs: number;
-    denialReason: null;
-  };
   minimumLeaseMarginMs: number | null;
   leaseMarginsMs: ReturnType<OwnedTelemetry['snapshot']>['leaseMarginsMs'];
   items: OwnedBatchItemTelemetry[];
@@ -168,7 +153,6 @@ function failureClass(error: unknown): PublisherFailureClass | null {
   const message = errorMessage(error);
   if (/deadline|timeout/i.test(message)) return 'timeout';
   if (/conflict/i.test(message)) return 'conflict';
-  if (/quota|reservation/i.test(message)) return 'quota_or_reservation';
   if (/^empty$|no claim/i.test(message)) return 'no_claim';
   if (/stale/i.test(message)) return 'stale';
   if (/renderer/i.test(message)) return 'renderer';
@@ -366,18 +350,11 @@ export async function executeOwnedBatch(
     acquisition.leaseExpiresAt
   );
   const ownedOutcomeDeadlineAt = executorDeadlineAt;
-  const settlementDeadlineAt = Math.min(
-    executorDeadlineAt + POST_LIFECYCLE_SETTLEMENT_WINDOW_MS,
-    startedAt + QUEUE_WALL_LIMIT_MS - QUEUE_ACK_MARGIN_MS
-  );
-  const invalidReservation =
-    config.browserCleanupGraceMs + SETTLEMENT_MARGIN_MS >= acquisition.browserReservationMs;
 
   let browser: BrowserSession | undefined;
   let launchAttempted = false;
   let browserOpened = false;
   let browserClosed = false;
-  let browserSettled = false;
   let browserOpenedAt = 0;
   let browserClosedAt = 0;
   let browserDeadlineAt = 0;
@@ -386,7 +363,6 @@ export async function executeOwnedBatch(
   let browserCloseOutcome: BrowserCloseObservation['outcome'] | null = null;
   let lateBrowserCleanup: LateBrowserCleanupObservation | null = null;
   let lateBrowserLaunchUnresolved = false;
-  let measuredLifecycleMs: number | null = null;
   let ownedCheckpointDeadlineAt = executorDeadlineAt;
   let claim: ClaimedTarget | undefined;
   let latestLeaseExpiresAt: number | null = null;
@@ -408,14 +384,14 @@ export async function executeOwnedBatch(
   let stopReason: OwnedBatchTelemetry['stopReason'] = 'systemic';
   let outcomeError: unknown;
 
-  const closeAndSettle = async (): Promise<void> => {
+  const closeBrowser = async (): Promise<void> => {
     if (latestLeaseExpiresAt !== null) {
       telemetry.observeLease('cleanupStart', latestLeaseExpiresAt);
     }
     if (!browser || !browserOpened) return;
     if (!browserClosed) {
       const closeDeadlineAt = Math.min(
-        browserDeadlineAt - SETTLEMENT_MARGIN_MS,
+        browserDeadlineAt - POST_BROWSER_CHECKPOINT_MARGIN_MS,
         dependencies.now() + config.browserCleanupGraceMs
       );
       const close = await telemetry.phase(
@@ -427,46 +403,9 @@ export async function executeOwnedBatch(
       browserCloseOutcome = close.outcome;
       if (browserClosed) browserClosedAt = dependencies.now();
     }
-    if (!browserClosed || browserSettled) return;
-    const measuredBrowserMs = Math.max(0, dependencies.now() - startedAt);
-    measuredLifecycleMs = measuredBrowserMs;
-    if (dependencies.now() >= settlementDeadlineAt) {
-      status = 'systemic_stop';
-      stopReason = 'deadline';
-      outcomeError ??= new Error(
-        'Browser usage could not be settled inside the post-lifecycle control-plane window'
-      );
-      return;
-    }
-    try {
-      browserSettled =
-        (await telemetry.convex('settleBrowser', async () =>
-          dependencies.client.settleBrowser(
-            acquisition.batchToken,
-            measuredBrowserMs,
-            settlementDeadlineAt
-          )
-        )) === 'settled';
-    } catch (error) {
-      outcomeError ??= error;
-    }
-    if (measuredBrowserMs > acquisition.browserReservationMs) {
-      status = 'systemic_stop';
-      stopReason = 'systemic';
-      outcomeError = new Error(
-        `Browser lifecycle overran its reservation: ${measuredBrowserMs} ms > ${acquisition.browserReservationMs} ms`
-      );
-    } else if (!browserSettled) {
-      status = 'systemic_stop';
-      stopReason = 'systemic';
-      outcomeError ??= new Error('Exact Browser reservation settlement was stale');
-    }
   };
 
   const runLifecycle = async (): Promise<void> => {
-    if (invalidReservation) {
-      throw new Error('Browser cleanup and settlement margins do not fit the exact reservation');
-    }
     dependencies.fault?.('after_lease');
     const available = await telemetry.phase('browserAvailability', async () =>
       withinDeadline(
@@ -479,7 +418,7 @@ export async function executeOwnedBatch(
     if (!available) {
       batchReleased =
         (await telemetry.convex('releaseBatch', async () =>
-          dependencies.client.releaseBatch(acquisition.batchToken, 'no_browser', executorDeadlineAt)
+          dependencies.client.releaseBatch(acquisition.batchToken, executorDeadlineAt)
         )) === 'released';
       status = 'systemic_stop';
       stopReason = 'systemic';
@@ -488,15 +427,12 @@ export async function executeOwnedBatch(
     }
 
     const browserLaunchStartedAt = dependencies.now();
-    browserDeadlineAt = Math.min(
-      browserLaunchStartedAt + acquisition.browserReservationMs,
-      executorDeadlineAt
-    );
-    const closeDeadlineAt = browserDeadlineAt - SETTLEMENT_MARGIN_MS;
+    browserDeadlineAt = executorDeadlineAt;
+    const closeDeadlineAt = browserDeadlineAt - POST_BROWSER_CHECKPOINT_MARGIN_MS;
     const browserOperationDeadlineAt = closeDeadlineAt - config.browserCleanupGraceMs;
     ownedCheckpointDeadlineAt = browserOperationDeadlineAt;
     if (browserOperationDeadlineAt <= browserLaunchStartedAt) {
-      throw new Error('No Browser lifecycle budget remains after cleanup and settlement margins');
+      throw new Error('No Browser lifecycle budget remains after cleanup and checkpoint margins');
     }
     launchAttempted = true;
     browser = await openWithin(
@@ -725,16 +661,14 @@ export async function executeOwnedBatch(
     const deadlineFailure = /deadline/i.test(errorMessage(error));
     const currentItem = itemStates.at(-1);
     if (currentItem && !currentItem.completed && !currentItem.stale) currentItem.error = error;
-    status = invalidReservation
-      ? 'systemic_stop'
-      : currentItem?.completed
-        ? 'completed'
-        : uncertainClaim ||
-            deadlineFailure ||
-            (launchAttempted && !browserOpened) ||
-            (claim !== undefined && !supportsRendererVersion(config, claim.rendererVersion))
-          ? 'systemic_stop'
-          : 'failed';
+    status = currentItem?.completed
+      ? 'completed'
+      : uncertainClaim ||
+          deadlineFailure ||
+          (launchAttempted && !browserOpened) ||
+          (claim !== undefined && !supportsRendererVersion(config, claim.rendererVersion))
+        ? 'systemic_stop'
+        : 'failed';
     stopReason = deadlineFailure
       ? 'deadline'
       : status === 'systemic_stop'
@@ -762,15 +696,11 @@ export async function executeOwnedBatch(
           ),
         uncertainClaim ? 'recovered_claim' : 'owned_failure'
       );
-    } else if (!launchAttempted && !invalidReservation) {
+    } else if (!launchAttempted) {
       try {
         batchReleased =
           (await telemetry.convex('releaseBatch', async () =>
-            dependencies.client.releaseBatch(
-              acquisition.batchToken,
-              'no_browser',
-              ownedOutcomeDeadlineAt
-            )
+            dependencies.client.releaseBatch(acquisition.batchToken, ownedOutcomeDeadlineAt)
           )) === 'released';
       } catch (releaseError) {
         console.error(
@@ -783,18 +713,19 @@ export async function executeOwnedBatch(
       }
     }
   } finally {
-    await closeAndSettle();
+    await closeBrowser();
   }
 
-  if (browserSettled && !uncertainClaim && !batchReleased) {
+  if (
+    !uncertainClaim &&
+    !lateBrowserLaunchUnresolved &&
+    !batchReleased &&
+    (!browserOpened || browserClosed)
+  ) {
     try {
       batchReleased =
         (await telemetry.convex('releaseBatch', async () =>
-          dependencies.client.releaseBatch(
-            acquisition.batchToken,
-            'after_settlement',
-            ownedOutcomeDeadlineAt
-          )
+          dependencies.client.releaseBatch(acquisition.batchToken, ownedOutcomeDeadlineAt)
         )) === 'released';
     } catch (error) {
       outcomeError ??= error;
@@ -856,25 +787,23 @@ export async function executeOwnedBatch(
         : 'late_opened_close_failed'
     : null;
   const lanes = new Set(itemTelemetry.map((item) => item.workLane));
-  const queueLane: OwnedBatchTelemetry['queue']['lane'] =
+  const executionLane: OwnedBatchTelemetry['execution']['lane'] =
     lanes.size > 1 ? 'mixed' : (itemTelemetry[0]?.workLane ?? 'foreground');
   const telemetryReport: OwnedBatchTelemetry = {
     schemaVersion: PUBLISHER_TELEMETRY_SCHEMA_VERSION,
     ...(telemetryContext ? { identity: telemetryContext.identity } : {}),
-    queue: {
+    execution: {
+      source: 'scheduled',
       ...(telemetryContext
         ? {
-            messageId: telemetryContext.messageId,
-            attempt: telemetryContext.queueAttempt,
-            name: telemetryContext.queueName,
+            scheduledTime: telemetryContext.scheduledTime,
             triggerId: telemetryContext.triggerId,
           }
         : {}),
-      lane: queueLane,
+      lane: executionLane,
     },
     batchCorrelationHash,
-    configuredMaxItems: config.maxItems,
-    effectiveMaxItems: config.maxItems,
+    maxItems: config.maxItems,
     stopReason,
     batchReleased,
     phasesMs: telemetrySnapshot.phasesMs,
@@ -919,17 +848,6 @@ export async function executeOwnedBatch(
       providerCloseReason: null,
       providerOutcomeSource: 'browser_run_history_required',
     },
-    quota: {
-      reservedMs: acquisition.browserReservationMs,
-      measuredLifecycleMs:
-        measuredLifecycleMs ??
-        (observedLateCleanup?.closedAt
-          ? Math.max(0, observedLateCleanup.closedAt - startedAt)
-          : null),
-      settled: browserSettled,
-      dailyAccountedAfterReservationMs: acquisition.dailyBrowserMs,
-      denialReason: null,
-    },
     minimumLeaseMarginMs: telemetrySnapshot.minimumLeaseMarginMs,
     leaseMarginsMs: telemetrySnapshot.leaseMarginsMs,
     items: itemTelemetry,
@@ -943,7 +861,6 @@ export async function executeOwnedBatch(
     status,
     browserOpened: observedBrowserOpened,
     browserClosed: observedBrowserClosed,
-    browserSettled,
     uploaded,
     completed,
     ...(failureDiagnostic(invocationFailureClass)

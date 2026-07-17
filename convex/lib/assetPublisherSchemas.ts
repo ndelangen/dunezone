@@ -25,12 +25,6 @@ export const failureSchema = z.strictObject({
   error: z.string().trim().min(1).max(2_000),
 });
 
-export const pollRequestSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  scheduledCutoff: z.iso.datetime(),
-  triggerId: z.uuid(),
-});
-
 export const operatorRequestSchema = z.discriminatedUnion('operation', [
   z.strictObject({ schemaVersion: z.literal(1), operation: z.literal('initialize') }),
   z.strictObject({ schemaVersion: z.literal(1), operation: z.literal('pause') }),
@@ -84,16 +78,9 @@ export const acquireRequestSchema = z.strictObject({
   batchToken: publisherTokenSchema,
 });
 
-export const settleBrowserRequestSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  batchToken: publisherTokenSchema,
-  measuredBrowserMs: z.number().int().min(0).max(900_000),
-});
-
 export const releaseBatchRequestSchema = z.strictObject({
   schemaVersion: z.literal(1),
   batchToken: publisherTokenSchema,
-  mode: z.enum(['no_browser', 'after_settlement']),
 });
 
 export const claimRequestSchema = z.strictObject({

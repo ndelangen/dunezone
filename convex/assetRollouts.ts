@@ -10,7 +10,6 @@ import {
   isKnownFactionSheetRendererVersion,
   PREVIOUS_FACTION_SHEET_RENDERER_VERSION,
 } from './lib/assetPublisherConstants';
-import { BROWSER_RESERVATION_MS, FREE_BROWSER_ALLOWANCE_MS } from './lib/assetPublisherLimits';
 import type { MutationCtx, QueryCtx } from './types';
 
 export const ROLLOUT_DISCOVERY_PAGE_SIZE = 50;
@@ -767,10 +766,6 @@ export const progress = internalQuery({
   args: { rolloutId: v.optional(v.id('asset_rollouts')) },
   handler: async (ctx, args) => {
     const config = await exactConfig(ctx);
-    const state = await ctx.db
-      .query('asset_publisher_state')
-      .withIndex('by_key', (q) => q.eq('key', 'singleton'))
-      .unique();
     const rolloutId = args.rolloutId ?? config.active_rollout_id;
     const rollout = rolloutId ? await ctx.db.get('asset_rollouts', rolloutId) : null;
     return {
@@ -779,20 +774,11 @@ export const progress = internalQuery({
       activeRendererVersion: config.active_renderer_version,
       effectiveMaxItems: EFFECTIVE_PUBLISHER_MAX_ITEMS,
       rollout: rollout ? projectRollout(rollout) : null,
-      quota: state
-        ? {
-            utcDate: state.daily_browser_utc_date,
-            dailyAccountedMs: state.daily_browser_ms,
-            outstandingReservationMs: state.browser_reserved_ms ?? 0,
-            fixedReservationMs: BROWSER_RESERVATION_MS,
-            providerAllowanceMs: FREE_BROWSER_ALLOWANCE_MS,
-          }
-        : null,
       etaInputs: rollout
         ? {
             remainingItems: rollout.pending + rollout.leased,
             observedBrowserMsPerItem: null,
-            dispatchIntervalMinutes: 15,
+            dispatchIntervalMinutes: 5,
           }
         : null,
     };

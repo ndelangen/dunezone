@@ -10,7 +10,6 @@ import {
 import { rendererManifest } from '../workers/publisher/renderer-manifest.generated';
 
 export const PUBLISHER_WORKER_NAME = 'faction-sheet-asset-publisher';
-export const PUBLISHER_QUEUE_NAME = 'faction-sheet-asset-publisher';
 export const PUBLISHER_BUCKET_NAME = 'tanstack-start-faction-sheet-assets';
 export const PUBLISHER_ORIGIN = 'https://faction-sheet-asset-publisher.ndelangen.workers.dev';
 export const PUBLISHER_PRODUCTION_CONVEX_URL = 'https://exuberant-finch-263.eu-west-1.convex.cloud';
@@ -18,12 +17,10 @@ export { PUBLISHER_RENDERER_VERSION, PUBLISHER_SUPPORTED_RENDERER_VERSIONS };
 
 const CONFIG_PATH = path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc');
 const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.convex.site';
-const PUBLISHER_CRON = '*/15 * * * *';
-const REQUIRED_SECRETS = [
-  'ASSET_PUBLISHER_CACHE_TOKEN_SECRET',
-  'ASSET_PUBLISHER_POLL_SECRET',
-  'ASSET_PUBLISHER_EXECUTOR_SECRET',
-];
+const PUBLISHER_CRON = '*/5 * * * *';
+export const PUBLISHER_SMOKE_ATTEMPTS = 36;
+export const PUBLISHER_SMOKE_RETRY_MS = 5_000;
+const REQUIRED_SECRETS = ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET', 'ASSET_PUBLISHER_EXECUTOR_SECRET'];
 
 type JsonObject = Record<string, unknown>;
 
@@ -106,18 +103,14 @@ export function validatePublisherDeployContract(
       PUBLISHER_ENABLED: 'true',
       CRON_DISPATCH_ENABLED: 'true',
       CAPTURE_BASE_URL: PUBLISHER_ORIGIN,
-      CONVEX_POLL_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/poll`,
       CONVEX_EXECUTOR_BASE_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/executor`,
       CONVEX_RENDER_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/render`,
       SUPPORTED_RENDERER_VERSION: PUBLISHER_RENDERER_VERSION,
-      EXECUTOR_MAX_ITEMS: '2',
       SOFT_DEADLINE_MS: '240000',
       UPLOAD_MARGIN_MS: '120000',
       BROWSER_CAPTURE_TIMEOUT_MS: '45000',
       BROWSER_CLEANUP_GRACE_MS: '15000',
       PDF_MAX_BYTES: '8000000',
-      QUEUE_MAX_PRE_OWNERSHIP_ATTEMPTS: '2',
-      QUEUE_RETRY_DELAY_SECONDS: '60',
     },
     'scheduled Worker variables'
   );
@@ -127,22 +120,7 @@ export function validatePublisherDeployContract(
     [{ binding: 'ASSET_BUCKET', bucket_name: PUBLISHER_BUCKET_NAME }],
     'R2 binding'
   );
-  exactJson(
-    config.queues,
-    {
-      producers: [{ binding: 'PUBLISH_QUEUE', queue: PUBLISHER_QUEUE_NAME }],
-      consumers: [
-        {
-          queue: PUBLISHER_QUEUE_NAME,
-          max_batch_size: 1,
-          max_batch_timeout: 1,
-          max_retries: 2,
-          max_concurrency: 1,
-        },
-      ],
-    },
-    'Queue bindings'
-  );
+  invariant(!('queues' in config), 'Queue bindings must be removed');
   exactJson(config.browser, { binding: 'BROWSER' }, 'Browser binding');
   exactJson(
     config.version_metadata,
@@ -264,7 +242,7 @@ async function run(): Promise<void> {
   if (command === 'smoke') {
     const githubSha = requiredEnvironment(process.env, 'GITHUB_SHA');
     let lastFailure: unknown;
-    for (let attempt = 1; attempt <= 6; attempt += 1) {
+    for (let attempt = 1; attempt <= PUBLISHER_SMOKE_ATTEMPTS; attempt += 1) {
       try {
         const response = await fetch(`${PUBLISHER_ORIGIN}/__asset-publisher/health`, {
           headers: { Accept: 'application/json' },
@@ -284,7 +262,9 @@ async function run(): Promise<void> {
         return;
       } catch (error) {
         lastFailure = error;
-        if (attempt < 6) await new Promise((resolve) => setTimeout(resolve, 5_000));
+        if (attempt < PUBLISHER_SMOKE_ATTEMPTS) {
+          await new Promise((resolve) => setTimeout(resolve, PUBLISHER_SMOKE_RETRY_MS));
+        }
       }
     }
     throw new Error('Publisher health smoke did not observe the exact deployed release', {

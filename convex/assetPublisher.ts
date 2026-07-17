@@ -12,7 +12,6 @@ import {
   recoverExpiredRolloutClaim,
   releaseRolloutItem,
 } from './assetRollouts';
-import { BROWSER_RESERVATION_MS, FREE_BROWSER_ALLOWANCE_MS } from './lib/assetPublisherLimits';
 import {
   completionMetadataSchema,
   exactClaimSchema,
@@ -29,8 +28,6 @@ import type { MutationCtx, QueryCtx } from './types';
 export const ASSET_TYPE = 'faction_sheet' as const;
 export const BATCH_LEASE_MS = 12 * 60 * 1_000;
 export const MIN_UPLOAD_LEASE_MARGIN_MS = 2 * 60 * 1_000;
-export const MAX_BROWSER_SETTLEMENT_MS = 15 * 60 * 1_000;
-export { BROWSER_RESERVATION_MS, FREE_BROWSER_ALLOWANCE_MS };
 
 const MAX_RETRY_DELAY_MS = 6 * 60 * 60 * 1_000;
 const BASE_RETRY_DELAY_MS = 60 * 1_000;
@@ -169,40 +166,6 @@ async function firstEligibleTarget(ctx: PublisherReadCtx, cutoff: number, admitt
   return await firstEligibleRolloutTarget(ctx, cutoff);
 }
 
-async function hasEligibleWorkAt(ctx: PublisherReadCtx, cutoff: number, now: number) {
-  const [state, config, counter] = await Promise.all([
-    publisherState(ctx),
-    assetTypeConfig(ctx),
-    exactFirstPublicationCounterOrNull(ctx),
-  ]);
-  if (state?.status !== 'active' || config?.status !== 'active') return false;
-  if (!counter || !validFirstPublicationCount(counter.value)) return false;
-  if (state.cooldown_until > cutoff) return false;
-  if (state.browser_reservation_batch_token && state.daily_browser_utc_date === utcDate(now)) {
-    return false;
-  }
-  if (state.batch_token && (state.batch_lease_expires_at ?? 0) > now) return false;
-  return (
-    (await firstEligibleTarget(
-      ctx,
-      cutoff,
-      counter.value >= MAX_FIRST_PUBLISHED_FACTION_SHEETS
-    )) !== null
-  );
-}
-
-function utcDate(at: number): string {
-  return new Date(at).toISOString().slice(0, 10);
-}
-
-function clearBrowserReservation() {
-  return {
-    browser_reservation_batch_token: undefined,
-    browser_reservation_utc_date: undefined,
-    browser_reserved_ms: undefined,
-  };
-}
-
 function claimPayload(faction: Doc<'factions'>) {
   return {
     factionId: faction._id,
@@ -300,15 +263,6 @@ async function releaseBatchIfOwned(ctx: MutationCtx, batchToken: string) {
   }
 }
 
-export const hasEligibleWork = internalQuery({
-  args: { cutoff: v.number() },
-  handler: async (ctx, args) => ({
-    eligibility: (await hasEligibleWorkAt(ctx, args.cutoff, Date.now()))
-      ? ('eligible' as const)
-      : ('empty' as const),
-  }),
-});
-
 export const normalizeTargetId = internalQuery({
   args: { targetId: v.string() },
   handler: async (ctx, args) => ctx.db.normalizeId('asset_targets', args.targetId),
@@ -334,30 +288,16 @@ export const acquireBatch = internalMutation({
     ) {
       return { status: 'empty' as const, reason: 'disabled' as const };
     }
-    if (
-      state.batch_token === args.batchToken &&
-      (state.batch_lease_expires_at ?? 0) > now &&
-      state.browser_reservation_batch_token === args.batchToken &&
-      state.browser_reserved_ms === BROWSER_RESERVATION_MS
-    ) {
+    if (state.batch_token === args.batchToken && (state.batch_lease_expires_at ?? 0) > now) {
       return {
         status: 'acquired' as const,
         replay: true,
         batchToken: args.batchToken,
         leaseExpiresAt: state.batch_lease_expires_at ?? now,
-        browserReservationMs: BROWSER_RESERVATION_MS,
-        dailyBrowserMs: state.daily_browser_ms,
       };
     }
     if (state.batch_token && (state.batch_lease_expires_at ?? 0) > now) {
       return { status: 'busy' as const, leaseExpiresAt: state.batch_lease_expires_at ?? now };
-    }
-    const today = utcDate(now);
-    const priorDay = state.daily_browser_utc_date !== today;
-    const dailyBrowserMs = priorDay ? 0 : state.daily_browser_ms;
-    const reservationBatchToken = priorDay ? undefined : state.browser_reservation_batch_token;
-    if (reservationBatchToken) {
-      return { status: 'busy' as const, reason: 'browser_reservation' as const };
     }
     if (
       state.cooldown_until > now ||
@@ -365,94 +305,22 @@ export const acquireBatch = internalMutation({
     ) {
       return { status: 'empty' as const, reason: 'no_eligible_work' as const };
     }
-    if (dailyBrowserMs + BROWSER_RESERVATION_MS > FREE_BROWSER_ALLOWANCE_MS) {
-      if (priorDay) {
-        await ctx.db.patch(state._id, {
-          daily_browser_utc_date: today,
-          daily_browser_ms: 0,
-          ...clearBrowserReservation(),
-        });
-      }
-      return { status: 'empty' as const, reason: 'browser_quota' as const };
-    }
-
     const leaseExpiresAt = now + BATCH_LEASE_MS;
     await ctx.db.patch(state._id, {
       batch_token: args.batchToken,
       batch_lease_expires_at: leaseExpiresAt,
-      daily_browser_utc_date: today,
-      daily_browser_ms: dailyBrowserMs + BROWSER_RESERVATION_MS,
-      browser_reservation_batch_token: args.batchToken,
-      browser_reservation_utc_date: today,
-      browser_reserved_ms: BROWSER_RESERVATION_MS,
-      last_browser_settlement_batch_token: undefined,
-      last_browser_settlement_ms: undefined,
-      last_browser_release_batch_token: undefined,
-      last_browser_release_mode: undefined,
     });
     return {
       status: 'acquired' as const,
       replay: false,
       batchToken: args.batchToken,
       leaseExpiresAt,
-      browserReservationMs: BROWSER_RESERVATION_MS,
-      dailyBrowserMs: dailyBrowserMs + BROWSER_RESERVATION_MS,
-    };
-  },
-});
-
-export const settleBrowserReservation = internalMutation({
-  args: { batchToken: v.string(), measuredBrowserMs: v.number() },
-  handler: async (ctx, args) => {
-    if (
-      !publisherTokenSchema.safeParse(args.batchToken).success ||
-      !Number.isSafeInteger(args.measuredBrowserMs) ||
-      args.measuredBrowserMs < 0 ||
-      args.measuredBrowserMs > MAX_BROWSER_SETTLEMENT_MS
-    ) {
-      throw new Error('Invalid browser reservation settlement');
-    }
-    const state = await publisherState(ctx);
-    if (!state) return { status: 'stale' as const };
-    if (state.last_browser_settlement_batch_token === args.batchToken) {
-      return {
-        status: 'settled' as const,
-        replay: true,
-        measuredBrowserMs: state.last_browser_settlement_ms ?? args.measuredBrowserMs,
-      };
-    }
-    if (
-      state.browser_reservation_batch_token !== args.batchToken ||
-      state.browser_reserved_ms !== BROWSER_RESERVATION_MS ||
-      state.browser_reservation_utc_date !== state.daily_browser_utc_date
-    ) {
-      return { status: 'stale' as const };
-    }
-    const dailyBrowserMs = Math.max(
-      0,
-      state.daily_browser_ms - BROWSER_RESERVATION_MS + args.measuredBrowserMs
-    );
-    await ctx.db.patch(state._id, {
-      daily_browser_ms: dailyBrowserMs,
-      ...clearBrowserReservation(),
-      last_browser_settlement_batch_token: args.batchToken,
-      last_browser_settlement_ms: args.measuredBrowserMs,
-    });
-    return {
-      status: 'settled' as const,
-      replay: false,
-      measuredBrowserMs: args.measuredBrowserMs,
-      dailyBrowserMs,
-      ...(args.measuredBrowserMs > BROWSER_RESERVATION_MS ? { overrun: true as const } : {}),
     };
   },
 });
 
 export const releaseBatch = internalMutation({
-  args: {
-    batchToken: v.string(),
-    mode: v.union(v.literal('no_browser'), v.literal('after_settlement')),
-  },
+  args: { batchToken: v.string() },
   handler: async (ctx, args) => {
     if (!publisherTokenSchema.safeParse(args.batchToken).success) {
       throw new Error('Invalid publisher batch token');
@@ -470,9 +338,6 @@ export const releaseBatch = internalMutation({
         .first(),
     ]);
     if (ownedTarget || ownedSnapshot) return { status: 'stale' as const };
-    if (state.last_browser_release_batch_token === args.batchToken) {
-      return { status: 'released' as const, replay: true };
-    }
     if (
       state.batch_token !== args.batchToken ||
       (state.batch_lease_expires_at ?? 0) <= Date.now()
@@ -480,34 +345,11 @@ export const releaseBatch = internalMutation({
       return { status: 'stale' as const };
     }
 
-    let dailyBrowserMs = state.daily_browser_ms;
-    let reservationPatch = {};
-    if (args.mode === 'no_browser') {
-      if (
-        state.browser_reservation_batch_token !== args.batchToken ||
-        state.browser_reserved_ms !== BROWSER_RESERVATION_MS ||
-        state.browser_reservation_utc_date !== state.daily_browser_utc_date
-      ) {
-        return { status: 'stale' as const };
-      }
-      dailyBrowserMs = Math.max(0, dailyBrowserMs - BROWSER_RESERVATION_MS);
-      reservationPatch = clearBrowserReservation();
-    } else if (
-      state.browser_reservation_batch_token ||
-      state.last_browser_settlement_batch_token !== args.batchToken
-    ) {
-      return { status: 'stale' as const };
-    }
-
     await ctx.db.patch(state._id, {
       batch_token: undefined,
       batch_lease_expires_at: undefined,
-      daily_browser_ms: dailyBrowserMs,
-      ...reservationPatch,
-      last_browser_release_batch_token: args.batchToken,
-      last_browser_release_mode: args.mode,
     });
-    return { status: 'released' as const, replay: false, dailyBrowserMs };
+    return { status: 'released' as const, replay: false };
   },
 });
 

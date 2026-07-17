@@ -4,16 +4,10 @@ import {
 } from '../../src/app/capture/publisher-diagnostics';
 import { browserAvailable, openPublisherBrowser } from './browser';
 import { handleCaptureRoute } from './capture-route';
-import {
-  configuredMaxItems,
-  isCronDispatchEnabled,
-  isPublisherEnabled,
-  parsePublisherConfig,
-} from './config';
+import { isCronDispatchEnabled, isPublisherEnabled, parsePublisherConfig } from './config';
 import { ConvexPublisherClient } from './convex';
 import { handlePublicAssetRequest } from './delivery';
-import { createWakeUp, dispatchWakeUp } from './dispatch';
-import { consumePublisherMessage } from './queue';
+import { executeOwnedBatch, type OwnedBatchReport } from './executor';
 import { rendererManifest } from './renderer-manifest.generated';
 import { boundedPublisherTelemetryEvent, publisherBuildIdentity } from './telemetry';
 
@@ -27,10 +21,33 @@ function logError(event: Record<string, unknown>): void {
 
 function client(env: Env, config: ReturnType<typeof parsePublisherConfig>) {
   return new ConvexPublisherClient({
-    pollUrl: config.convexPollUrl,
     executorBaseUrl: config.convexExecutorBaseUrl,
-    pollToken: env.ASSET_PUBLISHER_POLL_SECRET,
     executorToken: env.ASSET_PUBLISHER_EXECUTOR_SECRET,
+  });
+}
+
+function logOwnedBatchReport(report: OwnedBatchReport): void {
+  const { item: _compatibilityItem, items, ...invocationTelemetry } = report.telemetry;
+  for (const item of items) {
+    log({
+      event: 'asset_publisher_item_telemetry',
+      schemaVersion: report.telemetry.schemaVersion,
+      identity: report.telemetry.identity,
+      execution: report.telemetry.execution,
+      batchCorrelationHash: report.telemetry.batchCorrelationHash,
+      minimumLeaseMarginMs: report.telemetry.minimumLeaseMarginMs,
+      leaseMarginsMs: report.telemetry.leaseMarginsMs,
+      item,
+    });
+  }
+  log({
+    event: 'asset_publisher_invocation_telemetry',
+    status: report.status,
+    browserOpened: report.browserOpened,
+    browserClosed: report.browserClosed,
+    uploaded: report.uploaded,
+    completed: report.completed,
+    ...invocationTelemetry,
   });
 }
 
@@ -70,7 +87,7 @@ export const publisherWorker = {
           ok: true,
           publisherEnabled: isPublisherEnabled(env),
           cronDispatchEnabled: isCronDispatchEnabled(env),
-          maxItems: configuredMaxItems(env),
+          maxItems: 2,
           supportedRendererVersion: rendererManifest.rendererVersion,
           rendererSupport: {
             supportedRendererVersions: rendererManifest.supportedRendererVersions,
@@ -94,112 +111,58 @@ export const publisherWorker = {
       log({ event: 'asset_publisher_cron', result: 'disabled' });
       return;
     }
-    const wakeUp = createWakeUp(controller.scheduledTime, crypto.randomUUID());
+    const triggerId = crypto.randomUUID();
+    const scheduledTime = new Date(controller.scheduledTime).toISOString();
     try {
       const config = parsePublisherConfig(env);
       const publisher = client(env, config);
-      const result = await dispatchWakeUp(
-        {
-          poll: async (message) =>
-            await publisher.poll(message, Date.now() + config.softDeadlineMs),
-          send: async (message) => {
-            await env.PUBLISH_QUEUE.send(message, { contentType: 'json' });
-          },
-        },
-        wakeUp
+      const startedAt = Date.now();
+      const executorDeadlineAt = startedAt + config.softDeadlineMs;
+      const acquireStartedAt = Date.now();
+      const acquisition = await publisher.acquire(triggerId, executorDeadlineAt);
+      if (acquisition.status !== 'acquired') {
+        log({
+          event: 'asset_publisher_cron',
+          result: acquisition.status,
+          reason: acquisition.status === 'empty' ? acquisition.reason : undefined,
+          triggerId,
+          execution: { source: 'scheduled', scheduledTime, triggerId, lane: 'foreground' },
+        });
+        return;
+      }
+      const identity = publisherBuildIdentity(
+        env.CF_VERSION_METADATA,
+        env.SUPPORTED_RENDERER_VERSION
       );
-      log({
-        event: 'asset_publisher_cron',
-        result,
-        ...wakeUp,
-      });
+      const report = await executeOwnedBatch(
+        {
+          client: publisher,
+          bucket: env.ASSET_BUCKET,
+          browserAvailable: async () => await browserAvailable(env.BROWSER),
+          openBrowser: async () => await openPublisherBrowser(env.BROWSER, config.captureBaseUrl),
+          now: () => Date.now(),
+        },
+        config,
+        acquisition,
+        startedAt,
+        {
+          acquireDurationMs: Math.max(0, Date.now() - acquireStartedAt),
+          identity,
+          scheduledTime,
+          triggerId,
+        }
+      );
+      logOwnedBatchReport(report);
     } catch (error) {
       logError({
         event: 'asset_publisher_cron',
         result: 'failed',
-        triggerId: wakeUp.triggerId,
+        triggerId,
+        execution: { source: 'scheduled', scheduledTime, triggerId, lane: 'foreground' },
         failureClass: 'operational_failure',
         error: publisherErrorMessage(error),
       });
     }
-  },
-
-  async queue(batch: MessageBatch<unknown>, env: Env): Promise<void> {
-    const identity = publisherBuildIdentity(
-      env.CF_VERSION_METADATA,
-      env.SUPPORTED_RENDERER_VERSION
-    );
-    const [message, ...extras] = batch.messages;
-    for (const extra of extras) {
-      extra.ack();
-      logError({
-        event: 'asset_publisher_queue',
-        messageId: extra.id,
-        action: 'ack',
-        reason: 'oversized_batch',
-        identity,
-        queue: {
-          name: batch.queue,
-          messageId: extra.id,
-          attempt: extra.attempts,
-          lane: 'foreground',
-        },
-      });
-    }
-    if (!message) return;
-    if (!isPublisherEnabled(env)) {
-      message.ack();
-      log({
-        event: 'asset_publisher_queue',
-        messageId: message.id,
-        action: 'ack',
-        reason: 'disabled',
-        identity,
-        queue: {
-          name: batch.queue,
-          messageId: message.id,
-          attempt: message.attempts,
-          lane: 'foreground',
-        },
-      });
-      return;
-    }
-
-    let config: ReturnType<typeof parsePublisherConfig>;
-    try {
-      config = parsePublisherConfig(env);
-    } catch (error) {
-      message.ack();
-      logError({
-        event: 'asset_publisher_queue',
-        messageId: message.id,
-        action: 'ack',
-        reason: 'invalid_config',
-        error: publisherErrorMessage(error),
-        identity,
-        queue: {
-          name: batch.queue,
-          messageId: message.id,
-          attempt: message.attempts,
-          lane: 'foreground',
-        },
-      });
-      return;
-    }
-    const publisher = client(env, config);
-    await consumePublisherMessage(message, config, {
-      client: publisher,
-      identity,
-      queueName: batch.queue,
-      now: () => Date.now(),
-      log,
-      owned: {
-        bucket: env.ASSET_BUCKET,
-        browserAvailable: async () => await browserAvailable(env.BROWSER),
-        openBrowser: async () => await openPublisherBrowser(env.BROWSER, config.captureBaseUrl),
-        now: () => Date.now(),
-      },
-    });
   },
 } satisfies ExportedHandler<Env, unknown>;
 
