@@ -4,7 +4,7 @@ import {
   type AssetRequestDecision,
   evaluateAssetRequest,
 } from './delivery-http';
-import { factionSheetKey } from './r2';
+import { factionSheetKey, PUBLISHER_CACHE_TOKEN_METADATA_KEY } from './r2';
 
 const ASSET_TYPE = 'faction_sheet' as const;
 const TOKEN_CACHE_CONTROL = 'public, max-age=31536000, immutable';
@@ -45,6 +45,11 @@ function exactToken(url: URL): string | null | undefined {
   if (tokens.length === 0) return undefined;
   if (tokens.length !== 1 || tokens[0].length === 0) return null;
   return tokens[0];
+}
+
+function tokenMatchesObject(object: R2Object, verifiedToken: string): boolean {
+  const stored = object.customMetadata?.[PUBLISHER_CACHE_TOKEN_METADATA_KEY];
+  return stored === undefined || stored === verifiedToken;
 }
 
 function cacheRequest(request: Request, stablePath: string, token: string): Request {
@@ -266,111 +271,75 @@ export async function handlePublicAssetRequest(
   if (!factionId) return errorResponse(404, 'Not Found');
   const stablePath = factionSheetPublicPath(factionId);
   const token = exactToken(url);
-  if (token === null) return errorResponse(404, 'Not Found');
-
-  let verifiedToken: string | undefined;
-  if (token !== undefined) {
-    if (
-      !(await verifyCacheToken(
-        token,
-        factionId,
-        ASSET_TYPE,
-        env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET
-      ))
-    ) {
-      return errorResponse(404, 'Not Found');
-    }
-    verifiedToken = token;
+  if (token === null || token === undefined) return errorResponse(404, 'Not Found');
+  if (
+    !(await verifyCacheToken(token, factionId, ASSET_TYPE, env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET))
+  ) {
+    return errorResponse(404, 'Not Found');
   }
-
-  const cache = dependencies.cache ?? caches.default;
-  const canonicalCacheRequest = verifiedToken
-    ? cacheRequest(request, stablePath, verifiedToken)
-    : null;
-  if (canonicalCacheRequest) {
-    try {
-      const hit = await cache.match(canonicalCacheRequest);
-      if (hit) return await cachedAssetResponse(request, hit, cache, canonicalCacheRequest);
-    } catch {
-      console.error(JSON.stringify({ event: 'asset_delivery_cache_match', result: 'failed' }));
-    }
-  }
+  const verifiedToken = token;
 
   const bucket = env.ASSET_BUCKET as PublicAssetBucket;
   const key = factionSheetKey(factionId);
-  const metadataFirst = request.method === 'HEAD' || request.headers.has('Range');
-  if (metadataFirst) {
-    let metadata: R2Object | null;
-    try {
-      metadata = await bucket.head(key);
-    } catch {
-      return errorResponse(503, 'Asset Temporarily Unavailable');
-    }
-    const decision = evaluateAssetRequest(request, objectRepresentation(metadata));
-    if (decision.status === 404) return errorResponse(404, 'Not Found');
-    if (decision.status === 304 || decision.status === 412 || decision.status === 416) {
-      const headers = metadata
-        ? assetHeaders(metadata, verifiedToken !== undefined)
-        : new Headers();
-      return metadataResponse(decision, headers);
-    }
-    if (request.method === 'HEAD') {
-      if (!metadata || decision.status !== 200)
-        return errorResponse(503, 'Asset Temporarily Unavailable');
-      return metadataResponse(decision, assetHeaders(metadata, verifiedToken !== undefined));
-    }
-    if (!metadata || (decision.status !== 200 && decision.status !== 206)) {
-      return errorResponse(503, 'Asset Temporarily Unavailable');
-    }
+  let metadata: R2Object | null;
+  try {
+    metadata = await bucket.head(key);
+  } catch {
+    return errorResponse(503, 'Asset Temporarily Unavailable');
+  }
+  if (!metadata) return errorResponse(404, 'Not Found');
 
-    let object: R2ObjectBody | R2Object | null;
-    try {
-      object = await bucket.get(key, {
-        onlyIf: { etagMatches: metadata.etag },
-        ...(decision.status === 206 ? { range: decision.range } : {}),
-      });
-    } catch {
-      return errorResponse(503, 'Asset Temporarily Unavailable');
+  const publisherCacheToken = metadata.customMetadata?.[PUBLISHER_CACHE_TOKEN_METADATA_KEY];
+  if (!tokenMatchesObject(metadata, verifiedToken)) {
+    return errorResponse(404, 'Not Found');
+  }
+
+  const decision = evaluateAssetRequest(request, objectRepresentation(metadata));
+  const headers = assetHeaders(metadata, true);
+  if (decision.status === 304 || decision.status === 412 || decision.status === 416) {
+    return metadataResponse(decision, headers);
+  }
+  if (request.method === 'HEAD') {
+    return decision.status === 200
+      ? metadataResponse(decision, headers)
+      : errorResponse(503, 'Asset Temporarily Unavailable');
+  }
+  if (decision.status !== 200 && decision.status !== 206) {
+    return errorResponse(503, 'Asset Temporarily Unavailable');
+  }
+
+  const cache = dependencies.cache ?? caches.default;
+  const canonicalCacheRequest = cacheRequest(request, stablePath, verifiedToken);
+  try {
+    const hit = await cache.match(canonicalCacheRequest);
+    if (hit) {
+      if (
+        publisherCacheToken === undefined ||
+        responseRepresentation(hit).etag === metadata.httpEtag
+      ) {
+        return await cachedAssetResponse(request, hit, cache, canonicalCacheRequest);
+      }
+      await cancelResponseBody(hit);
     }
-    if (!object || !('body' in object) || object.etag !== metadata.etag) {
-      return errorResponse(503, 'Asset Temporarily Unavailable');
-    }
-    return await r2BodyResponse(
-      request,
-      object,
-      decision,
-      verifiedToken !== undefined,
-      cache,
-      canonicalCacheRequest,
-      ctx
-    );
+  } catch {
+    console.error(JSON.stringify({ event: 'asset_delivery_cache_match', result: 'failed' }));
   }
 
   let object: R2ObjectBody | R2Object | null;
   try {
-    object = await bucket.get(key);
+    object = await bucket.get(key, {
+      onlyIf: { etagMatches: metadata.etag },
+      ...(decision.status === 206 ? { range: decision.range } : {}),
+    });
   } catch {
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
-  const representation = objectRepresentation(object);
-  const decision = evaluateAssetRequest(request, representation);
-  if (decision.status === 404) return errorResponse(404, 'Not Found');
-  if (decision.status === 304 || decision.status === 412 || decision.status === 416) {
-    if (object && 'body' in object) await cancelR2Body(object);
-    const headers = object ? assetHeaders(object, verifiedToken !== undefined) : new Headers();
-    return metadataResponse(decision, headers);
-  }
-  if (!object || !('body' in object) || decision.status !== 200) {
-    if (object && 'body' in object) await cancelR2Body(object);
+  if (!object || !('body' in object) || object.etag !== metadata.etag) {
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
-  return await r2BodyResponse(
-    request,
-    object,
-    decision,
-    verifiedToken !== undefined,
-    cache,
-    canonicalCacheRequest,
-    ctx
-  );
+  if (!tokenMatchesObject(object, verifiedToken)) {
+    await cancelR2Body(object);
+    return errorResponse(404, 'Not Found');
+  }
+  return await r2BodyResponse(request, object, decision, true, cache, canonicalCacheRequest, ctx);
 }

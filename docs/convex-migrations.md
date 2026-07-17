@@ -1,52 +1,44 @@
 # Convex Migrations Runbook
 
-Required process for all **breaking** Convex schema/data migrations in this repo.
+Required process for all breaking Convex schema and data migrations in this repo.
 
 ## When this runbook is required
 
-Use this process when:
+Use this process when a change can invalidate existing production documents, including:
 
-- adding a required field to an existing table
-- changing field type/shape
-- renaming/removing a field that already exists in data
-- moving data between tables
-
-If a change can invalidate existing production documents, this runbook is required.
+- adding a required field to an existing table;
+- changing a field type or shape;
+- renaming or removing a persisted field; or
+- moving data between tables.
 
 ## Required rollout: widen -> migrate -> verify -> narrow
 
 1. **Widen**
-   - Update schema so both old and new document shapes are valid.
-   - Deploy schema + compatibility code first.
+   Deploy schema and code that accept both legacy and new shapes.
 
 2. **Compatibility window**
-   - Writes emit the new shape.
-   - Reads tolerate old and new shapes.
-   - Do not narrow schema during this window.
+   New writes emit the new shape. Reads tolerate both shapes. Do not narrow here.
 
 3. **Migrate**
-   - Run bounded backfill job in production.
-   - Migration must be idempotent and safe to re-run.
-   - For large tables, use paginated or batched jobs with continuation scheduling.
+   Run bounded, idempotent backfill or retirement work in production.
 
 4. **Verify**
-   - Run a verification query/check until remaining unmigrated rows are zero.
-   - Save evidence in PR/deploy notes before narrowing.
+   Prove that no unmigrated rows remain and that the new invariants hold.
 
 5. **Narrow**
-   - Make schema strict (remove optional/legacy shape).
-   - Remove compatibility fallback logic and temporary migration entrypoints.
+   Remove legacy schema branches, compatibility reads, and temporary migration entrypoints in a
+   later release.
 
 ## Production policy
 
 - Migration code is committed and deployed with app code.
-- Migration execution is **automatic** in production deploy workflow.
-- Prefer internal/admin-only migration entrypoints.
-- A narrowing deploy is blocked until verify reports zero remaining rows.
+- Production deploy automatically runs required widen migrations.
+- Migration entrypoints should stay internal or admin-only.
+- A narrowing deploy is blocked until verification reports zero remaining legacy state.
 
 ## Guard manifest contract
 
-Source of truth: `convex/migration-guards.json`
+Source of truth: [`convex/migration-guards.json`](../convex/migration-guards.json)
 
 ```json
 {
@@ -59,100 +51,113 @@ Source of truth: `convex/migration-guards.json`
 
 Rules:
 
-- `id`: unique migration or narrow guard identifier.
+- `id`: unique migration or narrow guard identifier
 - `phase`:
-  - `widen`: migration IDs auto-started in deploy.
-  - `narrow`: schema narrowing checkpoints that list required completed migration IDs.
-- `requires`: migration IDs that must be `success + isDone=true` before narrow is allowed.
+  - `widen`: auto-started in deploy
+  - `narrow`: schema-narrow checkpoint gated on completed widen work
+- `requires`: widen migration ids that must be `success + isDone=true` before narrow is allowed
 
-Current widen migrations include:
+## Current asset-publisher migration pack
 
-- `groups_slug_v1`, `rulesets_slug_v1`, `faq_item_slug_v1` (slug backfills)
-- `profiles_from_users_v1` (ensures every auth `users` row has a `profiles` row)
-- `faction_sheet_targets_backfill_v1` (creates one pending target for each active faction)
-- `faction_sheet_targets_verify_v1` (bounded proof of zero missing or duplicate active-faction targets)
-- `faction_sheet_publication_admissions_v1` (backfills the structural first-publication marker after
-  initializing its bounded counter while the publisher is disabled)
+The item-only paid-plan release uses these widen migrations:
 
-The `profiles_backfill_guard` narrow-phase entry exists only so deploy polling treats `profiles_from_users_v1` as required alongside schema narrow prerequisites; it is not a schema change.
+- `asset_targets_item_claims_v1`
+- `asset_claim_snapshots_retire_v1`
+- `asset_publisher_state_retire_v1`
+- `asset_publisher_admission_counter_retire_v1`
+- `asset_targets_item_claims_verify_v1`
 
-The faction-sheet target guard requires both its backfill and verification pass. Before either pass
-starts for the first time, `migrations:runRequired` seeds the singleton faction-sheet config as
-disabled. Faction create/update mutations use the same disabled-safe, transactional ensure path, so
-the function-deploy window before required migrations run cannot fail saves or activate publishing.
+They are run alongside the repo's other widen migrations from the same guard manifest.
 
-The publication-admission guard also creates the missing publisher singleton disabled, initializes
-the persisted counter from at most 876 already-admitted/published targets, and fails if the
-footprint exceeds 875 or disagrees with an existing counter. New save/backfill targets dual-write
-`first_publication_admitted: false`. Activation remains blocked until the marker migration succeeds
-and the bounded admitted-target count exactly matches the persisted counter.
+### Preconditions
 
-## Automated production flow (fail-closed)
+- The faction-sheet publisher config must be `paused` or `disabled`.
+- No live item claim may exist when `asset_targets_item_claims_v1` runs.
+- The later schema narrow must wait for all required widen migrations to complete successfully.
 
-1. Deploy widen + compatibility code (`bun run convex:deploy`).
-2. Deploy workflow runs `bun run migrations:deploy`:
-   - starts required widen migrations
-   - polls `migrations:assertReadyForNarrow`
-   - syncs status snapshot to `migration_runs`
-3. Deploy fails if migration status is failed/incomplete/timeout.
-4. Narrow PR can merge only if PR guard can pass `bun run migrations:narrow-check`.
+### What the migration pack does
 
-## Strict dev startup contract
+`asset_targets_item_claims_v1` converts legacy target coordination into the new per-target
+item-claim shape. It:
 
-Convex dev startup is fail-closed on required migrations to prevent long-lived local environments from drifting.
+- converts legacy `cooldown` targets back to plain `pending`;
+- initializes `consecutive_render_failures` without interpreting historical retry counts;
+- preserves blocked targets by forcing them to at least the ten-failure threshold;
+- clears retired retry timing, batch, claim, payload-hash, and admission-era fields; and
+- fails closed if publishing is active or a live claim is still leased.
 
-- `bun run convex:dev` now runs `bun run migrations:dev-strict` before starting Convex dev runtime.
-- `dev-strict` behavior:
-  - reads `convex/migration-guards.json`,
-  - runs required migrations (`migrations:runRequired`) for local/dev deployment,
-  - polls `migrations:assertReadyForNarrow`,
-  - syncs snapshots via `migrations:syncMigrationRuns`,
-  - exits non-zero if readiness is not reached before timeout.
+The retirement steps then remove the old tables and singleton state that no longer participate in
+runtime behavior:
+
+- `asset_claim_snapshots_retire_v1` deletes legacy claim snapshots;
+- `asset_publisher_state_retire_v1` deletes the retired singleton publisher state; and
+- `asset_publisher_admission_counter_retire_v1` deletes the first-publication counter.
+
+`asset_targets_item_claims_verify_v1` is the per-target proof pass. It fails if a target still has
+legacy fields, an invalid failure counter, or an impossible blocked-state combination.
+
+## Automated production flow
+
+1. Deploy widen-compatible Convex code: `bun run convex:deploy`
+2. Deploy workflow runs `bun run migrations:deploy`
+3. That command starts the required widen migrations, polls readiness, and syncs status snapshots
+4. Deploy fails if any required migration is incomplete, failed, or times out
+5. A later narrow release may merge only after `bun run migrations:narrow-check` passes
+
+## Strict local dev startup
+
+Convex dev startup is fail-closed on required migrations so long-lived local environments do not
+drift from the checked-in guard manifest.
+
+- `bun run convex:dev` runs `bun run migrations:dev-strict` before starting Convex
+- `dev-strict`:
+  - reads `convex/migration-guards.json`
+  - starts required migrations for the local deployment
+  - polls `migrations:assertReadyForNarrow`
+  - syncs `migration_runs`
+  - exits non-zero on timeout or failure
 
 ### Failure modes and diagnostics
 
-- **Timeout:** migration work not complete before timeout window.
-- **Auth/deployment mismatch:** local environment points at wrong Convex deployment or lacks credentials.
-- **Manifest mismatch:** required IDs in the manifest are missing or invalid.
+- timeout before required work completed;
+- auth or deployment mismatch; or
+- manifest mismatch between code and requested ids.
 
-On failure, the command prints:
+On failure, the command prints the required ids, latest statuses, and the exact retry command.
 
-- required migration IDs,
-- last known migration statuses,
-- exact retry command.
-
-## PR and release checklist (required for breaking migrations)
+## PR and release checklist
 
 - [ ] Widen phase implemented and deployed first
-- [ ] Compatibility reads/writes present during migration window
-- [ ] Backfill job is bounded and idempotent
-- [ ] Verify function/check exists and shows completion evidence
-- [ ] Narrow phase is separate and only after verify completion
-- [ ] Temporary migration/fallback cleanup planned
+- [ ] Compatibility reads and writes cover the migration window
+- [ ] Backfill or retirement work is bounded and idempotent
+- [ ] Verification exists and proves the target invariants
+- [ ] Narrow phase is separate and waits for verified completion
+- [ ] Temporary fallback and migration code has a later cleanup plan
 
 ## Commands
 
 ```bash
-# Deploy widen / narrow phases
+# Deploy widen or narrow-compatible Convex code
 npm run convex:deploy
 
-# Start or resume required migrations defined by manifest and poll until complete
+# Start or resume required manifest migrations and wait for readiness
 bun run scripts/migration-guards.ts deploy 2700000 5000 --prod
 
 # Check narrow prerequisites only
 bun run scripts/migration-guards.ts narrow-check --prod
 
-# Strict local/dev startup preflight (non-prod)
+# Strict local/dev startup preflight
 bun run scripts/migration-guards.ts dev-strict 300000 2000
 
 # Alias used by convex:dev and for manual local catch-up
 bun run migrations:run-local-required
 
-# Raw status (optional)
-npx convex run migrations:getStatus '{"ids":["groups_slug_v1","rulesets_slug_v1"]}' --prod
+# Raw status for selected ids
+npx convex run migrations:getStatus '{"ids":["asset_targets_item_claims_v1","asset_targets_item_claims_verify_v1"]}' --prod
 ```
 
 ## Templates and references
 
 - Convex template scaffold: [`convex/migrationsTemplate.ts`](../convex/migrationsTemplate.ts)
-- Team migration skill: [`.agents/skills/convex-migration-helper/SKILL.md`](../.agents/skills/convex-migration-helper/SKILL.md)
+- Team migration skill:
+  [`.agents/skills/convex-migration-helper/SKILL.md`](../.agents/skills/convex-migration-helper/SKILL.md)

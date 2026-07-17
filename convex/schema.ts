@@ -82,10 +82,13 @@ export default defineSchema({
       v.literal('pending'),
       v.literal('leased'),
       v.literal('current'),
+      v.literal('blocked'),
+      // Widen-phase compatibility. Removed after item-claim migration evidence.
       v.literal('cooldown')
     ),
-    next_eligible_at: v.number(),
-    attempt_count: v.number(),
+    next_eligible_at: v.optional(v.number()),
+    attempt_count: v.optional(v.number()),
+    consecutive_render_failures: v.optional(v.number()),
     last_error: v.optional(v.string()),
     batch_token: v.optional(v.string()),
     claim_token: v.optional(v.string()),
@@ -146,7 +149,8 @@ export default defineSchema({
       'status',
       'lease_expires_at',
     ])
-    .index('by_batch_token', ['batch_token']),
+    .index('by_batch_token', ['batch_token'])
+    .index('by_claim_token', ['claim_token']),
   asset_claim_snapshots: defineTable({
     target_id: v.id('asset_targets'),
     faction_id: v.id('factions'),

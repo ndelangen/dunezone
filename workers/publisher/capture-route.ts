@@ -3,10 +3,9 @@ import {
   serializePublisherLogEvent,
 } from '../../src/app/capture/publisher-diagnostics';
 import { readBoundedJson, runWithDeadline } from './http';
-import { isRenderCapability } from './render-capability';
 
-const CAPABILITY_HEADER = 'X-Asset-Render-Capability';
-const CAPABILITY_COOKIE = '__Host-asset_render_capability';
+const CLAIM_HEADER = 'X-Asset-Item-Claim';
+const CLAIM_COOKIE = '__Host-asset_item_claim';
 const DEADLINE_COOKIE = '__Host-asset_render_deadline';
 const MAX_SNAPSHOT_BYTES = 1_000_000;
 const SNAPSHOT_DEADLINE_MS = 30_000;
@@ -20,16 +19,16 @@ function noStoreJson(value: unknown, status: number): Response {
   return Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } });
 }
 
-function capability(request: Request): string | undefined {
-  const header = request.headers.get(CAPABILITY_HEADER) ?? undefined;
+function itemClaimToken(request: Request): string | undefined {
+  const header = request.headers.get(CLAIM_HEADER) ?? undefined;
   const cookie = request.headers
     .get('Cookie')
     ?.split(';')
     .map((part) => part.trim())
-    .find((part) => part.startsWith(`${CAPABILITY_COOKIE}=`))
-    ?.slice(CAPABILITY_COOKIE.length + 1);
+    .find((part) => part.startsWith(`${CLAIM_COOKIE}=`))
+    ?.slice(CLAIM_COOKIE.length + 1);
   const value = header ?? cookie;
-  return isRenderCapability(value) ? value : undefined;
+  return typeof value === 'string' && value.length >= 16 && value.length <= 256 ? value : undefined;
 }
 
 function cookie(request: Request, name: string): string | undefined {
@@ -49,22 +48,19 @@ function snapshotDeadline(request: Request): number {
   return Number.isSafeInteger(parsed) ? Math.min(maximum, parsed) : maximum;
 }
 
-type CapabilityValidation =
+type ItemClaimValidation =
   | { status: 'valid'; body: unknown }
   | { status: 'invalid' }
   | { status: 'unavailable' };
 
-async function validateCapability(
-  request: Request,
-  env: CaptureEnv
-): Promise<CapabilityValidation> {
-  const renderCapability = capability(request);
-  if (!renderCapability) return { status: 'invalid' };
+async function validateItemClaim(request: Request, env: CaptureEnv): Promise<ItemClaimValidation> {
+  const claimToken = itemClaimToken(request);
+  if (!claimToken) return { status: 'invalid' };
   try {
     return await runWithDeadline(snapshotDeadline(request), async (signal) => {
       const upstream = await fetch(env.CONVEX_RENDER_URL, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${renderCapability}` },
+        headers: { Authorization: `Bearer ${claimToken}` },
         signal,
       });
       if (!upstream.ok) return { status: 'invalid' as const };
@@ -77,7 +73,7 @@ async function validateCapability(
   } catch (error) {
     console.error(
       serializePublisherLogEvent({
-        event: 'asset_publisher_capability_validation_error',
+        event: 'asset_publisher_item_read_error',
         error: publisherErrorMessage(error),
       })
     );
@@ -86,7 +82,7 @@ async function validateCapability(
 }
 
 async function captureDocument(request: Request, env: CaptureEnv): Promise<Response> {
-  if (request.method !== 'GET' || (await validateCapability(request, env)).status !== 'valid') {
+  if (request.method !== 'GET' || (await validateItemClaim(request, env)).status !== 'valid') {
     return noStoreJson({ error: 'Not found' }, 404);
   }
   const assetUrl = new URL('/publisher-capture.html', request.url);
@@ -103,7 +99,7 @@ async function captureDocument(request: Request, env: CaptureEnv): Promise<Respo
 }
 
 async function gatedCaptureAsset(request: Request, env: CaptureEnv): Promise<Response> {
-  if (request.method !== 'GET' || (await validateCapability(request, env)).status !== 'valid') {
+  if (request.method !== 'GET' || (await validateItemClaim(request, env)).status !== 'valid') {
     return noStoreJson({ error: 'Not found' }, 404);
   }
   const asset = await env.ASSETS.fetch(request);
@@ -120,7 +116,7 @@ async function gatedCaptureAsset(request: Request, env: CaptureEnv): Promise<Res
 
 async function exactSnapshot(request: Request, env: CaptureEnv): Promise<Response> {
   if (request.method !== 'GET') return noStoreJson({ error: 'Not found' }, 404);
-  const validation = await validateCapability(request, env);
+  const validation = await validateItemClaim(request, env);
   if (validation.status === 'invalid') return noStoreJson({ error: 'Not found' }, 404);
   if (validation.status === 'unavailable') {
     return noStoreJson({ error: 'Snapshot unavailable' }, 502);
@@ -141,6 +137,6 @@ export async function handleCaptureRoute(
   return undefined;
 }
 
-export const captureCapabilityHeader = CAPABILITY_HEADER;
-export const captureCapabilityCookie = CAPABILITY_COOKIE;
+export const captureClaimHeader = CLAIM_HEADER;
+export const captureClaimCookie = CLAIM_COOKIE;
 export const captureDeadlineCookie = DEADLINE_COOKIE;

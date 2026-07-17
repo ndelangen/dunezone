@@ -1,87 +1,41 @@
-# Scheduled production faction-sheet publisher
+# Scheduled faction-sheet publisher
 
-This is the production-shaped, sequential publisher surface. Its stable Cloudflare resources are
-provisioned, and the persistent release configuration is ready for scheduled polling:
+The production Worker uses one `*/5 * * * *` Cron. Each invocation calls Convex `take-work` once.
+An empty result exits without opening Browser Rendering; an assigned result contains at most twenty
+independent item claims and is processed sequentially in one Browser session within a four-minute
+work window. There is no Queue, item-count setting, poll endpoint, provider quota ledger, batch, or
+run entity.
 
-- `PUBLISHER_ENABLED` and `CRON_DISPATCH_ENABLED` are `true`;
-- the Cron trigger list contains exactly one `*/15 * * * *` schedule;
-- the production Queue and dedicated private R2 bucket are named explicitly;
-- capture and Convex HTTP URLs use the intended workers.dev and regional Convex origins;
-- the primary semantic renderer and exact executable support set are `faction-sheet-v3`; Convex
-  still recognizes v1/v2 publication and rollback metadata, while rollback execution uses the
-  previously verified v2 Worker release; the separate SHA-256 renderer id
-  identifies the exact assembled release for telemetry and canary checks;
-- poll and executor secrets are distinct required bindings and are not checked in.
-- the Convex-only activation secret is distinct from every publisher boundary secret and is not
-  checked in; it authenticates only initialize, pause, disable, guarded activate, and the strict
-  rollout create/pause/resume/cancel/rollback/progress operation union.
-- the cache-token signing secret is a required binding shared out-of-band with Convex and is not
-  checked in or provisioned by this ticket. It has the exact canonical shape `s1.<43 base64url
-  characters>`: version `s1`, a dot, and the unpadded canonical base64url encoding of 32 bytes from
-  a cryptographically secure random generator. Missing, shorter, malformed, noncanonical, or
-  mismatched values fail closed before signing, Cache API access, or R2 access. Ticket 6 must
-  provision the identical generated value in both the Convex and Worker secret stores.
+The Worker uses one server-side executor secret for `take-work`, `revalidate-item`, `complete-item`,
+and `fail-item`. Browser capture uses the item's opaque claim token directly to read the protected
+render payload. The separate cache-token signing secret is shared out of band with Convex. Neither
+secret is checked in.
 
-The Queue payload is only `{ schemaVersion, scheduledCutoff, triggerId }`. Convex owns all batch,
-claim, retry, snapshot, publication, and Browser reservation state. R2 metadata is diagnostic only.
-The 240-second work deadline and fixed 240-second Browser reservation cannot be extended by phase
-settings. A separate 30-second post-lifecycle window may only settle definitely closed Browser
-usage; it is bounded well inside the 15-minute Queue wall and cannot perform more Browser, R2, or
-publication work.
+For every item, the Worker:
 
-The capture shell, HTML, and isolated bundle revalidate the host-only render capability against the
-exact Convex snapshot endpoint before serving. Capture diagnostics retain at most an artwork
-origin plus a redacted marker, never userinfo, path, query, or fragment data.
+1. renders the protected payload and validates an exact two-page PDF;
+2. revalidates the claim and generation immediately before storage;
+3. creates the next public cache token;
+4. conditionally overwrites `factions/<faction-id>/sheet.pdf`, storing that token with generation,
+   renderer, and payload-hash custom metadata; and
+5. starts exact Convex completion with the same token, etag, and byte count.
 
-Public delivery serves only `/published/factions/<Convex faction id>/sheet.pdf` from the private R2
-binding. The `/published` prefix deliberately separates Worker-owned delivery from ordinary SPA
-routes such as `/factions/<slug>`. Malformed or unknown published paths fail closed and never fall
-through to the SPA shell.
-Signed publication tokens are verified locally before cache or R2 access. Cache API entries use the
-Worker request origin plus the exact stable path and exact valid token; unrelated query parameters
-are discarded. Cache API contents are data-center local and this Worker does not implement
-single-flight request coalescing: concurrent misses may each perform one R2 `get`, but no request
-performs more than one. Full successful tokenized GETs alone are inserted into cache; tokenless,
-partial, conditional-negative, missing, and error responses are never inserted.
+Rendering continues while bounded completion promises settle. The Browser is closed in `finally`
+before outstanding completions are awaited or retried. Target-attributable render/output failures
+call `fail-item`; Browser, network, R2, Convex, and deadline failures leave their claims leased so
+claim expiry remains the recovery mechanism.
 
-Storage is structurally bounded instead of estimated from a timestamp. A dedicated private bucket
-holds exactly one stable `factions/<id>/sheet.pdf` object per admitted faction. Convex reserves a
-first-publication slot transactionally immediately before upload and admits at most 875 targets.
-The Worker accepts exactly the 8,000,000-byte PDF cap, so admitted objects account for at most
-7,000,000,000 PDF bytes. Slot reservations are conservative and survive upload/completion failure;
-already-admitted stable objects may still be overwritten at the cap. Faction saves never consult
-this counter and remain immediate.
+Public delivery requires a valid faction/type token. Objects written by this protocol additionally
+require exact equality with `publisherCacheToken` in R2 custom metadata, so an interrupted overwrite
+cannot expose unpublished bytes at an old URL. Objects without that metadata retain the legacy
+valid-token behavior until their first new overwrite. The bucket stays private and retains exactly
+one stable object per published faction.
 
-The Worker intentionally has no `limits.cpu_ms` block. Current Queue documentation describes a
-30-second default consumer CPU limit, while the real Workers Free proof rejected a custom limit and
-successfully measured the actual default at 270 ms CPU for one PDF. Ticket 6 must preserve the
-no-custom-limit configuration and re-measure the production one-item path rather than infer a Free
-allowance from the generic documentation.
-
-See [MEASUREMENT.md](./MEASUREMENT.md) for the pre-measurement telemetry contract, the production
-metrics Ticket 6 must join from Cloudflare, and the Ticket 7 scaling work that remains blocked.
-Convex now contains a disabled-first rollout control plane with page-50 discovery and batch-retaining
-rollout checkpoints, but no rollout is created or resumed by deployment. Promotion reports are
-recommendation-only. `EXECUTOR_MAX_ITEMS` accepts `1` or `2`; the checked-in functional canary is
-`2`, while Queue message batch size and concurrency remain `1`. One consumer invocation acquires
-one Convex batch, opens one Browser Session, checkpoints at most two items sequentially, then
-settles and releases the exact batch once.
-
-The release keeps its existing embedded renderer support set. Every accepted claim uses the current
-A4 capture/PDF behavior; there is no separate legacy-geometry rendering path.
-The rollout operator schema and mutation both reject any other string. Supporting a future candidate
-requires an ordered compatibility release: widen the Worker to embed/authorize that semantic
-renderer, verify its exact release id and a PDF canary, then widen the strict Convex operator
-validator before activation or paused rollout creation. Operator input alone is never support proof.
+The checked-in release contract keeps the private R2 binding, Browser binding, exact production
+Convex URLs, a 30-second CPU limit, the four-minute work window, and the 8,000,000-byte PDF safety
+cap. Remote Queue deletion and deployment are intentionally separate operations.
 
 ## Local checks
-
-`publisher:assets` first builds the complete TanStack SPA, then builds the isolated capture bundle,
-combines both outputs into `workers/publisher/dist`, omits Netlify's `_redirects`, creates the
-Cloudflare SPA `index.html` as an exact copy of `_shell.html`, and enforces the Workers Free asset
-count plus the 25 MiB per-file limit. Assembly canonicalizes the volatile TanStack root hydration
-timestamp so identical inputs produce one stable release and renderer identity. Set
-`VITE_CONVEX_URL` to the intended build-time Convex URL.
 
 ```bash
 bun run publisher:types
@@ -95,22 +49,12 @@ bun run publisher:dry-run
 bun run publisher:startup
 ```
 
-The protected `main` workflow runs the release gates after Convex deploy and required migrations:
-source/config preflight, generated-type check, typecheck, one production-URL asset build, assembled
-asset check, clean-source check, Wrangler dry-run, strict SHA-tagged deploy, and `true/true`
-workers.dev health smoke. Netlify refreshes the same `dist/client` only afterward as rollback. The
-workflow does not provision resources, install/read secrets, override flags/Cron/routes, call the
-operator endpoint, mutate publisher data, or activate Convex.
+The protected `main` workflow runs source/config preflight, generated-type check, typecheck, one
+production-URL asset build, assembled-asset verification, Wrangler dry-run, strict SHA-tagged
+deploy, and health smoke. It does not provision or delete Cloudflare resources, install or read
+secret values, mutate the Convex operator surface, or activate publishing.
 
-Do not merge the CI deployment slice until the protected GitHub `production` environment contains
-the account-scoped least-privilege `CLOUDFLARE_API_TOKEN`. `CLOUDFLARE_ACCOUNT_ID` is a protected
-environment variable; the API token is a protected secret. The exact Queue and R2 names remain in
-`wrangler.jsonc`, and required Worker secret names are validated by Wrangler during deploy.
-
-**Release prerequisite: Convex publisher config and singleton must both be paused before this
-scheduled Worker release is merged or deployed.** The stable private bucket and Queue must be
-reverified, the disabled-first publication-admission migration/counter must pass, and the three
-Worker secrets must be installed. Deploy `true/true` plus the exact 15-minute Cron against paused
-Convex, observe at least one empty Cron with no Queue message or Browser Run, and only then consider
-the separately approved Convex operator activation. Normal `main` deploys after that activation keep
-this same scheduled source configuration; they never re-run or reverse the activation transition.
+**Convex publisher config must remain paused or disabled while the widen migrations and this Worker
+release are deployed and verified.** Observe an empty Cron without a Browser Run before a separately
+approved activation. After activation, verify a representative twenty-item invocation before any
+remote Queue cleanup.

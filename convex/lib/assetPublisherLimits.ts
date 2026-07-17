@@ -1,2 +1,0 @@
-export const FREE_BROWSER_ALLOWANCE_MS = 10 * 60 * 1_000;
-export const BROWSER_RESERVATION_MS = 4 * 60 * 1_000;

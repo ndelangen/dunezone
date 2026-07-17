@@ -6,11 +6,9 @@ import { z } from 'zod';
 import {
   createCacheSigningSecret,
   createCacheToken,
-  createRenderCapability,
   handleAuthenticatedJson,
   MAX_PUBLISHER_JSON_BODY_BYTES,
   verifyCacheToken,
-  verifyRenderCapability,
 } from './assetPublisherHttp';
 
 function request(secret: string, body: unknown = { schemaVersion: 1 }) {
@@ -22,7 +20,7 @@ function request(secret: string, body: unknown = { schemaVersion: 1 }) {
 }
 
 describe('publisher HTTP capabilities', () => {
-  test('absent or poll-only credentials cannot reach executor operations', async () => {
+  test('absent or incorrect credentials cannot reach executor operations', async () => {
     const execute = vi.fn(async () => ({ mutated: true }));
     for (const expectedSecret of [undefined, 'executor-secret']) {
       const response = await handleAuthenticatedJson(request('poll-secret'), {
@@ -99,31 +97,6 @@ describe('publisher HTTP capabilities', () => {
     );
     expect(response.status).toBe(400);
     expect(execute).not.toHaveBeenCalled();
-  });
-
-  test('render capabilities are short-lived and bound to the complete claim snapshot', async () => {
-    const payload = {
-      version: 1 as const,
-      factionId: 'faction-id',
-      assetType: 'faction_sheet' as const,
-      payloadHash: 'a'.repeat(64),
-      generation: 7,
-      rendererVersion: 'faction-sheet-v1',
-      batchToken: 'batch-token-0000000000000001',
-      claimToken: 'claim-token-0000000000000001',
-      expiresAt: 2_000,
-    };
-    const capability = await createRenderCapability(payload, 'render-secret');
-    await expect(verifyRenderCapability(capability, 'render-secret', 1_999)).resolves.toEqual(
-      payload
-    );
-    await expect(verifyRenderCapability(capability, 'render-secret', 2_000)).resolves.toBeNull();
-    await expect(verifyRenderCapability(capability, 'wrong-secret', 1_999)).resolves.toBeNull();
-
-    const [encoded, signature] = capability.split('.');
-    const tamperedPayload = `${encoded?.startsWith('A') ? 'B' : 'A'}${encoded?.slice(1)}`;
-    const tampered = `${tamperedPayload}.${signature}`;
-    await expect(verifyRenderCapability(tampered, 'render-secret', 1_999)).resolves.toBeNull();
   });
 
   test('cache tokens carry at least 128 random bits and verify only for their faction/type', async () => {

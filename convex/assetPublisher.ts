@@ -10,197 +10,43 @@ import {
   firstEligibleRolloutTarget,
   markRolloutClaimed,
   recoverExpiredRolloutClaim,
-  releaseRolloutItem,
 } from './assetRollouts';
-import { BROWSER_RESERVATION_MS, FREE_BROWSER_ALLOWANCE_MS } from './lib/assetPublisherLimits';
+import {
+  FACTION_SHEET_ASSET_TYPE,
+  ITEM_CLAIM_LEASE_MS,
+  MAX_CONSECUTIVE_RENDER_FAILURES,
+  MAX_PUBLISHER_ITEMS,
+} from './lib/assetPublisherConstants';
 import {
   completionMetadataSchema,
-  exactClaimSchema,
-  failureSchema,
+  exactItemClaimSchema,
+  itemFailureSchema,
   publisherTokenSchema,
+  takeWorkArgsSchema,
 } from './lib/assetPublisherSchemas';
-import {
-  exactFirstPublicationCounterOrNull,
-  MAX_FIRST_PUBLISHED_FACTION_SHEETS,
-  validFirstPublicationCount,
-} from './lib/factionSheetPublicationGuard';
 import type { MutationCtx, QueryCtx } from './types';
 
-export const ASSET_TYPE = 'faction_sheet' as const;
-export const BATCH_LEASE_MS = 12 * 60 * 1_000;
-export const MIN_UPLOAD_LEASE_MARGIN_MS = 2 * 60 * 1_000;
-export const MAX_BROWSER_SETTLEMENT_MS = 15 * 60 * 1_000;
-export { BROWSER_RESERVATION_MS, FREE_BROWSER_ALLOWANCE_MS };
+export const ASSET_TYPE = FACTION_SHEET_ASSET_TYPE;
+export { ITEM_CLAIM_LEASE_MS, MAX_CONSECUTIVE_RENDER_FAILURES, MAX_PUBLISHER_ITEMS };
 
-const MAX_RETRY_DELAY_MS = 6 * 60 * 60 * 1_000;
-const BASE_RETRY_DELAY_MS = 60 * 1_000;
-
-const exactClaimArgs = {
+const exactItemArgs = {
   targetId: v.id('asset_targets'),
-  batchToken: v.string(),
   claimToken: v.string(),
   generation: v.number(),
   rendererVersion: v.string(),
-  retainBatch: v.optional(v.boolean()),
 };
 
 type PublisherReadCtx = Pick<QueryCtx, 'db'>;
 
-async function publisherState(ctx: PublisherReadCtx) {
-  return await ctx.db
-    .query('asset_publisher_state')
-    .withIndex('by_key', (q) => q.eq('key', 'singleton'))
-    .unique();
-}
-
 async function assetTypeConfig(ctx: PublisherReadCtx) {
-  return await ctx.db
+  const configs = await ctx.db
     .query('asset_type_configs')
     .withIndex('by_asset_type', (q) => q.eq('asset_type', ASSET_TYPE))
-    .unique();
-}
-
-type ForegroundLane = 'foreground' | undefined;
-
-function earlierTarget(
-  left: Doc<'asset_targets'> | undefined,
-  right: Doc<'asset_targets'> | undefined,
-  sortValue: (target: Doc<'asset_targets'>) => number
-): Doc<'asset_targets'> | null {
-  if (!left) return right ?? null;
-  if (!right) return left;
-  const leftValue = sortValue(left);
-  const rightValue = sortValue(right);
-  if (leftValue !== rightValue) return leftValue < rightValue ? left : right;
-  if (left._creationTime !== right._creationTime) {
-    return left._creationTime < right._creationTime ? left : right;
+    .take(2);
+  if (configs.length > 1) {
+    throw new Error('Asset publisher invariant violated: duplicate faction-sheet configs');
   }
-  return left._id < right._id ? left : right;
-}
-
-async function eligibleForegroundTargetForLaneAndStatus(
-  ctx: PublisherReadCtx,
-  cutoff: number,
-  admittedOnly: boolean,
-  workLane: ForegroundLane,
-  status: 'pending' | 'cooldown'
-) {
-  const rows = admittedOnly
-    ? await ctx.db
-        .query('asset_targets')
-        .withIndex('by_type_lane_admitted_status_eligible', (q) =>
-          q
-            .eq('asset_type', ASSET_TYPE)
-            .eq('work_lane', workLane)
-            .eq('first_publication_admitted', true)
-            .eq('status', status)
-            .lte('next_eligible_at', cutoff)
-        )
-        .take(1)
-    : await ctx.db
-        .query('asset_targets')
-        .withIndex('by_type_lane_status_eligible', (q) =>
-          q
-            .eq('asset_type', ASSET_TYPE)
-            .eq('work_lane', workLane)
-            .eq('status', status)
-            .lte('next_eligible_at', cutoff)
-        )
-        .take(1);
-  return rows[0];
-}
-
-async function expiredForegroundTargetForLane(
-  ctx: PublisherReadCtx,
-  cutoff: number,
-  admittedOnly: boolean,
-  workLane: ForegroundLane
-) {
-  const rows = admittedOnly
-    ? await ctx.db
-        .query('asset_targets')
-        .withIndex('by_type_lane_admitted_status_lease', (q) =>
-          q
-            .eq('asset_type', ASSET_TYPE)
-            .eq('work_lane', workLane)
-            .eq('first_publication_admitted', true)
-            .eq('status', 'leased')
-            .lte('lease_expires_at', cutoff)
-        )
-        .take(1)
-    : await ctx.db
-        .query('asset_targets')
-        .withIndex('by_type_lane_status_lease', (q) =>
-          q
-            .eq('asset_type', ASSET_TYPE)
-            .eq('work_lane', workLane)
-            .eq('status', 'leased')
-            .lte('lease_expires_at', cutoff)
-        )
-        .take(1);
-  return rows[0];
-}
-
-async function firstEligibleTarget(ctx: PublisherReadCtx, cutoff: number, admittedOnly: boolean) {
-  // Legacy rows with no lane and newly-saved explicit foreground rows are one logical priority
-  // lane. Preserve status priority, then compare the bounded head of both index ranges so a legacy
-  // representation cannot delay genuinely earlier foreground work.
-  for (const status of ['pending', 'cooldown'] as const) {
-    const [legacy, explicit] = await Promise.all(
-      ([undefined, 'foreground'] as const).map(
-        async (lane) =>
-          await eligibleForegroundTargetForLaneAndStatus(ctx, cutoff, admittedOnly, lane, status)
-      )
-    );
-    const foreground = earlierTarget(legacy, explicit, (target) => target.next_eligible_at);
-    if (foreground) return foreground;
-  }
-  const [legacyLease, explicitLease] = await Promise.all(
-    ([undefined, 'foreground'] as const).map(
-      async (lane) => await expiredForegroundTargetForLane(ctx, cutoff, admittedOnly, lane)
-    )
-  );
-  const expiredForeground = earlierTarget(
-    legacyLease,
-    explicitLease,
-    (target) => target.lease_expires_at ?? Number.NEGATIVE_INFINITY
-  );
-  if (expiredForeground) return expiredForeground;
-  return await firstEligibleRolloutTarget(ctx, cutoff);
-}
-
-async function hasEligibleWorkAt(ctx: PublisherReadCtx, cutoff: number, now: number) {
-  const [state, config, counter] = await Promise.all([
-    publisherState(ctx),
-    assetTypeConfig(ctx),
-    exactFirstPublicationCounterOrNull(ctx),
-  ]);
-  if (state?.status !== 'active' || config?.status !== 'active') return false;
-  if (!counter || !validFirstPublicationCount(counter.value)) return false;
-  if (state.cooldown_until > cutoff) return false;
-  if (state.browser_reservation_batch_token && state.daily_browser_utc_date === utcDate(now)) {
-    return false;
-  }
-  if (state.batch_token && (state.batch_lease_expires_at ?? 0) > now) return false;
-  return (
-    (await firstEligibleTarget(
-      ctx,
-      cutoff,
-      counter.value >= MAX_FIRST_PUBLISHED_FACTION_SHEETS
-    )) !== null
-  );
-}
-
-function utcDate(at: number): string {
-  return new Date(at).toISOString().slice(0, 10);
-}
-
-function clearBrowserReservation() {
-  return {
-    browser_reservation_batch_token: undefined,
-    browser_reservation_utc_date: undefined,
-    browser_reserved_ms: undefined,
-  };
+  return configs[0] ?? null;
 }
 
 function claimPayload(faction: Doc<'factions'>) {
@@ -211,7 +57,7 @@ function claimPayload(faction: Doc<'factions'>) {
   };
 }
 
-function clearClaim() {
+function clearItemClaim() {
   return {
     batch_token: undefined,
     claim_token: undefined,
@@ -222,38 +68,9 @@ function clearClaim() {
   };
 }
 
-async function claimSnapshot(ctx: PublisherReadCtx, targetId: Id<'asset_targets'>) {
-  return await ctx.db
-    .query('asset_claim_snapshots')
-    .withIndex('by_target_id', (q) => q.eq('target_id', targetId))
-    .unique();
-}
-
-async function deleteSnapshotIfExact(
-  ctx: MutationCtx,
-  args: {
-    targetId: Id<'asset_targets'>;
-    batchToken: string;
-    claimToken: string;
-    generation: number;
-    rendererVersion: string;
-  }
-) {
-  const snapshot = await claimSnapshot(ctx, args.targetId);
-  if (
-    snapshot?.batch_token === args.batchToken &&
-    snapshot.claim_token === args.claimToken &&
-    snapshot.generation === args.generation &&
-    snapshot.renderer_version === args.rendererVersion
-  ) {
-    await ctx.db.delete(snapshot._id);
-  }
-}
-
 function exactOwnership(
   target: Doc<'asset_targets'>,
   args: {
-    batchToken: string;
     claimToken: string;
     generation: number;
     rendererVersion: string;
@@ -261,52 +78,168 @@ function exactOwnership(
 ) {
   return (
     target.status === 'leased' &&
-    target.batch_token === args.batchToken &&
     target.claim_token === args.claimToken &&
     target.claimed_generation === args.generation &&
     target.claimed_renderer_version === args.rendererVersion
   );
 }
 
-function parseExactClaim(args: {
+function parseExactItem(args: {
   targetId: Id<'asset_targets'>;
-  batchToken: string;
   claimToken: string;
   generation: number;
   rendererVersion: string;
-  retainBatch?: boolean;
 }) {
-  const result = exactClaimSchema.safeParse({
-    targetId: args.targetId,
-    batchToken: args.batchToken,
-    claimToken: args.claimToken,
-    generation: args.generation,
-    rendererVersion: args.rendererVersion,
-  });
-  if (!result.success) throw new Error('Invalid exact publisher claim');
-}
-
-function retryDelayMs(attemptCount: number) {
-  return Math.min(MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS * 2 ** Math.max(0, attemptCount - 1));
-}
-
-async function releaseBatchIfOwned(ctx: MutationCtx, batchToken: string) {
-  const state = await publisherState(ctx);
-  if (state?.batch_token === batchToken) {
-    await ctx.db.patch(state._id, {
-      batch_token: undefined,
-      batch_lease_expires_at: undefined,
-    });
+  if (
+    !exactItemClaimSchema.safeParse({
+      targetId: args.targetId,
+      claimToken: args.claimToken,
+      generation: args.generation,
+      rendererVersion: args.rendererVersion,
+    }).success
+  ) {
+    throw new Error('Invalid exact publisher item claim');
   }
 }
 
-export const hasEligibleWork = internalQuery({
-  args: { cutoff: v.number() },
-  handler: async (ctx, args) => ({
-    eligibility: (await hasEligibleWorkAt(ctx, args.cutoff, Date.now()))
-      ? ('eligible' as const)
-      : ('empty' as const),
-  }),
+function earlierTarget(left: Doc<'asset_targets'>, right: Doc<'asset_targets'>) {
+  const leftEligible = left.next_eligible_at ?? 0;
+  const rightEligible = right.next_eligible_at ?? 0;
+  if (leftEligible !== rightEligible) return leftEligible - rightEligible;
+  if (left._creationTime !== right._creationTime) return left._creationTime - right._creationTime;
+  return left._id < right._id ? -1 : left._id > right._id ? 1 : 0;
+}
+
+async function eligibleForegroundTargets(ctx: PublisherReadCtx, now: number) {
+  const laneRows = await Promise.all(
+    ([undefined, 'foreground'] as const).map(
+      async (workLane) =>
+        await ctx.db
+          .query('asset_targets')
+          .withIndex('by_type_lane_status_eligible', (q) =>
+            q.eq('asset_type', ASSET_TYPE).eq('work_lane', workLane).eq('status', 'pending')
+          )
+          .take(MAX_PUBLISHER_ITEMS)
+    )
+  );
+  return laneRows
+    .flat()
+    .filter((target) => target.next_eligible_at === undefined || target.next_eligible_at <= now)
+    .sort(earlierTarget)
+    .slice(0, MAX_PUBLISHER_ITEMS);
+}
+
+async function expiredClaims(ctx: PublisherReadCtx, now: number) {
+  return await ctx.db
+    .query('asset_targets')
+    .withIndex('by_asset_type_and_status_and_lease_expires_at', (q) =>
+      q.eq('asset_type', ASSET_TYPE).eq('status', 'leased').lte('lease_expires_at', now)
+    )
+    .take(MAX_PUBLISHER_ITEMS + 1);
+}
+
+async function recoverExpiredClaims(ctx: MutationCtx, now: number) {
+  const expired = await expiredClaims(ctx, now);
+  if (expired.length > MAX_PUBLISHER_ITEMS) {
+    throw new Error('Asset publisher invariant violated: too many expired item claims');
+  }
+  for (const target of expired) {
+    const detached = await recoverExpiredRolloutClaim(ctx, target, now);
+    if (!detached) {
+      await ctx.db.patch(target._id, {
+        ...clearItemClaim(),
+        status: 'pending',
+        next_eligible_at: undefined,
+      });
+    }
+  }
+}
+
+async function firstLeasedTarget(ctx: PublisherReadCtx) {
+  return await ctx.db
+    .query('asset_targets')
+    .withIndex('by_asset_type_and_status_and_lease_expires_at', (q) =>
+      q.eq('asset_type', ASSET_TYPE).eq('status', 'leased')
+    )
+    .first();
+}
+
+async function assignClaim(
+  ctx: MutationCtx,
+  target: Doc<'asset_targets'>,
+  claimToken: string,
+  leaseExpiresAt: number,
+  now: number
+) {
+  await markRolloutClaimed(ctx, target, now);
+  await ctx.db.patch(target._id, {
+    status: 'leased',
+    next_eligible_at: undefined,
+    attempt_count: undefined,
+    first_publication_admitted: undefined,
+    batch_token: undefined,
+    claim_token: claimToken,
+    claimed_generation: target.desired_generation,
+    claimed_renderer_version: target.desired_renderer_version,
+    lease_expires_at: leaseExpiresAt,
+    claim_payload_hash: undefined,
+  });
+  return {
+    targetId: target._id,
+    factionId: target.faction_id,
+    assetType: target.asset_type,
+    claimToken,
+    generation: target.desired_generation,
+    rendererVersion: target.desired_renderer_version,
+    leaseExpiresAt,
+    workLane: target.work_lane === 'rollout' ? ('rollout' as const) : ('foreground' as const),
+  };
+}
+
+/** Atomically assigns a fixed list of at most twenty independent item claims. */
+export const takeWork = internalMutation({
+  args: { claimTokens: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    if (!takeWorkArgsSchema.safeParse(args).success) {
+      throw new Error('Invalid publisher work request');
+    }
+    const config = await assetTypeConfig(ctx);
+    if (config?.status !== 'active') {
+      return { status: 'empty' as const, reason: 'disabled' as const, items: [] };
+    }
+
+    const now = Date.now();
+    await recoverExpiredClaims(ctx, now);
+    const liveClaim = await firstLeasedTarget(ctx);
+    if (liveClaim) {
+      return {
+        status: 'empty' as const,
+        reason: 'busy' as const,
+        leaseExpiresAt: liveClaim.lease_expires_at ?? null,
+        items: [],
+      };
+    }
+
+    const leaseExpiresAt = now + ITEM_CLAIM_LEASE_MS;
+    const items = [];
+    const foreground = await eligibleForegroundTargets(ctx, now);
+    for (const target of foreground) {
+      if (items.length >= args.claimTokens.length) break;
+      items.push(
+        await assignClaim(ctx, target, args.claimTokens[items.length], leaseExpiresAt, now)
+      );
+    }
+    while (items.length < args.claimTokens.length) {
+      const target = await firstEligibleRolloutTarget(ctx, now);
+      if (!target || target.status === 'leased') break;
+      items.push(
+        await assignClaim(ctx, target, args.claimTokens[items.length], leaseExpiresAt, now)
+      );
+    }
+    return items.length === 0
+      ? { status: 'empty' as const, reason: 'no_eligible_work' as const, items }
+      : { status: 'assigned' as const, leaseExpiresAt, items };
+  },
 });
 
 export const normalizeTargetId = internalQuery({
@@ -314,421 +247,76 @@ export const normalizeTargetId = internalQuery({
   handler: async (ctx, args) => ctx.db.normalizeId('asset_targets', args.targetId),
 });
 
-export const acquireBatch = internalMutation({
-  args: { batchToken: v.string() },
+export const readItemForRender = internalQuery({
+  args: { claimToken: v.string() },
   handler: async (ctx, args) => {
-    if (!publisherTokenSchema.safeParse(args.batchToken).success) {
-      throw new Error('Invalid publisher batch token');
-    }
-    const now = Date.now();
-    const [state, config, counter] = await Promise.all([
-      publisherState(ctx),
-      assetTypeConfig(ctx),
-      exactFirstPublicationCounterOrNull(ctx),
-    ]);
-    if (
-      state?.status !== 'active' ||
-      config?.status !== 'active' ||
-      !counter ||
-      !validFirstPublicationCount(counter.value)
-    ) {
-      return { status: 'empty' as const, reason: 'disabled' as const };
-    }
-    if (
-      state.batch_token === args.batchToken &&
-      (state.batch_lease_expires_at ?? 0) > now &&
-      state.browser_reservation_batch_token === args.batchToken &&
-      state.browser_reserved_ms === BROWSER_RESERVATION_MS
-    ) {
-      return {
-        status: 'acquired' as const,
-        replay: true,
-        batchToken: args.batchToken,
-        leaseExpiresAt: state.batch_lease_expires_at ?? now,
-        browserReservationMs: BROWSER_RESERVATION_MS,
-        dailyBrowserMs: state.daily_browser_ms,
-      };
-    }
-    if (state.batch_token && (state.batch_lease_expires_at ?? 0) > now) {
-      return { status: 'busy' as const, leaseExpiresAt: state.batch_lease_expires_at ?? now };
-    }
-    const today = utcDate(now);
-    const priorDay = state.daily_browser_utc_date !== today;
-    const dailyBrowserMs = priorDay ? 0 : state.daily_browser_ms;
-    const reservationBatchToken = priorDay ? undefined : state.browser_reservation_batch_token;
-    if (reservationBatchToken) {
-      return { status: 'busy' as const, reason: 'browser_reservation' as const };
-    }
-    if (
-      state.cooldown_until > now ||
-      !(await firstEligibleTarget(ctx, now, counter.value >= MAX_FIRST_PUBLISHED_FACTION_SHEETS))
-    ) {
-      return { status: 'empty' as const, reason: 'no_eligible_work' as const };
-    }
-    if (dailyBrowserMs + BROWSER_RESERVATION_MS > FREE_BROWSER_ALLOWANCE_MS) {
-      if (priorDay) {
-        await ctx.db.patch(state._id, {
-          daily_browser_utc_date: today,
-          daily_browser_ms: 0,
-          ...clearBrowserReservation(),
-        });
-      }
-      return { status: 'empty' as const, reason: 'browser_quota' as const };
-    }
-
-    const leaseExpiresAt = now + BATCH_LEASE_MS;
-    await ctx.db.patch(state._id, {
-      batch_token: args.batchToken,
-      batch_lease_expires_at: leaseExpiresAt,
-      daily_browser_utc_date: today,
-      daily_browser_ms: dailyBrowserMs + BROWSER_RESERVATION_MS,
-      browser_reservation_batch_token: args.batchToken,
-      browser_reservation_utc_date: today,
-      browser_reserved_ms: BROWSER_RESERVATION_MS,
-      last_browser_settlement_batch_token: undefined,
-      last_browser_settlement_ms: undefined,
-      last_browser_release_batch_token: undefined,
-      last_browser_release_mode: undefined,
-    });
-    return {
-      status: 'acquired' as const,
-      replay: false,
-      batchToken: args.batchToken,
-      leaseExpiresAt,
-      browserReservationMs: BROWSER_RESERVATION_MS,
-      dailyBrowserMs: dailyBrowserMs + BROWSER_RESERVATION_MS,
-    };
-  },
-});
-
-export const settleBrowserReservation = internalMutation({
-  args: { batchToken: v.string(), measuredBrowserMs: v.number() },
-  handler: async (ctx, args) => {
-    if (
-      !publisherTokenSchema.safeParse(args.batchToken).success ||
-      !Number.isSafeInteger(args.measuredBrowserMs) ||
-      args.measuredBrowserMs < 0 ||
-      args.measuredBrowserMs > MAX_BROWSER_SETTLEMENT_MS
-    ) {
-      throw new Error('Invalid browser reservation settlement');
-    }
-    const state = await publisherState(ctx);
-    if (!state) return { status: 'stale' as const };
-    if (state.last_browser_settlement_batch_token === args.batchToken) {
-      return {
-        status: 'settled' as const,
-        replay: true,
-        measuredBrowserMs: state.last_browser_settlement_ms ?? args.measuredBrowserMs,
-      };
-    }
-    if (
-      state.browser_reservation_batch_token !== args.batchToken ||
-      state.browser_reserved_ms !== BROWSER_RESERVATION_MS ||
-      state.browser_reservation_utc_date !== state.daily_browser_utc_date
-    ) {
-      return { status: 'stale' as const };
-    }
-    const dailyBrowserMs = Math.max(
-      0,
-      state.daily_browser_ms - BROWSER_RESERVATION_MS + args.measuredBrowserMs
-    );
-    await ctx.db.patch(state._id, {
-      daily_browser_ms: dailyBrowserMs,
-      ...clearBrowserReservation(),
-      last_browser_settlement_batch_token: args.batchToken,
-      last_browser_settlement_ms: args.measuredBrowserMs,
-    });
-    return {
-      status: 'settled' as const,
-      replay: false,
-      measuredBrowserMs: args.measuredBrowserMs,
-      dailyBrowserMs,
-      ...(args.measuredBrowserMs > BROWSER_RESERVATION_MS ? { overrun: true as const } : {}),
-    };
-  },
-});
-
-export const releaseBatch = internalMutation({
-  args: {
-    batchToken: v.string(),
-    mode: v.union(v.literal('no_browser'), v.literal('after_settlement')),
-  },
-  handler: async (ctx, args) => {
-    if (!publisherTokenSchema.safeParse(args.batchToken).success) {
-      throw new Error('Invalid publisher batch token');
-    }
-    const state = await publisherState(ctx);
-    if (!state) return { status: 'stale' as const };
-    const [ownedTarget, ownedSnapshot] = await Promise.all([
-      ctx.db
-        .query('asset_targets')
-        .withIndex('by_batch_token', (q) => q.eq('batch_token', args.batchToken))
-        .first(),
-      ctx.db
-        .query('asset_claim_snapshots')
-        .withIndex('by_batch_token', (q) => q.eq('batch_token', args.batchToken))
-        .first(),
-    ]);
-    if (ownedTarget || ownedSnapshot) return { status: 'stale' as const };
-    if (state.last_browser_release_batch_token === args.batchToken) {
-      return { status: 'released' as const, replay: true };
-    }
-    if (
-      state.batch_token !== args.batchToken ||
-      (state.batch_lease_expires_at ?? 0) <= Date.now()
-    ) {
-      return { status: 'stale' as const };
-    }
-
-    let dailyBrowserMs = state.daily_browser_ms;
-    let reservationPatch = {};
-    if (args.mode === 'no_browser') {
-      if (
-        state.browser_reservation_batch_token !== args.batchToken ||
-        state.browser_reserved_ms !== BROWSER_RESERVATION_MS ||
-        state.browser_reservation_utc_date !== state.daily_browser_utc_date
-      ) {
-        return { status: 'stale' as const };
-      }
-      dailyBrowserMs = Math.max(0, dailyBrowserMs - BROWSER_RESERVATION_MS);
-      reservationPatch = clearBrowserReservation();
-    } else if (
-      state.browser_reservation_batch_token ||
-      state.last_browser_settlement_batch_token !== args.batchToken
-    ) {
-      return { status: 'stale' as const };
-    }
-
-    await ctx.db.patch(state._id, {
-      batch_token: undefined,
-      batch_lease_expires_at: undefined,
-      daily_browser_ms: dailyBrowserMs,
-      ...reservationPatch,
-      last_browser_release_batch_token: args.batchToken,
-      last_browser_release_mode: args.mode,
-    });
-    return { status: 'released' as const, replay: false, dailyBrowserMs };
-  },
-});
-
-export const claimOne = internalMutation({
-  args: { batchToken: v.string(), claimToken: v.string() },
-  handler: async (ctx, args) => {
-    if (
-      !publisherTokenSchema.safeParse(args.batchToken).success ||
-      !publisherTokenSchema.safeParse(args.claimToken).success
-    ) {
-      throw new Error('Invalid publisher claim token');
-    }
-    const now = Date.now();
-    const [state, config, counter] = await Promise.all([
-      publisherState(ctx),
-      assetTypeConfig(ctx),
-      exactFirstPublicationCounterOrNull(ctx),
-    ]);
-    if (
-      state?.status !== 'active' ||
-      config?.status !== 'active' ||
-      !counter ||
-      !validFirstPublicationCount(counter.value) ||
-      state.batch_token !== args.batchToken ||
-      (state.batch_lease_expires_at ?? 0) <= now
-    ) {
-      return { status: 'stale' as const };
-    }
-
-    const batchTargets = await ctx.db
+    if (!publisherTokenSchema.safeParse(args.claimToken).success) return null;
+    const targets = await ctx.db
       .query('asset_targets')
-      .withIndex('by_batch_token', (q) => q.eq('batch_token', args.batchToken))
+      .withIndex('by_claim_token', (q) => q.eq('claim_token', args.claimToken))
       .take(2);
-    if (batchTargets.length > 1) {
-      return { status: 'conflict' as const };
+    if (targets.length !== 1) return null;
+    const target = targets[0];
+    const now = Date.now();
+    if (
+      target?.status !== 'leased' ||
+      target.claimed_generation === undefined ||
+      target.claimed_renderer_version === undefined ||
+      target.desired_generation !== target.claimed_generation ||
+      target.desired_renderer_version !== target.claimed_renderer_version ||
+      (target.lease_expires_at ?? 0) <= now
+    ) {
+      return null;
     }
-    const existingTarget = batchTargets[0];
-    if (existingTarget) {
-      const snapshot = await claimSnapshot(ctx, existingTarget._id);
-      if (
-        existingTarget.status !== 'leased' ||
-        existingTarget.claim_token === undefined ||
-        existingTarget.claimed_generation === undefined ||
-        existingTarget.claimed_renderer_version === undefined ||
-        existingTarget.lease_expires_at === undefined ||
-        existingTarget.claim_payload_hash === undefined ||
-        existingTarget.lease_expires_at <= now ||
-        !snapshot ||
-        snapshot.batch_token !== args.batchToken ||
-        snapshot.claim_token !== existingTarget.claim_token ||
-        snapshot.generation !== existingTarget.claimed_generation ||
-        snapshot.renderer_version !== existingTarget.claimed_renderer_version ||
-        snapshot.lease_expires_at !== existingTarget.lease_expires_at ||
-        snapshot.payload_hash !== existingTarget.claim_payload_hash
-      ) {
-        return { status: 'conflict' as const };
-      }
-      return {
-        status: 'claimed' as const,
-        replay: true,
-        targetId: existingTarget._id,
-        factionId: existingTarget.faction_id,
-        assetType: existingTarget.asset_type,
-        batchToken: args.batchToken,
-        claimToken: existingTarget.claim_token,
-        generation: existingTarget.claimed_generation,
-        rendererVersion: existingTarget.claimed_renderer_version,
-        leaseExpiresAt: existingTarget.lease_expires_at,
-        payload: snapshot.payload,
-        payloadHash: existingTarget.claim_payload_hash,
-        workLane:
-          existingTarget.work_lane === 'rollout' ? ('rollout' as const) : ('foreground' as const),
-      };
-    }
-
-    let target = await firstEligibleTarget(
-      ctx,
-      now,
-      counter.value >= MAX_FIRST_PUBLISHED_FACTION_SHEETS
-    );
-    if (target?.status === 'leased') {
-      const expiredSnapshot = await claimSnapshot(ctx, target._id);
-      if (
-        expiredSnapshot &&
-        expiredSnapshot.batch_token === target.batch_token &&
-        expiredSnapshot.claim_token === target.claim_token
-      ) {
-        await ctx.db.delete(expiredSnapshot._id);
-      }
-      const detached = await recoverExpiredRolloutClaim(ctx, target, now);
-      if (!detached) {
-        await ctx.db.patch(target._id, {
-          ...clearClaim(),
-          status: 'pending',
-          next_eligible_at: now,
-        });
-      }
-      target = await firstEligibleTarget(
-        ctx,
-        now,
-        counter.value >= MAX_FIRST_PUBLISHED_FACTION_SHEETS
-      );
-    }
-
-    if (!target || target.status === 'leased') return { status: 'empty' as const };
     const faction = await ctx.db.get('factions', target.faction_id);
-    if (!faction) throw new Error('Publisher target faction is missing');
-
+    if (!faction || faction.is_deleted) return null;
     const payload = claimPayload(faction);
-    const payloadHash = SHA256(JSON.stringify(payload)).toString();
-    const leaseExpiresAt = state.batch_lease_expires_at ?? now;
-    const orphanedSnapshot = await claimSnapshot(ctx, target._id);
-    if (orphanedSnapshot) await ctx.db.delete(orphanedSnapshot._id);
-    await ctx.db.insert('asset_claim_snapshots', {
-      target_id: target._id,
-      faction_id: target.faction_id,
-      asset_type: target.asset_type,
-      batch_token: args.batchToken,
-      claim_token: args.claimToken,
-      generation: target.desired_generation,
-      renderer_version: target.desired_renderer_version,
-      lease_expires_at: leaseExpiresAt,
-      payload_hash: payloadHash,
-      payload,
-    });
-    await markRolloutClaimed(ctx, target, now);
-    await ctx.db.patch(target._id, {
-      status: 'leased',
-      next_eligible_at: leaseExpiresAt,
-      attempt_count: target.attempt_count + 1,
-      last_error: undefined,
-      batch_token: args.batchToken,
-      claim_token: args.claimToken,
-      claimed_generation: target.desired_generation,
-      claimed_renderer_version: target.desired_renderer_version,
-      lease_expires_at: leaseExpiresAt,
-      claim_payload_hash: payloadHash,
-    });
-
     return {
-      status: 'claimed' as const,
-      replay: false,
       targetId: target._id,
       factionId: target.faction_id,
       assetType: target.asset_type,
-      batchToken: args.batchToken,
-      claimToken: args.claimToken,
-      generation: target.desired_generation,
-      rendererVersion: target.desired_renderer_version,
-      leaseExpiresAt,
+      generation: target.claimed_generation,
+      rendererVersion: target.claimed_renderer_version,
+      leaseExpiresAt: target.lease_expires_at,
       payload,
-      payloadHash,
-      workLane: target.work_lane === 'rollout' ? ('rollout' as const) : ('foreground' as const),
+      payloadHash: SHA256(JSON.stringify(payload)).toString(),
     };
   },
 });
 
-export const revalidateClaim = internalMutation({
-  args: exactClaimArgs,
+export const revalidateItem = internalQuery({
+  args: exactItemArgs,
   handler: async (ctx, args) => {
-    parseExactClaim(args);
-    const now = Date.now();
+    parseExactItem(args);
     const target = await ctx.db.get('asset_targets', args.targetId);
-    const state = await publisherState(ctx);
-    const counter = await exactFirstPublicationCounterOrNull(ctx);
+    const now = Date.now();
     if (
       !target ||
-      !state ||
       !exactOwnership(target, args) ||
-      state.batch_token !== args.batchToken
-    ) {
-      return { status: 'stale' as const };
-    }
-    if (
       target.desired_generation !== args.generation ||
-      target.desired_renderer_version !== args.rendererVersion
+      target.desired_renderer_version !== args.rendererVersion ||
+      (target.lease_expires_at ?? 0) <= now
     ) {
       return { status: 'stale' as const };
-    }
-    const leaseExpiresAt = Math.min(
-      target.lease_expires_at ?? 0,
-      state.batch_lease_expires_at ?? 0
-    );
-    if (leaseExpiresAt - now < MIN_UPLOAD_LEASE_MARGIN_MS) {
-      return { status: 'insufficient_lease' as const, leaseExpiresAt };
-    }
-    if (!counter || !validFirstPublicationCount(counter.value)) {
-      return { status: 'storage_guard' as const };
-    }
-    if (target.first_publication_admitted !== true) {
-      if (
-        target.first_publication_admitted !== false ||
-        target.published_generation !== undefined
-      ) {
-        return { status: 'storage_guard' as const };
-      }
-      if (counter.value >= MAX_FIRST_PUBLISHED_FACTION_SHEETS) {
-        return { status: 'storage_limit' as const };
-      }
-      await ctx.db.patch(target._id, { first_publication_admitted: true });
-      await ctx.db.patch(counter._id, { value: counter.value + 1 });
     }
     return {
       status: 'valid' as const,
-      leaseExpiresAt,
       factionId: target.faction_id,
       assetType: target.asset_type,
-      payloadHash: target.claim_payload_hash,
+      leaseExpiresAt: target.lease_expires_at,
     };
   },
 });
 
-export const completeClaim = internalMutation({
+export const completeItem = internalMutation({
   args: {
-    ...exactClaimArgs,
+    ...exactItemArgs,
     r2Etag: v.string(),
     bytes: v.number(),
     cacheToken: v.string(),
   },
   handler: async (ctx, args) => {
-    parseExactClaim(args);
+    parseExactItem(args);
     if (
       !completionMetadataSchema.safeParse({
         r2Etag: args.r2Etag,
@@ -740,14 +328,12 @@ export const completeClaim = internalMutation({
     }
     const target = await ctx.db.get('asset_targets', args.targetId);
     if (!target) return { status: 'stale' as const };
-    if (target.first_publication_admitted !== true) {
-      throw new Error('First publication was not transactionally admitted');
-    }
     if (
-      target.last_completed_batch_token === args.batchToken &&
       target.last_completed_claim_token === args.claimToken &&
       target.published_generation === args.generation &&
-      target.published_renderer_version === args.rendererVersion
+      target.published_renderer_version === args.rendererVersion &&
+      target.desired_generation === args.generation &&
+      target.desired_renderer_version === args.rendererVersion
     ) {
       return {
         status: 'completed' as const,
@@ -756,201 +342,106 @@ export const completeClaim = internalMutation({
         publishedAt: target.published_at,
       };
     }
-    const state = await publisherState(ctx);
     const now = Date.now();
     if (
       !exactOwnership(target, args) ||
-      state?.batch_token !== args.batchToken ||
-      (state.batch_lease_expires_at ?? 0) <= now ||
+      target.desired_generation !== args.generation ||
+      target.desired_renderer_version !== args.rendererVersion ||
       (target.lease_expires_at ?? 0) <= now
     ) {
       return { status: 'stale' as const };
     }
-    if (
-      target.desired_generation !== args.generation ||
-      target.desired_renderer_version !== args.rendererVersion
-    ) {
-      await deleteSnapshotIfExact(ctx, args);
-      await ctx.db.patch(target._id, {
-        ...clearClaim(),
-        status: 'pending',
-        next_eligible_at: now,
-      });
-      if (!args.retainBatch) await releaseBatchIfOwned(ctx, args.batchToken);
-      return { status: 'stale' as const };
-    }
 
-    const publishedAt = now;
-    const rolloutClaim = target.work_lane === 'rollout' && target.rollout_item_id !== undefined;
-    await deleteSnapshotIfExact(ctx, args);
     await completeRolloutItem(ctx, target, now);
     await ctx.db.patch(target._id, {
-      ...clearClaim(),
+      ...clearItemClaim(),
       status: 'current',
-      next_eligible_at: publishedAt,
+      next_eligible_at: undefined,
+      attempt_count: undefined,
+      first_publication_admitted: undefined,
+      consecutive_render_failures: 0,
+      last_error: undefined,
       published_generation: args.generation,
       published_renderer_version: args.rendererVersion,
       published_cache_token: args.cacheToken,
       published_r2_etag: args.r2Etag,
       published_bytes: args.bytes,
-      published_at: publishedAt,
-      last_completed_batch_token: args.batchToken,
+      published_at: now,
+      last_completed_batch_token: undefined,
       last_completed_claim_token: args.claimToken,
       work_lane: 'foreground',
       rollout_id: undefined,
       rollout_item_id: undefined,
     });
-    if (!rolloutClaim && !args.retainBatch) await releaseBatchIfOwned(ctx, args.batchToken);
     return {
       status: 'completed' as const,
       replay: false,
       cacheToken: args.cacheToken,
-      publishedAt,
+      publishedAt: now,
     };
   },
 });
 
-export const failClaim = internalMutation({
-  args: { ...exactClaimArgs, error: v.string() },
+export const failItem = internalMutation({
+  args: {
+    ...exactItemArgs,
+    attribution: v.union(v.literal('target'), v.literal('infrastructure')),
+    error: v.string(),
+  },
   handler: async (ctx, args) => {
-    parseExactClaim(args);
-    const failure = failureSchema.safeParse({ error: args.error });
-    if (!failure.success) throw new Error('Invalid publisher failure');
+    parseExactItem(args);
+    const failure = itemFailureSchema.safeParse({
+      attribution: args.attribution,
+      error: args.error,
+    });
+    if (!failure.success) throw new Error('Invalid publisher item failure');
     const target = await ctx.db.get('asset_targets', args.targetId);
-    const state = await publisherState(ctx);
     const now = Date.now();
     if (
       !target ||
       !exactOwnership(target, args) ||
-      state?.batch_token !== args.batchToken ||
-      (state.batch_lease_expires_at ?? 0) <= now ||
+      target.desired_generation !== args.generation ||
+      target.desired_renderer_version !== args.rendererVersion ||
       (target.lease_expires_at ?? 0) <= now
     ) {
       return { status: 'stale' as const };
     }
-    if (
-      target.desired_generation !== args.generation ||
-      target.desired_renderer_version !== args.rendererVersion
-    ) {
-      await deleteSnapshotIfExact(ctx, args);
-      await ctx.db.patch(target._id, {
-        ...clearClaim(),
-        status: 'pending',
-        next_eligible_at: now,
-      });
-      if (!args.retainBatch) await releaseBatchIfOwned(ctx, args.batchToken);
-      return { status: 'stale' as const };
+    if (failure.data.attribution === 'infrastructure') {
+      return {
+        status: 'retained' as const,
+        leaseExpiresAt: target.lease_expires_at,
+      };
     }
 
-    const nextEligibleAt = now + retryDelayMs(target.attempt_count);
-    const rolloutClaim = target.work_lane === 'rollout' && target.rollout_item_id !== undefined;
-    await deleteSnapshotIfExact(ctx, args);
+    const consecutiveFailures = (target.consecutive_render_failures ?? 0) + 1;
+    const blocked = consecutiveFailures >= MAX_CONSECUTIVE_RENDER_FAILURES;
     const rolloutOutcome = await failRolloutItem(
       ctx,
       target,
       failure.data.error,
-      nextEligibleAt,
-      now
+      now,
+      now,
+      blocked
     );
-    if (rolloutOutcome !== 'detached') {
+    if (rolloutOutcome === 'detached') {
       await ctx.db.patch(target._id, {
-        ...clearClaim(),
-        status: 'cooldown',
-        next_eligible_at: nextEligibleAt,
+        ...clearItemClaim(),
+        consecutive_render_failures: consecutiveFailures,
+        last_error: failure.data.error,
+      });
+    } else {
+      await ctx.db.patch(target._id, {
+        ...clearItemClaim(),
+        status: blocked ? 'blocked' : 'pending',
+        next_eligible_at: undefined,
+        consecutive_render_failures: consecutiveFailures,
         last_error: failure.data.error,
       });
     }
-    if (!rolloutClaim && !args.retainBatch) await releaseBatchIfOwned(ctx, args.batchToken);
-    return { status: 'failed' as const, nextEligibleAt };
-  },
-});
-
-export const releaseClaim = internalMutation({
-  args: exactClaimArgs,
-  handler: async (ctx, args) => {
-    parseExactClaim(args);
-    const target = await ctx.db.get('asset_targets', args.targetId);
-    const state = await publisherState(ctx);
-    const now = Date.now();
-    if (
-      !target ||
-      !exactOwnership(target, args) ||
-      state?.batch_token !== args.batchToken ||
-      (state.batch_lease_expires_at ?? 0) <= now ||
-      (target.lease_expires_at ?? 0) <= now
-    ) {
-      return { status: 'stale' as const };
-    }
-    const rolloutClaim = target.work_lane === 'rollout' && target.rollout_item_id !== undefined;
-    await deleteSnapshotIfExact(ctx, args);
-    const rolloutOutcome = await releaseRolloutItem(ctx, target, now);
-    if (rolloutOutcome !== 'detached') {
-      await ctx.db.patch(target._id, {
-        ...clearClaim(),
-        status: 'pending',
-        next_eligible_at: now,
-      });
-    }
-    if (!rolloutClaim && !args.retainBatch) await releaseBatchIfOwned(ctx, args.batchToken);
-    return { status: 'released' as const };
-  },
-});
-
-export const readRenderSnapshot = internalQuery({
-  args: {
-    factionId: v.id('factions'),
-    assetType: v.literal('faction_sheet'),
-    payloadHash: v.string(),
-    batchToken: v.string(),
-    claimToken: v.string(),
-    generation: v.number(),
-    rendererVersion: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const target = await ctx.db
-      .query('asset_targets')
-      .withIndex('by_faction_id_and_asset_type', (q) =>
-        q.eq('faction_id', args.factionId).eq('asset_type', args.assetType)
-      )
-      .unique();
-    const state = await publisherState(ctx);
-    const snapshot = target ? await claimSnapshot(ctx, target._id) : null;
-    if (
-      !target ||
-      !snapshot ||
-      !exactOwnership(target, args) ||
-      state?.batch_token !== args.batchToken ||
-      target.claim_payload_hash !== args.payloadHash ||
-      snapshot.faction_id !== args.factionId ||
-      snapshot.asset_type !== args.assetType ||
-      snapshot.batch_token !== args.batchToken ||
-      snapshot.claim_token !== args.claimToken ||
-      snapshot.generation !== args.generation ||
-      snapshot.renderer_version !== args.rendererVersion ||
-      snapshot.payload_hash !== args.payloadHash ||
-      (state.batch_lease_expires_at ?? 0) <= Date.now() ||
-      (target.lease_expires_at ?? 0) <= Date.now() ||
-      snapshot.lease_expires_at <= Date.now()
-    ) {
-      return null;
-    }
-    return { payload: snapshot.payload, payloadHash: snapshot.payload_hash };
-  },
-});
-
-export const readClaimIdentity = internalQuery({
-  args: exactClaimArgs,
-  handler: async (ctx, args) => {
-    parseExactClaim(args);
-    const target = await ctx.db.get('asset_targets', args.targetId);
-    if (!target) return null;
-    const isExactReplay =
-      target.last_completed_batch_token === args.batchToken &&
-      target.last_completed_claim_token === args.claimToken &&
-      target.published_generation === args.generation &&
-      target.published_renderer_version === args.rendererVersion;
-    if (!exactOwnership(target, args) && !isExactReplay) return null;
-    return { factionId: target.faction_id, assetType: target.asset_type };
+    return {
+      status: blocked ? ('blocked' as const) : ('failed' as const),
+      consecutiveFailures,
+    };
   },
 });
 

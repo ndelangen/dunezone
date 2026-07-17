@@ -147,6 +147,7 @@ export function PublisherFactionSheetCapture() {
   const [state, setState] = useState<CaptureState>('loading');
   const [detail, setDetail] = useState('Loading exact claimed snapshot');
   const [faction, setFaction] = useState<FactionInput>();
+  const [payloadHash, setPayloadHash] = useState<string>();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -164,6 +165,7 @@ export function PublisherFactionSheetCapture() {
         if (!response.ok) throw new Error(`Claimed snapshot returned HTTP ${response.status}`);
         const snapshot = snapshotSchema.parse(await response.json());
         setFaction(snapshot.payload.faction);
+        setPayloadHash(snapshot.payloadHash);
         setDetail(`Rendering exact claimed snapshot ${snapshot.payloadHash}`);
       } catch (error) {
         setState('error');
@@ -219,7 +221,13 @@ export function PublisherFactionSheetCapture() {
 
   return (
     <>
-      <output id="capture-status" data-capture-state={state} aria-live="polite" hidden>
+      <output
+        id="capture-status"
+        data-capture-state={state}
+        data-payload-hash={payloadHash}
+        aria-live="polite"
+        hidden
+      >
         {detail}
       </output>
       {faction ? <FactionSheetView faction={faction} /> : null}

@@ -1,10 +1,5 @@
 import type { z } from 'zod';
 
-import {
-  type RenderCapabilityPayload,
-  renderCapabilityPayloadSchema,
-} from './assetPublisherSchemas';
-
 const encoder = new TextEncoder();
 export const MAX_PUBLISHER_JSON_BODY_BYTES = 16 * 1_024;
 export const CACHE_TOKEN_PATTERN = /^v1\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/;
@@ -46,27 +41,6 @@ async function hmacBytes(secret: Uint8Array, message: string): Promise<Uint8Arra
     ['sign']
   );
   return new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(message)));
-}
-
-async function hmac(secret: string, message: string): Promise<Uint8Array> {
-  return await hmacBytes(encoder.encode(secret), message);
-}
-
-async function verifyHmac(
-  secret: string,
-  message: string,
-  signature: Uint8Array
-): Promise<boolean> {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify']
-  );
-  const signatureCopy = new Uint8Array(signature.byteLength);
-  signatureCopy.set(signature);
-  return await crypto.subtle.verify('HMAC', key, signatureCopy, encoder.encode(message));
 }
 
 async function verifyHmacBytes(
@@ -198,38 +172,6 @@ export async function handleAuthenticatedJson<T>(
     }
     console.error('Asset publisher HTTP operation failed', error);
     return response({ error: 'Publisher operation failed' }, 500);
-  }
-}
-
-export async function createRenderCapability(
-  payload: RenderCapabilityPayload,
-  secret: string
-): Promise<string> {
-  const parsed = renderCapabilityPayloadSchema.parse(payload);
-  const encodedPayload = toBase64Url(encoder.encode(JSON.stringify(parsed)));
-  return `${encodedPayload}.${toBase64Url(await hmac(secret, encodedPayload))}`;
-}
-
-export async function verifyRenderCapability(
-  capability: string,
-  secret: string | undefined,
-  now = Date.now()
-): Promise<RenderCapabilityPayload | null> {
-  if (!secret) return null;
-  const [encodedPayload, encodedSignature, extra] = capability.split('.');
-  if (!encodedPayload || !encodedSignature || extra) return null;
-  const payloadBytes = fromBase64Url(encodedPayload);
-  const signature = fromBase64Url(encodedSignature);
-  if (!payloadBytes || !signature || !(await verifyHmac(secret, encodedPayload, signature)))
-    return null;
-  try {
-    const parsed = renderCapabilityPayloadSchema.safeParse(
-      JSON.parse(new TextDecoder().decode(payloadBytes))
-    );
-    if (!parsed.success || parsed.data.expiresAt <= now) return null;
-    return parsed.data;
-  } catch {
-    return null;
   }
 }
 
