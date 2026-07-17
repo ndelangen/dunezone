@@ -21,9 +21,17 @@ import type { MutationCtx } from './types';
 const rendererValidator = v.literal(INITIAL_FACTION_SHEET_RENDERER_VERSION);
 const targetPrerequisiteValidator = v.literal(FACTION_SHEET_TARGET_ACTIVATION_PREREQUISITE);
 const storagePrerequisiteValidator = v.literal(FACTION_SHEET_STORAGE_ACTIVATION_PREREQUISITE);
-// This one-shot maintenance contract reconciles the exact stale reservation created by the
-// 2026-07-16 canary. It is historical evidence, not the reservation for new acquisitions.
-const BROWSER_USAGE_RECONCILIATION_RESERVATION_MS = 8 * 60 * 1_000;
+// Freeze both evidence-backed compare-and-swap amounts. These maintenance values must not follow a
+// later change to the normal acquisition reservation policy.
+const HISTORICAL_BROWSER_USAGE_RECONCILIATION_RESERVATION_MS = 8 * 60 * 1_000;
+const DEPLOYED_BROWSER_USAGE_RECONCILIATION_RESERVATION_MS = 4 * 60 * 1_000;
+
+function isReconciliableBrowserReservation(value: number): boolean {
+  return (
+    value === HISTORICAL_BROWSER_USAGE_RECONCILIATION_RESERVATION_MS ||
+    value === DEPLOYED_BROWSER_USAGE_RECONCILIATION_RESERVATION_MS
+  );
+}
 
 async function exactConfigOrNull(ctx: MutationCtx) {
   const configs = await ctx.db
@@ -231,7 +239,7 @@ export const reconcileCurrentBrowserUsage = internalMutation({
       !publisherTokenSchema.safeParse(args.expectedBrowserReservationBatchToken).success ||
       !Number.isSafeInteger(args.expectedDailyBrowserMs) ||
       args.expectedDailyBrowserMs < 0 ||
-      args.expectedBrowserReservedMs !== BROWSER_USAGE_RECONCILIATION_RESERVATION_MS ||
+      !isReconciliableBrowserReservation(args.expectedBrowserReservedMs) ||
       !Number.isSafeInteger(args.replacementDailyBrowserMs) ||
       args.replacementDailyBrowserMs < 0 ||
       args.replacementDailyBrowserMs > FREE_BROWSER_ALLOWANCE_MS ||

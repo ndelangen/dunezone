@@ -23,6 +23,11 @@ const reconciliationArgs = {
   expectedBrowserReservedMs: 480_000,
   replacementDailyBrowserMs: 120_000,
 };
+const currentReservationReconciliationArgs = {
+  ...reconciliationArgs,
+  expectedDailyBrowserMs: 272_498,
+  expectedBrowserReservedMs: 240_000,
+};
 
 afterEach(() => vi.useRealTimers());
 
@@ -45,7 +50,10 @@ async function recordSuccessfulPrerequisite(t: ReturnType<typeof convexTest>) {
   });
 }
 
-async function seedBrowserUsageReconciliation(t: ReturnType<typeof convexTest>) {
+async function seedBrowserUsageReconciliation(
+  t: ReturnType<typeof convexTest>,
+  args = reconciliationArgs
+) {
   return await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Browser reconciliation owner' });
     const factionId = await ctx.db.insert('factions', {
@@ -67,11 +75,11 @@ async function seedBrowserUsageReconciliation(t: ReturnType<typeof convexTest>) 
       key: 'singleton',
       status: 'paused',
       cooldown_until: NOW - 20_000,
-      daily_browser_utc_date: reconciliationArgs.expectedUtcDate,
-      daily_browser_ms: reconciliationArgs.expectedDailyBrowserMs,
+      daily_browser_utc_date: args.expectedUtcDate,
+      daily_browser_ms: args.expectedDailyBrowserMs,
       browser_reservation_batch_token: RECONCILIATION_RESERVATION_TOKEN,
-      browser_reservation_utc_date: reconciliationArgs.expectedBrowserReservationUtcDate,
-      browser_reserved_ms: reconciliationArgs.expectedBrowserReservedMs,
+      browser_reservation_utc_date: args.expectedBrowserReservationUtcDate,
+      browser_reserved_ms: args.expectedBrowserReservedMs,
       last_browser_settlement_batch_token: 'historical-settlement-token',
       last_browser_settlement_ms: 4_275,
       last_browser_release_batch_token: 'historical-release-token',
@@ -522,6 +530,48 @@ describe('asset publisher operator controls', () => {
     await expect(
       t.mutation(internal.assetPublisherOperator.reconcileCurrentBrowserUsage, reconciliationArgs)
     ).rejects.toThrow('state does not match expected accounting');
+  });
+
+  test('reconciles the exact currently deployed 240-second reservation', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const t = convexTest(schema, modules);
+    const seeded = await seedBrowserUsageReconciliation(t, currentReservationReconciliationArgs);
+
+    await expect(
+      t.mutation(
+        internal.assetPublisherOperator.reconcileCurrentBrowserUsage,
+        currentReservationReconciliationArgs
+      )
+    ).resolves.toEqual({
+      status: 'reconciled',
+      utcDate: '2026-07-16',
+      previousDailyBrowserMs: 272_498,
+      dailyBrowserMs: 120_000,
+      clearedReservationBatchToken: RECONCILIATION_RESERVATION_TOKEN,
+    });
+
+    const state = await t.run(
+      async (ctx) => await ctx.db.get('asset_publisher_state', seeded.stateId)
+    );
+    expect(state?.daily_browser_ms).toBe(120_000);
+    expect(state?.browser_reservation_batch_token).toBeUndefined();
+    expect(state?.browser_reservation_utc_date).toBeUndefined();
+    expect(state?.browser_reserved_ms).toBeUndefined();
+  });
+
+  test('rejects an operator-supplied reservation outside the historical and current contracts', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const t = convexTest(schema, modules);
+    await seedBrowserUsageReconciliation(t);
+
+    await expect(
+      t.mutation(internal.assetPublisherOperator.reconcileCurrentBrowserUsage, {
+        ...reconciliationArgs,
+        expectedBrowserReservedMs: 120_000,
+      })
+    ).rejects.toThrow('Invalid Browser usage reconciliation values');
   });
 
   test.each([
