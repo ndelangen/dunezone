@@ -60,37 +60,62 @@ async function assetTypeConfig(ctx: PublisherReadCtx) {
     .unique();
 }
 
-async function firstEligibleForegroundTargetForLane(
+type ForegroundLane = 'foreground' | undefined;
+
+function earlierTarget(
+  left: Doc<'asset_targets'> | undefined,
+  right: Doc<'asset_targets'> | undefined,
+  sortValue: (target: Doc<'asset_targets'>) => number
+): Doc<'asset_targets'> | null {
+  if (!left) return right ?? null;
+  if (!right) return left;
+  const leftValue = sortValue(left);
+  const rightValue = sortValue(right);
+  if (leftValue !== rightValue) return leftValue < rightValue ? left : right;
+  if (left._creationTime !== right._creationTime) {
+    return left._creationTime < right._creationTime ? left : right;
+  }
+  return left._id < right._id ? left : right;
+}
+
+async function eligibleForegroundTargetForLaneAndStatus(
   ctx: PublisherReadCtx,
   cutoff: number,
   admittedOnly: boolean,
-  workLane: 'foreground' | undefined
+  workLane: ForegroundLane,
+  status: 'pending' | 'cooldown'
 ) {
-  for (const status of ['pending', 'cooldown'] as const) {
-    const rows = admittedOnly
-      ? await ctx.db
-          .query('asset_targets')
-          .withIndex('by_type_lane_admitted_status_eligible', (q) =>
-            q
-              .eq('asset_type', ASSET_TYPE)
-              .eq('work_lane', workLane)
-              .eq('first_publication_admitted', true)
-              .eq('status', status)
-              .lte('next_eligible_at', cutoff)
-          )
-          .take(1)
-      : await ctx.db
-          .query('asset_targets')
-          .withIndex('by_type_lane_status_eligible', (q) =>
-            q
-              .eq('asset_type', ASSET_TYPE)
-              .eq('work_lane', workLane)
-              .eq('status', status)
-              .lte('next_eligible_at', cutoff)
-          )
-          .take(1);
-    if (rows[0]) return rows[0];
-  }
+  const rows = admittedOnly
+    ? await ctx.db
+        .query('asset_targets')
+        .withIndex('by_type_lane_admitted_status_eligible', (q) =>
+          q
+            .eq('asset_type', ASSET_TYPE)
+            .eq('work_lane', workLane)
+            .eq('first_publication_admitted', true)
+            .eq('status', status)
+            .lte('next_eligible_at', cutoff)
+        )
+        .take(1)
+    : await ctx.db
+        .query('asset_targets')
+        .withIndex('by_type_lane_status_eligible', (q) =>
+          q
+            .eq('asset_type', ASSET_TYPE)
+            .eq('work_lane', workLane)
+            .eq('status', status)
+            .lte('next_eligible_at', cutoff)
+        )
+        .take(1);
+  return rows[0];
+}
+
+async function expiredForegroundTargetForLane(
+  ctx: PublisherReadCtx,
+  cutoff: number,
+  admittedOnly: boolean,
+  workLane: ForegroundLane
+) {
   const rows = admittedOnly
     ? await ctx.db
         .query('asset_targets')
@@ -113,16 +138,34 @@ async function firstEligibleForegroundTargetForLane(
             .lte('lease_expires_at', cutoff)
         )
         .take(1);
-  return rows[0] ?? null;
+  return rows[0];
 }
 
 async function firstEligibleTarget(ctx: PublisherReadCtx, cutoff: number, admittedOnly: boolean) {
-  // At the production maximum of one, ordinary saves always win. Existing rows with no lane field
-  // remain foreground without a backfill; new and newly-saved rows use the explicit lane value.
-  for (const lane of [undefined, 'foreground'] as const) {
-    const foreground = await firstEligibleForegroundTargetForLane(ctx, cutoff, admittedOnly, lane);
+  // Legacy rows with no lane and newly-saved explicit foreground rows are one logical priority
+  // lane. Preserve status priority, then compare the bounded head of both index ranges so a legacy
+  // representation cannot delay genuinely earlier foreground work.
+  for (const status of ['pending', 'cooldown'] as const) {
+    const [legacy, explicit] = await Promise.all(
+      ([undefined, 'foreground'] as const).map(
+        async (lane) =>
+          await eligibleForegroundTargetForLaneAndStatus(ctx, cutoff, admittedOnly, lane, status)
+      )
+    );
+    const foreground = earlierTarget(legacy, explicit, (target) => target.next_eligible_at);
     if (foreground) return foreground;
   }
+  const [legacyLease, explicitLease] = await Promise.all(
+    ([undefined, 'foreground'] as const).map(
+      async (lane) => await expiredForegroundTargetForLane(ctx, cutoff, admittedOnly, lane)
+    )
+  );
+  const expiredForeground = earlierTarget(
+    legacyLease,
+    explicitLease,
+    (target) => target.lease_expires_at ?? Number.NEGATIVE_INFINITY
+  );
+  if (expiredForeground) return expiredForeground;
   return await firstEligibleRolloutTarget(ctx, cutoff);
 }
 

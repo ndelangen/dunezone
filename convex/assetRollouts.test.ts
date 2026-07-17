@@ -433,7 +433,10 @@ describe('renderer rollout control plane', () => {
     expect(replay.rolloutId).toBe(rollback.rolloutId);
   });
 
-  test('ordinary pending saves retain claim priority over an active rollout at max one', async () => {
+  test.each([
+    undefined,
+    'foreground',
+  ] as const)('ordinary pending %s-lane work retains claim priority over an active rollout', async (workLane) => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
     const { t } = await seedCurrentTargets(2);
@@ -459,7 +462,7 @@ describe('renderer rollout control plane', () => {
         status: 'pending',
         next_eligible_at: NOW,
         attempt_count: 0,
-        work_lane: 'foreground',
+        ...(workLane ? { work_lane: workLane } : {}),
         foreground_updated_at: NOW,
       });
       const counter = (await ctx.db.query('counters').take(10)).find(

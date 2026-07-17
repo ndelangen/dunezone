@@ -16,6 +16,7 @@ const modules = import.meta.glob('./**/*.ts');
 const NOW = Date.parse('2026-07-16T12:00:00.000Z');
 const BATCH_ONE = 'batch-token-0000000000000001';
 const BATCH_TWO = 'batch-token-0000000000000002';
+const BATCH_THREE = 'batch-token-0000000000000003';
 const CLAIM_ONE = 'claim-token-0000000000000001';
 const CLAIM_TWO = 'claim-token-0000000000000002';
 const CACHE_ONE = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
@@ -146,6 +147,62 @@ async function addSecondTarget(t: ReturnType<typeof convexTest>) {
   });
 }
 
+async function addSelectionTarget(
+  t: ReturnType<typeof convexTest>,
+  options: {
+    name: string;
+    status?: 'pending' | 'cooldown' | 'leased';
+    nextEligibleAt?: number;
+    leaseExpiresAt?: number;
+    workLane?: 'foreground';
+    firstPublicationAdmitted?: boolean;
+    batchToken?: string;
+  }
+) {
+  return await t.run(async (ctx) => {
+    const userId = await ctx.db.insert('users', { name: `${options.name} owner` });
+    const factionId = await ctx.db.insert('factions', {
+      owner_id: userId,
+      data: { ...proofFaction, name: options.name },
+      slug: options.name.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-'),
+      created_at: new Date(NOW).toISOString(),
+      updated_at: new Date(NOW).toISOString(),
+      is_deleted: false,
+      group_id: null,
+    });
+    const status = options.status ?? 'pending';
+    const firstPublicationAdmitted = options.firstPublicationAdmitted ?? true;
+    const targetId = await ctx.db.insert('asset_targets', {
+      faction_id: factionId,
+      asset_type: 'faction_sheet',
+      desired_generation: 1,
+      desired_renderer_version: 'faction-sheet-v2',
+      first_publication_admitted: firstPublicationAdmitted,
+      status,
+      next_eligible_at: options.nextEligibleAt ?? NOW,
+      attempt_count: 0,
+      ...(options.workLane ? { work_lane: options.workLane } : {}),
+      ...(status === 'leased'
+        ? {
+            batch_token: options.batchToken ?? BATCH_THREE,
+            claim_token: `${options.name}-claim-token-0000000001`,
+            claimed_generation: 1,
+            claimed_renderer_version: 'faction-sheet-v2',
+            lease_expires_at: options.leaseExpiresAt ?? NOW - 1,
+            claim_payload_hash: 'e'.repeat(64),
+          }
+        : {}),
+    });
+    if (firstPublicationAdmitted) {
+      const counter = (await ctx.db.query('counters').take(10)).find(
+        (row) => row.key === FACTION_SHEET_PUBLICATION_COUNTER_KEY
+      );
+      if (counter) await ctx.db.patch(counter._id, { value: counter.value + 1 });
+    }
+    return { factionId, targetId };
+  });
+}
+
 function exact(claim: Awaited<ReturnType<typeof acquireAndClaim>>) {
   return {
     targetId: claim.targetId,
@@ -234,6 +291,97 @@ describe('publisher batch and exact claim state machine', () => {
         rendererVersion: claim.rendererVersion,
       })
     ).resolves.toBeNull();
+  });
+
+  test('priority-zero explicit foreground work beats older legacy-lane pending work', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { t } = await seed({ nextEligibleAt: NOW - 60_000 });
+    const explicit = await addSelectionTarget(t, {
+      name: 'Priority Zero Explicit',
+      nextEligibleAt: 0,
+      workLane: 'foreground',
+    });
+
+    await expect(acquireAndClaim(t)).resolves.toMatchObject({
+      targetId: explicit.targetId,
+      workLane: 'foreground',
+    });
+  });
+
+  test('legacy-lane pending work still wins when it is genuinely earlier', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { t, targetId: legacyTargetId } = await seed({ nextEligibleAt: 0 });
+    await addSelectionTarget(t, {
+      name: 'Later Explicit',
+      nextEligibleAt: NOW - 60_000,
+      workLane: 'foreground',
+    });
+
+    await expect(acquireAndClaim(t)).resolves.toMatchObject({
+      targetId: legacyTargetId,
+      workLane: 'foreground',
+    });
+  });
+
+  test('pending status precedes cooldown across foreground lane representations', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { t } = await seed({ targetStatus: 'cooldown', nextEligibleAt: 0 });
+    const explicitPending = await addSelectionTarget(t, {
+      name: 'Explicit Pending',
+      nextEligibleAt: NOW,
+      workLane: 'foreground',
+    });
+
+    await expect(acquireAndClaim(t)).resolves.toMatchObject({
+      targetId: explicitPending.targetId,
+      workLane: 'foreground',
+    });
+  });
+
+  test('expired foreground lease recovery compares both lane representations by expiry', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { t } = await seed({
+      targetStatus: 'leased',
+      leaseExpiresAt: NOW - 30_000,
+    });
+    const earlierExplicitLease = await addSelectionTarget(t, {
+      name: 'Earlier Explicit Lease',
+      status: 'leased',
+      nextEligibleAt: NOW - 60_000,
+      leaseExpiresAt: NOW - 60_000,
+      workLane: 'foreground',
+      batchToken: BATCH_THREE,
+    });
+
+    await expect(acquireAndClaim(t, BATCH_TWO)).resolves.toMatchObject({
+      targetId: earlierExplicitLease.targetId,
+      batchToken: BATCH_TWO,
+      workLane: 'foreground',
+    });
+  });
+
+  test('admitted-only selection skips an earlier unadmitted explicit target at the cap', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { t, targetId: admittedLegacyTargetId } = await seed({
+      firstPublicationCount: 3_500,
+      nextEligibleAt: NOW,
+    });
+    await addSelectionTarget(t, {
+      name: 'Unadmitted Priority Zero',
+      nextEligibleAt: 0,
+      workLane: 'foreground',
+      firstPublicationAdmitted: false,
+    });
+
+    await expect(acquireAndClaim(t)).resolves.toMatchObject({
+      targetId: admittedLegacyTargetId,
+      workLane: 'foreground',
+    });
   });
 
   test('transactionally admits a first publication exactly once before upload', async () => {
