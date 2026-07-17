@@ -18,7 +18,7 @@ export { PUBLISHER_RENDERER_VERSION, PUBLISHER_SUPPORTED_RENDERER_VERSIONS };
 
 const CONFIG_PATH = path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc');
 const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.convex.site';
-const PUBLISHER_CRON = '*/15 * * * *';
+const PUBLISHER_CRON = '* * * * *';
 const REQUIRED_SECRETS = [
   'ASSET_PUBLISHER_CACHE_TOKEN_SECRET',
   'ASSET_PUBLISHER_POLL_SECRET',
