@@ -471,18 +471,6 @@ describe('one-item owned batch execution', () => {
     expect(spies.openBrowser).not.toHaveBeenCalled();
   });
 
-  test('a 30-second reservation fits the production cleanup and settlement margins', async () => {
-    const { dependencies, spies } = setup();
-    const report = await executeOwnedBatch(
-      dependencies,
-      { ...config, browserCleanupGraceMs: 15_000 },
-      { ...acquisition, browserReservationMs: 30_000, dailyBrowserMs: 30_000 },
-      NOW
-    );
-    expect(report).toMatchObject({ status: 'completed', browserOpened: true });
-    expect(spies.openBrowser).toHaveBeenCalledOnce();
-  });
-
   test('a launch failure keeps the conservative reservation and opens no replacement', async () => {
     const { dependencies, spies } = setup();
     dependencies.openBrowser = async () => await Promise.reject(new Error('launch failed'));

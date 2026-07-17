@@ -47,7 +47,7 @@
       }
     ]
   },
-  "triggers": { "crons": ["* * * * *"] },
+  "triggers": { "crons": ["*/15 * * * *"] },
   "secrets": {
     "required": [
       "ASSET_PUBLISHER_CACHE_TOKEN_SECRET",

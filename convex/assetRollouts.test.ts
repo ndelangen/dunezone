@@ -579,7 +579,7 @@ describe('renderer rollout control plane', () => {
       });
       await expect(progress.clone().json()).resolves.toMatchObject({
         effectiveMaxItems: 2,
-        etaInputs: { dispatchIntervalMinutes: 1 },
+        etaInputs: { dispatchIntervalMinutes: 15 },
       });
       expect(progress.status).toBe(200);
       const serialized = JSON.stringify(await progress.json());

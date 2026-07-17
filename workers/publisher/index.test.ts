@@ -193,7 +193,7 @@ describe('publisher Worker structured-log security boundary', () => {
     const now = Date.now();
 
     await publisherWorker.scheduled(
-      { scheduledTime: now, cron: '* * * * *', noRetry: vi.fn() },
+      { scheduledTime: now, cron: '*/15 * * * *', noRetry: vi.fn() },
       publisherEnv()
     );
 

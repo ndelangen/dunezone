@@ -4,8 +4,8 @@
 
 The ordered `main` workflow deploys the already-provisioned unified Cloudflare Worker after Convex
 and required migrations. The checked-in Worker release is persistently scheduled: both publisher
-flags are `true` and exactly one temporary `* * * * *` rollout-drain Cron is source controlled. The
-Convex control plane remains the durable execution authority.
+flags are `true` and exactly one `*/15 * * * *` Cron is source controlled. The Convex control plane
+remains the durable execution authority.
 
 **Release prerequisite: Convex publisher config and singleton must both be paused before this
 scheduled Worker release is merged or deployed.** Deploying the Worker and Cron against paused
@@ -108,7 +108,7 @@ On every push to `main`:
 3. `bun run migrations:deploy` (auto-run + await required Convex migrations)
 4. Fail-closed Worker preflight: exact `main` SHA and clean tracked source, required protected CI
    inputs, exact production `VITE_CONVEX_URL`, stable source-controlled Worker/Queue/R2 names,
-   `true/true` flags, one exact `* * * * *` Cron, workers.dev origin, renderer identity, max items
+   `true/true` flags, one exact `*/15 * * * *` Cron, workers.dev origin, renderer identity, max items
    `2`, and required secret names.
 5. Check generated Worker bindings, typecheck, build the SPA and capture bundle once with the
    protected `VITE_CONVEX_URL`, re-check the assembled asset limits, and reject generated source
@@ -184,7 +184,7 @@ After the first merged scheduled release:
 2. Require the deploy smoke to report `publisherEnabled=true`, `cronDispatchEnabled=true`, max items
    `2`, exact renderer identity, and the merged full Git SHA.
 3. Read the Worker trigger in the Cloudflare dashboard and require exactly one
-   `* * * * *` schedule. Do not use the mutating `wrangler triggers deploy` command for readback.
+   `*/15 * * * *` schedule. Do not use the mutating `wrangler triggers deploy` command for readback.
 4. Observe at least one `asset_publisher_cron` log with `result: "empty"`, then reconfirm no Queue
    message and no Browser session were created.
 5. Keep Convex paused until the separate operator activation is explicitly approved. The deployment

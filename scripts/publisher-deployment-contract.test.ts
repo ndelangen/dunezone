@@ -68,7 +68,7 @@ describe('publisher CI deployment contract', () => {
     expect(() => validatePublisherDeployContract(cronConfig, ciEnvironment())).toThrow();
 
     const extraCronConfig = structuredClone(readPublisherConfig());
-    extraCronConfig.triggers = { crons: ['* * * * *', '0 0 * * *'] };
+    extraCronConfig.triggers = { crons: ['*/15 * * * *', '0 0 * * *'] };
     expect(() => validatePublisherDeployContract(extraCronConfig, ciEnvironment())).toThrow();
 
     const bucketConfig = structuredClone(readPublisherConfig());
