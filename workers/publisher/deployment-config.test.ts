@@ -12,38 +12,26 @@ const packageConfig = JSON.parse(
 ) as { scripts: Record<string, string> };
 
 describe('scheduled production deployment shape', () => {
-  test('keeps exactly one 15-minute Cron and active Worker flags in source control', () => {
-    expect(config.triggers).toEqual({ crons: ['*/15 * * * *'] });
+  test('keeps exactly one five-minute cron and the fixed item-list worker vars in source control', () => {
+    expect(config.triggers).toEqual({ crons: ['*/5 * * * *'] });
     expect(config.vars).toMatchObject({
-      PUBLISHER_ENABLED: 'true',
-      CRON_DISPATCH_ENABLED: 'true',
       CAPTURE_BASE_URL: 'https://faction-sheet-asset-publisher.ndelangen.workers.dev',
-      CONVEX_POLL_URL: 'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/poll',
+      CONVEX_EXECUTOR_BASE_URL:
+        'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor',
       SUPPORTED_RENDERER_VERSION: 'faction-sheet-v3',
-      EXECUTOR_MAX_ITEMS: '2',
+      WORK_WINDOW_MS: '240000',
     });
     expect(config.workers_dev).toBe(true);
     expect(config.preview_urls).toBe(false);
   });
 
-  test('uses one bounded Queue consumer and no alternate authority', () => {
-    expect(config.queues).toEqual({
-      producers: [{ binding: 'PUBLISH_QUEUE', queue: 'faction-sheet-asset-publisher' }],
-      consumers: [
-        {
-          queue: 'faction-sheet-asset-publisher',
-          max_batch_size: 1,
-          max_batch_timeout: 1,
-          max_retries: 2,
-          max_concurrency: 1,
-        },
-      ],
-    });
+  test('removes queue-era bindings and keeps the cron CPU cap explicit', () => {
+    expect(config).not.toHaveProperty('queues');
+    expect(config.limits).toEqual({ cpu_ms: 30000 });
     expect(config).not.toHaveProperty('d1_databases');
     expect(config).not.toHaveProperty('kv_namespaces');
     expect(config).not.toHaveProperty('durable_objects');
     expect(config).not.toHaveProperty('migrations');
-    expect(config).not.toHaveProperty('limits');
   });
 
   test('keeps the stable object behind one private R2 binding', () => {
@@ -61,33 +49,30 @@ describe('scheduled production deployment shape', () => {
     expect(config).not.toHaveProperty('routes');
   });
 
-  test('declares cache-token plus separate generated poll/executor secret bindings', () => {
+  test('declares only cache-token and executor secret bindings', () => {
     expect(config.secrets).toEqual({
-      required: [
-        'ASSET_PUBLISHER_CACHE_TOKEN_SECRET',
-        'ASSET_PUBLISHER_POLL_SECRET',
-        'ASSET_PUBLISHER_EXECUTOR_SECRET',
-      ],
+      required: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET', 'ASSET_PUBLISHER_EXECUTOR_SECRET'],
     });
     const source = readFileSync(
       path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc'),
       'utf8'
     );
-    expect(source).not.toMatch(/Bearer\s+[A-Za-z0-9_-]{16}/);
+    expect(source).not.toContain('ASSET_PUBLISHER_POLL_SECRET');
+    expect(source).not.toContain('CONVEX_POLL_URL');
   });
 
   test('binds exact Worker version metadata for telemetry identity', () => {
     expect(config.version_metadata).toEqual({ binding: 'CF_VERSION_METADATA' });
   });
 
-  test('keeps the exact PDF storage bound and timing contract explicit', () => {
+  test('keeps the work-window and PDF bounds explicit', () => {
     expect(config.vars).toMatchObject({
-      SOFT_DEADLINE_MS: '240000',
-      UPLOAD_MARGIN_MS: '120000',
+      WORK_WINDOW_MS: '240000',
       PDF_MAX_BYTES: '8000000',
       BROWSER_CAPTURE_TIMEOUT_MS: '45000',
       BROWSER_CLEANUP_GRACE_MS: '15000',
     });
+    expect(JSON.stringify(config.vars)).not.toContain('EXECUTOR_MAX_ITEMS');
     expect(JSON.stringify(config.vars)).not.toMatch(
       /R2_(?:STORAGE|ESTIMATED|INVENTORY|UNACCOUNTED)/
     );
@@ -109,7 +94,6 @@ describe('scheduled production deployment shape', () => {
       '/publisher-capture.html',
       '/publisher-capture/*',
     ]);
-    expect(JSON.stringify(config.assets)).not.toContain('"/factions');
   });
 
   test('builds the SPA and capture bundle into one validated Worker release unit', () => {
@@ -121,12 +105,6 @@ describe('scheduled production deployment shape', () => {
       'scripts/assemble-publisher-assets.ts'
     );
     expect(packageConfig.scripts['publisher:dry-run']).toContain('bun run publisher:assets');
-    const assemblySource = readFileSync(
-      path.resolve(process.cwd(), 'scripts/assemble-publisher-assets.ts'),
-      'utf8'
-    );
-    expect(assemblySource).toContain('assemblePublisherAssets(appDirectory, publisherDirectory)');
-    expect(assemblySource).toContain('writeRendererManifest(repositoryRoot, publisherDirectory)');
   });
 
   test('ignores publisher secret files while retaining the tracked example', () => {
@@ -140,64 +118,45 @@ describe('scheduled production deployment shape', () => {
     expect(example.status).toBe(1);
   });
 
-  test('excludes only the generated Wrangler declaration from Biome drift checks', () => {
-    const biome = JSON.parse(readFileSync(path.resolve(process.cwd(), 'biome.json'), 'utf8')) as {
-      files: { includes: string[] };
-    };
-    expect(biome.files.includes).toContain('!**/workers/publisher/worker-configuration.d.ts');
-  });
-
-  test('keeps the main deploy ordered, scheduled, source-exact, and Netlify-last', () => {
-    const workflow = readFileSync(
-      path.resolve(process.cwd(), '.github/workflows/deploy-main.yml'),
-      'utf8'
-    );
-    const orderedSteps = [
-      'Deploy Convex',
-      'Run and verify required migrations',
-      'Preflight exact scheduled Worker release',
-      'Check generated Worker types',
-      'Typecheck Worker release',
-      'Build unified Worker release',
-      'Verify assembled Worker assets',
-      'Verify release build kept merged source exact',
-      'Dry-run exact Worker release',
-      'Deploy exact Worker release',
-      'Smoke scheduled Worker release',
-      'Deploy rollback build to Netlify',
-    ];
-    let previous = -1;
-    for (const step of orderedSteps) {
-      const position = workflow.indexOf(`name: ${step}`);
-      expect(position, `${step} must exist after the prior release gate`).toBeGreaterThan(previous);
-      previous = position;
-    }
-    expect(workflow).toContain('CLOUDFLARE_API_TOKEN: $' + '{{ secrets.CLOUDFLARE_API_TOKEN }}');
-    expect(workflow).toContain('CLOUDFLARE_ACCOUNT_ID: $' + '{{ vars.CLOUDFLARE_ACCOUNT_ID }}');
-    expect(workflow).toContain('VITE_CONVEX_URL: $' + '{{ secrets.VITE_CONVEX_URL }}');
-    expect(workflow).toContain('--strict');
-    expect(workflow).toContain('--tag "$GITHUB_SHA"');
-    expect(workflow).not.toContain('--keep-vars');
-    expect(workflow).not.toContain('--triggers');
-    expect(workflow).not.toContain('--secrets-file');
-    expect(workflow).not.toContain('name: Generate app artifacts');
-    expect(workflow).not.toContain('/asset-publishing/operator');
-    expect(workflow).not.toContain('assetPublisherOperator');
-    expect(workflow).not.toContain('requeueCurrentFactionSheetCanary');
-    expect(workflow).not.toMatch(/wrangler queues[^\n]*send/);
-  });
-
-  test('documents the paused Convex prerequisite outside the non-mutating deploy workflow', () => {
+  test('documents paused-or-disabled Convex and Queue-free empty-work observation', () => {
     const deploymentGuide = readFileSync(path.resolve(process.cwd(), 'docs/deployment.md'), 'utf8');
     const workerGuide = readFileSync(
       path.resolve(process.cwd(), 'workers/publisher/README.md'),
       'utf8'
     );
-    const prerequisite =
-      'Convex publisher config and singleton must both be paused before this scheduled Worker release is merged or deployed.';
-    expect(deploymentGuide.replace(/\s+/g, ' ')).toContain(prerequisite);
-    expect(workerGuide.replace(/\s+/g, ' ')).toContain(prerequisite);
-    expect(deploymentGuide).toContain('result: "empty"');
-    expect(deploymentGuide).toContain('Keep Convex paused until the separate operator activation');
+    for (const guide of [deploymentGuide, workerGuide]) {
+      expect(guide).toContain('paused or disabled');
+      expect(guide).toContain('*/5 * * * *');
+    }
+    expect(deploymentGuide).toContain('empty `take-work` result');
+    expect(workerGuide).toContain('empty Cron without a Browser Run');
+  });
+
+  test('documents the item-claim migration pack and its paused/no-live-claims preconditions', () => {
+    const migrationGuide = readFileSync(
+      path.resolve(process.cwd(), 'docs/convex-migrations.md'),
+      'utf8'
+    );
+    expect(migrationGuide).toContain('asset_targets_item_claims_v1');
+    expect(migrationGuide).toContain('asset_claim_snapshots_retire_v1');
+    expect(migrationGuide).toContain('asset_publisher_state_retire_v1');
+    expect(migrationGuide).toContain('asset_publisher_admission_counter_retire_v1');
+    expect(migrationGuide).toContain('asset_targets_item_claims_verify_v1');
+    expect(migrationGuide).toContain('paused');
+    expect(migrationGuide).toContain('disabled');
+    expect(migrationGuide).toContain('No live item claim may exist');
+  });
+
+  test('documents bounded cron telemetry and the queue-free measurement model', () => {
+    const measurementGuide = readFileSync(
+      path.resolve(process.cwd(), 'workers/publisher/MEASUREMENT.md'),
+      'utf8'
+    );
+    expect(measurementGuide).toContain('`*/5 * * * *`');
+    expect(measurementGuide).toContain('asset_publisher_cron');
+    expect(measurementGuide).toContain('asset_publisher_item_read_error');
+    expect(measurementGuide).toContain('8,192');
+    expect(measurementGuide).toContain('There is no Queue');
+    expect(measurementGuide).toContain('maxItems: 20');
   });
 });

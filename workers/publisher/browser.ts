@@ -13,13 +13,14 @@ import {
   sanitizePublisherDiagnostic,
 } from '../../src/app/capture/publisher-diagnostics';
 import { inspectChromiumPdf } from '../proof/pdf';
-import { captureCapabilityCookie, captureDeadlineCookie } from './capture-route';
+import { captureClaimCookie, captureDeadlineCookie } from './capture-route';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
 const { pdf: PDF_CONTRACT, viewport: VIEWPORT_CONTRACT } = PUBLISHER_RENDERER_CONTRACT;
 
 export type CapturedPdf = {
   bytes: Uint8Array;
+  payloadHash: string;
   pageCount: number;
   pageWidthMm: number;
   pageHeightMm: number;
@@ -28,6 +29,8 @@ export type CapturedPdf = {
   pageErrors: string[];
   httpErrors: string[];
 };
+
+export class TargetRenderError extends Error {}
 
 export type CaptureDiagnostics = Pick<
   CapturedPdf,
@@ -40,14 +43,14 @@ export function assertCapturedPdfOutput(inspection: {
   pageHeightMm: number;
 }): void {
   if (inspection.pageCount !== PDF_CONTRACT.pageCount) {
-    throw new Error('Captured PDF must contain exactly two pages');
+    throw new TargetRenderError('Captured PDF must contain exactly two pages');
   }
   if (
     Math.abs(inspection.pageWidthMm - PDF_CONTRACT.pageWidthMm) >
       PDF_CONTRACT.pageSizeToleranceMm ||
     Math.abs(inspection.pageHeightMm - PDF_CONTRACT.pageHeightMm) > PDF_CONTRACT.pageSizeToleranceMm
   ) {
-    throw new Error(
+    throw new TargetRenderError(
       `Captured PDF MediaBoxes must be ${PDF_CONTRACT.pageWidthMm} mm × ${PDF_CONTRACT.pageHeightMm} mm within ${PDF_CONTRACT.pageSizeToleranceMm} mm`
     );
   }
@@ -112,13 +115,13 @@ export function registerCaptureDiagnostics(page: Page): CaptureDiagnostics {
 
 export function publisherCaptureCookies(
   captureBaseUrl: string,
-  renderCapability: string,
+  claimToken: string,
   lifecycleDeadlineAt: number
 ): Parameters<BrowserContext['addCookies']>[0] {
   return [
     {
-      name: captureCapabilityCookie,
-      value: renderCapability,
+      name: captureClaimCookie,
+      value: claimToken,
       url: captureBaseUrl,
       httpOnly: true,
       secure: true,
@@ -136,9 +139,14 @@ export function publisherCaptureCookies(
 }
 
 export async function inspectPublisherPdf(bytes: Uint8Array) {
-  const inspection = await inspectChromiumPdf(bytes);
-  assertCapturedPdfOutput(inspection);
-  return inspection;
+  try {
+    const inspection = await inspectChromiumPdf(bytes);
+    assertCapturedPdfOutput(inspection);
+    return inspection;
+  } catch (error) {
+    if (error instanceof TargetRenderError) throw error;
+    throw new TargetRenderError('Captured output is not a valid PDF', { cause: error });
+  }
 }
 
 async function assertPageBounds(page: Page, deadline: number): Promise<void> {
@@ -190,7 +198,7 @@ export class PublisherBrowserSession {
     return this.browser.sessionId();
   }
 
-  async capture(renderCapability: string, timeoutMs: number): Promise<CapturedPdf> {
+  async capture(claimToken: string, timeoutMs: number): Promise<CapturedPdf> {
     const deadline = performance.now() + timeoutMs;
     const lifecycleDeadlineAt = Date.now() + timeoutMs;
     this.context = await this.browser.newContext({
@@ -200,7 +208,7 @@ export class PublisherBrowserSession {
       viewport: { width: VIEWPORT_CONTRACT.width, height: VIEWPORT_CONTRACT.height },
     });
     await this.context.addCookies(
-      publisherCaptureCookies(this.captureBaseUrl, renderCapability, lifecycleDeadlineAt)
+      publisherCaptureCookies(this.captureBaseUrl, claimToken, lifecycleDeadlineAt)
     );
     const page = await this.context.newPage();
     const diagnostics = registerCaptureDiagnostics(page);
@@ -231,6 +239,10 @@ export class PublisherBrowserSession {
     if (state !== 'ready') {
       throw new Error(`Capture route reported ${state}: ${await marker.textContent()}`);
     }
+    const payloadHash = await marker.getAttribute('data-payload-hash');
+    if (!payloadHash || !/^[0-9a-f]{64}$/.test(payloadHash)) {
+      throw new Error('Capture route did not expose the exact payload hash');
+    }
     await assertPageBounds(page, deadline);
     assertCaptureDiagnostics(diagnostics);
     const bytes = await page.pdf({
@@ -243,6 +255,7 @@ export class PublisherBrowserSession {
     assertCaptureDiagnostics(diagnostics);
     return {
       bytes,
+      payloadHash,
       ...inspection,
       ...diagnostics,
     };
@@ -254,15 +267,6 @@ export class PublisherBrowserSession {
     // into a rejected close promise even though the session has already ended.
     await this.browser.close();
   }
-}
-
-export async function browserAvailable(binding: BrowserWorker): Promise<boolean> {
-  const { limits } = await import('@cloudflare/playwright');
-  const result = await limits(binding);
-  return (
-    result.allowedBrowserAcquisitions > 0 &&
-    result.activeSessions.length < result.maxConcurrentSessions
-  );
 }
 
 export async function openPublisherBrowser(

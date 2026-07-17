@@ -1,43 +1,52 @@
 import { publisherErrorMessage } from '../../src/app/capture/publisher-diagnostics';
-import type { PublisherWakeUp } from './dispatch';
-import { postJson } from './http';
-import { isRenderCapability } from './render-capability';
+import { MAX_ASSIGNED_ITEMS } from './config';
+import { PublisherHttpError, postJson } from './http';
 
-export type AcquireResult =
-  | { status: 'empty'; reason: 'disabled' | 'no_eligible_work' | 'browser_quota' }
-  | { status: 'busy'; leaseExpiresAt?: number; reason?: 'browser_reservation' }
-  | {
-      status: 'acquired';
-      replay: boolean;
-      batchToken: string;
-      leaseExpiresAt: number;
-      browserReservationMs: number;
-      dailyBrowserMs: number;
-    };
-
-export type ExactClaim = {
+export type ExactItemClaim = {
   targetId: string;
-  batchToken: string;
   claimToken: string;
   generation: number;
   rendererVersion: string;
 };
 
-export type ClaimedTarget = ExactClaim & {
-  status: 'claimed';
-  replay: boolean;
+export type AssignedItem = ExactItemClaim & {
   factionId: string;
   assetType: 'faction_sheet';
   leaseExpiresAt: number;
-  payloadHash: string;
-  renderCapability: string;
-  renderCapabilityExpiresAt: number;
   workLane?: 'foreground' | 'rollout';
 };
+export type ClaimedTarget = AssignedItem;
 
-export type ClaimResult = ClaimedTarget | { status: 'empty' | 'stale' | 'conflict' };
+export type TakeWorkResult =
+  | {
+      status: 'empty';
+      reason: 'disabled' | 'busy' | 'no_eligible_work';
+      leaseExpiresAt: number | null;
+      items: [];
+    }
+  | {
+      status: 'assigned';
+      leaseExpiresAt: number;
+      items: AssignedItem[];
+    };
 
-function record(value: unknown): value is Record<string, unknown> {
+type CompleteItemResult =
+  | { status: 'stale' }
+  | {
+      status: 'completed';
+      replay: boolean;
+      cacheToken: string;
+      publishedAt: number;
+    };
+
+type FailItemResult =
+  | { status: 'stale' }
+  | { status: 'retained'; leaseExpiresAt: number }
+  | { status: 'failed' | 'blocked'; consecutiveFailures: number };
+
+type RecordValue = Record<string, unknown>;
+
+function record(value: unknown): value is RecordValue {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -53,295 +62,257 @@ function token(value: unknown): value is string {
   return typeof value === 'string' && value.length >= 16 && value.length <= 256;
 }
 
-function okRecord(value: unknown): Record<string, unknown> {
+function okRecord(value: unknown): RecordValue {
   if (!record(value) || value.ok !== true) throw new Error('Convex publisher response is invalid');
   return value;
 }
 
-export function parsePoll(value: unknown, wakeUp: PublisherWakeUp): 'empty' | 'eligible' {
-  const body = okRecord(value);
+function parseAssignedItem(value: unknown): AssignedItem {
   if (
-    (body.eligibility !== 'empty' && body.eligibility !== 'eligible') ||
-    body.schemaVersion !== wakeUp.schemaVersion ||
-    body.scheduledCutoff !== wakeUp.scheduledCutoff ||
-    body.triggerId !== wakeUp.triggerId
+    !record(value) ||
+    typeof value.targetId !== 'string' ||
+    typeof value.factionId !== 'string' ||
+    value.assetType !== 'faction_sheet' ||
+    !token(value.claimToken) ||
+    !positiveInteger(value.generation) ||
+    typeof value.rendererVersion !== 'string' ||
+    !finite(value.leaseExpiresAt) ||
+    (value.workLane !== undefined &&
+      value.workLane !== 'foreground' &&
+      value.workLane !== 'rollout')
   ) {
-    throw new Error('Convex poll response is invalid or mismatched');
+    throw new Error('Convex assigned item response is invalid');
   }
-  return body.eligibility;
+  return {
+    targetId: value.targetId,
+    factionId: value.factionId,
+    assetType: 'faction_sheet',
+    claimToken: value.claimToken,
+    generation: value.generation,
+    rendererVersion: value.rendererVersion,
+    leaseExpiresAt: value.leaseExpiresAt,
+    ...(value.workLane === 'foreground' || value.workLane === 'rollout'
+      ? { workLane: value.workLane }
+      : {}),
+  };
 }
 
-export function parseAcquire(value: unknown): AcquireResult {
+export function parseTakeWork(value: unknown): TakeWorkResult {
   const body = okRecord(value);
-  if (body.schemaVersion !== 1) throw new Error('Convex acquire response schema is invalid');
+  if (body.schemaVersion !== 1) throw new Error('Convex take-work response schema is invalid');
   if (body.status === 'empty') {
     if (
       body.reason !== 'disabled' &&
-      body.reason !== 'no_eligible_work' &&
-      body.reason !== 'browser_quota'
+      body.reason !== 'busy' &&
+      body.reason !== 'no_eligible_work'
     ) {
-      throw new Error('Convex empty acquisition reason is invalid');
+      throw new Error('Convex empty take-work reason is invalid');
     }
-    return { status: 'empty', reason: body.reason };
-  }
-  if (body.status === 'busy') {
-    if (body.leaseExpiresAt !== undefined && !finite(body.leaseExpiresAt)) {
+    if (
+      body.leaseExpiresAt !== null &&
+      body.leaseExpiresAt !== undefined &&
+      !finite(body.leaseExpiresAt)
+    ) {
       throw new Error('Convex busy lease is invalid');
     }
-    if (body.reason !== undefined && body.reason !== 'browser_reservation') {
-      throw new Error('Convex busy reason is invalid');
+    if (!Array.isArray(body.items) || body.items.length !== 0) {
+      throw new Error('Convex empty take-work items are invalid');
     }
     return {
-      status: 'busy',
-      ...(finite(body.leaseExpiresAt) ? { leaseExpiresAt: body.leaseExpiresAt } : {}),
-      ...(body.reason === 'browser_reservation' ? { reason: body.reason } : {}),
+      status: 'empty',
+      reason: body.reason,
+      leaseExpiresAt: finite(body.leaseExpiresAt) ? body.leaseExpiresAt : null,
+      items: [],
     };
   }
   if (
-    body.status !== 'acquired' ||
-    typeof body.replay !== 'boolean' ||
-    !token(body.batchToken) ||
     !finite(body.leaseExpiresAt) ||
-    !positiveInteger(body.browserReservationMs) ||
-    !finite(body.dailyBrowserMs)
+    body.status !== 'assigned' ||
+    !Array.isArray(body.items) ||
+    body.items.length < 1 ||
+    body.items.length > MAX_ASSIGNED_ITEMS
   ) {
-    throw new Error('Convex acquired batch response is invalid');
+    throw new Error('Convex assigned take-work response is invalid');
+  }
+  const items = body.items.map(parseAssignedItem);
+  if (
+    items.some((item) => item.leaseExpiresAt !== body.leaseExpiresAt) ||
+    new Set(items.map((item) => item.targetId)).size !== items.length ||
+    new Set(items.map((item) => item.claimToken)).size !== items.length
+  ) {
+    throw new Error('Convex assigned item ownership is invalid');
   }
   return {
-    status: 'acquired',
-    replay: body.replay,
-    batchToken: body.batchToken,
+    status: 'assigned',
     leaseExpiresAt: body.leaseExpiresAt,
-    browserReservationMs: body.browserReservationMs,
-    dailyBrowserMs: body.dailyBrowserMs,
+    items,
   };
 }
 
-export function parseClaim(value: unknown): ClaimResult {
+export function parseRevalidateItem(value: unknown):
+  | { status: 'stale' }
+  | {
+      status: 'valid';
+      leaseExpiresAt: number;
+      factionId: string;
+      assetType: 'faction_sheet';
+    } {
   const body = okRecord(value);
-  if (body.status === 'empty' || body.status === 'stale' || body.status === 'conflict') {
-    return { status: body.status };
-  }
+  if (body.status === 'stale') return { status: 'stale' };
   if (
-    body.status !== 'claimed' ||
-    typeof body.replay !== 'boolean' ||
-    typeof body.targetId !== 'string' ||
-    typeof body.factionId !== 'string' ||
-    body.assetType !== 'faction_sheet' ||
-    !token(body.batchToken) ||
-    !token(body.claimToken) ||
-    !positiveInteger(body.generation) ||
-    typeof body.rendererVersion !== 'string' ||
+    body.status !== 'valid' ||
     !finite(body.leaseExpiresAt) ||
-    typeof body.payloadHash !== 'string' ||
-    !/^[0-9a-f]{64}$/.test(body.payloadHash) ||
-    !isRenderCapability(body.renderCapability) ||
-    !finite(body.renderCapabilityExpiresAt) ||
-    (body.workLane !== undefined && body.workLane !== 'foreground' && body.workLane !== 'rollout')
+    typeof body.factionId !== 'string' ||
+    body.assetType !== 'faction_sheet'
   ) {
-    throw new Error('Convex claimed target response is invalid');
+    throw new Error('Convex revalidate-item response is invalid');
   }
   return {
-    status: 'claimed',
-    replay: body.replay,
-    targetId: body.targetId,
+    status: 'valid',
+    leaseExpiresAt: body.leaseExpiresAt,
     factionId: body.factionId,
     assetType: 'faction_sheet',
-    batchToken: body.batchToken,
-    claimToken: body.claimToken,
-    generation: body.generation,
-    rendererVersion: body.rendererVersion,
-    leaseExpiresAt: body.leaseExpiresAt,
-    payloadHash: body.payloadHash,
-    renderCapability: body.renderCapability,
-    renderCapabilityExpiresAt: body.renderCapabilityExpiresAt,
-    ...(body.workLane === 'rollout' || body.workLane === 'foreground'
-      ? { workLane: body.workLane }
-      : {}),
   };
+}
+
+function parseCompleteItem(value: unknown): CompleteItemResult {
+  const body = okRecord(value);
+  if (body.status === 'stale') return { status: 'stale' };
+  if (
+    body.status !== 'completed' ||
+    typeof body.replay !== 'boolean' ||
+    typeof body.cacheToken !== 'string' ||
+    !finite(body.publishedAt)
+  ) {
+    throw new Error('Convex complete-item response is invalid');
+  }
+  return {
+    status: 'completed',
+    replay: body.replay,
+    cacheToken: body.cacheToken,
+    publishedAt: body.publishedAt,
+  };
+}
+
+function parseFailItem(value: unknown): FailItemResult {
+  const body = okRecord(value);
+  if (body.status === 'stale') return { status: 'stale' };
+  if (body.status === 'retained' && finite(body.leaseExpiresAt)) {
+    return { status: 'retained', leaseExpiresAt: body.leaseExpiresAt };
+  }
+  if (
+    (body.status === 'failed' || body.status === 'blocked') &&
+    positiveInteger(body.consecutiveFailures)
+  ) {
+    return {
+      status: body.status,
+      consecutiveFailures: body.consecutiveFailures,
+    };
+  }
+  throw new Error('Convex fail-item response is invalid');
+}
+
+export type PublicationMetadata = {
+  r2Etag: string;
+  bytes: number;
+  cacheToken: string;
+};
+
+function truncatedError(error: unknown): string {
+  return publisherErrorMessage(error).slice(0, 2_000);
 }
 
 export class ConvexPublisherClient {
   constructor(
     private readonly options: {
-      pollUrl: string;
       executorBaseUrl: string;
-      pollToken: string;
       executorToken: string;
       fetcher?: typeof fetch;
       now?: () => number;
     }
   ) {}
 
-  async poll(wakeUp: PublisherWakeUp, deadlineAt?: number): Promise<'empty' | 'eligible'> {
-    return parsePoll(
-      await postJson(this.options.pollUrl, this.options.pollToken, wakeUp, {
-        deadlineAt,
-        fetcher: this.options.fetcher,
-        now: this.options.now,
-      }),
-      wakeUp
-    );
+  async takeWork(deadlineAt?: number): Promise<TakeWorkResult> {
+    return parseTakeWork(await this.postExecutor('take-work', { schemaVersion: 1 }, deadlineAt));
   }
 
-  async acquire(batchToken: string, deadlineAt?: number): Promise<AcquireResult> {
-    return parseAcquire(
-      await this.postExecutor('acquire', { schemaVersion: 1, batchToken }, deadlineAt)
-    );
-  }
-
-  async claim(batchToken: string, deadlineAt?: number): Promise<ClaimResult> {
-    return parseClaim(
-      await this.postExecutor('claim', { schemaVersion: 1, batchToken }, deadlineAt)
-    );
-  }
-
-  async settleBrowser(
-    batchToken: string,
-    measuredBrowserMs: number,
+  async revalidateItem(
+    claim: ExactItemClaim,
     deadlineAt?: number
-  ): Promise<'settled' | 'stale'> {
-    const body = okRecord(
-      await this.postExecutor(
-        'settle-browser',
-        {
-          schemaVersion: 1,
-          batchToken,
-          measuredBrowserMs,
-        },
-        deadlineAt
-      )
+  ): Promise<ReturnType<typeof parseRevalidateItem>> {
+    return parseRevalidateItem(
+      await this.postExecutor('revalidate-item', { schemaVersion: 1, ...claim }, deadlineAt)
     );
-    if (body.status !== 'settled' && body.status !== 'stale') {
-      throw new Error('Convex browser settlement response is invalid');
-    }
-    return body.status;
-  }
-
-  async releaseBatch(
-    batchToken: string,
-    mode: 'no_browser' | 'after_settlement',
-    deadlineAt?: number
-  ): Promise<'released' | 'stale'> {
-    const body = okRecord(
-      await this.postExecutor('release-batch', { schemaVersion: 1, batchToken, mode }, deadlineAt)
-    );
-    if (body.status !== 'released' && body.status !== 'stale') {
-      throw new Error('Convex batch release response is invalid');
-    }
-    return body.status;
   }
 
   async revalidate(
-    claim: ExactClaim,
+    claim: ExactItemClaim,
     deadlineAt?: number
-  ): Promise<
-    | { status: 'stale' }
-    | { status: 'insufficient_lease'; leaseExpiresAt: number }
-    | { status: 'storage_guard' | 'storage_limit' }
-    | {
-        status: 'valid';
-        leaseExpiresAt: number;
-        factionId: string;
-        assetType: 'faction_sheet';
-        payloadHash: string;
-      }
-  > {
-    const body = okRecord(
-      await this.postExecutor('revalidate', { schemaVersion: 1, ...claim }, deadlineAt)
+  ): Promise<ReturnType<typeof parseRevalidateItem>> {
+    return await this.revalidateItem(claim, deadlineAt);
+  }
+
+  async completeItem(
+    claim: ExactItemClaim,
+    r2Etag: string,
+    bytes: number,
+    cacheToken: string,
+    deadlineAt?: number
+  ): Promise<CompleteItemResult> {
+    return parseCompleteItem(
+      await this.postExecutor(
+        'complete-item',
+        { schemaVersion: 1, ...claim, r2Etag, bytes, cacheToken },
+        deadlineAt
+      )
     );
-    if (body.status === 'stale') return { status: 'stale' };
-    if (body.status === 'storage_guard' || body.status === 'storage_limit') {
-      return { status: body.status };
-    }
-    if (body.status === 'insufficient_lease' && finite(body.leaseExpiresAt)) {
-      return { status: 'insufficient_lease', leaseExpiresAt: body.leaseExpiresAt };
-    }
-    if (
-      body.status !== 'valid' ||
-      !finite(body.leaseExpiresAt) ||
-      typeof body.factionId !== 'string' ||
-      body.assetType !== 'faction_sheet' ||
-      typeof body.payloadHash !== 'string' ||
-      !/^[0-9a-f]{64}$/.test(body.payloadHash)
-    ) {
-      throw new Error('Convex revalidation response is invalid');
-    }
-    return {
-      status: 'valid',
-      leaseExpiresAt: body.leaseExpiresAt,
-      factionId: body.factionId,
-      assetType: 'faction_sheet',
-      payloadHash: body.payloadHash,
-    };
   }
 
   async complete(
-    claim: ExactClaim,
-    r2Etag: string,
-    bytes: number,
-    deadlineAt?: number,
-    retainBatch = false
+    claim: ExactItemClaim,
+    publication: PublicationMetadata,
+    deadlineAt?: number
   ): Promise<'completed' | 'stale'> {
-    const body = okRecord(
+    const result = await this.completeItem(
+      claim,
+      publication.r2Etag,
+      publication.bytes,
+      publication.cacheToken,
+      deadlineAt
+    );
+    if (result.status === 'completed' && result.cacheToken !== publication.cacheToken) {
+      throw new Error('Convex completed item with a different cache token');
+    }
+    return result.status;
+  }
+
+  async failItem(
+    claim: ExactItemClaim,
+    attribution: 'target' | 'infrastructure',
+    error: unknown,
+    deadlineAt?: number
+  ): Promise<FailItemResult> {
+    return parseFailItem(
       await this.postExecutor(
-        'complete',
-        {
-          schemaVersion: 1,
-          ...claim,
-          r2Etag,
-          bytes,
-          ...(retainBatch ? { retainBatch: true } : {}),
-        },
+        'fail-item',
+        { schemaVersion: 1, ...claim, attribution, error: truncatedError(error) },
         deadlineAt
       )
     );
-    if (body.status !== 'completed' && body.status !== 'stale') {
-      throw new Error('Convex completion response is invalid');
-    }
-    return body.status;
   }
 
   async fail(
-    claim: ExactClaim,
-    error: string,
-    deadlineAt?: number,
-    retainBatch = false
-  ): Promise<'failed' | 'stale'> {
-    const body = okRecord(
-      await this.postExecutor(
-        'fail',
-        {
-          schemaVersion: 1,
-          ...claim,
-          error: publisherErrorMessage(error).slice(0, 2_000),
-          ...(retainBatch ? { retainBatch: true } : {}),
-        },
-        deadlineAt
-      )
-    );
-    if (body.status !== 'failed' && body.status !== 'stale') {
-      throw new Error('Convex failure response is invalid');
-    }
-    return body.status;
+    claim: ExactItemClaim,
+    attribution: 'target' | 'infrastructure',
+    error: unknown,
+    deadlineAt?: number
+  ): Promise<FailItemResult['status']> {
+    const result = await this.failItem(claim, attribution, error, deadlineAt);
+    return result.status;
   }
 
-  async release(
-    claim: ExactClaim,
-    deadlineAt?: number,
-    retainBatch = false
-  ): Promise<'released' | 'stale'> {
-    const body = okRecord(
-      await this.postExecutor(
-        'release',
-        { schemaVersion: 1, ...claim, ...(retainBatch ? { retainBatch: true } : {}) },
-        deadlineAt
-      )
-    );
-    if (body.status !== 'released' && body.status !== 'stale') {
-      throw new Error('Convex exact release response is invalid');
-    }
-    return body.status;
+  isRetryable(error: unknown): boolean {
+    return error instanceof PublisherHttpError && error.transient;
   }
 
   private async postExecutor(

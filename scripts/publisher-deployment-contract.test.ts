@@ -23,9 +23,8 @@ function ciEnvironment(): NodeJS.ProcessEnv {
 function health() {
   return {
     ok: true,
-    publisherEnabled: true,
-    cronDispatchEnabled: true,
-    maxItems: 2,
+    maxItems: 20,
+    schedule: '*/5 * * * *',
     supportedRendererVersion: PUBLISHER_RENDERER_VERSION,
     rendererSupport: {
       supportedRendererVersions: PUBLISHER_SUPPORTED_RENDERER_VERSIONS,
@@ -51,11 +50,9 @@ describe('publisher CI deployment contract', () => {
   });
 
   test.each([
-    ['PUBLISHER_ENABLED', 'false'],
-    ['CRON_DISPATCH_ENABLED', 'false'],
-    ['EXECUTOR_MAX_ITEMS', '1'],
+    ['WORK_WINDOW_MS', '239999'],
     ['PDF_MAX_BYTES', '8000001'],
-    ['CONVEX_POLL_URL', 'https://replacement.convex.site/asset-publishing/poll'],
+    ['CONVEX_EXECUTOR_BASE_URL', 'https://replacement.convex.site/asset-publishing/executor'],
   ])('fails closed when %s changes', (name, value) => {
     const config = structuredClone(readPublisherConfig());
     (config.vars as Record<string, unknown>)[name] = value;
@@ -68,7 +65,7 @@ describe('publisher CI deployment contract', () => {
     expect(() => validatePublisherDeployContract(cronConfig, ciEnvironment())).toThrow();
 
     const extraCronConfig = structuredClone(readPublisherConfig());
-    extraCronConfig.triggers = { crons: ['*/15 * * * *', '0 0 * * *'] };
+    extraCronConfig.triggers = { crons: ['*/5 * * * *', '0 0 * * *'] };
     expect(() => validatePublisherDeployContract(extraCronConfig, ciEnvironment())).toThrow();
 
     const bucketConfig = structuredClone(readPublisherConfig());
@@ -85,7 +82,7 @@ describe('publisher CI deployment contract', () => {
     ).toThrow(/exact production Convex deployment URL/);
   });
 
-  test('accepts health only when active flags, renderer support, origin, and Git SHA match', () => {
+  test('accepts health only when the item-list contract, renderer support, origin, and Git SHA match', () => {
     expect(() =>
       validatePublisherHealth(
         readPublisherConfig(),
@@ -98,9 +95,8 @@ describe('publisher CI deployment contract', () => {
   });
 
   test.each([
-    ['publisherEnabled', false],
-    ['cronDispatchEnabled', false],
     ['maxItems', 1],
+    ['schedule', '*/15 * * * *'],
   ])('rejects unsafe health field %s', (name, value) => {
     const response = health() as Record<string, unknown>;
     response[name] = value;

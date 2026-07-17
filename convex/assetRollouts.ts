@@ -8,15 +8,14 @@ import {
   FACTION_SHEET_ASSET_TYPE,
   INITIAL_FACTION_SHEET_RENDERER_VERSION,
   isKnownFactionSheetRendererVersion,
+  MAX_PUBLISHER_ITEMS,
   PREVIOUS_FACTION_SHEET_RENDERER_VERSION,
 } from './lib/assetPublisherConstants';
-import { BROWSER_RESERVATION_MS, FREE_BROWSER_ALLOWANCE_MS } from './lib/assetPublisherLimits';
 import type { MutationCtx, QueryCtx } from './types';
 
 export const ROLLOUT_DISCOVERY_PAGE_SIZE = 50;
 export const ROLLOUT_CLEANUP_PAGE_SIZE = 50;
 export const MAX_ROLLOUT_ATTEMPTS = 3;
-export const EFFECTIVE_PUBLISHER_MAX_ITEMS = 2;
 
 const rendererValidator = v.union(
   v.literal(INITIAL_FACTION_SHEET_RENDERER_VERSION),
@@ -381,7 +380,7 @@ export const discoverPage = internalMutation({
         await ctx.db.patch(target._id, {
           desired_renderer_version: rollout.target_renderer_version,
           status: 'pending',
-          next_eligible_at: now,
+          next_eligible_at: undefined,
           last_error: undefined,
           work_lane: 'rollout',
           rollout_id: rollout._id,
@@ -417,7 +416,7 @@ export const discoverPage = internalMutation({
 function restoreTargetAfterRollout(
   target: Doc<'asset_targets'>,
   item: Doc<'asset_rollout_items'>,
-  now: number
+  _now: number
 ) {
   const restoredRenderer =
     item.previous_renderer_version ??
@@ -429,7 +428,7 @@ function restoreTargetAfterRollout(
   return {
     desired_renderer_version: restoredRenderer,
     status: isCurrent ? ('current' as const) : ('pending' as const),
-    next_eligible_at: now,
+    next_eligible_at: undefined,
     last_error: undefined,
     work_lane: 'foreground' as const,
     rollout_id: undefined,
@@ -483,17 +482,6 @@ export const cancelPage = internalMutation({
       .take(ROLLOUT_CLEANUP_PAGE_SIZE);
     for (const target of expiredTargets) {
       if (target.rollout_id !== rolloutId) continue;
-      const snapshot = await ctx.db
-        .query('asset_claim_snapshots')
-        .withIndex('by_target_id', (q) => q.eq('target_id', target._id))
-        .unique();
-      if (
-        snapshot &&
-        snapshot.batch_token === target.batch_token &&
-        snapshot.claim_token === target.claim_token
-      ) {
-        await ctx.db.delete(snapshot._id);
-      }
       await recoverExpiredRolloutClaim(ctx, target, now);
     }
     rollout = (await ctx.db.get('asset_rollouts', rolloutId)) ?? rollout;
@@ -548,21 +536,24 @@ export async function firstEligibleRolloutTarget(ctx: ReadCtx, now: number) {
   if (!config.active_rollout_id) return null;
   const rollout = await ctx.db.get('asset_rollouts', config.active_rollout_id);
   if (rollout?.status !== 'running') return null;
-  for (const status of ['pending', 'cooldown'] as const) {
-    const targets = await ctx.db
-      .query('asset_targets')
-      .withIndex('by_type_lane_status_eligible', (q) =>
-        q
-          .eq('asset_type', FACTION_SHEET_ASSET_TYPE)
-          .eq('work_lane', 'rollout')
-          .eq('status', status)
-          .lte('next_eligible_at', now)
-      )
-      .take(10);
-    for (const target of targets) {
-      if (target.rollout_id !== rollout._id || !target.rollout_item_id) continue;
-      const item = await ctx.db.get('asset_rollout_items', target.rollout_item_id);
-      if (item?.state === 'pending' && item.rollout_id === rollout._id) return target;
+  const targets = await ctx.db
+    .query('asset_targets')
+    .withIndex('by_type_lane_status_eligible', (q) =>
+      q
+        .eq('asset_type', FACTION_SHEET_ASSET_TYPE)
+        .eq('work_lane', 'rollout')
+        .eq('status', 'pending')
+    )
+    .take(MAX_PUBLISHER_ITEMS);
+  for (const target of targets) {
+    if (target.rollout_id !== rollout._id || !target.rollout_item_id) continue;
+    const item = await ctx.db.get('asset_rollout_items', target.rollout_item_id);
+    if (
+      item?.state === 'pending' &&
+      item.rollout_id === rollout._id &&
+      item.next_eligible_at <= now
+    ) {
+      return target;
     }
   }
   const expired = await ctx.db
@@ -671,7 +662,8 @@ export async function failRolloutItem(
   target: Doc<'asset_targets'>,
   error: string,
   nextEligibleAt: number,
-  now: number
+  now: number,
+  forceTerminal = false
 ): Promise<'not_rollout' | 'retry' | 'detached'> {
   if (!target.rollout_id || !target.rollout_item_id) return 'not_rollout';
   const [rollout, item] = await Promise.all([
@@ -689,7 +681,7 @@ export async function failRolloutItem(
     return 'detached';
   }
   const retryCount = item.retry_count + 1;
-  if (retryCount >= MAX_ROLLOUT_ATTEMPTS) {
+  if (forceTerminal || retryCount >= MAX_ROLLOUT_ATTEMPTS) {
     await ctx.db.patch(target._id, restoreTargetAfterRollout(target, item, now));
     await ctx.db.patch(item._id, {
       state: 'terminal_error',
@@ -767,32 +759,19 @@ export const progress = internalQuery({
   args: { rolloutId: v.optional(v.id('asset_rollouts')) },
   handler: async (ctx, args) => {
     const config = await exactConfig(ctx);
-    const state = await ctx.db
-      .query('asset_publisher_state')
-      .withIndex('by_key', (q) => q.eq('key', 'singleton'))
-      .unique();
     const rolloutId = args.rolloutId ?? config.active_rollout_id;
     const rollout = rolloutId ? await ctx.db.get('asset_rollouts', rolloutId) : null;
     return {
       activeRolloutId: config.active_rollout_id ?? null,
       configStatus: config.status,
       activeRendererVersion: config.active_renderer_version,
-      effectiveMaxItems: EFFECTIVE_PUBLISHER_MAX_ITEMS,
+      effectiveMaxItems: MAX_PUBLISHER_ITEMS,
       rollout: rollout ? projectRollout(rollout) : null,
-      quota: state
-        ? {
-            utcDate: state.daily_browser_utc_date,
-            dailyAccountedMs: state.daily_browser_ms,
-            outstandingReservationMs: state.browser_reserved_ms ?? 0,
-            fixedReservationMs: BROWSER_RESERVATION_MS,
-            providerAllowanceMs: FREE_BROWSER_ALLOWANCE_MS,
-          }
-        : null,
       etaInputs: rollout
         ? {
             remainingItems: rollout.pending + rollout.leased,
             observedBrowserMsPerItem: null,
-            dispatchIntervalMinutes: 15,
+            dispatchIntervalMinutes: 5,
           }
         : null,
     };

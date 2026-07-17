@@ -2,18 +2,12 @@ import {
   publisherErrorMessage,
   serializePublisherLogEvent,
 } from '../../src/app/capture/publisher-diagnostics';
-import { browserAvailable, openPublisherBrowser } from './browser';
+import { openPublisherBrowser } from './browser';
 import { handleCaptureRoute } from './capture-route';
-import {
-  configuredMaxItems,
-  isCronDispatchEnabled,
-  isPublisherEnabled,
-  parsePublisherConfig,
-} from './config';
+import { MAX_ASSIGNED_ITEMS, parsePublisherConfig } from './config';
 import { ConvexPublisherClient } from './convex';
 import { handlePublicAssetRequest } from './delivery';
-import { createWakeUp, dispatchWakeUp } from './dispatch';
-import { consumePublisherMessage } from './queue';
+import { executeItemList } from './executor';
 import { rendererManifest } from './renderer-manifest.generated';
 import { boundedPublisherTelemetryEvent, publisherBuildIdentity } from './telemetry';
 
@@ -25,11 +19,9 @@ function logError(event: Record<string, unknown>): void {
   console.error(serializePublisherLogEvent(boundedPublisherTelemetryEvent(event)));
 }
 
-function client(env: Env, config: ReturnType<typeof parsePublisherConfig>) {
+function client(env: Env, executorBaseUrl: string) {
   return new ConvexPublisherClient({
-    pollUrl: config.convexPollUrl,
-    executorBaseUrl: config.convexExecutorBaseUrl,
-    pollToken: env.ASSET_PUBLISHER_POLL_SECRET,
+    executorBaseUrl,
     executorToken: env.ASSET_PUBLISHER_EXECUTOR_SECRET,
   });
 }
@@ -68,9 +60,8 @@ export const publisherWorker = {
       return Response.json(
         {
           ok: true,
-          publisherEnabled: isPublisherEnabled(env),
-          cronDispatchEnabled: isCronDispatchEnabled(env),
-          maxItems: configuredMaxItems(env),
+          maxItems: MAX_ASSIGNED_ITEMS,
+          schedule: '*/5 * * * *',
           supportedRendererVersion: rendererManifest.rendererVersion,
           rendererSupport: {
             supportedRendererVersions: rendererManifest.supportedRendererVersions,
@@ -90,117 +81,46 @@ export const publisherWorker = {
 
   async scheduled(controller: ScheduledController, env: Env): Promise<void> {
     controller.noRetry();
-    if (!isPublisherEnabled(env) || !isCronDispatchEnabled(env)) {
-      log({ event: 'asset_publisher_cron', result: 'disabled' });
-      return;
-    }
-    const wakeUp = createWakeUp(controller.scheduledTime, crypto.randomUUID());
+    const invocationId = crypto.randomUUID();
     try {
       const config = parsePublisherConfig(env);
-      const publisher = client(env, config);
-      const result = await dispatchWakeUp(
-        {
-          poll: async (message) =>
-            await publisher.poll(message, Date.now() + config.softDeadlineMs),
-          send: async (message) => {
-            await env.PUBLISH_QUEUE.send(message, { contentType: 'json' });
-          },
-        },
-        wakeUp
-      );
-      log({
-        event: 'asset_publisher_cron',
-        result,
-        ...wakeUp,
-      });
-    } catch (error) {
-      logError({
-        event: 'asset_publisher_cron',
-        result: 'failed',
-        triggerId: wakeUp.triggerId,
-        failureClass: 'operational_failure',
-        error: publisherErrorMessage(error),
-      });
-    }
-  },
-
-  async queue(batch: MessageBatch<unknown>, env: Env): Promise<void> {
-    const identity = publisherBuildIdentity(
-      env.CF_VERSION_METADATA,
-      env.SUPPORTED_RENDERER_VERSION
-    );
-    const [message, ...extras] = batch.messages;
-    for (const extra of extras) {
-      extra.ack();
-      logError({
-        event: 'asset_publisher_queue',
-        messageId: extra.id,
-        action: 'ack',
-        reason: 'oversized_batch',
-        identity,
-        queue: {
-          name: batch.queue,
-          messageId: extra.id,
-          attempt: extra.attempts,
-          lane: 'foreground',
-        },
-      });
-    }
-    if (!message) return;
-    if (!isPublisherEnabled(env)) {
-      message.ack();
-      log({
-        event: 'asset_publisher_queue',
-        messageId: message.id,
-        action: 'ack',
-        reason: 'disabled',
-        identity,
-        queue: {
-          name: batch.queue,
-          messageId: message.id,
-          attempt: message.attempts,
-          lane: 'foreground',
-        },
-      });
-      return;
-    }
-
-    let config: ReturnType<typeof parsePublisherConfig>;
-    try {
-      config = parsePublisherConfig(env);
-    } catch (error) {
-      message.ack();
-      logError({
-        event: 'asset_publisher_queue',
-        messageId: message.id,
-        action: 'ack',
-        reason: 'invalid_config',
-        error: publisherErrorMessage(error),
-        identity,
-        queue: {
-          name: batch.queue,
-          messageId: message.id,
-          attempt: message.attempts,
-          lane: 'foreground',
-        },
-      });
-      return;
-    }
-    const publisher = client(env, config);
-    await consumePublisherMessage(message, config, {
-      client: publisher,
-      identity,
-      queueName: batch.queue,
-      now: () => Date.now(),
-      log,
-      owned: {
+      const publisher = client(env, config.convexExecutorBaseUrl);
+      const work = await publisher.takeWork(Date.now() + 15_000);
+      if (work.status === 'empty') {
+        log({
+          event: 'asset_publisher_cron',
+          invocationId,
+          scheduledTime: controller.scheduledTime,
+          result: 'empty',
+          reason: work.reason,
+          leaseExpiresAt: work.leaseExpiresAt,
+        });
+        return;
+      }
+      const execution = await executeItemList(config, work.items, {
         bucket: env.ASSET_BUCKET,
-        browserAvailable: async () => await browserAvailable(env.BROWSER),
+        client: publisher,
+        cacheTokenSecret: env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET,
         openBrowser: async () => await openPublisherBrowser(env.BROWSER, config.captureBaseUrl),
-        now: () => Date.now(),
-      },
-    });
+      });
+      log({
+        event: 'asset_publisher_cron',
+        invocationId,
+        scheduledTime: controller.scheduledTime,
+        result: 'completed',
+        ...execution,
+      });
+    } catch (error) {
+      logError({
+        event: 'asset_publisher_cron',
+        invocationId,
+        scheduledTime: controller.scheduledTime,
+        result: 'failed',
+        error: publisherErrorMessage(error),
+      });
+      throw error;
+    }
   },
-} satisfies ExportedHandler<Env, unknown>;
+} satisfies ExportedHandler<Env>;
 
 export default publisherWorker;

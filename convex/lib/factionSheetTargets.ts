@@ -96,10 +96,8 @@ export async function reconcileFactionSheetTargetForSave(
       asset_type: FACTION_SHEET_ASSET_TYPE,
       desired_generation: 1,
       desired_renderer_version: config.active_renderer_version,
-      first_publication_admitted: false,
       status: 'pending',
-      next_eligible_at: now,
-      attempt_count: 0,
+      consecutive_render_failures: 0,
       work_lane: 'foreground',
       foreground_updated_at: now,
     });
@@ -113,12 +111,15 @@ export async function reconcileFactionSheetTargetForSave(
     rollout_id: undefined,
     rollout_item_id: undefined,
     foreground_updated_at: now,
+    consecutive_render_failures: 0,
+    last_error: undefined,
+    next_eligible_at: undefined,
+    attempt_count: undefined,
+    first_publication_admitted: undefined,
     ...(target.status === 'leased'
       ? {}
       : {
           status: 'pending' as const,
-          next_eligible_at: now,
-          last_error: undefined,
         }),
   });
   return target._id;
@@ -138,10 +139,8 @@ export async function ensureFactionSheetTargetForBackfill(
     asset_type: FACTION_SHEET_ASSET_TYPE,
     desired_generation: 1,
     desired_renderer_version: config.active_renderer_version,
-    first_publication_admitted: false,
     status: 'pending',
-    next_eligible_at: Date.now(),
-    attempt_count: 0,
+    consecutive_render_failures: 0,
     work_lane: 'foreground',
     foreground_updated_at: Date.now(),
   });

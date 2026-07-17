@@ -1,172 +1,148 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
-import { createRenderCapability } from '../../convex/lib/assetPublisherHttp';
-import { ConvexPublisherClient, type ExactClaim, parseClaim } from './convex';
-import { MAX_RENDER_CAPABILITY_BYTES } from './render-capability';
+import { ConvexPublisherClient, parseTakeWork } from './convex';
 
-const batchToken = 'b'.repeat(32);
-const claimToken = 'c'.repeat(32);
-
-type ClaimOverrides = {
-  batchToken?: string;
-  claimToken?: string;
-  renderCapability?: string;
-  replay?: boolean;
-  workLane?: unknown;
-};
-
-async function claimedResponse(overrides: ClaimOverrides = {}) {
-  const responseBatchToken = overrides.batchToken ?? batchToken;
-  const responseClaimToken = overrides.claimToken ?? claimToken;
-  const renderCapability =
-    overrides.renderCapability ??
-    (await createRenderCapability(
-      {
-        version: 1,
-        factionId: 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p',
-        assetType: 'faction_sheet',
-        payloadHash: 'a'.repeat(64),
-        generation: 1,
-        rendererVersion: 'faction-sheet-v1',
-        batchToken: responseBatchToken,
-        claimToken: responseClaimToken,
-        expiresAt: 2_000_000_000_000,
-      },
-      'render-secret'
-    ));
+function assignedItem(index = 1) {
   return {
-    ok: true,
-    status: 'claimed',
-    replay: overrides.replay ?? false,
-    targetId: 'k17d9kz4ktbkpa12nb7j7s7w8h7ygb8p',
-    factionId: 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p',
+    targetId: `target-${index}`,
+    factionId: `faction-${index}`,
     assetType: 'faction_sheet',
-    batchToken: responseBatchToken,
-    claimToken: responseClaimToken,
+    claimToken: `claim-token-${String(index).padStart(20, '0')}`,
     generation: 1,
-    rendererVersion: 'faction-sheet-v1',
+    rendererVersion: 'faction-sheet-v3',
     leaseExpiresAt: 2_000_000_000_000,
-    payloadHash: 'a'.repeat(64),
-    renderCapability,
-    renderCapabilityExpiresAt: 2_000_000_000_000,
-    ...(overrides.workLane !== undefined ? { workLane: overrides.workLane } : {}),
+    workLane: 'foreground',
   };
 }
 
-describe('Convex claimed target parsing', () => {
-  test.each([
-    false,
-    true,
-  ])('accepts a production-shape signed render capability when replay is %s', async (replay) => {
-    const response = await claimedResponse({ replay });
-    expect(response.renderCapability.length).toBeGreaterThan(256);
-    expect(response.renderCapability.length).toBeLessThanOrEqual(MAX_RENDER_CAPABILITY_BYTES);
-    expect(parseClaim(response)).toEqual({
-      status: 'claimed',
-      replay,
-      targetId: response.targetId,
-      factionId: response.factionId,
-      assetType: 'faction_sheet',
-      batchToken,
-      claimToken,
-      generation: 1,
-      rendererVersion: 'faction-sheet-v1',
-      leaseExpiresAt: response.leaseExpiresAt,
-      payloadHash: response.payloadHash,
-      renderCapability: response.renderCapability,
-      renderCapabilityExpiresAt: response.renderCapabilityExpiresAt,
+describe('Convex item-list parsing', () => {
+  test('accepts bounded independent item assignments and empty busy responses', () => {
+    expect(
+      parseTakeWork({
+        ok: true,
+        schemaVersion: 1,
+        status: 'assigned',
+        leaseExpiresAt: 2_000_000_000_000,
+        items: [assignedItem(1), assignedItem(2)],
+      })
+    ).toMatchObject({
+      status: 'assigned',
+      items: [{ targetId: 'target-1' }, { targetId: 'target-2' }],
+    });
+    expect(
+      parseTakeWork({
+        ok: true,
+        schemaVersion: 1,
+        status: 'empty',
+        reason: 'busy',
+        leaseExpiresAt: 2_000_000_000_000,
+        items: [],
+      })
+    ).toEqual({
+      status: 'empty',
+      reason: 'busy',
+      leaseExpiresAt: 2_000_000_000_000,
+      items: [],
     });
   });
 
-  test('retains the generic 16 through 256 character batch and claim token bounds', async () => {
-    expect(parseClaim(await claimedResponse({ batchToken: 'b'.repeat(16) })).status).toBe(
-      'claimed'
-    );
-    expect(parseClaim(await claimedResponse({ claimToken: 'c'.repeat(16) })).status).toBe(
-      'claimed'
-    );
-    expect(parseClaim(await claimedResponse({ batchToken: 'b'.repeat(256) })).status).toBe(
-      'claimed'
-    );
-    expect(parseClaim(await claimedResponse({ claimToken: 'c'.repeat(256) })).status).toBe(
-      'claimed'
-    );
-    const response = await claimedResponse();
-    expect(() => parseClaim({ ...response, batchToken: 'b'.repeat(15) })).toThrow(
-      'Convex claimed target response is invalid'
-    );
-    expect(() => parseClaim({ ...response, claimToken: 'c'.repeat(15) })).toThrow(
-      'Convex claimed target response is invalid'
-    );
-    expect(() => parseClaim({ ...response, batchToken: 'b'.repeat(257) })).toThrow(
-      'Convex claimed target response is invalid'
-    );
-    expect(() => parseClaim({ ...response, claimToken: 'c'.repeat(257) })).toThrow(
-      'Convex claimed target response is invalid'
-    );
-  });
-
-  test('accepts only the bounded foreground/rollout lane projection', async () => {
-    const rollout = await claimedResponse({ workLane: 'rollout' });
-    expect(parseClaim(rollout)).toMatchObject({ status: 'claimed', workLane: 'rollout' });
-    const foreground = await claimedResponse({ workLane: 'foreground' });
-    expect(parseClaim(foreground)).toMatchObject({ status: 'claimed', workLane: 'foreground' });
-    expect(() => parseClaim({ ...rollout, workLane: 'operator-selected-lane' })).toThrow(
-      'Convex claimed target response is invalid'
-    );
-  });
-
-  test('rejects malformed, truncated, oversized, and extra-segment capabilities', async () => {
-    const response = await claimedResponse();
-    const valid = response.renderCapability;
-    const [payload, signature] = valid.split('.');
-    const malformed = `${payload}.${signature.slice(0, -1)}*`;
-    const truncated = valid.slice(0, -1);
-    const oversized = `${'a'.repeat(MAX_RENDER_CAPABILITY_BYTES - 43)}.${'s'.repeat(43)}`;
-    const extraSegment = `${valid}.extra`;
-
-    for (const renderCapability of [malformed, truncated, oversized, extraSegment]) {
-      expect(() => parseClaim({ ...response, renderCapability })).toThrow(
-        'Convex claimed target response is invalid'
-      );
-    }
+  test('rejects oversized, duplicate, and mismatched-lease assignments', () => {
+    const response = (items: unknown[]) => ({
+      ok: true,
+      schemaVersion: 1,
+      status: 'assigned',
+      leaseExpiresAt: 2_000_000_000_000,
+      items,
+    });
+    expect(() =>
+      parseTakeWork(response(Array.from({ length: 21 }, (_, i) => assignedItem(i))))
+    ).toThrow();
+    expect(() => parseTakeWork(response([assignedItem(1), assignedItem(1)]))).toThrow();
+    expect(() =>
+      parseTakeWork(response([{ ...assignedItem(1), leaseExpiresAt: 2_000_000_000_001 }]))
+    ).toThrow();
   });
 });
 
-describe('retained foreground checkpoint requests', () => {
-  test('sends the additive retainBatch flag only for retained complete/fail/release calls', async () => {
-    const requests: Array<{ path: string; body: Record<string, unknown> }> = [];
-    const fetcher: typeof fetch = async (input, init) => {
-      const path = new URL(String(input)).pathname;
-      requests.push({ path, body: JSON.parse(String(init?.body)) as Record<string, unknown> });
-      const status = path.endsWith('/complete')
-        ? 'completed'
-        : path.endsWith('/fail')
-          ? 'failed'
-          : 'released';
-      return Response.json({ ok: true, status });
-    };
-    const client = new ConvexPublisherClient({
-      pollUrl: 'https://convex.example.com/poll',
-      executorBaseUrl: 'https://convex.example.com/executor',
-      pollToken: 'poll-token',
-      executorToken: 'executor-token',
-      fetcher,
+describe('Convex item client', () => {
+  test('uses only the settled item endpoints and exact request bodies', async () => {
+    const requests: Array<{ url: string; body: Record<string, unknown> }> = [];
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      requests.push({ url, body });
+      if (url.endsWith('/take-work')) {
+        return Response.json({
+          ok: true,
+          schemaVersion: 1,
+          status: 'assigned',
+          leaseExpiresAt: 2_000_000_000_000,
+          items: [assignedItem()],
+        });
+      }
+      if (url.endsWith('/revalidate-item')) {
+        return Response.json({
+          ok: true,
+          status: 'valid',
+          leaseExpiresAt: 2_000_000_000_000,
+          factionId: 'faction-1',
+          assetType: 'faction_sheet',
+        });
+      }
+      if (url.endsWith('/complete-item')) {
+        return Response.json({
+          ok: true,
+          status: 'completed',
+          replay: false,
+          cacheToken: `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`,
+          publishedAt: 1,
+        });
+      }
+      return Response.json({ ok: true, status: 'failed', consecutiveFailures: 1 });
     });
-    const exact: ExactClaim = {
-      targetId: 'target-one',
-      batchToken,
-      claimToken,
-      generation: 1,
-      rendererVersion: 'faction-sheet-v1',
-    };
+    const client = new ConvexPublisherClient({
+      executorBaseUrl: 'https://convex.example.com/asset-publishing/executor',
+      executorToken: 'executor-secret',
+      fetcher: fetcher as typeof fetch,
+    });
+    const work = await client.takeWork();
+    if (work.status !== 'assigned') throw new Error('Expected work');
+    const claim = work.items[0];
+    await client.revalidate(claim);
+    const cacheToken = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
+    await client.complete(claim, { r2Etag: 'etag', bytes: 123, cacheToken });
+    await client.fail(claim, 'target', 'invalid output');
 
-    await client.complete(exact, 'etag-one', 1_234, undefined, true);
-    await client.fail(exact, 'bounded failure', undefined, true);
-    await client.release(exact, undefined, true);
-    await client.release(exact);
+    expect(requests.map((request) => request.url.split('/').at(-1))).toEqual([
+      'take-work',
+      'revalidate-item',
+      'complete-item',
+      'fail-item',
+    ]);
+    expect(requests[0]?.body).toEqual({ schemaVersion: 1 });
+    expect(requests[2]?.body).toMatchObject({ r2Etag: 'etag', bytes: 123, cacheToken });
+    expect(requests[3]?.body).toMatchObject({ attribution: 'target', error: 'invalid output' });
+  });
 
-    expect(requests.slice(0, 3).map(({ body }) => body.retainBatch)).toEqual([true, true, true]);
-    expect(requests[3]?.body).not.toHaveProperty('retainBatch');
+  test('rejects completion acknowledgment for a different cache token', async () => {
+    const client = new ConvexPublisherClient({
+      executorBaseUrl: 'https://convex.example.com/asset-publishing/executor',
+      executorToken: 'executor-secret',
+      fetcher: (async () =>
+        Response.json({
+          ok: true,
+          status: 'completed',
+          replay: false,
+          cacheToken: `v1.${'c'.repeat(22)}.${'d'.repeat(43)}`,
+          publishedAt: 1,
+        })) as typeof fetch,
+    });
+    await expect(
+      client.complete(assignedItem(), {
+        r2Etag: 'etag',
+        bytes: 123,
+        cacheToken: `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`,
+      })
+    ).rejects.toThrow(/different cache token/);
   });
 });

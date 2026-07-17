@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { type CaptureEnv, captureCapabilityHeader, handleCaptureRoute } from './capture-route';
+import { type CaptureEnv, captureClaimHeader, handleCaptureRoute } from './capture-route';
 
-const capability = `${'e'.repeat(400)}.${'s'.repeat(43)}`;
+const claimToken = 'claim-token-0000000000000001';
 
 function env(
   assetFetch = vi.fn(async (_request: Request) => new Response('<html>capture</html>'))
@@ -15,10 +15,10 @@ function env(
 
 afterEach(() => vi.unstubAllGlobals());
 
-function stubValidCapability() {
+function stubValidClaim() {
   const upstream = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
     const token = new Headers(init?.headers).get('Authorization')?.replace('Bearer ', '');
-    if (token !== capability) return Response.json({ ok: false }, { status: 404 });
+    if (token !== claimToken) return Response.json({ ok: false }, { status: 404 });
     return Response.json({ ok: true, payload: {}, payloadHash: 'a'.repeat(64) });
   });
   vi.stubGlobal('fetch', upstream);
@@ -26,7 +26,7 @@ function stubValidCapability() {
 }
 
 describe('dedicated exact-snapshot capture boundary', () => {
-  test('capture document is hidden without the short-lived capability', async () => {
+  test('capture document is hidden without the item claim', async () => {
     const assetFetch = vi.fn();
     const response = await handleCaptureRoute(
       new Request('https://publisher.example.com/__asset-publisher/capture'),
@@ -37,11 +37,11 @@ describe('dedicated exact-snapshot capture boundary', () => {
   });
 
   test('serves only the top-level capture document with no-store', async () => {
-    const upstream = stubValidCapability();
+    const upstream = stubValidClaim();
     const assetFetch = vi.fn(async (_request: Request) => new Response('<html>capture</html>'));
     const response = await handleCaptureRoute(
       new Request('https://publisher.example.com/__asset-publisher/capture', {
-        headers: { [captureCapabilityHeader]: capability },
+        headers: { [captureClaimHeader]: claimToken },
       }),
       env(assetFetch)
     );
@@ -53,14 +53,14 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(new URL(assetRequest?.url ?? 'https://invalid.invalid').pathname).toBe(
       '/publisher-capture.html'
     );
-    expect(assetRequest?.url).not.toContain(capability);
+    expect(assetRequest?.url).not.toContain(claimToken);
     expect(upstream).toHaveBeenCalledOnce();
   });
 
   test.each([
     '/publisher-capture.html',
     '/publisher-capture/entry-hash.js',
-  ])('hides direct capture asset %s without a capability', async (pathname) => {
+  ])('hides direct capture asset %s without an item claim', async (pathname) => {
     const assetFetch = vi.fn();
     const response = await handleCaptureRoute(
       new Request(`https://publisher.example.com${pathname}`),
@@ -70,12 +70,12 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(assetFetch).not.toHaveBeenCalled();
   });
 
-  test('serves hashed capture assets only through the host capability cookie', async () => {
-    const upstream = stubValidCapability();
+  test('serves hashed capture assets only through the host item-claim cookie', async () => {
+    const upstream = stubValidClaim();
     const assetFetch = vi.fn(async () => new Response('bundle'));
     const response = await handleCaptureRoute(
       new Request('https://publisher.example.com/publisher-capture/entry-hash.js', {
-        headers: { Cookie: `__Host-asset_render_capability=${capability}` },
+        headers: { Cookie: `__Host-asset_item_claim=${claimToken}` },
       }),
       env(assetFetch)
     );
@@ -92,7 +92,7 @@ describe('dedicated exact-snapshot capture boundary', () => {
     ['expired capability', 'expired-capability-0000000001'],
     ['wrong claim or generation', 'wrong-claim-generation-0000001'],
   ])('%s cannot serve the capture shell, HTML, or bundle', async (_label, invalidToken) => {
-    stubValidCapability();
+    stubValidClaim();
     for (const pathname of [
       '/__asset-publisher/capture',
       '/publisher-capture.html',
@@ -102,8 +102,8 @@ describe('dedicated exact-snapshot capture boundary', () => {
       const response = await handleCaptureRoute(
         new Request(`https://publisher.example.com${pathname}`, {
           headers: {
-            [captureCapabilityHeader]: invalidToken,
-            Cookie: `__Host-asset_render_capability=${invalidToken}`,
+            [captureClaimHeader]: invalidToken,
+            Cookie: `__Host-asset_item_claim=${invalidToken}`,
           },
         }),
         env(assetFetch)
@@ -114,9 +114,9 @@ describe('dedicated exact-snapshot capture boundary', () => {
     }
   });
 
-  test('proxies the exact capability as a Convex bearer without slug or auth state', async () => {
+  test('proxies the exact item claim as a Convex bearer without slug or auth state', async () => {
     const upstream = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
-      expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${capability}`);
+      expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${claimToken}`);
       return Response.json({
         ok: true,
         payload: { factionId: 'faction', slug: 'ignored-by-routing', faction: {} },
@@ -126,7 +126,7 @@ describe('dedicated exact-snapshot capture boundary', () => {
     vi.stubGlobal('fetch', upstream);
     const response = await handleCaptureRoute(
       new Request('https://publisher.example.com/__asset-publisher/snapshot', {
-        headers: { [captureCapabilityHeader]: capability },
+        headers: { [captureClaimHeader]: claimToken },
       }),
       env()
     );
@@ -135,12 +135,12 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(upstream).toHaveBeenCalledOnce();
   });
 
-  test('accepts the host-only capability cookie used by Browser Session', async () => {
+  test('accepts the host-only item-claim cookie used by Browser Session', async () => {
     const upstream = vi.fn(async () => Response.json({ ok: true }));
     vi.stubGlobal('fetch', upstream);
     const response = await handleCaptureRoute(
       new Request('https://publisher.example.com/__asset-publisher/snapshot', {
-        headers: { Cookie: `__Host-asset_render_capability=${capability}` },
+        headers: { Cookie: `__Host-asset_item_claim=${claimToken}` },
       }),
       env()
     );
@@ -148,12 +148,12 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(upstream).toHaveBeenCalledOnce();
   });
 
-  test('rejects oversized capabilities before Convex fetch', async () => {
+  test('rejects oversized item claims before Convex fetch', async () => {
     const upstream = vi.fn();
     vi.stubGlobal('fetch', upstream);
     const response = await handleCaptureRoute(
       new Request('https://publisher.example.com/__asset-publisher/snapshot', {
-        headers: { [captureCapabilityHeader]: 'x'.repeat(8_193) },
+        headers: { [captureClaimHeader]: 'x'.repeat(257) },
       }),
       env()
     );
@@ -179,7 +179,7 @@ describe('dedicated exact-snapshot capture boundary', () => {
     const response = await handleCaptureRoute(
       new Request('https://publisher.example.com/__asset-publisher/snapshot', {
         headers: {
-          Cookie: `__Host-asset_render_capability=${capability}; __Host-asset_render_deadline=${Date.now() + 15}`,
+          Cookie: `__Host-asset_item_claim=${claimToken}; __Host-asset_render_deadline=${Date.now() + 15}`,
         },
       }),
       env()

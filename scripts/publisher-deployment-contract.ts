@@ -10,7 +10,6 @@ import {
 import { rendererManifest } from '../workers/publisher/renderer-manifest.generated';
 
 export const PUBLISHER_WORKER_NAME = 'faction-sheet-asset-publisher';
-export const PUBLISHER_QUEUE_NAME = 'faction-sheet-asset-publisher';
 export const PUBLISHER_BUCKET_NAME = 'tanstack-start-faction-sheet-assets';
 export const PUBLISHER_ORIGIN = 'https://faction-sheet-asset-publisher.ndelangen.workers.dev';
 export const PUBLISHER_PRODUCTION_CONVEX_URL = 'https://exuberant-finch-263.eu-west-1.convex.cloud';
@@ -18,12 +17,8 @@ export { PUBLISHER_RENDERER_VERSION, PUBLISHER_SUPPORTED_RENDERER_VERSIONS };
 
 const CONFIG_PATH = path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc');
 const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.convex.site';
-const PUBLISHER_CRON = '*/15 * * * *';
-const REQUIRED_SECRETS = [
-  'ASSET_PUBLISHER_CACHE_TOKEN_SECRET',
-  'ASSET_PUBLISHER_POLL_SECRET',
-  'ASSET_PUBLISHER_EXECUTOR_SECRET',
-];
+const PUBLISHER_CRON = '*/5 * * * *';
+const REQUIRED_SECRETS = ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET', 'ASSET_PUBLISHER_EXECUTOR_SECRET'];
 
 type JsonObject = Record<string, unknown>;
 
@@ -103,21 +98,14 @@ export function validatePublisherDeployContract(
   exactJson(
     vars,
     {
-      PUBLISHER_ENABLED: 'true',
-      CRON_DISPATCH_ENABLED: 'true',
       CAPTURE_BASE_URL: PUBLISHER_ORIGIN,
-      CONVEX_POLL_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/poll`,
       CONVEX_EXECUTOR_BASE_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/executor`,
       CONVEX_RENDER_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/render`,
       SUPPORTED_RENDERER_VERSION: PUBLISHER_RENDERER_VERSION,
-      EXECUTOR_MAX_ITEMS: '2',
-      SOFT_DEADLINE_MS: '240000',
-      UPLOAD_MARGIN_MS: '120000',
+      WORK_WINDOW_MS: '240000',
       BROWSER_CAPTURE_TIMEOUT_MS: '45000',
       BROWSER_CLEANUP_GRACE_MS: '15000',
       PDF_MAX_BYTES: '8000000',
-      QUEUE_MAX_PRE_OWNERSHIP_ATTEMPTS: '2',
-      QUEUE_RETRY_DELAY_SECONDS: '60',
     },
     'scheduled Worker variables'
   );
@@ -127,22 +115,8 @@ export function validatePublisherDeployContract(
     [{ binding: 'ASSET_BUCKET', bucket_name: PUBLISHER_BUCKET_NAME }],
     'R2 binding'
   );
-  exactJson(
-    config.queues,
-    {
-      producers: [{ binding: 'PUBLISH_QUEUE', queue: PUBLISHER_QUEUE_NAME }],
-      consumers: [
-        {
-          queue: PUBLISHER_QUEUE_NAME,
-          max_batch_size: 1,
-          max_batch_timeout: 1,
-          max_retries: 2,
-          max_concurrency: 1,
-        },
-      ],
-    },
-    'Queue bindings'
-  );
+  invariant(!('queues' in config), 'Queue bindings are retired from the item-list executor');
+  exactJson(config.limits, { cpu_ms: 30_000 }, 'Worker CPU limit');
   exactJson(config.browser, { binding: 'BROWSER' }, 'Browser binding');
   exactJson(
     config.version_metadata,
@@ -199,9 +173,8 @@ export function validatePublisherHealth(
   );
   invariant(cacheControl === 'no-store', 'Health response must be non-cacheable');
   invariant(health.ok === true, 'Health response is not ok');
-  invariant(health.publisherEnabled === true, 'Publisher must be enabled');
-  invariant(health.cronDispatchEnabled === true, 'Cron dispatch must be enabled');
-  invariant(health.maxItems === 2, 'Publisher maxItems must match the size-two canary');
+  invariant(health.maxItems === 20, 'Publisher maxItems must match the fixed item-list contract');
+  invariant(health.schedule === PUBLISHER_CRON, 'Publisher schedule must match configuration');
   invariant(
     health.supportedRendererVersion === vars.SUPPORTED_RENDERER_VERSION,
     'Health renderer version does not match checked-in configuration'
