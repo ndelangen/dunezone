@@ -1,3 +1,5 @@
+import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
+
 export type PromotionPolicy = {
   minimumItems: number;
   minimumFullBatches: number;
@@ -388,8 +390,12 @@ function sampleRollbackTriggers(sample: PromotionSample, policy: PromotionPolicy
     sample.output.valid === false ||
     (sample.output.pdfBytes !== null && sample.output.pdfBytes > policy.maxPdfBytes) ||
     (sample.output.pages !== null && sample.output.pages !== 2) ||
-    (sample.output.widthMm !== null && Math.abs(sample.output.widthMm - 150) > 0.5) ||
-    (sample.output.heightMm !== null && Math.abs(sample.output.heightMm - 195) > 0.5)
+    (sample.output.widthMm !== null &&
+      Math.abs(sample.output.widthMm - PUBLISHER_RENDERER_CONTRACT.pdf.pageWidthMm) >
+        PUBLISHER_RENDERER_CONTRACT.pdf.pageSizeToleranceMm) ||
+    (sample.output.heightMm !== null &&
+      Math.abs(sample.output.heightMm - PUBLISHER_RENDERER_CONTRACT.pdf.pageHeightMm) >
+        PUBLISHER_RENDERER_CONTRACT.pdf.pageSizeToleranceMm)
   ) {
     triggers.push(`${sample.sampleId}:invalid_output`);
   }

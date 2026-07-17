@@ -66,9 +66,8 @@ recommendation-only. `EXECUTOR_MAX_ITEMS` accepts `1` or `2`; the checked-in fun
 one Convex batch, opens one Browser Session, checkpoints at most two items sequentially, then
 settles and releases the exact batch once.
 
-The release executes only its embedded semantic compatibility set:
-`[faction-sheet-v1, faction-sheet-v2]`. Both labels currently use the same capture/PDF behavior;
-`faction-sheet-v2` is a no-visual-change rollout canary, not a visual renderer revision.
+The release keeps its existing embedded renderer support set. Every accepted claim uses the current
+A4 capture/PDF behavior; there is no separate legacy-geometry rendering path.
 The rollout operator schema and mutation both reject any other string. Supporting a future candidate
 requires an ordered compatibility release: widen the Worker to embed/authorize that semantic
 renderer, verify its exact release id and a PDF canary, then widen the strict Convex operator

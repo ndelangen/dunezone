@@ -47,7 +47,9 @@ export function assertCapturedPdfOutput(inspection: {
       PDF_CONTRACT.pageSizeToleranceMm ||
     Math.abs(inspection.pageHeightMm - PDF_CONTRACT.pageHeightMm) > PDF_CONTRACT.pageSizeToleranceMm
   ) {
-    throw new Error('Captured PDF MediaBoxes must be 150 mm × 195 mm within 0.5 mm');
+    throw new Error(
+      `Captured PDF MediaBoxes must be ${PDF_CONTRACT.pageWidthMm} mm × ${PDF_CONTRACT.pageHeightMm} mm within ${PDF_CONTRACT.pageSizeToleranceMm} mm`
+    );
   }
 }
 

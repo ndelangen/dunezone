@@ -97,8 +97,8 @@ function dependencies(acquire: () => Promise<AcquireResult>): QueueDependencies 
         capture: async () => ({
           bytes: new Uint8Array([1]),
           pageCount: 2,
-          pageWidthMm: 150,
-          pageHeightMm: 195,
+          pageWidthMm: 210,
+          pageHeightMm: 297,
           consoleErrors: [],
           requestFailures: [],
           pageErrors: [],

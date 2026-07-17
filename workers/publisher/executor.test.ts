@@ -111,8 +111,8 @@ function setup(
     return {
       bytes: capturedBytes,
       pageCount: options.pdfPageCount ?? 2,
-      pageWidthMm: options.pdfWidthMm ?? 150,
-      pageHeightMm: options.pdfHeightMm ?? 195,
+      pageWidthMm: options.pdfWidthMm ?? 210,
+      pageHeightMm: options.pdfHeightMm ?? 297,
       consoleErrors: [],
       requestFailures: [],
       pageErrors: [],
@@ -194,7 +194,7 @@ describe('one-item owned batch execution', () => {
       minimumLeaseMarginMs: 720_000,
       item: {
         outcome: 'completed',
-        pdf: { bytes: 3, pages: 2, widthMm: 150, heightMm: 195 },
+        pdf: { bytes: 3, pages: 2, widthMm: 210, heightMm: 297 },
       },
     });
   });
@@ -1064,8 +1064,8 @@ describe('size-two owned batch execution', () => {
       .mockResolvedValueOnce({
         bytes: new Uint8Array(3),
         pageCount: 2,
-        pageWidthMm: 150,
-        pageHeightMm: 195,
+        pageWidthMm: 210,
+        pageHeightMm: 297,
         consoleErrors: [],
         requestFailures: [],
         pageErrors: [],

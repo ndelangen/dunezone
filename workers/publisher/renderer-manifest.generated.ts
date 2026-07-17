@@ -5,20 +5,20 @@ export const rendererManifest = {
   rendererVersion: 'faction-sheet-v2',
   supportedRendererVersions: ['faction-sheet-v1', 'faction-sheet-v2'],
   rendererId:
-    'faction-sheet/sha256:fcd66d60dc8f20b6beaa399a6b766acc36840998157a5e9f6ac959c1b55aa39b',
-  digest: 'fcd66d60dc8f20b6beaa399a6b766acc36840998157a5e9f6ac959c1b55aa39b',
+    'faction-sheet/sha256:482666a6a20c74471bdb521873c09aa927affba21ad7dddd62659ffc58560c85',
+  digest: '482666a6a20c74471bdb521873c09aa927affba21ad7dddd62659ffc58560c85',
   contract: {
     rendererVersion: 'faction-sheet-v2',
     supportedRendererVersions: ['faction-sheet-v1', 'faction-sheet-v2'],
     viewport: {
-      width: 1500,
-      height: 1950,
+      width: 2100,
+      height: 2970,
       deviceScaleFactor: 1,
     },
     pdf: {
       pageCount: 2,
-      pageWidthMm: 150,
-      pageHeightMm: 195,
+      pageWidthMm: 210,
+      pageHeightMm: 297,
       pageSizeToleranceMm: 0.5,
       displayHeaderFooter: false,
       marginMm: {

@@ -10,15 +10,15 @@ import {
 } from './browser';
 
 describe('production capture output validation', () => {
-  test('accepts only the two-page 150 mm × 195 mm contract', () => {
+  test('accepts only the two-page A4 portrait contract', () => {
     expect(() =>
-      assertCapturedPdfOutput({ pageCount: 2, pageWidthMm: 149.94, pageHeightMm: 195.07 })
+      assertCapturedPdfOutput({ pageCount: 2, pageWidthMm: 209.9, pageHeightMm: 297.04 })
     ).not.toThrow();
     expect(() =>
-      assertCapturedPdfOutput({ pageCount: 1, pageWidthMm: 150, pageHeightMm: 195 })
+      assertCapturedPdfOutput({ pageCount: 1, pageWidthMm: 210, pageHeightMm: 297 })
     ).toThrow(/exactly two pages/);
     expect(() =>
-      assertCapturedPdfOutput({ pageCount: 2, pageWidthMm: 151, pageHeightMm: 195 })
+      assertCapturedPdfOutput({ pageCount: 2, pageWidthMm: 211, pageHeightMm: 297 })
     ).toThrow(/MediaBoxes/);
   });
 

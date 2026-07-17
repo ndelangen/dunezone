@@ -33,8 +33,8 @@ bun run proof:dry-run
 `proof:browser-regression` performs real Chromium checks against fresh proof and Storybook builds.
 It verifies corrupt HTTP-200 SVG image/use bodies fail readiness, the print document starts at the
 physical page origin, Storybook fonts/images/SVGs settle without HTTP or browser errors, and both PDF
-paths produce exactly two 150 mm x 195 mm pages. Every run replaces these ignored reference files and
-prints their SHA-256 hashes and source identities:
+paths produce exactly two A4 (`210 mm x 297 mm`) pages. Every run replaces these ignored reference
+files and prints their SHA-256 hashes and source identities:
 
 ```text
 tmp/asset-publishing-proof/local-proof.pdf
@@ -234,7 +234,7 @@ Require a Queue-consumer log with `action: "ack"`, `reason: "completed"`, attemp
 proof report showing:
 
 - `outcome: "success"` and `browserCloseOutcome: "closed"`;
-- exactly two pages within 0.5 mm of `150 x 195`;
+- exactly two pages within 0.5 mm of A4 (`210 x 297`);
 - one conditional claim-marker Class A write before proof work, one PDF R2 operation in the report,
   and two correlated Convex calls;
 - finite before/after Convex latency, PDF bytes, browser duration, and wall duration;

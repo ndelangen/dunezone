@@ -17,8 +17,8 @@ import { ProofQueueConsumer } from './queue';
 const validCapture: CapturedPdf = {
   bytes: new Uint8Array([37, 80, 68, 70]),
   pageCount: 2,
-  pageWidthMm: 150,
-  pageHeightMm: 195,
+  pageWidthMm: 210,
+  pageHeightMm: 297,
   consoleErrors: [],
   requestFailures: [],
 };
