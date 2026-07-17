@@ -12,8 +12,8 @@ const packageConfig = JSON.parse(
 ) as { scripts: Record<string, string> };
 
 describe('scheduled production deployment shape', () => {
-  test('keeps exactly one 15-minute Cron and active Worker flags in source control', () => {
-    expect(config.triggers).toEqual({ crons: ['*/15 * * * *'] });
+  test('keeps exactly one temporary one-minute rollout Cron and active Worker flags', () => {
+    expect(config.triggers).toEqual({ crons: ['* * * * *'] });
     expect(config.vars).toMatchObject({
       PUBLISHER_ENABLED: 'true',
       CRON_DISPATCH_ENABLED: 'true',

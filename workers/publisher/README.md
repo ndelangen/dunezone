@@ -4,7 +4,7 @@ This is the production-shaped, sequential publisher surface. Its stable Cloudfla
 provisioned, and the persistent release configuration is ready for scheduled polling:
 
 - `PUBLISHER_ENABLED` and `CRON_DISPATCH_ENABLED` are `true`;
-- the Cron trigger list contains exactly one `*/15 * * * *` schedule;
+- the temporary rollout-drain trigger list contains exactly one `* * * * *` schedule;
 - the production Queue and dedicated private R2 bucket are named explicitly;
 - capture and Convex HTTP URLs use the intended workers.dev and regional Convex origins;
 - the primary semantic renderer and exact executable support set are `faction-sheet-v3`; Convex
@@ -24,10 +24,13 @@ provisioned, and the persistent release configuration is ready for scheduled pol
 
 The Queue payload is only `{ schemaVersion, scheduledCutoff, triggerId }`. Convex owns all batch,
 claim, retry, snapshot, publication, and Browser reservation state. R2 metadata is diagnostic only.
-The 240-second work deadline and fixed 240-second Browser reservation cannot be extended by phase
-settings. A separate 30-second
-post-lifecycle window may only settle definitely closed Browser usage; it is bounded well inside the
-15-minute Queue wall and cannot perform more Browser, R2, or publication work.
+The 240-second work deadline remains the absolute execution bound. During the bounded v3 rollout
+drain, admission temporarily reserves 20 seconds per batch and exact settlement replaces it with
+measured Browser time. This estimate may overrun, but it cannot extend the Worker lifecycle or the
+Cloudflare Free daily Browser limit. Restore the normal 240-second reservation and `*/15` Cron as
+soon as the rollout reaches a terminal state or any real Browser/quota failure appears. A separate
+30-second post-lifecycle window may only settle definitely closed Browser usage; it is bounded well
+inside the 15-minute Queue wall and cannot perform more Browser, R2, or publication work.
 
 The capture shell, HTML, and isolated bundle revalidate the host-only render capability against the
 exact Convex snapshot endpoint before serving. Capture diagnostics retain at most an artwork
@@ -110,7 +113,7 @@ environment variable; the API token is a protected secret. The exact Queue and R
 **Release prerequisite: Convex publisher config and singleton must both be paused before this
 scheduled Worker release is merged or deployed.** The stable private bucket and Queue must be
 reverified, the disabled-first publication-admission migration/counter must pass, and the three
-Worker secrets must be installed. Deploy `true/true` plus the exact 15-minute Cron against paused
+Worker secrets must be installed. Deploy `true/true` plus the exact checked-in Cron against paused
 Convex, observe at least one empty Cron with no Queue message or Browser Run, and only then consider
 the separately approved Convex operator activation. Normal `main` deploys after that activation keep
 this same scheduled source configuration; they never re-run or reverse the activation transition.
