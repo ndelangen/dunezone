@@ -25,7 +25,7 @@ provisioned, and the persistent release configuration is ready for scheduled pol
 The Queue payload is only `{ schemaVersion, scheduledCutoff, triggerId }`. Convex owns all batch,
 claim, retry, snapshot, publication, and Browser reservation state. R2 metadata is diagnostic only.
 The 240-second work deadline remains the absolute execution bound. During the bounded v3 rollout
-drain, admission temporarily reserves 20 seconds per batch and exact settlement replaces it with
+drain, admission temporarily reserves 30 seconds per batch and exact settlement replaces it with
 measured Browser time. This estimate may overrun, but it cannot extend the Worker lifecycle or the
 Cloudflare Free daily Browser limit. Restore the normal 240-second reservation and `*/15` Cron as
 soon as the rollout reaches a terminal state or any real Browser/quota failure appears. A separate

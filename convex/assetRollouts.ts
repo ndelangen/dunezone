@@ -792,7 +792,7 @@ export const progress = internalQuery({
         ? {
             remainingItems: rollout.pending + rollout.leased,
             observedBrowserMsPerItem: null,
-            dispatchIntervalMinutes: 15,
+            dispatchIntervalMinutes: 1,
           }
         : null,
     };

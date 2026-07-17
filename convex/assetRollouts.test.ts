@@ -577,7 +577,10 @@ describe('renderer rollout control plane', () => {
         operation: 'progress',
         rolloutId: createdBody.rollout.rolloutId,
       });
-      await expect(progress.clone().json()).resolves.toMatchObject({ effectiveMaxItems: 2 });
+      await expect(progress.clone().json()).resolves.toMatchObject({
+        effectiveMaxItems: 2,
+        etaInputs: { dispatchIntervalMinutes: 1 },
+      });
       expect(progress.status).toBe(200);
       const serialized = JSON.stringify(await progress.json());
       expect(serialized).toContain('remainingItems');
