@@ -267,7 +267,7 @@ async function checkProofPdf(
   proofOrigin: string,
   browser: Awaited<ReturnType<typeof chromium.launch>>
 ) {
-  const page = await browser.newPage({ viewport: { width: 1_500, height: 1_950 } });
+  const page = await browser.newPage({ viewport: { width: 2_100, height: 2_970 } });
   try {
     await page.goto(new URL('/proof-capture.html', proofOrigin).href, {
       waitUntil: 'domcontentloaded',

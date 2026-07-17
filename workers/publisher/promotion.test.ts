@@ -63,7 +63,7 @@ function sample(
       cleanupCouldCrossExpiry: false,
     },
     cleanup: { closeMs: 500, settlementMs: 100, reservationSettled: true },
-    output: { valid: true, pdfBytes: 107_792, pages: 2, widthMm: 150, heightMm: 195 },
+    output: { valid: true, pdfBytes: 107_792, pages: 2, widthMm: 210, heightMm: 297 },
     ...overrides,
   };
 }
@@ -145,6 +145,20 @@ describe('pure one-step batch promotion policy', () => {
       });
       expect(report.recommendation).toBe('rollback');
     }
+  });
+
+  test('non-A4 output triggers rollback', () => {
+    const nonA4Output = sample('non-a4-output', 2, {
+      output: { valid: true, pdfBytes: 107_792, pages: 2, widthMm: 150, heightMm: 195 },
+    });
+    const report = evaluateBatchPromotion({
+      currentBatchSize: 1,
+      candidateBatchSize: 2,
+      samples: [...passingSamples(2), nonA4Output],
+      ownershipFailureSuitePassed: true,
+    });
+    expect(report.recommendation).toBe('rollback');
+    expect(report.rollbackTriggers).toContain('non-a4-output:invalid_output');
   });
 
   test('quota denial pauses without pretending the candidate is unsafe', () => {
@@ -402,7 +416,7 @@ describe('pure one-step batch promotion policy', () => {
     );
   });
 
-  test('Ticket 1 evidence is correctly classified as useful but insufficient for 1 -> 2', () => {
+  test('historical non-A4 Ticket 1 evidence cannot promote the A4 renderer', () => {
     const report = evaluateBatchPromotion({
       currentBatchSize: 1,
       candidateBatchSize: 2,

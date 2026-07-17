@@ -25,7 +25,9 @@
 
 .page {
   position: relative;
-  padding-top: 130%;
+  background-color: #fffdf1;
+  /* A4 portrait aspect ratio (297 / 210). */
+  padding-top: 141.428571%;
 
   font-size: 3vw;
   border-bottom: 0.3vw dashed #dedede;
@@ -300,12 +302,12 @@
 @media print {
   @page {
     margin: 0;
-    size: 150mm 195mm;
+    size: 210mm 297mm;
   }
 
   .page {
-    width: 150mm;
-    height: 195mm;
+    width: 210mm;
+    height: 297mm;
     padding-top: 0;
     overflow: hidden;
     border-bottom: 0;

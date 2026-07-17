@@ -32,13 +32,10 @@ function entries(overrides: Partial<Record<string, string>> = {}): RendererManif
 
 describe('immutable renderer manifest digest', () => {
   test('keeps the semantic Convex renderer version explicit in the hashed contract', () => {
-    expect(PUBLISHER_RENDERER_VERSION).toBe('faction-sheet-v2');
+    expect(PUBLISHER_RENDERER_VERSION).toBe('faction-sheet-v3');
     expect(PUBLISHER_RENDERER_CONTRACT.rendererVersion).toBe(PUBLISHER_RENDERER_VERSION);
-    expect(PUBLISHER_RENDERER_CONTRACT.supportedRendererVersions).toEqual([
-      'faction-sheet-v1',
-      'faction-sheet-v2',
-    ]);
-    expect(PUBLISHER_SUPPORTED_RENDERER_VERSIONS).toEqual(['faction-sheet-v1', 'faction-sheet-v2']);
+    expect(PUBLISHER_RENDERER_CONTRACT.supportedRendererVersions).toEqual(['faction-sheet-v3']);
+    expect(PUBLISHER_SUPPORTED_RENDERER_VERSIONS).toEqual(['faction-sheet-v3']);
   });
 
   test('is deterministic independent of input order', () => {
@@ -74,7 +71,7 @@ describe('immutable renderer manifest digest', () => {
     expect(
       computeRendererManifestDigest(entries(), {
         ...PUBLISHER_RENDERER_CONTRACT,
-        rendererVersion: 'faction-sheet-v3',
+        rendererVersion: 'faction-sheet-v2',
       })
     ).not.toBe(computeRendererManifestDigest(entries()));
   });

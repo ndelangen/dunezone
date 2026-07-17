@@ -33,7 +33,7 @@ import {
 import { inspectChromiumPdf } from './pdf';
 import { ProofQueueConsumer } from './queue';
 
-const FIXED_VIEWPORT = { width: 1_500, height: 1_950 };
+const FIXED_VIEWPORT = { width: 2_100, height: 2_970 };
 const DEFAULT_RENDER_TIMEOUT_MS = 45_000;
 const FAILURE_MODES = new Set<ProofFailureMode>([
   'none',

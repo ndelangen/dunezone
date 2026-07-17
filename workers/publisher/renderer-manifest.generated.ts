@@ -2,23 +2,23 @@
 // Run `bun run publisher:assets` after changing release assets or the PDF contract.
 export const rendererManifest = {
   schemaVersion: 1,
-  rendererVersion: 'faction-sheet-v2',
-  supportedRendererVersions: ['faction-sheet-v1', 'faction-sheet-v2'],
+  rendererVersion: 'faction-sheet-v3',
+  supportedRendererVersions: ['faction-sheet-v3'],
   rendererId:
-    'faction-sheet/sha256:fcd66d60dc8f20b6beaa399a6b766acc36840998157a5e9f6ac959c1b55aa39b',
-  digest: 'fcd66d60dc8f20b6beaa399a6b766acc36840998157a5e9f6ac959c1b55aa39b',
+    'faction-sheet/sha256:21b06ee2aea6a7f18b095102ac2f0b24d87386d2a9ebbd9e6a1a661f69da9bd4',
+  digest: '21b06ee2aea6a7f18b095102ac2f0b24d87386d2a9ebbd9e6a1a661f69da9bd4',
   contract: {
-    rendererVersion: 'faction-sheet-v2',
-    supportedRendererVersions: ['faction-sheet-v1', 'faction-sheet-v2'],
+    rendererVersion: 'faction-sheet-v3',
+    supportedRendererVersions: ['faction-sheet-v3'],
     viewport: {
-      width: 1500,
-      height: 1950,
+      width: 2100,
+      height: 2970,
       deviceScaleFactor: 1,
     },
     pdf: {
       pageCount: 2,
-      pageWidthMm: 150,
-      pageHeightMm: 195,
+      pageWidthMm: 210,
+      pageHeightMm: 297,
       pageSizeToleranceMm: 0.5,
       displayHeaderFooter: false,
       marginMm: {

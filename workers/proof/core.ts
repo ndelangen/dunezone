@@ -2,8 +2,8 @@ import { sanitizePublisherDiagnostic } from '../../src/app/capture/publisher-dia
 
 export const PROOF_R2_KEY = 'proof/faction-sheet.pdf';
 export const EXPECTED_PAGE_COUNT = 2;
-export const EXPECTED_PAGE_WIDTH_MM = 150;
-export const EXPECTED_PAGE_HEIGHT_MM = 195;
+export const EXPECTED_PAGE_WIDTH_MM = 210;
+export const EXPECTED_PAGE_HEIGHT_MM = 297;
 export const MAX_BROWSER_CAPTURE_DEADLINE_MS = 360_000;
 export const BROWSER_CLEANUP_GRACE_MS = 15_000;
 

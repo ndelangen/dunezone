@@ -19,7 +19,7 @@ describe('scheduled production deployment shape', () => {
       CRON_DISPATCH_ENABLED: 'true',
       CAPTURE_BASE_URL: 'https://faction-sheet-asset-publisher.ndelangen.workers.dev',
       CONVEX_POLL_URL: 'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/poll',
-      SUPPORTED_RENDERER_VERSION: 'faction-sheet-v2',
+      SUPPORTED_RENDERER_VERSION: 'faction-sheet-v3',
       EXECUTOR_MAX_ITEMS: '2',
     });
     expect(config.workers_dev).toBe(true);

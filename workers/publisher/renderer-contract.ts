@@ -9,11 +9,11 @@ export const PUBLISHER_SUPPORTED_RENDERER_VERSIONS = SUPPORTED_FACTION_SHEET_REN
 export const PUBLISHER_RENDERER_CONTRACT = {
   rendererVersion: PUBLISHER_RENDERER_VERSION,
   supportedRendererVersions: PUBLISHER_SUPPORTED_RENDERER_VERSIONS,
-  viewport: { width: 1_500, height: 1_950, deviceScaleFactor: 1 },
+  viewport: { width: 2_100, height: 2_970, deviceScaleFactor: 1 },
   pdf: {
     pageCount: 2,
-    pageWidthMm: 150,
-    pageHeightMm: 195,
+    pageWidthMm: 210,
+    pageHeightMm: 297,
     pageSizeToleranceMm: 0.5,
     displayHeaderFooter: false,
     marginMm: { top: 0, right: 0, bottom: 0, left: 0 },

@@ -18,6 +18,10 @@ const v2ActivationArgs = {
   ...activationArgs,
   rendererVersion: 'faction-sheet-v2' as const,
 };
+const v3ActivationArgs = {
+  ...activationArgs,
+  rendererVersion: 'faction-sheet-v3' as const,
+};
 const RECONCILIATION_RESERVATION_TOKEN = 'prior-canary-reservation';
 const reconciliationArgs = {
   expectedUtcDate: '2026-07-16',
@@ -202,22 +206,25 @@ describe('asset publisher operator controls', () => {
     ).resolves.toEqual({ configs: [], states: [], counters: [] });
   });
 
-  test('activation selects v2 and can explicitly reactivate v1 with the same exact guards', async () => {
+  test('activation selects v3 and retains explicit v2/v1 rollback controls', async () => {
     const t = convexTest(schema, modules);
     await recordSuccessfulPrerequisite(t);
     await t.mutation(internal.assetPublisherOperator.initializeDisabled, {});
 
     await expect(
-      t.mutation(internal.assetPublisherOperator.activate, v2ActivationArgs)
+      t.mutation(internal.assetPublisherOperator.activate, v3ActivationArgs)
     ).resolves.toMatchObject({
       changed: true,
-      rendererVersion: 'faction-sheet-v2',
+      rendererVersion: 'faction-sheet-v3',
       configStatus: 'active',
       publisherStatus: 'active',
     });
     await expect(
+      t.mutation(internal.assetPublisherOperator.activate, v3ActivationArgs)
+    ).resolves.toMatchObject({ changed: false, rendererVersion: 'faction-sheet-v3' });
+    await expect(
       t.mutation(internal.assetPublisherOperator.activate, v2ActivationArgs)
-    ).resolves.toMatchObject({ changed: false, rendererVersion: 'faction-sheet-v2' });
+    ).resolves.toMatchObject({ changed: true, rendererVersion: 'faction-sheet-v2' });
     await expect(
       t.mutation(internal.assetPublisherOperator.activate, activationArgs)
     ).resolves.toMatchObject({ changed: true, rendererVersion: 'faction-sheet-v1' });
@@ -844,12 +851,12 @@ describe('asset publisher operator HTTP boundary', () => {
           await post({
             schemaVersion: 1,
             operation: 'activate',
-            rendererVersion: 'faction-sheet-v2',
+            rendererVersion: 'faction-sheet-v3',
           })
         ).json()
       ).resolves.toMatchObject({
         operation: 'activate',
-        rendererVersion: 'faction-sheet-v2',
+        rendererVersion: 'faction-sheet-v3',
         configStatus: 'active',
         publisherStatus: 'active',
       });
