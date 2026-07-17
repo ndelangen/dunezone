@@ -368,7 +368,7 @@ describe('publisher batch and exact claim state machine', () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
     const { t, targetId: admittedLegacyTargetId } = await seed({
-      firstPublicationCount: 3_500,
+      firstPublicationCount: 875,
       nextEligibleAt: NOW,
     });
     await addSelectionTarget(t, {
@@ -410,18 +410,18 @@ describe('publisher batch and exact claim state machine', () => {
     });
   });
 
-  test('at the 3,500-object cap skips new objects but still claims admitted overwrites', async () => {
+  test('at the 875-object cap skips new objects but still claims admitted overwrites', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
     const { t: newObject } = await seed({
       firstPublicationAdmitted: false,
-      firstPublicationCount: 3_500,
+      firstPublicationCount: 875,
     });
     await expect(
       newObject.mutation(internal.assetPublisher.acquireBatch, { batchToken: BATCH_ONE })
     ).resolves.toEqual({ status: 'empty', reason: 'no_eligible_work' });
 
-    const { t: overwrite } = await seed({ firstPublicationCount: 3_500 });
+    const { t: overwrite } = await seed({ firstPublicationCount: 875 });
     await expect(acquireAndClaim(overwrite)).resolves.toMatchObject({ status: 'claimed' });
   });
 
@@ -430,7 +430,7 @@ describe('publisher batch and exact claim state machine', () => {
     vi.setSystemTime(NOW);
     const { t } = await seed({
       firstPublicationAdmitted: false,
-      firstPublicationCount: 3_499,
+      firstPublicationCount: 874,
     });
     const claim = await acquireAndClaim(t);
     await t.run(async (ctx) => {
@@ -439,7 +439,7 @@ describe('publisher batch and exact claim state machine', () => {
         .withIndex('by_key', (q) => q.eq('key', FACTION_SHEET_PUBLICATION_COUNTER_KEY))
         .unique();
       if (!counter) throw new Error('missing first-publication counter');
-      await ctx.db.patch(counter._id, { value: 3_500 });
+      await ctx.db.patch(counter._id, { value: 875 });
     });
 
     await expect(

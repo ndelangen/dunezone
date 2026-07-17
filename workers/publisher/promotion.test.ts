@@ -158,6 +158,32 @@ describe('pure one-step batch promotion policy', () => {
     expect(report.pauseTriggers).toEqual(['quota:quota_denied']);
   });
 
+  test('accepts the observed 3,698,605-byte PDF but rejects evidence above 8,000,000 bytes', () => {
+    const accepted = evaluateBatchPromotion({
+      currentBatchSize: 1,
+      candidateBatchSize: 2,
+      samples: passingSamples(2).map((entry) => ({
+        ...entry,
+        output: { ...entry.output, pdfBytes: 3_698_605 },
+      })),
+      ownershipFailureSuitePassed: true,
+    });
+    expect(accepted.recommendation).toBe('promote');
+
+    const oversized = passingSamples(2);
+    oversized[0] = sample('oversized-pdf', 2, {
+      output: { ...sample('base', 2).output, pdfBytes: 8_000_001 },
+    });
+    const rejected = evaluateBatchPromotion({
+      currentBatchSize: 1,
+      candidateBatchSize: 2,
+      samples: oversized,
+      ownershipFailureSuitePassed: true,
+    });
+    expect(rejected.recommendation).toBe('rollback');
+    expect(rejected.rollbackTriggers).toContain('oversized-pdf:invalid_output');
+  });
+
   test('missing platform metrics always prevent promotion', () => {
     const samples = passingSamples(2);
     samples[0] = sample('missing-cpu', 2, {

@@ -82,8 +82,8 @@ disabled. Faction create/update mutations use the same disabled-safe, transactio
 the function-deploy window before required migrations run cannot fail saves or activate publishing.
 
 The publication-admission guard also creates the missing publisher singleton disabled, initializes
-the persisted counter from at most 3,501 already-admitted/published targets, and fails if the
-footprint exceeds 3,500 or disagrees with an existing counter. New save/backfill targets dual-write
+the persisted counter from at most 876 already-admitted/published targets, and fails if the
+footprint exceeds 875 or disagrees with an existing counter. New save/backfill targets dual-write
 `first_publication_admitted: false`. Activation remains blocked until the marker migration succeeds
 and the bounded admitted-target count exactly matches the persisted counter.
 

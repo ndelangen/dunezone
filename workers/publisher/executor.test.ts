@@ -26,7 +26,7 @@ const config: PublisherConfig = {
   uploadMarginMs: 120_000,
   browserCaptureTimeoutMs: 45_000,
   browserCleanupGraceMs: 5,
-  pdfMaxBytes: 2_000_000,
+  pdfMaxBytes: 8_000_000,
   queueMaxPreOwnershipAttempts: 2,
   queueRetryDelaySeconds: 60,
 };
@@ -105,10 +105,11 @@ function setup(
   });
   const put = vi.fn(options.put ?? (async () => r2Object()));
   const bucket: AssetBucket = { head: async () => null, put };
+  const capturedBytes = new Uint8Array(options.pdfBytes ?? 3);
   const capture = vi.fn(async () => {
     if (options.captureError) throw options.captureError;
     return {
-      bytes: new Uint8Array(options.pdfBytes ?? 3),
+      bytes: capturedBytes,
       pageCount: options.pdfPageCount ?? 2,
       pageWidthMm: options.pdfWidthMm ?? 150,
       pageHeightMm: options.pdfHeightMm ?? 195,
@@ -153,6 +154,7 @@ function setup(
       revalidate,
       put,
       capture,
+      capturedBytes,
       close,
       openBrowser,
     },
@@ -605,14 +607,21 @@ describe('one-item owned batch execution', () => {
     expect(spies.release).toHaveBeenCalledOnce();
   });
 
-  test('an oversized PDF fails before R2 and is checkpointed', async () => {
-    const { dependencies, spies } = setup({ pdfBytes: 4 });
-    const report = await executeOwnedBatch(
-      dependencies,
-      { ...config, pdfMaxBytes: 3 },
-      acquisition,
-      NOW
-    );
+  test('accepts the observed 3,698,605-byte PDF and writes it conditionally to R2', async () => {
+    const { dependencies, spies } = setup({ pdfBytes: 3_698_605 });
+    const report = await executeOwnedBatch(dependencies, config, acquisition, NOW);
+    expect(report.status).toBe('completed');
+    expect(spies.put).toHaveBeenCalledOnce();
+    expect(spies.put.mock.calls[0]?.[1]).toBe(spies.capturedBytes);
+    expect(spies.capturedBytes).toHaveLength(3_698_605);
+    const onlyIf = spies.put.mock.calls[0]?.[2].onlyIf;
+    expect(onlyIf).toBeInstanceOf(Headers);
+    expect((onlyIf as Headers).get('If-None-Match')).toBe('*');
+  });
+
+  test('rejects an 8,000,001-byte PDF before R2 and checkpoints the failure', async () => {
+    const { dependencies, spies } = setup({ pdfBytes: 8_000_001 });
+    const report = await executeOwnedBatch(dependencies, config, acquisition, NOW);
     expect(report.status).toBe('failed');
     expect(spies.put).not.toHaveBeenCalled();
     expect(spies.fail).toHaveBeenCalled();

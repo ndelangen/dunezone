@@ -45,8 +45,8 @@ partial, conditional-negative, missing, and error responses are never inserted.
 
 Storage is structurally bounded instead of estimated from a timestamp. A dedicated private bucket
 holds exactly one stable `factions/<id>/sheet.pdf` object per admitted faction. Convex reserves a
-first-publication slot transactionally immediately before upload and admits at most 3,500 targets.
-The Worker accepts exactly the 2,000,000-byte PDF cap, so admitted objects account for at most
+first-publication slot transactionally immediately before upload and admits at most 875 targets.
+The Worker accepts exactly the 8,000,000-byte PDF cap, so admitted objects account for at most
 7,000,000,000 PDF bytes. Slot reservations are conservative and survive upload/completion failure;
 already-admitted stable objects may still be overwritten at the cap. Faction saves never consult
 this counter and remain immediate.

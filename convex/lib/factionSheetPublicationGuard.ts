@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from '../types';
 import { FACTION_SHEET_ASSET_TYPE } from './factionSheetTargets';
 
-export const MAX_FIRST_PUBLISHED_FACTION_SHEETS = 3_500;
+export const MAX_FIRST_PUBLISHED_FACTION_SHEETS = 875;
 export const FACTION_SHEET_PUBLICATION_COUNTER_KEY =
   'asset_publisher:faction_sheet:first_publications' as const;
 export const FACTION_SHEET_TARGET_ACTIVATION_PREREQUISITE =

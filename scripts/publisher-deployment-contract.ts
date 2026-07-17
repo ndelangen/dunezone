@@ -115,7 +115,7 @@ export function validatePublisherDeployContract(
       UPLOAD_MARGIN_MS: '120000',
       BROWSER_CAPTURE_TIMEOUT_MS: '45000',
       BROWSER_CLEANUP_GRACE_MS: '15000',
-      PDF_MAX_BYTES: '2000000',
+      PDF_MAX_BYTES: '8000000',
       QUEUE_MAX_PRE_OWNERSHIP_ATTEMPTS: '2',
       QUEUE_RETRY_DELAY_SECONDS: '60',
     },

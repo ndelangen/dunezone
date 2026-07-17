@@ -17,7 +17,7 @@ function env(overrides: Record<string, string> = {}): Env {
     UPLOAD_MARGIN_MS: '120000',
     BROWSER_CAPTURE_TIMEOUT_MS: '45000',
     BROWSER_CLEANUP_GRACE_MS: '15000',
-    PDF_MAX_BYTES: '2000000',
+    PDF_MAX_BYTES: '8000000',
     QUEUE_MAX_PRE_OWNERSHIP_ATTEMPTS: '2',
     QUEUE_RETRY_DELAY_SECONDS: '60',
     ...overrides,
@@ -65,10 +65,10 @@ describe('publisher lifecycle configuration', () => {
     ).toThrow(/embedded renderer compatibility version/);
   });
 
-  test('keeps the structural storage proof at the exact 2,000,000-byte PDF cap', () => {
-    expect(parsePublisherConfig(env()).pdfMaxBytes).toBe(2_000_000);
-    expect(() => parsePublisherConfig(env({ PDF_MAX_BYTES: '2000001' }))).toThrow(
-      'PDF_MAX_BYTES must be between 2000000 and 2000000'
+  test('keeps the structural storage proof at the exact 8,000,000-byte PDF cap', () => {
+    expect(parsePublisherConfig(env()).pdfMaxBytes).toBe(8_000_000);
+    expect(() => parsePublisherConfig(env({ PDF_MAX_BYTES: '8000001' }))).toThrow(
+      'PDF_MAX_BYTES must be between 8000000 and 8000000'
     );
   });
 });

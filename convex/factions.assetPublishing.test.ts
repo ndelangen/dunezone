@@ -113,7 +113,7 @@ describe('faction save target reconciliation', () => {
       async (ctx) =>
         await ctx.db.insert('counters', {
           key: FACTION_SHEET_PUBLICATION_COUNTER_KEY,
-          value: 3_500,
+          value: 875,
         })
     );
 

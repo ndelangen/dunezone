@@ -54,6 +54,7 @@ describe('publisher CI deployment contract', () => {
     ['PUBLISHER_ENABLED', 'false'],
     ['CRON_DISPATCH_ENABLED', 'false'],
     ['EXECUTOR_MAX_ITEMS', '1'],
+    ['PDF_MAX_BYTES', '8000001'],
     ['CONVEX_POLL_URL', 'https://replacement.convex.site/asset-publishing/poll'],
   ])('fails closed when %s changes', (name, value) => {
     const config = structuredClone(readPublisherConfig());

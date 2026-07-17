@@ -36,7 +36,7 @@ const config: PublisherConfig = {
   uploadMarginMs: 120_000,
   browserCaptureTimeoutMs: 45_000,
   browserCleanupGraceMs: 15_000,
-  pdfMaxBytes: 2_000_000,
+  pdfMaxBytes: 8_000_000,
   queueMaxPreOwnershipAttempts: 2,
   queueRetryDelaySeconds: 60,
 };

@@ -95,7 +95,7 @@ export function parsePublisherConfig(env: Env): PublisherConfig {
     uploadMarginMs,
     browserCaptureTimeoutMs,
     browserCleanupGraceMs,
-    pdfMaxBytes: integer('PDF_MAX_BYTES', env.PDF_MAX_BYTES, 2_000_000, 2_000_000),
+    pdfMaxBytes: integer('PDF_MAX_BYTES', env.PDF_MAX_BYTES, 8_000_000, 8_000_000),
     queueMaxPreOwnershipAttempts: integer(
       'QUEUE_MAX_PRE_OWNERSHIP_ATTEMPTS',
       env.QUEUE_MAX_PRE_OWNERSHIP_ATTEMPTS,

@@ -29,7 +29,7 @@ export const DEFAULT_PROMOTION_POLICY: PromotionPolicy = {
   minimumPreUploadLeaseMs: 240_000,
   maxBrowserCloseMs: 10_000,
   maxSettlementMs: 5_000,
-  maxPdfBytes: 2_000_000,
+  maxPdfBytes: 8_000_000,
 };
 
 export type PromotionSample = {
