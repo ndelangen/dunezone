@@ -14,14 +14,24 @@ type UIButtonShared = {
   iconOnly?: boolean;
 };
 
-type UIButtonAsLink = UIButtonShared & LinkComponentProps;
+type UIButtonAsLink = UIButtonShared &
+  LinkComponentProps & {
+    href?: undefined;
+  };
+
+type UIButtonAsAnchor = UIButtonShared &
+  ComponentPropsWithoutRef<'a'> & {
+    href: string;
+    to?: undefined;
+  };
 
 export type UIButtonAsButton = UIButtonShared &
   ComponentPropsWithoutRef<'button'> & {
     to?: undefined;
+    href?: undefined;
   };
 
-export type UIButtonProps = UIButtonAsLink | UIButtonAsButton;
+export type UIButtonProps = UIButtonAsLink | UIButtonAsAnchor | UIButtonAsButton;
 
 export type UIButtonLinkProps = Omit<UIButtonAsLink, 'children'> & {
   children: ReactNode;
@@ -43,7 +53,9 @@ function uiButtonClassNames(variant: UIButtonVariant, iconOnly: boolean): string
 }
 
 /**
- * Shared button chrome: semantic variants, optional icon-only layout, and TanStack Router `Link` when `to` is set.
+ * Shared button chrome with semantic variants and optional icon-only layout.
+ * Uses a native anchor for `href`, a TanStack Router `Link` for `to`, and a
+ * button otherwise.
  */
 export function UIButton({
   variant = 'confirm',
@@ -53,6 +65,18 @@ export function UIButton({
   ...rest
 }: UIButtonProps) {
   const cn = clsx(uiButtonClassNames(variant, iconOnly), className);
+
+  if ('href' in rest && rest.href !== undefined) {
+    const { href, ...anchorProps } = rest as Omit<
+      UIButtonAsAnchor,
+      'variant' | 'className' | 'children' | 'iconOnly'
+    >;
+    return (
+      <a {...anchorProps} href={href} className={cn}>
+        {children}
+      </a>
+    );
+  }
 
   if ('to' in rest && rest.to !== undefined) {
     const { to, ...linkProps } = rest as Omit<

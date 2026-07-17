@@ -8,37 +8,54 @@ export type PublicAssetPublishingStatus = 'waiting' | 'publishing' | 'delayed' |
 
 export type PublicAssetPublishingStatusProjection = {
   status: PublicAssetPublishingStatus | null;
+  publicationHref: string | null;
 };
 
 type ProjectableTarget = Pick<
   Doc<'asset_targets'>,
+  | 'faction_id'
   | 'status'
   | 'desired_generation'
   | 'desired_renderer_version'
   | 'published_generation'
   | 'published_renderer_version'
+  | 'published_cache_token'
+  | 'published_r2_etag'
+  | 'published_bytes'
+  | 'published_at'
 >;
 
 /**
  * The only target state allowed across the public application boundary.
- * Operational errors, attempts, claims, leases, payloads, and publication
- * metadata intentionally never enter this projection.
+ * Operational errors, attempts, claims, leases, payloads, and private
+ * publication metadata intentionally never enter this projection. A complete
+ * publication contributes only its cache-busted public href.
  */
 export function projectPublicAssetPublishingStatus(
   target: ProjectableTarget | null
 ): PublicAssetPublishingStatusProjection {
-  if (!target) return { status: null };
+  if (!target) return { status: null, publicationHref: null };
 
-  if (target.status === 'leased') return { status: 'publishing' };
-  if (target.status === 'cooldown') return { status: 'delayed' };
+  const publicationHref =
+    target.published_generation === undefined ||
+    target.published_renderer_version === undefined ||
+    target.published_cache_token === undefined ||
+    target.published_r2_etag === undefined ||
+    target.published_bytes === undefined ||
+    target.published_at === undefined
+      ? null
+      : `/published/factions/${encodeURIComponent(target.faction_id)}/sheet.pdf?v=${encodeURIComponent(target.published_cache_token)}`;
+
+  if (target.status === 'leased') return { status: 'publishing', publicationHref };
+  if (target.status === 'cooldown') return { status: 'delayed', publicationHref };
   if (
     target.status === 'current' &&
     target.desired_generation === target.published_generation &&
     target.desired_renderer_version === target.published_renderer_version
   ) {
-    return { status: 'current' };
+    return { status: 'current', publicationHref };
   }
-  return { status: 'waiting' };
+  return { status: 'waiting', publicationHref };
 }
 
 export async function factionSheetPublishingStatus(

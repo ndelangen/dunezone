@@ -119,7 +119,7 @@ export function useFaction(
     memberships: result.data?.memberships,
     groups: result.data?.groups,
     groupAccess: result.data?.groupAccess ?? null,
-    assetPublishing: result.data?.assetPublishing ?? { status: null },
+    assetPublishing: result.data?.assetPublishing ?? { status: null, publicationHref: null },
   };
 }
 

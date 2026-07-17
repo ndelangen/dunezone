@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { Save, Trash2 } from 'lucide-react';
+import { Download, Save, Trash2 } from 'lucide-react';
 
 import { UIButton } from './UIButton';
 
@@ -49,5 +49,16 @@ export const IconOnlyCritical = meta.story({
     iconOnly: true,
     variant: 'critical',
     children: <Trash2 size={16} aria-hidden />,
+  },
+});
+
+export const NativeLink = meta.story({
+  args: {
+    'aria-label': 'Open published PDF',
+    href: '/example.pdf',
+    target: '_blank',
+    rel: 'noopener noreferrer',
+    variant: 'secondary',
+    children: <Download size={16} aria-hidden />,
   },
 });

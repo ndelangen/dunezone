@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useMatches } from '@tanstack/react-router';
-import { ArrowLeft, Pencil, Printer, UserPlus } from 'lucide-react';
+import { ArrowLeft, Download, Eye, Pencil, UserPlus } from 'lucide-react';
 
 import { loadFaction, useFaction } from '@db/factions';
 import { useRequestGroupMembership } from '@db/members';
@@ -181,18 +181,33 @@ function FactionDetailMain({ factionId }: { factionId: string }) {
           </ButtonGroup>
         </Toolbar.Left>
         <Toolbar.Right>
-          <FormTooltip content="Printable faction sheet">
-            <UIButton
-              variant="confirm"
-              to="/preview/sheet/$factionSlug"
-              params={{ factionSlug: factionId }}
-              search={{ mode: 'db' }}
-              target="_blank"
-              aria-label="Printable faction sheet"
-            >
-              <Printer size={16} aria-hidden />
-            </UIButton>
-          </FormTooltip>
+          <ButtonGroup>
+            <FormTooltip content="Preview faction sheet">
+              <UIButton
+                variant="confirm"
+                to="/preview/sheet/$factionSlug"
+                params={{ factionSlug: factionId }}
+                search={{ mode: 'db' }}
+                target="_blank"
+                aria-label="Preview faction sheet"
+              >
+                <Eye size={16} aria-hidden />
+              </UIButton>
+            </FormTooltip>
+            {assetPublishing.publicationHref ? (
+              <FormTooltip content="Open published PDF">
+                <UIButton
+                  variant="secondary"
+                  href={assetPublishing.publicationHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Open published PDF"
+                >
+                  <Download size={16} aria-hidden />
+                </UIButton>
+              </FormTooltip>
+            ) : null}
+          </ButtonGroup>
         </Toolbar.Right>
       </Toolbar>
 
@@ -202,7 +217,7 @@ function FactionDetailMain({ factionId }: { factionId: string }) {
           params={{ factionSlug: factionId }}
           search={{ mode: 'db' }}
         >
-          Printable faction sheet
+          Preview faction sheet
         </Link>{' '}
         (opens without site chrome; use the browser print dialog for PDF)
       </p>
@@ -210,6 +225,15 @@ function FactionDetailMain({ factionId }: { factionId: string }) {
       <section>
         <h3>Public assets</h3>
         <p>{factionAssetPublishingCopy(assetPublishing.status)}</p>
+        <p>
+          {assetPublishing.publicationHref ? (
+            <a href={assetPublishing.publicationHref} target="_blank" rel="noopener noreferrer">
+              Open published faction sheet (PDF)
+            </a>
+          ) : (
+            'The published PDF has not been rendered yet.'
+          )}
+        </p>
       </section>
 
       <section>
