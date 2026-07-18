@@ -7,8 +7,8 @@ import {
   redactPublisherResource,
   sanitizePublisherDiagnostic,
 } from '../../src/app/capture/publisher-diagnostics';
+import { inspectChromiumPdf } from '../publisher/pdf-inspection';
 import { EXPECTED_PAGE_COUNT, EXPECTED_PAGE_HEIGHT_MM, EXPECTED_PAGE_WIDTH_MM } from './core';
-import { inspectChromiumPdf } from './pdf';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const referenceDirectory = path.join(repositoryRoot, 'tmp/asset-publishing-proof');

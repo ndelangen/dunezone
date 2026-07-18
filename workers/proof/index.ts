@@ -10,6 +10,7 @@ import {
   redactPublisherResource,
   sanitizePublisherDiagnostic,
 } from '../../src/app/capture/publisher-diagnostics';
+import { inspectChromiumPdf } from '../publisher/pdf-inspection';
 import { handleProofCaptureAsset } from './capture-route';
 import { acquireDefaultLimitExperimentClaim } from './claim';
 import { sendConvexProofCheckpoint } from './convex';
@@ -30,7 +31,6 @@ import {
   parseProofWakeUp,
   pollConvexProofEligibility,
 } from './dispatch';
-import { inspectChromiumPdf } from './pdf';
 import { ProofQueueConsumer } from './queue';
 
 const FIXED_VIEWPORT = { width: 2_100, height: 2_970 };

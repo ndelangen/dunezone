@@ -12,8 +12,8 @@ import {
   redactPublisherResource,
   sanitizePublisherDiagnostic,
 } from '../../src/app/capture/publisher-diagnostics';
-import { inspectChromiumPdf } from '../proof/pdf';
 import { captureClaimCookie, captureDeadlineCookie } from './capture-route';
+import { inspectChromiumPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
 const { pdf: PDF_CONTRACT, viewport: VIEWPORT_CONTRACT } = PUBLISHER_RENDERER_CONTRACT;

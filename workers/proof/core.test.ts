@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
+import { inspectChromiumPdf } from '../publisher/pdf-inspection';
+import { incompleteClassicXrefPdf } from '../publisher/pdf-inspection-test-fixtures';
 import {
   BROWSER_CLEANUP_GRACE_MS,
   type CapturedPdf,
@@ -10,8 +12,6 @@ import {
   type ProofFailureMode,
 } from './core';
 import { createProofWakeUp } from './dispatch';
-import { inspectChromiumPdf } from './pdf';
-import { incompleteClassicXrefPdf } from './pdf-test-fixtures';
 import { ProofQueueConsumer } from './queue';
 
 const validCapture: CapturedPdf = {

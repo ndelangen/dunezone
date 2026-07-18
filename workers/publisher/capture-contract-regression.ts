@@ -3,7 +3,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 import { proofFaction } from '../../src/app/capture/proofFaction';
-import { inspectChromiumPdf } from '../proof/pdf';
+import { inspectChromiumPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');

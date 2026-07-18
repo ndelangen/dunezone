@@ -23,7 +23,10 @@ function entries(overrides: Partial<Record<string, string>> = {}): RendererManif
     { path: 'workers/publisher/dist/generated/image.png', bytes: encoder.encode('image-bytes') },
     { path: 'workers/publisher/dist/vector/icon.svg', bytes: encoder.encode('<svg/>') },
     { path: 'workers/publisher/browser.ts', bytes: encoder.encode('browser-source') },
-    { path: 'workers/proof/pdf.ts', bytes: encoder.encode('pdf-inspector-source') },
+    {
+      path: 'workers/publisher/pdf-inspection.ts',
+      bytes: encoder.encode('pdf-inspector-source'),
+    },
   ].map((entry) => ({
     ...entry,
     bytes: encoder.encode(overrides[entry.path] ?? new TextDecoder().decode(entry.bytes)),
@@ -51,7 +54,7 @@ describe('immutable renderer manifest digest', () => {
     'workers/publisher/dist/generated/image.png',
     'workers/publisher/dist/vector/icon.svg',
     'workers/publisher/browser.ts',
-    'workers/proof/pdf.ts',
+    'workers/publisher/pdf-inspection.ts',
   ])('changes when deployed closure entry %s changes', (changedPath) => {
     expect(computeRendererManifestDigest(entries({ [changedPath]: 'changed' }))).not.toBe(
       computeRendererManifestDigest(entries())

@@ -19,7 +19,7 @@ export const RENDERER_RUNTIME_CLOSURE_PATHS = [
   'workers/publisher/http.ts',
   'workers/publisher/index.ts',
   'workers/publisher/renderer-contract.ts',
-  'workers/proof/pdf.ts',
+  'workers/publisher/pdf-inspection.ts',
   'src/app/capture/publisher-diagnostics.ts',
   'src/app/capture/faction-sheet-renderer-versions.ts',
 ] as const;

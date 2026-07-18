@@ -1,8 +1,8 @@
 import { PDFDocument } from 'pdf-lib';
 import { expect, test } from 'vitest';
 
-import { inspectChromiumPdf } from './pdf';
-import { incompleteClassicXrefPdf } from './pdf-test-fixtures';
+import { inspectChromiumPdf } from './pdf-inspection';
+import { incompleteClassicXrefPdf } from './pdf-inspection-test-fixtures';
 
 const pointsPerMm = 72 / 25.4;
 
