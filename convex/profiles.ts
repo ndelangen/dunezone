@@ -150,7 +150,44 @@ export const getByUserId = query({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query('profiles').take(500);
+    const profiles = await ctx.db.query('profiles').take(500);
+
+    return await Promise.all(
+      profiles.map(async (profile) => {
+        const [memberships, factions, questions, answers] = await Promise.all([
+          ctx.db
+            .query('group_members')
+            .withIndex('by_user_status', (q) =>
+              q.eq('user_id', profile.user_id).eq('status', 'active')
+            )
+            .take(500),
+          ctx.db
+            .query('factions')
+            .withIndex('by_owner_deleted', (q) =>
+              q.eq('owner_id', profile.user_id).eq('is_deleted', false)
+            )
+            .take(500),
+          ctx.db
+            .query('faq_items')
+            .withIndex('by_asked_by_created', (q) => q.eq('asked_by', profile.user_id))
+            .take(500),
+          ctx.db
+            .query('faq_answers')
+            .withIndex('by_answered_by_created', (q) => q.eq('answered_by', profile.user_id))
+            .take(500),
+        ]);
+
+        return {
+          ...profile,
+          activity: {
+            groupCount: memberships.length,
+            factionCount: factions.length,
+            questionCount: questions.length,
+            answerCount: answers.length,
+          },
+        };
+      })
+    );
   },
 });
 

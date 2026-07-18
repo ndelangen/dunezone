@@ -11,6 +11,14 @@ import type { Doc } from '../../../convex/_generated/dataModel';
 
 export type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
+export type ProfileListEntry = ProfileRow & {
+  activity: {
+    groupCount: number;
+    factionCount: number;
+    questionCount: number;
+    answerCount: number;
+  };
+};
 
 export type ProfilePageData = {
   profile: ProfileEntry;
@@ -36,8 +44,8 @@ export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> 
   };
 }
 
-export async function loadProfilesAll(): Promise<ProfileEntry[]> {
-  const entries = await db.query<ProfileRow[]>(api.profiles.list, {});
+export async function loadProfilesAll(): Promise<ProfileListEntry[]> {
+  const entries = await db.query<ProfileListEntry[]>(api.profiles.list, {});
   return entries;
 }
 
@@ -101,7 +109,7 @@ export function useProfileBySlug(
   };
 }
 
-export function useProfilesAll(options?: { initialData?: ProfileEntry[] }) {
+export function useProfilesAll(options?: { initialData?: ProfileListEntry[] }) {
   const liveData = useQuery(api.profiles.list, {});
   const result = toLiveQueryResult(liveData, true, () => options?.initialData ?? undefined);
   return {
