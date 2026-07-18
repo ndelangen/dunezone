@@ -5,10 +5,8 @@ import {
   MAX_PUBLISHER_ITEMS,
 } from './assetPublisherConstants';
 
-export const assetTypeSchema = z.literal('faction_sheet');
 export const publisherTokenSchema = z.string().min(16).max(256);
 export const rendererVersionSchema = z.string().trim().min(1).max(128);
-export const payloadHashSchema = z.string().regex(/^[0-9a-f]{64}$/);
 
 export const takeWorkArgsSchema = z.strictObject({
   claimTokens: z

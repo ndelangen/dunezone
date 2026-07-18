@@ -4,6 +4,7 @@
 import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
+import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import schema from './schema';
@@ -13,9 +14,17 @@ const modules = import.meta.glob('./**/*.ts');
 async function seedFaction(t: ReturnType<typeof convexTest>) {
   return await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Status projection owner' });
+    await ctx.db.insert('profiles', {
+      user_id: ownerId,
+      username: 'Status projection owner',
+      avatar_url: null,
+      slug: 'status-projection-owner',
+      created_at: '2026-07-16T12:00:00.000Z',
+      updated_at: '2026-07-16T12:00:00.000Z',
+    });
     return await ctx.db.insert('factions', {
       owner_id: ownerId,
-      data: {},
+      data: assetPublishingFaction,
       slug: 'status-projection',
       created_at: '2026-07-16T12:00:00.000Z',
       updated_at: '2026-07-16T12:00:00.000Z',
@@ -49,7 +58,10 @@ async function insertTarget(
 }
 
 async function publicStatus(t: ReturnType<typeof convexTest>, factionId: Id<'factions'>) {
-  return await t.query(api.assetPublishingStatus.getFactionSheet, { factionId });
+  const faction = await t.run(async (ctx) => await ctx.db.get('factions', factionId));
+  if (!faction) throw new Error('Missing status projection faction');
+  const detail = await t.query(api.factions.getBySlug, { slug: faction.slug });
+  return detail.assetPublishing;
 }
 
 describe('public asset publishing status projection', () => {

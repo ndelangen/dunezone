@@ -3,7 +3,7 @@ import SHA256 from 'crypto-js/sha256';
 
 import { FactionInputSchema } from '../src/game/schema/faction';
 import type { Doc, Id } from './_generated/dataModel';
-import { internalMutation, internalQuery, query } from './_generated/server';
+import { internalMutation, internalQuery } from './_generated/server';
 import {
   completeRolloutItem,
   failRolloutItem,
@@ -415,50 +415,6 @@ export const failItem = internalMutation({
     return {
       status: blocked ? ('blocked' as const) : ('failed' as const),
       consecutiveFailures,
-    };
-  },
-});
-
-export const getPublicMetadata = query({
-  args: { factionId: v.id('factions'), assetType: v.literal('faction_sheet') },
-  handler: async (ctx, args) => {
-    const target = await ctx.db
-      .query('asset_targets')
-      .withIndex('by_faction_id_and_asset_type', (q) =>
-        q.eq('faction_id', args.factionId).eq('asset_type', args.assetType)
-      )
-      .unique();
-    if (!target) return null;
-
-    const stablePath = `/published/factions/${encodeURIComponent(target.faction_id)}/sheet.pdf`;
-    const publication =
-      target.published_generation === undefined ||
-      target.published_renderer_version === undefined ||
-      target.published_cache_token === undefined ||
-      target.published_r2_etag === undefined ||
-      target.published_bytes === undefined ||
-      target.published_at === undefined
-        ? null
-        : {
-            generation: target.published_generation,
-            rendererVersion: target.published_renderer_version,
-            cacheToken: target.published_cache_token,
-            r2Etag: target.published_r2_etag,
-            bytes: target.published_bytes,
-            publishedAt: target.published_at,
-            stablePath,
-            href: `${stablePath}?v=${encodeURIComponent(target.published_cache_token)}`,
-          };
-    return {
-      factionId: target.faction_id,
-      assetType: target.asset_type,
-      status:
-        target.status === 'current' &&
-        target.desired_generation === target.published_generation &&
-        target.desired_renderer_version === target.published_renderer_version
-          ? ('current' as const)
-          : ('pending' as const),
-      publication,
     };
   },
 });

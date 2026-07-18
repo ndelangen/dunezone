@@ -1,7 +1,4 @@
-import { v } from 'convex/values';
-
 import type { Doc, Id } from './_generated/dataModel';
-import { query } from './_generated/server';
 import type { QueryCtx } from './types';
 
 export type PublicAssetPublishingStatus = 'waiting' | 'publishing' | 'delayed' | 'current';
@@ -75,8 +72,3 @@ export async function factionSheetPublishingStatus(
   }
   return projectPublicAssetPublishingStatus(targets[0] ?? null);
 }
-
-export const getFactionSheet = query({
-  args: { factionId: v.id('factions') },
-  handler: async (ctx, args) => await factionSheetPublishingStatus(ctx, args.factionId),
-});
