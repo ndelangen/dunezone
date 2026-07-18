@@ -2,7 +2,7 @@ import { type FC, useMemo } from 'react';
 import type { z } from 'zod';
 
 import { StrokedUse } from '../../../components/block/StrokedUse';
-import type { FactionAssets, FactionPreview } from '../../../schema/faction';
+import type { FactionRender } from '../../../schema/faction';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
 import { tint0 } from '../../utils/colors';
 import { useCountId } from '../../utils/useCountId';
@@ -11,9 +11,7 @@ import styles from './Leader.module.css';
 const iconSize = { width: 41, height: 41 };
 const iconLocation = { x: 150 - iconSize.width / 2, y: 220 };
 
-type LeaderTokenProps =
-  | z.infer<typeof FactionAssets.leaders>[0]
-  | z.infer<typeof FactionPreview.leaders>[0];
+type LeaderTokenProps = z.infer<typeof FactionRender.leaders>[0];
 
 export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, logo, name, strength }) => {
   const cid = useCountId();

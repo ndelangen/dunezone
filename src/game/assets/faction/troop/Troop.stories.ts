@@ -18,16 +18,7 @@ const meta = preview.meta({
   },
 });
 
-export const Asset = meta.story({
-  args: {
-    background: '/generated/utils/background/moritani.jpg',
-    image: '/vector/troop/atreides.svg',
-    star: '/vector/troop_modifier/star-left-red.svg',
-    striped: false,
-  },
-});
-
-export const Preview = meta.story({
+export const Default = meta.story({
   args: {
     background: {
       image: '/image/texture/021.jpg',

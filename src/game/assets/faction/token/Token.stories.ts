@@ -11,14 +11,7 @@ const meta = preview.meta({
   },
 });
 
-export const Asset = meta.story({
-  args: {
-    background: '/generated/utils/background/moritani.jpg',
-    logo: '/vector/logo/moritani.svg',
-  },
-});
-
-export const Preview = meta.story({
+export const Default = meta.story({
   args: {
     background: {
       image: '/image/texture/021.jpg',

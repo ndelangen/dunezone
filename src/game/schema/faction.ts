@@ -1,4 +1,3 @@
-import SHA256 from 'crypto-js/sha256';
 import { z } from 'zod';
 
 import { ALL, GENERIC, LEADERS, LOGO, TROOP, TROOP_MODIFIER } from '../data/generated';
@@ -138,26 +137,9 @@ export const FactionInputSchema = z.strictObject(factionShape);
 /** URL slug on the `factions` row — not a field on `FactionInput` / `factions.data`. */
 export const FactionRowSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
-/**
- * Validated pair for asset paths that need both row slug and faction payload (separate keys).
- * Matches `FactionRowAssetSource` / `FactionAssetSource` in `@db/factions` (`Pick<FactionEntry, 'data' | 'slug'>`).
- */
-export const FactionAssetSourceSchema = z.strictObject({
-  data: FactionInputSchema,
-  slug: FactionRowSlugSchema,
-});
-
 export type FactionInput = z.infer<typeof FactionInputSchema>;
 /** Convex `factions.data` payload; public slug is only on the faction row (`FactionEntry.slug`). */
 export type FactionData = FactionInput;
-
-function toHash(input: Record<string, unknown>) {
-  return SHA256(JSON.stringify(input)).toString().slice(0, 16);
-}
-
-function toSimple(input: string) {
-  return input.replace(/ /g, '-').toLowerCase();
-}
 
 /** Lowercase [a-z0-9] only; matches DB slugify base (no numeric uniqueness suffix). */
 export function factionSlugBaseFromName(name: string): string {
@@ -168,82 +150,7 @@ export function factionSlugBaseFromName(name: string): string {
   return raw || 'faction';
 }
 
-export const FactionAssets = {
-  shield: FactionAssetSourceSchema.transform(({ data, slug }) => ({
-    name: data.name,
-    leader: `/generated/leader/${slug}/${toSimple(data.hero.name)}.jpg`,
-    logo: `/generated/logo/${slug}.jpg`,
-  })),
-  token: FactionInputSchema.transform((input) => ({
-    logo: input.logo,
-    background: `/generated/background/${toHash(input.background)}.jpg`,
-  })),
-  sheet: FactionAssetSourceSchema.transform(({ data, slug }) => ({
-    name: data.name,
-    logo: `/generated/logo/${slug}.jpg`,
-    leaders: data.leaders.map((leader) => `/generated/leader/${slug}/${toSimple(leader.name)}.jpg`),
-    themeColor: data.themeColor,
-    troops: data.troops.map((troop) => ({
-      image: `/generated/troop/${slug}/${toSimple(troop.name)}.jpg`,
-      name: troop.name,
-      description: troop.description,
-      back: troop.back
-        ? {
-            image: `/generated/troop/${slug}/${toSimple(troop.back.name)}.jpg`,
-            name: troop.back.name,
-            description: troop.back.description,
-          }
-        : undefined,
-    })),
-    rules: data.rules,
-  })),
-  planet: FactionInputSchema.transform((input) => input.planet),
-  alliance: FactionInputSchema.transform((input) => ({
-    title: input.name,
-    text: input.rules.alliance.text,
-    logo: input.logo,
-    background: `/generated/background/${toHash(input.background)}.jpg`,
-    troop: input.troops[0]?.image,
-    decals: input.decals,
-  })),
-  leaders: FactionInputSchema.transform((input) =>
-    input.leaders.map((leader) => ({
-      ...leader,
-      background: `/generated/background/${toHash(input.background)}.jpg`,
-      logo: input.logo,
-    }))
-  ),
-  traitors: FactionInputSchema.transform((input) =>
-    input.leaders.map((leader) => ({
-      ...leader,
-      logo: input.logo,
-      background: `/generated/background/${toHash(input.background)}.jpg`,
-      owner: input.name,
-    }))
-  ),
-  troops: FactionInputSchema.transform((input) =>
-    input.troops.flatMap((troop) => [
-      {
-        image: troop.image,
-        background: `/generated/background/${toHash(input.background)}.jpg`,
-        star: troop.star,
-        striped: troop.striped,
-      },
-      ...(troop.back
-        ? [
-            {
-              image: troop.back.image,
-              background: `/generated/background/${toHash(input.background)}.jpg`,
-              star: troop.back.star,
-              striped: troop.back.striped,
-            },
-          ]
-        : []),
-    ])
-  ),
-};
-
-export const FactionPreview = {
+export const FactionRender = {
   alliance: FactionInputSchema.transform((input) => ({
     title: input.name,
     text: input.rules.alliance.text,
@@ -275,7 +182,6 @@ export const FactionPreview = {
       striped: troop.striped,
     }))
   ),
-  planet: FactionInputSchema.transform((input) => input.planet),
   shield: FactionInputSchema.transform((input) => ({
     name: input.name,
     leader: input.hero,
@@ -295,4 +201,4 @@ export const FactionPreview = {
     logo: input.logo,
     background: input.background,
   })),
-} satisfies Record<keyof typeof FactionAssets, unknown>;
+};

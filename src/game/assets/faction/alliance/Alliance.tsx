@@ -6,7 +6,7 @@ import type { z } from 'zod';
 import { MarkdownContent } from '../../../components/block/MarkdownContent';
 import { StrokedUse } from '../../../components/block/StrokedUse';
 import { card } from '../../../data/sizes';
-import type { FactionAssets, FactionPreview } from '../../../schema/faction';
+import type { FactionRender } from '../../../schema/faction';
 import styles from '../../card/Card.module.css';
 import { FrontDecals } from '../../card/Decals';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
@@ -15,9 +15,14 @@ import unique from './Alliance.module.css';
 
 const foreGroundColor = '#e3dbb3';
 
-export const AllianceCard: FC<
-  z.infer<typeof FactionAssets.alliance> | z.infer<typeof FactionPreview.alliance>
-> = ({ background, logo, title, decals, text, troop }) => {
+export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
+  background,
+  logo,
+  title,
+  decals,
+  text,
+  troop,
+}) => {
   const cid = useCountId();
   const prefix = useMemo(() => `${cid}_`, [cid]);
   const discMask = `${prefix}mask-disc`;

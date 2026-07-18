@@ -3,7 +3,7 @@ import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { StrokedUse } from '../../../components/block/StrokedUse';
-import type { FactionAssets, FactionPreview } from '../../../schema/faction';
+import type { FactionRender } from '../../../schema/faction';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
 import styles from './Token.module.css';
 
@@ -14,13 +14,7 @@ const iconLocation = {
   y: 50 - iconSize.height / 2,
 };
 
-type AssetToken = z.infer<typeof FactionAssets.token>;
-type PreviewToken = z.infer<typeof FactionPreview.token>;
-
-type FactionTokenProps = {
-  logo: AssetToken['logo'] | PreviewToken['logo'];
-  background: AssetToken['background'] | PreviewToken['background'];
-};
+type FactionTokenProps = z.infer<typeof FactionRender.token>;
 
 export const Token: FC<FactionTokenProps> = ({ background, logo }) => {
   const svgContent = (
