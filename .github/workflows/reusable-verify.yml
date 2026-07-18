@@ -87,7 +87,9 @@ jobs:
       - name: Build and dry-run unified Worker release
         run: bun run publisher:dry-run
         env:
-          VITE_CONVEX_URL: https://example.convex.cloud
+          VITE_CONVEX_URL: https://exuberant-finch-263.eu-west-1.convex.cloud
+      - name: Verify production renderer manifest is committed
+        run: git diff --exit-code -- workers/publisher/renderer-manifest.generated.ts
       - name: Install Chromium for publisher contract regression
         run: npx playwright install --with-deps chromium
       - name: Exercise production snapshot envelope in Chromium

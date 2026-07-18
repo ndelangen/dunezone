@@ -107,6 +107,19 @@ describe('scheduled production deployment shape', () => {
     expect(packageConfig.scripts['publisher:dry-run']).toContain('bun run publisher:assets');
   });
 
+  test('checks the Linux production renderer manifest before merge', () => {
+    const verifyWorkflow = readFileSync(
+      path.resolve(process.cwd(), '.github/workflows/reusable-verify.yml'),
+      'utf8'
+    );
+    expect(verifyWorkflow).toContain(
+      'VITE_CONVEX_URL: https://exuberant-finch-263.eu-west-1.convex.cloud'
+    );
+    expect(verifyWorkflow).toContain(
+      'git diff --exit-code -- workers/publisher/renderer-manifest.generated.ts'
+    );
+  });
+
   test('ignores publisher secret files while retaining the tracked example', () => {
     const ignored = spawnSync('git', ['check-ignore', 'workers/publisher/.dev.vars.production'], {
       encoding: 'utf8',

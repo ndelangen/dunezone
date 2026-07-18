@@ -55,6 +55,11 @@ Convex item envelope in Chromium and requires the capture marker, payload hash, 
 contract to succeed. The protected Convex producer and capture client also parse the same shared
 strict schema, so adding or removing response fields cannot be accepted on only one side.
 
+The PR publisher-release job builds on Linux with the exact production Convex URL and rejects any
+change to `renderer-manifest.generated.ts`. Treat that CI-produced manifest as authoritative; a
+manifest generated on another operating system may differ because it covers assembled build
+artifacts as well as renderer source.
+
 The protected `main` workflow runs source/config preflight, generated-type check, typecheck, one
 production-URL asset build, assembled-asset verification, Wrangler dry-run, strict SHA-tagged
 deploy, and health smoke. It pauses an active Convex publisher before the producer deploy and

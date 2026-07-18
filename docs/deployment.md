@@ -61,6 +61,8 @@ VITE_CONVEX_URL=https://exuberant-finch-263.eu-west-1.convex.cloud bun run publi
 ```
 
 CI uses `bun run publisher:release:dry-run` after the already-built assets have been verified.
+The pull-request publisher job builds the same production-URL release on Linux and rejects renderer
+manifest drift before merge, matching the production runner that enforces a clean source tree.
 
 ## Routing and ownership
 
