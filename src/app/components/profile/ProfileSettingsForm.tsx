@@ -47,8 +47,9 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileEntry }) {
         hint={
           <>
             Letters and numbers only, 5–30 characters, not all capitals. Your public profile URL
-            uses an id derived from this name (for example <code>…/profiles/{basePreview}</code>,
-            with a number suffix if needed). Renaming can invalidate older links.
+            uses an id derived from this name (e.g. <code>…/profiles/{basePreview}</code>, with a
+            number suffix if needed). If you rename, that id and the URL can change, so older links
+            may break—including bookmarks and pasted links.
           </>
         }
       >

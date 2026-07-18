@@ -143,6 +143,13 @@ export function useCanAccessRuleset(rulesetId: string) {
   return toLiveQueryResult(liveData, true);
 }
 
+export async function loadRulesetsByFaction(factionId: string): Promise<RulesetEntry[]> {
+  const entries = await db.query<RulesetRow[]>(api.rulesets.listByFaction, {
+    faction_id: factionId,
+  });
+  return entries.map(toRulesetEntry);
+}
+
 export function useRulesetsAll(options?: { initialData?: RulesetEntry[] }) {
   const liveData = useQuery(api.rulesets.list, {});
   const result = toLiveQueryResult(liveData, true, () => options?.initialData ?? undefined);
@@ -234,6 +241,20 @@ export function useRulesetFactionsWithDetails(
   return {
     ...result,
     data: result.data,
+  };
+}
+
+export function useRulesetsByFaction(
+  factionRowId: string,
+  options?: { initialData?: RulesetEntry[] }
+) {
+  const liveData = useQuery(api.rulesets.listByFaction, {
+    faction_id: factionRowId,
+  } as never) as RulesetRow[] | undefined;
+  const result = toLiveQueryResult(liveData, true, () => options?.initialData ?? undefined);
+  return {
+    ...result,
+    data: result.data?.map(toRulesetEntry),
   };
 }
 

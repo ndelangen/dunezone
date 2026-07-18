@@ -47,7 +47,7 @@ function NotFound() {
 
   return (
     <AppShell pathname={pathname}>
-      <PageLayout header={<h1>Page not found</h1>}>
+      <PageLayout header={<h1>404 - Page Not Found</h1>}>
         <p>The page you're looking for doesn't exist.</p>
         <Link to="/">Go back home</Link>
       </PageLayout>

@@ -2,15 +2,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { RotateCcw, Save, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import { isTanStackStartPrerendering } from '@db/core';
-import {
-  type Faction,
-  type FactionCreatePageData,
-  type FactionEntry,
-  loadFactionCreatePageContext,
-  useCreateFaction,
-  useFactionCreatePageContext,
-} from '@db/factions';
+import { type Faction, type FactionEntry, useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import {
   FactionEditor,
@@ -26,16 +18,6 @@ import { defaultFaction } from '@data/defaultFaction';
 import { FactionInputSchema, factionSlugBaseFromName } from '@game/schema/faction';
 
 export const Route = createFileRoute('/_app/factions/create')({
-  loader: async () => {
-    if (isTanStackStartPrerendering()) {
-      return { createContext: undefined as FactionCreatePageData | undefined };
-    }
-    try {
-      return { createContext: await loadFactionCreatePageContext() };
-    } catch {
-      return { createContext: undefined as FactionCreatePageData | undefined };
-    }
-  },
   component: CreateFactionPage,
 });
 
@@ -66,14 +48,9 @@ function formatZodIssues(err: { issues: readonly { path: PropertyKey[]; message:
 }
 
 function CreateFactionPage() {
-  const loaderData = Route.useLoaderData();
   const profile = useCurrentProfile();
   const ownerUserId = profile.data?.user_id;
   const navigate = useNavigate();
-  useFactionCreatePageContext({
-    initialData: loaderData.createContext,
-    enabled: ownerUserId != null,
-  });
   const createFaction = useCreateFaction();
   const editorRef = useRef<FactionEditorHandle | null>(null);
   const [editorErrors, setEditorErrors] = useState<string[]>([]);

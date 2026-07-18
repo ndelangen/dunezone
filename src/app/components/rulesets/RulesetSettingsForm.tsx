@@ -50,8 +50,8 @@ export function RulesetSettingsForm({ initial }: { initial: RulesetEntry }) {
         htmlFor="ruleset-settings-name"
         hint={
           <>
-            Changing the name updates the URL slug (for example{' '}
-            <code>…/rulesets/{initial.slug}</code>) and can invalidate older links.
+            Changing the name updates the URL slug (e.g. <code>…/rulesets/{initial.slug}</code> may
+            change). Bookmarks and shared links to the old address will stop working.
           </>
         }
       >

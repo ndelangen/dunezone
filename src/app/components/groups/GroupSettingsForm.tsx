@@ -57,7 +57,7 @@ export function GroupSettingsForm({ initial }: { initial: GroupEntry }) {
         label="Group name"
         htmlFor="group-settings-name"
         error={fieldError}
-        hint="Renaming may change this group's URL slug and invalidate older links."
+        hint="Renaming may change this group's URL slug. Bookmarks and shared links that use the old address may stop working until updated."
       >
         <TextField
           id="group-settings-name"

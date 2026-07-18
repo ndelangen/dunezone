@@ -37,6 +37,8 @@ function FaqCreatePage() {
         <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
           Back to ruleset
         </Link>
+        {' · '}
+        <Link to="/rulesets">Back to rulesets</Link>
       </p>
     </div>
   );

@@ -86,12 +86,14 @@ function FaqDetailPage() {
       <h1>FAQ</h1>
       <p>
         {item ? (
-          <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug: item.ruleset.slug }}>
-            Back to ruleset
-          </Link>
-        ) : (
-          <Link to="/rulesets">Back to rulesets</Link>
-        )}
+          <>
+            <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug: item.ruleset.slug }}>
+              Back to ruleset
+            </Link>
+            {' · '}
+          </>
+        ) : null}
+        <Link to="/rulesets">Back to rulesets</Link>
       </p>
     </div>
   );

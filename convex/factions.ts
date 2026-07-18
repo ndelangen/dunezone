@@ -61,17 +61,6 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
 
   const groups = await groupsForFactionAndMemberships(ctx, row.group_id, memberships);
 
-  const rulesetLinks = await ctx.db
-    .query('ruleset_factions')
-    .withIndex('by_faction', (q) => q.eq('faction_id', row._id))
-    .take(500);
-  const linkedRulesets = await Promise.all(
-    rulesetLinks.map((link) => ctx.db.get('rulesets', link.ruleset_id))
-  );
-  const rulesets = linkedRulesets.filter(
-    (ruleset): ruleset is Doc<'rulesets'> => ruleset != null && !ruleset.is_deleted
-  );
-
   let groupAccess: {
     group: Doc<'groups'>;
     members: Array<{
@@ -104,7 +93,6 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     group,
     memberships,
     groups,
-    rulesets,
     groupAccess,
     assetPublishing: await factionSheetPublishingStatus(ctx, row._id),
   };

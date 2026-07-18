@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowLeft, Download, Eye, Pencil, UserPlus } from 'lucide-react';
+import { ArrowLeft, Download, Eye, Pencil, Plus, User, UserPlus } from 'lucide-react';
 
 import { loadFaction, useFaction } from '@db/factions';
 import { useRequestGroupMembership } from '@db/members';
 import { useCurrentProfile } from '@db/profiles';
+import { loadRulesetsByFaction, useRulesetsByFaction } from '@db/rulesets';
 import { FormTooltip } from '@app/components/form/FormTooltip';
 import { ButtonGroup, Toolbar } from '@app/components/generic/layout';
 import { UIButton } from '@app/components/generic/ui/UIButton';
@@ -14,7 +15,8 @@ import { factionAssetPublishingCopy } from '@app/factions/assetPublishingStatus'
 export const Route = createFileRoute('/_app/factions/$factionId/')({
   loader: async ({ params }) => {
     const faction = await loadFaction(params.factionId);
-    return { faction };
+    const rulesets = await loadRulesetsByFaction(faction.faction._id);
+    return { faction, rulesets };
   },
   component: FactionDetailPage,
 });
@@ -34,14 +36,14 @@ function canEditFaction(
 function FactionDetailPage() {
   const { factionId } = Route.useParams();
   const loaderData = Route.useLoaderData();
-  const factionSeed = loaderData?.faction;
+  const factionSeed = loaderData.faction;
 
-  const { faction, memberships, groupAccess, owner, assetPublishing, rulesets } = useFaction(
-    factionId,
-    {
-      initialData: factionSeed,
-    }
-  );
+  const { faction, memberships, groupAccess, owner, assetPublishing } = useFaction(factionId, {
+    initialData: factionSeed,
+  });
+  const rulesets = useRulesetsByFaction(factionSeed.faction._id, {
+    initialData: loaderData.rulesets,
+  });
   const factionRow = faction;
   const profile = useCurrentProfile();
   const requestMembership = useRequestGroupMembership();
@@ -98,6 +100,29 @@ function FactionDetailPage() {
                   </UIButton>
                 </FormTooltip>
               ) : null}
+              <FormTooltip content={profile.data?.slug ? 'My factions' : 'Log in for my factions'}>
+                <UIButton
+                  variant="secondary"
+                  {...(profile.data?.slug
+                    ? {
+                        to: '/profiles/$profileSlug' as const,
+                        params: { profileSlug: profile.data.slug },
+                      }
+                    : { to: '/auth/login' as const })}
+                  aria-label={profile.data?.slug ? 'My factions' : 'Log in for my factions'}
+                >
+                  <User size={16} aria-hidden />
+                </UIButton>
+              </FormTooltip>
+              <FormTooltip content="Create a new faction">
+                <UIButton
+                  variant="secondary"
+                  to="/factions/create"
+                  aria-label="Create a new faction"
+                >
+                  <Plus size={16} aria-hidden />
+                </UIButton>
+              </FormTooltip>
             </ButtonGroup>
           </Toolbar.Left>
           <Toolbar.Right>
@@ -209,12 +234,12 @@ function FactionDetailPage() {
         )}
       </section>
 
-      {rulesets.length > 0 ? (
+      {rulesets.data && rulesets.data.length > 0 ? (
         <section>
           <h3>In rulesets</h3>
           <ul>
-            {rulesets.map((ruleset) => (
-              <li key={ruleset._id}>
+            {rulesets.data.map((ruleset) => (
+              <li key={ruleset.id}>
                 <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
                   {ruleset.name}
                 </Link>

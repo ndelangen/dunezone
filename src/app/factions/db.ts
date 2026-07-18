@@ -54,7 +54,6 @@ export type FactionDetailPageData = {
   group: Doc<'groups'> | null;
   memberships: Doc<'group_members'>[];
   groups: Doc<'groups'>[];
-  rulesets: Doc<'rulesets'>[];
   groupAccess: FactionPageGroupAccess | null;
   assetPublishing: PublicAssetPublishingStatusProjection;
 };
@@ -95,7 +94,6 @@ export function useFaction(
     group: result.data?.group,
     memberships: result.data?.memberships,
     groups: result.data?.groups,
-    rulesets: result.data?.rulesets ?? [],
     groupAccess: result.data?.groupAccess ?? null,
     assetPublishing: result.data?.assetPublishing ?? { status: null, publicationHref: null },
   };
@@ -273,30 +271,8 @@ export function useSetFactionGroup() {
   };
 }
 
-export type FactionCreatePageData = {
-  ownerProfile: Doc<'profiles'> | null;
-  groups: Doc<'groups'>[];
-  memberships: Doc<'group_members'>[];
-};
-
 export async function loadFaction(slug: string): Promise<FactionDetailPageData> {
   return await db.query<FactionDetailPageData>(api.factions.getBySlug, {
     slug,
   });
-}
-
-export async function loadFactionCreatePageContext(): Promise<FactionCreatePageData> {
-  return await db.query<FactionCreatePageData>(api.factions.getCreatePageContext, {});
-}
-
-export function useFactionCreatePageContext(options?: {
-  initialData?: FactionCreatePageData;
-  enabled?: boolean;
-}) {
-  const enabled = options?.enabled ?? true;
-  const liveData = useQuery(api.factions.getCreatePageContext, enabled ? {} : 'skip');
-  const result = toLiveQueryResult(liveData, enabled, () => options?.initialData ?? undefined);
-  return {
-    ...result,
-  };
 }

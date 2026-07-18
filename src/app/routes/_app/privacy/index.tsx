@@ -9,7 +9,7 @@ export const Route = createFileRoute('/_app/privacy/')({
 function PrivacyPage() {
   return (
     <PageLayout header={<h1>Privacy policy</h1>}>
-      <p>Privacy policy details will appear here.</p>
+      <div>Hello &quot;/privacy/&quot;!3</div>
     </PageLayout>
   );
 }
