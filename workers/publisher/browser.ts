@@ -201,64 +201,83 @@ export class PublisherBrowserSession {
   async capture(claimToken: string, timeoutMs: number): Promise<CapturedPdf> {
     const deadline = performance.now() + timeoutMs;
     const lifecycleDeadlineAt = Date.now() + timeoutMs;
-    this.context = await this.browser.newContext({
-      deviceScaleFactor: VIEWPORT_CONTRACT.deviceScaleFactor,
-      locale: 'en-US',
-      timezoneId: 'UTC',
-      viewport: { width: VIEWPORT_CONTRACT.width, height: VIEWPORT_CONTRACT.height },
-    });
-    await this.context.addCookies(
-      publisherCaptureCookies(this.captureBaseUrl, claimToken, lifecycleDeadlineAt)
-    );
-    const page = await this.context.newPage();
-    const diagnostics = registerCaptureDiagnostics(page);
-    const response = await page.goto(`${this.captureBaseUrl}/__asset-publisher/capture`, {
-      waitUntil: 'domcontentloaded',
-      timeout: remaining(deadline),
-    });
-    if (!response?.ok()) throw new Error(`Capture navigation returned HTTP ${response?.status()}`);
-    const marker = page.locator('#capture-status');
-    await marker.waitFor({ state: 'attached', timeout: remaining(deadline) });
-    await page.waitForFunction(
-      () => {
-        const browserGlobal = globalThis as typeof globalThis & {
-          document: {
-            querySelector(selector: string): { getAttribute(name: string): string | null } | null;
+    let stage = 'create_context';
+    try {
+      this.context = await this.browser.newContext({
+        deviceScaleFactor: VIEWPORT_CONTRACT.deviceScaleFactor,
+        locale: 'en-US',
+        timezoneId: 'UTC',
+        viewport: { width: VIEWPORT_CONTRACT.width, height: VIEWPORT_CONTRACT.height },
+      });
+      stage = 'install_claim_cookies';
+      await this.context.addCookies(
+        publisherCaptureCookies(this.captureBaseUrl, claimToken, lifecycleDeadlineAt)
+      );
+      stage = 'create_page';
+      const page = await this.context.newPage();
+      const diagnostics = registerCaptureDiagnostics(page);
+      stage = 'navigate';
+      const response = await page.goto(`${this.captureBaseUrl}/__asset-publisher/capture`, {
+        waitUntil: 'domcontentloaded',
+        timeout: remaining(deadline),
+      });
+      if (!response?.ok()) {
+        throw new Error(`Capture navigation returned HTTP ${response?.status()}`);
+      }
+      const marker = page.locator('#capture-status');
+      stage = 'wait_for_status_marker';
+      await marker.waitFor({ state: 'attached', timeout: remaining(deadline) });
+      stage = 'wait_for_ready_state';
+      await page.waitForFunction(
+        () => {
+          const browserGlobal = globalThis as typeof globalThis & {
+            document: {
+              querySelector(selector: string): { getAttribute(name: string): string | null } | null;
+            };
           };
-        };
-        return (
-          browserGlobal.document
-            .querySelector('#capture-status')
-            ?.getAttribute('data-capture-state') !== 'loading'
-        );
-      },
-      undefined,
-      { timeout: remaining(deadline) }
-    );
-    const state = await marker.getAttribute('data-capture-state');
-    if (state !== 'ready') {
-      throw new Error(`Capture route reported ${state}: ${await marker.textContent()}`);
+          return (
+            browserGlobal.document
+              .querySelector('#capture-status')
+              ?.getAttribute('data-capture-state') !== 'loading'
+          );
+        },
+        undefined,
+        { timeout: remaining(deadline) }
+      );
+      stage = 'read_capture_state';
+      const state = await marker.getAttribute('data-capture-state');
+      if (state !== 'ready') {
+        throw new Error(`Capture route reported ${state}: ${await marker.textContent()}`);
+      }
+      const payloadHash = await marker.getAttribute('data-payload-hash');
+      if (!payloadHash || !/^[0-9a-f]{64}$/.test(payloadHash)) {
+        throw new Error('Capture route did not expose the exact payload hash');
+      }
+      stage = 'validate_page_bounds';
+      await assertPageBounds(page, deadline);
+      stage = 'validate_pre_pdf_diagnostics';
+      assertCaptureDiagnostics(diagnostics);
+      stage = 'generate_pdf';
+      const bytes = await page.pdf({
+        displayHeaderFooter: PDF_CONTRACT.displayHeaderFooter,
+        margin: PDF_CONTRACT.marginMm,
+        preferCSSPageSize: PDF_CONTRACT.preferCssPageSize,
+        printBackground: PDF_CONTRACT.printBackground,
+      });
+      stage = 'inspect_pdf';
+      const inspection = await inspectPublisherPdf(bytes);
+      stage = 'validate_post_pdf_diagnostics';
+      assertCaptureDiagnostics(diagnostics);
+      return {
+        bytes,
+        payloadHash,
+        ...inspection,
+        ...diagnostics,
+      };
+    } catch (error) {
+      if (error instanceof TargetRenderError) throw error;
+      throw new Error(`Browser capture failed during ${stage}`, { cause: error });
     }
-    const payloadHash = await marker.getAttribute('data-payload-hash');
-    if (!payloadHash || !/^[0-9a-f]{64}$/.test(payloadHash)) {
-      throw new Error('Capture route did not expose the exact payload hash');
-    }
-    await assertPageBounds(page, deadline);
-    assertCaptureDiagnostics(diagnostics);
-    const bytes = await page.pdf({
-      displayHeaderFooter: PDF_CONTRACT.displayHeaderFooter,
-      margin: PDF_CONTRACT.marginMm,
-      preferCSSPageSize: PDF_CONTRACT.preferCssPageSize,
-      printBackground: PDF_CONTRACT.printBackground,
-    });
-    const inspection = await inspectPublisherPdf(bytes);
-    assertCaptureDiagnostics(diagnostics);
-    return {
-      bytes,
-      payloadHash,
-      ...inspection,
-      ...diagnostics,
-    };
   }
 
   async close(): Promise<void> {

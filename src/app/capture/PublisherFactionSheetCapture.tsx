@@ -1,22 +1,13 @@
 import { useEffect, useState } from 'react';
-import { z } from 'zod';
 
 import { FactionSheetView } from '@app/components/factions/sheet/FactionSheetView';
-import { type FactionInput, FactionInputSchema } from '@game/schema/faction';
+import type { FactionInput } from '@game/schema/faction';
 
+import { publisherSnapshotSchema } from '../../shared/asset-publishing/publisher-snapshot';
 import { publisherErrorMessage, redactPublisherResource } from './publisher-diagnostics';
 import { assertRequiredPublisherFonts } from './publisher-fonts';
 
 const ASSET_SETTLE_TIMEOUT_MS = 15_000;
-const snapshotSchema = z.strictObject({
-  ok: z.literal(true),
-  payload: z.strictObject({
-    factionId: z.string().min(1),
-    slug: z.string(),
-    faction: FactionInputSchema,
-  }),
-  payloadHash: z.string().regex(/^[0-9a-f]{64}$/),
-});
 
 type CaptureState = 'loading' | 'ready' | 'error';
 
@@ -163,7 +154,7 @@ export function PublisherFactionSheetCapture() {
           signal: controller.signal,
         });
         if (!response.ok) throw new Error(`Claimed snapshot returned HTTP ${response.status}`);
-        const snapshot = snapshotSchema.parse(await response.json());
+        const snapshot = publisherSnapshotSchema.parse(await response.json());
         setFaction(snapshot.payload.faction);
         setPayloadHash(snapshot.payloadHash);
         setDetail(`Rendering exact claimed snapshot ${snapshot.payloadHash}`);

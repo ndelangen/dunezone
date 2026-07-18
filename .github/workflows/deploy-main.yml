@@ -35,6 +35,36 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Quiesce publisher for contract-safe deployment
+        id: publisher_quiesce
+        run: |
+          config="$(bunx convex data asset_type_configs --prod --limit 2 --format json)"
+          previous_status="$(jq -er '
+            if length == 1 and .[0].asset_type == "faction_sheet"
+            then .[0].status
+            else error("Expected exactly one faction-sheet publisher config")
+            end
+          ' <<<"$config")"
+          case "$previous_status" in
+            active)
+              result="$(bunx convex run --prod assetPublisherOperator:pause '{}')"
+              printf '%s\n' "$result"
+              jq -e '.status == "paused"' <<<"$result"
+              echo "reactivate=true" >> "$GITHUB_OUTPUT"
+              ;;
+            paused|disabled)
+              printf 'Publisher already safe for deployment: %s\n' "$previous_status"
+              echo "reactivate=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              printf 'Unsupported publisher status: %s\n' "$previous_status" >&2
+              exit 1
+              ;;
+          esac
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_DEPLOYMENT: ${{ secrets.CONVEX_DEPLOYMENT }}
+
       - name: Deploy Convex
         run: bun run convex:deploy
         env:
@@ -90,6 +120,19 @@ jobs:
 
       - name: Smoke scheduled Worker release
         run: bun run ./scripts/publisher-deployment-contract.ts smoke
+
+      - name: Reactivate publisher after release smoke
+        if: steps.publisher_quiesce.outputs.reactivate == 'true'
+        run: |
+          renderer_version="$(jq -r '.vars.SUPPORTED_RENDERER_VERSION' workers/publisher/wrangler.jsonc)"
+          args="$(jq -cn --arg renderer "$renderer_version" '{rendererVersion: $renderer}')"
+          result="$(bunx convex run --prod assetPublisherOperator:activate "$args")"
+          printf '%s\n' "$result"
+          jq -e --arg renderer "$renderer_version" \
+            '.status == "active" and .rendererVersion == $renderer' <<<"$result"
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_DEPLOYMENT: ${{ secrets.CONVEX_DEPLOYMENT }}
 
       - name: Set canonical Convex site URL
         run: bunx convex env set SITE_URL https://dune.zone --prod

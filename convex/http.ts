@@ -1,5 +1,6 @@
 import { httpRouter } from 'convex/server';
 
+import { publisherSnapshotSchema } from '../src/shared/asset-publishing/publisher-snapshot';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { type ActionCtx, httpAction } from './_generated/server';
@@ -270,7 +271,9 @@ http.route({
     const authorization = request.headers.get('Authorization') ?? '';
     const claimToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
     const item = await ctx.runQuery(internal.assetPublisher.readItemForRender, { claimToken });
-    return item ? publisherJson({ ok: true, ...item }) : publisherJson({ error: 'Not found' }, 404);
+    return item
+      ? publisherJson(publisherSnapshotSchema.parse({ ok: true, ...item }))
+      : publisherJson({ error: 'Not found' }, 404);
   }),
 });
 

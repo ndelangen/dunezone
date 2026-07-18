@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import {
+  publisherErrorDetails,
   publisherErrorMessage,
   redactPublisherResource,
   sanitizePublisherDiagnostic,
@@ -45,6 +46,21 @@ describe('publisher diagnostic redaction', () => {
       expect(message).not.toContain(secret);
       expect(log).not.toContain(secret);
     }
+  });
+
+  test('flattens sanitized AggregateError members and Error causes for telemetry', () => {
+    const root = new Error(`Failed to decode ${signedUrl}`);
+    const staged = new Error('Browser capture failed during validate_page_bounds', { cause: root });
+    const aggregate = new AggregateError([staged], 'Item-list publisher execution failed');
+
+    const details = publisherErrorDetails(aggregate);
+
+    expect(details.map((detail) => detail.message)).toEqual([
+      'Item-list publisher execution failed',
+      'Browser capture failed during validate_page_bounds',
+      'Failed to decode https://cdn.example.com/<redacted>',
+    ]);
+    for (const secret of secrets) expect(JSON.stringify(details)).not.toContain(secret);
   });
 
   test.each([

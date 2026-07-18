@@ -40,6 +40,7 @@ Failed invocation:
 
 - `result: "failed"`
 - bounded `error`
+- bounded, sanitized `errors` entries that flatten `AggregateError.errors` and `Error.cause`
 
 Every cron event also carries a fresh `invocationId` and the Cloudflare `scheduledTime`.
 

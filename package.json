@@ -35,6 +35,7 @@
     "publisher:dry-run": "bun run publisher:assets && wrangler deploy --dry-run --config workers/publisher/wrangler.jsonc",
     "publisher:release:dry-run": "wrangler deploy --dry-run --config workers/publisher/wrangler.jsonc",
     "publisher:font-regression": "bun run publisher:assets && bun run workers/publisher/font-regression.ts",
+    "publisher:capture-contract-regression": "bun run publisher:assets && bun run workers/publisher/capture-contract-regression.ts",
     "publisher:startup": "wrangler check startup --cwd workers/publisher --config wrangler.jsonc --outfile /tmp/asset-publisher-startup.cpuprofile",
     "build-storybook": "storybook build",
     "local-capture": "storybook build && LOCAL=true bun run ./scripts/capture.ts",

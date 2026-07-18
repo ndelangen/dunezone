@@ -88,6 +88,10 @@ jobs:
         run: bun run publisher:dry-run
         env:
           VITE_CONVEX_URL: https://example.convex.cloud
+      - name: Install Chromium for publisher contract regression
+        run: npx playwright install --with-deps chromium
+      - name: Exercise production snapshot envelope in Chromium
+        run: bun run workers/publisher/capture-contract-regression.ts
       - name: Check Worker startup
         run: bun run publisher:startup
 

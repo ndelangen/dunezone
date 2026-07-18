@@ -118,18 +118,36 @@ describe('scheduled production deployment shape', () => {
     expect(example.status).toBe(1);
   });
 
-  test('documents paused-or-disabled Convex and Queue-free empty-work observation', () => {
+  test('fails closed by pausing before deploy and activating only after Worker smoke', () => {
     const deploymentGuide = readFileSync(path.resolve(process.cwd(), 'docs/deployment.md'), 'utf8');
     const workerGuide = readFileSync(
       path.resolve(process.cwd(), 'workers/publisher/README.md'),
       'utf8'
     );
+    const deploymentWorkflow = readFileSync(
+      path.resolve(process.cwd(), '.github/workflows/deploy-main.yml'),
+      'utf8'
+    );
     for (const guide of [deploymentGuide, workerGuide]) {
-      expect(guide).toContain('paused or disabled');
+      expect(guide).toContain('leaves');
+      expect(guide).toContain('paused');
       expect(guide).toContain('*/5 * * * *');
     }
-    expect(deploymentGuide).toContain('empty `take-work` result');
-    expect(workerGuide).toContain('empty Cron without a Browser Run');
+    const statusReadIndex = deploymentWorkflow.indexOf('convex data asset_type_configs');
+    const pauseIndex = deploymentWorkflow.indexOf('assetPublisherOperator:pause');
+    const convexDeployIndex = deploymentWorkflow.indexOf('name: Deploy Convex');
+    const smokeIndex = deploymentWorkflow.indexOf('name: Smoke scheduled Worker release');
+    const activateIndex = deploymentWorkflow.indexOf('assetPublisherOperator:activate');
+    expect(statusReadIndex).toBeGreaterThan(-1);
+    expect(statusReadIndex).toBeLessThan(pauseIndex);
+    expect(pauseIndex).toBeGreaterThan(-1);
+    expect(pauseIndex).toBeLessThan(convexDeployIndex);
+    expect(smokeIndex).toBeLessThan(activateIndex);
+    expect(deploymentWorkflow).toContain('paused|disabled)');
+    expect(deploymentWorkflow).toContain('reactivate=false');
+    expect(deploymentWorkflow).toContain("steps.publisher_quiesce.outputs.reactivate == 'true'");
+    expect(deploymentWorkflow).toContain('.status == "paused"');
+    expect(deploymentWorkflow).toContain('.status == "active" and .rendererVersion == $renderer');
   });
 
   test('documents the item-claim migration pack and its paused/no-live-claims preconditions', () => {

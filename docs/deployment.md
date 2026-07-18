@@ -20,21 +20,21 @@ The checked-in publisher release is now the minimal item-only model:
 - there is no Queue binding, poll endpoint, batch/run entity, quota ledger, or item-count
   deployment knob.
 
-**Release prerequisite: the faction-sheet publisher config must remain paused or disabled while the
-widen release is deployed and verified.** In that state the first scheduled invocation must produce
-an empty `take-work` result and no Browser Run. If a live claim still exists from an earlier
-attempt, the expected empty result is `reason: "busy"` with its `leaseExpiresAt`; that is still a
-valid no-work outcome and must not open Browser.
+**The production workflow quiesces an active faction-sheet publisher before deploying Convex.** It
+only reactivates publishing after the matching Worker has deployed and passed its exact release
+smoke. If any intervening step fails, the workflow fails closed and deliberately leaves publishing
+paused for operator recovery instead of running mismatched producer and consumer contracts. A
+publisher that was already paused or disabled remains non-active and is not automatically enabled.
 
 Cloudflare Workers is the only frontend host. The checked-in Worker configuration attaches the
 exact Custom Domain `dune.zone`; Cloudflare manages its DNS record and TLS certificate. After the
 custom domain passes the release smoke, the workflow sets the production Convex Auth `SITE_URL` to
 `https://dune.zone`.
 
-The workflow does not call the operator activation boundary, mutate publisher data outside the
-normal scheduled executor, execute the later schema narrow, or delete the retired remote Queue.
-Activation, the twenty-item production canary, schema narrow, and remote Queue cleanup remain
-separate explicitly approved operations.
+The workflow mutates only the publisher's pause/activation control boundary around deployment. It
+does not mutate publisher items outside the normal scheduled executor, execute the later schema
+narrow, or delete the retired remote Queue. The first post-deploy scheduled invocation remains an
+operator-observed production canary.
 
 ## Build process
 
@@ -109,23 +109,31 @@ values.
 On every push to `main`:
 
 1. `bun install --frozen-lockfile`
-2. `bun run convex:deploy`
-3. `bun run migrations:deploy`
-4. Run fail-closed Worker preflight over the exact checked-in contract:
+2. Read the sole Convex publisher config. If active, pause it and remember to reactivate; if already
+   paused or disabled, preserve that operator intent and do not reactivate it.
+3. `bun run convex:deploy`
+4. `bun run migrations:deploy`
+5. Run fail-closed Worker preflight over the exact checked-in contract:
    exact `main` SHA and clean tracked source, required protected CI inputs, exact production
    `VITE_CONVEX_URL`, workers.dev origin, the exact `dune.zone` Custom Domain, one exact
    `*/5 * * * *` Cron, no Queue binding, one private R2 binding, exact renderer identity, 30-second
    CPU limit, fixed four-minute work window, 8,000,000-byte PDF cap, and the two required Worker
    secret names.
-5. Check generated Worker bindings and typecheck the Worker release.
-6. Build the SPA and capture bundle once with the protected `VITE_CONVEX_URL`, re-check assembled
+6. Check generated Worker bindings and typecheck the Worker release.
+7. Build the SPA and capture bundle once with the protected `VITE_CONVEX_URL`, re-check assembled
    asset limits, and reject generated-source drift.
-7. Dry-run the exact checked-in Worker release and then deploy it in strict mode with the full
+8. Dry-run the exact checked-in Worker release and then deploy it in strict mode with the full
    `GITHUB_SHA` as the Worker version tag.
-8. Smoke the exact checked-in workers.dev and `dune.zone` health URLs and require:
+9. Smoke the exact checked-in workers.dev and `dune.zone` health URLs and require:
    `ok: true`, `maxItems: 20`, schedule `*/5 * * * *`, exact renderer support/manifest agreement,
    `Cache-Control: no-store`, and the deployed Git SHA tag.
-9. Set the production Convex Auth `SITE_URL` to `https://dune.zone`.
+10. If the workflow paused an active publisher in step 2, reactivate it with the exact checked-in
+    renderer and require the returned status and renderer to match.
+11. Set the production Convex Auth `SITE_URL` to `https://dune.zone`.
+
+Steps 2-10 are intentionally asymmetric: any failure after the pause leaves publishing paused. Do
+not manually reactivate until the failed release has been diagnosed and the deployed producer and
+consumer are confirmed compatible.
 
 Wrangler receives only `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. It does not receive
 Cron or route overrides, a secrets file, or activation flags. The checked-in Wrangler config is the
@@ -172,20 +180,22 @@ No separate manual migration command is required when the workflow succeeds.
 ```mermaid
 flowchart LR
     Git[Push main] --> GHA[GitHub Actions]
-    GHA --> ConvexDeploy[Deploy widen-compatible Convex state]
+    GHA --> Quiesce[Quiesce active publisher]
+    Quiesce --> ConvexDeploy[Deploy widen-compatible Convex state]
     ConvexDeploy --> Migrations[Run and verify required migrations]
     Migrations --> Preflight[Fail-closed Worker preflight]
     Preflight --> Build[Build one unified release]
     Build --> DryRun[Wrangler dry-run]
     DryRun --> WorkerDeploy[Strict Worker deploy tagged with Git SHA]
     WorkerDeploy --> Smoke[workers.dev + dune.zone release smoke]
-    Smoke --> SiteUrl[Set Convex SITE_URL to dune.zone]
+    Smoke --> Activate[Restore active state with exact renderer]
+    Activate --> SiteUrl[Set Convex SITE_URL to dune.zone]
 ```
 
 Wrangler manages the exact `dune.zone` Custom Domain from source control. The workflow changes only
-the public Convex Auth `SITE_URL`; it does not install or read publisher secrets, change OAuth
-provider credentials, call the operator activation endpoint, mutate publisher data directly, or
-send Queue work.
+the publisher control status and public Convex Auth `SITE_URL`; it does not install or read
+publisher secrets, change OAuth provider credentials, mutate publisher items directly, or send
+Queue work.
 
 ## First scheduled-release observation
 
@@ -194,18 +204,20 @@ shape. CI validates the source contract; live trigger readback remains an operat
 
 After the first merged scheduled release:
 
-1. Reconfirm through authorized read-only Convex state that the faction-sheet publisher config is
-   paused or disabled and that no unexpected live claims remain.
+1. Reconfirm through authorized read-only Convex state that the faction-sheet publisher config
+   returned to its pre-deploy operator intent. If active, require the exact deployed renderer; in
+   every state, require no unexpected live claims.
 2. Require the deploy smoke to report `maxItems: 20`, schedule `*/5 * * * *`, exact renderer
    identity, and the merged full Git SHA on workers.dev and `dune.zone`.
 3. Read the trigger in the Cloudflare dashboard and require exactly one `*/5 * * * *` schedule.
-4. Observe at least one `asset_publisher_cron` log with `result: "empty"`.
-   If Convex is paused or disabled, expect `reason: "disabled"`.
+4. Observe at least one `asset_publisher_cron` log. If no faction changed during deployment, expect
+   `result: "empty"` and `reason: "no_eligible_work"`.
+   If the workflow failed after pausing, expect `reason: "disabled"` until recovery.
    If a previous claim is still live, expect `reason: "busy"` with a future `leaseExpiresAt`.
    If publishing is active but there is nothing eligible, expect `reason: "no_eligible_work"`.
 5. Reconfirm that the empty observation produced no Browser session.
-6. Keep Convex paused until the separate operator activation is explicitly approved, then verify a
-   representative twenty-item invocation before any schema narrow or remote Queue cleanup.
+6. If work was eligible, require every assigned item to complete or have an attributable failure;
+   investigate any infrastructure failure before schema narrow or remote Queue cleanup.
 
 ## Convex breaking migrations
 

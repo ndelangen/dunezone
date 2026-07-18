@@ -45,16 +45,24 @@ bun run publisher:test
 bun run publisher:assets
 bun run publisher:assets:check
 bun run publisher:font-regression
+bun run publisher:capture-contract-regression
 bun run publisher:dry-run
 bun run publisher:startup
 ```
 
+`publisher:capture-contract-regression` serves the built capture bundle a complete production-shaped
+Convex item envelope in Chromium and requires the capture marker, payload hash, and two-page PDF
+contract to succeed. The protected Convex producer and capture client also parse the same shared
+strict schema, so adding or removing response fields cannot be accepted on only one side.
+
 The protected `main` workflow runs source/config preflight, generated-type check, typecheck, one
 production-URL asset build, assembled-asset verification, Wrangler dry-run, strict SHA-tagged
-deploy, and health smoke. It does not provision or delete Cloudflare resources, install or read
-secret values, mutate the Convex operator surface, or activate publishing.
+deploy, and health smoke. It pauses an active Convex publisher before the producer deploy and
+reactivates the exact checked-in renderer only after the Worker smoke succeeds. An already paused
+or disabled publisher retains that operator intent. The workflow does not provision or delete
+Cloudflare resources, install or read secret values, or mutate publisher items directly.
 
-**Convex publisher config must remain paused or disabled while the widen migrations and this Worker
-release are deployed and verified.** Observe an empty Cron without a Browser Run before a separately
-approved activation. After activation, verify a representative twenty-item invocation before any
-remote Queue cleanup.
+**A failed production release intentionally leaves the Convex publisher paused.** Diagnose the
+failed release and confirm producer/consumer compatibility before manually reactivating. After a
+successful release, observe the first scheduled invocation and investigate any infrastructure
+failure before remote Queue cleanup.

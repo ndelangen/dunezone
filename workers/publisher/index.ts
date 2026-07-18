@@ -1,4 +1,5 @@
 import {
+  publisherErrorDetails,
   publisherErrorMessage,
   serializePublisherLogEvent,
 } from '../../src/app/capture/publisher-diagnostics';
@@ -117,6 +118,7 @@ export const publisherWorker = {
         scheduledTime: controller.scheduledTime,
         result: 'failed',
         error: publisherErrorMessage(error),
+        errors: publisherErrorDetails(error),
       });
       throw error;
     }

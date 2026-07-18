@@ -15,5 +15,5 @@
     "noUncheckedSideEffectImports": true
   },
   "include": ["./*.ts", "./worker-configuration.d.ts"],
-  "exclude": ["./font-regression.ts"]
+  "exclude": ["./capture-contract-regression.ts", "./font-regression.ts"]
 }
