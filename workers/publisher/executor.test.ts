@@ -36,13 +36,6 @@ function capturedPdf(): CapturedPdf {
   return {
     bytes: new Uint8Array([1, 2, 3]),
     payloadHash: 'a'.repeat(64),
-    pageCount: 2,
-    pageWidthMm: 215.9,
-    pageHeightMm: 279.4,
-    consoleErrors: [],
-    requestFailures: [],
-    pageErrors: [],
-    httpErrors: [],
   };
 }
 

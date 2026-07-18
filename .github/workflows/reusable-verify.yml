@@ -92,7 +92,7 @@ jobs:
         run: git diff --exit-code -- workers/publisher/renderer-manifest.generated.ts
       - name: Install Chromium for publisher contract regression
         run: npx playwright install --with-deps chromium
-      - name: Exercise production snapshot envelope in Chromium
+      - name: Exercise narrow snapshot contract in Chromium
         run: bun run workers/publisher/capture-contract-regression.ts
       - name: Check Worker startup
         run: bun run publisher:startup

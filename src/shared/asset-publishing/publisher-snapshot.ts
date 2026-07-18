@@ -1,27 +1,33 @@
 import { z } from 'zod';
 
-import { FactionInputSchema } from '../../game/schema/faction';
+import { FactionInputSchema, FactionRowSlugSchema } from '../../game/schema/faction';
 
 /** Shared exact contract for the protected Convex producer and Browser capture consumer. */
-export const publisherSnapshotSchema = z
-  .strictObject({
-    ok: z.literal(true),
-    targetId: z.string().min(1),
+const publisherCaptureSnapshotSchema = z.strictObject({
+  ok: z.literal(true),
+  payload: z.strictObject({
     factionId: z.string().min(1),
-    assetType: z.literal('faction_sheet'),
-    generation: z.number().int().positive(),
-    rendererVersion: z.string().trim().min(1).max(128),
-    leaseExpiresAt: z.number().int().positive(),
-    payload: z.strictObject({
-      factionId: z.string().min(1),
-      slug: z.string(),
-      faction: FactionInputSchema,
-    }),
-    payloadHash: z.string().regex(/^[0-9a-f]{64}$/),
-  })
-  .refine((snapshot) => snapshot.factionId === snapshot.payload.factionId, {
-    message: 'Snapshot faction identity does not match its payload',
-    path: ['payload', 'factionId'],
-  });
+    slug: FactionRowSlugSchema,
+    faction: FactionInputSchema,
+  }),
+  payloadHash: z.string().regex(/^[0-9a-f]{64}$/),
+});
 
-export type PublisherSnapshot = z.infer<typeof publisherSnapshotSchema>;
+type PublisherCaptureSnapshotSource = {
+  payload: unknown;
+  payloadHash: unknown;
+};
+
+/** Explicitly projects the narrow browser DTO so operational item fields cannot leak into it. */
+export function makePublisherCaptureSnapshot(source: PublisherCaptureSnapshotSource) {
+  return publisherCaptureSnapshotSchema.parse({
+    ok: true,
+    payload: source.payload,
+    payloadHash: source.payloadHash,
+  });
+}
+
+/** Strictly parses the untrusted snapshot response inside Browser capture. */
+export function parsePublisherCaptureSnapshot(value: unknown) {
+  return publisherCaptureSnapshotSchema.parse(value);
+}

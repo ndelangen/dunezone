@@ -21,21 +21,14 @@ const { pdf: PDF_CONTRACT, viewport: VIEWPORT_CONTRACT } = PUBLISHER_RENDERER_CO
 export type CapturedPdf = {
   bytes: Uint8Array;
   payloadHash: string;
-  pageCount: number;
-  pageWidthMm: number;
-  pageHeightMm: number;
-  consoleErrors: string[];
-  requestFailures: string[];
-  pageErrors: string[];
-  httpErrors: string[];
 };
 
 export class TargetRenderError extends Error {}
 
-export type CaptureDiagnostics = Pick<
-  CapturedPdf,
-  'consoleErrors' | 'requestFailures' | 'pageErrors' | 'httpErrors'
->;
+export type CaptureDiagnostics = { issues: string[]; dropped: number };
+
+const MAX_CAPTURE_ISSUES = 12;
+const MAX_CAPTURE_ISSUE_LENGTH = 512;
 
 export function assertCapturedPdfOutput(inspection: {
   pageCount: number;
@@ -57,18 +50,9 @@ export function assertCapturedPdfOutput(inspection: {
 }
 
 export function assertCaptureDiagnostics(diagnostics: CaptureDiagnostics): void {
-  if (diagnostics.consoleErrors.length) {
-    throw new Error(`Capture console errors: ${diagnostics.consoleErrors.join(' | ')}`);
-  }
-  if (diagnostics.pageErrors.length) {
-    throw new Error(`Capture page errors: ${diagnostics.pageErrors.join(' | ')}`);
-  }
-  if (diagnostics.requestFailures.length) {
-    throw new Error(`Capture request failures: ${diagnostics.requestFailures.join(' | ')}`);
-  }
-  if (diagnostics.httpErrors.length) {
-    throw new Error(`Capture HTTP errors: ${diagnostics.httpErrors.join(' | ')}`);
-  }
+  if (!diagnostics.issues.length) return;
+  const dropped = diagnostics.dropped ? ` | ${diagnostics.dropped} additional issues dropped` : '';
+  throw new Error(`Capture issues: ${diagnostics.issues.join(' | ')}${dropped}`);
 }
 
 function remaining(deadline: number): number {
@@ -94,21 +78,23 @@ function responseFailureLabel(response: PlaywrightResponse): string {
 }
 
 export function registerCaptureDiagnostics(page: Page): CaptureDiagnostics {
-  const diagnostics: CaptureDiagnostics = {
-    consoleErrors: [],
-    requestFailures: [],
-    pageErrors: [],
-    httpErrors: [],
+  const diagnostics: CaptureDiagnostics = { issues: [], dropped: 0 };
+  const add = (kind: string, value: string) => {
+    if (diagnostics.issues.length >= MAX_CAPTURE_ISSUES) {
+      diagnostics.dropped += 1;
+      return;
+    }
+    diagnostics.issues.push(
+      `${kind}: ${sanitizePublisherDiagnostic(value)}`.slice(0, MAX_CAPTURE_ISSUE_LENGTH)
+    );
   };
   page.on('console', (message: ConsoleMessage) => {
-    if (message.type() === 'error') {
-      diagnostics.consoleErrors.push(sanitizePublisherDiagnostic(message.text()));
-    }
+    if (message.type() === 'error') add('console', message.text());
   });
-  page.on('requestfailed', (request) => diagnostics.requestFailures.push(failureLabel(request)));
-  page.on('pageerror', (error) => diagnostics.pageErrors.push(publisherErrorMessage(error)));
+  page.on('requestfailed', (request) => add('request', failureLabel(request)));
+  page.on('pageerror', (error) => add('page', publisherErrorMessage(error)));
   page.on('response', (response) => {
-    if (response.status() >= 400) diagnostics.httpErrors.push(responseFailureLabel(response));
+    if (response.status() >= 400) add('http', responseFailureLabel(response));
   });
   return diagnostics;
 }
@@ -187,8 +173,6 @@ async function assertPageBounds(page: Page, deadline: number): Promise<void> {
 }
 
 export class PublisherBrowserSession {
-  private context?: BrowserContext;
-
   constructor(
     private readonly browser: Browser,
     private readonly captureBaseUrl: string
@@ -201,22 +185,20 @@ export class PublisherBrowserSession {
   async capture(claimToken: string, timeoutMs: number): Promise<CapturedPdf> {
     const deadline = performance.now() + timeoutMs;
     const lifecycleDeadlineAt = Date.now() + timeoutMs;
-    let stage = 'create_context';
+    let phase: 'setup' | 'load' | 'validate' | 'pdf' = 'setup';
     try {
-      this.context = await this.browser.newContext({
+      const context = await this.browser.newContext({
         deviceScaleFactor: VIEWPORT_CONTRACT.deviceScaleFactor,
         locale: 'en-US',
         timezoneId: 'UTC',
         viewport: { width: VIEWPORT_CONTRACT.width, height: VIEWPORT_CONTRACT.height },
       });
-      stage = 'install_claim_cookies';
-      await this.context.addCookies(
+      await context.addCookies(
         publisherCaptureCookies(this.captureBaseUrl, claimToken, lifecycleDeadlineAt)
       );
-      stage = 'create_page';
-      const page = await this.context.newPage();
+      const page = await context.newPage();
       const diagnostics = registerCaptureDiagnostics(page);
-      stage = 'navigate';
+      phase = 'load';
       const response = await page.goto(`${this.captureBaseUrl}/__asset-publisher/capture`, {
         waitUntil: 'domcontentloaded',
         timeout: remaining(deadline),
@@ -225,9 +207,7 @@ export class PublisherBrowserSession {
         throw new Error(`Capture navigation returned HTTP ${response?.status()}`);
       }
       const marker = page.locator('#capture-status');
-      stage = 'wait_for_status_marker';
       await marker.waitFor({ state: 'attached', timeout: remaining(deadline) });
-      stage = 'wait_for_ready_state';
       await page.waitForFunction(
         () => {
           const browserGlobal = globalThis as typeof globalThis & {
@@ -244,7 +224,6 @@ export class PublisherBrowserSession {
         undefined,
         { timeout: remaining(deadline) }
       );
-      stage = 'read_capture_state';
       const state = await marker.getAttribute('data-capture-state');
       if (state !== 'ready') {
         throw new Error(`Capture route reported ${state}: ${await marker.textContent()}`);
@@ -253,30 +232,22 @@ export class PublisherBrowserSession {
       if (!payloadHash || !/^[0-9a-f]{64}$/.test(payloadHash)) {
         throw new Error('Capture route did not expose the exact payload hash');
       }
-      stage = 'validate_page_bounds';
+      phase = 'validate';
       await assertPageBounds(page, deadline);
-      stage = 'validate_pre_pdf_diagnostics';
       assertCaptureDiagnostics(diagnostics);
-      stage = 'generate_pdf';
+      phase = 'pdf';
       const bytes = await page.pdf({
         displayHeaderFooter: PDF_CONTRACT.displayHeaderFooter,
         margin: PDF_CONTRACT.marginMm,
         preferCSSPageSize: PDF_CONTRACT.preferCssPageSize,
         printBackground: PDF_CONTRACT.printBackground,
       });
-      stage = 'inspect_pdf';
-      const inspection = await inspectPublisherPdf(bytes);
-      stage = 'validate_post_pdf_diagnostics';
+      await inspectPublisherPdf(bytes);
       assertCaptureDiagnostics(diagnostics);
-      return {
-        bytes,
-        payloadHash,
-        ...inspection,
-        ...diagnostics,
-      };
+      return { bytes, payloadHash };
     } catch (error) {
       if (error instanceof TargetRenderError) throw error;
-      throw new Error(`Browser capture failed during ${stage}`, { cause: error });
+      throw new Error(`Browser capture failed during ${phase}`, { cause: error });
     }
   }
 

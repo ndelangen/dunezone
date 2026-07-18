@@ -272,12 +272,6 @@ export const readItemForRender = internalQuery({
     if (!faction || faction.is_deleted) return null;
     const payload = claimPayload(faction);
     return {
-      targetId: target._id,
-      factionId: target.faction_id,
-      assetType: target.asset_type,
-      generation: target.claimed_generation,
-      rendererVersion: target.claimed_renderer_version,
-      leaseExpiresAt: target.lease_expires_at,
       payload,
       payloadHash: SHA256(JSON.stringify(payload)).toString(),
     };

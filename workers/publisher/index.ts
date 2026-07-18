@@ -1,8 +1,4 @@
-import {
-  publisherErrorDetails,
-  publisherErrorMessage,
-  serializePublisherLogEvent,
-} from '../../src/app/capture/publisher-diagnostics';
+import { publisherFailureFields } from '../../src/app/capture/publisher-diagnostics';
 import { openPublisherBrowser } from './browser';
 import { handleCaptureRoute } from './capture-route';
 import { MAX_ASSIGNED_ITEMS, parsePublisherConfig } from './config';
@@ -13,11 +9,11 @@ import { rendererManifest } from './renderer-manifest.generated';
 import { boundedPublisherTelemetryEvent, publisherBuildIdentity } from './telemetry';
 
 function log(event: Record<string, unknown>): void {
-  console.log(serializePublisherLogEvent(boundedPublisherTelemetryEvent(event)));
+  console.log(JSON.stringify(boundedPublisherTelemetryEvent(event)));
 }
 
 function logError(event: Record<string, unknown>): void {
-  console.error(serializePublisherLogEvent(boundedPublisherTelemetryEvent(event)));
+  console.error(JSON.stringify(boundedPublisherTelemetryEvent(event)));
 }
 
 function client(env: Env, executorBaseUrl: string) {
@@ -117,8 +113,7 @@ export const publisherWorker = {
         invocationId,
         scheduledTime: controller.scheduledTime,
         result: 'failed',
-        error: publisherErrorMessage(error),
-        errors: publisherErrorDetails(error),
+        ...publisherFailureFields(error),
       });
       throw error;
     }

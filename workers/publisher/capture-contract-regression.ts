@@ -3,9 +3,8 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 import { proofFaction } from '../../src/app/capture/proofFaction';
-import { publisherSnapshotSchema } from '../../src/shared/asset-publishing/publisher-snapshot';
 import { inspectChromiumPdf } from '../proof/pdf';
-import { PUBLISHER_RENDERER_CONTRACT, PUBLISHER_RENDERER_VERSION } from './renderer-contract';
+import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const publisherDist = path.join(repositoryRoot, 'workers/publisher/dist');
@@ -15,17 +14,11 @@ const payload = {
   faction: proofFaction,
 };
 const payloadHash = new Bun.CryptoHasher('sha256').update(JSON.stringify(payload)).digest('hex');
-const snapshot = publisherSnapshotSchema.parse({
+const snapshot = {
   ok: true,
-  targetId: 'mh7publisherContractTarget',
-  factionId: payload.factionId,
-  assetType: 'faction_sheet',
-  generation: 1,
-  rendererVersion: PUBLISHER_RENDERER_VERSION,
-  leaseExpiresAt: Date.now() + 60_000,
   payload,
   payloadHash,
-});
+};
 
 function invariant(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -103,7 +96,7 @@ try {
     `Production-shaped capture produced ${inspection.pageWidthMm.toFixed(2)} mm x ${inspection.pageHeightMm.toFixed(2)} mm pages`
   );
   console.log(
-    `Publisher production-envelope Chromium regression passed: ${inspection.pageCount} pages, ${pdf.byteLength} bytes`
+    `Publisher narrow-contract Chromium regression passed: ${inspection.pageCount} pages, ${pdf.byteLength} bytes`
   );
 } finally {
   await browser.close();
