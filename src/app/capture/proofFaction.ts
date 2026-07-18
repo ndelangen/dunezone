@@ -1,5 +1,4 @@
-import type { Faction } from '@db/factions';
-import { FactionInputSchema } from '@game/schema/faction';
+import { type FactionInput, FactionInputSchema } from '../../game/schema/faction';
 
 const proofFactionInput = {
   name: 'Atreides',
@@ -71,7 +70,7 @@ const proofFactionInput = {
       text: 'Play your fate card before Ship and Move to obtain the Carryall Tech Token.',
     },
   },
-} satisfies Faction;
+} satisfies FactionInput;
 
 /** Stable, representative payload used only by the one-PDF Cloudflare proof. */
-export const proofFaction: Faction = FactionInputSchema.parse(proofFactionInput);
+export const proofFaction: FactionInput = FactionInputSchema.parse(proofFactionInput);

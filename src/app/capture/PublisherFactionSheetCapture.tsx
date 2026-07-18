@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { FactionSheetView } from '@app/components/factions/sheet/FactionSheetView';
 import type { FactionInput } from '@game/schema/faction';
 
-import { publisherSnapshotSchema } from '../../shared/asset-publishing/publisher-snapshot';
+import { publisherCaptureSnapshotSchema } from '../../shared/asset-publishing/publisher-snapshot';
 import { publisherErrorMessage, redactPublisherResource } from './publisher-diagnostics';
 import { assertRequiredPublisherFonts } from './publisher-fonts';
 
@@ -154,7 +154,7 @@ export function PublisherFactionSheetCapture() {
           signal: controller.signal,
         });
         if (!response.ok) throw new Error(`Claimed snapshot returned HTTP ${response.status}`);
-        const snapshot = publisherSnapshotSchema.parse(await response.json());
+        const snapshot = publisherCaptureSnapshotSchema.parse(await response.json());
         setFaction(snapshot.payload.faction);
         setPayloadHash(snapshot.payloadHash);
         setDetail(`Rendering exact claimed snapshot ${snapshot.payloadHash}`);

@@ -50,10 +50,11 @@ bun run publisher:dry-run
 bun run publisher:startup
 ```
 
-`publisher:capture-contract-regression` serves the built capture bundle a complete production-shaped
-Convex item envelope in Chromium and requires the capture marker, payload hash, and two-page PDF
-contract to succeed. The protected Convex producer and capture client also parse the same shared
-strict schema, so adding or removing response fields cannot be accepted on only one side.
+`publisher:capture-contract-regression` serves the built capture bundle the exact narrow Browser DTO
+in Chromium and requires the capture marker, payload hash, and two-page PDF contract to succeed.
+Convex explicitly projects only the claimed payload and hash, then producer and capture client both
+validate that shared strict contract. Operational item metadata cannot leak into or couple the
+Browser response to executor internals.
 
 The PR publisher-release job builds on Linux with the exact production Convex URL and rejects any
 change to `renderer-manifest.generated.ts`. Treat that CI-produced manifest as authoritative; a

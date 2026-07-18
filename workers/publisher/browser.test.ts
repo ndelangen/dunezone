@@ -43,10 +43,31 @@ describe('production capture output validation', () => {
       request: () => ({ method: () => 'GET' }),
     } as never);
 
-    expect(diagnostics.pageErrors).toEqual(['post-ready exception']);
-    expect(diagnostics.requestFailures[0]).toMatch(/connection reset/);
-    expect(diagnostics.httpErrors[0]).toMatch(/HTTP 404/);
-    expect(() => assertCaptureDiagnostics(diagnostics)).toThrow(/page errors/);
+    expect(diagnostics.issues).toEqual([
+      'page: post-ready exception',
+      expect.stringMatching(/^request: .*connection reset/),
+      expect.stringMatching(/^http: .*HTTP 404/),
+    ]);
+    expect(() => assertCaptureDiagnostics(diagnostics)).toThrow(/Capture issues/);
+  });
+
+  test('bounds noisy capture diagnostics while retaining dropped issue volume', () => {
+    const listeners = new Map<string, (...args: never[]) => void>();
+    const page = {
+      on: vi.fn((name: string, listener: (...args: never[]) => void) => {
+        listeners.set(name, listener);
+      }),
+    } as unknown as Page;
+    const diagnostics = registerCaptureDiagnostics(page);
+
+    for (let index = 0; index < 20; index += 1) {
+      listeners.get('pageerror')?.(new Error(`issue ${index} ${'x'.repeat(1_000)}`) as never);
+    }
+
+    expect(diagnostics.issues).toHaveLength(12);
+    expect(diagnostics.issues.every((issue) => issue.length <= 512)).toBe(true);
+    expect(diagnostics.dropped).toBe(8);
+    expect(() => assertCaptureDiagnostics(diagnostics)).toThrow(/8 additional issues dropped/);
   });
 
   test('diagnostics never retain signed artwork URL credentials, paths, queries, or fragments', () => {

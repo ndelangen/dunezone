@@ -50,14 +50,14 @@ describe('publisher diagnostic redaction', () => {
 
   test('flattens sanitized AggregateError members and Error causes for telemetry', () => {
     const root = new Error(`Failed to decode ${signedUrl}`);
-    const staged = new Error('Browser capture failed during validate_page_bounds', { cause: root });
+    const staged = new Error('Browser capture failed during validate', { cause: root });
     const aggregate = new AggregateError([staged], 'Item-list publisher execution failed');
 
     const details = publisherErrorDetails(aggregate);
 
     expect(details.map((detail) => detail.message)).toEqual([
       'Item-list publisher execution failed',
-      'Browser capture failed during validate_page_bounds',
+      'Browser capture failed during validate',
       'Failed to decode https://cdn.example.com/<redacted>',
     ]);
     for (const secret of secrets) expect(JSON.stringify(details)).not.toContain(secret);

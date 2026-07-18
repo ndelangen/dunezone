@@ -5,7 +5,7 @@ import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { proofFaction } from '../src/app/capture/proofFaction';
-import { publisherSnapshotSchema } from '../src/shared/asset-publishing/publisher-snapshot';
+import { publisherCaptureSnapshotSchema } from '../src/shared/asset-publishing/publisher-snapshot';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { ITEM_CLAIM_LEASE_MS, MAX_PUBLISHER_ITEMS } from './assetPublisher';
@@ -158,9 +158,7 @@ describe('exact item operations', () => {
     await expect(
       t.query(internal.assetPublisher.readItemForRender, { claimToken: item.claimToken })
     ).resolves.toMatchObject({
-      targetId: item.targetId,
-      generation: 1,
-      rendererVersion: 'faction-sheet-v1',
+      payload: { factionId: item.factionId },
       payloadHash: expect.stringMatching(/^[0-9a-f]{64}$/),
     });
     await expect(
@@ -297,16 +295,15 @@ describe('item HTTP contracts', () => {
       headers: { Authorization: `Bearer ${item.claimToken}` },
     });
     expect(renderResponse.status).toBe(200);
-    const renderSnapshot = publisherSnapshotSchema.parse(await renderResponse.json());
-    expect(renderSnapshot).toMatchObject({
+    const renderSnapshot = publisherCaptureSnapshotSchema.parse(await renderResponse.json());
+    expect(renderSnapshot).toEqual({
       ok: true,
-      targetId: item.targetId,
-      factionId: item.factionId,
-      assetType: item.assetType,
-      generation: item.generation,
-      rendererVersion: item.rendererVersion,
-      leaseExpiresAt: item.leaseExpiresAt,
-      payload: { factionId: item.factionId },
+      payload: {
+        factionId: item.factionId,
+        slug: 'faction-0',
+        faction: { ...proofFaction, name: 'Faction 0' },
+      },
+      payloadHash: expect.stringMatching(/^[0-9a-f]{64}$/),
     });
     const itemBody = {
       schemaVersion: 1,

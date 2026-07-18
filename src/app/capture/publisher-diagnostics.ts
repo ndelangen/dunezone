@@ -41,10 +41,9 @@ export type PublisherErrorDetail = {
   stack?: string;
 };
 
-const MAX_ERROR_DETAILS = 6;
-const MAX_ERROR_DETAIL_DEPTH = 6;
-const MAX_ERROR_MESSAGE_LENGTH = 1_024;
-const MAX_ERROR_STACK_LENGTH = 1_500;
+const MAX_ERROR_DETAILS = 4;
+const MAX_ERROR_MESSAGE_LENGTH = 512;
+const MAX_ERROR_STACK_LENGTH = 900;
 
 /**
  * Flattens Error.cause and AggregateError.errors without allowing publisher secrets or an
@@ -54,12 +53,8 @@ export function publisherErrorDetails(error: unknown): PublisherErrorDetail[] {
   const details: PublisherErrorDetail[] = [];
   const visited = new Set<unknown>();
 
-  function visit(value: unknown, depth: number): void {
-    if (
-      details.length >= MAX_ERROR_DETAILS ||
-      depth >= MAX_ERROR_DETAIL_DEPTH ||
-      visited.has(value)
-    ) {
+  function visit(value: unknown): void {
+    if (details.length >= MAX_ERROR_DETAILS || visited.has(value)) {
       return;
     }
     visited.add(value);
@@ -75,13 +70,22 @@ export function publisherErrorDetails(error: unknown): PublisherErrorDetail[] {
     });
 
     if (value instanceof AggregateError) {
-      for (const nested of value.errors) visit(nested, depth + 1);
+      for (const nested of value.errors) visit(nested);
     }
-    if (value instanceof Error && value.cause !== undefined) visit(value.cause, depth + 1);
+    if (value instanceof Error && value.cause !== undefined) visit(value.cause);
   }
 
-  visit(error, 0);
+  visit(error);
   return details;
+}
+
+/** Preserves the existing dashboard fields while building the sanitized error graph once. */
+export function publisherFailureFields(error: unknown) {
+  const errors = publisherErrorDetails(error);
+  return {
+    error: errors[0]?.message ?? publisherErrorMessage(error),
+    errors,
+  };
 }
 
 export function serializePublisherLogEvent(event: Record<string, unknown>): string {
