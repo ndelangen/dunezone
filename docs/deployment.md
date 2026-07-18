@@ -199,12 +199,12 @@ the publisher control status and public Convex Auth `SITE_URL`; it does not inst
 publisher secrets, change OAuth provider credentials, mutate publisher items directly, or send
 Queue work.
 
-## First scheduled-release observation
+## Post-deploy scheduled observation
 
 The repository has no supported read-only Wrangler command that reports the deployed Cron trigger
 shape. CI validates the source contract; live trigger readback remains an operator runbook step.
 
-After the first merged scheduled release:
+After each scheduled publisher release:
 
 1. Reconfirm through authorized read-only Convex state that the faction-sheet publisher config
    returned to its pre-deploy operator intent. If active, require the exact deployed renderer; in

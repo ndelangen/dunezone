@@ -27,7 +27,7 @@ function publisherEnv(): Env {
     ASSET_PUBLISHER_CACHE_TOKEN_SECRET: createCacheSigningSecret(),
     CF_VERSION_METADATA: {
       id: 'worker-version-one',
-      tag: 'ticket-7a',
+      tag: 'test-release',
       timestamp: '2026-07-17T12:00:00.000Z',
     },
     ASSETS: {
@@ -71,7 +71,7 @@ describe('publisher Worker scheduled item-list flow', () => {
       supportedRendererVersion: rendererManifest.rendererVersion,
       identity: {
         workerVersionId: 'worker-version-one',
-        workerVersionTag: 'ticket-7a',
+        workerVersionTag: 'test-release',
         workerVersionTimestamp: '2026-07-17T12:00:00.000Z',
         rendererId: expect.stringMatching(/^faction-sheet\/sha256:[0-9a-f]{64}$/),
         rendererManifestDigest: expect.stringMatching(/^[0-9a-f]{64}$/),

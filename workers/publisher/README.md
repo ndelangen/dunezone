@@ -3,8 +3,7 @@
 The production Worker uses one `*/5 * * * *` Cron. Each invocation calls Convex `take-work` once.
 An empty result exits without opening Browser Rendering; an assigned result contains at most twenty
 independent item claims and is processed sequentially in one Browser session within a four-minute
-work window. There is no Queue, item-count setting, poll endpoint, provider quota ledger, batch, or
-run entity.
+work window.
 
 The Worker uses one server-side executor secret for `take-work`, `revalidate-item`, `complete-item`,
 and `fail-item`. Browser capture uses the item's opaque claim token directly to read the protected
@@ -24,6 +23,22 @@ Rendering continues while bounded completion promises settle. The Browser is clo
 before outstanding completions are awaited or retried. Target-attributable render/output failures
 call `fail-item`; Browser, network, R2, Convex, and deadline failures leave their claims leased so
 claim expiry remains the recovery mechanism.
+
+## Runtime telemetry
+
+The scheduled handler emits exactly one `asset_publisher_cron` JSON event per invocation. These
+events pass through `boundedPublisherTelemetryEvent`, which sanitizes diagnostics and limits the
+complete event to 8,192 UTF-8 bytes. Empty events report their reason and any live lease; completed
+events report item and Browser-session counts; failed events contain bounded diagnostics.
+
+The capture route emits a sanitized `asset_publisher_item_read_error` event when the protected
+render read fails. It uses `serializePublisherLogEvent` directly rather than the Cron event's final
+8 KiB envelope. Public-delivery cache failures emit fixed `asset_delivery_cache_put` or
+`asset_delivery_cache_match` events.
+
+`/__asset-publisher/health` is the no-store release identity endpoint. It reports the twenty-item
+limit, Cron schedule, configured and supported renderer versions, Worker version metadata, and the
+generated renderer identity used by deployment smoke checks.
 
 Public delivery requires a valid faction/type token. Objects written by this protocol additionally
 require exact equality with `publisherCacheToken` in R2 custom metadata, so an interrupted overwrite
@@ -71,5 +86,5 @@ Cloudflare resources, install or read secret values, or mutate publisher items d
 
 **A failed production release intentionally leaves the Convex publisher paused.** Diagnose the
 failed release and confirm producer/consumer compatibility before manually reactivating. After a
-successful release, observe the first scheduled invocation and investigate any infrastructure
-failure before remote Queue cleanup.
+successful release, follow the recurring post-deploy observation in
+[`docs/deployment.md`](../../docs/deployment.md).

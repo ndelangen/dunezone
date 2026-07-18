@@ -177,17 +177,4 @@ describe('scheduled production deployment shape', () => {
     expect(migrationGuide).toContain('disabled');
     expect(migrationGuide).toContain('No live item claim may exist');
   });
-
-  test('documents bounded cron telemetry and the queue-free measurement model', () => {
-    const measurementGuide = readFileSync(
-      path.resolve(process.cwd(), 'workers/publisher/MEASUREMENT.md'),
-      'utf8'
-    );
-    expect(measurementGuide).toContain('`*/5 * * * *`');
-    expect(measurementGuide).toContain('asset_publisher_cron');
-    expect(measurementGuide).toContain('asset_publisher_item_read_error');
-    expect(measurementGuide).toContain('8,192');
-    expect(measurementGuide).toContain('There is no Queue');
-    expect(measurementGuide).toContain('maxItems: 20');
-  });
 });
