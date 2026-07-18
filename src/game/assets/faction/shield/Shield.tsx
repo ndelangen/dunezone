@@ -2,20 +2,13 @@ import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { shield as size } from '../../../data/sizes';
-import type { FactionAssets, FactionPreview } from '../../../schema/faction';
+import type { FactionRender } from '../../../schema/faction';
 import { useCountId } from '../../utils/useCountId';
 import { LeaderToken } from '../leader/Leader';
 import { Token } from '../token/Token';
 import styles from './Shield.module.css';
 
-type AssetShield = z.infer<typeof FactionAssets.shield>;
-type PreviewShield = z.infer<typeof FactionPreview.shield>;
-type ShieldProps = AssetShield | PreviewShield;
-
-// Type guard to check if props are Asset type
-function isAssetShield(props: ShieldProps): props is AssetShield {
-  return typeof props.leader === 'string';
-}
+type ShieldProps = z.infer<typeof FactionRender.shield>;
 
 export const Shield: FC<ShieldProps> = (props) => {
   const prefix = useCountId();
@@ -136,32 +129,16 @@ export const Shield: FC<ShieldProps> = (props) => {
   return (
     <div className={styles.shield} style={{ ...size }}>
       <div className={[styles.logo, styles.left].join(' ')}>
-        {isAssetShield(props) ? (
-          <img src={props.logo} alt={props.name} />
-        ) : (
-          <Token background={props.background} logo={props.logo} />
-        )}
+        <Token background={props.background} logo={props.logo} />
       </div>
       <div className={[styles.logo, styles.right].join(' ')}>
-        {isAssetShield(props) ? (
-          <img src={props.logo} alt={props.name} />
-        ) : (
-          <Token background={props.background} logo={props.logo} />
-        )}
+        <Token background={props.background} logo={props.logo} />
       </div>
-      {isAssetShield(props) ? (
-        <img src={props.leader} className={styles.leader} alt={props.name} />
-      ) : (
-        <div className={styles.leader}>
-          <LeaderToken {...props.leader} background={props.background} logo={props.logo} />
-        </div>
-      )}
+      <div className={styles.leader}>
+        <LeaderToken {...props.leader} background={props.background} logo={props.logo} />
+      </div>
       <div className={styles.overlay} />
       {svgContent}
     </div>
   );
 };
-
-// Export aliases for backward compatibility
-export const ShieldAsset = Shield;
-export const ShieldPreview = Shield;

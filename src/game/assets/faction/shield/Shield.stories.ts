@@ -11,15 +11,7 @@ const meta = preview.meta({
   },
 });
 
-export const Asset = meta.story({
-  args: {
-    leader: '/generated/token/leader/atreides/hero.jpg',
-    logo: '/generated/token/faction/atreides.jpg',
-    name: 'Atreides',
-  },
-});
-
-export const Preview = meta.story({
+export const Default = meta.story({
   args: {
     background: {
       image: '/image/texture/021.jpg',

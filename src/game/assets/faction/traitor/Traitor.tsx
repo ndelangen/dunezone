@@ -3,14 +3,19 @@ import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { MarkdownContent } from '../../../components/block/MarkdownContent';
-import type { FactionAssets, FactionPreview } from '../../../schema/faction';
+import type { FactionRender } from '../../../schema/faction';
 import styles from '../../card/Card.module.css';
 import { Token } from '../../faction/token/Token';
 import unique from './Traitor.module.css';
 
-export const TraitorCard: FC<
-  z.infer<typeof FactionAssets.traitors>[0] | z.infer<typeof FactionPreview.traitors>[0]
-> = ({ image, logo, name, strength, background, owner }) => {
+export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
+  image,
+  logo,
+  name,
+  strength,
+  background,
+  owner,
+}) => {
   return (
     <div className={styles.card}>
       <div className={styles.decal_bg_1}></div>

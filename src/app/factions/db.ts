@@ -1,13 +1,8 @@
 import { useQuery } from 'convex/react';
-import type { z } from 'zod';
 
 import { db } from '@db/core';
 import { type LiveQueryResult, toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
-import {
-  FactionAssetSourceSchema,
-  type FactionInput,
-  FactionInputSchema,
-} from '@game/schema/faction';
+import { type FactionInput, FactionInputSchema } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
@@ -20,31 +15,12 @@ export type FactionEntry = Omit<FactionRow, 'data'> & {
   data: FactionData;
 };
 
-/** Subset of {@link FactionEntry} validated by {@link FactionAssetSourceSchema}. */
-export type FactionRowAssetSource = Pick<FactionEntry, 'data' | 'slug'>;
-
-type ZodFactionAssetSource = z.infer<typeof FactionAssetSourceSchema>;
-
-/**
- * Same keys as {@link FactionRowAssetSource}. Resolves to `never` if Zod output and row pick diverge.
- */
-export type FactionAssetSource = FactionRowAssetSource extends ZodFactionAssetSource
-  ? ZodFactionAssetSource extends FactionRowAssetSource
-    ? FactionRowAssetSource
-    : never
-  : never;
-
 export type FactionInsert = Omit<FactionEntry, 'data'> & {
   data: FactionData;
 };
 export type FactionUpdate = Omit<Partial<FactionEntry>, 'data'> & {
   data?: FactionData;
 };
-
-/** Runtime check: row `data` + `slug` match {@link FactionAssetSourceSchema}. */
-export function parseFactionAssetSource(entry: FactionRowAssetSource): FactionAssetSource {
-  return FactionAssetSourceSchema.parse({ data: entry.data, slug: entry.slug });
-}
 
 function toFactionEntry(entry: FactionRow): FactionEntry {
   return {

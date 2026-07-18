@@ -1,32 +1,14 @@
 import type { z } from 'zod';
 
 import { MarkdownContent } from '../../../components/block/MarkdownContent';
-import type { FactionAssets, FactionPreview } from '../../../schema/faction';
+import type { FactionRender } from '../../../schema/faction';
 import { isLight } from '../../utils/contrast';
 import { LeaderToken } from '../leader/Leader';
 import { Token } from '../token/Token';
 import { TroopToken } from '../troop/Troop';
 import styles from './Sheet.module.css';
 
-type AssetSheet = z.infer<typeof FactionAssets.sheet>;
-type PreviewSheet = z.infer<typeof FactionPreview.sheet>;
-type SheetProps = AssetSheet | PreviewSheet;
-
-// Type guard to check if props are Preview type
-function isPreviewSheet(props: SheetProps): props is PreviewSheet {
-  return 'background' in props;
-}
-
-// Type guard to check if a leader is Preview type (is an object, not a string)
-function isPreviewLeader(
-  leader: AssetSheet['leaders'][0] | PreviewSheet['leaders'][0]
-): leader is PreviewSheet['leaders'][0] {
-  return typeof leader === 'object' && leader !== null && 'image' in leader;
-}
-
-function isAssetSheet(props: SheetProps): props is AssetSheet {
-  return typeof props.leaders[0] === 'string';
-}
+type SheetProps = z.infer<typeof FactionRender.sheet>;
 
 export const FactionSheet = (props: SheetProps) => {
   return (
@@ -61,11 +43,7 @@ export function FactionSheetPage1(props: SheetProps) {
     <div className={styles.page} data-faction-sheet-page="1">
       <div className={`${styles.page_title} ${styles.title}`}>{props.name}</div>
       <div className={styles.logo}>
-        {isAssetSheet(props) ? (
-          <img src={props.logo} alt={props.name} title={props.name} />
-        ) : (
-          <Token logo={props.logo} background={props.background} />
-        )}
+        <Token logo={props.logo} background={props.background} />
       </div>
       <div className={styles.start}>
         <strong className={styles.head}>At start:</strong>{' '}
@@ -133,78 +111,45 @@ export function FactionSheetPage2(props: SheetProps) {
               <>
                 <div className={styles.subtitle}>Troops</div>
                 <div className={styles.troops}>
-                  {props.troops.map((t) => {
-                    if (isPreviewSheet(props)) {
-                      const previewTroop = t as PreviewSheet['troops'][0];
-                      return (
-                        <div
-                          key={`${previewTroop.image}-${previewTroop.name}`}
-                          className={styles.troop}
-                        >
+                  {props.troops.map((troop) => (
+                    <div key={`${troop.image}-${troop.name}`} className={styles.troop}>
+                      <div>
+                        <TroopToken
+                          background={props.background}
+                          image={troop.image}
+                          star={troop.star}
+                          striped={troop.striped}
+                        />
+                      </div>
+                      <section>
+                        <div className={styles.head}>{troop.name}</div>
+                        <div className={styles.text}>
+                          <MarkdownContent>{troop.description}</MarkdownContent>
+                        </div>
+                      </section>
+
+                      {troop.back && (
+                        <>
+                          <img className={styles.icon} src="/vector/icon/flip.svg" alt="Flip" />
+                          <div>to:</div>
                           <div>
                             <TroopToken
                               background={props.background}
-                              image={previewTroop.image}
-                              star={previewTroop.star}
-                              striped={previewTroop.striped}
+                              image={troop.back.image}
+                              star={troop.back.star}
+                              striped={troop.back.striped}
                             />
                           </div>
                           <section>
-                            <div className={styles.head}>{previewTroop.name}</div>
+                            <div className={styles.head}>{troop.back.name}</div>
                             <div className={styles.text}>
-                              <MarkdownContent>{previewTroop.description}</MarkdownContent>
+                              <MarkdownContent>{troop.back.description}</MarkdownContent>
                             </div>
                           </section>
-
-                          {previewTroop.back && (
-                            <>
-                              <img className={styles.icon} src="/vector/icon/flip.svg" alt="Flip" />
-                              <div>to:</div>
-                              <div>
-                                <TroopToken
-                                  background={props.background}
-                                  image={previewTroop.back.image}
-                                  star={previewTroop.back.star}
-                                  striped={previewTroop.back.striped}
-                                />
-                              </div>
-                              <section>
-                                <div className={styles.head}>{previewTroop.back.name}</div>
-                                <div className={styles.text}>
-                                  <MarkdownContent>{previewTroop.back.description}</MarkdownContent>
-                                </div>
-                              </section>
-                            </>
-                          )}
-                        </div>
-                      );
-                    }
-                    return (
-                      <div key={`${t.image}-${t.name}`} className={styles.troop}>
-                        <img src={t.image} alt={t.name} />
-                        <section>
-                          <div className={styles.head}>{t.name}</div>
-                          <div className={styles.text}>
-                            <MarkdownContent>{t.description}</MarkdownContent>
-                          </div>
-                        </section>
-
-                        {t.back && (
-                          <>
-                            <img className={styles.icon} src="/vector/icon/flip.svg" alt="Flip" />
-                            <div>to:</div>
-                            <img src={t.back.image} alt={t.back.name} />
-                            <section>
-                              <div className={styles.head}>{t.back.name}</div>
-                              <div className={styles.text}>
-                                <MarkdownContent>{t.back.description}</MarkdownContent>
-                              </div>
-                            </section>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </>
             )}
@@ -212,28 +157,17 @@ export function FactionSheetPage2(props: SheetProps) {
               <>
                 <div className={styles.subtitle}>Leaders</div>
                 <div className={styles.leaders}>
-                  {props.leaders.map((l) => {
-                    if (isPreviewLeader(l) && isPreviewSheet(props)) {
-                      return (
-                        <div key={l.image}>
-                          <LeaderToken
-                            background={props.background}
-                            image={l.image}
-                            logo={props.logo}
-                            name={l.name}
-                            strength={l.strength}
-                          />
-                        </div>
-                      );
-                    } else if (!isPreviewLeader(l)) {
-                      return (
-                        <div key={l}>
-                          <img src={l} alt={l} />
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
+                  {props.leaders.map((leader) => (
+                    <div key={leader.image}>
+                      <LeaderToken
+                        background={props.background}
+                        image={leader.image}
+                        logo={props.logo}
+                        name={leader.name}
+                        strength={leader.strength}
+                      />
+                    </div>
+                  ))}
                 </div>
               </>
             )}

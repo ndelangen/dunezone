@@ -2,7 +2,7 @@ import { Fragment } from 'react/jsx-runtime';
 
 import { Fan } from '../../components/block/Fan';
 import { card as cardSize } from '../../data/sizes';
-import { type FactionInput, FactionPreview } from '../../schema/faction';
+import { type FactionInput, FactionRender } from '../../schema/faction';
 import { AllianceCard } from '../faction/alliance/Alliance';
 import { LeaderToken } from '../faction/leader/Leader';
 import { FactionSheetPage1, FactionSheetPage2 } from '../faction/sheet/Sheet';
@@ -12,12 +12,12 @@ import { TroopToken } from '../faction/troop/Troop';
 import styles from './Scene.module.css';
 
 export function Scene(input: FactionInput) {
-  const leaders = FactionPreview.leaders.parse(input);
-  const traitors = FactionPreview.traitors.parse(input);
-  const troops = FactionPreview.troops.parse(input);
-  const shield = FactionPreview.shield.parse(input);
-  const sheet = FactionPreview.sheet.parse(input);
-  const alliance = FactionPreview.alliance.parse(input);
+  const leaders = FactionRender.leaders.parse(input);
+  const traitors = FactionRender.traitors.parse(input);
+  const troops = FactionRender.troops.parse(input);
+  const shield = FactionRender.shield.parse(input);
+  const sheet = FactionRender.sheet.parse(input);
+  const alliance = FactionRender.alliance.parse(input);
 
   return (
     <div className={styles.scene}>
