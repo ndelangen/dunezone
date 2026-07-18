@@ -5,17 +5,14 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { internal } from './_generated/api';
-import {
-  FACTION_SHEET_TARGET_ACTIVATION_PREREQUISITE,
-  ITEM_CLAIM_MIGRATION_IDS,
-} from './lib/assetPublisherConstants';
+import { FACTION_SHEET_TARGET_ACTIVATION_PREREQUISITE } from './lib/assetPublisherConstants';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
 const NOW = Date.parse('2026-07-17T12:00:00.000Z');
 
 describe('asset publisher config authority', () => {
-  test('initialize, pause, and disable only mutate the asset type config', async () => {
+  test('initialize, pause, and disable mutate the asset type config', async () => {
     const t = convexTest(schema, modules);
     await expect(
       t.mutation(internal.assetPublisherOperator.initializeDisabled, {})
@@ -28,14 +25,9 @@ describe('asset publisher config authority', () => {
       status: 'disabled',
       changed: true,
     });
-    const legacy = await t.run(async (ctx) => ({
-      states: await ctx.db.query('asset_publisher_state').take(1),
-      counters: await ctx.db.query('counters').take(1),
-    }));
-    expect(legacy).toEqual({ states: [], counters: [] });
   });
 
-  test('activation fails closed until every target and item-claim migration is complete', async () => {
+  test('activation fails closed until target migration is complete', async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.assetPublisherOperator.initializeDisabled, {});
     await expect(
@@ -45,20 +37,15 @@ describe('asset publisher config authority', () => {
     ).rejects.toThrow('activation prerequisite');
 
     await t.run(async (ctx) => {
-      for (const migrationId of [
-        FACTION_SHEET_TARGET_ACTIVATION_PREREQUISITE,
-        ...ITEM_CLAIM_MIGRATION_IDS,
-      ]) {
-        await ctx.db.insert('migration_runs', {
-          migration_id: migrationId,
-          state: 'success',
-          is_done: true,
-          processed: 1,
-          latest_start: NOW - 1,
-          latest_end: NOW,
-          updated_at: new Date(NOW).toISOString(),
-        });
-      }
+      await ctx.db.insert('migration_runs', {
+        migration_id: FACTION_SHEET_TARGET_ACTIVATION_PREREQUISITE,
+        state: 'success',
+        is_done: true,
+        processed: 1,
+        latest_start: NOW - 1,
+        latest_end: NOW,
+        updated_at: new Date(NOW).toISOString(),
+      });
     });
     await expect(
       t.mutation(internal.assetPublisherOperator.activate, {

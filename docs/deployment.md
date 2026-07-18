@@ -32,9 +32,8 @@ custom domain passes the release smoke, the workflow sets the production Convex 
 `https://dune.zone`.
 
 The workflow mutates only the publisher's pause/activation control boundary around deployment. It
-does not mutate publisher items outside the normal scheduled executor, execute the later schema
-narrow, or delete the retired remote Queue. The first post-deploy scheduled invocation remains an
-operator-observed production canary.
+does not mutate publisher items outside the normal scheduled executor or delete the retired remote
+Queue. The first post-deploy scheduled invocation remains an operator-observed production canary.
 
 ## Build process
 

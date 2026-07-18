@@ -162,19 +162,4 @@ describe('scheduled production deployment shape', () => {
     expect(deploymentWorkflow).toContain('.status == "paused"');
     expect(deploymentWorkflow).toContain('.status == "active" and .rendererVersion == $renderer');
   });
-
-  test('documents the item-claim migration pack and its paused/no-live-claims preconditions', () => {
-    const migrationGuide = readFileSync(
-      path.resolve(process.cwd(), 'docs/convex-migrations.md'),
-      'utf8'
-    );
-    expect(migrationGuide).toContain('asset_targets_item_claims_v1');
-    expect(migrationGuide).toContain('asset_claim_snapshots_retire_v1');
-    expect(migrationGuide).toContain('asset_publisher_state_retire_v1');
-    expect(migrationGuide).toContain('asset_publisher_admission_counter_retire_v1');
-    expect(migrationGuide).toContain('asset_targets_item_claims_verify_v1');
-    expect(migrationGuide).toContain('paused');
-    expect(migrationGuide).toContain('disabled');
-    expect(migrationGuide).toContain('No live item claim may exist');
-  });
 });

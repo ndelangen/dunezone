@@ -59,12 +59,10 @@ function claimPayload(faction: Doc<'factions'>) {
 
 function clearItemClaim() {
   return {
-    batch_token: undefined,
     claim_token: undefined,
     claimed_generation: undefined,
     claimed_renderer_version: undefined,
     lease_expires_at: undefined,
-    claim_payload_hash: undefined,
   };
 }
 
@@ -103,30 +101,23 @@ function parseExactItem(args: {
 }
 
 function earlierTarget(left: Doc<'asset_targets'>, right: Doc<'asset_targets'>) {
-  const leftEligible = left.next_eligible_at ?? 0;
-  const rightEligible = right.next_eligible_at ?? 0;
-  if (leftEligible !== rightEligible) return leftEligible - rightEligible;
   if (left._creationTime !== right._creationTime) return left._creationTime - right._creationTime;
   return left._id < right._id ? -1 : left._id > right._id ? 1 : 0;
 }
 
-async function eligibleForegroundTargets(ctx: PublisherReadCtx, now: number) {
+async function eligibleForegroundTargets(ctx: PublisherReadCtx) {
   const laneRows = await Promise.all(
     ([undefined, 'foreground'] as const).map(
       async (workLane) =>
         await ctx.db
           .query('asset_targets')
-          .withIndex('by_type_lane_status_eligible', (q) =>
+          .withIndex('by_asset_type_and_work_lane_and_status', (q) =>
             q.eq('asset_type', ASSET_TYPE).eq('work_lane', workLane).eq('status', 'pending')
           )
           .take(MAX_PUBLISHER_ITEMS)
     )
   );
-  return laneRows
-    .flat()
-    .filter((target) => target.next_eligible_at === undefined || target.next_eligible_at <= now)
-    .sort(earlierTarget)
-    .slice(0, MAX_PUBLISHER_ITEMS);
+  return laneRows.flat().sort(earlierTarget).slice(0, MAX_PUBLISHER_ITEMS);
 }
 
 async function expiredClaims(ctx: PublisherReadCtx, now: number) {
@@ -149,7 +140,6 @@ async function recoverExpiredClaims(ctx: MutationCtx, now: number) {
       await ctx.db.patch(target._id, {
         ...clearItemClaim(),
         status: 'pending',
-        next_eligible_at: undefined,
       });
     }
   }
@@ -174,15 +164,10 @@ async function assignClaim(
   await markRolloutClaimed(ctx, target, now);
   await ctx.db.patch(target._id, {
     status: 'leased',
-    next_eligible_at: undefined,
-    attempt_count: undefined,
-    first_publication_admitted: undefined,
-    batch_token: undefined,
     claim_token: claimToken,
     claimed_generation: target.desired_generation,
     claimed_renderer_version: target.desired_renderer_version,
     lease_expires_at: leaseExpiresAt,
-    claim_payload_hash: undefined,
   });
   return {
     targetId: target._id,
@@ -222,7 +207,7 @@ export const takeWork = internalMutation({
 
     const leaseExpiresAt = now + ITEM_CLAIM_LEASE_MS;
     const items = [];
-    const foreground = await eligibleForegroundTargets(ctx, now);
+    const foreground = await eligibleForegroundTargets(ctx);
     for (const target of foreground) {
       if (items.length >= args.claimTokens.length) break;
       items.push(
@@ -350,9 +335,6 @@ export const completeItem = internalMutation({
     await ctx.db.patch(target._id, {
       ...clearItemClaim(),
       status: 'current',
-      next_eligible_at: undefined,
-      attempt_count: undefined,
-      first_publication_admitted: undefined,
       consecutive_render_failures: 0,
       last_error: undefined,
       published_generation: args.generation,
@@ -361,7 +343,6 @@ export const completeItem = internalMutation({
       published_r2_etag: args.r2Etag,
       published_bytes: args.bytes,
       published_at: now,
-      last_completed_batch_token: undefined,
       last_completed_claim_token: args.claimToken,
       work_lane: 'foreground',
       rollout_id: undefined,
@@ -407,7 +388,7 @@ export const failItem = internalMutation({
       };
     }
 
-    const consecutiveFailures = (target.consecutive_render_failures ?? 0) + 1;
+    const consecutiveFailures = target.consecutive_render_failures + 1;
     const blocked = consecutiveFailures >= MAX_CONSECUTIVE_RENDER_FAILURES;
     const rolloutOutcome = await failRolloutItem(
       ctx,
@@ -427,7 +408,6 @@ export const failItem = internalMutation({
       await ctx.db.patch(target._id, {
         ...clearItemClaim(),
         status: blocked ? 'blocked' : 'pending',
-        next_eligible_at: undefined,
         consecutive_render_failures: consecutiveFailures,
         last_error: failure.data.error,
       });

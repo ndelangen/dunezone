@@ -7,7 +7,6 @@ import {
   FACTION_SHEET_ASSET_TYPE,
   FACTION_SHEET_TARGET_ACTIVATION_PREREQUISITE,
   INITIAL_FACTION_SHEET_RENDERER_VERSION,
-  ITEM_CLAIM_MIGRATION_IDS,
   PREVIOUS_FACTION_SHEET_RENDERER_VERSION,
 } from './lib/assetPublisherConstants';
 import type { MutationCtx } from './types';
@@ -98,12 +97,7 @@ async function assertExactPrerequisite(ctx: MutationCtx, prerequisite: string) {
 export const activate = internalMutation({
   args: { rendererVersion: rendererValidator },
   handler: async (ctx, args) => {
-    for (const prerequisite of [
-      FACTION_SHEET_TARGET_ACTIVATION_PREREQUISITE,
-      ...ITEM_CLAIM_MIGRATION_IDS,
-    ]) {
-      await assertExactPrerequisite(ctx, prerequisite);
-    }
+    await assertExactPrerequisite(ctx, FACTION_SHEET_TARGET_ACTIVATION_PREREQUISITE);
     const config = await ensureConfig(ctx);
     const changed =
       config.status !== 'active' || config.active_renderer_version !== args.rendererVersion;

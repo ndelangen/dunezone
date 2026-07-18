@@ -380,7 +380,6 @@ export const discoverPage = internalMutation({
         await ctx.db.patch(target._id, {
           desired_renderer_version: rollout.target_renderer_version,
           status: 'pending',
-          next_eligible_at: undefined,
           last_error: undefined,
           work_lane: 'rollout',
           rollout_id: rollout._id,
@@ -428,17 +427,14 @@ function restoreTargetAfterRollout(
   return {
     desired_renderer_version: restoredRenderer,
     status: isCurrent ? ('current' as const) : ('pending' as const),
-    next_eligible_at: undefined,
     last_error: undefined,
     work_lane: 'foreground' as const,
     rollout_id: undefined,
     rollout_item_id: undefined,
-    batch_token: undefined,
     claim_token: undefined,
     claimed_generation: undefined,
     claimed_renderer_version: undefined,
     lease_expires_at: undefined,
-    claim_payload_hash: undefined,
   };
 }
 
@@ -538,7 +534,7 @@ export async function firstEligibleRolloutTarget(ctx: ReadCtx, now: number) {
   if (rollout?.status !== 'running') return null;
   const targets = await ctx.db
     .query('asset_targets')
-    .withIndex('by_type_lane_status_eligible', (q) =>
+    .withIndex('by_asset_type_and_work_lane_and_status', (q) =>
       q
         .eq('asset_type', FACTION_SHEET_ASSET_TYPE)
         .eq('work_lane', 'rollout')

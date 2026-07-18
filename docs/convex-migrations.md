@@ -57,45 +57,6 @@ Rules:
   - `narrow`: schema-narrow checkpoint gated on completed widen work
 - `requires`: widen migration ids that must be `success + isDone=true` before narrow is allowed
 
-## Current asset-publisher migration pack
-
-The item-only paid-plan release uses these widen migrations:
-
-- `asset_targets_item_claims_v1`
-- `asset_claim_snapshots_retire_v1`
-- `asset_publisher_state_retire_v1`
-- `asset_publisher_admission_counter_retire_v1`
-- `asset_targets_item_claims_verify_v1`
-
-They are run alongside the repo's other widen migrations from the same guard manifest.
-
-### Preconditions
-
-- The faction-sheet publisher config must be `paused` or `disabled`.
-- No live item claim may exist when `asset_targets_item_claims_v1` runs.
-- The later schema narrow must wait for all required widen migrations to complete successfully.
-
-### What the migration pack does
-
-`asset_targets_item_claims_v1` converts legacy target coordination into the new per-target
-item-claim shape. It:
-
-- converts legacy `cooldown` targets back to plain `pending`;
-- initializes `consecutive_render_failures` without interpreting historical retry counts;
-- preserves blocked targets by forcing them to at least the ten-failure threshold;
-- clears retired retry timing, batch, claim, payload-hash, and admission-era fields; and
-- fails closed if publishing is active or a live claim is still leased.
-
-The retirement steps then remove the old tables and singleton state that no longer participate in
-runtime behavior:
-
-- `asset_claim_snapshots_retire_v1` deletes legacy claim snapshots;
-- `asset_publisher_state_retire_v1` deletes the retired singleton publisher state; and
-- `asset_publisher_admission_counter_retire_v1` deletes the first-publication counter.
-
-`asset_targets_item_claims_verify_v1` is the per-target proof pass. It fails if a target still has
-legacy fields, an invalid failure counter, or an impossible blocked-state combination.
-
 ## Automated production flow
 
 1. Deploy widen-compatible Convex code: `bun run convex:deploy`
@@ -152,8 +113,6 @@ bun run scripts/migration-guards.ts dev-strict 300000 2000
 # Alias used by convex:dev and for manual local catch-up
 bun run migrations:run-local-required
 
-# Raw status for selected ids
-npx convex run migrations:getStatus '{"ids":["asset_targets_item_claims_v1","asset_targets_item_claims_verify_v1"]}' --prod
 ```
 
 ## Templates and references

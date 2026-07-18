@@ -47,7 +47,7 @@ export function projectPublicAssetPublishingStatus(
       : `/published/factions/${encodeURIComponent(target.faction_id)}/sheet.pdf?v=${encodeURIComponent(target.published_cache_token)}`;
 
   if (target.status === 'leased') return { status: 'publishing', publicationHref };
-  if (target.status === 'cooldown' || target.status === 'blocked') {
+  if (target.status === 'blocked') {
     return { status: 'delayed', publicationHref };
   }
   if (

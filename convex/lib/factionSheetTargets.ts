@@ -113,9 +113,6 @@ export async function reconcileFactionSheetTargetForSave(
     foreground_updated_at: now,
     consecutive_render_failures: 0,
     last_error: undefined,
-    next_eligible_at: undefined,
-    attempt_count: undefined,
-    first_publication_admitted: undefined,
     ...(target.status === 'leased'
       ? {}
       : {

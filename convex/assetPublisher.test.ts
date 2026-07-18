@@ -87,7 +87,7 @@ function exact(item: ClaimedItem) {
 }
 
 describe('item claim assignment', () => {
-  test('is disabled without an active config and assigns at most twenty without snapshots', async () => {
+  test('is disabled without an active config and assigns at most twenty items', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
     const disabled = await seed({ active: false, targets: 1 });
@@ -99,17 +99,16 @@ describe('item claim assignment', () => {
     const items = await takeAssigned(t);
     expect(items).toHaveLength(MAX_PUBLISHER_ITEMS);
     expect(new Set(items.map((item) => item.claimToken)).size).toBe(MAX_PUBLISHER_ITEMS);
-    const state = await t.run(async (ctx) => ({
-      leased: await ctx.db
-        .query('asset_targets')
-        .withIndex('by_asset_type_and_status_and_lease_expires_at', (q) =>
-          q.eq('asset_type', 'faction_sheet').eq('status', 'leased')
-        )
-        .take(25),
-      snapshots: await ctx.db.query('asset_claim_snapshots').take(1),
-    }));
-    expect(state.leased).toHaveLength(MAX_PUBLISHER_ITEMS);
-    expect(state.snapshots).toEqual([]);
+    const leased = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('asset_targets')
+          .withIndex('by_asset_type_and_status_and_lease_expires_at', (q) =>
+            q.eq('asset_type', 'faction_sheet').eq('status', 'leased')
+          )
+          .take(25)
+    );
+    expect(leased).toHaveLength(MAX_PUBLISHER_ITEMS);
   });
 
   test('returns no work while any live item claim remains', async () => {

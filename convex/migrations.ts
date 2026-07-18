@@ -6,11 +6,6 @@ import { DEFAULT_FAQ_TAG } from '../src/app/faq/tags';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, query } from './_generated/server';
-import { recoverExpiredRolloutClaim } from './assetRollouts';
-import {
-  ITEM_CLAIM_MIGRATION_IDS,
-  MAX_CONSECUTIVE_RENDER_FAILURES,
-} from './lib/assetPublisherConstants';
 import {
   assertExactlyOneFactionSheetTarget,
   ensureFactionSheetConfig,
@@ -33,12 +28,6 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   profiles_from_users_v1: internal.migrations.profiles_from_users_v1,
   faction_sheet_targets_backfill_v1: internal.migrations.faction_sheet_targets_backfill_v1,
   faction_sheet_targets_verify_v1: internal.migrations.faction_sheet_targets_verify_v1,
-  asset_targets_item_claims_v1: internal.migrations.asset_targets_item_claims_v1,
-  asset_claim_snapshots_retire_v1: internal.migrations.asset_claim_snapshots_retire_v1,
-  asset_publisher_state_retire_v1: internal.migrations.asset_publisher_state_retire_v1,
-  asset_publisher_admission_counter_retire_v1:
-    internal.migrations.asset_publisher_admission_counter_retire_v1,
-  asset_targets_item_claims_verify_v1: internal.migrations.asset_targets_item_claims_verify_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -52,7 +41,6 @@ const migrations = new Migrations(components.migrations, {
 const FACTION_SHEET_TARGET_MIGRATION_IDS = [
   'faction_sheet_targets_backfill_v1',
   'faction_sheet_targets_verify_v1',
-  ...ITEM_CLAIM_MIGRATION_IDS,
 ] as const;
 
 async function resolveUniqueGroupSlug(
@@ -220,117 +208,6 @@ export const faction_sheet_targets_verify_v1 = migrations.define({
   },
 });
 
-async function assertItemClaimMigrationInactive(ctx: MutationCtx) {
-  const config = await ensureFactionSheetConfig(ctx);
-  if (config.status === 'active') {
-    throw new Error('Item-claim migration requires paused or disabled configuration');
-  }
-}
-
-/** Converts legacy target coordination into the item-claim widen shape. */
-export const asset_targets_item_claims_v1 = migrations.define({
-  table: 'asset_targets',
-  batchSize: 25,
-  migrateOne: async (ctx, target) => {
-    await assertItemClaimMigrationInactive(ctx);
-    let status = target.status;
-    if (status === 'leased') {
-      if ((target.lease_expires_at ?? Number.POSITIVE_INFINITY) > Date.now()) {
-        throw new Error('Item-claim migration requires no live claims');
-      }
-      const detached = await recoverExpiredRolloutClaim(ctx, target, Date.now());
-      const recovered = await ctx.db.get('asset_targets', target._id);
-      status = detached ? (recovered?.status ?? 'pending') : 'pending';
-    } else if (status === 'cooldown') {
-      status = 'pending';
-    }
-    const existingFailures = target.consecutive_render_failures;
-    const consecutiveRenderFailures =
-      status === 'blocked'
-        ? Math.max(
-            existingFailures ?? MAX_CONSECUTIVE_RENDER_FAILURES,
-            MAX_CONSECUTIVE_RENDER_FAILURES
-          )
-        : (existingFailures ?? 0);
-    return {
-      status,
-      consecutive_render_failures: consecutiveRenderFailures,
-      first_publication_admitted: undefined,
-      next_eligible_at: undefined,
-      attempt_count: undefined,
-      batch_token: undefined,
-      claim_token: undefined,
-      claimed_generation: undefined,
-      claimed_renderer_version: undefined,
-      lease_expires_at: undefined,
-      claim_payload_hash: undefined,
-      last_completed_batch_token: undefined,
-      last_completed_claim_token: undefined,
-    };
-  },
-});
-
-/** Deletes copied payloads after all legacy ownership has been fenced off. */
-export const asset_claim_snapshots_retire_v1 = migrations.define({
-  table: 'asset_claim_snapshots',
-  batchSize: 25,
-  migrateOne: async (ctx, snapshot) => {
-    await assertItemClaimMigrationInactive(ctx);
-    await ctx.db.delete(snapshot._id);
-  },
-});
-
-/** Deletes the retired global batch/cooldown/quota singleton. */
-export const asset_publisher_state_retire_v1 = migrations.define({
-  table: 'asset_publisher_state',
-  batchSize: 5,
-  migrateOne: async (ctx, state) => {
-    await assertItemClaimMigrationInactive(ctx);
-    await ctx.db.delete(state._id);
-  },
-});
-
-/** Deletes only the retired first-publication admission counter. */
-export const asset_publisher_admission_counter_retire_v1 = migrations.define({
-  table: 'counters',
-  batchSize: 25,
-  migrateOne: async (ctx, counter) => {
-    await assertItemClaimMigrationInactive(ctx);
-    if (counter.key === 'asset_publisher:faction_sheet:first_publications') {
-      await ctx.db.delete(counter._id);
-    }
-  },
-});
-
-/** Per-target proof that the legacy coordination shape has been fully cleared. */
-export const asset_targets_item_claims_verify_v1 = migrations.define({
-  table: 'asset_targets',
-  batchSize: 25,
-  migrateOne: async (ctx, target) => {
-    await assertItemClaimMigrationInactive(ctx);
-    const failureCount = target.consecutive_render_failures;
-    if (
-      target.status === 'cooldown' ||
-      target.status === 'leased' ||
-      !Number.isSafeInteger(failureCount) ||
-      (failureCount ?? -1) < 0 ||
-      (target.status === 'blocked' && (failureCount ?? 0) < MAX_CONSECUTIVE_RENDER_FAILURES) ||
-      target.first_publication_admitted !== undefined ||
-      target.next_eligible_at !== undefined ||
-      target.attempt_count !== undefined ||
-      target.batch_token !== undefined ||
-      target.claim_token !== undefined ||
-      target.claimed_generation !== undefined ||
-      target.claimed_renderer_version !== undefined ||
-      target.lease_expires_at !== undefined ||
-      target.claim_payload_hash !== undefined ||
-      target.last_completed_batch_token !== undefined
-    ) {
-      throw new Error(`Item-claim target verification failed for ${target._id}`);
-    }
-  },
-});
-
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([
@@ -341,11 +218,6 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.profiles_from_users_v1,
   internal.migrations.faction_sheet_targets_backfill_v1,
   internal.migrations.faction_sheet_targets_verify_v1,
-  internal.migrations.asset_targets_item_claims_v1,
-  internal.migrations.asset_claim_snapshots_retire_v1,
-  internal.migrations.asset_publisher_state_retire_v1,
-  internal.migrations.asset_publisher_admission_counter_retire_v1,
-  internal.migrations.asset_targets_item_claims_verify_v1,
 ]);
 
 export const runRequired = mutation({

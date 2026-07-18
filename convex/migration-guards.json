@@ -30,15 +30,6 @@
       "phase": "widen",
       "requires": []
     },
-    { "id": "asset_targets_item_claims_v1", "phase": "widen", "requires": [] },
-    { "id": "asset_claim_snapshots_retire_v1", "phase": "widen", "requires": [] },
-    { "id": "asset_publisher_state_retire_v1", "phase": "widen", "requires": [] },
-    {
-      "id": "asset_publisher_admission_counter_retire_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    { "id": "asset_targets_item_claims_verify_v1", "phase": "widen", "requires": [] },
     {
       "id": "profiles_backfill_guard",
       "phase": "narrow",
@@ -48,17 +39,6 @@
       "id": "faction_sheet_targets_backfill_guard",
       "phase": "narrow",
       "requires": ["faction_sheet_targets_backfill_v1", "faction_sheet_targets_verify_v1"]
-    },
-    {
-      "id": "asset_publisher_item_claims_narrow",
-      "phase": "narrow",
-      "requires": [
-        "asset_targets_item_claims_v1",
-        "asset_claim_snapshots_retire_v1",
-        "asset_publisher_state_retire_v1",
-        "asset_publisher_admission_counter_retire_v1",
-        "asset_targets_item_claims_verify_v1"
-      ]
     },
     {
       "id": "groups_slug_narrow",

@@ -184,6 +184,5 @@ describe('rollout compatibility with independent item claims', () => {
       status: 'current',
       consecutive_render_failures: 3,
     });
-    expect(targets[0]?.next_eligible_at).toBeUndefined();
   });
 });

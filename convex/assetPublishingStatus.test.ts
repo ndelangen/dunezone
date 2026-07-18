@@ -28,7 +28,7 @@ async function seedFaction(t: ReturnType<typeof convexTest>) {
 async function insertTarget(
   t: ReturnType<typeof convexTest>,
   factionId: Id<'factions'>,
-  status: 'pending' | 'leased' | 'blocked' | 'cooldown' | 'current'
+  status: 'pending' | 'leased' | 'blocked' | 'current'
 ) {
   return await t.run(
     async (ctx) =>
@@ -38,15 +38,12 @@ async function insertTarget(
         desired_generation: 2,
         desired_renderer_version: 'faction-sheet-v1',
         status,
-        next_eligible_at: 123,
-        attempt_count: 7,
+        consecutive_render_failures: 0,
         last_error: 'private operational error',
-        batch_token: 'private-batch-token',
         claim_token: 'private-claim-token',
         claimed_generation: 2,
         claimed_renderer_version: 'faction-sheet-v1',
         lease_expires_at: 456,
-        claim_payload_hash: 'private-payload-hash',
       })
   );
 }
@@ -69,7 +66,6 @@ describe('public asset publishing status projection', () => {
     ['pending', 'waiting'],
     ['leased', 'publishing'],
     ['blocked', 'delayed'],
-    ['cooldown', 'delayed'],
   ] as const)('maps %s to %s without operational leakage', async (targetStatus, expected) => {
     const t = convexTest(schema, modules);
     const factionId = await seedFaction(t);

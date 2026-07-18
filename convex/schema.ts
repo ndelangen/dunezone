@@ -77,26 +77,18 @@ export default defineSchema({
     published_r2_etag: v.optional(v.string()),
     published_bytes: v.optional(v.number()),
     published_at: v.optional(v.number()),
-    first_publication_admitted: v.optional(v.boolean()),
     status: v.union(
       v.literal('pending'),
       v.literal('leased'),
       v.literal('current'),
-      v.literal('blocked'),
-      // Widen-phase compatibility. Removed after item-claim migration evidence.
-      v.literal('cooldown')
+      v.literal('blocked')
     ),
-    next_eligible_at: v.optional(v.number()),
-    attempt_count: v.optional(v.number()),
-    consecutive_render_failures: v.optional(v.number()),
+    consecutive_render_failures: v.number(),
     last_error: v.optional(v.string()),
-    batch_token: v.optional(v.string()),
     claim_token: v.optional(v.string()),
     claimed_generation: v.optional(v.number()),
     claimed_renderer_version: v.optional(v.string()),
     lease_expires_at: v.optional(v.number()),
-    claim_payload_hash: v.optional(v.string()),
-    last_completed_batch_token: v.optional(v.string()),
     last_completed_claim_token: v.optional(v.string()),
     work_lane: v.optional(v.union(v.literal('foreground'), v.literal('rollout'))),
     rollout_id: v.optional(v.id('asset_rollouts')),
@@ -104,67 +96,15 @@ export default defineSchema({
     foreground_updated_at: v.optional(v.number()),
   })
     .index('by_faction_id_and_asset_type', ['faction_id', 'asset_type'])
-    .index('by_asset_type_and_status_and_next_eligible_at', [
-      'asset_type',
-      'status',
-      'next_eligible_at',
-    ])
     .index('by_asset_type_and_status_and_lease_expires_at', [
       'asset_type',
       'status',
       'lease_expires_at',
     ])
-    .index('by_asset_type_and_admitted_and_status_and_next_eligible_at', [
-      'asset_type',
-      'first_publication_admitted',
-      'status',
-      'next_eligible_at',
-    ])
-    .index('by_asset_type_and_admitted_and_status_and_lease_expires_at', [
-      'asset_type',
-      'first_publication_admitted',
-      'status',
-      'lease_expires_at',
-    ])
-    .index('by_asset_type_and_published_generation', ['asset_type', 'published_generation'])
     .index('by_asset_type', ['asset_type'])
-    .index('by_type_lane_status_eligible', [
-      'asset_type',
-      'work_lane',
-      'status',
-      'next_eligible_at',
-    ])
+    .index('by_asset_type_and_work_lane_and_status', ['asset_type', 'work_lane', 'status'])
     .index('by_type_lane_status_lease', ['asset_type', 'work_lane', 'status', 'lease_expires_at'])
-    .index('by_type_lane_admitted_status_eligible', [
-      'asset_type',
-      'work_lane',
-      'first_publication_admitted',
-      'status',
-      'next_eligible_at',
-    ])
-    .index('by_type_lane_admitted_status_lease', [
-      'asset_type',
-      'work_lane',
-      'first_publication_admitted',
-      'status',
-      'lease_expires_at',
-    ])
-    .index('by_batch_token', ['batch_token'])
     .index('by_claim_token', ['claim_token']),
-  asset_claim_snapshots: defineTable({
-    target_id: v.id('asset_targets'),
-    faction_id: v.id('factions'),
-    asset_type: v.literal('faction_sheet'),
-    batch_token: v.string(),
-    claim_token: v.string(),
-    generation: v.number(),
-    renderer_version: v.string(),
-    lease_expires_at: v.number(),
-    payload_hash: v.string(),
-    payload: v.any(),
-  })
-    .index('by_target_id', ['target_id'])
-    .index('by_batch_token', ['batch_token']),
   asset_type_configs: defineTable({
     asset_type: v.literal('faction_sheet'),
     status: v.union(v.literal('disabled'), v.literal('active'), v.literal('paused')),
@@ -172,26 +112,6 @@ export default defineSchema({
     active_rollout_id: v.optional(v.id('asset_rollouts')),
     updated_at: v.number(),
   }).index('by_asset_type', ['asset_type']),
-  asset_publisher_state: defineTable({
-    key: v.literal('singleton'),
-    status: v.union(v.literal('disabled'), v.literal('active'), v.literal('paused')),
-    batch_token: v.optional(v.string()),
-    batch_lease_expires_at: v.optional(v.number()),
-    cooldown_until: v.number(),
-    daily_browser_utc_date: v.string(),
-    daily_browser_ms: v.number(),
-    browser_reservation_batch_token: v.optional(v.string()),
-    browser_reservation_utc_date: v.optional(v.string()),
-    browser_reserved_ms: v.optional(v.number()),
-    last_browser_settlement_batch_token: v.optional(v.string()),
-    last_browser_settlement_ms: v.optional(v.number()),
-    last_browser_release_batch_token: v.optional(v.string()),
-    last_browser_release_mode: v.optional(
-      v.union(v.literal('no_browser'), v.literal('after_settlement'))
-    ),
-    next_lane: v.union(v.literal('foreground'), v.literal('rollout')),
-    lane_sequence_position: v.optional(v.number()),
-  }).index('by_key', ['key']),
   asset_rollouts: defineTable({
     asset_type: v.literal('faction_sheet'),
     target_renderer_version: v.string(),
