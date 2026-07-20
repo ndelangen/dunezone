@@ -1,23 +1,31 @@
+.surface {
+  overflow: hidden;
+}
+
 .list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  table-layout: auto;
 }
 
-.item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--mantine-spacing-sm);
-  padding: var(--mantine-spacing-md) 0;
-  border-bottom: 1px solid var(--mantine-color-gray-2);
+.rowCell {
+  min-width: 0;
 }
 
-.item:last-child {
-  border-bottom: none;
+.interactiveRow {
+  cursor: pointer;
+}
+
+.interactiveRow:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
 }
 
 .itemContent {
-  flex: 1;
   min-width: 0;
   color: inherit;
+}
+
+.metadataRow {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
 }

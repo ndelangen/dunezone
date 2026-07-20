@@ -5,6 +5,7 @@ import type { FaqAnswerEntry, FaqItemWithDetails } from '@db/faq';
 import type { GroupMemberRow, UserGroupMembershipWithGroup } from '@db/members';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { rulesetInputSchema } from '@app/rulesets/validation';
+import type { FactionData } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
@@ -22,9 +23,16 @@ export type RulesetUpdate = Omit<Partial<RulesetEntry>, 'name'> & {
   name?: Ruleset['name'];
 };
 
+export type RulesetFactionSummary = {
+  factionId: string;
+  name: string;
+  urlSlug: string;
+  identity: Pick<FactionData, 'logo' | 'background'> | null;
+};
+
 export type RulesetPageData = {
   ruleset: RulesetEntry;
-  factions: { factionId: string; name: string; urlSlug: string }[];
+  factions: RulesetFactionSummary[];
   canAccess: boolean;
 };
 
@@ -86,7 +94,7 @@ export async function loadRuleset(id: string): Promise<RulesetEntry> {
 export async function loadRulesetBySlug(slug: string): Promise<RulesetPageData> {
   const result = await db.query<{
     ruleset: RulesetRow;
-    factions: { factionId: string; name: string; urlSlug: string }[];
+    factions: RulesetFactionSummary[];
     canAccess: boolean;
   }>(api.rulesets.getBySlug, { slug });
   return {
@@ -98,7 +106,7 @@ export async function loadRulesetBySlug(slug: string): Promise<RulesetPageData> 
 export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetailPageData | null> {
   const raw = await db.query<{
     ruleset: RulesetRow;
-    factions: { factionId: string; name: string; urlSlug: string }[];
+    factions: RulesetFactionSummary[];
     canAccess: boolean;
     owner: RulesetDetailPageData['owner'];
     viewerAssignableMemberships: AssignableMembershipConvexRow[] | null;
@@ -125,11 +133,10 @@ export async function loadRulesetFactions(rulesetId: string): Promise<string[]> 
 
 export async function loadRulesetFactionsWithDetails(
   rulesetId: string
-): Promise<{ factionId: string; name: string; urlSlug: string }[]> {
-  return await db.query<{ factionId: string; name: string; urlSlug: string }[]>(
-    api.rulesets.factionDetails,
-    { ruleset_id: rulesetId }
-  );
+): Promise<RulesetFactionSummary[]> {
+  return await db.query<RulesetFactionSummary[]>(api.rulesets.factionDetails, {
+    ruleset_id: rulesetId,
+  });
 }
 
 export async function loadCanAccessRuleset(rulesetId: string): Promise<boolean> {
@@ -178,7 +185,7 @@ export function useRulesetBySlug(slug: string, options?: { initialData?: Ruleset
   const liveData = useQuery(api.rulesets.getBySlug, { slug });
   const result = toLiveQueryResult<{
     ruleset: RulesetRow;
-    factions: { factionId: string; name: string; urlSlug: string }[];
+    factions: RulesetFactionSummary[];
     canAccess: boolean;
   } | null>(liveData, true, () => (options?.initialData as never) ?? undefined);
   return {
@@ -232,10 +239,10 @@ export function useRulesetFactions(rulesetId: string) {
 
 export function useRulesetFactionsWithDetails(
   rulesetId: string,
-  options?: { initialData?: { factionId: string; name: string; urlSlug: string }[] }
+  options?: { initialData?: RulesetFactionSummary[] }
 ) {
   const liveData = useQuery(api.rulesets.factionDetails, { ruleset_id: rulesetId } as never) as
-    | { factionId: string; name: string; urlSlug: string }[]
+    | RulesetFactionSummary[]
     | undefined;
   const result = toLiveQueryResult(liveData, true, () => options?.initialData ?? undefined);
   return {

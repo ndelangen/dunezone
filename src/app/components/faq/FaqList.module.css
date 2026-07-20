@@ -3,18 +3,19 @@
   line-height: 1.35;
 }
 
+.questionLine {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--mantine-spacing-xs);
+}
+
 .meta {
   color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
 }
 
 .askerLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: inherit;
-  text-decoration: none;
-}
-
-.askerLink:hover {
-  text-decoration: underline;
+  flex: 0 0 auto;
 }

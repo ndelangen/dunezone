@@ -2,6 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { rulesetInputSchema } from '../src/app/rulesets/validation';
+import { FactionInputSchema } from '../src/game/schema/faction';
 import type { Doc, Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
@@ -82,12 +83,19 @@ async function rulesetPublicBundleBySlugMaybe(ctx: QueryCtx, slug: string) {
       const faction = factionRows[index];
       const data = faction?.data;
       const dataObj = data != null ? ensureObject(data) : null;
+      const parsedFaction = FactionInputSchema.safeParse(data);
       const name = typeof dataObj?.name === 'string' ? dataObj.name : String(link.faction_id);
       const urlSlug = typeof faction?.slug === 'string' ? faction.slug : String(link.faction_id);
       return {
         factionId: link.faction_id,
         name,
         urlSlug,
+        identity: parsedFaction.success
+          ? {
+              logo: parsedFaction.data.logo,
+              background: parsedFaction.data.background,
+            }
+          : null,
       };
     }),
     canAccess,
@@ -173,12 +181,19 @@ export const factionDetails = query({
       const faction = factions[index];
       const data = faction?.data;
       const dataObj = data != null ? ensureObject(data) : null;
+      const parsedFaction = FactionInputSchema.safeParse(data);
       const name = typeof dataObj?.name === 'string' ? dataObj.name : String(link.faction_id);
       const urlSlug = typeof faction?.slug === 'string' ? faction.slug : String(link.faction_id);
       return {
         factionId: link.faction_id,
         name,
         urlSlug,
+        identity: parsedFaction.success
+          ? {
+              logo: parsedFaction.data.logo,
+              background: parsedFaction.data.background,
+            }
+          : null,
       };
     });
   },

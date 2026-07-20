@@ -1,4 +1,4 @@
-import { Stack } from '@mantine/core';
+import { Paper, Stack, Table } from '@mantine/core';
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
 
@@ -13,22 +13,59 @@ export type FaqItemListProps = {
  * FAQ thread list shell. Parent owns empty state and row content.
  */
 export function FaqItemList({ className, children }: FaqItemListProps) {
-  return <ul className={clsx(styles.list, className)}>{children}</ul>;
+  return (
+    <Paper withBorder radius="md" className={styles.surface}>
+      <Table
+        withRowBorders
+        highlightOnHover
+        horizontalSpacing="md"
+        verticalSpacing="md"
+        className={clsx(styles.list, className)}
+      >
+        <Table.Tbody>{children}</Table.Tbody>
+      </Table>
+    </Paper>
+  );
 }
 
 export type FaqItemListRowProps = {
   children: ReactNode;
+  metadata?: ReactNode;
+  onActivate?: () => void;
+  ariaLabel?: string;
 };
 
 /**
- * Single FAQ row: `.item` + inner `.itemLink` column for mixed links and meta.
+ * Single FAQ entry rendered as a lightly divided table row.
  */
-export function FaqItemListRow({ children }: FaqItemListRowProps) {
+export function FaqItemListRow({ children, metadata, onActivate, ariaLabel }: FaqItemListRowProps) {
+  const isInteractiveTarget = (target: EventTarget) =>
+    target instanceof Element &&
+    target.closest('a, button, input, select, textarea, [role="button"]') != null;
+
   return (
-    <li className={styles.item}>
-      <Stack gap="xs" className={styles.itemContent}>
-        {children}
-      </Stack>
-    </li>
+    <Table.Tr
+      className={onActivate ? styles.interactiveRow : undefined}
+      role={onActivate ? 'link' : undefined}
+      tabIndex={onActivate ? 0 : undefined}
+      aria-label={onActivate ? ariaLabel : undefined}
+      onClick={(event) => {
+        if (!onActivate || isInteractiveTarget(event.target)) return;
+        onActivate();
+      }}
+      onKeyDown={(event) => {
+        if (!onActivate || event.target !== event.currentTarget) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        onActivate();
+      }}
+    >
+      <Table.Td className={styles.rowCell}>
+        <Stack gap="sm" className={styles.itemContent}>
+          {children}
+          {metadata ? <div className={styles.metadataRow}>{metadata}</div> : null}
+        </Stack>
+      </Table.Td>
+    </Table.Tr>
   );
 }
