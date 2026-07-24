@@ -745,6 +745,22 @@ export const LEADERS = z.enum([
   '/image/leader/official/zoal.png',
 ]);
 
+export const PLANET = z.enum([
+  '/image/planet/01.png',
+  '/image/planet/02.png',
+  '/image/planet/03.png',
+  '/image/planet/04.png',
+  '/image/planet/05.png',
+  '/image/planet/06.png',
+  '/image/planet/07.png',
+  '/image/planet/08.png',
+  '/image/planet/09.png',
+  '/image/planet/10.png',
+  '/image/planet/11.png',
+  '/image/planet/12.png',
+  '/image/planet/13.png',
+]);
+
 export const TROOP = z.enum([
   '/vector/troop/atreides.svg',
   '/vector/troop/bene-gesserit.svg',

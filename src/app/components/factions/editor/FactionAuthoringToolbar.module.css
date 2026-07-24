@@ -1,0 +1,12 @@
+.toolbar {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 10;
+  background: color-mix(in srgb, var(--mantine-color-body) 94%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.status {
+  min-width: 0;
+  flex: 1 1 18rem;
+}

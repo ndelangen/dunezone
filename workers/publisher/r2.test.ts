@@ -16,7 +16,7 @@ const claim: AssignedItem = {
   assetType: 'faction_sheet',
   claimToken: 'claim-token-0000000000000001',
   generation: 2,
-  rendererVersion: 'faction-sheet-v3',
+  rendererVersion: 'faction-sheet-v4',
   leaseExpiresAt: NOW + 240_000,
 };
 const payloadHash = 'a'.repeat(64);

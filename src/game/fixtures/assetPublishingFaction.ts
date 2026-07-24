@@ -7,8 +7,9 @@ const assetPublishingFactionInput = {
   background: {
     image: '/image/texture/021.jpg',
     colors: ['#4b4c0d', '#d9c979'],
-    opacity: 1,
-    strength: 0.55,
+    invert: true,
+    definition: 0.55,
+    influence: 1,
   },
   themeColor: '#4b4c0d',
   hero: {

@@ -1,0 +1,94 @@
+.pipelineTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--mantine-spacing-lg);
+}
+
+.pipelineStage {
+  min-width: 0;
+  padding-top: var(--mantine-spacing-xs);
+}
+
+.stageLabel {
+  color: var(--mantine-color-dune-8);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.selectedPattern {
+  aspect-ratio: 1.7;
+  overflow: hidden;
+  margin-top: var(--mantine-spacing-md);
+  background: var(--mantine-color-gray-1);
+  border: 1px solid var(--mantine-color-dune-2);
+  border-radius: var(--mantine-radius-md);
+}
+
+.patternImage {
+  filter: grayscale(1);
+}
+
+.colorLayers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--mantine-spacing-sm);
+}
+
+.colorLayers > * {
+  width: 100%;
+}
+
+.patternCatalogue {
+  min-width: 0;
+  padding-block: var(--mantine-spacing-xs);
+  border-block: 1px solid var(--mantine-color-dune-2);
+}
+
+.patternScroller {
+  display: grid;
+  grid-auto-columns: 7.5rem;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(3, auto);
+  gap: var(--mantine-spacing-xs);
+  overflow-x: auto;
+  padding: 0.2rem 0 var(--mantine-spacing-sm);
+  overscroll-behavior-inline: contain;
+  scrollbar-color: var(--mantine-color-dune-5) transparent;
+  scroll-snap-type: inline proximity;
+}
+
+.patternOption {
+  min-width: 0;
+  padding: 0.35rem;
+  background: var(--mantine-color-white);
+  border: 1px solid var(--mantine-color-dune-2);
+  border-radius: var(--mantine-radius-sm);
+  scroll-snap-align: start;
+}
+
+.patternOption[aria-pressed="true"] {
+  border-color: var(--mantine-color-dune-7);
+  box-shadow: inset 0 0 0 1px var(--mantine-color-dune-7);
+}
+
+.selectedMark {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  color: white;
+  background: var(--mantine-color-dune-7);
+  border-radius: 50%;
+  place-items: center;
+}
+
+@media (max-width: 48em) {
+  .pipelineTop,
+  .colorLayers {
+    grid-template-columns: 1fr;
+  }
+}

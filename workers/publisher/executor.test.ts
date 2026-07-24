@@ -15,14 +15,14 @@ const item: AssignedItem = {
   assetType: 'faction_sheet',
   claimToken: 'claim-token-0000000000000001',
   generation: 2,
-  rendererVersion: 'faction-sheet-v3',
+  rendererVersion: 'faction-sheet-v4',
   leaseExpiresAt: NOW + 240_000,
 };
 
 const config = {
   captureBaseUrl: 'https://publisher.example.com',
   convexExecutorBaseUrl: 'https://convex.example.com/asset-publishing/executor',
-  supportedRendererVersions: ['faction-sheet-v3'] as const,
+  supportedRendererVersions: ['faction-sheet-v4'] as const,
   workWindowMs: 240_000,
   browserCaptureTimeoutMs: 45_000,
   browserCleanupGraceMs: 15_000,

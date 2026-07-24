@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import SHA256 from 'crypto-js/sha256';
 
-import { FactionInputSchema } from '../src/game/schema/faction';
+import { FactionStoredSchema } from '../src/game/schema/faction';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalMutation, internalQuery } from './_generated/server';
 import {
@@ -53,7 +53,7 @@ function claimPayload(faction: Doc<'factions'>) {
   return {
     factionId: faction._id,
     slug: faction.slug,
-    faction: FactionInputSchema.parse(faction.data),
+    faction: FactionStoredSchema.parse(faction.data),
   };
 }
 

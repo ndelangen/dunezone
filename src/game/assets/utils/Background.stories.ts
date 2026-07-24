@@ -10,8 +10,9 @@ export const Duo1 = meta.story({
   args: {
     image: '/image/texture/021.jpg',
     colors: ['red', 'blue'],
-    opacity: 0,
-    strength: 0,
+    influence: 0,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -19,8 +20,9 @@ export const Duo2 = meta.story({
   args: {
     image: '/image/texture/021.jpg',
     colors: ['red', 'blue'],
-    opacity: 120,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -28,8 +30,9 @@ export const Duo3 = meta.story({
   args: {
     image: '/image/texture/011.jpg',
     colors: ['hotpink', 'deepskyblue'],
-    opacity: 70,
-    strength: -100,
+    influence: 0.7,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -47,8 +50,9 @@ export const Linear1 = meta.story({
       },
       'orange',
     ],
-    opacity: 70,
-    strength: -100,
+    influence: 0.7,
+    invert: false,
+    definition: 1,
   },
 });
 export const Linear2 = meta.story({
@@ -65,8 +69,9 @@ export const Linear2 = meta.story({
       },
       'orange',
     ],
-    opacity: 70,
-    strength: -100,
+    influence: 0.7,
+    invert: false,
+    definition: 1,
   },
 });
 export const Linear3 = meta.story({
@@ -83,8 +88,9 @@ export const Linear3 = meta.story({
         ],
       },
     ],
-    opacity: 40,
-    strength: -100,
+    influence: 0.4,
+    invert: false,
+    definition: 1,
   },
 });
 export const Radial1 = meta.story({
@@ -101,8 +107,9 @@ export const Radial1 = meta.story({
         ],
       },
     ],
-    opacity: 40,
-    strength: -100,
+    influence: 0.4,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -126,8 +133,9 @@ export const Radial2 = meta.story({
         ],
       },
     ],
-    opacity: 150,
-    strength: -100,
+    influence: 1,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -135,8 +143,9 @@ export const Atreides = meta.story({
   args: {
     image: '/image/texture/015.jpg',
     colors: ['#4B4C0D', '#262B04'],
-    opacity: 50,
-    strength: 0,
+    influence: 0.5,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -144,8 +153,9 @@ export const Ixian = meta.story({
   args: {
     image: '/image/texture/004.jpg',
     colors: ['#D4BE6B', '#A88E2A'],
-    opacity: 20,
-    strength: 0,
+    influence: 0.2,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -153,8 +163,9 @@ export const BeneGesserit = meta.story({
   args: {
     image: '/image/texture/020.jpg',
     colors: ['#3A4491', '#101D65'],
-    opacity: 150,
-    strength: -100,
+    influence: 1,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -162,8 +173,9 @@ export const BeneTleilaxu = meta.story({
   args: {
     image: '/image/texture/031.jpg',
     colors: ['#6E008F', '#2D006B'],
-    opacity: 120,
-    strength: -80,
+    influence: 1,
+    invert: false,
+    definition: 0.8,
   },
 });
 
@@ -171,8 +183,9 @@ export const Emperor = meta.story({
   args: {
     image: '/image/texture/030.jpg',
     colors: ['#A40008', '#8D0006'],
-    opacity: -150,
-    strength: 0,
+    influence: 0,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -180,8 +193,9 @@ export const Fremen = meta.story({
   args: {
     image: '/image/texture/054.jpg',
     colors: ['#F6A834', '#CF7317'],
-    opacity: 120,
-    strength: -100,
+    influence: 1,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -189,8 +203,9 @@ export const Guild = meta.story({
   args: {
     image: '/image/texture/007.jpg',
     colors: ['#D83C13', '#B41C0C'],
-    opacity: 400,
-    strength: -100,
+    influence: 1,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -198,8 +213,9 @@ export const Iduali = meta.story({
   args: {
     image: '/image/texture/009.jpg',
     colors: ['#5B2802', '#470200'],
-    opacity: 100,
-    strength: -100,
+    influence: 1,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -207,8 +223,9 @@ export const Harkonnen = meta.story({
   args: {
     image: '/image/texture/059.jpg',
     colors: ['#191311', '#000000'],
-    opacity: 140,
-    strength: -10,
+    influence: 1,
+    invert: false,
+    definition: 0.1,
   },
 });
 
@@ -216,8 +233,9 @@ export const Moritani = meta.story({
   args: {
     image: '/image/texture/057.jpg',
     colors: ['#0B4D64', '#05333D'],
-    opacity: 1040,
-    strength: -67,
+    influence: 1,
+    invert: false,
+    definition: 0.67,
   },
 });
 
@@ -225,8 +243,9 @@ export const Ginaz = meta.story({
   args: {
     image: '/image/texture/056.jpg',
     colors: ['#425A61', '#273739'],
-    opacity: 1400,
-    strength: -10,
+    influence: 1,
+    invert: false,
+    definition: 0.1,
   },
 });
 
@@ -234,8 +253,9 @@ export const Landsraad = meta.story({
   args: {
     image: '/image/texture/036.jpg',
     colors: ['#520E2D', '#410D25'],
-    opacity: 400,
-    strength: -100,
+    influence: 1,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -243,8 +263,9 @@ export const Richese = meta.story({
   args: {
     image: '/image/texture/029.jpg',
     colors: ['#B5B0A5', '#7C786D'],
-    opacity: 200,
-    strength: -77,
+    influence: 1,
+    invert: false,
+    definition: 0.77,
   },
 });
 
@@ -252,8 +273,9 @@ export const Ecaz = meta.story({
   args: {
     image: '/image/texture/044.jpg',
     colors: ['#7F3D81', '#581858'],
-    opacity: 250,
-    strength: -85,
+    influence: 1,
+    invert: false,
+    definition: 0.85,
   },
 });
 
@@ -278,8 +300,9 @@ export const CHOAM = meta.story({
         ],
       },
     ],
-    opacity: 100,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -297,8 +320,9 @@ export const Discovery = meta.story({
         ],
       },
     ],
-    opacity: 40,
-    strength: -100,
+    influence: 0.4,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -316,8 +340,9 @@ export const Hiereg = meta.story({
         ],
       },
     ],
-    opacity: 40,
-    strength: -100,
+    influence: 0.4,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -335,8 +360,9 @@ export const Terror = meta.story({
         ],
       },
     ],
-    opacity: 40,
-    strength: 0,
+    influence: 0.4,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -354,8 +380,9 @@ export const Spice = meta.story({
         ],
       },
     ],
-    opacity: 40,
-    strength: 0,
+    influence: 0.4,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -373,8 +400,9 @@ export const TechTeal = meta.story({
         ],
       },
     ],
-    opacity: 100,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -392,8 +420,9 @@ export const TechPurple = meta.story({
         ],
       },
     ],
-    opacity: 100,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -411,8 +440,9 @@ export const TechYellow = meta.story({
         ],
       },
     ],
-    opacity: 100,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -430,8 +460,9 @@ export const TechSun = meta.story({
         ],
       },
     ],
-    opacity: 300,
-    strength: 200,
+    influence: 1,
+    invert: true,
+    definition: 1,
   },
 });
 
@@ -449,8 +480,9 @@ export const TechRed = meta.story({
         ],
       },
     ],
-    opacity: 100,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -468,8 +500,9 @@ export const TechMaroon = meta.story({
         ],
       },
     ],
-    opacity: 500,
-    strength: 50,
+    influence: 1,
+    invert: true,
+    definition: 0.5,
   },
 });
 
@@ -487,8 +520,9 @@ export const TechOrange = meta.story({
         ],
       },
     ],
-    opacity: 100,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -506,8 +540,9 @@ export const TechBlue = meta.story({
         ],
       },
     ],
-    opacity: 100,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -525,8 +560,9 @@ export const TechPink = meta.story({
         ],
       },
     ],
-    opacity: 100,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -544,8 +580,9 @@ export const TechWhite = meta.story({
         ],
       },
     ],
-    opacity: 100,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -563,8 +600,9 @@ export const TechGreen = meta.story({
         ],
       },
     ],
-    opacity: 100,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -572,8 +610,9 @@ export const Moss = meta.story({
   args: {
     image: '/image/texture/009.jpg',
     colors: ['#4E431D', '#31260D'],
-    opacity: 200,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -581,8 +620,9 @@ export const Traitor = meta.story({
   args: {
     image: '/image/texture/082.jpg',
     colors: ['#3D3438', '#040404'],
-    opacity: 0,
-    strength: -100,
+    influence: 0,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -590,8 +630,9 @@ export const Alliance = meta.story({
   args: {
     image: '/image/texture/082.jpg',
     colors: ['#4D4724', '#302B16'],
-    opacity: 50,
-    strength: -100,
+    influence: 0.5,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -599,8 +640,9 @@ export const Weapon = meta.story({
   args: {
     image: '/image/texture/082.jpg',
     colors: ['#8F2C1C', '#621D1A'],
-    opacity: 50,
-    strength: -100,
+    influence: 0.5,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -608,8 +650,9 @@ export const Defense = meta.story({
   args: {
     image: '/image/texture/082.jpg',
     colors: ['#29335E', '#0A153C'],
-    opacity: 60,
-    strength: -100,
+    influence: 0.6,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -617,8 +660,9 @@ export const Storm = meta.story({
   args: {
     image: '/image/texture/082.jpg',
     colors: ['#582705', '#875818'],
-    opacity: 50,
-    strength: 0,
+    influence: 0.5,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -626,8 +670,9 @@ export const Spice2 = meta.story({
   args: {
     image: '/image/texture/082.jpg',
     colors: ['#7A4421', '#56210B'],
-    opacity: 30,
-    strength: -100,
+    influence: 0.3,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -635,8 +680,9 @@ export const Spice3 = meta.story({
   args: {
     image: '/image/texture/082.jpg',
     colors: ['#3C6066', '#2A4046'],
-    opacity: 80,
-    strength: -100,
+    influence: 0.8,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -644,8 +690,9 @@ export const Special = meta.story({
   args: {
     image: '/image/texture/082.jpg',
     colors: ['#474620', '#27260C'],
-    opacity: 60,
-    strength: -100,
+    influence: 0.6,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -653,8 +700,9 @@ export const Worthless = meta.story({
   args: {
     image: '/image/texture/082.jpg',
     colors: ['#887849', '#6F6034'],
-    opacity: 80,
-    strength: -100,
+    influence: 0.8,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -662,8 +710,9 @@ export const Fate = meta.story({
   args: {
     image: '/image/texture/082.jpg',
     colors: ['#7E275A', '#C54E90'],
-    opacity: 80,
-    strength: -100,
+    influence: 0.8,
+    invert: false,
+    definition: 1,
   },
 });
 
@@ -688,8 +737,9 @@ export const StripedWeapon = meta.story({
         ],
       },
     ],
-    opacity: 220,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -714,8 +764,9 @@ export const StripedDefense = meta.story({
         ],
       },
     ],
-    opacity: 220,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -740,8 +791,9 @@ export const StripedSpecial = meta.story({
         ],
       },
     ],
-    opacity: 220,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -766,8 +818,9 @@ export const StripedWorthless = meta.story({
         ],
       },
     ],
-    opacity: 220,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -792,8 +845,9 @@ export const StripedFate = meta.story({
         ],
       },
     ],
-    opacity: 220,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -818,8 +872,9 @@ export const StripedAlliance = meta.story({
         ],
       },
     ],
-    opacity: 220,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });
 
@@ -844,7 +899,8 @@ export const StripedSpice = meta.story({
         ],
       },
     ],
-    opacity: 220,
-    strength: 0,
+    influence: 1,
+    invert: true,
+    definition: 0,
   },
 });

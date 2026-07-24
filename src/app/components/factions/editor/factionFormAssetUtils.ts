@@ -63,7 +63,13 @@ export const logoOptions = [...LOGO.options, ...GENERIC.options] as readonly str
 
 /** Decal `id` is `ALL` in schema; picker focuses on paths used on alliance cards. */
 export const decalAssetOptions = [
-  ...new Set([...DECAL.options, ...ICON.options, ...LOGO.options, ...GENERIC.options]),
+  ...new Set([
+    ...DECAL.options,
+    ...ICON.options,
+    ...LOGO.options,
+    ...GENERIC.options,
+    ...TROOP.options,
+  ]),
 ].sort((a, b) => a.localeCompare(b)) as readonly string[];
 
 export const logoOptionToLabel = createPathOptionLabeler(logoOptions);

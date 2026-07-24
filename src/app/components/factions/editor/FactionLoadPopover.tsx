@@ -1,18 +1,27 @@
+import {
+  ActionIcon,
+  Alert,
+  Anchor,
+  Button,
+  Center,
+  Group,
+  Loader,
+  Paper,
+  Popover,
+  Select,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
+} from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { Copy } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { type Faction, type FactionLoadPickerRow, useFactionLoadPicker } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
-import { FormField } from '@app/components/form/FormField';
-import { FormPopover } from '@app/components/form/FormPopover';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { SuggestField } from '@app/components/form/SuggestField';
-import { ButtonGroup } from '@app/components/generic/layout';
-import { UIButton } from '@app/components/generic/ui/UIButton';
-import { FactionInputSchema } from '@game/schema/faction';
+import { FactionStoredSchema } from '@game/schema/faction';
 
-import styles from './FactionEditor.module.css';
 import {
   FactionLoadOptionRow,
   factionLoadOptionLabel,
@@ -30,15 +39,17 @@ export interface FactionLoadPopoverContentProps {
   /** Row URL slug for the faction being edited (excludes that row from the picker). */
   currentPublicSlug: string;
   onLoaded: (loaded: Faction) => void;
+  onCancel: () => void;
 }
 
 /**
- * Renders inside {@link FormPopover} / Radix `Popover.Content`, which unmounts when closed (`Presence`),
- * so `useFactionLoadPicker` is not subscribed while the popover is closed.
+ * Mounted only while the Mantine popover is open so the picker does not keep a
+ * Convex subscription alive while this toolbar utility is idle.
  */
 export function FactionLoadPopoverContent({
   currentPublicSlug,
   onLoaded,
+  onCancel,
 }: FactionLoadPopoverContentProps) {
   const picker = useFactionLoadPicker();
 
@@ -46,6 +57,7 @@ export function FactionLoadPopoverContent({
   const [error, setError] = useState<string | null>(null);
 
   const currentProfile = useCurrentProfile();
+  const currentProfileSlug = currentProfile.data?.slug;
 
   const rowsById = useMemo(() => {
     const map = new Map<string, FactionLoadPickerRow>();
@@ -65,24 +77,22 @@ export function FactionLoadPopoverContent({
       .filter((row) => row.slug !== currentPublicSlug)
       .map((row) => row.id);
   }, [picker.data?.rows, currentPublicSlug]);
+  const factionLoadSelectOptions = useMemo(
+    () =>
+      factionLoadOptions.map((id) => {
+        const row = rowsById.get(id);
+        return {
+          value: id,
+          label: row ? factionLoadOptionLabel(row) : id,
+        };
+      }),
+    [factionLoadOptions, rowsById]
+  );
 
-  const handleSelect = (rowId: string) => {
-    setSelectedId(rowId);
-    const row = rowsById.get(rowId);
-    if (!row) return;
-
-    if (row.slug === currentPublicSlug) {
-      window.alert('The selected faction is already loaded.');
-      return;
-    }
-    const confirmed = window.confirm(
-      `Load faction "${row.data.name}"? Any local unsaved changes will be discarded and replaced.`
-    );
-    if (!confirmed) {
-      return;
-    }
-
-    const parsed = FactionInputSchema.safeParse(row.data);
+  const selectedRow = selectedId ? rowsById.get(selectedId) : undefined;
+  const handleLoad = () => {
+    if (!selectedRow) return;
+    const parsed = FactionStoredSchema.safeParse(selectedRow.data);
     if (!parsed.success) {
       setError(formatZodIssues(parsed.error));
       return;
@@ -92,68 +102,126 @@ export function FactionLoadPopoverContent({
   };
 
   return (
-    <div className={styles.loadFactionPopover}>
-      <p className={styles.loadFactionTitle}>Load Existing Faction</p>
-      <p className={styles.loadFactionHint}>
-        Selecting a faction replaces all unsaved local edits in this editor.
-      </p>
+    <Stack gap="md">
+      <Stack gap={4}>
+        <Title order={3} size="h4">
+          Load existing faction
+        </Title>
+        <Text size="sm" c="dimmed">
+          Choose a faction first. You can review the choice before replacing this unsaved draft.
+        </Text>
+      </Stack>
       {error && (
-        <p className={styles.loadFactionHint} role="alert">
+        <Alert color="red" title="Faction could not be loaded" role="alert">
           {error}
-        </p>
+        </Alert>
       )}
       {picker.isPending ? (
-        <p className={styles.loadFactionHint}>Loading factions...</p>
+        <Center py="md">
+          <Loader size="sm" aria-label="Loading factions" />
+        </Center>
       ) : factionLoadOptions.length === 0 ? (
-        <p className={styles.loadFactionHint}>
+        <Text size="sm" c="dimmed">
           No different faction is available to load right now.
-        </p>
+        </Text>
       ) : (
-        <FormField label="Search factions" htmlFor="faction-load">
-          <SuggestField
-            id="faction-load"
-            value={selectedId}
-            onChange={handleSelect}
-            options={factionLoadOptions}
-            optionToLabel={(id) => {
-              const row = rowsById.get(id);
-              return row ? factionLoadOptionLabel(row) : id;
-            }}
-            optionToSearchText={(id) => {
-              const row = rowsById.get(id);
-              return row ? factionLoadOptionSearchText(row) : id;
-            }}
-            renderOption={(id) => {
-              const row = rowsById.get(id);
-              if (!row) return id;
-              const isMember = row.groupId ? memberGroupSet.has(String(row.groupId)) : false;
-              return (
-                <FactionLoadOptionRow
-                  name={row.data.name}
-                  slug={row.slug}
-                  logo={row.data.logo}
-                  background={row.data.background}
-                  ownerLabel={factionLoadOwnerLabel(row)}
-                  groupLabel={row.groupLabel}
-                  isMember={isMember}
-                />
-              );
-            }}
-            placeholder="Type name, owner, group, or token..."
-          />
-        </FormField>
+        <Select
+          id="faction-load"
+          label="Search factions"
+          value={selectedId || null}
+          onChange={(value) => {
+            setSelectedId(value ?? '');
+            setError(null);
+          }}
+          data={factionLoadSelectOptions}
+          filter={({ options, search }) => {
+            const query = search.trim().toLocaleLowerCase();
+            if (!query) return options;
+            return options.filter((option) => {
+              if ('group' in option) return false;
+              const row = rowsById.get(String(option.value));
+              return (row ? factionLoadOptionSearchText(row) : option.label)
+                .toLocaleLowerCase()
+                .includes(query);
+            });
+          }}
+          renderOption={({ option }) => {
+            const row = rowsById.get(String(option.value));
+            if (!row) return option.label;
+            const isMember = row.groupId ? memberGroupSet.has(String(row.groupId)) : false;
+            return (
+              <FactionLoadOptionRow
+                name={row.data.name}
+                slug={row.slug}
+                logo={row.data.logo}
+                background={row.data.background}
+                ownerLabel={factionLoadOwnerLabel(row)}
+                groupLabel={row.groupLabel}
+                isMember={isMember}
+              />
+            );
+          }}
+          searchable
+          clearable
+          withCheckIcon={false}
+          placeholder="Type name, owner, group, or token…"
+          nothingFoundMessage="No matching factions"
+          maxDropdownHeight={300}
+          comboboxProps={{ withinPortal: false }}
+        />
       )}
-      <ButtonGroup>
-        <FormTooltip content="Go to your profile to manage groups and factions">
-          <Link
-            to="/profiles/$profileSlug"
-            params={{ profileSlug: currentProfile.data?.slug ?? '' }}
+
+      {selectedRow ? (
+        <Paper withBorder p="sm" radius="md">
+          <Stack gap="sm">
+            <Text size="sm" fw={700}>
+              Replace this unsaved draft?
+            </Text>
+            <FactionLoadOptionRow
+              name={selectedRow.data.name}
+              slug={selectedRow.slug}
+              logo={selectedRow.data.logo}
+              background={selectedRow.data.background}
+              ownerLabel={factionLoadOwnerLabel(selectedRow)}
+              groupLabel={selectedRow.groupLabel}
+              isMember={
+                selectedRow.groupId ? memberGroupSet.has(String(selectedRow.groupId)) : false
+              }
+            />
+            <Text size="xs" c="orange.9">
+              Loading replaces every local unsaved change. Saving is still a separate action.
+            </Text>
+            <Group justify="flex-end" gap="xs">
+              <Button type="button" variant="default" size="compact-sm" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button type="button" color="orange" size="compact-sm" onClick={handleLoad}>
+                Load faction
+              </Button>
+            </Group>
+          </Stack>
+        </Paper>
+      ) : null}
+
+      {currentProfileSlug ? (
+        <Text size="xs" c="dimmed">
+          Need to organize factions or groups?{' '}
+          <Anchor
+            size="xs"
+            renderRoot={(rootProps) => (
+              <Link
+                {...rootProps}
+                to="/profiles/$profileSlug"
+                params={{ profileSlug: currentProfileSlug }}
+              />
+            )}
           >
-            Manage on profile
-          </Link>
-        </FormTooltip>
-      </ButtonGroup>
-    </div>
+            Manage them on your profile
+          </Anchor>
+          .
+        </Text>
+      ) : null}
+    </Stack>
   );
 }
 
@@ -168,33 +236,46 @@ export function FactionLoadPopover({
   currentPublicSlug,
   onLoaded,
 }: FactionLoadPopoverProps) {
-  const [open, setOpen] = useState(false);
+  const [opened, setOpened] = useState(false);
 
   return (
-    <FormPopover
-      open={open}
-      onOpenChange={setOpen}
-      align="start"
-      side="bottom"
-      trigger={
-        <UIButton
-          type="button"
-          variant="secondary"
-          iconOnly
-          aria-label="Load existing faction"
-          disabled={disabled}
-        >
-          <Copy size={16} aria-hidden />
-        </UIButton>
-      }
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-start"
+      width={440}
+      shadow="md"
+      withArrow
+      trapFocus
+      returnFocus
     >
-      <FactionLoadPopoverContent
-        currentPublicSlug={currentPublicSlug}
-        onLoaded={(loaded) => {
-          onLoaded(loaded);
-          setOpen(false);
-        }}
-      />
-    </FormPopover>
+      <Tooltip label="Load existing faction">
+        <Popover.Target>
+          <ActionIcon
+            type="button"
+            variant="light"
+            color="gray"
+            size="lg"
+            aria-label="Load existing faction"
+            disabled={disabled}
+            onClick={() => setOpened((current) => !current)}
+          >
+            <Copy size={17} aria-hidden />
+          </ActionIcon>
+        </Popover.Target>
+      </Tooltip>
+      <Popover.Dropdown>
+        {opened ? (
+          <FactionLoadPopoverContent
+            currentPublicSlug={currentPublicSlug}
+            onCancel={() => setOpened(false)}
+            onLoaded={(loaded) => {
+              onLoaded(loaded);
+              setOpened(false);
+            }}
+          />
+        ) : null}
+      </Popover.Dropdown>
+    </Popover>
   );
 }

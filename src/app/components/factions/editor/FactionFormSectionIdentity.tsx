@@ -1,68 +1,126 @@
-import type { Faction } from '@db/factions';
-import { FormField } from '@app/components/form/FormField';
-import { HexColorPicker } from '@app/components/form/HexColorPicker';
-import { SuggestField } from '@app/components/form/SuggestField';
-import { TextField } from '@app/components/form/TextField';
+import {
+  ColorInput,
+  Group,
+  Image,
+  Select,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
 
-import styles from './FactionEditor.module.css';
+import type { Faction } from '@db/factions';
+
 import { assetOptionToPreviewSrc, logoOptions, logoOptionToLabel } from './factionFormAssetUtils';
 import type { FactionFormApi } from './factionFormTypes';
 import { TtsColorsEditor } from './TtsColorsEditor';
 
-export function FactionFormSectionIdentity({ form }: { form: FactionFormApi }) {
+const logoSelectOptions = logoOptions.map((value) => ({
+  value,
+  label: logoOptionToLabel(value),
+}));
+
+function LogoOption({ value, label }: { value: string; label: string }) {
   return (
-    <>
-      <form.Field name="name">
-        {(field) => (
-          <>
-            <FormField label="Display name" htmlFor="faction-name">
-              <TextField
-                id="faction-name"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
-            </FormField>
-            <p className={styles.ttsHint}>
-              The display name sets your faction&apos;s public slug, which appears in the shareable
-              URL. If you rename an existing faction, that slug (and the URL) can change, so older
-              links may break—including bookmarks, pasted links, and references in Tabletop
-              Simulator.
-            </p>
-          </>
-        )}
-      </form.Field>
-      <form.Field name="logo">
-        {(field) => (
-          <FormField label="Logo" htmlFor="faction-logo">
-            <SuggestField
-              id="faction-logo"
+    <Group gap="sm" wrap="nowrap">
+      <Image src={assetOptionToPreviewSrc(value)} alt="" w={30} h={30} fit="contain" />
+      <Text size="sm" truncate>
+        {label}
+      </Text>
+    </Group>
+  );
+}
+
+export function FactionFormSectionIdentity({
+  form,
+  nameError,
+  showIntro = true,
+}: {
+  form: FactionFormApi;
+  nameError?: string;
+  showIntro?: boolean;
+}) {
+  return (
+    <Stack
+      component="section"
+      gap="lg"
+      aria-label={showIntro ? undefined : 'Faction identity'}
+      aria-labelledby={showIntro ? 'faction-identity-heading' : undefined}
+    >
+      {showIntro ? (
+        <Stack gap={2}>
+          <Text id="faction-identity-heading" fw={700} size="lg">
+            Faction identity
+          </Text>
+          <Text c="dimmed" size="sm">
+            These values name the faction and establish the identity reused across its artifacts.
+          </Text>
+        </Stack>
+      ) : null}
+
+      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+        <form.Field name="name">
+          {(field) => (
+            <TextInput
+              id="faction-name"
+              label="Faction name"
+              description="Used on faction artifacts and to derive the canonical share URL."
+              error={nameError}
               value={field.state.value}
-              onChange={(v) => field.handleChange(v as Faction['logo'])}
-              options={logoOptions}
-              optionToLabel={logoOptionToLabel}
-              optionToPreviewSrc={assetOptionToPreviewSrc}
-            />
-          </FormField>
-        )}
-      </form.Field>
-      <form.Field name="themeColor">
-        {(field) => (
-          <FormField label="Theme color (#rrggbb)" htmlFor="faction-theme-text">
-            <HexColorPicker
-              pickerId="faction-theme-picker"
-              textId="faction-theme-text"
-              value={field.state.value}
-              onChange={(v) => field.handleChange(v)}
               onBlur={field.handleBlur}
-              pickerAriaLabel="Pick theme color"
+              onChange={(event) => field.handleChange(event.currentTarget.value)}
             />
-          </FormField>
-        )}
-      </form.Field>
+          )}
+        </form.Field>
+
+        <form.Field name="logo">
+          {(field) => (
+            <Select
+              id="faction-logo"
+              label="Faction logo"
+              description="Used on faction tokens and faction-branded game artifacts."
+              searchable
+              allowDeselect={false}
+              data={logoSelectOptions}
+              value={field.state.value}
+              leftSection={
+                <Image
+                  src={assetOptionToPreviewSrc(field.state.value)}
+                  alt=""
+                  w={24}
+                  h={24}
+                  fit="contain"
+                />
+              }
+              renderOption={({ option }) => (
+                <LogoOption value={option.value} label={option.label} />
+              )}
+              comboboxProps={{ withinPortal: false }}
+              onChange={(value) => {
+                if (value) field.handleChange(value as Faction['logo']);
+              }}
+            />
+          )}
+        </form.Field>
+
+        <form.Field name="themeColor">
+          {(field) => (
+            <ColorInput
+              id="faction-theme-color"
+              label="Faction sheet theme"
+              description="Used for headings and accents on the complete faction sheet."
+              format="hex"
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.Field>
+      </SimpleGrid>
+
       <form.Field name="colors">
         {(field) => <TtsColorsEditor value={field.state.value} onChange={field.handleChange} />}
       </form.Field>
-    </>
+    </Stack>
   );
 }

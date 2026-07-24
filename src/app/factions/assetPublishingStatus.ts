@@ -19,5 +19,5 @@ export function factionAssetPublishingCopy(
   const publishingCopy = status
     ? statusCopy[status]
     : 'Public asset publishing is not available yet.';
-  return saveState === 'saved' ? `Saved immediately. ${publishingCopy}` : publishingCopy;
+  return saveState === 'saved' ? `Saved. Publication scheduled. ${publishingCopy}` : publishingCopy;
 }

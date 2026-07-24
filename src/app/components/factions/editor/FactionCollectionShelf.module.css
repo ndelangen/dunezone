@@ -1,0 +1,55 @@
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mantine-spacing-xs);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: stretch;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--mantine-color-white);
+  border: 1px solid var(--mantine-color-dune-2);
+  border-radius: var(--mantine-radius-md);
+}
+
+.item[data-selected="true"] {
+  border-color: var(--mantine-color-dune-6);
+  box-shadow: inset 0 -0.2rem 0 var(--mantine-color-dune-6);
+}
+
+.handle {
+  align-self: stretch;
+  width: 2.25rem;
+  height: auto;
+  border-radius: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.select {
+  min-width: 0;
+  padding: 0.65rem 0.65rem 0.75rem 0.3rem;
+  text-align: left;
+}
+
+.label,
+.description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 48em) {
+  .shelf {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 30em) {
+  .shelf {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

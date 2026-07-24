@@ -43,7 +43,7 @@ function liveBindings() {
       type: 'plain_text',
       text: 'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/render',
     },
-    { name: 'SUPPORTED_RENDERER_VERSION', type: 'plain_text', text: 'faction-sheet-v3' },
+    { name: 'SUPPORTED_RENDERER_VERSION', type: 'plain_text', text: 'faction-sheet-v4' },
     { name: 'WORK_WINDOW_MS', type: 'plain_text', text: '240000' },
     { name: 'BROWSER_CAPTURE_TIMEOUT_MS', type: 'plain_text', text: '45000' },
     { name: 'BROWSER_CLEANUP_GRACE_MS', type: 'plain_text', text: '15000' },

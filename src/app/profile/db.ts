@@ -2,7 +2,11 @@ import { useMutation, useQuery } from 'convex/react';
 import { useEffect, useRef } from 'react';
 
 import { db } from '@db/core';
-import type { FactionCatalogueEntry } from '@db/factions';
+import {
+  type FactionCatalogueEntry,
+  type FactionCatalogueRow,
+  factionCatalogueRowsToEntries,
+} from '@db/factions';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { type ProfileUserEditInput, profileUserEditFormSchema } from '@app/profile/validation';
 
@@ -24,8 +28,8 @@ export type ProfilePageData = {
   profile: ProfileEntry;
   memberships: Doc<'group_members'>[];
   groups: Doc<'groups'>[];
-  faqAsked: unknown[];
-  faqAnswers: unknown[];
+  faqAsked: import('../faq/db').FaqItemAskedByWithRuleset[];
+  faqAnswers: import('../faq/db').FaqAnswerWithParent[];
   factions: FactionCatalogueEntry[];
 };
 
@@ -36,11 +40,12 @@ export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> 
     groups: Doc<'groups'>[];
     faqAsked: import('../faq/db').FaqItemAskedByWithRuleset[];
     faqAnswers: import('../faq/db').FaqAnswerWithParent[];
-    factions: FactionCatalogueEntry[];
+    factions: FactionCatalogueRow[];
   }>(api.profiles.getBySlug, { slug });
 
   return {
     ...result,
+    factions: factionCatalogueRowsToEntries(result.factions),
   };
 }
 
@@ -90,14 +95,13 @@ export function useProfileBySlug(
   }
 ) {
   const liveData = useQuery(api.profiles.getBySlug, { slug });
-  const result = toLiveQueryResult<{
-    profile: ProfileRow;
-    memberships: Doc<'group_members'>[];
-    groups: Doc<'groups'>[];
-    faqAsked: import('../faq/db').FaqItemAskedByWithRuleset[];
-    faqAnswers: import('../faq/db').FaqAnswerWithParent[];
-    factions: FactionCatalogueEntry[];
-  } | null>(liveData, true, () => (options?.initialData as never) ?? undefined);
+  const normalized: ProfilePageData | undefined = liveData
+    ? {
+        ...liveData,
+        factions: factionCatalogueRowsToEntries(liveData.factions),
+      }
+    : undefined;
+  const result = toLiveQueryResult(normalized, true, () => options?.initialData);
   return {
     ...result,
     profile: result.data ? result.data.profile : undefined,

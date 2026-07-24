@@ -1,0 +1,15 @@
+.cardFrame {
+  width: 234px;
+  height: 328px;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-md);
+  box-shadow: var(--mantine-shadow-md);
+}
+
+.cardCanvas {
+  width: 900px;
+  height: 1263px;
+  transform: scale(0.26);
+  transform-origin: top left;
+  pointer-events: none;
+}

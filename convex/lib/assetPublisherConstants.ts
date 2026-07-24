@@ -5,6 +5,7 @@ export {
   isSupportedFactionSheetRendererVersion,
   KNOWN_FACTION_SHEET_RENDERER_VERSIONS,
   type KnownFactionSheetRendererVersion,
+  LEGACY_FACTION_SHEET_RENDERER_VERSION,
   PREVIOUS_FACTION_SHEET_RENDERER_VERSION,
   SUPPORTED_FACTION_SHEET_RENDERER_VERSIONS,
   type SupportedFactionSheetRendererVersion,

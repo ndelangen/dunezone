@@ -23,8 +23,9 @@ export const Default = meta.story({
     background: {
       image: '/image/texture/021.jpg',
       colors: ['red', 'blue'],
-      opacity: 0,
-      strength: 0,
+      invert: true,
+      definition: 0,
+      influence: 0,
     },
     image: '/image/leader/official/tessia.png',
     logo: '/vector/logo/moritani.svg',

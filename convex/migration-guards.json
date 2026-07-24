@@ -41,6 +41,16 @@
       "requires": []
     },
     {
+      "id": "faction_background_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "faction_background_verify_v1",
+      "phase": "widen",
+      "requires": ["faction_background_v1"]
+    },
+    {
       "id": "profiles_backfill_guard",
       "phase": "narrow",
       "requires": ["profiles_from_users_v1"]
@@ -64,6 +74,11 @@
       "id": "faq_item_slug_narrow",
       "phase": "narrow",
       "requires": ["faq_item_slug_v1"]
+    },
+    {
+      "id": "faction_background_narrow",
+      "phase": "narrow",
+      "requires": ["faction_background_v1", "faction_background_verify_v1"]
     }
   ]
 }

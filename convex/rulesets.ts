@@ -2,7 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { rulesetInputSchema } from '../src/app/rulesets/validation';
-import { FactionInputSchema } from '../src/game/schema/faction';
+import { FactionStoredSchema, toLegacyFactionInput } from '../src/game/schema/faction';
 import type { Doc, Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
@@ -18,6 +18,19 @@ async function getRulesetById(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
 
 async function getFactionById(ctx: QueryCtx | MutationCtx, id: Id<'factions'>) {
   return await ctx.db.get(id);
+}
+
+function factionIdentityForClient(data: unknown, backgroundFormat?: 'canonical') {
+  const parsedFaction = FactionStoredSchema.safeParse(data);
+  if (!parsedFaction.success) return null;
+  const faction =
+    backgroundFormat === 'canonical'
+      ? parsedFaction.data
+      : toLegacyFactionInput(parsedFaction.data);
+  return {
+    logo: faction.logo,
+    background: faction.background,
+  };
 }
 
 async function resolveUniqueRulesetSlug(
@@ -60,7 +73,11 @@ export const get = query({
   },
 });
 
-async function rulesetPublicBundleBySlugMaybe(ctx: QueryCtx, slug: string) {
+async function rulesetPublicBundleBySlugMaybe(
+  ctx: QueryCtx,
+  slug: string,
+  backgroundFormat?: 'canonical'
+) {
   const row = await ctx.db
     .query('rulesets')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
@@ -83,40 +100,44 @@ async function rulesetPublicBundleBySlugMaybe(ctx: QueryCtx, slug: string) {
       const faction = factionRows[index];
       const data = faction?.data;
       const dataObj = data != null ? ensureObject(data) : null;
-      const parsedFaction = FactionInputSchema.safeParse(data);
       const name = typeof dataObj?.name === 'string' ? dataObj.name : String(link.faction_id);
       const urlSlug = typeof faction?.slug === 'string' ? faction.slug : String(link.faction_id);
       return {
         factionId: link.faction_id,
         name,
         urlSlug,
-        identity: parsedFaction.success
-          ? {
-              logo: parsedFaction.data.logo,
-              background: parsedFaction.data.background,
-            }
-          : null,
+        identity: factionIdentityForClient(data, backgroundFormat),
       };
     }),
     canAccess,
   };
 }
 
-async function rulesetPublicBundleBySlug(ctx: QueryCtx, slug: string) {
-  const bundle = await rulesetPublicBundleBySlugMaybe(ctx, slug);
+async function rulesetPublicBundleBySlug(
+  ctx: QueryCtx,
+  slug: string,
+  backgroundFormat?: 'canonical'
+) {
+  const bundle = await rulesetPublicBundleBySlugMaybe(ctx, slug, backgroundFormat);
   if (!bundle) throw new Error(`Ruleset with slug ${slug} not found`);
   return bundle;
 }
 
 export const getBySlug = query({
-  args: { slug: v.string() },
-  handler: async (ctx, args) => rulesetPublicBundleBySlug(ctx, args.slug),
+  args: {
+    slug: v.string(),
+    background_format: v.optional(v.literal('canonical')),
+  },
+  handler: async (ctx, args) => rulesetPublicBundleBySlug(ctx, args.slug, args.background_format),
 });
 
 export const detailPageBySlug = query({
-  args: { slug: v.string() },
+  args: {
+    slug: v.string(),
+    background_format: v.optional(v.literal('canonical')),
+  },
   handler: async (ctx, args) => {
-    const base = await rulesetPublicBundleBySlugMaybe(ctx, args.slug);
+    const base = await rulesetPublicBundleBySlugMaybe(ctx, args.slug, args.background_format);
     if (!base) return null;
     const faqItems = await loadFaqItemsForRuleset(ctx, base.ruleset._id);
 
@@ -170,7 +191,10 @@ export const factionIds = query({
 });
 
 export const factionDetails = query({
-  args: { ruleset_id: v.id('rulesets') },
+  args: {
+    ruleset_id: v.id('rulesets'),
+    background_format: v.optional(v.literal('canonical')),
+  },
   handler: async (ctx, args) => {
     const links = await ctx.db
       .query('ruleset_factions')
@@ -181,19 +205,13 @@ export const factionDetails = query({
       const faction = factions[index];
       const data = faction?.data;
       const dataObj = data != null ? ensureObject(data) : null;
-      const parsedFaction = FactionInputSchema.safeParse(data);
       const name = typeof dataObj?.name === 'string' ? dataObj.name : String(link.faction_id);
       const urlSlug = typeof faction?.slug === 'string' ? faction.slug : String(link.faction_id);
       return {
         factionId: link.faction_id,
         name,
         urlSlug,
-        identity: parsedFaction.success
-          ? {
-              logo: parsedFaction.data.logo,
-              background: parsedFaction.data.background,
-            }
-          : null,
+        identity: factionIdentityForClient(data, args.background_format),
       };
     });
   },

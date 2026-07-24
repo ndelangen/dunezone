@@ -31,7 +31,7 @@ describe('publisher lifecycle configuration', () => {
     expect(
       config.browserCaptureTimeoutMs + config.browserCleanupGraceMs + 5_000
     ).toBeLessThanOrEqual(config.workWindowMs);
-    expect(config.supportedRendererVersions).toEqual(['faction-sheet-v3']);
+    expect(config.supportedRendererVersions).toEqual(['faction-sheet-v4']);
   });
 
   test('still validates the capture route upstream without projecting it into executor config', () => {

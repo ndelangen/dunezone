@@ -18,7 +18,7 @@ describe('scheduled production deployment shape', () => {
       CAPTURE_BASE_URL: 'https://faction-sheet-asset-publisher.ndelangen.workers.dev',
       CONVEX_EXECUTOR_BASE_URL:
         'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor',
-      SUPPORTED_RENDERER_VERSION: 'faction-sheet-v3',
+      SUPPORTED_RENDERER_VERSION: 'faction-sheet-v4',
       WORK_WINDOW_MS: '240000',
     });
     expect(config.workers_dev).toBe(true);

@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
-import { ALL, GENERIC, LEADERS, LOGO, TROOP, TROOP_MODIFIER } from '../data/generated';
+import { ALL, GENERIC, LEADERS, LOGO, PLANET, TROOP, TROOP_MODIFIER } from '../data/generated';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
 const URL = z.url();
 const HEXCOLOR = z.string().regex(/^#[0-9a-f]{6}$/i);
+const LEGACY_PLANET_ASSET_ORIGIN = 'https://dune.zone';
 
 const RULE = z.strictObject({
   title: z.string().optional(),
@@ -64,12 +65,44 @@ export const GRADIENT = z.discriminatedUnion('type', [
 
 const BACKGROUND_COLOR = z.union([HEXCOLOR, GRADIENT]);
 
-export const Background = z.strictObject({
+export const LegacyBackground = z.strictObject({
   image: z.string(),
   colors: z.tuple([BACKGROUND_COLOR, BACKGROUND_COLOR]),
   strength: SCALE,
   opacity: SCALE,
 });
+
+export const Background = z.strictObject({
+  image: z.string(),
+  colors: z.tuple([BACKGROUND_COLOR, BACKGROUND_COLOR]),
+  invert: z.boolean(),
+  definition: SCALE,
+  influence: SCALE,
+});
+
+export function migrateLegacyBackground(
+  background: z.infer<typeof LegacyBackground>
+): z.infer<typeof Background> {
+  return {
+    image: background.image,
+    colors: background.colors,
+    invert: true,
+    definition: background.strength,
+    influence: background.opacity,
+  };
+}
+
+export function hasLegacyBackground(
+  background: unknown
+): background is z.infer<typeof LegacyBackground> {
+  return LegacyBackground.safeParse(background).success;
+}
+
+export const BackgroundStoredSchema = z
+  .union([Background, LegacyBackground])
+  .transform((background) =>
+    hasLegacyBackground(background) ? migrateLegacyBackground(background) : background
+  );
 
 export const TTSColor = z.enum([
   'White',
@@ -85,7 +118,9 @@ export const TTSColor = z.enum([
 ]);
 
 const factionShape = {
-  name: z.string(),
+  name: z.string().refine((name) => name.trim().length > 0, {
+    message: 'Faction name is required because it determines the faction URL',
+  }),
   logo: LOGO.or(GENERIC),
   background: Background,
   themeColor: HEXCOLOR,
@@ -102,7 +137,7 @@ const factionShape = {
   planet: z
     .array(
       z.strictObject({
-        image: URL,
+        image: PLANET.or(URL),
         name: z.string(),
         description: z.string(),
       })
@@ -134,12 +169,134 @@ const factionShape = {
 /** Rejects unknown keys (e.g. `slug` must live on the Convex row, not in `data`). */
 export const FactionInputSchema = z.strictObject(factionShape);
 
+/**
+ * Canonical storage is intentionally wider than current authoring semantics:
+ * historical rows with a blank name must remain readable while the UI requires
+ * a name for all new canonical writes.
+ */
+export const CanonicalFactionStoredSchema = z.strictObject({
+  ...factionShape,
+  name: z.string(),
+});
+
+/**
+ * Frozen contract of the frontend deployed before the background/planet
+ * migration. Do not derive this from `factionShape`: compatibility must not
+ * silently adopt later authoring requirements.
+ */
+export const LegacyFactionInputSchema = z.strictObject({
+  name: z.string(),
+  logo: LOGO.or(GENERIC),
+  background: LegacyBackground,
+  themeColor: HEXCOLOR,
+  colors: z.array(TTSColor),
+  hero: Leader.omit({ strength: true }),
+  leaders: z.array(Leader),
+  decals: z.array(Decal),
+  planet: z
+    .array(
+      z.strictObject({
+        image: URL,
+        name: z.string(),
+        description: z.string(),
+      })
+    )
+    .optional(),
+  troops: z.array(Troop),
+  rules: z.strictObject({
+    startText: z.string(),
+    revivalText: z.string(),
+    spiceCount: z.number().int().positive(),
+    advantages: z.array(RULE),
+    fate: RULE.omit({ karama: true }),
+    alliance: RULE.omit({ karama: true, title: true }).required(),
+  }),
+  extras: z
+    .array(
+      z.strictObject({
+        name: z.string(),
+        description: z.string().optional(),
+        items: z.array(z.strictObject({ url: URL, description: z.string().optional() })),
+      })
+    )
+    .optional(),
+});
+
 /** URL slug on the `factions` row — not a field on `FactionInput` / `factions.data`. */
 export const FactionRowSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
 export type FactionInput = z.infer<typeof FactionInputSchema>;
+export type LegacyFactionInput = z.infer<typeof LegacyFactionInputSchema>;
 /** Convex `factions.data` payload; public slug is only on the faction row (`FactionEntry.slug`). */
 export type FactionData = FactionInput;
+
+/** Temporary public-read shape for the still-deployed legacy frontend. */
+export function toLegacyFactionInput(input: FactionInput): LegacyFactionInput {
+  return {
+    ...input,
+    planet: input.planet?.map((planet) => ({
+      ...planet,
+      image: PLANET.safeParse(planet.image).success
+        ? `${LEGACY_PLANET_ASSET_ORIGIN}${planet.image}`
+        : planet.image,
+    })),
+    background: {
+      image: input.background.image,
+      colors: input.background.colors,
+      strength: input.background.definition,
+      opacity: input.background.influence,
+    },
+  };
+}
+
+/**
+ * Widen-phase parser for rows and older clients. All successful output is the
+ * canonical background shape so reads and writes converge before narrowing.
+ */
+export const FactionStoredSchema = z
+  .union([CanonicalFactionStoredSchema, LegacyFactionInputSchema])
+  .transform((input): FactionInput => {
+    const canonical = CanonicalFactionStoredSchema.safeParse(input);
+    if (canonical.success) return canonical.data;
+    const legacy = LegacyFactionInputSchema.parse(input);
+    return {
+      ...legacy,
+      background: migrateLegacyBackground(legacy.background),
+    };
+  });
+
+/**
+ * A legacy update cannot express canonical inversion or repository-owned
+ * planet paths. Restore those values when the compatibility projection comes
+ * back unchanged, while retaining every field the old editor could change.
+ */
+export function reconcileLegacyFactionUpdate(
+  input: unknown,
+  previousStoredInput: unknown
+): FactionInput | null {
+  const legacy = LegacyFactionInputSchema.safeParse(input);
+  if (!legacy.success) return null;
+
+  const next = FactionStoredSchema.parse(legacy.data);
+  const previous = FactionStoredSchema.parse(previousStoredInput);
+  const canonicalPlanetImageByLegacyUrl = new Map(
+    (previous.planet ?? [])
+      .filter((planet) => PLANET.safeParse(planet.image).success)
+      .map((planet) => [`${LEGACY_PLANET_ASSET_ORIGIN}${planet.image}`, planet.image])
+  );
+
+  return CanonicalFactionStoredSchema.parse({
+    ...next,
+    background: {
+      ...next.background,
+      invert: previous.background.invert,
+    },
+    planet: next.planet?.map((planet) => ({
+      ...planet,
+      image: canonicalPlanetImageByLegacyUrl.get(planet.image) ?? planet.image,
+    })),
+  });
+}
 
 /** Lowercase [a-z0-9] only; matches DB slugify base (no numeric uniqueness suffix). */
 export function factionSlugBaseFromName(name: string): string {

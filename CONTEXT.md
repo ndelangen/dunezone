@@ -21,5 +21,27 @@ _Avoid_: Featured faction
 **Faction card**:
 A reusable, identity-first summary of a faction shown in discovery grids, including the Faction catalogue and profile detail pages. It communicates faction identity and ruleset membership; stewardship and complete game content belong on the faction detail page.
 
+**Faction slug**:
+The faction's public URL identifier, derived from its name. It is distinct from the faction's durable internal identity and may change when the faction is renamed.
+
 **Faction leader**:
-The single primary leader who represents a faction, distinct from its supporting leaders.
+The single required primary leader who represents a faction, distinct from its supporting leaders. Among rendered game assets, the Faction leader is used on the faction shield.
+_Avoid_: Hero
+
+**Supporting leader**:
+One member of a faction's ordered supporting-leader roster. A faction may have zero to ten supporting leaders; five is conventional but not required.
+
+**Troop count**:
+The number of physical tokens supplied for one faction troop type. A reversible troop token has one Troop count shared by its front and back faces.
+
+**Starting spice**:
+The amount of spice a faction begins the game with. Starting spice is a structured setup value, distinct from the faction's free-form starting instructions.
+
+**Background definition**:
+How soft or crisp the selected pattern appears in a faction's composed background.
+
+**Background influence**:
+How subtly or strongly the pattern color participates in a faction's composed background.
+
+**Background inversion**:
+The choice to reverse which light and dark regions of a selected pattern reveal the pattern color.

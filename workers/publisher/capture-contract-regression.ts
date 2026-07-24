@@ -130,6 +130,17 @@ async function assertPageBounds(page: Page): Promise<void> {
     (await page.locator('[aria-label="Troop Token"]').count()) > 0,
     'Production-shaped capture must render omitted troop modifiers as bounded TroopToken components'
   );
+  invariant(
+    (await page.locator('[data-faction-starting-spice]').textContent())?.trim() ===
+      'Starting spice: 10',
+    'Production-shaped capture must render structured starting spice'
+  );
+  const troopSupplies = page.locator('[data-faction-troop-supply]');
+  invariant(
+    (await troopSupplies.count()) === 1 &&
+      (await troopSupplies.first().textContent())?.trim() === '×20',
+    'Production-shaped capture must render one physical-supply count per troop type'
+  );
 }
 
 async function checkPublisherPdf(browser: Browser): Promise<void> {

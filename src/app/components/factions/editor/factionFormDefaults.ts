@@ -1,5 +1,6 @@
 import type { Faction } from '@db/factions';
 import { DECAL, LEADERS, TROOP, TROOP_MODIFIER } from '@game/data/generated';
+import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 
 import { NONE_SELECT_VALUE, troopStarOptionToLabel } from './factionFormAssetUtils';
 
@@ -94,4 +95,16 @@ export function createTroopBackFromFront(
 
 export function defaultAdvantage(): Faction['rules']['advantages'][number] {
   return { text: '' };
+}
+
+export function defaultPlanet(): NonNullable<Faction['planet']>[number] {
+  const firstImage = CURATED_PLANET_IMAGES[0]?.image;
+  if (!firstImage) {
+    throw new Error('The curated planet image catalogue must contain at least one image');
+  }
+  return {
+    image: firstImage,
+    name: '',
+    description: '',
+  };
 }

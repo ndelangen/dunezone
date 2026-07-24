@@ -30,6 +30,14 @@ async function createFaction(
 }
 
 describe('faction slug reservations', () => {
+  test('create rejects a blank faction name at the authoritative boundary', async () => {
+    const { asUser } = await authenticatedTest();
+
+    await expect(createFaction(asUser, '   ')).rejects.toThrow(
+      'Invalid faction data at name: Faction name is required because it determines the faction URL'
+    );
+  });
+
   test('a soft-deleted faction keeps its slug reserved for create', async () => {
     const { asUser } = await authenticatedTest();
     const faction = await createFaction(asUser, 'Reserved Faction');

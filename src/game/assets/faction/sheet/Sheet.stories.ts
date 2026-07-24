@@ -1,5 +1,7 @@
 import preview from '@sb/preview';
 
+import { assetPublishingFaction } from '../../../fixtures/assetPublishingFaction';
+import { FactionRender } from '../../../schema/faction';
 import { FactionSheet } from './Sheet';
 
 const meta = preview.meta({
@@ -22,8 +24,9 @@ export const Default = meta.story({
     background: {
       image: '/image/texture/021.jpg',
       colors: ['red', 'blue'],
-      opacity: 0,
-      strength: 0,
+      invert: true,
+      definition: 0,
+      influence: 0,
     },
     troops: [
       {
@@ -116,4 +119,31 @@ export const Default = meta.story({
       },
     ],
   },
+});
+
+const supplyAndSpiceFaction = structuredClone(assetPublishingFaction);
+supplyAndSpiceFaction.rules.advantages = supplyAndSpiceFaction.rules.advantages.slice(0, 4);
+supplyAndSpiceFaction.troops = [
+  {
+    ...supplyAndSpiceFaction.troops[0],
+    name: 'Atreides ceremonial household guard troop',
+    description: 'House guard.',
+    count: 20,
+  },
+  {
+    ...supplyAndSpiceFaction.troops[0],
+    name: 'Arrakeen garrison',
+    description: 'Front face.',
+    count: 3,
+    back: {
+      image: supplyAndSpiceFaction.troops[0].image,
+      name: 'Desert patrol',
+      description: 'Back face.',
+      striped: true,
+    },
+  },
+];
+
+export const SupplyAndSpice = meta.story({
+  args: FactionRender.sheet.parse(supplyAndSpiceFaction),
 });

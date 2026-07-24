@@ -1,19 +1,47 @@
-import type { Faction } from '@db/factions';
-import { FormField } from '@app/components/form/FormField';
-import { MultilineTextField } from '@app/components/form/MultilineTextField';
-import { OptionPicker } from '@app/components/form/OptionPicker';
-import { SuggestField } from '@app/components/form/SuggestField';
-import { TextField } from '@app/components/form/TextField';
-import { TROOP } from '@game/data/generated';
+import {
+  Box,
+  Group,
+  Image,
+  Select,
+  SimpleGrid,
+  Stack,
+  Switch,
+  Text,
+  Textarea,
+  TextInput,
+} from '@mantine/core';
 
-import styles from './FactionEditor.module.css';
+import type { Faction } from '@db/factions';
+import { TROOP, TROOP_MODIFIER } from '@game/data/generated';
+
 import {
   assetOptionToPreviewSrc,
-  NONE_SELECT_VALUE,
   troopOptionToLabel,
+  troopStarOptionToLabel,
 } from './factionFormAssetUtils';
-import { troopStarOptions } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
+
+const troopImageOptions = TROOP.options.map((value) => ({
+  value,
+  label: troopOptionToLabel(value),
+}));
+
+const troopStarOptions = TROOP_MODIFIER.options.map((value) => ({
+  value,
+  label: troopStarOptionToLabel(value),
+}));
+
+function AssetOption({ value, label }: { value: string; label: string }) {
+  const preview = assetOptionToPreviewSrc(value);
+  return (
+    <Group gap="sm" wrap="nowrap">
+      {preview ? <Image src={preview} alt="" w={28} h={28} fit="contain" /> : null}
+      <Text size="sm" truncate>
+        {label}
+      </Text>
+    </Group>
+  );
+}
 
 export function TroopSideFields({
   form,
@@ -26,11 +54,6 @@ export function TroopSideFields({
 }) {
   const isBack = side === 'back';
   const idBase = isBack ? `troop-${troopIndex}-back` : `troop-${troopIndex}`;
-  const imageLabel = isBack ? 'Back image' : 'Troop image';
-  const descriptionLabel = isBack ? 'Back description' : 'Description';
-  const starLabel = isBack ? 'Back star modifier' : 'Star modifier';
-  const stripedLabel = isBack ? 'Back striped pattern' : 'Striped pattern';
-
   const i = troopIndex;
   const nameField = isBack ? (`troops[${i}].back.name` as const) : (`troops[${i}].name` as const);
   const imageField = isBack
@@ -45,80 +68,114 @@ export function TroopSideFields({
     : (`troops[${i}].striped` as const);
 
   return (
-    <div className={styles.troopSideFields}>
-      <div className={styles.arrayCardGrid}>
+    <Stack gap="md">
+      <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <form.Field name={nameField}>
           {(field) => (
-            <FormField label={isBack ? 'Back name' : 'Name'} htmlFor={`${idBase}-name`}>
-              <TextField
-                id={`${idBase}-name`}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
-            </FormField>
+            <TextInput
+              id={`${idBase}-name`}
+              label={isBack ? 'Back-side name' : 'Troop name'}
+              description={
+                isBack
+                  ? 'Name printed for the reverse side of this physical troop.'
+                  : 'Used on the troop token and faction sheet.'
+              }
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={(event) => field.handleChange(event.currentTarget.value)}
+            />
           )}
         </form.Field>
+
         <form.Field name={imageField}>
           {(field) => (
-            <FormField label={imageLabel} htmlFor={`${idBase}-img`}>
-              <SuggestField
-                id={`${idBase}-img`}
-                value={field.state.value ?? ''}
-                onChange={(v) => field.handleChange(v as Faction['troops'][number]['image'])}
-                options={TROOP.options}
-                optionToLabel={troopOptionToLabel}
-                optionToPreviewSrc={assetOptionToPreviewSrc}
-              />
-            </FormField>
+            <Select
+              id={`${idBase}-img`}
+              label={isBack ? 'Back-side symbol' : 'Troop symbol'}
+              description="Select the symbol rendered inside the troop token."
+              searchable
+              allowDeselect={false}
+              data={troopImageOptions}
+              value={field.state.value}
+              leftSection={
+                field.state.value ? (
+                  <Image
+                    src={assetOptionToPreviewSrc(field.state.value)}
+                    alt=""
+                    w={22}
+                    h={22}
+                    fit="contain"
+                  />
+                ) : null
+              }
+              renderOption={({ option }) => (
+                <AssetOption value={option.value} label={option.label} />
+              )}
+              comboboxProps={{ withinPortal: false }}
+              onChange={(value) => {
+                if (value) {
+                  field.handleChange(value as Faction['troops'][number]['image']);
+                }
+              }}
+            />
           )}
         </form.Field>
-        <form.Field name={descField}>
-          {(field) => (
-            <FormField label={descriptionLabel} htmlFor={`${idBase}-desc`}>
-              <MultilineTextField
-                id={`${idBase}-desc`}
-                rows={2}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
-            </FormField>
-          )}
-        </form.Field>
+      </SimpleGrid>
+
+      <form.Field name={descField}>
+        {(field) => (
+          <Textarea
+            id={`${idBase}-desc`}
+            label={isBack ? 'Back-side description' : 'Troop description'}
+            description="Used as the troop rules description on the faction sheet."
+            autosize
+            minRows={2}
+            value={field.state.value}
+            onBlur={field.handleBlur}
+            onChange={(event) => field.handleChange(event.currentTarget.value)}
+          />
+        )}
+      </form.Field>
+
+      <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <form.Field name={starField}>
           {(field) => (
-            <FormField label={starLabel}>
-              <OptionPicker
-                ariaLabel={`${starLabel} for troop ${troopIndex + 1}`}
-                value={field.state.value ?? NONE_SELECT_VALUE}
-                onValueChange={(next) =>
-                  field.handleChange(
-                    next === NONE_SELECT_VALUE
-                      ? undefined
-                      : (next as NonNullable<Faction['troops'][number]['star']>)
-                  )
-                }
-                options={troopStarOptions}
-              />
-            </FormField>
+            <Select
+              label={isBack ? 'Back-side star modifier' : 'Star modifier'}
+              description="Optional marker rendered on the troop token."
+              placeholder="No star modifier"
+              clearable
+              searchable
+              data={troopStarOptions}
+              value={field.state.value ?? null}
+              renderOption={({ option }) => (
+                <AssetOption value={option.value} label={option.label} />
+              )}
+              comboboxProps={{ withinPortal: false }}
+              onChange={(value) =>
+                field.handleChange(value ? (value as Faction['troops'][number]['star']) : undefined)
+              }
+            />
           )}
         </form.Field>
-        <form.Field name={stripedField}>
-          {(field) => (
-            <FormField label={stripedLabel} htmlFor={`${idBase}-striped`}>
-              <input
+
+        <Box pt={{ base: 0, sm: 'xl' }}>
+          <form.Field name={stripedField}>
+            {(field) => (
+              <Switch
                 id={`${idBase}-striped`}
-                type="checkbox"
-                className={styles.checkbox}
+                label={isBack ? 'Striped reverse token' : 'Striped troop token'}
+                description="Adds the striped treatment to this side only."
                 checked={field.state.value === true}
                 onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.checked ? true : undefined)}
+                onChange={(event) =>
+                  field.handleChange(event.currentTarget.checked ? true : undefined)
+                }
               />
-            </FormField>
-          )}
-        </form.Field>
-      </div>
-    </div>
+            )}
+          </form.Field>
+        </Box>
+      </SimpleGrid>
+    </Stack>
   );
 }

@@ -6,16 +6,16 @@ describe('faction save and publishing feedback', () => {
   test('moves from saving to immediate save confirmation and automatic publishing states', () => {
     expect(factionAssetPublishingCopy('current', 'saving')).toBe('Saving changes…');
     expect(factionAssetPublishingCopy('waiting', 'saved')).toBe(
-      'Saved immediately. Assets are waiting to publish automatically.'
+      'Saved. Publication scheduled. Assets are waiting to publish automatically.'
     );
     expect(factionAssetPublishingCopy('publishing', 'saved')).toBe(
-      'Saved immediately. Assets are publishing automatically.'
+      'Saved. Publication scheduled. Assets are publishing automatically.'
     );
     expect(factionAssetPublishingCopy('delayed', 'saved')).toBe(
-      'Saved immediately. Asset publishing is delayed and will retry automatically.'
+      'Saved. Publication scheduled. Asset publishing is delayed and will retry automatically.'
     );
     expect(factionAssetPublishingCopy('current', 'saved')).toBe(
-      'Saved immediately. Public assets are current.'
+      'Saved. Publication scheduled. Public assets are current.'
     );
   });
 

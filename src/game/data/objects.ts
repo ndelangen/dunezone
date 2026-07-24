@@ -179,8 +179,9 @@ const K = z.union([COLOR, GRADIENT]);
 export const Background = z.strictObject({
   image: URL,
   colors: z.tuple([K, K]),
-  strength: SCALE,
-  opacity: SCALE,
+  invert: z.boolean(),
+  definition: SCALE,
+  influence: SCALE,
 });
 
 export const Sheet = z.strictObject({

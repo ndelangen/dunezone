@@ -6,17 +6,33 @@ import type { z } from 'zod';
 import { type Background as BackGroundType, GRADIENT } from '../../data/objects';
 import styles from './Background.module.css';
 
+/** Maps authored studio values to the real pattern-mask treatment. */
+export function backgroundTreatment({
+  invert,
+  definition,
+  influence,
+}: Pick<z.infer<typeof BackGroundType>, 'invert' | 'definition' | 'influence'>) {
+  const contrast = 0.65 + definition * 2.35;
+  const blur = (1 - definition) * 0.75;
+  return {
+    patternFilter: `grayscale(1) invert(${invert ? 1 : 0}) contrast(${contrast.toFixed(2)}) blur(${blur.toFixed(2)}px)`,
+    patternOpacity: influence,
+  };
+}
+
 export const Background: FC<z.infer<typeof BackGroundType>> = ({
   colors,
   image,
-  opacity = 0, // Set default opacity
-  strength = 0, // Set default strength
+  invert = true,
+  definition = 0,
+  influence = 0,
 }) => {
   // Fragment refs like url(#gradient-0) are resolved in the whole HTML document, not per-<svg>.
   const base = useId().replace(/:/g, '');
   const textureId = `bg-${base}-texture`;
   const textureMaskId = `bg-${base}-texture-mask`;
   const gradientId = (i: number) => `bg-${base}-g-${i}`;
+  const treatment = backgroundTreatment({ invert, definition, influence });
 
   return (
     <svg
@@ -29,14 +45,14 @@ export const Background: FC<z.infer<typeof BackGroundType>> = ({
     >
       <defs>
         <pattern id={textureId} width="100" height="100" patternUnits="userSpaceOnUse">
-          <g filter={`invert(${1 + strength * 0.01})`}>
-            <image
-              xlinkHref={image}
-              width="100"
-              height="100"
-              filter={`brightness(${1 + opacity * 0.01})`}
-            />
-          </g>
+          <image
+            xlinkHref={image}
+            x="-1"
+            y="-1"
+            width="102"
+            height="102"
+            filter={treatment.patternFilter}
+          />
         </pattern>
         <mask id={textureMaskId}>
           <rect x="0" y="0" width="100" height="100" fill={`url(#${textureId})`} />
@@ -96,6 +112,7 @@ export const Background: FC<z.infer<typeof BackGroundType>> = ({
         height="100"
         fill={typeof colors[1] === 'string' ? colors[1] : `url(#${gradientId(1)})`}
         mask={`url(#${textureMaskId})`}
+        opacity={treatment.patternOpacity}
       />
     </svg>
   );

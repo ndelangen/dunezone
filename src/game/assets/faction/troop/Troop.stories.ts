@@ -23,8 +23,9 @@ export const Default = meta.story({
     background: {
       image: '/image/texture/021.jpg',
       colors: ['red', 'blue'],
-      opacity: 0,
-      strength: 0,
+      invert: true,
+      definition: 0,
+      influence: 0,
     },
     star: '/vector/troop_modifier/star-left-red.svg',
     striped: false,

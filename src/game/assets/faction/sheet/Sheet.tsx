@@ -47,7 +47,19 @@ export function FactionSheetPage1(props: SheetProps) {
       </div>
       <div className={styles.start}>
         <strong className={styles.head}>At start:</strong>{' '}
-        <MarkdownContent>{props.rules.startText}</MarkdownContent>
+        <span className={styles.startingSpice} data-faction-starting-spice>
+          <strong>Starting spice:</strong> {props.rules.spiceCount}
+        </span>
+        {props.rules.startText.trim().length > 0 ? (
+          <>
+            <span className={styles.setupSeparator} aria-hidden>
+              ·
+            </span>
+            <span data-faction-start-instructions>
+              <MarkdownContent forceInline>{props.rules.startText}</MarkdownContent>
+            </span>
+          </>
+        ) : null}
       </div>
       <div className={styles.revival}>
         <strong className={styles.head}>Revival:</strong>{' '}
@@ -122,7 +134,12 @@ export function FactionSheetPage2(props: SheetProps) {
                         />
                       </div>
                       <section>
-                        <div className={styles.head}>{troop.name}</div>
+                        <div className={`${styles.head} ${styles.troopHeading}`}>
+                          <span>{troop.name}</span>
+                          <span className={styles.troopSupply} data-faction-troop-supply>
+                            ×{troop.count}
+                          </span>
+                        </div>
                         <div className={styles.text}>
                           <MarkdownContent>{troop.description}</MarkdownContent>
                         </div>

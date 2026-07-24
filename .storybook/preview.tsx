@@ -54,6 +54,34 @@ export default definePreview({
             height: `1100px`,
           },
         },
+        appDesktop: {
+          name: 'App desktop',
+          styles: {
+            width: '1200px',
+            height: '900px',
+          },
+        },
+        appLarge: {
+          name: 'App large',
+          styles: {
+            width: '1440px',
+            height: '1200px',
+          },
+        },
+        appConstrained: {
+          name: 'App constrained',
+          styles: {
+            width: '860px',
+            height: '760px',
+          },
+        },
+        appMobile: {
+          name: 'App mobile',
+          styles: {
+            width: '390px',
+            height: '844px',
+          },
+        },
       },
     },
   },

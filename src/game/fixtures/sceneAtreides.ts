@@ -8,8 +8,9 @@ export default {
   background: {
     image: '/image/texture/021.jpg',
     colors: ['#ffff00', '#0000ff'],
-    opacity: 1,
-    strength: 0.5,
+    invert: true,
+    definition: 0.5,
+    influence: 1,
   },
   themeColor: '#008000',
   hero: {

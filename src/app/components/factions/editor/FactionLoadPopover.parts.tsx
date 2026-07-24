@@ -1,7 +1,7 @@
+import { Box, Group, Stack, Text } from '@mantine/core';
+
 import type { FactionData, FactionLoadPickerRow } from '@db/factions';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
-
-import styles from './FactionEditor.module.css';
 
 export function factionLoadOptionLabel(row: FactionLoadPickerRow): string {
   return `${row.data.name} (${row.slug})`;
@@ -39,18 +39,24 @@ export function FactionLoadOptionRow({
   isMember,
 }: FactionLoadOptionRowProps) {
   return (
-    <div className={styles.loadFactionOptionRow}>
-      <span className={styles.loadFactionOptionToken} aria-hidden>
-        <FactionToken logo={logo} background={background} />
-      </span>
-      <span className={styles.loadFactionOptionBody}>
-        <span className={styles.loadFactionOptionName}>{name}</span>
-        <span className={styles.loadFactionOptionMeta}>
+    <Group gap="sm" wrap="nowrap" align="center">
+      <Box aria-hidden w={30} h={30} miw={30} style={{ display: 'grid', placeItems: 'center' }}>
+        <Box w="100%" h="100%">
+          <FactionToken logo={logo} background={background} />
+        </Box>
+      </Box>
+      <Stack gap={1} miw={0}>
+        <Text size="sm" fw={700} lh={1.25}>
+          {name}
+        </Text>
+        <Text size="xs" c="dimmed" lh={1.2}>
           Owner: {ownerLabel} · Group: {groupLabel}
           {isMember ? ' (You are a member)' : ''}
-        </span>
-        <span className={styles.loadFactionOptionMeta}>Slug: {slug}</span>
-      </span>
-    </div>
+        </Text>
+        <Text size="xs" c="dimmed" lh={1.2}>
+          Slug: {slug}
+        </Text>
+      </Stack>
+    </Group>
   );
 }

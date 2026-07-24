@@ -1,5 +1,16 @@
+import {
+  ActionIcon,
+  Anchor,
+  Button,
+  Group,
+  Paper,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
+} from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { RotateCcw, Save, Trash2, UserRoundMinus, X } from 'lucide-react';
+import { Trash2, UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import {
@@ -10,18 +21,15 @@ import {
   useUpdateFaction,
 } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
+import { FactionAuthoringToolbar } from '@app/components/factions/editor/FactionAuthoringToolbar';
 import {
   FactionEditor,
   type FactionEditorHandle,
+  type FactionEditorState,
 } from '@app/components/factions/editor/FactionEditor';
 import { FactionGroupPopover } from '@app/components/factions/editor/FactionGroupPopover';
 import { FactionLoadPopover } from '@app/components/factions/editor/FactionLoadPopover';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { Toolbar } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 import { PageLayout } from '@app/components/shell';
-import { factionAssetPublishingCopy } from '@app/factions/assetPublishingStatus';
 import { loadFaction } from '@app/factions/db';
 import { FactionInputSchema } from '@game/schema/faction';
 
@@ -30,9 +38,18 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   component: FactionEditPage,
 });
 
+const initialEditorState: FactionEditorState = {
+  isDirty: false,
+  isNameBlank: false,
+  warnings: [],
+};
+
 function formatZodIssues(err: { issues: readonly { path: PropertyKey[]; message: string }[] }) {
   return err.issues
-    .map((i) => `${i.path.map((segment) => String(segment)).join('.') || '(root)'}: ${i.message}`)
+    .map((issue) => {
+      const path = issue.path.map((segment) => String(segment)).join('.') || '(root)';
+      return `${path}: ${issue.message}`;
+    })
     .join('\n');
 }
 
@@ -46,29 +63,55 @@ function FactionEditPage() {
   const setFactionGroup = useSetFactionGroup();
   const profile = useCurrentProfile();
   const [editorErrors, setEditorErrors] = useState<string[]>([]);
+  const [editorState, setEditorState] = useState<FactionEditorState>(initialEditorState);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { faction, group, assetPublishing } = useFaction(factionId, { initialData: loaderData });
-  const header = <h1>{faction ? `Edit ${faction.data.name}` : 'Edit faction'}</h1>;
+  const header = (
+    <Stack align="center" gap={4}>
+      <Anchor
+        size="sm"
+        renderRoot={(rootProps) => (
+          <Link {...rootProps} to="/factions/$factionId" params={{ factionId }} />
+        )}
+      >
+        View faction
+      </Anchor>
+      <Title order={1}>{faction ? `Edit ${faction.data.name}` : 'Edit faction'}</Title>
+      <Text c="dimmed">Changes stay local until you explicitly save them.</Text>
+    </Stack>
+  );
 
-  if (!profile?.data?.user_id) {
+  if (!profile.data?.user_id) {
     return (
-      <PageLayout header={header}>
-        <Card>
-          <p>
-            <Link to="/auth/login">Log in</Link> to edit factions.
-          </p>
-          <p>
-            <Link to="/factions/$factionId" params={{ factionId }}>
+      <PageLayout header={header} headerSize="compact">
+        <Paper withBorder radius="md" p="xl">
+          <Stack gap="sm">
+            <Text>
+              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
+                Log in
+              </Anchor>{' '}
+              to edit factions.
+            </Text>
+            <Anchor
+              renderRoot={(rootProps) => (
+                <Link {...rootProps} to="/factions/$factionId" params={{ factionId }} />
+              )}
+            >
               Back to faction
-            </Link>
-          </p>
-        </Card>
+            </Anchor>
+          </Stack>
+        </Paper>
       </PageLayout>
     );
   }
 
   if (!faction) {
-    return <PageLayout header={header}>Loading faction…</PageLayout>;
+    return (
+      <PageLayout header={header} headerSize="compact">
+        <Text>Loading faction…</Text>
+      </PageLayout>
+    );
   }
 
   const canDelete = faction.owner_id === profile.data.user_id;
@@ -84,16 +127,18 @@ function FactionEditPage() {
     void (async () => {
       try {
         const entry = await updateFaction.mutateAsync({ input: parsed.data, id: faction._id });
-        const newSlug = entry.slug;
-        if (newSlug !== factionId) {
+        editorRef.current?.markSaved(entry.data);
+        if (entry.slug !== factionId) {
           navigate({
             to: '/factions/$factionId/edit',
-            params: { factionId: newSlug },
+            params: { factionId: entry.slug },
             replace: true,
           });
         }
-      } catch {
-        // Mutation state renders the stable save failure feedback below.
+      } catch (error) {
+        setEditorErrors([
+          error instanceof Error ? error.message : 'The faction could not be saved.',
+        ]);
       }
     })();
   };
@@ -109,115 +154,117 @@ function FactionEditPage() {
   return (
     <PageLayout
       header={header}
+      headerSize="compact"
       toolbar={
-        <Toolbar>
-          <Toolbar.Left>
-            <FormTooltip content={updateFaction.isPending ? 'Saving…' : 'Save changes'}>
-              <UIButton
-                type="button"
-                iconOnly
-                aria-label="Save changes"
+        <FactionAuthoringToolbar
+          isDirty={editorState.isDirty}
+          isNameBlank={editorState.isNameBlank}
+          warningCount={editorState.warnings.length}
+          saveState={saveState}
+          assetPublishing={assetPublishing}
+          onSave={() => editorRef.current?.submit()}
+          onReviewWarnings={() => editorRef.current?.focusFirstWarning()}
+          onReset={() => editorRef.current?.load()}
+          onClose={() =>
+            navigate({
+              to: '/factions/$factionId',
+              params: { factionId },
+            })
+          }
+          auxiliaryActions={
+            <>
+              <FactionLoadPopover
                 disabled={updateFaction.isPending}
-                onClick={() => editorRef.current?.submit()}
-              >
-                <Save size={16} aria-hidden />
-              </UIButton>
-            </FormTooltip>
-            <FactionLoadPopover
-              disabled={false}
-              currentPublicSlug={faction.slug}
-              onLoaded={(loaded) => {
-                editorRef.current?.load(loaded);
-              }}
-            />
-            {canAssignGroup && !group && (
-              <FactionGroupPopover
-                disabled={false}
-                userId={profile.data?.user_id}
-                isUserPending={profile.isPending}
-                onChangeGroup={async (nextGroupId) => {
-                  await setFactionGroup.mutateAsync({ id: faction._id, groupId: nextGroupId });
-                }}
+                currentPublicSlug={faction.slug}
+                onLoaded={(loaded) => editorRef.current?.load(loaded)}
               />
-            )}
-            {canAssignGroup && group && (
-              <FormTooltip content="Remove group">
-                <UIButton
-                  type="button"
-                  iconOnly
-                  aria-label="Remove group"
-                  disabled={false}
-                  variant="critical"
-                  onClick={() => setFactionGroup.mutateAsync({ id: faction._id, groupId: null })}
-                >
-                  <UserRoundMinus size={16} aria-hidden />
-                </UIButton>
-              </FormTooltip>
-            )}
-
-            <FormTooltip content="Reset unsaved edits">
-              <UIButton
-                type="button"
-                variant="critical"
-                iconOnly
-                aria-label="Reset unsaved edits"
-                disabled={false}
-                onClick={() => editorRef.current?.load()}
-              >
-                <RotateCcw size={16} aria-hidden />
-              </UIButton>
-            </FormTooltip>
-          </Toolbar.Left>
-
-          <Toolbar.Right>
-            <span role="status">
-              {factionAssetPublishingCopy(assetPublishing.status, saveState)}
-            </span>
-            {group ? (
-              <span>
-                <strong>Group access:</strong> <span>{group.name ?? group._id}</span>
-              </span>
-            ) : null}
-            <FormTooltip content="Close editor">
-              <UIButton
-                type="button"
-                variant="critical"
-                iconOnly
-                aria-label="Close editor"
-                disabled={false}
-                onClick={() =>
-                  navigate({
-                    to: '/factions/$factionId',
-                    params: { factionId },
-                  })
-                }
-              >
-                <X size={16} aria-hidden />
-              </UIButton>
-            </FormTooltip>
-            {canDelete && (
-              <FormTooltip content="Delete faction">
-                <UIButton
-                  type="button"
-                  variant="critical"
-                  iconOnly
-                  aria-label="Delete faction"
-                  disabled={false}
-                  onClick={() => {
-                    if (!window.confirm('Delete this faction? It will be hidden from lists.'))
-                      return;
-                    void (async () => {
-                      await deleteFaction.mutateAsync({ id: faction._id });
-                      navigate({ to: '/factions' });
-                    })();
+              {canAssignGroup && !group ? (
+                <FactionGroupPopover
+                  disabled={setFactionGroup.isPending}
+                  userId={profile.data.user_id}
+                  isUserPending={profile.isPending}
+                  onChangeGroup={async (nextGroupId) => {
+                    await setFactionGroup.mutateAsync({
+                      id: faction._id,
+                      groupId: nextGroupId,
+                    });
                   }}
-                >
-                  <Trash2 size={16} aria-hidden />
-                </UIButton>
-              </FormTooltip>
-            )}
-          </Toolbar.Right>
-        </Toolbar>
+                />
+              ) : null}
+              {canAssignGroup && group ? (
+                <Tooltip label="Remove group">
+                  <ActionIcon
+                    type="button"
+                    variant="light"
+                    color="red"
+                    size="lg"
+                    aria-label="Remove group"
+                    disabled={setFactionGroup.isPending}
+                    onClick={() =>
+                      void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })
+                    }
+                  >
+                    <UserRoundMinus size={17} aria-hidden />
+                  </ActionIcon>
+                </Tooltip>
+              ) : null}
+            </>
+          }
+          context={
+            group ? (
+              <Text size="xs" c="dimmed">
+                Group access: <strong>{group.name ?? group._id}</strong>
+              </Text>
+            ) : null
+          }
+          destructiveActions={
+            canDelete ? (
+              confirmDelete ? (
+                <Group gap={4} wrap="nowrap" role="group" aria-label="Confirm faction deletion">
+                  <Text size="xs" c="red" fw={700}>
+                    Delete faction?
+                  </Text>
+                  <Button
+                    type="button"
+                    color="red"
+                    size="compact-xs"
+                    loading={deleteFaction.isPending}
+                    onClick={() => {
+                      void (async () => {
+                        await deleteFaction.mutateAsync({ id: faction._id });
+                        navigate({ to: '/factions' });
+                      })();
+                    }}
+                  >
+                    Delete
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="subtle"
+                    color="gray"
+                    size="compact-xs"
+                    onClick={() => setConfirmDelete(false)}
+                  >
+                    Cancel
+                  </Button>
+                </Group>
+              ) : (
+                <Tooltip label="Delete faction">
+                  <ActionIcon
+                    type="button"
+                    variant="light"
+                    color="red"
+                    size="lg"
+                    aria-label="Delete faction"
+                    onClick={() => setConfirmDelete(true)}
+                  >
+                    <Trash2 size={17} aria-hidden />
+                  </ActionIcon>
+                </Tooltip>
+              )
+            ) : null
+          }
+        />
       }
     >
       <FactionEditor
@@ -226,6 +273,7 @@ function FactionEditPage() {
         factionEntry={faction}
         errors={editorErrors}
         onSubmit={handleEditorSubmit}
+        onStateChange={setEditorState}
       />
     </PageLayout>
   );

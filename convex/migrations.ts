@@ -3,6 +3,7 @@ import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 
 import { DEFAULT_FAQ_TAG } from '../src/app/faq/tags';
+import { Background, LegacyBackground, migrateLegacyBackground } from '../src/game/schema/faction';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, query } from './_generated/server';
@@ -30,6 +31,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_slug_reservations_verify_v1: internal.migrations.faction_slug_reservations_verify_v1,
   faction_sheet_targets_backfill_v1: internal.migrations.faction_sheet_targets_backfill_v1,
   faction_sheet_targets_verify_v1: internal.migrations.faction_sheet_targets_verify_v1,
+  faction_background_v1: internal.migrations.faction_background_v1,
+  faction_background_verify_v1: internal.migrations.faction_background_verify_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -270,6 +273,33 @@ export const faction_sheet_targets_verify_v1 = migrations.define({
   },
 });
 
+/** Rewrites legacy background fields while preserving every other faction value. */
+export const faction_background_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 25,
+  migrateOne: async (_ctx, faction) => {
+    const rawBackground = (faction.data as { background?: unknown } | null)?.background;
+    if (Background.safeParse(rawBackground).success) return;
+    const legacyBackground = LegacyBackground.parse(rawBackground);
+    return {
+      data: {
+        ...(faction.data as Record<string, unknown>),
+        background: migrateLegacyBackground(legacyBackground),
+      },
+    };
+  },
+});
+
+/** Successful completion proves every stored faction uses the canonical background shape. */
+export const faction_background_verify_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 25,
+  migrateOne: async (_ctx, faction) => {
+    const rawBackground = (faction.data as { background?: unknown } | null)?.background;
+    Background.parse(rawBackground);
+  },
+});
+
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([
@@ -282,7 +312,46 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.faction_slug_reservations_verify_v1,
   internal.migrations.faction_sheet_targets_backfill_v1,
   internal.migrations.faction_sheet_targets_verify_v1,
+  internal.migrations.faction_background_v1,
+  internal.migrations.faction_background_verify_v1,
 ]);
+
+export const auditFactionBackgrounds = query({
+  args: {},
+  handler: async (ctx) => {
+    const factions = await ctx.db.query('factions').take(501);
+    if (factions.length > 500) {
+      throw new Error('Faction background audit is bounded to 500 rows');
+    }
+
+    let canonical = 0;
+    let legacy = 0;
+    let planetEntries = 0;
+    const unexpectedIds: Id<'factions'>[] = [];
+    for (const faction of factions) {
+      const data = faction.data as { background?: unknown; planet?: unknown } | null;
+      if (Array.isArray(data?.planet)) {
+        planetEntries += data.planet.length;
+      }
+      if (Background.safeParse(data?.background).success) {
+        canonical += 1;
+      } else if (LegacyBackground.safeParse(data?.background).success) {
+        legacy += 1;
+      } else {
+        unexpectedIds.push(faction._id);
+      }
+    }
+
+    return {
+      total: factions.length,
+      canonical,
+      legacy,
+      unexpected: unexpectedIds.length,
+      unexpectedIds,
+      planetEntries,
+    };
+  },
+});
 
 export const runRequired = mutation({
   args: { ids: v.array(v.string()) },

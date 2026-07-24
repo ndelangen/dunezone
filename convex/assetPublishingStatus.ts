@@ -6,6 +6,7 @@ export type PublicAssetPublishingStatus = 'waiting' | 'publishing' | 'delayed' |
 export type PublicAssetPublishingStatusProjection = {
   status: PublicAssetPublishingStatus | null;
   publicationHref: string | null;
+  lastPublishedAt: number | null;
 };
 
 type ProjectableTarget = Pick<
@@ -31,7 +32,7 @@ type ProjectableTarget = Pick<
 export function projectPublicAssetPublishingStatus(
   target: ProjectableTarget | null
 ): PublicAssetPublishingStatusProjection {
-  if (!target) return { status: null, publicationHref: null };
+  if (!target) return { status: null, publicationHref: null, lastPublishedAt: null };
 
   const publicationHref =
     target.published_generation === undefined ||
@@ -43,18 +44,22 @@ export function projectPublicAssetPublishingStatus(
       ? null
       : `/published/factions/${encodeURIComponent(target.faction_id)}/sheet.pdf?v=${encodeURIComponent(target.published_cache_token)}`;
 
-  if (target.status === 'leased') return { status: 'publishing', publicationHref };
+  const lastPublishedAt = publicationHref ? (target.published_at ?? null) : null;
+
+  if (target.status === 'leased') {
+    return { status: 'publishing', publicationHref, lastPublishedAt };
+  }
   if (target.status === 'blocked') {
-    return { status: 'delayed', publicationHref };
+    return { status: 'delayed', publicationHref, lastPublishedAt };
   }
   if (
     target.status === 'current' &&
     target.desired_generation === target.published_generation &&
     target.desired_renderer_version === target.published_renderer_version
   ) {
-    return { status: 'current', publicationHref };
+    return { status: 'current', publicationHref, lastPublishedAt };
   }
-  return { status: 'waiting', publicationHref };
+  return { status: 'waiting', publicationHref, lastPublishedAt };
 }
 
 export async function factionSheetPublishingStatus(

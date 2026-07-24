@@ -9,7 +9,7 @@ function assignedItem(index = 1) {
     assetType: 'faction_sheet',
     claimToken: `claim-token-${String(index).padStart(20, '0')}`,
     generation: 1,
-    rendererVersion: 'faction-sheet-v3',
+    rendererVersion: 'faction-sheet-v4',
     leaseExpiresAt: 2_000_000_000_000,
   };
 }
