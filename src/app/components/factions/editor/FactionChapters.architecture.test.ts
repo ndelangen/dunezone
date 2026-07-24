@@ -25,10 +25,10 @@ const collectionShelfSource = readFileSync(
 describe('Forces and Worlds and Rules and Advantages chapter architecture', () => {
   it('gives worlds, forces, rules, and advantages separate main tabs', () => {
     for (const chapter of [
-      "chapter.id === 'worlds'",
-      "chapter.id === 'forces'",
-      "chapter.id === 'rules'",
-      "chapter.id === 'advantages'",
+      "chapter === 'worlds'",
+      "chapter === 'forces'",
+      "chapter === 'rules'",
+      "chapter === 'advantages'",
     ]) {
       expect(fieldsSource).toContain(chapter);
     }

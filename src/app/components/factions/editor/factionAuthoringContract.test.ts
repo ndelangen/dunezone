@@ -292,6 +292,11 @@ describe('faction authoring contract', () => {
   it('warns for incomplete chapter strings without warning on optional fields', () => {
     const faction = structuredClone(defaultFaction);
     faction.troops[0].description = '';
+    faction.troops[0].back = {
+      image: faction.troops[0].image,
+      name: '',
+      description: '',
+    };
     faction.troops[0].planet = undefined;
     faction.planet = [
       {
@@ -303,7 +308,8 @@ describe('faction authoring contract', () => {
     faction.rules.fate.title = undefined;
     faction.rules.advantages = [{ text: '', title: undefined, karama: undefined }];
 
-    const warningPaths = factionAuthoringWarnings(faction).map((warning) => warning.path);
+    const warnings = factionAuthoringWarnings(faction);
+    const warningPaths = warnings.map((warning) => warning.path);
 
     expect(warningPaths).toEqual(
       expect.arrayContaining([
@@ -317,6 +323,16 @@ describe('faction authoring contract', () => {
     expect(warningPaths).not.toContain('rules.fate.title');
     expect(warningPaths).not.toContain('rules.advantages[0].title');
     expect(warningPaths).not.toContain('rules.advantages[0].karama');
+    expect(
+      warnings
+        .filter((warning) => warning.path.startsWith('troops[0].back.'))
+        .every((warning) => warning.chapter === 'forces')
+    ).toBe(true);
+    expect(
+      warnings
+        .filter((warning) => warning.path.startsWith('planet[0].'))
+        .every((warning) => warning.chapter === 'worlds')
+    ).toBe(true);
     expect(FactionInputSchema.safeParse(faction).success).toBe(true);
   });
 });

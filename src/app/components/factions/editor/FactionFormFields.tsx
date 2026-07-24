@@ -11,6 +11,7 @@ import {
   Tabs,
   Text,
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { Globe2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -52,6 +53,24 @@ const chapterIcons: Record<
   rules: 'rules',
   advantages: 'advantages',
 };
+
+function ChapterIcon({
+  chapter,
+  form,
+}: {
+  chapter: FactionAuthoringChapterId;
+  form: FactionFormApi;
+}) {
+  if (chapter === 'identity') {
+    return (
+      <form.Subscribe selector={(state) => state.values.logo}>
+        {(logo) => <Image src={assetOptionToPreviewSrc(logo)} alt="" w={22} h={22} fit="contain" />}
+      </form.Subscribe>
+    );
+  }
+  if (chapter === 'worlds') return <Globe2 size={21} aria-hidden />;
+  return <TopicIcon topic={chapterIcons[chapter]} size={21} />;
+}
 
 function PreviewEmpty({ children }: { children: string }) {
   return (
@@ -323,6 +342,7 @@ export function FactionFormFields({
   warnings: FactionAuthoringWarning[];
   nameError?: string;
 }) {
+  const isMobile = useMediaQuery('(max-width: 48em)', false);
   const [activeChapter, setActiveChapter] = useState<FactionAuthoringChapterId>('identity');
   const [selectedItem, setSelectedItem] = useState({
     leader: 0,
@@ -335,13 +355,106 @@ export function FactionFormFields({
     warnings.filter((warning) => warning.chapter === chapter);
 
   const focusWarning = (warning: FactionAuthoringWarning) => {
-    setActiveChapter(warning.chapter);
+    if (!isMobile) setActiveChapter(warning.chapter);
     window.requestAnimationFrame(() => {
       const target = document.getElementById(warning.targetId);
       target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       target?.focus({ preventScroll: true });
     });
   };
+
+  const chapterEditor = (chapter: FactionAuthoringChapterId) => (
+    <>
+      {chapter === 'identity' ? (
+        <>
+          <FactionFormSectionIdentity form={form} nameError={nameError} showIntro={false} />
+          <FactionFormSectionBackground form={form} />
+        </>
+      ) : null}
+      {chapter === 'hero' ? <FactionFormSectionHero form={form} showPreview={false} /> : null}
+      {chapter === 'leaders' ? (
+        <FactionFormSectionLeaders
+          form={form}
+          showPreview={false}
+          selectedIndex={selectedItem.leader}
+          onSelectedIndexChange={(leader) => setSelectedItem((current) => ({ ...current, leader }))}
+        />
+      ) : null}
+      {chapter === 'alliance' ? (
+        <FactionFormSectionAlliance
+          form={form}
+          showPreview={false}
+          selectedDecalIndex={selectedItem.decal}
+          onSelectedDecalIndexChange={(decal) =>
+            setSelectedItem((current) => ({ ...current, decal }))
+          }
+        />
+      ) : null}
+      {chapter === 'worlds' ? (
+        <FactionFormSectionPlanets
+          form={form}
+          selectedIndex={selectedItem.world}
+          onSelectedIndexChange={(world) => setSelectedItem((current) => ({ ...current, world }))}
+        />
+      ) : null}
+      {chapter === 'forces' ? (
+        <FactionFormSectionTroops
+          form={form}
+          showPreview={false}
+          selectedIndex={selectedItem.troop}
+          onSelectedIndexChange={(troop) => setSelectedItem((current) => ({ ...current, troop }))}
+        />
+      ) : null}
+      {chapter === 'rules' ? <FactionFormSectionRules form={form} /> : null}
+      {chapter === 'advantages' ? (
+        <FactionFormSectionAdvantages
+          form={form}
+          selectedIndex={selectedItem.advantage}
+          onSelectedIndexChange={(advantage) =>
+            setSelectedItem((current) => ({ ...current, advantage }))
+          }
+        />
+      ) : null}
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Stack className={styles.mobileDocument} gap="md">
+        {factionAuthoringChapters.map((chapter, index) => {
+          const chapterWarnings = forChapter(chapter.id);
+          const headingId = `mobile-faction-chapter-${chapter.id}`;
+          return (
+            <Box
+              component="section"
+              className={styles.mobileChapter}
+              key={chapter.id}
+              aria-labelledby={headingId}
+            >
+              <Group className={styles.mobileChapterHeading} gap="sm" wrap="nowrap">
+                <ChapterIcon chapter={chapter.id} form={form} />
+                <Text component="span" className={styles.chapterNumber}>
+                  {String(index + 1).padStart(2, '0')}
+                </Text>
+                <Text id={headingId} component="h2" fw={700} size="md">
+                  {chapter.label}
+                </Text>
+                {chapterWarnings.length > 0 ? (
+                  <Badge circle size="sm" color="yellow" ml="auto">
+                    {chapterWarnings.length}
+                  </Badge>
+                ) : null}
+              </Group>
+              <Stack gap="lg" p="md">
+                <ChapterWarnings warnings={chapterWarnings} onFocus={focusWarning} />
+                {chapterEditor(chapter.id)}
+              </Stack>
+            </Box>
+          );
+        })}
+      </Stack>
+    );
+  }
 
   return (
     <Tabs
@@ -361,25 +474,7 @@ export function FactionFormFields({
               className={styles.chapterTab}
               key={chapter.id}
               value={chapter.id}
-              leftSection={
-                chapter.id === 'identity' ? (
-                  <form.Subscribe selector={(state) => state.values.logo}>
-                    {(logo) => (
-                      <Image
-                        src={assetOptionToPreviewSrc(logo)}
-                        alt=""
-                        w={22}
-                        h={22}
-                        fit="contain"
-                      />
-                    )}
-                  </form.Subscribe>
-                ) : chapter.id === 'worlds' ? (
-                  <Globe2 size={21} aria-hidden />
-                ) : (
-                  <TopicIcon topic={chapterIcons[chapter.id]} size={21} />
-                )
-              }
+              leftSection={<ChapterIcon chapter={chapter.id} form={form} />}
               rightSection={
                 chapterWarnings.length > 0 ? (
                   <Badge circle size="sm" color="yellow">
@@ -404,70 +499,13 @@ export function FactionFormFields({
           <Tabs.Panel key={chapter.id} value={chapter.id} className={styles.editorPanel}>
             <Stack gap="lg">
               <ChapterWarnings warnings={forChapter(chapter.id)} onFocus={focusWarning} />
-              {chapter.id === 'identity' ? (
-                <>
-                  <FactionFormSectionIdentity form={form} nameError={nameError} showIntro={false} />
-                  <FactionFormSectionBackground form={form} />
-                </>
-              ) : null}
-              {chapter.id === 'hero' ? (
-                <FactionFormSectionHero form={form} showPreview={false} />
-              ) : null}
-              {chapter.id === 'leaders' ? (
-                <FactionFormSectionLeaders
-                  form={form}
-                  showPreview={false}
-                  selectedIndex={selectedItem.leader}
-                  onSelectedIndexChange={(leader) =>
-                    setSelectedItem((current) => ({ ...current, leader }))
-                  }
-                />
-              ) : null}
-              {chapter.id === 'alliance' ? (
-                <FactionFormSectionAlliance
-                  form={form}
-                  showPreview={false}
-                  selectedDecalIndex={selectedItem.decal}
-                  onSelectedDecalIndexChange={(decal) =>
-                    setSelectedItem((current) => ({ ...current, decal }))
-                  }
-                />
-              ) : null}
-              {chapter.id === 'worlds' ? (
-                <FactionFormSectionPlanets
-                  form={form}
-                  selectedIndex={selectedItem.world}
-                  onSelectedIndexChange={(world) =>
-                    setSelectedItem((current) => ({ ...current, world }))
-                  }
-                />
-              ) : null}
-              {chapter.id === 'forces' ? (
-                <FactionFormSectionTroops
-                  form={form}
-                  showPreview={false}
-                  selectedIndex={selectedItem.troop}
-                  onSelectedIndexChange={(troop) =>
-                    setSelectedItem((current) => ({ ...current, troop }))
-                  }
-                />
-              ) : null}
-              {chapter.id === 'rules' ? <FactionFormSectionRules form={form} /> : null}
-              {chapter.id === 'advantages' ? (
-                <FactionFormSectionAdvantages
-                  form={form}
-                  selectedIndex={selectedItem.advantage}
-                  onSelectedIndexChange={(advantage) =>
-                    setSelectedItem((current) => ({ ...current, advantage }))
-                  }
-                />
-              ) : null}
+              {chapterEditor(chapter.id)}
             </Stack>
           </Tabs.Panel>
         ))}
       </Box>
 
-      <Box className={styles.artifactColumn} visibleFrom="md">
+      <Box className={styles.artifactColumn} visibleFrom="sm">
         <ArtifactProof activeChapter={activeChapter} form={form} selectedItem={selectedItem} />
       </Box>
     </Tabs>

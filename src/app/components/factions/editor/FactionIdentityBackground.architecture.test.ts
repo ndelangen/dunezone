@@ -46,6 +46,16 @@ describe('Identity and Appearance chapter architecture', () => {
     expect(backgroundSource).not.toContain('ScrollArea');
   });
 
+  it('uses the renderer treatment contract for the selected monochrome pattern proof', () => {
+    expect(backgroundSource).toContain(
+      "import { backgroundTreatment } from '@game/assets/utils/Background'"
+    );
+    expect(backgroundSource).toContain('const treatment = backgroundTreatment(background)');
+    expect(backgroundSource).toContain('filter: treatment.patternFilter');
+    expect(backgroundSource).toContain('opacity: treatment.patternOpacity');
+    expect(backgroundSource).not.toContain('0.25 + background.influence');
+  });
+
   it('supports every admitted color-layer mode and uncommon geometry/stop controls', () => {
     for (const field of [
       'Solid',
@@ -67,7 +77,7 @@ describe('Identity and Appearance chapter architecture', () => {
     const fieldsSource = readFileSync(new URL('./FactionFormFields.tsx', import.meta.url), 'utf8');
     expect(fieldsSource).toContain('BackgroundRenderer');
     expect(fieldsSource).toContain('<Token');
-    expect(fieldsSource).toContain('visibleFrom="md"');
+    expect(fieldsSource).toContain('visibleFrom="sm"');
     expect(rendererSource).not.toContain('@mantine');
   });
 

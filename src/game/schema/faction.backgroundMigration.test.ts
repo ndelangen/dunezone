@@ -7,6 +7,7 @@ import {
   FactionStoredSchema,
   LegacyFactionInputSchema,
   migrateLegacyBackground,
+  reconcileLegacyFactionUpdate,
   toLegacyFactionInput,
 } from './faction';
 
@@ -50,15 +51,42 @@ describe('faction background migration contract', () => {
   });
 
   it('keeps public reads compatible with the deployed legacy client during widening', () => {
-    const legacy = toLegacyFactionInput(assetPublishingFaction);
+    const canonical = {
+      ...structuredClone(assetPublishingFaction),
+      background: {
+        ...structuredClone(assetPublishingFaction.background),
+        invert: false,
+      },
+      planet: [
+        {
+          image: '/image/planet/01.png' as const,
+          name: 'Curated world',
+          description: 'Repository-owned artwork.',
+        },
+      ],
+    };
+    const legacy = toLegacyFactionInput(canonical);
 
     expect(LegacyFactionInputSchema.parse(legacy).background).toEqual({
-      image: assetPublishingFaction.background.image,
-      colors: assetPublishingFaction.background.colors,
-      strength: assetPublishingFaction.background.definition,
-      opacity: assetPublishingFaction.background.influence,
+      image: canonical.background.image,
+      colors: canonical.background.colors,
+      strength: canonical.background.definition,
+      opacity: canonical.background.influence,
     });
-    expect(FactionStoredSchema.parse(legacy)).toEqual(assetPublishingFaction);
+    expect(legacy.planet?.[0].image).toBe('https://dune.zone/image/planet/01.png');
+    expect(LegacyFactionInputSchema.safeParse(legacy).success).toBe(true);
+
+    const reconciled = reconcileLegacyFactionUpdate(legacy, canonical);
+    expect(reconciled?.background.invert).toBe(false);
+    expect(reconciled?.planet?.[0].image).toBe('/image/planet/01.png');
+  });
+
+  it('keeps the frozen legacy storage contract wider than current name semantics', () => {
+    const legacy = toLegacyFactionInput(assetPublishingFaction);
+    legacy.name = '';
+
+    expect(FactionInputSchema.safeParse(legacy).success).toBe(false);
+    expect(FactionStoredSchema.parse(legacy).name).toBe('');
   });
 
   it.each([

@@ -50,6 +50,11 @@ describe('faction background migration', () => {
     migrationsTest.register(t);
     const legacyActiveId = await insertFaction(t, legacyFactionData(), 'legacy-active');
     const legacyDeletedId = await insertFaction(t, legacyFactionData(), 'legacy-deleted', true);
+    const legacyBlankNameId = await insertFaction(
+      t,
+      { ...legacyFactionData(), name: '' },
+      'legacy-blank-name'
+    );
     const canonicalId = await insertFaction(
       t,
       structuredClone(assetPublishingFaction),
@@ -57,9 +62,9 @@ describe('faction background migration', () => {
     );
 
     await expect(t.query(api.migrations.auditFactionBackgrounds, {})).resolves.toMatchObject({
-      total: 3,
+      total: 4,
       canonical: 1,
-      legacy: 2,
+      legacy: 3,
       unexpected: 0,
     });
 
@@ -69,6 +74,7 @@ describe('faction background migration', () => {
     const rows = await t.run(async (ctx) => ({
       legacyActive: await ctx.db.get('factions', legacyActiveId),
       legacyDeleted: await ctx.db.get('factions', legacyDeletedId),
+      legacyBlankName: await ctx.db.get('factions', legacyBlankNameId),
       canonical: await ctx.db.get('factions', canonicalId),
     }));
     for (const row of Object.values(rows)) {
@@ -86,15 +92,16 @@ describe('faction background migration', () => {
       definition: 0.36,
       influence: 0.88,
     });
+    expect(rows.legacyBlankName?.data.name).toBe('');
     await expect(t.query(api.migrations.auditFactionBackgrounds, {})).resolves.toMatchObject({
-      total: 3,
-      canonical: 3,
+      total: 4,
+      canonical: 4,
       legacy: 0,
       unexpected: 0,
     });
 
     const publicRows = await t.query(api.factions.list, {});
-    expect(publicRows).toHaveLength(2);
+    expect(publicRows).toHaveLength(3);
     for (const row of publicRows) {
       expect(LegacyFactionInputSchema.safeParse(row.data).success).toBe(true);
       expect(FactionInputSchema.safeParse(row.data).success).toBe(false);

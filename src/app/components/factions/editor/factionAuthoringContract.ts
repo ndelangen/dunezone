@@ -84,7 +84,7 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
       warnings.push(
         warning(
           `troops[${index}].back.name`,
-          'worlds',
+          'forces',
           `Troop ${index + 1} back has no name`,
           `troop-${index}-back-name`
         )
@@ -94,7 +94,7 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
       warnings.push(
         warning(
           `troops[${index}].back.description`,
-          'worlds',
+          'forces',
           `Troop ${index + 1} back has no description`,
           `troop-${index}-back-desc`
         )
@@ -106,7 +106,7 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
       warnings.push(
         warning(
           `planet[${index}].name`,
-          'forces',
+          'worlds',
           `Planet ${index + 1} has no name`,
           `planet-${index}-name`
         )
@@ -116,7 +116,7 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
       warnings.push(
         warning(
           `planet[${index}].description`,
-          'forces',
+          'worlds',
           `Planet ${index + 1} has no description`,
           `planet-${index}-description`
         )

@@ -3,11 +3,7 @@ import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 
 import { DEFAULT_FAQ_TAG } from '../src/app/faq/tags';
-import {
-  FactionInputSchema,
-  FactionStoredSchema,
-  hasLegacyBackground,
-} from '../src/game/schema/faction';
+import { Background, LegacyBackground, migrateLegacyBackground } from '../src/game/schema/faction';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, query } from './_generated/server';
@@ -283,9 +279,14 @@ export const faction_background_v1 = migrations.define({
   batchSize: 25,
   migrateOne: async (_ctx, faction) => {
     const rawBackground = (faction.data as { background?: unknown } | null)?.background;
-    const data = FactionStoredSchema.parse(faction.data);
-    if (!hasLegacyBackground(rawBackground)) return;
-    return { data };
+    if (Background.safeParse(rawBackground).success) return;
+    const legacyBackground = LegacyBackground.parse(rawBackground);
+    return {
+      data: {
+        ...(faction.data as Record<string, unknown>),
+        background: migrateLegacyBackground(legacyBackground),
+      },
+    };
   },
 });
 
@@ -294,7 +295,8 @@ export const faction_background_verify_v1 = migrations.define({
   table: 'factions',
   batchSize: 25,
   migrateOne: async (_ctx, faction) => {
-    FactionInputSchema.parse(faction.data);
+    const rawBackground = (faction.data as { background?: unknown } | null)?.background;
+    Background.parse(rawBackground);
   },
 });
 
@@ -331,9 +333,9 @@ export const auditFactionBackgrounds = query({
       if (Array.isArray(data?.planet)) {
         planetEntries += data.planet.length;
       }
-      if (FactionInputSchema.safeParse(faction.data).success) {
+      if (Background.safeParse(data?.background).success) {
         canonical += 1;
-      } else if (FactionStoredSchema.safeParse(faction.data).success) {
+      } else if (LegacyBackground.safeParse(data?.background).success) {
         legacy += 1;
       } else {
         unexpectedIds.push(faction._id);

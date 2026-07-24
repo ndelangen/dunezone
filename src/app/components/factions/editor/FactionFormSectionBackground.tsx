@@ -17,6 +17,7 @@ import { Check, Shuffle, X } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
+import { backgroundTreatment } from '@game/assets/utils/Background';
 
 import { BACKGROUND_PATTERN_CATALOGUE } from './backgroundPatternCatalogue';
 import { FactionBackgroundColorLayer } from './FactionBackgroundColorLayer';
@@ -242,6 +243,7 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
                 const selected = BACKGROUND_PATTERN_CATALOGUE.find(
                   (option) => option.image === background.image
                 );
+                const treatment = backgroundTreatment(background);
                 return (
                   <Box className={styles.pipelineStage}>
                     <Text className={styles.stageLabel}>01 · Pattern</Text>
@@ -253,9 +255,8 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
                         w="100%"
                         h="100%"
                         style={{
-                          filter: `grayscale(1) invert(${background.invert ? 1 : 0}) contrast(${
-                            0.5 + background.definition * 1.5
-                          }) opacity(${0.25 + background.influence * 0.75})`,
+                          filter: treatment.patternFilter,
+                          opacity: treatment.patternOpacity,
                         }}
                       />
                     </Box>

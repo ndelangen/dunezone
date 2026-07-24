@@ -10,6 +10,7 @@ import {
   type FactionInput,
   FactionInputSchema,
   FactionStoredSchema,
+  LegacyFactionInputSchema,
 } from '../src/game/schema/faction';
 import { api } from './_generated/api';
 import schema from './schema';
@@ -322,5 +323,50 @@ describe('faction authoring full-field round trip', () => {
       desired_generation: 2,
       status: 'pending',
     });
+  });
+
+  test('round-trips a legacy read and save without losing canonical-only background data', async () => {
+    const t = convexTest(schema, modules);
+    const userId = await t.run(
+      async (ctx) => await ctx.db.insert('users', { name: 'Legacy bridge proof user' })
+    );
+    await t.run(
+      async (ctx) =>
+        await ctx.db.insert('profiles', {
+          user_id: userId,
+          username: 'Legacy bridge proof user',
+          avatar_url: null,
+          slug: 'legacy-bridge-proof-user',
+          created_at: '2026-07-24T09:00:00.000Z',
+          updated_at: '2026-07-24T09:00:00.000Z',
+        })
+    );
+    const asUser = t.withIdentity({ subject: userId });
+    const canonicalInput = representativeFullFieldFaction();
+    const created = await asUser.mutation(api.factions.create, {
+      data: canonicalInput,
+      group_id: null,
+      background_format: 'canonical',
+    });
+
+    const legacyRead = await t.query(api.factions.getBySlug, { slug: created.slug });
+    const legacyData = LegacyFactionInputSchema.parse(legacyRead.faction.data);
+    expect(legacyData.planet?.[0].image).toBe('https://dune.zone/image/planet/01.png');
+
+    legacyData.rules.revivalText = 'Edited by the deployed legacy client.';
+    const legacySave = await asUser.mutation(api.factions.update, {
+      id: created._id,
+      data: legacyData,
+    });
+    expect(LegacyFactionInputSchema.safeParse(legacySave.data).success).toBe(true);
+
+    const canonicalReload = await t.query(api.factions.getBySlug, {
+      slug: created.slug,
+      background_format: 'canonical',
+    });
+    const reloaded = FactionInputSchema.parse(canonicalReload.faction.data);
+    expect(reloaded.background.invert).toBe(false);
+    expect(reloaded.planet?.[0].image).toBe('/image/planet/01.png');
+    expect(reloaded.rules.revivalText).toBe('Edited by the deployed legacy client.');
   });
 });

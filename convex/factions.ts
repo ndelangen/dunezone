@@ -1,7 +1,11 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
-import { FactionStoredSchema, toLegacyFactionInput } from '../src/game/schema/faction';
+import {
+  FactionStoredSchema,
+  reconcileLegacyFactionUpdate,
+  toLegacyFactionInput,
+} from '../src/game/schema/faction';
 import type { Doc, Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { factionSheetPublishingStatus } from './assetPublishingStatus';
@@ -301,7 +305,10 @@ export const create = mutation({
       if (!canUseGroup) throw new Error('Not authorized for group');
     }
 
-    const data = parseFactionInput(args.data);
+    const normalizedData = parseFactionInput(args.data);
+    const data = parseFactionInput(normalizedData, {
+      requireCanonicalSemantics: true,
+    });
     const slug = slugify(data.name);
     await assertFactionSlugAvailable(ctx, slug);
 
@@ -337,7 +344,13 @@ export const update = mutation({
       row.group_id == null ? false : await isActiveGroupMember(ctx, row.group_id, userId);
     if (!isOwner && !isGroupEditor) throw new Error('Not authorized');
 
-    const data = parseFactionInput(args.data);
+    const parsedData = parseFactionInput(args.data, {
+      requireCanonicalSemantics: args.background_format === 'canonical',
+    });
+    const data =
+      args.background_format === 'canonical'
+        ? parsedData
+        : (reconcileLegacyFactionUpdate(args.data, row.data) ?? parsedData);
     const slug = slugify(data.name);
     await assertFactionSlugAvailable(ctx, slug, args.id);
 
