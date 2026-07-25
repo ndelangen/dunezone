@@ -31,6 +31,36 @@
       "requires": ["faction_slug_reservations_v1"]
     },
     {
+      "id": "publication_delete_legacy_rollout_items_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "publication_delete_legacy_rollouts_v1",
+      "phase": "widen",
+      "requires": ["publication_delete_legacy_rollout_items_v1"]
+    },
+    {
+      "id": "publication_delete_legacy_targets_v1",
+      "phase": "widen",
+      "requires": ["publication_delete_legacy_rollout_items_v1"]
+    },
+    {
+      "id": "publication_delete_legacy_type_configs_v1",
+      "phase": "widen",
+      "requires": ["publication_delete_legacy_rollouts_v1"]
+    },
+    {
+      "id": "publication_legacy_tables_narrow",
+      "phase": "narrow",
+      "requires": [
+        "publication_delete_legacy_rollout_items_v1",
+        "publication_delete_legacy_rollouts_v1",
+        "publication_delete_legacy_targets_v1",
+        "publication_delete_legacy_type_configs_v1"
+      ]
+    },
+    {
       "id": "profiles_backfill_guard",
       "phase": "narrow",
       "requires": ["profiles_from_users_v1"]
