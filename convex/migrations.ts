@@ -6,13 +6,6 @@ import { DEFAULT_FAQ_TAG } from '../src/app/faq/tags';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, query } from './_generated/server';
-import {
-  assertExactlyOneFactionSheetTarget,
-  ensureFactionSheetConfig,
-  ensureFactionSheetTargetForBackfill,
-  FACTION_SHEET_ASSET_TYPE,
-  parseFactionInput,
-} from './lib/factionSheetTargets';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { nowIso, slugify } from './lib/utils';
 import schema from './schema';
@@ -28,8 +21,6 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   profiles_from_users_v1: internal.migrations.profiles_from_users_v1,
   faction_slug_reservations_v1: internal.migrations.faction_slug_reservations_v1,
   faction_slug_reservations_verify_v1: internal.migrations.faction_slug_reservations_verify_v1,
-  faction_sheet_targets_backfill_v1: internal.migrations.faction_sheet_targets_backfill_v1,
-  faction_sheet_targets_verify_v1: internal.migrations.faction_sheet_targets_verify_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -39,11 +30,6 @@ const migrations = new Migrations(components.migrations, {
   migrationsLocationPrefix: 'migrations:',
   schema,
 });
-
-const FACTION_SHEET_TARGET_MIGRATION_IDS = [
-  'faction_sheet_targets_backfill_v1',
-  'faction_sheet_targets_verify_v1',
-] as const;
 
 async function resolveUniqueGroupSlug(
   ctx: QueryCtx | MutationCtx,
@@ -245,31 +231,6 @@ export const faction_slug_reservations_verify_v1 = migrations.define({
   },
 });
 
-/** Bounded, resumable, idempotent target creation for active factions only. */
-export const faction_sheet_targets_backfill_v1 = migrations.define({
-  table: 'factions',
-  customRange: (q) => q.withIndex('by_deleted', (index) => index.eq('is_deleted', false)),
-  batchSize: 25,
-  migrateOne: async (ctx, faction) => {
-    parseFactionInput(faction.data);
-    await ensureFactionSheetTargetForBackfill(ctx, faction._id);
-  },
-});
-
-/**
- * A separate bounded pass makes successful migration status proof that every
- * active faction had exactly one target after backfill completion.
- */
-export const faction_sheet_targets_verify_v1 = migrations.define({
-  table: 'factions',
-  customRange: (q) => q.withIndex('by_deleted', (index) => index.eq('is_deleted', false)),
-  batchSize: 25,
-  migrateOne: async (ctx, faction) => {
-    parseFactionInput(faction.data);
-    await assertExactlyOneFactionSheetTarget(ctx, faction._id);
-  },
-});
-
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([
@@ -280,37 +241,12 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.profiles_from_users_v1,
   internal.migrations.faction_slug_reservations_v1,
   internal.migrations.faction_slug_reservations_verify_v1,
-  internal.migrations.faction_sheet_targets_backfill_v1,
-  internal.migrations.faction_sheet_targets_verify_v1,
 ]);
 
 export const runRequired = mutation({
   args: { ids: v.array(v.string()) },
   handler: async (ctx, args) => {
     const refs = migrationRefsFor(args.ids);
-    const requestedFactionSheetIds = args.ids.filter((id) =>
-      FACTION_SHEET_TARGET_MIGRATION_IDS.includes(
-        id as (typeof FACTION_SHEET_TARGET_MIGRATION_IDS)[number]
-      )
-    );
-    if (requestedFactionSheetIds.length > 0) {
-      const statuses = await migrations.getStatus(ctx, {
-        migrations: migrationRefsFor(requestedFactionSheetIds),
-      });
-      const completed = new Set(
-        statuses
-          .filter((status) => status.isDone && status.state === 'success')
-          .map((status) => toMigrationId(status.name))
-      );
-      if (requestedFactionSheetIds.some((id) => !completed.has(id))) {
-        const config = await ensureFactionSheetConfig(ctx);
-        if (config.status === 'active') {
-          throw new Error(
-            `Faction-sheet migration requires paused or disabled configuration; found ${config.status}`
-          );
-        }
-      }
-    }
     const state = await migrations.runSerially(ctx, refs);
     return { started: true, state };
   },
@@ -402,12 +338,6 @@ export const verifyMigration = query({
       processed: status.processed,
       latestEnd: status.latestEnd ?? null,
       error: status.error ?? null,
-      ...(args.id === 'faction_sheet_targets_verify_v1'
-        ? {
-            missing: complete ? 0 : null,
-            duplicates: complete ? 0 : null,
-          }
-        : {}),
     };
   },
 });
@@ -429,17 +359,6 @@ export const assertReadyForNarrow = query({
         ...missing.map((id) => `${id}(missing)`),
       ].join(', ');
       throw new Error(`Narrow blocked: required migrations are incomplete. ${detail}`);
-    }
-    if (args.required.includes('faction_sheet_targets_verify_v1')) {
-      const configs = await ctx.db
-        .query('asset_type_configs')
-        .withIndex('by_asset_type', (q) => q.eq('asset_type', FACTION_SHEET_ASSET_TYPE))
-        .take(2);
-      if (configs.length !== 1) {
-        throw new Error(
-          `Narrow blocked: expected exactly one faction-sheet config, found ${configs.length}`
-        );
-      }
     }
     return {
       ok: true,

@@ -50,23 +50,13 @@ export const publisherWorker = {
     if (capture) return capture;
     const pathname = new URL(request.url).pathname;
     if (pathname === '/__asset-publisher/health') {
-      const identity = publisherBuildIdentity(
-        env.CF_VERSION_METADATA,
-        env.SUPPORTED_RENDERER_VERSION
-      );
+      const identity = publisherBuildIdentity(env.CF_VERSION_METADATA, env.GIT_SHA);
       return Response.json(
         {
           ok: true,
           maxItems: MAX_ASSIGNED_ITEMS,
           schedule: '*/5 * * * *',
-          supportedRendererVersion: rendererManifest.rendererVersion,
-          rendererSupport: {
-            supportedRendererVersions: rendererManifest.supportedRendererVersions,
-            rendererId: rendererManifest.rendererId,
-            configuredRendererVersion: env.SUPPORTED_RENDERER_VERSION,
-            configurationMatchesManifest:
-              String(env.SUPPORTED_RENDERER_VERSION) === rendererManifest.rendererVersion,
-          },
+          rendererIdentity: rendererManifest.rendererIdentity,
           identity,
         },
         { headers: { 'Cache-Control': 'no-store' } }
@@ -90,7 +80,7 @@ export const publisherWorker = {
           scheduledTime: controller.scheduledTime,
           result: 'empty',
           reason: work.reason,
-          leaseExpiresAt: work.leaseExpiresAt,
+          recovered: work.recovered,
         });
         return;
       }
@@ -105,6 +95,7 @@ export const publisherWorker = {
         invocationId,
         scheduledTime: controller.scheduledTime,
         result: 'completed',
+        recovered: work.recovered,
         ...execution,
       });
     } catch (error) {

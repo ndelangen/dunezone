@@ -1,7 +1,7 @@
 import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './types';
 
-export type PublicAssetPublishingStatus = 'waiting' | 'publishing' | 'delayed' | 'current';
+export type PublicAssetPublishingStatus = 'current';
 
 export type PublicAssetPublishingStatusProjection = {
   status: PublicAssetPublishingStatus | null;
@@ -9,71 +9,38 @@ export type PublicAssetPublishingStatusProjection = {
   lastPublishedAt: number | null;
 };
 
-type ProjectableTarget = Pick<
-  Doc<'asset_targets'>,
-  | 'faction_id'
-  | 'status'
-  | 'desired_generation'
-  | 'desired_renderer_version'
-  | 'published_generation'
-  | 'published_renderer_version'
-  | 'published_cache_token'
-  | 'published_r2_etag'
-  | 'published_bytes'
-  | 'published_at'
+type ProjectablePublicationAsset = Pick<
+  Doc<'publication_assets'>,
+  'asset_id' | 'cache_token' | 'published_at'
 >;
 
 /**
- * The only target state allowed across the public application boundary.
- * Operational errors, attempts, claims, leases, payloads, and private
- * publication metadata intentionally never enter this projection. A complete
- * publication contributes only its cache-busted public href.
+ * Public state is deliberately independent from ephemeral job state. Once an
+ * asset exists, replacement work never removes or downgrades its public link.
  */
 export function projectPublicAssetPublishingStatus(
-  target: ProjectableTarget | null
+  asset: ProjectablePublicationAsset | null
 ): PublicAssetPublishingStatusProjection {
-  if (!target) return { status: null, publicationHref: null, lastPublishedAt: null };
-
-  const publicationHref =
-    target.published_generation === undefined ||
-    target.published_renderer_version === undefined ||
-    target.published_cache_token === undefined ||
-    target.published_r2_etag === undefined ||
-    target.published_bytes === undefined ||
-    target.published_at === undefined
-      ? null
-      : `/published/factions/${encodeURIComponent(target.faction_id)}/sheet.pdf?v=${encodeURIComponent(target.published_cache_token)}`;
-
-  const lastPublishedAt = publicationHref ? (target.published_at ?? null) : null;
-
-  if (target.status === 'leased') {
-    return { status: 'publishing', publicationHref, lastPublishedAt };
-  }
-  if (target.status === 'blocked') {
-    return { status: 'delayed', publicationHref, lastPublishedAt };
-  }
-  if (
-    target.status === 'current' &&
-    target.desired_generation === target.published_generation &&
-    target.desired_renderer_version === target.published_renderer_version
-  ) {
-    return { status: 'current', publicationHref, lastPublishedAt };
-  }
-  return { status: 'waiting', publicationHref, lastPublishedAt };
+  if (!asset) return { status: null, publicationHref: null, lastPublishedAt: null };
+  return {
+    status: 'current',
+    publicationHref: `/published/factions/${encodeURIComponent(asset.asset_id)}/sheet.pdf?v=${encodeURIComponent(asset.cache_token)}`,
+    lastPublishedAt: asset.published_at,
+  };
 }
 
 export async function factionSheetPublishingStatus(
   ctx: Pick<QueryCtx, 'db'>,
   factionId: Id<'factions'>
 ): Promise<PublicAssetPublishingStatusProjection> {
-  const targets = await ctx.db
-    .query('asset_targets')
-    .withIndex('by_faction_id_and_asset_type', (q) =>
-      q.eq('faction_id', factionId).eq('asset_type', 'faction_sheet')
+  const assets = await ctx.db
+    .query('publication_assets')
+    .withIndex('by_asset_type_and_asset_id', (q) =>
+      q.eq('asset_type', 'faction_sheet').eq('asset_id', factionId)
     )
     .take(2);
-  if (targets.length > 1) {
-    throw new Error('Asset publisher invariant violated: duplicate faction-sheet targets');
+  if (assets.length > 1) {
+    throw new Error('Publication invariant violated: duplicate faction-sheet assets');
   }
-  return projectPublicAssetPublishingStatus(targets[0] ?? null);
+  return projectPublicAssetPublishingStatus(assets[0] ?? null);
 }

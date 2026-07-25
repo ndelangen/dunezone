@@ -1,10 +1,10 @@
-import { isValidCacheSigningSecret, verifyCacheToken } from '../../convex/lib/assetPublisherHttp';
+import { isValidCacheSigningSecret, verifyCacheToken } from '../../convex/lib/publicationHttp';
 import {
   type AssetRepresentation,
   type AssetRequestDecision,
   evaluateAssetRequest,
 } from './delivery-http';
-import { factionSheetKey, PUBLISHER_CACHE_TOKEN_METADATA_KEY } from './r2';
+import { factionSheetKey } from './r2';
 
 const ASSET_TYPE = 'faction_sheet' as const;
 const TOKEN_CACHE_CONTROL = 'public, max-age=31536000, immutable';
@@ -45,11 +45,6 @@ function exactToken(url: URL): string | null | undefined {
   if (tokens.length === 0) return undefined;
   if (tokens.length !== 1 || tokens[0].length === 0) return null;
   return tokens[0];
-}
-
-function tokenMatchesObject(object: R2Object, verifiedToken: string): boolean {
-  const stored = object.customMetadata?.[PUBLISHER_CACHE_TOKEN_METADATA_KEY];
-  return stored === undefined || stored === verifiedToken;
 }
 
 function cacheRequest(request: Request, stablePath: string, token: string): Request {
@@ -136,10 +131,6 @@ async function cancelReadableBody(body: ReadableStream | null | undefined): Prom
 
 async function cancelResponseBody(response: Response | undefined): Promise<void> {
   await cancelReadableBody(response?.body);
-}
-
-async function cancelR2Body(value: R2ObjectBody | R2Object): Promise<void> {
-  await cancelReadableBody('body' in value ? value.body : null);
 }
 
 function metadataResponse(
@@ -289,11 +280,6 @@ export async function handlePublicAssetRequest(
   }
   if (!metadata) return errorResponse(404, 'Not Found');
 
-  const publisherCacheToken = metadata.customMetadata?.[PUBLISHER_CACHE_TOKEN_METADATA_KEY];
-  if (!tokenMatchesObject(metadata, verifiedToken)) {
-    return errorResponse(404, 'Not Found');
-  }
-
   const decision = evaluateAssetRequest(request, objectRepresentation(metadata));
   const headers = assetHeaders(metadata, true);
   if (decision.status === 304 || decision.status === 412 || decision.status === 416) {
@@ -313,10 +299,7 @@ export async function handlePublicAssetRequest(
   try {
     const hit = await cache.match(canonicalCacheRequest);
     if (hit) {
-      if (
-        publisherCacheToken === undefined ||
-        responseRepresentation(hit).etag === metadata.httpEtag
-      ) {
+      if (responseRepresentation(hit).etag === metadata.httpEtag) {
         return await cachedAssetResponse(request, hit, cache, canonicalCacheRequest);
       }
       await cancelResponseBody(hit);
@@ -336,10 +319,6 @@ export async function handlePublicAssetRequest(
   }
   if (!object || !('body' in object) || object.etag !== metadata.etag) {
     return errorResponse(503, 'Asset Temporarily Unavailable');
-  }
-  if (!tokenMatchesObject(object, verifiedToken)) {
-    await cancelR2Body(object);
-    return errorResponse(404, 'Not Found');
   }
   return await r2BodyResponse(request, object, decision, true, cache, canonicalCacheRequest, ctx);
 }

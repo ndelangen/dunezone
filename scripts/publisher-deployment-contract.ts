@@ -2,11 +2,8 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import {
-  PUBLISHER_RENDERER_CONTRACT,
-  PUBLISHER_RENDERER_VERSION,
-  PUBLISHER_SUPPORTED_RENDERER_VERSIONS,
-} from '../workers/publisher/renderer-contract';
+import { PUBLICATION_MAX_PICKUP } from '../src/shared/asset-publishing/publication';
+import { PUBLISHER_RENDERER_CONTRACT } from '../workers/publisher/renderer-contract';
 import { rendererManifest } from '../workers/publisher/renderer-manifest.generated';
 
 export const PUBLISHER_WORKER_NAME = 'faction-sheet-asset-publisher';
@@ -14,7 +11,6 @@ export const PUBLISHER_BUCKET_NAME = 'tanstack-start-faction-sheet-assets';
 export const PUBLISHER_ORIGIN = 'https://faction-sheet-asset-publisher.ndelangen.workers.dev';
 export const APPLICATION_ORIGIN = 'https://dune.zone';
 export const PUBLISHER_PRODUCTION_CONVEX_URL = 'https://exuberant-finch-263.eu-west-1.convex.cloud';
-export { PUBLISHER_RENDERER_VERSION, PUBLISHER_SUPPORTED_RENDERER_VERSIONS };
 
 const CONFIG_PATH = path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc');
 const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.convex.site';
@@ -104,7 +100,7 @@ export function validatePublisherDeployContract(
       CAPTURE_BASE_URL: PUBLISHER_ORIGIN,
       CONVEX_EXECUTOR_BASE_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/executor`,
       CONVEX_RENDER_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/render`,
-      SUPPORTED_RENDERER_VERSION: PUBLISHER_RENDERER_VERSION,
+      GIT_SHA: 'development',
       WORK_WINDOW_MS: '240000',
       BROWSER_CAPTURE_TIMEOUT_MS: '45000',
       BROWSER_CLEANUP_GRACE_MS: '15000',
@@ -118,7 +114,7 @@ export function validatePublisherDeployContract(
     [{ binding: 'ASSET_BUCKET', bucket_name: PUBLISHER_BUCKET_NAME }],
     'R2 binding'
   );
-  invariant(!('queues' in config), 'Queue bindings are retired from the item-list executor');
+  invariant(!('queues' in config), 'Queue bindings are not used');
   exactJson(config.limits, { cpu_ms: 30_000 }, 'Worker CPU limit');
   exactJson(config.browser, { binding: 'BROWSER' }, 'Browser binding');
   exactJson(
@@ -130,21 +126,11 @@ export function validatePublisherDeployContract(
 
   invariant(rendererManifest.schemaVersion === 1, 'Renderer manifest schema changed unexpectedly');
   invariant(
-    rendererManifest.rendererVersion === PUBLISHER_RENDERER_VERSION &&
-      vars.SUPPORTED_RENDERER_VERSION === rendererManifest.rendererVersion,
-    'Configured renderer version does not match the source manifest'
-  );
-  exactJson(
-    rendererManifest.supportedRendererVersions,
-    PUBLISHER_SUPPORTED_RENDERER_VERSIONS,
-    'renderer manifest support list'
-  );
-  invariant(
     /^[0-9a-f]{64}$/.test(rendererManifest.digest) &&
-      rendererManifest.rendererId === `faction-sheet/sha256:${rendererManifest.digest}`,
+      rendererManifest.rendererIdentity === `faction-sheet/sha256:${rendererManifest.digest}`,
     'Renderer source identity is invalid'
   );
-  exactJson(rendererManifest.contract, PUBLISHER_RENDERER_CONTRACT, 'renderer source contract');
+  exactJson(rendererManifest.contract, PUBLISHER_RENDERER_CONTRACT, 'Renderer source contract');
 
   const origin = absoluteHttpsUrl(PUBLISHER_ORIGIN, 'publisher origin');
   invariant(origin.pathname === '/', 'Publisher origin must not contain a path');
@@ -155,7 +141,6 @@ export function validatePublisherDeployContract(
 }
 
 export function validatePublisherHealth(
-  config: JsonObject,
   healthValue: unknown,
   expectedGitSha: string,
   responseUrl: string,
@@ -166,52 +151,32 @@ export function validatePublisherHealth(
     /^[0-9a-f]{40}$/.test(expectedGitSha),
     'Expected deployment SHA must be a full Git SHA'
   );
-  const vars = object(config.vars, 'vars');
   const health = object(healthValue, 'health response');
-  const rendererSupport = object(health.rendererSupport, 'health rendererSupport');
   const identity = object(health.identity, 'health identity');
-  const configuredOrigin = new URL(expectedOrigin).origin;
   invariant(
-    new URL(responseUrl).origin === configuredOrigin,
+    new URL(responseUrl).origin === new URL(expectedOrigin).origin,
     'Health response came from an unexpected origin'
   );
   invariant(cacheControl === 'no-store', 'Health response must be non-cacheable');
   invariant(health.ok === true, 'Health response is not ok');
-  invariant(health.maxItems === 20, 'Publisher maxItems must match the fixed item-list contract');
+  invariant(
+    health.maxItems === PUBLICATION_MAX_PICKUP,
+    'Publisher maxItems must match the Publication contract'
+  );
   invariant(health.schedule === PUBLISHER_CRON, 'Publisher schedule must match configuration');
   invariant(
-    health.supportedRendererVersion === vars.SUPPORTED_RENDERER_VERSION,
-    'Health renderer version does not match checked-in configuration'
-  );
-  exactJson(
-    rendererSupport.supportedRendererVersions,
-    PUBLISHER_SUPPORTED_RENDERER_VERSIONS,
-    'renderer support list'
+    health.rendererIdentity === rendererManifest.rendererIdentity &&
+      identity.rendererIdentity === rendererManifest.rendererIdentity &&
+      identity.rendererManifestDigest === rendererManifest.digest,
+    'Worker health does not report the current Renderer identity'
   );
   invariant(
-    rendererSupport.configuredRendererVersion === vars.SUPPORTED_RENDERER_VERSION &&
-      rendererSupport.configurationMatchesManifest === true,
-    'Renderer support does not match the embedded manifest'
-  );
-  invariant(
-    typeof rendererSupport.rendererId === 'string' &&
-      /^faction-sheet\/sha256:[0-9a-f]{64}$/.test(rendererSupport.rendererId),
-    'Renderer identity is invalid'
-  );
-  const rendererDigest = rendererSupport.rendererId.slice('faction-sheet/sha256:'.length);
-  invariant(
-    identity.rendererId === rendererSupport.rendererId &&
-      identity.rendererManifestDigest === rendererDigest,
-    'Worker identity and renderer support describe different release bytes'
+    identity.gitSha === expectedGitSha,
+    'Deployed Worker Git SHA does not match GITHUB_SHA'
   );
   invariant(
     identity.workerVersionTag === expectedGitSha,
     'Deployed Worker tag does not match GITHUB_SHA'
-  );
-  invariant(
-    identity.configuredRendererVersion === vars.SUPPORTED_RENDERER_VERSION &&
-      identity.rendererConfigurationMatchesManifest === true,
-    'Deployed Worker identity reports a renderer mismatch'
   );
 }
 
@@ -219,9 +184,7 @@ function assertExactCheckout(githubSha: string): void {
   const revision = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' });
   invariant(revision.status === 0, 'Unable to read the checked-out Git revision');
   invariant(revision.stdout.trim() === githubSha, 'Checked-out revision does not match GITHUB_SHA');
-  const status = spawnSync('git', ['status', '--porcelain'], {
-    encoding: 'utf8',
-  });
+  const status = spawnSync('git', ['status', '--porcelain'], { encoding: 'utf8' });
   invariant(status.status === 0, 'Unable to inspect the Git worktree');
   invariant(
     status.stdout.trim() === '',
@@ -250,10 +213,8 @@ async function run(): Promise<void> {
             signal: AbortSignal.timeout(5_000),
           });
           invariant(response.status === 200, `Publisher health returned HTTP ${response.status}`);
-          const health = await response.json();
           validatePublisherHealth(
-            config,
-            health,
+            await response.json(),
             githubSha,
             response.url,
             response.headers.get('Cache-Control'),

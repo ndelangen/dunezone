@@ -5,7 +5,7 @@ export const MAX_PUBLISHER_JSON_BODY_BYTES = 16 * 1_024;
 export const CACHE_TOKEN_PATTERN = /^v1\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/;
 export const CACHE_SIGNING_SECRET_PATTERN = /^s1\.[A-Za-z0-9_-]{43}$/;
 
-export class InvalidPublisherRequestError extends Error {}
+export class InvalidPublicationRequestError extends Error {}
 
 function response(body: unknown, status = 200): Response {
   return Response.json(body, {
@@ -167,16 +167,16 @@ export async function handleAuthenticatedJson<T>(
   try {
     return response(await options.execute(parsed.data));
   } catch (error) {
-    if (error instanceof InvalidPublisherRequestError) {
+    if (error instanceof InvalidPublicationRequestError) {
       return response({ error: error.message }, 400);
     }
-    console.error('Asset publisher HTTP operation failed', error);
-    return response({ error: 'Publisher operation failed' }, 500);
+    console.error('Publication HTTP operation failed', error);
+    return response({ error: 'Publication operation failed' }, 500);
   }
 }
 
 export async function createCacheToken(
-  factionId: string,
+  assetId: string,
   assetType: 'faction_sheet',
   secret: string
 ): Promise<string> {
@@ -184,13 +184,13 @@ export async function createCacheToken(
   if (!secretBytes) throw new Error('Cache-token signing secret is invalid');
   const nonce = randomPublisherToken(16);
   const unsigned = `v1.${nonce}`;
-  const signature = await hmacBytes(secretBytes, `${unsigned}|${factionId}|${assetType}`);
+  const signature = await hmacBytes(secretBytes, `${unsigned}|${assetId}|${assetType}`);
   return `${unsigned}.${toBase64Url(signature)}`;
 }
 
 export async function verifyCacheToken(
   token: string,
-  factionId: string,
+  assetId: string,
   assetType: 'faction_sheet',
   secret: string | undefined
 ): Promise<boolean> {
@@ -208,9 +208,9 @@ export async function verifyCacheToken(
   ) {
     return false;
   }
-  return await verifyHmacBytes(secretBytes, `v1.${nonce}|${factionId}|${assetType}`, signature);
+  return await verifyHmacBytes(secretBytes, `v1.${nonce}|${assetId}|${assetType}`, signature);
 }
 
-export function publisherJson(body: unknown, status = 200): Response {
+export function publicationJson(body: unknown, status = 200): Response {
   return response(body, status);
 }

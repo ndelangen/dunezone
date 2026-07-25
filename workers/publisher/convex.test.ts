@@ -2,158 +2,114 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { ConvexPublisherClient, parseTakeWork } from './convex';
 
-function assignedItem(index = 1) {
+function assignedJob(index = 1) {
   return {
-    targetId: `target-${index}`,
-    factionId: `faction-${index}`,
+    jobId: `job-${index}`,
     assetType: 'faction_sheet',
-    claimToken: `claim-token-${String(index).padStart(20, '0')}`,
-    generation: 1,
-    rendererVersion: 'faction-sheet-v4',
-    leaseExpiresAt: 2_000_000_000_000,
+    assetId: `faction-${index}`,
+    expiresAt: 2_000_000_000_000,
   };
 }
 
-describe('Convex item-list parsing', () => {
-  test('accepts bounded independent item assignments and empty busy responses', () => {
+describe('Convex Publication work parsing', () => {
+  test('accepts bounded assignments and the two empty reasons', () => {
     expect(
       parseTakeWork({
         ok: true,
         schemaVersion: 1,
         status: 'assigned',
-        leaseExpiresAt: 2_000_000_000_000,
-        items: [assignedItem(1), assignedItem(2)],
-      })
-    ).toMatchObject({
-      status: 'assigned',
-      items: [{ targetId: 'target-1' }, { targetId: 'target-2' }],
-    });
-    expect(
-      parseTakeWork({
-        ok: true,
-        schemaVersion: 1,
-        status: 'empty',
-        reason: 'busy',
-        leaseExpiresAt: 2_000_000_000_000,
-        items: [],
+        recovered: 2,
+        items: [assignedJob(1), assignedJob(2)],
       })
     ).toEqual({
-      status: 'empty',
-      reason: 'busy',
-      leaseExpiresAt: 2_000_000_000_000,
-      items: [],
-    });
-  });
-
-  test('ignores legacy work-lane metadata during a rolling deployment', () => {
-    const result = parseTakeWork({
-      ok: true,
-      schemaVersion: 1,
       status: 'assigned',
-      leaseExpiresAt: 2_000_000_000_000,
-      items: [{ ...assignedItem(), workLane: 'foreground' }],
+      recovered: 2,
+      items: [assignedJob(1), assignedJob(2)],
     });
-    if (result.status !== 'assigned') throw new Error('Expected assigned work');
-    expect(result.items[0]).not.toHaveProperty('workLane');
+    for (const reason of ['disabled', 'no_pending_work']) {
+      expect(
+        parseTakeWork({
+          ok: true,
+          schemaVersion: 1,
+          status: 'empty',
+          reason,
+          recovered: 0,
+          items: [],
+        })
+      ).toEqual({ status: 'empty', reason, recovered: 0, items: [] });
+    }
   });
 
-  test('rejects oversized, duplicate, and mismatched-lease assignments', () => {
+  test('rejects malformed and oversized assignments', () => {
     const response = (items: unknown[]) => ({
       ok: true,
       schemaVersion: 1,
       status: 'assigned',
-      leaseExpiresAt: 2_000_000_000_000,
+      recovered: 0,
       items,
     });
     expect(() =>
-      parseTakeWork(response(Array.from({ length: 21 }, (_, i) => assignedItem(i))))
+      parseTakeWork(response(Array.from({ length: 21 }, (_, index) => assignedJob(index))))
     ).toThrow();
-    expect(() => parseTakeWork(response([assignedItem(1), assignedItem(1)]))).toThrow();
-    expect(() =>
-      parseTakeWork(response([{ ...assignedItem(1), leaseExpiresAt: 2_000_000_000_001 }]))
-    ).toThrow();
+    expect(() => parseTakeWork(response([{ ...assignedJob(), assetType: 'unknown' }]))).toThrow();
   });
 });
 
-describe('Convex item client', () => {
-  test('uses only the settled item endpoints and exact request bodies', async () => {
-    const requests: Array<{ url: string; body: Record<string, unknown> }> = [];
+describe('Convex Publication client', () => {
+  test('uses only the take, complete, and fail job endpoints', async () => {
+    const requests: Array<{ operation: string; body: Record<string, unknown> }> = [];
+    const cacheToken = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
+      const operation = String(input).split('/').at(-1) ?? '';
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
-      requests.push({ url, body });
-      if (url.endsWith('/take-work')) {
+      requests.push({ operation, body });
+      if (operation === 'take-work') {
         return Response.json({
           ok: true,
           schemaVersion: 1,
           status: 'assigned',
-          leaseExpiresAt: 2_000_000_000_000,
-          items: [assignedItem()],
+          recovered: 1,
+          items: [assignedJob()],
         });
       }
-      if (url.endsWith('/revalidate-item')) {
-        return Response.json({
-          ok: true,
-          status: 'valid',
-          leaseExpiresAt: 2_000_000_000_000,
-          factionId: 'faction-1',
-          assetType: 'faction_sheet',
-        });
+      if (operation === 'complete-job') {
+        return Response.json({ ok: true, status: 'completed', publishedAt: 1 });
       }
-      if (url.endsWith('/complete-item')) {
-        return Response.json({
-          ok: true,
-          status: 'completed',
-          replay: false,
-          cacheToken: `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`,
-          publishedAt: 1,
-        });
-      }
-      return Response.json({ ok: true, status: 'failed', consecutiveFailures: 1 });
+      return Response.json({ ok: true, status: 'pending', attemptCounter: 1 });
     });
     const client = new ConvexPublisherClient({
       executorBaseUrl: 'https://convex.example.com/asset-publishing/executor',
       executorToken: 'executor-secret',
       fetcher: fetcher as typeof fetch,
     });
-    const work = await client.takeWork();
-    if (work.status !== 'assigned') throw new Error('Expected work');
-    const claim = work.items[0];
-    await client.revalidate(claim);
-    const cacheToken = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
-    await client.complete(claim, { r2Etag: 'etag', bytes: 123, cacheToken });
-    await client.fail(claim, 'invalid output');
 
-    expect(requests.map((request) => request.url.split('/').at(-1))).toEqual([
-      'take-work',
-      'revalidate-item',
-      'complete-item',
-      'fail-item',
+    const work = await client.takeWork();
+    if (work.status !== 'assigned') throw new Error('Expected assigned work');
+    await client.complete(work.items[0].jobId, cacheToken);
+    await client.fail(work.items[0].jobId, 'invalid output');
+
+    expect(requests).toEqual([
+      { operation: 'take-work', body: { schemaVersion: 1 } },
+      {
+        operation: 'complete-job',
+        body: { schemaVersion: 1, jobId: 'job-1', cacheToken },
+      },
+      {
+        operation: 'fail-job',
+        body: { schemaVersion: 1, jobId: 'job-1', error: 'invalid output' },
+      },
     ]);
-    expect(requests[0]?.body).toEqual({ schemaVersion: 1 });
-    expect(requests[2]?.body).toMatchObject({ r2Etag: 'etag', bytes: 123, cacheToken });
-    expect(requests[3]?.body).toMatchObject({ attribution: 'target', error: 'invalid output' });
   });
 
-  test('rejects completion acknowledgment for a different cache token', async () => {
+  test('rejects unknown completion and failure acknowledgements', async () => {
     const client = new ConvexPublisherClient({
       executorBaseUrl: 'https://convex.example.com/asset-publishing/executor',
       executorToken: 'executor-secret',
-      fetcher: (async () =>
-        Response.json({
-          ok: true,
-          status: 'completed',
-          replay: false,
-          cacheToken: `v1.${'c'.repeat(22)}.${'d'.repeat(43)}`,
-          publishedAt: 1,
-        })) as typeof fetch,
+      fetcher: (async () => Response.json({ ok: true, status: 'unexpected' })) as typeof fetch,
     });
     await expect(
-      client.complete(assignedItem(), {
-        r2Etag: 'etag',
-        bytes: 123,
-        cacheToken: `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`,
-      })
-    ).rejects.toThrow(/different cache token/);
+      client.complete('job-1', `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`)
+    ).rejects.toThrow();
+    await expect(client.fail('job-1', 'broken')).rejects.toThrow();
   });
 });

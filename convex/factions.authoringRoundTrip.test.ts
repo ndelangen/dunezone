@@ -195,20 +195,21 @@ describe('faction authoring full-field round trip', () => {
     expect(createdRow.slug).toBe('complete-authoring-proof');
     expect(CanonicalFactionStoredSchema.parse(createdRow.data)).toEqual(createdInput);
 
-    const createdTarget = await t.run(
+    const createdJob = await t.run(
       async (ctx) =>
         await ctx.db
-          .query('asset_targets')
-          .withIndex('by_faction_id_and_asset_type', (q) =>
-            q.eq('faction_id', createdRow._id).eq('asset_type', 'faction_sheet')
+          .query('publication_jobs')
+          .withIndex('by_asset_type_and_asset_id', (q) =>
+            q.eq('asset_type', 'faction_sheet').eq('asset_id', createdRow._id)
           )
           .unique()
     );
-    expect(createdTarget).toMatchObject({
-      desired_generation: 1,
+    expect(createdJob).toMatchObject({
+      asset_id: createdRow._id,
       status: 'pending',
+      attempt_counter: 0,
     });
-    if (!createdTarget) throw new Error('Missing faction sheet target after create');
+    if (!createdJob) throw new Error('Missing faction sheet job after create');
 
     const rulesetId = await t.run(async (ctx) => {
       const id = await ctx.db.insert('rulesets', {
@@ -306,10 +307,17 @@ describe('faction authoring full-field round trip', () => {
       t.query(api.factions.getBySlug, { slug: 'complete-authoring-proof' })
     ).rejects.toThrow('not found');
     await expect(
-      t.run(async (ctx) => await ctx.db.get('asset_targets', createdTarget._id))
+      t.run(async (ctx) => await ctx.db.get('publication_jobs', createdJob._id))
     ).resolves.toMatchObject({
-      desired_generation: 2,
       status: 'pending',
+      attempt_counter: 0,
+      asset_data: {
+        factionId: createdRow._id,
+        slug: 'complete-authoring-proof-revised',
+        faction: {
+          name: 'Complete Authoring Proof Revised',
+        },
+      },
     });
   });
 });

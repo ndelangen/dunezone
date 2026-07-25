@@ -1,11 +1,10 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { createCacheSigningSecret } from '../../convex/lib/assetPublisherHttp';
+import { createCacheSigningSecret } from '../../convex/lib/publicationHttp';
 import { rendererManifest } from './renderer-manifest.generated';
+import { fakeR2Object } from './test-helpers';
 
-const browserMocks = vi.hoisted(() => ({
-  open: vi.fn(),
-}));
+const browserMocks = vi.hoisted(() => ({ open: vi.fn() }));
 
 vi.mock('./browser', () => ({
   openPublisherBrowser: browserMocks.open,
@@ -13,12 +12,15 @@ vi.mock('./browser', () => ({
 
 import { publisherWorker } from './index';
 
+const NOW = Date.parse('2026-07-17T12:00:00.000Z');
+const GIT_SHA = 'a'.repeat(40);
+
 function publisherEnv(): Env {
   return {
     CAPTURE_BASE_URL: 'https://publisher.invalid',
     CONVEX_EXECUTOR_BASE_URL: 'https://convex.invalid/asset-publishing/executor',
     CONVEX_RENDER_URL: 'https://convex.invalid/asset-publishing/render',
-    SUPPORTED_RENDERER_VERSION: rendererManifest.rendererVersion,
+    GIT_SHA,
     WORK_WINDOW_MS: '240000',
     BROWSER_CAPTURE_TIMEOUT_MS: '45000',
     BROWSER_CLEANUP_GRACE_MS: '15000',
@@ -27,7 +29,7 @@ function publisherEnv(): Env {
     ASSET_PUBLISHER_CACHE_TOKEN_SECRET: createCacheSigningSecret(),
     CF_VERSION_METADATA: {
       id: 'worker-version-one',
-      tag: 'test-release',
+      tag: GIT_SHA,
       timestamp: '2026-07-17T12:00:00.000Z',
     },
     ASSETS: {
@@ -44,22 +46,20 @@ afterEach(() => {
   browserMocks.open.mockReset();
 });
 
-describe('publisher Worker scheduled item-list flow', () => {
+describe('publisher Worker Publication flow', () => {
   test('owns reserved namespaces without Static Assets fallthrough', async () => {
     const currentEnv = publisherEnv();
-    const waitUntil = vi.fn();
     const response = await publisherWorker.fetch(
       new Request('https://assets.example.com/__asset-publisher/unknown'),
       currentEnv,
-      { waitUntil } as unknown as ExecutionContext
+      { waitUntil: vi.fn() } as unknown as ExecutionContext
     );
     expect(response.status).toBe(404);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
-    expect(waitUntil).not.toHaveBeenCalled();
   });
 
-  test('health reports the fixed twenty-item schedule contract', async () => {
+  test('health reports one current Renderer identity and deployment SHA', async () => {
     const response = await publisherWorker.fetch(
       new Request('https://publisher.example.com/__asset-publisher/health'),
       publisherEnv(),
@@ -68,35 +68,32 @@ describe('publisher Worker scheduled item-list flow', () => {
     await expect(response.json()).resolves.toMatchObject({
       maxItems: 20,
       schedule: '*/5 * * * *',
-      supportedRendererVersion: rendererManifest.rendererVersion,
+      rendererIdentity: rendererManifest.rendererIdentity,
       identity: {
+        gitSha: GIT_SHA,
         workerVersionId: 'worker-version-one',
-        workerVersionTag: 'test-release',
-        workerVersionTimestamp: '2026-07-17T12:00:00.000Z',
-        rendererId: expect.stringMatching(/^faction-sheet\/sha256:[0-9a-f]{64}$/),
-        rendererManifestDigest: expect.stringMatching(/^[0-9a-f]{64}$/),
+        workerVersionTag: GIT_SHA,
+        rendererIdentity: rendererManifest.rendererIdentity,
+        rendererManifestDigest: rendererManifest.digest,
       },
     });
   });
 
-  test('cron exits without opening a browser when take-work returns empty', async () => {
+  test('cron exits without opening a browser when work pickup is disabled', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url =
-          typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-        expect(url).toContain('/take-work');
-        return Response.json({
+      vi.fn(async () =>
+        Response.json({
           ok: true,
           schemaVersion: 1,
           status: 'empty',
-          reason: 'no_eligible_work',
-          leaseExpiresAt: null,
+          reason: 'disabled',
+          recovered: 2,
           items: [],
-        });
-      })
+        })
+      )
     );
-    const infoLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
     await publisherWorker.scheduled(
       { scheduledTime: NOW, cron: '*/5 * * * *', noRetry: vi.fn() },
@@ -104,52 +101,31 @@ describe('publisher Worker scheduled item-list flow', () => {
     );
 
     expect(browserMocks.open).not.toHaveBeenCalled();
-    expect(infoLog).toHaveBeenCalledOnce();
   });
 
-  test('cron opens one browser session when work is assigned', async () => {
+  test('cron captures and completes an assigned job', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-        const url =
-          typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
         if (url.endsWith('/take-work')) {
           return Response.json({
             ok: true,
             schemaVersion: 1,
             status: 'assigned',
-            leaseExpiresAt: NOW + 240_000,
+            recovered: 0,
             items: [
               {
-                targetId: 'target-one',
-                factionId: 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p',
+                jobId: 'job-one',
+                assetId: 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p',
                 assetType: 'faction_sheet',
-                claimToken: 'claim-token-0000000000000001',
-                generation: 2,
-                rendererVersion: rendererManifest.rendererVersion,
-                leaseExpiresAt: NOW + 240_000,
+                expiresAt: NOW + 300_000,
               },
             ],
           });
         }
-        if (url.endsWith('/revalidate-item')) {
-          return Response.json({
-            ok: true,
-            status: 'valid',
-            factionId: 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p',
-            assetType: 'faction_sheet',
-            leaseExpiresAt: NOW + 240_000,
-          });
-        }
-        if (url.endsWith('/complete-item')) {
-          const request = JSON.parse(String(init?.body)) as { cacheToken: string };
-          return Response.json({
-            ok: true,
-            status: 'completed',
-            replay: false,
-            cacheToken: request.cacheToken,
-            publishedAt: NOW,
-          });
+        if (url.endsWith('/complete-job')) {
+          return Response.json({ ok: true, status: 'completed', publishedAt: NOW });
         }
         throw new Error(`Unexpected request ${url}`);
       })
@@ -163,10 +139,9 @@ describe('publisher Worker scheduled item-list flow', () => {
       sessionId: () => 'browser-session-one',
     });
     const bucket = {
-      head: vi.fn(async () => null),
-      put: vi.fn(async () => ({ etag: 'etag-one' }) as R2Object),
+      put: vi.fn(async () => fakeR2Object({ etag: 'etag-one', size: 3, uploaded: new Date(NOW) })),
     };
-    const infoLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
     await publisherWorker.scheduled({ scheduledTime: NOW, cron: '*/5 * * * *', noRetry: vi.fn() }, {
       ...publisherEnv(),
@@ -175,8 +150,5 @@ describe('publisher Worker scheduled item-list flow', () => {
 
     expect(browserMocks.open).toHaveBeenCalledOnce();
     expect(bucket.put).toHaveBeenCalledOnce();
-    expect(infoLog).toHaveBeenCalledOnce();
   });
 });
-
-const NOW = Date.parse('2026-07-17T12:00:00.000Z');

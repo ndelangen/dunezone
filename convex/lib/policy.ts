@@ -13,6 +13,15 @@ export async function requireAuthUserId(ctx: AnyCtx) {
   return userId;
 }
 
+export async function requireAdminUserId(ctx: AnyCtx) {
+  const userId = await requireAuthUserId(ctx);
+  const user = await ctx.db.get('users', userId);
+  if (!user?.isAdmin) {
+    throw new Error('Not authorized');
+  }
+  return userId;
+}
+
 export async function isActiveGroupMember(ctx: AnyCtx, groupId: Id<'groups'>, userId: Id<'users'>) {
   const membership = await ctx.db
     .query('group_members')

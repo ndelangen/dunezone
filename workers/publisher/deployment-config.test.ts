@@ -12,15 +12,16 @@ const packageConfig = JSON.parse(
 ) as { scripts: Record<string, string> };
 
 describe('scheduled production deployment shape', () => {
-  test('keeps exactly one five-minute cron and the fixed item-list worker vars in source control', () => {
+  test('keeps exactly one five-minute cron and no Renderer choice in Worker vars', () => {
     expect(config.triggers).toEqual({ crons: ['*/5 * * * *'] });
     expect(config.vars).toMatchObject({
       CAPTURE_BASE_URL: 'https://faction-sheet-asset-publisher.ndelangen.workers.dev',
       CONVEX_EXECUTOR_BASE_URL:
         'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor',
-      SUPPORTED_RENDERER_VERSION: 'faction-sheet-v4',
+      GIT_SHA: 'development',
       WORK_WINDOW_MS: '240000',
     });
+    expect(config.vars).not.toHaveProperty('SUPPORTED_RENDERER_VERSION');
     expect(config.workers_dev).toBe(true);
     expect(config.preview_urls).toBe(false);
     expect(config.routes).toEqual([{ pattern: 'dune.zone', custom_domain: true }]);
@@ -131,35 +132,24 @@ describe('scheduled production deployment shape', () => {
     expect(example.status).toBe(1);
   });
 
-  test('fails closed by pausing before deploy and activating only after Worker smoke', () => {
-    const deploymentGuide = readFileSync(path.resolve(process.cwd(), 'docs/deployment.md'), 'utf8');
-    const workerGuide = readFileSync(
-      path.resolve(process.cwd(), 'workers/publisher/README.md'),
-      'utf8'
-    );
+  test('initializes settings after Convex deploy and activates revisions after Worker smoke', () => {
     const deploymentWorkflow = readFileSync(
       path.resolve(process.cwd(), '.github/workflows/deploy-main.yml'),
       'utf8'
     );
-    for (const guide of [deploymentGuide, workerGuide]) {
-      expect(guide).toContain('leaves');
-      expect(guide).toContain('paused');
-      expect(guide).toContain('*/5 * * * *');
-    }
-    const statusReadIndex = deploymentWorkflow.indexOf('convex data asset_type_configs');
-    const pauseIndex = deploymentWorkflow.indexOf('assetPublisherOperator:pause');
     const convexDeployIndex = deploymentWorkflow.indexOf('name: Deploy Convex');
+    const initializeIndex = deploymentWorkflow.indexOf(
+      'name: Initialize Publication settings when absent'
+    );
     const smokeIndex = deploymentWorkflow.indexOf('name: Smoke scheduled Worker release');
-    const activateIndex = deploymentWorkflow.indexOf('assetPublisherOperator:activate');
-    expect(statusReadIndex).toBeGreaterThan(-1);
-    expect(statusReadIndex).toBeLessThan(pauseIndex);
-    expect(pauseIndex).toBeGreaterThan(-1);
-    expect(pauseIndex).toBeLessThan(convexDeployIndex);
+    const activateIndex = deploymentWorkflow.indexOf(
+      'name: Activate higher checked-in Renderer revisions'
+    );
+    expect(convexDeployIndex).toBeGreaterThan(-1);
+    expect(initializeIndex).toBeGreaterThan(convexDeployIndex);
     expect(smokeIndex).toBeLessThan(activateIndex);
-    expect(deploymentWorkflow).toContain('paused|disabled)');
-    expect(deploymentWorkflow).toContain('reactivate=false');
-    expect(deploymentWorkflow).toContain("steps.publisher_quiesce.outputs.reactivate == 'true'");
-    expect(deploymentWorkflow).toContain('.status == "paused"');
-    expect(deploymentWorkflow).toContain('.status == "active" and .rendererVersion == $renderer');
+    expect(deploymentWorkflow).not.toContain('assetPublisherOperator:pause');
+    expect(deploymentWorkflow).not.toContain('assetPublisherOperator:activate');
+    expect(deploymentWorkflow).not.toContain('SUPPORTED_RENDERER_VERSION');
   });
 });

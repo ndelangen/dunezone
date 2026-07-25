@@ -1,54 +1,67 @@
-# Scheduled faction-sheet publisher
+# Scheduled asset publisher
 
-The production Worker uses one `*/5 * * * *` Cron. Each invocation calls Convex `take-work` once.
-An empty result exits without opening Browser Rendering; an assigned result contains at most twenty
-independent item claims and is processed sequentially in one Browser session within a four-minute
-work window.
+The production Worker runs one `*/5 * * * *` Cron. Convex owns the durable
+Publication jobs; the Worker only picks up work, renders it with the one deployed
+Renderer, stores the result, and reports success or failure.
 
-The Worker uses one server-side executor secret for `take-work`, `revalidate-item`, `complete-item`,
-and `fail-item`. Browser capture uses the item's opaque claim token directly to read the protected
-render payload. The separate cache-token signing secret is shared out of band with Convex. Neither
-secret is checked in.
+At the start of each invocation, Convex:
 
-For every item, the Worker:
+1. resets expired `in_progress` jobs to `pending` and increases their attempt count;
+2. reads the administrator pickup switch once; and
+3. when pickup is enabled, leases at most twenty pending jobs.
 
-1. renders the protected payload and validates an exact two-page PDF;
-2. revalidates the claim and generation immediately before storage;
-3. creates the next public cache token;
-4. conditionally overwrites `factions/<faction-id>/sheet.pdf`, storing that token with generation,
-   renderer, and payload-hash custom metadata; and
-5. starts exact Convex completion with the same token, etag, and byte count.
+Turning pickup off only prevents new jobs from being leased. It does not interrupt
+an invocation or capture already in progress. Expired work is recovered even while
+pickup is off.
 
-Rendering continues while bounded completion promises settle. The Browser is closed in `finally`
-before outstanding completions are awaited or retried. Target-attributable render/output failures
-call `fail-item`; Browser, network, R2, Convex, and deadline failures leave their claims leased so
-claim expiry remains the recovery mechanism.
+For every leased job, the Worker:
+
+1. reads the job's embedded, validated `asset_data`;
+2. renders it with the current Renderer and validates the exact two-page PDF;
+3. replaces the asset's one stable R2 object;
+4. creates a new signed public cache token; and
+5. completes the job in Convex.
+
+Successful completion updates `publication_assets` and deletes only that job. If a
+save happened while the capture was in progress, its coalesced pending successor
+remains for a later Cron and captures the newest saved data. A failure or expired
+lease increases `attempt_counter`; the tenth failed attempt changes the job to
+`error`.
+
+The Worker uses one executor secret for its Convex calls. Browser capture uses the
+opaque job ID to read the protected embedded render payload. A separate cache-token
+signing secret is shared out of band with Convex. Neither secret is checked in.
+
+## Renderer revisions
+
+There is one deployed Renderer for each asset type. A checked-in Renderer revision
+is not a selectable Renderer version: increasing it tells Convex to enqueue fresh
+captures for that asset type.
+
+After the Worker has deployed and passed its release smoke, CI compares the
+checked-in revision map with `admin_settings`. Higher checked-in values are
+activated together and schedule bounded background scans. CI does not wait for
+those scans or captures to finish.
 
 ## Runtime telemetry
 
-The scheduled handler emits exactly one `asset_publisher_cron` JSON event per invocation. These
-events pass through `boundedPublisherTelemetryEvent`, which sanitizes diagnostics and limits the
-complete event to 8,192 UTF-8 bytes. Empty events report their reason and any live lease; completed
-events report item and Browser-session counts; failed events contain bounded diagnostics.
+The scheduled handler emits one bounded `asset_publisher_cron` JSON event per
+invocation. Completed events report job and Browser-session counts; failures contain
+bounded diagnostics. Capture and public-delivery failures emit separate sanitized
+events.
 
-The capture route emits a sanitized `asset_publisher_item_read_error` event when the protected
-render read fails. It uses `serializePublisherLogEvent` directly rather than the Cron event's final
-8 KiB envelope. Public-delivery cache failures emit fixed `asset_delivery_cache_put` or
-`asset_delivery_cache_match` events.
+`/__asset-publisher/health` is the no-store release identity endpoint. It reports
+the twenty-job limit, Cron schedule, Renderer identity, Worker version metadata,
+and deployed Git SHA used by release smoke checks.
 
-`/__asset-publisher/health` is the no-store release identity endpoint. It reports the twenty-item
-limit, Cron schedule, configured and supported renderer versions, Worker version metadata, and the
-generated renderer identity used by deployment smoke checks.
+Public assets use a stable path such as
+`/published/factions/<faction-id>/sheet.pdf`. A valid signed asset token continues
+to address that asset while its bytes are replaced. The bucket stays private and
+contains one current object per published asset.
 
-Public delivery requires a valid faction/type token. Objects written by this protocol additionally
-require exact equality with `publisherCacheToken` in R2 custom metadata, so an interrupted overwrite
-cannot expose unpublished bytes at an old URL. Objects without that metadata retain the legacy
-valid-token behavior until their first new overwrite. The bucket stays private and retains exactly
-one stable object per published faction.
-
-The checked-in release contract keeps the private R2 binding, Browser binding, exact production
-Convex URLs, a 30-second CPU limit, the four-minute work window, and the 8,000,000-byte PDF safety
-cap. Remote Queue deletion and deployment are intentionally separate operations.
+Administrators inspect jobs, change the pickup switch, and see Renderer revisions
+at `/__jobs`. That route exposes no embedded `asset_data` and provides no manual job
+actions.
 
 ## Local checks
 
@@ -65,26 +78,15 @@ bun run publisher:dry-run
 bun run publisher:startup
 ```
 
-`publisher:capture-contract-regression` serves the built capture bundle the exact narrow Browser DTO
-in Chromium and requires corrupt resource rejection, capture readiness, payload identity, physical
-page bounds, omitted troop-modifier rendering, and the two-page PDF contract to succeed.
-Convex explicitly projects only the claimed payload and hash, then producer and capture client both
-validate that shared strict contract. Operational item metadata cannot leak into or couple the
-Browser response to executor internals.
+`publisher:capture-contract-regression` serves the built capture bundle the narrow
+Browser DTO in Chromium and verifies capture readiness, payload identity, physical
+page bounds, corrupt-resource rejection, and the two-page PDF contract.
 
-The PR publisher-release job builds on Linux with the exact production Convex URL and rejects any
-change to `renderer-manifest.generated.ts`. Treat that CI-produced manifest as authoritative; a
-manifest generated on another operating system may differ because it covers assembled build
-artifacts as well as renderer source.
+The pull-request publisher job builds on Linux with the production Convex URL and
+rejects changes to generated Renderer output. Treat its generated manifest as
+authoritative because it covers assembled build artifacts as well as source.
 
-The protected `main` workflow runs source/config preflight, generated-type check, typecheck, one
-production-URL asset build, assembled-asset verification, Wrangler dry-run, strict SHA-tagged
-deploy, and health smoke. It pauses an active Convex publisher before the producer deploy and
-reactivates the exact checked-in renderer only after the Worker smoke succeeds. An already paused
-or disabled publisher retains that operator intent. The workflow does not provision or delete
-Cloudflare resources, install or read secret values, or mutate publisher items directly.
-
-**A failed production release intentionally leaves the Convex publisher paused.** Diagnose the
-failed release and confirm producer/consumer compatibility before manually reactivating. After a
-successful release, follow the recurring post-deploy observation in
-[`docs/deployment.md`](../../docs/deployment.md).
+The protected `main` workflow deploys Convex, initializes absent Publication
+settings, builds and deploys the Worker with the merged Git SHA, smokes both public
+origins, then asynchronously activates only higher checked-in Renderer revisions.
+It never pauses current work and never selects an older Renderer.

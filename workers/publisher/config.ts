@@ -1,11 +1,9 @@
-import { MAX_PUBLISHER_ITEMS } from '../../convex/lib/assetPublisherConstants';
-import { isValidCacheSigningSecret } from '../../convex/lib/assetPublisherHttp';
-import { rendererManifest } from './renderer-manifest.generated';
+import { isValidCacheSigningSecret } from '../../convex/lib/publicationHttp';
+import { PUBLICATION_MAX_PICKUP } from '../../src/shared/asset-publishing/publication';
 
 export type PublisherConfig = {
   captureBaseUrl: string;
   convexExecutorBaseUrl: string;
-  supportedRendererVersions: typeof rendererManifest.supportedRendererVersions;
   workWindowMs: number;
   browserCaptureTimeoutMs: number;
   browserCleanupGraceMs: number;
@@ -13,7 +11,7 @@ export type PublisherConfig = {
 };
 
 const COMPLETION_MARGIN_MS = 5_000;
-export const MAX_ASSIGNED_ITEMS = MAX_PUBLISHER_ITEMS;
+export const MAX_ASSIGNED_ITEMS = PUBLICATION_MAX_PICKUP;
 
 function integer(name: string, value: string, minimum: number, maximum: number): number {
   if (!/^\d+$/.test(value)) throw new Error(`${name} must be an integer`);
@@ -42,9 +40,6 @@ export function parsePublisherConfig(env: Env): PublisherConfig {
   if (env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET === env.ASSET_PUBLISHER_EXECUTOR_SECRET) {
     throw new Error('Executor and cache-token secrets must be distinct');
   }
-  if (String(env.SUPPORTED_RENDERER_VERSION) !== rendererManifest.rendererVersion) {
-    throw new Error('Configured renderer must equal the embedded renderer compatibility version');
-  }
   const workWindowMs = integer('WORK_WINDOW_MS', env.WORK_WINDOW_MS, 1, 240_000);
   const browserCaptureTimeoutMs = integer(
     'BROWSER_CAPTURE_TIMEOUT_MS',
@@ -70,7 +65,6 @@ export function parsePublisherConfig(env: Env): PublisherConfig {
       'CONVEX_EXECUTOR_BASE_URL',
       env.CONVEX_EXECUTOR_BASE_URL
     ),
-    supportedRendererVersions: rendererManifest.supportedRendererVersions,
     workWindowMs,
     browserCaptureTimeoutMs,
     browserCleanupGraceMs,

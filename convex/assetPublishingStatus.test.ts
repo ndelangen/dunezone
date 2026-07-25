@@ -34,149 +34,84 @@ async function seedFaction(t: ReturnType<typeof convexTest>) {
   });
 }
 
-async function insertTarget(
-  t: ReturnType<typeof convexTest>,
-  factionId: Id<'factions'>,
-  status: 'pending' | 'leased' | 'blocked' | 'current'
-) {
-  return await t.run(
-    async (ctx) =>
-      await ctx.db.insert('asset_targets', {
-        faction_id: factionId,
-        asset_type: 'faction_sheet',
-        desired_generation: 2,
-        desired_renderer_version: 'faction-sheet-v1',
-        status,
-        consecutive_render_failures: 0,
-        last_error: 'private operational error',
-        claim_token: 'private-claim-token',
-        claimed_generation: 2,
-        claimed_renderer_version: 'faction-sheet-v1',
-        lease_expires_at: 456,
-      })
-  );
-}
-
 async function publicStatus(t: ReturnType<typeof convexTest>, factionId: Id<'factions'>) {
   const faction = await t.run(async (ctx) => await ctx.db.get('factions', factionId));
   if (!faction) throw new Error('Missing status projection faction');
-  const detail = await t.query(api.factions.getBySlug, { slug: faction.slug });
-  return detail.assetPublishing;
+  return (await t.query(api.factions.getBySlug, { slug: faction.slug })).assetPublishing;
 }
 
 describe('public asset publishing status projection', () => {
-  test('returns an exact-key null projection when the target is absent', async () => {
+  test('returns no link until a publication asset exists', async () => {
     const t = convexTest(schema, modules);
     const factionId = await seedFaction(t);
-    const projection = await publicStatus(t, factionId);
 
-    expect(projection).toEqual({
+    expect(await publicStatus(t, factionId)).toEqual({
       status: null,
       publicationHref: null,
       lastPublishedAt: null,
     });
-    expect(Object.keys(projection).sort()).toEqual([
-      'lastPublishedAt',
-      'publicationHref',
-      'status',
-    ]);
   });
 
   test.each([
-    ['pending', 'waiting'],
-    ['leased', 'publishing'],
-    ['blocked', 'delayed'],
-  ] as const)('maps %s to %s without operational leakage', async (targetStatus, expected) => {
+    'pending',
+    'in_progress',
+    'error',
+  ] as const)('does not expose %s job state publicly', async (status) => {
     const t = convexTest(schema, modules);
     const factionId = await seedFaction(t);
-    await insertTarget(t, factionId, targetStatus);
+    await t.run(
+      async (ctx) =>
+        await ctx.db.insert('publication_jobs', {
+          asset_type: 'faction_sheet',
+          asset_id: factionId,
+          asset_data: {
+            factionId,
+            slug: 'status-projection',
+            faction: assetPublishingFaction,
+          },
+          status,
+          attempt_counter: 0,
+          created_at: 1,
+          updated_at: 1,
+        })
+    );
 
-    const projection = await publicStatus(t, factionId);
-    expect(projection).toEqual({
-      status: expected,
+    expect(await publicStatus(t, factionId)).toEqual({
+      status: null,
       publicationHref: null,
       lastPublishedAt: null,
     });
-    expect(Object.keys(projection).sort()).toEqual([
-      'lastPublishedAt',
-      'publicationHref',
-      'status',
-    ]);
   });
 
-  test('reports current only when generation and renderer match exactly', async () => {
+  test('keeps the stable public link while replacement work exists', async () => {
     const t = convexTest(schema, modules);
     const factionId = await seedFaction(t);
-    const targetId = await insertTarget(t, factionId, 'current');
     await t.run(async (ctx) => {
-      await ctx.db.patch(targetId, {
-        published_generation: 2,
-        published_renderer_version: 'faction-sheet-v1',
-        published_cache_token: 'private-cache-token',
-        published_r2_etag: 'private-etag',
-        published_bytes: 42,
+      await ctx.db.insert('publication_assets', {
+        asset_type: 'faction_sheet',
+        asset_id: factionId,
+        cache_token: 'private-cache-token',
         published_at: 789,
       });
+      await ctx.db.insert('publication_jobs', {
+        asset_type: 'faction_sheet',
+        asset_id: factionId,
+        asset_data: {
+          factionId,
+          slug: 'status-projection',
+          faction: assetPublishingFaction,
+        },
+        status: 'pending',
+        attempt_counter: 0,
+        created_at: 2,
+        updated_at: 2,
+      });
     });
 
-    const publicationHref = `/published/factions/${encodeURIComponent(factionId)}/sheet.pdf?v=private-cache-token`;
     expect(await publicStatus(t, factionId)).toEqual({
       status: 'current',
-      publicationHref,
+      publicationHref: `/published/factions/${factionId}/sheet.pdf?v=private-cache-token`,
       lastPublishedAt: 789,
-    });
-    await t.run(async (ctx) => {
-      await ctx.db.patch(targetId, { desired_generation: 3 });
-    });
-    expect(await publicStatus(t, factionId)).toEqual({
-      status: 'waiting',
-      publicationHref,
-      lastPublishedAt: 789,
-    });
-  });
-
-  test('keeps disabled control state internal while saved work remains visibly waiting', async () => {
-    const t = convexTest(schema, modules);
-    const factionId = await seedFaction(t);
-    await insertTarget(t, factionId, 'pending');
-    await t.run(async (ctx) => {
-      await ctx.db.insert('asset_type_configs', {
-        asset_type: 'faction_sheet',
-        status: 'disabled',
-        active_renderer_version: 'faction-sheet-v1',
-        updated_at: 123,
-      });
-    });
-
-    const projection = await publicStatus(t, factionId);
-    expect(projection).toEqual({
-      status: 'waiting',
-      publicationHref: null,
-      lastPublishedAt: null,
-    });
-    expect(Object.keys(projection).sort()).toEqual([
-      'lastPublishedAt',
-      'publicationHref',
-      'status',
-    ]);
-  });
-
-  test('does not link an incomplete publication', async () => {
-    const t = convexTest(schema, modules);
-    const factionId = await seedFaction(t);
-    const targetId = await insertTarget(t, factionId, 'pending');
-    await t.run(async (ctx) => {
-      await ctx.db.patch(targetId, {
-        published_generation: 1,
-        published_renderer_version: 'faction-sheet-v1',
-        published_cache_token: 'incomplete-cache-token',
-      });
-    });
-
-    expect(await publicStatus(t, factionId)).toEqual({
-      status: 'waiting',
-      publicationHref: null,
-      lastPublishedAt: null,
     });
   });
 });
