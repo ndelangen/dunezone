@@ -21,12 +21,6 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   profiles_from_users_v1: internal.migrations.profiles_from_users_v1,
   faction_slug_reservations_v1: internal.migrations.faction_slug_reservations_v1,
   faction_slug_reservations_verify_v1: internal.migrations.faction_slug_reservations_verify_v1,
-  publication_delete_legacy_rollout_items_v1:
-    internal.migrations.publication_delete_legacy_rollout_items_v1,
-  publication_delete_legacy_rollouts_v1: internal.migrations.publication_delete_legacy_rollouts_v1,
-  publication_delete_legacy_targets_v1: internal.migrations.publication_delete_legacy_targets_v1,
-  publication_delete_legacy_type_configs_v1:
-    internal.migrations.publication_delete_legacy_type_configs_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -237,38 +231,6 @@ export const faction_slug_reservations_verify_v1 = migrations.define({
   },
 });
 
-export const publication_delete_legacy_rollout_items_v1 = migrations.define({
-  table: 'asset_rollout_items',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    await ctx.db.delete(row._id);
-  },
-});
-
-export const publication_delete_legacy_rollouts_v1 = migrations.define({
-  table: 'asset_rollouts',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    await ctx.db.delete(row._id);
-  },
-});
-
-export const publication_delete_legacy_targets_v1 = migrations.define({
-  table: 'asset_targets',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    await ctx.db.delete(row._id);
-  },
-});
-
-export const publication_delete_legacy_type_configs_v1 = migrations.define({
-  table: 'asset_type_configs',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    await ctx.db.delete(row._id);
-  },
-});
-
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([
@@ -279,10 +241,6 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.profiles_from_users_v1,
   internal.migrations.faction_slug_reservations_v1,
   internal.migrations.faction_slug_reservations_verify_v1,
-  internal.migrations.publication_delete_legacy_rollout_items_v1,
-  internal.migrations.publication_delete_legacy_rollouts_v1,
-  internal.migrations.publication_delete_legacy_targets_v1,
-  internal.migrations.publication_delete_legacy_type_configs_v1,
 ]);
 
 export const runRequired = mutation({
