@@ -159,6 +159,7 @@ function expectedBindings(wrangler: JsonRecord): string[] {
   const bindings: string[] = [];
   const vars = record(wrangler.vars, 'Wrangler vars');
   for (const [name, value] of Object.entries(vars)) {
+    if (name === 'GIT_SHA') continue;
     bindings.push(`${name}|plain_text|${string(value, `Wrangler var ${name}`)}`);
   }
   const assets = record(wrangler.assets, 'Wrangler assets');
@@ -264,9 +265,21 @@ export async function checkCloudflareLiveDrift(
     ]);
 
   const settings = record(settingsResponse.result, 'Worker settings');
-  const bindings = array(settings.bindings, 'Worker bindings')
+  const rawBindings = array(settings.bindings, 'Worker bindings');
+  const gitShaBinding = rawBindings
+    .map((value) => record(value, 'Worker binding'))
+    .find((binding) => binding.name === 'GIT_SHA');
+  if (
+    gitShaBinding?.type !== 'plain_text' ||
+    typeof gitShaBinding.text !== 'string' ||
+    !/^[0-9a-f]{40}$/.test(gitShaBinding.text)
+  ) {
+    failures.push('Worker GIT_SHA binding must be the full deployed Git commit SHA');
+  }
+  const bindings = rawBindings
     .map(liveBinding)
     .filter((binding): binding is string => binding !== null)
+    .filter((binding) => !binding.startsWith('GIT_SHA|'))
     .sort();
   compareExactSet(failures, 'Worker bindings drift', expectedBindings(wrangler), bindings);
 
@@ -394,7 +407,7 @@ export async function checkCloudflareLiveDrift(
   return {
     worker: contract.publisherWorker,
     domainCount: liveDomains.length,
-    bindingCount: bindings.length,
+    bindingCount: bindings.length + 1,
     secretCount: liveSecrets.length,
     cronCount: liveCrons.length,
     queueCount: ownedQueues.length,

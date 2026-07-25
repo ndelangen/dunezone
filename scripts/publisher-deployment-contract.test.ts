@@ -1,11 +1,10 @@
 import { describe, expect, test } from 'vitest';
 
+import { rendererManifest } from '../workers/publisher/renderer-manifest.generated';
 import {
   APPLICATION_ORIGIN,
   PUBLISHER_ORIGIN,
   PUBLISHER_PRODUCTION_CONVEX_URL,
-  PUBLISHER_RENDERER_VERSION,
-  PUBLISHER_SUPPORTED_RENDERER_VERSIONS,
   readPublisherConfig,
   validatePublisherDeployContract,
   validatePublisherHealth,
@@ -26,19 +25,12 @@ function health() {
     ok: true,
     maxItems: 20,
     schedule: '*/5 * * * *',
-    supportedRendererVersion: PUBLISHER_RENDERER_VERSION,
-    rendererSupport: {
-      supportedRendererVersions: PUBLISHER_SUPPORTED_RENDERER_VERSIONS,
-      rendererId: `faction-sheet/sha256:${'c'.repeat(64)}`,
-      configuredRendererVersion: PUBLISHER_RENDERER_VERSION,
-      configurationMatchesManifest: true,
-    },
+    rendererIdentity: rendererManifest.rendererIdentity,
     identity: {
       workerVersionTag: 'a'.repeat(40),
-      rendererId: `faction-sheet/sha256:${'c'.repeat(64)}`,
-      rendererManifestDigest: 'c'.repeat(64),
-      configuredRendererVersion: PUBLISHER_RENDERER_VERSION,
-      rendererConfigurationMatchesManifest: true,
+      gitSha: 'a'.repeat(40),
+      rendererIdentity: rendererManifest.rendererIdentity,
+      rendererManifestDigest: rendererManifest.digest,
     },
   };
 }
@@ -65,10 +57,6 @@ describe('publisher CI deployment contract', () => {
     cronConfig.triggers = { crons: [] };
     expect(() => validatePublisherDeployContract(cronConfig, ciEnvironment())).toThrow();
 
-    const extraCronConfig = structuredClone(readPublisherConfig());
-    extraCronConfig.triggers = { crons: ['*/5 * * * *', '0 0 * * *'] };
-    expect(() => validatePublisherDeployContract(extraCronConfig, ciEnvironment())).toThrow();
-
     const bucketConfig = structuredClone(readPublisherConfig());
     (bucketConfig.r2_buckets as Array<Record<string, unknown>>)[0].bucket_name = 'replacement';
     expect(() => validatePublisherDeployContract(bucketConfig, ciEnvironment())).toThrow();
@@ -83,27 +71,17 @@ describe('publisher CI deployment contract', () => {
     ).toThrow(/exact production Convex deployment URL/);
   });
 
-  test('accepts health only when the item-list contract, renderer support, origin, and Git SHA match', () => {
+  test.each([
+    PUBLISHER_ORIGIN,
+    APPLICATION_ORIGIN,
+  ])('accepts current Renderer health at %s', (origin) => {
     expect(() =>
       validatePublisherHealth(
-        readPublisherConfig(),
         health(),
         'a'.repeat(40),
-        `${PUBLISHER_ORIGIN}/__asset-publisher/health`,
-        'no-store'
-      )
-    ).not.toThrow();
-  });
-
-  test('accepts the exact release on the canonical application origin', () => {
-    expect(() =>
-      validatePublisherHealth(
-        readPublisherConfig(),
-        health(),
-        'a'.repeat(40),
-        `${APPLICATION_ORIGIN}/__asset-publisher/health`,
+        `${origin}/__asset-publisher/health`,
         'no-store',
-        APPLICATION_ORIGIN
+        origin
       )
     ).not.toThrow();
   });
@@ -111,12 +89,12 @@ describe('publisher CI deployment contract', () => {
   test.each([
     ['maxItems', 1],
     ['schedule', '*/15 * * * *'],
-  ])('rejects unsafe health field %s', (name, value) => {
+    ['rendererIdentity', `faction-sheet/sha256:${'c'.repeat(64)}`],
+  ])('rejects mismatched health field %s', (name, value) => {
     const response = health() as Record<string, unknown>;
     response[name] = value;
     expect(() =>
       validatePublisherHealth(
-        readPublisherConfig(),
         response,
         'a'.repeat(40),
         `${PUBLISHER_ORIGIN}/__asset-publisher/health`,
@@ -125,37 +103,9 @@ describe('publisher CI deployment contract', () => {
     ).toThrow();
   });
 
-  test('rejects a renderer mismatch, alternate origin, cached response, or wrong source tag', () => {
-    const mismatched = health();
-    mismatched.rendererSupport.configurationMatchesManifest = false;
+  test('rejects alternate origins, cached responses, and wrong source tags', () => {
     expect(() =>
       validatePublisherHealth(
-        readPublisherConfig(),
-        mismatched,
-        'a'.repeat(40),
-        `${PUBLISHER_ORIGIN}/__asset-publisher/health`,
-        'no-store'
-      )
-    ).toThrow();
-    const extraRenderer = health() as unknown as {
-      rendererSupport: { supportedRendererVersions: string[] };
-    };
-    extraRenderer.rendererSupport.supportedRendererVersions = [
-      ...PUBLISHER_SUPPORTED_RENDERER_VERSIONS,
-      'faction-sheet-v2',
-    ];
-    expect(() =>
-      validatePublisherHealth(
-        readPublisherConfig(),
-        extraRenderer,
-        'a'.repeat(40),
-        `${PUBLISHER_ORIGIN}/__asset-publisher/health`,
-        'no-store'
-      )
-    ).toThrow(/renderer support list/);
-    expect(() =>
-      validatePublisherHealth(
-        readPublisherConfig(),
         health(),
         'a'.repeat(40),
         'https://alternate.workers.dev/__asset-publisher/health',
@@ -164,7 +114,6 @@ describe('publisher CI deployment contract', () => {
     ).toThrow();
     expect(() =>
       validatePublisherHealth(
-        readPublisherConfig(),
         health(),
         'a'.repeat(40),
         `${PUBLISHER_ORIGIN}/__asset-publisher/health`,
@@ -173,7 +122,6 @@ describe('publisher CI deployment contract', () => {
     ).toThrow();
     expect(() =>
       validatePublisherHealth(
-        readPublisherConfig(),
         health(),
         'd'.repeat(40),
         `${PUBLISHER_ORIGIN}/__asset-publisher/health`,

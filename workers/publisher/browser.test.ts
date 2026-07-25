@@ -108,22 +108,22 @@ describe('production capture output validation', () => {
     }
   });
 
-  test('keeps the item claim in an HttpOnly host cookie rather than a URL or referrer', () => {
-    const claimToken = 'claim-token-0000000000000001';
+  test('keeps the Publication job id in an HttpOnly host cookie rather than a URL or referrer', () => {
+    const jobId = 'publication-job-000000000000001';
     const cookies = publisherCaptureCookies(
       'https://publisher.example.com',
-      claimToken,
+      jobId,
       Date.now() + 30_000
     );
-    const claimCookie = cookies.find((cookie) => cookie.value === claimToken);
-    expect(claimCookie).toMatchObject({
+    const jobCookie = cookies.find((cookie) => cookie.value === jobId);
+    expect(jobCookie).toMatchObject({
       url: 'https://publisher.example.com',
       httpOnly: true,
       secure: true,
       sameSite: 'Strict',
     });
-    expect(claimCookie).not.toHaveProperty('domain');
-    expect(claimCookie?.url).not.toContain(claimToken);
+    expect(jobCookie).not.toHaveProperty('domain');
+    expect(jobCookie?.url).not.toContain(jobId);
   });
 
   test('closes the provider Browser session exactly once', async () => {

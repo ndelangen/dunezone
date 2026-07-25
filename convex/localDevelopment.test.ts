@@ -59,8 +59,8 @@ describe('local faction development import', () => {
       const groups = await ctx.db.query('groups').take(10);
       const memberships = await ctx.db.query('group_members').take(10);
       const factions = await ctx.db.query('factions').take(10);
-      const assetTargets = await ctx.db.query('asset_targets').take(10);
-      return { profiles, groups, memberships, factions, assetTargets };
+      const publicationJobs = await ctx.db.query('publication_jobs').take(10);
+      return { profiles, groups, memberships, factions, publicationJobs };
     });
 
     expect(snapshot.profiles.map((profile) => profile.user_id).sort()).toEqual(
@@ -94,7 +94,7 @@ describe('local faction development import', () => {
         }),
       ])
     );
-    expect(snapshot.assetTargets).toHaveLength(0);
+    expect(snapshot.publicationJobs).toHaveLength(0);
   });
 
   test('is unavailable outside the disposable local backend', async () => {

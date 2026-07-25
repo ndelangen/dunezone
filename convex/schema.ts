@@ -15,6 +15,18 @@ const faqTagValidator = v.union(
 
 export default defineSchema({
   ...authTables,
+  users: defineTable({
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    isAdmin: v.optional(v.boolean()),
+  })
+    .index('email', ['email'])
+    .index('phone', ['phone']),
   counters: defineTable({
     key: v.string(),
     value: v.number(),
@@ -66,6 +78,35 @@ export default defineSchema({
     .index('by_group_id', ['group_id'])
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted']),
+  publication_assets: defineTable({
+    asset_type: v.string(),
+    asset_id: v.string(),
+    cache_token: v.string(),
+    published_at: v.number(),
+  }).index('by_asset_type_and_asset_id', ['asset_type', 'asset_id']),
+  publication_jobs: defineTable({
+    asset_type: v.string(),
+    asset_id: v.string(),
+    asset_data: v.any(),
+    status: v.union(v.literal('pending'), v.literal('in_progress'), v.literal('error')),
+    attempt_counter: v.number(),
+    expires_at: v.optional(v.number()),
+    error: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index('by_asset_type_and_asset_id', ['asset_type', 'asset_id'])
+    .index('by_status_and_created_at', ['status', 'created_at'])
+    .index('by_status_and_expires_at', ['status', 'expires_at'])
+    .index('by_status_and_updated_at', ['status', 'updated_at']),
+  admin_settings: defineTable({
+    key: v.literal('publication'),
+    publication_pickup_enabled: v.boolean(),
+    renderer_revisions: v.record(v.string(), v.number()),
+    updated_at: v.number(),
+  }).index('by_key', ['key']),
+  // Release 1 keeps these populated legacy declarations inert. No active code
+  // reads or writes them; a later bounded migration empties them before removal.
   asset_targets: defineTable({
     faction_id: v.id('factions'),
     asset_type: v.literal('faction_sheet'),

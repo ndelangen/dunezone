@@ -10,9 +10,10 @@ import {
   listActiveRulesetSummaries,
   selectFactionCatalogueSpotlights,
 } from './lib/factionCatalogue';
-import { parseFactionInput, reconcileFactionSheetTargetForSave } from './lib/factionSheetTargets';
+import { parseFactionInput } from './lib/factionInput';
 import { isActiveGroupMember, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
+import { enqueueFactionSheetPublication } from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -304,9 +305,9 @@ export const create = mutation({
       updated_at: now,
       is_deleted: false,
     });
-    await reconcileFactionSheetTargetForSave(ctx, _id);
     const row = await ctx.db.get(_id);
     if (!row) throw new Error('Failed to create faction');
+    await enqueueFactionSheetPublication(ctx, row);
     return factionRowForClient(row);
   },
 });
@@ -336,9 +337,9 @@ export const update = mutation({
       slug,
       updated_at: nowIso(),
     });
-    await reconcileFactionSheetTargetForSave(ctx, args.id);
     const updated = await ctx.db.get(args.id);
     if (!updated) throw new Error('Failed to update faction');
+    await enqueueFactionSheetPublication(ctx, updated);
     return factionRowForClient(updated);
   },
 });

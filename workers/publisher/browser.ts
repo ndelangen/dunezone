@@ -12,7 +12,7 @@ import {
   redactPublisherResource,
   sanitizePublisherDiagnostic,
 } from '../../src/app/capture/publisher-diagnostics';
-import { captureClaimCookie, captureDeadlineCookie } from './capture-route';
+import { captureDeadlineCookie, captureJobCookie } from './capture-route';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
@@ -101,13 +101,13 @@ export function registerCaptureDiagnostics(page: Page): CaptureDiagnostics {
 
 export function publisherCaptureCookies(
   captureBaseUrl: string,
-  claimToken: string,
+  jobId: string,
   lifecycleDeadlineAt: number
 ): Parameters<BrowserContext['addCookies']>[0] {
   return [
     {
-      name: captureClaimCookie,
-      value: claimToken,
+      name: captureJobCookie,
+      value: jobId,
       url: captureBaseUrl,
       httpOnly: true,
       secure: true,
@@ -182,7 +182,7 @@ export class PublisherBrowserSession {
     return this.browser.sessionId();
   }
 
-  async capture(claimToken: string, timeoutMs: number): Promise<CapturedPdf> {
+  async capture(jobId: string, timeoutMs: number): Promise<CapturedPdf> {
     const deadline = performance.now() + timeoutMs;
     const lifecycleDeadlineAt = Date.now() + timeoutMs;
     let phase: 'setup' | 'load' | 'validate' | 'pdf' = 'setup';
@@ -194,7 +194,7 @@ export class PublisherBrowserSession {
         viewport: { width: VIEWPORT_CONTRACT.width, height: VIEWPORT_CONTRACT.height },
       });
       await context.addCookies(
-        publisherCaptureCookies(this.captureBaseUrl, claimToken, lifecycleDeadlineAt)
+        publisherCaptureCookies(this.captureBaseUrl, jobId, lifecycleDeadlineAt)
       );
       const page = await context.newPage();
       const diagnostics = registerCaptureDiagnostics(page);

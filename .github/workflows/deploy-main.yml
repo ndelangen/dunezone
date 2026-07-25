@@ -35,36 +35,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Quiesce publisher for contract-safe deployment
-        id: publisher_quiesce
-        run: |
-          config="$(bunx convex data asset_type_configs --prod --limit 2 --format json)"
-          previous_status="$(jq -er '
-            if length == 1 and .[0].asset_type == "faction_sheet"
-            then .[0].status
-            else error("Expected exactly one faction-sheet publisher config")
-            end
-          ' <<<"$config")"
-          case "$previous_status" in
-            active)
-              result="$(bunx convex run --prod assetPublisherOperator:pause '{}')"
-              printf '%s\n' "$result"
-              jq -e '.status == "paused"' <<<"$result"
-              echo "reactivate=true" >> "$GITHUB_OUTPUT"
-              ;;
-            paused|disabled)
-              printf 'Publisher already safe for deployment: %s\n' "$previous_status"
-              echo "reactivate=false" >> "$GITHUB_OUTPUT"
-              ;;
-            *)
-              printf 'Unsupported publisher status: %s\n' "$previous_status" >&2
-              exit 1
-              ;;
-          esac
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-          CONVEX_DEPLOYMENT: ${{ secrets.CONVEX_DEPLOYMENT }}
-
       - name: Deploy Convex
         run: bun run convex:deploy
         env:
@@ -73,6 +43,12 @@ jobs:
 
       - name: Run and verify required migrations
         run: bun run migrations:deploy
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_DEPLOYMENT: ${{ secrets.CONVEX_DEPLOYMENT }}
+
+      - name: Initialize Publication settings when absent
+        run: bun run ./scripts/publication-revisions.ts initialize
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           CONVEX_DEPLOYMENT: ${{ secrets.CONVEX_DEPLOYMENT }}
@@ -114,6 +90,7 @@ jobs:
           --config workers/publisher/wrangler.jsonc
           --tag "$GITHUB_SHA"
           --message "GitHub Actions production $GITHUB_SHA"
+          --var "GIT_SHA:$GITHUB_SHA"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -121,15 +98,8 @@ jobs:
       - name: Smoke scheduled Worker release
         run: bun run ./scripts/publisher-deployment-contract.ts smoke
 
-      - name: Reactivate publisher after release smoke
-        if: steps.publisher_quiesce.outputs.reactivate == 'true'
-        run: |
-          renderer_version="$(jq -r '.vars.SUPPORTED_RENDERER_VERSION' workers/publisher/wrangler.jsonc)"
-          args="$(jq -cn --arg renderer "$renderer_version" '{rendererVersion: $renderer}')"
-          result="$(bunx convex run --prod assetPublisherOperator:activate "$args")"
-          printf '%s\n' "$result"
-          jq -e --arg renderer "$renderer_version" \
-            '.status == "active" and .rendererVersion == $renderer' <<<"$result"
+      - name: Activate higher checked-in Renderer revisions
+        run: bun run ./scripts/publication-revisions.ts activate
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           CONVEX_DEPLOYMENT: ${{ secrets.CONVEX_DEPLOYMENT }}

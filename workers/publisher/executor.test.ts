@@ -1,169 +1,87 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import { createCacheSigningSecret } from '../../convex/lib/assetPublisherHttp';
-import { type CapturedPdf, TargetRenderError } from './browser';
-import type { AssignedItem } from './convex';
+import { createCacheSigningSecret } from '../../convex/lib/publicationHttp';
+import { TargetRenderError } from './browser';
+import type { PublisherConfig } from './config';
+import type { AssignedPublicationJob } from './convex';
 import { executeItemList } from './executor';
 import type { AssetBucket } from './r2';
+import { fakeR2Object } from './test-helpers';
 
 const NOW = Date.parse('2026-07-17T12:00:00.000Z');
 const cacheSecret = createCacheSigningSecret();
-
-const item: AssignedItem = {
-  targetId: 'target-one',
-  factionId: 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p',
-  assetType: 'faction_sheet',
-  claimToken: 'claim-token-0000000000000001',
-  generation: 2,
-  rendererVersion: 'faction-sheet-v4',
-  leaseExpiresAt: NOW + 240_000,
-};
-
-const config = {
+const cacheToken = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
+const config: PublisherConfig = {
   captureBaseUrl: 'https://publisher.example.com',
-  convexExecutorBaseUrl: 'https://convex.example.com/asset-publishing/executor',
-  supportedRendererVersions: ['faction-sheet-v4'] as const,
+  convexExecutorBaseUrl: 'https://convex.example.com/executor',
   workWindowMs: 240_000,
   browserCaptureTimeoutMs: 45_000,
   browserCleanupGraceMs: 15_000,
   pdfMaxBytes: 8_000_000,
 };
+const job: AssignedPublicationJob = {
+  jobId: 'job-one',
+  assetType: 'faction_sheet',
+  assetId: 'faction-one',
+  expiresAt: NOW + 300_000,
+};
 
-function capturedPdf(): CapturedPdf {
-  return {
-    bytes: new Uint8Array([1, 2, 3]),
-    payloadHash: 'a'.repeat(64),
-  };
+function bucket(
+  put = vi.fn(async () => fakeR2Object({ etag: 'etag-one', size: 3, uploaded: new Date(NOW) }))
+) {
+  return { put } satisfies AssetBucket;
 }
 
-describe('item-list executor', () => {
-  test('renders an older invalidation version with the current renderer', async () => {
-    const olderVersionItem = {
-      ...item,
-      rendererVersion: 'faction-sheet-v3',
-    };
-    const capture = vi.fn(async () => capturedPdf());
+function capturedPdf() {
+  return { bytes: new Uint8Array([1, 2, 3]), payloadHash: 'a'.repeat(64) };
+}
+
+describe('single-Renderer Publication execution', () => {
+  test('captures each assigned job, replaces its stable object, and completes it', async () => {
+    const put = vi.fn(async () =>
+      fakeR2Object({ etag: 'etag-one', size: 3, uploaded: new Date(NOW) })
+    );
     const complete = vi.fn(async () => 'completed' as const);
+    const close = vi.fn(async () => undefined);
 
     await expect(
-      executeItemList(config, [olderVersionItem], {
-        bucket: {
-          head: async () => null,
-          put: async () => ({ etag: 'etag-one' }) as R2Object,
-        },
+      executeItemList(config, [job], {
+        bucket: bucket(put),
         cacheTokenSecret: cacheSecret,
-        client: {
-          revalidate: async () => ({
-            status: 'valid' as const,
-            factionId: olderVersionItem.factionId,
-            assetType: olderVersionItem.assetType,
-            leaseExpiresAt: olderVersionItem.leaseExpiresAt,
-          }),
-          complete,
-          fail: async () => 'failed' as const,
-        },
+        client: { complete, fail: vi.fn() },
         openBrowser: async () => ({
-          capture,
-          close: async () => undefined,
-          sessionId: () => 'browser-session-older-version',
+          capture: async () => capturedPdf(),
+          close,
+          sessionId: () => 'browser-session-one',
         }),
         now: () => NOW,
-        signCacheToken: async () => `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`,
+        signCacheToken: async () => cacheToken,
       })
-    ).resolves.toMatchObject({
-      rendered: 1,
-      completed: 1,
-      stale: 0,
-      unprocessed: 0,
-    });
-    expect(capture).toHaveBeenCalledOnce();
-    expect(complete).toHaveBeenCalledWith(
-      expect.objectContaining({ rendererVersion: 'faction-sheet-v3' }),
-      expect.anything(),
-      expect.any(Number)
-    );
-  });
-
-  test('closes the browser before awaiting deferred completions', async () => {
-    let completeResolve: ((value: 'completed') => void) | undefined;
-    let closeObservedResolve: (() => void) | undefined;
-    const closeObserved = new Promise<void>((resolve) => {
-      closeObservedResolve = resolve;
-    });
-    const close = vi.fn(async () => {
-      closeObservedResolve?.();
-    });
-    const bucket: AssetBucket = {
-      head: async () => null,
-      put: async () =>
-        ({
-          etag: 'etag-one',
-        }) as R2Object,
-    };
-    const execution = executeItemList(config, [item], {
-      bucket,
-      cacheTokenSecret: cacheSecret,
-      client: {
-        revalidate: async () => ({
-          status: 'valid' as const,
-          factionId: item.factionId,
-          assetType: item.assetType,
-          leaseExpiresAt: item.leaseExpiresAt,
-        }),
-        complete: async () =>
-          await new Promise<'completed'>((resolve) => {
-            completeResolve = resolve;
-          }),
-        fail: async () => 'failed' as const,
-      },
-      openBrowser: async () => ({
-        capture: async () => capturedPdf(),
-        close,
-        sessionId: () => 'browser-session-one',
-      }),
-      now: () => NOW,
-      signCacheToken: async () => `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`,
-    });
-
-    await closeObserved;
-    expect(close).toHaveBeenCalledOnce();
-
-    completeResolve?.('completed');
-    await expect(execution).resolves.toMatchObject({
+    ).resolves.toEqual({
       assigned: 1,
       rendered: 1,
       completed: 1,
-      targetFailed: 0,
-      stale: 0,
+      failed: 0,
+      missing: 0,
       unprocessed: 0,
       browserOpened: true,
       browserClosed: true,
+      browserSessionId: 'browser-session-one',
     });
+    expect(put).toHaveBeenCalledOnce();
+    expect(complete).toHaveBeenCalledWith('job-one', cacheToken, NOW + 15_000);
+    expect(close).toHaveBeenCalledOnce();
   });
 
-  test('records a target render failure and continues without surfacing a systemic error', async () => {
-    const bucket: AssetBucket = {
-      head: async () => null,
-      put: async () => {
-        throw new Error('put should not run');
-      },
-    };
-    const fail = vi.fn(async () => 'failed' as const);
+  test('records a target render failure and continues', async () => {
+    const fail = vi.fn(async () => 'pending' as const);
+    const put = vi.fn();
 
     await expect(
-      executeItemList(config, [item], {
-        bucket,
+      executeItemList(config, [job], {
+        bucket: bucket(put),
         cacheTokenSecret: cacheSecret,
-        client: {
-          revalidate: async () => ({
-            status: 'valid' as const,
-            factionId: item.factionId,
-            assetType: item.assetType,
-            leaseExpiresAt: item.leaseExpiresAt,
-          }),
-          complete: async () => 'completed' as const,
-          fail,
-        },
+        client: { complete: vi.fn(), fail },
         openBrowser: async () => ({
           capture: async () => {
             throw new TargetRenderError('Captured PDF must contain exactly two pages');
@@ -172,96 +90,21 @@ describe('item-list executor', () => {
           sessionId: () => 'browser-session-two',
         }),
         now: () => NOW,
-        signCacheToken: async () => `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`,
       })
-    ).resolves.toMatchObject({
-      assigned: 1,
-      rendered: 0,
-      completed: 0,
-      targetFailed: 1,
-      stale: 0,
-      unprocessed: 0,
-      browserOpened: true,
-      browserClosed: true,
-    });
-    expect(fail).toHaveBeenCalledOnce();
+    ).resolves.toMatchObject({ failed: 1, completed: 0, unprocessed: 0 });
+    expect(fail).toHaveBeenCalledWith('job-one', expect.any(TargetRenderError), NOW + 15_000);
+    expect(put).not.toHaveBeenCalled();
   });
 
-  test('never opens a browser for an invalid list larger than twenty items', async () => {
-    const openBrowser = vi.fn();
-    await expect(
-      executeItemList(
-        config,
-        Array.from({ length: 21 }, () => item),
-        {
-          bucket: {} as AssetBucket,
-          cacheTokenSecret: cacheSecret,
-          client: {} as never,
-          openBrowser,
-        }
-      )
-    ).rejects.toThrow(/between 1 and 20/);
-    expect(openBrowser).not.toHaveBeenCalled();
-  });
-
-  test('stops starting items when the four-minute work window is exhausted', async () => {
-    let currentTime = NOW;
-    const capture = vi.fn(async () => {
-      return capturedPdf();
-    });
-    const complete = vi.fn(async () => {
-      currentTime = NOW + config.workWindowMs;
-      return 'completed' as const;
-    });
-    const second = { ...item, targetId: 'target-two', claimToken: 'claim-token-0000000000000002' };
-
-    await expect(
-      executeItemList(config, [item, second], {
-        bucket: {
-          head: async () => null,
-          put: async () => ({ etag: 'etag-one' }) as R2Object,
-        },
-        cacheTokenSecret: cacheSecret,
-        client: {
-          revalidate: async () => ({
-            status: 'valid' as const,
-            factionId: item.factionId,
-            assetType: item.assetType,
-            leaseExpiresAt: item.leaseExpiresAt,
-          }),
-          complete,
-          fail: async () => 'failed' as const,
-        },
-        openBrowser: async () => ({
-          capture,
-          close: async () => undefined,
-          sessionId: () => 'browser-session-window',
-        }),
-        now: () => currentTime,
-        signCacheToken: async () => `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`,
-      })
-    ).resolves.toMatchObject({
-      assigned: 2,
-      rendered: 1,
-      completed: 1,
-      unprocessed: 1,
-      browserClosed: true,
-    });
-    expect(capture).toHaveBeenCalledOnce();
-  });
-
-  test('leaves infrastructure failures leased and still closes the browser', async () => {
+  test('leaves infrastructure failures in progress for expiry recovery and closes the browser', async () => {
     const fail = vi.fn();
     const close = vi.fn(async () => undefined);
+
     await expect(
-      executeItemList(config, [item], {
-        bucket: {} as AssetBucket,
+      executeItemList(config, [job], {
+        bucket: bucket(),
         cacheTokenSecret: cacheSecret,
-        client: {
-          revalidate: vi.fn(),
-          complete: vi.fn(),
-          fail,
-        },
+        client: { complete: vi.fn(), fail },
         openBrowser: async () => ({
           capture: async () => {
             throw new Error('Browser service unavailable');
@@ -271,48 +114,34 @@ describe('item-list executor', () => {
         }),
         now: () => NOW,
       })
-    ).rejects.toThrow(/Item-list publisher execution failed/);
+    ).rejects.toThrow('Browser service unavailable');
     expect(fail).not.toHaveBeenCalled();
     expect(close).toHaveBeenCalledOnce();
   });
 
-  test('retries a failed completion only after browser close', async () => {
-    let browserClosed = false;
-    const complete = vi
-      .fn<() => Promise<'completed'>>()
-      .mockRejectedValueOnce(new Error('temporary Convex failure'))
-      .mockImplementationOnce(async () => {
-        expect(browserClosed).toBe(true);
-        return 'completed';
-      });
+  test('stops starting new jobs after the work window', async () => {
+    let currentTime = NOW;
+    const capture = vi.fn(async () => capturedPdf());
+    const complete = vi.fn(async () => {
+      currentTime = NOW + config.workWindowMs;
+      return 'completed' as const;
+    });
+    const second = { ...job, jobId: 'job-two', assetId: 'faction-two' };
+
     await expect(
-      executeItemList(config, [item], {
-        bucket: {
-          head: async () => null,
-          put: async () => ({ etag: 'etag-one' }) as R2Object,
-        },
+      executeItemList(config, [job, second], {
+        bucket: bucket(),
         cacheTokenSecret: cacheSecret,
-        client: {
-          revalidate: async () => ({
-            status: 'valid' as const,
-            factionId: item.factionId,
-            assetType: item.assetType,
-            leaseExpiresAt: item.leaseExpiresAt,
-          }),
-          complete,
-          fail: async () => 'failed' as const,
-        },
+        client: { complete, fail: vi.fn() },
         openBrowser: async () => ({
-          capture: async () => capturedPdf(),
-          close: async () => {
-            browserClosed = true;
-          },
-          sessionId: () => 'browser-session-retry',
+          capture,
+          close: async () => undefined,
+          sessionId: () => 'browser-session-window',
         }),
-        now: () => NOW,
-        signCacheToken: async () => `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`,
+        now: () => currentTime,
+        signCacheToken: async () => cacheToken,
       })
-    ).resolves.toMatchObject({ completed: 1, browserClosed: true });
-    expect(complete).toHaveBeenCalledTimes(2);
+    ).resolves.toMatchObject({ assigned: 2, completed: 1, unprocessed: 1 });
+    expect(capture).toHaveBeenCalledOnce();
   });
 });

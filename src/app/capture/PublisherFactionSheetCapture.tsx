@@ -136,14 +136,14 @@ function afterPaint(): Promise<void> {
 
 export function PublisherFactionSheetCapture() {
   const [state, setState] = useState<CaptureState>('loading');
-  const [detail, setDetail] = useState('Loading exact claimed snapshot');
+  const [detail, setDetail] = useState('Loading Publication job snapshot');
   const [faction, setFaction] = useState<FactionInput>();
   const [payloadHash, setPayloadHash] = useState<string>();
 
   useEffect(() => {
     const controller = new AbortController();
     const timeout = window.setTimeout(
-      () => controller.abort(new Error('Timed out loading exact claimed snapshot')),
+      () => controller.abort(new Error('Timed out loading Publication job snapshot')),
       ASSET_SETTLE_TIMEOUT_MS
     );
     void (async () => {
@@ -153,11 +153,12 @@ export function PublisherFactionSheetCapture() {
           credentials: 'same-origin',
           signal: controller.signal,
         });
-        if (!response.ok) throw new Error(`Claimed snapshot returned HTTP ${response.status}`);
+        if (!response.ok)
+          throw new Error(`Publication job snapshot returned HTTP ${response.status}`);
         const snapshot = publisherCaptureSnapshotSchema.parse(await response.json());
         setFaction(snapshot.payload.faction);
         setPayloadHash(snapshot.payloadHash);
-        setDetail(`Rendering exact claimed snapshot ${snapshot.payloadHash}`);
+        setDetail(`Rendering Publication job snapshot ${snapshot.payloadHash}`);
       } catch (error) {
         setState('error');
         setDetail(publisherErrorMessage(error));

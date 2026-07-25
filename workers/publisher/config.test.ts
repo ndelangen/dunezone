@@ -1,8 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
-import { createCacheSigningSecret } from '../../convex/lib/assetPublisherHttp';
+import { createCacheSigningSecret } from '../../convex/lib/publicationHttp';
 import { parsePublisherConfig } from './config';
-import { rendererManifest } from './renderer-manifest.generated';
 
 function env(overrides: Record<string, string> = {}): Env {
   return {
@@ -11,7 +10,7 @@ function env(overrides: Record<string, string> = {}): Env {
     CAPTURE_BASE_URL: 'https://publisher.example.com',
     CONVEX_EXECUTOR_BASE_URL: 'https://convex.example.com/executor',
     CONVEX_RENDER_URL: 'https://convex.example.com/render',
-    SUPPORTED_RENDERER_VERSION: rendererManifest.rendererVersion,
+    GIT_SHA: 'development',
     WORK_WINDOW_MS: '240000',
     BROWSER_CAPTURE_TIMEOUT_MS: '45000',
     BROWSER_CLEANUP_GRACE_MS: '15000',
@@ -21,20 +20,19 @@ function env(overrides: Record<string, string> = {}): Env {
 }
 
 describe('publisher lifecycle configuration', () => {
-  test('accepts the five-minute cron work-window contract', () => {
+  test('accepts the five-minute cron work-window contract without Renderer selection', () => {
     const config = parsePublisherConfig(env());
-    expect(config).toMatchObject({
+    expect(config).toEqual({
+      captureBaseUrl: 'https://publisher.example.com',
+      convexExecutorBaseUrl: 'https://convex.example.com/executor',
       workWindowMs: 240_000,
       browserCaptureTimeoutMs: 45_000,
       browserCleanupGraceMs: 15_000,
+      pdfMaxBytes: 8_000_000,
     });
-    expect(
-      config.browserCaptureTimeoutMs + config.browserCleanupGraceMs + 5_000
-    ).toBeLessThanOrEqual(config.workWindowMs);
-    expect(config.supportedRendererVersions).toEqual(['faction-sheet-v4']);
   });
 
-  test('still validates the capture route upstream without projecting it into executor config', () => {
+  test('validates the capture route upstream without projecting it into executor config', () => {
     expect(() => parsePublisherConfig(env({ CONVEX_RENDER_URL: 'not-a-url' }))).toThrow();
   });
 
@@ -44,15 +42,6 @@ describe('publisher lifecycle configuration', () => {
         env({ BROWSER_CAPTURE_TIMEOUT_MS: '225001', BROWSER_CLEANUP_GRACE_MS: '10000' })
       )
     ).toThrow(/absolute executor lifecycle deadline/);
-  });
-
-  test.each([
-    rendererManifest.rendererId,
-    'mutable-renderer-alias',
-  ])('rejects unsupported renderer version %s', (rendererVersion) => {
-    expect(() =>
-      parsePublisherConfig(env({ SUPPORTED_RENDERER_VERSION: rendererVersion }))
-    ).toThrow(/embedded renderer compatibility version/);
   });
 
   test('requires distinct executor and cache-token secrets', () => {

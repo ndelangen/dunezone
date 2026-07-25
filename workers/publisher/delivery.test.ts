@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { createCacheSigningSecret, createCacheToken } from '../../convex/lib/assetPublisherHttp';
+import { createCacheSigningSecret, createCacheToken } from '../../convex/lib/publicationHttp';
 import {
   factionSheetPublicPath,
   handlePublicAssetRequest,
@@ -119,20 +119,19 @@ describe('public faction-sheet delivery', () => {
     expect(head).not.toHaveBeenCalled();
   });
 
-  test('rejects a valid token when object metadata binds a different unpublished token', async () => {
+  test('keeps an existing signed link working while stable R2 bytes are replaced', async () => {
     const oldToken = await createCacheToken(FACTION_ID, 'faction_sheet', SECRET);
     const newToken = await createCacheToken(FACTION_ID, 'faction_sheet', SECRET);
     const bucket: PublicAssetBucket = {
       head: async () => metadataObject({ token: newToken }),
-      get: vi.fn(),
+      get: async () => bodyObject(new Uint8Array([1, 2, 3]), { token: newToken }),
     };
 
     const response = await handlePublicAssetRequest(request(oldToken), env(bucket), context(), {
       cache: cache().value,
     });
 
-    expect(response?.status).toBe(404);
-    expect(bucket.get).not.toHaveBeenCalled();
+    expect(response?.status).toBe(200);
   });
 
   test('serves a legacy object without token metadata when the cache token is valid', async () => {
@@ -150,7 +149,7 @@ describe('public faction-sheet delivery', () => {
     expect(response?.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
   });
 
-  test('serves a token-bound object only when the URL token matches the stored metadata', async () => {
+  test('serves a token-bound object when the URL token is valid for the asset', async () => {
     const token = await createCacheToken(FACTION_ID, 'faction_sheet', SECRET);
     const bucket: PublicAssetBucket = {
       head: async () => metadataObject({ token }),

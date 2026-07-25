@@ -8,33 +8,32 @@
  * @module
  */
 
-import type * as assetPublisher from "../assetPublisher.js";
-import type * as assetPublisherOperator from "../assetPublisherOperator.js";
 import type * as assetPublishingStatus from "../assetPublishingStatus.js";
-import type * as assetRollouts from "../assetRollouts.js";
 import type * as auth from "../auth.js";
 import type * as e2e from "../e2e.js";
 import type * as factions from "../factions.js";
 import type * as faq from "../faq.js";
 import type * as groups from "../groups.js";
 import type * as http from "../http.js";
-import type * as lib_assetPublisherConstants from "../lib/assetPublisherConstants.js";
-import type * as lib_assetPublisherHttp from "../lib/assetPublisherHttp.js";
-import type * as lib_assetPublisherSchemas from "../lib/assetPublisherSchemas.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
-import type * as lib_factionSheetTargets from "../lib/factionSheetTargets.js";
+import type * as lib_factionInput from "../lib/factionInput.js";
 import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_memberGroups from "../lib/memberGroups.js";
 import type * as lib_policy from "../lib/policy.js";
 import type * as lib_profileBootstrap from "../lib/profileBootstrap.js";
 import type * as lib_profileSummary from "../lib/profileSummary.js";
+import type * as lib_publication from "../lib/publication.js";
+import type * as lib_publicationHttp from "../lib/publicationHttp.js";
 import type * as lib_utils from "../lib/utils.js";
 import type * as localDevelopment from "../localDevelopment.js";
 import type * as members from "../members.js";
 import type * as migrations from "../migrations.js";
 import type * as migrationsTemplate from "../migrationsTemplate.js";
 import type * as profiles from "../profiles.js";
+import type * as publicationAdmin from "../publicationAdmin.js";
+import type * as publicationJobs from "../publicationJobs.js";
+import type * as publicationRegeneration from "../publicationRegeneration.js";
 import type * as rulesets from "../rulesets.js";
 import type * as types from "../types.js";
 
@@ -45,33 +44,32 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  assetPublisher: typeof assetPublisher;
-  assetPublisherOperator: typeof assetPublisherOperator;
   assetPublishingStatus: typeof assetPublishingStatus;
-  assetRollouts: typeof assetRollouts;
   auth: typeof auth;
   e2e: typeof e2e;
   factions: typeof factions;
   faq: typeof faq;
   groups: typeof groups;
   http: typeof http;
-  "lib/assetPublisherConstants": typeof lib_assetPublisherConstants;
-  "lib/assetPublisherHttp": typeof lib_assetPublisherHttp;
-  "lib/assetPublisherSchemas": typeof lib_assetPublisherSchemas;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
-  "lib/factionSheetTargets": typeof lib_factionSheetTargets;
+  "lib/factionInput": typeof lib_factionInput;
   "lib/faqRulesetList": typeof lib_faqRulesetList;
   "lib/ids": typeof lib_ids;
   "lib/memberGroups": typeof lib_memberGroups;
   "lib/policy": typeof lib_policy;
   "lib/profileBootstrap": typeof lib_profileBootstrap;
   "lib/profileSummary": typeof lib_profileSummary;
+  "lib/publication": typeof lib_publication;
+  "lib/publicationHttp": typeof lib_publicationHttp;
   "lib/utils": typeof lib_utils;
   localDevelopment: typeof localDevelopment;
   members: typeof members;
   migrations: typeof migrations;
   migrationsTemplate: typeof migrationsTemplate;
   profiles: typeof profiles;
+  publicationAdmin: typeof publicationAdmin;
+  publicationJobs: typeof publicationJobs;
+  publicationRegeneration: typeof publicationRegeneration;
   rulesets: typeof rulesets;
   types: typeof types;
 }>;

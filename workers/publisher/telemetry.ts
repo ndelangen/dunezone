@@ -4,28 +4,25 @@ import { rendererManifest } from './renderer-manifest.generated';
 export const MAX_TELEMETRY_EVENT_BYTES = 8_192;
 
 export type PublisherBuildIdentity = {
+  gitSha: string;
   workerVersionId: string;
   workerVersionTag: string;
   workerVersionTimestamp: string;
-  rendererId: string;
+  rendererIdentity: string;
   rendererManifestDigest: string;
-  configuredRendererVersion: string;
-  rendererConfigurationMatchesManifest: boolean;
 };
 
 export function publisherBuildIdentity(
   metadata: WorkerVersionMetadata,
-  configuredRendererVersion: string
+  gitSha: string
 ): PublisherBuildIdentity {
   return {
+    gitSha,
     workerVersionId: metadata.id,
     workerVersionTag: metadata.tag,
     workerVersionTimestamp: metadata.timestamp,
-    rendererId: rendererManifest.rendererId,
+    rendererIdentity: rendererManifest.rendererIdentity,
     rendererManifestDigest: rendererManifest.digest,
-    configuredRendererVersion,
-    rendererConfigurationMatchesManifest:
-      configuredRendererVersion === rendererManifest.rendererVersion,
   };
 }
 

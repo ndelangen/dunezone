@@ -1,12 +1,11 @@
-import { createCacheToken } from '../../convex/lib/assetPublisherHttp';
-import { publisherErrorMessage } from '../../src/app/capture/publisher-diagnostics';
+import { createCacheToken } from '../../convex/lib/publicationHttp';
 import { type CapturedPdf, type PublisherBrowserSession, TargetRenderError } from './browser';
-import { MAX_ASSIGNED_ITEMS, type PublisherConfig } from './config';
-import type { AssignedItem, ConvexPublisherClient, ExactItemClaim } from './convex';
-import { type AssetBucket, conditionallyPutFactionSheet } from './r2';
+import type { PublisherConfig } from './config';
+import type { AssignedPublicationJob, ConvexPublisherClient } from './convex';
+import { type AssetBucket, putPublishedAsset } from './r2';
 
 type BrowserSession = Pick<PublisherBrowserSession, 'capture' | 'close' | 'sessionId'>;
-type PublisherClient = Pick<ConvexPublisherClient, 'revalidate' | 'complete' | 'fail'>;
+type PublisherClient = Pick<ConvexPublisherClient, 'complete' | 'fail'>;
 
 export type ItemListDependencies = {
   bucket: AssetBucket;
@@ -21,60 +20,16 @@ export type ItemListExecution = {
   assigned: number;
   rendered: number;
   completed: number;
-  targetFailed: number;
-  stale: number;
+  failed: number;
+  missing: number;
   unprocessed: number;
   browserOpened: boolean;
   browserClosed: boolean;
   browserSessionId: string | null;
 };
 
-type CompletionObservation =
-  | { status: 'completed' | 'stale' }
-  | { status: 'error'; error: unknown };
-
-type PendingCompletion = {
-  claim: ExactItemClaim;
-  publication: { r2Etag: string; bytes: number; cacheToken: string };
-  initial: Promise<CompletionObservation>;
-};
-
-function exact(item: AssignedItem): ExactItemClaim {
-  return {
-    targetId: item.targetId,
-    claimToken: item.claimToken,
-    generation: item.generation,
-    rendererVersion: item.rendererVersion,
-  };
-}
-
 function requestDeadline(now: () => number, absoluteDeadlineAt: number): number {
   return Math.min(absoluteDeadlineAt, now() + 15_000);
-}
-
-function observeCompletion(
-  promise: Promise<'completed' | 'stale'>
-): Promise<CompletionObservation> {
-  return promise.then(
-    (status) => ({ status }),
-    (error: unknown) => ({ status: 'error', error })
-  );
-}
-
-async function reconcileCompletion(
-  pending: PendingCompletion,
-  client: PublisherClient,
-  absoluteDeadlineAt: number,
-  now: () => number
-): Promise<CompletionObservation> {
-  let observation = await pending.initial;
-  for (let attempt = 1; observation.status === 'error' && attempt < 3; attempt += 1) {
-    if (now() >= absoluteDeadlineAt) break;
-    observation = await observeCompletion(
-      client.complete(pending.claim, pending.publication, requestDeadline(now, absoluteDeadlineAt))
-    );
-  }
-  return observation;
 }
 
 function assertCapturedSize(captured: CapturedPdf, maximum: number): void {
@@ -86,24 +41,20 @@ function assertCapturedSize(captured: CapturedPdf, maximum: number): void {
 /** Processes one fixed Convex assignment in exactly one Browser session. */
 export async function executeItemList(
   config: PublisherConfig,
-  items: AssignedItem[],
+  items: AssignedPublicationJob[],
   dependencies: ItemListDependencies
 ): Promise<ItemListExecution> {
-  if (items.length < 1 || items.length > MAX_ASSIGNED_ITEMS) {
-    throw new Error(`Assigned item list must contain between 1 and ${MAX_ASSIGNED_ITEMS} items`);
-  }
+  if (items.length < 1) throw new Error('Assigned Publication job list must not be empty');
   const now = dependencies.now ?? Date.now;
   const signCacheToken = dependencies.signCacheToken ?? createCacheToken;
-  const startedAt = now();
-  const workDeadlineAt = startedAt + config.workWindowMs;
+  const workDeadlineAt = now() + config.workWindowMs;
   const completionDeadlineAt = workDeadlineAt + config.browserCleanupGraceMs;
-  const pendingCompletions: PendingCompletion[] = [];
   const result: ItemListExecution = {
     assigned: items.length,
     rendered: 0,
     completed: 0,
-    targetFailed: 0,
-    stale: 0,
+    failed: 0,
+    missing: 0,
     unprocessed: items.length,
     browserOpened: false,
     browserClosed: false,
@@ -119,80 +70,45 @@ export async function executeItemList(
 
     for (const item of items) {
       if (now() >= workDeadlineAt) break;
-      // The item version fences invalidation and completion; the deployed Worker always renders
-      // with its one current implementation.
-
-      let captured: CapturedPdf;
       try {
-        const remaining = workDeadlineAt - now();
-        if (remaining <= 0) break;
-        captured = await browser.capture(
-          item.claimToken,
-          Math.min(config.browserCaptureTimeoutMs, remaining)
+        const captured = await browser.capture(
+          item.jobId,
+          Math.min(config.browserCaptureTimeoutMs, workDeadlineAt - now())
         );
         assertCapturedSize(captured, config.pdfMaxBytes);
+        result.rendered += 1;
+
+        const cacheToken = await signCacheToken(
+          item.assetId,
+          item.assetType,
+          dependencies.cacheTokenSecret
+        );
+        await putPublishedAsset(
+          dependencies.bucket,
+          item,
+          captured.payloadHash,
+          cacheToken,
+          captured.bytes
+        );
+        const completion = await dependencies.client.complete(
+          item.jobId,
+          cacheToken,
+          requestDeadline(now, completionDeadlineAt)
+        );
+        if (completion === 'completed') result.completed += 1;
+        else result.missing += 1;
+        result.unprocessed -= 1;
       } catch (error) {
         if (!(error instanceof TargetRenderError)) throw error;
         const failure = await dependencies.client.fail(
-          exact(item),
-          publisherErrorMessage(error),
+          item.jobId,
+          error,
           requestDeadline(now, completionDeadlineAt)
         );
-        if (failure === 'failed' || failure === 'blocked') result.targetFailed += 1;
-        else result.stale += 1;
+        if (failure === 'missing') result.missing += 1;
+        else result.failed += 1;
         result.unprocessed -= 1;
-        continue;
       }
-
-      if (now() >= workDeadlineAt) break;
-      result.rendered += 1;
-      const revalidated = await dependencies.client.revalidate(
-        exact(item),
-        requestDeadline(now, workDeadlineAt)
-      );
-      if (revalidated.status === 'stale') {
-        result.stale += 1;
-        result.unprocessed -= 1;
-        continue;
-      }
-      if (now() >= workDeadlineAt) break;
-      if (
-        revalidated.factionId !== item.factionId ||
-        revalidated.assetType !== item.assetType ||
-        revalidated.leaseExpiresAt !== item.leaseExpiresAt
-      ) {
-        throw new Error('Revalidation identity does not match the assigned item');
-      }
-
-      const cacheToken = await signCacheToken(
-        item.factionId,
-        item.assetType,
-        dependencies.cacheTokenSecret
-      );
-      const stored = await conditionallyPutFactionSheet(
-        dependencies.bucket,
-        item,
-        captured.payloadHash,
-        cacheToken,
-        captured.bytes
-      );
-      const publication = {
-        r2Etag: stored.etag,
-        bytes: captured.bytes.byteLength,
-        cacheToken,
-      };
-      pendingCompletions.push({
-        claim: exact(item),
-        publication,
-        initial: observeCompletion(
-          dependencies.client.complete(
-            exact(item),
-            publication,
-            requestDeadline(now, completionDeadlineAt)
-          )
-        ),
-      });
-      result.unprocessed -= 1;
     }
   } catch (error) {
     executionError = error;
@@ -207,24 +123,6 @@ export async function executeItemList(
     }
   }
 
-  const completionErrors: unknown[] = [];
-  for (const pending of pendingCompletions) {
-    const observation = await reconcileCompletion(
-      pending,
-      dependencies.client,
-      completionDeadlineAt,
-      now
-    );
-    if (observation.status === 'error') completionErrors.push(observation.error);
-    else if (observation.status === 'completed') result.completed += 1;
-    else result.stale += 1;
-  }
-
-  if (executionError || completionErrors.length > 0) {
-    throw new AggregateError(
-      [...(executionError ? [executionError] : []), ...completionErrors],
-      'Item-list publisher execution failed'
-    );
-  }
+  if (executionError) throw executionError;
   return result;
 }

@@ -1,31 +1,27 @@
 import { httpRouter } from 'convex/server';
 
+import {
+  completePublicationJobRequestSchema,
+  failPublicationJobRequestSchema,
+  publicationRevisionRequestSchema,
+  takePublicationWorkRequestSchema,
+} from '../src/shared/asset-publishing/publication';
 import { publisherCaptureSnapshotSchema } from '../src/shared/asset-publishing/publisher-snapshot';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { type ActionCtx, httpAction } from './_generated/server';
 import { auth } from './auth';
-import { MAX_PUBLISHER_ITEMS } from './lib/assetPublisherConstants';
 import {
   handleAuthenticatedJson,
-  InvalidPublisherRequestError,
-  publisherJson,
-  randomPublisherToken,
-} from './lib/assetPublisherHttp';
-import {
-  completeItemRequestSchema,
-  exactItemRequestSchema,
-  failItemRequestSchema,
-  operatorRequestSchema,
-  rolloutOperatorRequestSchema,
-  takeWorkRequestSchema,
-} from './lib/assetPublisherSchemas';
+  InvalidPublicationRequestError,
+  publicationJson,
+} from './lib/publicationHttp';
 
 const http = httpRouter();
 
 auth.addHttpRoutes(http);
 
-function publisherSecret() {
+function executorSecret() {
   const executor = process.env.ASSET_PUBLISHER_EXECUTOR_SECRET;
   const activation = process.env.ASSET_PUBLISHER_ACTIVATION_SECRET;
   const cache = process.env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET;
@@ -33,152 +29,58 @@ function publisherSecret() {
   return executor;
 }
 
-function activationBoundarySecret() {
+function activationSecret() {
   const activation = process.env.ASSET_PUBLISHER_ACTIVATION_SECRET;
-  const otherPublisherSecrets = [
+  const otherSecrets = [
     process.env.ASSET_PUBLISHER_EXECUTOR_SECRET,
     process.env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET,
   ].filter((secret): secret is string => Boolean(secret));
-  if (!activation || otherPublisherSecrets.includes(activation)) return undefined;
+  if (!activation || otherSecrets.includes(activation)) return undefined;
   return activation;
 }
 
-async function exactItemArgs(
-  ctx: ActionCtx,
-  body: {
-    targetId: string;
-    claimToken: string;
-    generation: number;
-    rendererVersion: string;
-  }
-) {
-  const targetId: Id<'asset_targets'> | null = await ctx.runQuery(
-    internal.assetPublisher.normalizeTargetId,
-    { targetId: body.targetId }
+async function normalizeJobId(ctx: ActionCtx, jobId: string) {
+  const normalized: Id<'publication_jobs'> | null = await ctx.runQuery(
+    internal.publicationJobs.normalizeJobId,
+    { jobId }
   );
-  if (!targetId) throw new InvalidPublisherRequestError('Invalid publisher target id');
-  return {
-    targetId,
-    claimToken: body.claimToken,
-    generation: body.generation,
-    rendererVersion: body.rendererVersion,
-  };
+  if (!normalized) throw new InvalidPublicationRequestError('Invalid Publication job id');
+  return normalized;
 }
 
 http.route({
-  path: '/asset-publishing/operator',
+  path: '/asset-publishing/revisions',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     return await handleAuthenticatedJson(request, {
-      expectedSecret: activationBoundarySecret(),
-      schema: operatorRequestSchema,
+      expectedSecret: activationSecret(),
+      schema: publicationRevisionRequestSchema,
       execute: async (body) => {
+        if (body.operation === 'read') {
+          return {
+            ok: true,
+            schemaVersion: body.schemaVersion,
+            operation: body.operation,
+            rendererRevisions: await ctx.runQuery(internal.publicationAdmin.readRevisions, {}),
+          };
+        }
         if (body.operation === 'initialize') {
           return {
             ok: true,
             schemaVersion: body.schemaVersion,
             operation: body.operation,
-            ...(await ctx.runMutation(internal.assetPublisherOperator.initializeDisabled, {})),
-          };
-        }
-        if (body.operation === 'pause') {
-          return {
-            ok: true,
-            schemaVersion: body.schemaVersion,
-            operation: body.operation,
-            ...(await ctx.runMutation(internal.assetPublisherOperator.pause, {})),
-          };
-        }
-        if (body.operation === 'disable') {
-          return {
-            ok: true,
-            schemaVersion: body.schemaVersion,
-            operation: body.operation,
-            ...(await ctx.runMutation(internal.assetPublisherOperator.disable, {})),
-          };
-        }
-        return {
-          ok: true,
-          schemaVersion: body.schemaVersion,
-          operation: body.operation,
-          ...(await ctx.runMutation(internal.assetPublisherOperator.activate, {
-            rendererVersion: body.rendererVersion,
-          })),
-        };
-      },
-    });
-  }),
-});
-
-http.route({
-  path: '/asset-publishing/rollouts',
-  method: 'POST',
-  handler: httpAction(async (ctx, request) => {
-    return await handleAuthenticatedJson(request, {
-      expectedSecret: activationBoundarySecret(),
-      schema: rolloutOperatorRequestSchema,
-      execute: async (body) => {
-        if (body.operation === 'create_paused') {
-          return {
-            ok: true,
-            schemaVersion: body.schemaVersion,
-            operation: body.operation,
-            rollout: await ctx.runMutation(internal.assetRollouts.createPaused, {
-              targetRendererVersion: body.targetRendererVersion,
-            }),
-          };
-        }
-        const rolloutId = body.rolloutId
-          ? await ctx.runQuery(internal.assetRollouts.normalizeRolloutId, {
-              rolloutId: body.rolloutId,
-            })
-          : null;
-        if (body.rolloutId && !rolloutId) {
-          throw new InvalidPublisherRequestError('Invalid rollout id');
-        }
-        if (body.operation === 'progress') {
-          return {
-            ok: true,
-            schemaVersion: body.schemaVersion,
-            operation: body.operation,
-            ...(await ctx.runQuery(internal.assetRollouts.progress, {
-              ...(rolloutId ? { rolloutId } : {}),
+            ...(await ctx.runMutation(internal.publicationAdmin.initialize, {
+              rendererRevisions: body.rendererRevisions,
             })),
           };
         }
-        if (!rolloutId) throw new InvalidPublisherRequestError('Rollout id is required');
-        if (body.operation === 'resume') {
-          return {
-            ok: true,
-            schemaVersion: body.schemaVersion,
-            operation: body.operation,
-            rollout: await ctx.runMutation(internal.assetRollouts.resume, { rolloutId }),
-          };
-        }
-        if (body.operation === 'pause') {
-          return {
-            ok: true,
-            schemaVersion: body.schemaVersion,
-            operation: body.operation,
-            rollout: await ctx.runMutation(internal.assetRollouts.pause, { rolloutId }),
-          };
-        }
-        if (body.operation === 'cancel') {
-          return {
-            ok: true,
-            schemaVersion: body.schemaVersion,
-            operation: body.operation,
-            rollout: await ctx.runMutation(internal.assetRollouts.cancel, { rolloutId }),
-          };
-        }
         return {
           ok: true,
           schemaVersion: body.schemaVersion,
           operation: body.operation,
-          rollout: await ctx.runMutation(internal.assetRollouts.createRollback, {
-            rollbackOfRolloutId: rolloutId,
-            targetRendererVersion: body.targetRendererVersion,
-          }),
+          ...(await ctx.runMutation(internal.publicationAdmin.activateRevisions, {
+            rendererRevisions: body.rendererRevisions,
+          })),
         };
       },
     });
@@ -190,50 +92,28 @@ http.route({
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherSecret(),
-      schema: takeWorkRequestSchema,
+      expectedSecret: executorSecret(),
+      schema: takePublicationWorkRequestSchema,
       execute: async (body) => ({
         ok: true,
         schemaVersion: body.schemaVersion,
-        ...(await ctx.runMutation(internal.assetPublisher.takeWork, {
-          claimTokens: Array.from({ length: MAX_PUBLISHER_ITEMS }, () => randomPublisherToken()),
-        })),
+        ...(await ctx.runMutation(internal.publicationJobs.takeWork, {})),
       }),
     });
   }),
 });
 
 http.route({
-  path: '/asset-publishing/executor/revalidate-item',
+  path: '/asset-publishing/executor/complete-job',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherSecret(),
-      schema: exactItemRequestSchema,
+      expectedSecret: executorSecret(),
+      schema: completePublicationJobRequestSchema,
       execute: async (body) => ({
         ok: true,
-        ...(await ctx.runQuery(
-          internal.assetPublisher.revalidateItem,
-          await exactItemArgs(ctx, body)
-        )),
-      }),
-    });
-  }),
-});
-
-http.route({
-  path: '/asset-publishing/executor/complete-item',
-  method: 'POST',
-  handler: httpAction(async (ctx, request) => {
-    return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherSecret(),
-      schema: completeItemRequestSchema,
-      execute: async (body) => ({
-        ok: true,
-        ...(await ctx.runMutation(internal.assetPublisher.completeItem, {
-          ...(await exactItemArgs(ctx, body)),
-          r2Etag: body.r2Etag,
-          bytes: body.bytes,
+        ...(await ctx.runMutation(internal.publicationJobs.completeJob, {
+          jobId: await normalizeJobId(ctx, body.jobId),
           cacheToken: body.cacheToken,
         })),
       }),
@@ -242,17 +122,16 @@ http.route({
 });
 
 http.route({
-  path: '/asset-publishing/executor/fail-item',
+  path: '/asset-publishing/executor/fail-job',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     return await handleAuthenticatedJson(request, {
-      expectedSecret: publisherSecret(),
-      schema: failItemRequestSchema,
+      expectedSecret: executorSecret(),
+      schema: failPublicationJobRequestSchema,
       execute: async (body) => ({
         ok: true,
-        ...(await ctx.runMutation(internal.assetPublisher.failItem, {
-          ...(await exactItemArgs(ctx, body)),
-          attribution: body.attribution,
+        ...(await ctx.runMutation(internal.publicationJobs.failJob, {
+          jobId: await normalizeJobId(ctx, body.jobId),
           error: body.error,
         })),
       }),
@@ -265,17 +144,22 @@ http.route({
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
     const authorization = request.headers.get('Authorization') ?? '';
-    const claimToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-    const item = await ctx.runQuery(internal.assetPublisher.readItemForRender, { claimToken });
-    return item
-      ? publisherJson(
+    const rawJobId = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+    const jobId = rawJobId
+      ? await ctx.runQuery(internal.publicationJobs.normalizeJobId, { jobId: rawJobId })
+      : null;
+    const job = jobId
+      ? await ctx.runQuery(internal.publicationJobs.readJobForRender, { jobId })
+      : null;
+    return job
+      ? publicationJson(
           publisherCaptureSnapshotSchema.parse({
             ok: true,
-            payload: item.payload,
-            payloadHash: item.payloadHash,
+            payload: job.payload,
+            payloadHash: job.payloadHash,
           })
         )
-      : publisherJson({ error: 'Not found' }, 404);
+      : publicationJson({ error: 'Not found' }, 404);
   }),
 });
 
