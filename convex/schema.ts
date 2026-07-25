@@ -105,8 +105,8 @@ export default defineSchema({
     renderer_revisions: v.record(v.string(), v.number()),
     updated_at: v.number(),
   }).index('by_key', ['key']),
-  // Release 1 keeps these populated legacy declarations inert. No active code
-  // reads or writes them; a later bounded migration empties them before removal.
+  // Release 3 empties these inert legacy tables with bounded migrations.
+  // Release 4 removes their declarations after production verifies completion.
   asset_targets: defineTable({
     faction_id: v.id('factions'),
     asset_type: v.literal('faction_sheet'),
