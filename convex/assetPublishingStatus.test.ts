@@ -47,16 +47,16 @@ describe('public asset publishing status projection', () => {
 
     expect(await publicStatus(t, factionId)).toEqual({
       status: null,
+      captureStatus: null,
       publicationHref: null,
       lastPublishedAt: null,
     });
   });
 
   test.each([
-    'pending',
-    'in_progress',
-    'error',
-  ] as const)('does not expose %s job state publicly', async (status) => {
+    ['pending', 'scheduled'],
+    ['in_progress', 'in_progress'],
+  ] as const)('projects %s job state as %s capture state', async (status, captureStatus) => {
     const t = convexTest(schema, modules);
     const factionId = await seedFaction(t);
     await t.run(
@@ -78,6 +78,35 @@ describe('public asset publishing status projection', () => {
 
     expect(await publicStatus(t, factionId)).toEqual({
       status: null,
+      captureStatus,
+      publicationHref: null,
+      lastPublishedAt: null,
+    });
+  });
+
+  test('does not expose failed work as an active capture', async () => {
+    const t = convexTest(schema, modules);
+    const factionId = await seedFaction(t);
+    await t.run(
+      async (ctx) =>
+        await ctx.db.insert('publication_jobs', {
+          asset_type: 'faction_sheet',
+          asset_id: factionId,
+          asset_data: {
+            factionId,
+            slug: 'status-projection',
+            faction: assetPublishingFaction,
+          },
+          status: 'error',
+          attempt_counter: 10,
+          created_at: 1,
+          updated_at: 1,
+        })
+    );
+
+    expect(await publicStatus(t, factionId)).toEqual({
+      status: null,
+      captureStatus: null,
       publicationHref: null,
       lastPublishedAt: null,
     });
@@ -110,8 +139,33 @@ describe('public asset publishing status projection', () => {
 
     expect(await publicStatus(t, factionId)).toEqual({
       status: 'current',
+      captureStatus: 'scheduled',
       publicationHref: `/published/factions/${factionId}/sheet.pdf?v=private-cache-token`,
       lastPublishedAt: 789,
     });
+  });
+
+  test('shows active capture ahead of a pending successor', async () => {
+    const t = convexTest(schema, modules);
+    const factionId = await seedFaction(t);
+    await t.run(async (ctx) => {
+      for (const status of ['in_progress', 'pending'] as const) {
+        await ctx.db.insert('publication_jobs', {
+          asset_type: 'faction_sheet',
+          asset_id: factionId,
+          asset_data: {
+            factionId,
+            slug: 'status-projection',
+            faction: assetPublishingFaction,
+          },
+          status,
+          attempt_counter: 0,
+          created_at: status === 'in_progress' ? 1 : 2,
+          updated_at: status === 'in_progress' ? 1 : 2,
+        });
+      }
+    });
+
+    expect((await publicStatus(t, factionId)).captureStatus).toBe('in_progress');
   });
 });

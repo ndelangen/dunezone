@@ -180,6 +180,7 @@ export function useFaction(
     groupAccess: result.data?.groupAccess ?? null,
     assetPublishing: result.data?.assetPublishing ?? {
       status: null,
+      captureStatus: null,
       publicationHref: null,
       lastPublishedAt: null,
     },

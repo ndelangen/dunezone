@@ -65,7 +65,7 @@ export function FactionAuthoringToolbar({
             ? 'green'
             : 'gray';
   const publishingCopy = assetPublishing
-    ? factionAssetPublishingCopy(assetPublishing.status, saveState)
+    ? factionAssetPublishingCopy(assetPublishing.status, saveState, assetPublishing.captureStatus)
     : saveState === 'saved'
       ? 'Saved. Publication scheduled.'
       : 'Saving this faction schedules its public assets.';
