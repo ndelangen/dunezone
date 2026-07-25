@@ -161,6 +161,7 @@ function FactionDetailPage() {
   const data = faction.data;
   const planets = data.planet ?? [];
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
+  const publishingStatus = assetPublishing.captureStatus ?? assetPublishing.status;
 
   return (
     <PageLayout
@@ -608,18 +609,32 @@ function FactionDetailPage() {
                 <Badge
                   variant="light"
                   color={
-                    assetPublishing.status === 'current'
+                    publishingStatus === 'current'
                       ? 'green'
-                      : assetPublishing.status === 'delayed'
+                      : publishingStatus === 'scheduled'
                         ? 'yellow'
-                        : 'gray'
+                        : publishingStatus === 'in_progress'
+                          ? 'blue'
+                          : 'gray'
                   }
+                  role="status"
+                  aria-live="polite"
                 >
-                  {assetPublishing.status ?? 'Unavailable'}
+                  {publishingStatus === 'in_progress'
+                    ? 'In progress'
+                    : publishingStatus === 'scheduled'
+                      ? 'Scheduled'
+                      : publishingStatus === 'current'
+                        ? 'Current'
+                        : 'Unavailable'}
                 </Badge>
               </Group>
               <Text size="sm" c="dimmed">
-                {factionAssetPublishingCopy(assetPublishing.status)}
+                {factionAssetPublishingCopy(
+                  assetPublishing.status,
+                  'idle',
+                  assetPublishing.captureStatus
+                )}
               </Text>
               <Anchor
                 fw={600}
