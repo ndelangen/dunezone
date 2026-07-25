@@ -5,5 +5,5 @@ import { FACTION_SHEET_ASSET_TYPE } from './publication';
  * It never selects a historical Renderer implementation.
  */
 export const CHECKED_IN_RENDERER_REVISIONS = {
-  [FACTION_SHEET_ASSET_TYPE]: 4,
+  [FACTION_SHEET_ASSET_TYPE]: 5,
 } as const;
