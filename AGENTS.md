@@ -29,6 +29,11 @@ Follow the canonical validation guidance in [`docs/data-layer.md`](docs/data-lay
 - Shared Zod schemas parsed in Convex handlers (`safeParse`) for authoritative semantic/business rules.
 - Client-side parsing only for UX feedback.
 
+Before opening or updating any PR that changes application code, publisher code, or release
+assets, run `bun run publisher:release:verify`. The publisher Worker contains the application
+release, while its Renderer identity intentionally excludes application-only shell and chunk
+files. A generated manifest diff must be resolved before push, not discovered by PR CI.
+
 ## Agent skills
 
 ### Issue tracker

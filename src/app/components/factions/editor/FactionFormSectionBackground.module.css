@@ -86,8 +86,25 @@
   place-items: center;
 }
 
-@media (max-width: 48em) {
-  .pipelineTop,
+@container connected-tabs-panel (max-width: 34rem) {
+  .pipelineTop {
+    gap: var(--mantine-spacing-sm);
+  }
+
+  .pipelineStage {
+    padding-top: 0;
+  }
+
+  .selectedPattern {
+    margin-top: var(--mantine-spacing-sm);
+  }
+}
+
+@container connected-tabs-panel (max-width: 26rem) {
+  .pipelineTop {
+    grid-template-columns: 1fr;
+  }
+
   .colorLayers {
     grid-template-columns: 1fr;
   }

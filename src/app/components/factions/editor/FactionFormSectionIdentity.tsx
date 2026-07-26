@@ -1,16 +1,8 @@
-import {
-  ColorInput,
-  Group,
-  Image,
-  Select,
-  SimpleGrid,
-  Stack,
-  Text,
-  TextInput,
-} from '@mantine/core';
+import { Box, ColorInput, Group, Image, Select, Stack, Text, TextInput } from '@mantine/core';
 
 import type { Faction } from '@db/factions';
 
+import styles from './FactionFormSectionIdentity.module.css';
 import { assetOptionToPreviewSrc, logoOptions, logoOptionToLabel } from './factionFormAssetUtils';
 import type { FactionFormApi } from './factionFormTypes';
 import { TtsColorsEditor } from './TtsColorsEditor';
@@ -58,13 +50,14 @@ export function FactionFormSectionIdentity({
         </Stack>
       ) : null}
 
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+      <Box className={styles.identityGrid}>
         <form.Field name="name">
           {(field) => (
             <TextInput
               id="faction-name"
               label="Faction name"
               description="Used on faction artifacts and to derive the canonical share URL."
+              classNames={{ description: styles.singleLineDescription }}
               error={nameError}
               value={field.state.value}
               onBlur={field.handleBlur}
@@ -79,6 +72,7 @@ export function FactionFormSectionIdentity({
               id="faction-logo"
               label="Faction logo"
               description="Used on faction tokens and faction-branded game artifacts."
+              classNames={{ description: styles.singleLineDescription }}
               searchable
               allowDeselect={false}
               data={logoSelectOptions}
@@ -109,6 +103,7 @@ export function FactionFormSectionIdentity({
               id="faction-theme-color"
               label="Faction sheet theme"
               description="Used for headings and accents on the complete faction sheet."
+              classNames={{ description: styles.singleLineDescription }}
               format="hex"
               value={field.state.value}
               onBlur={field.handleBlur}
@@ -116,11 +111,10 @@ export function FactionFormSectionIdentity({
             />
           )}
         </form.Field>
-      </SimpleGrid>
-
-      <form.Field name="colors">
-        {(field) => <TtsColorsEditor value={field.state.value} onChange={field.handleChange} />}
-      </form.Field>
+        <form.Field name="colors">
+          {(field) => <TtsColorsEditor value={field.state.value} onChange={field.handleChange} />}
+        </form.Field>
+      </Box>
     </Stack>
   );
 }

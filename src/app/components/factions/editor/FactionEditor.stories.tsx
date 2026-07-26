@@ -1,7 +1,7 @@
 import { Box, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { useRef } from 'react';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import type { Faction, FactionEntry } from '@db/factions';
 import { defaultFaction } from '@data/defaultFaction';
@@ -149,6 +149,35 @@ export const TabletContract = meta.story({
     viewport: {
       value: 'appAuthoringTablet',
     },
+  },
+});
+
+export const FactionTokenProofGeometry = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const tokenChoice = canvas.getByRole('radio', { name: 'Faction token' });
+    const backgroundChoice = canvas.getByRole('radio', { name: 'Background' });
+
+    const expectSquareTokenProof = async () => {
+      await waitFor(() => {
+        const tokenProof = canvasElement.querySelector<HTMLElement>('[data-faction-token-proof]');
+        const renderedToken = tokenProof?.firstElementChild as HTMLElement | null;
+        expect(tokenProof).not.toBeNull();
+        expect(renderedToken).not.toBeNull();
+
+        const bounds = renderedToken?.getBoundingClientRect();
+        expect(bounds?.width).toBeGreaterThan(0);
+        expect(bounds?.height).toBeGreaterThan(0);
+        expect(Math.abs((bounds?.width ?? 0) - (bounds?.height ?? 0))).toBeLessThanOrEqual(1);
+      });
+    };
+
+    await userEvent.click(tokenChoice);
+    await expectSquareTokenProof();
+
+    await userEvent.click(backgroundChoice);
+    await userEvent.click(tokenChoice);
+    await expectSquareTokenProof();
   },
 });
 

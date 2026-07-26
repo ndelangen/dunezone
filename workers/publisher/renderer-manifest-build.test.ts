@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vitest';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 import {
   computeRendererManifestDigest,
+  isRendererManifestAsset,
   RENDERER_RUNTIME_CLOSURE_PATHS,
   type RendererManifestEntry,
 } from './renderer-manifest-build';
@@ -80,5 +81,50 @@ describe('current Renderer manifest digest', () => {
     const duplicate = entries();
     duplicate.push(duplicate[0] as RendererManifestEntry);
     expect(() => computeRendererManifestDigest(duplicate)).toThrow(/unique/);
+  });
+
+  test.each([
+    'publisher-capture.html',
+    'publisher-capture/publisher-capture-hash.js',
+    'font/font.woff2',
+    'image/texture/021.jpg',
+    'vector/icon/karama.svg',
+    'generated/utils/background/special.jpg',
+    'dice.svg',
+  ])('includes Renderer release asset %s', (assetPath) => {
+    expect(isRendererManifestAsset(assetPath)).toBe(true);
+  });
+
+  test.each([
+    '_shell.html',
+    'index.html',
+    'public/FactionEditor-hash.js',
+  ])('excludes application-only release asset %s', (assetPath) => {
+    expect(isRendererManifestAsset(assetPath)).toBe(false);
+  });
+
+  test('keeps application-only chunk changes out of the Renderer identity', () => {
+    const releaseEntries: RendererManifestEntry[] = [
+      {
+        path: 'publisher-capture/publisher-capture-hash.js',
+        bytes: encoder.encode('capture'),
+      },
+      {
+        path: 'public/FactionEditor-platform-hash.js',
+        bytes: encoder.encode('platform-specific application chunk'),
+      },
+    ];
+    const rendererEntries = releaseEntries.filter((entry) => isRendererManifestAsset(entry.path));
+    const changedApplicationEntries = releaseEntries
+      .map((entry) =>
+        entry.path.startsWith('public/')
+          ? { ...entry, bytes: encoder.encode('different platform chunk') }
+          : entry
+      )
+      .filter((entry) => isRendererManifestAsset(entry.path));
+
+    expect(computeRendererManifestDigest(changedApplicationEntries)).toBe(
+      computeRendererManifestDigest(rendererEntries)
+    );
   });
 });

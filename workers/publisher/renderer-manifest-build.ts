@@ -48,12 +48,23 @@ function filesBelow(directory: string): string[] {
   });
 }
 
+export function isRendererManifestAsset(relativePath: string): boolean {
+  const normalizedPath = relativePath.split(path.sep).join('/');
+  return (
+    normalizedPath !== '_shell.html' &&
+    normalizedPath !== 'index.html' &&
+    !normalizedPath.startsWith('public/')
+  );
+}
+
 export function writeRendererManifest(
   repositoryRoot: string,
   publisherDirectory: string
 ): { digest: string; entryCount: number } {
   const files = [
-    ...filesBelow(publisherDirectory),
+    ...filesBelow(publisherDirectory).filter((file) =>
+      isRendererManifestAsset(path.relative(publisherDirectory, file))
+    ),
     ...RENDERER_RUNTIME_CLOSURE_PATHS.map((relativePath) =>
       path.join(repositoryRoot, relativePath)
     ),
@@ -90,7 +101,7 @@ export function writeRendererManifest(
   writeFileSync(
     path.join(repositoryRoot, 'workers/publisher/renderer-manifest.generated.ts'),
     `// Generated after assembling the complete publisher Static Assets release.\n` +
-      `// Run \`bun run publisher:assets\` after changing release assets or the PDF contract.\n` +
+      `// Run \`bun run publisher:assets\` after changing Renderer assets or the PDF contract.\n` +
       `export const rendererManifest = {\n` +
       `  schemaVersion: 1,\n` +
       `  rendererIdentity:\n` +

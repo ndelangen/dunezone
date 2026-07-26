@@ -13,28 +13,48 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import {
-  ActionIcon,
-  Alert,
-  Box,
-  Button,
-  Group,
-  Paper,
-  Select,
-  Stack,
-  Text,
-  Tooltip,
-} from '@mantine/core';
-import { GripVertical, Plus, Trash2 } from 'lucide-react';
+import { ActionIcon, Box, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { GripVertical, Minus, Plus } from 'lucide-react';
 
 import type { Faction } from '@db/factions';
 import { getSortableIds, indexFromSortableId } from '@app/lib/dnd-sortable-ids';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 import { TTSColor } from '@game/schema/faction';
 
+import styles from './TtsColorsEditor.module.css';
 import { useFactionSortableItem } from './useFactionSortableItem';
 
 type TtsColor = Faction['colors'][number];
+
+export function availableTtsColors(value: Faction['colors'], index: number): TtsColor[] {
+  const currentColor = value[index];
+  return TTSColor.options.filter(
+    (option) =>
+      option === currentColor ||
+      !value.some(
+        (selectedColor, selectedIndex) => selectedIndex !== index && selectedColor === option
+      )
+  ) as TtsColor[];
+}
+
+export function nextUnusedTtsColor(value: Faction['colors']): TtsColor | undefined {
+  return TTSColor.options.find((color) => !value.includes(color)) as TtsColor | undefined;
+}
+
+export function removeLastTtsColor(value: Faction['colors']): Faction['colors'] {
+  return value.slice(0, -1);
+}
+
+export function moveTtsColor(
+  value: Faction['colors'],
+  from: number,
+  to: number
+): Faction['colors'] {
+  if (from < 0 || to < 0 || from >= value.length || to >= value.length || from === to) {
+    return value;
+  }
+  return arrayMove(value, from, to);
+}
 
 function ColorDot({ color }: { color: TtsColor }) {
   return (
@@ -70,62 +90,49 @@ function TtsColorRow({
   color,
   index,
   itemId,
+  options,
   onChange,
-  onRemove,
 }: {
   color: TtsColor;
   index: number;
   itemId: string;
+  options: TtsColor[];
   onChange: (color: TtsColor) => void;
-  onRemove: () => void;
 }) {
   const sortable = useFactionSortableItem(itemId);
   return (
-    <Paper ref={sortable.setNodeRef} style={sortable.style} withBorder radius="md" p="sm">
-      <Group gap="sm" wrap="nowrap">
-        <Tooltip label={`Reorder TTS color ${index + 1}`}>
-          <ActionIcon
-            ref={sortable.handle.ref}
-            {...sortable.handle.attributes}
-            {...sortable.handle.listeners}
-            type="button"
-            variant="subtle"
-            color="gray"
-            size="lg"
-            aria-label={`Drag to reorder TTS color ${index + 1}`}
-            style={{ touchAction: 'none', cursor: 'grab' }}
-          >
-            <GripVertical size={18} aria-hidden />
-          </ActionIcon>
-        </Tooltip>
-
-        <Select
-          aria-label={`TTS color ${index + 1}`}
-          value={color}
-          allowDeselect={false}
-          data={TTSColor.options}
-          leftSection={<ColorDot color={color} />}
-          renderOption={({ option }) => <TtsColorOption color={option.value as TtsColor} />}
-          comboboxProps={{ withinPortal: false }}
-          style={{ flex: 1 }}
-          onChange={(value) => {
-            if (value) onChange(value as TtsColor);
-          }}
-        />
-
-        <Tooltip label={`Remove TTS color ${index + 1}`}>
-          <ActionIcon
-            type="button"
-            variant="light"
-            color="red"
-            aria-label={`Remove TTS color ${index + 1}`}
-            onClick={onRemove}
-          >
-            <Trash2 size={16} aria-hidden />
-          </ActionIcon>
-        </Tooltip>
-      </Group>
-    </Paper>
+    <Box ref={sortable.setNodeRef} style={sortable.style} className={styles.unifiedRow}>
+      <Select
+        className={styles.unifiedSelect}
+        aria-label={`TTS color ${index + 1}`}
+        size="xs"
+        variant="unstyled"
+        value={color}
+        allowDeselect={false}
+        data={options}
+        leftSection={<ColorDot color={color} />}
+        renderOption={({ option }) => <TtsColorOption color={option.value as TtsColor} />}
+        comboboxProps={{ withinPortal: false }}
+        onChange={(value) => {
+          if (value) onChange(value as TtsColor);
+        }}
+      />
+      <Tooltip label={`Reorder TTS color ${index + 1}`}>
+        <ActionIcon
+          ref={sortable.handle.ref}
+          {...sortable.handle.attributes}
+          {...sortable.handle.listeners}
+          className={styles.dragHandle}
+          type="button"
+          variant="transparent"
+          color="gray"
+          size="lg"
+          aria-label={`Drag to reorder TTS color ${index + 1}`}
+        >
+          <GripVertical size={17} aria-hidden />
+        </ActionIcon>
+      </Tooltip>
+    </Box>
   );
 }
 
@@ -142,22 +149,51 @@ export function TtsColorsEditor({
   );
   const sortablePrefix = 'tts-colors-';
   const itemIds = getSortableIds(sortablePrefix, value.length);
+  const nextAvailableColor = nextUnusedTtsColor(value);
 
   return (
-    <Stack gap="md">
-      <Stack gap={2}>
-        <Text fw={700}>Tabletop Simulator colors</Text>
-        <Text c="dimmed" size="sm">
-          Ordered preferred player colors for Tabletop Simulator. Repeated colors are allowed by the
-          faction format.
-        </Text>
-      </Stack>
+    <Stack gap={6}>
+      <Group gap="sm" justify="space-between" align="flex-start" wrap="nowrap">
+        <Stack gap={0}>
+          <Text fw={700} size="sm">
+            Tabletop Simulator colors
+          </Text>
+          <Text c="dimmed" size="xs">
+            Choose unique colors; drag to set their priority.
+          </Text>
+        </Stack>
 
-      {value.length === 0 ? (
-        <Alert color="gray" variant="light" title="No preferred TTS colors">
-          This faction does not currently recommend a player color.
-        </Alert>
-      ) : null}
+        <ActionIcon.Group>
+          <Tooltip label="Remove last color">
+            <ActionIcon
+              type="button"
+              variant="light"
+              color="red"
+              size="sm"
+              disabled={value.length === 0}
+              aria-label="Remove last TTS color"
+              onClick={() => onChange(removeLastTtsColor(value))}
+            >
+              <Minus size={16} aria-hidden />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Add color">
+            <ActionIcon
+              type="button"
+              variant="filled"
+              color="green"
+              size="sm"
+              disabled={nextAvailableColor == null}
+              aria-label="Add TTS color"
+              onClick={() => {
+                if (nextAvailableColor) onChange([...value, nextAvailableColor]);
+              }}
+            >
+              <Plus size={16} aria-hidden />
+            </ActionIcon>
+          </Tooltip>
+        </ActionIcon.Group>
+      </Group>
 
       <DndContext
         sensors={sensors}
@@ -167,11 +203,11 @@ export function TtsColorsEditor({
           const from = indexFromSortableId(active.id, sortablePrefix);
           const to = indexFromSortableId(over.id, sortablePrefix);
           if (from == null || to == null || from === to) return;
-          onChange(arrayMove(value, from, to));
+          onChange(moveTtsColor(value, from, to));
         }}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          <Stack gap="xs">
+          <Box className={styles.rows}>
             {value.map((color, index) => {
               const itemId = `${sortablePrefix}${index}`;
               return (
@@ -180,28 +216,24 @@ export function TtsColorsEditor({
                   color={color}
                   index={index}
                   itemId={itemId}
+                  options={availableTtsColors(value, index)}
                   onChange={(nextColor) => {
                     const next = [...value];
                     next[index] = nextColor;
                     onChange(next);
                   }}
-                  onRemove={() => onChange(value.filter((_, itemIndex) => itemIndex !== index))}
                 />
               );
             })}
-          </Stack>
+          </Box>
         </SortableContext>
       </DndContext>
 
-      <Button
-        type="button"
-        variant="light"
-        color="dune"
-        leftSection={<Plus size={16} aria-hidden />}
-        onClick={() => onChange([...value, 'White'])}
-      >
-        Add TTS color
-      </Button>
+      {value.length === 0 ? (
+        <Text size="xs" c="dimmed">
+          No preferred player colors selected.
+        </Text>
+      ) : null}
     </Stack>
   );
 }

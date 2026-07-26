@@ -113,6 +113,16 @@ function randomIndex(length: number, random: () => number): number {
   return Math.min(length - 1, Math.max(0, Math.floor(random() * length)));
 }
 
+function backgroundsMatch(left: FactionBackground, right: FactionBackground): boolean {
+  return (
+    left.image === right.image &&
+    left.invert === right.invert &&
+    left.definition === right.definition &&
+    left.influence === right.influence &&
+    JSON.stringify(left.colors) === JSON.stringify(right.colors)
+  );
+}
+
 export function randomPatternImage(random: () => number = Math.random): string {
   const option =
     BACKGROUND_PATTERN_CATALOGUE[randomIndex(BACKGROUND_PATTERN_CATALOGUE.length, random)];
@@ -133,17 +143,37 @@ export function withRandomPattern(
 }
 
 export function randomizeBackground(
-  _background: FactionBackground,
+  background: FactionBackground,
   random: () => number = Math.random
 ): FactionBackground {
-  const recipe = RECIPES[randomIndex(RECIPES.length, random)];
+  const recipeIndex = randomIndex(RECIPES.length, random);
+  const recipe = RECIPES[recipeIndex];
   if (!recipe) {
     throw new Error('The background recipe catalogue must contain at least one recipe');
   }
-  return {
+  const patternIndex = randomIndex(BACKGROUND_PATTERN_CATALOGUE.length, random);
+  const pattern = BACKGROUND_PATTERN_CATALOGUE[patternIndex];
+  if (!pattern) {
+    throw new Error('The background pattern catalogue must contain at least one pattern');
+  }
+  const candidate: FactionBackground = {
     ...structuredClone(recipe),
-    image: randomPatternImage(random),
+    image: pattern.image,
   };
+  if (!backgroundsMatch(candidate, background)) return candidate;
+
+  const nextPattern =
+    BACKGROUND_PATTERN_CATALOGUE[(patternIndex + 1) % BACKGROUND_PATTERN_CATALOGUE.length];
+  if (nextPattern && nextPattern.image !== candidate.image) {
+    return { ...candidate, image: nextPattern.image };
+  }
+
+  const nextRecipe = RECIPES[(recipeIndex + 1) % RECIPES.length];
+  if (nextRecipe && JSON.stringify(nextRecipe) !== JSON.stringify(recipe)) {
+    return { ...structuredClone(nextRecipe), image: candidate.image };
+  }
+
+  throw new Error('Random all requires at least two distinct catalogue combinations');
 }
 
 export function randomizeBackgroundTreatment(
