@@ -9,7 +9,13 @@ import { buildConnectedTabsPath, ConnectedTabs } from './ConnectedTabs';
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
+const resizeObserverCallbacks: ResizeObserverCallback[] = [];
+
 class ResizeObserverStub {
+  constructor(callback: ResizeObserverCallback) {
+    resizeObserverCallbacks.push(callback);
+  }
+
   observe() {}
   unobserve() {}
   disconnect() {}
@@ -17,6 +23,30 @@ class ResizeObserverStub {
 
 let container: HTMLDivElement | undefined;
 let root: Root | undefined;
+
+function rect({
+  left,
+  top,
+  width,
+  height,
+}: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}): DOMRect {
+  return {
+    x: left,
+    y: top,
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    toJSON: () => ({}),
+  };
+}
 
 function Fixture() {
   const [value, setValue] = useState('first');
@@ -65,6 +95,7 @@ function getTab(name: string) {
 }
 
 beforeEach(async () => {
+  resizeObserverCallbacks.length = 0;
   vi.stubGlobal('ResizeObserver', ResizeObserverStub);
   vi.stubGlobal(
     'requestAnimationFrame',
@@ -93,6 +124,61 @@ describe('ConnectedTabs', () => {
   it('renders the joined surface for the initially selected tab before interaction', () => {
     expect(container?.querySelector('[class*="glassSurface"]')).not.toBeNull();
     expect(container?.querySelector('svg[class*="geometryContour"] path')).not.toBeNull();
+  });
+
+  it('updates the joined surface throughout width and content-height changes', async () => {
+    const tabList = container?.querySelector('[role="tablist"]');
+    const tabsRoot = tabList?.parentElement;
+    const panelShell = container?.querySelector('[role="tabpanel"]')?.parentElement;
+    const activeTab = getTab('1First');
+    if (!tabsRoot || !panelShell) throw new Error('Missing connected-tabs geometry elements');
+
+    const dimensions = {
+      width: 760,
+      height: 400,
+      panelX: 180,
+      tabHeight: 64,
+    };
+    vi.spyOn(tabsRoot, 'getBoundingClientRect').mockImplementation(() =>
+      rect({ left: 0, top: 0, width: dimensions.width, height: dimensions.height })
+    );
+    vi.spyOn(panelShell, 'getBoundingClientRect').mockImplementation(() =>
+      rect({
+        left: dimensions.panelX,
+        top: 0,
+        width: dimensions.width - dimensions.panelX,
+        height: dimensions.height,
+      })
+    );
+    vi.spyOn(activeTab, 'getBoundingClientRect').mockImplementation(() =>
+      rect({ left: 0, top: 0, width: dimensions.panelX, height: dimensions.tabHeight })
+    );
+
+    await act(async () => {
+      for (const callback of resizeObserverCallbacks) callback([], {} as ResizeObserver);
+    });
+
+    const contour = container?.querySelector<SVGPathElement>('svg[class*="geometryContour"] path');
+    const contourSvg = contour?.closest('svg');
+    let previousPath = contour?.getAttribute('d');
+    expect(contourSvg?.getAttribute('viewBox')).toBe('0 0 760 400');
+
+    for (const frame of [
+      { width: 680, height: 500, panelX: 170 },
+      { width: 600, height: 610, panelX: 158 },
+      { width: 520, height: 720, panelX: 148 },
+    ]) {
+      dimensions.width = frame.width;
+      dimensions.height = frame.height;
+      dimensions.panelX = frame.panelX;
+      await act(async () => {
+        for (const callback of resizeObserverCallbacks) callback([], {} as ResizeObserver);
+      });
+
+      expect(contourSvg?.getAttribute('viewBox')).toBe(`0 0 ${frame.width} ${frame.height}`);
+      expect(contour?.getAttribute('d')).not.toBe(previousPath);
+      previousPath = contour?.getAttribute('d');
+    }
   });
 
   it('uses automatic Radix keyboard activation and focus movement', async () => {

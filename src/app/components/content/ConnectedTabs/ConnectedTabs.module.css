@@ -6,6 +6,7 @@
   --connected-tabs-panel-padding: var(--mantine-spacing-lg);
 
   container: connected-tabs / inline-size;
+  width: 100%;
   min-width: 0;
 }
 
@@ -166,7 +167,6 @@
   position: relative;
   z-index: 3;
   min-width: 0;
-  min-height: 36rem;
   padding: var(--connected-tabs-panel-padding);
   overflow: visible;
 }

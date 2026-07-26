@@ -1,59 +1,93 @@
-import { Box, Button, Title } from '@mantine/core';
+import { Box, Title } from '@mantine/core';
 import preview from '@sb/preview';
 import { BookOpen, CircleUserRound, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { ConnectedTabs } from './ConnectedTabs';
+import storyStyles from './ConnectedTabs.stories.module.css';
 
 type ExampleTab = 'overview' | 'people' | 'settings';
 
-const items = [
-  {
-    value: 'overview',
-    label: 'Overview',
-    icon: <BookOpen size={20} />,
-    panel: <Panel title="Overview">A short representative content panel.</Panel>,
-  },
-  {
-    value: 'people',
-    label: 'People',
-    icon: <CircleUserRound size={20} />,
-    panel: (
-      <Panel title="People">
-        This taller middle state proves the joined contour responds to content changes.
-        <Box h={240} />
-      </Panel>
-    ),
-  },
-  {
-    value: 'settings',
-    label: 'Settings',
-    icon: <Settings size={20} />,
-    panel: <Panel title="Settings">The final tab joins the panel at its lower edge.</Panel>,
-  },
-] as const;
+interface ConnectedTabsFixtureProps {
+  initialValue?: ExampleTab;
+  containerWidth?: number;
+  contentHeight?: number;
+  animateDimensions?: boolean;
+}
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({
+  title,
+  children,
+  contentHeight,
+  animateDimensions,
+}: {
+  title: string;
+  children: React.ReactNode;
+  contentHeight: number;
+  animateDimensions: boolean;
+}) {
   return (
     <Box>
       <Title order={2}>{title}</Title>
       <Box mt="sm">{children}</Box>
-      <Box mt="xl" h={180} />
+      <Box
+        data-testid="content-height"
+        className={animateDimensions ? storyStyles.animatedContent : undefined}
+        mt="xl"
+        h={contentHeight}
+      />
     </Box>
   );
 }
 
 function ConnectedTabsFixture({
   initialValue = 'overview',
-  width = 760,
-}: {
-  initialValue?: ExampleTab;
-  width?: number;
-}) {
+  containerWidth = 760,
+  contentHeight = 180,
+  animateDimensions = false,
+}: ConnectedTabsFixtureProps) {
   const [value, setValue] = useState<ExampleTab>(initialValue);
+  const items = [
+    {
+      value: 'overview',
+      label: 'Overview',
+      icon: <BookOpen size={20} />,
+      panel: (
+        <Panel title="Overview" contentHeight={contentHeight} animateDimensions={animateDimensions}>
+          A short representative content panel.
+        </Panel>
+      ),
+    },
+    {
+      value: 'people',
+      label: 'People',
+      icon: <CircleUserRound size={20} />,
+      panel: (
+        <Panel title="People" contentHeight={contentHeight} animateDimensions={animateDimensions}>
+          The joined contour follows this panel as its dimensions change.
+        </Panel>
+      ),
+    },
+    {
+      value: 'settings',
+      label: 'Settings',
+      icon: <Settings size={20} />,
+      panel: (
+        <Panel title="Settings" contentHeight={contentHeight} animateDimensions={animateDimensions}>
+          The final tab joins the panel at its lower edge.
+        </Panel>
+      ),
+    },
+  ] as const;
+
   return (
-    <Box p="xl" w={width} maw="calc(100vw - 2rem)">
+    <Box
+      className={animateDimensions ? storyStyles.animatedFrame : undefined}
+      p="xl"
+      w={containerWidth}
+      maw="calc(100vw - 2rem)"
+    >
       <ConnectedTabs
         value={value}
         onValueChange={setValue}
@@ -64,21 +98,27 @@ function ConnectedTabsFixture({
   );
 }
 
-function ResizeDrivenFixture() {
-  const [width, setWidth] = useState(760);
-  return (
-    <Box p="xl">
-      <Button type="button" mb="md" onClick={() => setWidth((current) => current - 240)}>
-        Resize workbench
-      </Button>
-      <ConnectedTabsFixture initialValue="people" width={width} />
-    </Box>
-  );
-}
-
 const meta = preview.meta({
   title: 'App/Content/ConnectedTabs',
   component: ConnectedTabsFixture,
+  args: {
+    containerWidth: 760,
+    contentHeight: 180,
+  },
+  argTypes: {
+    initialValue: { control: false, table: { disable: true } },
+    containerWidth: {
+      name: 'Container width',
+      description: 'Width supplied by the component’s parent container, in pixels.',
+      control: { type: 'range', min: 360, max: 960, step: 20 },
+    },
+    contentHeight: {
+      name: 'Content height',
+      description: 'Selected-panel content height in pixels.',
+      control: { type: 'range', min: 40, max: 800, step: 20 },
+    },
+    animateDimensions: { control: false, table: { disable: true } },
+  },
   parameters: {
     layout: 'fullscreen',
   },
@@ -105,14 +145,35 @@ export const FinalActive = meta.story({
   args: { initialValue: 'settings' },
 });
 
+export const ContentDrivenHeight = meta.story({
+  args: {
+    initialValue: 'overview',
+    contentHeight: 720,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'The surface grows beyond the tab rail when its selected panel contains taller content.',
+      },
+    },
+  },
+});
+
 export const ResizeDrivenGeometry = meta.story({
-  render: () => <ResizeDrivenFixture />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const contour = canvasElement.querySelector('svg[class*="geometryContour"] path');
-    const initialPath = contour?.getAttribute('d');
-    await userEvent.click(canvas.getByRole('button', { name: 'Resize workbench' }));
-    await waitFor(() => expect(contour?.getAttribute('d')).not.toBe(initialPath));
+  args: {
+    initialValue: 'people',
+    containerWidth: 760,
+    contentHeight: 320,
+  },
+  render: (args) => <ConnectedTabsFixture {...args} animateDimensions />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Use the Container width and Content height controls to animate both axes. Width follows the parent container; height is the greater of the left tab rail and selected-panel content. The SVG contour and clipped glass surface follow every intermediate size.',
+      },
+    },
   },
 });
 
@@ -135,7 +196,7 @@ export const KeyboardAndPointerActivation = meta.story({
 });
 
 export const OverflowPreserved = meta.story({
-  args: { initialValue: 'people', width: 560 },
+  args: { initialValue: 'people', containerWidth: 560 },
   render: (args) => (
     <Box p="xl">
       <ConnectedTabsFixture {...args} />
