@@ -1,16 +1,22 @@
 import { Box, Title } from '@mantine/core';
 import preview from '@sb/preview';
 import { BookOpen, CircleUserRound, Settings } from 'lucide-react';
-import { useState } from 'react';
+import { type ComponentType, type CSSProperties, useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { ConnectedTabs } from './ConnectedTabs';
+import { ConnectedTabs, type ConnectedTabsProps } from './ConnectedTabs';
 import storyStyles from './ConnectedTabs.stories.module.css';
 
 type ExampleTab = 'overview' | 'people' | 'settings';
 
-interface ConnectedTabsFixtureProps {
-  initialValue?: ExampleTab;
+interface ConnectedTabsStoryArgs {
+  value?: ExampleTab;
+  onValueChange?: (value: ExampleTab) => void;
+  items?: ConnectedTabsProps<ExampleTab>['items'];
+  ariaLabel?: string;
+  className?: string;
+  panelClassName?: string;
+  style?: CSSProperties;
   contentHeight?: number;
   animateDimensions?: boolean;
   showPanelTitle?: boolean;
@@ -43,14 +49,18 @@ function Panel({
   );
 }
 
-function ConnectedTabsFixture({
-  initialValue = 'overview',
-  contentHeight = 180,
-  animateDimensions = false,
-  showPanelTitle = true,
-}: ConnectedTabsFixtureProps) {
-  const [value, setValue] = useState<ExampleTab>(initialValue);
-  const items = [
+function createItems({
+  contentHeight,
+  animateDimensions,
+  showPanelTitle,
+}: Pick<
+  ConnectedTabsStoryArgs,
+  'contentHeight' | 'animateDimensions' | 'showPanelTitle'
+>): ConnectedTabsProps<ExampleTab>['items'] {
+  const resolvedContentHeight = contentHeight ?? 180;
+  const resolvedAnimateDimensions = animateDimensions ?? false;
+  const resolvedShowPanelTitle = showPanelTitle ?? true;
+  return [
     {
       value: 'overview',
       label: 'Overview',
@@ -58,9 +68,9 @@ function ConnectedTabsFixture({
       panel: (
         <Panel
           title="Overview"
-          contentHeight={contentHeight}
-          animateDimensions={animateDimensions}
-          showPanelTitle={showPanelTitle}
+          contentHeight={resolvedContentHeight}
+          animateDimensions={resolvedAnimateDimensions}
+          showPanelTitle={resolvedShowPanelTitle}
         >
           A short representative content panel.
         </Panel>
@@ -73,9 +83,9 @@ function ConnectedTabsFixture({
       panel: (
         <Panel
           title="People"
-          contentHeight={contentHeight}
-          animateDimensions={animateDimensions}
-          showPanelTitle={showPanelTitle}
+          contentHeight={resolvedContentHeight}
+          animateDimensions={resolvedAnimateDimensions}
+          showPanelTitle={resolvedShowPanelTitle}
         >
           The joined contour follows this panel as its dimensions change.
         </Panel>
@@ -88,34 +98,55 @@ function ConnectedTabsFixture({
       panel: (
         <Panel
           title="Settings"
-          contentHeight={contentHeight}
-          animateDimensions={animateDimensions}
-          showPanelTitle={showPanelTitle}
+          contentHeight={resolvedContentHeight}
+          animateDimensions={resolvedAnimateDimensions}
+          showPanelTitle={resolvedShowPanelTitle}
         >
           The final tab joins the panel at its lower edge.
         </Panel>
       ),
     },
-  ] as const;
+  ];
+}
 
+function renderConnectedTabs({
+  contentHeight,
+  animateDimensions,
+  showPanelTitle,
+  value = 'overview',
+  onValueChange = () => {},
+  items: _storyItems,
+  ariaLabel = 'Workbench sections',
+  ...optionalTabsProps
+}: ConnectedTabsStoryArgs) {
   return (
     <ConnectedTabs
+      {...optionalTabsProps}
       value={value}
-      onValueChange={setValue}
-      items={items}
-      ariaLabel="Workbench sections"
+      onValueChange={onValueChange}
+      ariaLabel={ariaLabel}
+      items={createItems({ contentHeight, animateDimensions, showPanelTitle })}
     />
   );
 }
 
 const meta = preview.meta({
   title: 'App/Content/ConnectedTabs',
-  component: ConnectedTabsFixture,
+  component: ConnectedTabs as ComponentType<ConnectedTabsStoryArgs>,
+  render: renderConnectedTabs,
   args: {
+    value: 'overview',
+    onValueChange: () => {},
+    ariaLabel: 'Workbench sections',
     contentHeight: 180,
+    animateDimensions: false,
+    showPanelTitle: true,
   },
   argTypes: {
-    initialValue: { control: false, table: { disable: true } },
+    value: { control: false, table: { disable: true } },
+    onValueChange: { control: false, table: { disable: true } },
+    items: { control: false, table: { disable: true } },
+    ariaLabel: { control: false, table: { disable: true } },
     contentHeight: {
       name: 'Content height',
       description: 'Selected-panel content height in pixels.',
@@ -126,11 +157,31 @@ const meta = preview.meta({
   },
   parameters: {
     layout: 'fullscreen',
+    docs: {
+      description: {
+        component:
+          'ConnectedTabs is controlled: consumers own the selected value. These stories use a small decorator-only state harness to demonstrate interaction without changing the component contract.',
+      },
+    },
   },
+  decorators: [
+    function ControlledSelection(Story, context) {
+      const [value, setValue] = useState<ExampleTab>(context.args.value ?? 'overview');
+      return (
+        <Story
+          args={{
+            ...context.args,
+            value,
+            onValueChange: setValue,
+          }}
+        />
+      );
+    },
+  ],
 });
 
 export const FirstActive = meta.story({
-  args: { initialValue: 'overview' },
+  args: { value: 'overview' },
   play: async ({ canvasElement }) => {
     await waitFor(() => {
       expect(canvasElement.querySelector('[class*="glassSurface"]')).not.toBeNull();
@@ -143,16 +194,16 @@ export const FirstActive = meta.story({
 });
 
 export const MiddleActive = meta.story({
-  args: { initialValue: 'people' },
+  args: { value: 'people' },
 });
 
 export const FinalActive = meta.story({
-  args: { initialValue: 'settings' },
+  args: { value: 'settings' },
 });
 
 export const ContentDrivenHeight = meta.story({
   args: {
-    initialValue: 'overview',
+    value: 'overview',
     contentHeight: 720,
   },
   parameters: {
@@ -167,10 +218,10 @@ export const ContentDrivenHeight = meta.story({
 
 export const ResizeDrivenGeometry = meta.story({
   args: {
-    initialValue: 'people',
+    value: 'people',
     contentHeight: 320,
+    animateDimensions: true,
   },
-  render: (args) => <ConnectedTabsFixture {...args} animateDimensions />,
   parameters: {
     docs: {
       description: {
@@ -183,7 +234,7 @@ export const ResizeDrivenGeometry = meta.story({
 
 export const MobileViewport = meta.story({
   args: {
-    initialValue: 'overview',
+    value: 'overview',
     contentHeight: 180,
     showPanelTitle: false,
   },
@@ -234,7 +285,7 @@ export const MobileViewport = meta.story({
 });
 
 export const KeyboardAndPointerActivation = meta.story({
-  args: { initialValue: 'overview' },
+  args: { value: 'overview' },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const overview = canvas.getByRole('tab', { name: 'Overview' });
@@ -252,10 +303,10 @@ export const KeyboardAndPointerActivation = meta.story({
 });
 
 export const OverflowPreserved = meta.story({
-  args: { initialValue: 'people' },
+  args: { value: 'people' },
   render: (args) => (
     <Box p="xl">
-      <ConnectedTabsFixture {...args} />
+      {renderConnectedTabs(args)}
       <Box data-testid="overflow-marker" w={48} h={48} ml={540} mt={-80} bg="dune.7" />
     </Box>
   ),

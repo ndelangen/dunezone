@@ -24,6 +24,34 @@ class ResizeObserverStub {
 let container: HTMLDivElement | undefined;
 let root: Root | undefined;
 
+const items = [
+  {
+    value: 'first',
+    label: 'First',
+    icon: <span>1</span>,
+    panel: <p>First panel</p>,
+  },
+  {
+    value: 'middle',
+    label: 'Middle',
+    icon: <span>2</span>,
+    panel: <p>Middle panel</p>,
+  },
+  {
+    value: 'final',
+    label: 'Final',
+    icon: <span>3</span>,
+    panel: <p>Final panel</p>,
+  },
+  {
+    value: 'disabled',
+    label: 'Unavailable',
+    icon: <span>4</span>,
+    disabled: true,
+    panel: <p>Unavailable panel</p>,
+  },
+] as const;
+
 function rect({
   left,
   top,
@@ -55,33 +83,7 @@ function Fixture() {
       value={value}
       onValueChange={setValue}
       ariaLabel="Example sections"
-      items={[
-        {
-          value: 'first',
-          label: 'First',
-          icon: <span>1</span>,
-          panel: <p>First panel</p>,
-        },
-        {
-          value: 'middle',
-          label: 'Middle',
-          icon: <span>2</span>,
-          panel: <p>Middle panel</p>,
-        },
-        {
-          value: 'final',
-          label: 'Final',
-          icon: <span>3</span>,
-          panel: <p>Final panel</p>,
-        },
-        {
-          value: 'disabled',
-          label: 'Unavailable',
-          icon: <span>4</span>,
-          disabled: true,
-          panel: <p>Unavailable panel</p>,
-        },
-      ]}
+      items={items}
     />
   );
 }
@@ -132,6 +134,45 @@ describe('ConnectedTabs', () => {
   it('renders the joined surface for the initially selected tab before interaction', () => {
     expect(container?.querySelector('[class*="glassSurface"]')).not.toBeNull();
     expect(container?.querySelector('svg[class*="geometryContour"] path')).not.toBeNull();
+  });
+
+  it('emits selection requests without owning the selected tab', async () => {
+    const onValueChange = vi.fn();
+    await act(async () =>
+      root?.render(
+        <ConnectedTabs
+          value="first"
+          onValueChange={onValueChange}
+          ariaLabel="Example sections"
+          items={items}
+        />
+      )
+    );
+
+    const middle = getTab('2Middle');
+    await act(async () => {
+      middle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+      middle.click();
+    });
+
+    expect(onValueChange).toHaveBeenCalledWith('middle');
+    expect(getTab('1First').getAttribute('data-state')).toBe('active');
+    expect(middle.getAttribute('data-state')).toBe('inactive');
+    expect(container?.textContent).toContain('First panel');
+
+    await act(async () =>
+      root?.render(
+        <ConnectedTabs
+          value="middle"
+          onValueChange={onValueChange}
+          ariaLabel="Example sections"
+          items={items}
+        />
+      )
+    );
+
+    expect(getTab('2Middle').getAttribute('data-state')).toBe('active');
+    expect(container?.textContent).toContain('Middle panel');
   });
 
   it('updates the joined surface throughout width and content-height changes', async () => {
