@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import styles from './AppShell.module.css';
+import { FooterLinksPrototype } from './FooterLinksPrototype';
 import { SiteNavigation } from './SiteNavigation';
 
 const SCROLL_VAR = '--scroll-pct';
@@ -26,6 +27,10 @@ export interface AppShellProps {
 /** Persistent application chrome and document-level page effects. */
 export function AppShell({ children, pathname }: AppShellProps) {
   const [imageLoaded, setImageLoaded] = useState(heroImageLoaded);
+  const showFooterPrototype =
+    import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).has('variant');
 
   useEffect(() => {
     if (heroImageLoaded) return;
@@ -91,10 +96,14 @@ export function AppShell({ children, pathname }: AppShellProps) {
           {children}
         </div>
       </div>
-      <footer className={styles.footer}>
-        <p>
-          <Link to="/privacy">Privacy Policy</Link>
-        </p>
+      <footer className={clsx(styles.footer, showFooterPrototype && styles.prototypeFooter)}>
+        {showFooterPrototype ? (
+          <FooterLinksPrototype />
+        ) : (
+          <p>
+            <Link to="/privacy">Privacy Policy</Link>
+          </p>
+        )}
       </footer>
     </div>
   );

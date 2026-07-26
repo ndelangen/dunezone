@@ -67,6 +67,12 @@
   height: 11.5vw;
 }
 
+.footer.prototypeFooter {
+  height: auto;
+  min-height: 8rem;
+  padding-bottom: 4.5rem;
+}
+
 @media (max-width: 900px) {
   .hero {
     aspect-ratio: unset;
