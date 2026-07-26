@@ -59,8 +59,9 @@ function OverflowTooltipText({
 }
 
 /**
- * Frames a composite form control with consistent guidance, tools and group semantics.
- * Nested inputs and icon-only tools remain responsible for their own accessible names.
+ * Frames a descriptive form control with single-line guidance, overflow help,
+ * optional tools, and group semantics. Nested inputs and icon-only tools remain
+ * responsible for their own accessible names.
  */
 export function ControlBlock({ title, description, tool, input }: ControlBlockProps) {
   const id = useId();

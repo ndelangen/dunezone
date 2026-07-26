@@ -1,6 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable';
 import {
-  ActionIcon,
   Alert,
   Badge,
   Box,
@@ -14,11 +13,12 @@ import {
   Stack,
   Text,
   TextInput,
-  Tooltip,
 } from '@mantine/core';
-import { Plus, Rotate3d, Trash2 } from 'lucide-react';
+import { Rotate3d } from 'lucide-react';
 import { useState } from 'react';
 
+import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
+import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
@@ -31,7 +31,6 @@ function TroopCard({
   index,
   activeSide,
   onActiveSideChange,
-  onRemove,
   onToggleBack,
   showPreview,
 }: {
@@ -39,7 +38,6 @@ function TroopCard({
   index: number;
   activeSide: 'front' | 'back';
   onActiveSideChange: (side: 'front' | 'back') => void;
-  onRemove: () => void;
   onToggleBack: () => void;
   showPreview: boolean;
 }) {
@@ -65,29 +63,16 @@ function TroopCard({
             </Text>
           </Box>
 
-          <Group gap="xs">
-            <Button
-              type="button"
-              variant="light"
-              color={hasBack ? 'gray' : 'dune'}
-              size="compact-sm"
-              leftSection={<Rotate3d size={15} aria-hidden />}
-              onClick={onToggleBack}
-            >
-              {hasBack ? 'Remove flip side' : 'Add flip side'}
-            </Button>
-            <Tooltip label={`Remove troop ${index + 1}`}>
-              <ActionIcon
-                type="button"
-                variant="light"
-                color="red"
-                aria-label={`Remove troop ${index + 1}`}
-                onClick={onRemove}
-              >
-                <Trash2 size={16} aria-hidden />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
+          <Button
+            type="button"
+            variant="light"
+            color={hasBack ? 'gray' : 'dune'}
+            size="compact-sm"
+            leftSection={<Rotate3d size={15} aria-hidden />}
+            onClick={onToggleBack}
+          >
+            {hasBack ? 'Remove flip side' : 'Add flip side'}
+          </Button>
         </Group>
 
         {hasBack ? (
@@ -114,21 +99,26 @@ function TroopCard({
               <SimpleGrid cols={{ base: 1, sm: 2 }}>
                 <form.Field name={`troops[${index}].count`}>
                   {(field) => (
-                    <NumberInput
-                      id={`troop-${index}-count`}
-                      label="Physical supply"
+                    <ControlBlock
+                      title="Physical supply"
                       description="The sheet lists this once as ×N, including two-sided troops."
-                      min={1}
-                      step={1}
-                      allowDecimal={false}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(value) =>
-                        field.handleChange(
-                          typeof value === 'number' && Number.isInteger(value) && value > 0
-                            ? value
-                            : 1
-                        )
+                      input={
+                        <NumberInput
+                          id={`troop-${index}-count`}
+                          aria-label="Physical supply"
+                          min={1}
+                          step={1}
+                          allowDecimal={false}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(value) =>
+                            field.handleChange(
+                              typeof value === 'number' && Number.isInteger(value) && value > 0
+                                ? value
+                                : 1
+                            )
+                          }
+                        />
                       }
                     />
                   )}
@@ -136,15 +126,20 @@ function TroopCard({
 
                 <form.Field name={`troops[${index}].planet`}>
                   {(field) => (
-                    <TextInput
-                      id={`troop-${index}-planet`}
-                      label="Planet reference (optional)"
+                    <ControlBlock
+                      title="Planet reference (optional)"
                       description="Data-only association; it has no current rendered consumer."
-                      placeholder="e.g. Meridian Prime"
-                      value={field.state.value ?? ''}
-                      onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.currentTarget.value || undefined)
+                      input={
+                        <TextInput
+                          id={`troop-${index}-planet`}
+                          aria-label="Planet reference (optional)"
+                          placeholder="e.g. Meridian Prime"
+                          value={field.state.value ?? ''}
+                          onBlur={field.handleBlur}
+                          onChange={(event) =>
+                            field.handleChange(event.currentTarget.value || undefined)
+                          }
+                        />
                       }
                     />
                   )}
@@ -228,36 +223,45 @@ export function FactionFormSectionTroops({
   );
 
   return (
-    <Stack component="section" gap="md" aria-labelledby="troop-inventory-heading">
-      <Stack gap={2}>
-        <Group justify="space-between" align="flex-end">
-          <Box>
-            <Text id="troop-inventory-heading" fw={700} size="lg">
-              Troop inventory
-            </Text>
-            <Text c="dimmed" size="sm">
-              Troops are rendered as tokens and listed on the faction sheet in this order.
-            </Text>
-          </Box>
-        </Group>
-      </Stack>
-
+    <Stack component="section" gap="md" aria-label="Troop inventory">
       <form.Field name="troops" mode="array">
         {(field) => {
           const sortablePrefix = 'troops-';
+          const count = field.state.value.length;
           const safeSelectedIndex = Math.min(
             Math.max(currentSelectedIndex, 0),
-            Math.max(field.state.value.length - 1, 0)
+            Math.max(count - 1, 0)
           );
           return (
             <Stack gap="md">
-              {field.state.value.length === 0 ? (
+              <Group justify="flex-end">
+                <ListLengthActions
+                  removeLabel="Remove last troop type"
+                  addLabel="Add troop type"
+                  removeDisabled={count === 0}
+                  onRemove={() => {
+                    const lastIndex = count - 1;
+                    if (lastIndex < 0) return;
+                    if (currentSelectedIndex >= lastIndex) {
+                      selectIndex(Math.max(0, lastIndex - 1));
+                    }
+                    field.removeValue(lastIndex);
+                  }}
+                  onAdd={() => {
+                    const newIndex = count;
+                    field.pushValue(defaultTroop());
+                    selectIndex(newIndex);
+                  }}
+                />
+              </Group>
+
+              {count === 0 ? (
                 <Alert color="gray" variant="light" title="No troop types">
                   This faction currently has no physical troop inventory.
                 </Alert>
               ) : null}
 
-              {field.state.value.length > 0 ? (
+              {count > 0 ? (
                 <>
                   <FactionCollectionShelf
                     label="Ordered troop types"
@@ -291,12 +295,6 @@ export function FactionFormSectionTroops({
                         [safeSelectedIndex]: side,
                       }))
                     }
-                    onRemove={() => {
-                      field.removeValue(safeSelectedIndex);
-                      selectIndex(
-                        Math.max(0, Math.min(safeSelectedIndex, field.state.value.length - 2))
-                      );
-                    }}
                     onToggleBack={() => {
                       const next = [...field.state.value];
                       const current = next[safeSelectedIndex];
@@ -315,20 +313,6 @@ export function FactionFormSectionTroops({
                   />
                 </>
               ) : null}
-
-              <Button
-                type="button"
-                variant="light"
-                color="dune"
-                leftSection={<Plus size={16} aria-hidden />}
-                onClick={() => {
-                  const newIndex = field.state.value.length;
-                  field.pushValue(defaultTroop());
-                  selectIndex(newIndex);
-                }}
-              >
-                Add troop type
-              </Button>
             </Stack>
           );
         }}

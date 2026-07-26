@@ -129,15 +129,6 @@ export function FactionAuthoringToolbar({
 
         <Group gap="xs" wrap="nowrap" className={styles.actions}>
           <div className={styles.auxiliarySlot}>{auxiliaryActions}</div>
-          <Button
-            className={styles.reviewAction}
-            type="button"
-            variant="default"
-            leftSection={<Eye size={17} aria-hidden />}
-            onClick={(event) => onReview(event.currentTarget)}
-          >
-            Review faction sheet
-          </Button>
           <Tooltip label="Reset unsaved edits">
             <ActionIcon
               type="button"
@@ -151,6 +142,15 @@ export function FactionAuthoringToolbar({
               <RotateCcw size={17} aria-hidden />
             </ActionIcon>
           </Tooltip>
+          <Button
+            className={styles.reviewAction}
+            type="button"
+            variant="default"
+            leftSection={<Eye size={17} aria-hidden />}
+            onClick={(event) => onReview(event.currentTarget)}
+          >
+            Review faction sheet
+          </Button>
           <div className={styles.destructiveSlot}>{destructiveActions}</div>
           <Button
             type="button"

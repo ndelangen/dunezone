@@ -1,12 +1,9 @@
 import { arrayMove } from '@dnd-kit/sortable';
 import {
-  ActionIcon,
   Alert,
   Box,
-  Button,
   Grid,
   Group,
-  Input,
   NumberInput,
   Paper,
   Slider,
@@ -14,14 +11,13 @@ import {
   Switch,
   Text,
   Textarea,
-  Tooltip,
 } from '@mantine/core';
-import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
 import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
 import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
+import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
@@ -39,55 +35,29 @@ const decalOptions = decalAssetOptions.map((value) => ({
   label: decalAssetOptionToLabel(value),
 }));
 
-function DecalCard({
-  form,
-  index,
-  onRemove,
-}: {
-  form: FactionFormApi;
-  index: number;
-  onRemove: () => void;
-}) {
+function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
   const decal = form.state.values.decals[index];
   if (!decal) return null;
 
   return (
     <Paper withBorder radius="md" p="md">
       <Stack gap="md">
-        <Group justify="space-between" align="flex-start" wrap="wrap">
-          <Box>
-            <Text fw={700}>Alliance decal {index + 1}</Text>
-            <Text size="xs" c="dimmed">
-              {decalAssetOptionToLabel(decal.id)}
-            </Text>
-          </Box>
-          <Tooltip label={`Remove alliance decal ${index + 1}`}>
-            <ActionIcon
-              type="button"
-              variant="light"
-              color="red"
-              aria-label={`Remove alliance decal ${index + 1}`}
-              onClick={onRemove}
-            >
-              <Trash2 size={16} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
+        <Box>
+          <Text fw={700}>Alliance decal {index + 1}</Text>
+          <Text size="xs" c="dimmed">
+            {decalAssetOptionToLabel(decal.id)}
+          </Text>
+        </Box>
 
         <form.Field name={`decals[${index}].id`}>
-          {(field) => {
-            const id = `decal-${index}-id`;
-            const descriptionId = `${id}-description`;
-            return (
-              <Input.Wrapper
-                id={id}
-                descriptionProps={{ id: descriptionId }}
-                label="Decal asset"
-                description="Artwork layered onto the alliance card in collection order."
-              >
+          {(field) => (
+            <ControlBlock
+              title="Decal asset"
+              description="Artwork layered onto the alliance card in collection order."
+              input={
                 <AssetSelect
-                  id={id}
-                  aria-describedby={descriptionId}
+                  id={`decal-${index}-id`}
+                  aria-label="Decal asset"
                   allowDeselect={false}
                   limit={30}
                   data={decalOptions}
@@ -97,22 +67,27 @@ function DecalCard({
                     if (value) field.handleChange(value as Faction['decals'][number]['id']);
                   }}
                 />
-              </Input.Wrapper>
-            );
-          }}
+              }
+            />
+          )}
         </form.Field>
 
         <Grid>
           <Grid.Col span={{ base: 12, xs: 6 }}>
             <form.Field name={`decals[${index}].muted`}>
               {(field) => (
-                <Switch
-                  id={`decal-${index}-muted`}
-                  label="Muted treatment"
+                <ControlBlock
+                  title="Muted treatment"
                   description="Uses the artwork as a subtle cutout layer."
-                  checked={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.checked)}
+                  input={
+                    <Switch
+                      id={`decal-${index}-muted`}
+                      aria-label="Muted treatment"
+                      checked={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.currentTarget.checked)}
+                    />
+                  }
                 />
               )}
             </form.Field>
@@ -120,13 +95,18 @@ function DecalCard({
           <Grid.Col span={{ base: 12, xs: 6 }}>
             <form.Field name={`decals[${index}].outline`}>
               {(field) => (
-                <Switch
-                  id={`decal-${index}-outline`}
-                  label="Outline artwork"
+                <ControlBlock
+                  title="Outline artwork"
                   description="Adds a light border around an unmuted decal."
-                  checked={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.checked)}
+                  input={
+                    <Switch
+                      id={`decal-${index}-outline`}
+                      aria-label="Outline artwork"
+                      checked={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.currentTarget.checked)}
+                    />
+                  }
                 />
               )}
             </form.Field>
@@ -172,16 +152,21 @@ function DecalCard({
           <Grid.Col span={{ base: 12, xs: 6 }}>
             <form.Field name={`decals[${index}].offset[0]`}>
               {(field) => (
-                <NumberInput
-                  id={`decal-${index}-offset-x`}
-                  label="Horizontal offset"
+                <ControlBlock
+                  title="Horizontal offset"
                   description="Move left with a negative value or right with a positive value."
-                  step={1}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(value) => {
-                    if (typeof value === 'number') field.handleChange(value);
-                  }}
+                  input={
+                    <NumberInput
+                      id={`decal-${index}-offset-x`}
+                      aria-label="Horizontal offset"
+                      step={1}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(value) => {
+                        if (typeof value === 'number') field.handleChange(value);
+                      }}
+                    />
+                  }
                 />
               )}
             </form.Field>
@@ -189,16 +174,21 @@ function DecalCard({
           <Grid.Col span={{ base: 12, xs: 6 }}>
             <form.Field name={`decals[${index}].offset[1]`}>
               {(field) => (
-                <NumberInput
-                  id={`decal-${index}-offset-y`}
-                  label="Vertical offset"
+                <ControlBlock
+                  title="Vertical offset"
                   description="Move up with a negative value or down with a positive value."
-                  step={1}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(value) => {
-                    if (typeof value === 'number') field.handleChange(value);
-                  }}
+                  input={
+                    <NumberInput
+                      id={`decal-${index}-offset-y`}
+                      aria-label="Vertical offset"
+                      step={1}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(value) => {
+                        if (typeof value === 'number') field.handleChange(value);
+                      }}
+                    />
+                  }
                 />
               )}
             </form.Field>
@@ -278,16 +268,21 @@ export function FactionFormSectionAlliance({
                 const blank = field.state.value.trim().length === 0;
                 return (
                   <Stack gap={4}>
-                    <Textarea
-                      id="rules-alliance"
-                      label="Alliance ability"
+                    <ControlBlock
+                      title="Alliance ability"
                       description="Rules text printed on the alliance card. Markdown is supported."
-                      autosize
-                      minRows={4}
-                      value={field.state.value}
-                      aria-describedby={blank ? 'rules-alliance-warning' : undefined}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.currentTarget.value)}
+                      input={
+                        <Textarea
+                          id="rules-alliance"
+                          aria-label="Alliance ability"
+                          autosize
+                          minRows={4}
+                          value={field.state.value}
+                          aria-describedby={blank ? 'rules-alliance-warning' : undefined}
+                          onBlur={field.handleBlur}
+                          onChange={(event) => field.handleChange(event.currentTarget.value)}
+                        />
+                      }
                     />
                     {blank ? (
                       <Text id="rules-alliance-warning" c="yellow.9" size="xs" role="status">
@@ -310,20 +305,42 @@ export function FactionFormSectionAlliance({
             <form.Field name="decals" mode="array">
               {(field) => {
                 const sortablePrefix = 'decals-';
+                const count = field.state.value.length;
                 const safeSelectedIndex = Math.min(
                   Math.max(currentSelectedDecalIndex, 0),
-                  Math.max(field.state.value.length - 1, 0)
+                  Math.max(count - 1, 0)
                 );
                 return (
                   <Stack gap="md">
-                    {field.state.value.length === 0 ? (
+                    <Group justify="flex-end">
+                      <ListLengthActions
+                        removeLabel="Remove last alliance decal"
+                        addLabel="Add alliance decal"
+                        removeDisabled={count === 0}
+                        onRemove={() => {
+                          const lastIndex = count - 1;
+                          if (lastIndex < 0) return;
+                          if (currentSelectedDecalIndex >= lastIndex) {
+                            selectDecalIndex(Math.max(0, lastIndex - 1));
+                          }
+                          field.removeValue(lastIndex);
+                        }}
+                        onAdd={() => {
+                          const newIndex = count;
+                          field.pushValue(defaultDecal());
+                          selectDecalIndex(newIndex);
+                        }}
+                      />
+                    </Group>
+
+                    {count === 0 ? (
                       <Alert color="gray" variant="light" title="No alliance decals">
                         Decals are optional. The alliance card remains valid without decorative
                         artwork.
                       </Alert>
                     ) : null}
 
-                    {field.state.value.length > 0 ? (
+                    {count > 0 ? (
                       <>
                         <FactionCollectionShelf
                           label="Ordered alliance decals"
@@ -339,32 +356,9 @@ export function FactionFormSectionAlliance({
                             field.handleChange(arrayMove(field.state.value, from, to))
                           }
                         />
-                        <DecalCard
-                          form={form}
-                          index={safeSelectedIndex}
-                          onRemove={() => {
-                            field.removeValue(safeSelectedIndex);
-                            selectDecalIndex(
-                              Math.max(0, Math.min(safeSelectedIndex, field.state.value.length - 2))
-                            );
-                          }}
-                        />
+                        <DecalCard form={form} index={safeSelectedIndex} />
                       </>
                     ) : null}
-
-                    <Button
-                      type="button"
-                      variant="light"
-                      color="dune"
-                      leftSection={<Plus size={16} aria-hidden />}
-                      onClick={() => {
-                        const newIndex = field.state.value.length;
-                        field.pushValue(defaultDecal());
-                        selectDecalIndex(newIndex);
-                      }}
-                    >
-                      Add alliance decal
-                    </Button>
                   </Stack>
                 );
               }}

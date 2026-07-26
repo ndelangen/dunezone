@@ -1,33 +1,15 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import {
-  ActionIcon,
-  Alert,
-  Box,
-  Button,
-  Group,
-  Paper,
-  Stack,
-  Text,
-  Textarea,
-  TextInput,
-  Tooltip,
-} from '@mantine/core';
-import { Plus, Trash2 } from 'lucide-react';
+import { Alert, Box, Group, Paper, Stack, Text, Textarea, TextInput } from '@mantine/core';
 import { useState } from 'react';
+
+import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
+import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
 import { defaultAdvantage } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
 
-function AdvantageCard({
-  form,
-  index,
-  onRemove,
-}: {
-  form: FactionFormApi;
-  index: number;
-  onRemove: () => void;
-}) {
+function AdvantageCard({ form, index }: { form: FactionFormApi; index: number }) {
   const advantage = form.state.values.rules.advantages[index];
   if (!advantage) return null;
   const warningId = `adv-${index}-text-warning`;
@@ -35,35 +17,27 @@ function AdvantageCard({
   return (
     <Paper withBorder radius="md" p="md">
       <Stack gap="md">
-        <Group justify="space-between" align="flex-start" wrap="wrap">
-          <Box>
-            <Text fw={700}>Advantage {index + 1}</Text>
-            <Text c="dimmed" size="xs">
-              {advantage.title?.trim() || 'Untitled advantage'}
-            </Text>
-          </Box>
-          <Tooltip label={`Remove advantage ${index + 1}`}>
-            <ActionIcon
-              type="button"
-              variant="light"
-              color="red"
-              aria-label={`Remove advantage ${index + 1}`}
-              onClick={onRemove}
-            >
-              <Trash2 size={16} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
+        <Box>
+          <Text fw={700}>Advantage {index + 1}</Text>
+          <Text c="dimmed" size="xs">
+            {advantage.title?.trim() || 'Untitled advantage'}
+          </Text>
+        </Box>
 
         <form.Field name={`rules.advantages[${index}].title`}>
           {(field) => (
-            <TextInput
-              id={`adv-${index}-title`}
-              label="Title (optional)"
+            <ControlBlock
+              title="Title (optional)"
               description="Leave blank when the rule text is sufficient on its own."
-              value={field.state.value ?? ''}
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+              input={
+                <TextInput
+                  id={`adv-${index}-title`}
+                  aria-label="Title (optional)"
+                  value={field.state.value ?? ''}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+                />
+              }
             />
           )}
         </form.Field>
@@ -73,16 +47,21 @@ function AdvantageCard({
             const textIsBlank = field.state.value.trim().length === 0;
             return (
               <Stack gap={4}>
-                <Textarea
-                  id={`adv-${index}-text`}
-                  label="Advantage rule"
+                <ControlBlock
+                  title="Advantage rule"
                   description="The primary rules text for this faction advantage."
-                  autosize
-                  minRows={3}
-                  value={field.state.value}
-                  aria-describedby={textIsBlank ? warningId : undefined}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  input={
+                    <Textarea
+                      id={`adv-${index}-text`}
+                      aria-label="Advantage rule"
+                      autosize
+                      minRows={3}
+                      value={field.state.value}
+                      aria-describedby={textIsBlank ? warningId : undefined}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.currentTarget.value)}
+                    />
+                  }
                 />
                 {textIsBlank ? (
                   <Text id={warningId} c="yellow.9" size="xs" role="status">
@@ -96,15 +75,20 @@ function AdvantageCard({
 
         <form.Field name={`rules.advantages[${index}].karama`}>
           {(field) => (
-            <Textarea
-              id={`adv-${index}-karama`}
-              label="Karama interaction (optional)"
+            <ControlBlock
+              title="Karama interaction (optional)"
               description="Describe the Karama effect only when this advantage has one."
-              autosize
-              minRows={2}
-              value={field.state.value ?? ''}
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+              input={
+                <Textarea
+                  id={`adv-${index}-karama`}
+                  aria-label="Karama interaction (optional)"
+                  autosize
+                  minRows={2}
+                  value={field.state.value ?? ''}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+                />
+              }
             />
           )}
         </form.Field>
@@ -140,19 +124,41 @@ export function FactionFormSectionAdvantages({
       <form.Field name="rules.advantages" mode="array">
         {(field) => {
           const sortablePrefix = 'advantages-';
+          const count = field.state.value.length;
           const safeSelectedIndex = Math.min(
             Math.max(currentSelectedIndex, 0),
-            Math.max(field.state.value.length - 1, 0)
+            Math.max(count - 1, 0)
           );
           return (
             <Stack gap="md">
-              {field.state.value.length === 0 ? (
+              <Group justify="flex-end">
+                <ListLengthActions
+                  removeLabel="Remove last faction advantage"
+                  addLabel="Add faction advantage"
+                  removeDisabled={count === 0}
+                  onRemove={() => {
+                    const lastIndex = count - 1;
+                    if (lastIndex < 0) return;
+                    if (currentSelectedIndex >= lastIndex) {
+                      selectIndex(Math.max(0, lastIndex - 1));
+                    }
+                    field.removeValue(lastIndex);
+                  }}
+                  onAdd={() => {
+                    const newIndex = count;
+                    field.pushValue(defaultAdvantage());
+                    selectIndex(newIndex);
+                  }}
+                />
+              </Group>
+
+              {count === 0 ? (
                 <Alert color="gray" variant="light" title="No faction advantages">
                   This faction currently has no authored special advantages.
                 </Alert>
               ) : null}
 
-              {field.state.value.length > 0 ? (
+              {count > 0 ? (
                 <>
                   <FactionCollectionShelf
                     label="Ordered faction advantages"
@@ -168,32 +174,9 @@ export function FactionFormSectionAdvantages({
                       field.handleChange(arrayMove(field.state.value, from, to))
                     }
                   />
-                  <AdvantageCard
-                    form={form}
-                    index={safeSelectedIndex}
-                    onRemove={() => {
-                      field.removeValue(safeSelectedIndex);
-                      selectIndex(
-                        Math.max(0, Math.min(safeSelectedIndex, field.state.value.length - 2))
-                      );
-                    }}
-                  />
+                  <AdvantageCard form={form} index={safeSelectedIndex} />
                 </>
               ) : null}
-
-              <Button
-                type="button"
-                variant="light"
-                color="dune"
-                leftSection={<Plus size={16} aria-hidden />}
-                onClick={() => {
-                  const newIndex = field.state.value.length;
-                  field.pushValue(defaultAdvantage());
-                  selectIndex(newIndex);
-                }}
-              >
-                Add faction advantage
-              </Button>
             </Stack>
           );
         }}

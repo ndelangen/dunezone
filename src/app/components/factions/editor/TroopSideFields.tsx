@@ -1,7 +1,8 @@
-import { Box, Input, SimpleGrid, Stack, Switch, Textarea, TextInput } from '@mantine/core';
+import { Box, SimpleGrid, Stack, Switch, Textarea, TextInput } from '@mantine/core';
 
 import type { Faction } from '@db/factions';
 import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
+import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
 import { TROOP, TROOP_MODIFIER } from '@game/data/generated';
 
 import {
@@ -49,112 +50,132 @@ export function TroopSideFields({
     <Stack gap="md">
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <form.Field name={nameField}>
-          {(field) => (
-            <TextInput
-              id={`${idBase}-name`}
-              label={isBack ? 'Back-side name' : 'Troop name'}
-              description={
-                isBack
-                  ? 'Name printed for the reverse side of this physical troop.'
-                  : 'Used on the troop token and faction sheet.'
-              }
-              value={field.state.value}
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.currentTarget.value)}
-            />
-          )}
+          {(field) => {
+            const title = isBack ? 'Back-side name' : 'Troop name';
+            return (
+              <ControlBlock
+                title={title}
+                description={
+                  isBack
+                    ? 'Name printed for the reverse side of this physical troop.'
+                    : 'Used on the troop token and faction sheet.'
+                }
+                input={
+                  <TextInput
+                    id={`${idBase}-name`}
+                    aria-label={title}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  />
+                }
+              />
+            );
+          }}
         </form.Field>
 
         <form.Field name={imageField}>
           {(field) => {
-            const id = `${idBase}-img`;
-            const descriptionId = `${id}-description`;
+            const title = isBack ? 'Back-side symbol' : 'Troop symbol';
             return (
-              <Input.Wrapper
-                id={id}
-                descriptionProps={{ id: descriptionId }}
-                label={isBack ? 'Back-side symbol' : 'Troop symbol'}
+              <ControlBlock
+                title={title}
                 description="Select the symbol rendered inside the troop token."
-              >
-                <AssetSelect
-                  id={id}
-                  aria-describedby={descriptionId}
-                  allowDeselect={false}
-                  data={troopImageOptions}
-                  getPreviewSrc={assetOptionToPreviewSrc}
-                  value={field.state.value ?? null}
-                  onChange={(value) => {
-                    if (value) {
-                      field.handleChange(value as Faction['troops'][number]['image']);
-                    }
-                  }}
-                />
-              </Input.Wrapper>
+                input={
+                  <AssetSelect
+                    id={`${idBase}-img`}
+                    aria-label={title}
+                    allowDeselect={false}
+                    data={troopImageOptions}
+                    getPreviewSrc={assetOptionToPreviewSrc}
+                    value={field.state.value ?? null}
+                    onChange={(value) => {
+                      if (value) {
+                        field.handleChange(value as Faction['troops'][number]['image']);
+                      }
+                    }}
+                  />
+                }
+              />
             );
           }}
         </form.Field>
       </SimpleGrid>
 
       <form.Field name={descField}>
-        {(field) => (
-          <Textarea
-            id={`${idBase}-desc`}
-            label={isBack ? 'Back-side description' : 'Troop description'}
-            description="Used as the troop rules description on the faction sheet."
-            autosize
-            minRows={2}
-            value={field.state.value}
-            onBlur={field.handleBlur}
-            onChange={(event) => field.handleChange(event.currentTarget.value)}
-          />
-        )}
+        {(field) => {
+          const title = isBack ? 'Back-side description' : 'Troop description';
+          return (
+            <ControlBlock
+              title={title}
+              description="Used as the troop rules description on the faction sheet."
+              input={
+                <Textarea
+                  id={`${idBase}-desc`}
+                  aria-label={title}
+                  autosize
+                  minRows={2}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.currentTarget.value)}
+                />
+              }
+            />
+          );
+        }}
       </form.Field>
 
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <form.Field name={starField}>
           {(field) => {
-            const id = `${idBase}-star`;
-            const descriptionId = `${id}-description`;
+            const title = isBack ? 'Back-side star modifier' : 'Star modifier';
             return (
-              <Input.Wrapper
-                id={id}
-                descriptionProps={{ id: descriptionId }}
-                label={isBack ? 'Back-side star modifier' : 'Star modifier'}
+              <ControlBlock
+                title={title}
                 description="Optional marker rendered on the troop token."
-              >
-                <AssetSelect
-                  id={id}
-                  aria-describedby={descriptionId}
-                  placeholder="No star modifier"
-                  clearable
-                  data={troopStarOptions}
-                  getPreviewSrc={assetOptionToPreviewSrc}
-                  value={field.state.value ?? null}
-                  onChange={(value) =>
-                    field.handleChange(
-                      value ? (value as Faction['troops'][number]['star']) : undefined
-                    )
-                  }
-                />
-              </Input.Wrapper>
+                input={
+                  <AssetSelect
+                    id={`${idBase}-star`}
+                    aria-label={title}
+                    placeholder="No star modifier"
+                    clearable
+                    data={troopStarOptions}
+                    getPreviewSrc={assetOptionToPreviewSrc}
+                    value={field.state.value ?? null}
+                    onChange={(value) =>
+                      field.handleChange(
+                        value ? (value as Faction['troops'][number]['star']) : undefined
+                      )
+                    }
+                  />
+                }
+              />
             );
           }}
         </form.Field>
 
         <Box pt={{ base: 0, sm: 'xl' }}>
           <form.Field name={stripedField}>
-            {(field) => (
-              <Switch
-                id={`${idBase}-striped`}
-                label={isBack ? 'Striped reverse token' : 'Striped troop token'}
-                description="Adds the striped treatment to this side only."
-                checked={field.state.value === true}
-                onBlur={field.handleBlur}
-                onChange={(event) =>
-                  field.handleChange(event.currentTarget.checked ? true : undefined)
-                }
-              />
-            )}
+            {(field) => {
+              const title = isBack ? 'Striped reverse token' : 'Striped troop token';
+              return (
+                <ControlBlock
+                  title={title}
+                  description="Adds the striped treatment to this side only."
+                  input={
+                    <Switch
+                      id={`${idBase}-striped`}
+                      aria-label={title}
+                      checked={field.state.value === true}
+                      onBlur={field.handleBlur}
+                      onChange={(event) =>
+                        field.handleChange(event.currentTarget.checked ? true : undefined)
+                      }
+                    />
+                  }
+                />
+              );
+            }}
           </form.Field>
         </Box>
       </SimpleGrid>

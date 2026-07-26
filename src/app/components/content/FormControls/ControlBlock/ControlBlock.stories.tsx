@@ -1,8 +1,8 @@
-import { ActionIcon, Box, Select } from '@mantine/core';
+import { Box, Select } from '@mantine/core';
 import preview from '@sb/preview';
-import { Minus, Plus } from 'lucide-react';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 
+import { ListLengthActions } from '../ListLengthActions';
 import { ControlBlock } from './ControlBlock';
 
 const input = (
@@ -15,14 +15,7 @@ const input = (
 );
 
 const tool = (
-  <ActionIcon.Group>
-    <ActionIcon type="button" variant="light" color="red" size="sm" aria-label="Remove color">
-      <Minus size={16} aria-hidden />
-    </ActionIcon>
-    <ActionIcon type="button" variant="filled" color="green" size="sm" aria-label="Add color">
-      <Plus size={16} aria-hidden />
-    </ActionIcon>
-  </ActionIcon.Group>
+  <ListLengthActions removeLabel="Remove color" addLabel="Add color" onRemove={fn()} onAdd={fn()} />
 );
 
 const meta = preview.meta({

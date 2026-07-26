@@ -210,11 +210,8 @@
     gap: 0.25rem;
     align-items: center;
     min-width: 0;
-    margin: var(--mantine-spacing-sm);
-    padding: 0.2rem;
-    background: rgb(255 255 255 / 22%);
-    border: 1px solid var(--panel-border, #fee7c0);
-    border-radius: var(--mantine-radius-sm);
+    padding: 0.45rem 0.5rem;
+    border-bottom: 1px solid var(--panel-border, #fee7c0);
   }
 
   .mobileStepButton {
@@ -247,7 +244,7 @@
 
   .mobileSelect {
     display: grid;
-    grid-template-columns: 2rem minmax(0, 1fr) auto auto;
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto auto;
     gap: 0.5rem;
     align-items: center;
     min-width: 0;
@@ -268,21 +265,15 @@
 
   .mobileIconDisc {
     display: grid;
-    width: 1.75rem;
-    height: 1.75rem;
-    color: rgb(250 246 238 / 92%);
-    background: var(--mantine-color-dark-9, #151515);
-    border: 1px solid rgb(250 246 238 / 52%);
-    border-radius: 50%;
-    box-shadow: 0 0 0 2px rgb(0 0 0 / 12%);
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--mantine-color-dark-9, #151515);
     place-items: center;
   }
 
   .mobileIconDisc img {
-    max-width: 1.25rem;
-    max-height: 1.25rem;
-    filter: brightness(0) invert(1);
-    opacity: 0.92;
+    max-width: 1.35rem;
+    max-height: 1.35rem;
   }
 
   .mobileSelectValue {
@@ -299,7 +290,7 @@
   }
 
   .panelShell {
-    padding: 0 var(--mantine-spacing-md) var(--mantine-spacing-md);
+    padding: var(--mantine-spacing-md);
   }
 }
 

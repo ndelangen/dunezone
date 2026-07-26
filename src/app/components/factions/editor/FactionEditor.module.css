@@ -47,20 +47,17 @@
   backdrop-filter: blur(8px);
 }
 
-.liveBadge {
-  position: absolute;
-  z-index: 2;
-  top: var(--mantine-spacing-sm);
-  right: var(--mantine-spacing-sm);
+.identityProof {
+  margin-top: var(--mantine-spacing-md);
+  overflow: hidden;
+  border-radius: var(--mantine-radius-md);
 }
 
 .sheetColorReference {
   display: flex;
   justify-content: space-between;
   gap: var(--mantine-spacing-sm);
-  margin: calc(var(--mantine-spacing-md) * -1);
-  margin-bottom: 0;
-  padding: 0.55rem 4.2rem 0.55rem 0.75rem;
+  padding: 0.55rem 0.75rem;
   color: white;
   text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
 }
@@ -74,6 +71,11 @@
   width: 100%;
   margin-top: var(--mantine-spacing-md);
   border-radius: var(--mantine-radius-md);
+}
+
+.identityProof .squareProof {
+  margin-top: 0;
+  border-radius: 0;
 }
 
 .squareProof > div:first-child:not(.tokenProof) {
@@ -161,5 +163,14 @@
 @media (max-width: 48em) {
   .workbench {
     display: block;
+  }
+
+  .artifactColumn {
+    padding-top: var(--mantine-spacing-sm);
+    padding-left: 0;
+  }
+
+  .artifactDesk {
+    position: static;
   }
 }

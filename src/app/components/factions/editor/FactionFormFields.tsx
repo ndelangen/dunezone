@@ -250,26 +250,32 @@ function ArtifactProof({
         }
 
         return (
-          <Paper className={styles.artifactDesk} withBorder radius="lg" p="md">
-            <Badge className={styles.liveBadge} color="teal" variant="light">
-              Live
-            </Badge>
-
+          <Paper
+            className={styles.artifactDesk}
+            component="section"
+            aria-label={`${title} live preview`}
+            withBorder
+            radius="lg"
+            p="md"
+          >
             {activeChapter === 'identity' ? (
-              <Box
-                className={styles.sheetColorReference}
-                style={{ backgroundColor: faction.themeColor }}
-              >
-                <Text size="xs" fw={800} tt="uppercase">
-                  Sheet color
-                </Text>
-                <Text size="xs" ff="monospace">
-                  {faction.themeColor}
-                </Text>
+              <Box className={styles.identityProof}>
+                {artifact}
+                <Box
+                  className={styles.sheetColorReference}
+                  style={{ backgroundColor: faction.themeColor }}
+                >
+                  <Text size="xs" fw={800} tt="uppercase">
+                    Sheet color
+                  </Text>
+                  <Text size="xs" ff="monospace">
+                    {faction.themeColor}
+                  </Text>
+                </Box>
               </Box>
-            ) : null}
-
-            {artifact}
+            ) : (
+              artifact
+            )}
 
             {activeChapter === 'identity' ? (
               <SegmentedControl
@@ -445,7 +451,7 @@ export const FactionFormFields = forwardRef<
         items={connectedTabItems}
         ariaLabel="Faction editor sections"
       />
-      <Box className={styles.artifactColumn} visibleFrom="sm">
+      <Box className={styles.artifactColumn}>
         <ArtifactProof activeChapter={activeChapter} form={form} selectedItem={selectedItem} />
       </Box>
     </div>

@@ -1,7 +1,8 @@
-import { Box, ColorInput, Input, Stack, Text, TextInput } from '@mantine/core';
+import { Box, ColorInput, Stack, Text, TextInput } from '@mantine/core';
 
 import type { Faction } from '@db/factions';
 import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
+import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
 
 import styles from './FactionFormSectionIdentity.module.css';
 import { assetOptionToPreviewSrc, logoOptions, logoOptionToLabel } from './factionFormAssetUtils';
@@ -43,32 +44,32 @@ export function FactionFormSectionIdentity({
       <Box className={styles.identityGrid}>
         <form.Field name="name">
           {(field) => (
-            <TextInput
-              id="faction-name"
-              label="Faction name"
+            <ControlBlock
+              title="Faction name"
               description="Used on faction artifacts and to derive the canonical share URL."
-              error={nameError}
-              value={field.state.value}
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.currentTarget.value)}
+              input={
+                <TextInput
+                  id="faction-name"
+                  aria-label="Faction name"
+                  error={nameError}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.currentTarget.value)}
+                />
+              }
             />
           )}
         </form.Field>
 
         <form.Field name="logo">
-          {(field) => {
-            const id = 'faction-logo';
-            const descriptionId = `${id}-description`;
-            return (
-              <Input.Wrapper
-                id={id}
-                descriptionProps={{ id: descriptionId }}
-                label="Faction logo"
-                description="Used on faction tokens and faction-branded game artifacts."
-              >
+          {(field) => (
+            <ControlBlock
+              title="Faction logo"
+              description="Used on faction tokens and faction-branded game artifacts."
+              input={
                 <AssetSelect
-                  id={id}
-                  aria-describedby={descriptionId}
+                  id="faction-logo"
+                  aria-label="Faction logo"
                   allowDeselect={false}
                   data={logoSelectOptions}
                   getPreviewSrc={assetOptionToPreviewSrc}
@@ -77,21 +78,26 @@ export function FactionFormSectionIdentity({
                     if (value) field.handleChange(value as Faction['logo']);
                   }}
                 />
-              </Input.Wrapper>
-            );
-          }}
+              }
+            />
+          )}
         </form.Field>
 
         <form.Field name="themeColor">
           {(field) => (
-            <ColorInput
-              id="faction-theme-color"
-              label="Faction sheet theme"
+            <ControlBlock
+              title="Faction sheet theme"
               description="Used for headings and accents on the complete faction sheet."
-              format="hex"
-              value={field.state.value}
-              onBlur={field.handleBlur}
-              onChange={field.handleChange}
+              input={
+                <ColorInput
+                  id="faction-theme-color"
+                  aria-label="Faction sheet theme"
+                  format="hex"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={field.handleChange}
+                />
+              }
             />
           )}
         </form.Field>
