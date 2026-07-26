@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 
 import { MantineProvider } from '@mantine/core';
-import { act } from 'react';
+import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { appContentTheme } from '@app/theme';
 import { defaultFaction } from '@data/defaultFaction';
 
-import { FactionSheetReview } from './FactionSheetReview';
+import { FactionSheetReview, type FactionSheetReviewHandle } from './FactionSheetReview';
 
 vi.mock('./FactionSheetPagePreview', () => ({
   factionDraftForRenderer: (faction: unknown) => faction,
@@ -45,12 +45,24 @@ async function renderReview() {
   await act(async () => {
     root?.render(
       <MantineProvider theme={appContentTheme} forceColorScheme="light">
-        <FactionSheetReview faction={structuredClone(defaultFaction)}>
-          <div data-testid="editor-content">Editor content</div>
-        </FactionSheetReview>
+        <ReviewFixture />
       </MantineProvider>
     );
   });
+}
+
+function ReviewFixture() {
+  const reviewRef = useRef<FactionSheetReviewHandle>(null);
+  return (
+    <>
+      <button type="button" onClick={(event) => reviewRef.current?.open(event.currentTarget)}>
+        Review faction sheet
+      </button>
+      <FactionSheetReview ref={reviewRef} faction={structuredClone(defaultFaction)}>
+        <div data-testid="editor-content">Editor content</div>
+      </FactionSheetReview>
+    </>
+  );
 }
 
 async function clickButton(name: string) {

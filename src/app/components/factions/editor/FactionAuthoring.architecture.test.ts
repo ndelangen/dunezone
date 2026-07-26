@@ -12,6 +12,14 @@ const toolbarStyles = readFileSync(
   new URL('./FactionAuthoringToolbar.module.css', import.meta.url),
   'utf8'
 );
+const connectedTabsSource = readFileSync(
+  new URL('../../content/ConnectedTabs/ConnectedTabs.tsx', import.meta.url),
+  'utf8'
+);
+const connectedTabsStyles = readFileSync(
+  new URL('../../content/ConnectedTabs/ConnectedTabs.module.css', import.meta.url),
+  'utf8'
+);
 const collectionShelfSource = readFileSync(
   new URL('./FactionCollectionShelf.tsx', import.meta.url),
   'utf8'
@@ -33,14 +41,25 @@ const productionEditorSources = readdirSync(editorDirectory)
     name,
     source: readFileSync(new URL(name, editorDirectory), 'utf8'),
   }));
+const rendererDirectory = new URL('../../../../game/', import.meta.url);
+const rendererSources = readdirSync(rendererDirectory, { recursive: true })
+  .map(String)
+  .filter((name) => /\.(?:ts|tsx|css)$/.test(name))
+  .map((name) => ({
+    name,
+    source: readFileSync(new URL(name, rendererDirectory), 'utf8'),
+  }));
 
 describe('faction authoring architecture', () => {
   it('uses one in-memory eight-tab workbench without route or hash state', () => {
-    expect(formFieldsSource).toContain('<Tabs');
+    expect(formFieldsSource).toContain('<ConnectedTabs');
     expect(formFieldsSource).toContain('factionAuthoringChapters.map');
     expect(formFieldsSource).toContain("useState<FactionAuthoringChapterId>('identity')");
     expect(formFieldsSource).toContain('<ArtifactProof');
+    expect(formFieldsSource).not.toContain('Tabs,');
     expect(formFieldsSource).not.toContain('Accordion');
+    expect(formFieldsSource).not.toContain('useMediaQuery');
+    expect(formFieldsSource).not.toContain('mobileDocument');
     expect(formFieldsSource).not.toContain('useEditorAccordionHash');
     expect(formFieldsSource).not.toContain('navigate(');
   });
@@ -80,14 +99,42 @@ describe('faction authoring architecture', () => {
     }
   });
 
-  it('shares a Mantine-first sticky toolbar across terminal Create and Edit routes', () => {
+  it('shares one fixed-height authoring toolbar across terminal Create and Edit routes', () => {
     expect(toolbarSource).toContain("from '@mantine/core'");
     expect(toolbarStyles).toContain('position: sticky');
+    expect(toolbarStyles).toContain('height: 60px');
+    expect(toolbarSource).toContain('Review faction sheet');
+    expect(toolbarSource).toContain('aria-label="Back"');
     for (const routeSource of [createRouteSource, editRouteSource]) {
       expect(routeSource).toContain('<PageLayout');
       expect(routeSource).toContain('<FactionAuthoringToolbar');
       expect(routeSource).not.toContain("from '@app/components/generic/layout'");
       expect(routeSource).not.toContain("from '@app/components/generic/ui/UIButton'");
+    }
+  });
+
+  it('keeps the reusable connected-tabs surface domain-neutral and Radix-owned', () => {
+    expect(connectedTabsSource).toContain("from '@radix-ui/react-tabs'");
+    expect(connectedTabsSource).toContain("from '@radix-ui/react-select'");
+    expect(connectedTabsSource).toContain('activationMode="automatic"');
+    expect(connectedTabsSource).toContain('ResizeObserver');
+    expect(connectedTabsSource).toContain('buildConnectedTabsPath');
+    expect(connectedTabsSource).toContain('data-connected-tabs-mobile-picker');
+    expect(connectedTabsStyles).toContain('backdrop-filter: blur(8px)');
+    expect(connectedTabsStyles).toContain('var(--panel-border, #fee7c0)');
+    expect(connectedTabsStyles).toContain('container: connected-tabs-panel / inline-size');
+    expect(connectedTabsStyles).toContain('@container connected-tabs (max-width: 34rem)');
+    expect(connectedTabsSource).not.toMatch(/Faction|@app\/routes|@db|Convex|publication/);
+    expect(connectedTabsStyles).not.toContain(':global');
+    expect(connectedTabsStyles).not.toContain('!important');
+  });
+
+  it('keeps the renderer tree isolated from application tabs and UI frameworks', () => {
+    for (const { name, source } of rendererSources) {
+      expect(source, name).not.toContain('@radix-ui');
+      expect(source, name).not.toContain('@mantine');
+      expect(source, name).not.toContain('ConnectedTabs');
+      expect(source, name).not.toContain('/app/components/content/');
     }
   });
 

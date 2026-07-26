@@ -1,11 +1,14 @@
-import { Box } from '@mantine/core';
+import { Box, Stack } from '@mantine/core';
 import preview from '@sb/preview';
+import { useRef } from 'react';
+import { expect, userEvent, within } from 'storybook/test';
 
 import type { Faction, FactionEntry } from '@db/factions';
 import { defaultFaction } from '@data/defaultFaction';
 import { DECAL, LEADERS, PLANET, TROOP_MODIFIER } from '@game/data/generated';
 
-import { FactionEditor } from './FactionEditor';
+import { FactionAuthoringToolbar } from './FactionAuthoringToolbar';
+import { FactionEditor, type FactionEditorHandle } from './FactionEditor';
 
 function representativeFaction(): Faction {
   const faction = structuredClone(defaultFaction);
@@ -84,13 +87,28 @@ function factionEntry(data: Faction): FactionEntry {
 }
 
 function FactionEditorFixture() {
+  const editorRef = useRef<FactionEditorHandle>(null);
   return (
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
-      <FactionEditor
-        factionEntry={factionEntry(representativeFaction())}
-        errors={[]}
-        onSubmit={() => undefined}
-      />
+      <Stack gap="xl">
+        <FactionAuthoringToolbar
+          isDirty={false}
+          isNameBlank={false}
+          warningCount={0}
+          saveState="idle"
+          onSave={() => editorRef.current?.submit()}
+          onReviewWarnings={() => editorRef.current?.focusFirstWarning()}
+          onReview={(trigger) => editorRef.current?.review(trigger)}
+          onReset={() => editorRef.current?.load()}
+          onBack={() => undefined}
+        />
+        <FactionEditor
+          ref={editorRef}
+          factionEntry={factionEntry(representativeFaction())}
+          errors={[]}
+          onSubmit={() => undefined}
+        />
+      </Stack>
     </Box>
   );
 }
@@ -110,10 +128,45 @@ const meta = preview.meta({
 
 export const Desktop = meta.story({});
 
+export const WideContract = meta.story({
+  globals: {
+    viewport: {
+      value: 'appAuthoringWide',
+    },
+  },
+});
+
+export const CompactContract = meta.story({
+  globals: {
+    viewport: {
+      value: 'appAuthoringCompact',
+    },
+  },
+});
+
+export const TabletContract = meta.story({
+  globals: {
+    viewport: {
+      value: 'appAuthoringTablet',
+    },
+  },
+});
+
 export const PreviewFreeMobile = meta.story({
   globals: {
     viewport: {
       value: 'appMobile',
     },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const picker = canvas.getByRole('combobox', { name: 'Faction editor sections' });
+
+    await expect(picker).toHaveTextContent('Identity & Appearance');
+    await expect(canvas.queryByRole('region', { name: 'Faction leader' })).not.toBeInTheDocument();
+
+    await userEvent.click(canvas.getByRole('button', { name: 'Next section' }));
+    await expect(picker).toHaveTextContent('Faction leader');
+    await expect(canvas.getByRole('textbox', { name: 'Faction leader name' })).toBeVisible();
   },
 });
