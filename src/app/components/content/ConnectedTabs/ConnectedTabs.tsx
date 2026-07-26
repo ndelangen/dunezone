@@ -116,7 +116,7 @@ export function buildConnectedTabsPath({
   ].join(' ');
 }
 
-function ConnectedTabsSurface({
+function useConnectedTabsGeometry({
   value,
   rootRef,
   panelRef,
@@ -126,63 +126,76 @@ function ConnectedTabsSurface({
   panelRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const [geometry, setGeometry] = useState<ConnectedTabsGeometry | null>(null);
-  const instanceId = useId().replaceAll(':', '');
-  const clipId = `connected-tabs-clip-${instanceId}`;
-  const shadowId = `connected-tabs-shadow-${instanceId}`;
 
   useLayoutEffect(() => {
+    // The selected trigger changes without changing either element ref.
     void value;
     const root = rootRef.current;
     const panel = panelRef.current;
     const activeTab = root?.querySelector<HTMLElement>('[data-connected-tab][data-state="active"]');
-    if (!root || !panel || !activeTab || typeof ResizeObserver === 'undefined') return;
+    if (!root || !panel || !activeTab) {
+      setGeometry(null);
+      return;
+    }
 
     let animationFrame = 0;
     const measure = () => {
-      cancelAnimationFrame(animationFrame);
-      animationFrame = requestAnimationFrame(() => {
-        const rootRect = root.getBoundingClientRect();
-        const panelRect = panel.getBoundingClientRect();
-        const tabRect = activeTab.getBoundingClientRect();
-        const devicePixelRatio = window.devicePixelRatio || 1;
-        const round = (number: number) => Math.round(number * devicePixelRatio) / devicePixelRatio;
-        const width = round(rootRect.width);
-        const height = round(rootRect.height);
-        const panelX = round(panelRect.left - rootRect.left);
-        const tabTop = round(tabRect.top - rootRect.top);
-        const tabBottom = round(tabRect.bottom - rootRect.top);
-        const configuredRadius = Number.parseFloat(
-          getComputedStyle(root).getPropertyValue('--connected-tabs-radius')
-        );
-        const radius = Number.isFinite(configuredRadius) ? configuredRadius : 8;
-        const path = buildConnectedTabsPath({
-          width,
-          height,
-          panelX,
-          tabTop,
-          tabBottom,
-          radius,
-        });
-
-        setGeometry((current) =>
-          current?.width === width && current.height === height && current.path === path
-            ? current
-            : { width, height, path }
-        );
+      const rootRect = root.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      const tabRect = activeTab.getBoundingClientRect();
+      const devicePixelRatio = window.devicePixelRatio || 1;
+      const round = (number: number) => Math.round(number * devicePixelRatio) / devicePixelRatio;
+      const width = round(rootRect.width);
+      const height = round(rootRect.height);
+      const panelX = round(panelRect.left - rootRect.left);
+      const tabTop = round(tabRect.top - rootRect.top);
+      const tabBottom = round(tabRect.bottom - rootRect.top);
+      const configuredRadius = Number.parseFloat(
+        getComputedStyle(root).getPropertyValue('--connected-tabs-radius')
+      );
+      const radius = Number.isFinite(configuredRadius) ? configuredRadius : 8;
+      const path = buildConnectedTabsPath({
+        width,
+        height,
+        panelX,
+        tabTop,
+        tabBottom,
+        radius,
       });
+
+      setGeometry((current) =>
+        current?.width === width && current.height === height && current.path === path
+          ? current
+          : { width, height, path }
+      );
     };
 
-    const observer = new ResizeObserver(measure);
+    const scheduleMeasure = () => {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(measure);
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(scheduleMeasure);
     observer.observe(root);
     observer.observe(panel);
     observer.observe(activeTab);
-    measure();
 
     return () => {
       cancelAnimationFrame(animationFrame);
       observer.disconnect();
     };
   }, [panelRef, rootRef, value]);
+
+  return geometry;
+}
+
+function ConnectedTabsSurface({ geometry }: { geometry: ConnectedTabsGeometry | null }) {
+  const instanceId = useId().replaceAll(':', '');
+  const clipId = `connected-tabs-clip-${instanceId}`;
+  const shadowId = `connected-tabs-shadow-${instanceId}`;
 
   return (
     <div className={styles.surfaceLayer} aria-hidden>
@@ -260,6 +273,7 @@ export function ConnectedTabs<Value extends string>({
 }: ConnectedTabsProps<Value>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const geometry = useConnectedTabsGeometry({ value, rootRef, panelRef });
 
   return (
     <div className={clsx(styles.host, className)} style={style}>
@@ -271,7 +285,7 @@ export function ConnectedTabs<Value extends string>({
         orientation="vertical"
         activationMode="automatic"
       >
-        <ConnectedTabsSurface value={value} rootRef={rootRef} panelRef={panelRef} />
+        <ConnectedTabsSurface geometry={geometry} />
         <Tabs.List className={styles.tabList} aria-label={ariaLabel}>
           {items.map((item) => (
             <Tabs.Trigger

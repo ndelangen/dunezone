@@ -86,6 +86,15 @@ const meta = preview.meta({
 
 export const FirstActive = meta.story({
   args: { initialValue: 'overview' },
+  play: async ({ canvasElement }) => {
+    await waitFor(() => {
+      expect(canvasElement.querySelector('[class*="glassSurface"]')).not.toBeNull();
+      expect(canvasElement.querySelector('svg[class*="geometryContour"] path')).not.toBeNull();
+    });
+
+    const surface = canvasElement.querySelector<HTMLElement>('[class*="glassSurface"]');
+    await expect(getComputedStyle(surface as HTMLElement).backdropFilter).toBe('blur(8px)');
+  },
 });
 
 export const MiddleActive = meta.story({

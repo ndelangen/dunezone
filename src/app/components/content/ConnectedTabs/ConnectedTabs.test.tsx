@@ -90,6 +90,11 @@ afterEach(async () => {
 });
 
 describe('ConnectedTabs', () => {
+  it('renders the joined surface for the initially selected tab before interaction', () => {
+    expect(container?.querySelector('[class*="glassSurface"]')).not.toBeNull();
+    expect(container?.querySelector('svg[class*="geometryContour"] path')).not.toBeNull();
+  });
+
   it('uses automatic Radix keyboard activation and focus movement', async () => {
     const first = getTab('1First');
     const middle = getTab('2Middle');
