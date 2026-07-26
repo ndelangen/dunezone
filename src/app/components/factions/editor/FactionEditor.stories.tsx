@@ -114,7 +114,7 @@ function FactionEditorFixture() {
 }
 
 const meta = preview.meta({
-  title: 'App/Factions/Editor/CompleteAuthoringDocument',
+  title: 'Complete Authoring Document',
   component: FactionEditorFixture,
   globals: {
     viewport: {

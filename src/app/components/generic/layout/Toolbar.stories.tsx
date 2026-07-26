@@ -1,3 +1,4 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
 import { Toolbar } from './Toolbar';
@@ -5,6 +6,7 @@ import { Toolbar } from './Toolbar';
 const meta = preview.meta({
   component: Toolbar,
   parameters: {
+    ...legacyStoryParameters,
     layout: 'padded',
   },
 });

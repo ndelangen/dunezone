@@ -63,7 +63,7 @@ function withLeadersAndDecals(leaderCount: number, decalCount: number): Faction 
 }
 
 const meta = preview.meta({
-  title: 'App/Factions/Editor/LeadersAndAlliance',
+  title: 'Leaders and Alliance',
   component: LeadersAllianceFixture,
   globals: {
     viewport: {

@@ -1,9 +1,11 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
 import { HexColorPicker } from './HexColorPicker';
 
 const meta = preview.meta({
   component: HexColorPicker,
+  parameters: legacyStoryParameters,
 });
 
 export const SolidHex = meta.story({

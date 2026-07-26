@@ -1,6 +1,7 @@
+import { SimpleGrid, Stack, Text } from '@mantine/core';
 import preview from '@sb/preview';
 
-import { TopicIcon } from './TopicIcon';
+import { TOPIC_ICON_TOPICS, TopicIcon } from './TopicIcon';
 
 const meta = preview.meta({
   component: TopicIcon,
@@ -13,60 +14,24 @@ const meta = preview.meta({
   },
 });
 
-export const Identity = meta.story({
+export const Default = meta.story({
   args: { topic: 'identity' },
 });
 
-export const Background = meta.story({
-  args: { topic: 'background' },
-});
-
-export const Hero = meta.story({
-  args: { topic: 'hero' },
-});
-
-export const Leaders = meta.story({
-  args: { topic: 'leaders' },
-});
-
-export const Alliance = meta.story({
-  args: { topic: 'alliance' },
-});
-
-export const Decals = meta.story({
-  args: { topic: 'decals' },
-});
-
-export const Troops = meta.story({
-  args: { topic: 'troops' },
-});
-
-export const Rules = meta.story({
-  args: { topic: 'rules' },
-});
-
-export const Advantages = meta.story({
-  args: { topic: 'advantages' },
-});
-
-export const Spice = meta.story({
-  args: { topic: 'spice' },
-});
-
-export const Setup = meta.story({
-  args: { topic: 'setup' },
-});
-
-export const Karama = meta.story({
-  args: { topic: 'karama' },
-});
-
-export const Rulesets = meta.story({
-  args: { topic: 'rulesets' },
-});
-
-export const Fate = meta.story({
-  args: { topic: 'fate' },
+export const Catalogue = meta.story({
+  args: { topic: 'identity' },
+  render: (args) => (
+    <SimpleGrid cols={{ base: 2, sm: 4, md: 7 }} spacing="xl">
+      {TOPIC_ICON_TOPICS.map((topic) => (
+        <Stack key={topic} align="center" gap="xs">
+          <TopicIcon {...args} topic={topic} />
+          <Text size="sm" tt="capitalize">
+            {topic}
+          </Text>
+        </Stack>
+      ))}
+    </SimpleGrid>
+  ),
 });
 
 export const InheritedColor = meta.story({

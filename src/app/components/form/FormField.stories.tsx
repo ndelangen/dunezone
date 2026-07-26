@@ -1,3 +1,4 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
 import { FormField } from './FormField';
@@ -5,6 +6,7 @@ import { TextField } from './TextField';
 
 const meta = preview.meta({
   component: FormField,
+  parameters: legacyStoryParameters,
 });
 
 export const WithLabelAndHint = meta.story({

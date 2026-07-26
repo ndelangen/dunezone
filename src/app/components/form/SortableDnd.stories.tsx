@@ -13,6 +13,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 import { useState } from 'react';
 
@@ -20,8 +21,8 @@ import { SortableItem } from './SortableItem';
 import { SortableReorderHandle } from './SortableReorderHandle';
 
 const meta = preview.meta({
-  title: 'Form/SortableDnd',
-  parameters: { layout: 'centered' },
+  title: 'Sortable DnD',
+  parameters: { ...legacyStoryParameters, layout: 'centered' },
 });
 
 function SortableListDemo() {

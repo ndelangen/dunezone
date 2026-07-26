@@ -1,3 +1,4 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
 import { UIButton } from '@app/components/generic/ui/UIButton';
@@ -6,6 +7,7 @@ import { FormPopover } from './FormPopover';
 
 const meta = preview.meta({
   component: FormPopover,
+  parameters: legacyStoryParameters,
 });
 
 export const Default = meta.story({

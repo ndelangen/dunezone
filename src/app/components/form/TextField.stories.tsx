@@ -1,9 +1,11 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
 import { TextField } from './TextField';
 
 const meta = preview.meta({
   component: TextField,
+  parameters: legacyStoryParameters,
 });
 
 export const Default = meta.story({
