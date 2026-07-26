@@ -1,9 +1,11 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
 import { ColorLayerField } from './ColorLayerField';
 
 const meta = preview.meta({
   component: ColorLayerField,
+  parameters: legacyStoryParameters,
 });
 
 export const Solid = meta.story({

@@ -96,7 +96,7 @@ export const ShieldSnooper = meta.story({
     head: `/generated/utils/background/defense.jpg`,
     icon: [`/generated/utils/background/striped-defense.jpg`, '/vector/icon/lightning.svg'],
     iconOffset: [0, 0],
-    name: 'ShieldSnooper',
+    name: 'Shield Snooper',
     decals: [
       {
         id: '/vector/decal/shield-snooper.svg',

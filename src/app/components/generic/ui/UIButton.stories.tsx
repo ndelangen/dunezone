@@ -1,3 +1,4 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 import { Download, Save, Trash2 } from 'lucide-react';
 
@@ -5,6 +6,7 @@ import { UIButton } from './UIButton';
 
 const meta = preview.meta({
   component: UIButton,
+  parameters: legacyStoryParameters,
 });
 
 export const Confirm = meta.story({

@@ -1,11 +1,12 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
-import { Card } from '../surfaces/Card';
 import { Stack, type StackGap } from './Stack';
 
 const meta = preview.meta({
   component: Stack,
   parameters: {
+    ...legacyStoryParameters,
     layout: 'padded',
   },
 });
@@ -58,17 +59,5 @@ export const SemanticElement = meta.story({
       <li style={demoItemStyle}>Verify</li>
       <li style={demoItemStyle}>Deploy</li>
     </Stack>
-  ),
-});
-
-export const ComposedInCard = meta.story({
-  render: () => (
-    <Card header={<h3 style={{ margin: 0 }}>Faction summary</h3>}>
-      <Stack gap={2}>
-        <strong>House Atreides</strong>
-        <span>Three leaders selected</span>
-        <button type="button">Open faction</button>
-      </Stack>
-    </Card>
   ),
 });

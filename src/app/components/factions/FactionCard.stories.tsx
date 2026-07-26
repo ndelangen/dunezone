@@ -19,7 +19,6 @@ const baseFaction = {
 } as unknown as FactionCatalogueEntry;
 
 const meta = preview.meta({
-  title: 'App/Factions/FactionCard',
   component: FactionCard,
   parameters: { layout: 'centered' },
   decorators: [

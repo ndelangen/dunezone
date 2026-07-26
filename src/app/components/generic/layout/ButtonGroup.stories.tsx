@@ -1,3 +1,4 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
 import { ButtonGroup } from './ButtonGroup';
@@ -5,6 +6,7 @@ import { ButtonGroup } from './ButtonGroup';
 const meta = preview.meta({
   component: ButtonGroup,
   parameters: {
+    ...legacyStoryParameters,
     layout: 'padded',
   },
 });

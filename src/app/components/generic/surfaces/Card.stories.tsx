@@ -1,9 +1,11 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
 import { Card } from './Card';
 
 const meta = preview.meta({
   component: Card,
+  parameters: legacyStoryParameters,
 });
 
 export const Default = meta.story({

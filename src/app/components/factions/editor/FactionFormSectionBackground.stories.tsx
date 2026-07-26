@@ -37,7 +37,7 @@ function BackgroundStudioFixture({ background }: { background: Faction['backgrou
 }
 
 const meta = preview.meta({
-  title: 'App/Factions/Editor/BackgroundStudio',
+  title: 'Background Studio',
   component: BackgroundStudioFixture,
   globals: {
     viewport: {

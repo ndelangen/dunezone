@@ -1,3 +1,4 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
 import { AutoGrid } from './AutoGrid';
@@ -5,6 +6,7 @@ import { AutoGrid } from './AutoGrid';
 const meta = preview.meta({
   component: AutoGrid,
   parameters: {
+    ...legacyStoryParameters,
     layout: 'padded',
   },
 });

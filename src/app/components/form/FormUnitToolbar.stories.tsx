@@ -1,3 +1,4 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 import { Trash2 } from 'lucide-react';
 
@@ -7,6 +8,7 @@ import { FormUnitToolbar } from './FormUnitToolbar';
 
 const meta = preview.meta({
   component: FormUnitToolbar,
+  parameters: legacyStoryParameters,
 });
 
 export const Default = meta.story({

@@ -56,7 +56,7 @@ export const PhrinePen = meta.story({
     head: `/generated/utils/background/defense.jpg`,
     icon: [`/generated/utils/background/striped-defense.jpg`, '/vector/icon/poison.svg'],
     iconOffset: [0, 8],
-    name: 'Snooper!',
+    name: 'Phrine Pen!',
     decals: [
       {
         id: '/vector/decal/injection.svg',

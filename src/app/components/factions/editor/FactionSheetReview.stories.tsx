@@ -73,7 +73,6 @@ function ReviewFixture({
 }
 
 const meta = preview.meta({
-  title: 'App/Factions/Editor/FactionSheetReview',
   component: ReviewFixture,
   globals: {
     viewport: {
@@ -119,18 +118,6 @@ export const ConstrainedStacked = meta.story({
     viewport: {
       value: 'appConstrained',
     },
-  },
-  render: (args) => (
-    <div data-testid="faction-review-story-root">
-      <ReviewFixture {...args} />
-    </div>
-  ),
-  play: async ({ canvasElement }) => openReview(canvasElement),
-});
-
-export const ReducedMotion = meta.story({
-  args: {
-    faction: storyFaction,
   },
   render: (args) => (
     <div data-testid="faction-review-story-root">

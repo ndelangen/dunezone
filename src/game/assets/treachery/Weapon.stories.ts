@@ -306,7 +306,7 @@ export const Stunner = meta.story({
       `/generated/utils/background/striped-weapon.jpg`,
       '/vector/icon/projectile.svg',
     ] as const,
-    name: 'Slip Tip',
+    name: 'Stunner',
     decals: [
       {
         id: '/vector/decal/stunner.svg',

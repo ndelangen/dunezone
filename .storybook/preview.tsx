@@ -128,7 +128,7 @@ export default definePreview({
         <Story />
       );
 
-      if (title.startsWith('App/')) {
+      if (title.startsWith('Application/')) {
         return (
           <MantineProvider theme={appContentTheme} forceColorScheme="light">
             {story}

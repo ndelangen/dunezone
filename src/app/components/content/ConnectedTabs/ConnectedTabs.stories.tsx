@@ -131,7 +131,7 @@ function renderConnectedTabs({
 }
 
 const meta = preview.meta({
-  title: 'App/Content/ConnectedTabs',
+  title: 'Connected Tabs',
   component: ConnectedTabs as ComponentType<ConnectedTabsStoryArgs>,
   render: renderConnectedTabs,
   args: {

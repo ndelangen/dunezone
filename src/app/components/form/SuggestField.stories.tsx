@@ -1,3 +1,4 @@
+import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
 import { SuggestField } from './SuggestField';
@@ -12,6 +13,7 @@ function toPreviewSrc(path: string): string | null {
 
 const meta = preview.meta({
   component: SuggestField,
+  parameters: legacyStoryParameters,
 });
 
 export const Default = meta.story({

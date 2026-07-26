@@ -11,31 +11,31 @@ const meta = preview.meta({
   },
 });
 
-export const Simple = meta.story({
+export const Default = meta.story({
   args: {
     color: 'rgba(255,0,0)',
-    children: 'A short title',
+    children: 'Faction advantages',
   },
 });
 
-export const Contrast = meta.story({
+export const DarkBackground = meta.story({
   args: {
     color: 'rgba(80,100,15)',
-    children: 'A short title',
+    children: 'Faction advantages',
   },
 });
 
-export const CustomColor = meta.story({
+export const LightBackground = meta.story({
   args: {
     color: 'rgba(255,200,15)',
-    children: 'A short title',
+    children: 'Faction advantages',
   },
 });
 
-export const ContrastCheck = meta.story({
+export const ContrastPalette = meta.story({
   args: {
     color: '#000000',
-    children: 'A short title',
+    children: 'Faction advantages',
   },
   render: ({ children }) => (
     <Fragment>
@@ -52,7 +52,7 @@ export const ContrastCheck = meta.story({
 export const Sizes = meta.story({
   args: {
     color: '#000000',
-    children: 'A short title',
+    children: 'Faction advantages',
   },
   render: ({ children, color }) => (
     <Fragment>

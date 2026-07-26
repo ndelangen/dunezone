@@ -42,12 +42,3 @@ export const Accepted = meta.story({
     </Answer.List>
   ),
 });
-
-export const Empty = meta.story({
-  render: () => (
-    <Stack gap={2}>
-      <p style={{ margin: 0 }}>No answers have been submitted yet.</p>
-      <Answer.List>{null}</Answer.List>
-    </Stack>
-  ),
-});

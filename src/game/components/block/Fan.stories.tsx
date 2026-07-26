@@ -71,7 +71,7 @@ export const Default = meta.story({
   },
 });
 
-export const Size = meta.story({
+export const SquareItems = meta.story({
   args: {
     size: squareSize,
     children: [
@@ -94,7 +94,7 @@ export const Size = meta.story({
   },
 });
 
-export const Spacing = meta.story({
+export const WideFan = meta.story({
   args: {
     size: squareSize,
     spacing: 10,
@@ -118,7 +118,7 @@ export const Spacing = meta.story({
   },
 });
 
-export const SpacingNegative = meta.story({
+export const OverlappingFan = meta.story({
   args: {
     size: squareSize,
     spacing: -10,
