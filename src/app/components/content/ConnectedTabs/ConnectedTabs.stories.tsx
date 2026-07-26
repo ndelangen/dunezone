@@ -177,6 +177,50 @@ export const ResizeDrivenGeometry = meta.story({
   },
 });
 
+export const MobileViewport = meta.story({
+  args: {
+    initialValue: 'overview',
+    containerWidth: 760,
+    contentHeight: 180,
+  },
+  globals: {
+    viewport: {
+      value: 'appMobile',
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Uses Storybook’s App mobile viewport. The rail remains on the left, the component width follows the available viewport, and its compact container-query values apply.',
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const tabList = canvasElement.querySelector<HTMLElement>('[role="tablist"]');
+    const root = tabList?.parentElement;
+    const panel = canvasElement.querySelector<HTMLElement>('[role="tabpanel"]');
+    const contour = canvasElement.querySelector<SVGElement>('svg[class*="geometryContour"]');
+
+    await waitFor(() => {
+      const canvasRect = canvasElement.getBoundingClientRect();
+      const rootRect = root?.getBoundingClientRect();
+
+      expect(root).not.toBeNull();
+      expect(panel).not.toBeNull();
+      expect(contour).not.toBeNull();
+      expect(rootRect?.width).toBeLessThanOrEqual(390);
+      expect(rootRect?.right).toBeLessThanOrEqual(canvasRect.right);
+      expect(tabList?.getBoundingClientRect().right).toBeLessThanOrEqual(
+        panel?.getBoundingClientRect().left ?? 0
+      );
+      expect(
+        getComputedStyle(root as HTMLElement).getPropertyValue('--connected-tabs-rail-width')
+      ).toBe('9.25rem');
+    });
+  },
+});
+
 export const KeyboardAndPointerActivation = meta.story({
   args: { initialValue: 'overview' },
   play: async ({ canvasElement }) => {
