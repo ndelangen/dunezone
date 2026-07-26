@@ -3,6 +3,7 @@ import preview from '@sb/preview';
 import { TreacheryCard } from './Treachery';
 
 const meta = preview.meta({
+  title: 'Cheap Hero',
   component: TreacheryCard,
   globals: {
     viewport: {

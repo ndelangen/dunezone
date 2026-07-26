@@ -136,7 +136,7 @@ export const Hajr = meta.story({
     head: `/generated/utils/background/special.jpg`,
     icon: [`/generated/utils/background/striped-special.jpg`, '/vector/icon/hand-alt.svg'],
     iconOffset: [0, 2],
-    name: 'Family Atomics',
+    name: 'Hajr',
     decals: [
       {
         id: '/vector/decal/hajr.svg',
@@ -451,7 +451,7 @@ export const NullentropyBox = meta.story({
   },
 });
 
-export const Distrance = meta.story({
+export const Distrans = meta.story({
   args: {
     head: `/generated/utils/background/special.jpg`,
     icon: [`/generated/utils/background/striped-special.jpg`, '/vector/icon/hand-alt.svg'],

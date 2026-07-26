@@ -3,6 +3,7 @@ import preview from '@sb/preview';
 import { TreacheryCard } from '../treachery/Treachery';
 
 const meta = preview.meta({
+  title: 'Spice Special',
   component: TreacheryCard,
   globals: {
     viewport: {
@@ -35,7 +36,7 @@ export const ShaiHulud = meta.story({
       },
     ],
     head: '/generated/utils/background/spice-2.jpg',
-    text: `Place a Shai-Hulud in the territory on top of this spice blow discard pile. At the end of the Spice Blow Phase, this Shai-Hulud kills all forces and destroys all spice in its territory. Keep drawing spice blow cards until until there spice blow or mine card on top of both discard piles, then a nexus occurs.`,
+    text: `Place a Shai-Hulud in the territory on top of this spice blow discard pile. At the end of the Spice Blow Phase, this Shai-Hulud kills all forces and destroys all spice in its territory. Keep drawing spice blow cards until there is a spice blow or mine card on top of both discard piles, then a nexus occurs.`,
   },
 });
 

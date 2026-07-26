@@ -49,19 +49,27 @@ export default defineMain({
     },
     {
       directory: '../src/game/assets/faction',
-      titlePrefix: 'Faction',
+      titlePrefix: 'Game Assets/Faction',
     },
     {
       directory: '../src/game/assets/card',
-      titlePrefix: 'Card',
+      titlePrefix: 'Game Assets/Cards',
+    },
+    {
+      directory: '../src/game/assets/treachery',
+      titlePrefix: 'Game Assets/Cards/Treachery',
     },
     {
       directory: '../src/game/assets/token',
-      titlePrefix: 'Token',
+      titlePrefix: 'Game Assets/Tokens',
     },
     {
       directory: '../src/game/assets/utils',
-      titlePrefix: 'Utils',
+      titlePrefix: 'Game Assets/Composition',
+    },
+    {
+      directory: '../src/game/components/block',
+      titlePrefix: 'Game Assets/Composition/Blocks',
     },
     {
       directory: '../src/game/book',

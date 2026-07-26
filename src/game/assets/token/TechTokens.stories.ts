@@ -3,6 +3,7 @@ import preview from '@sb/preview';
 import { CustomToken } from './Custom';
 
 const meta = preview.meta({
+  title: 'Tech Tokens',
   component: CustomToken,
   argTypes: {
     image: {
@@ -44,7 +45,7 @@ export const Heighliners = meta.story({
     image: '/vector/icon/heighliners.svg',
     circle: false,
     top: 'Heighliners',
-    bottom: 'shipping & movement phase\nSpacing guild does not trigger',
+    bottom: 'shipping & movement phase\nSpacing Guild does not trigger',
   },
 });
 

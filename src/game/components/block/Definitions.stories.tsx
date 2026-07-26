@@ -9,17 +9,16 @@ const meta = preview.meta({
   args: {
     children: (
       <Fragment>
-        <dt>Beast of Bodmin</dt>
-        <dd>A large feline inhabiting Bodmin Moor.</dd>
+        <dt>Spice</dt>
+        <dd>The resource that drives commerce and conflict on Arrakis.</dd>
 
-        <dt>Morgawr</dt>
-        <dd>A sea serpent.</dd>
+        <dt>Stronghold</dt>
+        <dd>A named territory that can contribute to a faction victory.</dd>
 
-        <dt>Owlman</dt>
+        <dt>Treachery Card</dt>
         <dd>
-          <p>A giant owl-like creature.</p>
-          <p>A giant owl-like creature.</p>
-          <p>A giant owl-like creature.</p>
+          <p>A card held secretly until its timing permits it to be played.</p>
+          <p>Weapons and defenses are revealed as part of a Battle Plan.</p>
         </dd>
       </Fragment>
     ),
