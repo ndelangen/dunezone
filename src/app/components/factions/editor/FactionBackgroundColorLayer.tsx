@@ -18,6 +18,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import type { Faction } from '@db/factions';
+import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
 
 type ColorLayer = Faction['background']['colors'][number];
 type LinearLayer = Extract<ColorLayer, { type: 'linear' }>;
@@ -220,16 +221,10 @@ function GradientFields({
         </SimpleGrid>
       )}
 
-      <Stack gap="xs">
-        <Group justify="space-between" align="flex-end">
-          <Box>
-            <Text fw={600} size="sm">
-              Gradient stops
-            </Text>
-            <Text c="dimmed" size="xs">
-              Ordered colors with positions from 0 to 1. Existing uncommon arrays remain editable.
-            </Text>
-          </Box>
+      <ControlBlock
+        title="Gradient stops"
+        description="Ordered colors with positions from 0 to 1. Existing uncommon arrays remain editable."
+        tool={
           <Button
             type="button"
             variant="light"
@@ -243,95 +238,98 @@ function GradientFields({
           >
             Add stop
           </Button>
-        </Group>
+        }
+        input={
+          <Stack gap="xs">
+            {value.stops.length === 0 ? (
+              <Text size="sm" c="dimmed" fs="italic">
+                This gradient has no stops. Add one to make its color visible.
+              </Text>
+            ) : null}
 
-        {value.stops.length === 0 ? (
-          <Text size="sm" c="dimmed" fs="italic">
-            This gradient has no stops. Add one to make its color visible.
-          </Text>
-        ) : null}
-
-        {value.stops.map((stop, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: gradient stops have no stored identity
-          <Paper key={`${label}-stop-${index}`} withBorder radius="sm" p="sm">
-            <SimpleGrid cols={{ base: 1, xs: 2 }}>
-              <ColorInput
-                label={`Stop ${index + 1} color`}
-                value={stop[0]}
-                format="hex"
-                onChange={(color) => {
-                  const next = [...value.stops];
-                  next[index] = [color, stop[1]];
-                  updateStops(next);
-                }}
-              />
-              <NumberInput
-                label={`Stop ${index + 1} position`}
-                min={0}
-                max={1}
-                step={0.01}
-                decimalScale={2}
-                value={stop[1]}
-                onChange={(position) => {
-                  const next = [...value.stops];
-                  next[index] = [
-                    stop[0],
-                    typeof position === 'number' ? Math.min(1, Math.max(0, position)) : stop[1],
-                  ];
-                  updateStops(next);
-                }}
-              />
-            </SimpleGrid>
-            <Group justify="flex-end" gap={4} mt="xs">
-              <Tooltip label={`Move stop ${index + 1} earlier`}>
-                <ActionIcon
-                  type="button"
-                  variant="subtle"
-                  color="gray"
-                  disabled={index === 0}
-                  aria-label={`Move stop ${index + 1} earlier`}
-                  onClick={() => {
-                    if (index === 0) return;
-                    const next = [...value.stops];
-                    [next[index - 1], next[index]] = [next[index], next[index - 1]];
-                    updateStops(next);
-                  }}
-                >
-                  <ArrowUp size={16} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label={`Move stop ${index + 1} later`}>
-                <ActionIcon
-                  type="button"
-                  variant="subtle"
-                  color="gray"
-                  disabled={index === value.stops.length - 1}
-                  aria-label={`Move stop ${index + 1} later`}
-                  onClick={() => {
-                    if (index === value.stops.length - 1) return;
-                    const next = [...value.stops];
-                    [next[index], next[index + 1]] = [next[index + 1], next[index]];
-                    updateStops(next);
-                  }}
-                >
-                  <ArrowDown size={16} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label={`Remove stop ${index + 1}`}>
-                <ActionIcon
-                  type="button"
-                  variant="light"
-                  color="red"
-                  aria-label={`Remove stop ${index + 1}`}
-                  onClick={() => updateStops(value.stops.filter((_, i) => i !== index))}
-                >
-                  <Trash2 size={16} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
-            </Group>
-          </Paper>
-        ))}
-      </Stack>
+            {value.stops.map((stop, index) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: gradient stops have no stored identity
+              <Paper key={`${label}-stop-${index}`} withBorder radius="sm" p="sm">
+                <SimpleGrid cols={{ base: 1, xs: 2 }}>
+                  <ColorInput
+                    label={`Stop ${index + 1} color`}
+                    value={stop[0]}
+                    format="hex"
+                    onChange={(color) => {
+                      const next = [...value.stops];
+                      next[index] = [color, stop[1]];
+                      updateStops(next);
+                    }}
+                  />
+                  <NumberInput
+                    label={`Stop ${index + 1} position`}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    decimalScale={2}
+                    value={stop[1]}
+                    onChange={(position) => {
+                      const next = [...value.stops];
+                      next[index] = [
+                        stop[0],
+                        typeof position === 'number' ? Math.min(1, Math.max(0, position)) : stop[1],
+                      ];
+                      updateStops(next);
+                    }}
+                  />
+                </SimpleGrid>
+                <Group justify="flex-end" gap={4} mt="xs">
+                  <Tooltip label={`Move stop ${index + 1} earlier`}>
+                    <ActionIcon
+                      type="button"
+                      variant="subtle"
+                      color="gray"
+                      disabled={index === 0}
+                      aria-label={`Move stop ${index + 1} earlier`}
+                      onClick={() => {
+                        if (index === 0) return;
+                        const next = [...value.stops];
+                        [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                        updateStops(next);
+                      }}
+                    >
+                      <ArrowUp size={16} aria-hidden />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Tooltip label={`Move stop ${index + 1} later`}>
+                    <ActionIcon
+                      type="button"
+                      variant="subtle"
+                      color="gray"
+                      disabled={index === value.stops.length - 1}
+                      aria-label={`Move stop ${index + 1} later`}
+                      onClick={() => {
+                        if (index === value.stops.length - 1) return;
+                        const next = [...value.stops];
+                        [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                        updateStops(next);
+                      }}
+                    >
+                      <ArrowDown size={16} aria-hidden />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Tooltip label={`Remove stop ${index + 1}`}>
+                    <ActionIcon
+                      type="button"
+                      variant="light"
+                      color="red"
+                      aria-label={`Remove stop ${index + 1}`}
+                      onClick={() => updateStops(value.stops.filter((_, i) => i !== index))}
+                    >
+                      <Trash2 size={16} aria-hidden />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+              </Paper>
+            ))}
+          </Stack>
+        }
+      />
     </Stack>
   );
 }

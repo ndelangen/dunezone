@@ -17,6 +17,7 @@ import { ActionIcon, Box, Group, Select, Stack, Text, Tooltip } from '@mantine/c
 import { GripVertical, Minus, Plus } from 'lucide-react';
 
 import type { Faction } from '@db/factions';
+import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
 import { getSortableIds, indexFromSortableId } from '@app/lib/dnd-sortable-ids';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 import { TTSColor } from '@game/schema/faction';
@@ -152,17 +153,10 @@ export function TtsColorsEditor({
   const nextAvailableColor = nextUnusedTtsColor(value);
 
   return (
-    <Stack gap={6}>
-      <Group gap="sm" justify="space-between" align="flex-start" wrap="nowrap">
-        <Stack gap={0}>
-          <Text fw={700} size="sm">
-            Tabletop Simulator colors
-          </Text>
-          <Text c="dimmed" size="xs">
-            Choose unique colors; drag to set their priority.
-          </Text>
-        </Stack>
-
+    <ControlBlock
+      title="Tabletop Simulator colors"
+      description="Choose unique colors; drag to set their priority."
+      tool={
         <ActionIcon.Group>
           <Tooltip label="Remove last color">
             <ActionIcon
@@ -193,47 +187,50 @@ export function TtsColorsEditor({
             </ActionIcon>
           </Tooltip>
         </ActionIcon.Group>
-      </Group>
+      }
+      input={
+        <Stack gap={6}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={({ active, over }: DragEndEvent) => {
+              if (!over) return;
+              const from = indexFromSortableId(active.id, sortablePrefix);
+              const to = indexFromSortableId(over.id, sortablePrefix);
+              if (from == null || to == null || from === to) return;
+              onChange(moveTtsColor(value, from, to));
+            }}
+          >
+            <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+              <Box className={styles.rows}>
+                {value.map((color, index) => {
+                  const itemId = `${sortablePrefix}${index}`;
+                  return (
+                    <TtsColorRow
+                      key={itemId}
+                      color={color}
+                      index={index}
+                      itemId={itemId}
+                      options={availableTtsColors(value, index)}
+                      onChange={(nextColor) => {
+                        const next = [...value];
+                        next[index] = nextColor;
+                        onChange(next);
+                      }}
+                    />
+                  );
+                })}
+              </Box>
+            </SortableContext>
+          </DndContext>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={({ active, over }: DragEndEvent) => {
-          if (!over) return;
-          const from = indexFromSortableId(active.id, sortablePrefix);
-          const to = indexFromSortableId(over.id, sortablePrefix);
-          if (from == null || to == null || from === to) return;
-          onChange(moveTtsColor(value, from, to));
-        }}
-      >
-        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          <Box className={styles.rows}>
-            {value.map((color, index) => {
-              const itemId = `${sortablePrefix}${index}`;
-              return (
-                <TtsColorRow
-                  key={itemId}
-                  color={color}
-                  index={index}
-                  itemId={itemId}
-                  options={availableTtsColors(value, index)}
-                  onChange={(nextColor) => {
-                    const next = [...value];
-                    next[index] = nextColor;
-                    onChange(next);
-                  }}
-                />
-              );
-            })}
-          </Box>
-        </SortableContext>
-      </DndContext>
-
-      {value.length === 0 ? (
-        <Text size="xs" c="dimmed">
-          No preferred player colors selected.
-        </Text>
-      ) : null}
-    </Stack>
+          {value.length === 0 ? (
+            <Text size="xs" c="dimmed">
+              No preferred player colors selected.
+            </Text>
+          ) : null}
+        </Stack>
+      }
+    />
   );
 }

@@ -1,17 +1,7 @@
-import {
-  Box,
-  Group,
-  Image,
-  Select,
-  SimpleGrid,
-  Stack,
-  Switch,
-  Text,
-  Textarea,
-  TextInput,
-} from '@mantine/core';
+import { Box, Input, SimpleGrid, Stack, Switch, Textarea, TextInput } from '@mantine/core';
 
 import type { Faction } from '@db/factions';
+import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
 import { TROOP, TROOP_MODIFIER } from '@game/data/generated';
 
 import {
@@ -30,18 +20,6 @@ const troopStarOptions = TROOP_MODIFIER.options.map((value) => ({
   value,
   label: troopStarOptionToLabel(value),
 }));
-
-function AssetOption({ value, label }: { value: string; label: string }) {
-  const preview = assetOptionToPreviewSrc(value);
-  return (
-    <Group gap="sm" wrap="nowrap">
-      {preview ? <Image src={preview} alt="" w={28} h={28} fit="contain" /> : null}
-      <Text size="sm" truncate>
-        {label}
-      </Text>
-    </Group>
-  );
-}
 
 export function TroopSideFields({
   form,
@@ -88,37 +66,32 @@ export function TroopSideFields({
         </form.Field>
 
         <form.Field name={imageField}>
-          {(field) => (
-            <Select
-              id={`${idBase}-img`}
-              label={isBack ? 'Back-side symbol' : 'Troop symbol'}
-              description="Select the symbol rendered inside the troop token."
-              searchable
-              allowDeselect={false}
-              data={troopImageOptions}
-              value={field.state.value}
-              leftSection={
-                field.state.value ? (
-                  <Image
-                    src={assetOptionToPreviewSrc(field.state.value)}
-                    alt=""
-                    w={22}
-                    h={22}
-                    fit="contain"
-                  />
-                ) : null
-              }
-              renderOption={({ option }) => (
-                <AssetOption value={option.value} label={option.label} />
-              )}
-              comboboxProps={{ withinPortal: false }}
-              onChange={(value) => {
-                if (value) {
-                  field.handleChange(value as Faction['troops'][number]['image']);
-                }
-              }}
-            />
-          )}
+          {(field) => {
+            const id = `${idBase}-img`;
+            const descriptionId = `${id}-description`;
+            return (
+              <Input.Wrapper
+                id={id}
+                descriptionProps={{ id: descriptionId }}
+                label={isBack ? 'Back-side symbol' : 'Troop symbol'}
+                description="Select the symbol rendered inside the troop token."
+              >
+                <AssetSelect
+                  id={id}
+                  aria-describedby={descriptionId}
+                  allowDeselect={false}
+                  data={troopImageOptions}
+                  getPreviewSrc={assetOptionToPreviewSrc}
+                  value={field.state.value ?? null}
+                  onChange={(value) => {
+                    if (value) {
+                      field.handleChange(value as Faction['troops'][number]['image']);
+                    }
+                  }}
+                />
+              </Input.Wrapper>
+            );
+          }}
         </form.Field>
       </SimpleGrid>
 
@@ -139,24 +112,33 @@ export function TroopSideFields({
 
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <form.Field name={starField}>
-          {(field) => (
-            <Select
-              label={isBack ? 'Back-side star modifier' : 'Star modifier'}
-              description="Optional marker rendered on the troop token."
-              placeholder="No star modifier"
-              clearable
-              searchable
-              data={troopStarOptions}
-              value={field.state.value ?? null}
-              renderOption={({ option }) => (
-                <AssetOption value={option.value} label={option.label} />
-              )}
-              comboboxProps={{ withinPortal: false }}
-              onChange={(value) =>
-                field.handleChange(value ? (value as Faction['troops'][number]['star']) : undefined)
-              }
-            />
-          )}
+          {(field) => {
+            const id = `${idBase}-star`;
+            const descriptionId = `${id}-description`;
+            return (
+              <Input.Wrapper
+                id={id}
+                descriptionProps={{ id: descriptionId }}
+                label={isBack ? 'Back-side star modifier' : 'Star modifier'}
+                description="Optional marker rendered on the troop token."
+              >
+                <AssetSelect
+                  id={id}
+                  aria-describedby={descriptionId}
+                  placeholder="No star modifier"
+                  clearable
+                  data={troopStarOptions}
+                  getPreviewSrc={assetOptionToPreviewSrc}
+                  value={field.state.value ?? null}
+                  onChange={(value) =>
+                    field.handleChange(
+                      value ? (value as Faction['troops'][number]['star']) : undefined
+                    )
+                  }
+                />
+              </Input.Wrapper>
+            );
+          }}
         </form.Field>
 
         <Box pt={{ base: 0, sm: 'xl' }}>

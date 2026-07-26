@@ -9,18 +9,9 @@
   padding-top: var(--mantine-spacing-xs);
 }
 
-.stageLabel {
-  color: var(--mantine-color-dune-8);
-  font-size: var(--mantine-font-size-xs);
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
 .selectedPattern {
   aspect-ratio: 1.7;
   overflow: hidden;
-  margin-top: var(--mantine-spacing-md);
   background: var(--mantine-color-gray-1);
   border: 1px solid var(--mantine-color-dune-2);
   border-radius: var(--mantine-radius-md);
@@ -93,10 +84,6 @@
 
   .pipelineStage {
     padding-top: 0;
-  }
-
-  .selectedPattern {
-    margin-top: var(--mantine-spacing-sm);
   }
 }
 

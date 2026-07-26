@@ -7,9 +7,8 @@ import {
   Button,
   Grid,
   Group,
-  Image,
+  Input,
   Paper,
-  Select,
   Stack,
   Text,
   TextInput,
@@ -19,6 +18,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useLayoutEffect, useState } from 'react';
 
 import type { Faction } from '@db/factions';
+import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { LEADERS } from '@game/data/generated';
 
@@ -37,17 +37,6 @@ const leaderImageOptions = LEADERS.options.map((value) => ({
 
 export function canAddSupportingLeader(count: number): boolean {
   return count >= 0 && count < SUPPORTING_LEADER_LIMIT;
-}
-
-function LeaderImageOption({ value, label }: { value: string; label: string }) {
-  return (
-    <Group gap="sm" wrap="nowrap">
-      <Image src={assetOptionToPreviewSrc(value)} alt="" w={32} h={32} fit="contain" />
-      <Text size="sm" truncate>
-        {label}
-      </Text>
-    </Group>
-  );
 }
 
 function SupportingLeaderCard({
@@ -147,36 +136,33 @@ function SupportingLeaderCard({
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, xs: 8 }}>
                   <form.Field name={`leaders[${index}].image`}>
-                    {(field) => (
-                      <Select
-                        id={`leader-${index}-img`}
-                        label="Leader portrait"
-                        description="Choose the portrait rendered on this token."
-                        searchable
-                        allowDeselect={false}
-                        limit={24}
-                        data={leaderImageOptions}
-                        value={field.state.value}
-                        leftSection={
-                          <Image
-                            src={assetOptionToPreviewSrc(field.state.value)}
-                            alt=""
-                            w={24}
-                            h={24}
-                            fit="contain"
+                    {(field) => {
+                      const id = `leader-${index}-img`;
+                      const descriptionId = `${id}-description`;
+                      return (
+                        <Input.Wrapper
+                          id={id}
+                          descriptionProps={{ id: descriptionId }}
+                          label="Leader portrait"
+                          description="Choose the portrait rendered on this token."
+                        >
+                          <AssetSelect
+                            id={id}
+                            aria-describedby={descriptionId}
+                            allowDeselect={false}
+                            limit={24}
+                            data={leaderImageOptions}
+                            getPreviewSrc={assetOptionToPreviewSrc}
+                            value={field.state.value}
+                            onChange={(value) => {
+                              if (value) {
+                                field.handleChange(value as Faction['leaders'][number]['image']);
+                              }
+                            }}
                           />
-                        }
-                        renderOption={({ option }) => (
-                          <LeaderImageOption value={option.value} label={option.label} />
-                        )}
-                        comboboxProps={{ withinPortal: false }}
-                        onChange={(value) => {
-                          if (value) {
-                            field.handleChange(value as Faction['leaders'][number]['image']);
-                          }
-                        }}
-                      />
-                    )}
+                        </Input.Wrapper>
+                      );
+                    }}
                   </form.Field>
                 </Grid.Col>
               </Grid>

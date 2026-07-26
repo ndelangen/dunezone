@@ -51,6 +51,9 @@ const faqItems = [
 
 const meta = preview.meta({
   component: FaqList,
+  globals: {
+    backgrounds: { value: 'light', grid: false },
+  },
   parameters: {
     layout: 'padded',
   },
