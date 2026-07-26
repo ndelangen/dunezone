@@ -1,6 +1,7 @@
 import { Box, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { useRef } from 'react';
+import { expect, userEvent, within } from 'storybook/test';
 
 import type { Faction, FactionEntry } from '@db/factions';
 import { defaultFaction } from '@data/defaultFaction';
@@ -156,5 +157,16 @@ export const PreviewFreeMobile = meta.story({
     viewport: {
       value: 'appMobile',
     },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const picker = canvas.getByRole('combobox', { name: 'Faction editor sections' });
+
+    await expect(picker).toHaveTextContent('Identity & Appearance');
+    await expect(canvas.queryByRole('region', { name: 'Faction leader' })).not.toBeInTheDocument();
+
+    await userEvent.click(canvas.getByRole('button', { name: 'Next section' }));
+    await expect(picker).toHaveTextContent('Faction leader');
+    await expect(canvas.getByRole('textbox', { name: 'Faction leader name' })).toBeVisible();
   },
 });

@@ -94,6 +94,14 @@ function getTab(name: string) {
   return tab;
 }
 
+function getButton(name: string) {
+  const button = [...(container?.querySelectorAll('button') ?? [])].find(
+    (candidate) => candidate.getAttribute('aria-label') === name
+  );
+  if (!(button instanceof HTMLButtonElement)) throw new Error(`Missing button: ${name}`);
+  return button;
+}
+
 beforeEach(async () => {
   resizeObserverCallbacks.length = 0;
   vi.stubGlobal('ResizeObserver', ResizeObserverStub);
@@ -203,6 +211,22 @@ describe('ConnectedTabs', () => {
     });
 
     expect(final.getAttribute('data-state')).toBe('active');
+    expect(container?.textContent).toContain('Final panel');
+  });
+
+  it('steps through enabled items in the compact picker and wraps', async () => {
+    const next = getButton('Next section');
+    const previous = getButton('Previous section');
+
+    await act(async () => next.click());
+    expect(getTab('2Middle').getAttribute('data-state')).toBe('active');
+    expect(container?.textContent).toContain('Middle panel');
+
+    await act(async () => previous.click());
+    expect(getTab('1First').getAttribute('data-state')).toBe('active');
+
+    await act(async () => previous.click());
+    expect(getTab('3Final').getAttribute('data-state')).toBe('active');
     expect(container?.textContent).toContain('Final panel');
   });
 

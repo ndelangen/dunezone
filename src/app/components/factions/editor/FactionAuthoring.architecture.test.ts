@@ -58,6 +58,8 @@ describe('faction authoring architecture', () => {
     expect(formFieldsSource).toContain('<ArtifactProof');
     expect(formFieldsSource).not.toContain('Tabs,');
     expect(formFieldsSource).not.toContain('Accordion');
+    expect(formFieldsSource).not.toContain('useMediaQuery');
+    expect(formFieldsSource).not.toContain('mobileDocument');
     expect(formFieldsSource).not.toContain('useEditorAccordionHash');
     expect(formFieldsSource).not.toContain('navigate(');
   });
@@ -113,12 +115,15 @@ describe('faction authoring architecture', () => {
 
   it('keeps the reusable connected-tabs surface domain-neutral and Radix-owned', () => {
     expect(connectedTabsSource).toContain("from '@radix-ui/react-tabs'");
+    expect(connectedTabsSource).toContain("from '@radix-ui/react-select'");
     expect(connectedTabsSource).toContain('activationMode="automatic"');
     expect(connectedTabsSource).toContain('ResizeObserver');
     expect(connectedTabsSource).toContain('buildConnectedTabsPath');
+    expect(connectedTabsSource).toContain('data-connected-tabs-mobile-picker');
     expect(connectedTabsStyles).toContain('backdrop-filter: blur(8px)');
     expect(connectedTabsStyles).toContain('var(--panel-border, #fee7c0)');
     expect(connectedTabsStyles).toContain('container: connected-tabs-panel / inline-size');
+    expect(connectedTabsStyles).toContain('@container connected-tabs (max-width: 34rem)');
     expect(connectedTabsSource).not.toMatch(/Faction|@app\/routes|@db|Convex|publication/);
     expect(connectedTabsStyles).not.toContain(':global');
     expect(connectedTabsStyles).not.toContain('!important');

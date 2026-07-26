@@ -5,7 +5,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { type Faction, type FactionEntry } from '@db/factions';
 
 import styles from './FactionEditor.module.css';
-import { FactionFormFields } from './FactionFormFields';
+import { FactionFormFields, type FactionFormFieldsHandle } from './FactionFormFields';
 import { FactionSheetReview, type FactionSheetReviewHandle } from './FactionSheetReview';
 import {
   type FactionAuthoringWarning,
@@ -40,6 +40,7 @@ export const FactionEditor = forwardRef<FactionEditorHandle, FactionEditorProps>
     const initialValuesRef = useRef<Faction>(structuredClone(factionEntry.data));
     const baselineRef = useRef<Faction>(structuredClone(factionEntry.data));
     const reviewRef = useRef<FactionSheetReviewHandle>(null);
+    const fieldsRef = useRef<FactionFormFieldsHandle>(null);
 
     useEffect(() => {
       initialValuesRef.current = structuredClone(factionEntry.data);
@@ -101,9 +102,7 @@ export const FactionEditor = forwardRef<FactionEditorHandle, FactionEditorProps>
       focusFirstWarning: () => {
         const firstWarning = factionAuthoringWarnings(form.state.values)[0];
         if (!firstWarning) return;
-        const target = document.getElementById(firstWarning.targetId);
-        target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        target?.focus({ preventScroll: true });
+        fieldsRef.current?.focusWarning(firstWarning);
       },
       review: (trigger) => reviewRef.current?.open(trigger),
       getValues: () => form.state.values,
@@ -126,6 +125,7 @@ export const FactionEditor = forwardRef<FactionEditorHandle, FactionEditorProps>
             return (
               <FactionSheetReview ref={reviewRef} faction={values}>
                 <FactionFormFields
+                  ref={fieldsRef}
                   form={form}
                   warnings={warnings}
                   nameError={

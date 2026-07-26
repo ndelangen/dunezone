@@ -13,6 +13,7 @@ interface ConnectedTabsFixtureProps {
   initialValue?: ExampleTab;
   contentHeight?: number;
   animateDimensions?: boolean;
+  showPanelTitle?: boolean;
 }
 
 function Panel({
@@ -20,16 +21,18 @@ function Panel({
   children,
   contentHeight,
   animateDimensions,
+  showPanelTitle,
 }: {
   title: string;
   children: React.ReactNode;
   contentHeight: number;
   animateDimensions: boolean;
+  showPanelTitle: boolean;
 }) {
   return (
     <Box>
-      <Title order={2}>{title}</Title>
-      <Box mt="sm">{children}</Box>
+      {showPanelTitle ? <Title order={2}>{title}</Title> : null}
+      <Box mt={showPanelTitle ? 'sm' : 0}>{children}</Box>
       <Box
         data-testid="content-height"
         className={animateDimensions ? storyStyles.animatedContent : undefined}
@@ -44,6 +47,7 @@ function ConnectedTabsFixture({
   initialValue = 'overview',
   contentHeight = 180,
   animateDimensions = false,
+  showPanelTitle = true,
 }: ConnectedTabsFixtureProps) {
   const [value, setValue] = useState<ExampleTab>(initialValue);
   const items = [
@@ -52,7 +56,12 @@ function ConnectedTabsFixture({
       label: 'Overview',
       icon: <BookOpen size={20} />,
       panel: (
-        <Panel title="Overview" contentHeight={contentHeight} animateDimensions={animateDimensions}>
+        <Panel
+          title="Overview"
+          contentHeight={contentHeight}
+          animateDimensions={animateDimensions}
+          showPanelTitle={showPanelTitle}
+        >
           A short representative content panel.
         </Panel>
       ),
@@ -62,7 +71,12 @@ function ConnectedTabsFixture({
       label: 'People',
       icon: <CircleUserRound size={20} />,
       panel: (
-        <Panel title="People" contentHeight={contentHeight} animateDimensions={animateDimensions}>
+        <Panel
+          title="People"
+          contentHeight={contentHeight}
+          animateDimensions={animateDimensions}
+          showPanelTitle={showPanelTitle}
+        >
           The joined contour follows this panel as its dimensions change.
         </Panel>
       ),
@@ -72,7 +86,12 @@ function ConnectedTabsFixture({
       label: 'Settings',
       icon: <Settings size={20} />,
       panel: (
-        <Panel title="Settings" contentHeight={contentHeight} animateDimensions={animateDimensions}>
+        <Panel
+          title="Settings"
+          contentHeight={contentHeight}
+          animateDimensions={animateDimensions}
+          showPanelTitle={showPanelTitle}
+        >
           The final tab joins the panel at its lower edge.
         </Panel>
       ),
@@ -103,6 +122,7 @@ const meta = preview.meta({
       control: { type: 'range', min: 40, max: 800, step: 20 },
     },
     animateDimensions: { control: false, table: { disable: true } },
+    showPanelTitle: { control: false, table: { disable: true } },
   },
   parameters: {
     layout: 'fullscreen',
@@ -165,6 +185,7 @@ export const MobileViewport = meta.story({
   args: {
     initialValue: 'overview',
     contentHeight: 180,
+    showPanelTitle: false,
   },
   globals: {
     viewport: {
@@ -175,7 +196,7 @@ export const MobileViewport = meta.story({
     docs: {
       description: {
         story:
-          'Uses Storybook’s App mobile viewport. The rail remains on the left, the component width follows the available viewport, and its compact container-query values apply.',
+          'Uses Storybook’s App mobile viewport. Below the narrow container threshold, the left rail becomes the selected compact title stepper while the same controlled panel remains mounted.',
       },
     },
   },
@@ -183,7 +204,10 @@ export const MobileViewport = meta.story({
     const tabList = canvasElement.querySelector<HTMLElement>('[role="tablist"]');
     const root = tabList?.parentElement;
     const panel = canvasElement.querySelector<HTMLElement>('[role="tabpanel"]');
-    const contour = canvasElement.querySelector<SVGElement>('svg[class*="geometryContour"]');
+    const mobilePicker = canvasElement.querySelector<HTMLElement>(
+      '[data-connected-tabs-mobile-picker]'
+    );
+    const canvas = within(canvasElement);
 
     await waitFor(() => {
       const canvasRect = canvasElement.getBoundingClientRect();
@@ -191,16 +215,21 @@ export const MobileViewport = meta.story({
 
       expect(root).not.toBeNull();
       expect(panel).not.toBeNull();
-      expect(contour).not.toBeNull();
+      expect(mobilePicker).not.toBeNull();
       expect(rootRect?.width).toBeCloseTo(canvasRect.width);
       expect(rootRect?.right).toBeLessThanOrEqual(canvasRect.right);
-      expect(tabList?.getBoundingClientRect().right).toBeLessThanOrEqual(
-        panel?.getBoundingClientRect().left ?? 0
-      );
-      expect(
-        getComputedStyle(root as HTMLElement).getPropertyValue('--connected-tabs-rail-width')
-      ).toBe('9.25rem');
+      expect(getComputedStyle(tabList as HTMLElement).display).toBe('none');
+      expect(getComputedStyle(mobilePicker as HTMLElement).display).toBe('grid');
+      expect(getComputedStyle(root as HTMLElement).backdropFilter).toBe('blur(8px)');
     });
+
+    const picker = canvas.getByRole('combobox', { name: 'Workbench sections' });
+    await expect(picker).toHaveTextContent('Overview');
+    await userEvent.click(canvas.getByRole('button', { name: 'Next section' }));
+    await expect(picker).toHaveTextContent('People');
+    await expect(
+      canvas.getByText('The joined contour follows this panel as its dimensions change.')
+    ).toBeVisible();
   },
 });
 

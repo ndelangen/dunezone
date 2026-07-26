@@ -26,32 +26,6 @@
   min-width: 0;
 }
 
-.mobileDocument {
-  width: 100%;
-}
-
-.mobileChapter {
-  overflow: hidden;
-  background: var(--mantine-color-white);
-  border: 1px solid var(--mantine-color-dune-3);
-  border-radius: var(--mantine-radius-lg);
-  box-shadow: var(--mantine-shadow-xs);
-}
-
-.mobileChapterHeading {
-  min-height: 3.5rem;
-  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
-  background: var(--mantine-color-dune-0);
-  border-bottom: 1px solid var(--mantine-color-dune-3);
-}
-
-.chapterNumber {
-  margin-right: 0.42rem;
-  color: var(--mantine-color-dimmed);
-  font-family: var(--mantine-font-family-monospace);
-  font-size: var(--mantine-font-size-xs);
-}
-
 .artifactColumn {
   min-width: 0;
   padding-left: var(--mantine-spacing-md);

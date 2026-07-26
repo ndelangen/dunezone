@@ -2,14 +2,14 @@
 
 import { MantineProvider } from '@mantine/core';
 import { useForm } from '@tanstack/react-form';
-import { act } from 'react';
+import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { appContentTheme } from '@app/theme';
 import { defaultFaction } from '@data/defaultFaction';
 
-import { FactionFormFields } from './FactionFormFields';
+import { FactionFormFields, type FactionFormFieldsHandle } from './FactionFormFields';
 import type { FactionFormApi } from './factionFormTypes';
 
 vi.mock('./FactionFormSectionIdentity', () => ({
@@ -54,26 +54,35 @@ vi.mock('./FactionFormSectionAdvantages', () => ({
 let container: HTMLDivElement | undefined;
 let root: Root | undefined;
 
+const warningFixtures = [
+  {
+    path: 'troops[0].back.name',
+    chapter: 'forces' as const,
+    label: 'Troop back needs a name',
+    targetId: 'troop-0-back-name',
+  },
+  {
+    path: 'planet[0].name',
+    chapter: 'worlds' as const,
+    label: 'World needs a name',
+    targetId: 'planet-0-name',
+  },
+];
+
 function Harness() {
   const form = useForm({ defaultValues: structuredClone(defaultFaction) });
+  const fieldsRef = useRef<FactionFormFieldsHandle>(null);
   return (
-    <FactionFormFields
-      form={form as unknown as FactionFormApi}
-      warnings={[
-        {
-          path: 'troops[0].back.name',
-          chapter: 'forces',
-          label: 'Troop back needs a name',
-          targetId: 'troop-0-back-name',
-        },
-        {
-          path: 'planet[0].name',
-          chapter: 'worlds',
-          label: 'World needs a name',
-          targetId: 'planet-0-name',
-        },
-      ]}
-    />
+    <>
+      <button type="button" onClick={() => fieldsRef.current?.focusWarning(warningFixtures[0])}>
+        Focus first warning
+      </button>
+      <FactionFormFields
+        ref={fieldsRef}
+        form={form as unknown as FactionFormApi}
+        warnings={warningFixtures}
+      />
+    </>
   );
 }
 
@@ -98,6 +107,12 @@ function buttonWithText(text: string) {
   return button;
 }
 
+function buttonWithLabel(label: string) {
+  const button = container?.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+  if (!button) throw new Error(`Missing button: ${label}`);
+  return button;
+}
+
 beforeEach(() => {
   vi.stubGlobal(
     'ResizeObserver',
@@ -110,7 +125,7 @@ beforeEach(() => {
   vi.stubGlobal(
     'matchMedia',
     vi.fn().mockImplementation((query: string) => ({
-      matches: query === '(max-width: 48em)',
+      matches: false,
       media: query,
       onchange: null,
       addEventListener: vi.fn(),
@@ -123,7 +138,7 @@ beforeEach(() => {
   vi.stubGlobal(
     'requestAnimationFrame',
     vi.fn().mockImplementation((callback: FrameRequestCallback) => {
-      callback(0);
+      window.setTimeout(() => callback(0), 0);
       return 1;
     })
   );
@@ -143,45 +158,55 @@ afterEach(async () => {
   Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
 });
 
-describe('FactionFormFields mobile document', () => {
-  it('renders every editor section in one preview-free vertical document', async () => {
+describe('FactionFormFields responsive workbench', () => {
+  it('mounts one active chapter while keeping both responsive navigation interfaces available', async () => {
     await renderFields();
 
-    expect(container?.querySelectorAll('section')).toHaveLength(8);
-    expect(container?.querySelectorAll('[data-mobile-section]')).toHaveLength(9);
-    expect(container?.querySelector('[role="tablist"]')).toBeNull();
-    expect(container?.textContent).not.toContain('Artifact workbench');
+    expect(container?.querySelectorAll('[data-mobile-section]')).toHaveLength(2);
+    expect(container?.querySelector('[data-mobile-section="identity"]')).not.toBeNull();
+    expect(container?.querySelector('[data-mobile-section="background"]')).not.toBeNull();
+    expect(container?.querySelector('[role="tablist"]')).not.toBeNull();
+    expect(container?.querySelector('[data-connected-tabs-mobile-picker]')).not.toBeNull();
   });
 
-  it('focuses warning targets without switching or unmounting chapters', async () => {
+  it('navigates compact chapters and focuses warning targets in the active panel', async () => {
     await renderFields();
 
-    await act(async () => buttonWithText('Troop back needs a name').click());
+    for (let step = 0; step < 5; step += 1) {
+      await act(async () => buttonWithLabel('Next section').click());
+    }
+
+    expect(container?.querySelector('[data-mobile-section="forces"]')).not.toBeNull();
+    await act(async () => {
+      buttonWithText('Troop back needs a name').click();
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
     expect(document.activeElement?.id).toBe('troop-0-back-name');
 
-    await act(async () => buttonWithText('World needs a name').click());
+    await act(async () => buttonWithLabel('Previous section').click());
+    expect(container?.querySelector('[data-mobile-section="worlds"]')).not.toBeNull();
+    await act(async () => {
+      buttonWithText('World needs a name').click();
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
     expect(document.activeElement?.id).toBe('planet-0-name');
   });
-});
 
-describe('FactionFormFields tablet workbench', () => {
-  beforeEach(() => {
-    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
-  });
-
-  it('keeps the tabbed editor and adjacent artifact proof mounted above the mobile breakpoint', async () => {
+  it('selects an inactive warning chapter before focusing through its imperative handle', async () => {
     await renderFields();
 
-    expect(container?.querySelector('[role="tablist"]')).not.toBeNull();
+    await act(async () => {
+      buttonWithText('Focus first warning').click();
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+
+    expect(container?.querySelector('[data-mobile-section="forces"]')).not.toBeNull();
+    expect(document.activeElement?.id).toBe('troop-0-back-name');
+  });
+
+  it('keeps the adjacent artifact proof mounted for container-driven presentation', async () => {
+    await renderFields();
+
     expect(container?.textContent).toContain('Artifact workbench');
     expect(container?.querySelector('section')).toBeNull();
   });

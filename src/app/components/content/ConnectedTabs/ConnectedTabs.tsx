@@ -1,5 +1,7 @@
+import * as Select from '@radix-ui/react-select';
 import * as Tabs from '@radix-ui/react-tabs';
 import clsx from 'clsx';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   type CSSProperties,
   type ReactNode,
@@ -262,6 +264,29 @@ function ConnectedTabsSurface({ geometry }: { geometry: ConnectedTabsGeometry | 
   );
 }
 
+function findAdjacentEnabledValue<Value extends string>({
+  value,
+  items,
+  direction,
+}: {
+  value: Value;
+  items: readonly ConnectedTabsItem<Value>[];
+  direction: -1 | 1;
+}): Value {
+  const selectedIndex = Math.max(
+    0,
+    items.findIndex((item) => item.value === value)
+  );
+
+  for (let offset = 1; offset <= items.length; offset += 1) {
+    const index = (selectedIndex + direction * offset + items.length) % items.length;
+    const item = items[index];
+    if (item && !item.disabled) return item.value;
+  }
+
+  return value;
+}
+
 export function ConnectedTabs<Value extends string>({
   value,
   onValueChange,
@@ -274,6 +299,10 @@ export function ConnectedTabs<Value extends string>({
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const geometry = useConnectedTabsGeometry({ value, rootRef, panelRef });
+  const activeItem = items.find((item) => item.value === value);
+  const hasMultipleEnabledItems = items.filter((item) => !item.disabled).length > 1;
+  const selectAdjacent = (direction: -1 | 1) =>
+    onValueChange(findAdjacentEnabledValue({ value, items, direction }));
 
   return (
     <div className={clsx(styles.host, className)} style={style}>
@@ -286,6 +315,71 @@ export function ConnectedTabs<Value extends string>({
         activationMode="automatic"
       >
         <ConnectedTabsSurface geometry={geometry} />
+        {activeItem ? (
+          <div className={styles.mobilePicker} data-connected-tabs-mobile-picker>
+            <button
+              type="button"
+              className={styles.mobileStepButton}
+              aria-label="Previous section"
+              disabled={!hasMultipleEnabledItems}
+              onClick={() => selectAdjacent(-1)}
+            >
+              <ChevronLeft size={18} aria-hidden />
+            </button>
+            <Select.Root
+              value={value}
+              onValueChange={(nextValue) => onValueChange(nextValue as Value)}
+            >
+              <Select.Trigger className={styles.mobileSelect} aria-label={ariaLabel}>
+                <span className={styles.mobileIconDisc} aria-hidden>
+                  {activeItem.icon}
+                </span>
+                <Select.Value className={styles.mobileSelectValue}>{activeItem.label}</Select.Value>
+                {activeItem.indicator ? (
+                  <span className={styles.mobileIndicator}>{activeItem.indicator}</span>
+                ) : null}
+                <Select.Icon className={styles.mobileSelectIcon}>
+                  <ChevronDown size={15} aria-hidden />
+                </Select.Icon>
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Content
+                  className={styles.mobileSelectContent}
+                  position="popper"
+                  sideOffset={4}
+                >
+                  <Select.Viewport className={styles.mobileSelectViewport}>
+                    {items.map((item) => (
+                      <Select.Item
+                        className={styles.mobileSelectItem}
+                        key={item.value}
+                        value={item.value}
+                        disabled={item.disabled}
+                      >
+                        <span className={styles.mobileItemIcon} aria-hidden>
+                          {item.icon}
+                        </span>
+                        <Select.ItemText>{item.label}</Select.ItemText>
+                        {item.indicator ? (
+                          <span className={styles.mobileIndicator}>{item.indicator}</span>
+                        ) : null}
+                      </Select.Item>
+                    ))}
+                  </Select.Viewport>
+                </Select.Content>
+              </Select.Portal>
+            </Select.Root>
+            <button
+              type="button"
+              className={styles.mobileStepButton}
+              aria-label="Next section"
+              disabled={!hasMultipleEnabledItems}
+              onClick={() => selectAdjacent(1)}
+            >
+              <ChevronRight size={18} aria-hidden />
+            </button>
+          </div>
+        ) : null}
         <Tabs.List className={styles.tabList} aria-label={ariaLabel}>
           {items.map((item) => (
             <Tabs.Trigger

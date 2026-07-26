@@ -10,9 +10,8 @@ import {
   Stack,
   Text,
 } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
 import { Globe2 } from 'lucide-react';
-import { useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 
 import { ConnectedTabs } from '@app/components/content/ConnectedTabs';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
@@ -41,6 +40,10 @@ import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import type { FactionFormApi } from './factionFormTypes';
 
 export type { FactionFormApi } from './factionFormTypes';
+
+export interface FactionFormFieldsHandle {
+  focusWarning: (warning: FactionAuthoringWarning) => void;
+}
 
 const chapterIcons: Record<
   Exclude<FactionAuthoringChapterId, 'identity' | 'worlds'>,
@@ -327,16 +330,14 @@ function ChapterWarnings({
   );
 }
 
-export function FactionFormFields({
-  form,
-  warnings,
-  nameError,
-}: {
-  form: FactionFormApi;
-  warnings: FactionAuthoringWarning[];
-  nameError?: string;
-}) {
-  const isMobile = useMediaQuery('(max-width: 48em)', false);
+export const FactionFormFields = forwardRef<
+  FactionFormFieldsHandle,
+  {
+    form: FactionFormApi;
+    warnings: FactionAuthoringWarning[];
+    nameError?: string;
+  }
+>(function FactionFormFields({ form, warnings, nameError }, ref) {
   const [activeChapter, setActiveChapter] = useState<FactionAuthoringChapterId>('identity');
   const [selectedItem, setSelectedItem] = useState({
     leader: 0,
@@ -349,13 +350,15 @@ export function FactionFormFields({
     warnings.filter((warning) => warning.chapter === chapter);
 
   const focusWarning = (warning: FactionAuthoringWarning) => {
-    if (!isMobile) setActiveChapter(warning.chapter);
+    setActiveChapter(warning.chapter);
     window.requestAnimationFrame(() => {
       const target = document.getElementById(warning.targetId);
       target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       target?.focus({ preventScroll: true });
     });
   };
+
+  useImperativeHandle(ref, () => ({ focusWarning }));
 
   const chapterEditor = (chapter: FactionAuthoringChapterId) => (
     <>
@@ -412,44 +415,6 @@ export function FactionFormFields({
     </>
   );
 
-  if (isMobile) {
-    return (
-      <Stack className={styles.mobileDocument} gap="md">
-        {factionAuthoringChapters.map((chapter, index) => {
-          const chapterWarnings = forChapter(chapter.id);
-          const headingId = `mobile-faction-chapter-${chapter.id}`;
-          return (
-            <Box
-              component="section"
-              className={styles.mobileChapter}
-              key={chapter.id}
-              aria-labelledby={headingId}
-            >
-              <Group className={styles.mobileChapterHeading} gap="sm" wrap="nowrap">
-                <ChapterIcon chapter={chapter.id} form={form} />
-                <Text component="span" className={styles.chapterNumber}>
-                  {String(index + 1).padStart(2, '0')}
-                </Text>
-                <Text id={headingId} component="h2" fw={700} size="md">
-                  {chapter.label}
-                </Text>
-                {chapterWarnings.length > 0 ? (
-                  <Badge circle size="sm" color="yellow" ml="auto">
-                    {chapterWarnings.length}
-                  </Badge>
-                ) : null}
-              </Group>
-              <Stack gap="lg" p="md">
-                <ChapterWarnings warnings={chapterWarnings} onFocus={focusWarning} />
-                {chapterEditor(chapter.id)}
-              </Stack>
-            </Box>
-          );
-        })}
-      </Stack>
-    );
-  }
-
   const connectedTabItems = factionAuthoringChapters.map((chapter) => {
     const chapterWarnings = forChapter(chapter.id);
     return {
@@ -485,4 +450,4 @@ export function FactionFormFields({
       </Box>
     </div>
   );
-}
+});
