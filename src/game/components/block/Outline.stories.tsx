@@ -9,8 +9,8 @@ const meta = preview.meta({
     variant: 'normal',
     children: (
       <Text>
-        <h1>A title</h1>
-        <p>A long long text</p>
+        <h1>Battle prescience</h1>
+        <p>Reveal one element of the opposing Battle Plan before committing your own.</p>
       </Text>
     ),
   },
@@ -19,7 +19,7 @@ const meta = preview.meta({
   },
 });
 
-export const Generic = meta.story({
+export const Standard = meta.story({
   args: { variant: 'normal' },
 });
 export const Example = meta.story({

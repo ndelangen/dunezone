@@ -8,22 +8,22 @@ const meta = preview.meta({
   args: {
     children: (
       <Fragment>
-        <p>A long long text</p>
-        <p>A long long text</p>
+        <p>Arrakis is the only known source of the spice melange.</p>
+        <p>Control of the desert determines the balance of power between the factions.</p>
       </Fragment>
     ),
   },
 });
 
-export const Columns1 = meta.story({
+export const SingleColumn = meta.story({
   args: { columns: 1 },
 });
 
-export const Columns2 = meta.story({
+export const TwoColumns = meta.story({
   args: { columns: 2 },
 });
 
-export const RichContent = meta.story({
+export const ListsAndParagraphs = meta.story({
   args: {
     children: (
       <Fragment>
@@ -35,24 +35,24 @@ export const RichContent = meta.story({
         </ul>
         <p>An intermediate paragraph</p>
         <ol>
-          <li>ordered list item</li>
-          <li>ordered list item</li>
+          <li>A first ordered item</li>
+          <li>A second ordered item</li>
         </ol>
       </Fragment>
     ),
   },
 });
 
-export const HeadingsContent = meta.story({
+export const HeadingHierarchy = meta.story({
   args: {
     children: (
       <Fragment>
-        <h1>A short paragraph</h1>
-        <p>A second short paragraph</p>
-        <h2>A short paragraph</h2>
-        <p>A second short paragraph</p>
-        <h3>A short paragraph</h3>
-        <p>A second short paragraph</p>
+        <h1>Faction rules</h1>
+        <p>The complete set of rules unique to one faction.</p>
+        <h2>Advantages</h2>
+        <p>Abilities available while their stated conditions are met.</p>
+        <h3>Alliance</h3>
+        <p>The ability granted to another faction while allied.</p>
       </Fragment>
     ),
   },
@@ -64,26 +64,26 @@ export const Table = meta.story({
       <table>
         <thead>
           <tr>
-            <th>a</th>
-            <th>b</th>
-            <th>c</th>
+            <th>Faction</th>
+            <th>Forces</th>
+            <th>Spice</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>11</td>
-            <td>12</td>
-            <td>13</td>
+            <td>Atreides</td>
+            <td>10</td>
+            <td>10</td>
           </tr>
           <tr>
-            <td>21</td>
-            <td>22</td>
-            <td>22</td>
+            <td>Fremen</td>
+            <td>17</td>
+            <td>3</td>
           </tr>
           <tr>
-            <td>31</td>
-            <td>32</td>
-            <td>33</td>
+            <td>Guild</td>
+            <td>15</td>
+            <td>5</td>
           </tr>
         </tbody>
       </table>

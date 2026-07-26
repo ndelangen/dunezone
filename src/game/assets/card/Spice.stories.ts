@@ -153,7 +153,7 @@ export const RedChasm = meta.story({
   },
 });
 
-export const RockOutcropppings = meta.story({
+export const RockOutcroppings = meta.story({
   args: {
     name: 'Rock Outcroppings',
     subName: 'Spice blow',
