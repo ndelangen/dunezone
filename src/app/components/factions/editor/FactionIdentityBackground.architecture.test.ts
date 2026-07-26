@@ -87,7 +87,13 @@ describe('Identity and Appearance chapter architecture', () => {
     expect(fieldsSource).toContain('BackgroundRenderer');
     expect(fieldsSource).toContain('<Token');
     expect(fieldsSource).toContain('data-faction-token-proof');
-    expect(fieldsSource).toContain('visibleFrom="sm"');
+    expect(fieldsSource).toContain('component="section"');
+    expect(fieldsSource).toContain('live preview');
+    expect(fieldsSource).not.toContain('className={styles.artifactColumn} visibleFrom="sm"');
+    expect(fieldsSource.indexOf('{artifact}')).toBeLessThan(
+      fieldsSource.indexOf('className={styles.sheetColorReference}')
+    );
+    expect(editorStyles).toContain('.identityProof .squareProof');
     expect(editorStyles).toContain('aspect-ratio: 1');
     expect(rendererSource).not.toContain('@mantine');
   });
@@ -99,10 +105,10 @@ describe('Identity and Appearance chapter architecture', () => {
     expect(ttsColorsSource).toContain('renderOption=');
     expect(ttsColorsSource).toContain('availableTtsColors');
     expect(ttsColorsSource).toContain('nextUnusedTtsColor');
-    expect(ttsColorsSource).toContain('<ActionIcon.Group>');
-    expect(ttsColorsSource).toContain('aria-label="Remove last TTS color"');
-    expect(ttsColorsSource).toContain('aria-label="Add TTS color"');
-    expect(ttsColorsSource).toContain('color="green"');
+    expect(ttsColorsSource).toContain('<ListLengthActions');
+    expect(ttsColorsSource).toContain('removeLabel="Remove last TTS color"');
+    expect(ttsColorsSource).toContain('addLabel="Add TTS color"');
+    expect(ttsColorsSource).not.toContain('<ActionIcon.Group>');
     expect(ttsColorsSource).toContain('PointerSensor');
     expect(ttsColorsSource).toContain('KeyboardSensor');
     expect(ttsColorsSource).toContain('sortableKeyboardCoordinates');
@@ -126,5 +132,10 @@ describe('Identity and Appearance chapter architecture', () => {
     expect(backgroundStyles).toContain('@container connected-tabs-panel');
     expect(identityStyles).not.toContain('@media');
     expect(backgroundStyles).not.toContain('@media');
+  });
+
+  it('uses one outer separator around the open pattern catalogue', () => {
+    expect(backgroundSource).toContain('<Divider />');
+    expect(backgroundStyles).not.toContain('border-block:');
   });
 });

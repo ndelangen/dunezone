@@ -61,7 +61,25 @@ describe('Forces and Worlds and Rules and Advantages chapter architecture', () =
     expect(collectionShelfSource).toContain('Drag to reorder');
     for (const source of [troopsSource, planetsSource, advantagesSource]) {
       expect(source).toContain('<FactionCollectionShelf');
+      expect(source).toContain('<ListLengthActions');
     }
+  });
+
+  it('uses end-of-list actions instead of card-level remove or footer add buttons', () => {
+    for (const [source, labels] of [
+      [troopsSource, ['Remove last troop type', 'Add troop type', 'Remove troop']],
+      [planetsSource, ['Remove last faction world', 'Add faction world', 'Remove planet']],
+      [
+        advantagesSource,
+        ['Remove last faction advantage', 'Add faction advantage', 'Remove advantage'],
+      ],
+    ] as const) {
+      expect(source).toContain(`removeLabel="${labels[0]}"`);
+      expect(source).toContain(`addLabel="${labels[1]}"`);
+      expect(source).not.toContain(labels[2]);
+      expect(source).not.toContain('leftSection={<Plus');
+    }
+    expect(troopsSource).not.toContain('Troops are rendered as tokens');
   });
 
   it('uses only the informative troop renderer and removes previews on mobile', () => {

@@ -34,7 +34,6 @@
 .patternCatalogue {
   min-width: 0;
   padding-block: var(--mantine-spacing-xs);
-  border-block: 1px solid var(--mantine-color-dune-2);
 }
 
 .patternScroller {

@@ -90,7 +90,7 @@ function FactionEditorFixture() {
   const editorRef = useRef<FactionEditorHandle>(null);
   return (
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
-      <Stack gap="xl">
+      <Stack gap="clamp(var(--mantine-spacing-sm), 3vw, var(--mantine-spacing-xl))">
         <FactionAuthoringToolbar
           isDirty={false}
           isNameBlank={false}
@@ -182,6 +182,7 @@ export const FactionTokenProofGeometry = meta.story({
 });
 
 export const PreviewFreeMobile = meta.story({
+  name: 'Mobile authoring',
   globals: {
     viewport: {
       value: 'appMobile',
@@ -192,10 +193,15 @@ export const PreviewFreeMobile = meta.story({
     const picker = canvas.getByRole('combobox', { name: 'Faction editor sections' });
 
     await expect(picker).toHaveTextContent('Identity & Appearance');
-    await expect(canvas.queryByRole('region', { name: 'Faction leader' })).not.toBeInTheDocument();
+    await expect(
+      canvas.getByRole('region', { name: 'Background composite live preview' })
+    ).toBeVisible();
 
     await userEvent.click(canvas.getByRole('button', { name: 'Next section' }));
     await expect(picker).toHaveTextContent('Faction leader');
     await expect(canvas.getByRole('textbox', { name: 'Faction leader name' })).toBeVisible();
+    await expect(
+      canvas.getByRole('region', { name: 'Faction leader token live preview' })
+    ).toBeVisible();
   },
 });

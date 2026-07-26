@@ -1,7 +1,8 @@
-import { Box, Grid, Input, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Grid, Stack, Text, TextInput } from '@mantine/core';
 
 import type { Faction } from '@db/factions';
 import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
+import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { LEADERS } from '@game/data/generated';
 
@@ -21,16 +22,7 @@ export function FactionFormSectionHero({
   showPreview?: boolean;
 }) {
   return (
-    <Stack component="section" gap="md" aria-labelledby="faction-leader-heading">
-      <Stack gap={2}>
-        <Text id="faction-leader-heading" fw={700} size="lg">
-          Faction leader
-        </Text>
-        <Text c="dimmed" size="sm">
-          Every faction has one required hero. This leader is used on the Faction shield.
-        </Text>
-      </Stack>
-
+    <Stack component="section" gap="md" aria-label="Faction leader">
       <Grid gap="xl" align="center">
         <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
           <Stack gap="md">
@@ -39,14 +31,19 @@ export function FactionFormSectionHero({
                 const blank = field.state.value.trim().length === 0;
                 return (
                   <Stack gap={4}>
-                    <TextInput
-                      id="hero-name"
-                      label="Faction leader name"
+                    <ControlBlock
+                      title="Faction leader name"
                       description="Printed around the leader portrait on the Faction shield."
-                      value={field.state.value}
-                      aria-describedby={blank ? 'hero-name-warning' : undefined}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.currentTarget.value)}
+                      input={
+                        <TextInput
+                          id="hero-name"
+                          aria-label="Faction leader name"
+                          value={field.state.value}
+                          aria-describedby={blank ? 'hero-name-warning' : undefined}
+                          onBlur={field.handleBlur}
+                          onChange={(event) => field.handleChange(event.currentTarget.value)}
+                        />
+                      }
                     />
                     {blank ? (
                       <Text id="hero-name-warning" c="yellow.9" size="xs" role="status">
@@ -59,19 +56,14 @@ export function FactionFormSectionHero({
             </form.Field>
 
             <form.Field name="hero.image">
-              {(field) => {
-                const id = 'hero-image';
-                const descriptionId = `${id}-description`;
-                return (
-                  <Input.Wrapper
-                    id={id}
-                    descriptionProps={{ id: descriptionId }}
-                    label="Faction leader portrait"
-                    description="Choose the portrait rendered for this hero."
-                  >
+              {(field) => (
+                <ControlBlock
+                  title="Faction leader portrait"
+                  description="Choose the portrait rendered for this hero."
+                  input={
                     <AssetSelect
-                      id={id}
-                      aria-describedby={descriptionId}
+                      id="hero-image"
+                      aria-label="Faction leader portrait"
                       allowDeselect={false}
                       limit={24}
                       data={leaderImageOptions}
@@ -81,9 +73,9 @@ export function FactionFormSectionHero({
                         if (value) field.handleChange(value as Faction['hero']['image']);
                       }}
                     />
-                  </Input.Wrapper>
-                );
-              }}
+                  }
+                />
+              )}
             </form.Field>
           </Stack>
         </Grid.Col>

@@ -208,6 +208,8 @@ describe('FactionFormFields responsive workbench', () => {
     await renderFields();
 
     expect(container?.textContent).toContain('Artifact workbench');
-    expect(container?.querySelector('section')).toBeNull();
+    expect(
+      container?.querySelector('section[aria-label="Background composite live preview"]')
+    ).not.toBeNull();
   });
 });

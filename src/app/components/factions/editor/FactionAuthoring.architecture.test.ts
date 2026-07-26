@@ -105,6 +105,9 @@ describe('faction authoring architecture', () => {
     expect(toolbarStyles).toContain('height: 60px');
     expect(toolbarSource).toContain('Review faction sheet');
     expect(toolbarSource).toContain('aria-label="Back"');
+    expect(toolbarSource.indexOf('aria-label="Reset unsaved edits"')).toBeLessThan(
+      toolbarSource.indexOf('Review faction sheet')
+    );
     for (const routeSource of [createRouteSource, editRouteSource]) {
       expect(routeSource).toContain('<PageLayout');
       expect(routeSource).toContain('<FactionAuthoringToolbar');

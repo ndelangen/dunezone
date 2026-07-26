@@ -1,24 +1,11 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import {
-  ActionIcon,
-  Alert,
-  Badge,
-  Box,
-  Button,
-  Grid,
-  Group,
-  Input,
-  Paper,
-  Stack,
-  Text,
-  TextInput,
-  Tooltip,
-} from '@mantine/core';
-import { Plus, Trash2 } from 'lucide-react';
+import { Alert, Badge, Box, Grid, Group, Paper, Stack, Text, TextInput } from '@mantine/core';
 import { useLayoutEffect, useState } from 'react';
 
 import type { Faction } from '@db/factions';
 import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
+import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
+import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { LEADERS } from '@game/data/generated';
 
@@ -42,57 +29,47 @@ export function canAddSupportingLeader(count: number): boolean {
 function SupportingLeaderCard({
   form,
   index,
-  onRemove,
   showPreview,
 }: {
   form: FactionFormApi;
   index: number;
-  onRemove: () => void;
   showPreview: boolean;
 }) {
   const leader = form.state.values.leaders[index];
   if (!leader) return null;
 
   return (
-    <Paper withBorder radius="md" p="md">
+    <Paper
+      component="section"
+      aria-label={`Edit supporting leader ${index + 1}`}
+      withBorder
+      radius="md"
+      p="md"
+    >
       <Stack gap="md">
-        <Group justify="space-between" align="flex-start" wrap="wrap">
-          <Box>
-            <Text fw={700}>Supporting leader {index + 1}</Text>
-            <Text size="xs" c="dimmed">
-              {leader.name.trim() || 'Unnamed leader'}
-            </Text>
-          </Box>
-          <Tooltip label={`Remove supporting leader ${index + 1}`}>
-            <ActionIcon
-              type="button"
-              variant="light"
-              color="red"
-              aria-label={`Remove supporting leader ${index + 1}`}
-              onClick={onRemove}
-            >
-              <Trash2 size={16} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
-
         <Grid gap="xl" align="center">
           <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
             <Stack gap="md">
               <form.Field name={`leaders[${index}].name`}>
                 {(field) => {
-                  const blank = field.state.value.trim().length === 0;
+                  const value = field.state.value ?? '';
+                  const blank = value.trim().length === 0;
                   const warningId = `leader-${index}-name-warning`;
                   return (
                     <Stack gap={4}>
-                      <TextInput
-                        id={`leader-${index}-name`}
-                        label="Leader name"
+                      <ControlBlock
+                        title="Leader name"
                         description="Printed around this leader token."
-                        value={field.state.value}
-                        aria-describedby={blank ? warningId : undefined}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.currentTarget.value)}
+                        input={
+                          <TextInput
+                            id={`leader-${index}-name`}
+                            aria-label="Leader name"
+                            value={value}
+                            aria-describedby={blank ? warningId : undefined}
+                            onBlur={field.handleBlur}
+                            onChange={(event) => field.handleChange(event.currentTarget.value)}
+                          />
+                        }
                       />
                       {blank ? (
                         <Text id={warningId} c="yellow.9" size="xs" role="status">
@@ -108,47 +85,47 @@ function SupportingLeaderCard({
                 <Grid.Col span={{ base: 12, xs: 4 }}>
                   <form.Field name={`leaders[${index}].strength`}>
                     {(field) => (
-                      <TextInput
-                        id={`leader-${index}-str`}
-                        label="Strength"
+                      <ControlBlock
+                        title="Strength"
                         description="A whole number or one character. Leave blank to omit."
-                        inputMode="text"
-                        autoComplete="off"
-                        value={
-                          field.state.value === undefined || field.state.value === null
-                            ? ''
-                            : String(field.state.value)
+                        input={
+                          <TextInput
+                            id={`leader-${index}-str`}
+                            aria-label="Strength"
+                            inputMode="text"
+                            autoComplete="off"
+                            value={
+                              field.state.value === undefined || field.state.value === null
+                                ? ''
+                                : String(field.state.value)
+                            }
+                            onBlur={field.handleBlur}
+                            onChange={(event) => {
+                              const raw = event.currentTarget.value;
+                              if (raw === '') {
+                                field.handleChange(undefined);
+                              } else if (/^-?\d+$/u.test(raw)) {
+                                field.handleChange(Number.parseInt(raw, 10));
+                              } else if (raw.length === 1) {
+                                field.handleChange(raw);
+                              }
+                            }}
+                          />
                         }
-                        onBlur={field.handleBlur}
-                        onChange={(event) => {
-                          const raw = event.currentTarget.value;
-                          if (raw === '') {
-                            field.handleChange(undefined);
-                          } else if (/^-?\d+$/u.test(raw)) {
-                            field.handleChange(Number.parseInt(raw, 10));
-                          } else if (raw.length === 1) {
-                            field.handleChange(raw);
-                          }
-                        }}
                       />
                     )}
                   </form.Field>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, xs: 8 }}>
                   <form.Field name={`leaders[${index}].image`}>
-                    {(field) => {
-                      const id = `leader-${index}-img`;
-                      const descriptionId = `${id}-description`;
-                      return (
-                        <Input.Wrapper
-                          id={id}
-                          descriptionProps={{ id: descriptionId }}
-                          label="Leader portrait"
-                          description="Choose the portrait rendered on this token."
-                        >
+                    {(field) => (
+                      <ControlBlock
+                        title="Leader portrait"
+                        description="Choose the portrait rendered on this token."
+                        input={
                           <AssetSelect
-                            id={id}
-                            aria-describedby={descriptionId}
+                            id={`leader-${index}-img`}
+                            aria-label="Leader portrait"
                             allowDeselect={false}
                             limit={24}
                             data={leaderImageOptions}
@@ -160,9 +137,9 @@ function SupportingLeaderCard({
                               }
                             }}
                           />
-                        </Input.Wrapper>
-                      );
-                    }}
+                        }
+                      />
+                    )}
                   </form.Field>
                 </Grid.Col>
               </Grid>
@@ -234,43 +211,53 @@ export function FactionFormSectionLeaders({
   }, [pendingLeaderFocusId]);
 
   return (
-    <Stack component="section" gap="md" aria-labelledby="supporting-leaders-heading">
-      <Group justify="space-between" align="flex-start" wrap="wrap">
-        <Box>
-          <Text id="supporting-leaders-heading" fw={700} size="lg">
-            Supporting leaders
-          </Text>
-          <Text c="dimmed" size="sm">
-            Add zero to ten leaders and arrange the order used on faction artifacts.
-          </Text>
-        </Box>
-        <form.Subscribe selector={(state) => state.values.leaders.length}>
-          {(count) => (
-            <Badge
-              variant="light"
-              color={count === CONVENTIONAL_SUPPORTING_LEADER_COUNT ? 'dune' : 'gray'}
-            >
-              {count} / {SUPPORTING_LEADER_LIMIT}
-            </Badge>
-          )}
-        </form.Subscribe>
-      </Group>
-
+    <Stack component="section" gap="md" aria-label="Supporting leaders">
       <form.Field name="leaders" mode="array">
         {(field) => {
           const sortablePrefix = 'leaders-';
-          const canAdd = canAddSupportingLeader(field.state.value.length);
+          const count = field.state.value.length;
+          const canAdd = canAddSupportingLeader(count);
           const safeSelectedIndex = Math.min(
             Math.max(currentSelectedIndex, 0),
-            Math.max(field.state.value.length - 1, 0)
+            Math.max(count - 1, 0)
           );
           return (
             <Stack gap="md">
-              {field.state.value.length === 0 ? (
+              <Group justify="flex-end" gap={4} wrap="nowrap">
+                <Badge
+                  variant="light"
+                  color={count === CONVENTIONAL_SUPPORTING_LEADER_COUNT ? 'dune' : 'gray'}
+                >
+                  {count} / {SUPPORTING_LEADER_LIMIT}
+                </Badge>
+                <ListLengthActions
+                  removeLabel="Remove last supporting leader"
+                  addLabel="Add supporting leader"
+                  removeDisabled={count === 0}
+                  addDisabled={!canAdd}
+                  onRemove={() => {
+                    const lastIndex = count - 1;
+                    if (lastIndex < 0) return;
+                    if (currentSelectedIndex >= lastIndex) {
+                      selectIndex(Math.max(0, lastIndex - 1));
+                    }
+                    field.removeValue(lastIndex);
+                  }}
+                  onAdd={() => {
+                    if (!canAdd) return;
+                    const newIndex = count;
+                    field.pushValue(nextLeaderFromLast(field.state.value[newIndex - 1]));
+                    selectIndex(newIndex);
+                    setPendingLeaderFocusId(`leader-${newIndex}-name`);
+                  }}
+                />
+              </Group>
+
+              {count === 0 ? (
                 <Alert color="yellow" variant="light" title="No supporting leaders">
                   Zero is valid, but unusual. Most factions use five supporting leaders.
                 </Alert>
-              ) : field.state.value.length !== CONVENTIONAL_SUPPORTING_LEADER_COUNT ? (
+              ) : count !== CONVENTIONAL_SUPPORTING_LEADER_COUNT ? (
                 <Alert color="gray" variant="light">
                   Most factions use five supporting leaders; this roster is still valid.
                 </Alert>
@@ -298,33 +285,10 @@ export function FactionFormSectionLeaders({
                   <SupportingLeaderCard
                     form={form}
                     index={safeSelectedIndex}
-                    onRemove={() => {
-                      field.removeValue(safeSelectedIndex);
-                      selectIndex(
-                        Math.max(0, Math.min(safeSelectedIndex, field.state.value.length - 2))
-                      );
-                    }}
                     showPreview={showPreview}
                   />
                 </>
               ) : null}
-
-              <Button
-                type="button"
-                variant="light"
-                color="dune"
-                leftSection={<Plus size={16} aria-hidden />}
-                disabled={!canAdd}
-                onClick={() => {
-                  if (!canAdd) return;
-                  const newIndex = field.state.value.length;
-                  field.pushValue(nextLeaderFromLast(field.state.value[newIndex - 1]));
-                  selectIndex(newIndex);
-                  setPendingLeaderFocusId(`leader-${newIndex}-name`);
-                }}
-              >
-                {canAdd ? 'Add supporting leader' : 'Maximum of 10 leaders reached'}
-              </Button>
             </Stack>
           );
         }}

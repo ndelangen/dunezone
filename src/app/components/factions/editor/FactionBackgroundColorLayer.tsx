@@ -176,23 +176,28 @@ function GradientFields({
   return (
     <Stack gap="md">
       {value.type === 'linear' ? (
-        <NumberInput
-          label="Gradient angle"
+        <ControlBlock
+          title="Gradient angle"
           description="Direction in degrees. The complete admitted range is 0–360."
-          min={0}
-          max={360}
-          step={1}
-          allowDecimal={false}
-          value={value.angle}
-          suffix="°"
-          onChange={(next) =>
-            onChange({
-              ...value,
-              angle:
-                typeof next === 'number' && Number.isInteger(next)
-                  ? Math.min(360, Math.max(0, next))
-                  : 0,
-            })
+          input={
+            <NumberInput
+              aria-label="Gradient angle"
+              min={0}
+              max={360}
+              step={1}
+              allowDecimal={false}
+              value={value.angle}
+              suffix="°"
+              onChange={(next) =>
+                onChange({
+                  ...value,
+                  angle:
+                    typeof next === 'number' && Number.isInteger(next)
+                      ? Math.min(360, Math.max(0, next))
+                      : 0,
+                })
+              }
+            />
           }
         />
       ) : (

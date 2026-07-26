@@ -44,8 +44,26 @@ describe('Leaders and Alliance authoring architecture', () => {
     expect(collectionShelfSource).toContain('KeyboardSensor');
     expect(collectionShelfSource).toContain('sortableKeyboardCoordinates');
     expect(leadersSource).toContain('SUPPORTING_LEADER_LIMIT = 10');
-    expect(leadersSource).toContain('disabled={!canAdd}');
+    expect(leadersSource).toContain('addDisabled={!canAdd}');
+    expect(leadersSource).toContain('<ListLengthActions');
+    expect(leadersSource).toContain('addLabel="Add supporting leader"');
+    expect(leadersSource).toContain('removeLabel="Remove last supporting leader"');
+    expect(leadersSource).toContain('field.removeValue(lastIndex)');
+    expect(leadersSource).not.toContain('Remove supporting leader');
     expect(leadersSource).toContain('Most factions use five supporting leaders');
+  });
+
+  it('uses tab and field labels instead of repeated chapter introductions', () => {
+    expect(heroSource).toContain('aria-label="Faction leader"');
+    expect(heroSource).not.toContain('Every faction has one required hero');
+    expect(leadersSource).toContain('aria-label="Supporting leaders"');
+    expect(leadersSource).toContain('Edit supporting leader');
+    expect(leadersSource).not.toContain('Add zero to ten leaders');
+    expect(leadersSource).not.toContain('<Text fw={700}>Supporting leader');
+    expect(leadersSource).toContain('title="Strength"');
+    expect(leadersSource).toContain(
+      'description="A whole number or one character. Leave blank to omit."'
+    );
   });
 
   it('owns alliance ability and every decal field beside the real alliance card', () => {
@@ -63,6 +81,11 @@ describe('Leaders and Alliance authoring architecture', () => {
     expect(fieldsSource).toContain('<AllianceCard');
     expect(allianceSource).toContain('visibleFrom="sm"');
     expect(allianceSource).toContain('<FactionCollectionShelf');
+    expect(allianceSource).toContain('<ListLengthActions');
+    expect(allianceSource).toContain('removeLabel="Remove last alliance decal"');
+    expect(allianceSource).toContain('addLabel="Add alliance decal"');
+    expect(allianceSource).not.toMatch(/Remove alliance decal \$\{index/);
+    expect(allianceSource).not.toContain('leftSection={<Plus');
   });
 
   it('keeps application presentation in Mantine and renderers isolated', () => {

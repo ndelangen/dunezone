@@ -5,7 +5,6 @@ import {
   AspectRatio,
   Badge,
   Box,
-  Button,
   Group,
   Image,
   Paper,
@@ -14,13 +13,14 @@ import {
   Text,
   Textarea,
   TextInput,
-  Tooltip,
   UnstyledButton,
 } from '@mantine/core';
-import { Check, Plus, Trash2 } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
+import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
+import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
@@ -119,40 +119,19 @@ function PlanetImageLibrary({
   );
 }
 
-function PlanetCard({
-  form,
-  index,
-  onRemove,
-}: {
-  form: FactionFormApi;
-  index: number;
-  onRemove: () => void;
-}) {
+function PlanetCard({ form, index }: { form: FactionFormApi; index: number }) {
   const planet = form.state.values.planet?.[index];
   if (!planet) return null;
 
   return (
     <Paper withBorder radius="md" p="md">
       <Stack gap="md">
-        <Group justify="space-between" align="flex-start" wrap="wrap">
-          <Box>
-            <Text fw={700}>Planet {index + 1}</Text>
-            <Text size="xs" c="dimmed">
-              {planet.name.trim() || 'Unnamed world'}
-            </Text>
-          </Box>
-          <Tooltip label={`Remove planet ${index + 1}`}>
-            <ActionIcon
-              type="button"
-              variant="light"
-              color="red"
-              aria-label={`Remove planet ${index + 1}`}
-              onClick={onRemove}
-            >
-              <Trash2 size={16} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
+        <Box>
+          <Text fw={700}>Planet {index + 1}</Text>
+          <Text size="xs" c="dimmed">
+            {planet.name.trim() || 'Unnamed world'}
+          </Text>
+        </Box>
 
         <form.Field name={`planet[${index}].image`}>
           {(field) => (
@@ -167,27 +146,37 @@ function PlanetCard({
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
           <form.Field name={`planet[${index}].name`}>
             {(field) => (
-              <TextInput
-                id={`planet-${index}-name`}
-                label="Planet name"
+              <ControlBlock
+                title="Planet name"
                 description="The authored name of this faction world."
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.currentTarget.value)}
+                input={
+                  <TextInput
+                    id={`planet-${index}-name`}
+                    aria-label="Planet name"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  />
+                }
               />
             )}
           </form.Field>
           <form.Field name={`planet[${index}].description`}>
             {(field) => (
-              <Textarea
-                id={`planet-${index}-description`}
-                label="Planet description"
+              <ControlBlock
+                title="Planet description"
                 description="Stored with the world for future artifact use."
-                autosize
-                minRows={2}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.currentTarget.value)}
+                input={
+                  <Textarea
+                    id={`planet-${index}-description`}
+                    aria-label="Planet description"
+                    autosize
+                    minRows={2}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  />
+                }
               />
             )}
           </form.Field>
@@ -228,6 +217,7 @@ export function FactionFormSectionPlanets({
       <form.Field name="planet">
         {(field) => {
           const planets = field.state.value ?? [];
+          const count = planets.length;
           const sortablePrefix = 'planets-';
           const safeSelectedIndex = Math.min(
             Math.max(currentSelectedIndex, 0),
@@ -235,14 +225,34 @@ export function FactionFormSectionPlanets({
           );
           return (
             <Stack gap="md">
-              {planets.length === 0 ? (
+              <Group justify="flex-end">
+                <ListLengthActions
+                  removeLabel="Remove last faction world"
+                  addLabel="Add faction world"
+                  removeDisabled={count === 0}
+                  onRemove={() => {
+                    const lastIndex = count - 1;
+                    if (lastIndex < 0) return;
+                    if (currentSelectedIndex >= lastIndex) {
+                      selectIndex(Math.max(0, lastIndex - 1));
+                    }
+                    field.handleChange(planets.slice(0, -1));
+                  }}
+                  onAdd={() => {
+                    field.handleChange([...planets, defaultPlanet()]);
+                    selectIndex(count);
+                  }}
+                />
+              </Group>
+
+              {count === 0 ? (
                 <Alert color="gray" variant="light" title="No faction worlds">
                   Worlds are optional. Add one when a planet is part of this faction&apos;s
                   identity.
                 </Alert>
               ) : null}
 
-              {planets.length > 0 ? (
+              {count > 0 ? (
                 <>
                   <FactionCollectionShelf
                     label="Ordered faction worlds"
@@ -256,31 +266,9 @@ export function FactionFormSectionPlanets({
                     }))}
                     onMove={(from, to) => field.handleChange(arrayMove(planets, from, to))}
                   />
-                  <PlanetCard
-                    form={form}
-                    index={safeSelectedIndex}
-                    onRemove={() => {
-                      field.handleChange(
-                        planets.filter((__, itemIndex) => itemIndex !== safeSelectedIndex)
-                      );
-                      selectIndex(Math.max(0, Math.min(safeSelectedIndex, planets.length - 2)));
-                    }}
-                  />
+                  <PlanetCard form={form} index={safeSelectedIndex} />
                 </>
               ) : null}
-
-              <Button
-                type="button"
-                variant="light"
-                color="dune"
-                leftSection={<Plus size={16} aria-hidden />}
-                onClick={() => {
-                  field.handleChange([...planets, defaultPlanet()]);
-                  selectIndex(planets.length);
-                }}
-              >
-                Add faction world
-              </Button>
             </Stack>
           );
         }}

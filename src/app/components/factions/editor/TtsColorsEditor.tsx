@@ -14,10 +14,11 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { ActionIcon, Box, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
-import { GripVertical, Minus, Plus } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 
 import type { Faction } from '@db/factions';
 import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
+import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 import { getSortableIds, indexFromSortableId } from '@app/lib/dnd-sortable-ids';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 import { TTSColor } from '@game/schema/faction';
@@ -157,36 +158,16 @@ export function TtsColorsEditor({
       title="Tabletop Simulator colors"
       description="Choose unique colors; drag to set their priority."
       tool={
-        <ActionIcon.Group>
-          <Tooltip label="Remove last color">
-            <ActionIcon
-              type="button"
-              variant="light"
-              color="red"
-              size="sm"
-              disabled={value.length === 0}
-              aria-label="Remove last TTS color"
-              onClick={() => onChange(removeLastTtsColor(value))}
-            >
-              <Minus size={16} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Add color">
-            <ActionIcon
-              type="button"
-              variant="filled"
-              color="green"
-              size="sm"
-              disabled={nextAvailableColor == null}
-              aria-label="Add TTS color"
-              onClick={() => {
-                if (nextAvailableColor) onChange([...value, nextAvailableColor]);
-              }}
-            >
-              <Plus size={16} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
-        </ActionIcon.Group>
+        <ListLengthActions
+          removeLabel="Remove last TTS color"
+          addLabel="Add TTS color"
+          removeDisabled={value.length === 0}
+          addDisabled={nextAvailableColor == null}
+          onRemove={() => onChange(removeLastTtsColor(value))}
+          onAdd={() => {
+            if (nextAvailableColor) onChange([...value, nextAvailableColor]);
+          }}
+        />
       }
       input={
         <Stack gap={6}>
