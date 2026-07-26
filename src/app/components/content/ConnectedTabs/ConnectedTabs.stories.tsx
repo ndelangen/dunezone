@@ -80,14 +80,12 @@ function ConnectedTabsFixture({
   ] as const;
 
   return (
-    <Box p="xl" w="100%">
-      <ConnectedTabs
-        value={value}
-        onValueChange={setValue}
-        items={items}
-        ariaLabel="Workbench sections"
-      />
-    </Box>
+    <ConnectedTabs
+      value={value}
+      onValueChange={setValue}
+      items={items}
+      ariaLabel="Workbench sections"
+    />
   );
 }
 
@@ -194,7 +192,7 @@ export const MobileViewport = meta.story({
       expect(root).not.toBeNull();
       expect(panel).not.toBeNull();
       expect(contour).not.toBeNull();
-      expect(rootRect?.width).toBeLessThanOrEqual(390);
+      expect(rootRect?.width).toBeCloseTo(canvasRect.width);
       expect(rootRect?.right).toBeLessThanOrEqual(canvasRect.right);
       expect(tabList?.getBoundingClientRect().right).toBeLessThanOrEqual(
         panel?.getBoundingClientRect().left ?? 0
