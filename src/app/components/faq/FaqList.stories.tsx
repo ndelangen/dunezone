@@ -1,7 +1,4 @@
 import preview from '@sb/preview';
-import { Link } from '@tanstack/react-router';
-import type { ReactNode } from 'react';
-import { mocked } from 'storybook/test';
 
 import type { FaqItemWithDetails } from '@db/faq';
 
@@ -56,11 +53,6 @@ const meta = preview.meta({
   component: FaqList,
   parameters: {
     layout: 'padded',
-  },
-  beforeEach: () => {
-    mocked(Link).mockImplementation((({ children }: { children?: ReactNode }) => (
-      <a href="#faq-story">{children}</a>
-    )) as never);
   },
   args: {
     items: faqItems,
