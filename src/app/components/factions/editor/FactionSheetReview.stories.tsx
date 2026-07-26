@@ -1,11 +1,12 @@
-import { Box, Paper, Stack, Text, Title } from '@mantine/core';
+import { Box, Button, Paper, Stack, Text, Title } from '@mantine/core';
 import preview from '@sb/preview';
+import { useRef } from 'react';
 import { expect, userEvent, within } from 'storybook/test';
 
 import type { Faction } from '@db/factions';
 import { defaultFaction } from '@data/defaultFaction';
 
-import { FactionSheetReview } from './FactionSheetReview';
+import { FactionSheetReview, type FactionSheetReviewHandle } from './FactionSheetReview';
 
 function EditorChapter({ index }: { index: number }) {
   return (
@@ -40,9 +41,17 @@ function ReviewFixture({
   faction: Faction;
   longContent?: boolean;
 }) {
+  const reviewRef = useRef<FactionSheetReviewHandle>(null);
   return (
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
-      <FactionSheetReview faction={faction}>
+      <Button
+        visibleFrom="sm"
+        mb="md"
+        onClick={(event) => reviewRef.current?.open(event.currentTarget)}
+      >
+        Review faction sheet
+      </Button>
+      <FactionSheetReview ref={reviewRef} faction={faction}>
         <Stack gap="xl">
           {[1, 2, 3, 4, 5].map((index) => (
             <EditorChapter key={index} index={index} />

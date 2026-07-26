@@ -138,8 +138,9 @@ function CreateFactionPage() {
           saveState={saveState}
           onSave={() => editorRef.current?.submit()}
           onReviewWarnings={() => editorRef.current?.focusFirstWarning()}
+          onReview={(trigger) => editorRef.current?.review(trigger)}
           onReset={() => editorRef.current?.load()}
-          onClose={() => navigate({ to: '/factions' })}
+          onBack={() => navigate({ to: '/factions' })}
           auxiliaryActions={
             <FactionLoadPopover
               disabled={createFaction.isPending}

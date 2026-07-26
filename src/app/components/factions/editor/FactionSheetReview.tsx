@@ -1,10 +1,12 @@
-import { ActionIcon, Alert, Box, Button, Group, Paper, Stack, Text, Title } from '@mantine/core';
-import { ChevronDown, Eye, Link2, X } from 'lucide-react';
+import { ActionIcon, Alert, Box, Button, Group, Stack, Text, Title } from '@mantine/core';
+import { ChevronDown, Link2, X } from 'lucide-react';
 import {
   type CSSProperties,
+  forwardRef,
   type ReactNode,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useLayoutEffect,
   useRef,
   useState,
@@ -185,15 +187,19 @@ function ReviewHeading({
   );
 }
 
-export function FactionSheetReview({
-  faction,
-  children,
-}: {
-  faction: Faction;
-  children: ReactNode;
-}) {
+export interface FactionSheetReviewHandle {
+  open: (trigger?: HTMLElement | null) => void;
+}
+
+export const FactionSheetReview = forwardRef<
+  FactionSheetReviewHandle,
+  {
+    faction: Faction;
+    children: ReactNode;
+  }
+>(({ faction, children }, ref) => {
   const stageRef = useRef<HTMLElement>(null);
-  const reviewTriggerRef = useRef<HTMLButtonElement>(null);
+  const reviewTriggerRef = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const mountFrameRef = useRef<number | null>(null);
   const [editorPlaneWidth, setEditorPlaneWidth] = useState(0);
@@ -205,18 +211,24 @@ export function FactionSheetReview({
     reviewTriggerRef.current?.focus({ preventScroll: true });
   }, []);
 
-  const openReview = () => {
-    if (!window.matchMedia(DESKTOP_REVIEW_MEDIA).matches) return;
-    setEditorPlaneWidth(stageRef.current?.clientWidth ?? 0);
-    if (reviewMounted) {
-      setReviewOpen(true);
-      return;
-    }
-    setReviewMounted(true);
-    mountFrameRef.current = requestAnimationFrame(() => {
-      mountFrameRef.current = requestAnimationFrame(() => setReviewOpen(true));
-    });
-  };
+  const openReview = useCallback(
+    (trigger?: HTMLElement | null) => {
+      if (!window.matchMedia(DESKTOP_REVIEW_MEDIA).matches) return;
+      reviewTriggerRef.current = trigger ?? null;
+      setEditorPlaneWidth(stageRef.current?.clientWidth ?? 0);
+      if (reviewMounted) {
+        setReviewOpen(true);
+        return;
+      }
+      setReviewMounted(true);
+      mountFrameRef.current = requestAnimationFrame(() => {
+        mountFrameRef.current = requestAnimationFrame(() => setReviewOpen(true));
+      });
+    },
+    [reviewMounted]
+  );
+
+  useImperativeHandle(ref, () => ({ open: openReview }), [openReview]);
 
   useEffect(() => {
     const media = window.matchMedia(DESKTOP_REVIEW_MEDIA);
@@ -262,34 +274,7 @@ export function FactionSheetReview({
           aria-hidden={reviewOpen || undefined}
           inert={reviewOpen ? true : undefined}
         >
-          <Stack gap="xl">
-            {children}
-            <Paper
-              withBorder
-              radius="lg"
-              p={{ base: 'md', sm: 'xl' }}
-              className={styles.reviewAction}
-              visibleFrom="sm"
-            >
-              <Group justify="space-between" align="center" gap="lg" wrap="wrap">
-                <Box>
-                  <Title order={3}>Ready to review the complete faction?</Title>
-                  <Text size="sm" c="dimmed">
-                    Inspect the real two-page sheet and shield without leaving this draft.
-                  </Text>
-                </Box>
-                <Button
-                  ref={reviewTriggerRef}
-                  type="button"
-                  color="dune"
-                  leftSection={<Eye size={17} aria-hidden />}
-                  onClick={openReview}
-                >
-                  Review faction sheet
-                </Button>
-              </Group>
-            </Paper>
-          </Stack>
+          {children}
         </div>
         {reviewOpen ? (
           <button
@@ -316,4 +301,4 @@ export function FactionSheetReview({
       ) : null}
     </section>
   );
-}
+});

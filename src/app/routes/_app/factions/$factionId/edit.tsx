@@ -164,8 +164,9 @@ function FactionEditPage() {
           assetPublishing={assetPublishing}
           onSave={() => editorRef.current?.submit()}
           onReviewWarnings={() => editorRef.current?.focusFirstWarning()}
+          onReview={(trigger) => editorRef.current?.review(trigger)}
           onReset={() => editorRef.current?.load()}
-          onClose={() =>
+          onBack={() =>
             navigate({
               to: '/factions/$factionId',
               params: { factionId },

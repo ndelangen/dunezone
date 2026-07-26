@@ -61,6 +61,27 @@ export default definePreview({
             height: '900px',
           },
         },
+        appAuthoringWide: {
+          name: 'Authoring wide',
+          styles: {
+            width: '1280px',
+            height: '900px',
+          },
+        },
+        appAuthoringCompact: {
+          name: 'Authoring compact',
+          styles: {
+            width: '1074px',
+            height: '1199px',
+          },
+        },
+        appAuthoringTablet: {
+          name: 'Authoring tablet',
+          styles: {
+            width: '900px',
+            height: '1000px',
+          },
+        },
         appLarge: {
           name: 'App large',
           styles: {

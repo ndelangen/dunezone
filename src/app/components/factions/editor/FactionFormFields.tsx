@@ -8,13 +8,13 @@ import {
   Paper,
   SegmentedControl,
   Stack,
-  Tabs,
   Text,
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { Globe2 } from 'lucide-react';
 import { useState } from 'react';
 
+import { ConnectedTabs } from '@app/components/content/ConnectedTabs';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -247,13 +247,7 @@ function ArtifactProof({
         }
 
         return (
-          <Paper
-            className={styles.artifactDesk}
-            withBorder
-            radius="lg"
-            p="md"
-            style={{ backgroundColor: 'var(--mantine-color-white)' }}
-          >
+          <Paper className={styles.artifactDesk} withBorder radius="lg" p="md">
             <Badge className={styles.liveBadge} color="teal" variant="light">
               Live
             </Badge>
@@ -456,58 +450,39 @@ export function FactionFormFields({
     );
   }
 
+  const connectedTabItems = factionAuthoringChapters.map((chapter) => {
+    const chapterWarnings = forChapter(chapter.id);
+    return {
+      value: chapter.id,
+      label: chapter.label,
+      icon: <ChapterIcon chapter={chapter.id} form={form} />,
+      indicator:
+        chapterWarnings.length > 0 ? (
+          <Badge circle size="sm" color="yellow">
+            {chapterWarnings.length}
+          </Badge>
+        ) : undefined,
+      panel: (
+        <Stack gap="lg">
+          <ChapterWarnings warnings={chapterWarnings} onFocus={focusWarning} />
+          {chapterEditor(chapter.id)}
+        </Stack>
+      ),
+    };
+  });
+
   return (
-    <Tabs
-      className={styles.workbench}
-      value={activeChapter}
-      onChange={(value) => {
-        if (value) setActiveChapter(value as FactionAuthoringChapterId);
-      }}
-      orientation="vertical"
-      keepMounted={false}
-    >
-      <Tabs.List className={styles.chapterTabs} aria-label="Faction editor sections">
-        {factionAuthoringChapters.map((chapter, index) => {
-          const chapterWarnings = forChapter(chapter.id);
-          return (
-            <Tabs.Tab
-              className={styles.chapterTab}
-              key={chapter.id}
-              value={chapter.id}
-              leftSection={<ChapterIcon chapter={chapter.id} form={form} />}
-              rightSection={
-                chapterWarnings.length > 0 ? (
-                  <Badge circle size="sm" color="yellow">
-                    {chapterWarnings.length}
-                  </Badge>
-                ) : undefined
-              }
-            >
-              <Text component="span" className={styles.chapterNumber}>
-                {String(index + 1).padStart(2, '0')}
-              </Text>
-              <Text component="span" fw={700}>
-                {chapter.label}
-              </Text>
-            </Tabs.Tab>
-          );
-        })}
-      </Tabs.List>
-
-      <Box className={styles.editorPlane}>
-        {factionAuthoringChapters.map((chapter) => (
-          <Tabs.Panel key={chapter.id} value={chapter.id} className={styles.editorPanel}>
-            <Stack gap="lg">
-              <ChapterWarnings warnings={forChapter(chapter.id)} onFocus={focusWarning} />
-              {chapterEditor(chapter.id)}
-            </Stack>
-          </Tabs.Panel>
-        ))}
-      </Box>
-
+    <div className={styles.workbench}>
+      <ConnectedTabs
+        className={styles.connectedTabs}
+        value={activeChapter}
+        onValueChange={setActiveChapter}
+        items={connectedTabItems}
+        ariaLabel="Faction editor sections"
+      />
       <Box className={styles.artifactColumn} visibleFrom="sm">
         <ArtifactProof activeChapter={activeChapter} form={form} selectedItem={selectedItem} />
       </Box>
-    </Tabs>
+    </div>
   );
 }

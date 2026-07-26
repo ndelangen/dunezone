@@ -1,12 +1,55 @@
 .toolbar {
+  box-sizing: border-box;
   position: sticky;
   top: 0.75rem;
   z-index: 10;
-  background: color-mix(in srgb, var(--mantine-color-body) 94%, transparent);
-  backdrop-filter: blur(12px);
+  height: 60px;
+  overflow: visible;
+  background: var(--glass-surface-1);
+  border-color: var(--panel-border);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(8px);
+}
+
+.toolbarRow {
+  height: 100%;
+}
+
+.leading {
+  min-width: 0;
 }
 
 .status {
   min-width: 0;
-  flex: 1 1 18rem;
+}
+
+.statusDetails {
+  min-width: 0;
+}
+
+.statusDetails p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  flex: 0 0 auto;
+}
+
+.auxiliarySlot,
+.destructiveSlot {
+  display: contents;
+}
+
+@media (max-width: 70em) {
+  .statusDetails {
+    display: none;
+  }
+}
+
+@media (max-width: 48em) {
+  .reviewAction {
+    display: none;
+  }
 }

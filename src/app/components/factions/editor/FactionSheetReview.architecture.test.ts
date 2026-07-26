@@ -23,7 +23,8 @@ describe('adaptive faction sheet review architecture', () => {
     expect(reviewSource).toContain('setReviewMounted(true)');
     expect(reviewSource).not.toContain('setReviewMounted(false)');
     expect(reviewSource).toContain('{reviewMounted ? (');
-    expect(editorSource).toContain('<FactionSheetReview faction={values}>');
+    expect(editorSource).toContain('<FactionSheetReview ref={reviewRef} faction={values}>');
+    expect(editorSource).toContain('review: (trigger) => reviewRef.current?.open(trigger)');
   });
 
   it('uses real isolated Sheet and Shield output without app-layer internal styling', () => {
@@ -65,12 +66,12 @@ describe('adaptive faction sheet review architecture', () => {
     expect(reviewSource).toContain('Return to editing');
     expect(reviewSource).toContain('Close faction sheet review');
     expect(reviewStyles).toContain('@media (max-width: 47.99em)');
-    expect(reviewStyles).toContain('.reviewAction,');
     expect(reviewStyles).toContain('.reviewPanel,');
+    expect(reviewSource).not.toContain('Review faction sheet');
   });
 
   it('switches in-memory chapter tabs and exposes warning counts without URL state', () => {
-    expect(formFieldsSource).toContain('<Tabs');
+    expect(formFieldsSource).toContain('<ConnectedTabs');
     expect(formFieldsSource).toContain('chapterWarnings.length');
     expect(formFieldsSource).not.toContain('navigate');
     expect(formFieldsSource).not.toContain('location.hash');

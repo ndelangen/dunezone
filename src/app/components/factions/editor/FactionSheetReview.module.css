@@ -5,7 +5,7 @@
   --editor-strip-width: clamp(9rem, 14%, 11rem);
   position: relative;
   width: 100%;
-  overflow: clip;
+  overflow: visible;
   border-radius: var(--mantine-radius-lg);
 }
 
@@ -50,11 +50,6 @@
 .editorCloseTarget:focus-visible {
   outline: 3px solid var(--mantine-primary-color-filled);
   outline-offset: -3px;
-}
-
-.reviewAction {
-  background: color-mix(in srgb, var(--mantine-color-dune-0) 72%, white);
-  border-color: var(--mantine-color-dune-3);
 }
 
 .reviewPanel {
@@ -284,7 +279,6 @@
 }
 
 @media (max-width: 47.99em) {
-  .reviewAction,
   .reviewPanel,
   .editorCloseTarget {
     display: none;

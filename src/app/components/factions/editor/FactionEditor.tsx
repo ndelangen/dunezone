@@ -6,7 +6,7 @@ import { type Faction, type FactionEntry } from '@db/factions';
 
 import styles from './FactionEditor.module.css';
 import { FactionFormFields } from './FactionFormFields';
-import { FactionSheetReview } from './FactionSheetReview';
+import { FactionSheetReview, type FactionSheetReviewHandle } from './FactionSheetReview';
 import {
   type FactionAuthoringWarning,
   factionAuthoringWarnings,
@@ -31,6 +31,7 @@ export interface FactionEditorHandle {
   load: (entry?: FactionEntry['data']) => void;
   markSaved: (entry: FactionEntry['data']) => void;
   focusFirstWarning: () => void;
+  review: (trigger?: HTMLElement | null) => void;
   getValues: () => Faction;
 }
 
@@ -38,6 +39,7 @@ export const FactionEditor = forwardRef<FactionEditorHandle, FactionEditorProps>
   ({ factionEntry, errors, onSubmit, onStateChange }, ref) => {
     const initialValuesRef = useRef<Faction>(structuredClone(factionEntry.data));
     const baselineRef = useRef<Faction>(structuredClone(factionEntry.data));
+    const reviewRef = useRef<FactionSheetReviewHandle>(null);
 
     useEffect(() => {
       initialValuesRef.current = structuredClone(factionEntry.data);
@@ -103,6 +105,7 @@ export const FactionEditor = forwardRef<FactionEditorHandle, FactionEditorProps>
         target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         target?.focus({ preventScroll: true });
       },
+      review: (trigger) => reviewRef.current?.open(trigger),
       getValues: () => form.state.values,
     }));
 
@@ -121,7 +124,7 @@ export const FactionEditor = forwardRef<FactionEditorHandle, FactionEditorProps>
             const warnings = factionAuthoringWarnings(values);
             const isNameBlank = values.name.trim().length === 0;
             return (
-              <FactionSheetReview faction={values}>
+              <FactionSheetReview ref={reviewRef} faction={values}>
                 <FactionFormFields
                   form={form}
                   warnings={warnings}

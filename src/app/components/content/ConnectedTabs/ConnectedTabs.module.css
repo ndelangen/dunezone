@@ -1,0 +1,208 @@
+.host {
+  --connected-tabs-rail-width: 11.5rem;
+  --connected-tabs-tab-height: 4.2rem;
+  --connected-tabs-gap: 0.45rem;
+  --connected-tabs-radius: 8px;
+  --connected-tabs-panel-padding: var(--mantine-spacing-lg);
+
+  container: connected-tabs / inline-size;
+  min-width: 0;
+}
+
+.root {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--connected-tabs-rail-width) minmax(0, 1fr);
+  align-items: start;
+  min-width: 0;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.surfaceLayer {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.definitions {
+  position: absolute;
+}
+
+.geometryShadow,
+.geometryContour {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.geometryShadow {
+  z-index: 0;
+  fill: #000;
+}
+
+.glassSurface {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: var(--glass-surface-1, rgb(255 255 255 / 12%));
+  backdrop-filter: blur(8px);
+}
+
+.geometryContour {
+  z-index: 2;
+  fill: none;
+  stroke: var(--panel-border, #fee7c0);
+  stroke-width: 1;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.tabList {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--connected-tabs-gap);
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+.tab {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-width: 0;
+  height: var(--connected-tabs-tab-height);
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  color: var(--mantine-color-dark-9);
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  opacity: 0.58;
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+
+.tab:hover {
+  opacity: 0.78;
+}
+
+.tab[data-state="active"] {
+  opacity: 1;
+}
+
+.tab:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.tab:focus-visible {
+  outline: none;
+}
+
+.iconDisc {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.iconDisc img {
+  max-width: 1.4rem;
+  max-height: 1.4rem;
+}
+
+.tab[data-state="active"] .iconDisc {
+  color: rgb(250 246 238 / 92%);
+  background: var(--mantine-color-dark-9, #151515);
+  border-color: rgb(250 246 238 / 52%);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 12%);
+}
+
+.tab[data-state="active"] .iconDisc img {
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+
+.tab:focus-visible .iconDisc {
+  box-shadow:
+    0 0 0 2px rgb(250 246 238 / 90%),
+    0 0 0 4px var(--mantine-color-dark-9, #151515);
+}
+
+.label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.indicator {
+  display: inline-flex;
+}
+
+.panelShell {
+  container: connected-tabs-panel / inline-size;
+  position: relative;
+  z-index: 3;
+  min-width: 0;
+  min-height: 36rem;
+  padding: var(--connected-tabs-panel-padding);
+  overflow: visible;
+}
+
+.panel {
+  min-width: 0;
+  outline: none;
+}
+
+.panel:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled, #8f2717);
+  outline-offset: 0.3rem;
+}
+
+@container connected-tabs (max-width: 46rem) {
+  .root {
+    --connected-tabs-rail-width: 9.25rem;
+    --connected-tabs-panel-padding: var(--mantine-spacing-md);
+  }
+
+  .tab {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.45rem;
+    padding-inline: 0.55rem;
+  }
+
+  .indicator {
+    position: absolute;
+    top: 0.3rem;
+    right: 0.3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .iconDisc {
+    transition: none;
+  }
+}
