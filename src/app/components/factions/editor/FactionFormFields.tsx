@@ -122,7 +122,7 @@ function ArtifactProof({
             {identityProof === 'background' ? (
               <BackgroundRenderer background={faction.background} />
             ) : (
-              <Box className={styles.tokenProof}>
+              <Box className={styles.tokenProof} data-faction-token-proof>
                 <Token background={faction.background} logo={faction.logo} />
               </Box>
             )}

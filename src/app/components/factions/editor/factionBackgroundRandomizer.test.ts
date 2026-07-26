@@ -44,4 +44,31 @@ describe('background studio random actions', () => {
       expect(BACKGROUND_PATTERN_CATALOGUE.some((option) => option.image === next.image)).toBe(true);
     }
   });
+
+  it('never returns the exact current catalogue combination', () => {
+    for (let recipeIndex = 0; recipeIndex < backgroundRecipeCount; recipeIndex += 1) {
+      for (
+        let patternIndex = 0;
+        patternIndex < BACKGROUND_PATTERN_CATALOGUE.length;
+        patternIndex += 1
+      ) {
+        const sampledValues = [
+          (recipeIndex + 0.5) / backgroundRecipeCount,
+          (patternIndex + 0.5) / BACKGROUND_PATTERN_CATALOGUE.length,
+        ];
+        const current = randomizeBackground(original, () => sampledValues.shift() ?? 0);
+        const repeatedValues = [
+          (recipeIndex + 0.5) / backgroundRecipeCount,
+          (patternIndex + 0.5) / BACKGROUND_PATTERN_CATALOGUE.length,
+        ];
+        const next = randomizeBackground(current, () => repeatedValues.shift() ?? 0);
+
+        expect(next).not.toEqual(current);
+        expect(Background.safeParse(next).success).toBe(true);
+        expect(BACKGROUND_PATTERN_CATALOGUE.some((option) => option.image === next.image)).toBe(
+          true
+        );
+      }
+    }
+  });
 });

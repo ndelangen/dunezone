@@ -15,6 +15,15 @@ const colorLayerSource = readFileSync(
   'utf8'
 );
 const ttsColorsSource = readFileSync(new URL('./TtsColorsEditor.tsx', import.meta.url), 'utf8');
+const identityStyles = readFileSync(
+  new URL('./FactionFormSectionIdentity.module.css', import.meta.url),
+  'utf8'
+);
+const backgroundStyles = readFileSync(
+  new URL('./FactionFormSectionBackground.module.css', import.meta.url),
+  'utf8'
+);
+const editorStyles = readFileSync(new URL('./FactionEditor.module.css', import.meta.url), 'utf8');
 const rendererSource = readFileSync(
   new URL('../../../../game/assets/utils/Background.tsx', import.meta.url),
   'utf8'
@@ -77,18 +86,45 @@ describe('Identity and Appearance chapter architecture', () => {
     const fieldsSource = readFileSync(new URL('./FactionFormFields.tsx', import.meta.url), 'utf8');
     expect(fieldsSource).toContain('BackgroundRenderer');
     expect(fieldsSource).toContain('<Token');
+    expect(fieldsSource).toContain('data-faction-token-proof');
     expect(fieldsSource).toContain('visibleFrom="sm"');
+    expect(editorStyles).toContain('aspect-ratio: 1');
     expect(rendererSource).not.toContain('@mantine');
   });
 
-  it('shows dots for TTS options and selected values while retaining keyboard ordering', () => {
+  it('uses one compact TTS row surface, unique choices, and heading-level add/remove actions', () => {
     expect(ttsColorsSource).toContain('TTS_COLOR_SWATCHES');
     expect(ttsColorsSource).toContain("color === 'White'");
     expect(ttsColorsSource).toContain('leftSection={<ColorDot');
     expect(ttsColorsSource).toContain('renderOption=');
+    expect(ttsColorsSource).toContain('availableTtsColors');
+    expect(ttsColorsSource).toContain('nextUnusedTtsColor');
+    expect(ttsColorsSource).toContain('<ActionIcon.Group>');
+    expect(ttsColorsSource).toContain('aria-label="Remove last TTS color"');
+    expect(ttsColorsSource).toContain('aria-label="Add TTS color"');
+    expect(ttsColorsSource).toContain('color="green"');
     expect(ttsColorsSource).toContain('PointerSensor');
     expect(ttsColorsSource).toContain('KeyboardSensor');
     expect(ttsColorsSource).toContain('sortableKeyboardCoordinates');
-    expect(ttsColorsSource).toContain('Repeated colors are allowed');
+    expect(ttsColorsSource).not.toContain('Repeated colors are allowed');
+    expect(ttsColorsSource).not.toContain('Order:');
+  });
+
+  it('uses the accepted perceptual influence mapping and labels without changing Definition', () => {
+    expect(backgroundSource).toContain('influenceToSliderPosition');
+    expect(backgroundSource).toContain('sliderPositionToInfluence');
+    for (const label of ['Whisper', 'Strong', 'Dominant']) {
+      expect(backgroundSource).toContain(label);
+    }
+    expect(backgroundSource).toContain('name="background.definition"');
+    expect(backgroundSource).toContain('max={1}');
+    expect(backgroundSource).toContain('step={0.01}');
+  });
+
+  it('compacts chapter internals from the connected panel container', () => {
+    expect(identityStyles).toContain('@container connected-tabs-panel');
+    expect(backgroundStyles).toContain('@container connected-tabs-panel');
+    expect(identityStyles).not.toContain('@media');
+    expect(backgroundStyles).not.toContain('@media');
   });
 });

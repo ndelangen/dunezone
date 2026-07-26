@@ -29,6 +29,11 @@ import {
   withRandomPattern,
 } from './factionBackgroundRandomizer';
 import type { FactionFormApi } from './factionFormTypes';
+import {
+  clampInfluence,
+  influenceToSliderPosition,
+  sliderPositionToInfluence,
+} from './factionInfluenceScale';
 
 function RandomButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -168,33 +173,42 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
           )}
         </form.Field>
         <form.Field name="background.influence">
-          {(field) => (
-            <Stack gap={4}>
-              <Group justify="space-between">
-                <Text component="label" htmlFor="bg-influence" fw={600} size="sm">
-                  Influence
-                </Text>
-                <Text size="sm">{field.state.value.toFixed(2)}</Text>
-              </Group>
-              <Slider
-                id="bg-influence"
-                aria-label="Pattern influence from whisper to dominant"
-                min={0}
-                max={1}
-                step={0.01}
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
-              <Group justify="space-between">
-                <Text size="xs" c="dimmed">
-                  Whisper
-                </Text>
-                <Text size="xs" c="dimmed">
-                  Dominant
-                </Text>
-              </Group>
-            </Stack>
-          )}
+          {(field) => {
+            const exactValue = clampInfluence(field.state.value);
+            return (
+              <Stack gap={4}>
+                <Group justify="space-between" align="baseline" wrap="nowrap">
+                  <Text component="label" htmlFor="bg-influence" fw={600} size="sm">
+                    Influence
+                  </Text>
+                  <Text size="sm" fw={700}>
+                    {exactValue.toFixed(2)}
+                  </Text>
+                </Group>
+                <Slider
+                  id="bg-influence"
+                  aria-label="Pattern influence with perceptual response from whisper to dominant"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  value={influenceToSliderPosition(exactValue)}
+                  label={(position) => sliderPositionToInfluence(position).toFixed(2)}
+                  onChange={(position) => field.handleChange(sliderPositionToInfluence(position))}
+                />
+                <Group justify="space-between">
+                  <Text size="xs" c="dimmed">
+                    Whisper
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Strong
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Dominant
+                  </Text>
+                </Group>
+              </Stack>
+            );
+          }}
         </form.Field>
       </Stack>
     </Box>
@@ -207,23 +221,8 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
     form.setFieldValue('background', background);
 
   return (
-    <Stack component="section" gap="md" aria-labelledby="background-builder-heading">
+    <Stack component="section" gap="md" aria-label="Background builder">
       <Divider />
-      <Stack gap={2}>
-        <Text
-          id="background-builder-heading"
-          fw={800}
-          size="xs"
-          tt="uppercase"
-          c="dune.8"
-          lts="0.12em"
-        >
-          Background builder
-        </Text>
-        <Text c="dimmed" size="sm">
-          Pattern → treatment → two color layers → applied composite.
-        </Text>
-      </Stack>
 
       {libraryOpen ? (
         <form.Field name="background.image">
@@ -246,7 +245,15 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
                 const treatment = backgroundTreatment(background);
                 return (
                   <Box className={styles.pipelineStage}>
-                    <Text className={styles.stageLabel}>01 · Pattern</Text>
+                    <Group justify="space-between" align="center">
+                      <Text className={styles.stageLabel}>01 · Pattern</Text>
+                      <RandomButton
+                        label="Random"
+                        onClick={() =>
+                          setBackground(withRandomPattern(form.state.values.background))
+                        }
+                      />
+                    </Group>
                     <Box className={styles.selectedPattern}>
                       <Image
                         src={background.image}
@@ -274,14 +281,6 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
                         Browse
                       </Button>
                     </Group>
-                    <Box mt="xs">
-                      <RandomButton
-                        label="Random"
-                        onClick={() =>
-                          setBackground(withRandomPattern(form.state.values.background))
-                        }
-                      />
-                    </Box>
                   </Box>
                 );
               }}
