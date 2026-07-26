@@ -11,7 +11,6 @@ type ExampleTab = 'overview' | 'people' | 'settings';
 
 interface ConnectedTabsFixtureProps {
   initialValue?: ExampleTab;
-  containerWidth?: number;
   contentHeight?: number;
   animateDimensions?: boolean;
 }
@@ -43,7 +42,6 @@ function Panel({
 
 function ConnectedTabsFixture({
   initialValue = 'overview',
-  containerWidth = 760,
   contentHeight = 180,
   animateDimensions = false,
 }: ConnectedTabsFixtureProps) {
@@ -82,12 +80,7 @@ function ConnectedTabsFixture({
   ] as const;
 
   return (
-    <Box
-      className={animateDimensions ? storyStyles.animatedFrame : undefined}
-      p="xl"
-      w={containerWidth}
-      maw="calc(100vw - 2rem)"
-    >
+    <Box p="xl" w="100%">
       <ConnectedTabs
         value={value}
         onValueChange={setValue}
@@ -102,16 +95,10 @@ const meta = preview.meta({
   title: 'App/Content/ConnectedTabs',
   component: ConnectedTabsFixture,
   args: {
-    containerWidth: 760,
     contentHeight: 180,
   },
   argTypes: {
     initialValue: { control: false, table: { disable: true } },
-    containerWidth: {
-      name: 'Container width',
-      description: 'Width supplied by the component’s parent container, in pixels.',
-      control: { type: 'range', min: 360, max: 960, step: 20 },
-    },
     contentHeight: {
       name: 'Content height',
       description: 'Selected-panel content height in pixels.',
@@ -163,7 +150,6 @@ export const ContentDrivenHeight = meta.story({
 export const ResizeDrivenGeometry = meta.story({
   args: {
     initialValue: 'people',
-    containerWidth: 760,
     contentHeight: 320,
   },
   render: (args) => <ConnectedTabsFixture {...args} animateDimensions />,
@@ -171,7 +157,7 @@ export const ResizeDrivenGeometry = meta.story({
     docs: {
       description: {
         story:
-          'Use the Container width and Content height controls to animate both axes. Width follows the parent container; height is the greater of the left tab rail and selected-panel content. The SVG contour and clipped glass surface follow every intermediate size.',
+          'Resize the Storybook canvas with the Viewport toolbar, browser window, or sidebar; use the Content height control for the other axis. Width always follows the canvas, while height is the greater of the left tab rail and selected-panel content. The SVG contour and clipped glass surface follow every intermediate size.',
       },
     },
   },
@@ -180,7 +166,6 @@ export const ResizeDrivenGeometry = meta.story({
 export const MobileViewport = meta.story({
   args: {
     initialValue: 'overview',
-    containerWidth: 760,
     contentHeight: 180,
   },
   globals: {
@@ -240,7 +225,7 @@ export const KeyboardAndPointerActivation = meta.story({
 });
 
 export const OverflowPreserved = meta.story({
-  args: { initialValue: 'people', containerWidth: 560 },
+  args: { initialValue: 'people' },
   render: (args) => (
     <Box p="xl">
       <ConnectedTabsFixture {...args} />
