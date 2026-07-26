@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { expect, within } from 'storybook/test';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 import { assetPublishingFaction } from '@game/fixtures/assetPublishingFaction';
@@ -31,7 +32,13 @@ const meta = preview.meta({
   args: { faction: baseFaction },
 });
 
-export const Default = meta.story({});
+export const Default = meta.story({
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByRole('link', { name: 'Atreides Advanced Dune' })
+    ).toBeVisible();
+  },
+});
 
 export const MultipleRulesets = meta.story({
   args: {

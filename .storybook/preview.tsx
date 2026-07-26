@@ -1,7 +1,6 @@
 import { MantineProvider } from '@mantine/core';
 import addonDocs from '@storybook/addon-docs';
-import { definePreview } from '@storybook/react-vite';
-import { sb } from 'storybook/test';
+import { definePreview } from '@storybook/tanstack-react';
 
 import '@mantine/core/styles.layer.css';
 import '../src/app/styles/fonts.css';
@@ -10,8 +9,6 @@ import '../src/app/styles/mantine-shell-compatibility.css';
 
 import { appContentTheme } from '../src/app/theme';
 import * as sizes from '../src/game/data/sizes';
-
-sb.mock(import('@tanstack/react-router'));
 
 export default definePreview({
   addons: [addonDocs()],

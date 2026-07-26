@@ -1,4 +1,4 @@
-import { defineMain } from '@storybook/react-vite/node';
+import { defineMain } from '@storybook/tanstack-react/node';
 
 export default defineMain({
   stories: [
@@ -74,7 +74,7 @@ export default defineMain({
   ],
   addons: ['@storybook/addon-docs'],
   framework: {
-    name: '@storybook/react-vite',
+    name: '@storybook/tanstack-react',
     options: {
       builder: {
         viteConfigPath: '.storybook/vite.config.ts',
