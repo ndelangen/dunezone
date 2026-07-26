@@ -58,10 +58,19 @@ perform this production copy.
 
 ### Writing Stories
 
-- Stories should render the component the story file is for.
-- Avoid wrappers unless required to demonstrate that component's own capability.
-- Prefer args-only stories over custom `render` functions.
-- For controlled components in this repo, use non-interactive args-only examples with static values and noop callbacks.
+- Keep stories colocated with the component they render. Storybook navigation is owned by the
+  source entries and `titlePrefix` values in `.storybook/main.ts`.
+- Prefer auto-titles. Add a relative `title` only when a filename cannot express the useful
+  product-facing label; never repeat `Application` or `Game Assets` in story metadata.
+- Application stories belong under Factions, FAQ, Groups, Topics, Shared Content, Foundation, or
+  Legacy. Legacy stories are migration-only regression coverage, not canonical APIs for new UI.
+- Game Assets stories belong under Faction, Cards, Tokens, or Composition. Comparative asset
+  catalogues may remain exhaustive when side-by-side inspection is the story's purpose.
+- Rulebook stories are intentionally not indexed while their redesign is pending.
+- Prefer args-only stories. Use wrappers, custom rendering, or interactions only when they
+  demonstrate behavior or comparison that args cannot.
+- Represent controlled components with static values and noop callbacks unless interaction itself
+  is the contract under test.
 
 ### Adding a New Domain
 

@@ -71,10 +71,6 @@ export default defineMain({
       directory: '../src/game/components/block',
       titlePrefix: 'Game Assets/Composition/Blocks',
     },
-    {
-      directory: '../src/game/book',
-      titlePrefix: 'Book',
-    },
   ],
   addons: ['@storybook/addon-docs'],
   framework: {
