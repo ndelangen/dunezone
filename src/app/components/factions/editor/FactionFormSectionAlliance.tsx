@@ -6,10 +6,9 @@ import {
   Button,
   Grid,
   Group,
-  Image,
+  Input,
   NumberInput,
   Paper,
-  Select,
   Slider,
   Stack,
   Switch,
@@ -21,6 +20,8 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
+import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
+import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
@@ -37,17 +38,6 @@ const decalOptions = decalAssetOptions.map((value) => ({
   value,
   label: decalAssetOptionToLabel(value),
 }));
-
-function DecalOption({ value, label }: { value: string; label: string }) {
-  return (
-    <Group gap="sm" wrap="nowrap">
-      <Image src={assetOptionToPreviewSrc(value)} alt="" w={32} h={32} fit="contain" />
-      <Text size="sm" truncate>
-        {label}
-      </Text>
-    </Group>
-  );
-}
 
 function DecalCard({
   form,
@@ -85,34 +75,31 @@ function DecalCard({
         </Group>
 
         <form.Field name={`decals[${index}].id`}>
-          {(field) => (
-            <Select
-              id={`decal-${index}-id`}
-              label="Decal asset"
-              description="Artwork layered onto the alliance card in collection order."
-              searchable
-              allowDeselect={false}
-              limit={30}
-              data={decalOptions}
-              value={field.state.value}
-              leftSection={
-                <Image
-                  src={assetOptionToPreviewSrc(field.state.value)}
-                  alt=""
-                  w={24}
-                  h={24}
-                  fit="contain"
+          {(field) => {
+            const id = `decal-${index}-id`;
+            const descriptionId = `${id}-description`;
+            return (
+              <Input.Wrapper
+                id={id}
+                descriptionProps={{ id: descriptionId }}
+                label="Decal asset"
+                description="Artwork layered onto the alliance card in collection order."
+              >
+                <AssetSelect
+                  id={id}
+                  aria-describedby={descriptionId}
+                  allowDeselect={false}
+                  limit={30}
+                  data={decalOptions}
+                  getPreviewSrc={assetOptionToPreviewSrc}
+                  value={field.state.value}
+                  onChange={(value) => {
+                    if (value) field.handleChange(value as Faction['decals'][number]['id']);
+                  }}
                 />
-              }
-              renderOption={({ option }) => (
-                <DecalOption value={option.value} label={option.label} />
-              )}
-              comboboxProps={{ withinPortal: false }}
-              onChange={(value) => {
-                if (value) field.handleChange(value as Faction['decals'][number]['id']);
-              }}
-            />
-          )}
+              </Input.Wrapper>
+            );
+          }}
         </form.Field>
 
         <Grid>
@@ -148,16 +135,10 @@ function DecalCard({
 
         <form.Field name={`decals[${index}].scale`}>
           {(field) => (
-            <Stack gap="xs">
-              <Group justify="space-between" align="flex-end">
-                <Box>
-                  <Text fw={600} size="sm">
-                    Scale
-                  </Text>
-                  <Text c="dimmed" size="xs">
-                    Resize the decal from 0 (hidden) to 1 (full reference size).
-                  </Text>
-                </Box>
+            <ControlBlock
+              title="Scale"
+              description="Resize the decal from 0 (hidden) to 1 (full reference size)."
+              tool={
                 <NumberInput
                   aria-label={`Scale for alliance decal ${index + 1}`}
                   w={96}
@@ -171,17 +152,19 @@ function DecalCard({
                     if (typeof value === 'number') field.handleChange(value);
                   }}
                 />
-              </Group>
-              <Slider
-                aria-label={`Scale slider for alliance decal ${index + 1}`}
-                min={0}
-                max={1}
-                step={0.01}
-                value={field.state.value}
-                label={(value) => value.toFixed(2)}
-                onChange={field.handleChange}
-              />
-            </Stack>
+              }
+              input={
+                <Slider
+                  aria-label={`Scale slider for alliance decal ${index + 1}`}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={field.state.value}
+                  label={(value) => value.toFixed(2)}
+                  onChange={field.handleChange}
+                />
+              }
+            />
           )}
         </form.Field>
 

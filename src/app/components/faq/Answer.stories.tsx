@@ -6,6 +6,9 @@ import { Answer } from './Answer';
 
 const meta = preview.meta({
   component: Answer.List,
+  globals: {
+    backgrounds: { value: 'light', grid: false },
+  },
   parameters: {
     layout: 'padded',
   },

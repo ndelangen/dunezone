@@ -5,14 +5,6 @@
   align-items: start;
 }
 
-.singleLineDescription {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 @container connected-tabs-panel (max-width: 34rem) {
   .identityGrid {
     gap: var(--mantine-spacing-sm);

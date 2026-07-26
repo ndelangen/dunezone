@@ -4,6 +4,9 @@ import { FaqItemList, FaqItemListRow } from './FaqItemList';
 
 const meta = preview.meta({
   component: FaqItemList,
+  globals: {
+    backgrounds: { value: 'light', grid: false },
+  },
   parameters: {
     layout: 'padded',
   },

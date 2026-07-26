@@ -1,6 +1,7 @@
-import { Box, Grid, Group, Image, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Grid, Input, Stack, Text, TextInput } from '@mantine/core';
 
 import type { Faction } from '@db/factions';
+import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { LEADERS } from '@game/data/generated';
 
@@ -11,17 +12,6 @@ const leaderImageOptions = LEADERS.options.map((value) => ({
   value,
   label: leaderOptionToLabel(value),
 }));
-
-function LeaderImageOption({ value, label }: { value: string; label: string }) {
-  return (
-    <Group gap="sm" wrap="nowrap">
-      <Image src={assetOptionToPreviewSrc(value)} alt="" w={32} h={32} fit="contain" />
-      <Text size="sm" truncate>
-        {label}
-      </Text>
-    </Group>
-  );
-}
 
 export function FactionFormSectionHero({
   form,
@@ -69,34 +59,31 @@ export function FactionFormSectionHero({
             </form.Field>
 
             <form.Field name="hero.image">
-              {(field) => (
-                <Select
-                  id="hero-image"
-                  label="Faction leader portrait"
-                  description="Choose the portrait rendered for this hero."
-                  searchable
-                  allowDeselect={false}
-                  limit={24}
-                  data={leaderImageOptions}
-                  value={field.state.value}
-                  leftSection={
-                    <Image
-                      src={assetOptionToPreviewSrc(field.state.value)}
-                      alt=""
-                      w={24}
-                      h={24}
-                      fit="contain"
+              {(field) => {
+                const id = 'hero-image';
+                const descriptionId = `${id}-description`;
+                return (
+                  <Input.Wrapper
+                    id={id}
+                    descriptionProps={{ id: descriptionId }}
+                    label="Faction leader portrait"
+                    description="Choose the portrait rendered for this hero."
+                  >
+                    <AssetSelect
+                      id={id}
+                      aria-describedby={descriptionId}
+                      allowDeselect={false}
+                      limit={24}
+                      data={leaderImageOptions}
+                      getPreviewSrc={assetOptionToPreviewSrc}
+                      value={field.state.value}
+                      onChange={(value) => {
+                        if (value) field.handleChange(value as Faction['hero']['image']);
+                      }}
                     />
-                  }
-                  renderOption={({ option }) => (
-                    <LeaderImageOption value={option.value} label={option.label} />
-                  )}
-                  comboboxProps={{ withinPortal: false }}
-                  onChange={(value) => {
-                    if (value) field.handleChange(value as Faction['hero']['image']);
-                  }}
-                />
-              )}
+                  </Input.Wrapper>
+                );
+              }}
             </form.Field>
           </Stack>
         </Grid.Col>
