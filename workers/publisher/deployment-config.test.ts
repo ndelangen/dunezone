@@ -106,9 +106,15 @@ describe('scheduled production deployment shape', () => {
       'scripts/assemble-publisher-assets.ts'
     );
     expect(packageConfig.scripts['publisher:dry-run']).toContain('bun run publisher:assets');
+    expect(packageConfig.scripts['publisher:release:verify']).toContain(
+      'bun run publisher:dry-run'
+    );
+    expect(packageConfig.scripts['publisher:release:verify']).toContain(
+      'git diff --exit-code -- workers/publisher/renderer-manifest.generated.ts'
+    );
   });
 
-  test('checks the Linux production renderer manifest before merge', () => {
+  test('runs the complete Linux publisher release verification before merge', () => {
     const verifyWorkflow = readFileSync(
       path.resolve(process.cwd(), '.github/workflows/reusable-verify.yml'),
       'utf8'
@@ -116,9 +122,7 @@ describe('scheduled production deployment shape', () => {
     expect(verifyWorkflow).toContain(
       'VITE_CONVEX_URL: https://exuberant-finch-263.eu-west-1.convex.cloud'
     );
-    expect(verifyWorkflow).toContain(
-      'git diff --exit-code -- workers/publisher/renderer-manifest.generated.ts'
-    );
+    expect(verifyWorkflow).toContain('bun run publisher:release:verify');
   });
 
   test('ignores publisher secret files while retaining the tracked example', () => {

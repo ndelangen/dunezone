@@ -27,6 +27,7 @@
     "publisher:assets": "bun run app:build && vite build --config workers/publisher/vite.config.ts && bun run ./scripts/assemble-publisher-assets.ts",
     "publisher:assets:check": "bun run ./scripts/assemble-publisher-assets.ts --check-only",
     "publisher:dry-run": "bun run publisher:assets && wrangler deploy --dry-run --config workers/publisher/wrangler.jsonc",
+    "publisher:release:verify": "bun run publisher:dry-run && git diff --exit-code -- workers/publisher/renderer-manifest.generated.ts",
     "publisher:release:dry-run": "wrangler deploy --dry-run --config workers/publisher/wrangler.jsonc",
     "publisher:font-regression": "bun run publisher:assets && bun run workers/publisher/font-regression.ts",
     "publisher:capture-contract-regression": "bun run publisher:assets && bun run workers/publisher/capture-contract-regression.ts",

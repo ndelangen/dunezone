@@ -1,10 +1,10 @@
 // Generated after assembling the complete publisher Static Assets release.
-// Run `bun run publisher:assets` after changing release assets or the PDF contract.
+// Run `bun run publisher:assets` after changing Renderer assets or the PDF contract.
 export const rendererManifest = {
   schemaVersion: 1,
   rendererIdentity:
-    'faction-sheet/sha256:7e93c8216996b2e2f53834fbe64346118017d850f0169fd4464a909613220d41',
-  digest: '7e93c8216996b2e2f53834fbe64346118017d850f0169fd4464a909613220d41',
+    'faction-sheet/sha256:e50b2e7544e23095551b90c1441fd5ea631a0ed8b7793407b01b80f7da6a784b',
+  digest: 'e50b2e7544e23095551b90c1441fd5ea631a0ed8b7793407b01b80f7da6a784b',
   contract: {
     viewport: {
       width: 2100,

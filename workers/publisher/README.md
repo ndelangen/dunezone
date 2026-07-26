@@ -75,6 +75,7 @@ bun run publisher:assets:check
 bun run publisher:font-regression
 bun run publisher:capture-contract-regression
 bun run publisher:dry-run
+bun run publisher:release:verify
 bun run publisher:startup
 ```
 
@@ -82,9 +83,13 @@ bun run publisher:startup
 Browser DTO in Chromium and verifies capture readiness, payload identity, physical
 page bounds, corrupt-resource rejection, and the two-page PDF contract.
 
-The pull-request publisher job builds on Linux with the production Convex URL and
-rejects changes to generated Renderer output. Treat its generated manifest as
-authoritative because it covers assembled build artifacts as well as source.
+`publisher:release:verify` is the exact pre-PR publisher gate. It assembles and dry-runs the
+unified Worker release, regenerates the Renderer manifest, and rejects an uncommitted manifest
+change. The Renderer identity covers the capture bundle, renderer static assets, runtime closure,
+and PDF contract. It deliberately excludes application-only SPA shell and hashed chunk files so
+ordinary application UI changes do not create platform-specific Renderer identities.
+
+The pull-request publisher job runs the same command on Linux with the production Convex URL.
 
 The protected `main` workflow deploys Convex, initializes absent Publication
 settings, builds and deploys the Worker with the merged Git SHA, smokes both public

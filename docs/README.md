@@ -35,6 +35,7 @@ bun run test             # Run tests
 bun run storybook        # Storybook dev (port 6006)
 bun run build-storybook  # Static Storybook → storybook-static
 bun run generate         # Regenerate the public asset catalog in src/game/data/generated.ts
+bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and dry-run gate
 ```
 
 ### Disposable local app development
