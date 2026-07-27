@@ -1,0 +1,312 @@
+.waypoints,
+.archive,
+.ribbon {
+  font-family: inherit;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid rgba(132, 34, 12, 0.22);
+  border-radius: 50%;
+  color: var(--color-link);
+  place-items: center;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.linkCopy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.linkCopy strong {
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.linkCopy small {
+  color: var(--color-muted);
+  font-size: 0.68rem;
+}
+
+.waypoints {
+  padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 2rem;
+  border: 1px solid rgba(248, 175, 64, 0.18);
+  border-radius: 8px 8px 0 0;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(199, 131, 70, 0.2), transparent 52%),
+    rgba(35, 27, 23, 0.82);
+  box-shadow: 0 -14px 38px rgba(17, 11, 8, 0.16);
+  color: #fff9ef;
+  text-align: center;
+  backdrop-filter: blur(9px);
+}
+
+.waypoints .eyebrow,
+.waypoints .linkCopy small {
+  color: rgba(255, 249, 239, 0.7);
+}
+
+.waypoints .icon {
+  border-color: rgba(248, 175, 64, 0.42);
+  color: var(--color-accent);
+}
+
+.waypoints nav {
+  display: grid;
+  max-width: 42rem;
+  margin: 1rem auto 0;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.waypointLink {
+  display: grid;
+  position: relative;
+  gap: 0.7rem;
+  padding: 0.4rem 1rem;
+  color: inherit;
+  text-decoration: none;
+  justify-items: center;
+}
+
+.waypointLink:not(:last-child)::after {
+  position: absolute;
+  top: 1.55rem;
+  right: -25%;
+  width: 50%;
+  border-top: 1px dashed rgba(115, 92, 71, 0.28);
+  content: "";
+}
+
+.waypointLink:hover .icon {
+  background: var(--color-link);
+  color: #fff9ef;
+  transform: translateY(-3px);
+}
+
+.archive {
+  display: grid;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  padding: 1.5rem clamp(1.2rem, 4vw, 3rem);
+  border: 1px solid rgba(115, 92, 71, 0.2);
+  border-radius: 8px 8px 0 0;
+  background:
+    linear-gradient(115deg, rgba(248, 175, 64, 0.12), transparent 42%), rgba(255, 253, 248, 0.45);
+  grid-template-columns: minmax(14rem, 0.85fr) minmax(20rem, 1.15fr);
+}
+
+.archiveIntro {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.archiveIntro p:last-child {
+  max-width: 25rem;
+  margin: 0.35rem 0 0;
+  color: var(--color-muted);
+  font-family: Caladea, Georgia, serif;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.archiveMark {
+  display: grid;
+  flex: 0 0 auto;
+  width: 3.4rem;
+  height: 3.4rem;
+  border: 1px solid rgba(132, 34, 12, 0.4);
+  border-radius: 50%;
+  color: var(--color-link);
+  font-family: Caladea, Georgia, serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  place-items: center;
+}
+
+.archive nav {
+  display: grid;
+  gap: 0.25rem;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.archiveLink {
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  color: inherit;
+  text-decoration: none;
+  align-items: center;
+}
+
+.archiveLink:hover {
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.archiveLink:hover .icon {
+  transform: rotate(-6deg);
+}
+
+.ribbon {
+  display: flex;
+  gap: 1.25rem;
+  padding: 0.8rem 1rem 1.8rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.ribbonLabel {
+  color: rgba(255, 249, 239, 0.86);
+  font-family: Caladea, Georgia, serif;
+  font-size: 0.82rem;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.ribbon nav {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(115, 92, 71, 0.28);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 253, 248, 0.54);
+  box-shadow: 0 10px 28px rgba(46, 41, 39, 0.08);
+}
+
+.ribbonLink {
+  display: flex;
+  gap: 0.55rem;
+  padding: 0.52rem 1rem;
+  color: inherit;
+  text-decoration: none;
+  align-items: center;
+}
+
+.ribbonLink:not(:last-child) {
+  border-right: 1px solid rgba(115, 92, 71, 0.18);
+}
+
+.ribbonLink .icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+}
+
+.ribbonLink .linkCopy small {
+  display: none;
+}
+
+.ribbonLink:hover {
+  background: rgba(248, 175, 64, 0.14);
+}
+
+.ribbonLink:hover .icon {
+  transform: scale(1.08);
+}
+
+.switcher {
+  display: flex;
+  position: fixed;
+  z-index: 1000;
+  right: 50%;
+  bottom: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-pill);
+  background: #2e2927;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+  color: #fff9ef;
+  font:
+    600 0.78rem / 1 "C_Candara",
+    Candara,
+    sans-serif;
+  align-items: center;
+  transform: translateX(50%);
+}
+
+.switcher button {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  place-items: center;
+}
+
+.switcher button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.switcher button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -3px;
+}
+
+.switcher span {
+  min-width: 11.5rem;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .waypoints nav,
+  .archive,
+  .archive nav {
+    grid-template-columns: 1fr;
+  }
+
+  .waypointLink {
+    grid-template-columns: auto 1fr;
+    text-align: left;
+    align-items: center;
+    justify-items: start;
+  }
+
+  .waypointLink::after {
+    display: none;
+  }
+
+  .archive {
+    gap: 1rem;
+  }
+
+  .archive nav {
+    gap: 0;
+  }
+
+  .ribbon {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ribbonLabel {
+    text-align: center;
+  }
+
+  .ribbon nav {
+    border-radius: 8px;
+    flex-direction: column;
+  }
+
+  .ribbonLink:not(:last-child) {
+    border-right: 0;
+    border-bottom: 1px solid rgba(115, 92, 71, 0.18);
+  }
+}
