@@ -107,5 +107,6 @@ export default defineMain({
     reactDocgen: 'react-docgen-typescript',
   },
   managerHead: (head) => `${head}${managerTitleScript}`,
-  staticDirs: ['../public'],
+  staticDirs: (existing = [], { configType }) =>
+    configType === 'DEVELOPMENT' ? [...existing, '../public'] : existing,
 });

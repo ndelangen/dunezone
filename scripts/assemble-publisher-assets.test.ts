@@ -103,4 +103,16 @@ describe('publisher Static Assets assembly', () => {
       assemblePublisherAssets(current.app, current.publisher, current.storybook)
     ).toThrow('forbidden runtime reference .convex.cloud');
   });
+
+  test('fails closed when Storybook duplicates an application-owned root asset', () => {
+    const current = fixture();
+    mkdirSync(path.join(current.app, 'image'), { recursive: true });
+    mkdirSync(path.join(current.storybook, 'image'), { recursive: true });
+    writeFileSync(path.join(current.app, 'image', 'shared.png'), 'shared application asset');
+    writeFileSync(path.join(current.storybook, 'image', 'shared.png'), 'shared application asset');
+
+    expect(() =>
+      assemblePublisherAssets(current.app, current.publisher, current.storybook)
+    ).toThrow('duplicates application-owned root asset image/shared.png');
+  });
 });
