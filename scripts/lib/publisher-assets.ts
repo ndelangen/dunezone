@@ -82,6 +82,19 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   }
 
   const paths = new Set(files.map((file) => file.path));
+  const storybookPrefix = '__storybook/';
+  const duplicatedRootAsset = files.find(
+    (file) =>
+      file.path.startsWith(storybookPrefix) &&
+      file.path !== '__storybook/index.html' &&
+      paths.has(file.path.slice(storybookPrefix.length))
+  );
+  if (duplicatedRootAsset) {
+    throw new Error(
+      `Published Storybook duplicates application-owned root asset ${duplicatedRootAsset.path.slice(storybookPrefix.length)}`
+    );
+  }
+
   for (const required of ['_shell.html', 'index.html', 'publisher-capture.html']) {
     if (!paths.has(required)) throw new Error(`Publisher Static Assets are missing ${required}`);
   }

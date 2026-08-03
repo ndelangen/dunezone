@@ -1,4 +1,9 @@
-import { defineMain } from '@storybook/tanstack-react/node';
+import { defineMain, type StorybookConfig } from '@storybook/tanstack-react/node';
+
+type StaticDirsPreset = Exclude<NonNullable<StorybookConfig['staticDirs']>, unknown[]>;
+
+export const appStaticDirs: StaticDirsPreset = (existing = [], { configType }) =>
+  configType === 'DEVELOPMENT' ? [...existing, '../public'] : existing;
 
 const managerTitleScript = `
   <script>
@@ -107,5 +112,5 @@ export default defineMain({
     reactDocgen: 'react-docgen-typescript',
   },
   managerHead: (head) => `${head}${managerTitleScript}`,
-  staticDirs: ['../public'],
+  staticDirs: appStaticDirs,
 });
