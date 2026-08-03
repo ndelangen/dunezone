@@ -12,20 +12,20 @@ import {
   TextInput,
   Title,
   Tooltip,
-  UnstyledButton,
 } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { ArrowDownAZ, ChevronRight, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { ArrowDownAZ, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type {
-  FactionCatalogueEntry,
   FactionCataloguePageData,
   FactionRulesetSummary,
 } from '@db/factions';
+import { CreateFactionCta } from '@app/components/factions/CreateFactionCta';
+import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
 import { FactionList } from '@app/components/factions/FactionList';
 import { PageLayout } from '@app/components/shell';
 import {
@@ -36,7 +36,6 @@ import {
   parseFactionCatalogueSearch,
 } from '@app/factions/catalogue';
 import type { FactionCatalogueSearch } from '@app/factions/catalogue';
-import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from './FactionCatalogue.module.css';
 
@@ -166,75 +165,28 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
             Browse the living collection of community factions.
           </Text>
         </Stack>
-        <Button
-          className={styles.headerCta}
-          color="confirm"
-          size="md"
-          leftSection={<Plus size={17} aria-hidden />}
-          renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
-        >
-          Create your own faction
-        </Button>
+        <CreateFactionCta attention />
       </Group>
 
       {hasSpotlight ? (
         <div className={styles.spotlightRail}>
           {spotlights?.newArrival ? (
-            <CatalogueSpotlight
+            <FactionCatalogueSpotlight
               faction={spotlights.newArrival}
               label="New arrival"
-              date={spotlights.newArrival.created_at}
-              dateLabel="Created"
+              meta={`Created ${formatDate(spotlights.newArrival.created_at)}`}
             />
           ) : null}
           {spotlights?.freshlyUpdated ? (
-            <CatalogueSpotlight
+            <FactionCatalogueSpotlight
               faction={spotlights.freshlyUpdated}
               label="Freshly updated"
-              date={spotlights.freshlyUpdated.updated_at}
-              dateLabel="Updated"
+              meta={`Updated ${formatDate(spotlights.freshlyUpdated.updated_at)}`}
             />
           ) : null}
         </div>
       ) : null}
     </Stack>
-  );
-}
-
-function CatalogueSpotlight({
-  faction,
-  label,
-  date,
-  dateLabel,
-}: {
-  faction: FactionCatalogueEntry;
-  label: string;
-  date: string;
-  dateLabel: string;
-}) {
-  return (
-    <UnstyledButton
-      className={styles.compactSpotlight}
-      renderRoot={(rootProps) => (
-        <Link {...rootProps} to="/factions/$factionId" params={{ factionId: faction.slug }} />
-      )}
-    >
-      <div className={styles.compactSpotlightToken} aria-hidden>
-        <FactionToken logo={faction.data.logo} background={faction.data.background} />
-      </div>
-      <Stack gap={1} miw={0}>
-        <Text className={styles.spotlightLabel} size="xs" tt="uppercase" fw={800} c="dune.8">
-          {label}
-        </Text>
-        <Text className={styles.spotlightName} fw={700} truncate>
-          {faction.data.name}
-        </Text>
-        <Text className={styles.spotlightMeta} size="xs" c="dimmed">
-          {dateLabel} {formatDate(date)}
-        </Text>
-      </Stack>
-      <ChevronRight size={18} aria-hidden />
-    </UnstyledButton>
   );
 }
 

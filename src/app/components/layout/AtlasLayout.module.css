@@ -1,0 +1,22 @@
+.root {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.72fr) minmax(0, 2fr);
+  gap: clamp(2rem, 6vw, 6rem);
+  padding: 3.5rem clamp(0rem, 2vw, 1.5rem) 1rem;
+}
+
+.index {
+  position: sticky;
+  top: 1.5rem;
+  align-self: start;
+}
+
+@media (max-width: 56.25em) {
+  .root {
+    grid-template-columns: 1fr;
+  }
+
+  .index {
+    position: static;
+  }
+}

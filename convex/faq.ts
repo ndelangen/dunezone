@@ -5,6 +5,7 @@ import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/app/fa
 import type { Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
+import { setHomepageCommunityPresence } from './lib/homepageCommunity';
 import { canAccessRuleset, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { nowIso } from './lib/utils';
@@ -257,6 +258,7 @@ export const createItem = mutation({
       updated_at: now,
       accepted_answer_id: null,
     });
+    await setHomepageCommunityPresence(ctx, 'questions', faqItemId, true);
     const row = await ctx.db.get(faqItemId);
     if (!row) {
       throw new Error('Failed to create FAQ item');
@@ -269,12 +271,13 @@ export const createItem = mutation({
         const msg = parsedAnswer.error.issues.map((i) => i.message).join(' ');
         throw new Error(msg || 'Invalid FAQ input');
       }
-      await ctx.db.insert('faq_answers', {
+      const answerId = await ctx.db.insert('faq_answers', {
         faq_item_id: row._id,
         answer: parsedAnswer.data,
         answered_by: userId,
         created_at: nowIso(),
       });
+      await setHomepageCommunityPresence(ctx, 'answers', answerId, true);
     }
 
     return row;
@@ -398,8 +401,14 @@ export const deleteItem = mutation({
       .query('faq_answers')
       .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
       .take(500);
-    await Promise.all(answers.map((answer) => ctx.db.delete(answer._id)));
+    await Promise.all(
+      answers.map(async (answer) => {
+        await ctx.db.delete(answer._id);
+        await setHomepageCommunityPresence(ctx, 'answers', answer._id, false);
+      })
+    );
     await ctx.db.delete(item._id);
+    await setHomepageCommunityPresence(ctx, 'questions', item._id, false);
     return { id: args.id, rulesetId: item.ruleset_id, askedBy: item.asked_by };
   },
 });
@@ -441,6 +450,7 @@ export const createAnswer = mutation({
       answered_by: userId,
       created_at: nowIso(),
     });
+    await setHomepageCommunityPresence(ctx, 'answers', _id, true);
     const row = await ctx.db.get(_id);
     if (!row) {
       throw new Error('Failed to create FAQ answer');
@@ -500,6 +510,7 @@ export const deleteAnswer = mutation({
     }
 
     await ctx.db.delete(answer._id);
+    await setHomepageCommunityPresence(ctx, 'answers', answer._id, false);
     return { id: args.id, faqItemId: answer.faq_item_id, answeredBy: answer.answered_by };
   },
 });

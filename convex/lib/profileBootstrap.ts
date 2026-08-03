@@ -1,5 +1,6 @@
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
+import { setHomepageCommunityPresence } from './homepageCommunity';
 import { nowIso, slugify } from './utils';
 
 export type ProfileBootstrapSources = {
@@ -109,6 +110,7 @@ export async function ensureProfileForUser(
     created_at: now,
     updated_at: now,
   });
+  await setHomepageCommunityPresence(ctx, 'members', inserted, true);
   const created = await ctx.db.get(inserted);
   if (!created) {
     throw new Error('Failed to read profile after insert');

@@ -1,0 +1,36 @@
+.root {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.72fr) minmax(0, 0.9fr);
+  align-items: center;
+  padding: clamp(1rem, 3vw, 2.25rem) 0;
+}
+
+.play,
+.create {
+  min-height: 27rem;
+  padding: clamp(1rem, 3vw, 2.25rem);
+}
+
+.preview {
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  background: radial-gradient(circle, rgb(249 219 157 / 56%), transparent 68%);
+}
+
+@media (max-width: 61.25em) {
+  .root {
+    grid-template-columns: 1fr;
+  }
+
+  .preview {
+    min-height: 20rem;
+  }
+}
+
+@media (max-width: 43.75em) {
+  .play,
+  .create {
+    min-height: auto;
+  }
+}

@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -19,6 +20,7 @@ describe('local faction development import', () => {
 
   test('maps imported factions and groups onto the two local auth users', async () => {
     const t = convexTest(schema, modules);
+    aggregateTest.register(t, 'homepageCommunity');
     const [ownerId, collaboratorId] = await t.run(async (ctx) => {
       const owner = await ctx.db.insert('users', { email: 'user-a@example.com' });
       const collaborator = await ctx.db.insert('users', { email: 'user-b@example.com' });
@@ -100,6 +102,7 @@ describe('local faction development import', () => {
   test('is unavailable outside the disposable local backend', async () => {
     vi.stubEnv('IS_TEST', 'false');
     const t = convexTest(schema, modules);
+    aggregateTest.register(t, 'homepageCommunity');
 
     await expect(
       t.mutation(api.localDevelopment.prepareFactionImport, {

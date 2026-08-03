@@ -1,0 +1,88 @@
+/// <reference types="vite/client" />
+// @vitest-environment edge-runtime
+
+import aggregateTest from '@convex-dev/aggregate/test';
+import { convexTest } from 'convex-test';
+import { describe, expect, test } from 'vitest';
+
+import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
+import { api } from './_generated/api';
+import { ensureProfileForUser } from './lib/profileBootstrap';
+import schema from './schema';
+
+const modules = import.meta.glob('./**/*.ts');
+const MIGRATION_IDS = [
+  'homepage_factions_v1',
+  'homepage_rulesets_v1',
+  'homepage_members_v1',
+  'homepage_questions_v1',
+  'homepage_answers_v1',
+];
+
+describe('homepage page data', () => {
+  test('publishes exact live totals only after aggregate backfills are ready', async () => {
+    const t = convexTest(schema, modules);
+    aggregateTest.register(t, 'homepageCommunity');
+    const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Homepage maker' }));
+    await t.run((ctx) =>
+      ensureProfileForUser(ctx, userId, {
+        displayName: 'Homepage maker',
+        imageUrl: 'https://example.com/avatar.png',
+      })
+    );
+    const asUser = t.withIdentity({ subject: userId });
+    const faction = await asUser.mutation(api.factions.create, {
+      data: { ...assetPublishingFaction, name: 'Homepage faction' },
+      group_id: null,
+    });
+    const ruleset = await asUser.mutation(api.rulesets.create, {
+      name: 'HomepageRuleset',
+      group_id: null,
+      image_cover: null,
+    });
+    const question = await asUser.mutation(api.faq.createItem, {
+      ruleset_id: ruleset._id,
+      question: 'How does the homepage stay accurate?',
+      answer: 'Every source mutation updates the same aggregate transaction.',
+      tags: ['rules'],
+    });
+
+    expect((await t.query(api.homepage.page, {})).community.counts).toBeNull();
+
+    await t.run(async (ctx) => {
+      for (const migrationId of MIGRATION_IDS) {
+        await ctx.db.insert('migration_runs', {
+          migration_id: migrationId,
+          state: 'success',
+          is_done: true,
+          processed: 1,
+          latest_start: Date.now(),
+          latest_end: Date.now(),
+          updated_at: new Date().toISOString(),
+        });
+      }
+    });
+
+    const ready = await t.query(api.homepage.page, {});
+    expect(ready.community.counts).toEqual({
+      factions: 1,
+      rulesets: 1,
+      members: 1,
+      questions: 1,
+      answers: 1,
+    });
+    expect(ready.community.newestMembers).toHaveLength(1);
+
+    await asUser.mutation(api.faq.deleteItem, { id: question._id });
+    await asUser.mutation(api.factions.softDelete, { id: faction._id });
+    await asUser.mutation(api.rulesets.softDelete, { id: ruleset._id });
+
+    expect((await t.query(api.homepage.page, {})).community.counts).toEqual({
+      factions: 0,
+      rulesets: 0,
+      members: 1,
+      questions: 0,
+      answers: 0,
+    });
+  });
+});

@@ -6,6 +6,7 @@ import { DEFAULT_FAQ_TAG } from '../src/app/faq/tags';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, query } from './_generated/server';
+import { setHomepageCommunityPresence } from './lib/homepageCommunity';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { nowIso, slugify } from './lib/utils';
 import schema from './schema';
@@ -21,6 +22,11 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   profiles_from_users_v1: internal.migrations.profiles_from_users_v1,
   faction_slug_reservations_v1: internal.migrations.faction_slug_reservations_v1,
   faction_slug_reservations_verify_v1: internal.migrations.faction_slug_reservations_verify_v1,
+  homepage_factions_v1: internal.migrations.homepage_factions_v1,
+  homepage_rulesets_v1: internal.migrations.homepage_rulesets_v1,
+  homepage_members_v1: internal.migrations.homepage_members_v1,
+  homepage_questions_v1: internal.migrations.homepage_questions_v1,
+  homepage_answers_v1: internal.migrations.homepage_answers_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -251,6 +257,46 @@ export const faction_slug_reservations_verify_v1 = migrations.define({
   },
 });
 
+export const homepage_factions_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await setHomepageCommunityPresence(ctx, 'factions', row._id, !row.is_deleted);
+  },
+});
+
+export const homepage_rulesets_v1 = migrations.define({
+  table: 'rulesets',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await setHomepageCommunityPresence(ctx, 'rulesets', row._id, !row.is_deleted);
+  },
+});
+
+export const homepage_members_v1 = migrations.define({
+  table: 'profiles',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await setHomepageCommunityPresence(ctx, 'members', row._id, true);
+  },
+});
+
+export const homepage_questions_v1 = migrations.define({
+  table: 'faq_items',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await setHomepageCommunityPresence(ctx, 'questions', row._id, true);
+  },
+});
+
+export const homepage_answers_v1 = migrations.define({
+  table: 'faq_answers',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await setHomepageCommunityPresence(ctx, 'answers', row._id, true);
+  },
+});
+
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([
@@ -261,6 +307,11 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.profiles_from_users_v1,
   internal.migrations.faction_slug_reservations_v1,
   internal.migrations.faction_slug_reservations_verify_v1,
+  internal.migrations.homepage_factions_v1,
+  internal.migrations.homepage_rulesets_v1,
+  internal.migrations.homepage_members_v1,
+  internal.migrations.homepage_questions_v1,
+  internal.migrations.homepage_answers_v1,
 ]);
 
 export const runRequired = mutation({

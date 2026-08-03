@@ -1,39 +1,321 @@
-import { createFileRoute } from '@tanstack/react-router';
+import {
+  Alert,
+  Anchor,
+  Avatar,
+  Badge,
+  Box,
+  Button,
+  Group,
+  Loader,
+  Paper,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
+import { createFileRoute, type ErrorComponentProps, Link } from '@tanstack/react-router';
+import { ArrowRight, BookOpen, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
 
-import { AutoGrid } from '@app/components/generic/layout';
+import { loadHomepage, useHomepage } from '@db/homepage';
+import { AnimatedLeaderToken } from '@app/components/factions/AnimatedLeaderToken';
+import { CreateFactionCta } from '@app/components/factions/CreateFactionCta';
+import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
+import { FuturePlanItem } from '@app/components/future/FuturePlanItem';
+import { DiscoveryDeskLayout } from '@app/components/layout/DiscoveryDeskLayout';
+import { HomepageStoryLayout } from '@app/components/layout/HomepageStoryLayout';
 import { PageLayout } from '@app/components/shell';
 
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/')({
+  codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
+  loader: loadHomepage,
+  pendingComponent: HomepagePending,
+  errorComponent: HomepageError,
   component: IndexPage,
 });
 
-const PANELS = [
-  { id: 'faction-1', title: 'Create a new faction' },
-  { id: 'asset-1', title: 'Create a game asset' },
-  { id: 'welcome-1', title: 'Welcome to the game' },
-  { id: 'faction-2', title: 'Create a new faction' },
-  { id: 'asset-2', title: 'Create a game asset' },
-  { id: 'welcome-2', title: 'Welcome to the game' },
-  { id: 'faction-3', title: 'Create a new faction' },
-  { id: 'asset-3', title: 'Create a game asset' },
-  { id: 'welcome-3', title: 'Welcome to the game' },
-];
-
 function IndexPage() {
+  const loaderData = Route.useLoaderData();
+  const homepage = useHomepage({ initialData: loaderData });
+  const data = homepage.data;
+
+  if (!data) return <HomepagePending />;
+
+  const counts = data.community.counts;
+  const metrics = counts
+    ? [
+        { value: compactNumber(counts.factions), label: 'factions' },
+        { value: compactNumber(counts.rulesets), label: 'rulesets' },
+        { value: compactNumber(counts.members), label: 'members' },
+        { value: compactNumber(counts.questions + counts.answers), label: 'Q&A' },
+      ]
+    : [];
+
   return (
-    <PageLayout header={<h1 className={styles.navTitle}>Welcome to the game</h1>}>
-      <AutoGrid minColumnWidth="240px" gap={5}>
-        {PANELS.map(({ id, title }) => (
-          <div className={styles.block} key={id}>
-            <div className={styles.panel}>
-              <p>{title}</p>
-            </div>
-            <p>See what others have created</p>
-          </div>
-        ))}
-      </AutoGrid>
+    <PageLayout
+      header={
+        <Stack className={styles.hero} align="center" justify="center" gap="sm">
+          <Text className={styles.heroKicker}>A game of conquest, diplomacy & betrayal</Text>
+          <Title order={1} className={styles.heroTitle}>
+            Make Dune your own
+          </Title>
+          <Text className={styles.heroDeck}>
+            Discover what people are playing today—or make the thing they play tomorrow.
+          </Text>
+          <Group justify="center" mt="xs">
+            <Button size="sm" renderRoot={(props) => <Link {...props} to="/rulesets" />}>
+              Discover the game
+            </Button>
+            <CreateFactionCta size="sm" withArrow>
+              Start creating
+            </CreateFactionCta>
+          </Group>
+        </Stack>
+      }
+    >
+      <Stack gap="xl">
+        <HomepageStoryLayout
+          play={
+            <Stack justify="space-between" h="100%" gap="xl">
+              <Box>
+                <Badge color="dune">Start here</Badge>
+                <Title order={2} mt="sm" className={styles.storyTitle}>
+                  A game where every player breaks the rules differently
+                </Title>
+                <Text c="dimmed" size="lg" mt="md" className={styles.storyCopy}>
+                  Dune turns conquest into conversation. Your strongest weapon may be an alliance, a
+                  threat, a promise—or knowing exactly when to betray one.
+                </Text>
+              </Box>
+              <Group>
+                <Button renderRoot={(props) => <Link {...props} to="/rulesets" />}>
+                  Discover Dune
+                </Button>
+                <Button
+                  component="a"
+                  href="https://treachery.online/"
+                  target="_blank"
+                  variant="subtle"
+                  rightSection={<ExternalLink size={15} aria-hidden />}
+                >
+                  Play online
+                </Button>
+              </Group>
+            </Stack>
+          }
+          preview={<AnimatedLeaderToken />}
+          create={
+            <Stack gap="md">
+              <Badge color="confirm" w="fit-content">
+                Make it yours
+              </Badge>
+              <Title order={2}>Your idea belongs at the table</Title>
+              <Text c="dimmed">
+                Remix a familiar edition, learn from community homebrew, or invent a faction nobody
+                has seen before. Watch every piece take shape, then preview, print, and share it
+                with friends.
+              </Text>
+              <Group mt="sm">
+                <CreateFactionCta withArrow>Start creating</CreateFactionCta>
+                <Button
+                  variant="subtle"
+                  color="confirm"
+                  renderRoot={(props) => <Link {...props} to="/factions" />}
+                >
+                  Browse homebrew
+                </Button>
+              </Group>
+            </Stack>
+          }
+        />
+
+        <Paper
+          component="section"
+          className={styles.communityBand}
+          p={{ base: 'lg', md: 'xl' }}
+          radius="lg"
+          withBorder
+        >
+          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" verticalSpacing="xl">
+            <Stack gap="sm">
+              <Text className={styles.kicker}>Built by people around the table</Text>
+              <Title order={2}>A living game needs a living community</Title>
+              <Text c="dimmed">
+                Find the people making factions, answering edge cases, and bringing new players into
+                the fold.
+              </Text>
+            </Stack>
+            <Stack gap="md">
+              {counts ? (
+                <SimpleGrid cols={4} spacing="sm">
+                  {metrics.map((metric) => (
+                    <Box key={metric.label}>
+                      <Text fw={900} size="xl">
+                        {metric.value}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {metric.label}
+                      </Text>
+                    </Box>
+                  ))}
+                </SimpleGrid>
+              ) : (
+                <Text size="sm" c="dimmed" aria-live="polite">
+                  Live community totals are being prepared.
+                </Text>
+              )}
+              <Group justify="space-between" align="center">
+                {data.community.newestMembers.length > 0 ? (
+                  <Avatar.Group>
+                    {data.community.newestMembers.map((member) => (
+                      <Link
+                        key={member.id}
+                        to="/profiles/$profileSlug"
+                        params={{ profileSlug: member.slug }}
+                        className={styles.avatarLink}
+                        aria-label={`View ${member.username ?? 'member'} profile`}
+                      >
+                        <Avatar
+                          src={member.avatarUrl}
+                          alt={member.username ?? 'Dune Zone member'}
+                        />
+                      </Link>
+                    ))}
+                  </Avatar.Group>
+                ) : (
+                  <Text size="sm" c="dimmed">
+                    New makers will appear here.
+                  </Text>
+                )}
+                <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/profiles" />}>
+                  Meet the community
+                </Button>
+              </Group>
+              <Group gap="xs">
+                <Anchor
+                  href="https://discord.com/invite/dune-tabletop-624609341886169117"
+                  target="_blank"
+                >
+                  Discord
+                </Anchor>
+                <Text c="dimmed">·</Text>
+                <Anchor href="https://www.reddit.com/r/DuneBoardGame/" target="_blank">
+                  Reddit
+                </Anchor>
+                <Text c="dimmed">·</Text>
+                <Anchor
+                  href="https://boardgamegeek.com/boardgame/283355/dune/forums/69"
+                  target="_blank"
+                >
+                  BoardGameGeek
+                </Anchor>
+              </Group>
+            </Stack>
+          </SimpleGrid>
+        </Paper>
+
+        <DiscoveryDeskLayout
+          catalogue={
+            <Stack gap="lg">
+              <Group justify="space-between" align="end" wrap="wrap" gap="md">
+                <Box>
+                  <Text className={styles.kicker}>From the catalogue</Text>
+                  <Title order={2}>New ideas are arriving</Title>
+                </Box>
+                <Anchor component={Link} to="/factions" fw={700} className={styles.headingLink}>
+                  See every faction <ArrowRight size={15} aria-hidden />
+                </Anchor>
+              </Group>
+              <Stack gap="sm">
+                {data.spotlights.newArrival ? (
+                  <FactionCatalogueSpotlight
+                    faction={data.spotlights.newArrival}
+                    label="New arrival"
+                    meta={`Created ${formatDate(data.spotlights.newArrival.created_at)}`}
+                  />
+                ) : null}
+                {data.spotlights.freshlyUpdated ? (
+                  <FactionCatalogueSpotlight
+                    faction={data.spotlights.freshlyUpdated}
+                    label="Freshly updated"
+                    meta={`Updated ${formatDate(data.spotlights.freshlyUpdated.updated_at)}`}
+                  />
+                ) : null}
+                {!data.spotlights.newArrival && !data.spotlights.freshlyUpdated ? (
+                  <Text c="dimmed">The catalogue is waiting for its first faction.</Text>
+                ) : null}
+              </Stack>
+            </Stack>
+          }
+          future={
+            <Stack gap="lg">
+              <Group justify="space-between" align="end" wrap="wrap" gap="md">
+                <Box>
+                  <Badge color="gray" variant="filled">
+                    Planned
+                  </Badge>
+                  <Title order={2} mt="xs">
+                    What we’ll make next
+                  </Title>
+                </Box>
+                <Anchor component={Link} to="/future-plans" fw={700} className={styles.headingLink}>
+                  Future plans <ArrowRight size={15} aria-hidden />
+                </Anchor>
+              </Group>
+              <Stack gap="md">
+                <FuturePlanItem icon={<BookOpen size={20} />}>Web-native rulebooks</FuturePlanItem>
+                <FuturePlanItem icon={<Printer size={20} />}>PDF and TTS output</FuturePlanItem>
+                <FuturePlanItem icon={<Trophy size={20} />}>
+                  Results and leaderboards
+                </FuturePlanItem>
+                <FuturePlanItem icon={<MessageCircle size={20} />}>
+                  An Atreides card tracker
+                </FuturePlanItem>
+                <Anchor component={Link} to="/future-plans" fw={700}>
+                  What should we make after that?
+                </Anchor>
+              </Stack>
+            </Stack>
+          }
+        />
+      </Stack>
     </PageLayout>
   );
+}
+
+function HomepagePending() {
+  return (
+    <PageLayout header={<Title order={1}>Make Dune your own</Title>}>
+      <Paper p="xl" withBorder radius="md" aria-live="polite">
+        <Stack align="center" gap="sm">
+          <Loader size="sm" />
+          <Title order={2}>Setting the table</Title>
+          <Text c="dimmed">The latest work from the community is loading.</Text>
+        </Stack>
+      </Paper>
+    </PageLayout>
+  );
+}
+
+function HomepageError({ error }: ErrorComponentProps) {
+  return (
+    <PageLayout header={<Title order={1}>Make Dune your own</Title>}>
+      <Alert color="red" title="The homepage could not be loaded" role="alert">
+        <Text size="sm">{error.message || 'An unexpected error occurred.'}</Text>
+      </Alert>
+    </PageLayout>
+  );
+}
+
+function compactNumber(value: number) {
+  return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(
+    value
+  );
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return 'recently';
+  return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(date);
 }

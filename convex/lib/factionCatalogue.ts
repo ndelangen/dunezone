@@ -50,6 +50,16 @@ export async function enrichFactionsWithRulesets(
   );
 }
 
+export async function loadFactionCatalogueSpotlights(ctx: QueryCtx) {
+  const rows = await ctx.db
+    .query('factions')
+    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+    .take(500);
+  const rulesets = await listActiveRulesetSummaries(ctx);
+  const factions = await enrichFactionsWithRulesets(ctx, rows, rulesets);
+  return selectFactionCatalogueSpotlights(factions);
+}
+
 export function selectFactionCatalogueSpotlights(factions: CatalogueFaction[]) {
   const newArrival = [...factions]
     .filter((faction) => parseTimestamp(faction.created_at) != null)

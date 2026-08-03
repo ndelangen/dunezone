@@ -1,0 +1,75 @@
+.hero {
+  width: 100%;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  color: white;
+  text-shadow: 0 2px 16px rgb(0 0 0 / 65%);
+}
+
+.hero h1 {
+  max-width: 800px;
+  font-size: clamp(2.7rem, 5vw, 4.8rem);
+  line-height: 0.98;
+}
+
+.eyebrow {
+  color: var(--mantine-color-dune-8);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.hero .eyebrow {
+  color: var(--mantine-color-yellow-2);
+}
+
+.indexLink {
+  padding: 0.9rem 0;
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgb(92 55 31 / 14%);
+}
+
+.entry {
+  scroll-margin-top: 1.5rem;
+  padding-bottom: clamp(4rem, 9vw, 7.5rem);
+}
+
+.coordinate {
+  color: var(--mantine-color-dune-7);
+  font-size: 4rem;
+  font-weight: 900;
+  line-height: 0.9;
+  opacity: 0.25;
+}
+
+.entry h2 {
+  max-width: 760px;
+  margin-top: 0.35rem;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.05;
+}
+
+.statement {
+  max-width: 690px;
+  font-size: var(--mantine-font-size-lg);
+  line-height: 1.6;
+}
+
+.contribution {
+  margin: 2rem 0 1rem;
+  background:
+    radial-gradient(circle at 95% 10%, rgb(211 146 46 / 20%), transparent 36%),
+    var(--mantine-color-body);
+  border: 1px solid rgb(123 52 25 / 20%);
+}
+
+@media (max-width: 40.625em) {
+  .hero h1 {
+    font-size: 2.45rem;
+  }
+
+  .coordinate {
+    font-size: 3rem;
+  }
+}

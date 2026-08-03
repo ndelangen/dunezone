@@ -6,6 +6,7 @@ import { CanonicalFactionStoredSchema } from '../src/game/schema/faction';
 import type { Doc, Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
+import { setHomepageCommunityPresence } from './lib/homepageCommunity';
 import { listByUserActiveWithGroupsData } from './lib/memberGroups';
 import { canAccessRuleset, isActiveGroupMember, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
@@ -276,6 +277,7 @@ export const create = mutation({
       updated_at: now,
       is_deleted: false,
     });
+    await setHomepageCommunityPresence(ctx, 'rulesets', _id, true);
     const created = await ctx.db.get(_id);
     if (!created) {
       throw new Error('Failed to create ruleset');
@@ -370,6 +372,7 @@ export const softDelete = mutation({
       is_deleted: true,
       updated_at: nowIso(),
     });
+    await setHomepageCommunityPresence(ctx, 'rulesets', ruleset._id, false);
   },
 });
 
