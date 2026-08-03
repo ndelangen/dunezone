@@ -5,7 +5,9 @@ import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { MarkdownContent } from '../../components/block/MarkdownContent';
+import { backgroundPresets } from '../../data/backgrounds';
 import type { Spice } from '../../data/objects';
+import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { useCountId } from '../utils/useCountId';
 import styles from './Card.module.css';
 import unique from './Spice.module.css';
@@ -28,13 +30,19 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({
 
   return (
     <div className={styles.card}>
-      <div className={`${styles.head} ${unique.head}`} />
+      <BackgroundRenderer
+        className={`${styles.head} ${unique.head}`}
+        background={backgroundPresets.spice}
+      />
       <div className={styles.head_shade} />
       <div className={`${styles.shape} ${unique.shape}`} />
-      <div className={`${styles.type} ${unique.type}`}>
+      <BackgroundRenderer
+        className={`${styles.type} ${unique.type}`}
+        background={backgroundPresets.stripedSpice}
+      >
         <img src={`/vector/icon/${icon}.svg`} className={unique.typeOverlay} />
         <img src={`/vector/icon/${icon}.svg`} className={unique.typeShade} />
-      </div>
+      </BackgroundRenderer>
       <div className={styles.title}>{name}</div>
       <div className={styles.subtitle}>{subName}</div>
 

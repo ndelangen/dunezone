@@ -1,6 +1,7 @@
 import { Fragment } from 'react/jsx-runtime';
 
 import { Fan } from '../../components/block/Fan';
+import { backgroundPresets } from '../../data/backgrounds';
 import { card as cardSize } from '../../data/sizes';
 import { type FactionInput, FactionRender } from '../../schema/faction';
 import { AllianceCard } from '../faction/alliance/Alliance';
@@ -9,6 +10,7 @@ import { FactionSheetPage1, FactionSheetPage2 } from '../faction/sheet/Sheet';
 import { Shield } from '../faction/shield/Shield';
 import { TraitorCard } from '../faction/traitor/Traitor';
 import { TroopToken } from '../faction/troop/Troop';
+import { CustomToken } from '../token/Custom';
 import styles from './Scene.module.css';
 
 export function Scene(input: FactionInput) {
@@ -50,7 +52,7 @@ export function Scene(input: FactionInput) {
                 // biome-ignore lint/suspicious/noArrayIndexKey: meh
                 key={index}
                 className={styles.disc}
-                style={{ top: -(index * 5.9), left: Math.random() / 3 }}
+                style={{ top: -(index * 5.9), left: (index % 3) / 10 }}
               >
                 <TroopToken {...troop} />
               </div>
@@ -66,13 +68,17 @@ export function Scene(input: FactionInput) {
             className={styles.disc}
             style={{
               top: -(index * 5),
-              left: Math.random() / 3,
+              left: (index % 3) / 10,
               width: '30px',
               height: '30px',
-              background: `url('/generated/token/custom/spice.jpg') no-repeat center center`,
-              backgroundSize: 'cover',
             }}
-          ></div>
+          >
+            <CustomToken
+              background={backgroundPresets.spiceToken}
+              image="/vector/icon/spice.svg"
+              circle={false}
+            />
+          </div>
         ))}
       </div>
       <div className={styles.leaders}>

@@ -1,3 +1,4 @@
+import { TreacheryCard } from '../../assets/treachery/Treachery';
 import * as colors from '../../assets/utils/colors';
 import { Definitions } from '../../components/block/Definitions';
 import { Fan } from '../../components/block/Fan';
@@ -7,6 +8,9 @@ import { Spaced } from '../../components/block/Spaced';
 import { NonBreaking, Text } from '../../components/block/Text';
 import { Title } from '../../components/block/Title';
 import { card as cardSize } from '../../data/sizes';
+import { treacheryCardFixtures } from '../../fixtures/treacheryCards';
+
+const cardCopies = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'] as const;
 
 export function Intro() {
   return (
@@ -87,21 +91,9 @@ export function Intro() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/worthless/baliset.jpg"
-              alt="baliset"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/worthless/baliset.jpg"
-              alt="baliset"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/worthless/baliset.jpg"
-              alt="baliset"
-            />
+            {cardCopies.slice(0, 3).map((copy) => (
+              <TreacheryCard key={`baliset-${copy}`} {...treacheryCardFixtures.baliset} />
+            ))}
           </Fan>
         </div>
         <ul>
@@ -145,36 +137,9 @@ export function TreacheryCards1() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/worthless/baliset.jpg"
-              alt="baliset"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/worthless/baliset.jpg"
-              alt="baliset"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/worthless/baliset.jpg"
-              alt="baliset"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/worthless/baliset.jpg"
-              alt="baliset"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/worthless/baliset.jpg"
-              alt="baliset"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/worthless/baliset.jpg"
-              alt="baliset"
-            />
+            {cardCopies.map((copy) => (
+              <TreacheryCard key={`baliset-${copy}`} {...treacheryCardFixtures.baliset} />
+            ))}
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -202,31 +167,9 @@ export function TreacheryCards1() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/maula-pistol.jpg"
-              alt="maula-pistol"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/maula-pistol.jpg"
-              alt="maula-pistol"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/maula-pistol.jpg"
-              alt="maula-pistol"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/maula-pistol.jpg"
-              alt="maula-pistol"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/maula-pistol.jpg"
-              alt="maula-pistol"
-            />
+            {cardCopies.slice(0, 5).map((copy) => (
+              <TreacheryCard key={`maula-pistol-${copy}`} {...treacheryCardFixtures.maulaPistol} />
+            ))}
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -255,31 +198,9 @@ export function TreacheryCards1() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/chaumas.jpg"
-              alt="chaumas"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/chaumas.jpg"
-              alt="chaumas"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/chaumas.jpg"
-              alt="chaumas"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/chaumas.jpg"
-              alt="chaumas"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/chaumas.jpg"
-              alt="chaumas"
-            />
+            {cardCopies.slice(0, 5).map((copy) => (
+              <TreacheryCard key={`chaumas-${copy}`} {...treacheryCardFixtures.chaumas} />
+            ))}
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -319,11 +240,7 @@ export function TreacheryCards2() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/weirding-way.jpg"
-              alt="weirding-way"
-            />
+            <TreacheryCard {...treacheryCardFixtures.weirdingWay} />
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -352,11 +269,7 @@ export function TreacheryCards2() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/weapon/lasgun.jpg"
-              alt="lasgun"
-            />
+            <TreacheryCard {...treacheryCardFixtures.lasgun} />
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -384,11 +297,7 @@ export function TreacheryCards2() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/defense/chemistry.jpg"
-              alt="chemistry"
-            />
+            <TreacheryCard {...treacheryCardFixtures.chemistry} />
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -423,31 +332,9 @@ export function TreacheryCards3() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/defense/shield.jpg"
-              alt="shield"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/defense/shield.jpg"
-              alt="shield"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/defense/shield.jpg"
-              alt="shield"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/defense/shield.jpg"
-              alt="shield"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/defense/shield.jpg"
-              alt="shield"
-            />
+            {cardCopies.slice(0, 5).map((copy) => (
+              <TreacheryCard key={`shield-${copy}`} {...treacheryCardFixtures.shield} />
+            ))}
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -479,31 +366,9 @@ export function TreacheryCards3() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/defense/snooper.jpg"
-              alt="snooper"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/defense/snooper.jpg"
-              alt="snooper"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/defense/snooper.jpg"
-              alt="snooper"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/defense/snooper.jpg"
-              alt="snooper"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/defense/snooper.jpg"
-              alt="snooper"
-            />
+            {cardCopies.slice(0, 5).map((copy) => (
+              <TreacheryCard key={`snooper-${copy}`} {...treacheryCardFixtures.snooper} />
+            ))}
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -539,16 +404,9 @@ export function KaramaCard() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/unique/karama.jpg"
-              alt="karama"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/unique/karama.jpg"
-              alt="karama"
-            />
+            {cardCopies.slice(0, 2).map((copy) => (
+              <TreacheryCard key={`karama-${copy}`} {...treacheryCardFixtures.karama} />
+            ))}
           </Fan>
         </div>
         <Text style={{ flex: 1 }} size={1.7}>
@@ -644,16 +502,9 @@ export function TruthTranceCard() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/unique/truth-trance.jpg"
-              alt="truth-trance"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/unique/truth-trance.jpg"
-              alt="truth-trance"
-            />
+            {cardCopies.slice(0, 2).map((copy) => (
+              <TreacheryCard key={`truth-trance-${copy}`} {...treacheryCardFixtures.truthTrance} />
+            ))}
           </Fan>
         </div>
         <Text style={{ flex: 1 }} size={1.7}>
@@ -743,16 +594,8 @@ export function TreacheryCards4() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/cheaphero/male-cheap-hero.jpg"
-              alt="male cheap hero"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/cheaphero/female-cheap-hero.jpg"
-              alt="female cheap hero"
-            />
+            <TreacheryCard {...treacheryCardFixtures.cheapHero} />
+            <TreacheryCard {...treacheryCardFixtures.femaleCheapHero} />
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -788,11 +631,7 @@ export function TreacheryCards4() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/unique/weather-control.jpg"
-              alt="weather-control"
-            />
+            <TreacheryCard {...treacheryCardFixtures.weatherControl} />
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -812,11 +651,7 @@ export function TreacheryCards4() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/unique/family-atomics.jpg"
-              alt="weather-control"
-            />
+            <TreacheryCard {...treacheryCardFixtures.familyAtomics} />
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -856,16 +691,9 @@ export function TreacheryCards5() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/unique/mercenaries.jpg"
-              alt="mercenaries"
-            />
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/unique/mercenaries.jpg"
-              alt="mercenaries"
-            />
+            {cardCopies.slice(0, 2).map((copy) => (
+              <TreacheryCard key={`mercenaries-${copy}`} {...treacheryCardFixtures.mercenaries} />
+            ))}
           </Fan>
         </div>
         <Text style={{ flex: 1 }}>
@@ -897,11 +725,7 @@ export function TreacheryCards5() {
             spacing={-3}
             style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
           >
-            <img
-              width={cardSize.width}
-              src="/generated/card/treachery/unique/supplies.jpg"
-              alt="supplies"
-            />
+            <TreacheryCard {...treacheryCardFixtures.supplies} />
           </Fan>
           <div
             style={{
@@ -916,26 +740,10 @@ export function TreacheryCards5() {
               spacing={-6}
               style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
             >
-              <img
-                width={cardSize.width}
-                src="/generated/card/treachery/supplies/ernoc-seed.jpg"
-                alt="ernoc seed"
-              />
-              <img
-                width={cardSize.width}
-                src="/generated/card/treachery/supplies/trishula.jpg"
-                alt="trishula"
-              />
-              <img
-                width={cardSize.width}
-                src="/generated/card/treachery/supplies/phrine-pen.jpg"
-                alt="phrine-pen"
-              />
-              <img
-                width={cardSize.width}
-                src="/generated/card/treachery/supplies/shield.jpg"
-                alt="shield"
-              />
+              <TreacheryCard {...treacheryCardFixtures.ernocSeed} />
+              <TreacheryCard {...treacheryCardFixtures.trishula} />
+              <TreacheryCard {...treacheryCardFixtures.phrinePen} />
+              <TreacheryCard {...treacheryCardFixtures.suppliesShield} />
             </Fan>
           </div>
         </div>

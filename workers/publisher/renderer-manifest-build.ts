@@ -53,6 +53,7 @@ export function isRendererManifestAsset(relativePath: string): boolean {
   return (
     normalizedPath !== '_shell.html' &&
     normalizedPath !== 'index.html' &&
+    !normalizedPath.startsWith('__storybook/') &&
     !normalizedPath.startsWith('public/')
   );
 }

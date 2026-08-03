@@ -3,6 +3,7 @@ import type { z } from 'zod';
 
 import { StrokedUse } from '../../components/block/StrokedUse';
 import type { FactionSide } from '../../data/objects';
+import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import styles from './Custom.module.css';
 
 const foreGroundColor = '#ffffff';
@@ -21,7 +22,7 @@ export const CustomToken: FC<
   const iconSize = { width: size?.width || 100, height: size?.width || 100 };
   const iconLocation = { x: 150 - iconSize.width / 2, y: 150 - iconSize.height / 2 };
   return (
-    <div className={styles.disc} style={{ background }}>
+    <BackgroundRenderer className={styles.disc} background={background}>
       <svg viewBox="0 0 300 300" aria-label="Custom Token">
         <defs>
           {top && <path id="top-text" d="M 50 150 m 0 0 a 100 100 0 0 1 200 0" />}
@@ -119,6 +120,6 @@ export const CustomToken: FC<
           </g>
         )}
       </svg>
-    </div>
+    </BackgroundRenderer>
   );
 };

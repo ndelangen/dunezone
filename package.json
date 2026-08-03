@@ -24,7 +24,7 @@
     "publisher:types:check": "wrangler types workers/publisher/worker-configuration.d.ts --check --config workers/publisher/wrangler.jsonc",
     "publisher:typecheck": "tsc --noEmit -p workers/publisher/tsconfig.json",
     "publisher:test": "vitest run workers/publisher",
-    "publisher:assets": "bun run app:build && vite build --config workers/publisher/vite.config.ts && bun run ./scripts/assemble-publisher-assets.ts",
+    "publisher:assets": "bun run app:build && bun run build-storybook && vite build --config workers/publisher/vite.config.ts && bun run ./scripts/assemble-publisher-assets.ts",
     "publisher:assets:check": "bun run ./scripts/assemble-publisher-assets.ts --check-only",
     "publisher:dry-run": "bun run publisher:assets && wrangler deploy --dry-run --config workers/publisher/wrangler.jsonc",
     "publisher:release:verify": "bun run publisher:dry-run && git diff --exit-code -- workers/publisher/renderer-manifest.generated.ts",

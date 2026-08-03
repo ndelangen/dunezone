@@ -1,7 +1,3 @@
-.head {
-  background: url("/generated/utils/background/special.jpg") top center / cover no-repeat;
-}
-
 .logo {
   position: absolute;
   top: 390px;
@@ -21,10 +17,6 @@
   border: 15px solid #fff;
   border-radius: 50%;
   mix-blend-mode: soft-light;
-}
-
-.type {
-  background: url("/generated/utils/background/striped-alliance.jpg") top center / cover no-repeat;
 }
 
 .typeOverlay {

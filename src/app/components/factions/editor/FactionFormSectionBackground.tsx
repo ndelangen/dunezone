@@ -56,8 +56,8 @@ function PatternCatalogue({
   onChange,
   onClose,
 }: {
-  value: string;
-  onChange: (image: string) => void;
+  value: Faction['background']['image'];
+  onChange: (image: Faction['background']['image']) => void;
   onClose: () => void;
 }) {
   return (

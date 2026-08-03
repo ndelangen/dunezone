@@ -91,4 +91,30 @@ describe('AppShell page hero', () => {
     expect(document.documentElement.hasAttribute('data-initial-animate')).toBe(false);
     expect(document.documentElement.style.getPropertyValue('--scroll-pct')).toBe('');
   });
+
+  it('publishes the approved project waypoints in the footer', () => {
+    const container = document.createElement('div');
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <AppShell pathname="/privacy">
+          <p>Privacy content</p>
+        </AppShell>
+      );
+    });
+
+    expect(
+      [...container.querySelectorAll('footer nav a')].map((link) => ({
+        href: link.getAttribute('href'),
+        label: link.querySelector('strong')?.textContent,
+      }))
+    ).toEqual([
+      { href: '/__storybook/', label: 'Component library' },
+      { href: 'https://github.com/ndelangen/dunezone', label: 'Source code' },
+      { href: '/privacy', label: 'Privacy policy' },
+    ]);
+
+    act(() => root.unmount());
+  });
 });

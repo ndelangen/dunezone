@@ -5,6 +5,7 @@ import type { z } from 'zod';
 
 import type { CardBack as CardBackType } from '../../data/objects';
 import { card } from '../../data/sizes';
+import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { useCountId } from '../utils/useCountId';
 import styles from './Back.module.css';
 
@@ -23,10 +24,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
 
   return (
     <div className={styles.card}>
-      <div
-        className={styles.bg}
-        style={{ backgroundImage: `url("${background}")`, filter: 'blur(2px)' }}
-      />
+      <BackgroundRenderer className={styles.bg} background={background} />
       <div
         className={styles.decal_bg_1}
         style={{

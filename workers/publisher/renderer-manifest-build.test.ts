@@ -98,6 +98,8 @@ describe('current Renderer manifest digest', () => {
   test.each([
     '_shell.html',
     'index.html',
+    '__storybook/index.html',
+    '__storybook/assets/Background.stories-hash.js',
     'public/FactionEditor-hash.js',
   ])('excludes application-only release asset %s', (assetPath) => {
     expect(isRendererManifestAsset(assetPath)).toBe(false);

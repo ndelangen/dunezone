@@ -123,7 +123,7 @@ function backgroundsMatch(left: FactionBackground, right: FactionBackground): bo
   );
 }
 
-export function randomPatternImage(random: () => number = Math.random): string {
+export function randomPatternImage(random: () => number = Math.random): FactionBackground['image'] {
   const option =
     BACKGROUND_PATTERN_CATALOGUE[randomIndex(BACKGROUND_PATTERN_CATALOGUE.length, random)];
   if (!option) {

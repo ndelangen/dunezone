@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
+import { Background } from '../schema/faction';
 import { ALL, LEADERS, LOGO, TROOP, TROOP_MODIFIER } from './generated';
+
+export { Background, GRADIENT } from '../schema/faction';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
 const OFFSET = z.tuple([z.number(), z.number()]);
@@ -19,14 +22,14 @@ export const Leader = z.strictObject({
   strength: STRENGTH,
   image: LEADERS,
   logo: LOGO,
-  background: URL,
+  background: Background,
 });
 
 export const Shield = z.strictObject({
   name: z.string(),
   leader: URL,
   logo: URL,
-  background: URL,
+  background: Background,
 });
 
 export const Decal = z.strictObject({
@@ -43,7 +46,7 @@ export const Alliance = z.strictObject({
   logo: ALL,
   decals: z.array(Decal),
   text: z.string(),
-  background: URL,
+  background: Background,
 });
 
 export const Spice = z.strictObject({
@@ -124,8 +127,8 @@ export const Spice = z.strictObject({
 export const Treachery = z.strictObject({
   name: z.string(),
   subName: z.string(),
-  head: URL,
-  icon: z.tuple([URL, ALL]),
+  head: Background,
+  icon: z.tuple([Background, ALL]),
   iconOffset: z.tuple([z.number(), z.number()]).optional(),
   iconScale: SCALE.optional(),
   decals: z.array(Decal),
@@ -134,21 +137,21 @@ export const Treachery = z.strictObject({
 
 export const TroopSide = z.strictObject({
   image: TROOP,
-  background: URL,
+  background: Background,
   star: TROOP_MODIFIER.optional(),
   striped: z.boolean().optional(),
 });
 
 export const FactionSide = z.strictObject({
   image: ALL,
-  background: URL,
+  background: Background,
 });
 
 export const CardBack = z.strictObject({
   image: ALL,
   imageOffset: OFFSET,
   imageScale: SCALE,
-  background: URL,
+  background: Background,
   name: z.string(),
 });
 
@@ -158,31 +161,6 @@ export const Troop = z.intersection(
     back: TroopSide.optional(),
   })
 );
-
-export const GRADIENT = z.discriminatedUnion('type', [
-  z.strictObject({
-    type: z.literal('linear'),
-    angle: z.number().int().min(0).max(360),
-    stops: z.array(z.tuple([COLOR, SCALE])),
-  }),
-  z.strictObject({
-    type: z.literal('radial'),
-    x: z.number().optional(),
-    y: z.number().optional(),
-    r: z.number().optional(),
-    stops: z.array(z.tuple([COLOR, SCALE])),
-  }),
-]);
-
-const K = z.union([COLOR, GRADIENT]);
-
-export const Background = z.strictObject({
-  image: URL,
-  colors: z.tuple([K, K]),
-  invert: z.boolean(),
-  definition: SCALE,
-  influence: SCALE,
-});
 
 export const Sheet = z.strictObject({
   name: z.string(),

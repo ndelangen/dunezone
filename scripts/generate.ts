@@ -12,6 +12,7 @@ async function getFiles(path: string) {
 // images
 const leaders = await getFiles('/image/leader');
 const planet = await getFiles('/image/planet');
+const texture = await getFiles('/image/texture');
 
 // vectors
 const background = await getFiles('/vector/background');
@@ -30,6 +31,7 @@ const enums = {
   icon,
   leaders,
   planet,
+  texture,
   troop,
   troop_modifier,
 };

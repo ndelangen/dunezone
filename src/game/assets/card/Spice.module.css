@@ -1,7 +1,3 @@
-.head {
-  background: url("/generated/utils/background/spice-2.jpg") top center / cover no-repeat;
-}
-
 .shape {
   background: url("/image/card/base-full.png");
 }
@@ -28,7 +24,6 @@
 }
 
 .type {
-  background: url("/generated/utils/background/striped-spice.jpg") top center / cover no-repeat;
   filter: contrast(1.3);
 }
 

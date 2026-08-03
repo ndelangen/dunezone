@@ -1,5 +1,27 @@
 import { defineMain } from '@storybook/tanstack-react/node';
 
+const managerTitleScript = `
+  <script>
+    (() => {
+      const brandedTitle = 'Dune Zone Storybook';
+      const updateTitle = () => {
+        const current = document.title;
+        const next = current.endsWith(' ⋅ Storybook')
+          ? current.replace(/ ⋅ Storybook$/, ' ⋅ ' + brandedTitle)
+          : current.endsWith(' - Storybook')
+            ? current.replace(/ - Storybook$/, ' - ' + brandedTitle)
+            : current === 'Storybook'
+              ? brandedTitle
+              : current;
+        if (next !== current) document.title = next;
+      };
+      const title = document.querySelector('title');
+      if (title) new MutationObserver(updateTitle).observe(title, { childList: true });
+      updateTitle();
+    })();
+  </script>
+`;
+
 export default defineMain({
   stories: [
     {
@@ -84,5 +106,6 @@ export default defineMain({
   typescript: {
     reactDocgen: 'react-docgen-typescript',
   },
+  managerHead: (head) => `${head}${managerTitleScript}`,
   staticDirs: ['../public'],
 });

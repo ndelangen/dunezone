@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/a11y/noSvgWithoutTitle: I don't care */
 
+import { TraitorCard } from '../../assets/faction/traitor/Traitor';
 // import { FactionToken } from '../../objects/disc/faction_token';
 // import { TroopToken } from '../../objects/disc/troop_token';
 // import * as backs from '../../presets/back_cards';
@@ -18,6 +19,10 @@ import {
   card as cardSize,
   //  disc as discSize
 } from '../../data/sizes';
+import sceneAtreides from '../../fixtures/sceneAtreides';
+import { FactionRender } from '../../schema/faction';
+
+const setupTraitors = FactionRender.traitors.parse(sceneAtreides).slice(0, 5);
 
 export const mapSize = { width: 487.06, height: 487.06 };
 
@@ -329,31 +334,9 @@ export function StartingPhases1() {
           spacing={-3}
           style={{ boxShadow: '0.5vw 0.5vw 0.5vw rgba(0, 0, 0, 0.5)', borderRadius: '1vw' }}
         >
-          <img
-            width={cardSize.width}
-            src="/generated/card/traitor/atreides/dr-yueh.jpg"
-            alt="maula-pistol"
-          />
-          <img
-            width={cardSize.width}
-            src="/generated/card/traitor/guild/representative.jpg"
-            alt="maula-pistol"
-          />
-          <img
-            width={cardSize.width}
-            src="/generated/card/traitor/ixian/cammar-pilru.jpg"
-            alt="maula-pistol"
-          />
-          <img
-            width={cardSize.width}
-            src="/generated/card/traitor/fremen/jamis.jpg"
-            alt="maula-pistol"
-          />
-          <img
-            width={cardSize.width}
-            src="/generated/card/traitor/emperor/bashar.jpg"
-            alt="maula-pistol"
-          />
+          {setupTraitors.map((traitor) => (
+            <TraitorCard key={traitor.name} {...traitor} />
+          ))}
         </Fan>
       </div>
     </WithBottom>

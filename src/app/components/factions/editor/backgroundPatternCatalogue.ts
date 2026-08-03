@@ -1,21 +1,23 @@
-const textureIds = [
-  ...Array.from({ length: 59 }, (_, index) => index + 1),
-  ...Array.from({ length: 14 }, (_, index) => index + 69),
-];
+import type { Faction } from '@db/factions';
+import { BACKGROUND, TEXTURE } from '@game/data/generated';
+
+type BackgroundPatternPath = Faction['background']['image'];
 
 export type BackgroundPatternOption = {
-  image: string;
+  image: BackgroundPatternPath;
   label: string;
 };
 
-export const BACKGROUND_PATTERN_CATALOGUE: readonly BackgroundPatternOption[] = [
-  { image: '/vector/background/map.svg', label: 'Map lines' },
-  { image: '/vector/background/moon.svg', label: 'Moons' },
-  ...textureIds.map((id) => {
-    const number = String(id).padStart(3, '0');
+export const BACKGROUND_PATTERN_CATALOGUE = [
+  ...BACKGROUND.options.map((image) => ({
+    image,
+    label: image.endsWith('/map.svg') ? 'Map lines' : 'Moons',
+  })),
+  ...TEXTURE.options.map((image) => {
+    const number = image.slice('/image/texture/'.length, -'.jpg'.length);
     return {
-      image: `/image/texture/${number}.jpg`,
+      image,
       label: `Texture ${number}`,
     };
   }),
-];
+] satisfies readonly BackgroundPatternOption[];
