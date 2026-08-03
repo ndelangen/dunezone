@@ -1,6 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import addonDocs from '@storybook/addon-docs';
 import { definePreview } from '@storybook/tanstack-react';
+import { sb } from 'storybook/test';
 
 import '@mantine/core/styles.layer.css';
 import '../src/app/styles/fonts.css';
@@ -9,6 +10,11 @@ import '../src/app/styles/mantine-shell-compatibility.css';
 
 import { appContentTheme } from '../src/app/theme';
 import * as sizes from '../src/game/data/sizes';
+
+// Storybook has no backend or auth context. Connected components must opt into
+// deterministic, per-story return values from these network-incapable mocks.
+sb.mock(import('convex/react'));
+sb.mock(import('convex/browser'));
 
 export default definePreview({
   addons: [addonDocs()],

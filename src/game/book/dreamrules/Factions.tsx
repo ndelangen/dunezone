@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/a11y/useAltText: I don't care */
 
+import { Token } from '../../assets/faction/token/Token';
 import * as colors from '../../assets/utils/colors';
 import { Definitions } from '../../components/block/Definitions';
 import { FactionSynopsis } from '../../components/block/FactionSynopsis';
@@ -7,6 +8,28 @@ import { Spaced } from '../../components/block/Spaced';
 import { Text } from '../../components/block/Text';
 import { Title } from '../../components/block/Title';
 import { Wrapper } from '../../components/block/Wrapper';
+import { factionTokenFixtures } from '../../fixtures/factionTokens';
+
+const baseFactionTokens = [
+  factionTokenFixtures.emperor,
+  factionTokenFixtures.guild,
+  factionTokenFixtures.fremen,
+  factionTokenFixtures.ixian,
+  factionTokenFixtures.atreides,
+  factionTokenFixtures.beneGesserit,
+  factionTokenFixtures.beneTleilaxu,
+  factionTokenFixtures.harkonnen,
+];
+
+const expansionFactionTokens = [
+  factionTokenFixtures.ginaz,
+  factionTokenFixtures.choam,
+  factionTokenFixtures.ecaz,
+  factionTokenFixtures.iduali,
+  factionTokenFixtures.richese,
+  factionTokenFixtures.landsraad,
+  factionTokenFixtures.moritani,
+];
 
 export function Factions1() {
   return (
@@ -61,57 +84,11 @@ export function Factions1() {
         <p>All block of each player set have the same color for easy identification.</p>
       </Text>
       <div style={{ display: 'flex', gap: '0.5vw' }}>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/emperor.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/guild.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/fremen.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/ixian.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/atreides.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/bene-gesserit.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/bene-tleilaxu.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/harkonnen.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
+        {baseFactionTokens.map((token) => (
+          <Wrapper key={token.logo} size={{ width: 1200, height: 1200 }}>
+            <Token {...token} />
+          </Wrapper>
+        ))}
       </div>
 
       <Text>
@@ -119,48 +96,11 @@ export function Factions1() {
       </Text>
 
       <div style={{ display: 'flex', gap: '2vw' }}>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/ginaz.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/choam.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/ecaz.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/iduali.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/richese.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/landsraad.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
-        <Wrapper size={{ width: 1200, height: 1200 }}>
-          <img
-            src="/generated/token/faction/moritani.jpg"
-            style={{ borderRadius: '50%', boxShadow: '0 0 2vw #00000088', flex: 1, height: 'auto' }}
-          />
-        </Wrapper>
+        {expansionFactionTokens.map((token) => (
+          <Wrapper key={token.logo} size={{ width: 1200, height: 1200 }}>
+            <Token {...token} />
+          </Wrapper>
+        ))}
       </div>
     </Spaced>
   );
@@ -175,21 +115,21 @@ export function Factions2() {
       <Text>
         <p>You will play as one of these factions:</p>
       </Text>
-      <FactionSynopsis image="/generated/token/faction/emperor.jpg">
+      <FactionSynopsis token={factionTokenFixtures.emperor}>
         <h1>Emperor</h1>
         <p>
           his majesty the Padishah Emperor Shaddam IV of house Corrino — keen and efficient, yet
           easily lulled into complacency by his own trappings of power.
         </p>
       </FactionSynopsis>
-      <FactionSynopsis image="/generated/token/faction/guild.jpg">
+      <FactionSynopsis token={factionTokenFixtures.guild}>
         <h1>Spacing Guild</h1>
         <p>
           represented by steersman Edric (in league with smuggler bands) — monopolist of transport,
           yet addicted to ever increasing spice flows.
         </p>
       </FactionSynopsis>
-      <FactionSynopsis image="/generated/token/faction/fremen.jpg">
+      <FactionSynopsis token={factionTokenFixtures.fremen}>
         <h1>Fremen</h1>
         <p>
           represented by the planetary ecologist Liet Kynes — commanding fierce hordes of natives,
@@ -197,7 +137,7 @@ export function Factions2() {
           while bringing about Dune’s own natural regeneration.
         </p>
       </FactionSynopsis>
-      <FactionSynopsis image="/generated/token/faction/ixian.jpg">
+      <FactionSynopsis token={factionTokenFixtures.ixian}>
         <h1>Ixian</h1>
         <p>
           led by the human cyborg Prince Rhombur Vernius possessing courage. They are technocrats
@@ -205,7 +145,7 @@ export function Factions2() {
           which is hidden from space.
         </p>
       </FactionSynopsis>
-      <FactionSynopsis image="/generated/token/faction/atreides.jpg">
+      <FactionSynopsis token={factionTokenFixtures.atreides}>
         <h1>House Atreides</h1>
         <p>
           led by the youthful Paul Atreides (Muad'dib) — rightful heir to the planet, gifted with
@@ -221,7 +161,7 @@ export function Factions3() {
   return (
     <Spaced>
       <Text>Continued list of factions.</Text>
-      <FactionSynopsis flip image="/generated/token/faction/bene-gesserit.jpg">
+      <FactionSynopsis flip token={factionTokenFixtures.beneGesserit}>
         <h1>Bene Gesserit</h1>
         <p>
           represented by Reverend Mother Gaius Helen Mohiam — ancient and inscrutable, carefully
@@ -229,7 +169,7 @@ export function Factions3() {
           others.
         </p>
       </FactionSynopsis>
-      <FactionSynopsis flip image="/generated/token/faction/bene-tleilaxu.jpg">
+      <FactionSynopsis flip token={factionTokenFixtures.beneTleilaxu}>
         <h1>Bene Tleilaxu</h1>
         <p>
           led by their Masters Council. They control the Axlotl tanks, and infiltrate other factions
@@ -237,7 +177,7 @@ export function Factions3() {
           of the miracles they are able to produce.
         </p>
       </FactionSynopsis>
-      <FactionSynopsis flip image="/generated/token/faction/harkonnen.jpg">
+      <FactionSynopsis flip token={factionTokenFixtures.harkonnen}>
         <h1>House Harkonnen</h1>
         <p>led by the decadent Baron Vladimir Harkonnen — master of treachery and cruel deeds.</p>
       </FactionSynopsis>

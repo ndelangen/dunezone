@@ -5,6 +5,7 @@ import type { z } from 'zod';
 
 import { MarkdownContent } from '../../../components/block/MarkdownContent';
 import { StrokedUse } from '../../../components/block/StrokedUse';
+import { backgroundPresets } from '../../../data/backgrounds';
 import { card } from '../../../data/sizes';
 import type { FactionRender } from '../../../schema/faction';
 import styles from '../../card/Card.module.css';
@@ -67,13 +68,19 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
         </foreignObject>
       </svg>
 
-      <div className={`${styles.head} ${unique.head}`} />
+      <BackgroundRenderer
+        className={`${styles.head} ${unique.head}`}
+        background={backgroundPresets.special}
+      />
       <div className={styles.head_shade} />
       <div className={styles.shape} />
-      <div className={`${styles.type} ${unique.type}`}>
+      <BackgroundRenderer
+        className={`${styles.type} ${unique.type}`}
+        background={backgroundPresets.stripedAlliance}
+      >
         <img src="/vector/icon/alliance.svg" className={unique.typeOverlay} />
         <img src="/vector/icon/alliance.svg" className={unique.typeShade} />
-      </div>
+      </BackgroundRenderer>
       <div className={styles.title}>{title}</div>
       <div className={styles.subtitle}>Alliance</div>
       <div className={unique.ring} />

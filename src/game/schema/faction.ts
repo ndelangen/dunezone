@@ -1,6 +1,16 @@
 import { z } from 'zod';
 
-import { ALL, GENERIC, LEADERS, LOGO, PLANET, TROOP, TROOP_MODIFIER } from '../data/generated';
+import {
+  ALL,
+  BACKGROUND,
+  GENERIC,
+  LEADERS,
+  LOGO,
+  PLANET,
+  TEXTURE,
+  TROOP,
+  TROOP_MODIFIER,
+} from '../data/generated';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
 const OFFSET = z.tuple([z.number(), z.number()]);
@@ -65,7 +75,7 @@ export const GRADIENT = z.discriminatedUnion('type', [
 const BACKGROUND_COLOR = z.union([HEXCOLOR, GRADIENT]);
 
 export const Background = z.strictObject({
-  image: z.string(),
+  image: TEXTURE.or(BACKGROUND),
   colors: z.tuple([BACKGROUND_COLOR, BACKGROUND_COLOR]),
   invert: z.boolean(),
   definition: SCALE,

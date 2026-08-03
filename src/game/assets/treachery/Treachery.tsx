@@ -7,6 +7,7 @@ import type { Treachery } from '../../data/objects';
 import { card } from '../../data/sizes';
 import styles from '../card/Card.module.css';
 import { FrontDecals } from '../card/Decals';
+import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { useCountId } from '../utils/useCountId';
 import unique from './Treachery.module.css';
 
@@ -37,18 +38,10 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
         </svg>
       )}
 
-      <div
-        className={`${styles.head}`}
-        style={{ background: `url('${head}') top center / cover no-repeat` }}
-      />
+      <BackgroundRenderer className={styles.head} background={head} />
       <div className={styles.head_shade} />
       <div className={styles.shape} />
-      <div
-        className={styles.type}
-        style={{
-          background: `url('${icon[0]}') top center / cover no-repeat`,
-        }}
-      >
+      <BackgroundRenderer className={styles.type} background={icon[0]}>
         <img
           alt={icon[1]}
           src={icon[1]}
@@ -73,7 +66,7 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
             left: (125 - 85 * (iconScale || 1)) / 2,
           }}
         />
-      </div>
+      </BackgroundRenderer>
       <div className={styles.title}>{name}</div>
       <div className={styles.subtitle}>{subName}</div>
 

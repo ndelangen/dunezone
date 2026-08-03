@@ -25,7 +25,9 @@
       "/published/*",
       "/publisher-capture",
       "/publisher-capture.html",
-      "/publisher-capture/*"
+      "/publisher-capture/*",
+      "/__storybook",
+      "/__storybook/"
     ]
   },
   "browser": { "binding": "BROWSER" },

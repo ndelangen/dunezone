@@ -29,12 +29,8 @@ const ListIcons = ({ pattern, type }: { pattern: string; type: keyof typeof type
             color: 'white',
           }}
         >
-          <img
-            src={`/${item}`}
-            style={{ width: '100%', maxHeight: '200px', flex: '1' }}
-            alt={item}
-          />
-          <div style={{ textAlign: 'center' }}>/{item}</div>
+          <img src={item} style={{ width: '100%', maxHeight: '200px', flex: '1' }} alt={item} />
+          <div style={{ textAlign: 'center' }}>{item}</div>
         </div>
       ))}
     </div>

@@ -42,12 +42,30 @@ function reservedNotFound(): Response {
   );
 }
 
+function handleStorybookEntry(
+  request: Request,
+  env: Env
+): Response | Promise<Response> | undefined {
+  const url = new URL(request.url);
+  if (url.pathname === '/__storybook') {
+    url.pathname = '/__storybook/';
+    return Response.redirect(url.href, 308);
+  }
+  if (url.pathname === '/__storybook/') {
+    url.pathname = '/__storybook/index.html';
+    return env.ASSETS.fetch(new Request(url.href, request));
+  }
+  return undefined;
+}
+
 export const publisherWorker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const publicAsset = await handlePublicAssetRequest(request, env, ctx);
     if (publicAsset) return publicAsset;
     const capture = await handleCaptureRoute(request, env);
     if (capture) return capture;
+    const storybook = handleStorybookEntry(request, env);
+    if (storybook) return storybook;
     const pathname = new URL(request.url).pathname;
     if (pathname === '/__asset-publisher/health') {
       const identity = publisherBuildIdentity(env.CF_VERSION_METADATA, env.GIT_SHA);

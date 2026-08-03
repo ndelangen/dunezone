@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { useQuery } from 'convex/react';
+import { expect, fn, mocked, userEvent, within } from 'storybook/test';
 
 import type { UserGroupMembershipWithGroup } from '@db/members';
 
@@ -59,6 +60,27 @@ export const NoAvailableGroups = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(page.getByRole('button', { name: 'Assign group' }));
     await expect(page.getByText('No groups are available yet.')).toBeVisible();
+  },
+});
+
+export const ConnectedWithMockedConvex = meta.story({
+  args: {
+    prefetchedMemberships: undefined,
+  },
+  beforeEach: () => {
+    mocked(useQuery).mockReturnValue(availableMemberships as never);
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const trigger = page.getByRole('button', { name: 'Assign group' });
+
+    await userEvent.click(trigger);
+
+    await expect(
+      await page.findByRole('option', {
+        name: 'Arrakeen Rules Council (arrakeen-rules-council)',
+      })
+    ).toBeInTheDocument();
   },
 });
 

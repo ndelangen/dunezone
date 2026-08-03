@@ -3,9 +3,11 @@ import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { MarkdownContent } from '../../../components/block/MarkdownContent';
+import { backgroundPresets } from '../../../data/backgrounds';
 import type { FactionRender } from '../../../schema/faction';
 import styles from '../../card/Card.module.css';
 import { Token } from '../../faction/token/Token';
+import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
 import unique from './Traitor.module.css';
 
 export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
@@ -19,13 +21,19 @@ export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
   return (
     <div className={styles.card}>
       <div className={styles.decal_bg_1}></div>
-      <div className={`${styles.head} ${unique.head}`}></div>
+      <BackgroundRenderer
+        className={`${styles.head} ${unique.head}`}
+        background={backgroundPresets.traitor}
+      />
       <div className={styles.head_shade}></div>
       <div className={styles.shape}></div>
-      <div className={`${styles.type} ${unique.type}`}>
+      <BackgroundRenderer
+        className={`${styles.type} ${unique.type}`}
+        background={backgroundPresets.stripedSpecial}
+      >
         <img src="/vector/icon/traitor.svg" className={styles.typeOverlay} />
         <img src="/vector/icon/traitor.svg" className={styles.typeShade} />
-      </div>
+      </BackgroundRenderer>
       <div className={styles.title}>{name}</div>
       <div className={styles.subtitle}>Traitor - {owner}</div>
       <div className={unique.face} style={{ backgroundImage: `url('${image}')` }}></div>

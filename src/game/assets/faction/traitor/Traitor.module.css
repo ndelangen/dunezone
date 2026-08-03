@@ -1,7 +1,3 @@
-.head {
-  background: url("/generated/utils/background/traitor.jpg") top center / cover no-repeat;
-}
-
 .face {
   position: absolute;
   top: 285px;
@@ -70,8 +66,4 @@
   font-family: "Caladea", serif;
   letter-spacing: -20px;
   font-size: 200px;
-}
-
-.type {
-  background: url("/generated/utils/background/striped-special.jpg") top center / cover no-repeat;
 }

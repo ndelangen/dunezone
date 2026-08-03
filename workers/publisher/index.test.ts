@@ -47,6 +47,37 @@ afterEach(() => {
 });
 
 describe('publisher Worker Publication flow', () => {
+  test('redirects the Storybook entry to its canonical trailing-slash URL', async () => {
+    const currentEnv = publisherEnv();
+    const response = await publisherWorker.fetch(
+      new Request('https://dune.zone/__storybook?path=/story/example'),
+      currentEnv,
+      { waitUntil: vi.fn() } as unknown as ExecutionContext
+    );
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get('Location')).toBe(
+      'https://dune.zone/__storybook/?path=/story/example'
+    );
+    expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
+  });
+
+  test('serves the Storybook manager entry while preserving its query string', async () => {
+    const currentEnv = publisherEnv();
+    const response = await publisherWorker.fetch(
+      new Request('https://dune.zone/__storybook/?path=/story/example'),
+      currentEnv,
+      { waitUntil: vi.fn() } as unknown as ExecutionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(currentEnv.ASSETS.fetch).toHaveBeenCalledOnce();
+    const [assetRequest] = vi.mocked(currentEnv.ASSETS.fetch).mock.calls[0];
+    expect((assetRequest as Request).url).toBe(
+      'https://dune.zone/__storybook/index.html?path=/story/example'
+    );
+  });
+
   test('owns reserved namespaces without Static Assets fallthrough', async () => {
     const currentEnv = publisherEnv();
     const response = await publisherWorker.fetch(

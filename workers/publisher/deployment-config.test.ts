@@ -79,7 +79,7 @@ describe('scheduled production deployment shape', () => {
     );
   });
 
-  test('keeps the SPA asset-first and reserves only published, capture, and operational paths', () => {
+  test('keeps assets first except for the reviewed Worker-owned entry paths', () => {
     expect(config.assets).toMatchObject({
       directory: './dist',
       binding: 'ASSETS',
@@ -94,11 +94,14 @@ describe('scheduled production deployment shape', () => {
       '/publisher-capture',
       '/publisher-capture.html',
       '/publisher-capture/*',
+      '/__storybook',
+      '/__storybook/',
     ]);
   });
 
-  test('builds the SPA and capture bundle into one validated Worker release unit', () => {
+  test('builds the SPA, Storybook, and capture bundle into one validated Worker release unit', () => {
     expect(packageConfig.scripts['publisher:assets']).toContain('bun run app:build');
+    expect(packageConfig.scripts['publisher:assets']).toContain('bun run build-storybook');
     expect(packageConfig.scripts['publisher:assets']).toContain(
       'vite build --config workers/publisher/vite.config.ts'
     );

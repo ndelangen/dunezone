@@ -3,7 +3,7 @@
 import { type FC, useId } from 'react';
 import type { z } from 'zod';
 
-import { type Background as BackGroundType, GRADIENT } from '../../data/objects';
+import { type Background as BackGroundType, GRADIENT } from '../../schema/faction';
 import styles from './Background.module.css';
 
 /** Maps authored studio values to the real pattern-mask treatment. */
