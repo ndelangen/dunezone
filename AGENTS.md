@@ -21,6 +21,16 @@ Convex agent skills for common tasks can be installed by running
   disposable Docker-backed environment with local test auth and a read-only copy of active
   production factions; see `docs/README.md`.
 
+## Worktree Freshness
+
+- Before making any edits in a Codex-managed worktree, run `bun run worktree:setup`.
+- This command must fetch the remote before deciding whether the checkout is current. Never treat
+  an existing remote-tracking ref as proof that the selected base branch is up to date.
+- If the command reports a dirty, attached, or divergent stale checkout, stop and resolve that
+  state instead of building changes on the stale base.
+- The checked-in `Fresh default branch` Codex local environment runs this preflight automatically
+  when a new worktree is created, then installs the frozen dependency graph.
+
 ## Validation Convention
 
 Follow the canonical validation guidance in [`docs/data-layer.md`](docs/data-layer.md):
