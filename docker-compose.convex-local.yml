@@ -1,6 +1,7 @@
 services:
   backend:
-    image: ghcr.io/get-convex/convex-backend:latest
+    # Keep this digest compatible with the Convex packages in package.json.
+    image: ghcr.io/get-convex/convex-backend:latest@sha256:467964cc6af57ba3e757e3e6cb1fa09a1c577803a19f03f0f42c9c4b134b070c
     stop_grace_period: 10s
     stop_signal: SIGINT
     ports:
@@ -49,7 +50,8 @@ services:
       start_period: 10s
 
   dashboard:
-    image: ghcr.io/get-convex/convex-dashboard:latest
+    # Update the dashboard and backend digests together.
+    image: ghcr.io/get-convex/convex-dashboard:latest@sha256:5f4620ca0640ed863a8c5109123b9831157e889c6294e28c5e96ea0a62375efb
     stop_grace_period: 10s
     stop_signal: SIGINT
     ports:
