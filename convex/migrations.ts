@@ -267,19 +267,11 @@ export const faction_slug_reservations_verify_v1 = migrations.define({
   },
 });
 
-/** Clears the retired homepage-specific FAQ counters before their schema fields are removed. */
+/** Retains the completed cleanup migration identity through the schema-narrowing release. */
 export const rulesets_remove_homepage_counts_v1 = migrations.define({
   table: 'rulesets',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    if (row.homepage_question_count === undefined && row.homepage_answer_count === undefined) {
-      return;
-    }
-    return {
-      homepage_question_count: undefined,
-      homepage_answer_count: undefined,
-    };
-  },
+  migrateOne: async () => undefined,
 });
 
 /** Populates reusable Profile discovery while live profile writes maintain it automatically. */

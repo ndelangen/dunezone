@@ -15,33 +15,6 @@ import schema from './schema';
 const modules = import.meta.glob('./**/*.ts');
 
 describe('homepage page data', () => {
-  test('removes retired homepage counters from existing rulesets', async () => {
-    const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'statistics');
-    migrationsTest.register(t);
-    const rulesetId = await t.run(async (ctx) => {
-      const userId = await ctx.db.insert('users', { name: 'Legacy homepage owner' });
-      return await ctx.db.insert('rulesets', {
-        name: 'Legacy homepage ruleset',
-        slug: 'legacy-homepage-ruleset',
-        created_at: '2026-08-04T10:00:00.000Z',
-        updated_at: '2026-08-04T10:00:00.000Z',
-        owner_id: userId,
-        group_id: null,
-        is_deleted: false,
-        image_cover: null,
-        homepage_question_count: 3,
-        homepage_answer_count: 5,
-      });
-    });
-
-    await t.mutation(internal.migrations.rulesets_remove_homepage_counts_v1, {});
-
-    const ruleset = await t.run((ctx) => ctx.db.get(rulesetId));
-    expect(ruleset).not.toHaveProperty('homepage_question_count');
-    expect(ruleset).not.toHaveProperty('homepage_answer_count');
-  });
-
   test('deletes large FAQ answer sets in bounded aggregate-safe batches', async () => {
     const t = convexTest({ schema, modules, transactionLimits: true });
     aggregateTest.register(t, 'statistics');
