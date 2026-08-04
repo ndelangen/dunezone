@@ -1,8 +1,8 @@
-import { paginationOptsValidator } from 'convex/server';
+import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
-import { query } from './_generated/server';
+import { internalQuery, query } from './_generated/server';
 import { internalMutation } from './functions';
 import {
   clearStatistics,
@@ -26,6 +26,13 @@ const globalTotalsValidator = v.object({
 const rulesetTotalsValidator = v.object({
   questions: v.number(),
   answers: v.number(),
+});
+
+const reconciliationItemValidator = v.object({
+  id: v.string(),
+  included: v.boolean(),
+  rulesetId: v.union(v.string(), v.null()),
+  parentExists: v.boolean(),
 });
 
 const rebuildSourceValidator = v.union(
@@ -57,6 +64,89 @@ export const getRulesetTotals = query({
   args: { rulesetId: v.id('rulesets') },
   returns: rulesetTotalsValidator,
   handler: async (ctx, args) => await loadRulesetStatisticsTotals(ctx, args.rulesetId),
+});
+
+/**
+ * Bounded canonical projections used by the migration verification script. This remains internal:
+ * clients only receive the clean numeric Statistics queries above.
+ */
+export const getCanonicalReconciliationPage = internalQuery({
+  args: {
+    source: rebuildSourceValidator,
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginationResultValidator(reconciliationItemValidator),
+  handler: async (ctx, args) => {
+    switch (args.source) {
+      case 'profiles': {
+        const result = await ctx.db.query('profiles').paginate(args.paginationOpts);
+        return {
+          ...result,
+          page: result.page.map((row) => ({
+            id: row._id,
+            included: true,
+            rulesetId: null,
+            parentExists: true,
+          })),
+        };
+      }
+      case 'factions': {
+        const result = await ctx.db.query('factions').paginate(args.paginationOpts);
+        return {
+          ...result,
+          page: result.page.map((row) => ({
+            id: row._id,
+            included: !row.is_deleted,
+            rulesetId: null,
+            parentExists: true,
+          })),
+        };
+      }
+      case 'rulesets': {
+        const result = await ctx.db.query('rulesets').paginate(args.paginationOpts);
+        return {
+          ...result,
+          page: result.page.map((row) => ({
+            id: row._id,
+            included: !row.is_deleted,
+            rulesetId: row._id,
+            parentExists: true,
+          })),
+        };
+      }
+      case 'faq_items': {
+        const result = await ctx.db.query('faq_items').paginate(args.paginationOpts);
+        return {
+          ...result,
+          page: await Promise.all(
+            result.page.map(async (row) => ({
+              id: row._id,
+              included: true,
+              rulesetId: row.ruleset_id,
+              parentExists: (await ctx.db.get(row.ruleset_id)) !== null,
+            }))
+          ),
+        };
+      }
+      case 'faq_answers': {
+        const result = await ctx.db.query('faq_answers').paginate(args.paginationOpts);
+        return {
+          ...result,
+          page: await Promise.all(
+            result.page.map(async (row) => {
+              const question = await ctx.db.get(row.faq_item_id);
+              return {
+                id: row._id,
+                included: true,
+                rulesetId: question?.ruleset_id ?? null,
+                parentExists: question !== null,
+              };
+            })
+          ),
+        };
+      }
+    }
+  },
 });
 
 export const rebuild = internalMutation({

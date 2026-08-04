@@ -36,6 +36,7 @@
     "publisher:typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit -p workers/publisher/tsconfig.json",
     "publisher:types": "wrangler types workers/publisher/worker-configuration.d.ts --config workers/publisher/wrangler.jsonc",
     "publisher:types:check": "wrangler types workers/publisher/worker-configuration.d.ts --check --config workers/publisher/wrangler.jsonc",
+    "statistics:verify": "bun run ./scripts/verify-statistics.ts",
     "storybook": "storybook dev -p 6006",
     "test": "vitest run --passWithNoTests",
     "typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit",

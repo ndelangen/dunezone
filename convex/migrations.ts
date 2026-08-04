@@ -13,6 +13,13 @@ import {
   syncHomepageNewestMember,
 } from './lib/homepageCommunity';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
+import {
+  reconcileAnswerStatistics,
+  reconcileFactionStatistics,
+  reconcileProfileStatistics,
+  reconcileQuestionStatistics,
+  reconcileRulesetStatistics,
+} from './lib/statistics';
 import { nowIso, slugify } from './lib/utils';
 import schema from './schema';
 import type { MutationCtx, QueryCtx } from './types';
@@ -30,6 +37,11 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   homepage_factions_v1: internal.migrations.homepage_factions_v1,
   homepage_rulesets_v1: internal.migrations.homepage_rulesets_v1,
   homepage_members_v1: internal.migrations.homepage_members_v1,
+  statistics_profiles_v1: internal.migrations.statistics_profiles_v1,
+  statistics_factions_v1: internal.migrations.statistics_factions_v1,
+  statistics_rulesets_v1: internal.migrations.statistics_rulesets_v1,
+  statistics_questions_v1: internal.migrations.statistics_questions_v1,
+  statistics_answers_v1: internal.migrations.statistics_answers_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -304,6 +316,51 @@ export const homepage_members_v1 = migrations.define({
   },
 });
 
+/** Populates Statistics from canonical profiles while live writes keep it current. */
+export const statistics_profiles_v1 = migrations.define({
+  table: 'profiles',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileProfileStatistics(ctx, row);
+  },
+});
+
+/** Populates Statistics from canonical factions, excluding soft-deleted rows. */
+export const statistics_factions_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileFactionStatistics(ctx, row);
+  },
+});
+
+/** Populates Statistics from canonical rulesets, excluding soft-deleted rows. */
+export const statistics_rulesets_v1 = migrations.define({
+  table: 'rulesets',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileRulesetStatistics(ctx, row);
+  },
+});
+
+/** Populates global and per-ruleset Statistics from canonical questions. */
+export const statistics_questions_v1 = migrations.define({
+  table: 'faq_items',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileQuestionStatistics(ctx, row);
+  },
+});
+
+/** Populates global and per-ruleset Statistics from canonical answers. */
+export const statistics_answers_v1 = migrations.define({
+  table: 'faq_answers',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileAnswerStatistics(ctx, row);
+  },
+});
+
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([
@@ -317,6 +374,11 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.homepage_factions_v1,
   internal.migrations.homepage_rulesets_v1,
   internal.migrations.homepage_members_v1,
+  internal.migrations.statistics_profiles_v1,
+  internal.migrations.statistics_factions_v1,
+  internal.migrations.statistics_rulesets_v1,
+  internal.migrations.statistics_questions_v1,
+  internal.migrations.statistics_answers_v1,
 ]);
 
 export const runRequired = mutation({

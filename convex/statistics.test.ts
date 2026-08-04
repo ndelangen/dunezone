@@ -2,6 +2,7 @@
 // @vitest-environment edge-runtime
 
 import aggregateTest from '@convex-dev/aggregate/test';
+import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
 import { expect, test, vi } from 'vitest';
 
@@ -134,11 +135,12 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
   ).resolves.toEqual({ questions: 0, answers: 0 });
 });
 
-test('rebuilds Statistics after writes bypass the trigger-aware mutation boundary', async () => {
+test('backfills Statistics resumably and rebuilds after later writes bypass triggers', async () => {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  migrationsTest.register(t);
 
-  const rulesetId = await t.run(async (ctx) => {
+  const ids = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { name: 'Dashboard editor' });
     await ctx.db.insert('profiles', {
       user_id: userId,
@@ -168,13 +170,13 @@ test('rebuilds Statistics after writes bypass the trigger-aware mutation boundar
       updated_at: '2026-08-04T10:00:00.000Z',
       accepted_answer_id: null,
     });
-    await ctx.db.insert('faq_answers', {
+    const answerId = await ctx.db.insert('faq_answers', {
       faq_item_id: questionId,
       answer: 'Yes, from the canonical records.',
       answered_by: userId,
       created_at: '2026-08-04T10:00:00.000Z',
     });
-    return insertedRulesetId;
+    return { rulesetId: insertedRulesetId, questionId, answerId };
   });
 
   await expect(t.query(api.statistics.getGlobalTotals, {})).resolves.toEqual({
@@ -183,6 +185,28 @@ test('rebuilds Statistics after writes bypass the trigger-aware mutation boundar
     rulesets: 0,
     questions: 0,
     answers: 0,
+  });
+
+  await t.mutation(internal.migrations.statistics_profiles_v1, {});
+  await t.mutation(internal.migrations.statistics_factions_v1, {});
+  await t.mutation(internal.migrations.statistics_rulesets_v1, {});
+  await t.mutation(internal.migrations.statistics_questions_v1, {});
+  await t.mutation(internal.migrations.statistics_answers_v1, {});
+
+  await expect(t.query(api.statistics.getGlobalTotals, {})).resolves.toEqual({
+    users: 1,
+    factions: 0,
+    rulesets: 1,
+    questions: 1,
+    answers: 1,
+  });
+  await expect(
+    t.query(api.statistics.getRulesetTotals, { rulesetId: ids.rulesetId })
+  ).resolves.toEqual({ questions: 1, answers: 1 });
+
+  await t.run(async (ctx) => {
+    await ctx.db.delete(ids.answerId);
+    await ctx.db.delete(ids.questionId);
   });
 
   vi.useFakeTimers();
@@ -197,11 +221,10 @@ test('rebuilds Statistics after writes bypass the trigger-aware mutation boundar
     users: 1,
     factions: 0,
     rulesets: 1,
-    questions: 1,
-    answers: 1,
+    questions: 0,
+    answers: 0,
   });
-  await expect(t.query(api.statistics.getRulesetTotals, { rulesetId })).resolves.toEqual({
-    questions: 1,
-    answers: 1,
-  });
+  await expect(
+    t.query(api.statistics.getRulesetTotals, { rulesetId: ids.rulesetId })
+  ).resolves.toEqual({ questions: 0, answers: 0 });
 });
