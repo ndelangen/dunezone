@@ -38,7 +38,7 @@ function formatZodIssues(err: { issues: readonly { path: PropertyKey[]; message:
 
 export interface FactionLoadPopoverContentProps {
   /** Row URL slug for the faction being edited (excludes that row from the picker). */
-  currentPublicSlug: string;
+  currentPublicSlug?: string;
   onLoaded: (loaded: Faction) => void;
   onCancel: () => void;
 }
@@ -75,7 +75,7 @@ export function FactionLoadPopoverContent({
 
   const factionLoadOptions = useMemo(() => {
     return (picker.data?.rows ?? [])
-      .filter((row) => row.slug !== currentPublicSlug)
+      .filter((row) => !currentPublicSlug || row.slug !== currentPublicSlug)
       .map((row) => row.id);
   }, [picker.data?.rows, currentPublicSlug]);
   const factionLoadSelectOptions = useMemo(
@@ -236,7 +236,7 @@ export function FactionLoadPopoverContent({
 
 export interface FactionLoadPopoverProps {
   disabled: boolean;
-  currentPublicSlug: string;
+  currentPublicSlug?: string;
   onLoaded: (loaded: Faction) => void;
 }
 

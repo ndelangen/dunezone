@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 const formFieldsSource = readFileSync(new URL('./FactionFormFields.tsx', import.meta.url), 'utf8');
 const editorSource = readFileSync(new URL('./FactionEditor.tsx', import.meta.url), 'utf8');
+const authoringHookSource = readFileSync(
+  new URL('./useFactionAuthoring.ts', import.meta.url),
+  'utf8'
+);
 const toolbarSource = readFileSync(
   new URL('./FactionAuthoringToolbar.tsx', import.meta.url),
   'utf8'
@@ -78,8 +82,19 @@ describe('faction authoring architecture', () => {
 
   it('keeps save independent from the retired always-on sheet iframe', () => {
     expect(editorSource).not.toContain('FactionSheetPreviewIframe');
-    expect(editorSource).toContain('preserveFactionExtras');
-    expect(editorSource).toContain('onSubmit(preserveFactionExtras');
+    expect(authoringHookSource).toContain('preserveFactionExtras');
+    expect(authoringHookSource).toContain('persistence.save(parsed.data)');
+  });
+
+  it('separates editing and save orchestration from the rendered editor', () => {
+    expect(authoringHookSource).toContain('useForm');
+    expect(authoringHookSource).toContain('loadDraft');
+    expect(authoringHookSource).toContain('keepDefaultValues: true');
+    expect(authoringHookSource).not.toContain('ReactNode');
+    expect(authoringHookSource).not.toContain('PageLayout');
+    expect(authoringHookSource).not.toContain('useNavigate');
+    expect(editorSource).not.toContain('useForm');
+    expect(editorSource).not.toContain('persistence.save');
   });
 
   it('removes the replaced editor files and generic presentation imports', () => {

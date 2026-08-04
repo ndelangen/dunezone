@@ -24,7 +24,7 @@ describe('adaptive faction sheet review architecture', () => {
     expect(reviewSource).not.toContain('setReviewMounted(false)');
     expect(reviewSource).toContain('{reviewMounted ? (');
     expect(editorSource).toContain('<FactionSheetReview ref={reviewRef} faction={values}>');
-    expect(editorSource).toContain('review: (trigger) => reviewRef.current?.open(trigger)');
+    expect(editorSource).toContain('openReview: (trigger) => reviewRef.current?.open(trigger)');
   });
 
   it('uses real isolated Sheet and Shield output without app-layer internal styling', () => {

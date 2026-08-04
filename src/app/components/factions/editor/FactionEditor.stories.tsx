@@ -9,7 +9,8 @@ import { DECAL, LEADERS, PLANET, TROOP_MODIFIER } from '@game/data/generated';
 
 import { FactionAuthoringToolbar } from './FactionAuthoringToolbar';
 import { FactionEditor } from './FactionEditor';
-import type { FactionEditorHandle } from './FactionEditor';
+import type { FactionAuthoringViewHandle } from './FactionEditor';
+import { useFactionAuthoring } from './useFactionAuthoring';
 
 function representativeFaction(): Faction {
   const faction = structuredClone(defaultFaction);
@@ -88,26 +89,41 @@ function factionEntry(data: Faction): FactionEntry {
 }
 
 function FactionEditorFixture() {
-  const editorRef = useRef<FactionEditorHandle>(null);
+  const viewRef = useRef<FactionAuthoringViewHandle>(null);
+  const entry = factionEntry(representativeFaction());
+  const authoring = useFactionAuthoring({
+    sessionKey: entry._id,
+    initialData: entry.data,
+    persistence: {
+      save: async (draft) => factionEntry(draft),
+      isPending: false,
+      error: null,
+      hasSaved: false,
+      reset: () => undefined,
+    },
+    onSaved: () => undefined,
+  });
+
   return (
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
       <Stack gap="clamp(var(--mantine-spacing-sm), 3vw, var(--mantine-spacing-xl))">
         <FactionAuthoringToolbar
-          isDirty={false}
-          isNameBlank={false}
-          warningCount={0}
-          saveState="idle"
-          onSave={() => editorRef.current?.submit()}
-          onReviewWarnings={() => editorRef.current?.focusFirstWarning()}
-          onReview={(trigger) => editorRef.current?.review(trigger)}
-          onReset={() => editorRef.current?.load()}
+          isDirty={authoring.editing.isDirty}
+          isNameBlank={authoring.editing.isNameBlank}
+          warningCount={authoring.editing.warnings.length}
+          saveState={authoring.persistence.saveState}
+          onSave={authoring.actions.submit}
+          onReviewWarnings={() => viewRef.current?.focusFirstWarning()}
+          onReview={(trigger) => viewRef.current?.openReview(trigger)}
+          onReset={authoring.actions.reset}
           onBack={() => undefined}
         />
         <FactionEditor
-          ref={editorRef}
-          factionEntry={factionEntry(representativeFaction())}
-          errors={[]}
-          onSubmit={() => undefined}
+          ref={viewRef}
+          form={authoring.form}
+          errors={authoring.persistence.errors}
+          isNameBlank={authoring.editing.isNameBlank}
+          warnings={authoring.editing.warnings}
         />
       </Stack>
     </Box>
