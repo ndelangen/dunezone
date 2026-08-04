@@ -131,15 +131,18 @@ describe('RFC-aligned delivery evaluator', () => {
     ).toBe(status);
   });
 
-  test.each([
-    'bytes=100-200',
-    'bytes=oops',
-    'bytes=0-1,3-4',
-  ])('retains matching If-Range processing for invalid or unsatisfiable Range: %s', (range) => {
-    expect(
-      evaluateAssetRequest(request({ Range: range, 'If-Range': '"etag-one"' }), representation, NOW)
-    ).toEqual({ status: 416, size: 10 });
-  });
+  test.each(['bytes=100-200', 'bytes=oops', 'bytes=0-1,3-4'])(
+    'retains matching If-Range processing for invalid or unsatisfiable Range: %s',
+    (range) => {
+      expect(
+        evaluateAssetRequest(
+          request({ Range: range, 'If-Range': '"etag-one"' }),
+          representation,
+          NOW
+        )
+      ).toEqual({ status: 416, size: 10 });
+    }
+  );
 
   test('evaluates preconditions before If-Range', () => {
     expect(

@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/a11y/noSvgWithoutTitle: I don't care */
 import type { FC } from 'react';
 
 import * as colors from '../../assets/utils/colors';

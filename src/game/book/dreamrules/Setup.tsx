@@ -1,5 +1,3 @@
-/** biome-ignore-all lint/a11y/noSvgWithoutTitle: I don't care */
-
 import { TraitorCard } from '../../assets/faction/traitor/Traitor';
 // import { FactionToken } from '../../objects/disc/faction_token';
 // import { TroopToken } from '../../objects/disc/troop_token';

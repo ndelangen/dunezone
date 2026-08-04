@@ -1,8 +1,6 @@
-/** biome-ignore-all lint/suspicious/noArrayIndexKey: I don't care */
-import './Book.module.css';
-
 import { type FC, Fragment, type ReactNode } from 'react';
 
+import './Book.module.css';
 import { Page } from './Page';
 
 const defaultRatio = Math.sqrt(2);
@@ -19,7 +17,6 @@ export const Book: FC<{
     <Fragment>
       <style
         media="print"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: it's okay here
         dangerouslySetInnerHTML={{
           __html: `
             @page {

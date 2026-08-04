@@ -4,8 +4,8 @@ import type { Faction } from '@db/factions';
 import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
 import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
 
-import styles from './FactionFormSectionIdentity.module.css';
 import { assetOptionToPreviewSrc, logoOptions, logoOptionToLabel } from './factionFormAssetUtils';
+import styles from './FactionFormSectionIdentity.module.css';
 import type { FactionFormApi } from './factionFormTypes';
 import { TtsColorsEditor } from './TtsColorsEditor';
 

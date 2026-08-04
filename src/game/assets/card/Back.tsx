@@ -1,5 +1,4 @@
-/** biome-ignore-all lint/a11y/useAltText: I don't care */
-/** biome-ignore-all lint/a11y/noSvgWithoutTitle: I don't care */
+/* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
 import type { FC } from 'react';
 import type { z } from 'zod';
 

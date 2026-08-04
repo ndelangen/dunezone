@@ -199,7 +199,7 @@ export function SuggestField({
     return () => p.removeEventListener('mousedown', preventBlur);
   }, [showList]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: keep preview synced to active option and list layout
+  // oxlint-disable-next-line react/exhaustive-deps -- Keep preview synced to active option and list layout.
   useLayoutEffect(() => {
     if (!open || !showList || !optionToPreviewSrc) {
       setPreviewGeom(null);

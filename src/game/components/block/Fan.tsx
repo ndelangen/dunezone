@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/suspicious/noArrayIndexKey: I don't care */
 import {
   Children,
   type DetailedHTMLProps,

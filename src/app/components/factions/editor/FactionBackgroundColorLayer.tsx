@@ -253,7 +253,6 @@ function GradientFields({
             ) : null}
 
             {value.stops.map((stop, index) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: gradient stops have no stored identity
               <Paper key={`${label}-stop-${index}`} withBorder radius="sm" p="sm">
                 <SimpleGrid cols={{ base: 1, xs: 2 }}>
                   <ColorInput

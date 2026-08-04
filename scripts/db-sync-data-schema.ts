@@ -6,7 +6,6 @@ import z from 'zod';
 
 const schemaConfigSchema = z.strictObject({
   name: z.string(),
-  // biome-ignore lint/suspicious/noExplicitAny: <any is used to satisfy the zod type>
   schema: z.custom<z.ZodObject<any>>(),
 });
 

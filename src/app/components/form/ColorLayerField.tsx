@@ -251,7 +251,6 @@ function GradientEditor({
 
       <p className={styles.stopsHint}>Gradient stops (color + position 0-1). At least two stops.</p>
       {value.stops.map((stop, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: stop rows tracked by array index in form state
         <div key={`${idPrefix}-stop-${i}`} className={styles.stopRow}>
           <HexColorPicker
             pickerId={`${idPrefix}-stop-${i}-picker`}

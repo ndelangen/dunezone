@@ -57,18 +57,18 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(upstream).toHaveBeenCalledOnce();
   });
 
-  test.each([
-    '/publisher-capture.html',
-    '/publisher-capture/entry-hash.js',
-  ])('hides direct capture asset %s without a Publication job', async (pathname) => {
-    const assetFetch = vi.fn();
-    const response = await handleCaptureRoute(
-      new Request(`https://publisher.example.com${pathname}`),
-      env(assetFetch)
-    );
-    expect(response?.status).toBe(404);
-    expect(assetFetch).not.toHaveBeenCalled();
-  });
+  test.each(['/publisher-capture.html', '/publisher-capture/entry-hash.js'])(
+    'hides direct capture asset %s without a Publication job',
+    async (pathname) => {
+      const assetFetch = vi.fn();
+      const response = await handleCaptureRoute(
+        new Request(`https://publisher.example.com${pathname}`),
+        env(assetFetch)
+      );
+      expect(response?.status).toBe(404);
+      expect(assetFetch).not.toHaveBeenCalled();
+    }
+  );
 
   test('serves hashed capture assets only through the host Publication-job cookie', async () => {
     const upstream = stubValidJob();

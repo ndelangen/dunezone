@@ -21,13 +21,13 @@ import { ListLengthActions } from '@app/components/content/FormControls/ListLeng
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
-import styles from './FactionFormSectionAlliance.module.css';
 import {
   assetOptionToPreviewSrc,
   decalAssetOptions,
   decalAssetOptionToLabel,
 } from './factionFormAssetUtils';
 import { defaultDecal } from './factionFormDefaults';
+import styles from './FactionFormSectionAlliance.module.css';
 import type { FactionFormApi } from './factionFormTypes';
 
 const decalOptions = decalAssetOptions.map((value) => ({

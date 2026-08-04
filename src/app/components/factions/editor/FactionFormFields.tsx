@@ -21,7 +21,13 @@ import { Token } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 
+import {
+  type FactionAuthoringChapterId,
+  type FactionAuthoringWarning,
+  factionAuthoringChapters,
+} from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
+import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import { FactionFormSectionAdvantages } from './FactionFormSectionAdvantages';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
 import { FactionFormSectionBackground } from './FactionFormSectionBackground';
@@ -31,12 +37,6 @@ import { FactionFormSectionLeaders } from './FactionFormSectionLeaders';
 import { FactionFormSectionPlanets } from './FactionFormSectionPlanets';
 import { FactionFormSectionRules } from './FactionFormSectionRules';
 import { FactionFormSectionTroops } from './FactionFormSectionTroops';
-import {
-  type FactionAuthoringChapterId,
-  type FactionAuthoringWarning,
-  factionAuthoringChapters,
-} from './factionAuthoringContract';
-import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import type { FactionFormApi } from './factionFormTypes';
 
 export type { FactionFormApi } from './factionFormTypes';

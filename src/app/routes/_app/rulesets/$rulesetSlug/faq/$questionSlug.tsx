@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   type FaqItemByRulesetSlugInitialData,
@@ -73,7 +73,10 @@ function FaqDetailPage() {
   const [editAnswerValue, setEditAnswerValue] = useState('');
 
   const item = faqItem.data;
-  const answers = Array.isArray(item?.faq_answers) ? item.faq_answers : [];
+  const answers = useMemo(
+    () => (Array.isArray(item?.faq_answers) ? item.faq_answers : []),
+    [item?.faq_answers]
+  );
   const orderedAnswers =
     item?.accepted_answer_id == null
       ? answers

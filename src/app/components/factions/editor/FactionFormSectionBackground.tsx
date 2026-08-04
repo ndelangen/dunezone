@@ -22,13 +22,13 @@ import { backgroundTreatment } from '@game/assets/utils/Background';
 
 import { BACKGROUND_PATTERN_CATALOGUE } from './backgroundPatternCatalogue';
 import { FactionBackgroundColorLayer } from './FactionBackgroundColorLayer';
-import styles from './FactionFormSectionBackground.module.css';
 import {
   randomizeBackground,
   randomizeBackgroundColors,
   randomizeBackgroundTreatment,
   withRandomPattern,
 } from './factionBackgroundRandomizer';
+import styles from './FactionFormSectionBackground.module.css';
 import type { FactionFormApi } from './factionFormTypes';
 import {
   clampInfluence,

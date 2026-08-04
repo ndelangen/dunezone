@@ -1,5 +1,3 @@
-/** biome-ignore-all lint/suspicious/noArrayIndexKey: I don't care */
-/** biome-ignore-all lint/a11y/noSvgWithoutTitle: I don't care */
 import { type FC, useId } from 'react';
 import type { z } from 'zod';
 

@@ -198,10 +198,10 @@ function ifRangePasses(value: string, representation: AssetRepresentation, now: 
     const current = currentEntityTag(representation.etag);
     return Boolean(
       candidate &&
-        current &&
-        !candidate.weak &&
-        !current.weak &&
-        candidate.opaque === current.opaque
+      current &&
+      !candidate.weak &&
+      !current.weak &&
+      candidate.opaque === current.opaque
     );
   }
   const validator = parseHttpDate(value, now);

@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/a11y/noSvgWithoutTitle: I don't care */
 import { type FC, useMemo } from 'react';
 import type { z } from 'zod';
 

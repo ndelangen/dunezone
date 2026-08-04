@@ -60,22 +60,23 @@ describe('current Renderer manifest digest', () => {
     ).not.toBe(computeRendererManifestDigest(entries()));
   });
 
-  test.each(
-    RENDERER_RUNTIME_CLOSURE_PATHS
-  )('changes when renderer runtime closure input %s changes', (changedPath) => {
-    const runtimeEntries = RENDERER_RUNTIME_CLOSURE_PATHS.map((relativePath) => ({
-      path: relativePath,
-      bytes: readFileSync(path.resolve(process.cwd(), relativePath)),
-    }));
-    const changedEntries = runtimeEntries.map((entry) =>
-      entry.path === changedPath
-        ? { ...entry, bytes: Buffer.concat([entry.bytes, Buffer.from('\n// changed')]) }
-        : entry
-    );
-    expect(computeRendererManifestDigest(changedEntries)).not.toBe(
-      computeRendererManifestDigest(runtimeEntries)
-    );
-  });
+  test.each(RENDERER_RUNTIME_CLOSURE_PATHS)(
+    'changes when renderer runtime closure input %s changes',
+    (changedPath) => {
+      const runtimeEntries = RENDERER_RUNTIME_CLOSURE_PATHS.map((relativePath) => ({
+        path: relativePath,
+        bytes: readFileSync(path.resolve(process.cwd(), relativePath)),
+      }));
+      const changedEntries = runtimeEntries.map((entry) =>
+        entry.path === changedPath
+          ? { ...entry, bytes: Buffer.concat([entry.bytes, Buffer.from('\n// changed')]) }
+          : entry
+      );
+      expect(computeRendererManifestDigest(changedEntries)).not.toBe(
+        computeRendererManifestDigest(runtimeEntries)
+      );
+    }
+  );
 
   test('rejects ambiguous duplicate paths', () => {
     const duplicate = entries();

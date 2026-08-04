@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/a11y/useAltText: I don't care */
+/* oxlint-disable jsx-a11y/alt-text -- Decorative game-rulebook layers. */
 
 import { Token } from '../../assets/faction/token/Token';
 import * as colors from '../../assets/utils/colors';
