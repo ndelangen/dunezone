@@ -1,5 +1,5 @@
 import { DirectAggregate } from '@convex-dev/aggregate';
-import { Triggers } from 'convex-helpers/server/triggers';
+import type { Triggers } from 'convex-helpers/server/triggers';
 
 import { components } from '../_generated/api';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
@@ -97,47 +97,47 @@ async function applyTransition(
   }
 }
 
-export const statisticsTriggers = new Triggers<DataModel, MutationCtx>();
+export function registerStatisticsTriggers(triggers: Triggers<DataModel, MutationCtx>) {
+  triggers.register('profiles', async (ctx, change) => {
+    await applyTransition(
+      ctx,
+      change.oldDoc ? profileItem(change.oldDoc) : null,
+      change.newDoc ? profileItem(change.newDoc) : null
+    );
+  });
 
-statisticsTriggers.register('profiles', async (ctx, change) => {
-  await applyTransition(
-    ctx,
-    change.oldDoc ? profileItem(change.oldDoc) : null,
-    change.newDoc ? profileItem(change.newDoc) : null
-  );
-});
+  triggers.register('factions', async (ctx, change) => {
+    await applyTransition(
+      ctx,
+      change.oldDoc ? factionItem(change.oldDoc) : null,
+      change.newDoc ? factionItem(change.newDoc) : null
+    );
+  });
 
-statisticsTriggers.register('factions', async (ctx, change) => {
-  await applyTransition(
-    ctx,
-    change.oldDoc ? factionItem(change.oldDoc) : null,
-    change.newDoc ? factionItem(change.newDoc) : null
-  );
-});
+  triggers.register('rulesets', async (ctx, change) => {
+    await applyTransition(
+      ctx,
+      change.oldDoc ? rulesetItem(change.oldDoc) : null,
+      change.newDoc ? rulesetItem(change.newDoc) : null
+    );
+  });
 
-statisticsTriggers.register('rulesets', async (ctx, change) => {
-  await applyTransition(
-    ctx,
-    change.oldDoc ? rulesetItem(change.oldDoc) : null,
-    change.newDoc ? rulesetItem(change.newDoc) : null
-  );
-});
+  triggers.register('faq_items', async (ctx, change) => {
+    await applyTransition(
+      ctx,
+      change.oldDoc ? questionItem(change.oldDoc) : null,
+      change.newDoc ? questionItem(change.newDoc) : null
+    );
+  });
 
-statisticsTriggers.register('faq_items', async (ctx, change) => {
-  await applyTransition(
-    ctx,
-    change.oldDoc ? questionItem(change.oldDoc) : null,
-    change.newDoc ? questionItem(change.newDoc) : null
-  );
-});
-
-statisticsTriggers.register('faq_answers', async (ctx, change) => {
-  await applyTransition(
-    ctx,
-    change.oldDoc ? await answerItem(ctx, change.oldDoc) : null,
-    change.newDoc ? await answerItem(ctx, change.newDoc) : null
-  );
-});
+  triggers.register('faq_answers', async (ctx, change) => {
+    await applyTransition(
+      ctx,
+      change.oldDoc ? await answerItem(ctx, change.oldDoc) : null,
+      change.newDoc ? await answerItem(ctx, change.newDoc) : null
+    );
+  });
+}
 
 export async function loadGlobalStatisticsTotals(ctx: QueryCtx) {
   const [users, factions, rulesets, questions, answers] = await statistics.countBatch(ctx, [

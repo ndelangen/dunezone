@@ -7,12 +7,14 @@ import {
   HOMEPAGE_COMMUNITY_METRICS,
   loadHomepageNewestMemberIds,
 } from './lib/homepageCommunity';
+import { isProfileDiscoverable, loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
 
 const HOMEPAGE_MIGRATION_IDS = [
   'homepage_factions_v1',
   'homepage_rulesets_v1',
   'homepage_members_v1',
 ] as const;
+const PROFILE_DISCOVERY_MIGRATION_ID = 'profile_discovery_profiles_v1';
 
 const spotlightValidator = v.object({
   slug: v.string(),
@@ -54,9 +56,12 @@ export const page = query({
     }),
   }),
   handler: async (ctx) => {
-    const [spotlights, newestMembers, ...migrationRuns] = await Promise.all([
+    const [spotlights, profileDiscoveryRun, ...migrationRuns] = await Promise.all([
       loadFactionCatalogueSpotlightPreviews(ctx),
-      loadHomepageNewestMemberIds(ctx).then((ids) => Promise.all(ids.map((id) => ctx.db.get(id)))),
+      ctx.db
+        .query('migration_runs')
+        .withIndex('by_migration_id', (q) => q.eq('migration_id', PROFILE_DISCOVERY_MIGRATION_ID))
+        .unique(),
       ...HOMEPAGE_MIGRATION_IDS.map((id) =>
         ctx.db
           .query('migration_runs')
@@ -64,6 +69,23 @@ export const page = query({
           .unique()
       ),
     ]);
+
+    const profileDiscoveryReady =
+      profileDiscoveryRun?.is_done === true && profileDiscoveryRun.state === 'success';
+    const newestMembers = profileDiscoveryReady
+      ? await loadNewestDiscoverableProfiles(ctx, 4)
+      : await loadHomepageNewestMemberIds(ctx).then(async (ids) => {
+          const profiles = await Promise.all(ids.map((id) => ctx.db.get(id)));
+          return profiles
+            .filter((profile) => profile !== null && isProfileDiscoverable(profile))
+            .map((profile) => ({
+              id: profile._id,
+              slug: profile.slug,
+              username: profile.username,
+              avatarUrl: profile.avatar_url,
+              createdAt: profile.created_at,
+            }));
+        });
 
     const countsReady = migrationRuns.every((run) => run?.is_done && run.state === 'success');
     const metricValues = countsReady
@@ -85,15 +107,7 @@ export const page = query({
       spotlights,
       community: {
         counts,
-        newestMembers: newestMembers
-          .filter((profile): profile is NonNullable<typeof profile> => profile != null)
-          .map((profile) => ({
-            id: profile._id,
-            slug: profile.slug,
-            username: profile.username as string,
-            avatarUrl: profile.avatar_url as string,
-            createdAt: profile.created_at,
-          })),
+        newestMembers,
       },
     };
   },

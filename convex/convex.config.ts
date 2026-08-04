@@ -6,5 +6,6 @@ const app = defineApp();
 app.use(migrations);
 app.use(aggregate, { name: 'homepageCommunity' });
 app.use(aggregate, { name: 'statistics' });
+app.use(aggregate, { name: 'profileDiscovery' });
 
 export default app;

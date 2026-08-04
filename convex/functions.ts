@@ -5,10 +5,10 @@ import {
   internalMutation as rawInternalMutation,
   mutation as rawMutation,
 } from './_generated/server';
-import { statisticsTriggers } from './lib/statistics';
+import { applicationTriggers } from './lib/applicationTriggers';
 
-export const mutation = customMutation(rawMutation, customCtx(statisticsTriggers.wrapDB));
+export const mutation = customMutation(rawMutation, customCtx(applicationTriggers.wrapDB));
 export const internalMutation = customMutation(
   rawInternalMutation,
-  customCtx(statisticsTriggers.wrapDB)
+  customCtx(applicationTriggers.wrapDB)
 );

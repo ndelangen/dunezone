@@ -71,6 +71,11 @@
       "requires": []
     },
     {
+      "id": "profile_discovery_profiles_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
       "id": "profiles_backfill_guard",
       "phase": "narrow",
       "requires": ["profiles_from_users_v1"]
@@ -105,6 +110,11 @@
         "statistics_questions_v1",
         "statistics_answers_v1"
       ]
+    },
+    {
+      "id": "profile_discovery_ready",
+      "phase": "narrow",
+      "requires": ["profile_discovery_profiles_v1"]
     }
   ]
 }

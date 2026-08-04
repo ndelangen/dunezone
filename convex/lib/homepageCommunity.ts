@@ -1,7 +1,7 @@
 import { DirectAggregate } from '@convex-dev/aggregate';
 
 import { components } from '../_generated/api';
-import type { Doc, Id } from '../_generated/dataModel';
+import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 
 export const HOMEPAGE_COMMUNITY_METRICS = [
@@ -32,40 +32,6 @@ export async function setHomepageCommunityPresence(
   } else {
     await homepageCommunity.deleteIfExists(ctx, item);
   }
-}
-
-export function isHomepageNewestMemberEligible(
-  profile: Pick<Doc<'profiles'>, 'username' | 'avatar_url' | 'slug' | 'created_at'>
-) {
-  return (
-    (profile.username?.trim().length ?? 0) > 0 &&
-    (profile.avatar_url?.trim().length ?? 0) > 0 &&
-    profile.slug.trim().length !== 0 &&
-    profile.slug !== 'user' &&
-    profile.slug !== 'nameless' &&
-    Number.isFinite(Date.parse(profile.created_at))
-  );
-}
-
-export async function syncHomepageNewestMember(ctx: MutationCtx, profile: Doc<'profiles'>) {
-  const item = {
-    namespace: 'newestMembers',
-    key: profile.created_at,
-    id: profile._id,
-  } as const;
-  if (isHomepageNewestMemberEligible(profile)) {
-    await homepageCommunity.insertIfDoesNotExist(ctx, item);
-  } else {
-    await removeHomepageNewestMember(ctx, profile);
-  }
-}
-
-export async function removeHomepageNewestMember(ctx: MutationCtx, profile: Doc<'profiles'>) {
-  await homepageCommunity.deleteIfExists(ctx, {
-    namespace: 'newestMembers',
-    key: profile.created_at,
-    id: profile._id,
-  });
 }
 
 export async function loadHomepageNewestMemberIds(ctx: QueryCtx) {

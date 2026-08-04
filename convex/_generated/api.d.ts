@@ -17,6 +17,7 @@ import type * as functions from "../functions.js";
 import type * as groups from "../groups.js";
 import type * as homepage from "../homepage.js";
 import type * as http from "../http.js";
+import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
 import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
@@ -25,6 +26,7 @@ import type * as lib_ids from "../lib/ids.js";
 import type * as lib_memberGroups from "../lib/memberGroups.js";
 import type * as lib_policy from "../lib/policy.js";
 import type * as lib_profileBootstrap from "../lib/profileBootstrap.js";
+import type * as lib_profileDiscovery from "../lib/profileDiscovery.js";
 import type * as lib_profileSummary from "../lib/profileSummary.js";
 import type * as lib_publication from "../lib/publication.js";
 import type * as lib_publicationHttp from "../lib/publicationHttp.js";
@@ -58,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   groups: typeof groups;
   homepage: typeof homepage;
   http: typeof http;
+  "lib/applicationTriggers": typeof lib_applicationTriggers;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionInput": typeof lib_factionInput;
   "lib/faqRulesetList": typeof lib_faqRulesetList;
@@ -66,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "lib/memberGroups": typeof lib_memberGroups;
   "lib/policy": typeof lib_policy;
   "lib/profileBootstrap": typeof lib_profileBootstrap;
+  "lib/profileDiscovery": typeof lib_profileDiscovery;
   "lib/profileSummary": typeof lib_profileSummary;
   "lib/publication": typeof lib_publication;
   "lib/publicationHttp": typeof lib_publicationHttp;
@@ -114,4 +118,5 @@ export declare const components: {
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
   homepageCommunity: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"homepageCommunity">;
   statistics: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"statistics">;
+  profileDiscovery: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileDiscovery">;
 };

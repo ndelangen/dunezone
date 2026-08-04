@@ -2,23 +2,31 @@
 // @vitest-environment edge-runtime
 
 import aggregateTest from '@convex-dev/aggregate/test';
+import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
 import { describe, expect, test, vi } from 'vitest';
 
 import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
-import { api } from './_generated/api';
-import { adjustHomepageRulesetFaqTotals, syncHomepageNewestMember } from './lib/homepageCommunity';
+import { api, internal } from './_generated/api';
+import { applicationTriggers } from './lib/applicationTriggers';
+import { adjustHomepageRulesetFaqTotals } from './lib/homepageCommunity';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
-const MIGRATION_IDS = ['homepage_factions_v1', 'homepage_rulesets_v1', 'homepage_members_v1'];
+const MIGRATION_IDS = [
+  'homepage_factions_v1',
+  'homepage_rulesets_v1',
+  'homepage_members_v1',
+  'profile_discovery_profiles_v1',
+];
 
 describe('homepage page data', () => {
   test('deletes large FAQ answer sets in bounded aggregate-safe batches', async () => {
     const t = convexTest({ schema, modules, transactionLimits: true });
     aggregateTest.register(t, 'homepageCommunity');
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'FAQ owner' }));
     const asUser = t.withIdentity({ subject: userId });
     const ruleset = await asUser.mutation(api.rulesets.create, {
@@ -94,6 +102,7 @@ describe('homepage page data', () => {
     });
     aggregateTest.register(t, 'homepageCommunity');
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Large answer owner' }));
     const asUser = t.withIdentity({ subject: userId });
     const ruleset = await asUser.mutation(api.rulesets.create, {
@@ -156,9 +165,10 @@ describe('homepage page data', () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'homepageCommunity');
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Homepage maker' }));
-    await t.run((ctx) =>
-      ensureProfileForUser(ctx, userId, {
+    await t.run((rawCtx) =>
+      ensureProfileForUser(applicationTriggers.wrapDB(rawCtx), userId, {
         displayName: 'Homepage maker',
         imageUrl: 'https://example.com/avatar.png',
       })
@@ -224,10 +234,12 @@ describe('homepage page data', () => {
     });
   });
 
-  test('returns only eligible newest members in public timestamp order', async () => {
+  test('reuses discoverable profiles in the homepage with exact eligibility and ordering', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'homepageCommunity');
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileDiscovery');
+    migrationsTest.register(t);
     await t.run(async (ctx) => {
       const users = await Promise.all(
         Array.from({ length: 6 }, (_, index) =>
@@ -255,11 +267,25 @@ describe('homepage page data', () => {
         if (!profile) {
           throw new Error('Failed to create homepage test profile');
         }
-        await syncHomepageNewestMember(ctx, profile);
       }
     });
 
+    await t.mutation(internal.migrations.profile_discovery_profiles_v1, {});
+    await t.run(async (ctx) => {
+      await ctx.db.insert('migration_runs', {
+        migration_id: 'profile_discovery_profiles_v1',
+        state: 'success',
+        is_done: true,
+        processed: 6,
+        latest_start: Date.now(),
+        latest_end: Date.now(),
+        updated_at: new Date().toISOString(),
+      });
+    });
+
+    const discovered = await t.query(api.profiles.newestDiscoverable, { limit: 4 });
     const members = (await t.query(api.homepage.page, {})).community.newestMembers;
+    expect(members).toEqual(discovered);
     expect(members.map((member) => member.slug)).toEqual(['third', 'second', 'first']);
     expect(members.map((member) => member.createdAt)).toEqual([
       '2026-07-03T00:00:00.000Z',

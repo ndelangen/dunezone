@@ -7,7 +7,7 @@ import { convexTest } from 'convex-test';
 import { expect, test, vi } from 'vitest';
 
 import { api, internal } from './_generated/api';
-import { statisticsTriggers } from './lib/statistics';
+import { applicationTriggers } from './lib/applicationTriggers';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -15,9 +15,10 @@ const modules = import.meta.glob('./**/*.ts');
 test('maintains global and per-ruleset totals through wrapped writes', async () => {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileDiscovery');
 
   const ids = await t.run(async (rawCtx) => {
-    const ctx = statisticsTriggers.wrapDB(rawCtx);
+    const ctx = applicationTriggers.wrapDB(rawCtx);
     const userId = await ctx.db.insert('users', { name: 'Statistics owner' });
     await ctx.db.insert('profiles', {
       user_id: userId,
@@ -116,7 +117,7 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
   ).resolves.toEqual({ questions: 1, answers: 1 });
 
   await t.run(async (rawCtx) => {
-    const ctx = statisticsTriggers.wrapDB(rawCtx);
+    const ctx = applicationTriggers.wrapDB(rawCtx);
     await ctx.db.patch(ids.activeFactionId, { is_deleted: true });
     await ctx.db.patch(ids.activeRulesetId, { is_deleted: true });
     await ctx.db.delete(ids.activeAnswerId);
@@ -138,6 +139,7 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
 test('backfills Statistics resumably and rebuilds after later writes bypass triggers', async () => {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileDiscovery');
   migrationsTest.register(t);
 
   const ids = await t.run(async (ctx) => {

@@ -22,6 +22,7 @@ describe('local faction development import', () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'homepageCommunity');
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileDiscovery');
     const [ownerId, collaboratorId] = await t.run(async (ctx) => {
       const owner = await ctx.db.insert('users', { email: 'user-a@example.com' });
       const collaborator = await ctx.db.insert('users', { email: 'user-b@example.com' });
@@ -105,6 +106,7 @@ describe('local faction development import', () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'homepageCommunity');
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileDiscovery');
 
     await expect(
       t.mutation(api.localDevelopment.prepareFactionImport, {

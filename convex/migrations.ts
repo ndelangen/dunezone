@@ -7,12 +7,9 @@ import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
-import {
-  setHomepageCommunityPresence,
-  setHomepageRulesetFaqTotals,
-  syncHomepageNewestMember,
-} from './lib/homepageCommunity';
+import { setHomepageCommunityPresence, setHomepageRulesetFaqTotals } from './lib/homepageCommunity';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
+import { reconcileProfileDiscovery } from './lib/profileDiscovery';
 import {
   reconcileAnswerStatistics,
   reconcileFactionStatistics,
@@ -42,6 +39,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   statistics_rulesets_v1: internal.migrations.statistics_rulesets_v1,
   statistics_questions_v1: internal.migrations.statistics_questions_v1,
   statistics_answers_v1: internal.migrations.statistics_answers_v1,
+  profile_discovery_profiles_v1: internal.migrations.profile_discovery_profiles_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -312,7 +310,15 @@ export const homepage_members_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (ctx, row) => {
     await setHomepageCommunityPresence(ctx, 'members', row._id, true);
-    await syncHomepageNewestMember(ctx, row);
+  },
+});
+
+/** Populates reusable Profile discovery while live profile writes maintain it automatically. */
+export const profile_discovery_profiles_v1 = migrations.define({
+  table: 'profiles',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileProfileDiscovery(ctx, row);
   },
 });
 
@@ -379,6 +385,7 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.statistics_rulesets_v1,
   internal.migrations.statistics_questions_v1,
   internal.migrations.statistics_answers_v1,
+  internal.migrations.profile_discovery_profiles_v1,
 ]);
 
 export const runRequired = mutation({
