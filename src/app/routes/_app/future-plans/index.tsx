@@ -194,7 +194,7 @@ function FuturePlansPage() {
                 </Anchor>
               ))}
             </Stack>
-            <Anchor href={GITHUB_BACKLOG} target="_blank" fw={700}>
+            <Anchor href={GITHUB_BACKLOG} target="_blank" rel="noopener noreferrer" fw={700}>
               Follow the development backlog <ArrowRight size={15} aria-hidden />
             </Anchor>
           </Stack>
@@ -252,6 +252,7 @@ function FuturePlansPage() {
                   component="a"
                   href={GITHUB_IDEAS}
                   target="_blank"
+                  rel="noopener noreferrer"
                   leftSection={<MessageCirclePlus size={17} aria-hidden />}
                 >
                   Suggest an idea
@@ -260,6 +261,7 @@ function FuturePlansPage() {
                   component="a"
                   href={GITHUB_REPOSITORY}
                   target="_blank"
+                  rel="noopener noreferrer"
                   color="confirm"
                   leftSection={<Code2 size={17} aria-hidden />}
                 >

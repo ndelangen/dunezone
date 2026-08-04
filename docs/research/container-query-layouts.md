@@ -51,18 +51,18 @@ queries both width and height:
 The three new layout components only need inline width, so `inline-size` is the safer, less
 restrictive type.
 
-### Current mismatch
+### Implemented approach
 
-All three layouts currently stack using viewport-width media queries:
+All three layouts now establish a named `inline-size` container and switch their descendant grids
+with container queries:
 
 - [`TriptychLayout.module.css`](../../src/app/components/layout/TriptychLayout.module.css)
 - [`AsymmetricSplitLayout.module.css`](../../src/app/components/layout/AsymmetricSplitLayout.module.css)
 - [`AtlasLayout.module.css`](../../src/app/components/layout/AtlasLayout.module.css)
 
-Consequently, a layout nested in a narrow parent remains in its desktop column arrangement when
-the viewport is wide. `AsymmetricSplitLayout` and `AtlasLayout` also use `vw` for gaps, so their
-spacing continues to scale with the viewport even after their column decision becomes
-container-relative. Those gap terms should become `cqi` or fixed/rem-based values.
+`AsymmetricSplitLayout` and `AtlasLayout` also size their fluid gaps with `cqi`. Their column and
+spacing decisions therefore follow the space each layout actually receives, including when one is
+nested in a narrow parent inside a wide viewport.
 
 ## Required structure
 
@@ -224,7 +224,6 @@ named host, ideally inside that component's `@container` rule
 
 ## Conclusion
 
-The proposed direction is feasible now and should be adopted for these three components. It makes
-their actual dependency—allocated inline size—explicit, improves nesting, and fits the project's
-existing CSS architecture and supported browser floor. The implementation should use a named
-`inline-size` host plus a descendant grid, mobile-first base styles, and container-relative gaps.
+The three components now make their actual dependency—allocated inline size—explicit. Their named
+`inline-size` hosts, descendant grids, mobile-first base styles, and container-relative gaps improve
+nesting while fitting the project's existing CSS architecture and supported browser floor.

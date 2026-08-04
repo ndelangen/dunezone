@@ -103,6 +103,7 @@ function IndexPage() {
                     component="a"
                     href="https://treachery.online/"
                     target="_blank"
+                    rel="noopener noreferrer"
                     variant="subtle"
                     rightSection={<ExternalLink size={15} aria-hidden />}
                   >
@@ -204,17 +205,23 @@ function IndexPage() {
                 <Anchor
                   href="https://discord.com/invite/dune-tabletop-624609341886169117"
                   target="_blank"
+                  rel="noopener noreferrer"
                 >
                   Discord
                 </Anchor>
                 <Text c="dimmed">·</Text>
-                <Anchor href="https://www.reddit.com/r/DuneBoardGame/" target="_blank">
+                <Anchor
+                  href="https://www.reddit.com/r/DuneBoardGame/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Reddit
                 </Anchor>
                 <Text c="dimmed">·</Text>
                 <Anchor
                   href="https://boardgamegeek.com/boardgame/283355/dune/forums/69"
                   target="_blank"
+                  rel="noopener noreferrer"
                 >
                   BoardGameGeek
                 </Anchor>

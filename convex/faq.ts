@@ -2,14 +2,19 @@ import { v } from 'convex/values';
 
 import { FAQ_TAG_VALUES } from '../src/app/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/app/faq/validation';
+import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { mutation, query } from './_generated/server';
+import { internalMutation, mutation, query } from './_generated/server';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
 import { adjustHomepageRulesetFaqTotals } from './lib/homepageCommunity';
 import { canAccessRuleset, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { nowIso } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
+
+const FAQ_ITEM_DELETE_BATCH_MAX_DOCUMENTS = 100;
+const FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES = 2 * 1024 * 1024;
+const FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS = 16;
 
 const faqTagValidator = v.union(
   v.literal(FAQ_TAG_VALUES[0]),
@@ -37,6 +42,27 @@ async function getFaqItem(ctx: QueryCtx | MutationCtx, id: Id<'faq_items'>) {
 
 async function getFaqAnswer(ctx: QueryCtx | MutationCtx, id: Id<'faq_answers'>) {
   return await ctx.db.get(id);
+}
+
+async function deleteFaqAnswerBatch(ctx: MutationCtx, faqItemId: Id<'faq_items'>) {
+  let deleted = 0;
+  for await (const answer of ctx.db
+    .query('faq_answers')
+    .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', faqItemId))) {
+    await ctx.db.delete(answer._id);
+    deleted += 1;
+    const metrics = await ctx.meta.getTransactionMetrics();
+    if (
+      deleted >= FAQ_ITEM_DELETE_BATCH_MAX_DOCUMENTS ||
+      metrics.bytesRead.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
+      metrics.bytesWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
+      metrics.databaseQueries.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS ||
+      metrics.documentsWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS
+    ) {
+      return { deleted, shouldContinue: true };
+    }
+  }
+  return { deleted, shouldContinue: false };
 }
 
 async function assertAcceptedAnswerBelongsToItem(
@@ -402,21 +428,53 @@ export const deleteItem = mutation({
       throw new Error('Not authorized');
     }
 
-    const answers = await ctx.db
-      .query('faq_answers')
-      .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
-      .take(500);
-    await Promise.all(
-      answers.map(async (answer) => {
-        await ctx.db.delete(answer._id);
-      })
+    const { deleted: deletedAnswerCount, shouldContinue } = await deleteFaqAnswerBatch(
+      ctx,
+      item._id
     );
-    await ctx.db.delete(item._id);
+    const done = !shouldContinue;
+    if (done) {
+      await ctx.db.delete(item._id);
+    }
     await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, {
-      questions: -1,
-      answers: -answers.length,
+      questions: done ? -1 : 0,
+      answers: -deletedAnswerCount,
     });
+    if (!done) {
+      await ctx.scheduler.runAfter(0, internal.faq.deleteItemAnswerBatch, {
+        faq_item_id: item._id,
+        ruleset_id: ruleset._id,
+      });
+    }
     return { id: args.id, rulesetId: item.ruleset_id, askedBy: item.asked_by };
+  },
+});
+
+export const deleteItemAnswerBatch = internalMutation({
+  args: {
+    faq_item_id: v.id('faq_items'),
+    ruleset_id: v.id('rulesets'),
+  },
+  handler: async (ctx, args): Promise<{ deleted: number; done: boolean }> => {
+    const item = await ctx.db.get(args.faq_item_id);
+    const { deleted: deletedAnswerCount, shouldContinue } = await deleteFaqAnswerBatch(
+      ctx,
+      args.faq_item_id
+    );
+    const done = !shouldContinue;
+    if (done && item) {
+      await ctx.db.delete(item._id);
+    }
+    if (deletedAnswerCount > 0 || (done && item)) {
+      await adjustHomepageRulesetFaqTotals(ctx, args.ruleset_id, {
+        questions: done && item ? -1 : 0,
+        answers: -deletedAnswerCount,
+      });
+    }
+    if (!done) {
+      await ctx.scheduler.runAfter(0, internal.faq.deleteItemAnswerBatch, args);
+    }
+    return { deleted: deletedAnswerCount, done };
   },
 });
 
