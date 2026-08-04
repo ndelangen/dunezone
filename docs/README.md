@@ -52,6 +52,11 @@ It requires Docker and the existing `.env.e2e.local` credentials (copy
 the two configured local password users, and copies active production factions plus their
 directly referenced groups through a read-only production query.
 
+The backend and dashboard images are pinned to multi-platform digests in
+`docker-compose.convex-local.yml`, so an existing Docker cache cannot silently select an
+older runtime. When upgrading the Convex packages, update both image digests together and
+verify a clean `bun run app:dev --local` start.
+
 The local mapping is intentionally simple: user A owns every copied faction and group,
 while user B is an active member of every copied group. Production users, profiles,
 sessions, publisher state, rulesets, and operational tables are not copied. Use the two
