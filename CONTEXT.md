@@ -5,7 +5,7 @@ Dune Zone is a community catalogue for Dune board-game factions, rulesets, and t
 ## Language
 
 **Group**:
-A collaboration boundary shared by factions, rulesets, and future community assets. Active members may maintain associated content and manage membership intake, while the Group owner alone may remove active members.
+A collaboration boundary shared by factions, rulesets, and future community assets. Active members may maintain associated content and manage membership intake, while the Group owner alone may rename the Group or remove active members.
 
 **Group-associated asset**:
 A faction, ruleset, or future community asset that its owner has assigned to a Group for collaborative maintenance. Active members may edit it, while its owner alone may delete it or change its Group association; ruleset renames are owner-only, while faction renames are collaborative.

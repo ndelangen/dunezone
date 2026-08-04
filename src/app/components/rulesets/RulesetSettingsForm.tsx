@@ -1,12 +1,9 @@
+import { Alert, Button, Group, Stack, TextInput } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useUpdateRuleset } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
-import { FormField } from '@app/components/form/FormField';
-import { TextField } from '@app/components/form/TextField';
-import { ButtonGroup, Stack } from '@app/components/generic/layout';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 
 export function RulesetSettingsForm({
   initial,
@@ -53,11 +50,12 @@ export function RulesetSettingsForm({
       : null;
 
   return (
-    <Stack as="form" gap={3} onSubmit={handleSubmit}>
-      <FormField
+    <Stack component="form" gap="md" onSubmit={handleSubmit}>
+      <TextInput
+        id="ruleset-settings-name"
+        name="name"
         label="Name"
-        htmlFor="ruleset-settings-name"
-        hint={
+        description={
           canRename ? (
             <>
               Changing the name updates the URL slug (e.g. <code>…/rulesets/{initial.slug}</code>{' '}
@@ -67,48 +65,39 @@ export function RulesetSettingsForm({
             'Only the ruleset owner can rename it.'
           )
         }
-      >
-        <TextField
-          id="ruleset-settings-name"
-          name="name"
-          required
-          minLength={1}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          disabled={!canRename}
-        />
-      </FormField>
+        required
+        minLength={1}
+        value={name}
+        onChange={(event) => setName(event.currentTarget.value)}
+        disabled={!canRename}
+      />
 
-      <FormField
+      <TextInput
+        id="ruleset-settings-cover"
+        type="url"
         label="Cover image URL"
-        htmlFor="ruleset-settings-cover"
-        hint={
+        description={
           <>
             Optional. Use a full <code>https://</code> URL. Leave empty to clear the cover.
           </>
         }
-      >
-        <TextField
-          id="ruleset-settings-cover"
-          type="url"
-          value={coverUrl}
-          onChange={(event) => setCoverUrl(event.target.value)}
-          placeholder="https://…"
-          autoComplete="off"
-        />
-      </FormField>
+        value={coverUrl}
+        onChange={(event) => setCoverUrl(event.currentTarget.value)}
+        placeholder="https://…"
+        autoComplete="off"
+      />
 
-      {mutationError && <p role="alert">{mutationError}</p>}
+      {mutationError ? (
+        <Alert color="red" title="Ruleset could not be saved" role="alert">
+          {mutationError}
+        </Alert>
+      ) : null}
 
-      <ButtonGroup>
-        <UIButton
-          type="submit"
-          iconOnly={false}
-          disabled={updateRuleset.isPending || name.trim().length === 0}
-        >
+      <Group justify="flex-end">
+        <Button type="submit" loading={updateRuleset.isPending} disabled={name.trim().length === 0}>
           {updateRuleset.isPending ? 'Saving…' : 'Save changes'}
-        </UIButton>
-      </ButtonGroup>
+        </Button>
+      </Group>
     </Stack>
   );
 }
