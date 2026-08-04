@@ -100,9 +100,13 @@ function toRulesetEntry(entry: RulesetRow): RulesetEntry {
   };
 }
 
+export function rulesetRowsToEntries(entries: RulesetRow[]): RulesetEntry[] {
+  return entries.map(toRulesetEntry);
+}
+
 export async function loadRulesetsAll(): Promise<RulesetEntry[]> {
   const entries = await db.query<RulesetRow[]>(api.rulesets.list, {});
-  return entries.map(toRulesetEntry);
+  return rulesetRowsToEntries(entries);
 }
 
 export async function loadRuleset(id: string): Promise<RulesetEntry> {

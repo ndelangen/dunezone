@@ -64,8 +64,8 @@ export const getBySlug = query({
 });
 
 /**
- * Group detail page: group, memberships, factions in group, and profiles for owner + every member
- * user_id (each user must have a profile row).
+ * Group detail page: group, memberships, associated factions and rulesets, and profiles for the
+ * owner + every member user_id (each user must have a profile row).
  */
 export const detailBySlug = query({
   args: { slug: v.string() },
@@ -88,6 +88,11 @@ export const detailBySlug = query({
       .withIndex('by_group_deleted', (q) => q.eq('group_id', group._id).eq('is_deleted', false))
       .take(500);
 
+    const rulesets = await ctx.db
+      .query('rulesets')
+      .withIndex('by_group_deleted', (q) => q.eq('group_id', group._id).eq('is_deleted', false))
+      .take(500);
+
     const userIds = new Set<Id<'users'>>([group.created_by]);
     for (const m of members) {
       userIds.add(m.user_id);
@@ -105,7 +110,7 @@ export const detailBySlug = query({
       profiles.push(profile);
     }
 
-    return { group, members, factions, profiles };
+    return { group, members, factions, rulesets, profiles };
   },
 });
 
