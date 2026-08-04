@@ -86,6 +86,11 @@
       "requires": ["faq_item_slug_v1"]
     },
     {
+      "id": "rulesets_homepage_counts_narrow",
+      "phase": "narrow",
+      "requires": ["rulesets_remove_homepage_counts_v1"]
+    },
+    {
       "id": "statistics_ready",
       "phase": "narrow",
       "requires": [
