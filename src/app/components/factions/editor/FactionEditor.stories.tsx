@@ -56,23 +56,12 @@ const meta = preview.meta({
 
 export const RepresentativeFaction = meta.story({});
 
-export const IncompleteContent = meta.story({
-  args: {
-    faction: incompleteFaction(),
-  },
-});
+const problematicFaction = incompleteFaction();
+problematicFaction.name = '';
 
-const missingName = representativeFaction();
-missingName.name = '';
-
-export const NameRequired = meta.story({
+export const Problems = meta.story({
   args: {
-    faction: missingName,
-  },
-});
-
-export const SaveError = meta.story({
-  args: {
+    faction: problematicFaction,
     errors: ['The faction could not be saved. Try again without losing this draft.'],
   },
 });

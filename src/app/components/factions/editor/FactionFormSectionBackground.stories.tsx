@@ -136,20 +136,3 @@ export const RadialLayers = meta.story({
     },
   },
 });
-
-export const PreviewFreeMobile = meta.story({
-  args: {
-    background: {
-      image: '/image/texture/021.jpg',
-      colors: ['#17383d', '#d3ab63'],
-      invert: true,
-      definition: 0.7,
-      influence: 0.65,
-    },
-  },
-  globals: {
-    viewport: {
-      value: 'appMobile',
-    },
-  },
-});

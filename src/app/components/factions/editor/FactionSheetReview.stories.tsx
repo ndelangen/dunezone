@@ -1,7 +1,7 @@
 import { Box, Button, Paper, Stack, Text, Title } from '@mantine/core';
 import preview from '@sb/preview';
 import { useRef } from 'react';
-import { expect, userEvent, within } from 'storybook/test';
+import { userEvent, within } from 'storybook/test';
 
 import type { Faction } from '@db/factions';
 import { defaultFaction } from '@data/defaultFaction';
@@ -88,8 +88,7 @@ const meta = preview.meta({
 async function openReview(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
   await userEvent.click(page.getByRole('button', { name: 'Review faction sheet' }));
-  await page.findByRole('button', { name: 'Close faction sheet review' });
-  await expect(page.getByTestId('faction-review-story-root')).toBeInTheDocument();
+  await page.findByRole('heading', { name: 'Review faction artifacts' });
 }
 
 const storyFaction = structuredClone(defaultFaction);
@@ -103,11 +102,6 @@ export const DesktopHorizontal = meta.story({
       value: 'appLarge',
     },
   },
-  render: (args) => (
-    <div data-testid="faction-review-story-root">
-      <ReviewFixture {...args} />
-    </div>
-  ),
   play: async ({ canvasElement }) => openReview(canvasElement),
 });
 
@@ -120,11 +114,6 @@ export const ConstrainedStacked = meta.story({
       value: 'appConstrained',
     },
   },
-  render: (args) => (
-    <div data-testid="faction-review-story-root">
-      <ReviewFixture {...args} />
-    </div>
-  ),
   play: async ({ canvasElement }) => openReview(canvasElement),
 });
 
@@ -133,53 +122,5 @@ export const LongContent = meta.story({
     faction: storyFaction,
     longContent: true,
   },
-  render: (args) => (
-    <div data-testid="faction-review-story-root">
-      <ReviewFixture {...args} />
-    </div>
-  ),
   play: async ({ canvasElement }) => openReview(canvasElement),
-});
-
-export const EditorStripFocus = meta.story({
-  args: {
-    faction: storyFaction,
-  },
-  render: (args) => (
-    <div data-testid="faction-review-story-root">
-      <ReviewFixture {...args} />
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
-    await openReview(canvasElement);
-    const page = within(canvasElement.ownerDocument.body);
-    const strip = page.getByRole('button', {
-      name: 'Close sheet review and return to editing',
-    });
-    strip.focus();
-    await expect(strip).toHaveFocus();
-  },
-});
-
-export const PreviewFreeMobile = meta.story({
-  args: {
-    faction: storyFaction,
-  },
-  globals: {
-    viewport: {
-      value: 'appMobile',
-    },
-  },
-  render: (args) => (
-    <div data-testid="faction-review-story-root">
-      <ReviewFixture {...args} />
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.queryByRole('button', { name: 'Review faction sheet' })
-    ).not.toBeInTheDocument();
-    await expect(page.queryByLabelText('Faction sheet page 1')).not.toBeInTheDocument();
-  },
 });

@@ -39,42 +39,11 @@ export const Clean = meta.story({
   args: cleanToolbar,
 });
 
-export const DirtyWithWarnings = meta.story({
-  args: {
-    ...cleanToolbar,
-    isDirty: true,
-    warningCount: 3,
-  },
-});
-
-export const Saving = meta.story({
-  args: {
-    ...cleanToolbar,
-    isDirty: true,
-    saveState: 'saving',
-  },
-});
-
-export const Saved = meta.story({
-  args: {
-    ...cleanToolbar,
-    saveState: 'saved',
-  },
-});
-
 export const SaveFailed = meta.story({
   args: {
     ...cleanToolbar,
     isDirty: true,
     saveState: 'error',
-  },
-});
-
-export const NameRequired = meta.story({
-  args: {
-    ...cleanToolbar,
-    isDirty: true,
-    isNameBlank: true,
   },
 });
 

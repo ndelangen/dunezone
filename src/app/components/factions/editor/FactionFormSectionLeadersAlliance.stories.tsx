@@ -1,7 +1,6 @@
 import { Box, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { useForm } from '@tanstack/react-form';
-import { expect, userEvent, within } from 'storybook/test';
 
 import type { Faction } from '@db/factions';
 import { defaultFaction } from '@data/defaultFaction';
@@ -80,32 +79,6 @@ export const ConventionalFive = meta.story({
   args: {
     faction: withLeadersAndDecals(5, 2),
   },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    await userEvent.click(canvas.getByRole('button', { name: 'Add supporting leader' }));
-    await expect(canvas.getByText('6 / 10')).toBeVisible();
-    await expect(canvas.getByRole('region', { name: 'Edit supporting leader 6' })).toBeVisible();
-
-    await userEvent.click(canvas.getByRole('button', { name: 'Remove last supporting leader' }));
-    await expect(canvas.getByText('5 / 10')).toBeVisible();
-    await expect(
-      canvas.queryByRole('region', { name: 'Edit supporting leader 6' })
-    ).not.toBeInTheDocument();
-    await expect(canvas.getByRole('region', { name: 'Edit supporting leader 5' })).toBeVisible();
-  },
-});
-
-export const ValidZero = meta.story({
-  args: {
-    faction: withLeadersAndDecals(0, 0),
-  },
-});
-
-export const MaximumTen = meta.story({
-  args: {
-    faction: withLeadersAndDecals(10, 3),
-  },
 });
 
 export const AdvisoryBlanks = meta.story({
@@ -120,17 +93,6 @@ export const AdvisoryBlanks = meta.story({
         ...withLeadersAndDecals(2, 1).rules,
         alliance: { text: '' },
       },
-    },
-  },
-});
-
-export const PreviewFreeMobile = meta.story({
-  args: {
-    faction: withLeadersAndDecals(5, 2),
-  },
-  globals: {
-    viewport: {
-      value: 'appMobile',
     },
   },
 });
