@@ -1,8 +1,8 @@
-import { Badge, Box, Paper, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+import { Box } from '@mantine/core';
 import preview from '@sb/preview';
-import { Sparkles } from 'lucide-react';
 
 import { HomepageStoryLayout } from './HomepageStoryLayout';
+import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 
 const meta = preview.meta({
   component: HomepageStoryLayout,
@@ -23,35 +23,9 @@ const meta = preview.meta({
     ),
   ],
   args: {
-    play: (
-      <Paper p="xl" radius="lg" withBorder h="100%">
-        <Stack gap="md">
-          <Badge color="dune" w="fit-content">
-            Start here
-          </Badge>
-          <Title order={2}>Every player breaks the rules differently</Title>
-          <Text c="dimmed">
-            Discover the deals, threats, and betrayals that make Dune memorable.
-          </Text>
-        </Stack>
-      </Paper>
-    ),
-    preview: (
-      <ThemeIcon size={180} radius={180} variant="light" color="confirm" aria-label="Asset preview">
-        <Sparkles size={72} />
-      </ThemeIcon>
-    ),
-    create: (
-      <Paper p="xl" radius="lg" withBorder h="100%">
-        <Stack gap="md">
-          <Badge color="confirm" w="fit-content">
-            Make it yours
-          </Badge>
-          <Title order={2}>Your idea belongs at the table</Title>
-          <Text c="dimmed">Remix a familiar edition or create a faction nobody has seen.</Text>
-        </Stack>
-      </Paper>
-    ),
+    play: <LayoutSlotPlaceholder name="play" minHeight={320} />,
+    preview: <LayoutSlotPlaceholder name="preview" minHeight={320} />,
+    create: <LayoutSlotPlaceholder name="create" minHeight={320} />,
   },
   argTypes: {
     play: { control: false },

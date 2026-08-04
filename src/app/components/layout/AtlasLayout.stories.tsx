@@ -1,8 +1,8 @@
-import { Anchor, Box, NavLink, Paper, Stack, Text, Title } from '@mantine/core';
+import { Box } from '@mantine/core';
 import preview from '@sb/preview';
-import { BookOpen, Trophy, Wrench } from 'lucide-react';
 
 import { AtlasLayout } from './AtlasLayout';
+import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 
 const meta = preview.meta({
   component: AtlasLayout,
@@ -23,42 +23,8 @@ const meta = preview.meta({
     ),
   ],
   args: {
-    index: (
-      <Paper p="md" radius="lg" withBorder>
-        <Stack gap="xs">
-          <Text tt="uppercase" size="xs" fw={800} c="dimmed">
-            The territory
-          </Text>
-          <NavLink href="#rules" label="Read the rules" leftSection={<BookOpen size={18} />} />
-          <NavLink href="#results" label="Record the game" leftSection={<Trophy size={18} />} />
-          <NavLink href="#tools" label="Build better tools" leftSection={<Wrench size={18} />} />
-          <Anchor href="https://github.com/ndelangen/dunezone/issues" mt="sm">
-            Follow the backlog
-          </Anchor>
-        </Stack>
-      </Paper>
-    ),
-    children: (
-      <Stack gap="xl">
-        {[
-          ['rules', '01', 'Every rulebook, made for the web'],
-          ['results', '02', 'Let every game add to the story'],
-          ['tools', '03', 'Give every faction its perfect table tool'],
-        ].map(([id, number, title]) => (
-          <Paper key={id} id={id} p="xl" radius="lg" withBorder mih={220}>
-            <Text c="dune.8" fw={900} size="xl">
-              {number}
-            </Text>
-            <Title order={2} mt="sm">
-              {title}
-            </Title>
-            <Text c="dimmed" mt="md">
-              Planned territory—an ambition without a promised delivery date.
-            </Text>
-          </Paper>
-        ))}
-      </Stack>
-    ),
+    index: <LayoutSlotPlaceholder name="index" minHeight={240} />,
+    children: <LayoutSlotPlaceholder name="children" minHeight={720} />,
   },
   argTypes: {
     index: { control: false },
