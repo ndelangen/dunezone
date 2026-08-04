@@ -39,6 +39,11 @@ bun run generate         # Regenerate the public asset catalog in src/game/data/
 bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and dry-run gate
 ```
 
+`bun run typecheck` uses the native TypeScript 7 compiler from `@typescript/native`. The
+`typescript` 6.x development dependency remains intentionally installed because Storybook's
+`react-docgen-typescript` integration still imports the legacy compiler API; it is not the compiler
+used by the application or publisher typecheck scripts.
+
 ### Disposable local app development
 
 `bun run app:dev --local` is the opt-in authenticated local environment for browser review.

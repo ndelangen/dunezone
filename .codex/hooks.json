@@ -1,0 +1,18 @@
+{
+  "description": "Keep Codex worktrees on a freshly fetched default-branch base.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^startup$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/worktree-session-start.sh\"",
+            "timeout": 60,
+            "statusMessage": "Verifying the worktree base"
+          }
+        ]
+      }
+    ]
+  }
+}

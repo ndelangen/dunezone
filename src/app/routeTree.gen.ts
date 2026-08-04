@@ -11,36 +11,36 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AuthOauthRouteImport } from './routes/auth/oauth'
-import { Route as App_jobsRouteImport } from './routes/_app/[_]_jobs'
-import { Route as App_iconsRouteImport } from './routes/_app/[_]_icons'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
-import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
-import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/index'
-import { Route as AppPrivacyIndexRouteImport } from './routes/_app/privacy/index'
-import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/index'
-import { Route as AppAuthIndexRouteImport } from './routes/_app/auth/index'
-import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
-import { Route as PreviewSheetFactionSlugRouteImport } from './routes/preview/sheet/$factionSlug'
-import { Route as AppRulesetsCreateRouteImport } from './routes/_app/rulesets/create'
-import { Route as AppRulesetsRulesetSlugRouteImport } from './routes/_app/rulesets/$rulesetSlug'
-import { Route as AppGroupsCreateRouteImport } from './routes/_app/groups/create'
-import { Route as AppGroupsGroupSlugRouteImport } from './routes/_app/groups/$groupSlug'
-import { Route as AppFactionsCreateRouteImport } from './routes/_app/factions/create'
-import { Route as AppAuthLoginRouteImport } from './routes/_app/auth/login'
-import { Route as AppAuthErrorRouteImport } from './routes/_app/auth/error'
-import { Route as AppAssetsCreateRouteImport } from './routes/_app/assets/create'
+import { Route as App_iconsRouteImport } from './routes/_app/[_]_icons'
+import { Route as App_jobsRouteImport } from './routes/_app/[_]_jobs'
+import { Route as AuthOauthRouteImport } from './routes/auth/oauth'
 import { Route as AppAdminMigrationsRouteImport } from './routes/_app/admin/migrations'
-import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/index'
-import { Route as AppProfilesProfileSlugIndexRouteImport } from './routes/_app/profiles/$profileSlug/index'
-import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/groups/$groupSlug/index'
+import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
+import { Route as AppAssetsCreateRouteImport } from './routes/_app/assets/create'
+import { Route as AppAuthIndexRouteImport } from './routes/_app/auth/index'
+import { Route as AppAuthErrorRouteImport } from './routes/_app/auth/error'
+import { Route as AppAuthLoginRouteImport } from './routes/_app/auth/login'
+import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/index'
+import { Route as AppFactionsCreateRouteImport } from './routes/_app/factions/create'
+import { Route as AppGroupsGroupSlugRouteImport } from './routes/_app/groups/$groupSlug'
+import { Route as AppGroupsCreateRouteImport } from './routes/_app/groups/create'
+import { Route as AppPrivacyIndexRouteImport } from './routes/_app/privacy/index'
+import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/index'
+import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
+import { Route as AppRulesetsRulesetSlugRouteImport } from './routes/_app/rulesets/$rulesetSlug'
+import { Route as AppRulesetsCreateRouteImport } from './routes/_app/rulesets/create'
+import { Route as PreviewSheetFactionSlugRouteImport } from './routes/preview/sheet/$factionSlug'
 import { Route as AppFactionsFactionIdIndexRouteImport } from './routes/_app/factions/$factionId/index'
-import { Route as AppRulesetsRulesetSlugEditRouteImport } from './routes/_app/rulesets/$rulesetSlug/edit'
-import { Route as AppProfilesProfileSlugEditRouteImport } from './routes/_app/profiles/$profileSlug/edit'
-import { Route as AppGroupsGroupSlugEditRouteImport } from './routes/_app/groups/$groupSlug/edit'
 import { Route as AppFactionsFactionIdEditRouteImport } from './routes/_app/factions/$factionId/edit'
-import { Route as AppRulesetsRulesetSlugFaqCreateRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/create'
+import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/groups/$groupSlug/index'
+import { Route as AppGroupsGroupSlugEditRouteImport } from './routes/_app/groups/$groupSlug/edit'
+import { Route as AppProfilesProfileSlugIndexRouteImport } from './routes/_app/profiles/$profileSlug/index'
+import { Route as AppProfilesProfileSlugEditRouteImport } from './routes/_app/profiles/$profileSlug/edit'
+import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/index'
+import { Route as AppRulesetsRulesetSlugEditRouteImport } from './routes/_app/rulesets/$rulesetSlug/edit'
 import { Route as AppRulesetsRulesetSlugFaqQuestionSlugRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/$questionSlug'
+import { Route as AppRulesetsRulesetSlugFaqCreateRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/create'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -51,14 +51,9 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const AuthOauthRoute = AuthOauthRouteImport.update({
-  id: '/auth/oauth',
-  path: '/auth/oauth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const App_jobsRoute = App_jobsRouteImport.update({
-  id: '/__jobs',
-  path: '/__jobs',
+const AppSplatRoute = AppSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => AppRoute,
 } as any)
 const App_iconsRoute = App_iconsRouteImport.update({
@@ -66,34 +61,19 @@ const App_iconsRoute = App_iconsRouteImport.update({
   path: '/__icons',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSplatRoute = AppSplatRouteImport.update({
-  id: '/$',
-  path: '/$',
+const App_jobsRoute = App_jobsRouteImport.update({
+  id: '/__jobs',
+  path: '/__jobs',
   getParentRoute: () => AppRoute,
 } as any)
-const AppRulesetsIndexRoute = AppRulesetsIndexRouteImport.update({
-  id: '/rulesets/',
-  path: '/rulesets/',
-  getParentRoute: () => AppRoute,
+const AuthOauthRoute = AuthOauthRouteImport.update({
+  id: '/auth/oauth',
+  path: '/auth/oauth',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppProfilesIndexRoute = AppProfilesIndexRouteImport.update({
-  id: '/profiles/',
-  path: '/profiles/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPrivacyIndexRoute = AppPrivacyIndexRouteImport.update({
-  id: '/privacy/',
-  path: '/privacy/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppFactionsIndexRoute = AppFactionsIndexRouteImport.update({
-  id: '/factions/',
-  path: '/factions/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAuthIndexRoute = AppAuthIndexRouteImport.update({
-  id: '/auth/',
-  path: '/auth/',
+const AppAdminMigrationsRoute = AppAdminMigrationsRouteImport.update({
+  id: '/admin/migrations',
+  path: '/admin/migrations',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAssetsIndexRoute = AppAssetsIndexRouteImport.update({
@@ -101,39 +81,14 @@ const AppAssetsIndexRoute = AppAssetsIndexRouteImport.update({
   path: '/assets/',
   getParentRoute: () => AppRoute,
 } as any)
-const PreviewSheetFactionSlugRoute = PreviewSheetFactionSlugRouteImport.update({
-  id: '/preview/sheet/$factionSlug',
-  path: '/preview/sheet/$factionSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppRulesetsCreateRoute = AppRulesetsCreateRouteImport.update({
-  id: '/rulesets/create',
-  path: '/rulesets/create',
+const AppAssetsCreateRoute = AppAssetsCreateRouteImport.update({
+  id: '/assets/create',
+  path: '/assets/create',
   getParentRoute: () => AppRoute,
 } as any)
-const AppRulesetsRulesetSlugRoute = AppRulesetsRulesetSlugRouteImport.update({
-  id: '/rulesets/$rulesetSlug',
-  path: '/rulesets/$rulesetSlug',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppGroupsCreateRoute = AppGroupsCreateRouteImport.update({
-  id: '/groups/create',
-  path: '/groups/create',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppGroupsGroupSlugRoute = AppGroupsGroupSlugRouteImport.update({
-  id: '/groups/$groupSlug',
-  path: '/groups/$groupSlug',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppFactionsCreateRoute = AppFactionsCreateRouteImport.update({
-  id: '/factions/create',
-  path: '/factions/create',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAuthLoginRoute = AppAuthLoginRouteImport.update({
-  id: '/auth/login',
-  path: '/auth/login',
+const AppAuthIndexRoute = AppAuthIndexRouteImport.update({
+  id: '/auth/',
+  path: '/auth/',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAuthErrorRoute = AppAuthErrorRouteImport.update({
@@ -141,32 +96,60 @@ const AppAuthErrorRoute = AppAuthErrorRouteImport.update({
   path: '/auth/error',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAssetsCreateRoute = AppAssetsCreateRouteImport.update({
-  id: '/assets/create',
-  path: '/assets/create',
+const AppAuthLoginRoute = AppAuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAdminMigrationsRoute = AppAdminMigrationsRouteImport.update({
-  id: '/admin/migrations',
-  path: '/admin/migrations',
+const AppFactionsIndexRoute = AppFactionsIndexRouteImport.update({
+  id: '/factions/',
+  path: '/factions/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppRulesetsRulesetSlugIndexRoute =
-  AppRulesetsRulesetSlugIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AppRulesetsRulesetSlugRoute,
-  } as any)
-const AppProfilesProfileSlugIndexRoute =
-  AppProfilesProfileSlugIndexRouteImport.update({
-    id: '/profiles/$profileSlug/',
-    path: '/profiles/$profileSlug/',
-    getParentRoute: () => AppRoute,
-  } as any)
-const AppGroupsGroupSlugIndexRoute = AppGroupsGroupSlugIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppGroupsGroupSlugRoute,
+const AppFactionsCreateRoute = AppFactionsCreateRouteImport.update({
+  id: '/factions/create',
+  path: '/factions/create',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGroupsGroupSlugRoute = AppGroupsGroupSlugRouteImport.update({
+  id: '/groups/$groupSlug',
+  path: '/groups/$groupSlug',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGroupsCreateRoute = AppGroupsCreateRouteImport.update({
+  id: '/groups/create',
+  path: '/groups/create',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPrivacyIndexRoute = AppPrivacyIndexRouteImport.update({
+  id: '/privacy/',
+  path: '/privacy/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfilesIndexRoute = AppProfilesIndexRouteImport.update({
+  id: '/profiles/',
+  path: '/profiles/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRulesetsIndexRoute = AppRulesetsIndexRouteImport.update({
+  id: '/rulesets/',
+  path: '/rulesets/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRulesetsRulesetSlugRoute = AppRulesetsRulesetSlugRouteImport.update({
+  id: '/rulesets/$rulesetSlug',
+  path: '/rulesets/$rulesetSlug',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRulesetsCreateRoute = AppRulesetsCreateRouteImport.update({
+  id: '/rulesets/create',
+  path: '/rulesets/create',
+  getParentRoute: () => AppRoute,
+} as any)
+const PreviewSheetFactionSlugRoute = PreviewSheetFactionSlugRouteImport.update({
+  id: '/preview/sheet/$factionSlug',
+  path: '/preview/sheet/$factionSlug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppFactionsFactionIdIndexRoute =
   AppFactionsFactionIdIndexRouteImport.update({
@@ -174,11 +157,27 @@ const AppFactionsFactionIdIndexRoute =
     path: '/factions/$factionId/',
     getParentRoute: () => AppRoute,
   } as any)
-const AppRulesetsRulesetSlugEditRoute =
-  AppRulesetsRulesetSlugEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AppRulesetsRulesetSlugRoute,
+const AppFactionsFactionIdEditRoute =
+  AppFactionsFactionIdEditRouteImport.update({
+    id: '/factions/$factionId/edit',
+    path: '/factions/$factionId/edit',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppGroupsGroupSlugIndexRoute = AppGroupsGroupSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppGroupsGroupSlugRoute,
+} as any)
+const AppGroupsGroupSlugEditRoute = AppGroupsGroupSlugEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => AppGroupsGroupSlugRoute,
+} as any)
+const AppProfilesProfileSlugIndexRoute =
+  AppProfilesProfileSlugIndexRouteImport.update({
+    id: '/profiles/$profileSlug/',
+    path: '/profiles/$profileSlug/',
+    getParentRoute: () => AppRoute,
   } as any)
 const AppProfilesProfileSlugEditRoute =
   AppProfilesProfileSlugEditRouteImport.update({
@@ -186,27 +185,28 @@ const AppProfilesProfileSlugEditRoute =
     path: '/profiles/$profileSlug/edit',
     getParentRoute: () => AppRoute,
   } as any)
-const AppGroupsGroupSlugEditRoute = AppGroupsGroupSlugEditRouteImport.update({
-  id: '/edit',
-  path: '/edit',
-  getParentRoute: () => AppGroupsGroupSlugRoute,
-} as any)
-const AppFactionsFactionIdEditRoute =
-  AppFactionsFactionIdEditRouteImport.update({
-    id: '/factions/$factionId/edit',
-    path: '/factions/$factionId/edit',
-    getParentRoute: () => AppRoute,
+const AppRulesetsRulesetSlugIndexRoute =
+  AppRulesetsRulesetSlugIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppRulesetsRulesetSlugRoute,
   } as any)
-const AppRulesetsRulesetSlugFaqCreateRoute =
-  AppRulesetsRulesetSlugFaqCreateRouteImport.update({
-    id: '/faq/create',
-    path: '/faq/create',
+const AppRulesetsRulesetSlugEditRoute =
+  AppRulesetsRulesetSlugEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
     getParentRoute: () => AppRulesetsRulesetSlugRoute,
   } as any)
 const AppRulesetsRulesetSlugFaqQuestionSlugRoute =
   AppRulesetsRulesetSlugFaqQuestionSlugRouteImport.update({
     id: '/faq/$questionSlug',
     path: '/faq/$questionSlug',
+    getParentRoute: () => AppRulesetsRulesetSlugRoute,
+  } as any)
+const AppRulesetsRulesetSlugFaqCreateRoute =
+  AppRulesetsRulesetSlugFaqCreateRouteImport.update({
+    id: '/faq/create',
+    path: '/faq/create',
     getParentRoute: () => AppRulesetsRulesetSlugRoute,
   } as any)
 
@@ -432,18 +432,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/auth/oauth': {
-      id: '/auth/oauth'
-      path: '/auth/oauth'
-      fullPath: '/auth/oauth'
-      preLoaderRoute: typeof AuthOauthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app/__jobs': {
-      id: '/_app/__jobs'
-      path: '/__jobs'
-      fullPath: '/__jobs'
-      preLoaderRoute: typeof App_jobsRouteImport
+    '/_app/$': {
+      id: '/_app/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof AppSplatRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/__icons': {
@@ -453,46 +446,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof App_iconsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/$': {
-      id: '/_app/$'
-      path: '/$'
-      fullPath: '/$'
-      preLoaderRoute: typeof AppSplatRouteImport
+    '/_app/__jobs': {
+      id: '/_app/__jobs'
+      path: '/__jobs'
+      fullPath: '/__jobs'
+      preLoaderRoute: typeof App_jobsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/rulesets/': {
-      id: '/_app/rulesets/'
-      path: '/rulesets'
-      fullPath: '/rulesets/'
-      preLoaderRoute: typeof AppRulesetsIndexRouteImport
-      parentRoute: typeof AppRoute
+    '/auth/oauth': {
+      id: '/auth/oauth'
+      path: '/auth/oauth'
+      fullPath: '/auth/oauth'
+      preLoaderRoute: typeof AuthOauthRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/profiles/': {
-      id: '/_app/profiles/'
-      path: '/profiles'
-      fullPath: '/profiles/'
-      preLoaderRoute: typeof AppProfilesIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/privacy/': {
-      id: '/_app/privacy/'
-      path: '/privacy'
-      fullPath: '/privacy/'
-      preLoaderRoute: typeof AppPrivacyIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/factions/': {
-      id: '/_app/factions/'
-      path: '/factions'
-      fullPath: '/factions/'
-      preLoaderRoute: typeof AppFactionsIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/auth/': {
-      id: '/_app/auth/'
-      path: '/auth'
-      fullPath: '/auth/'
-      preLoaderRoute: typeof AppAuthIndexRouteImport
+    '/_app/admin/migrations': {
+      id: '/_app/admin/migrations'
+      path: '/admin/migrations'
+      fullPath: '/admin/migrations'
+      preLoaderRoute: typeof AppAdminMigrationsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/assets/': {
@@ -502,53 +474,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssetsIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/preview/sheet/$factionSlug': {
-      id: '/preview/sheet/$factionSlug'
-      path: '/preview/sheet/$factionSlug'
-      fullPath: '/preview/sheet/$factionSlug'
-      preLoaderRoute: typeof PreviewSheetFactionSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app/rulesets/create': {
-      id: '/_app/rulesets/create'
-      path: '/rulesets/create'
-      fullPath: '/rulesets/create'
-      preLoaderRoute: typeof AppRulesetsCreateRouteImport
+    '/_app/assets/create': {
+      id: '/_app/assets/create'
+      path: '/assets/create'
+      fullPath: '/assets/create'
+      preLoaderRoute: typeof AppAssetsCreateRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/rulesets/$rulesetSlug': {
-      id: '/_app/rulesets/$rulesetSlug'
-      path: '/rulesets/$rulesetSlug'
-      fullPath: '/rulesets/$rulesetSlug'
-      preLoaderRoute: typeof AppRulesetsRulesetSlugRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/groups/create': {
-      id: '/_app/groups/create'
-      path: '/groups/create'
-      fullPath: '/groups/create'
-      preLoaderRoute: typeof AppGroupsCreateRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/groups/$groupSlug': {
-      id: '/_app/groups/$groupSlug'
-      path: '/groups/$groupSlug'
-      fullPath: '/groups/$groupSlug'
-      preLoaderRoute: typeof AppGroupsGroupSlugRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/factions/create': {
-      id: '/_app/factions/create'
-      path: '/factions/create'
-      fullPath: '/factions/create'
-      preLoaderRoute: typeof AppFactionsCreateRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/auth/login': {
-      id: '/_app/auth/login'
-      path: '/auth/login'
-      fullPath: '/auth/login'
-      preLoaderRoute: typeof AppAuthLoginRouteImport
+    '/_app/auth/': {
+      id: '/_app/auth/'
+      path: '/auth'
+      fullPath: '/auth/'
+      preLoaderRoute: typeof AppAuthIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/auth/error': {
@@ -558,32 +495,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthErrorRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/assets/create': {
-      id: '/_app/assets/create'
-      path: '/assets/create'
-      fullPath: '/assets/create'
-      preLoaderRoute: typeof AppAssetsCreateRouteImport
+    '/_app/auth/login': {
+      id: '/_app/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AppAuthLoginRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/admin/migrations': {
-      id: '/_app/admin/migrations'
-      path: '/admin/migrations'
-      fullPath: '/admin/migrations'
-      preLoaderRoute: typeof AppAdminMigrationsRouteImport
+    '/_app/factions/': {
+      id: '/_app/factions/'
+      path: '/factions'
+      fullPath: '/factions/'
+      preLoaderRoute: typeof AppFactionsIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/rulesets/$rulesetSlug/': {
-      id: '/_app/rulesets/$rulesetSlug/'
-      path: '/'
-      fullPath: '/rulesets/$rulesetSlug/'
-      preLoaderRoute: typeof AppRulesetsRulesetSlugIndexRouteImport
-      parentRoute: typeof AppRulesetsRulesetSlugRoute
+    '/_app/factions/create': {
+      id: '/_app/factions/create'
+      path: '/factions/create'
+      fullPath: '/factions/create'
+      preLoaderRoute: typeof AppFactionsCreateRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/_app/profiles/$profileSlug/': {
-      id: '/_app/profiles/$profileSlug/'
-      path: '/profiles/$profileSlug'
-      fullPath: '/profiles/$profileSlug/'
-      preLoaderRoute: typeof AppProfilesProfileSlugIndexRouteImport
+    '/_app/groups/$groupSlug': {
+      id: '/_app/groups/$groupSlug'
+      path: '/groups/$groupSlug'
+      fullPath: '/groups/$groupSlug'
+      preLoaderRoute: typeof AppGroupsGroupSlugRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/groups/create': {
+      id: '/_app/groups/create'
+      path: '/groups/create'
+      fullPath: '/groups/create'
+      preLoaderRoute: typeof AppGroupsCreateRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/privacy/': {
+      id: '/_app/privacy/'
+      path: '/privacy'
+      fullPath: '/privacy/'
+      preLoaderRoute: typeof AppPrivacyIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profiles/': {
+      id: '/_app/profiles/'
+      path: '/profiles'
+      fullPath: '/profiles/'
+      preLoaderRoute: typeof AppProfilesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/rulesets/': {
+      id: '/_app/rulesets/'
+      path: '/rulesets'
+      fullPath: '/rulesets/'
+      preLoaderRoute: typeof AppRulesetsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/rulesets/$rulesetSlug': {
+      id: '/_app/rulesets/$rulesetSlug'
+      path: '/rulesets/$rulesetSlug'
+      fullPath: '/rulesets/$rulesetSlug'
+      preLoaderRoute: typeof AppRulesetsRulesetSlugRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/rulesets/create': {
+      id: '/_app/rulesets/create'
+      path: '/rulesets/create'
+      fullPath: '/rulesets/create'
+      preLoaderRoute: typeof AppRulesetsCreateRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/preview/sheet/$factionSlug': {
+      id: '/preview/sheet/$factionSlug'
+      path: '/preview/sheet/$factionSlug'
+      fullPath: '/preview/sheet/$factionSlug'
+      preLoaderRoute: typeof PreviewSheetFactionSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/factions/$factionId/': {
+      id: '/_app/factions/$factionId/'
+      path: '/factions/$factionId'
+      fullPath: '/factions/$factionId/'
+      preLoaderRoute: typeof AppFactionsFactionIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/factions/$factionId/edit': {
+      id: '/_app/factions/$factionId/edit'
+      path: '/factions/$factionId/edit'
+      fullPath: '/factions/$factionId/edit'
+      preLoaderRoute: typeof AppFactionsFactionIdEditRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/groups/$groupSlug/': {
@@ -593,19 +593,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGroupsGroupSlugIndexRouteImport
       parentRoute: typeof AppGroupsGroupSlugRoute
     }
-    '/_app/factions/$factionId/': {
-      id: '/_app/factions/$factionId/'
-      path: '/factions/$factionId'
-      fullPath: '/factions/$factionId/'
-      preLoaderRoute: typeof AppFactionsFactionIdIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/rulesets/$rulesetSlug/edit': {
-      id: '/_app/rulesets/$rulesetSlug/edit'
+    '/_app/groups/$groupSlug/edit': {
+      id: '/_app/groups/$groupSlug/edit'
       path: '/edit'
-      fullPath: '/rulesets/$rulesetSlug/edit'
-      preLoaderRoute: typeof AppRulesetsRulesetSlugEditRouteImport
-      parentRoute: typeof AppRulesetsRulesetSlugRoute
+      fullPath: '/groups/$groupSlug/edit'
+      preLoaderRoute: typeof AppGroupsGroupSlugEditRouteImport
+      parentRoute: typeof AppGroupsGroupSlugRoute
+    }
+    '/_app/profiles/$profileSlug/': {
+      id: '/_app/profiles/$profileSlug/'
+      path: '/profiles/$profileSlug'
+      fullPath: '/profiles/$profileSlug/'
+      preLoaderRoute: typeof AppProfilesProfileSlugIndexRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/profiles/$profileSlug/edit': {
       id: '/_app/profiles/$profileSlug/edit'
@@ -614,25 +614,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfilesProfileSlugEditRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/groups/$groupSlug/edit': {
-      id: '/_app/groups/$groupSlug/edit'
+    '/_app/rulesets/$rulesetSlug/': {
+      id: '/_app/rulesets/$rulesetSlug/'
+      path: '/'
+      fullPath: '/rulesets/$rulesetSlug/'
+      preLoaderRoute: typeof AppRulesetsRulesetSlugIndexRouteImport
+      parentRoute: typeof AppRulesetsRulesetSlugRoute
+    }
+    '/_app/rulesets/$rulesetSlug/edit': {
+      id: '/_app/rulesets/$rulesetSlug/edit'
       path: '/edit'
-      fullPath: '/groups/$groupSlug/edit'
-      preLoaderRoute: typeof AppGroupsGroupSlugEditRouteImport
-      parentRoute: typeof AppGroupsGroupSlugRoute
-    }
-    '/_app/factions/$factionId/edit': {
-      id: '/_app/factions/$factionId/edit'
-      path: '/factions/$factionId/edit'
-      fullPath: '/factions/$factionId/edit'
-      preLoaderRoute: typeof AppFactionsFactionIdEditRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/rulesets/$rulesetSlug/faq/create': {
-      id: '/_app/rulesets/$rulesetSlug/faq/create'
-      path: '/faq/create'
-      fullPath: '/rulesets/$rulesetSlug/faq/create'
-      preLoaderRoute: typeof AppRulesetsRulesetSlugFaqCreateRouteImport
+      fullPath: '/rulesets/$rulesetSlug/edit'
+      preLoaderRoute: typeof AppRulesetsRulesetSlugEditRouteImport
       parentRoute: typeof AppRulesetsRulesetSlugRoute
     }
     '/_app/rulesets/$rulesetSlug/faq/$questionSlug': {
@@ -640,6 +633,13 @@ declare module '@tanstack/react-router' {
       path: '/faq/$questionSlug'
       fullPath: '/rulesets/$rulesetSlug/faq/$questionSlug'
       preLoaderRoute: typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteImport
+      parentRoute: typeof AppRulesetsRulesetSlugRoute
+    }
+    '/_app/rulesets/$rulesetSlug/faq/create': {
+      id: '/_app/rulesets/$rulesetSlug/faq/create'
+      path: '/faq/create'
+      fullPath: '/rulesets/$rulesetSlug/faq/create'
+      preLoaderRoute: typeof AppRulesetsRulesetSlugFaqCreateRouteImport
       parentRoute: typeof AppRulesetsRulesetSlugRoute
     }
   }
