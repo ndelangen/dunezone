@@ -61,6 +61,7 @@ describe('group collaboration permissions', () => {
       member.mutation(api.rulesets.update, {
         id: ruleset._id,
         name: ruleset.name,
+        group_id: ruleset.group_id,
         image_cover: 'https://example.com/collaborative-cover.jpg',
       })
     ).resolves.toMatchObject({

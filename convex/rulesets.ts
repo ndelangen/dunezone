@@ -313,7 +313,7 @@ export const update = mutation({
     if (!isOwner && normalizedName !== ruleset.name) {
       throw new Error('Only the ruleset owner can rename this ruleset');
     }
-    if (!isOwner && args.group_id !== undefined) {
+    if (!isOwner && args.group_id !== undefined && args.group_id !== ruleset.group_id) {
       throw new Error('Only the ruleset owner can change its group');
     }
 

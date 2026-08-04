@@ -117,7 +117,11 @@ function RulesetEditPage() {
     return (
       <PageLayout header={header} toolbar={toolbar}>
         <Card>
-          <p>Only the ruleset owner or an active member of its group can edit this ruleset.</p>
+          <p>
+            {r.group_id
+              ? 'Only the ruleset owner or an active member of its group can edit this ruleset.'
+              : 'Only the ruleset owner can edit this ruleset.'}
+          </p>
         </Card>
       </PageLayout>
     );
