@@ -11,7 +11,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'Arranges left, center, and right regions as a three-part composition, then stacks them at constrained widths.',
+          'Arranges left, center, and right regions as a three-part composition, then stacks them at constrained widths. Its parent owns page width and outer spacing.',
       },
     },
   },
@@ -28,6 +28,7 @@ const meta = preview.meta({
     right: <LayoutSlotPlaceholder name="right" minHeight={320} />,
   },
   argTypes: {
+    className: { control: false },
     left: { control: false },
     center: { control: false },
     centerClassName: { control: false },

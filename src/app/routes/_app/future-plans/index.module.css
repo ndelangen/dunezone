@@ -23,6 +23,14 @@
   color: var(--mantine-color-yellow-2);
 }
 
+.atlasFrame {
+  padding: 3.5rem clamp(0rem, 2vw, 1.5rem) 1rem;
+}
+
+.atlasSidebar {
+  top: 1.5rem;
+}
+
 .indexLink {
   padding: 0.9rem 0;
   color: inherit;

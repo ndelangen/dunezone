@@ -11,7 +11,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'Places wide and narrow regions in unequal desktop columns, then stacks them into one reading column on narrower screens.',
+          'Places wide and narrow regions in unequal desktop columns, then stacks them into one reading column on narrower screens. Its parent owns page width and outer spacing.',
       },
     },
   },
@@ -27,6 +27,7 @@ const meta = preview.meta({
     narrow: <LayoutSlotPlaceholder name="narrow" minHeight={360} />,
   },
   argTypes: {
+    className: { control: false },
     wide: { control: false },
     narrow: { control: false },
   },

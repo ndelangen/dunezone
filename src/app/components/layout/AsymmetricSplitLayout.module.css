@@ -2,12 +2,10 @@
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   gap: clamp(2rem, 5vw, 5rem);
-  padding-bottom: 1rem;
 }
 
 .root > * {
   min-width: 0;
-  padding: clamp(1.25rem, 3vw, 2rem) 0;
 }
 
 @media (max-width: 61.25em) {

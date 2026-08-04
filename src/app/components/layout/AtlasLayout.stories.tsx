@@ -11,7 +11,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'Keeps a sidebar visible beside long-form content on wide screens and moves it into document flow on compact screens.',
+          'Keeps a sidebar visible beside long-form content on wide screens and moves it into document flow on compact screens. Its parent owns page width and outer spacing.',
       },
     },
   },
@@ -27,7 +27,9 @@ const meta = preview.meta({
     children: <LayoutSlotPlaceholder name="children" minHeight={720} />,
   },
   argTypes: {
+    className: { control: false },
     sidebar: { control: false },
+    sidebarClassName: { control: false },
     children: { control: false },
   },
 });

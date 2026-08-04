@@ -78,58 +78,63 @@ function IndexPage() {
     >
       <Stack gap="xl">
         <TriptychLayout
+          className={styles.storyLayout}
           left={
-            <Stack justify="space-between" h="100%" gap="xl">
-              <Box>
-                <Badge color="dune">Start here</Badge>
-                <Title order={2} mt="sm" className={styles.storyTitle}>
-                  A game where every player breaks the rules differently
-                </Title>
-                <Text c="dimmed" size="lg" mt="md" className={styles.storyCopy}>
-                  Dune turns conquest into conversation. Your strongest weapon may be an alliance, a
-                  threat, a promise—or knowing exactly when to betray one.
-                </Text>
-              </Box>
-              <Group>
-                <Button renderRoot={(props) => <Link {...props} to="/rulesets" />}>
-                  Discover Dune
-                </Button>
-                <Button
-                  component="a"
-                  href="https://treachery.online/"
-                  target="_blank"
-                  variant="subtle"
-                  rightSection={<ExternalLink size={15} aria-hidden />}
-                >
-                  Play online
-                </Button>
-              </Group>
-            </Stack>
+            <Box className={styles.storyColumn}>
+              <Stack justify="space-between" h="100%" gap="xl">
+                <Box>
+                  <Badge color="dune">Start here</Badge>
+                  <Title order={2} mt="sm" className={styles.storyTitle}>
+                    A game where every player breaks the rules differently
+                  </Title>
+                  <Text c="dimmed" size="lg" mt="md" className={styles.storyCopy}>
+                    Dune turns conquest into conversation. Your strongest weapon may be an alliance,
+                    a threat, a promise—or knowing exactly when to betray one.
+                  </Text>
+                </Box>
+                <Group>
+                  <Button renderRoot={(props) => <Link {...props} to="/rulesets" />}>
+                    Discover Dune
+                  </Button>
+                  <Button
+                    component="a"
+                    href="https://treachery.online/"
+                    target="_blank"
+                    variant="subtle"
+                    rightSection={<ExternalLink size={15} aria-hidden />}
+                  >
+                    Play online
+                  </Button>
+                </Group>
+              </Stack>
+            </Box>
           }
           center={<AnimatedLeaderToken />}
           centerClassName={styles.storyPreview}
           right={
-            <Stack gap="md">
-              <Badge color="confirm" w="fit-content">
-                Make it yours
-              </Badge>
-              <Title order={2}>Your idea belongs at the table</Title>
-              <Text c="dimmed">
-                Remix a familiar edition, learn from community homebrew, or invent a faction nobody
-                has seen before. Watch every piece take shape, then preview, print, and share it
-                with friends.
-              </Text>
-              <Group mt="sm">
-                <CreateFactionCta withArrow>Start creating</CreateFactionCta>
-                <Button
-                  variant="subtle"
-                  color="confirm"
-                  renderRoot={(props) => <Link {...props} to="/factions" />}
-                >
-                  Browse homebrew
-                </Button>
-              </Group>
-            </Stack>
+            <Box className={styles.storyColumn}>
+              <Stack gap="md">
+                <Badge color="confirm" w="fit-content">
+                  Make it yours
+                </Badge>
+                <Title order={2}>Your idea belongs at the table</Title>
+                <Text c="dimmed">
+                  Remix a familiar edition, learn from community homebrew, or invent a faction
+                  nobody has seen before. Watch every piece take shape, then preview, print, and
+                  share it with friends.
+                </Text>
+                <Group mt="sm">
+                  <CreateFactionCta withArrow>Start creating</CreateFactionCta>
+                  <Button
+                    variant="subtle"
+                    color="confirm"
+                    renderRoot={(props) => <Link {...props} to="/factions" />}
+                  >
+                    Browse homebrew
+                  </Button>
+                </Group>
+              </Stack>
+            </Box>
           }
         />
 
@@ -216,67 +221,79 @@ function IndexPage() {
         </Paper>
 
         <AsymmetricSplitLayout
+          className={styles.discoveryLayout}
           wide={
-            <Stack gap="lg">
-              <Group justify="space-between" align="end" wrap="wrap" gap="md">
-                <Box>
-                  <Text className={styles.kicker}>From the catalogue</Text>
-                  <Title order={2}>New ideas are arriving</Title>
-                </Box>
-                <Anchor component={Link} to="/factions" fw={700} className={styles.headingLink}>
-                  See every faction <ArrowRight size={15} aria-hidden />
-                </Anchor>
-              </Group>
-              <Stack gap="sm">
-                {data.spotlights.newArrival ? (
-                  <FactionCatalogueSpotlight
-                    faction={data.spotlights.newArrival}
-                    label="New arrival"
-                    meta={`Created ${formatFactionCatalogueDate(data.spotlights.newArrival.created_at)}`}
-                  />
-                ) : null}
-                {data.spotlights.freshlyUpdated ? (
-                  <FactionCatalogueSpotlight
-                    faction={data.spotlights.freshlyUpdated}
-                    label="Freshly updated"
-                    meta={`Updated ${formatFactionCatalogueDate(data.spotlights.freshlyUpdated.updated_at)}`}
-                  />
-                ) : null}
-                {!data.spotlights.newArrival && !data.spotlights.freshlyUpdated ? (
-                  <Text c="dimmed">The catalogue is waiting for its first faction.</Text>
-                ) : null}
+            <Box className={styles.discoveryColumn}>
+              <Stack gap="lg">
+                <Group justify="space-between" align="end" wrap="wrap" gap="md">
+                  <Box>
+                    <Text className={styles.kicker}>From the catalogue</Text>
+                    <Title order={2}>New ideas are arriving</Title>
+                  </Box>
+                  <Anchor component={Link} to="/factions" fw={700} className={styles.headingLink}>
+                    See every faction <ArrowRight size={15} aria-hidden />
+                  </Anchor>
+                </Group>
+                <Stack gap="sm">
+                  {data.spotlights.newArrival ? (
+                    <FactionCatalogueSpotlight
+                      faction={data.spotlights.newArrival}
+                      label="New arrival"
+                      meta={`Created ${formatFactionCatalogueDate(data.spotlights.newArrival.created_at)}`}
+                    />
+                  ) : null}
+                  {data.spotlights.freshlyUpdated ? (
+                    <FactionCatalogueSpotlight
+                      faction={data.spotlights.freshlyUpdated}
+                      label="Freshly updated"
+                      meta={`Updated ${formatFactionCatalogueDate(data.spotlights.freshlyUpdated.updated_at)}`}
+                    />
+                  ) : null}
+                  {!data.spotlights.newArrival && !data.spotlights.freshlyUpdated ? (
+                    <Text c="dimmed">The catalogue is waiting for its first faction.</Text>
+                  ) : null}
+                </Stack>
               </Stack>
-            </Stack>
+            </Box>
           }
           narrow={
-            <Stack gap="lg">
-              <Group justify="space-between" align="end" wrap="wrap" gap="md">
-                <Box>
-                  <Badge color="gray" variant="filled">
-                    Planned
-                  </Badge>
-                  <Title order={2} mt="xs">
-                    What we’ll make next
-                  </Title>
-                </Box>
-                <Anchor component={Link} to="/future-plans" fw={700} className={styles.headingLink}>
-                  Future plans <ArrowRight size={15} aria-hidden />
-                </Anchor>
-              </Group>
-              <Stack gap="md">
-                <FuturePlanItem icon={<BookOpen size={20} />}>Web-native rulebooks</FuturePlanItem>
-                <FuturePlanItem icon={<Printer size={20} />}>PDF and TTS output</FuturePlanItem>
-                <FuturePlanItem icon={<Trophy size={20} />}>
-                  Results and leaderboards
-                </FuturePlanItem>
-                <FuturePlanItem icon={<MessageCircle size={20} />}>
-                  An Atreides card tracker
-                </FuturePlanItem>
-                <Anchor component={Link} to="/future-plans" fw={700}>
-                  What should we make after that?
-                </Anchor>
+            <Box className={styles.discoveryColumn}>
+              <Stack gap="lg">
+                <Group justify="space-between" align="end" wrap="wrap" gap="md">
+                  <Box>
+                    <Badge color="gray" variant="filled">
+                      Planned
+                    </Badge>
+                    <Title order={2} mt="xs">
+                      What we’ll make next
+                    </Title>
+                  </Box>
+                  <Anchor
+                    component={Link}
+                    to="/future-plans"
+                    fw={700}
+                    className={styles.headingLink}
+                  >
+                    Future plans <ArrowRight size={15} aria-hidden />
+                  </Anchor>
+                </Group>
+                <Stack gap="md">
+                  <FuturePlanItem icon={<BookOpen size={20} />}>
+                    Web-native rulebooks
+                  </FuturePlanItem>
+                  <FuturePlanItem icon={<Printer size={20} />}>PDF and TTS output</FuturePlanItem>
+                  <FuturePlanItem icon={<Trophy size={20} />}>
+                    Results and leaderboards
+                  </FuturePlanItem>
+                  <FuturePlanItem icon={<MessageCircle size={20} />}>
+                    An Atreides card tracker
+                  </FuturePlanItem>
+                  <Anchor component={Link} to="/future-plans" fw={700}>
+                    What should we make after that?
+                  </Anchor>
+                </Stack>
               </Stack>
-            </Stack>
+            </Box>
           }
         />
       </Stack>

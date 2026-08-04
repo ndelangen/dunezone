@@ -165,6 +165,8 @@ function FuturePlansPage() {
       }
     >
       <AtlasLayout
+        className={styles.atlasFrame}
+        sidebarClassName={styles.atlasSidebar}
         sidebar={
           <Stack component="aside" gap="md">
             <Badge color="gray" variant="filled" w="fit-content">
