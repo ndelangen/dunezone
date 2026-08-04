@@ -60,6 +60,10 @@
   max-width: 39rem;
 }
 
+.storyPreview {
+  background: radial-gradient(circle, rgb(249 219 157 / 56%), transparent 68%);
+}
+
 .communityBand {
   overflow: hidden;
   background:

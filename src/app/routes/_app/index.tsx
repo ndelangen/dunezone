@@ -22,8 +22,8 @@ import { CreateFactionCta } from '@app/components/factions/CreateFactionCta';
 import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
 import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
 import { FuturePlanItem } from '@app/components/future/FuturePlanItem';
-import { DiscoveryDeskLayout } from '@app/components/layout/DiscoveryDeskLayout';
-import { HomepageStoryLayout } from '@app/components/layout/HomepageStoryLayout';
+import { AsymmetricSplitLayout } from '@app/components/layout/AsymmetricSplitLayout';
+import { TriptychLayout } from '@app/components/layout/TriptychLayout';
 import { PageLayout } from '@app/components/shell';
 
 import styles from './index.module.css';
@@ -77,8 +77,8 @@ function IndexPage() {
       }
     >
       <Stack gap="xl">
-        <HomepageStoryLayout
-          play={
+        <TriptychLayout
+          left={
             <Stack justify="space-between" h="100%" gap="xl">
               <Box>
                 <Badge color="dune">Start here</Badge>
@@ -106,8 +106,9 @@ function IndexPage() {
               </Group>
             </Stack>
           }
-          preview={<AnimatedLeaderToken />}
-          create={
+          center={<AnimatedLeaderToken />}
+          centerClassName={styles.storyPreview}
+          right={
             <Stack gap="md">
               <Badge color="confirm" w="fit-content">
                 Make it yours
@@ -214,8 +215,8 @@ function IndexPage() {
           </SimpleGrid>
         </Paper>
 
-        <DiscoveryDeskLayout
-          catalogue={
+        <AsymmetricSplitLayout
+          wide={
             <Stack gap="lg">
               <Group justify="space-between" align="end" wrap="wrap" gap="md">
                 <Box>
@@ -247,7 +248,7 @@ function IndexPage() {
               </Stack>
             </Stack>
           }
-          future={
+          narrow={
             <Stack gap="lg">
               <Group justify="space-between" align="end" wrap="wrap" gap="md">
                 <Box>

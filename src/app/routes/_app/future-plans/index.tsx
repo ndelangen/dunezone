@@ -165,8 +165,8 @@ function FuturePlansPage() {
       }
     >
       <AtlasLayout
-        index={
-          <Stack gap="md">
+        sidebar={
+          <Stack component="aside" gap="md">
             <Badge color="gray" variant="filled" w="fit-content">
               All planned
             </Badge>

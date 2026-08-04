@@ -1,17 +1,17 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
 
-import { HomepageStoryLayout } from './HomepageStoryLayout';
+import { AsymmetricSplitLayout } from './AsymmetricSplitLayout';
 import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 
 const meta = preview.meta({
-  component: HomepageStoryLayout,
+  component: AsymmetricSplitLayout,
   parameters: {
     layout: 'fullscreen',
     docs: {
       description: {
         component:
-          'Balances the homepage play invitation, animated asset preview, and homebrew invitation. The regions stack at constrained widths.',
+          'Places wide and narrow regions in unequal desktop columns, then stacks them into one reading column on narrower screens.',
       },
     },
   },
@@ -23,14 +23,12 @@ const meta = preview.meta({
     ),
   ],
   args: {
-    play: <LayoutSlotPlaceholder name="play" minHeight={320} />,
-    preview: <LayoutSlotPlaceholder name="preview" minHeight={320} />,
-    create: <LayoutSlotPlaceholder name="create" minHeight={320} />,
+    wide: <LayoutSlotPlaceholder name="wide" minHeight={360} />,
+    narrow: <LayoutSlotPlaceholder name="narrow" minHeight={360} />,
   },
   argTypes: {
-    play: { control: false },
-    preview: { control: false },
-    create: { control: false },
+    wide: { control: false },
+    narrow: { control: false },
   },
 });
 

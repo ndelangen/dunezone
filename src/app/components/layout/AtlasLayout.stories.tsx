@@ -11,7 +11,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'Keeps the Future plans territory index visible beside the ambition content on wide screens and moves it into document flow on compact screens.',
+          'Keeps a sidebar visible beside long-form content on wide screens and moves it into document flow on compact screens.',
       },
     },
   },
@@ -23,16 +23,16 @@ const meta = preview.meta({
     ),
   ],
   args: {
-    index: <LayoutSlotPlaceholder name="index" minHeight={240} />,
+    sidebar: <LayoutSlotPlaceholder name="sidebar" minHeight={240} />,
     children: <LayoutSlotPlaceholder name="children" minHeight={720} />,
   },
   argTypes: {
-    index: { control: false },
+    sidebar: { control: false },
     children: { control: false },
   },
 });
 
-export const DesktopStickyIndex = meta.story({
+export const DesktopStickySidebar = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
 });
 

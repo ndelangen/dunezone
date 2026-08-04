@@ -1,17 +1,17 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
 
-import { DiscoveryDeskLayout } from './DiscoveryDeskLayout';
 import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
+import { TriptychLayout } from './TriptychLayout';
 
 const meta = preview.meta({
-  component: DiscoveryDeskLayout,
+  component: TriptychLayout,
   parameters: {
     layout: 'fullscreen',
     docs: {
       description: {
         component:
-          'Pairs current catalogue activity with planned work. The unequal desktop columns become one reading column on narrower screens.',
+          'Arranges left, center, and right regions as a three-part composition, then stacks them at constrained widths.',
       },
     },
   },
@@ -23,12 +23,15 @@ const meta = preview.meta({
     ),
   ],
   args: {
-    catalogue: <LayoutSlotPlaceholder name="catalogue" minHeight={360} />,
-    future: <LayoutSlotPlaceholder name="future" minHeight={360} />,
+    left: <LayoutSlotPlaceholder name="left" minHeight={320} />,
+    center: <LayoutSlotPlaceholder name="center" minHeight={320} />,
+    right: <LayoutSlotPlaceholder name="right" minHeight={320} />,
   },
   argTypes: {
-    catalogue: { control: false },
-    future: { control: false },
+    left: { control: false },
+    center: { control: false },
+    centerClassName: { control: false },
+    right: { control: false },
   },
 });
 

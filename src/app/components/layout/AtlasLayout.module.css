@@ -5,7 +5,7 @@
   padding: 3.5rem clamp(0rem, 2vw, 1.5rem) 1rem;
 }
 
-.index {
+.sidebar {
   position: sticky;
   top: 1.5rem;
   align-self: start;
@@ -16,7 +16,7 @@
     grid-template-columns: 1fr;
   }
 
-  .index {
+  .sidebar {
     position: static;
   }
 }
