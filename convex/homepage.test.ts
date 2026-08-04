@@ -9,20 +9,41 @@ import { describe, expect, test, vi } from 'vitest';
 import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import { applicationTriggers } from './lib/applicationTriggers';
-import {
-  adjustHomepageRulesetFaqTotals,
-  setHomepageCommunityPresence,
-  setHomepageRulesetFaqTotals,
-} from './lib/homepageCommunity';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
 
 describe('homepage page data', () => {
+  test('removes retired homepage counters from existing rulesets', async () => {
+    const t = convexTest(schema, modules);
+    aggregateTest.register(t, 'statistics');
+    migrationsTest.register(t);
+    const rulesetId = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert('users', { name: 'Legacy homepage owner' });
+      return await ctx.db.insert('rulesets', {
+        name: 'Legacy homepage ruleset',
+        slug: 'legacy-homepage-ruleset',
+        created_at: '2026-08-04T10:00:00.000Z',
+        updated_at: '2026-08-04T10:00:00.000Z',
+        owner_id: userId,
+        group_id: null,
+        is_deleted: false,
+        image_cover: null,
+        homepage_question_count: 3,
+        homepage_answer_count: 5,
+      });
+    });
+
+    await t.mutation(internal.migrations.rulesets_remove_homepage_counts_v1, {});
+
+    const ruleset = await t.run((ctx) => ctx.db.get(rulesetId));
+    expect(ruleset).not.toHaveProperty('homepage_question_count');
+    expect(ruleset).not.toHaveProperty('homepage_answer_count');
+  });
+
   test('deletes large FAQ answer sets in bounded aggregate-safe batches', async () => {
     const t = convexTest({ schema, modules, transactionLimits: true });
-    aggregateTest.register(t, 'homepageCommunity');
     aggregateTest.register(t, 'statistics');
     aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'FAQ owner' }));
@@ -46,7 +67,6 @@ describe('homepage page data', () => {
           created_at: new Date(index).toISOString(),
         });
       }
-      await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, { answers: 501 });
     });
 
     vi.useFakeTimers();
@@ -59,14 +79,9 @@ describe('homepage page data', () => {
           .query('faq_answers')
           .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
           .take(600),
-        ruleset: await ctx.db.get(ruleset._id),
       }));
       expect(afterFirstBatch.question).not.toBeNull();
       expect(afterFirstBatch.answers).toHaveLength(401);
-      expect(afterFirstBatch.ruleset).toMatchObject({
-        homepage_question_count: 1,
-        homepage_answer_count: 401,
-      });
 
       await t.finishAllScheduledFunctions(() => vi.runAllTimers());
     } finally {
@@ -79,14 +94,9 @@ describe('homepage page data', () => {
         .query('faq_answers')
         .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
         .take(1),
-      ruleset: await ctx.db.get(ruleset._id),
     }));
     expect(afterCleanup.question).toBeNull();
     expect(afterCleanup.answers).toEqual([]);
-    expect(afterCleanup.ruleset).toMatchObject({
-      homepage_question_count: 0,
-      homepage_answer_count: 0,
-    });
   });
 
   test('reserves transaction headroom while deleting large answer documents', async () => {
@@ -98,7 +108,6 @@ describe('homepage page data', () => {
         bytesWritten: 3 * 1024 * 1024,
       },
     });
-    aggregateTest.register(t, 'homepageCommunity');
     aggregateTest.register(t, 'statistics');
     aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Large answer owner' }));
@@ -124,8 +133,6 @@ describe('homepage page data', () => {
         })
       );
     }
-    await t.run((ctx) => adjustHomepageRulesetFaqTotals(ctx, ruleset._id, { answers: 6 }));
-
     vi.useFakeTimers();
     try {
       await asUser.mutation(api.faq.deleteItem, { id: question._id });
@@ -149,19 +156,13 @@ describe('homepage page data', () => {
         .query('faq_answers')
         .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
         .take(1),
-      ruleset: await ctx.db.get(ruleset._id),
     }));
     expect(afterCleanup.question).toBeNull();
     expect(afterCleanup.answers).toEqual([]);
-    expect(afterCleanup.ruleset).toMatchObject({
-      homepage_question_count: 0,
-      homepage_answer_count: 0,
-    });
   });
 
-  test('serves exact Statistics totals without migration readiness or legacy agreement', async () => {
+  test('serves exact Statistics totals without migration readiness', async () => {
     const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'homepageCommunity');
     aggregateTest.register(t, 'statistics');
     aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Homepage maker' }));
@@ -189,13 +190,6 @@ describe('homepage page data', () => {
     const answer = await asUser.mutation(api.faq.createAnswer, {
       faq_item_id: question._id,
       answer: 'Every source mutation updates the same aggregate transaction.',
-    });
-
-    await t.run(async (ctx) => {
-      await setHomepageCommunityPresence(ctx, 'factions', 'legacy-only-faction', true);
-      await setHomepageCommunityPresence(ctx, 'rulesets', 'legacy-only-ruleset', true);
-      await setHomepageCommunityPresence(ctx, 'members', 'legacy-only-member', true);
-      await setHomepageRulesetFaqTotals(ctx, ruleset._id, true, 99, 88);
     });
 
     const [homepage, statistics, migrationRuns] = await Promise.all([

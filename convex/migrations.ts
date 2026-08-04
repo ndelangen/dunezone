@@ -7,7 +7,6 @@ import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
-import { setHomepageCommunityPresence, setHomepageRulesetFaqTotals } from './lib/homepageCommunity';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { reconcileProfileDiscovery } from './lib/profileDiscovery';
 import {
@@ -31,9 +30,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   profiles_from_users_v1: internal.migrations.profiles_from_users_v1,
   faction_slug_reservations_v1: internal.migrations.faction_slug_reservations_v1,
   faction_slug_reservations_verify_v1: internal.migrations.faction_slug_reservations_verify_v1,
-  homepage_factions_v1: internal.migrations.homepage_factions_v1,
-  homepage_rulesets_v1: internal.migrations.homepage_rulesets_v1,
-  homepage_members_v1: internal.migrations.homepage_members_v1,
+  rulesets_remove_homepage_counts_v1: internal.migrations.rulesets_remove_homepage_counts_v1,
   statistics_profiles_v1: internal.migrations.statistics_profiles_v1,
   statistics_factions_v1: internal.migrations.statistics_factions_v1,
   statistics_rulesets_v1: internal.migrations.statistics_rulesets_v1,
@@ -270,46 +267,18 @@ export const faction_slug_reservations_verify_v1 = migrations.define({
   },
 });
 
-export const homepage_factions_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    await setHomepageCommunityPresence(ctx, 'factions', row._id, !row.is_deleted);
-  },
-});
-
-export const homepage_rulesets_v1 = migrations.define({
+/** Clears the retired homepage-specific FAQ counters before their schema fields are removed. */
+export const rulesets_remove_homepage_counts_v1 = migrations.define({
   table: 'rulesets',
-  batchSize: 10,
-  migrateOne: async (ctx, row) => {
-    await setHomepageCommunityPresence(ctx, 'rulesets', row._id, !row.is_deleted);
-    const questions = await ctx.db
-      .query('faq_items')
-      .withIndex('by_ruleset_created', (q) => q.eq('ruleset_id', row._id))
-      .collect();
-    const answers = (
-      await Promise.all(
-        questions.map((question) =>
-          ctx.db
-            .query('faq_answers')
-            .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
-            .collect()
-        )
-      )
-    ).reduce((total, rows) => total + rows.length, 0);
-    await ctx.db.patch(row._id, {
-      homepage_question_count: questions.length,
-      homepage_answer_count: answers,
-    });
-    await setHomepageRulesetFaqTotals(ctx, row._id, !row.is_deleted, questions.length, answers);
-  },
-});
-
-export const homepage_members_v1 = migrations.define({
-  table: 'profiles',
   batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    await setHomepageCommunityPresence(ctx, 'members', row._id, true);
+  migrateOne: async (_ctx, row) => {
+    if (row.homepage_question_count === undefined && row.homepage_answer_count === undefined) {
+      return;
+    }
+    return {
+      homepage_question_count: undefined,
+      homepage_answer_count: undefined,
+    };
   },
 });
 
@@ -377,9 +346,7 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.profiles_from_users_v1,
   internal.migrations.faction_slug_reservations_v1,
   internal.migrations.faction_slug_reservations_verify_v1,
-  internal.migrations.homepage_factions_v1,
-  internal.migrations.homepage_rulesets_v1,
-  internal.migrations.homepage_members_v1,
+  internal.migrations.rulesets_remove_homepage_counts_v1,
   internal.migrations.statistics_profiles_v1,
   internal.migrations.statistics_factions_v1,
   internal.migrations.statistics_rulesets_v1,
