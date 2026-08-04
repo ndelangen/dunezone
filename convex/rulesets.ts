@@ -33,6 +33,30 @@ function factionIdentityForClient(data: unknown) {
   };
 }
 
+async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const links = await ctx.db
+    .query('ruleset_factions')
+    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+    .take(500);
+  const factions = await Promise.all(links.map((link) => getFactionById(ctx, link.faction_id)));
+
+  return factions.flatMap((faction) => {
+    if (!faction || faction.is_deleted) {
+      return [];
+    }
+    const dataObj = ensureObject(faction.data);
+    const name = typeof dataObj.name === 'string' ? dataObj.name : String(faction._id);
+    return [
+      {
+        factionId: faction._id,
+        name,
+        urlSlug: faction.slug,
+        identity: factionIdentityForClient(faction.data),
+      },
+    ];
+  });
+}
+
 async function resolveUniqueRulesetSlug(
   ctx: QueryCtx | MutationCtx,
   name: string,
@@ -84,11 +108,7 @@ async function rulesetPublicBundleBySlugMaybe(ctx: QueryCtx, slug: string) {
     return null;
   }
 
-  const links = await ctx.db
-    .query('ruleset_factions')
-    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', row._id))
-    .take(500);
-  const factionRows = await Promise.all(links.map((link) => getFactionById(ctx, link.faction_id)));
+  const factions = await listPublicRulesetFactions(ctx, row._id);
 
   const userId = await getAuthUserId(ctx);
   const canAccess =
@@ -96,19 +116,7 @@ async function rulesetPublicBundleBySlugMaybe(ctx: QueryCtx, slug: string) {
 
   return {
     ruleset: row,
-    factions: links.map((link, index) => {
-      const faction = factionRows[index];
-      const data = faction?.data;
-      const dataObj = data != null ? ensureObject(data) : null;
-      const name = typeof dataObj?.name === 'string' ? dataObj.name : String(link.faction_id);
-      const urlSlug = typeof faction?.slug === 'string' ? faction.slug : String(link.faction_id);
-      return {
-        factionId: link.faction_id,
-        name,
-        urlSlug,
-        identity: factionIdentityForClient(data),
-      };
-    }),
+    factions,
     canAccess,
   };
 }
@@ -176,36 +184,14 @@ export const detailPageBySlug = query({
 export const factionIds = query({
   args: { ruleset_id: v.id('rulesets') },
   handler: async (ctx, args) => {
-    const links = await ctx.db
-      .query('ruleset_factions')
-      .withIndex('by_ruleset', (q) => q.eq('ruleset_id', args.ruleset_id))
-      .take(500);
-    return links.map((link) => link.faction_id);
+    const factions = await listPublicRulesetFactions(ctx, args.ruleset_id);
+    return factions.map((faction) => faction.factionId);
   },
 });
 
 export const factionDetails = query({
   args: { ruleset_id: v.id('rulesets') },
-  handler: async (ctx, args) => {
-    const links = await ctx.db
-      .query('ruleset_factions')
-      .withIndex('by_ruleset', (q) => q.eq('ruleset_id', args.ruleset_id))
-      .take(500);
-    const factions = await Promise.all(links.map((link) => getFactionById(ctx, link.faction_id)));
-    return links.map((link, index) => {
-      const faction = factions[index];
-      const data = faction?.data;
-      const dataObj = data != null ? ensureObject(data) : null;
-      const name = typeof dataObj?.name === 'string' ? dataObj.name : String(link.faction_id);
-      const urlSlug = typeof faction?.slug === 'string' ? faction.slug : String(link.faction_id);
-      return {
-        factionId: link.faction_id,
-        name,
-        urlSlug,
-        identity: factionIdentityForClient(data),
-      };
-    });
-  },
+  handler: async (ctx, args) => listPublicRulesetFactions(ctx, args.ruleset_id),
 });
 
 export const canAccess = query({
