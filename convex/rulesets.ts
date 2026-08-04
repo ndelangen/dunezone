@@ -8,7 +8,7 @@ import { query } from './_generated/server';
 import { mutation } from './functions';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
 import { listByUserActiveWithGroupsData } from './lib/memberGroups';
-import { canAccessRuleset, isActiveGroupMember, requireAuthUserId } from './lib/policy';
+import { canEditRuleset, isActiveGroupMember, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { ensureObject, nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -111,13 +111,13 @@ async function rulesetPublicBundleBySlugMaybe(ctx: QueryCtx, slug: string) {
   const factions = await listPublicRulesetFactions(ctx, row._id);
 
   const userId = await getAuthUserId(ctx);
-  const canAccess =
-    userId != null && (await canAccessRuleset(ctx, row, userId as unknown as Id<'users'>));
+  const canEditRulesetForViewer =
+    userId != null && (await canEditRuleset(ctx, row, userId as unknown as Id<'users'>));
 
   return {
     ruleset: row,
     factions,
-    canAccess,
+    canEditRuleset: canEditRulesetForViewer,
   };
 }
 
@@ -194,7 +194,7 @@ export const factionDetails = query({
   handler: async (ctx, args) => listPublicRulesetFactions(ctx, args.ruleset_id),
 });
 
-export const canAccess = query({
+export const canEdit = query({
   args: { ruleset_id: v.id('rulesets') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -205,7 +205,7 @@ export const canAccess = query({
     if (!ruleset) {
       return false;
     }
-    return await canAccessRuleset(ctx, ruleset, userId);
+    return await canEditRuleset(ctx, ruleset, userId);
   },
 });
 
@@ -291,8 +291,16 @@ export const update = mutation({
       throw new Error(`Ruleset with id ${args.id} not found`);
     }
 
-    if (ruleset.owner_id !== userId) {
-      throw new Error('Only the ruleset owner can update this ruleset');
+    const isOwner = ruleset.owner_id === userId;
+    const canEdit = await canEditRuleset(ctx, ruleset, userId);
+    if (!canEdit) {
+      throw new Error('Not authorized');
+    }
+    if (!isOwner && normalizedName !== ruleset.name) {
+      throw new Error('Only the ruleset owner can rename this ruleset');
+    }
+    if (!isOwner && args.group_id !== undefined && args.group_id !== ruleset.group_id) {
+      throw new Error('Only the ruleset owner can change its group');
     }
 
     if (args.group_id !== undefined) {
@@ -348,8 +356,7 @@ export const softDelete = mutation({
       throw new Error(`Ruleset with id ${args.id} not found`);
     }
 
-    const permitted = await canAccessRuleset(ctx, ruleset, userId);
-    if (!permitted) {
+    if (ruleset.owner_id !== userId) {
       throw new Error('Not authorized');
     }
 
@@ -372,7 +379,7 @@ export const addFaction = mutation({
       throw new Error('Ruleset not found');
     }
 
-    const allowed = await canAccessRuleset(ctx, ruleset, userId);
+    const allowed = await canEditRuleset(ctx, ruleset, userId);
     if (!allowed) {
       throw new Error('Not authorized');
     }
@@ -410,7 +417,7 @@ export const removeFaction = mutation({
       throw new Error('Ruleset not found');
     }
 
-    const allowed = await canAccessRuleset(ctx, ruleset, userId);
+    const allowed = await canEditRuleset(ctx, ruleset, userId);
     if (!allowed) {
       throw new Error('Not authorized');
     }

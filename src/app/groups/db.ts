@@ -3,6 +3,8 @@ import { useQuery } from 'convex/react';
 import { db } from '@db/core';
 import { factionRowsToEntries } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
+import { rulesetRowsToEntries } from '@db/rulesets';
+import type { RulesetEntry, RulesetRow } from '@db/rulesets';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { groupInputSchema } from '@app/groups/validation';
 
@@ -25,6 +27,7 @@ export type GroupDetailPageData = {
   group: GroupEntry;
   members: GroupMemberWithId[];
   factions: FactionEntry[];
+  rulesets: RulesetEntry[];
   profiles: Doc<'profiles'>[];
 };
 
@@ -33,12 +36,14 @@ export async function loadGroupDetailBySlug(slug: string): Promise<GroupDetailPa
     group: GroupRow;
     members: Doc<'group_members'>[];
     factions: Doc<'factions'>[];
+    rulesets: RulesetRow[];
     profiles: Doc<'profiles'>[];
   }>(api.groups.detailBySlug, { slug });
   return {
     group: { ...result.group, id: result.group._id },
     members: result.members.map((m) => ({ ...m, id: m._id })),
     factions: factionRowsToEntries(result.factions),
+    rulesets: rulesetRowsToEntries(result.rulesets),
     profiles: result.profiles,
   };
 }
@@ -83,12 +88,14 @@ function normalizeGroupDetailFromConvex(raw: {
   group: GroupRow;
   members: Doc<'group_members'>[];
   factions: Doc<'factions'>[];
+  rulesets: RulesetRow[];
   profiles: Doc<'profiles'>[];
 }): GroupDetailPageData {
   return {
     group: { ...raw.group, id: raw.group._id },
     members: raw.members.map((m) => ({ ...m, id: m._id })),
     factions: factionRowsToEntries(raw.factions),
+    rulesets: rulesetRowsToEntries(raw.rulesets),
     profiles: raw.profiles,
   };
 }
@@ -109,6 +116,7 @@ export function useGroupDetailBySlug(
     group: result.data?.group,
     members: result.data?.members,
     factions: result.data?.factions,
+    rulesets: result.data?.rulesets,
     profiles: result.data?.profiles,
   };
 }

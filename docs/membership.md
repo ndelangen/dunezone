@@ -39,6 +39,25 @@ Convex handlers in `convex/members.ts` enforce:
 
 - **`approve` / `reject`**: Caller must be an **active** member of the group (`isActiveGroupMember`). Target row must be **`pending`**.
 - **`remove`**: Only the **group creator** (`groups.created_by`) may remove someone else. Cannot remove the creator. Target must be **`active`** (pending requests are handled with `reject`).
-- **`request` / `add`**: See `convex/members.ts` (authenticated; `add` requires active membership).
+- **`request`**: Any authenticated user may request membership.
+- **`add`**: Any active member may directly add another user without a prior request.
 
 Shared helpers live in `convex/lib/policy.ts` (`requireAuthUserId`, `isActiveGroupMember`).
+
+## Group-associated content
+
+Groups are collaboration boundaries shared by factions, rulesets, and future community assets.
+
+- Only the group owner may rename the group.
+- Active members may edit content associated with their group.
+- Only the asset owner may delete it or assign, unassign, or move it between groups.
+- Active members may rename factions.
+- Only the ruleset owner may rename a ruleset.
+- Active members may add or remove factions from a ruleset without deleting either asset.
+
+## FAQ ownership and moderation
+
+- A question author may edit or delete their question and accept or unaccept its answers, regardless
+  of the ruleset's group membership.
+- An answer author may edit or delete their own answer.
+- The question author may delete answers on their question, but may not edit another author's text.

@@ -64,6 +64,7 @@ function GroupDetailPage() {
   const viewerIsOwner = !!viewerUserId && viewerUserId === group.created_by;
   const viewerCanModeratePending = membershipStatus === 'active';
   const factions = groupData.factions ?? [];
+  const rulesets = groupData.rulesets ?? [];
 
   const membersModerationBusy =
     approveMember.isPending || rejectMember.isPending || removeMember.isPending;
@@ -254,6 +255,23 @@ function GroupDetailPage() {
               <li key={faction._id}>
                 <Link to="/factions/$factionId" params={{ factionId: faction.slug }}>
                   {faction.data.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card>
+        <h3>Rulesets</h3>
+        {rulesets.length === 0 ? (
+          <p>No rulesets in this group yet.</p>
+        ) : (
+          <ul>
+            {rulesets.map((ruleset) => (
+              <li key={ruleset._id}>
+                <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
+                  {ruleset.name}
                 </Link>
               </li>
             ))}

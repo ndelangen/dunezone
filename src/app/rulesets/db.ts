@@ -50,7 +50,7 @@ function normalizeRulesetFactionSummary(faction: RulesetFactionSummaryRaw): Rule
 export type RulesetPageData = {
   ruleset: RulesetEntry;
   factions: RulesetFactionSummary[];
-  canAccess: boolean;
+  canEditRuleset: boolean;
 };
 
 export type RulesetDetailPageData = RulesetPageData & {
@@ -100,9 +100,13 @@ function toRulesetEntry(entry: RulesetRow): RulesetEntry {
   };
 }
 
+export function rulesetRowsToEntries(entries: RulesetRow[]): RulesetEntry[] {
+  return entries.map(toRulesetEntry);
+}
+
 export async function loadRulesetsAll(): Promise<RulesetEntry[]> {
   const entries = await db.query<RulesetRow[]>(api.rulesets.list, {});
-  return entries.map(toRulesetEntry);
+  return rulesetRowsToEntries(entries);
 }
 
 export async function loadRuleset(id: string): Promise<RulesetEntry> {
@@ -114,7 +118,7 @@ export async function loadRulesetBySlug(slug: string): Promise<RulesetPageData> 
   const result = await db.query<{
     ruleset: RulesetRow;
     factions: RulesetFactionSummaryRaw[];
-    canAccess: boolean;
+    canEditRuleset: boolean;
   }>(api.rulesets.getBySlug, { slug });
   return {
     ...result,
@@ -127,7 +131,7 @@ export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetail
   const raw = await db.query<{
     ruleset: RulesetRow;
     factions: RulesetFactionSummaryRaw[];
-    canAccess: boolean;
+    canEditRuleset: boolean;
     owner: RulesetDetailPageData['owner'];
     viewerAssignableMemberships: AssignableMembershipConvexRow[] | null;
     groupAccess: RulesetDetailPageData['groupAccess'];
@@ -139,7 +143,7 @@ export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetail
   return {
     ruleset: toRulesetEntry(raw.ruleset),
     factions: raw.factions.map(normalizeRulesetFactionSummary),
-    canAccess: raw.canAccess,
+    canEditRuleset: raw.canEditRuleset,
     owner: raw.owner,
     viewerAssignableMemberships: mapViewerAssignableMembershipsFromConvex(
       raw.viewerAssignableMemberships
@@ -162,12 +166,12 @@ export async function loadRulesetFactionsWithDetails(
   return factions.map(normalizeRulesetFactionSummary);
 }
 
-export async function loadCanAccessRuleset(rulesetId: string): Promise<boolean> {
-  return await db.query<boolean>(api.rulesets.canAccess, { ruleset_id: rulesetId });
+export async function loadCanEditRuleset(rulesetId: string): Promise<boolean> {
+  return await db.query<boolean>(api.rulesets.canEdit, { ruleset_id: rulesetId });
 }
 
-export function useCanAccessRuleset(rulesetId: string) {
-  const liveData = useQuery(api.rulesets.canAccess, { ruleset_id: rulesetId } as never) as
+export function useCanEditRuleset(rulesetId: string) {
+  const liveData = useQuery(api.rulesets.canEdit, { ruleset_id: rulesetId } as never) as
     | boolean
     | undefined;
   return toLiveQueryResult(liveData, true);
@@ -209,13 +213,13 @@ export function useRulesetBySlug(slug: string, options?: { initialData?: Ruleset
   const result = toLiveQueryResult<{
     ruleset: RulesetRow;
     factions: RulesetFactionSummaryRaw[];
-    canAccess: boolean;
+    canEditRuleset: boolean;
   } | null>(liveData, true, () => (options?.initialData as never) ?? undefined);
   return {
     ...result,
     ruleset: result.data ? toRulesetEntry(result.data.ruleset) : undefined,
     factions: result.data?.factions.map(normalizeRulesetFactionSummary),
-    canAccess: result.data?.canAccess ?? false,
+    canEditRuleset: result.data?.canEditRuleset ?? false,
   };
 }
 
@@ -234,7 +238,7 @@ export function useRulesetDetailPage(
         : {
             ruleset: toRulesetEntry(liveData.ruleset),
             factions: liveData.factions.map(normalizeRulesetFactionSummary),
-            canAccess: liveData.canAccess,
+            canEditRuleset: liveData.canEditRuleset,
             owner: liveData.owner,
             viewerAssignableMemberships: mapViewerAssignableMembershipsFromConvex(
               liveData.viewerAssignableMemberships as AssignableMembershipConvexRow[] | null
@@ -247,7 +251,7 @@ export function useRulesetDetailPage(
     ...result,
     ruleset: result.data?.ruleset,
     factions: result.data?.factions,
-    canAccess: result.data?.canAccess ?? false,
+    canEditRuleset: result.data?.canEditRuleset ?? false,
     owner: result.data?.owner ?? null,
     viewerAssignableMemberships: result.data?.viewerAssignableMemberships ?? null,
     groupAccess: result.data?.groupAccess ?? null,
