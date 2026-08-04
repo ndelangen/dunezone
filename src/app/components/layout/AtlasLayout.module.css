@@ -1,21 +1,30 @@
 .root {
+  container: atlas-layout / inline-size;
+  min-width: 0;
+}
+
+.layout {
   display: grid;
-  grid-template-columns: minmax(230px, 0.72fr) minmax(0, 2fr);
-  gap: clamp(2rem, 6vw, 6rem);
+  grid-template-columns: 1fr;
+  gap: clamp(2rem, 6cqi, 6rem);
+}
+
+.layout > * {
+  min-width: 0;
 }
 
 .sidebar {
-  position: sticky;
-  top: 0;
+  position: static;
   align-self: start;
 }
 
-@media (max-width: 56.25em) {
-  .root {
-    grid-template-columns: 1fr;
+@container atlas-layout (min-width: 56.25rem) {
+  .layout {
+    grid-template-columns: minmax(230px, 0.72fr) minmax(0, 2fr);
   }
 
   .sidebar {
-    position: static;
+    position: sticky;
+    top: 0;
   }
 }

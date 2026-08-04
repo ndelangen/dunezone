@@ -16,8 +16,10 @@ export function AtlasLayout({
 }) {
   return (
     <div className={clsx(styles.root, className)}>
-      <div className={clsx(styles.sidebar, sidebarClassName)}>{sidebar}</div>
-      <div>{children}</div>
+      <div className={styles.layout}>
+        <div className={clsx(styles.sidebar, sidebarClassName)}>{sidebar}</div>
+        <div>{children}</div>
+      </div>
     </div>
   );
 }

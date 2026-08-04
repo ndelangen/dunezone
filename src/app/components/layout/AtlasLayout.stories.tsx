@@ -1,8 +1,14 @@
-import { Box } from '@mantine/core';
+import { Box, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 
+import { AsymmetricSplitLayout } from './AsymmetricSplitLayout';
 import { AtlasLayout } from './AtlasLayout';
-import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
+import storyStyles from './AtlasLayout.stories.module.css';
+import {
+  LayoutSlotPlaceholder,
+  LayoutStoryCase,
+  LayoutStoryFrame,
+} from './LayoutSlotPlaceholder.stories.fixture';
 
 const meta = preview.meta({
   component: AtlasLayout,
@@ -11,7 +17,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'Keeps a sidebar visible beside long-form content on wide screens and moves it into document flow on compact screens. Its parent owns page width and outer spacing.',
+          'Keeps a sidebar visible beside long-form content in a wide container and moves it into document flow when its own container is constrained. Its parent owns page width and outer spacing.',
       },
     },
   },
@@ -36,8 +42,51 @@ const meta = preview.meta({
 
 export const DesktopStickySidebar = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
+  render: (args) => (
+    <LayoutStoryFrame width={1120}>
+      <AtlasLayout {...args} sidebarClassName={storyStyles.sidebarOffset}>
+        <LayoutSlotPlaceholder name="scrolling children" minHeight={1400} />
+      </AtlasLayout>
+    </LayoutStoryFrame>
+  ),
 });
 
-export const MobileStack = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
+export const ConstrainedContainer = meta.story({
+  globals: { viewport: { value: 'appDesktop' } },
+  render: (args) => (
+    <LayoutStoryFrame width={720}>
+      <AtlasLayout {...args} />
+    </LayoutStoryFrame>
+  ),
+});
+
+export const NestedComposition = meta.story({
+  globals: { viewport: { value: 'appDesktop' } },
+  render: (args) => (
+    <LayoutStoryFrame width={1120}>
+      <AtlasLayout {...args} sidebar={<LayoutSlotPlaceholder name="sidebar" minHeight={480} />}>
+        <AsymmetricSplitLayout
+          wide={<LayoutSlotPlaceholder name="nested wide" minHeight={320} />}
+          narrow={<LayoutSlotPlaceholder name="nested narrow" minHeight={320} />}
+        />
+      </AtlasLayout>
+    </LayoutStoryFrame>
+  ),
+});
+
+export const BreakpointBoundary = meta.story({
+  globals: { viewport: { value: 'appDesktop' } },
+  render: (args) => (
+    <Stack gap="xl">
+      <LayoutStoryCase label="One pixel below" width={899}>
+        <AtlasLayout {...args} />
+      </LayoutStoryCase>
+      <LayoutStoryCase label="At the threshold" width={900}>
+        <AtlasLayout {...args} />
+      </LayoutStoryCase>
+      <LayoutStoryCase label="One pixel above" width={901}>
+        <AtlasLayout {...args} />
+      </LayoutStoryCase>
+    </Stack>
+  ),
 });

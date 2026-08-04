@@ -1,8 +1,12 @@
-import { Box } from '@mantine/core';
+import { Box, Image, Stack, Text } from '@mantine/core';
 import preview from '@sb/preview';
 
 import { AsymmetricSplitLayout } from './AsymmetricSplitLayout';
-import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
+import {
+  LayoutSlotPlaceholder,
+  LayoutStoryCase,
+  LayoutStoryFrame,
+} from './LayoutSlotPlaceholder.stories.fixture';
 
 const meta = preview.meta({
   component: AsymmetricSplitLayout,
@@ -11,7 +15,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'Places wide and narrow regions in unequal desktop columns, then stacks them into one reading column on narrower screens. Its parent owns page width and outer spacing.',
+          'Places wide and narrow regions in unequal columns, then stacks them into one reading column when its own container is constrained. Its parent owns page width and outer spacing.',
       },
     },
   },
@@ -35,8 +39,54 @@ const meta = preview.meta({
 
 export const Desktop = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
+  render: (args) => (
+    <LayoutStoryFrame width={1120}>
+      <AsymmetricSplitLayout {...args} />
+    </LayoutStoryFrame>
+  ),
 });
 
-export const Mobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
+export const ConstrainedContainer = meta.story({
+  globals: { viewport: { value: 'appDesktop' } },
+  render: (args) => (
+    <LayoutStoryFrame width={760}>
+      <AsymmetricSplitLayout {...args} />
+    </LayoutStoryFrame>
+  ),
+});
+
+export const BreakpointBoundary = meta.story({
+  globals: { viewport: { value: 'appDesktop' } },
+  render: (args) => (
+    <Stack gap="xl">
+      <LayoutStoryCase label="One pixel below" width={979}>
+        <AsymmetricSplitLayout {...args} />
+      </LayoutStoryCase>
+      <LayoutStoryCase label="At the threshold" width={980}>
+        <AsymmetricSplitLayout {...args} />
+      </LayoutStoryCase>
+      <LayoutStoryCase label="One pixel above" width={981}>
+        <AsymmetricSplitLayout {...args} />
+      </LayoutStoryCase>
+    </Stack>
+  ),
+});
+
+export const IntrinsicSizingStress = meta.story({
+  globals: { viewport: { value: 'appDesktop' } },
+  render: (args) => (
+    <LayoutStoryFrame width={1120}>
+      <AsymmetricSplitLayout
+        {...args}
+        wide={
+          <Stack gap="md">
+            <Text>
+              DuneZoneLayoutStressCaseWithAnUnbrokenFactionNameThatMustRespectItsAllocatedContainer
+            </Text>
+            <Image alt="Intrinsic sizing test" mah={320} src="/web/tablet1.jpg" w={1400} />
+          </Stack>
+        }
+      />
+    </LayoutStoryFrame>
+  ),
 });

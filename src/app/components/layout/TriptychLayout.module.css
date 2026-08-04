@@ -1,10 +1,15 @@
 .root {
+  container: triptych-layout / inline-size;
+  min-width: 0;
+}
+
+.layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.72fr) minmax(0, 0.9fr);
+  grid-template-columns: 1fr;
   align-items: center;
 }
 
-.root > * {
+.layout > * {
   min-width: 0;
 }
 
@@ -21,8 +26,8 @@
   place-items: center;
 }
 
-@media (max-width: 61.25em) {
-  .root {
-    grid-template-columns: 1fr;
+@container triptych-layout (min-width: 61.25rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.72fr) minmax(0, 0.9fr);
   }
 }

@@ -14,8 +14,10 @@ export function AsymmetricSplitLayout({
 }) {
   return (
     <div className={clsx(styles.root, className)}>
-      <div>{wide}</div>
-      <div>{narrow}</div>
+      <div className={styles.layout}>
+        <div>{wide}</div>
+        <div>{narrow}</div>
+      </div>
     </div>
   );
 }

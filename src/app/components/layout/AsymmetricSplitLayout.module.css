@@ -1,15 +1,20 @@
 .root {
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: clamp(2rem, 5vw, 5rem);
-}
-
-.root > * {
+  container: asymmetric-split-layout / inline-size;
   min-width: 0;
 }
 
-@media (max-width: 61.25em) {
-  .root {
-    grid-template-columns: 1fr;
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(2rem, 5cqi, 5rem);
+}
+
+.layout > * {
+  min-width: 0;
+}
+
+@container asymmetric-split-layout (min-width: 61.25rem) {
+  .layout {
+    grid-template-columns: 1.15fr 0.85fr;
   }
 }
