@@ -1,39 +1,27 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
 
-import type { FactionSaveState } from '@app/factions/authoringState';
-
 import { FactionAuthoringToolbar } from './FactionAuthoringToolbar';
 
-function FactionAuthoringToolbarFixture({
-  isDirty,
-  isNameBlank,
-  warningCount,
-  saveState,
-}: {
-  isDirty: boolean;
-  isNameBlank: boolean;
-  warningCount: number;
-  saveState: FactionSaveState;
-}) {
-  return (
-    <FactionAuthoringToolbar
-      isDirty={isDirty}
-      isNameBlank={isNameBlank}
-      warningCount={warningCount}
-      saveState={saveState}
-      onSave={() => undefined}
-      onReviewWarnings={() => undefined}
-      onReview={() => undefined}
-      onReset={() => undefined}
-      onBack={() => undefined}
-    />
-  );
-}
+const toolbarActions = {
+  onSave: () => undefined,
+  onReviewWarnings: () => undefined,
+  onReview: () => undefined,
+  onReset: () => undefined,
+  onBack: () => undefined,
+};
+
+const cleanToolbar = {
+  isDirty: false,
+  isNameBlank: false,
+  warningCount: 0,
+  saveState: 'idle' as const,
+  ...toolbarActions,
+};
 
 const meta = preview.meta({
   title: 'Faction Authoring Toolbar',
-  component: FactionAuthoringToolbarFixture,
+  component: FactionAuthoringToolbar,
   decorators: [
     (Story) => (
       <Box w="min(78rem, calc(100vw - 2rem))" p="md">
@@ -41,67 +29,64 @@ const meta = preview.meta({
       </Box>
     ),
   ],
-  args: {
-    isDirty: false,
-    isNameBlank: false,
-    warningCount: 0,
-    saveState: 'idle',
-  },
+  args: cleanToolbar,
   parameters: {
     layout: 'fullscreen',
   },
 });
 
 export const Clean = meta.story({
-  args: {
-    isDirty: false,
-    isNameBlank: false,
-    warningCount: 0,
-    saveState: 'idle',
-  },
+  args: cleanToolbar,
 });
 
 export const DirtyWithWarnings = meta.story({
   args: {
+    ...cleanToolbar,
     isDirty: true,
-    isNameBlank: false,
     warningCount: 3,
-    saveState: 'idle',
   },
 });
 
 export const Saving = meta.story({
   args: {
+    ...cleanToolbar,
     isDirty: true,
-    isNameBlank: false,
-    warningCount: 0,
     saveState: 'saving',
   },
 });
 
 export const Saved = meta.story({
   args: {
-    isDirty: false,
-    isNameBlank: false,
-    warningCount: 0,
+    ...cleanToolbar,
     saveState: 'saved',
   },
 });
 
 export const SaveFailed = meta.story({
   args: {
+    ...cleanToolbar,
     isDirty: true,
-    isNameBlank: false,
-    warningCount: 0,
     saveState: 'error',
   },
 });
 
 export const NameRequired = meta.story({
   args: {
+    ...cleanToolbar,
     isDirty: true,
     isNameBlank: true,
-    warningCount: 0,
-    saveState: 'idle',
+  },
+});
+
+export const PublishedAndCurrent = meta.story({
+  args: {
+    ...cleanToolbar,
+    saveState: 'saved',
+    assetPublishing: {
+      status: 'current',
+      captureStatus: null,
+      publicationHref: '/published/factions/storybook-faction/sheet.pdf',
+      lastPublishedAt: Date.parse('2026-08-04T18:30:00.000Z'),
+    },
   },
 });

@@ -132,14 +132,14 @@ export const PreviewFreeMobile = meta.story({
 
     await expect(picker).toHaveTextContent('Identity & Appearance');
     await expect(
-      canvas.getByRole('region', { name: 'Background composite live preview' })
-    ).toBeVisible();
+      canvas.queryByRole('region', { name: 'Background composite live preview' })
+    ).not.toBeInTheDocument();
 
     await userEvent.click(canvas.getByRole('button', { name: 'Next section' }));
     await expect(picker).toHaveTextContent('Faction leader');
     await expect(canvas.getByRole('textbox', { name: 'Faction leader name' })).toBeVisible();
     await expect(
-      canvas.getByRole('region', { name: 'Faction leader token live preview' })
-    ).toBeVisible();
+      canvas.queryByRole('region', { name: 'Faction leader token live preview' })
+    ).not.toBeInTheDocument();
   },
 });
