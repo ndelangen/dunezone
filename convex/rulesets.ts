@@ -10,7 +10,7 @@ import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
 import { listByUserActiveWithGroupsData } from './lib/memberGroups';
 import { canEditRuleset, isActiveGroupMember, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
-import { ensureObject, nowIso, slugify } from './lib/utils';
+import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
 async function getRulesetById(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
@@ -44,8 +44,11 @@ async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'
     if (!faction || faction.is_deleted) {
       return [];
     }
-    const dataObj = ensureObject(faction.data);
-    const name = typeof dataObj.name === 'string' ? dataObj.name : String(faction._id);
+    const dataObj =
+      faction.data != null && typeof faction.data === 'object' && !Array.isArray(faction.data)
+        ? (faction.data as Record<string, unknown>)
+        : null;
+    const name = typeof dataObj?.name === 'string' ? dataObj.name : String(faction._id);
     return [
       {
         factionId: faction._id,
