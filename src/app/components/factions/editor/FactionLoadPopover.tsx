@@ -37,7 +37,7 @@ function formatZodIssues(err: { issues: readonly { path: PropertyKey[]; message:
 }
 
 export interface FactionLoadPopoverContentProps {
-  /** Row URL slug for the faction being edited (excludes that row from the picker). */
+  /** When provided, excludes the row with this faction URL slug from the picker. */
   currentPublicSlug?: string;
   onLoaded: (loaded: Faction) => void;
   onCancel: () => void;

@@ -38,8 +38,10 @@ export function useFactionAuthoring({
   onSaved: (entry: FactionEntry) => void;
 }) {
   const sessionKeyRef = useRef(sessionKey);
-  const savedBaselineRef = useRef(structuredClone(initialData));
-  const draftSourceRef = useRef(structuredClone(initialData));
+  const initialBaselineRef = useRef<Faction>(undefined);
+  initialBaselineRef.current ??= structuredClone(initialData);
+  const savedBaselineRef = useRef(initialBaselineRef.current);
+  const draftSourceRef = useRef(initialBaselineRef.current);
   const [errors, setErrors] = useState<string[]>([]);
 
   const form = useForm<
