@@ -113,11 +113,15 @@ function RulesetEditPage() {
     );
   }
 
-  if (r.owner_id !== viewerUserId) {
+  if (!page.canAccess) {
     return (
       <PageLayout header={header} toolbar={toolbar}>
         <Card>
-          <p>Only the ruleset owner can edit settings.</p>
+          <p>
+            {r.group_id
+              ? 'Only the ruleset owner or an active member of its group can edit this ruleset.'
+              : 'Only the ruleset owner can edit this ruleset.'}
+          </p>
         </Card>
       </PageLayout>
     );
@@ -126,7 +130,7 @@ function RulesetEditPage() {
   return (
     <PageLayout header={header} toolbar={toolbar}>
       <Card>
-        <RulesetSettingsForm key={r.slug} initial={r} />
+        <RulesetSettingsForm key={r.slug} initial={r} canRename={r.owner_id === viewerUserId} />
       </Card>
     </PageLayout>
   );

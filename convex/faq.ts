@@ -7,7 +7,7 @@ import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
-import { canAccessRuleset, requireAuthUserId } from './lib/policy';
+import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { nowIso } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -326,8 +326,7 @@ export const updateItem = mutation({
     if (!ruleset || ruleset.is_deleted) {
       throw new Error('Ruleset not found');
     }
-    const allowed = await canAccessRuleset(ctx, ruleset, userId);
-    if (item.asked_by !== userId || !allowed) {
+    if (item.asked_by !== userId) {
       throw new Error('Not authorized');
     }
 
@@ -384,8 +383,7 @@ export const setAcceptedAnswer = mutation({
     if (!ruleset || ruleset.is_deleted) {
       throw new Error('Ruleset not found');
     }
-    const allowed = await canAccessRuleset(ctx, ruleset, userId);
-    if (item.asked_by !== userId || !allowed) {
+    if (item.asked_by !== userId) {
       throw new Error('Not authorized');
     }
 
@@ -416,8 +414,7 @@ export const deleteItem = mutation({
     if (!ruleset || ruleset.is_deleted) {
       throw new Error('Ruleset not found');
     }
-    const allowed = await canAccessRuleset(ctx, ruleset, userId);
-    if (item.asked_by !== userId || !allowed) {
+    if (item.asked_by !== userId) {
       throw new Error('Not authorized');
     }
 
