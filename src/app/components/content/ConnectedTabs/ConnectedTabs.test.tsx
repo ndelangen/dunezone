@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import { act, useState } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildConnectedTabsPath, ConnectedTabs } from './ConnectedTabs';
@@ -92,7 +93,9 @@ function getTab(name: string) {
   const tab = [...(container?.querySelectorAll('[role="tab"]') ?? [])].find(
     (candidate) => candidate.textContent?.trim() === name
   );
-  if (!(tab instanceof HTMLButtonElement)) throw new Error(`Missing tab: ${name}`);
+  if (!(tab instanceof HTMLButtonElement)) {
+    throw new Error(`Missing tab: ${name}`);
+  }
   return tab;
 }
 
@@ -100,7 +103,9 @@ function getButton(name: string) {
   const button = [...(container?.querySelectorAll('button') ?? [])].find(
     (candidate) => candidate.getAttribute('aria-label') === name
   );
-  if (!(button instanceof HTMLButtonElement)) throw new Error(`Missing button: ${name}`);
+  if (!(button instanceof HTMLButtonElement)) {
+    throw new Error(`Missing button: ${name}`);
+  }
   return button;
 }
 
@@ -122,7 +127,9 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  if (root) await act(async () => root?.unmount());
+  if (root) {
+    await act(async () => root?.unmount());
+  }
   container?.remove();
   root = undefined;
   container = undefined;
@@ -180,7 +187,9 @@ describe('ConnectedTabs', () => {
     const tabsRoot = tabList?.parentElement;
     const panelShell = container?.querySelector('[role="tabpanel"]')?.parentElement;
     const activeTab = getTab('1First');
-    if (!tabsRoot || !panelShell) throw new Error('Missing connected-tabs geometry elements');
+    if (!tabsRoot || !panelShell) {
+      throw new Error('Missing connected-tabs geometry elements');
+    }
 
     const dimensions = {
       width: 760,
@@ -204,7 +213,9 @@ describe('ConnectedTabs', () => {
     );
 
     await act(async () => {
-      for (const callback of resizeObserverCallbacks) callback([], {} as ResizeObserver);
+      for (const callback of resizeObserverCallbacks) {
+        callback([], {} as ResizeObserver);
+      }
     });
 
     const contour = container?.querySelector<SVGPathElement>('svg[class*="geometryContour"] path');
@@ -221,7 +232,9 @@ describe('ConnectedTabs', () => {
       dimensions.height = frame.height;
       dimensions.panelX = frame.panelX;
       await act(async () => {
-        for (const callback of resizeObserverCallbacks) callback([], {} as ResizeObserver);
+        for (const callback of resizeObserverCallbacks) {
+          callback([], {} as ResizeObserver);
+        }
       });
 
       expect(contourSvg?.getAttribute('viewBox')).toBe(`0 0 ${frame.width} ${frame.height}`);

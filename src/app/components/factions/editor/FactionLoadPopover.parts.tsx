@@ -15,7 +15,9 @@ export function factionLoadOwnerLabel(
   row: Pick<FactionLoadPickerRow, 'ownerUsername' | 'ownerId'>
 ): string {
   const u = row.ownerUsername?.trim();
-  if (u) return u;
+  if (u) {
+    return u;
+  }
   return row.ownerId || 'Unknown owner';
 }
 

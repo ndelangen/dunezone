@@ -16,7 +16,9 @@ function activationSecret(): string {
     throw new Error('Unable to read the Publication activation secret from Convex');
   }
   const secret = result.stdout.trim();
-  if (!secret) throw new Error('Publication activation secret is empty');
+  if (!secret) {
+    throw new Error('Publication activation secret is empty');
+  }
   return secret;
 }
 
@@ -30,8 +32,9 @@ async function request(body: unknown) {
     body: JSON.stringify(body),
   });
   const result: unknown = await response.json();
-  if (!response.ok)
+  if (!response.ok) {
     throw new Error(`Publication revision request failed with HTTP ${response.status}`);
+  }
   return result;
 }
 
@@ -65,7 +68,9 @@ async function run() {
       rendererRevisions?: Record<string, number> | null;
     };
     const stored = read.rendererRevisions;
-    if (!stored) throw new Error('Publication settings are not initialized');
+    if (!stored) {
+      throw new Error('Publication settings are not initialized');
+    }
     const changedAssetTypes = changedRendererAssetTypes(stored, CHECKED_IN_RENDERER_REVISIONS);
     if (changedAssetTypes.length === 0) {
       console.log(JSON.stringify({ ok: true, operation: 'activate', changedAssetTypes: [] }));
@@ -82,4 +87,6 @@ async function run() {
   throw new Error('Expected command: initialize or activate');
 }
 
-if (import.meta.main) await run();
+if (import.meta.main) {
+  await run();
+}

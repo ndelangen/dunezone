@@ -1,4 +1,5 @@
-import { Link, type LinkComponentProps } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
+import type { LinkComponentProps } from '@tanstack/react-router';
 import clsx from 'clsx';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
@@ -39,7 +40,9 @@ export type UIButtonLinkProps = Omit<UIButtonAsLink, 'children'> & {
 
 function uiButtonClassNames(variant: UIButtonVariant, iconOnly: boolean): string {
   const pieces: string[] = [styles.button];
-  if (iconOnly) pieces.push(styles.buttonIconOnly);
+  if (iconOnly) {
+    pieces.push(styles.buttonIconOnly);
+  }
   switch (variant) {
     case 'nav':
       return clsx(...pieces, styles.nav);
@@ -53,9 +56,8 @@ function uiButtonClassNames(variant: UIButtonVariant, iconOnly: boolean): string
 }
 
 /**
- * Shared button chrome with semantic variants and optional icon-only layout.
- * Uses a native anchor for `href`, a TanStack Router `Link` for `to`, and a
- * button otherwise.
+ * Shared button chrome with semantic variants and optional icon-only layout. Uses a native anchor
+ * for `href`, a TanStack Router `Link` for `to`, and a button otherwise.
  */
 export function UIButton({
   variant = 'confirm',

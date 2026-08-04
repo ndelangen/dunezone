@@ -6,7 +6,8 @@ import { expect, userEvent, within } from 'storybook/test';
 import type { Faction } from '@db/factions';
 import { defaultFaction } from '@data/defaultFaction';
 
-import { FactionSheetReview, type FactionSheetReviewHandle } from './FactionSheetReview';
+import { FactionSheetReview } from './FactionSheetReview';
+import type { FactionSheetReviewHandle } from './FactionSheetReview';
 
 function EditorChapter({ index }: { index: number }) {
   return (

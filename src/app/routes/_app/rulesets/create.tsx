@@ -31,7 +31,9 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
       onSubmit={(e) => {
         e.preventDefault();
         const nextName = name.trim();
-        if (!nextName) return;
+        if (!nextName) {
+          return;
+        }
         createRuleset.mutate(
           { input: { name: nextName }, groupId: groupId ?? null },
           {

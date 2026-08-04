@@ -2,7 +2,7 @@ import { PDFDocument } from 'pdf-lib';
 
 const POINTS_PER_MM = 72 / 25.4;
 const MAX_PROOF_PDF_BYTES = 32 * 1024 * 1024;
-const MAX_TRAILER_SCAN_BYTES = 4_096;
+const MAX_TRAILER_SCAN_BYTES = 4096;
 const MAX_CLASSIC_XREF_BYTES = 1_048_576;
 const MAX_CLASSIC_XREF_ENTRIES = 100_000;
 const decoder = new TextDecoder('latin1');
@@ -65,10 +65,16 @@ function assertCompletePdfEnvelope(bytes: Uint8Array): PdfEnvelope {
 
 function readLine(bytes: Uint8Array, from: number, end: number) {
   let lineEnd = from;
-  while (lineEnd < end && bytes[lineEnd] !== 10 && bytes[lineEnd] !== 13) lineEnd += 1;
+  while (lineEnd < end && bytes[lineEnd] !== 10 && bytes[lineEnd] !== 13) {
+    lineEnd += 1;
+  }
   let next = lineEnd;
-  if (bytes[next] === 13) next += 1;
-  if (bytes[next] === 10) next += 1;
+  if (bytes[next] === 13) {
+    next += 1;
+  }
+  if (bytes[next] === 10) {
+    next += 1;
+  }
   return {
     line: decoder.decode(bytes.subarray(from, lineEnd)),
     next,
@@ -112,9 +118,13 @@ function parseStrictClassicXref(bytes: Uint8Array, envelope: PdfEnvelope): Class
       foundTrailer = true;
       break;
     }
-    if (trimmed.length === 0) continue;
+    if (trimmed.length === 0) {
+      continue;
+    }
     const subsection = /^(\d+)\s+(\d+)$/.exec(trimmed);
-    if (!subsection) throw new Error('Classic xref subsection header is invalid');
+    if (!subsection) {
+      throw new Error('Classic xref subsection header is invalid');
+    }
     const firstObject = Number(subsection[1]);
     const count = Number(subsection[2]);
     if (
@@ -130,7 +140,9 @@ function parseStrictClassicXref(bytes: Uint8Array, envelope: PdfEnvelope): Class
       const entryLine = readLine(bytes, cursor, envelope.startxrefOffset);
       cursor = entryLine.next;
       const entry = /^(\d{10})\s(\d{5})\s([fn])\s*$/.exec(entryLine.line);
-      if (!entry) throw new Error('Classic xref entry is invalid');
+      if (!entry) {
+        throw new Error('Classic xref entry is invalid');
+      }
       const objectNumber = firstObject + index;
       const generationNumber = Number(entry[2]);
       const objectOffset = Number(entry[1]);
@@ -158,14 +170,18 @@ function parseStrictClassicXref(bytes: Uint8Array, envelope: PdfEnvelope): Class
     }
     entryCount += count;
   }
-  if (!foundTrailer) throw new Error('Classic xref table has no trailer');
+  if (!foundTrailer) {
+    throw new Error('Classic xref table has no trailer');
+  }
 
   const trailer = decoder.decode(bytes.subarray(cursor, envelope.startxrefOffset));
   if (/\/(?:Prev|XRefStm)\b/.test(trailer)) {
     throw new Error('Incremental or hybrid xref PDFs are outside the Chromium proof contract');
   }
   const sizeMatch = /\/Size\s+(\d+)\b/.exec(trailer);
-  if (!sizeMatch) throw new Error('Classic xref trailer has no Size');
+  if (!sizeMatch) {
+    throw new Error('Classic xref trailer has no Size');
+  }
   const size = Number(sizeMatch[1]);
   if (!Number.isSafeInteger(size) || size <= 0 || size > MAX_CLASSIC_XREF_ENTRIES) {
     throw new Error('Classic xref trailer Size exceeds the proof validator bound');
@@ -186,7 +202,9 @@ function parseStrictClassicXref(bytes: Uint8Array, envelope: PdfEnvelope): Class
     throw new Error('Classic xref object 0 must be the canonical free entry');
   }
   const root = /\/Root\s+(\d+)\s+(\d+)\s+R\b/.exec(trailer);
-  if (!root) throw new Error('Classic xref trailer has no Root reference');
+  if (!root) {
+    throw new Error('Classic xref trailer has no Root reference');
+  }
   const rootObjectNumber = Number(root[1]);
   const rootGenerationNumber = Number(root[2]);
   const rootEntry = entries.get(rootObjectNumber);

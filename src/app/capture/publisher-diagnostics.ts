@@ -46,8 +46,8 @@ const MAX_ERROR_MESSAGE_LENGTH = 512;
 const MAX_ERROR_STACK_LENGTH = 900;
 
 /**
- * Flattens Error.cause and AggregateError.errors without allowing publisher secrets or an
- * unbounded exception graph into telemetry.
+ * Flattens Error.cause and AggregateError.errors without allowing publisher secrets or an unbounded
+ * exception graph into telemetry.
  */
 export function publisherErrorDetails(error: unknown): PublisherErrorDetail[] {
   const details: PublisherErrorDetail[] = [];
@@ -70,9 +70,13 @@ export function publisherErrorDetails(error: unknown): PublisherErrorDetail[] {
     });
 
     if (value instanceof AggregateError) {
-      for (const nested of value.errors) visit(nested);
+      for (const nested of value.errors) {
+        visit(nested);
+      }
     }
-    if (value instanceof Error && value.cause !== undefined) visit(value.cause);
+    if (value instanceof Error && value.cause !== undefined) {
+      visit(value.cause);
+    }
   }
 
   visit(error);
@@ -90,7 +94,9 @@ export function publisherFailureFields(error: unknown) {
 
 export function serializePublisherLogEvent(event: Record<string, unknown>): string {
   return JSON.stringify(event, (_key, value: unknown) => {
-    if (value instanceof Error) return publisherErrorMessage(value);
+    if (value instanceof Error) {
+      return publisherErrorMessage(value);
+    }
     return typeof value === 'string' ? sanitizePublisherDiagnostic(value) : value;
   });
 }

@@ -33,8 +33,9 @@ function finite(value: unknown): value is number {
 }
 
 function okRecord(value: unknown): RecordValue {
-  if (!record(value) || value.ok !== true)
+  if (!record(value) || value.ok !== true) {
     throw new Error('Convex Publication response is invalid');
+  }
   return value;
 }
 
@@ -90,7 +91,7 @@ export function parseTakeWork(value: unknown): TakeWorkResult {
 }
 
 function truncatedError(error: unknown): string {
-  return publisherErrorMessage(error).slice(0, 2_000);
+  return publisherErrorMessage(error).slice(0, 2000);
 }
 
 export class ConvexPublisherClient {

@@ -31,7 +31,9 @@ function abortReason(signal: AbortSignal): unknown {
 }
 
 async function settleImage(image: HTMLImageElement, signal: AbortSignal): Promise<void> {
-  if (signal.aborted) throw abortReason(signal);
+  if (signal.aborted) {
+    throw abortReason(signal);
+  }
   if (!image.complete) {
     await new Promise<void>((resolve, reject) => {
       const cleanup = () => {
@@ -63,7 +65,9 @@ async function settleImage(image: HTMLImageElement, signal: AbortSignal): Promis
 }
 
 async function settleSvgImage(href: string, signal: AbortSignal): Promise<void> {
-  if (signal.aborted) throw abortReason(signal);
+  if (signal.aborted) {
+    throw abortReason(signal);
+  }
   const image = new Image();
   image.src = new URL(href, document.baseURI).href;
   const onAbort = () => {
@@ -72,14 +76,18 @@ async function settleSvgImage(href: string, signal: AbortSignal): Promise<void> 
   signal.addEventListener('abort', onAbort, { once: true });
   try {
     await image.decode();
-    if (signal.aborted) throw abortReason(signal);
+    if (signal.aborted) {
+      throw abortReason(signal);
+    }
     if (image.naturalWidth === 0 || image.naturalHeight === 0) {
       throw new Error(
         `SVG image has no decoded pixels: ${redactPublisherResource(href, document.baseURI)}`
       );
     }
   } catch (error) {
-    if (signal.aborted) throw abortReason(signal);
+    if (signal.aborted) {
+      throw abortReason(signal);
+    }
     throw new Error(
       `SVG image failed to decode: ${redactPublisherResource(href, document.baseURI)}`,
       { cause: error }
@@ -90,13 +98,17 @@ async function settleSvgImage(href: string, signal: AbortSignal): Promise<void> 
 }
 
 async function settleExternalSvgUse(href: string, signal: AbortSignal): Promise<void> {
-  if (signal.aborted) throw abortReason(signal);
+  if (signal.aborted) {
+    throw abortReason(signal);
+  }
   const resource = new URL(href, document.baseURI);
   const fragment = resource.hash.slice(1);
   resource.hash = '';
   const response = await fetch(resource, { signal, cache: 'force-cache' });
   const safeResource = redactPublisherResource(href, document.baseURI);
-  if (!response.ok) throw new Error(`SVG use returned HTTP ${response.status}: ${safeResource}`);
+  if (!response.ok) {
+    throw new Error(`SVG use returned HTTP ${response.status}: ${safeResource}`);
+  }
   const svgText = await response.text();
   const svgDocument = new DOMParser().parseFromString(svgText, 'image/svg+xml');
   if (svgDocument.documentElement.localName !== 'svg' || svgDocument.querySelector('parsererror')) {
@@ -107,7 +119,9 @@ async function settleExternalSvgUse(href: string, signal: AbortSignal): Promise<
     const found = Array.from(svgDocument.querySelectorAll('[id]')).some(
       (element) => element.getAttribute('id') === decodedFragment
     );
-    if (!found) throw new Error(`SVG use target is missing: ${safeResource}`);
+    if (!found) {
+      throw new Error(`SVG use target is missing: ${safeResource}`);
+    }
   }
 }
 
@@ -153,8 +167,9 @@ export function PublisherFactionSheetCapture() {
           credentials: 'same-origin',
           signal: controller.signal,
         });
-        if (!response.ok)
+        if (!response.ok) {
           throw new Error(`Publication job snapshot returned HTTP ${response.status}`);
+        }
         const snapshot = publisherCaptureSnapshotSchema.parse(await response.json());
         setFaction(snapshot.payload.faction);
         setPayloadHash(snapshot.payloadHash);
@@ -173,7 +188,9 @@ export function PublisherFactionSheetCapture() {
   }, []);
 
   useEffect(() => {
-    if (!faction) return;
+    if (!faction) {
+      return;
+    }
     document.documentElement.dataset.factionSheet = '';
     let disposed = false;
     const controller = new AbortController();

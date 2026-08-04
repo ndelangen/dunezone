@@ -7,7 +7,9 @@ const PREVIEWABLE_EXT = /\.(svg|png|jpg|jpeg)$/i;
 
 function toPreviewSrc(path: string): string | null {
   const value = path.trim();
-  if (!PREVIEWABLE_EXT.test(value)) return null;
+  if (!PREVIEWABLE_EXT.test(value)) {
+    return null;
+  }
   return value.startsWith('/') ? value : `/${value}`;
 }
 

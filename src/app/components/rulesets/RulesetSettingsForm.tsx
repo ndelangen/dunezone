@@ -1,7 +1,8 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import { type RulesetEntry, useUpdateRuleset } from '@db/rulesets';
+import { useUpdateRuleset } from '@db/rulesets';
+import type { RulesetEntry } from '@db/rulesets';
 import { FormField } from '@app/components/form/FormField';
 import { TextField } from '@app/components/form/TextField';
 import { ButtonGroup, Stack } from '@app/components/generic/layout';
@@ -17,7 +18,9 @@ export function RulesetSettingsForm({ initial }: { initial: RulesetEntry }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextName = name.trim();
-    if (!nextName) return;
+    if (!nextName) {
+      return;
+    }
     const trimmedCover = coverUrl.trim();
     const prevSlug = initial.slug;
     try {

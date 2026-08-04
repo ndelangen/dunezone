@@ -43,7 +43,9 @@ function cookie(request: Request, name: string): string | undefined {
 function snapshotDeadline(request: Request): number {
   const maximum = Date.now() + SNAPSHOT_DEADLINE_MS;
   const value = cookie(request, DEADLINE_COOKIE);
-  if (!value || !/^\d+$/.test(value)) return maximum;
+  if (!value || !/^\d+$/.test(value)) {
+    return maximum;
+  }
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) ? Math.min(maximum, parsed) : maximum;
 }
@@ -58,7 +60,9 @@ async function validatePublicationJob(
   env: CaptureEnv
 ): Promise<PublicationJobValidation> {
   const jobId = publicationJobId(request);
-  if (!jobId) return { status: 'invalid' };
+  if (!jobId) {
+    return { status: 'invalid' };
+  }
   try {
     return await runWithDeadline(snapshotDeadline(request), async (signal) => {
       const upstream = await fetch(env.CONVEX_RENDER_URL, {
@@ -66,7 +70,9 @@ async function validatePublicationJob(
         headers: { Authorization: `Bearer ${jobId}` },
         signal,
       });
-      if (!upstream.ok) return { status: 'invalid' as const };
+      if (!upstream.ok) {
+        return { status: 'invalid' as const };
+      }
       const body = await readBoundedJson(upstream, MAX_SNAPSHOT_BYTES, signal);
       if (typeof body !== 'object' || body === null || !('ok' in body) || body.ok !== true) {
         return { status: 'invalid' as const };
@@ -118,9 +124,13 @@ async function gatedCaptureAsset(request: Request, env: CaptureEnv): Promise<Res
 }
 
 async function exactSnapshot(request: Request, env: CaptureEnv): Promise<Response> {
-  if (request.method !== 'GET') return noStoreJson({ error: 'Not found' }, 404);
+  if (request.method !== 'GET') {
+    return noStoreJson({ error: 'Not found' }, 404);
+  }
   const validation = await validatePublicationJob(request, env);
-  if (validation.status === 'invalid') return noStoreJson({ error: 'Not found' }, 404);
+  if (validation.status === 'invalid') {
+    return noStoreJson({ error: 'Not found' }, 404);
+  }
   if (validation.status === 'unavailable') {
     return noStoreJson({ error: 'Snapshot unavailable' }, 502);
   }
@@ -132,8 +142,12 @@ export async function handleCaptureRoute(
   env: CaptureEnv
 ): Promise<Response | undefined> {
   const pathname = new URL(request.url).pathname;
-  if (pathname === '/__asset-publisher/capture') return await captureDocument(request, env);
-  if (pathname === '/__asset-publisher/snapshot') return await exactSnapshot(request, env);
+  if (pathname === '/__asset-publisher/capture') {
+    return await captureDocument(request, env);
+  }
+  if (pathname === '/__asset-publisher/snapshot') {
+    return await exactSnapshot(request, env);
+  }
   if (pathname === '/publisher-capture.html' || pathname.startsWith('/publisher-capture/')) {
     return await gatedCaptureAsset(request, env);
   }

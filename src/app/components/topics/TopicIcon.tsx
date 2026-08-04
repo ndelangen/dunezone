@@ -1,4 +1,5 @@
-import { BookOpen, Image as ImageIcon, type LucideIcon } from 'lucide-react';
+import { BookOpen, Image as ImageIcon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 const TOPIC_ICON_DEFINITIONS = {
   identity: { kind: 'mask', src: '/vector/icon/eye.svg' },
@@ -31,8 +32,8 @@ export interface TopicIconProps {
 }
 
 /**
- * The canonical, decorative icon for a recurring application topic.
- * The surrounding heading or label owns the accessible name.
+ * The canonical, decorative icon for a recurring application topic. The surrounding heading or
+ * label owns the accessible name.
  */
 export function TopicIcon({ topic, size = 16, className }: TopicIconProps) {
   const definition = TOPIC_ICON_DEFINITIONS[topic];

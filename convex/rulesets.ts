@@ -22,7 +22,9 @@ async function getFactionById(ctx: QueryCtx | MutationCtx, id: Id<'factions'>) {
 
 function factionIdentityForClient(data: unknown) {
   const parsedFaction = CanonicalFactionStoredSchema.safeParse(data);
-  if (!parsedFaction.success) return null;
+  if (!parsedFaction.success) {
+    return null;
+  }
   const faction = parsedFaction.data;
   return {
     logo: faction.logo,
@@ -65,7 +67,9 @@ export const get = query({
   args: { id: v.id('rulesets') },
   handler: async (ctx, args) => {
     const row = await getRulesetById(ctx, args.id);
-    if (!row || row.is_deleted) throw new Error(`Ruleset with id ${args.id} not found`);
+    if (!row || row.is_deleted) {
+      throw new Error(`Ruleset with id ${args.id} not found`);
+    }
     return row;
   },
 });
@@ -75,7 +79,9 @@ async function rulesetPublicBundleBySlugMaybe(ctx: QueryCtx, slug: string) {
     .query('rulesets')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (!row || row.is_deleted) return null;
+  if (!row || row.is_deleted) {
+    return null;
+  }
 
   const links = await ctx.db
     .query('ruleset_factions')
@@ -108,7 +114,9 @@ async function rulesetPublicBundleBySlugMaybe(ctx: QueryCtx, slug: string) {
 
 async function rulesetPublicBundleBySlug(ctx: QueryCtx, slug: string) {
   const bundle = await rulesetPublicBundleBySlugMaybe(ctx, slug);
-  if (!bundle) throw new Error(`Ruleset with slug ${slug} not found`);
+  if (!bundle) {
+    throw new Error(`Ruleset with slug ${slug} not found`);
+  }
   return bundle;
 }
 
@@ -121,7 +129,9 @@ export const detailPageBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
     const base = await rulesetPublicBundleBySlugMaybe(ctx, args.slug);
-    if (!base) return null;
+    if (!base) {
+      return null;
+    }
     const faqItems = await loadFaqItemsForRuleset(ctx, base.ruleset._id);
 
     let groupAccess: {
@@ -201,9 +211,13 @@ export const canAccess = query({
   args: { ruleset_id: v.id('rulesets') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return false;
+    if (!userId) {
+      return false;
+    }
     const ruleset = await getRulesetById(ctx, args.ruleset_id);
-    if (!ruleset) return false;
+    if (!ruleset) {
+      return false;
+    }
     return await canAccessRuleset(ctx, ruleset, userId);
   },
 });
@@ -237,14 +251,18 @@ export const create = mutation({
 
     if (args.group_id) {
       const canUseGroup = await isActiveGroupMember(ctx, args.group_id, userId);
-      if (!canUseGroup) throw new Error('Not authorized for group');
+      if (!canUseGroup) {
+        throw new Error('Not authorized for group');
+      }
     }
 
     const duplicate = await ctx.db
       .query('rulesets')
       .withIndex('by_name', (q) => q.eq('name', normalizedName))
       .take(25);
-    if (duplicate.some((row) => !row.is_deleted)) throw new Error('Ruleset name already exists');
+    if (duplicate.some((row) => !row.is_deleted)) {
+      throw new Error('Ruleset name already exists');
+    }
 
     const now = nowIso();
     const slug = await resolveUniqueRulesetSlug(ctx, normalizedName);
@@ -259,7 +277,9 @@ export const create = mutation({
       is_deleted: false,
     });
     const created = await ctx.db.get(_id);
-    if (!created) throw new Error('Failed to create ruleset');
+    if (!created) {
+      throw new Error('Failed to create ruleset');
+    }
     return created;
   },
 });
@@ -280,7 +300,9 @@ export const update = mutation({
     }
     const normalizedName = parsed.data.name;
     const ruleset = await getRulesetById(ctx, args.id);
-    if (!ruleset || ruleset.is_deleted) throw new Error(`Ruleset with id ${args.id} not found`);
+    if (!ruleset || ruleset.is_deleted) {
+      throw new Error(`Ruleset with id ${args.id} not found`);
+    }
 
     if (ruleset.owner_id !== userId) {
       throw new Error('Only the ruleset owner can update this ruleset');
@@ -289,7 +311,9 @@ export const update = mutation({
     if (args.group_id !== undefined) {
       if (args.group_id !== null) {
         const canUseGroup = await isActiveGroupMember(ctx, args.group_id, userId);
-        if (!canUseGroup) throw new Error('Not authorized for group');
+        if (!canUseGroup) {
+          throw new Error('Not authorized for group');
+        }
       }
     }
 
@@ -312,12 +336,18 @@ export const update = mutation({
       slug: await resolveUniqueRulesetSlug(ctx, normalizedName, args.id),
       updated_at: nowIso(),
     };
-    if (args.group_id !== undefined) patch.group_id = args.group_id;
-    if (args.image_cover !== undefined) patch.image_cover = args.image_cover;
+    if (args.group_id !== undefined) {
+      patch.group_id = args.group_id;
+    }
+    if (args.image_cover !== undefined) {
+      patch.image_cover = args.image_cover;
+    }
 
     await ctx.db.patch(ruleset._id, patch);
     const updated = await ctx.db.get(ruleset._id);
-    if (!updated) throw new Error('Failed to update ruleset');
+    if (!updated) {
+      throw new Error('Failed to update ruleset');
+    }
     return updated;
   },
 });
@@ -327,10 +357,14 @@ export const softDelete = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const ruleset = await getRulesetById(ctx, args.id);
-    if (!ruleset) throw new Error(`Ruleset with id ${args.id} not found`);
+    if (!ruleset) {
+      throw new Error(`Ruleset with id ${args.id} not found`);
+    }
 
     const permitted = await canAccessRuleset(ctx, ruleset, userId);
-    if (!permitted) throw new Error('Not authorized');
+    if (!permitted) {
+      throw new Error('Not authorized');
+    }
 
     await ctx.db.patch(ruleset._id, {
       is_deleted: true,
@@ -347,13 +381,19 @@ export const addFaction = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const ruleset = await getRulesetById(ctx, args.ruleset_id);
-    if (!ruleset || ruleset.is_deleted) throw new Error('Ruleset not found');
+    if (!ruleset || ruleset.is_deleted) {
+      throw new Error('Ruleset not found');
+    }
 
     const allowed = await canAccessRuleset(ctx, ruleset, userId);
-    if (!allowed) throw new Error('Not authorized');
+    if (!allowed) {
+      throw new Error('Not authorized');
+    }
 
     const faction = await getFactionById(ctx, args.faction_id);
-    if (!faction || faction.is_deleted) throw new Error('Faction not found');
+    if (!faction || faction.is_deleted) {
+      throw new Error('Faction not found');
+    }
 
     const existing = await ctx.db
       .query('ruleset_factions')
@@ -379,10 +419,14 @@ export const removeFaction = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const ruleset = await getRulesetById(ctx, args.ruleset_id);
-    if (!ruleset || ruleset.is_deleted) throw new Error('Ruleset not found');
+    if (!ruleset || ruleset.is_deleted) {
+      throw new Error('Ruleset not found');
+    }
 
     const allowed = await canAccessRuleset(ctx, ruleset, userId);
-    if (!allowed) throw new Error('Not authorized');
+    if (!allowed) {
+      throw new Error('Not authorized');
+    }
 
     const existing = await ctx.db
       .query('ruleset_factions')

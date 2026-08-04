@@ -51,7 +51,9 @@ describe('Publication save coalescing', () => {
     const { t, asUser } = await authenticatedTest();
     const faction = await createFaction(asUser);
     const [pending] = await jobsFor(t, faction._id);
-    if (!pending) throw new Error('Missing pending job');
+    if (!pending) {
+      throw new Error('Missing pending job');
+    }
     await t.run(async (ctx) => {
       await ctx.db.patch(pending._id, {
         attempt_counter: 7,
@@ -102,7 +104,9 @@ describe('Publication save coalescing', () => {
     const { t, asUser } = await authenticatedTest();
     const faction = await createFaction(asUser);
     const [first] = await jobsFor(t, faction._id);
-    if (!first) throw new Error('Missing first job');
+    if (!first) {
+      throw new Error('Missing first job');
+    }
     await t.run(async (ctx) => {
       await ctx.db.patch(first._id, {
         status: 'in_progress',
@@ -151,7 +155,9 @@ describe('Publication save coalescing', () => {
     const { t, asUser } = await authenticatedTest();
     const faction = await createFaction(asUser);
     const [job] = await jobsFor(t, faction._id);
-    if (!job) throw new Error('Missing job');
+    if (!job) {
+      throw new Error('Missing job');
+    }
     await t.run(async (ctx) => {
       await ctx.db.patch(job._id, {
         status: 'error',
@@ -183,7 +189,9 @@ describe('Publication pickup, recovery, and failure', () => {
     const expiredFaction = await createFaction(asUser, 'Expired capture');
     const pendingFaction = await createFaction(asUser, 'Still pending');
     const [expired] = await jobsFor(t, expiredFaction._id);
-    if (!expired) throw new Error('Missing expired job');
+    if (!expired) {
+      throw new Error('Missing expired job');
+    }
     await t.run(async (ctx) => {
       await ctx.db.patch(expired._id, {
         status: 'in_progress',
@@ -212,7 +220,9 @@ describe('Publication pickup, recovery, and failure', () => {
     const { t, asUser } = await authenticatedTest();
     const faction = await createFaction(asUser);
     const [job] = await jobsFor(t, faction._id);
-    if (!job) throw new Error('Missing job');
+    if (!job) {
+      throw new Error('Missing job');
+    }
     await t.run(async (ctx) => {
       await ctx.db.patch(job._id, {
         status: 'in_progress',
@@ -241,7 +251,9 @@ describe('Publication pickup, recovery, and failure', () => {
     });
     const faction = await createFaction(asUser);
     const [job] = await jobsFor(t, faction._id);
-    if (!job) throw new Error('Missing job');
+    if (!job) {
+      throw new Error('Missing job');
+    }
     await t.run(async (ctx) => {
       await ctx.db.patch(job._id, {
         status: 'in_progress',
@@ -275,7 +287,9 @@ describe('Publication pickup, recovery, and failure', () => {
     const faction = await createFaction(asUser);
 
     const work = await t.mutation(internal.publicationJobs.takeWork, {});
-    if (work.status !== 'assigned') throw new Error('Expected assigned work');
+    if (work.status !== 'assigned') {
+      throw new Error('Expected assigned work');
+    }
     await asAdmin.mutation(api.publicationAdmin.setPickupEnabled, { enabled: false });
     await expect(
       t.mutation(internal.publicationJobs.completeJob, {
@@ -292,7 +306,9 @@ describe('Publication regeneration and administration', () => {
     const { t, asUser } = await authenticatedTest();
     const faction = await createFaction(asUser);
     const [queued] = await jobsFor(t, faction._id);
-    if (!queued) throw new Error('Missing job');
+    if (!queued) {
+      throw new Error('Missing job');
+    }
 
     await asUser.mutation(api.factions.softDelete, { id: faction._id });
     expect(await jobsFor(t, faction._id)).toHaveLength(1);
@@ -310,7 +326,9 @@ describe('Publication regeneration and administration', () => {
     const { t, asUser } = await authenticatedTest();
     const faction = await createFaction(asUser);
     const [saveJob] = await jobsFor(t, faction._id);
-    if (!saveJob) throw new Error('Missing save job');
+    if (!saveJob) {
+      throw new Error('Missing save job');
+    }
     await t.run(async (ctx) => await ctx.db.delete(saveJob._id));
 
     for (let scan = 0; scan < 2; scan += 1) {
@@ -329,7 +347,9 @@ describe('Publication regeneration and administration', () => {
     const { t, asUser } = await authenticatedTest();
     const faction = await createFaction(asUser);
     const [queued] = await jobsFor(t, faction._id);
-    if (!queued) throw new Error('Missing job');
+    if (!queued) {
+      throw new Error('Missing job');
+    }
     await t.run(async (ctx) => await ctx.db.delete(queued._id));
     await asUser.mutation(api.factions.softDelete, { id: faction._id });
     await t.run(async (ctx) => await ctx.db.patch(faction._id, { is_deleted: false }));
@@ -357,7 +377,9 @@ describe('Publication regeneration and administration', () => {
     const { t, asUser } = await authenticatedTest();
     const faction = await createFaction(asUser);
     const [saveJob] = await jobsFor(t, faction._id);
-    if (!saveJob) throw new Error('Missing save job');
+    if (!saveJob) {
+      throw new Error('Missing save job');
+    }
     await t.run(async (ctx) => await ctx.db.delete(saveJob._id));
 
     await expect(

@@ -1,7 +1,8 @@
 import { useQuery } from 'convex/react';
 
 import { db } from '@db/core';
-import { type FactionEntry, factionRowsToEntries } from '@db/factions';
+import { factionRowsToEntries } from '@db/factions';
+import type { FactionEntry } from '@db/factions';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { groupInputSchema } from '@app/groups/validation';
 

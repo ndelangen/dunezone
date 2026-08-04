@@ -25,13 +25,17 @@ describe('publisher diagnostic redaction', () => {
   test('retains only the external origin and a redacted marker', () => {
     const redacted = redactPublisherResource(signedUrl);
     expect(redacted).toBe('https://cdn.example.com/<redacted>');
-    for (const secret of secrets) expect(redacted).not.toContain(secret);
+    for (const secret of secrets) {
+      expect(redacted).not.toContain(secret);
+    }
   });
 
   test('removes signed URLs embedded inside arbitrary page errors', () => {
     const diagnostic = sanitizePublisherDiagnostic(`Failed to decode ${signedUrl}`);
     expect(diagnostic).toContain('https://cdn.example.com/<redacted>');
-    for (const secret of secrets) expect(diagnostic).not.toContain(secret);
+    for (const secret of secrets) {
+      expect(diagnostic).not.toContain(secret);
+    }
   });
 
   test('removes scheme-relative signed URLs and centralizes error/log conversion', () => {
@@ -60,7 +64,9 @@ describe('publisher diagnostic redaction', () => {
       'Browser capture failed during validate',
       'Failed to decode https://cdn.example.com/<redacted>',
     ]);
-    for (const secret of secrets) expect(JSON.stringify(details)).not.toContain(secret);
+    for (const secret of secrets) {
+      expect(JSON.stringify(details)).not.toContain(secret);
+    }
   });
 
   test.each([
@@ -86,7 +92,9 @@ describe('publisher diagnostic redaction', () => {
   ])('redacts a boundary-delimited scheme-relative signed URL: %s', (diagnostic) => {
     const redacted = sanitizePublisherDiagnostic(diagnostic);
     expect(redacted).toContain('https://cdn.example.com/<redacted>');
-    for (const secret of secrets) expect(redacted).not.toContain(secret);
+    for (const secret of secrets) {
+      expect(redacted).not.toContain(secret);
+    }
   });
 
   test('preserves surrounding backtick and angle-bracket quotation', () => {
@@ -130,7 +138,9 @@ describe('publisher diagnostic redaction', () => {
     const redacted = sanitizePublisherDiagnostic(url);
     expect(redacted).toBe('https://cdn.example.com/<redacted>');
     expect(redacted.match(/<redacted>/g)).toHaveLength(1);
-    for (const secret of secrets) expect(redacted).not.toContain(secret);
+    for (const secret of secrets) {
+      expect(redacted).not.toContain(secret);
+    }
   });
 
   test('preserves only terminal canonical markers and normalizes terminal repeats', () => {

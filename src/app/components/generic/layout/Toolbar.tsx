@@ -1,11 +1,6 @@
 import clsx from 'clsx';
-import {
-  Children,
-  type ComponentPropsWithoutRef,
-  isValidElement,
-  type PropsWithChildren,
-  type ReactNode,
-} from 'react';
+import { Children, isValidElement } from 'react';
+import type { ComponentPropsWithoutRef, PropsWithChildren, ReactNode } from 'react';
 
 import styles from './Toolbar.module.css';
 

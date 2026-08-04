@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
-  type FaqItemByRulesetSlugInitialData,
   loadFaqItemByRulesetAndSlug,
   useCreateFaqAnswer,
   useDeleteFaqAnswer,
@@ -13,6 +12,7 @@ import {
   useUpdateFaqAnswer,
   useUpdateFaqItem,
 } from '@db/faq';
+import type { FaqItemByRulesetSlugInitialData } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug } from '@db/rulesets';
 import { Answer } from '@app/components/faq/Answer';
@@ -24,7 +24,8 @@ import { Card } from '@app/components/generic/surfaces/Card';
 import { UIButton } from '@app/components/generic/ui/UIButton';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
-import { DEFAULT_FAQ_TAG, FAQ_TAG_LABELS, FAQ_TAG_VALUES, type FaqTag } from '@app/faq/tags';
+import { DEFAULT_FAQ_TAG, FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
+import type { FaqTag } from '@app/faq/tags';
 
 import styles from './$questionSlug.module.css';
 
@@ -73,7 +74,10 @@ function FaqDetailPage() {
   const [editAnswerValue, setEditAnswerValue] = useState('');
 
   const item = faqItem.data;
-  const answers = Array.isArray(item?.faq_answers) ? item.faq_answers : [];
+  const answers = useMemo(
+    () => (Array.isArray(item?.faq_answers) ? item.faq_answers : []),
+    [item?.faq_answers]
+  );
   const orderedAnswers =
     item?.accepted_answer_id == null
       ? answers
@@ -99,12 +103,18 @@ function FaqDetailPage() {
   );
 
   useEffect(() => {
-    if (!item) return;
+    if (!item) {
+      return;
+    }
     const scrollToHash = () => {
       const targetSlug = window.location.hash.slice(1).trim();
-      if (!targetSlug) return;
+      if (!targetSlug) {
+        return;
+      }
       const answer = answers.find((row) => row.answerer_profile?.slug === targetSlug);
-      if (!answer) return;
+      if (!answer) {
+        return;
+      }
       const node = document.getElementById(`faq-answer-${answer._id}`);
       node?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
@@ -138,7 +148,9 @@ function FaqDetailPage() {
     a.answered_by === profile?.data?.user_id || isQuestionOwner;
 
   const handleDeleteQuestion = () => {
-    if (!window.confirm('Delete this question and all its answers? This cannot be undone.')) return;
+    if (!window.confirm('Delete this question and all its answers? This cannot be undone.')) {
+      return;
+    }
     deleteFaqItem.mutate(faqItemId, {
       onSuccess: () => navigate({ to: '/rulesets/$rulesetSlug', params: { rulesetSlug } }),
     });
@@ -201,7 +213,9 @@ function FaqDetailPage() {
   };
 
   const handleDeleteAnswer = (answerId: string) => {
-    if (!window.confirm('Delete this answer?')) return;
+    if (!window.confirm('Delete this answer?')) {
+      return;
+    }
     deleteFaqAnswer.mutate(answerId);
   };
 
@@ -320,7 +334,9 @@ function FaqDetailPage() {
                 const answer = (
                   formEl.elements.namedItem('answer') as HTMLTextAreaElement
                 ).value.trim();
-                if (!answer) return;
+                if (!answer) {
+                  return;
+                }
                 createFaqAnswer.mutate({ faqItemId, answer }, { onSuccess: () => formEl.reset() });
               }}
             >

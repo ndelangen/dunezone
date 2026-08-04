@@ -20,8 +20,8 @@ export type StackProps<T extends ElementType = 'div'> = {
 } & Omit<React.ComponentPropsWithoutRef<T>, 'as' | 'children' | 'className'>;
 
 /**
- * Column flex layout with gap (spacing token). Use for page sections and form stacks
- * instead of margin chains on leaf components.
+ * Column flex layout with gap (spacing token). Use for page sections and form stacks instead of
+ * margin chains on leaf components.
  */
 export function Stack<T extends ElementType = 'div'>({
   as,

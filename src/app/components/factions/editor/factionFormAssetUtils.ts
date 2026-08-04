@@ -18,20 +18,28 @@ export function assetOptionToPreviewSrc(path: string): string | null {
 }
 
 export function toTitleCaseWord(word: string): string {
-  if (word.length === 0) return '';
+  if (word.length === 0) {
+    return '';
+  }
   return `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}`;
 }
 
 export function longestCommonPrefix(values: readonly string[]): string {
-  if (values.length === 0) return '';
+  if (values.length === 0) {
+    return '';
+  }
   let prefix = values[0] ?? '';
   for (let i = 1; i < values.length; i += 1) {
     const value = values[i] ?? '';
     let j = 0;
     const max = Math.min(prefix.length, value.length);
-    while (j < max && prefix[j] === value[j]) j += 1;
+    while (j < max && prefix[j] === value[j]) {
+      j += 1;
+    }
     prefix = prefix.slice(0, j);
-    if (prefix.length === 0) break;
+    if (prefix.length === 0) {
+      break;
+    }
   }
   const lastSlash = prefix.lastIndexOf('/');
   return lastSlash >= 0 ? prefix.slice(0, lastSlash + 1) : '';
@@ -39,7 +47,9 @@ export function longestCommonPrefix(values: readonly string[]): string {
 
 export function formatPathDisplay(rawValue: string, commonPrefix: string): string {
   const raw = rawValue.trim();
-  if (raw.length === 0) return rawValue;
+  if (raw.length === 0) {
+    return rawValue;
+  }
   const withoutPrefix = raw.startsWith(commonPrefix) ? raw.slice(commonPrefix.length) : raw;
   const withoutExt = withoutPrefix.replace(/\.[^./]+$/u, '');
   const parts = withoutExt

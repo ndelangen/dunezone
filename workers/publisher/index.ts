@@ -61,11 +61,17 @@ function handleStorybookEntry(
 export const publisherWorker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const publicAsset = await handlePublicAssetRequest(request, env, ctx);
-    if (publicAsset) return publicAsset;
+    if (publicAsset) {
+      return publicAsset;
+    }
     const capture = await handleCaptureRoute(request, env);
-    if (capture) return capture;
+    if (capture) {
+      return capture;
+    }
     const storybook = handleStorybookEntry(request, env);
-    if (storybook) return storybook;
+    if (storybook) {
+      return storybook;
+    }
     const pathname = new URL(request.url).pathname;
     if (pathname === '/__asset-publisher/health') {
       const identity = publisherBuildIdentity(env.CF_VERSION_METADATA, env.GIT_SHA);
@@ -80,7 +86,9 @@ export const publisherWorker = {
         { headers: { 'Cache-Control': 'no-store' } }
       );
     }
-    if (isReservedWorkerPath(pathname)) return reservedNotFound();
+    if (isReservedWorkerPath(pathname)) {
+      return reservedNotFound();
+    }
     return env.ASSETS.fetch(request);
   },
 

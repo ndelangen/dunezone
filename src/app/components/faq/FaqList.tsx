@@ -6,7 +6,8 @@ import { useMemo } from 'react';
 
 import type { FaqItemWithDetails } from '@db/faq';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
-import { FAQ_TAG_LABELS, type FaqTag } from '@app/faq/tags';
+import { FAQ_TAG_LABELS } from '@app/faq/tags';
+import type { FaqTag } from '@app/faq/tags';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 
 import { FaqItemList, FaqItemListRow } from './FaqItemList';
@@ -25,7 +26,9 @@ export function FaqList({ items, rulesetSlug, searchQuery, selectedTag }: FaqLis
     const tagFiltered = selectedTag
       ? items.filter((item) => (item.tags ?? []).includes(selectedTag))
       : items;
-    if (!searchQuery.trim()) return tagFiltered;
+    if (!searchQuery.trim()) {
+      return tagFiltered;
+    }
     return new Fuse(tagFiltered, { keys: ['question'], threshold: 0.4 })
       .search(searchQuery.trim())
       .map((r) => r.item);

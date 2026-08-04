@@ -1,3 +1,4 @@
+/* oxlint-disable unicorn/no-empty-file -- Placeholder enhanced by typescript-plugin-css-modules. */
 // // Base declaration for CSS modules
 // // The typescript-plugin-css-modules plugin will enhance this with actual class names
 // // from your CSS files, providing type safety and autocomplete

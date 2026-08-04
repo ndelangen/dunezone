@@ -1,5 +1,5 @@
 export const PUBLISHER_RENDERER_CONTRACT = {
-  viewport: { width: 2_100, height: 2_970, deviceScaleFactor: 1 },
+  viewport: { width: 2100, height: 2970, deviceScaleFactor: 1 },
   pdf: {
     pageCount: 2,
     pageWidthMm: 210,

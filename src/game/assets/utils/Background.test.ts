@@ -1,4 +1,5 @@
-import { type ComponentProps, createElement } from 'react';
+import { createElement } from 'react';
+import type { ComponentProps } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
@@ -62,22 +63,22 @@ describe('background studio renderer treatment', () => {
     },
   ];
 
-  it.each(layerCases)('renders $name layers through the same treated composite', ({
-    colors,
-    expected,
-  }) => {
-    const html = renderToStaticMarkup(
-      createElement(Background, {
-        image: '/image/texture/021.jpg',
-        colors,
-        invert: true,
-        definition: 0.5,
-        influence: 0.35,
-      })
-    );
+  it.each(layerCases)(
+    'renders $name layers through the same treated composite',
+    ({ colors, expected }) => {
+      const html = renderToStaticMarkup(
+        createElement(Background, {
+          image: '/image/texture/021.jpg',
+          colors,
+          invert: true,
+          definition: 0.5,
+          influence: 0.35,
+        })
+      );
 
-    expect(html).toContain(expected);
-    expect(html).toContain('grayscale(1) invert(1) contrast(1.83) blur(0.38px)');
-    expect(html).toContain('opacity="0.35"');
-  });
+      expect(html).toContain(expected);
+      expect(html).toContain('grayscale(1) invert(1) contrast(1.83) blur(0.38px)');
+      expect(html).toContain('opacity="0.35"');
+    }
+  );
 });

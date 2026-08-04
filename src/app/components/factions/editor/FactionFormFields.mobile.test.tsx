@@ -3,13 +3,15 @@
 import { MantineProvider } from '@mantine/core';
 import { useForm } from '@tanstack/react-form';
 import { act, useRef } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { appContentTheme } from '@app/theme';
 import { defaultFaction } from '@data/defaultFaction';
 
-import { FactionFormFields, type FactionFormFieldsHandle } from './FactionFormFields';
+import { FactionFormFields } from './FactionFormFields';
+import type { FactionFormFieldsHandle } from './FactionFormFields';
 import type { FactionFormApi } from './factionFormTypes';
 
 vi.mock('./FactionFormSectionIdentity', () => ({
@@ -103,13 +105,17 @@ function buttonWithText(text: string) {
   const button = [...(container?.querySelectorAll('button') ?? [])].find(
     (candidate) => candidate.textContent?.trim() === text
   );
-  if (!button) throw new Error(`Missing button: ${text}`);
+  if (!button) {
+    throw new Error(`Missing button: ${text}`);
+  }
   return button;
 }
 
 function buttonWithLabel(label: string) {
   const button = container?.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
-  if (!button) throw new Error(`Missing button: ${label}`);
+  if (!button) {
+    throw new Error(`Missing button: ${label}`);
+  }
   return button;
 }
 
@@ -149,7 +155,9 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (root) await act(async () => root?.unmount());
+  if (root) {
+    await act(async () => root?.unmount());
+  }
   container?.remove();
   root = undefined;
   container = undefined;

@@ -42,11 +42,15 @@ function asOptionalNumber(value: string | number): number | undefined {
 }
 
 function layerPreview(value: ColorLayer): string {
-  if (typeof value === 'string') return value;
+  if (typeof value === 'string') {
+    return value;
+  }
   const stops = value.stops
     .map(([color, position]) => `${color} ${Math.round(position * 100)}%`)
     .join(', ');
-  if (value.type === 'linear') return `linear-gradient(${value.angle}deg, ${stops})`;
+  if (value.type === 'linear') {
+    return `linear-gradient(${value.angle}deg, ${stops})`;
+  }
   return `radial-gradient(circle at ${value.x ?? 50}% ${value.y ?? 50}%, ${stops})`;
 }
 
@@ -71,13 +75,19 @@ export function FactionBackgroundColorLayer({
   );
 
   useEffect(() => {
-    if (typeof value === 'string') rememberedSolid.current = value;
-    else if (value.type === 'linear') rememberedLinear.current = structuredClone(value);
-    else rememberedRadial.current = structuredClone(value);
+    if (typeof value === 'string') {
+      rememberedSolid.current = value;
+    } else if (value.type === 'linear') {
+      rememberedLinear.current = structuredClone(value);
+    } else {
+      rememberedRadial.current = structuredClone(value);
+    }
   }, [value]);
 
   const changeMode = (nextMode: string) => {
-    if (nextMode === mode) return;
+    if (nextMode === mode) {
+      return;
+    }
     const sourceColor = typeof value === 'string' ? value : firstStopColor(value);
     if (nextMode === 'solid') {
       onChange(rememberedSolid.current || sourceColor);
@@ -253,7 +263,6 @@ function GradientFields({
             ) : null}
 
             {value.stops.map((stop, index) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: gradient stops have no stored identity
               <Paper key={`${label}-stop-${index}`} withBorder radius="sm" p="sm">
                 <SimpleGrid cols={{ base: 1, xs: 2 }}>
                   <ColorInput
@@ -292,7 +301,9 @@ function GradientFields({
                       disabled={index === 0}
                       aria-label={`Move stop ${index + 1} earlier`}
                       onClick={() => {
-                        if (index === 0) return;
+                        if (index === 0) {
+                          return;
+                        }
                         const next = [...value.stops];
                         [next[index - 1], next[index]] = [next[index], next[index - 1]];
                         updateStops(next);
@@ -309,7 +320,9 @@ function GradientFields({
                       disabled={index === value.stops.length - 1}
                       aria-label={`Move stop ${index + 1} later`}
                       onClick={() => {
-                        if (index === value.stops.length - 1) return;
+                        if (index === value.stops.length - 1) {
+                          return;
+                        }
                         const next = [...value.stops];
                         [next[index], next[index + 1]] = [next[index + 1], next[index]];
                         updateStops(next);

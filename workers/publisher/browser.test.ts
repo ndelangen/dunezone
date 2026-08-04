@@ -61,7 +61,7 @@ describe('production capture output validation', () => {
     const diagnostics = registerCaptureDiagnostics(page);
 
     for (let index = 0; index < 20; index += 1) {
-      listeners.get('pageerror')?.(new Error(`issue ${index} ${'x'.repeat(1_000)}`) as never);
+      listeners.get('pageerror')?.(new Error(`issue ${index} ${'x'.repeat(1000)}`) as never);
     }
 
     expect(diagnostics.issues).toHaveLength(12);

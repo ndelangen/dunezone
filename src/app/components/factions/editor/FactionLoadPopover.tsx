@@ -18,7 +18,8 @@ import { Link } from '@tanstack/react-router';
 import { Copy } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { type Faction, type FactionLoadPickerRow, useFactionLoadPicker } from '@db/factions';
+import { useFactionLoadPicker } from '@db/factions';
+import type { Faction, FactionLoadPickerRow } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import { CanonicalFactionStoredSchema } from '@game/schema/faction';
 
@@ -43,8 +44,8 @@ export interface FactionLoadPopoverContentProps {
 }
 
 /**
- * Mounted only while the Mantine popover is open so the picker does not keep a
- * Convex subscription alive while this toolbar utility is idle.
+ * Mounted only while the Mantine popover is open so the picker does not keep a Convex subscription
+ * alive while this toolbar utility is idle.
  */
 export function FactionLoadPopoverContent({
   currentPublicSlug,
@@ -91,7 +92,9 @@ export function FactionLoadPopoverContent({
 
   const selectedRow = selectedId ? rowsById.get(selectedId) : undefined;
   const handleLoad = () => {
-    if (!selectedRow) return;
+    if (!selectedRow) {
+      return;
+    }
     const parsed = CanonicalFactionStoredSchema.safeParse(selectedRow.data);
     if (!parsed.success) {
       setError(formatZodIssues(parsed.error));
@@ -136,9 +139,13 @@ export function FactionLoadPopoverContent({
           data={factionLoadSelectOptions}
           filter={({ options, search }) => {
             const query = search.trim().toLocaleLowerCase();
-            if (!query) return options;
+            if (!query) {
+              return options;
+            }
             return options.filter((option) => {
-              if ('group' in option) return false;
+              if ('group' in option) {
+                return false;
+              }
               const row = rowsById.get(String(option.value));
               return (row ? factionLoadOptionSearchText(row) : option.label)
                 .toLocaleLowerCase()
@@ -147,7 +154,9 @@ export function FactionLoadPopoverContent({
           }}
           renderOption={({ option }) => {
             const row = rowsById.get(String(option.value));
-            if (!row) return option.label;
+            if (!row) {
+              return option.label;
+            }
             const isMember = row.groupId ? memberGroupSet.has(String(row.groupId)) : false;
             return (
               <FactionLoadOptionRow

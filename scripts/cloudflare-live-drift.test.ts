@@ -73,13 +73,15 @@ function liveFetcher(
       method: init?.method ?? 'GET',
       authorization: new Headers(init?.headers).get('Authorization'),
     });
-    if (options.denied) return envelope(null, undefined, 403);
+    if (options.denied) {
+      return envelope(null, undefined, 403);
+    }
     if (url.pathname.endsWith(`/workers/scripts/${WORKER}/settings`)) {
       return envelope({
         bindings: liveBindings(),
         compatibility_date: '2026-07-17',
         compatibility_flags: ['nodejs_compat'],
-        limits: { cpu_ms: 30000 },
+        limits: { cpu_ms: 30_000 },
       });
     }
     if (url.pathname.endsWith(`/workers/scripts/${WORKER}/secrets`)) {
@@ -126,7 +128,9 @@ function liveFetcher(
             options.publisherBucketPublic === true,
         });
       }
-      if (suffix === '/domains/custom') return envelope({ domains: [] });
+      if (suffix === '/domains/custom') {
+        return envelope({ domains: [] });
+      }
       if (suffix === '') {
         return envelope({ name: bucket, location: 'weur', storage_class: 'Standard' });
       }

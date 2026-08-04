@@ -1,19 +1,22 @@
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 
-import { chromium, type Page } from 'playwright';
+import { chromium } from 'playwright';
+import type { Page } from 'playwright';
 
 import {
   assertPublisherFontFaces,
   assertRequiredPublisherFonts,
-  type PublisherFontFaceSet,
 } from '../../src/app/capture/publisher-fonts';
+import type { PublisherFontFaceSet } from '../../src/app/capture/publisher-fonts';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const publisherDist = path.join(repositoryRoot, 'workers/publisher/dist');
 
 function invariant(condition: unknown, message: string): asserts condition {
-  if (!condition) throw new Error(message);
+  if (!condition) {
+    throw new Error(message);
+  }
 }
 
 function browserFontSet(page: Page): PublisherFontFaceSet {
@@ -67,7 +70,9 @@ const server = Bun.serve({
       return new Response('not a woff2', { headers: { 'Content-Type': 'font/woff2' } });
     }
     const relative = pathname.replace(/^\/+/, '');
-    if (relative.split('/').includes('..')) return new Response('Not found', { status: 404 });
+    if (relative.split('/').includes('..')) {
+      return new Response('Not found', { status: 404 });
+    }
     const file = Bun.file(path.join(publisherDist, relative));
     return (await file.exists()) ? new Response(file) : new Response('Not found', { status: 404 });
   },

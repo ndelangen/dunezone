@@ -19,11 +19,8 @@ import { AlertCircle, BriefcaseBusiness } from 'lucide-react';
 import { useState } from 'react';
 
 import { PageLayout } from '@app/components/shell';
-import {
-  type PublicationJobStatus,
-  usePublicationJobsPage,
-  useSetPublicationPickupEnabled,
-} from '@app/publications/db';
+import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@app/publications/db';
+import type { PublicationJobStatus } from '@app/publications/db';
 
 const PAGE_SIZE = 25;
 
@@ -268,7 +265,9 @@ function formatAssetType(value: string) {
 }
 
 function formatDate(value: number | null) {
-  if (value === null) return '—';
+  if (value === null) {
+    return '—';
+  }
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',

@@ -2,16 +2,15 @@ import { useMutation, useQuery } from 'convex/react';
 import { useEffect, useRef } from 'react';
 
 import { db } from '@db/core';
-import {
-  type FactionCatalogueEntry,
-  type FactionCatalogueRow,
-  factionCatalogueRowsToEntries,
-} from '@db/factions';
+import { factionCatalogueRowsToEntries } from '@db/factions';
+import type { FactionCatalogueEntry, FactionCatalogueRow } from '@db/factions';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
-import { type ProfileUserEditInput, profileUserEditFormSchema } from '@app/profile/validation';
+import { profileUserEditFormSchema } from '@app/profile/validation';
+import type { ProfileUserEditInput } from '@app/profile/validation';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
+import type { FaqAnswerWithParent, FaqItemAskedByWithRuleset } from '../faq/db';
 
 export type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
@@ -28,8 +27,8 @@ export type ProfilePageData = {
   profile: ProfileEntry;
   memberships: Doc<'group_members'>[];
   groups: Doc<'groups'>[];
-  faqAsked: import('../faq/db').FaqItemAskedByWithRuleset[];
-  faqAnswers: import('../faq/db').FaqAnswerWithParent[];
+  faqAsked: FaqItemAskedByWithRuleset[];
+  faqAnswers: FaqAnswerWithParent[];
   factions: FactionCatalogueEntry[];
 };
 
@@ -38,8 +37,8 @@ export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> 
     profile: ProfileRow;
     memberships: Doc<'group_members'>[];
     groups: Doc<'groups'>[];
-    faqAsked: import('../faq/db').FaqItemAskedByWithRuleset[];
-    faqAnswers: import('../faq/db').FaqAnswerWithParent[];
+    faqAsked: FaqItemAskedByWithRuleset[];
+    faqAnswers: FaqAnswerWithParent[];
     factions: FactionCatalogueRow[];
   }>(api.profiles.getBySlug, { slug });
 
@@ -128,13 +127,19 @@ export function useCurrentProfile() {
   const bootstrapAttemptedRef = useRef(false);
 
   useEffect(() => {
-    if (userId === undefined || liveData === undefined) return;
+    if (userId === undefined || liveData === undefined) {
+      return;
+    }
     if (userId === null) {
       bootstrapAttemptedRef.current = false;
       return;
     }
-    if (liveData !== null) return;
-    if (bootstrapAttemptedRef.current) return;
+    if (liveData !== null) {
+      return;
+    }
+    if (bootstrapAttemptedRef.current) {
+      return;
+    }
     bootstrapAttemptedRef.current = true;
     void bootstrap({}).catch(() => {
       bootstrapAttemptedRef.current = false;

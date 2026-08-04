@@ -5,8 +5,8 @@ import type { Background } from '../schema/faction';
 export type BackgroundData = z.infer<typeof Background>;
 
 /**
- * Authored renderer inputs. These values are source data, never captured output.
- * Components may compose them directly through BackgroundRenderer.
+ * Authored renderer inputs. These values are source data, never captured output. Components may
+ * compose them directly through BackgroundRenderer.
  */
 export const backgroundPresets = {
   atreides: {

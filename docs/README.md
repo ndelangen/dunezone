@@ -30,7 +30,8 @@ bun run convex:deploy    # Deploy Convex functions/schema
 bun run migrations:run-local-required # Force local required migration catch-up
 
 # Code quality
-bun run biome:check      # Lint and format
+bun run check            # Lint and check formatting
+bun run format           # Format files
 bun run test             # Run tests
 bun run storybook        # Storybook dev (port 6006)
 bun run build-storybook  # Static Storybook → storybook-static

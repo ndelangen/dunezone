@@ -27,7 +27,9 @@ function decodeBase64Ascii(value: string): string {
 function decodeEnvFromBase64(targetKey: string, base64Key: string) {
   const current = process.env[targetKey];
   const encoded = process.env[base64Key];
-  if (current || !encoded) return;
+  if (current || !encoded) {
+    return;
+  }
   try {
     process.env[targetKey] = decodeBase64Ascii(encoded);
   } catch (error) {
@@ -94,7 +96,9 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     },
     async afterUserCreatedOrUpdated(ctx, { userId }) {
       const user = await ctx.db.get(userId);
-      if (!user) return;
+      if (!user) {
+        return;
+      }
       await ensureProfileForUser(ctx, userId, profileSourcesFromUserDoc(user));
     },
   },

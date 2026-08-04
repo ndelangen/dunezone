@@ -47,7 +47,9 @@ function requiredForAnyNarrow(entries: z.infer<typeof guardManifestSchema>['entr
   const ids = new Set<string>();
   for (const entry of entries) {
     if (entry.phase === 'narrow') {
-      for (const id of entry.requires) ids.add(id);
+      for (const id of entry.requires) {
+        ids.add(id);
+      }
     }
   }
   return Array.from(ids).sort();
@@ -112,7 +114,9 @@ function parseStatuses(raw: string): MigrationStatus[] {
 }
 
 function formatStatusForLog(statuses: MigrationStatus[]) {
-  if (statuses.length === 0) return 'unavailable';
+  if (statuses.length === 0) {
+    return 'unavailable';
+  }
   return statuses
     .map(
       (s) =>
@@ -137,7 +141,9 @@ async function ensureRequiredMigrationsReady({
   modeLabel: string;
 }) {
   const manifest = await loadManifest();
-  if (manifest.entries.length === 0) throw new Error('No entries defined in migration-guards.json');
+  if (manifest.entries.length === 0) {
+    throw new Error('No entries defined in migration-guards.json');
+  }
 
   runCmd(cmdFor('migrations:runRequired', { ids: idsToRun }, useProd));
   const deadline = Date.now() + timeoutMs;

@@ -1,5 +1,6 @@
 import clsx from 'clsx';
-import { type ComponentPropsWithoutRef, forwardRef } from 'react';
+import { forwardRef } from 'react';
+import type { ComponentPropsWithoutRef } from 'react';
 
 import { textFieldClassNames } from './TextField';
 

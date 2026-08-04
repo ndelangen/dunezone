@@ -16,7 +16,9 @@ export function nextStrengthChar(value: Faction['leaders'][number]['strength']):
   const raw =
     value === undefined || value === null ? '' : typeof value === 'number' ? String(value) : value;
   const ch = raw.trim().slice(-1);
-  if (ch.length === 0) return '1';
+  if (ch.length === 0) {
+    return '1';
+  }
 
   if (/^[0-9]$/u.test(ch)) {
     return ch === '9' ? '0' : String.fromCharCode(ch.charCodeAt(0) + 1);
@@ -37,16 +39,22 @@ export function nextLeaderImage(
   image: Faction['leaders'][number]['image']
 ): Faction['leaders'][number]['image'] {
   const total = LEADERS.options.length;
-  if (total === 0) return LEADERS.options[0] as Faction['leaders'][number]['image'];
+  if (total === 0) {
+    return LEADERS.options[0] as Faction['leaders'][number]['image'];
+  }
   const idx = LEADERS.options.indexOf(image);
-  if (idx < 0) return LEADERS.options[0];
+  if (idx < 0) {
+    return LEADERS.options[0];
+  }
   return LEADERS.options[(idx + 1) % total];
 }
 
 export function nextLeaderFromLast(
   last: Faction['leaders'][number] | undefined
 ): Faction['leaders'][number] {
-  if (last == null) return defaultLeader();
+  if (last == null) {
+    return defaultLeader();
+  }
   return {
     name: 'new leader',
     strength: nextStrengthChar(last.strength),

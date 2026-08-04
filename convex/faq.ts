@@ -43,9 +43,13 @@ async function assertAcceptedAnswerBelongsToItem(
   faqItemId: Id<'faq_items'>,
   acceptedAnswerId: Id<'faq_answers'> | null
 ) {
-  if (acceptedAnswerId === null) return;
+  if (acceptedAnswerId === null) {
+    return;
+  }
   const accepted = await getFaqAnswer(ctx, acceptedAnswerId);
-  if (!accepted) throw new Error(`FAQ answer ${acceptedAnswerId} not found`);
+  if (!accepted) {
+    throw new Error(`FAQ answer ${acceptedAnswerId} not found`);
+  }
   if (accepted.faq_item_id !== faqItemId) {
     throw new Error('Accepted answer must belong to this question');
   }
@@ -64,7 +68,9 @@ async function allocateNextFaqItemSlug(
   if (!counter) {
     const inserted = await ctx.db.insert('counters', { key: counterKey, value: 0 });
     counter = await ctx.db.get(inserted);
-    if (!counter) throw new Error(`Failed to initialize FAQ slug counter for ruleset ${rulesetId}`);
+    if (!counter) {
+      throw new Error(`Failed to initialize FAQ slug counter for ruleset ${rulesetId}`);
+    }
   }
 
   let candidate = counter.value + 1;
@@ -91,7 +97,9 @@ export const detail = query({
   args: { id: v.id('faq_items') },
   handler: async (ctx, args) => {
     const item = await getFaqItem(ctx, args.id);
-    if (!item) throw new Error(`FAQ item ${args.id} not found`);
+    if (!item) {
+      throw new Error(`FAQ item ${args.id} not found`);
+    }
     const answers = await ctx.db
       .query('faq_answers')
       .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
@@ -159,8 +167,9 @@ export const askedBy = query({
     return await Promise.all(
       sorted.map(async (item) => {
         const ruleset = await getRuleset(ctx, item.ruleset_id);
-        if (!ruleset)
+        if (!ruleset) {
           throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
+        }
         return {
           ...item,
           ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
@@ -181,11 +190,13 @@ export const answeredBy = query({
     return await Promise.all(
       sorted.map(async (answer) => {
         const item = await getFaqItem(ctx, answer.faq_item_id);
-        if (!item)
+        if (!item) {
           throw new Error(`FAQ item ${answer.faq_item_id} missing for answer ${answer._id}`);
+        }
         const ruleset = await getRuleset(ctx, item.ruleset_id);
-        if (!ruleset)
+        if (!ruleset) {
           throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
+        }
         return {
           ...answer,
           faq_item: {
@@ -218,7 +229,9 @@ export const createItem = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const ruleset = await getRuleset(ctx, args.ruleset_id);
-    if (!ruleset || ruleset.is_deleted) throw new Error('Ruleset not found');
+    if (!ruleset || ruleset.is_deleted) {
+      throw new Error('Ruleset not found');
+    }
     const parsedQuestion = faqQuestionSchema.safeParse(args.question);
     if (!parsedQuestion.success) {
       const msg = parsedQuestion.error.issues.map((i) => i.message).join(' ');
@@ -245,7 +258,9 @@ export const createItem = mutation({
       accepted_answer_id: null,
     });
     const row = await ctx.db.get(faqItemId);
-    if (!row) throw new Error('Failed to create FAQ item');
+    if (!row) {
+      throw new Error('Failed to create FAQ item');
+    }
 
     const normalizedInitialAnswer = args.answer?.trim();
     if (normalizedInitialAnswer && normalizedInitialAnswer.length > 0) {
@@ -276,12 +291,18 @@ export const updateItem = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const item = await getFaqItem(ctx, args.id);
-    if (!item) throw new Error(`FAQ item ${args.id} not found`);
+    if (!item) {
+      throw new Error(`FAQ item ${args.id} not found`);
+    }
 
     const ruleset = await getRuleset(ctx, item.ruleset_id);
-    if (!ruleset || ruleset.is_deleted) throw new Error('Ruleset not found');
+    if (!ruleset || ruleset.is_deleted) {
+      throw new Error('Ruleset not found');
+    }
     const allowed = await canAccessRuleset(ctx, ruleset, userId);
-    if (item.asked_by !== userId || !allowed) throw new Error('Not authorized');
+    if (item.asked_by !== userId || !allowed) {
+      throw new Error('Not authorized');
+    }
 
     const patch: {
       updated_at: string;
@@ -314,7 +335,9 @@ export const updateItem = mutation({
 
     await ctx.db.patch(item._id, patch);
     const updated = await ctx.db.get(item._id);
-    if (!updated) throw new Error(`FAQ item ${args.id} not found`);
+    if (!updated) {
+      throw new Error(`FAQ item ${args.id} not found`);
+    }
     return updated;
   },
 });
@@ -326,12 +349,18 @@ export const setAcceptedAnswer = mutation({
   },
   handler: async (ctx, args) => {
     const item = await getFaqItem(ctx, args.faq_item_id);
-    if (!item) throw new Error(`FAQ item ${args.faq_item_id} not found`);
+    if (!item) {
+      throw new Error(`FAQ item ${args.faq_item_id} not found`);
+    }
     const userId = await requireAuthUserId(ctx);
     const ruleset = await getRuleset(ctx, item.ruleset_id);
-    if (!ruleset || ruleset.is_deleted) throw new Error('Ruleset not found');
+    if (!ruleset || ruleset.is_deleted) {
+      throw new Error('Ruleset not found');
+    }
     const allowed = await canAccessRuleset(ctx, ruleset, userId);
-    if (item.asked_by !== userId || !allowed) throw new Error('Not authorized');
+    if (item.asked_by !== userId || !allowed) {
+      throw new Error('Not authorized');
+    }
 
     await assertAcceptedAnswerBelongsToItem(ctx, item._id, args.accepted_answer_id);
 
@@ -340,7 +369,9 @@ export const setAcceptedAnswer = mutation({
       updated_at: nowIso(),
     });
     const updated = await ctx.db.get(item._id);
-    if (!updated) throw new Error(`FAQ item ${args.faq_item_id} not found`);
+    if (!updated) {
+      throw new Error(`FAQ item ${args.faq_item_id} not found`);
+    }
     return updated;
   },
 });
@@ -350,12 +381,18 @@ export const deleteItem = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const item = await getFaqItem(ctx, args.id);
-    if (!item) throw new Error(`FAQ item ${args.id} not found`);
+    if (!item) {
+      throw new Error(`FAQ item ${args.id} not found`);
+    }
 
     const ruleset = await getRuleset(ctx, item.ruleset_id);
-    if (!ruleset || ruleset.is_deleted) throw new Error('Ruleset not found');
+    if (!ruleset || ruleset.is_deleted) {
+      throw new Error('Ruleset not found');
+    }
     const allowed = await canAccessRuleset(ctx, ruleset, userId);
-    if (item.asked_by !== userId || !allowed) throw new Error('Not authorized');
+    if (item.asked_by !== userId || !allowed) {
+      throw new Error('Not authorized');
+    }
 
     const answers = await ctx.db
       .query('faq_answers')
@@ -380,9 +417,13 @@ export const createAnswer = mutation({
       throw new Error(msg || 'Invalid FAQ input');
     }
     const item = await getFaqItem(ctx, args.faq_item_id);
-    if (!item) throw new Error('FAQ item not found');
+    if (!item) {
+      throw new Error('FAQ item not found');
+    }
     const ruleset = await getRuleset(ctx, item.ruleset_id);
-    if (!ruleset || ruleset.is_deleted) throw new Error('Ruleset not found');
+    if (!ruleset || ruleset.is_deleted) {
+      throw new Error('Ruleset not found');
+    }
 
     const existing = await ctx.db
       .query('faq_answers')
@@ -390,7 +431,9 @@ export const createAnswer = mutation({
         q.eq('faq_item_id', args.faq_item_id).eq('answered_by', userId)
       )
       .unique();
-    if (existing) throw new Error('You already answered this question');
+    if (existing) {
+      throw new Error('You already answered this question');
+    }
 
     const _id = await ctx.db.insert('faq_answers', {
       faq_item_id: args.faq_item_id,
@@ -399,7 +442,9 @@ export const createAnswer = mutation({
       created_at: nowIso(),
     });
     const row = await ctx.db.get(_id);
-    if (!row) throw new Error('Failed to create FAQ answer');
+    if (!row) {
+      throw new Error('Failed to create FAQ answer');
+    }
     return row;
   },
 });
@@ -414,12 +459,18 @@ export const updateAnswer = mutation({
       throw new Error(msg || 'Invalid FAQ input');
     }
     const answer = await getFaqAnswer(ctx, args.id);
-    if (!answer) throw new Error(`FAQ answer ${args.id} not found`);
-    if (answer.answered_by !== userId) throw new Error('Not authorized');
+    if (!answer) {
+      throw new Error(`FAQ answer ${args.id} not found`);
+    }
+    if (answer.answered_by !== userId) {
+      throw new Error('Not authorized');
+    }
 
     await ctx.db.patch(answer._id, { answer: parsedAnswer.data });
     const updated = await ctx.db.get(answer._id);
-    if (!updated) throw new Error(`FAQ answer ${args.id} not found`);
+    if (!updated) {
+      throw new Error(`FAQ answer ${args.id} not found`);
+    }
     return updated;
   },
 });
@@ -429,10 +480,14 @@ export const deleteAnswer = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const answer = await getFaqAnswer(ctx, args.id);
-    if (!answer) throw new Error(`FAQ answer ${args.id} not found`);
+    if (!answer) {
+      throw new Error(`FAQ answer ${args.id} not found`);
+    }
 
     const item = await getFaqItem(ctx, answer.faq_item_id);
-    if (!item) throw new Error(`FAQ item ${answer.faq_item_id} not found`);
+    if (!item) {
+      throw new Error(`FAQ item ${answer.faq_item_id} not found`);
+    }
     if (answer.answered_by !== userId && item.asked_by !== userId) {
       throw new Error('Not authorized');
     }

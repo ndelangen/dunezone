@@ -14,7 +14,7 @@ function FloatingInset() {
     width: '150px',
   };
 
-  return <div style={style}></div>;
+  return <div style={style} />;
 }
 
 export function P1() {

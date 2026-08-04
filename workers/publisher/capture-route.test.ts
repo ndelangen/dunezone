@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { type CaptureEnv, captureJobHeader, handleCaptureRoute } from './capture-route';
+import { captureJobHeader, handleCaptureRoute } from './capture-route';
+import type { CaptureEnv } from './capture-route';
 
 const jobId = 'publication-job-000000000000001';
 
@@ -18,7 +19,9 @@ afterEach(() => vi.unstubAllGlobals());
 function stubValidJob() {
   const upstream = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
     const token = new Headers(init?.headers).get('Authorization')?.replace('Bearer ', '');
-    if (token !== jobId) return Response.json({ ok: false }, { status: 404 });
+    if (token !== jobId) {
+      return Response.json({ ok: false }, { status: 404 });
+    }
     return Response.json({ ok: true, payload: {}, payloadHash: 'a'.repeat(64) });
   });
   vi.stubGlobal('fetch', upstream);
@@ -57,18 +60,18 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(upstream).toHaveBeenCalledOnce();
   });
 
-  test.each([
-    '/publisher-capture.html',
-    '/publisher-capture/entry-hash.js',
-  ])('hides direct capture asset %s without a Publication job', async (pathname) => {
-    const assetFetch = vi.fn();
-    const response = await handleCaptureRoute(
-      new Request(`https://publisher.example.com${pathname}`),
-      env(assetFetch)
-    );
-    expect(response?.status).toBe(404);
-    expect(assetFetch).not.toHaveBeenCalled();
-  });
+  test.each(['/publisher-capture.html', '/publisher-capture/entry-hash.js'])(
+    'hides direct capture asset %s without a Publication job',
+    async (pathname) => {
+      const assetFetch = vi.fn();
+      const response = await handleCaptureRoute(
+        new Request(`https://publisher.example.com${pathname}`),
+        env(assetFetch)
+      );
+      expect(response?.status).toBe(404);
+      expect(assetFetch).not.toHaveBeenCalled();
+    }
+  );
 
   test('serves hashed capture assets only through the host Publication-job cookie', async () => {
     const upstream = stubValidJob();

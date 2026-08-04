@@ -1,7 +1,8 @@
 import { v } from 'convex/values';
 
 import type { Id, TableNames } from './_generated/dataModel';
-import { type MutationCtx, mutation, query } from './_generated/server';
+import { mutation, query } from './_generated/server';
+import type { MutationCtx } from './_generated/server';
 import { nowIso, slugify } from './lib/utils';
 
 function assertTestMode() {
@@ -13,7 +14,9 @@ function assertTestMode() {
 async function deleteFromTable(ctx: MutationCtx, table: TableNames) {
   while (true) {
     const batch = await ctx.db.query(table).take(128);
-    if (batch.length === 0) break;
+    if (batch.length === 0) {
+      break;
+    }
     await Promise.all(batch.map((doc) => ctx.db.delete(doc._id)));
   }
 }
@@ -38,13 +41,17 @@ async function clearAllAppData(ctx: MutationCtx) {
 
   while (true) {
     const scheduled = await ctx.db.system.query('_scheduled_functions').take(128);
-    if (scheduled.length === 0) break;
+    if (scheduled.length === 0) {
+      break;
+    }
     await Promise.all(scheduled.map((job) => ctx.scheduler.cancel(job._id)));
   }
 
   while (true) {
     const storedFiles = await ctx.db.system.query('_storage').take(128);
-    if (storedFiles.length === 0) break;
+    if (storedFiles.length === 0) {
+      break;
+    }
     await Promise.all(storedFiles.map((file) => ctx.storage.delete(file._id)));
   }
 }

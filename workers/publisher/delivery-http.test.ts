@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
-import { type AssetRepresentation, evaluateAssetRequest, parseHttpDate } from './delivery-http';
+import { evaluateAssetRequest, parseHttpDate } from './delivery-http';
+import type { AssetRepresentation } from './delivery-http';
 
 const NOW = Date.parse('2026-07-16T13:00:00.000Z');
 const LAST_MODIFIED = 'Thu, 16 Jul 2026 12:00:00 GMT';
@@ -131,15 +132,18 @@ describe('RFC-aligned delivery evaluator', () => {
     ).toBe(status);
   });
 
-  test.each([
-    'bytes=100-200',
-    'bytes=oops',
-    'bytes=0-1,3-4',
-  ])('retains matching If-Range processing for invalid or unsatisfiable Range: %s', (range) => {
-    expect(
-      evaluateAssetRequest(request({ Range: range, 'If-Range': '"etag-one"' }), representation, NOW)
-    ).toEqual({ status: 416, size: 10 });
-  });
+  test.each(['bytes=100-200', 'bytes=oops', 'bytes=0-1,3-4'])(
+    'retains matching If-Range processing for invalid or unsatisfiable Range: %s',
+    (range) => {
+      expect(
+        evaluateAssetRequest(
+          request({ Range: range, 'If-Range': '"etag-one"' }),
+          representation,
+          NOW
+        )
+      ).toEqual({ status: 416, size: 10 });
+    }
+  );
 
   test('evaluates preconditions before If-Range', () => {
     expect(

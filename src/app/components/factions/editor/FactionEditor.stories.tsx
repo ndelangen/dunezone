@@ -8,7 +8,8 @@ import { defaultFaction } from '@data/defaultFaction';
 import { DECAL, LEADERS, PLANET, TROOP_MODIFIER } from '@game/data/generated';
 
 import { FactionAuthoringToolbar } from './FactionAuthoringToolbar';
-import { FactionEditor, type FactionEditorHandle } from './FactionEditor';
+import { FactionEditor } from './FactionEditor';
+import type { FactionEditorHandle } from './FactionEditor';
 
 function representativeFaction(): Faction {
   const faction = structuredClone(defaultFaction);

@@ -29,7 +29,7 @@ describe('scheduled production deployment shape', () => {
 
   test('removes queue-era bindings and keeps the cron CPU cap explicit', () => {
     expect(config).not.toHaveProperty('queues');
-    expect(config.limits).toEqual({ cpu_ms: 30000 });
+    expect(config.limits).toEqual({ cpu_ms: 30_000 });
     expect(config).not.toHaveProperty('d1_databases');
     expect(config).not.toHaveProperty('kv_namespaces');
     expect(config).not.toHaveProperty('durable_objects');

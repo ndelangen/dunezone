@@ -56,8 +56,11 @@ function filesBelow(root: string): Array<{ path: string; bytes: number }> {
       if (entry.isSymbolicLink() || lstatSync(absolute).isSymbolicLink()) {
         throw new Error(`Static Assets cannot include a symbolic link: ${relative}`);
       }
-      if (entry.isDirectory()) visit(absolute);
-      else if (entry.isFile()) files.push({ path: relative, bytes: statSync(absolute).size });
+      if (entry.isDirectory()) {
+        visit(absolute);
+      } else if (entry.isFile()) {
+        files.push({ path: relative, bytes: statSync(absolute).size });
+      }
     }
   };
   visit(root);
@@ -67,7 +70,9 @@ function filesBelow(root: string): Array<{ path: string; bytes: number }> {
 export function inspectPublisherAssets(directory: string): PublisherAssetReport {
   assertDirectory(directory, 'Publisher Static Assets');
   const files = filesBelow(directory);
-  if (files.length === 0) throw new Error('Publisher Static Assets directory is empty');
+  if (files.length === 0) {
+    throw new Error('Publisher Static Assets directory is empty');
+  }
   if (files.length > WORKERS_FREE_STATIC_ASSET_LIMIT) {
     throw new Error(
       `Publisher Static Assets exceed the Workers Free file limit: ${files.length} > ${WORKERS_FREE_STATIC_ASSET_LIMIT}`
@@ -96,7 +101,9 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   }
 
   for (const required of ['_shell.html', 'index.html', 'publisher-capture.html']) {
-    if (!paths.has(required)) throw new Error(`Publisher Static Assets are missing ${required}`);
+    if (!paths.has(required)) {
+      throw new Error(`Publisher Static Assets are missing ${required}`);
+    }
   }
   if (![...paths].some((file) => file.startsWith('public/'))) {
     throw new Error('Publisher Static Assets are missing the application bundle');
@@ -105,7 +112,9 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
     throw new Error('Publisher Static Assets are missing the capture bundle');
   }
   for (const required of STORYBOOK_REQUIRED_ASSETS) {
-    if (!paths.has(required)) throw new Error(`Publisher Static Assets are missing ${required}`);
+    if (!paths.has(required)) {
+      throw new Error(`Publisher Static Assets are missing ${required}`);
+    }
   }
   if (![...paths].some((file) => file.startsWith('__storybook/assets/'))) {
     throw new Error('Publisher Static Assets are missing the Storybook preview bundle');
@@ -117,7 +126,9 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   const storyCount = Object.values(storyIndex.entries ?? {}).filter(
     (entry) => entry.type === 'story'
   ).length;
-  if (storyCount === 0) throw new Error('Publisher Storybook index contains no stories');
+  if (storyCount === 0) {
+    throw new Error('Publisher Storybook index contains no stories');
+  }
 
   for (const file of files) {
     if (
@@ -179,7 +190,9 @@ export function assemblePublisherAssets(
   cpSync(storybookDirectory, storybookDestination, { recursive: true, force: false });
 
   const shell = path.join(publisherDirectory, '_shell.html');
-  if (!existsSync(shell)) throw new Error('Application build is missing the TanStack SPA shell');
+  if (!existsSync(shell)) {
+    throw new Error('Application build is missing the TanStack SPA shell');
+  }
   const normalizedShell = normalizePublisherShell(readFileSync(shell, 'utf8'));
   writeFileSync(shell, normalizedShell);
   copyFileSync(shell, path.join(publisherDirectory, 'index.html'));

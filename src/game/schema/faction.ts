@@ -103,14 +103,14 @@ const factionShape = {
   background: Background,
   themeColor: HEXCOLOR,
 
-  /** closest matching TTS colors */
+  /** Closest matching TTS colors */
   colors: z.array(TTSColor),
 
-  /** used on the shield */
+  /** Used on the shield */
   hero: Leader.omit({ strength: true }),
   leaders: z.array(Leader),
 
-  /** used for alliance-cards */
+  /** Used for alliance-cards */
   decals: z.array(Decal),
   planet: z
     .array(
@@ -132,7 +132,7 @@ const factionShape = {
     alliance: RULE.omit({ karama: true, title: true }).required(),
   }),
 
-  /** extra game assets, used by TTS */
+  /** Extra game assets, used by TTS */
   extras: z
     .array(
       z.strictObject({
@@ -148,9 +148,8 @@ const factionShape = {
 export const FactionInputSchema = z.strictObject(factionShape);
 
 /**
- * Canonical storage is intentionally wider than current authoring semantics:
- * historical rows with a blank name must remain readable while the UI requires
- * a name for all new canonical writes.
+ * Canonical storage is intentionally wider than current authoring semantics: historical rows with a
+ * blank name must remain readable while the UI requires a name for all new canonical writes.
  */
 export const CanonicalFactionStoredSchema = z.strictObject({
   ...factionShape,

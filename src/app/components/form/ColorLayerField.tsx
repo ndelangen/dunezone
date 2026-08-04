@@ -67,8 +67,9 @@ export function ColorLayerField({ legend, value, onChange, idPrefix }: ColorLaye
             name={`${idPrefix}-mode`}
             checked={mode === 'hex'}
             onChange={() => {
-              if (isHex(value)) onChange(value);
-              else {
+              if (isHex(value)) {
+                onChange(value);
+              } else {
                 const h = value.stops[0]?.[0] ?? '';
                 onChange(/^#[0-9a-f]{6}$/i.test(h) ? h : '#000000');
               }
@@ -82,8 +83,9 @@ export function ColorLayerField({ legend, value, onChange, idPrefix }: ColorLaye
             name={`${idPrefix}-mode`}
             checked={mode === 'gradient'}
             onChange={() => {
-              if (!isHex(value)) onChange(value);
-              else {
+              if (!isHex(value)) {
+                onChange(value);
+              } else {
                 const h = /^#[0-9a-f]{6}$/i.test(value) ? value : '#000000';
                 onChange({
                   ...defaultLinear(),
@@ -126,11 +128,15 @@ function GradientEditor({
   idPrefix: string;
 }) {
   const setLinear = () => {
-    if (value.type === 'linear') return;
+    if (value.type === 'linear') {
+      return;
+    }
     onChange({ ...defaultLinear(), stops: [...value.stops] });
   };
   const setRadial = () => {
-    if (value.type === 'radial') return;
+    if (value.type === 'radial') {
+      return;
+    }
     onChange({ ...defaultRadial(), stops: [...value.stops] });
   };
 
@@ -146,7 +152,9 @@ function GradientEditor({
   };
 
   const removeStop = (i: number) => {
-    if (value.stops.length <= 2) return;
+    if (value.stops.length <= 2) {
+      return;
+    }
     updateStops(value.stops.filter((_, j) => j !== i));
   };
 
@@ -251,7 +259,6 @@ function GradientEditor({
 
       <p className={styles.stopsHint}>Gradient stops (color + position 0-1). At least two stops.</p>
       {value.stops.map((stop, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: stop rows tracked by array index in form state
         <div key={`${idPrefix}-stop-${i}`} className={styles.stopRow}>
           <HexColorPicker
             pickerId={`${idPrefix}-stop-${i}-picker`}

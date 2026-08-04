@@ -1,5 +1,4 @@
-/** biome-ignore-all lint/a11y/useAltText: I don't care */
-/** biome-ignore-all lint/a11y/noSvgWithoutTitle: I don't care */
+/* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -109,7 +108,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             <feDropShadow dx="0" dy="0" floodColor="#000000" floodOpacity="1" stdDeviation="4" />
           </filter>
         </defs>
-        <g filter={`url(#dropshadow)`}>
+        <g filter="url(#dropshadow)">
           <text
             dominantBaseline="middle"
             fill="black"

@@ -2,16 +2,15 @@ import { Alert, Stack } from '@mantine/core';
 import { useForm } from '@tanstack/react-form';
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 
-import { type Faction, type FactionEntry } from '@db/factions';
+import type { Faction, FactionEntry } from '@db/factions';
 
+import { factionAuthoringWarnings, preserveFactionExtras } from './factionAuthoringContract';
+import type { FactionAuthoringWarning } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
-import { FactionFormFields, type FactionFormFieldsHandle } from './FactionFormFields';
-import { FactionSheetReview, type FactionSheetReviewHandle } from './FactionSheetReview';
-import {
-  type FactionAuthoringWarning,
-  factionAuthoringWarnings,
-  preserveFactionExtras,
-} from './factionAuthoringContract';
+import { FactionFormFields } from './FactionFormFields';
+import type { FactionFormFieldsHandle } from './FactionFormFields';
+import { FactionSheetReview } from './FactionSheetReview';
+import type { FactionSheetReviewHandle } from './FactionSheetReview';
 
 export interface FactionEditorProps {
   factionEntry: FactionEntry;
@@ -101,7 +100,9 @@ export const FactionEditor = forwardRef<FactionEditorHandle, FactionEditorProps>
       },
       focusFirstWarning: () => {
         const firstWarning = factionAuthoringWarnings(form.state.values)[0];
-        if (!firstWarning) return;
+        if (!firstWarning) {
+          return;
+        }
         fieldsRef.current?.focusWarning(firstWarning);
       },
       review: (trigger) => reviewRef.current?.open(trigger),

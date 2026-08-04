@@ -14,7 +14,6 @@ export const FactionSheet = (props: SheetProps) => {
   return (
     <>
       <style
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: I don't care
         dangerouslySetInnerHTML={{
           __html: `
             @property --header-bg-color {

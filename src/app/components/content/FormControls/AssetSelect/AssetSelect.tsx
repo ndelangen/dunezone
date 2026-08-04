@@ -1,4 +1,5 @@
-import { Group, Image, Select, type SelectProps, Text } from '@mantine/core';
+import { Group, Image, Select, Text } from '@mantine/core';
+import type { SelectProps } from '@mantine/core';
 
 export interface AssetSelectOption {
   value: string;
@@ -6,26 +7,25 @@ export interface AssetSelectOption {
   disabled?: boolean;
 }
 
-export interface AssetSelectProps
-  extends Omit<
-    SelectProps,
-    | 'data'
-    | 'description'
-    | 'descriptionProps'
-    | 'error'
-    | 'errorProps'
-    | 'inputContainer'
-    | 'inputWrapperOrder'
-    | 'label'
-    | 'labelProps'
-    | 'leftSection'
-    | 'renderOption'
-    | 'success'
-    | 'successProps'
-    | 'value'
-    | 'withAsterisk'
-    | 'wrapperProps'
-  > {
+export interface AssetSelectProps extends Omit<
+  SelectProps,
+  | 'data'
+  | 'description'
+  | 'descriptionProps'
+  | 'error'
+  | 'errorProps'
+  | 'inputContainer'
+  | 'inputWrapperOrder'
+  | 'label'
+  | 'labelProps'
+  | 'leftSection'
+  | 'renderOption'
+  | 'success'
+  | 'successProps'
+  | 'value'
+  | 'withAsterisk'
+  | 'wrapperProps'
+> {
   data: readonly AssetSelectOption[];
   getPreviewSrc: (value: string) => string | null | undefined;
   previewSize?: number;

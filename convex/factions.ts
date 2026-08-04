@@ -71,13 +71,17 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     .query('factions')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (!row || row.is_deleted) throw new Error(`Faction with slug ${slug} not found`);
+  if (!row || row.is_deleted) {
+    throw new Error(`Faction with slug ${slug} not found`);
+  }
 
   const ownerProfile = await ctx.db
     .query('profiles')
     .withIndex('by_user_id', (q) => q.eq('user_id', row.owner_id))
     .unique();
-  if (!ownerProfile) throw new Error(`Profile with user id ${row.owner_id} not found`);
+  if (!ownerProfile) {
+    throw new Error(`Profile with user id ${row.owner_id} not found`);
+  }
 
   const group = row.group_id ? await ctx.db.get('groups', row.group_id) : null;
 
@@ -286,7 +290,9 @@ export const create = mutation({
     const userId = await requireAuthUserId(ctx);
     if (args.group_id) {
       const canUseGroup = await isActiveGroupMember(ctx, args.group_id, userId);
-      if (!canUseGroup) throw new Error('Not authorized for group');
+      if (!canUseGroup) {
+        throw new Error('Not authorized for group');
+      }
     }
 
     const data = parseFactionInput(args.data, {
@@ -306,7 +312,9 @@ export const create = mutation({
       is_deleted: false,
     });
     const row = await ctx.db.get(_id);
-    if (!row) throw new Error('Failed to create faction');
+    if (!row) {
+      throw new Error('Failed to create faction');
+    }
     await enqueueFactionSheetPublication(ctx, row);
     return factionRowForClient(row);
   },
@@ -320,11 +328,15 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const row = await ctx.db.get(args.id);
-    if (!row || row.is_deleted) throw new Error(`Faction with id ${args.id} not found`);
+    if (!row || row.is_deleted) {
+      throw new Error(`Faction with id ${args.id} not found`);
+    }
     const isOwner = row.owner_id === userId;
     const isGroupEditor =
       row.group_id == null ? false : await isActiveGroupMember(ctx, row.group_id, userId);
-    if (!isOwner && !isGroupEditor) throw new Error('Not authorized');
+    if (!isOwner && !isGroupEditor) {
+      throw new Error('Not authorized');
+    }
 
     const data = parseFactionInput(args.data, {
       requireAuthoringSemantics: true,
@@ -338,7 +350,9 @@ export const update = mutation({
       updated_at: nowIso(),
     });
     const updated = await ctx.db.get(args.id);
-    if (!updated) throw new Error('Failed to update faction');
+    if (!updated) {
+      throw new Error('Failed to update faction');
+    }
     await enqueueFactionSheetPublication(ctx, updated);
     return factionRowForClient(updated);
   },
@@ -352,11 +366,17 @@ export const setGroup = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const row = await ctx.db.get(args.id);
-    if (!row || row.is_deleted) throw new Error(`Faction with id ${args.id} not found`);
-    if (row.owner_id !== userId) throw new Error('Not authorized');
+    if (!row || row.is_deleted) {
+      throw new Error(`Faction with id ${args.id} not found`);
+    }
+    if (row.owner_id !== userId) {
+      throw new Error('Not authorized');
+    }
     if (args.group_id) {
       const canUseGroup = await isActiveGroupMember(ctx, args.group_id, userId);
-      if (!canUseGroup) throw new Error('Not authorized for group');
+      if (!canUseGroup) {
+        throw new Error('Not authorized for group');
+      }
     }
 
     await ctx.db.patch(args.id, {
@@ -364,7 +384,9 @@ export const setGroup = mutation({
       updated_at: nowIso(),
     });
     const updated = await ctx.db.get(args.id);
-    if (!updated) throw new Error('Failed to update faction group');
+    if (!updated) {
+      throw new Error('Failed to update faction group');
+    }
     return factionRowForClient(updated);
   },
 });
@@ -374,8 +396,12 @@ export const softDelete = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const row = await ctx.db.get(args.id);
-    if (!row) throw new Error(`Faction with id ${args.id} not found`);
-    if (row.owner_id !== userId) throw new Error('Not authorized');
+    if (!row) {
+      throw new Error(`Faction with id ${args.id} not found`);
+    }
+    if (row.owner_id !== userId) {
+      throw new Error('Not authorized');
+    }
 
     await ctx.db.patch(args.id, {
       is_deleted: true,
@@ -391,19 +417,23 @@ export const getFullBySlug = query({
       .query('factions')
       .withIndex('by_slug', (q) => q.eq('slug', args.slug))
       .unique();
-    if (!row || row.is_deleted) throw new Error(`Faction with slug ${args.slug} not found`);
+    if (!row || row.is_deleted) {
+      throw new Error(`Faction with slug ${args.slug} not found`);
+    }
     const profile = await ctx.db
       .query('profiles')
       .withIndex('by_user_id', (q) => q.eq('user_id', row.owner_id))
       .unique();
-    if (!profile) throw new Error(`Profile with user id ${row.owner_id} not found`);
+    if (!profile) {
+      throw new Error(`Profile with user id ${row.owner_id} not found`);
+    }
     const group = row.group_id ? await ctx.db.get('groups', row.group_id) : null;
 
     return {
       ...row,
       data: factionDataForClient(row.data),
       owner: profile,
-      group: group,
+      group,
     };
   },
 });

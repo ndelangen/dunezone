@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 
 import { loadFactionBySlug, useFaction } from '@db/factions';
 import '@app/components/factions/sheet/FactionSheetDocument.css';
-
 import { FactionSheetView } from '@app/components/factions/sheet/FactionSheetView';
 import { useFactionSheetPostMessage } from '@app/hooks/useFactionSheetPostMessage';
 

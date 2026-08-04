@@ -14,11 +14,12 @@ describe('faction influence perceptual scale', () => {
     expect(sliderPositionToInfluence(100)).toBe(1);
   });
 
-  it.each([
-    0, 0.1, 0.44, 0.58, 0.67, 0.72, 0.82, 0.95, 1,
-  ])('round-trips the existing stored value %s', (storedValue) => {
-    expect(sliderPositionToInfluence(influenceToSliderPosition(storedValue))).toBe(storedValue);
-  });
+  it.each([0, 0.1, 0.44, 0.58, 0.67, 0.72, 0.82, 0.95, 1])(
+    'round-trips the existing stored value %s',
+    (storedValue) => {
+      expect(sliderPositionToInfluence(influenceToSliderPosition(storedValue))).toBe(storedValue);
+    }
+  );
 
   it('maps perceptual travel with v = 1 - (1 - p)^2', () => {
     expect(sliderPositionToInfluence(25)).toBe(0.4375);

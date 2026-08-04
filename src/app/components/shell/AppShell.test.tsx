@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 
-import { act, type ReactNode } from 'react';
+import { act } from 'react';
+import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,7 +1,8 @@
 import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
-import { FormTabs, type FormTabsItem, FormTabsPanel } from './FormTabs';
+import { FormTabs, FormTabsPanel } from './FormTabs';
+import type { FormTabsItem } from './FormTabs';
 
 const items: FormTabsItem[] = [
   { value: 'overview', label: 'Overview' },

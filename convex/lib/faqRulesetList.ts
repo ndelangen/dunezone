@@ -12,7 +12,9 @@ export async function loadFaqItemsForRuleset(
     .withIndex('by_ruleset_created', (q) => q.eq('ruleset_id', rulesetId))
     .take(200);
   const sorted = [...items].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-  if (sorted.length === 0) return [];
+  if (sorted.length === 0) {
+    return [];
+  }
 
   const answers = await Promise.all(
     sorted.map((item) =>

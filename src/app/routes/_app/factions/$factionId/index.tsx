@@ -17,7 +17,8 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core';
-import { createFileRoute, type ErrorComponentProps, Link } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import {
   ArrowLeft,
   Download,
@@ -105,9 +106,15 @@ function canEditFaction(
   groupId: string | null | undefined,
   memberships: { group_id: string }[] | undefined
 ) {
-  if (!profileId) return false;
-  if (profileId === ownerId) return true;
-  if (!groupId) return false;
+  if (!profileId) {
+    return false;
+  }
+  if (profileId === ownerId) {
+    return true;
+  }
+  if (!groupId) {
+    return false;
+  }
   return (memberships ?? []).some((membership) => membership.group_id === groupId);
 }
 

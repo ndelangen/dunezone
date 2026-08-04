@@ -1,7 +1,8 @@
 import { legacyStoryParameters } from '@sb/legacyStoryParameters';
 import preview from '@sb/preview';
 
-import { Stack, type StackGap } from './Stack';
+import { Stack } from './Stack';
+import type { StackGap } from './Stack';
 
 const meta = preview.meta({
   component: Stack,

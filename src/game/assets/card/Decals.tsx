@@ -1,5 +1,5 @@
-/** biome-ignore-all lint/suspicious/noArrayIndexKey: I don't care */
-import { type FC, type SVGProps, useMemo } from 'react';
+import { useMemo } from 'react';
+import type { FC, SVGProps } from 'react';
 import type { z } from 'zod';
 
 import type { Decal } from '../../data/objects';
@@ -42,14 +42,9 @@ export function FrontDecals({
       <defs>
         {nonFadedDecals.length > 0 && (
           <filter id={decalsFilter}>
-            <feMorphology
-              in="SourceAlpha"
-              result="DILATED"
-              operator="dilate"
-              radius="6"
-            ></feMorphology>
-            <feFlood floodColor={foreGroundColor} floodOpacity="1" result="PINK"></feFlood>
-            <feComposite in="PINK" in2="DILATED" operator="in" result="OUTLINE"></feComposite>
+            <feMorphology in="SourceAlpha" result="DILATED" operator="dilate" radius="6" />
+            <feFlood floodColor={foreGroundColor} floodOpacity="1" result="PINK" />
+            <feComposite in="PINK" in2="DILATED" operator="in" result="OUTLINE" />
             <feMerge>
               <feMergeNode in="OUTLINE" />
               <feMergeNode in="SourceGraphic" />

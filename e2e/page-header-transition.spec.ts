@@ -20,7 +20,9 @@ test('the persistent page hero contracts when navigating to a headerless route',
 
         const sample = () => {
           const pageHero = document.querySelector('header');
-          if (pageHero) samples.push(pageHero.getBoundingClientRect().height);
+          if (pageHero) {
+            samples.push(pageHero.getBoundingClientRect().height);
+          }
 
           if (performance.now() - startedAt < 850) {
             requestAnimationFrame(sample);

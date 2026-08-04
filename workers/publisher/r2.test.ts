@@ -1,12 +1,8 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import type { AssignedPublicationJob } from './convex';
-import {
-  type AssetBucket,
-  factionSheetKey,
-  PUBLISHER_CACHE_TOKEN_METADATA_KEY,
-  putPublishedAsset,
-} from './r2';
+import { factionSheetKey, PUBLISHER_CACHE_TOKEN_METADATA_KEY, putPublishedAsset } from './r2';
+import type { AssetBucket } from './r2';
 import { fakeR2Object } from './test-helpers';
 
 const job: AssignedPublicationJob = {

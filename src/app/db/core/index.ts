@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: <environment variables are always defined> */
 import { ConvexHttpClient } from 'convex/browser';
 import { ConvexReactClient } from 'convex/react';
 import type { FunctionReference } from 'convex/server';

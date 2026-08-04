@@ -74,7 +74,9 @@ function GroupDetailPage() {
     null;
 
   const handleRemoveMember = (memberUserId: string) => {
-    if (!window.confirm('Remove this member from the group?')) return;
+    if (!window.confirm('Remove this member from the group?')) {
+      return;
+    }
     removeMember.mutate({ groupId, userId: memberUserId });
   };
 

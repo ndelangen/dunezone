@@ -2,13 +2,14 @@ import { Anchor, Paper, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useMemo, useRef, useState } from 'react';
 
-import { type Faction, type FactionEntry, useCreateFaction } from '@db/factions';
+import { useCreateFaction } from '@db/factions';
+import type { Faction, FactionEntry } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import { FactionAuthoringToolbar } from '@app/components/factions/editor/FactionAuthoringToolbar';
-import {
-  FactionEditor,
-  type FactionEditorHandle,
-  type FactionEditorState,
+import { FactionEditor } from '@app/components/factions/editor/FactionEditor';
+import type {
+  FactionEditorHandle,
+  FactionEditorState,
 } from '@app/components/factions/editor/FactionEditor';
 import { FactionLoadPopover } from '@app/components/factions/editor/FactionLoadPopover';
 import { PageLayout } from '@app/components/shell';

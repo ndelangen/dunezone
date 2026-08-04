@@ -14,15 +14,13 @@ import {
   Title,
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
-import { icons, type LucideIcon, Search } from 'lucide-react';
+import { icons, Search } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { PageLayout } from '@app/components/shell';
-import {
-  TOPIC_ICON_TOPICS,
-  TopicIcon,
-  type TopicIconTopic,
-} from '@app/components/topics/TopicIcon';
+import { TOPIC_ICON_TOPICS, TopicIcon } from '@app/components/topics/TopicIcon';
+import type { TopicIconTopic } from '@app/components/topics/TopicIcon';
 import {
   BACKGROUND,
   DECAL,
@@ -143,7 +141,9 @@ function IconsPage() {
             <Tabs
               value={source}
               onChange={(value) => {
-                if (!value) return;
+                if (!value) {
+                  return;
+                }
                 setSource(value as CatalogSource);
                 setPage(1);
               }}

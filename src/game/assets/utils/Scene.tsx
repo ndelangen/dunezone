@@ -3,7 +3,8 @@ import { Fragment } from 'react/jsx-runtime';
 import { Fan } from '../../components/block/Fan';
 import { backgroundPresets } from '../../data/backgrounds';
 import { card as cardSize } from '../../data/sizes';
-import { type FactionInput, FactionRender } from '../../schema/faction';
+import { FactionRender } from '../../schema/faction';
+import type { FactionInput } from '../../schema/faction';
 import { AllianceCard } from '../faction/alliance/Alliance';
 import { LeaderToken } from '../faction/leader/Leader';
 import { FactionSheetPage1, FactionSheetPage2 } from '../faction/sheet/Sheet';
@@ -47,9 +48,8 @@ export function Scene(input: FactionInput) {
       <div className={styles.troops}>
         {troops.map((troop, index) => (
           <div key={troop.image} className={styles.troop}>
-            {new Array(input.troops[index].count).fill(0).map((_, index) => (
+            {Array.from({ length: input.troops[index].count }, (_, index) => (
               <div
-                // biome-ignore lint/suspicious/noArrayIndexKey: meh
                 key={index}
                 className={styles.disc}
                 style={{ top: -(index * 5.9), left: (index % 3) / 10 }}
@@ -61,9 +61,8 @@ export function Scene(input: FactionInput) {
         ))}
       </div>
       <div className={styles.spice}>
-        {new Array(input.rules.spiceCount).fill(0).map((_, index) => (
+        {Array.from({ length: input.rules.spiceCount }, (_, index) => (
           <div
-            // biome-ignore lint/suspicious/noArrayIndexKey: meh
             key={index}
             className={styles.disc}
             style={{

@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { TopicIcon, type TopicIconTopic } from './TopicIcon';
+import { TopicIcon } from './TopicIcon';
+import type { TopicIconTopic } from './TopicIcon';
 
 const MASK_TOPICS: Array<[TopicIconTopic, string]> = [
   ['identity', '/vector/icon/eye.svg'],

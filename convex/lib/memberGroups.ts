@@ -5,7 +5,10 @@ async function loadGroup(ctx: QueryCtx, groupId: Id<'groups'>) {
   return await ctx.db.get(groupId);
 }
 
-/** Active group_members for a user with joined group id/name/slug (same shape as `members.listByUserActiveWithGroups`). */
+/**
+ * Active group_members for a user with joined group id/name/slug (same shape as
+ * `members.listByUserActiveWithGroups`).
+ */
 export async function listByUserActiveWithGroupsData(ctx: QueryCtx, userId: Id<'users'>) {
   const rows = await ctx.db
     .query('group_members')

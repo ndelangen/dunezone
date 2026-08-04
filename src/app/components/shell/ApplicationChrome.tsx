@@ -1,11 +1,11 @@
 import { MantineProvider } from '@mantine/core';
-import '@mantine/core/styles.layer.css';
-import { type ReactNode, useEffect } from 'react';
+import { useEffect } from 'react';
+import type { ReactNode } from 'react';
 
 import { appContentTheme } from '@app/theme';
 
+import '@mantine/core/styles.layer.css';
 import '../../styles/mantine-shell-compatibility.css';
-
 import { AppShell } from './AppShell';
 
 export interface ApplicationChromeProps {

@@ -1,9 +1,9 @@
-/** biome-ignore-all lint/suspicious/noArrayIndexKey: I don't care */
-/** biome-ignore-all lint/a11y/noSvgWithoutTitle: I don't care */
-import { type FC, useId } from 'react';
+import { useId } from 'react';
+import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { type Background as BackGroundType, GRADIENT } from '../../schema/faction';
+import { GRADIENT } from '../../schema/faction';
+import type { Background as BackGroundType } from '../../schema/faction';
 import styles from './Background.module.css';
 
 /** Maps authored studio values to the real pattern-mask treatment. */

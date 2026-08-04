@@ -121,7 +121,9 @@ function PlanetImageLibrary({
 
 function PlanetCard({ form, index }: { form: FactionFormApi; index: number }) {
   const planet = form.state.values.planet?.[index];
-  if (!planet) return null;
+  if (!planet) {
+    return null;
+  }
 
   return (
     <Paper withBorder radius="md" p="md">
@@ -232,7 +234,9 @@ export function FactionFormSectionPlanets({
                   removeDisabled={count === 0}
                   onRemove={() => {
                     const lastIndex = count - 1;
-                    if (lastIndex < 0) return;
+                    if (lastIndex < 0) {
+                      return;
+                    }
                     if (currentSelectedIndex >= lastIndex) {
                       selectIndex(Math.max(0, lastIndex - 1));
                     }

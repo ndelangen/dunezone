@@ -4,7 +4,8 @@ import { v } from 'convex/values';
 import { profileUserEditFormSchema } from '../src/app/profile/validation';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { type MutationCtx, mutation, query } from './_generated/server';
+import { mutation, query } from './_generated/server';
+import type { MutationCtx } from './_generated/server';
 import { enrichFactionsWithRulesets, listActiveRulesetSummaries } from './lib/factionCatalogue';
 import { requireAuthUserId } from './lib/policy';
 import { ensureProfileForUser } from './lib/profileBootstrap';
@@ -56,7 +57,9 @@ export const current = query({
   args: {},
   handler: async (ctx) => {
     const authUserId = await getAuthUserId(ctx);
-    if (!authUserId) return null;
+    if (!authUserId) {
+      return null;
+    }
     return await ctx.db
       .query('profiles')
       .withIndex('by_user_id', (q) => q.eq('user_id', authUserId))
@@ -69,7 +72,9 @@ export const bootstrapCurrent = mutation({
   handler: async (ctx) => {
     const userId = await requireAuthUserId(ctx);
     const profile = await createProfileIfMissing(ctx, userId);
-    if (!profile) throw new Error('Failed to bootstrap profile');
+    if (!profile) {
+      throw new Error('Failed to bootstrap profile');
+    }
     return profile;
   },
 });
@@ -78,7 +83,9 @@ export const getById = query({
   args: { id: v.id('profiles') },
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.id);
-    if (!profile) throw new Error(`Profile with id ${args.id} not found`);
+    if (!profile) {
+      throw new Error(`Profile with id ${args.id} not found`);
+    }
     return profile;
   },
 });
@@ -90,7 +97,9 @@ export const getBySlug = query({
       .query('profiles')
       .withIndex('by_slug', (q) => q.eq('slug', args.slug))
       .unique();
-    if (!profile) throw new Error(`Profile with slug ${args.slug} not found`);
+    if (!profile) {
+      throw new Error(`Profile with slug ${args.slug} not found`);
+    }
 
     const memberships = await ctx.db
       .query('group_members')
@@ -104,11 +113,9 @@ export const getBySlug = query({
       (group): group is NonNullable<(typeof groupsWithNulls)[number]> => group !== null
     );
 
-    // biome-ignore lint/suspicious/noExplicitAny: runQuery return type is circular via generated api
     const faqAsked: any = await ctx.runQuery(api.faq.askedBy, {
       profile_id: profile.user_id,
     });
-    // biome-ignore lint/suspicious/noExplicitAny: runQuery return type is circular via generated api
     const faqAnswers: any = await ctx.runQuery(api.faq.answeredBy, {
       profile_id: profile.user_id,
     });
@@ -140,7 +147,9 @@ export const getByUserId = query({
       .query('profiles')
       .withIndex('by_user_id', (q) => q.eq('user_id', args.user_id))
       .unique();
-    if (!profile) throw new Error(`Profile with user id ${args.user_id} not found`);
+    if (!profile) {
+      throw new Error(`Profile with user id ${args.user_id} not found`);
+    }
     return profile;
   },
 });
@@ -197,7 +206,9 @@ export const updateCurrent = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const profile = await createProfileIfMissing(ctx, userId);
-    if (!profile) throw new Error('Profile not found');
+    if (!profile) {
+      throw new Error('Profile not found');
+    }
 
     const parsed = profileUserEditFormSchema.safeParse({
       username: args.username,
@@ -221,7 +232,9 @@ export const updateCurrent = mutation({
         .query('profiles')
         .withIndex('by_slug', (q) => q.eq('slug', nextSlug))
         .unique();
-      if (!slugOwner || slugOwner.user_id === userId) break;
+      if (!slugOwner || slugOwner.user_id === userId) {
+        break;
+      }
       suffix += 1;
       nextSlug = `${nextSlugBase}-${suffix}`;
     }
@@ -234,7 +247,9 @@ export const updateCurrent = mutation({
     });
 
     const updated = await ctx.db.get(profile._id);
-    if (!updated) throw new Error('Failed to update profile');
+    if (!updated) {
+      throw new Error('Failed to update profile');
+    }
     return updated;
   },
 });

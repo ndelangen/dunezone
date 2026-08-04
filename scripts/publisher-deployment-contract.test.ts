@@ -71,20 +71,20 @@ describe('publisher CI deployment contract', () => {
     ).toThrow(/exact production Convex deployment URL/);
   });
 
-  test.each([
-    PUBLISHER_ORIGIN,
-    APPLICATION_ORIGIN,
-  ])('accepts current Renderer health at %s', (origin) => {
-    expect(() =>
-      validatePublisherHealth(
-        health(),
-        'a'.repeat(40),
-        `${origin}/__asset-publisher/health`,
-        'no-store',
-        origin
-      )
-    ).not.toThrow();
-  });
+  test.each([PUBLISHER_ORIGIN, APPLICATION_ORIGIN])(
+    'accepts current Renderer health at %s',
+    (origin) => {
+      expect(() =>
+        validatePublisherHealth(
+          health(),
+          'a'.repeat(40),
+          `${origin}/__asset-publisher/health`,
+          'no-store',
+          origin
+        )
+      ).not.toThrow();
+    }
+  );
 
   test.each([
     ['maxItems', 1],

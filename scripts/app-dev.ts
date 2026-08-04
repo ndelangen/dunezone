@@ -1,4 +1,5 @@
-import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -55,9 +56,15 @@ const prepareLocalImport = makeFunctionReference<
 >('localDevelopment:prepareFactionImport');
 
 export function parseAppDevMode(args: string[]): AppDevMode {
-  if (args.length === 0) return 'cloud';
-  if (args.length === 1 && args[0] === '--local') return 'local';
-  if (args.length === 1 && (args[0] === '--help' || args[0] === '-h')) return 'help';
+  if (args.length === 0) {
+    return 'cloud';
+  }
+  if (args.length === 1 && args[0] === '--local') {
+    return 'local';
+  }
+  if (args.length === 1 && (args[0] === '--help' || args[0] === '-h')) {
+    return 'help';
+  }
   throw new Error(`Unknown app:dev argument: ${args.join(' ')}`);
 }
 
@@ -65,9 +72,13 @@ export function parseEnvFile(contents: string): Record<string, string> {
   const values: Record<string, string> = {};
   for (const sourceLine of contents.split(/\r?\n/)) {
     const line = sourceLine.trim();
-    if (line.length === 0 || line.startsWith('#')) continue;
+    if (line.length === 0 || line.startsWith('#')) {
+      continue;
+    }
     const separator = line.indexOf('=');
-    if (separator < 1) continue;
+    if (separator < 1) {
+      continue;
+    }
     const key = line.slice(0, separator).trim();
     let value = line.slice(separator + 1).trim();
     if (
@@ -184,7 +195,9 @@ async function waitForUrl(url: string, processToWatch: ChildProcess) {
     }
     try {
       const response = await fetch(url);
-      if (response.ok) return;
+      if (response.ok) {
+        return;
+      }
     } catch {
       // The server is still starting.
     }
@@ -254,7 +267,9 @@ async function importProductionFactions(
       imported += batch.importedFactions;
       console.log(`Imported ${imported} production factions...`);
     }
-    if (result.isDone) return imported;
+    if (result.isDone) {
+      return imported;
+    }
     cursor = result.continueCursor;
   }
 }
@@ -297,7 +312,9 @@ async function runLocalDevelopment() {
   });
 
   const cleanup = () => {
-    if (shuttingDown) return;
+    if (shuttingDown) {
+      return;
+    }
     shuttingDown = true;
     vite?.kill('SIGTERM');
     try {
@@ -323,11 +340,15 @@ async function runLocalDevelopment() {
     for (let attempt = 0; attempt < 60; attempt += 1) {
       try {
         const response = await fetch(`${localUrl}/version`);
-        if (response.ok) break;
+        if (response.ok) {
+          break;
+        }
       } catch {
         // The backend is still starting.
       }
-      if (attempt === 59) throw new Error('Local Convex did not become healthy');
+      if (attempt === 59) {
+        throw new Error('Local Convex did not become healthy');
+      }
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 

@@ -1,12 +1,12 @@
 import {
   closestCenter,
   DndContext,
-  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
@@ -37,10 +37,14 @@ function SortableListDemo() {
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={({ active, over }: DragEndEvent) => {
-        if (!over) return;
+        if (!over) {
+          return;
+        }
         const from = items.indexOf(String(active.id));
         const to = items.indexOf(String(over.id));
-        if (from < 0 || to < 0 || from === to) return;
+        if (from < 0 || to < 0 || from === to) {
+          return;
+        }
         setItems((prev) => arrayMove(prev, from, to));
       }}
     >

@@ -1,0 +1,73 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "useTabs": false,
+  "tabWidth": 2,
+  "printWidth": 100,
+  "singleQuote": true,
+  "jsxSingleQuote": false,
+  "quoteProps": "as-needed",
+  "trailingComma": "es5",
+  "semi": true,
+  "arrowParens": "always",
+  "bracketSameLine": false,
+  "bracketSpacing": true,
+  "jsdoc": {
+    "keepUnparsableExampleIndent": true
+  },
+  "sortImports": {
+    "newlinesBetween": false,
+    "customGroups": [
+      {
+        "groupName": "db",
+        "elementNamePattern": ["@db", "@db/**"]
+      },
+      {
+        "groupName": "app",
+        "elementNamePattern": ["@app", "@app/**", "@data", "@data/**"]
+      },
+      {
+        "groupName": "game",
+        "elementNamePattern": ["@game", "@game/**"]
+      }
+    ],
+    "groups": [
+      "builtin",
+      { "newlinesBetween": true },
+      "external",
+      { "newlinesBetween": true },
+      "db",
+      "app",
+      "game",
+      { "newlinesBetween": true },
+      ["parent", "sibling", "index", "style", "side_effect_style"],
+      "unknown"
+    ]
+  },
+  "sortPackageJson": {
+    "sortScripts": true
+  },
+  "overrides": [
+    {
+      "files": ["*.css", "*.scss", "*.less", "*.html", "*.yaml", "*.yml"],
+      "options": {
+        "singleQuote": false
+      }
+    },
+    {
+      "files": ["*.json", "*.jsonc"],
+      "options": {
+        "trailingComma": "none"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "**/dist",
+    "**/supabase/.temp",
+    "**/routeTree.gen.ts",
+    "**/*.gen.ts",
+    "**/workers/publisher/worker-configuration.d.ts",
+    "**/convex/_generated",
+    "**/*.md",
+    "**/*.svg"
+  ]
+}

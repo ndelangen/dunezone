@@ -23,7 +23,9 @@ export async function putPublishedAsset(
   if (job.assetType !== 'faction_sheet') {
     throw new Error(`Unsupported Publication asset type: ${job.assetType}`);
   }
-  if (!/^[0-9a-f]{64}$/.test(payloadHash)) throw new Error('Payload hash is invalid');
+  if (!/^[0-9a-f]{64}$/.test(payloadHash)) {
+    throw new Error('Payload hash is invalid');
+  }
   if (!/^v1\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/.test(cacheToken)) {
     throw new Error('Publisher cache token is invalid');
   }
@@ -37,6 +39,8 @@ export async function putPublishedAsset(
       [PUBLISHER_CACHE_TOKEN_METADATA_KEY]: cacheToken,
     },
   });
-  if (!written) throw new Error('Published asset was not written');
+  if (!written) {
+    throw new Error('Published asset was not written');
+  }
   return { key, etag: written.etag };
 }

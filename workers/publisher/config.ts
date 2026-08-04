@@ -10,11 +10,13 @@ export type PublisherConfig = {
   pdfMaxBytes: number;
 };
 
-const COMPLETION_MARGIN_MS = 5_000;
+const COMPLETION_MARGIN_MS = 5000;
 export const MAX_ASSIGNED_ITEMS = PUBLICATION_MAX_PICKUP;
 
 function integer(name: string, value: string, minimum: number, maximum: number): number {
-  if (!/^\d+$/.test(value)) throw new Error(`${name} must be an integer`);
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`${name} must be an integer`);
+  }
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum) {
     throw new Error(`${name} must be between ${minimum} and ${maximum}`);

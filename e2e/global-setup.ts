@@ -59,7 +59,9 @@ async function loginWithLocalAuth(baseUrl: string, credentials: Credentials) {
 
 export default async function globalSetup(config: FullConfig) {
   const configuredBaseUrl = config.projects[0]?.use.baseURL ?? process.env.PLAYWRIGHT_BASE_URL;
-  if (!configuredBaseUrl) throw new Error('PLAYWRIGHT_BASE_URL must be configured');
+  if (!configuredBaseUrl) {
+    throw new Error('PLAYWRIGHT_BASE_URL must be configured');
+  }
   const baseUrl = configuredBaseUrl;
 
   const userAEmail = process.env.PLAYWRIGHT_USER_A_EMAIL;

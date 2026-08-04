@@ -6,13 +6,15 @@ import z from 'zod';
 
 const schemaConfigSchema = z.strictObject({
   name: z.string(),
-  // biome-ignore lint/suspicious/noExplicitAny: <any is used to satisfy the zod type>
   schema: z.custom<z.ZodObject<any>>(),
 });
 
 const glob = new Glob('src/data/*.ts');
 
-/** Tables whose JSON Schema CHECK should use `type: string` instead of huge string `enum` lists (Zod stays strict). */
+/**
+ * Tables whose JSON Schema CHECK should use `type: string` instead of huge string `enum` lists (Zod
+ * stays strict).
+ */
 const RELAX_STRING_ENUMS = new Set(['factions']);
 
 type SchemaConfig = z.infer<typeof schemaConfigSchema>;
@@ -220,7 +222,9 @@ function deriveConstraintName(name: string): string {
 // Helper function: Extract timestamp from migration filename
 function extractTimestamp(filename: string): number | null {
   const match = filename.match(/^(\d{14})_/);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   return parseInt(match[1], 10);
 }
 
@@ -306,10 +310,10 @@ function extractSchemaFromMigration(
 }
 
 /**
- * Deep canonical form for schema equality: object keys sorted; array elements
- * sorted by their own canonical JSON string so `anyOf` / `oneOf` branch order
- * does not matter (the old `array.map(normalize).sort()` compared `[object Object]`
- * and never reordered, so every run looked like a schema change).
+ * Deep canonical form for schema equality: object keys sorted; array elements sorted by their own
+ * canonical JSON string so `anyOf` / `oneOf` branch order does not matter (the old
+ * `array.map(normalize).sort()` compared `[object Object]` and never reordered, so every run looked
+ * like a schema change).
  */
 function canonicalizeSchemaForComparison(node: unknown): unknown {
   if (node === null || typeof node !== 'object') {

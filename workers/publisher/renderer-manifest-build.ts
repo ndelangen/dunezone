@@ -30,8 +30,9 @@ export function computeRendererManifestDigest(
   hash.update(JSON.stringify(contract));
   hash.update('\0');
   for (const entry of sorted) {
-    if (!entry.path || paths.has(entry.path))
+    if (!entry.path || paths.has(entry.path)) {
       throw new Error('Renderer manifest paths must be unique');
+    }
     paths.add(entry.path);
     hash.update(entry.path);
     hash.update('\0');

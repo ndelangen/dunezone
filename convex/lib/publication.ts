@@ -1,8 +1,8 @@
 import {
   FACTION_SHEET_ASSET_TYPE,
-  type FactionSheetAssetData,
   factionSheetAssetDataSchema,
 } from '../../src/shared/asset-publishing/publication';
+import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/publication';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 
@@ -34,8 +34,8 @@ export async function publicationJobsForAsset(
 }
 
 /**
- * Uniform save/scan enqueue behavior. Pending work is coalesced, failed work
- * is replaced, and an in-progress job may retain one pending successor.
+ * Uniform save/scan enqueue behavior. Pending work is coalesced, failed work is replaced, and an
+ * in-progress job may retain one pending successor.
  */
 export async function enqueuePublicationJob(
   ctx: MutationCtx,

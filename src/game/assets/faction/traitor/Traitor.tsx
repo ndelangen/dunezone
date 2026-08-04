@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/a11y/useAltText: I don't care */
+/* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -20,13 +20,13 @@ export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
 }) => {
   return (
     <div className={styles.card}>
-      <div className={styles.decal_bg_1}></div>
+      <div className={styles.decal_bg_1} />
       <BackgroundRenderer
         className={`${styles.head} ${unique.head}`}
         background={backgroundPresets.traitor}
       />
-      <div className={styles.head_shade}></div>
-      <div className={styles.shape}></div>
+      <div className={styles.head_shade} />
+      <div className={styles.shape} />
       <BackgroundRenderer
         className={`${styles.type} ${unique.type}`}
         background={backgroundPresets.stripedSpecial}
@@ -36,7 +36,7 @@ export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
       </BackgroundRenderer>
       <div className={styles.title}>{name}</div>
       <div className={styles.subtitle}>Traitor - {owner}</div>
-      <div className={unique.face} style={{ backgroundImage: `url('${image}')` }}></div>
+      <div className={unique.face} style={{ backgroundImage: `url('${image}')` }} />
       <div className={unique.strength}>{strength}</div>
       <div className={unique.logo}>
         <Token logo={logo} background={background} />

@@ -9,7 +9,8 @@ import {
 import { publisherCaptureSnapshotSchema } from '../src/shared/asset-publishing/publisher-snapshot';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { type ActionCtx, httpAction } from './_generated/server';
+import { httpAction } from './_generated/server';
+import type { ActionCtx } from './_generated/server';
 import { auth } from './auth';
 import {
   handleAuthenticatedJson,
@@ -25,7 +26,9 @@ function executorSecret() {
   const executor = process.env.ASSET_PUBLISHER_EXECUTOR_SECRET;
   const activation = process.env.ASSET_PUBLISHER_ACTIVATION_SECRET;
   const cache = process.env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET;
-  if (!executor || executor === activation || executor === cache) return undefined;
+  if (!executor || executor === activation || executor === cache) {
+    return undefined;
+  }
   return executor;
 }
 
@@ -35,7 +38,9 @@ function activationSecret() {
     process.env.ASSET_PUBLISHER_EXECUTOR_SECRET,
     process.env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET,
   ].filter((secret): secret is string => Boolean(secret));
-  if (!activation || otherSecrets.includes(activation)) return undefined;
+  if (!activation || otherSecrets.includes(activation)) {
+    return undefined;
+  }
   return activation;
 }
 
@@ -44,7 +49,9 @@ async function normalizeJobId(ctx: ActionCtx, jobId: string) {
     internal.publicationJobs.normalizeJobId,
     { jobId }
   );
-  if (!normalized) throw new InvalidPublicationRequestError('Invalid Publication job id');
+  if (!normalized) {
+    throw new InvalidPublicationRequestError('Invalid Publication job id');
+  }
   return normalized;
 }
 

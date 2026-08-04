@@ -2,7 +2,8 @@
 
 import { MantineProvider } from '@mantine/core';
 import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { UserGroupMembershipWithGroup } from '@db/members';
@@ -83,7 +84,9 @@ describe('GroupAssignPopover', () => {
 
     const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="Assign group"]');
     expect(trigger).not.toBeNull();
-    if (!trigger) return;
+    if (!trigger) {
+      return;
+    }
 
     expect(trigger.getAttribute('aria-haspopup')).toBe('dialog');
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
@@ -101,7 +104,9 @@ describe('GroupAssignPopover', () => {
       'input[placeholder="Type group name or slug…"]'
     );
     expect(searchInput).not.toBeNull();
-    if (!searchInput) return;
+    if (!searchInput) {
+      return;
+    }
     searchInput.focus();
 
     await act(async () => {

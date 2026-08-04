@@ -1,8 +1,9 @@
-import { createTheme, type MantineColorsTuple } from '@mantine/core';
+import { createTheme } from '@mantine/core';
+import type { MantineColorsTuple } from '@mantine/core';
 
 /**
- * Application-content colors mirrored from the persistent shell tokens.
- * Keep this map aligned with styles/tokens.css when the shell palette changes.
+ * Application-content colors mirrored from the persistent shell tokens. Keep this map aligned with
+ * styles/tokens.css when the shell palette changes.
  */
 export const appShellColors = {
   text: '#2e2927',

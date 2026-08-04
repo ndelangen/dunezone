@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/a11y/noSvgWithoutTitle: props spreading to svg */
 import type { FC, PropsWithChildren } from 'react';
 
 import styles from './Wrapper.module.css';

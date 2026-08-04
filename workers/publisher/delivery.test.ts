@@ -1,12 +1,8 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { createCacheSigningSecret, createCacheToken } from '../../convex/lib/publicationHttp';
-import {
-  factionSheetPublicPath,
-  handlePublicAssetRequest,
-  type PublicAssetBucket,
-  type PublicAssetCache,
-} from './delivery';
+import { factionSheetPublicPath, handlePublicAssetRequest } from './delivery';
+import type { PublicAssetBucket, PublicAssetCache } from './delivery';
 import { PUBLISHER_CACHE_TOKEN_METADATA_KEY } from './r2';
 import { fakeR2Object } from './test-helpers';
 
@@ -31,7 +27,9 @@ function bodyObject(
   options: { etag?: string; range?: R2Range; size?: number; token?: string } = {}
 ): R2ObjectBody {
   const body = new Response(bytes).body;
-  if (!body) throw new Error('missing test stream');
+  if (!body) {
+    throw new Error('missing test stream');
+  }
   const base = fakeR2Object({
     key: `factions/${FACTION_ID}/sheet.pdf`,
     etag: options.etag ?? 'etag-one',

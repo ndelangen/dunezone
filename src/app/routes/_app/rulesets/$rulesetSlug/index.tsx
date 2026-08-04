@@ -18,12 +18,8 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core';
-import {
-  createFileRoute,
-  type ErrorComponentProps,
-  Link,
-  useNavigate,
-} from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import {
   ArrowLeft,
   BookOpen,
@@ -55,7 +51,8 @@ import { GroupAssignPopover } from '@app/components/groups/GroupAssignPopover';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
-import { FAQ_TAG_LABELS, FAQ_TAG_VALUES, type FaqTag } from '@app/faq/tags';
+import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
+import type { FaqTag } from '@app/faq/tags';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from '../RulesetDetail.module.css';
@@ -177,7 +174,9 @@ function RulesetDetailPage() {
     updateRuleset.error?.message;
 
   const handleDelete = () => {
-    if (!window.confirm(`Delete ruleset "${r.name}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete ruleset "${r.name}"? This cannot be undone.`)) {
+      return;
+    }
     deleteRuleset.mutate(r._id, {
       onSuccess: () => navigate({ to: '/rulesets' }),
     });

@@ -2,13 +2,15 @@
 
 import { MantineProvider } from '@mantine/core';
 import { act, useRef } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { appContentTheme } from '@app/theme';
 import { defaultFaction } from '@data/defaultFaction';
 
-import { FactionSheetReview, type FactionSheetReviewHandle } from './FactionSheetReview';
+import { FactionSheetReview } from './FactionSheetReview';
+import type { FactionSheetReviewHandle } from './FactionSheetReview';
 
 vi.mock('./FactionSheetPagePreview', () => ({
   factionDraftForRenderer: (faction: unknown) => faction,
@@ -34,7 +36,9 @@ function getButton(name: string) {
     (candidate) =>
       candidate.getAttribute('aria-label') === name || candidate.textContent?.trim() === name
   );
-  if (!button) throw new Error(`Missing button: ${name}`);
+  if (!button) {
+    throw new Error(`Missing button: ${name}`);
+  }
   return button;
 }
 
@@ -95,7 +99,9 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (root) await act(async () => root?.unmount());
+  if (root) {
+    await act(async () => root?.unmount());
+  }
   container?.remove();
   root = undefined;
   container = undefined;
@@ -132,7 +138,9 @@ describe('FactionSheetReview', () => {
 
     const scroller = container?.querySelector('[data-faction-review-scroller]');
     expect(scroller).toBeInstanceOf(HTMLElement);
-    if (!(scroller instanceof HTMLElement)) return;
+    if (!(scroller instanceof HTMLElement)) {
+      return;
+    }
     scroller.scrollTop = 173;
 
     await clickButton('Close sheet review and return to editing');

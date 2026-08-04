@@ -179,9 +179,9 @@ function coverage(paths: readonly string[], entry: CoverageEntry): Record<string
 /**
  * Leaf-path coverage for FactionInputSchema.
  *
- * `preserved` is the sole product-approved no-control exception. There is no
- * temporary/planned state: every newly admitted schema leaf must ship with a
- * domain control or fail this contract until an explicit exception is approved.
+ * `preserved` is the sole product-approved no-control exception. There is no temporary/planned
+ * state: every newly admitted schema leaf must ship with a domain control or fail this contract
+ * until an explicit exception is approved.
  */
 export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> = {
   ...coverage(['name', 'logo', 'themeColor', 'colors[]'], {

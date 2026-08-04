@@ -109,7 +109,9 @@ const RECIPES = [
 ] as const satisfies readonly BackgroundRecipe[];
 
 function randomIndex(length: number, random: () => number): number {
-  if (length <= 1) return 0;
+  if (length <= 1) {
+    return 0;
+  }
   return Math.min(length - 1, Math.max(0, Math.floor(random() * length)));
 }
 
@@ -160,7 +162,9 @@ export function randomizeBackground(
     ...structuredClone(recipe),
     image: pattern.image,
   };
-  if (!backgroundsMatch(candidate, background)) return candidate;
+  if (!backgroundsMatch(candidate, background)) {
+    return candidate;
+  }
 
   const nextPattern =
     BACKGROUND_PATTERN_CATALOGUE[(patternIndex + 1) % BACKGROUND_PATTERN_CATALOGUE.length];
@@ -181,7 +185,9 @@ export function randomizeBackgroundTreatment(
   random: () => number = Math.random
 ): FactionBackground {
   const recipe = RECIPES[randomIndex(RECIPES.length, random)];
-  if (!recipe) return structuredClone(background);
+  if (!recipe) {
+    return structuredClone(background);
+  }
   return {
     ...structuredClone(background),
     invert: recipe.invert,
@@ -195,7 +201,9 @@ export function randomizeBackgroundColors(
   random: () => number = Math.random
 ): FactionBackground {
   const recipe = RECIPES[randomIndex(RECIPES.length, random)];
-  if (!recipe) return structuredClone(background);
+  if (!recipe) {
+    return structuredClone(background);
+  }
   return {
     ...structuredClone(background),
     colors: structuredClone(recipe.colors),

@@ -16,7 +16,9 @@ export type FactionListProps = {
 
 /** Shared responsive faction-card grid used by catalogue and profile detail pages. */
 export function FactionList({ factions, selectedRulesetSlug, className }: FactionListProps) {
-  if (factions.length === 0) return null;
+  if (factions.length === 0) {
+    return null;
+  }
 
   return (
     <div className={[styles.grid, className].filter(Boolean).join(' ')}>
@@ -84,10 +86,14 @@ export function factionRulesetLabel(
   faction: Pick<FactionCatalogueEntry, 'rulesets'>,
   selectedRulesetSlug?: string
 ) {
-  if (faction.rulesets.length === 0) return null;
+  if (faction.rulesets.length === 0) {
+    return null;
+  }
   const primary =
     faction.rulesets.find((ruleset) => ruleset.slug === selectedRulesetSlug) ?? faction.rulesets[0];
-  if (!primary) return null;
+  if (!primary) {
+    return null;
+  }
   const additionalCount = faction.rulesets.length - 1;
   return additionalCount > 0 ? `${primary.name} +${additionalCount}` : primary.name;
 }

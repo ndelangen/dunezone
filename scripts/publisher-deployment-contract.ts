@@ -21,7 +21,9 @@ const STORYBOOK_STORY_ID = 'game-assets-composition-background--radial-token';
 type JsonObject = Record<string, unknown>;
 
 function invariant(condition: unknown, message: string): asserts condition {
-  if (!condition) throw new Error(message);
+  if (!condition) {
+    throw new Error(message);
+  }
 }
 
 function object(value: unknown, name: string): JsonObject {
@@ -232,7 +234,7 @@ async function run(): Promise<void> {
           const response = await fetch(`${origin}/__asset-publisher/health`, {
             headers: { Accept: 'application/json' },
             redirect: 'error',
-            signal: AbortSignal.timeout(5_000),
+            signal: AbortSignal.timeout(5000),
           });
           invariant(response.status === 200, `Publisher health returned HTTP ${response.status}`);
           validatePublisherHealth(
@@ -247,7 +249,9 @@ async function run(): Promise<void> {
           break;
         } catch (error) {
           lastFailure = error;
-          if (attempt < 12) await new Promise((resolve) => setTimeout(resolve, 5_000));
+          if (attempt < 12) {
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+          }
         }
       }
       if (lastFailure) {
@@ -260,7 +264,7 @@ async function run(): Promise<void> {
     const noSlashUrl = `${APPLICATION_ORIGIN}/__storybook?path=/story/${STORYBOOK_STORY_ID}`;
     const redirect = await fetch(noSlashUrl, {
       redirect: 'manual',
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.timeout(5000),
     });
     invariant(redirect.status === 308, `Storybook redirect returned HTTP ${redirect.status}`);
     invariant(
@@ -271,7 +275,7 @@ async function run(): Promise<void> {
 
     const managerResponse = await fetch(
       `${APPLICATION_ORIGIN}/__storybook/?path=/story/${STORYBOOK_STORY_ID}`,
-      { signal: AbortSignal.timeout(5_000) }
+      { signal: AbortSignal.timeout(5000) }
     );
     invariant(
       managerResponse.status === 200,
@@ -284,7 +288,7 @@ async function run(): Promise<void> {
     );
 
     const indexResponse = await fetch(`${APPLICATION_ORIGIN}/__storybook/index.json`, {
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.timeout(5000),
     });
     invariant(
       indexResponse.status === 200,
@@ -300,14 +304,14 @@ async function run(): Promise<void> {
       '/image/texture/054.jpg',
     ]) {
       const response = await fetch(`${APPLICATION_ORIGIN}${path}`, {
-        signal: AbortSignal.timeout(5_000),
+        signal: AbortSignal.timeout(5000),
       });
       invariant(response.status === 200, `${path} returned HTTP ${response.status}`);
     }
 
     const rootResponse = await fetch(`${APPLICATION_ORIGIN}/`, {
       headers: { Accept: 'text/html' },
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.timeout(5000),
     });
     invariant(rootResponse.status === 200, `Application root returned HTTP ${rootResponse.status}`);
     invariant(
@@ -322,4 +326,6 @@ async function run(): Promise<void> {
   throw new Error('Expected command: preflight or smoke');
 }
 
-if (import.meta.main) await run();
+if (import.meta.main) {
+  await run();
+}

@@ -5,7 +5,8 @@ import type { FaqAnswerEntry, FaqItemWithDetails } from '@db/faq';
 import type { GroupMemberRow, UserGroupMembershipWithGroup } from '@db/members';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { rulesetInputSchema } from '@app/rulesets/validation';
-import { Background, type FactionData } from '@game/schema/faction';
+import { Background } from '@game/schema/faction';
+import type { FactionData } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
@@ -85,7 +86,9 @@ type AssignableMembershipConvexRow = GroupMemberRow & {
 function mapViewerAssignableMembershipsFromConvex(
   rows: AssignableMembershipConvexRow[] | null
 ): UserGroupMembershipWithGroup[] | null {
-  if (rows == null) return null;
+  if (rows == null) {
+    return null;
+  }
   return rows.map((entry) => ({ ...entry, id: entry._id, groups: entry.groups }));
 }
 
@@ -130,7 +133,9 @@ export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetail
     groupAccess: RulesetDetailPageData['groupAccess'];
     faqItems: FaqItemConvexRow[];
   } | null>(api.rulesets.detailPageBySlug, { slug });
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
   return {
     ruleset: toRulesetEntry(raw.ruleset),
     factions: raw.factions.map(normalizeRulesetFactionSummary),

@@ -5,7 +5,9 @@ export function getSortableIds(prefix: string, count: number): string[] {
 
 /** Parse index from a `getSortableIds` id, or `null` if the id does not match the prefix. */
 export function indexFromSortableId(id: string | number, prefix: string): number | null {
-  if (typeof id !== 'string' || !id.startsWith(prefix)) return null;
+  if (typeof id !== 'string' || !id.startsWith(prefix)) {
+    return null;
+  }
   const parsed = Number.parseInt(id.slice(prefix.length), 10);
   return Number.isNaN(parsed) ? null : parsed;
 }
