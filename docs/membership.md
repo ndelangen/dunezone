@@ -48,6 +48,7 @@ Shared helpers live in `convex/lib/policy.ts` (`requireAuthUserId`, `isActiveGro
 
 Groups are collaboration boundaries shared by factions, rulesets, and future community assets.
 
+- Only the group owner may rename the group.
 - Active members may edit content associated with their group.
 - Only the asset owner may delete it or assign, unassign, or move it between groups.
 - Active members may rename factions.

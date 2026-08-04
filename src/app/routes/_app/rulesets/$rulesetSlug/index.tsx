@@ -262,7 +262,7 @@ function RulesetDetailPage() {
                   <ArrowLeft size={17} aria-hidden />
                 </ActionIcon>
               </Tooltip>
-              {page.canAccess ? (
+              {page.canEditRuleset ? (
                 <Tooltip label="Edit ruleset">
                   <ActionIcon
                     variant="light"

@@ -30,7 +30,7 @@ export async function isActiveGroupMember(ctx: AnyCtx, groupId: Id<'groups'>, us
   return membership?.status === 'active';
 }
 
-export async function canAccessRuleset(
+export async function canEditRuleset(
   ctx: AnyCtx,
   ruleset: {
     owner_id: Id<'users'>;
