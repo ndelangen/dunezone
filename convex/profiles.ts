@@ -4,12 +4,16 @@ import { v } from 'convex/values';
 import { profileUserEditFormSchema } from '../src/app/profile/validation';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { mutation, query } from './_generated/server';
+import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
+import { mutation } from './functions';
 import { enrichFactionsWithRulesets, listActiveRulesetSummaries } from './lib/factionCatalogue';
-import { syncHomepageNewestMember } from './lib/homepageCommunity';
 import { requireAuthUserId } from './lib/policy';
 import { ensureProfileForUser } from './lib/profileBootstrap';
+import {
+  discoverableProfileValidator,
+  loadNewestDiscoverableProfiles,
+} from './lib/profileDiscovery';
 import { nowIso, slugify } from './lib/utils';
 
 async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
@@ -199,6 +203,12 @@ export const list = query({
   },
 });
 
+export const newestDiscoverable = query({
+  args: { limit: v.optional(v.number()) },
+  returns: v.array(discoverableProfileValidator),
+  handler: async (ctx, args) => await loadNewestDiscoverableProfiles(ctx, args.limit ?? 4),
+});
+
 export const updateCurrent = mutation({
   args: {
     username: v.string(),
@@ -251,7 +261,6 @@ export const updateCurrent = mutation({
     if (!updated) {
       throw new Error('Failed to update profile');
     }
-    await syncHomepageNewestMember(ctx, updated);
     return updated;
   },
 });

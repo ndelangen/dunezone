@@ -33,6 +33,9 @@ _Avoid_: Featured faction
 **Faction card**:
 A reusable, identity-first summary of a faction shown in discovery grids, including the Faction catalogue and profile detail pages. It communicates faction identity and ruleset membership; stewardship and complete game content belong on the faction detail page.
 
+**Discoverable profile**:
+A profile eligible for public discovery because it has a non-placeholder display name and slug, an avatar, and a valid creation time. Discoverable profiles are ordered newest first. This ordered discovery concern is distinct from numerical Statistics.
+
 **Faction slug**:
 The faction's public URL identifier, derived from its name. It is distinct from the faction's durable internal identity and may change when the faction is renamed.
 

@@ -12,7 +12,8 @@ const modules = import.meta.glob('./**/*.ts');
 
 async function collaborationFixture() {
   const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'homepageCommunity');
+  aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileDiscovery');
   const ids = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Group asset owner' });
     const memberId = await ctx.db.insert('users', { name: 'Group collaborator' });

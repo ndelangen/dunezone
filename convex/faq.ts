@@ -4,9 +4,9 @@ import { FAQ_TAG_VALUES } from '../src/app/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/app/faq/validation';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { internalMutation, mutation, query } from './_generated/server';
+import { query } from './_generated/server';
+import { internalMutation, mutation } from './functions';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
-import { adjustHomepageRulesetFaqTotals } from './lib/homepageCommunity';
 import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { nowIso } from './lib/utils';
@@ -290,7 +290,6 @@ export const createItem = mutation({
     }
 
     const normalizedInitialAnswer = args.answer?.trim();
-    let answerDelta = 0;
     if (normalizedInitialAnswer && normalizedInitialAnswer.length > 0) {
       const parsedAnswer = faqAnswerSchema.safeParse(normalizedInitialAnswer);
       if (!parsedAnswer.success) {
@@ -303,13 +302,7 @@ export const createItem = mutation({
         answered_by: userId,
         created_at: nowIso(),
       });
-      answerDelta = 1;
     }
-
-    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, {
-      questions: 1,
-      answers: answerDelta,
-    });
 
     return row;
   },
@@ -425,22 +418,14 @@ export const deleteItem = mutation({
       throw new Error('Not authorized');
     }
 
-    const { deleted: deletedAnswerCount, shouldContinue } = await deleteFaqAnswerBatch(
-      ctx,
-      item._id
-    );
+    const { shouldContinue } = await deleteFaqAnswerBatch(ctx, item._id);
     const done = !shouldContinue;
     if (done) {
       await ctx.db.delete(item._id);
     }
-    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, {
-      questions: done ? -1 : 0,
-      answers: -deletedAnswerCount,
-    });
     if (!done) {
       await ctx.scheduler.runAfter(0, internal.faq.deleteItemAnswerBatch, {
         faq_item_id: item._id,
-        ruleset_id: ruleset._id,
       });
     }
     return { id: args.id, rulesetId: item.ruleset_id, askedBy: item.asked_by };
@@ -450,7 +435,6 @@ export const deleteItem = mutation({
 export const deleteItemAnswerBatch = internalMutation({
   args: {
     faq_item_id: v.id('faq_items'),
-    ruleset_id: v.id('rulesets'),
   },
   handler: async (ctx, args): Promise<{ deleted: number; done: boolean }> => {
     const item = await ctx.db.get(args.faq_item_id);
@@ -461,12 +445,6 @@ export const deleteItemAnswerBatch = internalMutation({
     const done = !shouldContinue;
     if (done && item) {
       await ctx.db.delete(item._id);
-    }
-    if (deletedAnswerCount > 0 || (done && item)) {
-      await adjustHomepageRulesetFaqTotals(ctx, args.ruleset_id, {
-        questions: done && item ? -1 : 0,
-        answers: -deletedAnswerCount,
-      });
     }
     if (!done) {
       await ctx.scheduler.runAfter(0, internal.faq.deleteItemAnswerBatch, args);
@@ -512,7 +490,6 @@ export const createAnswer = mutation({
       answered_by: userId,
       created_at: nowIso(),
     });
-    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, { answers: 1 });
     const row = await ctx.db.get(_id);
     if (!row) {
       throw new Error('Failed to create FAQ answer');
@@ -576,7 +553,6 @@ export const deleteAnswer = mutation({
     if (!ruleset) {
       throw new Error('Ruleset not found');
     }
-    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, { answers: -1 });
     return { id: args.id, faqItemId: answer.faq_item_id, answeredBy: answer.answered_by };
   },
 });

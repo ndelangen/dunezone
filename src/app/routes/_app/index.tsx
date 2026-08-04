@@ -47,15 +47,13 @@ function IndexPage() {
   }
 
   const counts = data.community.counts;
-  const metrics = counts
-    ? [
-        { value: compactNumber(counts.factions), label: 'factions' },
-        { value: compactNumber(counts.rulesets), label: 'rulesets' },
-        { value: compactNumber(counts.members), label: 'members' },
-        { value: compactNumber(counts.questions), label: 'questions' },
-        { value: compactNumber(counts.answers), label: 'answers' },
-      ]
-    : [];
+  const metrics = [
+    { value: compactNumber(counts.factions), label: 'factions' },
+    { value: compactNumber(counts.rulesets), label: 'rulesets' },
+    { value: compactNumber(counts.members), label: 'members' },
+    { value: compactNumber(counts.questions), label: 'questions' },
+    { value: compactNumber(counts.answers), label: 'answers' },
+  ];
 
   return (
     <PageLayout
@@ -159,24 +157,18 @@ function IndexPage() {
               </Text>
             </Stack>
             <Stack gap="md">
-              {counts ? (
-                <SimpleGrid cols={{ base: 2, sm: 5 }} spacing="sm">
-                  {metrics.map((metric) => (
-                    <Box key={metric.label}>
-                      <Text fw={900} size="xl">
-                        {metric.value}
-                      </Text>
-                      <Text size="xs" c="dimmed">
-                        {metric.label}
-                      </Text>
-                    </Box>
-                  ))}
-                </SimpleGrid>
-              ) : (
-                <Text size="sm" c="dimmed" aria-live="polite">
-                  Live community totals are being prepared.
-                </Text>
-              )}
+              <SimpleGrid cols={{ base: 2, sm: 5 }} spacing="sm">
+                {metrics.map((metric) => (
+                  <Box key={metric.label}>
+                    <Text fw={900} size="xl">
+                      {metric.value}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      {metric.label}
+                    </Text>
+                  </Box>
+                ))}
+              </SimpleGrid>
               <Group justify="space-between" align="center">
                 {data.community.newestMembers.length > 0 ? (
                   <Avatar.Group>

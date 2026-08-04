@@ -9,7 +9,8 @@ import {
   PUBLICATION_MAX_PICKUP,
 } from '../src/shared/asset-publishing/publication';
 import type { Doc } from './_generated/dataModel';
-import { internalMutation, internalQuery } from './_generated/server';
+import { internalQuery } from './_generated/server';
+import { internalMutation } from './functions';
 import { publicationSettings } from './lib/publication';
 import type { MutationCtx } from './types';
 
