@@ -21,7 +21,6 @@ import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
 import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
-import type * as lib_homepageCommunity from "../lib/homepageCommunity.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_memberGroups from "../lib/memberGroups.js";
 import type * as lib_policy from "../lib/policy.js";
@@ -64,7 +63,6 @@ declare const fullApi: ApiFromModules<{
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionInput": typeof lib_factionInput;
   "lib/faqRulesetList": typeof lib_faqRulesetList;
-  "lib/homepageCommunity": typeof lib_homepageCommunity;
   "lib/ids": typeof lib_ids;
   "lib/memberGroups": typeof lib_memberGroups;
   "lib/policy": typeof lib_policy;
@@ -116,7 +114,6 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
-  homepageCommunity: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"homepageCommunity">;
   statistics: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"statistics">;
   profileDiscovery: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileDiscovery">;
 };

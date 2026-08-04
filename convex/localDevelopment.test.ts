@@ -20,7 +20,6 @@ describe('local faction development import', () => {
 
   test('maps imported factions and groups onto the two local auth users', async () => {
     const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'homepageCommunity');
     aggregateTest.register(t, 'statistics');
     aggregateTest.register(t, 'profileDiscovery');
     const [ownerId, collaboratorId] = await t.run(async (ctx) => {
@@ -104,7 +103,6 @@ describe('local faction development import', () => {
   test('is unavailable outside the disposable local backend', async () => {
     vi.stubEnv('IS_TEST', 'false');
     const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'homepageCommunity');
     aggregateTest.register(t, 'statistics');
     aggregateTest.register(t, 'profileDiscovery');
 

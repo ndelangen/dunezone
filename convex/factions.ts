@@ -12,7 +12,6 @@ import {
   selectFactionCatalogueSpotlights,
 } from './lib/factionCatalogue';
 import { parseFactionInput } from './lib/factionInput';
-import { setHomepageCommunityPresence } from './lib/homepageCommunity';
 import { isActiveGroupMember, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { enqueueFactionSheetPublication } from './lib/publication';
@@ -313,7 +312,6 @@ export const create = mutation({
       updated_at: now,
       is_deleted: false,
     });
-    await setHomepageCommunityPresence(ctx, 'factions', _id, true);
     const row = await ctx.db.get(_id);
     if (!row) {
       throw new Error('Failed to create faction');
@@ -410,7 +408,6 @@ export const softDelete = mutation({
       is_deleted: true,
       updated_at: nowIso(),
     });
-    await setHomepageCommunityPresence(ctx, 'factions', args.id, false);
   },
 });
 

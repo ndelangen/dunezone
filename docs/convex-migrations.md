@@ -59,11 +59,12 @@ Rules:
 
 ## Automated production flow
 
-1. Deploy widen-compatible Convex code: `bun run convex:deploy`
-2. Deploy workflow runs `bun run migrations:deploy`
-3. That command starts the required widen migrations, polls readiness, and syncs status snapshots
-4. Deploy fails if any required migration is incomplete, failed, or times out
-5. A later narrow release may merge only after `bun run migrations:narrow-check` passes
+1. Before changing the deployed schema, the deploy workflow runs
+   `bun run migrations:narrow-check` against the currently deployed migration entrypoints.
+2. Deploy widen- or narrow-compatible Convex code: `bun run convex:deploy`.
+3. Deploy workflow runs `bun run migrations:deploy`.
+4. That command starts the required widen migrations, polls readiness, and syncs status snapshots.
+5. Deploy fails if any narrow prerequisite or required migration is incomplete, failed, or times out.
 
 ## Strict local dev startup
 
