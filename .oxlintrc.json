@@ -1,12 +1,33 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "oxc", "react", "jsx-a11y", "vitest", "import"],
+  "plugins": ["typescript", "unicorn", "oxc", "react", "jsx-a11y", "vitest", "import", "jsdoc"],
   "categories": {
     "correctness": "error"
   },
   "rules": {
     "curly": ["error", "all"],
+    "eqeqeq": ["error", "smart"],
+    "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
+    "jsdoc/check-tag-names": ["error", { "definedTags": ["vitest-environment"] }],
     "jsx-a11y/prefer-tag-over-role": "off",
+    "object-shorthand": "error",
+    "react/jsx-curly-brace-presence": [
+      "error",
+      {
+        "props": "never",
+        "children": "never",
+        "propElementValues": "always"
+      }
+    ],
+    "react/self-closing-comp": "error",
+    "typescript/consistent-type-imports": [
+      "error",
+      {
+        "prefer": "type-imports",
+        "fixStyle": "separate-type-imports"
+      }
+    ],
+    "unicorn/numeric-separators-style": "error",
     "vitest/no-conditional-expect": "off",
     "vitest/require-mock-type-parameters": "off",
     "vitest/require-to-throw-message": "off",

@@ -13,7 +13,7 @@ export const Page: FC<
         style={{
           backgroundPosition: `bottom ${pageNumber % 2 ? 'left' : 'right'}`,
         }}
-      ></div>
+      />
     )}
   </div>
 );

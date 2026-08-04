@@ -51,7 +51,7 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({
         fillRule="evenodd"
         clipRule="evenodd"
       >
-        <use xlinkHref={'/vector/background/map.svg#root'}></use>
+        <use xlinkHref="/vector/background/map.svg#root" />
       </svg>
 
       <svg
@@ -72,30 +72,15 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({
               0 0 1 0 0
               0 0 0 34 0"
             />
-            <feMorphology
-              in="CONTRASTED"
-              result="DILATED0"
-              operator="dilate"
-              radius="5"
-            ></feMorphology>
-            <feMorphology
-              in="CONTRASTED"
-              result="DILATED1"
-              operator="dilate"
-              radius="3"
-            ></feMorphology>
-            <feMorphology
-              in="CONTRASTED"
-              result="DILATED2"
-              operator="dilate"
-              radius="1"
-            ></feMorphology>
-            <feFlood floodColor={foreGroundColor} floodOpacity="1" result="PINK0"></feFlood>
-            <feFlood floodColor={edgeColor} floodOpacity="1" result="PINK1"></feFlood>
-            <feFlood floodColor={highLightColor} floodOpacity="1" result="PINK2"></feFlood>
-            <feComposite in="PINK0" in2="DILATED0" operator="in" result="OUTLINE0"></feComposite>
-            <feComposite in="PINK1" in2="DILATED1" operator="in" result="OUTLINE1"></feComposite>
-            <feComposite in="PINK2" in2="DILATED2" operator="in" result="OUTLINE2"></feComposite>
+            <feMorphology in="CONTRASTED" result="DILATED0" operator="dilate" radius="5" />
+            <feMorphology in="CONTRASTED" result="DILATED1" operator="dilate" radius="3" />
+            <feMorphology in="CONTRASTED" result="DILATED2" operator="dilate" radius="1" />
+            <feFlood floodColor={foreGroundColor} floodOpacity="1" result="PINK0" />
+            <feFlood floodColor={edgeColor} floodOpacity="1" result="PINK1" />
+            <feFlood floodColor={highLightColor} floodOpacity="1" result="PINK2" />
+            <feComposite in="PINK0" in2="DILATED0" operator="in" result="OUTLINE0" />
+            <feComposite in="PINK1" in2="DILATED1" operator="in" result="OUTLINE1" />
+            <feComposite in="PINK2" in2="DILATED2" operator="in" result="OUTLINE2" />
             <feMerge>
               <feMergeNode in="OUTLINE0" />
               <feMergeNode in="OUTLINE1" />
@@ -104,16 +89,16 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({
           </filter>
           <mask id={`${prefix}mask`}>
             {highlights.map((territory) => (
-              <use key={territory} xlinkHref={`/vector/background/map.svg#${territory}`}></use>
+              <use key={territory} xlinkHref={`/vector/background/map.svg#${territory}`} />
             ))}
           </mask>
         </defs>
 
         <g filter={`url(#${decalsFilter})`}>
-          <rect width="100%" height="100%" mask={`url(#${prefix}mask)`} fill={edgeColor}></rect>
+          <rect width="100%" height="100%" mask={`url(#${prefix}mask)`} fill={edgeColor} />
         </g>
 
-        <use xlinkHref={'/vector/background/map.svg#sectors'}></use>
+        <use xlinkHref="/vector/background/map.svg#sectors" />
         {overlays?.map((overlay) => (
           <image
             href={overlay.image}

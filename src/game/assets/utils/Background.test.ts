@@ -1,4 +1,5 @@
-import { type ComponentProps, createElement } from 'react';
+import { createElement } from 'react';
+import type { ComponentProps } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 

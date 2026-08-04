@@ -159,7 +159,7 @@ export function Layout() {
                 </p>
               </li>
             </ol>
-            <Definitions></Definitions>
+            <Definitions />
           </Spaced>
         </NonBreaking>
         <NonBreaking>
@@ -239,7 +239,7 @@ export function Layout() {
               fillRule="evenodd"
               clipRule="evenodd"
             >
-              <use xlinkHref={'/page/table.svg#root'}></use>
+              <use xlinkHref="/page/table.svg#root" />
             </svg>
           </Wrapper>
         </div>

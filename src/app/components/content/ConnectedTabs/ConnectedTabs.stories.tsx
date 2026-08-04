@@ -1,10 +1,12 @@
 import { Box, Title } from '@mantine/core';
 import preview from '@sb/preview';
 import { BookOpen, CircleUserRound, Settings } from 'lucide-react';
-import { type ComponentType, type CSSProperties, useState } from 'react';
+import { useState } from 'react';
+import type { ComponentType, CSSProperties } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { ConnectedTabs, type ConnectedTabsProps } from './ConnectedTabs';
+import { ConnectedTabs } from './ConnectedTabs';
+import type { ConnectedTabsProps } from './ConnectedTabs';
 import storyStyles from './ConnectedTabs.stories.module.css';
 
 type ExampleTab = 'overview' | 'people' | 'settings';

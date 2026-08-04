@@ -18,7 +18,8 @@ import { Link } from '@tanstack/react-router';
 import { Copy } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { type Faction, type FactionLoadPickerRow, useFactionLoadPicker } from '@db/factions';
+import { useFactionLoadPicker } from '@db/factions';
+import type { Faction, FactionLoadPickerRow } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import { CanonicalFactionStoredSchema } from '@game/schema/faction';
 

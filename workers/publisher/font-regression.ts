@@ -1,13 +1,14 @@
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 
-import { chromium, type Page } from 'playwright';
+import { chromium } from 'playwright';
+import type { Page } from 'playwright';
 
 import {
   assertPublisherFontFaces,
   assertRequiredPublisherFonts,
-  type PublisherFontFaceSet,
 } from '../../src/app/capture/publisher-fonts';
+import type { PublisherFontFaceSet } from '../../src/app/capture/publisher-fonts';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const publisherDist = path.join(repositoryRoot, 'workers/publisher/dist');

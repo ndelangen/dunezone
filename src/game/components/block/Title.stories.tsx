@@ -39,12 +39,12 @@ export const ContrastPalette = meta.story({
   },
   render: ({ children }) => (
     <Fragment>
-      <Title color={'#000000'}>{children}</Title>
-      <Title color={'#ffffff'}>{children}</Title>
-      <Title color={'rgba(100, 100, 100, 0.7)'}>{children}</Title>
-      <Title color={'rgb(100, 100, 100)'}>{children}</Title>
-      <Title color={'rgb(50, 200, 190)'}>{children}</Title>
-      <Title color={'rgb(255, 0, 255)'}>{children}</Title>
+      <Title color="#000000">{children}</Title>
+      <Title color="#ffffff">{children}</Title>
+      <Title color="rgba(100, 100, 100, 0.7)">{children}</Title>
+      <Title color="rgb(100, 100, 100)">{children}</Title>
+      <Title color="rgb(50, 200, 190)">{children}</Title>
+      <Title color="rgb(255, 0, 255)">{children}</Title>
     </Fragment>
   ),
 });

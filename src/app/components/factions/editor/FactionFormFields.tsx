@@ -21,10 +21,10 @@ import { Token } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 
-import {
-  type FactionAuthoringChapterId,
-  type FactionAuthoringWarning,
-  factionAuthoringChapters,
+import { factionAuthoringChapters } from './factionAuthoringContract';
+import type {
+  FactionAuthoringChapterId,
+  FactionAuthoringWarning,
 } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
 import { assetOptionToPreviewSrc } from './factionFormAssetUtils';

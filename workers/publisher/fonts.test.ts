@@ -3,9 +3,9 @@ import { describe, expect, test, vi } from 'vitest';
 import {
   assertPublisherFontFaces,
   assertRequiredPublisherFonts,
-  type PublisherFontFaceSet,
   requiredPublisherFontFaces,
 } from '../../src/app/capture/publisher-fonts';
+import type { PublisherFontFaceSet } from '../../src/app/capture/publisher-fonts';
 
 function fontSet(missing?: (typeof requiredPublisherFontFaces)[number]): PublisherFontFaceSet {
   return {

@@ -1,5 +1,6 @@
 import { Box, Group, Stack, Text, Tooltip } from '@mantine/core';
-import { type ReactNode, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 export interface ControlBlockProps {
   title: string;

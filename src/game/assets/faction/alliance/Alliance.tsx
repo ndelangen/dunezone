@@ -1,5 +1,6 @@
 /* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
-import { type FC, useMemo } from 'react';
+import { useMemo } from 'react';
+import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { MarkdownContent } from '../../../components/block/MarkdownContent';
@@ -57,7 +58,7 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
         <defs>
           <mask id={discMask} maskUnits="userSpaceOnUse">
             <rect width="300" height="300" fill="white" />
-            <circle cx="526" cy="20" fill="black" r="425"></circle>
+            <circle cx="526" cy="20" fill="black" r="425" />
           </mask>
         </defs>
         <foreignObject width="190" height="190" mask={`url(#${discMask})`}>
@@ -91,7 +92,7 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
           y="10"
           xlinkHref={`${logo}#root`}
           fill={foreGroundColor}
-          stroke={'black'}
+          stroke="black"
           strokeWidth="7%"
         />
       </svg>

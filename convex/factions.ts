@@ -433,7 +433,7 @@ export const getFullBySlug = query({
       ...row,
       data: factionDataForClient(row.data),
       owner: profile,
-      group: group,
+      group,
     };
   },
 });

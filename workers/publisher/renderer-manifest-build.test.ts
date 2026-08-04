@@ -8,8 +8,8 @@ import {
   computeRendererManifestDigest,
   isRendererManifestAsset,
   RENDERER_RUNTIME_CLOSURE_PATHS,
-  type RendererManifestEntry,
 } from './renderer-manifest-build';
+import type { RendererManifestEntry } from './renderer-manifest-build';
 
 const encoder = new TextEncoder();
 

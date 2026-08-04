@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
-import { type AssetRepresentation, evaluateAssetRequest, parseHttpDate } from './delivery-http';
+import { evaluateAssetRequest, parseHttpDate } from './delivery-http';
+import type { AssetRepresentation } from './delivery-http';
 
 const NOW = Date.parse('2026-07-16T13:00:00.000Z');
 const LAST_MODIFIED = 'Thu, 16 Jul 2026 12:00:00 GMT';

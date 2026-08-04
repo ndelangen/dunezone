@@ -1,5 +1,6 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { type ComponentPropsWithoutRef, useState } from 'react';
+import { useState } from 'react';
+import type { ComponentPropsWithoutRef } from 'react';
 import { SiDiscord } from 'react-icons/si';
 
 import { Stack } from '@app/components/generic/layout';

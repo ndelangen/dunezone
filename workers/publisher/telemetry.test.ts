@@ -38,12 +38,12 @@ describe('bounded publisher telemetry', () => {
   });
 
   test('retains a maximum-sized actionable error graph within the event budget', () => {
-    let error: Error = new Error(`leaf ${'x'.repeat(1_000)}`);
+    let error: Error = new Error(`leaf ${'x'.repeat(1000)}`);
     for (let index = 0; index < 3; index += 1) {
-      error = new Error(`cause ${index} ${'x'.repeat(1_000)}`, { cause: error });
+      error = new Error(`cause ${index} ${'x'.repeat(1000)}`, { cause: error });
     }
     for (let current: unknown = error; current instanceof Error; current = current.cause) {
-      current.stack = `Error: ${current.message}\n${'s'.repeat(2_000)}`;
+      current.stack = `Error: ${current.message}\n${'s'.repeat(2000)}`;
     }
 
     const bounded = boundedPublisherTelemetryEvent({

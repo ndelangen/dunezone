@@ -100,13 +100,13 @@ export function Board() {
         <div style={{ position: 'absolute', width: '100%' }}>
           <svg
             style={{ borderRadius: '50%', boxShadow: '0 0 4vw 0 rgba(0, 0, 0, 0.5)' }}
-            width={'100%'}
+            width="100%"
             viewBox="0 0 487.06 487.06"
             xmlSpace="preserve"
             fillRule="evenodd"
             clipRule="evenodd"
           >
-            <use xlinkHref={'/page/map.svg#root'}></use>
+            <use xlinkHref="/page/map.svg#root" />
           </svg>
         </div>
       </div>
@@ -142,9 +142,9 @@ export function Sectors() {
           clipRule="evenodd"
           style={{ borderRadius: '50%' }}
         >
-          <use xlinkHref={'/page/map.svg#root'}></use>
+          <use xlinkHref="/page/map.svg#root" />
           <use
-            xlinkHref={'/page/map.svg#sectors'}
+            xlinkHref="/page/map.svg#sectors"
             fill="none"
             stroke="black"
             clipRule="evenodd"
@@ -154,7 +154,7 @@ export function Sectors() {
             strokeWidth="7px"
           />
           <use
-            xlinkHref={'/page/map.svg#sectors'}
+            xlinkHref="/page/map.svg#sectors"
             fill="none"
             stroke="white"
             clipRule="evenodd"
@@ -176,7 +176,7 @@ export function Sectors() {
           fillRule="evenodd"
           clipRule="evenodd"
         >
-          <use xlinkHref={'/page/map.svg#root'}></use>
+          <use xlinkHref="/page/map.svg#root" />
         </svg>
         <NonBreaking>
           <h1>Spice locations</h1>
@@ -302,7 +302,7 @@ const StrongholdsMap: FC = () => (
         fillRule="evenodd"
         clipRule="evenodd"
       >
-        <use xlinkHref={'/page/map.svg#root'}></use>
+        <use xlinkHref="/page/map.svg#root" />
       </svg>
       <svg
         style={{ borderRadius: '50%' }}
@@ -314,27 +314,27 @@ const StrongholdsMap: FC = () => (
         <defs>
           <mask id="arrakeen">
             <rect width="100%" height="100%" fill="black" />
-            <use xlinkHref={'/page/map.svg#arrakeen'}></use>
+            <use xlinkHref="/page/map.svg#arrakeen" />
           </mask>
           <mask id="carthag">
             <rect width="100%" height="100%" fill="black" />
-            <use xlinkHref={'/page/map.svg#carthag'}></use>
+            <use xlinkHref="/page/map.svg#carthag" />
           </mask>
           <mask id="tabr">
             <rect width="100%" height="100%" fill="black" />
-            <use xlinkHref={'/page/map.svg#tabr'}></use>
+            <use xlinkHref="/page/map.svg#tabr" />
           </mask>
           <mask id="habbanya">
             <rect width="100%" height="100%" fill="black" />
-            <use xlinkHref={'/page/map.svg#habbanya'}></use>
+            <use xlinkHref="/page/map.svg#habbanya" />
           </mask>
           <mask id="tueks">
             <rect width="100%" height="100%" fill="black" />
-            <use xlinkHref={'/page/map.svg#tueks'}></use>
+            <use xlinkHref="/page/map.svg#tueks" />
           </mask>
           <mask id="shield-wall">
             <rect width="100%" height="100%" fill="black" />
-            <use xlinkHref={'/page/map.svg#shield-wall'}></use>
+            <use xlinkHref="/page/map.svg#shield-wall" />
           </mask>
         </defs>
         <rect width="100%" height="100%" fill="red" mask="url(#arrakeen)" />

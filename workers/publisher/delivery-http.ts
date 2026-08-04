@@ -127,7 +127,7 @@ function validUtc(
   ) {
     return null;
   }
-  return timestamp + (second === 60 ? 1_000 : 0);
+  return timestamp + (second === 60 ? 1000 : 0);
 }
 
 function monthIndex(value: string): number {

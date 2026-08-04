@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { type CaptureEnv, captureJobHeader, handleCaptureRoute } from './capture-route';
+import { captureJobHeader, handleCaptureRoute } from './capture-route';
+import type { CaptureEnv } from './capture-route';
 
 const jobId = 'publication-job-000000000000001';
 

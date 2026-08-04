@@ -108,7 +108,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             <feDropShadow dx="0" dy="0" floodColor="#000000" floodOpacity="1" stdDeviation="4" />
           </filter>
         </defs>
-        <g filter={`url(#dropshadow)`}>
+        <g filter="url(#dropshadow)">
           <text
             dominantBaseline="middle"
             fill="black"

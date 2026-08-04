@@ -1,9 +1,6 @@
 import { isValidCacheSigningSecret, verifyCacheToken } from '../../convex/lib/publicationHttp';
-import {
-  type AssetRepresentation,
-  type AssetRequestDecision,
-  evaluateAssetRequest,
-} from './delivery-http';
+import { evaluateAssetRequest } from './delivery-http';
+import type { AssetRepresentation, AssetRequestDecision } from './delivery-http';
 import { factionSheetKey } from './r2';
 
 const ASSET_TYPE = 'faction_sheet' as const;

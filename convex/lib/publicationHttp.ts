@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 
 const encoder = new TextEncoder();
-export const MAX_PUBLISHER_JSON_BODY_BYTES = 16 * 1_024;
+export const MAX_PUBLISHER_JSON_BODY_BYTES = 16 * 1024;
 export const CACHE_TOKEN_PATTERN = /^v1\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/;
 export const CACHE_SIGNING_SECRET_PATTERN = /^s1\.[A-Za-z0-9_-]{43}$/;
 

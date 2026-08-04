@@ -2,13 +2,15 @@
 
 import { MantineProvider } from '@mantine/core';
 import { act, useRef } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { appContentTheme } from '@app/theme';
 import { defaultFaction } from '@data/defaultFaction';
 
-import { FactionSheetReview, type FactionSheetReviewHandle } from './FactionSheetReview';
+import { FactionSheetReview } from './FactionSheetReview';
+import type { FactionSheetReviewHandle } from './FactionSheetReview';
 
 vi.mock('./FactionSheetPagePreview', () => ({
   factionDraftForRenderer: (faction: unknown) => faction,

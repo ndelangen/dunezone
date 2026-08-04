@@ -1,4 +1,5 @@
-import { Link, type LinkComponentProps } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
+import type { LinkComponentProps } from '@tanstack/react-router';
 import clsx from 'clsx';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 

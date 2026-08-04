@@ -1,8 +1,8 @@
 import {
   FACTION_SHEET_ASSET_TYPE,
-  type FactionSheetAssetData,
   factionSheetAssetDataSchema,
 } from '../../src/shared/asset-publishing/publication';
+import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/publication';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 

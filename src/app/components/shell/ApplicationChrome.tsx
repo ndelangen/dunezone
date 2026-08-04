@@ -1,5 +1,6 @@
 import { MantineProvider } from '@mantine/core';
-import { type ReactNode, useEffect } from 'react';
+import { useEffect } from 'react';
+import type { ReactNode } from 'react';
 
 import { appContentTheme } from '@app/theme';
 

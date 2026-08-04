@@ -5,7 +5,8 @@ import type { FaqAnswerEntry, FaqItemWithDetails } from '@db/faq';
 import type { GroupMemberRow, UserGroupMembershipWithGroup } from '@db/members';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { rulesetInputSchema } from '@app/rulesets/validation';
-import { Background, type FactionData } from '@game/schema/faction';
+import { Background } from '@game/schema/faction';
+import type { FactionData } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';

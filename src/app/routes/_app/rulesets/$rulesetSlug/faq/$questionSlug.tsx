@@ -3,7 +3,6 @@ import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
-  type FaqItemByRulesetSlugInitialData,
   loadFaqItemByRulesetAndSlug,
   useCreateFaqAnswer,
   useDeleteFaqAnswer,
@@ -13,6 +12,7 @@ import {
   useUpdateFaqAnswer,
   useUpdateFaqItem,
 } from '@db/faq';
+import type { FaqItemByRulesetSlugInitialData } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug } from '@db/rulesets';
 import { Answer } from '@app/components/faq/Answer';
@@ -24,7 +24,8 @@ import { Card } from '@app/components/generic/surfaces/Card';
 import { UIButton } from '@app/components/generic/ui/UIButton';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
-import { DEFAULT_FAQ_TAG, FAQ_TAG_LABELS, FAQ_TAG_VALUES, type FaqTag } from '@app/faq/tags';
+import { DEFAULT_FAQ_TAG, FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
+import type { FaqTag } from '@app/faq/tags';
 
 import styles from './$questionSlug.module.css';
 

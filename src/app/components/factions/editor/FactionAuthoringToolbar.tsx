@@ -2,10 +2,8 @@ import { ActionIcon, Badge, Button, Group, Paper, Stack, Text, Tooltip } from '@
 import { ArrowLeft, Eye, RotateCcw, Save } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import {
-  type FactionSaveState,
-  factionAssetPublishingCopy,
-} from '@app/factions/assetPublishingStatus';
+import { factionAssetPublishingCopy } from '@app/factions/assetPublishingStatus';
+import type { FactionSaveState } from '@app/factions/assetPublishingStatus';
 
 import type { PublicAssetPublishingStatusProjection } from '../../../../../convex/assetPublishingStatus';
 import styles from './FactionAuthoringToolbar.module.css';

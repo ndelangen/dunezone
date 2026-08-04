@@ -1,7 +1,8 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import { type ProfileEntry, useUpdateCurrentProfile } from '@db/profiles';
+import { useUpdateCurrentProfile } from '@db/profiles';
+import type { ProfileEntry } from '@db/profiles';
 import { FormField } from '@app/components/form/FormField';
 import { TextField } from '@app/components/form/TextField';
 import { ButtonGroup, Stack } from '@app/components/generic/layout';

@@ -1,7 +1,8 @@
 import { v } from 'convex/values';
 
 import type { Id, TableNames } from './_generated/dataModel';
-import { type MutationCtx, mutation, query } from './_generated/server';
+import { mutation, query } from './_generated/server';
+import type { MutationCtx } from './_generated/server';
 import { nowIso, slugify } from './lib/utils';
 
 function assertTestMode() {

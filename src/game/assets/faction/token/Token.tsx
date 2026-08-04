@@ -18,7 +18,7 @@ type FactionTokenProps = z.infer<typeof FactionRender.token>;
 export const Token: FC<FactionTokenProps> = ({ background, logo }) => {
   const svgContent = (
     <svg className={styles.content} viewBox="0 0 100 100">
-      <g filter={'drop-shadow( 0 0 3px rgba(0, 0, 0, 0.6))'}>
+      <g filter="drop-shadow( 0 0 3px rgba(0, 0, 0, 0.6))">
         <StrokedUse
           xlinkHref={`${logo}#root`}
           {...iconLocation}
@@ -26,7 +26,7 @@ export const Token: FC<FactionTokenProps> = ({ background, logo }) => {
           fill={foreGroundColor}
         />
       </g>
-      <g filter={'drop-shadow( 0 0 8px rgba(0, 0, 0, 0.6))'}>
+      <g filter="drop-shadow( 0 0 8px rgba(0, 0, 0, 0.6))">
         <StrokedUse
           xlinkHref={`${logo}#root`}
           {...iconLocation}
@@ -34,7 +34,7 @@ export const Token: FC<FactionTokenProps> = ({ background, logo }) => {
           fill={foreGroundColor}
         />
       </g>
-      <g filter={'drop-shadow( 0 0 3px rgba(0, 0, 0, 0.8))'}>
+      <g filter="drop-shadow( 0 0 3px rgba(0, 0, 0, 0.8))">
         <circle
           cx="50"
           cy="50"
@@ -45,7 +45,7 @@ export const Token: FC<FactionTokenProps> = ({ background, logo }) => {
           strokeWidth={1.3}
         />
       </g>
-      <g filter={'drop-shadow( 0 0 8px rgba(0, 0, 0, 0.8))'}>
+      <g filter="drop-shadow( 0 0 8px rgba(0, 0, 0, 0.8))">
         <circle
           cx="50"
           cy="50"

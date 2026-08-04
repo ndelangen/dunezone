@@ -81,7 +81,7 @@ function liveFetcher(
         bindings: liveBindings(),
         compatibility_date: '2026-07-17',
         compatibility_flags: ['nodejs_compat'],
-        limits: { cpu_ms: 30000 },
+        limits: { cpu_ms: 30_000 },
       });
     }
     if (url.pathname.endsWith(`/workers/scripts/${WORKER}/secrets`)) {

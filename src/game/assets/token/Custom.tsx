@@ -34,7 +34,7 @@ export const CustomToken: FC<
           )}
         </defs>
 
-        <g filter={'drop-shadow( 0 0 9px rgba(0, 0, 0, 0.6))'}>
+        <g filter="drop-shadow( 0 0 9px rgba(0, 0, 0, 0.6))">
           <StrokedUse
             xlinkHref={`${image}#root`}
             {...iconLocation}
@@ -44,7 +44,7 @@ export const CustomToken: FC<
             strokeWidth={strokeWidth}
           />
         </g>
-        <g filter={'drop-shadow( 0 0 24px rgba(0, 0, 0, 0.6))'}>
+        <g filter="drop-shadow( 0 0 24px rgba(0, 0, 0, 0.6))">
           <StrokedUse
             xlinkHref={`${image}#root`}
             {...iconLocation}
@@ -56,7 +56,7 @@ export const CustomToken: FC<
         </g>
         {circle && (
           <>
-            <g filter={'drop-shadow( 0 0 9px rgba(0, 0, 0, 0.8))'}>
+            <g filter="drop-shadow( 0 0 9px rgba(0, 0, 0, 0.8))">
               <circle
                 cx="150"
                 cy="150"
@@ -67,7 +67,7 @@ export const CustomToken: FC<
                 strokeWidth={1.3}
               />
             </g>
-            <g filter={'drop-shadow( 0 0 24px rgba(0, 0, 0, 0.8))'}>
+            <g filter="drop-shadow( 0 0 24px rgba(0, 0, 0, 0.8))">
               <circle
                 cx="150"
                 cy="150"

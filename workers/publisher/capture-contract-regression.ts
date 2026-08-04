@@ -1,6 +1,7 @@
 import path from 'node:path';
 
-import { type Browser, chromium, type Page } from 'playwright';
+import { chromium } from 'playwright';
+import type { Browser, Page } from 'playwright';
 
 import { assetPublishingFaction } from '../../src/game/fixtures/assetPublishingFaction';
 import { inspectChromiumPdf } from './pdf-inspection';

@@ -17,7 +17,8 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core';
-import { createFileRoute, type ErrorComponentProps, Link } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import {
   ArrowLeft,
   Download,

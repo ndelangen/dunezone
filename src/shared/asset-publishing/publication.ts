@@ -5,7 +5,7 @@ import { FactionInputSchema, FactionRowSlugSchema } from '../../game/schema/fact
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
 export const PUBLICATION_MAX_ATTEMPTS = 10;
 export const PUBLICATION_MAX_PICKUP = 20;
-export const PUBLICATION_JOB_EXPIRY_MS = 5 * 60 * 1_000;
+export const PUBLICATION_JOB_EXPIRY_MS = 5 * 60 * 1000;
 
 export const rendererRevisionsSchema = z.record(
   z.string().trim().min(1).max(128),
@@ -32,7 +32,7 @@ export const completePublicationJobRequestSchema = publicationJobRequestSchema.e
 });
 
 export const failPublicationJobRequestSchema = publicationJobRequestSchema.extend({
-  error: z.string().trim().min(1).max(2_000),
+  error: z.string().trim().min(1).max(2000),
 });
 
 export const publicationRevisionRequestSchema = z.discriminatedUnion('operation', [

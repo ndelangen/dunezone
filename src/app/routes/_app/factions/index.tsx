@@ -14,32 +14,28 @@ import {
   Tooltip,
   UnstyledButton,
 } from '@mantine/core';
-import {
-  createFileRoute,
-  type ErrorComponentProps,
-  Link,
-  useNavigate,
-} from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import { ArrowDownAZ, ChevronRight, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
-import { type KeyboardEvent, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 
-import {
-  type FactionCatalogueEntry,
-  type FactionCataloguePageData,
-  type FactionRulesetSummary,
-  loadFactionCataloguePage,
-  useFactionCataloguePage,
+import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
+import type {
+  FactionCatalogueEntry,
+  FactionCataloguePageData,
+  FactionRulesetSummary,
 } from '@db/factions';
 import { FactionList } from '@app/components/factions/FactionList';
 import { PageLayout } from '@app/components/shell';
 import {
-  type FactionCatalogueSearch,
   factionCatalogueSearchParams,
   filterAndSortFactions,
   isFactionCatalogueSort,
   normalizeFactionCatalogueSearch,
   parseFactionCatalogueSearch,
 } from '@app/factions/catalogue';
+import type { FactionCatalogueSearch } from '@app/factions/catalogue';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from './FactionCatalogue.module.css';

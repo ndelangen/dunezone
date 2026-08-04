@@ -159,15 +159,15 @@ export const page = query({
       ctx.db
         .query('publication_jobs')
         .withIndex('by_status_and_created_at', (q) => q.eq('status', 'pending'))
-        .take(1_000),
+        .take(1000),
       ctx.db
         .query('publication_jobs')
         .withIndex('by_status_and_created_at', (q) => q.eq('status', 'in_progress'))
-        .take(1_000),
+        .take(1000),
       ctx.db
         .query('publication_jobs')
         .withIndex('by_status_and_created_at', (q) => q.eq('status', 'error'))
-        .take(1_000),
+        .take(1000),
       publicationSettings(ctx),
     ]);
     const allJobs = [...errors, ...inProgress, ...pending]

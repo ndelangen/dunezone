@@ -209,7 +209,7 @@ export const failJob = internalMutation({
     if (job?.status !== 'in_progress') {
       return { status: 'missing' as const };
     }
-    const status = await recordFailure(ctx, job, args.error.slice(0, 2_000), Date.now());
+    const status = await recordFailure(ctx, job, args.error.slice(0, 2000), Date.now());
     return { status, attemptCounter: job.attempt_counter + 1 };
   },
 });

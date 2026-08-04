@@ -1,8 +1,10 @@
 import { createCacheToken } from '../../convex/lib/publicationHttp';
-import { type CapturedPdf, type PublisherBrowserSession, TargetRenderError } from './browser';
+import { TargetRenderError } from './browser';
+import type { CapturedPdf, PublisherBrowserSession } from './browser';
 import type { PublisherConfig } from './config';
 import type { AssignedPublicationJob, ConvexPublisherClient } from './convex';
-import { type AssetBucket, putPublishedAsset } from './r2';
+import { putPublishedAsset } from './r2';
+import type { AssetBucket } from './r2';
 
 type BrowserSession = Pick<PublisherBrowserSession, 'capture' | 'close' | 'sessionId'>;
 type PublisherClient = Pick<ConvexPublisherClient, 'complete' | 'fail'>;

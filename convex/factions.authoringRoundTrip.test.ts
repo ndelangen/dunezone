@@ -6,11 +6,8 @@ import { describe, expect, test } from 'vitest';
 
 import { PLANET, TROOP_MODIFIER } from '../src/game/data/generated';
 import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
-import {
-  CanonicalFactionStoredSchema,
-  type FactionInput,
-  FactionInputSchema,
-} from '../src/game/schema/faction';
+import { CanonicalFactionStoredSchema, FactionInputSchema } from '../src/game/schema/faction';
+import type { FactionInput } from '../src/game/schema/faction';
 import { api } from './_generated/api';
 import schema from './schema';
 

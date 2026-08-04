@@ -648,7 +648,7 @@ export function Battle() {
           </Text>
         </NonBreaking>
       </Text>
-      <Text></Text>
+      <Text />
     </Spaced>
   );
 }
@@ -716,7 +716,7 @@ export function BattleOrder() {
             <dt>Step 12</dt>
             <dd>
               <p>
-                Guild retreat ability. (<em></em>)
+                Guild retreat ability. (<em />)
               </p>
             </dd>
             <dt>Step 13</dt>

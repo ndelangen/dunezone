@@ -1,4 +1,5 @@
-import { type FC, useMemo } from 'react';
+import { useMemo } from 'react';
+import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { StrokedUse } from '../../../components/block/StrokedUse';
@@ -27,7 +28,7 @@ export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, logo, nam
 
         <mask id={discMask} maskUnits="userSpaceOnUse">
           <rect width="300" height="300" fill="black" />
-          <circle cx="150" cy="131" fill={'white'} r="115"></circle>
+          <circle cx="150" cy="131" fill="white" r="115" />
           <StrokedUse
             xlinkHref={`${logo}#root`}
             {...iconLocation}
@@ -79,7 +80,7 @@ export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, logo, nam
         <textPath
           className={styles.name}
           fill={tint0}
-          filter={'drop-shadow(0 0 1.75rem rgba(0,0,0,0.6))'}
+          filter="drop-shadow(0 0 1.75rem rgba(0,0,0,0.6))"
           startOffset="50%"
           dominantBaseline="middle"
           textAnchor="middle"

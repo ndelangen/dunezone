@@ -1,7 +1,8 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
-import { type GroupEntry, useUpdateGroup } from '@db/groups';
+import { useUpdateGroup } from '@db/groups';
+import type { GroupEntry } from '@db/groups';
 import { FormField } from '@app/components/form/FormField';
 import { TextField } from '@app/components/form/TextField';
 import { ButtonGroup, Stack } from '@app/components/generic/layout';

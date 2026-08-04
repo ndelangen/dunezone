@@ -91,7 +91,7 @@ export function parseTakeWork(value: unknown): TakeWorkResult {
 }
 
 function truncatedError(error: unknown): string {
-  return publisherErrorMessage(error).slice(0, 2_000);
+  return publisherErrorMessage(error).slice(0, 2000);
 }
 
 export class ConvexPublisherClient {

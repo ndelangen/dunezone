@@ -1,4 +1,5 @@
-import { type FC, Fragment, type ReactNode } from 'react';
+import { Fragment } from 'react';
+import type { FC, ReactNode } from 'react';
 
 import './Book.module.css';
 import { Page } from './Page';

@@ -13,19 +13,14 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Trash2, UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import {
-  type Faction,
-  useDeleteFaction,
-  useFaction,
-  useSetFactionGroup,
-  useUpdateFaction,
-} from '@db/factions';
+import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
+import type { Faction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import { FactionAuthoringToolbar } from '@app/components/factions/editor/FactionAuthoringToolbar';
-import {
-  FactionEditor,
-  type FactionEditorHandle,
-  type FactionEditorState,
+import { FactionEditor } from '@app/components/factions/editor/FactionEditor';
+import type {
+  FactionEditorHandle,
+  FactionEditorState,
 } from '@app/components/factions/editor/FactionEditor';
 import { FactionGroupPopover } from '@app/components/factions/editor/FactionGroupPopover';
 import { FactionLoadPopover } from '@app/components/factions/editor/FactionLoadPopover';

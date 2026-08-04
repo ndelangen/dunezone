@@ -43,6 +43,9 @@
       "unknown"
     ]
   },
+  "sortPackageJson": {
+    "sortScripts": true
+  },
   "overrides": [
     {
       "files": ["*.css", "*.scss", "*.less", "*.html", "*.yaml", "*.yml"],

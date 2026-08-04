@@ -1,5 +1,6 @@
 import clsx from 'clsx';
-import { type ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import styles from './AppShell.module.css';
 import { FooterLinks } from './FooterLinks';

@@ -1,7 +1,8 @@
 import { v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
-import { type MutationCtx, mutation, type QueryCtx, query } from './_generated/server';
+import { mutation, query } from './_generated/server';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 import { listByUserActiveWithGroupsData } from './lib/memberGroups';
 import { isActiveGroupMember, requireAuthUserId } from './lib/policy';
 import { nowIso } from './lib/utils';

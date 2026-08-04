@@ -2,7 +2,7 @@ import { PDFDocument } from 'pdf-lib';
 
 const POINTS_PER_MM = 72 / 25.4;
 const MAX_PROOF_PDF_BYTES = 32 * 1024 * 1024;
-const MAX_TRAILER_SCAN_BYTES = 4_096;
+const MAX_TRAILER_SCAN_BYTES = 4096;
 const MAX_CLASSIC_XREF_BYTES = 1_048_576;
 const MAX_CLASSIC_XREF_ENTRIES = 100_000;
 const decoder = new TextDecoder('latin1');

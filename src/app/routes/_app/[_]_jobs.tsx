@@ -19,11 +19,8 @@ import { AlertCircle, BriefcaseBusiness } from 'lucide-react';
 import { useState } from 'react';
 
 import { PageLayout } from '@app/components/shell';
-import {
-  type PublicationJobStatus,
-  usePublicationJobsPage,
-  useSetPublicationPickupEnabled,
-} from '@app/publications/db';
+import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@app/publications/db';
+import type { PublicationJobStatus } from '@app/publications/db';
 
 const PAGE_SIZE = 25;
 

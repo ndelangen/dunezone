@@ -2,7 +2,8 @@
 
 import { MantineProvider } from '@mantine/core';
 import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { UserGroupMembershipWithGroup } from '@db/members';

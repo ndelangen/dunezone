@@ -1,12 +1,10 @@
 import { useQuery } from 'convex/react';
 
 import { db } from '@db/core';
-import { type LiveQueryResult, toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
-import {
-  CanonicalFactionStoredSchema,
-  type FactionInput,
-  FactionInputSchema,
-} from '@game/schema/faction';
+import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import type { LiveQueryResult } from '@app/db/core/live';
+import { CanonicalFactionStoredSchema, FactionInputSchema } from '@game/schema/faction';
+import type { FactionInput } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';

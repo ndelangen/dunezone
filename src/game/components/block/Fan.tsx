@@ -1,12 +1,5 @@
-import {
-  Children,
-  type DetailedHTMLProps,
-  type FC,
-  type HTMLAttributes,
-  type PropsWithChildren,
-  useCallback,
-  useState,
-} from 'react';
+import { Children, useCallback, useState } from 'react';
+import type { DetailedHTMLProps, FC, HTMLAttributes, PropsWithChildren } from 'react';
 
 import styles from './Fan.module.css';
 import { Wrapper } from './Wrapper';

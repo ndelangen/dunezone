@@ -2,14 +2,8 @@ import * as Select from '@radix-ui/react-select';
 import * as Tabs from '@radix-ui/react-tabs';
 import clsx from 'clsx';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import {
-  type CSSProperties,
-  type ReactNode,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import styles from './ConnectedTabs.module.css';
 

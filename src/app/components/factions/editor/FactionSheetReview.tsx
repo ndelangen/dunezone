@@ -1,9 +1,7 @@
 import { ActionIcon, Alert, Box, Button, Group, Stack, Text, Title } from '@mantine/core';
 import { ChevronDown, Link2, X } from 'lucide-react';
 import {
-  type CSSProperties,
   forwardRef,
-  type ReactNode,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -11,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
 import { Shield } from '@game/assets/faction/shield/Shield';

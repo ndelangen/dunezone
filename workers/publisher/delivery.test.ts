@@ -1,12 +1,8 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { createCacheSigningSecret, createCacheToken } from '../../convex/lib/publicationHttp';
-import {
-  factionSheetPublicPath,
-  handlePublicAssetRequest,
-  type PublicAssetBucket,
-  type PublicAssetCache,
-} from './delivery';
+import { factionSheetPublicPath, handlePublicAssetRequest } from './delivery';
+import type { PublicAssetBucket, PublicAssetCache } from './delivery';
 import { PUBLISHER_CACHE_TOKEN_METADATA_KEY } from './r2';
 import { fakeR2Object } from './test-helpers';
 

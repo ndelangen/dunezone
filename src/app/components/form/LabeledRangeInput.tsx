@@ -1,4 +1,5 @@
-import { type ReactNode, useLayoutEffect } from 'react';
+import { useLayoutEffect } from 'react';
+import type { ReactNode } from 'react';
 
 import styles from './LabeledRangeInput.module.css';
 
