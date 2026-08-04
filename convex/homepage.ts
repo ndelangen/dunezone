@@ -8,6 +8,7 @@ import {
   loadHomepageNewestMemberIds,
 } from './lib/homepageCommunity';
 import { isProfileDiscoverable, loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
+import { loadGlobalStatisticsTotals } from './lib/statistics';
 
 const HOMEPAGE_MIGRATION_IDS = [
   'homepage_factions_v1',
@@ -35,24 +36,62 @@ const metricCountsValidator = v.object({
   answers: v.number(),
 });
 
+const spotlightsValidator = v.object({
+  newArrival: v.union(spotlightValidator, v.null()),
+  freshlyUpdated: v.union(spotlightValidator, v.null()),
+});
+
+const newestMembersValidator = v.array(
+  v.object({
+    id: v.id('profiles'),
+    slug: v.string(),
+    username: v.string(),
+    avatarUrl: v.string(),
+    createdAt: v.string(),
+  })
+);
+
+/** Permanent homepage read composed from reusable domain boundaries. */
+export const get = query({
+  args: {},
+  returns: v.object({
+    spotlights: spotlightsValidator,
+    community: v.object({
+      counts: metricCountsValidator,
+      newestMembers: newestMembersValidator,
+    }),
+  }),
+  handler: async (ctx) => {
+    const [spotlights, totals, newestMembers] = await Promise.all([
+      loadFactionCatalogueSpotlightPreviews(ctx),
+      loadGlobalStatisticsTotals(ctx),
+      loadNewestDiscoverableProfiles(ctx, 4),
+    ]);
+
+    return {
+      spotlights,
+      community: {
+        counts: {
+          factions: totals.factions,
+          rulesets: totals.rulesets,
+          members: totals.users,
+          questions: totals.questions,
+          answers: totals.answers,
+        },
+        newestMembers,
+      },
+    };
+  },
+});
+
+/** Compatibility read for the pre-cutover frontend. Remove with the legacy homepage aggregate. */
 export const page = query({
   args: {},
   returns: v.object({
-    spotlights: v.object({
-      newArrival: v.union(spotlightValidator, v.null()),
-      freshlyUpdated: v.union(spotlightValidator, v.null()),
-    }),
+    spotlights: spotlightsValidator,
     community: v.object({
       counts: v.union(metricCountsValidator, v.null()),
-      newestMembers: v.array(
-        v.object({
-          id: v.id('profiles'),
-          slug: v.string(),
-          username: v.string(),
-          avatarUrl: v.string(),
-          createdAt: v.string(),
-        })
-      ),
+      newestMembers: newestMembersValidator,
     }),
   }),
   handler: async (ctx) => {
