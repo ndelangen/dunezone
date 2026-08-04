@@ -7,17 +7,12 @@ import { describe, expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
+import { syncHomepageNewestMember } from './lib/homepageCommunity';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
-const MIGRATION_IDS = [
-  'homepage_factions_v1',
-  'homepage_rulesets_v1',
-  'homepage_members_v1',
-  'homepage_questions_v1',
-  'homepage_answers_v1',
-];
+const MIGRATION_IDS = ['homepage_factions_v1', 'homepage_rulesets_v1', 'homepage_members_v1'];
 
 describe('homepage page data', () => {
   test('publishes exact live totals only after aggregate backfills are ready', async () => {
@@ -43,8 +38,11 @@ describe('homepage page data', () => {
     const question = await asUser.mutation(api.faq.createItem, {
       ruleset_id: ruleset._id,
       question: 'How does the homepage stay accurate?',
-      answer: 'Every source mutation updates the same aggregate transaction.',
       tags: ['rules'],
+    });
+    const answer = await asUser.mutation(api.faq.createAnswer, {
+      faq_item_id: question._id,
+      answer: 'Every source mutation updates the same aggregate transaction.',
     });
 
     expect((await t.query(api.homepage.page, {})).community.counts).toBeNull();
@@ -73,9 +71,11 @@ describe('homepage page data', () => {
     });
     expect(ready.community.newestMembers).toHaveLength(1);
 
-    await asUser.mutation(api.faq.deleteItem, { id: question._id });
     await asUser.mutation(api.factions.softDelete, { id: faction._id });
     await asUser.mutation(api.rulesets.softDelete, { id: ruleset._id });
+    await expect(asUser.mutation(api.faq.deleteAnswer, { id: answer._id })).resolves.toMatchObject({
+      id: answer._id,
+    });
 
     expect((await t.query(api.homepage.page, {})).community.counts).toEqual({
       factions: 0,
@@ -84,5 +84,46 @@ describe('homepage page data', () => {
       questions: 0,
       answers: 0,
     });
+  });
+
+  test('returns only eligible newest members in public timestamp order', async () => {
+    const t = convexTest(schema, modules);
+    aggregateTest.register(t, 'homepageCommunity');
+    await t.run(async (ctx) => {
+      const users = await Promise.all(
+        Array.from({ length: 6 }, (_, index) =>
+          ctx.db.insert('users', { name: `Homepage member ${index}` })
+        )
+      );
+      const rows = [
+        ['first', '2026-07-01T00:00:00.000Z', 'https://example.com/first.png'],
+        ['second', '2026-07-02T00:00:00.000Z', 'https://example.com/second.png'],
+        ['user', '2026-07-06T00:00:00.000Z', 'https://example.com/placeholder.png'],
+        ['invalid-date', 'not-a-date', 'https://example.com/invalid.png'],
+        ['no-avatar', '2026-07-05T00:00:00.000Z', null],
+        ['third', '2026-07-03T00:00:00.000Z', 'https://example.com/third.png'],
+      ] as const;
+      for (const [index, [slug, createdAt, avatarUrl]] of rows.entries()) {
+        const id = await ctx.db.insert('profiles', {
+          user_id: users[index],
+          username: `Member ${index}`,
+          avatar_url: avatarUrl,
+          slug,
+          created_at: createdAt,
+          updated_at: createdAt,
+        });
+        const profile = await ctx.db.get(id);
+        if (!profile) throw new Error('Failed to create homepage test profile');
+        await syncHomepageNewestMember(ctx, profile);
+      }
+    });
+
+    const members = (await t.query(api.homepage.page, {})).community.newestMembers;
+    expect(members.map((member) => member.slug)).toEqual(['third', 'second', 'first']);
+    expect(members.map((member) => member.createdAt)).toEqual([
+      '2026-07-03T00:00:00.000Z',
+      '2026-07-02T00:00:00.000Z',
+      '2026-07-01T00:00:00.000Z',
+    ]);
   });
 });

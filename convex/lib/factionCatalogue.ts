@@ -60,7 +60,36 @@ export async function loadFactionCatalogueSpotlights(ctx: QueryCtx) {
   return selectFactionCatalogueSpotlights(factions);
 }
 
-export function selectFactionCatalogueSpotlights(factions: CatalogueFaction[]) {
+/** Homepage spotlights omit ruleset enrichment because they only render faction identity. */
+export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
+  const rows = await ctx.db
+    .query('factions')
+    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+    .take(500);
+  const selected = selectFactionCatalogueSpotlights(rows);
+  const preview = (row: Doc<'factions'> | null) => {
+    if (!row) return null;
+    const faction = CanonicalFactionStoredSchema.parse(row.data);
+    return {
+      slug: row.slug,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      data: {
+        name: faction.name,
+        logo: faction.logo,
+        background: faction.background,
+      },
+    };
+  };
+  return {
+    newArrival: preview(selected.newArrival),
+    freshlyUpdated: preview(selected.freshlyUpdated),
+  };
+}
+
+export function selectFactionCatalogueSpotlights<
+  T extends Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>,
+>(factions: T[]) {
   const newArrival = [...factions]
     .filter((faction) => parseTimestamp(faction.created_at) != null)
     .sort((left, right) => compareByDate(left, right, 'created_at'))[0];
@@ -87,8 +116,8 @@ function compareRulesets(left: FactionRulesetSummary, right: FactionRulesetSumma
 }
 
 function compareByDate(
-  left: CatalogueFaction,
-  right: CatalogueFaction,
+  left: Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>,
+  right: Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>,
   field: 'created_at' | 'updated_at'
 ) {
   const leftTimestamp = parseTimestamp(left[field]);
@@ -105,11 +134,11 @@ function compareByDate(
   return rightTimestamp - leftTimestamp || compareFactionIdentity(left, right);
 }
 
-function compareFactionIdentity(left: CatalogueFaction, right: CatalogueFaction) {
-  return (
-    left.data.name.localeCompare(right.data.name) ||
-    String(left._id).localeCompare(String(right._id))
-  );
+function compareFactionIdentity(
+  left: Pick<Doc<'factions'>, '_id'>,
+  right: Pick<Doc<'factions'>, '_id'>
+) {
+  return String(left._id).localeCompare(String(right._id));
 }
 
 function parseTimestamp(value: string) {

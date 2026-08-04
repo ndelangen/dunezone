@@ -2,15 +2,10 @@ import { Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
 
-import type { FactionCatalogueEntry } from '@db/factions';
+import type { FactionCatalogueSpotlightData } from '@db/factions';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from './FactionCatalogueSpotlight.module.css';
-
-export type FactionCatalogueSpotlightData = {
-  slug: FactionCatalogueEntry['slug'];
-  data: Pick<FactionCatalogueEntry['data'], 'name' | 'logo' | 'background'>;
-};
 
 /** A compact link for a faction singled out by catalogue recency. */
 export function FactionCatalogueSpotlight({

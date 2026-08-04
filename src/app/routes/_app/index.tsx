@@ -20,6 +20,7 @@ import { loadHomepage, useHomepage } from '@db/homepage';
 import { AnimatedLeaderToken } from '@app/components/factions/AnimatedLeaderToken';
 import { CreateFactionCta } from '@app/components/factions/CreateFactionCta';
 import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
+import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
 import { FuturePlanItem } from '@app/components/future/FuturePlanItem';
 import { DiscoveryDeskLayout } from '@app/components/layout/DiscoveryDeskLayout';
 import { HomepageStoryLayout } from '@app/components/layout/HomepageStoryLayout';
@@ -48,7 +49,8 @@ function IndexPage() {
         { value: compactNumber(counts.factions), label: 'factions' },
         { value: compactNumber(counts.rulesets), label: 'rulesets' },
         { value: compactNumber(counts.members), label: 'members' },
-        { value: compactNumber(counts.questions + counts.answers), label: 'Q&A' },
+        { value: compactNumber(counts.questions), label: 'questions' },
+        { value: compactNumber(counts.answers), label: 'answers' },
       ]
     : [];
 
@@ -148,7 +150,7 @@ function IndexPage() {
             </Stack>
             <Stack gap="md">
               {counts ? (
-                <SimpleGrid cols={4} spacing="sm">
+                <SimpleGrid cols={{ base: 2, sm: 5 }} spacing="sm">
                   {metrics.map((metric) => (
                     <Box key={metric.label}>
                       <Text fw={900} size="xl">
@@ -174,12 +176,9 @@ function IndexPage() {
                         to="/profiles/$profileSlug"
                         params={{ profileSlug: member.slug }}
                         className={styles.avatarLink}
-                        aria-label={`View ${member.username ?? 'member'} profile`}
+                        aria-label={`View ${member.username} profile`}
                       >
-                        <Avatar
-                          src={member.avatarUrl}
-                          alt={member.username ?? 'Dune Zone member'}
-                        />
+                        <Avatar src={member.avatarUrl} alt={member.username} />
                       </Link>
                     ))}
                   </Avatar.Group>
@@ -232,14 +231,14 @@ function IndexPage() {
                   <FactionCatalogueSpotlight
                     faction={data.spotlights.newArrival}
                     label="New arrival"
-                    meta={`Created ${formatDate(data.spotlights.newArrival.created_at)}`}
+                    meta={`Created ${formatFactionCatalogueDate(data.spotlights.newArrival.created_at)}`}
                   />
                 ) : null}
                 {data.spotlights.freshlyUpdated ? (
                   <FactionCatalogueSpotlight
                     faction={data.spotlights.freshlyUpdated}
                     label="Freshly updated"
-                    meta={`Updated ${formatDate(data.spotlights.freshlyUpdated.updated_at)}`}
+                    meta={`Updated ${formatFactionCatalogueDate(data.spotlights.freshlyUpdated.updated_at)}`}
                   />
                 ) : null}
                 {!data.spotlights.newArrival && !data.spotlights.freshlyUpdated ? (
@@ -312,10 +311,4 @@ function compactNumber(value: number) {
   return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(
     value
   );
-}
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return 'recently';
-  return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(date);
 }

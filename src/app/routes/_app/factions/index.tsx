@@ -27,6 +27,7 @@ import type {
 import { CreateFactionCta } from '@app/components/factions/CreateFactionCta';
 import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
 import { FactionList } from '@app/components/factions/FactionList';
+import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
 import { PageLayout } from '@app/components/shell';
 import {
   factionCatalogueSearchParams,
@@ -174,14 +175,14 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
             <FactionCatalogueSpotlight
               faction={spotlights.newArrival}
               label="New arrival"
-              meta={`Created ${formatDate(spotlights.newArrival.created_at)}`}
+              meta={`Created ${formatFactionCatalogueDate(spotlights.newArrival.created_at)}`}
             />
           ) : null}
           {spotlights?.freshlyUpdated ? (
             <FactionCatalogueSpotlight
               faction={spotlights.freshlyUpdated}
               label="Freshly updated"
-              meta={`Updated ${formatDate(spotlights.freshlyUpdated.updated_at)}`}
+              meta={`Updated ${formatFactionCatalogueDate(spotlights.freshlyUpdated.updated_at)}`}
             />
           ) : null}
         </div>
@@ -339,13 +340,4 @@ function FilteredEmptyState({ onReset }: { onReset: () => void }) {
       </Stack>
     </Paper>
   );
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(value));
 }

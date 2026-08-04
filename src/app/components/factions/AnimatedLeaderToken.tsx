@@ -64,7 +64,8 @@ export function AnimatedLeaderToken() {
     return () => window.clearTimeout(timer);
   }, [currentIndex, leader.name.length, phase, reduceMotion, typedLength]);
 
-  const displayedName = phase === 'typing' ? leader.name.slice(0, typedLength) : leader.name;
+  const displayedName =
+    phase === 'hold' ? leader.name : phase === 'typing' ? leader.name.slice(0, typedLength) : '';
 
   return (
     <div

@@ -5,7 +5,7 @@ import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/app/fa
 import type { Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
-import { setHomepageCommunityPresence } from './lib/homepageCommunity';
+import { adjustHomepageRulesetFaqTotals } from './lib/homepageCommunity';
 import { canAccessRuleset, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { nowIso } from './lib/utils';
@@ -258,27 +258,32 @@ export const createItem = mutation({
       updated_at: now,
       accepted_answer_id: null,
     });
-    await setHomepageCommunityPresence(ctx, 'questions', faqItemId, true);
     const row = await ctx.db.get(faqItemId);
     if (!row) {
       throw new Error('Failed to create FAQ item');
     }
 
     const normalizedInitialAnswer = args.answer?.trim();
+    let answerDelta = 0;
     if (normalizedInitialAnswer && normalizedInitialAnswer.length > 0) {
       const parsedAnswer = faqAnswerSchema.safeParse(normalizedInitialAnswer);
       if (!parsedAnswer.success) {
         const msg = parsedAnswer.error.issues.map((i) => i.message).join(' ');
         throw new Error(msg || 'Invalid FAQ input');
       }
-      const answerId = await ctx.db.insert('faq_answers', {
+      await ctx.db.insert('faq_answers', {
         faq_item_id: row._id,
         answer: parsedAnswer.data,
         answered_by: userId,
         created_at: nowIso(),
       });
-      await setHomepageCommunityPresence(ctx, 'answers', answerId, true);
+      answerDelta = 1;
     }
+
+    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, {
+      questions: 1,
+      answers: answerDelta,
+    });
 
     return row;
   },
@@ -404,11 +409,13 @@ export const deleteItem = mutation({
     await Promise.all(
       answers.map(async (answer) => {
         await ctx.db.delete(answer._id);
-        await setHomepageCommunityPresence(ctx, 'answers', answer._id, false);
       })
     );
     await ctx.db.delete(item._id);
-    await setHomepageCommunityPresence(ctx, 'questions', item._id, false);
+    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, {
+      questions: -1,
+      answers: -answers.length,
+    });
     return { id: args.id, rulesetId: item.ruleset_id, askedBy: item.asked_by };
   },
 });
@@ -450,7 +457,7 @@ export const createAnswer = mutation({
       answered_by: userId,
       created_at: nowIso(),
     });
-    await setHomepageCommunityPresence(ctx, 'answers', _id, true);
+    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, { answers: 1 });
     const row = await ctx.db.get(_id);
     if (!row) {
       throw new Error('Failed to create FAQ answer');
@@ -510,7 +517,9 @@ export const deleteAnswer = mutation({
     }
 
     await ctx.db.delete(answer._id);
-    await setHomepageCommunityPresence(ctx, 'answers', answer._id, false);
+    const ruleset = await getRuleset(ctx, item.ruleset_id);
+    if (!ruleset) throw new Error('Ruleset not found');
+    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, { answers: -1 });
     return { id: args.id, faqItemId: answer.faq_item_id, answeredBy: answer.answered_by };
   },
 });

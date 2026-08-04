@@ -27,6 +27,11 @@ export type FactionCatalogueEntry = FactionEntry & {
   rulesets: FactionRulesetSummary[];
 };
 
+export type FactionCatalogueSpotlightData = {
+  slug: FactionCatalogueEntry['slug'];
+  data: Pick<FactionCatalogueEntry['data'], 'name' | 'logo' | 'background'>;
+};
+
 export type FactionCatalogueRow = FactionRow & {
   rulesets: FactionRulesetSummary[];
 };

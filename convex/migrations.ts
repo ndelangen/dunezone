@@ -6,7 +6,11 @@ import { DEFAULT_FAQ_TAG } from '../src/app/faq/tags';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, query } from './_generated/server';
-import { setHomepageCommunityPresence } from './lib/homepageCommunity';
+import {
+  setHomepageCommunityPresence,
+  setHomepageRulesetFaqTotals,
+  syncHomepageNewestMember,
+} from './lib/homepageCommunity';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { nowIso, slugify } from './lib/utils';
 import schema from './schema';
@@ -25,8 +29,6 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   homepage_factions_v1: internal.migrations.homepage_factions_v1,
   homepage_rulesets_v1: internal.migrations.homepage_rulesets_v1,
   homepage_members_v1: internal.migrations.homepage_members_v1,
-  homepage_questions_v1: internal.migrations.homepage_questions_v1,
-  homepage_answers_v1: internal.migrations.homepage_answers_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -267,9 +269,28 @@ export const homepage_factions_v1 = migrations.define({
 
 export const homepage_rulesets_v1 = migrations.define({
   table: 'rulesets',
-  batchSize: 50,
+  batchSize: 10,
   migrateOne: async (ctx, row) => {
     await setHomepageCommunityPresence(ctx, 'rulesets', row._id, !row.is_deleted);
+    const questions = await ctx.db
+      .query('faq_items')
+      .withIndex('by_ruleset_created', (q) => q.eq('ruleset_id', row._id))
+      .collect();
+    const answers = (
+      await Promise.all(
+        questions.map((question) =>
+          ctx.db
+            .query('faq_answers')
+            .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
+            .collect()
+        )
+      )
+    ).reduce((total, rows) => total + rows.length, 0);
+    await ctx.db.patch(row._id, {
+      homepage_question_count: questions.length,
+      homepage_answer_count: answers,
+    });
+    await setHomepageRulesetFaqTotals(ctx, row._id, !row.is_deleted, questions.length, answers);
   },
 });
 
@@ -278,22 +299,7 @@ export const homepage_members_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (ctx, row) => {
     await setHomepageCommunityPresence(ctx, 'members', row._id, true);
-  },
-});
-
-export const homepage_questions_v1 = migrations.define({
-  table: 'faq_items',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    await setHomepageCommunityPresence(ctx, 'questions', row._id, true);
-  },
-});
-
-export const homepage_answers_v1 = migrations.define({
-  table: 'faq_answers',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    await setHomepageCommunityPresence(ctx, 'answers', row._id, true);
+    await syncHomepageNewestMember(ctx, row);
   },
 });
 
@@ -310,8 +316,6 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.homepage_factions_v1,
   internal.migrations.homepage_rulesets_v1,
   internal.migrations.homepage_members_v1,
-  internal.migrations.homepage_questions_v1,
-  internal.migrations.homepage_answers_v1,
 ]);
 
 export const runRequired = mutation({

@@ -1,9 +1,13 @@
 import { v } from 'convex/values';
 
-import type { Id, TableNames } from './_generated/dataModel';
+import type { Doc, Id, TableNames } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
-import { setHomepageCommunityPresence } from './lib/homepageCommunity';
+import {
+  removeHomepageNewestMember,
+  setHomepageCommunityPresence,
+  setHomepageRulesetFaqTotals,
+} from './lib/homepageCommunity';
 import type { HomepageCommunityMetric } from './lib/homepageCommunity';
 import { nowIso, slugify } from './lib/utils';
 
@@ -26,6 +30,12 @@ async function deleteFromTable(ctx: MutationCtx, table: TableNames) {
         if (metric) {
           await setHomepageCommunityPresence(ctx, metric, doc._id, false);
         }
+        if (table === 'profiles') {
+          await removeHomepageNewestMember(ctx, doc as Doc<'profiles'>);
+        }
+        if (table === 'rulesets') {
+          await setHomepageRulesetFaqTotals(ctx, doc._id as Id<'rulesets'>, false, 0, 0);
+        }
       })
     );
   }
@@ -40,12 +50,6 @@ function homepageMetricForTable(table: TableNames): HomepageCommunityMetric | nu
   }
   if (table === 'profiles') {
     return 'members';
-  }
-  if (table === 'faq_items') {
-    return 'questions';
-  }
-  if (table === 'faq_answers') {
-    return 'answers';
   }
   return null;
 }
@@ -168,8 +172,11 @@ export const seedBaseline = mutation({
       group_id: groupId,
       is_deleted: false,
       image_cover: null,
+      homepage_question_count: 0,
+      homepage_answer_count: 0,
     });
     await setHomepageCommunityPresence(ctx, 'rulesets', rulesetId, true);
+    await setHomepageRulesetFaqTotals(ctx, rulesetId, true, 0, 0);
 
     return {
       seeded: true,

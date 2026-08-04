@@ -1,34 +1,28 @@
 import { v } from 'convex/values';
 
 import { query } from './_generated/server';
-import { loadFactionCatalogueSpotlights } from './lib/factionCatalogue';
-import { countHomepageCommunityMetric, HOMEPAGE_COMMUNITY_METRICS } from './lib/homepageCommunity';
+import { loadFactionCatalogueSpotlightPreviews } from './lib/factionCatalogue';
+import {
+  countHomepageCommunityMetric,
+  HOMEPAGE_COMMUNITY_METRICS,
+  loadHomepageNewestMemberIds,
+} from './lib/homepageCommunity';
 
 const HOMEPAGE_MIGRATION_IDS = [
   'homepage_factions_v1',
   'homepage_rulesets_v1',
   'homepage_members_v1',
-  'homepage_questions_v1',
-  'homepage_answers_v1',
 ] as const;
 
-const rulesetSummaryValidator = v.object({
-  id: v.id('rulesets'),
-  slug: v.string(),
-  name: v.string(),
-});
-
 const spotlightValidator = v.object({
-  _id: v.id('factions'),
-  _creationTime: v.number(),
-  owner_id: v.id('users'),
-  data: v.any(),
   slug: v.string(),
   created_at: v.string(),
   updated_at: v.string(),
-  is_deleted: v.boolean(),
-  group_id: v.union(v.id('groups'), v.null()),
-  rulesets: v.array(rulesetSummaryValidator),
+  data: v.object({
+    name: v.string(),
+    logo: v.any(),
+    background: v.any(),
+  }),
 });
 
 const metricCountsValidator = v.object({
@@ -52,20 +46,17 @@ export const page = query({
         v.object({
           id: v.id('profiles'),
           slug: v.string(),
-          username: v.union(v.string(), v.null()),
+          username: v.string(),
           avatarUrl: v.string(),
+          createdAt: v.string(),
         })
       ),
     }),
   }),
   handler: async (ctx) => {
     const [spotlights, newestMembers, ...migrationRuns] = await Promise.all([
-      loadFactionCatalogueSpotlights(ctx),
-      ctx.db
-        .query('profiles')
-        .order('desc')
-        .filter((q) => q.and(q.neq(q.field('avatar_url'), null), q.neq(q.field('avatar_url'), '')))
-        .take(4),
+      loadFactionCatalogueSpotlightPreviews(ctx),
+      loadHomepageNewestMemberIds(ctx).then((ids) => Promise.all(ids.map((id) => ctx.db.get(id)))),
       ...HOMEPAGE_MIGRATION_IDS.map((id) =>
         ctx.db
           .query('migration_runs')
@@ -94,12 +85,15 @@ export const page = query({
       spotlights,
       community: {
         counts,
-        newestMembers: newestMembers.map((profile) => ({
-          id: profile._id,
-          slug: profile.slug,
-          username: profile.username,
-          avatarUrl: profile.avatar_url as string,
-        })),
+        newestMembers: newestMembers
+          .filter((profile): profile is NonNullable<typeof profile> => profile != null)
+          .map((profile) => ({
+            id: profile._id,
+            slug: profile.slug,
+            username: profile.username as string,
+            avatarUrl: profile.avatar_url as string,
+            createdAt: profile.created_at,
+          })),
       },
     };
   },
