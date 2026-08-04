@@ -20,14 +20,11 @@ import { useEffect, useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
-import type {
-  FactionCataloguePageData,
-  FactionRulesetSummary,
-} from '@db/factions';
+import type { FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
 import { CreateFactionCta } from '@app/components/factions/CreateFactionCta';
+import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
 import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
 import { FactionList } from '@app/components/factions/FactionList';
-import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
 import { PageLayout } from '@app/components/shell';
 import {
   factionCatalogueSearchParams,

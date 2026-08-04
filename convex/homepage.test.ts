@@ -113,7 +113,9 @@ describe('homepage page data', () => {
           updated_at: createdAt,
         });
         const profile = await ctx.db.get(id);
-        if (!profile) throw new Error('Failed to create homepage test profile');
+        if (!profile) {
+          throw new Error('Failed to create homepage test profile');
+        }
         await syncHomepageNewestMember(ctx, profile);
       }
     });

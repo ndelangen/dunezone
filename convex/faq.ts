@@ -518,7 +518,9 @@ export const deleteAnswer = mutation({
 
     await ctx.db.delete(answer._id);
     const ruleset = await getRuleset(ctx, item.ruleset_id);
-    if (!ruleset) throw new Error('Ruleset not found');
+    if (!ruleset) {
+      throw new Error('Ruleset not found');
+    }
     await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, { answers: -1 });
     return { id: args.id, faqItemId: answer.faq_item_id, answeredBy: answer.answered_by };
   },

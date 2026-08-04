@@ -13,14 +13,15 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { createFileRoute, type ErrorComponentProps, Link } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import { ArrowRight, BookOpen, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
 
 import { loadHomepage, useHomepage } from '@db/homepage';
 import { AnimatedLeaderToken } from '@app/components/factions/AnimatedLeaderToken';
 import { CreateFactionCta } from '@app/components/factions/CreateFactionCta';
-import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
 import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
+import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
 import { FuturePlanItem } from '@app/components/future/FuturePlanItem';
 import { AsymmetricSplitLayout } from '@app/components/layout/AsymmetricSplitLayout';
 import { TriptychLayout } from '@app/components/layout/TriptychLayout';
@@ -41,7 +42,9 @@ function IndexPage() {
   const homepage = useHomepage({ initialData: loaderData });
   const data = homepage.data;
 
-  if (!data) return <HomepagePending />;
+  if (!data) {
+    return <HomepagePending />;
+  }
 
   const counts = data.community.counts;
   const metrics = counts

@@ -35,7 +35,9 @@ export function AnimatedLeaderToken() {
   }, []);
 
   useEffect(() => {
-    if (reduceMotion) return;
+    if (reduceMotion) {
+      return;
+    }
 
     let delay = 1800;
     const advance = () => {
@@ -58,8 +60,12 @@ export function AnimatedLeaderToken() {
       setPhase('hold');
     };
 
-    if (phase === 'transition') delay = 850;
-    if (phase === 'typing') delay = typedLength < leader.name.length ? 90 : 700;
+    if (phase === 'transition') {
+      delay = 850;
+    }
+    if (phase === 'typing') {
+      delay = typedLength < leader.name.length ? 90 : 700;
+    }
     const timer = window.setTimeout(advance, delay);
     return () => window.clearTimeout(timer);
   }, [currentIndex, leader.name.length, phase, reduceMotion, typedLength]);

@@ -110,10 +110,14 @@ export async function adjustHomepageRulesetFaqTotals(
   delta: { questions?: number; answers?: number }
 ) {
   const ruleset = await ctx.db.get(rulesetId);
-  if (!ruleset) throw new Error(`Ruleset ${rulesetId} not found`);
+  if (!ruleset) {
+    throw new Error(`Ruleset ${rulesetId} not found`);
+  }
   const questions = (ruleset.homepage_question_count ?? 0) + (delta.questions ?? 0);
   const answers = (ruleset.homepage_answer_count ?? 0) + (delta.answers ?? 0);
-  if (questions < 0 || answers < 0) throw new Error('Homepage FAQ totals cannot be negative');
+  if (questions < 0 || answers < 0) {
+    throw new Error('Homepage FAQ totals cannot be negative');
+  }
   await ctx.db.patch(rulesetId, {
     homepage_question_count: questions,
     homepage_answer_count: answers,

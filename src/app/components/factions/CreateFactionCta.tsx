@@ -1,4 +1,5 @@
-import { Button, type ButtonProps } from '@mantine/core';
+import { Button } from '@mantine/core';
+import type { ButtonProps } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { ArrowRight, Plus } from 'lucide-react';
 

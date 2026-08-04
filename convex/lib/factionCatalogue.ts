@@ -68,7 +68,9 @@ export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
     .take(500);
   const selected = selectFactionCatalogueSpotlights(rows);
   const preview = (row: Doc<'factions'> | null) => {
-    if (!row) return null;
+    if (!row) {
+      return null;
+    }
     const faction = CanonicalFactionStoredSchema.parse(row.data);
     return {
       slug: row.slug,
