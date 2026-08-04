@@ -1,13 +1,10 @@
 import { v } from 'convex/values';
 
-import type { Doc, Id, TableNames } from './_generated/dataModel';
-import { mutation, query } from './_generated/server';
+import type { Id, TableNames } from './_generated/dataModel';
+import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
-import {
-  removeHomepageNewestMember,
-  setHomepageCommunityPresence,
-  setHomepageRulesetFaqTotals,
-} from './lib/homepageCommunity';
+import { mutation } from './functions';
+import { setHomepageCommunityPresence, setHomepageRulesetFaqTotals } from './lib/homepageCommunity';
 import type { HomepageCommunityMetric } from './lib/homepageCommunity';
 import { nowIso, slugify } from './lib/utils';
 
@@ -29,9 +26,6 @@ async function deleteFromTable(ctx: MutationCtx, table: TableNames) {
         await ctx.db.delete(doc._id);
         if (metric) {
           await setHomepageCommunityPresence(ctx, metric, doc._id, false);
-        }
-        if (table === 'profiles') {
-          await removeHomepageNewestMember(ctx, doc as Doc<'profiles'>);
         }
         if (table === 'rulesets') {
           await setHomepageRulesetFaqTotals(ctx, doc._id as Id<'rulesets'>, false, 0, 0);

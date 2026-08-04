@@ -169,6 +169,8 @@ describe('faction authoring full-field round trip', () => {
   test('creates, schedules, reloads, edits, and shares every admitted field without loss', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'homepageCommunity');
+    aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run(
       async (ctx) => await ctx.db.insert('users', { name: 'Faction authoring proof user' })
     );

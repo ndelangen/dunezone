@@ -15,6 +15,8 @@ const modules = import.meta.glob('./**/*.ts');
 async function authenticatedTest() {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'homepageCommunity');
+  aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileDiscovery');
   const userId = await t.run(
     async (ctx) => await ctx.db.insert('users', { name: 'Faction slug reservation test user' })
   );
@@ -67,6 +69,8 @@ describe('faction slug reservations', () => {
   test('the repair keeps the active public slug and archives the deleted duplicate', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'homepageCommunity');
+    aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileDiscovery');
     migrationsTest.register(t);
     const { activeId, deletedId } = await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Faction slug migration owner' });

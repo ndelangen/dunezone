@@ -1,6 +1,6 @@
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
-import { setHomepageCommunityPresence, syncHomepageNewestMember } from './homepageCommunity';
+import { setHomepageCommunityPresence } from './homepageCommunity';
 import { nowIso, slugify } from './utils';
 
 export type ProfileBootstrapSources = {
@@ -89,7 +89,6 @@ export async function ensureProfileForUser(
       });
       const refreshed = await ctx.db.get(existing._id);
       if (refreshed) {
-        await syncHomepageNewestMember(ctx, refreshed);
         return refreshed;
       }
     }
@@ -116,6 +115,5 @@ export async function ensureProfileForUser(
   if (!created) {
     throw new Error('Failed to read profile after insert');
   }
-  await syncHomepageNewestMember(ctx, created);
   return created;
 }

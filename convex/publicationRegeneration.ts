@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 
 import { FACTION_SHEET_ASSET_TYPE } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
-import { internalMutation } from './_generated/server';
+import { internalMutation } from './functions';
 import { enqueueFactionSheetPublication } from './lib/publication';
 
 const REGENERATION_BATCH_SIZE = 50;

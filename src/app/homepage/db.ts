@@ -19,7 +19,7 @@ export type HomepageData = {
       members: number;
       questions: number;
       answers: number;
-    } | null;
+    };
     newestMembers: Array<{
       id: Doc<'profiles'>['_id'];
       slug: string;
@@ -36,10 +36,10 @@ type HomepageFactionSpotlight = FactionCatalogueSpotlightData & {
 };
 
 export async function loadHomepage(): Promise<HomepageData> {
-  return await db.query<HomepageData>(api.homepage.page, {});
+  return await db.query<HomepageData>(api.homepage.get, {});
 }
 
 export function useHomepage(options?: { initialData?: HomepageData }) {
-  const liveData = useQuery(api.homepage.page, {});
+  const liveData = useQuery(api.homepage.get, {});
   return toLiveQueryResult(liveData, true, () => options?.initialData);
 }

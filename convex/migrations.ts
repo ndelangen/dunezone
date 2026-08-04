@@ -5,13 +5,18 @@ import { v } from 'convex/values';
 import { DEFAULT_FAQ_TAG } from '../src/app/faq/tags';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { internalMutation, mutation, query } from './_generated/server';
-import {
-  setHomepageCommunityPresence,
-  setHomepageRulesetFaqTotals,
-  syncHomepageNewestMember,
-} from './lib/homepageCommunity';
+import { query } from './_generated/server';
+import { internalMutation, mutation } from './functions';
+import { setHomepageCommunityPresence, setHomepageRulesetFaqTotals } from './lib/homepageCommunity';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
+import { reconcileProfileDiscovery } from './lib/profileDiscovery';
+import {
+  reconcileAnswerStatistics,
+  reconcileFactionStatistics,
+  reconcileProfileStatistics,
+  reconcileQuestionStatistics,
+  reconcileRulesetStatistics,
+} from './lib/statistics';
 import { nowIso, slugify } from './lib/utils';
 import schema from './schema';
 import type { MutationCtx, QueryCtx } from './types';
@@ -29,6 +34,12 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   homepage_factions_v1: internal.migrations.homepage_factions_v1,
   homepage_rulesets_v1: internal.migrations.homepage_rulesets_v1,
   homepage_members_v1: internal.migrations.homepage_members_v1,
+  statistics_profiles_v1: internal.migrations.statistics_profiles_v1,
+  statistics_factions_v1: internal.migrations.statistics_factions_v1,
+  statistics_rulesets_v1: internal.migrations.statistics_rulesets_v1,
+  statistics_questions_v1: internal.migrations.statistics_questions_v1,
+  statistics_answers_v1: internal.migrations.statistics_answers_v1,
+  profile_discovery_profiles_v1: internal.migrations.profile_discovery_profiles_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -299,7 +310,60 @@ export const homepage_members_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (ctx, row) => {
     await setHomepageCommunityPresence(ctx, 'members', row._id, true);
-    await syncHomepageNewestMember(ctx, row);
+  },
+});
+
+/** Populates reusable Profile discovery while live profile writes maintain it automatically. */
+export const profile_discovery_profiles_v1 = migrations.define({
+  table: 'profiles',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileProfileDiscovery(ctx, row);
+  },
+});
+
+/** Populates Statistics from canonical profiles while live writes keep it current. */
+export const statistics_profiles_v1 = migrations.define({
+  table: 'profiles',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileProfileStatistics(ctx, row);
+  },
+});
+
+/** Populates Statistics from canonical factions, excluding soft-deleted rows. */
+export const statistics_factions_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileFactionStatistics(ctx, row);
+  },
+});
+
+/** Populates Statistics from canonical rulesets, excluding soft-deleted rows. */
+export const statistics_rulesets_v1 = migrations.define({
+  table: 'rulesets',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileRulesetStatistics(ctx, row);
+  },
+});
+
+/** Populates global and per-ruleset Statistics from canonical questions. */
+export const statistics_questions_v1 = migrations.define({
+  table: 'faq_items',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileQuestionStatistics(ctx, row);
+  },
+});
+
+/** Populates global and per-ruleset Statistics from canonical answers. */
+export const statistics_answers_v1 = migrations.define({
+  table: 'faq_answers',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileAnswerStatistics(ctx, row);
   },
 });
 
@@ -316,6 +380,12 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.homepage_factions_v1,
   internal.migrations.homepage_rulesets_v1,
   internal.migrations.homepage_members_v1,
+  internal.migrations.statistics_profiles_v1,
+  internal.migrations.statistics_factions_v1,
+  internal.migrations.statistics_rulesets_v1,
+  internal.migrations.statistics_questions_v1,
+  internal.migrations.statistics_answers_v1,
+  internal.migrations.profile_discovery_profiles_v1,
 ]);
 
 export const runRequired = mutation({

@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
-import { mutation } from './_generated/server';
+import { mutation } from './functions';
 import { setHomepageCommunityPresence } from './lib/homepageCommunity';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { nowIso } from './lib/utils';
