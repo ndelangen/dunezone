@@ -54,6 +54,10 @@ export default defineMain({
       titlePrefix: 'Application/Foundation',
     },
     {
+      directory: '../src/app/components/layout',
+      titlePrefix: 'Application/Layout',
+    },
+    {
       directory: '../src/app/components/form',
       titlePrefix: 'Application/Legacy/Form',
     },

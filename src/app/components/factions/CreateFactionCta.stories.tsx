@@ -12,3 +12,7 @@ export const Default = meta.story({});
 export const CompactAction = meta.story({
   args: { children: 'Start creating', size: 'sm', withArrow: true },
 });
+
+export const CatalogueAttention = meta.story({
+  args: { attention: true },
+});
