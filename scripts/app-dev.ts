@@ -150,12 +150,16 @@ function compose(args: string[], env: NodeJS.ProcessEnv, quiet = false) {
 
 function localConvex(args: string[], env: NodeJS.ProcessEnv, quiet = false) {
   return run('bunx', ['convex', ...args], {
-    env: commandEnvironment(env, {
-      CONVEX_DEPLOYMENT: '',
-      CONVEX_URL: '',
-      CONVEX_CLOUD_URL: '',
-    }),
+    env: localConvexEnvironment(env),
     quiet,
+  });
+}
+
+function localConvexEnvironment(env: NodeJS.ProcessEnv) {
+  return commandEnvironment(env, {
+    CONVEX_DEPLOYMENT: '',
+    CONVEX_URL: '',
+    CONVEX_CLOUD_URL: '',
   });
 }
 
@@ -374,6 +378,11 @@ async function runLocalDevelopment() {
     localConvex(['env', 'set', 'JWT_PRIVATE_KEY_B64', jwt.privateKeyBase64], localEnv);
     localConvex(['env', 'set', 'JWKS_B64', jwt.jwksBase64], localEnv);
     localConvex(['deploy'], localEnv);
+
+    console.log('Preparing required local migrations...');
+    run('bun', ['run', './scripts/migration-guards.ts', 'dev-strict', '300000', '2000'], {
+      env: localConvexEnvironment(localEnv),
+    });
 
     console.log('Starting the app and creating the two local accounts...');
     vite = startVite(port, localEnv);

@@ -14,10 +14,12 @@ import type * as e2e from "../e2e.js";
 import type * as factions from "../factions.js";
 import type * as faq from "../faq.js";
 import type * as groups from "../groups.js";
+import type * as homepage from "../homepage.js";
 import type * as http from "../http.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
 import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
+import type * as lib_homepageCommunity from "../lib/homepageCommunity.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_memberGroups from "../lib/memberGroups.js";
 import type * as lib_policy from "../lib/policy.js";
@@ -50,10 +52,12 @@ declare const fullApi: ApiFromModules<{
   factions: typeof factions;
   faq: typeof faq;
   groups: typeof groups;
+  homepage: typeof homepage;
   http: typeof http;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionInput": typeof lib_factionInput;
   "lib/faqRulesetList": typeof lib_faqRulesetList;
+  "lib/homepageCommunity": typeof lib_homepageCommunity;
   "lib/ids": typeof lib_ids;
   "lib/memberGroups": typeof lib_memberGroups;
   "lib/policy": typeof lib_policy;
@@ -102,4 +106,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
+  homepageCommunity: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"homepageCommunity">;
 };

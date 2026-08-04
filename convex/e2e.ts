@@ -1,8 +1,14 @@
 import { v } from 'convex/values';
 
-import type { Id, TableNames } from './_generated/dataModel';
+import type { Doc, Id, TableNames } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
+import {
+  removeHomepageNewestMember,
+  setHomepageCommunityPresence,
+  setHomepageRulesetFaqTotals,
+} from './lib/homepageCommunity';
+import type { HomepageCommunityMetric } from './lib/homepageCommunity';
 import { nowIso, slugify } from './lib/utils';
 
 function assertTestMode() {
@@ -17,8 +23,35 @@ async function deleteFromTable(ctx: MutationCtx, table: TableNames) {
     if (batch.length === 0) {
       break;
     }
-    await Promise.all(batch.map((doc) => ctx.db.delete(doc._id)));
+    const metric = homepageMetricForTable(table);
+    await Promise.all(
+      batch.map(async (doc) => {
+        await ctx.db.delete(doc._id);
+        if (metric) {
+          await setHomepageCommunityPresence(ctx, metric, doc._id, false);
+        }
+        if (table === 'profiles') {
+          await removeHomepageNewestMember(ctx, doc as Doc<'profiles'>);
+        }
+        if (table === 'rulesets') {
+          await setHomepageRulesetFaqTotals(ctx, doc._id as Id<'rulesets'>, false, 0, 0);
+        }
+      })
+    );
   }
+}
+
+function homepageMetricForTable(table: TableNames): HomepageCommunityMetric | null {
+  if (table === 'factions') {
+    return 'factions';
+  }
+  if (table === 'rulesets') {
+    return 'rulesets';
+  }
+  if (table === 'profiles') {
+    return 'members';
+  }
+  return null;
 }
 
 async function clearAllAppData(ctx: MutationCtx) {
@@ -112,6 +145,7 @@ export const seedBaseline = mutation({
       created_at: now,
       updated_at: now,
     });
+    await setHomepageCommunityPresence(ctx, 'members', profileId, true);
 
     const groupId = await ctx.db.insert('groups', {
       name: 'E2E Baseline Group',
@@ -138,7 +172,11 @@ export const seedBaseline = mutation({
       group_id: groupId,
       is_deleted: false,
       image_cover: null,
+      homepage_question_count: 0,
+      homepage_answer_count: 0,
     });
+    await setHomepageCommunityPresence(ctx, 'rulesets', rulesetId, true);
+    await setHomepageRulesetFaqTotals(ctx, rulesetId, true, 0, 0);
 
     return {
       seeded: true,

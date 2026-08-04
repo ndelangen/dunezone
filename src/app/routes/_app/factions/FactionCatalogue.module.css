@@ -10,74 +10,6 @@
   min-width: 0;
 }
 
-.compactSpotlight {
-  display: grid;
-  grid-template-columns: 3.75rem minmax(0, 1fr) 1.5rem;
-  gap: var(--mantine-spacing-sm);
-  align-items: center;
-  min-width: 0;
-  padding: var(--mantine-spacing-sm);
-  color: var(--mantine-color-text);
-  border: 1px solid color-mix(in srgb, var(--mantine-color-white) 54%, transparent);
-  border-radius: var(--mantine-radius-md);
-  background: color-mix(in srgb, var(--mantine-color-white) 42%, transparent);
-  box-shadow: var(--mantine-shadow-sm);
-  text-align: left;
-  text-decoration: none;
-  transition: background 120ms ease;
-  backdrop-filter: blur(10px);
-}
-
-.compactSpotlight:hover {
-  background: color-mix(in srgb, var(--mantine-color-dune-0) 76%, transparent);
-}
-
-.compactSpotlight:focus-visible {
-  outline: 3px solid var(--mantine-color-dune-6);
-  outline-offset: 2px;
-}
-
-.compactSpotlightToken {
-  position: relative;
-  width: 3.75rem;
-  height: 3.75rem;
-  overflow: hidden;
-  border-radius: 50%;
-  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25));
-}
-
-.compactSpotlightToken > * {
-  position: absolute;
-  inset: 0;
-}
-
-.headerCta {
-  font-weight: 800;
-  transform-origin: center;
-  animation: headerCtaAttention 5s ease-in-out infinite;
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--mantine-color-white) 40%, transparent),
-    var(--mantine-shadow-lg);
-}
-
-@keyframes headerCtaAttention {
-  0%,
-  68%,
-  100% {
-    transform: scale(1);
-    box-shadow:
-      0 0 0 3px color-mix(in srgb, var(--mantine-color-white) 40%, transparent),
-      var(--mantine-shadow-lg);
-  }
-
-  78% {
-    transform: scale(1.018);
-    box-shadow:
-      0 0 0 6px color-mix(in srgb, var(--mantine-color-white) 22%, transparent),
-      0 8px 24px color-mix(in srgb, var(--mantine-color-confirm-8) 34%, transparent);
-  }
-}
-
 .toolbar {
   background: color-mix(in srgb, var(--mantine-color-white) 76%, transparent);
   backdrop-filter: blur(9px);
@@ -155,29 +87,6 @@
     gap: var(--mantine-spacing-xs);
   }
 
-  .compactSpotlight {
-    grid-template-columns: 2.75rem minmax(0, 1fr) 0.9rem;
-    gap: var(--mantine-spacing-xs);
-    padding: var(--mantine-spacing-xs);
-  }
-
-  .compactSpotlightToken {
-    width: 2.75rem;
-    height: 2.75rem;
-  }
-
-  .spotlightLabel {
-    font-size: 0.625rem;
-  }
-
-  .spotlightName {
-    font-size: var(--mantine-font-size-sm);
-  }
-
-  .spotlightMeta {
-    display: none;
-  }
-
   .toolbarGrid {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--mantine-spacing-xs);
@@ -194,35 +103,5 @@
     flex: 0 0 auto;
     border-left: 1px solid var(--mantine-color-gray-3);
     border-radius: 0;
-  }
-}
-
-@media (max-width: 30em) {
-  .compactSpotlight {
-    grid-template-columns: 2.5rem minmax(0, 1fr);
-  }
-
-  .compactSpotlight > svg {
-    display: none;
-  }
-
-  .compactSpotlightToken {
-    width: 2.5rem;
-    height: 2.5rem;
-  }
-
-  .spotlightLabel {
-    font-size: 0.5625rem;
-    line-height: 1.05;
-  }
-
-  .spotlightName {
-    font-size: 0.75rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .headerCta {
-    animation: none;
   }
 }

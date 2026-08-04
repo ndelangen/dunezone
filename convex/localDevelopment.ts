@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './_generated/server';
+import { setHomepageCommunityPresence } from './lib/homepageCommunity';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { nowIso } from './lib/utils';
 
@@ -156,7 +157,7 @@ export const importFactionBatch = mutation({
         ? await ensureImportedGroup(ctx, faction.group, owner._id, collaborator._id)
         : null;
 
-      await ctx.db.insert('factions', {
+      const factionId = await ctx.db.insert('factions', {
         owner_id: owner._id,
         data: faction.data,
         slug: faction.slug,
@@ -165,6 +166,7 @@ export const importFactionBatch = mutation({
         is_deleted: false,
         group_id: groupId,
       });
+      await setHomepageCommunityPresence(ctx, 'factions', factionId, true);
     }
 
     return { importedFactions: args.factions.length };

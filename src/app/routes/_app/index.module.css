@@ -1,24 +1,131 @@
-.navTitle {
-  margin: 0;
-  font-size: 1.5rem;
+.hero {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 64rem);
+  height: 100%;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  color: white;
+  text-align: center;
+  text-shadow: 0 3px 18px rgb(0 0 0 / 92%);
 }
 
-.block {
-  display: flex;
-  flex-direction: column;
-  justify-content: stretch;
-  align-items: stretch;
-  gap: var(--space-4);
+.hero::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  background: radial-gradient(ellipse, rgb(20 10 4 / 68%), transparent 74%);
 }
 
-.panel {
-  flex: 1;
-  background-color: var(--panel-bg);
-  border-radius: var(--panel-radius);
-  padding: var(--space-4);
-  box-shadow: var(--panel-shadow);
-  backdrop-filter: blur(8px);
-  border: 2px solid var(--panel-border);
-  box-sizing: border-box;
+.heroKicker,
+.kicker {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 900;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+
+.heroKicker {
+  color: var(--mantine-color-dune-2);
+}
+
+.kicker {
+  color: var(--mantine-color-dune-8);
+}
+
+.heroTitle {
+  color: white;
+  font-size: clamp(2.8rem, 6.7vw, 5.8rem);
+  line-height: 0.94;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+
+.heroDeck {
+  max-width: 39rem;
+  color: #fff4df;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  line-height: 1.45;
+}
+
+.storyTitle {
+  max-width: 36rem;
+  font-size: clamp(2rem, 3.5vw, 3.35rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+
+.storyCopy {
+  max-width: 39rem;
+}
+
+.storyLayout {
+  padding: clamp(1rem, 3vw, 2.25rem) 0;
+}
+
+.storyColumn {
+  min-height: 27rem;
+  padding: clamp(1rem, 3vw, 2.25rem);
+}
+
+.storyPreview {
+  background: radial-gradient(circle, rgb(249 219 157 / 56%), transparent 68%);
+}
+
+.discoveryLayout {
+  padding-bottom: 1rem;
+}
+
+.discoveryColumn {
+  padding: clamp(1.25rem, 3vw, 2rem) 0;
+}
+
+.communityBand {
+  overflow: hidden;
+  background:
+    linear-gradient(115deg, rgb(255 248 237 / 94%), rgb(248 220 165 / 62%)),
+    url("/image/texture/052.jpg") center / cover;
+}
+
+.headingLink {
+  white-space: nowrap;
+}
+
+.avatarLink {
+  border-radius: 50%;
+}
+
+.avatarLink:focus-visible {
+  outline: 3px solid var(--mantine-color-dune-6);
+  outline-offset: 2px;
+}
+
+@media (max-width: 43.75em) {
+  .heroKicker,
+  .heroDeck {
+    display: none;
+  }
+
+  .hero {
+    padding: 0.75rem;
+  }
+
+  .heroTitle {
+    font-size: clamp(2.4rem, 12vw, 4.5rem);
+  }
+
+  .storyTitle {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+
+  .storyColumn {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 61.25em) {
+  .storyPreview {
+    min-height: 20rem;
+  }
 }

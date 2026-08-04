@@ -7,6 +7,7 @@ import type { Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { enrichFactionsWithRulesets, listActiveRulesetSummaries } from './lib/factionCatalogue';
+import { syncHomepageNewestMember } from './lib/homepageCommunity';
 import { requireAuthUserId } from './lib/policy';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { nowIso, slugify } from './lib/utils';
@@ -250,6 +251,7 @@ export const updateCurrent = mutation({
     if (!updated) {
       throw new Error('Failed to update profile');
     }
+    await syncHomepageNewestMember(ctx, updated);
     return updated;
   },
 });

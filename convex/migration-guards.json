@@ -31,6 +31,21 @@
       "requires": ["faction_slug_reservations_v1"]
     },
     {
+      "id": "homepage_factions_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "homepage_rulesets_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "homepage_members_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
       "id": "profiles_backfill_guard",
       "phase": "narrow",
       "requires": ["profiles_from_users_v1"]
@@ -49,6 +64,11 @@
       "id": "faq_item_slug_narrow",
       "phase": "narrow",
       "requires": ["faq_item_slug_v1"]
+    },
+    {
+      "id": "homepage_community_ready",
+      "phase": "narrow",
+      "requires": ["homepage_factions_v1", "homepage_rulesets_v1", "homepage_members_v1"]
     }
   ]
 }

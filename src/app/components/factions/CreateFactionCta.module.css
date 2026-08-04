@@ -1,0 +1,23 @@
+.attention {
+  animation: attention 5s ease-in-out infinite;
+}
+
+@keyframes attention {
+  0%,
+  80%,
+  100% {
+    box-shadow: none;
+    transform: translateY(0);
+  }
+
+  87% {
+    box-shadow: 0 0 0 5px rgb(104 139 84 / 18%);
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attention {
+    animation: none;
+  }
+}

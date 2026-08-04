@@ -114,6 +114,8 @@ export default defineSchema({
     group_id: v.union(v.id('groups'), v.null()),
     is_deleted: v.boolean(),
     image_cover: v.union(v.string(), v.null()),
+    homepage_question_count: v.optional(v.number()),
+    homepage_answer_count: v.optional(v.number()),
   })
     .index('by_name', ['name'])
     .index('by_slug', ['slug'])
