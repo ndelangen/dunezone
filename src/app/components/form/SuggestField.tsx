@@ -45,11 +45,19 @@ type Partition = {
 };
 
 function scoreCandidate(option: string, qLower: string): number | null {
-  if (qLower.length === 0) return 0;
+  if (qLower.length === 0) {
+    return 0;
+  }
   const o = option.toLowerCase();
-  if (!o.includes(qLower)) return null;
-  if (o === qLower) return 4_000_000;
-  if (o.startsWith(qLower)) return 3_000_000 + Math.max(0, 10_000 - o.length);
+  if (!o.includes(qLower)) {
+    return null;
+  }
+  if (o === qLower) {
+    return 4_000_000;
+  }
+  if (o.startsWith(qLower)) {
+    return 3_000_000 + Math.max(0, 10_000 - o.length);
+  }
   const idx = o.indexOf(qLower);
   return 2_000_000 + Math.max(0, 10_000 - idx);
 }
@@ -63,7 +71,9 @@ function relevanceScore(
   const rawScore = scoreCandidate(option, qLower);
   const labelScore = scoreCandidate(optionLabel, qLower);
   const searchScore = scoreCandidate(optionSearchText, qLower);
-  if (rawScore == null && labelScore == null && searchScore == null) return null;
+  if (rawScore == null && labelScore == null && searchScore == null) {
+    return null;
+  }
   return Math.max(
     rawScore ?? Number.NEGATIVE_INFINITY,
     labelScore ?? Number.NEGATIVE_INFINITY,
@@ -92,7 +102,9 @@ function partitionOptions(
   const included = rows
     .filter((r): r is { opt: string; score: number } => r.score != null)
     .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
       return a.opt.localeCompare(b.opt);
     })
     .map((r) => r.opt);
@@ -154,7 +166,9 @@ export function SuggestField({
 
   const updateListPosition = useCallback(() => {
     const el = inputRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     const r = el.getBoundingClientRect();
     const gap = 4;
     setListGeom({ top: Math.ceil(r.bottom) + gap, left: r.left, width: r.width });
@@ -191,9 +205,13 @@ export function SuggestField({
   }, [showList]);
 
   useLayoutEffect(() => {
-    if (!showList) return;
+    if (!showList) {
+      return;
+    }
     const p = portalRef.current;
-    if (!p) return;
+    if (!p) {
+      return;
+    }
     const preventBlur = (e: Event) => e.preventDefault();
     p.addEventListener('mousedown', preventBlur);
     return () => p.removeEventListener('mousedown', preventBlur);
@@ -279,8 +297,12 @@ export function SuggestField({
   useEffect(() => {
     const close = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (wrapRef.current?.contains(t)) return;
-      if (portalRef.current?.contains(t)) return;
+      if (wrapRef.current?.contains(t)) {
+        return;
+      }
+      if (portalRef.current?.contains(t)) {
+        return;
+      }
       setOpen(false);
     };
     document.addEventListener('mousedown', close);
@@ -511,7 +533,9 @@ export function SuggestField({
             e.preventDefault();
           }}
           onClick={() => {
-            if (options.length === 0) return;
+            if (options.length === 0) {
+              return;
+            }
             setOpen((prev) => !prev);
             inputRef.current?.focus();
           }}

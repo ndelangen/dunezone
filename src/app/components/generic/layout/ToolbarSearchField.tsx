@@ -16,8 +16,8 @@ export type ToolbarSearchFieldProps = {
   };
 
 /**
- * Compact search control for {@link Toolbar} rows: leading search icon + styled text field
- * for filtering lists or syncing search state to the URL.
+ * Compact search control for {@link Toolbar} rows: leading search icon + styled text field for
+ * filtering lists or syncing search state to the URL.
  */
 export function ToolbarSearchField({
   value,

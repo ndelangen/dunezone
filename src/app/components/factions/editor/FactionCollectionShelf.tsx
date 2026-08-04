@@ -101,10 +101,14 @@ export function FactionCollectionShelf({
   );
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over) return;
+    if (!over) {
+      return;
+    }
     const from = indexFromSortableId(active.id, sortablePrefix);
     const to = indexFromSortableId(over.id, sortablePrefix);
-    if (from == null || to == null || from === to) return;
+    if (from == null || to == null || from === to) {
+      return;
+    }
     onMove(from, to);
     if (selectedIndex === from) {
       onSelectedIndexChange(to);

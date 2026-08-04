@@ -51,7 +51,9 @@ function record(value: unknown, label: string): JsonRecord {
 }
 
 function array(value: unknown, label: string): unknown[] {
-  if (!Array.isArray(value)) throw new Error(`Cloudflare ${label} response is invalid`);
+  if (!Array.isArray(value)) {
+    throw new Error(`Cloudflare ${label} response is invalid`);
+  }
   return value;
 }
 
@@ -75,7 +77,9 @@ function loadJson(file: string): JsonRecord {
 
 function loadContract(root: string): LiveContract {
   const value = loadJson(path.join(root, 'infra/cloudflare-live-contract.json'));
-  if (value.schemaVersion !== 1) throw new Error('Cloudflare live contract version is invalid');
+  if (value.schemaVersion !== 1) {
+    throw new Error('Cloudflare live contract version is invalid');
+  }
   const queues = array(value.queues, 'live contract queues').map((entry) => {
     const queue = record(entry, 'live contract queue');
     return {
@@ -159,7 +163,9 @@ function expectedBindings(wrangler: JsonRecord): string[] {
   const bindings: string[] = [];
   const vars = record(wrangler.vars, 'Wrangler vars');
   for (const [name, value] of Object.entries(vars)) {
-    if (name === 'GIT_SHA') continue;
+    if (name === 'GIT_SHA') {
+      continue;
+    }
     bindings.push(`${name}|plain_text|${string(value, `Wrangler var ${name}`)}`);
   }
   const assets = record(wrangler.assets, 'Wrangler assets');
@@ -186,7 +192,9 @@ function expectedWorkerDomains(wrangler: JsonRecord, worker: string): string[] {
   const domains: string[] = [];
   for (const value of array(wrangler.routes, 'Wrangler routes')) {
     const route = record(value, 'Wrangler route');
-    if (route.custom_domain !== true) continue;
+    if (route.custom_domain !== true) {
+      continue;
+    }
     domains.push(`${string(route.pattern, 'Wrangler Custom Domain')}|${worker}`);
   }
   return domains.sort();
@@ -196,8 +204,12 @@ function liveBinding(value: unknown): string | null {
   const binding = record(value, 'Worker binding');
   const name = string(binding.name, 'Worker binding name');
   const type = string(binding.type, `Worker binding ${name} type`);
-  if (type === 'secret_text' || type === 'secret_key') return null;
-  if (type === 'plain_text') return `${name}|${type}|${string(binding.text, `Worker var ${name}`)}`;
+  if (type === 'secret_text' || type === 'secret_key') {
+    return null;
+  }
+  if (type === 'plain_text') {
+    return `${name}|${type}|${string(binding.text, `Worker var ${name}`)}`;
+  }
   if (type === 'r2_bucket') {
     return `${name}|${type}|${string(binding.bucket_name, `Worker R2 binding ${name}`)}`;
   }
@@ -215,7 +227,9 @@ function difference(expected: string[], actual: string[]): string {
 
 function compareExactSet(failures: string[], label: string, expected: string[], actual: string[]) {
   const detail = difference([...expected].sort(), [...actual].sort());
-  if (detail) failures.push(`${label}: ${detail}`);
+  if (detail) {
+    failures.push(`${label}: ${detail}`);
+  }
 }
 
 async function allQueues(client: CloudflareReadClient): Promise<JsonRecord[]> {
@@ -352,7 +366,9 @@ export async function checkCloudflareLiveDrift(
   );
   for (const expected of contract.queues) {
     const live = ownedQueues.find((queue) => queue.queue_name === expected.name);
-    if (!live) continue;
+    if (!live) {
+      continue;
+    }
     const producers = integer(live.producers_total_count, `${expected.name} producers`);
     const consumers = integer(live.consumers_total_count, `${expected.name} consumers`);
     if (producers !== expected.producers || consumers !== expected.consumers) {

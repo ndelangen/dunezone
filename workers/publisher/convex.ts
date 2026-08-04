@@ -33,8 +33,9 @@ function finite(value: unknown): value is number {
 }
 
 function okRecord(value: unknown): RecordValue {
-  if (!record(value) || value.ok !== true)
+  if (!record(value) || value.ok !== true) {
     throw new Error('Convex Publication response is invalid');
+  }
   return value;
 }
 

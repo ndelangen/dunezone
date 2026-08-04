@@ -9,7 +9,9 @@ const forbiddenAssetRoot = `/${'generated'}/`;
 function sourceFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) return sourceFiles(entryPath);
+    if (entry.isDirectory()) {
+      return sourceFiles(entryPath);
+    }
     return sourceExtensions.has(path.extname(entry.name)) ? [entryPath] : [];
   });
 }

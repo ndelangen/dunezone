@@ -40,9 +40,15 @@ export function normalizeFactionCatalogueSearch(
 
 export function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
   const params = new URLSearchParams();
-  if (search.q) params.set('q', search.q);
-  if (search.ruleset) params.set('ruleset', search.ruleset);
-  if (search.sort) params.set('sort', search.sort);
+  if (search.q) {
+    params.set('q', search.q);
+  }
+  if (search.ruleset) {
+    params.set('ruleset', search.ruleset);
+  }
+  if (search.sort) {
+    params.set('sort', search.sort);
+  }
   return params;
 }
 
@@ -96,9 +102,15 @@ function compareDateDescending(
 ) {
   const leftTimestamp = parseTimestamp(left[field]);
   const rightTimestamp = parseTimestamp(right[field]);
-  if (leftTimestamp == null && rightTimestamp == null) return compareIdentity(left, right);
-  if (leftTimestamp == null) return 1;
-  if (rightTimestamp == null) return -1;
+  if (leftTimestamp == null && rightTimestamp == null) {
+    return compareIdentity(left, right);
+  }
+  if (leftTimestamp == null) {
+    return 1;
+  }
+  if (rightTimestamp == null) {
+    return -1;
+  }
   return rightTimestamp - leftTimestamp || compareIdentity(left, right);
 }
 
@@ -115,7 +127,9 @@ function parseTimestamp(value: string) {
 }
 
 function cleanSearchValue(value: unknown) {
-  if (typeof value !== 'string') return undefined;
+  if (typeof value !== 'string') {
+    return undefined;
+  }
   const trimmed = value.trim();
   return trimmed || undefined;
 }

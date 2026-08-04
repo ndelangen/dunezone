@@ -14,7 +14,9 @@ export function profileSlugBaseFromName(name: string): string {
 
 function isAllCapsShouting(s: string): boolean {
   const letters = s.replace(/[^a-zA-Z]/g, '');
-  if (letters.length === 0) return false;
+  if (letters.length === 0) {
+    return false;
+  }
   return letters === letters.toUpperCase();
 }
 

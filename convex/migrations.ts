@@ -44,7 +44,9 @@ async function resolveUniqueGroupSlug(
       .query('groups')
       .withIndex('by_slug', (q) => q.eq('slug', candidate))
       .unique();
-    if (!existing || (groupId && existing._id === groupId)) return candidate;
+    if (!existing || (groupId && existing._id === groupId)) {
+      return candidate;
+    }
     suffix += 1;
     candidate = `${baseSlug}-${suffix}`;
   }
@@ -63,7 +65,9 @@ async function resolveUniqueRulesetSlug(
       .query('rulesets')
       .withIndex('by_slug', (q) => q.eq('slug', candidate))
       .unique();
-    if (!existing || (rulesetId && existing._id === rulesetId)) return candidate;
+    if (!existing || (rulesetId && existing._id === rulesetId)) {
+      return candidate;
+    }
     suffix += 1;
     candidate = `${baseSlug}-${suffix}`;
   }
@@ -121,7 +125,9 @@ export const groups_slug_v1 = migrations.define({
   table: 'groups',
   batchSize: 50,
   migrateOne: async (ctx, row) => {
-    if (!missingSlug((row as { slug?: unknown }).slug)) return;
+    if (!missingSlug((row as { slug?: unknown }).slug)) {
+      return;
+    }
     const slug = await resolveUniqueGroupSlug(ctx, row.name, row._id);
     return { slug };
   },
@@ -131,7 +137,9 @@ export const rulesets_slug_v1 = migrations.define({
   table: 'rulesets',
   batchSize: 50,
   migrateOne: async (ctx, row) => {
-    if (!missingSlug((row as { slug?: unknown }).slug)) return;
+    if (!missingSlug((row as { slug?: unknown }).slug)) {
+      return;
+    }
     const slug = await resolveUniqueRulesetSlug(ctx, row.name, row._id);
     return { slug };
   },
@@ -141,7 +149,9 @@ export const faq_item_slug_v1 = migrations.define({
   table: 'faq_items',
   batchSize: 50,
   migrateOne: async (ctx, row) => {
-    if (!missingSlug((row as { slug?: unknown }).slug)) return;
+    if (!missingSlug((row as { slug?: unknown }).slug)) {
+      return;
+    }
     const slug = await allocateNextFaqItemSlug(ctx, row.ruleset_id);
     return { slug };
   },
@@ -152,7 +162,9 @@ export const faq_item_tags_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (_ctx, row) => {
     const tags = (row as { tags?: unknown }).tags;
-    if (Array.isArray(tags) && tags.length > 0) return;
+    if (Array.isArray(tags) && tags.length > 0) {
+      return;
+    }
     return { tags: [DEFAULT_FAQ_TAG] };
   },
 });
@@ -166,7 +178,9 @@ export const profiles_from_users_v1 = migrations.define({
       .query('profiles')
       .withIndex('by_user_id', (q) => q.eq('user_id', user._id))
       .unique();
-    if (existing) return;
+    if (existing) {
+      return;
+    }
     await ensureProfileForUser(ctx, user._id, profileSourcesFromUserDoc(user));
   },
 });
@@ -180,15 +194,17 @@ async function archivedFactionSlug(ctx: MutationCtx, slug: string, factionId: Id
       .query('factions')
       .withIndex('by_slug', (q) => q.eq('slug', candidate))
       .unique();
-    if (!existing || existing._id === factionId) return candidate;
+    if (!existing || existing._id === factionId) {
+      return candidate;
+    }
     suffix += 1;
     candidate = `${base}-${suffix}`;
   }
 }
 
 /**
- * Repairs historical slug reuse while preserving the active faction's public URL.
- * Future writes reserve slugs globally, including those on soft-deleted rows.
+ * Repairs historical slug reuse while preserving the active faction's public URL. Future writes
+ * reserve slugs globally, including those on soft-deleted rows.
  */
 export const faction_slug_reservations_v1 = migrations.define({
   table: 'factions',
@@ -198,7 +214,9 @@ export const faction_slug_reservations_v1 = migrations.define({
       .query('factions')
       .withIndex('by_slug', (q) => q.eq('slug', faction.slug))
       .take(2);
-    if (matches.length <= 1) return;
+    if (matches.length <= 1) {
+      return;
+    }
 
     const active = await ctx.db
       .query('factions')
@@ -210,7 +228,9 @@ export const faction_slug_reservations_v1 = migrations.define({
     }
 
     const keeper = active[0] ?? matches[0];
-    if (keeper?._id === faction._id) return;
+    if (keeper?._id === faction._id) {
+      return;
+    }
 
     return { slug: await archivedFactionSlug(ctx, faction.slug, faction._id) };
   },

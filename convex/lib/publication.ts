@@ -34,8 +34,8 @@ export async function publicationJobsForAsset(
 }
 
 /**
- * Uniform save/scan enqueue behavior. Pending work is coalesced, failed work
- * is replaced, and an in-progress job may retain one pending successor.
+ * Uniform save/scan enqueue behavior. Pending work is coalesced, failed work is replaced, and an
+ * in-progress job may retain one pending successor.
  */
 export async function enqueuePublicationJob(
   ctx: MutationCtx,

@@ -21,7 +21,9 @@ const snapshot = {
 };
 
 function invariant(condition: unknown, message: string): asserts condition {
-  if (!condition) throw new Error(message);
+  if (!condition) {
+    throw new Error(message);
+  }
 }
 
 const server = Bun.serve({
@@ -32,7 +34,9 @@ const server = Bun.serve({
       return Response.json(snapshot, { headers: { 'Cache-Control': 'no-store' } });
     }
     const relative = pathname === '/' ? 'publisher-capture.html' : pathname.replace(/^\/+/, '');
-    if (relative.split('/').includes('..')) return new Response('Not found', { status: 404 });
+    if (relative.split('/').includes('..')) {
+      return new Response('Not found', { status: 404 });
+    }
     const file = Bun.file(path.join(publisherDist, relative));
     return (await file.exists()) ? new Response(file) : new Response('Not found', { status: 404 });
   },
@@ -147,7 +151,9 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
   const page = await newPublisherPage(browser);
   const errors: string[] = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(`console: ${message.text()}`);
+    if (message.type() === 'error') {
+      errors.push(`console: ${message.text()}`);
+    }
   });
   page.on('pageerror', (error) => errors.push(`page: ${error.message}`));
   page.on('requestfailed', (request) => {

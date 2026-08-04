@@ -7,7 +7,9 @@ export async function profileSummary(ctx: QueryCtx | MutationCtx, userId: Id<'us
     .query('profiles')
     .withIndex('by_user_id', (q) => q.eq('user_id', userId))
     .unique();
-  if (!profile) return null;
+  if (!profile) {
+    return null;
+  }
   return {
     id: profile._id,
     slug: profile.slug,

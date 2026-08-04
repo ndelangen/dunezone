@@ -19,7 +19,9 @@ export const Route = createFileRoute('/_app/admin/migrations')({
 });
 
 function formatDate(timestamp?: number) {
-  if (!timestamp) return '-';
+  if (!timestamp) {
+    return '-';
+  }
   return new Date(timestamp).toLocaleString();
 }
 

@@ -17,7 +17,9 @@ export function RulesetSettingsForm({ initial }: { initial: RulesetEntry }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextName = name.trim();
-    if (!nextName) return;
+    if (!nextName) {
+      return;
+    }
     const trimmedCover = coverUrl.trim();
     const prevSlug = initial.slug;
     try {

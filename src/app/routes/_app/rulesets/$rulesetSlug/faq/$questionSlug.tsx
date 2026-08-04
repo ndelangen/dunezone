@@ -102,12 +102,18 @@ function FaqDetailPage() {
   );
 
   useEffect(() => {
-    if (!item) return;
+    if (!item) {
+      return;
+    }
     const scrollToHash = () => {
       const targetSlug = window.location.hash.slice(1).trim();
-      if (!targetSlug) return;
+      if (!targetSlug) {
+        return;
+      }
       const answer = answers.find((row) => row.answerer_profile?.slug === targetSlug);
-      if (!answer) return;
+      if (!answer) {
+        return;
+      }
       const node = document.getElementById(`faq-answer-${answer._id}`);
       node?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
@@ -141,7 +147,9 @@ function FaqDetailPage() {
     a.answered_by === profile?.data?.user_id || isQuestionOwner;
 
   const handleDeleteQuestion = () => {
-    if (!window.confirm('Delete this question and all its answers? This cannot be undone.')) return;
+    if (!window.confirm('Delete this question and all its answers? This cannot be undone.')) {
+      return;
+    }
     deleteFaqItem.mutate(faqItemId, {
       onSuccess: () => navigate({ to: '/rulesets/$rulesetSlug', params: { rulesetSlug } }),
     });
@@ -204,7 +212,9 @@ function FaqDetailPage() {
   };
 
   const handleDeleteAnswer = (answerId: string) => {
-    if (!window.confirm('Delete this answer?')) return;
+    if (!window.confirm('Delete this answer?')) {
+      return;
+    }
     deleteFaqAnswer.mutate(answerId);
   };
 
@@ -323,7 +333,9 @@ function FaqDetailPage() {
                 const answer = (
                   formEl.elements.namedItem('answer') as HTMLTextAreaElement
                 ).value.trim();
-                if (!answer) return;
+                if (!answer) {
+                  return;
+                }
                 createFaqAnswer.mutate({ faqItemId, answer }, { onSuccess: () => formEl.reset() });
               }}
             >

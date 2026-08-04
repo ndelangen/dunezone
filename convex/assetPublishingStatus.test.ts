@@ -36,7 +36,9 @@ async function seedFaction(t: ReturnType<typeof convexTest>) {
 
 async function publicStatus(t: ReturnType<typeof convexTest>, factionId: Id<'factions'>) {
   const faction = await t.run(async (ctx) => await ctx.db.get('factions', factionId));
-  if (!faction) throw new Error('Missing status projection faction');
+  if (!faction) {
+    throw new Error('Missing status projection faction');
+  }
   return (await t.query(api.factions.getBySlug, { slug: faction.slug })).assetPublishing;
 }
 

@@ -71,7 +71,9 @@ function ChapterIcon({
       </form.Subscribe>
     );
   }
-  if (chapter === 'worlds') return <Globe2 size={21} aria-hidden />;
+  if (chapter === 'worlds') {
+    return <Globe2 size={21} aria-hidden />;
+  }
   return <TopicIcon topic={chapterIcons[chapter]} size={21} />;
 }
 
@@ -314,7 +316,9 @@ function ChapterWarnings({
   warnings: FactionAuthoringWarning[];
   onFocus: (warning: FactionAuthoringWarning) => void;
 }) {
-  if (warnings.length === 0) return null;
+  if (warnings.length === 0) {
+    return null;
+  }
   return (
     <Alert color="yellow" variant="light" title="These fields may be incomplete">
       <Group gap="xs">

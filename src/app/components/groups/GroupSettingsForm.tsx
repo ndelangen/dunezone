@@ -68,7 +68,9 @@ export function GroupSettingsForm({ initial }: { initial: GroupEntry }) {
           value={name}
           onChange={(event) => {
             setName(event.target.value);
-            if (submitError) setSubmitError(null);
+            if (submitError) {
+              setSubmitError(null);
+            }
           }}
         />
       </FormField>

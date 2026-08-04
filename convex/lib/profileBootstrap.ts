@@ -8,13 +8,17 @@ export type ProfileBootstrapSources = {
 };
 
 function trimNonEmptyName(value: string | null | undefined): string | null {
-  if (typeof value !== 'string') return null;
+  if (typeof value !== 'string') {
+    return null;
+  }
   const t = value.trim();
   return t.length > 0 ? t : null;
 }
 
 function nonEmptyImage(value: string | null | undefined): string | null {
-  if (typeof value !== 'string') return null;
+  if (typeof value !== 'string') {
+    return null;
+  }
   return value.length > 0 ? value : null;
 }
 

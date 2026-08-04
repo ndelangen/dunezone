@@ -54,7 +54,9 @@ export const get = query({
   args: { group_id: v.id('groups'), user_id: v.id('users') },
   handler: async (ctx, args) => {
     const row = await getMembership(ctx, args.group_id, args.user_id);
-    if (!row) throw new Error('Group member not found');
+    if (!row) {
+      throw new Error('Group member not found');
+    }
     return row;
   },
 });
@@ -64,18 +66,24 @@ export const request = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const group = await loadGroup(ctx, args.group_id);
-    if (!group) throw new Error('Group not found');
+    if (!group) {
+      throw new Error('Group not found');
+    }
 
     const existing = await getMembership(ctx, args.group_id, userId);
     if (existing) {
-      if (existing.status === 'pending' || existing.status === 'active') return existing;
+      if (existing.status === 'pending' || existing.status === 'active') {
+        return existing;
+      }
       await ctx.db.patch(existing._id, {
         status: 'pending',
         approved_at: null,
         approved_by: null,
       });
       const updated = await ctx.db.get(existing._id);
-      if (!updated) throw new Error('Failed to update membership');
+      if (!updated) {
+        throw new Error('Failed to update membership');
+      }
       return updated;
     }
 
@@ -88,7 +96,9 @@ export const request = mutation({
       approved_by: null,
     });
     const created = await ctx.db.get(_id);
-    if (!created) throw new Error('Failed to request group membership');
+    if (!created) {
+      throw new Error('Failed to request group membership');
+    }
     return created;
   },
 });
@@ -101,18 +111,26 @@ export const approve = mutation({
   handler: async (ctx, args) => {
     const actorId = await requireAuthUserId(ctx);
     const canManage = await isActiveGroupMember(ctx, args.group_id, actorId);
-    if (!canManage) throw new Error('Not authorized');
+    if (!canManage) {
+      throw new Error('Not authorized');
+    }
 
     const row = await getMembership(ctx, args.group_id, args.user_id);
-    if (!row) throw new Error('Failed to approve group member');
-    if (row.status !== 'pending') throw new Error('Membership is not pending approval');
+    if (!row) {
+      throw new Error('Failed to approve group member');
+    }
+    if (row.status !== 'pending') {
+      throw new Error('Membership is not pending approval');
+    }
     await ctx.db.patch(row._id, {
       status: 'active',
       approved_by: actorId,
       approved_at: nowIso(),
     });
     const updated = await ctx.db.get(row._id);
-    if (!updated) throw new Error('Failed to approve group member');
+    if (!updated) {
+      throw new Error('Failed to approve group member');
+    }
     return updated;
   },
 });
@@ -125,18 +143,26 @@ export const reject = mutation({
   handler: async (ctx, args) => {
     const actorId = await requireAuthUserId(ctx);
     const canManage = await isActiveGroupMember(ctx, args.group_id, actorId);
-    if (!canManage) throw new Error('Not authorized');
+    if (!canManage) {
+      throw new Error('Not authorized');
+    }
 
     const row = await getMembership(ctx, args.group_id, args.user_id);
-    if (!row) throw new Error('Failed to reject group member');
-    if (row.status !== 'pending') throw new Error('Membership is not pending approval');
+    if (!row) {
+      throw new Error('Failed to reject group member');
+    }
+    if (row.status !== 'pending') {
+      throw new Error('Membership is not pending approval');
+    }
     await ctx.db.patch(row._id, {
       status: 'removed',
       approved_by: null,
       approved_at: null,
     });
     const updated = await ctx.db.get(row._id);
-    if (!updated) throw new Error('Failed to reject group member');
+    if (!updated) {
+      throw new Error('Failed to reject group member');
+    }
     return updated;
   },
 });
@@ -149,13 +175,23 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const actorId = await requireAuthUserId(ctx);
     const group = await loadGroup(ctx, args.group_id);
-    if (!group) throw new Error('Group not found');
-    if (group.created_by !== actorId) throw new Error('Not authorized');
-    if (args.user_id === group.created_by) throw new Error('Cannot remove the group owner');
+    if (!group) {
+      throw new Error('Group not found');
+    }
+    if (group.created_by !== actorId) {
+      throw new Error('Not authorized');
+    }
+    if (args.user_id === group.created_by) {
+      throw new Error('Cannot remove the group owner');
+    }
 
     const row = await getMembership(ctx, args.group_id, args.user_id);
-    if (!row) throw new Error('Failed to remove group member');
-    if (row.status !== 'active') throw new Error('Can only remove active members');
+    if (!row) {
+      throw new Error('Failed to remove group member');
+    }
+    if (row.status !== 'active') {
+      throw new Error('Can only remove active members');
+    }
     await ctx.db.patch(row._id, {
       status: 'removed',
       approved_by: null,
@@ -173,7 +209,9 @@ export const add = mutation({
   handler: async (ctx, args) => {
     const actorId = await requireAuthUserId(ctx);
     const canManage = await isActiveGroupMember(ctx, args.group_id, actorId);
-    if (!canManage) throw new Error('Not authorized');
+    if (!canManage) {
+      throw new Error('Not authorized');
+    }
 
     const existing = await getMembership(ctx, args.group_id, args.user_id);
     if (existing) {
@@ -183,7 +221,9 @@ export const add = mutation({
         approved_at: nowIso(),
       });
       const updated = await ctx.db.get(existing._id);
-      if (!updated) throw new Error('Failed to add group member');
+      if (!updated) {
+        throw new Error('Failed to add group member');
+      }
       return updated;
     }
 
@@ -196,7 +236,9 @@ export const add = mutation({
       approved_at: nowIso(),
     });
     const created = await ctx.db.get(_id);
-    if (!created) throw new Error('Failed to add group member');
+    if (!created) {
+      throw new Error('Failed to add group member');
+    }
     return created;
   },
 });

@@ -56,7 +56,9 @@ export function selectFactionCatalogueSpotlights(factions: CatalogueFaction[]) {
 
   const freshlyUpdated = [...factions]
     .filter((faction) => {
-      if (faction._id === newArrival?._id) return false;
+      if (faction._id === newArrival?._id) {
+        return false;
+      }
       const createdAt = parseTimestamp(faction.created_at);
       const updatedAt = parseTimestamp(faction.updated_at);
       return createdAt != null && updatedAt != null && updatedAt > createdAt;
@@ -80,9 +82,15 @@ function compareByDate(
 ) {
   const leftTimestamp = parseTimestamp(left[field]);
   const rightTimestamp = parseTimestamp(right[field]);
-  if (leftTimestamp == null && rightTimestamp == null) return compareFactionIdentity(left, right);
-  if (leftTimestamp == null) return 1;
-  if (rightTimestamp == null) return -1;
+  if (leftTimestamp == null && rightTimestamp == null) {
+    return compareFactionIdentity(left, right);
+  }
+  if (leftTimestamp == null) {
+    return 1;
+  }
+  if (rightTimestamp == null) {
+    return -1;
+  }
   return rightTimestamp - leftTimestamp || compareFactionIdentity(left, right);
 }
 

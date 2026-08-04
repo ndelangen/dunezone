@@ -25,7 +25,9 @@ export function FaqList({ items, rulesetSlug, searchQuery, selectedTag }: FaqLis
     const tagFiltered = selectedTag
       ? items.filter((item) => (item.tags ?? []).includes(selectedTag))
       : items;
-    if (!searchQuery.trim()) return tagFiltered;
+    if (!searchQuery.trim()) {
+      return tagFiltered;
+    }
     return new Fuse(tagFiltered, { keys: ['question'], threshold: 0.4 })
       .search(searchQuery.trim())
       .map((r) => r.item);

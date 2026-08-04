@@ -11,7 +11,9 @@ import type { FactionFormApi } from './factionFormTypes';
 
 function AdvantageCard({ form, index }: { form: FactionFormApi; index: number }) {
   const advantage = form.state.values.rules.advantages[index];
-  if (!advantage) return null;
+  if (!advantage) {
+    return null;
+  }
   const warningId = `adv-${index}-text-warning`;
 
   return (
@@ -138,7 +140,9 @@ export function FactionFormSectionAdvantages({
                   removeDisabled={count === 0}
                   onRemove={() => {
                     const lastIndex = count - 1;
-                    if (lastIndex < 0) return;
+                    if (lastIndex < 0) {
+                      return;
+                    }
                     if (currentSelectedIndex >= lastIndex) {
                       selectIndex(Math.max(0, lastIndex - 1));
                     }

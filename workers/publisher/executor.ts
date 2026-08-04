@@ -44,7 +44,9 @@ export async function executeItemList(
   items: AssignedPublicationJob[],
   dependencies: ItemListDependencies
 ): Promise<ItemListExecution> {
-  if (items.length < 1) throw new Error('Assigned Publication job list must not be empty');
+  if (items.length < 1) {
+    throw new Error('Assigned Publication job list must not be empty');
+  }
   const now = dependencies.now ?? Date.now;
   const signCacheToken = dependencies.signCacheToken ?? createCacheToken;
   const workDeadlineAt = now() + config.workWindowMs;
@@ -69,7 +71,9 @@ export async function executeItemList(
     result.browserSessionId = browser.sessionId();
 
     for (const item of items) {
-      if (now() >= workDeadlineAt) break;
+      if (now() >= workDeadlineAt) {
+        break;
+      }
       try {
         const captured = await browser.capture(
           item.jobId,
@@ -95,18 +99,26 @@ export async function executeItemList(
           cacheToken,
           requestDeadline(now, completionDeadlineAt)
         );
-        if (completion === 'completed') result.completed += 1;
-        else result.missing += 1;
+        if (completion === 'completed') {
+          result.completed += 1;
+        } else {
+          result.missing += 1;
+        }
         result.unprocessed -= 1;
       } catch (error) {
-        if (!(error instanceof TargetRenderError)) throw error;
+        if (!(error instanceof TargetRenderError)) {
+          throw error;
+        }
         const failure = await dependencies.client.fail(
           item.jobId,
           error,
           requestDeadline(now, completionDeadlineAt)
         );
-        if (failure === 'missing') result.missing += 1;
-        else result.failed += 1;
+        if (failure === 'missing') {
+          result.missing += 1;
+        } else {
+          result.failed += 1;
+        }
         result.unprocessed -= 1;
       }
     }
@@ -123,6 +135,8 @@ export async function executeItemList(
     }
   }
 
-  if (executionError) throw executionError;
+  if (executionError) {
+    throw executionError;
+  }
   return result;
 }

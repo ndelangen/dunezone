@@ -143,7 +143,9 @@ function IconsPage() {
             <Tabs
               value={source}
               onChange={(value) => {
-                if (!value) return;
+                if (!value) {
+                  return;
+                }
                 setSource(value as CatalogSource);
                 setPage(1);
               }}

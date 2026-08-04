@@ -78,8 +78,12 @@ function FaqCreatePage() {
             const selectedTags = Array.from(
               formEl.querySelectorAll<HTMLInputElement>('input[name="tags"]:checked')
             ).map((input) => input.value as FaqTag);
-            if (!question) return;
-            if (selectedTags.length === 0) return;
+            if (!question) {
+              return;
+            }
+            if (selectedTags.length === 0) {
+              return;
+            }
             createFaqItem.mutate(
               { rulesetId, question, answer: answer || undefined, tags: selectedTags },
               {

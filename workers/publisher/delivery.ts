@@ -42,8 +42,12 @@ function errorResponse(status: number, message: string, headers?: HeadersInit): 
 
 function exactToken(url: URL): string | null | undefined {
   const tokens = url.searchParams.getAll('v');
-  if (tokens.length === 0) return undefined;
-  if (tokens.length !== 1 || tokens[0].length === 0) return null;
+  if (tokens.length === 0) {
+    return undefined;
+  }
+  if (tokens.length !== 1 || tokens[0].length === 0) {
+    return null;
+  }
   return tokens[0];
 }
 
@@ -99,7 +103,9 @@ function conditionalHeaders(headers: Headers, status: 304 | 412): Headers {
   const result = new Headers(headers);
   result.delete('Content-Length');
   result.delete('Content-Range');
-  if (status === 412) result.set('Cache-Control', NO_STORE);
+  if (status === 412) {
+    result.set('Cache-Control', NO_STORE);
+  }
   return result;
 }
 
@@ -107,8 +113,11 @@ function rangeErrorHeaders(headers: Headers, size: number | undefined): Headers 
   const result = new Headers(headers);
   result.delete('Content-Length');
   result.set('Cache-Control', NO_STORE);
-  if (size === undefined) result.delete('Content-Range');
-  else result.set('Content-Range', `bytes */${size}`);
+  if (size === undefined) {
+    result.delete('Content-Range');
+  } else {
+    result.set('Content-Range', `bytes */${size}`);
+  }
   return result;
 }
 
@@ -121,7 +130,9 @@ async function safeCachePut(cache: PublicAssetCache, key: Request, value: Respon
 }
 
 async function cancelReadableBody(body: ReadableStream | null | undefined): Promise<void> {
-  if (!body) return;
+  if (!body) {
+    return;
+  }
   try {
     await body.cancel();
   } catch {
@@ -158,7 +169,9 @@ async function cachedAssetResponse(
   const representation = responseRepresentation(hit);
   const decision = evaluateAssetRequest(request, representation);
   if (decision.status === 200) {
-    if (request.method === 'GET') return hit;
+    if (request.method === 'GET') {
+      return hit;
+    }
     const headers = new Headers(hit.headers);
     await cancelResponseBody(hit);
     return metadataResponse(decision, headers);
@@ -175,7 +188,9 @@ async function cachedAssetResponse(
 
   const rangeValue = request.headers.get('Range');
   await cancelResponseBody(hit);
-  if (!rangeValue) return errorResponse(503, 'Asset Temporarily Unavailable');
+  if (!rangeValue) {
+    return errorResponse(503, 'Asset Temporarily Unavailable');
+  }
   let partial: Response | undefined;
   try {
     partial = await cache.match(rangeCacheRequest(cacheKey, rangeValue));
@@ -235,7 +250,9 @@ async function r2BodyResponse(
 }
 
 export function factionSheetPublicPath(factionId: string): string {
-  if (!FACTION_ID_PATTERN.test(factionId)) throw new Error('Invalid Convex faction id');
+  if (!FACTION_ID_PATTERN.test(factionId)) {
+    throw new Error('Invalid Convex faction id');
+  }
   return `/published/factions/${encodeURIComponent(factionId)}/sheet.pdf`;
 }
 
@@ -247,10 +264,14 @@ export async function handlePublicAssetRequest(
 ): Promise<Response | null> {
   const url = new URL(request.url);
   const ownsNamespace = url.pathname === '/published' || url.pathname.startsWith('/published/');
-  if (!ownsNamespace) return null;
+  if (!ownsNamespace) {
+    return null;
+  }
 
   const route = PUBLIC_ROUTE_PATTERN.exec(url.pathname);
-  if (!route) return errorResponse(404, 'Not Found');
+  if (!route) {
+    return errorResponse(404, 'Not Found');
+  }
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return errorResponse(405, 'Method Not Allowed', { Allow: 'GET, HEAD' });
   }
@@ -259,10 +280,14 @@ export async function handlePublicAssetRequest(
   }
 
   const factionId = route[1];
-  if (!factionId) return errorResponse(404, 'Not Found');
+  if (!factionId) {
+    return errorResponse(404, 'Not Found');
+  }
   const stablePath = factionSheetPublicPath(factionId);
   const token = exactToken(url);
-  if (token === null || token === undefined) return errorResponse(404, 'Not Found');
+  if (token === null || token === undefined) {
+    return errorResponse(404, 'Not Found');
+  }
   if (
     !(await verifyCacheToken(token, factionId, ASSET_TYPE, env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET))
   ) {
@@ -278,7 +303,9 @@ export async function handlePublicAssetRequest(
   } catch {
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
-  if (!metadata) return errorResponse(404, 'Not Found');
+  if (!metadata) {
+    return errorResponse(404, 'Not Found');
+  }
 
   const decision = evaluateAssetRequest(request, objectRepresentation(metadata));
   const headers = assetHeaders(metadata, true);

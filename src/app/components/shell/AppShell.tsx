@@ -27,7 +27,9 @@ export interface AppShellProps {
 export function AppShell({ children, pathname }: AppShellProps) {
   const [imageLoaded, setImageLoaded] = useState(heroImageLoaded);
   useEffect(() => {
-    if (heroImageLoaded) return;
+    if (heroImageLoaded) {
+      return;
+    }
     const image = new Image();
     image.onload = () => {
       heroImageLoaded = true;
@@ -41,7 +43,9 @@ export function AppShell({ children, pathname }: AppShellProps) {
     let animationFrameId: number | null = null;
 
     const scheduleUpdate = () => {
-      if (animationFrameId !== null) return;
+      if (animationFrameId !== null) {
+        return;
+      }
       animationFrameId = requestAnimationFrame(() => {
         animationFrameId = null;
         updateScrollProgress();
@@ -61,7 +65,9 @@ export function AppShell({ children, pathname }: AppShellProps) {
     resizeObserver.observe(document.body);
 
     return () => {
-      if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+      }
       window.removeEventListener('resize', updateScrollProgress);
       window.removeEventListener('scroll', handleScroll);
       resizeObserver.disconnect();

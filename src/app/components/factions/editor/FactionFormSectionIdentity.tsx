@@ -75,7 +75,9 @@ export function FactionFormSectionIdentity({
                   getPreviewSrc={assetOptionToPreviewSrc}
                   value={field.state.value}
                   onChange={(value) => {
-                    if (value) field.handleChange(value as Faction['logo']);
+                    if (value) {
+                      field.handleChange(value as Faction['logo']);
+                    }
                   }}
                 />
               }

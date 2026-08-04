@@ -199,7 +199,10 @@ export function useFactionCataloguePage(options?: { initialData?: FactionCatalog
   return toLiveQueryResult(normalized, true, () => options?.initialData);
 }
 
-/** Normalized row from `api.factions.listForLoadPicker` (group label + owner username resolved server-side). */
+/**
+ * Normalized row from `api.factions.listForLoadPicker` (group label + owner username resolved
+ * server-side).
+ */
 export type FactionLoadPickerRow = {
   id: FactionRow['_id'];
   slug: FactionRow['slug'];

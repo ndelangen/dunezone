@@ -42,7 +42,9 @@ function TroopCard({
   showPreview: boolean;
 }) {
   const troop = form.state.values.troops[index];
-  if (!troop) return null;
+  if (!troop) {
+    return null;
+  }
   const hasBack = troop.back != null;
 
   return (
@@ -241,7 +243,9 @@ export function FactionFormSectionTroops({
                   removeDisabled={count === 0}
                   onRemove={() => {
                     const lastIndex = count - 1;
-                    if (lastIndex < 0) return;
+                    if (lastIndex < 0) {
+                      return;
+                    }
                     if (currentSelectedIndex >= lastIndex) {
                       selectIndex(Math.max(0, lastIndex - 1));
                     }
@@ -298,7 +302,9 @@ export function FactionFormSectionTroops({
                     onToggleBack={() => {
                       const next = [...field.state.value];
                       const current = next[safeSelectedIndex];
-                      if (!current) return;
+                      if (!current) {
+                        return;
+                      }
                       next[safeSelectedIndex] = {
                         ...current,
                         back: current.back ? undefined : createTroopBackFromFront(current),

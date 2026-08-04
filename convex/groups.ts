@@ -32,7 +32,9 @@ export const getById = query({
   args: { id: v.id('groups') },
   handler: async (ctx, args) => {
     const group = await ctx.db.get(args.id);
-    if (!group) throw new Error(`Group with id ${args.id} not found`);
+    if (!group) {
+      throw new Error(`Group with id ${args.id} not found`);
+    }
     return group;
   },
 });
@@ -44,7 +46,9 @@ export const getBySlug = query({
       .query('groups')
       .withIndex('by_slug', (q) => q.eq('slug', args.slug))
       .unique();
-    if (!group) throw new Error(`Group with slug ${args.slug} not found`);
+    if (!group) {
+      throw new Error(`Group with slug ${args.slug} not found`);
+    }
 
     const members = await ctx.db
       .query('group_members')
@@ -58,7 +62,10 @@ export const getBySlug = query({
   },
 });
 
-/** Group detail page: group, memberships, factions in group, and profiles for owner + every member user_id (each user must have a profile row). */
+/**
+ * Group detail page: group, memberships, factions in group, and profiles for owner + every member
+ * user_id (each user must have a profile row).
+ */
 export const detailBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
@@ -66,7 +73,9 @@ export const detailBySlug = query({
       .query('groups')
       .withIndex('by_slug', (q) => q.eq('slug', args.slug))
       .unique();
-    if (!group) throw new Error(`Group with slug ${args.slug} not found`);
+    if (!group) {
+      throw new Error(`Group with slug ${args.slug} not found`);
+    }
 
     const members = await ctx.db
       .query('group_members')
@@ -130,7 +139,9 @@ export const create = mutation({
       .query('groups')
       .withIndex('by_name', (q) => q.eq('name', normalizedName))
       .unique();
-    if (existing) throw new Error('Group name already exists');
+    if (existing) {
+      throw new Error('Group name already exists');
+    }
 
     const now = nowIso();
     const slug = await resolveUniqueGroupSlug(ctx, normalizedName);
@@ -150,7 +161,9 @@ export const create = mutation({
     });
 
     const row = await ctx.db.get(_id);
-    if (!row) throw new Error('Failed to create group');
+    if (!row) {
+      throw new Error('Failed to create group');
+    }
     return row;
   },
 });
@@ -169,19 +182,27 @@ export const update = mutation({
     }
     const normalizedName = parsed.data.name;
     const group = await ctx.db.get(args.id);
-    if (!group) throw new Error(`Group with id ${args.id} not found`);
-    if (group.created_by !== userId) throw new Error('Not authorized');
+    if (!group) {
+      throw new Error(`Group with id ${args.id} not found`);
+    }
+    if (group.created_by !== userId) {
+      throw new Error('Not authorized');
+    }
 
     const nameOwner = await ctx.db
       .query('groups')
       .withIndex('by_name', (q) => q.eq('name', normalizedName))
       .unique();
-    if (nameOwner && nameOwner._id !== args.id) throw new Error('Group name already exists');
+    if (nameOwner && nameOwner._id !== args.id) {
+      throw new Error('Group name already exists');
+    }
 
     const slug = await resolveUniqueGroupSlug(ctx, normalizedName, args.id);
     await ctx.db.patch(group._id, { name: normalizedName, slug });
     const updated = await ctx.db.get(group._id);
-    if (!updated) throw new Error('Failed to update group');
+    if (!updated) {
+      throw new Error('Failed to update group');
+    }
     return updated;
   },
 });
@@ -191,8 +212,12 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const group = await ctx.db.get(args.id);
-    if (!group) throw new Error(`Group with id ${args.id} not found`);
-    if (group.created_by !== userId) throw new Error('Not authorized');
+    if (!group) {
+      throw new Error(`Group with id ${args.id} not found`);
+    }
+    if (group.created_by !== userId) {
+      throw new Error('Not authorized');
+    }
     await ctx.db.delete(args.id);
 
     const rulesetsWithGroup = await ctx.db

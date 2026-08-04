@@ -18,7 +18,9 @@ afterEach(() => vi.unstubAllGlobals());
 function stubValidJob() {
   const upstream = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
     const token = new Headers(init?.headers).get('Authorization')?.replace('Bearer ', '');
-    if (token !== jobId) return Response.json({ ok: false }, { status: 404 });
+    if (token !== jobId) {
+      return Response.json({ ok: false }, { status: 404 });
+    }
     return Response.json({ ok: true, payload: {}, payloadHash: 'a'.repeat(64) });
   });
   vi.stubGlobal('fetch', upstream);

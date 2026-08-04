@@ -14,8 +14,12 @@ export function factionAssetPublishingCopy(
   saveState: FactionSaveState = 'idle',
   captureStatus: PublicAssetCaptureStatus | null = null
 ) {
-  if (saveState === 'saving') return 'Saving changes…';
-  if (saveState === 'error') return 'Changes were not saved.';
+  if (saveState === 'saving') {
+    return 'Saving changes…';
+  }
+  if (saveState === 'error') {
+    return 'Changes were not saved.';
+  }
 
   const publishingCopy =
     captureStatus === 'in_progress'
@@ -25,7 +29,9 @@ export function factionAssetPublishingCopy(
         : status
           ? statusCopy[status]
           : 'The public asset will be available soon.';
-  if (saveState !== 'saved') return publishingCopy;
+  if (saveState !== 'saved') {
+    return publishingCopy;
+  }
   return captureStatus
     ? `Saved. ${publishingCopy}`
     : `Saved. Publication scheduled. ${publishingCopy}`;

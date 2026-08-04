@@ -20,8 +20,12 @@ function abortError(signal: AbortSignal): PublisherHttpError {
 }
 
 async function withAbort<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
-  if (!signal) return await operation;
-  if (signal.aborted) throw abortError(signal);
+  if (!signal) {
+    return await operation;
+  }
+  if (signal.aborted) {
+    throw abortError(signal);
+  }
   return await new Promise<T>((resolve, reject) => {
     const onAbort = () => reject(abortError(signal));
     signal.addEventListener('abort', onAbort, { once: true });
@@ -48,13 +52,17 @@ async function boundedBytes(
     throw new PublisherHttpError('Publisher response exceeded its size limit', false);
   }
   const reader = response.body?.getReader();
-  if (!reader) return new Uint8Array();
+  if (!reader) {
+    return new Uint8Array();
+  }
   const chunks: Uint8Array[] = [];
   let length = 0;
   try {
     while (true) {
       const { done, value } = await withAbort(reader.read(), signal);
-      if (done) break;
+      if (done) {
+        break;
+      }
       length += value.byteLength;
       if (length > maximum) {
         void reader.cancel('Publisher response exceeded its size limit').catch(() => undefined);
@@ -165,7 +173,9 @@ export async function postJson(
     }
     return await readBoundedJson(response, DEFAULT_MAX_JSON_BYTES, controller.signal);
   } catch (error) {
-    if (error instanceof PublisherHttpError) throw error;
+    if (error instanceof PublisherHttpError) {
+      throw error;
+    }
     throw new PublisherHttpError(`Publisher request failed: ${publisherErrorMessage(error)}`, true);
   } finally {
     clearTimeout(timeout);

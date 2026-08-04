@@ -101,7 +101,9 @@ export const FactionEditor = forwardRef<FactionEditorHandle, FactionEditorProps>
       },
       focusFirstWarning: () => {
         const firstWarning = factionAuthoringWarnings(form.state.values)[0];
-        if (!firstWarning) return;
+        if (!firstWarning) {
+          return;
+        }
         fieldsRef.current?.focusWarning(firstWarning);
       },
       review: (trigger) => reviewRef.current?.open(trigger),

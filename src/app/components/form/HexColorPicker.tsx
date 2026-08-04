@@ -10,7 +10,9 @@ import { PrefixedField } from './PrefixedField';
 import { TextField } from './TextField';
 
 export function normalizePickerHex(hex: string): string {
-  if (/^#[0-9a-f]{6}$/i.test(hex)) return hex.toLowerCase();
+  if (/^#[0-9a-f]{6}$/i.test(hex)) {
+    return hex.toLowerCase();
+  }
   return '#000000';
 }
 
@@ -24,9 +26,7 @@ export type HexColorPickerProps = {
   placeholder?: string;
 } & Pick<ComponentPropsWithoutRef<'div'>, 'className'>;
 
-/**
- * Swatch + popover (react-colorful) + hex text in one bordered control. App-wide form primitive.
- */
+/** Swatch + popover (react-colorful) + hex text in one bordered control. App-wide form primitive. */
 export function HexColorPicker({
   pickerId,
   textId,

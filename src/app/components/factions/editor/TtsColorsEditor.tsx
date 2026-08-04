@@ -116,7 +116,9 @@ function TtsColorRow({
         renderOption={({ option }) => <TtsColorOption color={option.value as TtsColor} />}
         comboboxProps={{ withinPortal: false }}
         onChange={(value) => {
-          if (value) onChange(value as TtsColor);
+          if (value) {
+            onChange(value as TtsColor);
+          }
         }}
       />
       <Tooltip label={`Reorder TTS color ${index + 1}`}>
@@ -165,7 +167,9 @@ export function TtsColorsEditor({
           addDisabled={nextAvailableColor == null}
           onRemove={() => onChange(removeLastTtsColor(value))}
           onAdd={() => {
-            if (nextAvailableColor) onChange([...value, nextAvailableColor]);
+            if (nextAvailableColor) {
+              onChange([...value, nextAvailableColor]);
+            }
           }}
         />
       }
@@ -175,10 +179,14 @@ export function TtsColorsEditor({
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={({ active, over }: DragEndEvent) => {
-              if (!over) return;
+              if (!over) {
+                return;
+              }
               const from = indexFromSortableId(active.id, sortablePrefix);
               const to = indexFromSortableId(over.id, sortablePrefix);
-              if (from == null || to == null || from === to) return;
+              if (from == null || to == null || from === to) {
+                return;
+              }
               onChange(moveTtsColor(value, from, to));
             }}
           >

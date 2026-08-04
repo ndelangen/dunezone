@@ -31,8 +31,8 @@ export interface TopicIconProps {
 }
 
 /**
- * The canonical, decorative icon for a recurring application topic.
- * The surrounding heading or label owns the accessible name.
+ * The canonical, decorative icon for a recurring application topic. The surrounding heading or
+ * label owns the accessible name.
  */
 export function TopicIcon({ topic, size = 16, className }: TopicIconProps) {
   const definition = TOPIC_ICON_DEFINITIONS[topic];

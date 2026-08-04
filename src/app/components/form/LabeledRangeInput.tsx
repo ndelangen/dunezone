@@ -21,8 +21,8 @@ export interface LabeledRangeInputProps {
 }
 
 /**
- * Native range input with label and optional live value display.
- * Optionally syncs the parent when the numeric value is out of `[min, max]` after normalization.
+ * Native range input with label and optional live value display. Optionally syncs the parent when
+ * the numeric value is out of `[min, max]` after normalization.
  */
 export function LabeledRangeInput({
   id,
@@ -37,11 +37,15 @@ export function LabeledRangeInput({
 }: LabeledRangeInputProps) {
   const raw = Number(value);
   let numeric = Number.isFinite(raw) ? raw : min;
-  if (integer) numeric = Math.round(numeric);
+  if (integer) {
+    numeric = Math.round(numeric);
+  }
   const normalized = clamp(numeric, min, max);
 
   useLayoutEffect(() => {
-    if (numeric !== normalized) onChange(normalized);
+    if (numeric !== normalized) {
+      onChange(normalized);
+    }
   }, [numeric, normalized, onChange]);
 
   const display = formatDisplay != null ? formatDisplay(normalized) : String(normalized);

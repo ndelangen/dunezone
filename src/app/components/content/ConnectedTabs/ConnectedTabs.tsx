@@ -179,7 +179,9 @@ function useConnectedTabsGeometry({
 
     measure();
 
-    if (typeof ResizeObserver === 'undefined') return;
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
     const observer = new ResizeObserver(scheduleMeasure);
     observer.observe(root);
     observer.observe(panel);
@@ -281,7 +283,9 @@ function findAdjacentEnabledValue<Value extends string>({
   for (let offset = 1; offset <= items.length; offset += 1) {
     const index = (selectedIndex + direction * offset + items.length) % items.length;
     const item = items[index];
-    if (item && !item.disabled) return item.value;
+    if (item && !item.disabled) {
+      return item.value;
+    }
   }
 
   return value;

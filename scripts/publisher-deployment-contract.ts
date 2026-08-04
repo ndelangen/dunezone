@@ -21,7 +21,9 @@ const STORYBOOK_STORY_ID = 'game-assets-composition-background--radial-token';
 type JsonObject = Record<string, unknown>;
 
 function invariant(condition: unknown, message: string): asserts condition {
-  if (!condition) throw new Error(message);
+  if (!condition) {
+    throw new Error(message);
+  }
 }
 
 function object(value: unknown, name: string): JsonObject {
@@ -247,7 +249,9 @@ async function run(): Promise<void> {
           break;
         } catch (error) {
           lastFailure = error;
-          if (attempt < 12) await new Promise((resolve) => setTimeout(resolve, 5_000));
+          if (attempt < 12) {
+            await new Promise((resolve) => setTimeout(resolve, 5_000));
+          }
         }
       }
       if (lastFailure) {
@@ -322,4 +326,6 @@ async function run(): Promise<void> {
   throw new Error('Expected command: preflight or smoke');
 }
 
-if (import.meta.main) await run();
+if (import.meta.main) {
+  await run();
+}

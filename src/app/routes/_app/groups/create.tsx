@@ -92,7 +92,9 @@ function GroupCreatePage() {
           onSubmit={(e) => {
             e.preventDefault();
             const nextName = name.trim();
-            if (!nextName) return;
+            if (!nextName) {
+              return;
+            }
             setSubmitError(null);
             createGroup.mutate(
               { input: { name: nextName } },
@@ -123,7 +125,9 @@ function GroupCreatePage() {
               value={name}
               onChange={(event) => {
                 setName(event.target.value);
-                if (submitError) setSubmitError(null);
+                if (submitError) {
+                  setSubmitError(null);
+                }
               }}
             />
           </FormField>

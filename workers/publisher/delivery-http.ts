@@ -33,39 +33,59 @@ function entityTagCharacter(character: string): boolean {
 }
 
 function parseEntityTagList(value: string): { star: boolean; tags: EntityTag[] } | null {
-  if (value.trim() === '*') return { star: true, tags: [] };
+  if (value.trim() === '*') {
+    return { star: true, tags: [] };
+  }
   const tags: EntityTag[] = [];
   let index = 0;
   while (index < value.length) {
-    while (value[index] === ' ' || value[index] === '\t') index += 1;
+    while (value[index] === ' ' || value[index] === '\t') {
+      index += 1;
+    }
     let weak = false;
     if (value.startsWith('W/', index)) {
       weak = true;
       index += 2;
     }
-    if (value[index] !== '"') return null;
+    if (value[index] !== '"') {
+      return null;
+    }
     index += 1;
     let opaque = '';
     while (index < value.length && value[index] !== '"') {
       const character = value[index];
-      if (!character || !entityTagCharacter(character)) return null;
+      if (!character || !entityTagCharacter(character)) {
+        return null;
+      }
       opaque += character;
       index += 1;
     }
-    if (value[index] !== '"') return null;
+    if (value[index] !== '"') {
+      return null;
+    }
     index += 1;
     tags.push({ weak, opaque });
-    while (value[index] === ' ' || value[index] === '\t') index += 1;
-    if (index === value.length) break;
-    if (value[index] !== ',') return null;
+    while (value[index] === ' ' || value[index] === '\t') {
+      index += 1;
+    }
+    if (index === value.length) {
+      break;
+    }
+    if (value[index] !== ',') {
+      return null;
+    }
     index += 1;
-    if (index === value.length) return null;
+    if (index === value.length) {
+      return null;
+    }
   }
   return tags.length > 0 ? { star: false, tags } : null;
 }
 
 function currentEntityTag(value: string | undefined): EntityTag | null {
-  if (value === undefined) return null;
+  if (value === undefined) {
+    return null;
+  }
   const parsed = parseEntityTagList(value);
   return parsed && !parsed.star && parsed.tags.length === 1 ? (parsed.tags[0] ?? null) : null;
 }
@@ -138,7 +158,9 @@ export function parseHttpDate(value: string, now = Date.now()): number | null {
   if (rfc850) {
     const currentYear = new Date(now).getUTCFullYear();
     let year = Math.floor(currentYear / 100) * 100 + Number(rfc850[4]);
-    if (year > currentYear + 50) year -= 100;
+    if (year > currentYear + 50) {
+      year -= 100;
+    }
     return validUtc(
       year,
       monthIndex(rfc850[3] ?? ''),
@@ -154,7 +176,9 @@ export function parseHttpDate(value: string, now = Date.now()): number | null {
     /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (?: (\d)|(\d{2})) (\d{2}):(\d{2}):(\d{2}) (\d{4})$/.exec(
       value
     );
-  if (!asctime) return null;
+  if (!asctime) {
+    return null;
+  }
   return validUtc(
     Number(asctime[8]),
     monthIndex(asctime[2] ?? ''),
@@ -168,8 +192,12 @@ export function parseHttpDate(value: string, now = Date.now()): number | null {
 
 function ifMatchPasses(value: string, representation: AssetRepresentation): boolean {
   const parsed = parseEntityTagList(value);
-  if (!parsed) return false;
-  if (parsed.star) return representation.exists;
+  if (!parsed) {
+    return false;
+  }
+  if (parsed.star) {
+    return representation.exists;
+  }
   const current = currentEntityTag(representation.etag);
   return (
     representation.exists &&
@@ -181,8 +209,12 @@ function ifMatchPasses(value: string, representation: AssetRepresentation): bool
 
 function ifNoneMatchPasses(value: string, representation: AssetRepresentation): boolean {
   const parsed = parseEntityTagList(value);
-  if (!parsed) return true;
-  if (parsed.star) return !representation.exists;
+  if (!parsed) {
+    return true;
+  }
+  if (parsed.star) {
+    return !representation.exists;
+  }
   const current = currentEntityTag(representation.etag);
   return (
     !representation.exists ||
@@ -213,11 +245,15 @@ function ifRangePasses(value: string, representation: AssetRepresentation, now: 
 
 function resolvedRange(value: string, size: number): { offset: number; length: number } | null {
   const match = /^bytes=(?:(\d+)-(\d*)|-(\d+))$/.exec(value);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   const suffix = match[3];
   if (suffix !== undefined) {
     const requestedLength = Number(suffix);
-    if (!Number.isSafeInteger(requestedLength) || requestedLength <= 0 || size <= 0) return null;
+    if (!Number.isSafeInteger(requestedLength) || requestedLength <= 0 || size <= 0) {
+      return null;
+    }
     const length = Math.min(requestedLength, size);
     return { offset: size - length, length };
   }
@@ -242,7 +278,9 @@ export function evaluateAssetRequest(
   now = Date.now()
 ): AssetRequestDecision {
   const ifMatch = request.headers.get('If-Match');
-  if (ifMatch !== null && !ifMatchPasses(ifMatch, representation)) return { status: 412 };
+  if (ifMatch !== null && !ifMatchPasses(ifMatch, representation)) {
+    return { status: 412 };
+  }
 
   if (ifMatch === null && representation.exists) {
     const ifUnmodifiedSince = request.headers.get('If-Unmodified-Since');
@@ -271,19 +309,29 @@ export function evaluateAssetRequest(
     }
   }
 
-  if (!representation.exists) return { status: 404 };
-  if (request.method === 'HEAD') return { status: 200 };
+  if (!representation.exists) {
+    return { status: 404 };
+  }
+  if (request.method === 'HEAD') {
+    return { status: 200 };
+  }
 
   const rangeValue = request.headers.get('Range');
-  if (rangeValue === null) return { status: 200 };
+  if (rangeValue === null) {
+    return { status: 200 };
+  }
   const ifRange = request.headers.get('If-Range');
-  if (ifRange !== null && !ifRangePasses(ifRange, representation, now)) return { status: 200 };
+  if (ifRange !== null && !ifRangePasses(ifRange, representation, now)) {
+    return { status: 200 };
+  }
 
   const size =
     Number.isSafeInteger(representation.size) && (representation.size ?? -1) >= 0
       ? representation.size
       : undefined;
   const range = size === undefined ? null : resolvedRange(rangeValue, size);
-  if (!range) return { status: 416, size };
+  if (!range) {
+    return { status: 416, size };
+  }
   return { status: 206, range };
 }

@@ -11,6 +11,9 @@
   "arrowParens": "always",
   "bracketSameLine": false,
   "bracketSpacing": true,
+  "jsdoc": {
+    "keepUnparsableExampleIndent": true
+  },
   "sortImports": {
     "newlinesBetween": false,
     "customGroups": [

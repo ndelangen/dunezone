@@ -103,13 +103,17 @@ function buttonWithText(text: string) {
   const button = [...(container?.querySelectorAll('button') ?? [])].find(
     (candidate) => candidate.textContent?.trim() === text
   );
-  if (!button) throw new Error(`Missing button: ${text}`);
+  if (!button) {
+    throw new Error(`Missing button: ${text}`);
+  }
   return button;
 }
 
 function buttonWithLabel(label: string) {
   const button = container?.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
-  if (!button) throw new Error(`Missing button: ${label}`);
+  if (!button) {
+    throw new Error(`Missing button: ${label}`);
+  }
   return button;
 }
 
@@ -149,7 +153,9 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (root) await act(async () => root?.unmount());
+  if (root) {
+    await act(async () => root?.unmount());
+  }
   container?.remove();
   root = undefined;
   container = undefined;

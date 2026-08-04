@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Fails if Convex useQuery `"skip"` appears under src/app domain db modules.
- * Prefer mounting a child component that calls useQuery with real args instead.
+ * Fails if Convex useQuery `"skip"` appears under src/app domain db modules. Prefer mounting a
+ * child component that calls useQuery with real args instead.
  */
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
@@ -13,8 +13,11 @@ async function* walk(dir) {
   const entries = await readdir(dir, { withFileTypes: true });
   for (const e of entries) {
     const p = join(dir, e.name);
-    if (e.isDirectory()) yield* walk(p);
-    else if (e.isFile() && e.name === 'db.ts') yield p;
+    if (e.isDirectory()) {
+      yield* walk(p);
+    } else if (e.isFile() && e.name === 'db.ts') {
+      yield p;
+    }
   }
 }
 

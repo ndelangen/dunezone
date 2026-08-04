@@ -21,7 +21,9 @@ const settingsResult = v.object({
 
 function parseRendererRevisions(value: Record<string, number>) {
   const parsed = rendererRevisionsSchema.safeParse(value);
-  if (!parsed.success) throw new Error('Invalid Renderer revision map');
+  if (!parsed.success) {
+    throw new Error('Invalid Renderer revision map');
+  }
   return parsed.data;
 }
 
@@ -68,7 +70,9 @@ export const activateRevisions = internalMutation({
   handler: async (ctx, args) => {
     const rendererRevisions = parseRendererRevisions(args.rendererRevisions);
     const settings = await publicationSettings(ctx);
-    if (!settings) throw new Error('Publication settings are not initialized');
+    if (!settings) {
+      throw new Error('Publication settings are not initialized');
+    }
 
     for (const [assetType, storedRevision] of Object.entries(settings.renderer_revisions)) {
       const checkedInRevision = rendererRevisions[assetType];
@@ -143,9 +147,13 @@ export const page = query({
   ),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return { access: 'unauthenticated' as const };
+    if (!userId) {
+      return { access: 'unauthenticated' as const };
+    }
     const user = await ctx.db.get('users', userId);
-    if (!user?.isAdmin) return { access: 'not_authorized' as const };
+    if (!user?.isAdmin) {
+      return { access: 'not_authorized' as const };
+    }
 
     const [pending, inProgress, errors, settings] = await Promise.all([
       ctx.db
@@ -210,7 +218,9 @@ export const setPickupEnabled = mutation({
   handler: async (ctx, args) => {
     await requireAdminUserId(ctx);
     const settings = await publicationSettings(ctx);
-    if (!settings) throw new Error('Publication settings are not initialized');
+    if (!settings) {
+      throw new Error('Publication settings are not initialized');
+    }
     const updatedAt = Date.now();
     await ctx.db.patch(settings._id, {
       publication_pickup_enabled: args.enabled,

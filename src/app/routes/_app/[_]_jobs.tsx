@@ -268,7 +268,9 @@ function formatAssetType(value: string) {
 }
 
 function formatDate(value: number | null) {
-  if (value === null) return '—';
+  if (value === null) {
+    return '—';
+  }
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',

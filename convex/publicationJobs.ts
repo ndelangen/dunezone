@@ -132,8 +132,12 @@ export const readJobForRender = internalQuery({
   ),
   handler: async (ctx, args) => {
     const job = await ctx.db.get(args.jobId);
-    if (job?.status !== 'in_progress' || (job.expires_at ?? 0) <= Date.now()) return null;
-    if (job.asset_type !== FACTION_SHEET_ASSET_TYPE) return null;
+    if (job?.status !== 'in_progress' || (job.expires_at ?? 0) <= Date.now()) {
+      return null;
+    }
+    if (job.asset_type !== FACTION_SHEET_ASSET_TYPE) {
+      return null;
+    }
     const payload = factionSheetAssetDataSchema.parse(job.asset_data);
     return {
       payload,
@@ -156,7 +160,9 @@ export const completeJob = internalMutation({
   ),
   handler: async (ctx, args) => {
     const job = await ctx.db.get(args.jobId);
-    if (job?.status !== 'in_progress') return { status: 'missing' as const };
+    if (job?.status !== 'in_progress') {
+      return { status: 'missing' as const };
+    }
 
     const existing = await ctx.db
       .query('publication_assets')
@@ -200,7 +206,9 @@ export const failJob = internalMutation({
   ),
   handler: async (ctx, args) => {
     const job = await ctx.db.get(args.jobId);
-    if (job?.status !== 'in_progress') return { status: 'missing' as const };
+    if (job?.status !== 'in_progress') {
+      return { status: 'missing' as const };
+    }
     const status = await recordFailure(ctx, job, args.error.slice(0, 2_000), Date.now());
     return { status, attemptCounter: job.attempt_counter + 1 };
   },

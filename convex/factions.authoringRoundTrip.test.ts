@@ -209,7 +209,9 @@ describe('faction authoring full-field round trip', () => {
       status: 'pending',
       attempt_counter: 0,
     });
-    if (!createdJob) throw new Error('Missing faction sheet job after create');
+    if (!createdJob) {
+      throw new Error('Missing faction sheet job after create');
+    }
 
     const rulesetId = await t.run(async (ctx) => {
       const id = await ctx.db.insert('rulesets', {

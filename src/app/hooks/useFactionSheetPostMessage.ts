@@ -3,14 +3,14 @@ import { useLayoutEffect, useState } from 'react';
 import type { Faction } from '@db/factions';
 import { FactionInputSchema } from '@game/schema/faction';
 
-/** v1 postMessage envelope from parent window → sheet iframe. */
+/** V1 postMessage envelope from parent window → sheet iframe. */
 export type FactionSheetSetMessageV1 = {
   v: 1;
   type: 'faction:sheet:set';
   payload: unknown;
 };
 
-/** v1 postMessage from sheet iframe → parent: listener is ready, send current faction. */
+/** V1 postMessage from sheet iframe → parent: listener is ready, send current faction. */
 export type FactionSheetRequestMessageV1 = {
   v: 1;
   type: 'faction:sheet:request';
@@ -21,8 +21,8 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 /**
- * Live preview: apply faction JSON from parent via postMessage.
- * Only accepts same-origin messages (adjust if you embed cross-origin later).
+ * Live preview: apply faction JSON from parent via postMessage. Only accepts same-origin messages
+ * (adjust if you embed cross-origin later).
  */
 export function useFactionSheetPostMessage(enabled: boolean) {
   const [faction, setFaction] = useState<Faction | null>(null);

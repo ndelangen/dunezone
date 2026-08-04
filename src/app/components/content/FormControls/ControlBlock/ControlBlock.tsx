@@ -22,13 +22,17 @@ function OverflowTooltipText({
 
   useLayoutEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element) {
+      return;
+    }
 
     const update = () =>
       setIsOverflowing(text.length > 0 && element.scrollWidth > element.clientWidth);
     update();
 
-    if (typeof ResizeObserver === 'undefined') return;
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
     const observer = new ResizeObserver(update);
     observer.observe(element);
     return () => observer.disconnect();
@@ -59,9 +63,9 @@ function OverflowTooltipText({
 }
 
 /**
- * Frames a descriptive form control with single-line guidance, overflow help,
- * optional tools, and group semantics. Nested inputs and icon-only tools remain
- * responsible for their own accessible names.
+ * Frames a descriptive form control with single-line guidance, overflow help, optional tools, and
+ * group semantics. Nested inputs and icon-only tools remain responsible for their own accessible
+ * names.
  */
 export function ControlBlock({ title, description, tool, input }: ControlBlockProps) {
   const id = useId();

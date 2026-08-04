@@ -17,7 +17,9 @@ async function realPdf(pageSizes: ReadonlyArray<readonly [number, number]>): Pro
 function startxrefOffset(bytes: Uint8Array): number {
   const text = new TextDecoder('latin1').decode(bytes);
   const match = /startxref\s+(\d+)\s+%%EOF\s*$/.exec(text);
-  if (!match) throw new Error('Fixture has no startxref');
+  if (!match) {
+    throw new Error('Fixture has no startxref');
+  }
   return Number(match[1]);
 }
 
@@ -65,7 +67,9 @@ test('rejects a real PDF with a wrong in-range startxref offset', async () => {
   const pdf = await realPdf([[150 * pointsPerMm, 195 * pointsPerMm]]);
   const text = new TextDecoder('latin1').decode(pdf);
   const match = /startxref\s+(\d+)\s+%%EOF\s*$/.exec(text);
-  if (!match?.[1] || match.index === undefined) throw new Error('Fixture has no startxref');
+  if (!match?.[1] || match.index === undefined) {
+    throw new Error('Fixture has no startxref');
+  }
   const wrongOffset = String(Number(match[1]) - 1).padStart(match[1].length, '0');
   const digitsOffset = match.index + match[0].indexOf(match[1]);
   const corrupted = pdf.slice();
@@ -96,7 +100,9 @@ test('rejects duplicate or overlapping classic xref object coverage', async () =
   const xrefText = new TextDecoder('latin1').decode(pdf.subarray(xref));
   const objectOne = /xref\s+0\s+\d+\s+\d{10}\s\d{5}\sf\s+(\d{10}\s\d{5}\sn\s+)/.exec(xrefText)?.[1];
   const trailerRelative = xrefText.indexOf('\ntrailer\n');
-  if (!objectOne || trailerRelative < 0) throw new Error('Fixture has no object 1 xref entry');
+  if (!objectOne || trailerRelative < 0) {
+    throw new Error('Fixture has no object 1 xref entry');
+  }
   const insertion = new TextEncoder().encode(`1 1\n${objectOne}`);
   const trailerOffset = xref + trailerRelative + 1;
   const corrupted = new Uint8Array(pdf.length + insertion.length);
@@ -113,7 +119,9 @@ test('rejects classic xref object numbers outside trailer Size', async () => {
   const xrefText = new TextDecoder('latin1').decode(pdf.subarray(xref));
   const size = /\/Size\s+(\d+)/.exec(xrefText)?.[1];
   const trailerRelative = xrefText.indexOf('\ntrailer\n');
-  if (!size || trailerRelative < 0) throw new Error('Fixture has no trailer Size');
+  if (!size || trailerRelative < 0) {
+    throw new Error('Fixture has no trailer Size');
+  }
   const insertion = new TextEncoder().encode(`${size} 1\n0000000000 00000 f \n`);
   const trailerOffset = xref + trailerRelative + 1;
   const corrupted = new Uint8Array(pdf.length + insertion.length);

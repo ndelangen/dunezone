@@ -128,13 +128,19 @@ export function useCurrentProfile() {
   const bootstrapAttemptedRef = useRef(false);
 
   useEffect(() => {
-    if (userId === undefined || liveData === undefined) return;
+    if (userId === undefined || liveData === undefined) {
+      return;
+    }
     if (userId === null) {
       bootstrapAttemptedRef.current = false;
       return;
     }
-    if (liveData !== null) return;
-    if (bootstrapAttemptedRef.current) return;
+    if (liveData !== null) {
+      return;
+    }
+    if (bootstrapAttemptedRef.current) {
+      return;
+    }
     bootstrapAttemptedRef.current = true;
     void bootstrap({}).catch(() => {
       bootstrapAttemptedRef.current = false;

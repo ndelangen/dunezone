@@ -16,7 +16,9 @@ function response(body: unknown, status = 200): Response {
 
 function toBase64Url(bytes: Uint8Array): string {
   let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
   return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
 }
 
@@ -63,10 +65,14 @@ async function verifyHmacBytes(
 }
 
 function cacheSigningSecretBytes(secret: string | undefined): Uint8Array | null {
-  if (!secret || !CACHE_SIGNING_SECRET_PATTERN.test(secret)) return null;
+  if (!secret || !CACHE_SIGNING_SECRET_PATTERN.test(secret)) {
+    return null;
+  }
   const encoded = secret.slice(3);
   const bytes = fromBase64Url(encoded);
-  if (bytes?.byteLength !== 32 || toBase64Url(bytes) !== encoded) return null;
+  if (bytes?.byteLength !== 32 || toBase64Url(bytes) !== encoded) {
+    return null;
+  }
   return bytes;
 }
 
@@ -86,7 +92,9 @@ export async function matchesBearerSecret(
   request: Request,
   expectedSecret: string | undefined
 ): Promise<boolean> {
-  if (!expectedSecret) return false;
+  if (!expectedSecret) {
+    return false;
+  }
   const actual = request.headers.get('Authorization') ?? '';
   const [expectedHash, actualHash] = await Promise.all([
     crypto.subtle.digest('SHA-256', encoder.encode(`Bearer ${expectedSecret}`)),
@@ -134,7 +142,9 @@ export async function handleAuthenticatedJson<T>(
     if (reader) {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          break;
+        }
         actualBytes += value.byteLength;
         if (actualBytes > MAX_PUBLISHER_JSON_BODY_BYTES) {
           await reader.cancel('Publisher request body too large');
@@ -163,7 +173,9 @@ export async function handleAuthenticatedJson<T>(
     return response({ error: 'Body must be valid JSON' }, 400);
   }
   const parsed = options.schema.safeParse(body);
-  if (!parsed.success) return response({ error: 'Invalid publisher request' }, 400);
+  if (!parsed.success) {
+    return response({ error: 'Invalid publisher request' }, 400);
+  }
   try {
     return response(await options.execute(parsed.data));
   } catch (error) {
@@ -181,7 +193,9 @@ export async function createCacheToken(
   secret: string
 ): Promise<string> {
   const secretBytes = cacheSigningSecretBytes(secret);
-  if (!secretBytes) throw new Error('Cache-token signing secret is invalid');
+  if (!secretBytes) {
+    throw new Error('Cache-token signing secret is invalid');
+  }
   const nonce = randomPublisherToken(16);
   const unsigned = `v1.${nonce}`;
   const signature = await hmacBytes(secretBytes, `${unsigned}|${assetId}|${assetType}`);
@@ -195,9 +209,13 @@ export async function verifyCacheToken(
   secret: string | undefined
 ): Promise<boolean> {
   const secretBytes = cacheSigningSecretBytes(secret);
-  if (!secretBytes || !CACHE_TOKEN_PATTERN.test(token)) return false;
+  if (!secretBytes || !CACHE_TOKEN_PATTERN.test(token)) {
+    return false;
+  }
   const [version, nonce, encodedSignature, extra] = token.split('.');
-  if (version !== 'v1' || !nonce || !encodedSignature || extra) return false;
+  if (version !== 'v1' || !nonce || !encodedSignature || extra) {
+    return false;
+  }
   const nonceBytes = fromBase64Url(nonce);
   const signature = fromBase64Url(encodedSignature);
   if (

@@ -64,7 +64,9 @@ function FactionsPage() {
   useEffect(() => setDraftQuery(search.q ?? ''), [search.q]);
 
   useEffect(() => {
-    if (!data) return;
+    if (!data) {
+      return;
+    }
     const canonical = normalizeFactionCatalogueSearch(search, data.rulesets);
     const expected = factionCatalogueSearchParams(canonical).toString();
     const current = new URLSearchParams(window.location.search).toString();
@@ -73,7 +75,9 @@ function FactionsPage() {
     }
   }, [data, navigate, search]);
 
-  if (!data) return <FactionCataloguePending />;
+  if (!data) {
+    return <FactionCataloguePending />;
+  }
 
   const updateSearch = (patch: Partial<FactionCatalogueSearch>) => {
     navigate({
@@ -266,7 +270,9 @@ function CatalogueToolbar({
     [rulesets]
   );
   const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== 'Enter') return;
+    if (event.key !== 'Enter') {
+      return;
+    }
     onCommitQuery();
     event.currentTarget.blur();
   };

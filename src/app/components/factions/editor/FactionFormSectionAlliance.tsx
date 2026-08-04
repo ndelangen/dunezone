@@ -37,7 +37,9 @@ const decalOptions = decalAssetOptions.map((value) => ({
 
 function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
   const decal = form.state.values.decals[index];
-  if (!decal) return null;
+  if (!decal) {
+    return null;
+  }
 
   return (
     <Paper withBorder radius="md" p="md">
@@ -64,7 +66,9 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
                   getPreviewSrc={assetOptionToPreviewSrc}
                   value={field.state.value}
                   onChange={(value) => {
-                    if (value) field.handleChange(value as Faction['decals'][number]['id']);
+                    if (value) {
+                      field.handleChange(value as Faction['decals'][number]['id']);
+                    }
                   }}
                 />
               }
@@ -129,7 +133,9 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(value) => {
-                    if (typeof value === 'number') field.handleChange(value);
+                    if (typeof value === 'number') {
+                      field.handleChange(value);
+                    }
                   }}
                 />
               }
@@ -163,7 +169,9 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(value) => {
-                        if (typeof value === 'number') field.handleChange(value);
+                        if (typeof value === 'number') {
+                          field.handleChange(value);
+                        }
                       }}
                     />
                   }
@@ -185,7 +193,9 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(value) => {
-                        if (typeof value === 'number') field.handleChange(value);
+                        if (typeof value === 'number') {
+                          field.handleChange(value);
+                        }
                       }}
                     />
                   }
@@ -319,7 +329,9 @@ export function FactionFormSectionAlliance({
                         removeDisabled={count === 0}
                         onRemove={() => {
                           const lastIndex = count - 1;
-                          if (lastIndex < 0) return;
+                          if (lastIndex < 0) {
+                            return;
+                          }
                           if (currentSelectedDecalIndex >= lastIndex) {
                             selectDecalIndex(Math.max(0, lastIndex - 1));
                           }

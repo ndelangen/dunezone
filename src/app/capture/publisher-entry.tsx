@@ -13,7 +13,9 @@ import './capture-document.css';
 import { PublisherFactionSheetCapture } from './PublisherFactionSheetCapture';
 
 const root = document.querySelector('#root');
-if (!root) throw new Error('Missing capture root');
+if (!root) {
+  throw new Error('Missing capture root');
+}
 
 createRoot(root).render(
   <StrictMode>

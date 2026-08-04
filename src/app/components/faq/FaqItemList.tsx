@@ -9,9 +9,7 @@ export type FaqItemListProps = {
   children: ReactNode;
 };
 
-/**
- * FAQ thread list shell. Parent owns empty state and row content.
- */
+/** FAQ thread list shell. Parent owns empty state and row content. */
 export function FaqItemList({ className, children }: FaqItemListProps) {
   return (
     <Paper withBorder radius="md" className={styles.surface}>
@@ -35,9 +33,7 @@ export type FaqItemListRowProps = {
   ariaLabel?: string;
 };
 
-/**
- * Single FAQ entry rendered as a lightly divided table row.
- */
+/** Single FAQ entry rendered as a lightly divided table row. */
 export function FaqItemListRow({ children, metadata, onActivate, ariaLabel }: FaqItemListRowProps) {
   const isInteractiveTarget = (target: EventTarget) =>
     target instanceof Element &&
@@ -50,12 +46,18 @@ export function FaqItemListRow({ children, metadata, onActivate, ariaLabel }: Fa
       tabIndex={onActivate ? 0 : undefined}
       aria-label={onActivate ? ariaLabel : undefined}
       onClick={(event) => {
-        if (!onActivate || isInteractiveTarget(event.target)) return;
+        if (!onActivate || isInteractiveTarget(event.target)) {
+          return;
+        }
         onActivate();
       }}
       onKeyDown={(event) => {
-        if (!onActivate || event.target !== event.currentTarget) return;
-        if (event.key !== 'Enter' && event.key !== ' ') return;
+        if (!onActivate || event.target !== event.currentTarget) {
+          return;
+        }
+        if (event.key !== 'Enter' && event.key !== ' ') {
+          return;
+        }
         event.preventDefault();
         onActivate();
       }}

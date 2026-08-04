@@ -70,7 +70,9 @@ export function FactionFormSectionHero({
                       getPreviewSrc={assetOptionToPreviewSrc}
                       value={field.state.value}
                       onChange={(value) => {
-                        if (value) field.handleChange(value as Faction['hero']['image']);
+                        if (value) {
+                          field.handleChange(value as Faction['hero']['image']);
+                        }
                       }}
                     />
                   }

@@ -30,10 +30,14 @@ function ScaledFactionShield({ faction }: { faction: Faction }) {
 
   useLayoutEffect(() => {
     const frame = frameRef.current;
-    if (!frame) return;
+    if (!frame) {
+      return;
+    }
     const update = () => setFrameWidth(frame.clientWidth || 352);
     update();
-    if (typeof ResizeObserver === 'undefined') return;
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
     const observer = new ResizeObserver(update);
     observer.observe(frame);
     return () => observer.disconnect();
@@ -60,7 +64,9 @@ function ReviewProofDesk({ faction }: { faction: Faction }) {
 
   const updateScrollCue = useCallback(() => {
     const scroller = scrollerRef.current;
-    if (!scroller) return;
+    if (!scroller) {
+      return;
+    }
     const hasOverflow = scroller.scrollHeight > scroller.clientHeight + 2;
     const pageOne = scroller.querySelector('[data-review-sheet-page="1"]');
     const pageTwo = scroller.querySelector('[data-review-sheet-page="2"]');
@@ -82,7 +88,9 @@ function ReviewProofDesk({ faction }: { faction: Faction }) {
     const scroller = scrollerRef.current;
     if (scroller) {
       observer.observe(scroller);
-      if (scroller.firstElementChild) observer.observe(scroller.firstElementChild);
+      if (scroller.firstElementChild) {
+        observer.observe(scroller.firstElementChild);
+      }
     }
     return () => {
       cancelAnimationFrame(frame);
@@ -213,7 +221,9 @@ export const FactionSheetReview = forwardRef<
 
   const openReview = useCallback(
     (trigger?: HTMLElement | null) => {
-      if (!window.matchMedia(DESKTOP_REVIEW_MEDIA).matches) return;
+      if (!window.matchMedia(DESKTOP_REVIEW_MEDIA).matches) {
+        return;
+      }
       reviewTriggerRef.current = trigger ?? null;
       setEditorPlaneWidth(stageRef.current?.clientWidth ?? 0);
       if (reviewMounted) {
@@ -233,17 +243,23 @@ export const FactionSheetReview = forwardRef<
   useEffect(() => {
     const media = window.matchMedia(DESKTOP_REVIEW_MEDIA);
     const onMediaChange = (event: MediaQueryListEvent) => {
-      if (!event.matches) setReviewOpen(false);
+      if (!event.matches) {
+        setReviewOpen(false);
+      }
     };
     media.addEventListener('change', onMediaChange);
     return () => media.removeEventListener('change', onMediaChange);
   }, []);
 
   useEffect(() => {
-    if (!reviewOpen) return;
+    if (!reviewOpen) {
+      return;
+    }
     closeButtonRef.current?.focus({ preventScroll: true });
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeReview();
+      if (event.key === 'Escape') {
+        closeReview();
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -251,7 +267,9 @@ export const FactionSheetReview = forwardRef<
 
   useEffect(
     () => () => {
-      if (mountFrameRef.current != null) cancelAnimationFrame(mountFrameRef.current);
+      if (mountFrameRef.current != null) {
+        cancelAnimationFrame(mountFrameRef.current);
+      }
     },
     []
   );

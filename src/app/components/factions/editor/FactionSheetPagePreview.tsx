@@ -7,11 +7,13 @@ import { FactionSheetView } from '../sheet/FactionSheetView';
 import styles from './FactionSheetPagePreview.module.css';
 
 /**
- * The faction name is the editor's sole blocking field. Keep all other current
- * draft values live while representing a temporarily blank name invisibly.
+ * The faction name is the editor's sole blocking field. Keep all other current draft values live
+ * while representing a temporarily blank name invisibly.
  */
 export function factionDraftForRenderer(faction: Faction): Faction {
-  if (faction.name.trim().length > 0) return faction;
+  if (faction.name.trim().length > 0) {
+    return faction;
+  }
   return { ...faction, name: '\u200B' };
 }
 
@@ -31,9 +33,13 @@ function preparePreviewDocument(document: Document) {
 
 function alignIframePage(iframe: HTMLIFrameElement | null, pageNumber: 1 | 2) {
   const document = iframe?.contentDocument;
-  if (!document) return;
+  if (!document) {
+    return;
+  }
   const target = document.querySelector<HTMLElement>(`[data-faction-sheet-page="${pageNumber}"]`);
-  if (!target) return;
+  if (!target) {
+    return;
+  }
   const top = target.offsetTop;
   document.documentElement.scrollTop = top;
   document.body.scrollTop = top;
@@ -51,7 +57,9 @@ export function FactionSheetPagePreview({
   const renderFaction = useMemo(() => factionDraftForRenderer(faction), [faction]);
 
   useLayoutEffect(() => {
-    if (!portalRoot) return;
+    if (!portalRoot) {
+      return;
+    }
     const firstFrame = window.requestAnimationFrame(() => {
       alignIframePage(iframeRef.current, pageNumber);
       window.requestAnimationFrame(() => alignIframePage(iframeRef.current, pageNumber));
@@ -70,7 +78,9 @@ export function FactionSheetPagePreview({
         scrolling="no"
         onLoad={() => {
           const document = iframeRef.current?.contentDocument;
-          if (!document) return;
+          if (!document) {
+            return;
+          }
           preparePreviewDocument(document);
           setPortalRoot(document.body);
         }}

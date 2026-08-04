@@ -39,8 +39,14 @@ export async function canAccessRuleset(
   },
   userId: Id<'users'>
 ) {
-  if (ruleset.is_deleted) return false;
-  if (ruleset.owner_id === userId) return true;
-  if (!ruleset.group_id) return false;
+  if (ruleset.is_deleted) {
+    return false;
+  }
+  if (ruleset.owner_id === userId) {
+    return true;
+  }
+  if (!ruleset.group_id) {
+    return false;
+  }
   return await isActiveGroupMember(ctx, ruleset.group_id, userId);
 }

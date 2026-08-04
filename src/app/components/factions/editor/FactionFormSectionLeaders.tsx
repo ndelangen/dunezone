@@ -36,7 +36,9 @@ function SupportingLeaderCard({
   showPreview: boolean;
 }) {
   const leader = form.state.values.leaders[index];
-  if (!leader) return null;
+  if (!leader) {
+    return null;
+  }
 
   return (
     <Paper
@@ -199,7 +201,9 @@ export function FactionFormSectionLeaders({
   const [pendingLeaderFocusId, setPendingLeaderFocusId] = useState<string | null>(null);
 
   useLayoutEffect(() => {
-    if (pendingLeaderFocusId == null) return;
+    if (pendingLeaderFocusId == null) {
+      return;
+    }
     if (typeof document !== 'undefined') {
       const target = document.getElementById(pendingLeaderFocusId);
       if (target instanceof HTMLInputElement) {
@@ -237,14 +241,18 @@ export function FactionFormSectionLeaders({
                   addDisabled={!canAdd}
                   onRemove={() => {
                     const lastIndex = count - 1;
-                    if (lastIndex < 0) return;
+                    if (lastIndex < 0) {
+                      return;
+                    }
                     if (currentSelectedIndex >= lastIndex) {
                       selectIndex(Math.max(0, lastIndex - 1));
                     }
                     field.removeValue(lastIndex);
                   }}
                   onAdd={() => {
-                    if (!canAdd) return;
+                    if (!canAdd) {
+                      return;
+                    }
                     const newIndex = count;
                     field.pushValue(nextLeaderFromLast(field.state.value[newIndex - 1]));
                     selectIndex(newIndex);

@@ -31,7 +31,9 @@ function bodyObject(
   options: { etag?: string; range?: R2Range; size?: number; token?: string } = {}
 ): R2ObjectBody {
   const body = new Response(bytes).body;
-  if (!body) throw new Error('missing test stream');
+  if (!body) {
+    throw new Error('missing test stream');
+  }
   const base = fakeR2Object({
     key: `factions/${FACTION_ID}/sheet.pdf`,
     etag: options.etag ?? 'etag-one',

@@ -50,14 +50,18 @@ export function assertCapturedPdfOutput(inspection: {
 }
 
 export function assertCaptureDiagnostics(diagnostics: CaptureDiagnostics): void {
-  if (!diagnostics.issues.length) return;
+  if (!diagnostics.issues.length) {
+    return;
+  }
   const dropped = diagnostics.dropped ? ` | ${diagnostics.dropped} additional issues dropped` : '';
   throw new Error(`Capture issues: ${diagnostics.issues.join(' | ')}${dropped}`);
 }
 
 function remaining(deadline: number): number {
   const value = Math.ceil(deadline - performance.now());
-  if (value <= 0) throw new Error('Browser capture exhausted its deadline');
+  if (value <= 0) {
+    throw new Error('Browser capture exhausted its deadline');
+  }
   return value;
 }
 
@@ -89,12 +93,16 @@ export function registerCaptureDiagnostics(page: Page): CaptureDiagnostics {
     );
   };
   page.on('console', (message: ConsoleMessage) => {
-    if (message.type() === 'error') add('console', message.text());
+    if (message.type() === 'error') {
+      add('console', message.text());
+    }
   });
   page.on('requestfailed', (request) => add('request', failureLabel(request)));
   page.on('pageerror', (error) => add('page', publisherErrorMessage(error)));
   page.on('response', (response) => {
-    if (response.status() >= 400) add('http', responseFailureLabel(response));
+    if (response.status() >= 400) {
+      add('http', responseFailureLabel(response));
+    }
   });
   return diagnostics;
 }
@@ -130,7 +138,9 @@ export async function inspectPublisherPdf(bytes: Uint8Array) {
     assertCapturedPdfOutput(inspection);
     return inspection;
   } catch (error) {
-    if (error instanceof TargetRenderError) throw error;
+    if (error instanceof TargetRenderError) {
+      throw error;
+    }
     throw new TargetRenderError('Captured output is not a valid PDF', { cause: error });
   }
 }
@@ -156,8 +166,9 @@ async function assertPageBounds(page: Page, deadline: number): Promise<void> {
   const width = (PDF_CONTRACT.pageWidthMm * 96) / 25.4;
   const height = (PDF_CONTRACT.pageHeightMm * 96) / 25.4;
   const pages = page.locator('[data-faction-sheet-page]');
-  if ((await pages.count()) !== PDF_CONTRACT.pageCount)
+  if ((await pages.count()) !== PDF_CONTRACT.pageCount) {
     throw new Error(`Capture route did not render exactly ${PDF_CONTRACT.pageCount} pages`);
+  }
   for (let index = 0; index < PDF_CONTRACT.pageCount; index += 1) {
     const bounds = await pages.nth(index).boundingBox({ timeout: remaining(deadline) });
     if (
@@ -246,7 +257,9 @@ export class PublisherBrowserSession {
       assertCaptureDiagnostics(diagnostics);
       return { bytes, payloadHash };
     } catch (error) {
-      if (error instanceof TargetRenderError) throw error;
+      if (error instanceof TargetRenderError) {
+        throw error;
+      }
       throw new Error(`Browser capture failed during ${phase}`, { cause: error });
     }
   }

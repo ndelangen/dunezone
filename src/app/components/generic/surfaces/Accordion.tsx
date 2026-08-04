@@ -13,8 +13,8 @@ export interface AccordionSectionProps {
 }
 
 /**
- * Single-section disclosure: one header toggles visibility of panel content.
- * Styling matches the faction editor accordion; usable anywhere a stacked disclosure is needed.
+ * Single-section disclosure: one header toggles visibility of panel content. Styling matches the
+ * faction editor accordion; usable anywhere a stacked disclosure is needed.
  */
 export function AccordionSection({
   sectionId,

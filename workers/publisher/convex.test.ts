@@ -84,7 +84,9 @@ describe('Convex Publication client', () => {
     });
 
     const work = await client.takeWork();
-    if (work.status !== 'assigned') throw new Error('Expected assigned work');
+    if (work.status !== 'assigned') {
+      throw new Error('Expected assigned work');
+    }
     await client.complete(work.items[0].jobId, cacheToken);
     await client.fail(work.items[0].jobId, 'invalid output');
 

@@ -177,7 +177,9 @@ function RulesetDetailPage() {
     updateRuleset.error?.message;
 
   const handleDelete = () => {
-    if (!window.confirm(`Delete ruleset "${r.name}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete ruleset "${r.name}"? This cannot be undone.`)) {
+      return;
+    }
     deleteRuleset.mutate(r._id, {
       onSuccess: () => navigate({ to: '/rulesets' }),
     });

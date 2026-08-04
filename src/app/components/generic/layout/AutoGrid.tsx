@@ -24,9 +24,7 @@ export type AutoGridProps<T extends ElementType = 'div'> = {
   style?: CSSProperties;
 } & Omit<ComponentPropsWithoutRef<T>, 'as' | 'children' | 'className' | 'style'>;
 
-/**
- * Responsive auto-fill grid: columns grow from a minimum track width with consistent gap tokens.
- */
+/** Responsive auto-fill grid: columns grow from a minimum track width with consistent gap tokens. */
 export function AutoGrid<T extends ElementType = 'div'>({
   as,
   minColumnWidth = '180px',
