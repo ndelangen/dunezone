@@ -8,7 +8,13 @@ import { TextField } from '@app/components/form/TextField';
 import { ButtonGroup, Stack } from '@app/components/generic/layout';
 import { UIButton } from '@app/components/generic/ui/UIButton';
 
-export function RulesetSettingsForm({ initial }: { initial: RulesetEntry }) {
+export function RulesetSettingsForm({
+  initial,
+  canRename,
+}: {
+  initial: RulesetEntry;
+  canRename: boolean;
+}) {
   const navigate = useNavigate();
   const updateRuleset = useUpdateRuleset();
 
@@ -52,10 +58,14 @@ export function RulesetSettingsForm({ initial }: { initial: RulesetEntry }) {
         label="Name"
         htmlFor="ruleset-settings-name"
         hint={
-          <>
-            Changing the name updates the URL slug (e.g. <code>…/rulesets/{initial.slug}</code> may
-            change). Bookmarks and shared links to the old address will stop working.
-          </>
+          canRename ? (
+            <>
+              Changing the name updates the URL slug (e.g. <code>…/rulesets/{initial.slug}</code>{' '}
+              may change). Bookmarks and shared links to the old address will stop working.
+            </>
+          ) : (
+            'Only the ruleset owner can rename it.'
+          )
         }
       >
         <TextField
@@ -65,6 +75,7 @@ export function RulesetSettingsForm({ initial }: { initial: RulesetEntry }) {
           minLength={1}
           value={name}
           onChange={(event) => setName(event.target.value)}
+          disabled={!canRename}
         />
       </FormField>
 

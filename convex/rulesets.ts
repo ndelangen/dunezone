@@ -309,8 +309,16 @@ export const update = mutation({
       throw new Error(`Ruleset with id ${args.id} not found`);
     }
 
-    if (ruleset.owner_id !== userId) {
-      throw new Error('Only the ruleset owner can update this ruleset');
+    const isOwner = ruleset.owner_id === userId;
+    const canEdit = await canAccessRuleset(ctx, ruleset, userId);
+    if (!canEdit) {
+      throw new Error('Not authorized');
+    }
+    if (!isOwner && normalizedName !== ruleset.name) {
+      throw new Error('Only the ruleset owner can rename this ruleset');
+    }
+    if (!isOwner && args.group_id !== undefined) {
+      throw new Error('Only the ruleset owner can change its group');
     }
 
     if (args.group_id !== undefined) {
@@ -366,8 +374,7 @@ export const softDelete = mutation({
       throw new Error(`Ruleset with id ${args.id} not found`);
     }
 
-    const permitted = await canAccessRuleset(ctx, ruleset, userId);
-    if (!permitted) {
+    if (ruleset.owner_id !== userId) {
       throw new Error('Not authorized');
     }
 
