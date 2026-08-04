@@ -1,8 +1,9 @@
 import { v } from 'convex/values';
 
 import type { Doc, Id, TableNames } from './_generated/dataModel';
-import { mutation, query } from './_generated/server';
+import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
+import { mutation } from './functions';
 import {
   removeHomepageNewestMember,
   setHomepageCommunityPresence,

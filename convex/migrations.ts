@@ -5,7 +5,8 @@ import { v } from 'convex/values';
 import { DEFAULT_FAQ_TAG } from '../src/app/faq/tags';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { internalMutation, mutation, query } from './_generated/server';
+import { query } from './_generated/server';
+import { internalMutation, mutation } from './functions';
 import {
   setHomepageCommunityPresence,
   setHomepageRulesetFaqTotals,

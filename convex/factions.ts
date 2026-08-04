@@ -3,8 +3,9 @@ import { v } from 'convex/values';
 
 import { CanonicalFactionStoredSchema } from '../src/game/schema/faction';
 import type { Doc, Id } from './_generated/dataModel';
-import { mutation, query } from './_generated/server';
+import { query } from './_generated/server';
 import { factionSheetPublishingStatus } from './assetPublishingStatus';
+import { mutation } from './functions';
 import {
   enrichFactionsWithRulesets,
   listActiveRulesetSummaries,

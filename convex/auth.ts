@@ -4,6 +4,7 @@ import { Password } from '@convex-dev/auth/providers/Password';
 import { convexAuth } from '@convex-dev/auth/server';
 
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
+import { statisticsTriggers } from './lib/statistics';
 
 const gemini = 'https://www.googleapis.com/auth/generative-language.retriever';
 const localE2eAuthEnabled = process.env.E2E_LOCAL_AUTH === 'true';
@@ -95,11 +96,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       return siteUrl;
     },
     async afterUserCreatedOrUpdated(ctx, { userId }) {
-      const user = await ctx.db.get(userId);
+      const triggerCtx = statisticsTriggers.wrapDB(ctx);
+      const user = await triggerCtx.db.get(userId);
       if (!user) {
         return;
       }
-      await ensureProfileForUser(ctx, userId, profileSourcesFromUserDoc(user));
+      await ensureProfileForUser(triggerCtx, userId, profileSourcesFromUserDoc(user));
     },
   },
 });

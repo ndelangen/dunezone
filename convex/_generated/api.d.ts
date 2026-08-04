@@ -13,6 +13,7 @@ import type * as auth from "../auth.js";
 import type * as e2e from "../e2e.js";
 import type * as factions from "../factions.js";
 import type * as faq from "../faq.js";
+import type * as functions from "../functions.js";
 import type * as groups from "../groups.js";
 import type * as homepage from "../homepage.js";
 import type * as http from "../http.js";
@@ -27,6 +28,7 @@ import type * as lib_profileBootstrap from "../lib/profileBootstrap.js";
 import type * as lib_profileSummary from "../lib/profileSummary.js";
 import type * as lib_publication from "../lib/publication.js";
 import type * as lib_publicationHttp from "../lib/publicationHttp.js";
+import type * as lib_statistics from "../lib/statistics.js";
 import type * as lib_utils from "../lib/utils.js";
 import type * as localDevelopment from "../localDevelopment.js";
 import type * as members from "../members.js";
@@ -37,6 +39,7 @@ import type * as publicationAdmin from "../publicationAdmin.js";
 import type * as publicationJobs from "../publicationJobs.js";
 import type * as publicationRegeneration from "../publicationRegeneration.js";
 import type * as rulesets from "../rulesets.js";
+import type * as statistics from "../statistics.js";
 import type * as types from "../types.js";
 
 import type {
@@ -51,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   e2e: typeof e2e;
   factions: typeof factions;
   faq: typeof faq;
+  functions: typeof functions;
   groups: typeof groups;
   homepage: typeof homepage;
   http: typeof http;
@@ -65,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "lib/profileSummary": typeof lib_profileSummary;
   "lib/publication": typeof lib_publication;
   "lib/publicationHttp": typeof lib_publicationHttp;
+  "lib/statistics": typeof lib_statistics;
   "lib/utils": typeof lib_utils;
   localDevelopment: typeof localDevelopment;
   members: typeof members;
@@ -75,6 +80,7 @@ declare const fullApi: ApiFromModules<{
   publicationJobs: typeof publicationJobs;
   publicationRegeneration: typeof publicationRegeneration;
   rulesets: typeof rulesets;
+  statistics: typeof statistics;
   types: typeof types;
 }>;
 
@@ -107,4 +113,5 @@ export declare const internal: FilterApi<
 export declare const components: {
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
   homepageCommunity: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"homepageCommunity">;
+  statistics: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"statistics">;
 };

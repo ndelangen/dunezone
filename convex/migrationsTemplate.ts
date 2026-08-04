@@ -1,7 +1,8 @@
 import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
-import { internalMutation, query } from './_generated/server';
+import { query } from './_generated/server';
+import { internalMutation } from './functions';
 import { slugify } from './lib/utils';
 
 /**

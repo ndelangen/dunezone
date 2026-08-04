@@ -18,6 +18,7 @@ describe('homepage page data', () => {
   test('deletes large FAQ answer sets in bounded aggregate-safe batches', async () => {
     const t = convexTest({ schema, modules, transactionLimits: true });
     aggregateTest.register(t, 'homepageCommunity');
+    aggregateTest.register(t, 'statistics');
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'FAQ owner' }));
     const asUser = t.withIdentity({ subject: userId });
     const ruleset = await asUser.mutation(api.rulesets.create, {
@@ -92,6 +93,7 @@ describe('homepage page data', () => {
       },
     });
     aggregateTest.register(t, 'homepageCommunity');
+    aggregateTest.register(t, 'statistics');
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Large answer owner' }));
     const asUser = t.withIdentity({ subject: userId });
     const ruleset = await asUser.mutation(api.rulesets.create, {
@@ -153,6 +155,7 @@ describe('homepage page data', () => {
   test('publishes exact live totals only after aggregate backfills are ready', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'homepageCommunity');
+    aggregateTest.register(t, 'statistics');
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Homepage maker' }));
     await t.run((ctx) =>
       ensureProfileForUser(ctx, userId, {
@@ -224,6 +227,7 @@ describe('homepage page data', () => {
   test('returns only eligible newest members in public timestamp order', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'homepageCommunity');
+    aggregateTest.register(t, 'statistics');
     await t.run(async (ctx) => {
       const users = await Promise.all(
         Array.from({ length: 6 }, (_, index) =>
