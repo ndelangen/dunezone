@@ -2,9 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('the persistent page hero contracts when navigating to a headerless route', async ({
   page,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== 'userA', 'One browser project covers this visual behavior.');
-
+}) => {
   await page.goto('/privacy');
   const hero = page.getByRole('banner');
   await expect(hero).toBeVisible();

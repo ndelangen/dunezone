@@ -28,12 +28,5 @@ export default defineConfig({
         storageState: '.playwright/user-a.json',
       },
     },
-    {
-      name: 'userB',
-      use: {
-        ...devices['Desktop Chrome'],
-        storageState: '.playwright/user-b.json',
-      },
-    },
   ],
 });
