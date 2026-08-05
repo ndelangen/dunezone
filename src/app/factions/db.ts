@@ -113,9 +113,16 @@ export type FactionDetailPageData = {
   rulesets: FactionRulesetSummary[];
 };
 
-function toFactionDetailPageData(raw: FactionDetailPageData): FactionDetailPageData {
+type FactionDetailPageDataRaw = Omit<FactionDetailPageData, 'faction'> & {
+  faction: Omit<FactionRow, 'data'> & { data: unknown };
+};
+
+function toFactionDetailPageData(raw: FactionDetailPageDataRaw): FactionDetailPageData {
   return {
-    faction: toFactionEntry(raw.faction),
+    faction: {
+      ...raw.faction,
+      data: CanonicalFactionStoredSchema.parse(raw.faction.data),
+    },
     owner: raw.owner,
     assetPublishing: raw.assetPublishing,
     viewerAccess: raw.viewerAccess,
@@ -364,7 +371,7 @@ export function useSetFactionGroup() {
 }
 
 export async function loadFaction(slug: string): Promise<FactionDetailPageData> {
-  const raw = await db.query<FactionDetailPageData>(api.factions.getBySlug, {
+  const raw = await db.query<FactionDetailPageDataRaw>(api.factions.getBySlug, {
     slug,
   });
   return toFactionDetailPageData(raw);

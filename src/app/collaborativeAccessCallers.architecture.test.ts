@@ -35,6 +35,7 @@ describe('faction and ruleset collaborative-access caller contract', () => {
     expect(sources.factionDb).not.toMatch(/^\s+memberships:/m);
     expect(sources.factionDb).not.toMatch(/^\s+groupAccess:/m);
     expect(sources.rulesetDb).not.toContain('canEditRuleset');
+    expect(sources.rulesetDb).not.toMatch(/^\s+memberships:/m);
     expect(sources.rulesetDb).not.toMatch(/^\s+groupAccess:/m);
   });
 

@@ -31,11 +31,20 @@ describe('rulesetActionVisibility', () => {
 
     expect(
       rulesetActionVisibility({
-        hasProfile: false,
+        hasProfile: true,
         canChangeGroup: true,
         canDelete: false,
         hasAssignedGroup: true,
       })
     ).toMatchObject({ assignGroup: false, removeGroup: true });
+
+    expect(
+      rulesetActionVisibility({
+        hasProfile: true,
+        canChangeGroup: false,
+        canDelete: false,
+        hasAssignedGroup: true,
+      })
+    ).toMatchObject({ assignGroup: false, removeGroup: false });
   });
 });
