@@ -322,8 +322,13 @@ export async function requireAssignableGroup(ctx: MutationCtx, groupId: Id<'grou
 }
 
 export async function requireMembershipRequest(ctx: MutationCtx, groupId: Id<'groups'>) {
-  await requireAuthenticatedViewerId(ctx);
-  const access = await loadCollaborativeAccess(ctx, { kind: 'group', id: groupId });
+  const viewerId = await requireAuthenticatedViewerId(ctx);
+  const group = await ctx.db.get('groups', groupId);
+  if (!group) {
+    throw new Error('Group not found');
+  }
+  const viewerMembership = await membershipFor(ctx, groupId, viewerId);
+  const access = groupAccessFromLoaded(group, viewerId, viewerMembership);
   if (
     access.viewerMembership?.status !== 'pending' &&
     access.viewerMembership?.status !== 'active' &&

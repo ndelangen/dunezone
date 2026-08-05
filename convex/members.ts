@@ -44,6 +44,7 @@ async function requireMembership(ctx: MutationCtx, membershipId: Id<'group_membe
 }
 
 async function approveRequestHandler(ctx: MutationCtx, membershipId: Id<'group_members'>) {
+  await requireAuthUserId(ctx);
   const membership = await requireMembership(ctx, membershipId);
   const access = await requireGroupCapability(ctx, membership.group_id, 'addMember');
   return await approveMembership(ctx, membership, access.viewerId as Id<'users'>);
@@ -66,6 +67,7 @@ async function approveMembership(
 }
 
 async function rejectRequestHandler(ctx: MutationCtx, membershipId: Id<'group_members'>) {
+  await requireAuthUserId(ctx);
   const membership = await requireMembership(ctx, membershipId);
   await requireGroupCapability(ctx, membership.group_id, 'addMember');
   return await rejectMembership(ctx, membership);
@@ -87,6 +89,7 @@ async function rejectMembership(
 }
 
 async function removeMemberHandler(ctx: MutationCtx, membershipId: Id<'group_members'>) {
+  await requireAuthUserId(ctx);
   const membership = await requireMembership(ctx, membershipId);
   const access = await requireGroupCapability(ctx, membership.group_id, 'delete');
   return await removeMembership(ctx, membership, access.subject.created_by);

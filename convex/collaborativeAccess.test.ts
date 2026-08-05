@@ -635,6 +635,41 @@ describe('collaborative access moderation commands', () => {
     ).rejects.toThrow('Not authorized');
   });
 
+  test('canonical membership-id commands authenticate before existing or missing row lookup', async () => {
+    const { t, ids } = await groupAccessFixture();
+    const missingMembershipId = await t.run(async (ctx) => {
+      const membershipId = await ctx.db.insert('group_members', {
+        group_id: ids.groupId,
+        user_id: ids.assetOwnerId,
+        status: 'pending',
+        requested_at: now,
+        approved_at: null,
+        approved_by: null,
+      });
+      await ctx.db.delete(membershipId);
+      return membershipId;
+    });
+
+    await expect(
+      t.mutation(api.members.approveRequest, { membershipId: ids.membershipIds.pending })
+    ).rejects.toThrow('Not authenticated');
+    await expect(
+      t.mutation(api.members.approveRequest, { membershipId: missingMembershipId })
+    ).rejects.toThrow('Not authenticated');
+    await expect(
+      t.mutation(api.members.rejectRequest, { membershipId: ids.membershipIds.pending })
+    ).rejects.toThrow('Not authenticated');
+    await expect(
+      t.mutation(api.members.rejectRequest, { membershipId: missingMembershipId })
+    ).rejects.toThrow('Not authenticated');
+    await expect(
+      t.mutation(api.members.removeMember, { membershipId: ids.membershipIds.active })
+    ).rejects.toThrow('Not authenticated');
+    await expect(
+      t.mutation(api.members.removeMember, { membershipId: missingMembershipId })
+    ).rejects.toThrow('Not authenticated');
+  });
+
   test('faction command guards preserve collaborator rename but owner-only reassignment and delete', async () => {
     const { t, ids } = await groupAccessFixture();
     const member = t.withIdentity({ subject: ids.activeId });
@@ -735,6 +770,11 @@ describe('collaborative access moderation commands', () => {
       t.withIdentity({ subject: ids.ownerId }).mutation(api.members.remove, {
         group_id: missingGroupId,
         user_id: nonexistentUserId,
+      })
+    ).rejects.toThrow('Group not found');
+    await expect(
+      t.withIdentity({ subject: ids.ownerId }).mutation(api.members.request, {
+        group_id: missingGroupId,
       })
     ).rejects.toThrow('Group not found');
   });
