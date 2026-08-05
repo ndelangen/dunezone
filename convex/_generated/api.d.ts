@@ -18,6 +18,8 @@ import type * as groups from "../groups.js";
 import type * as homepage from "../homepage.js";
 import type * as http from "../http.js";
 import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
+import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
+import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAccessValidators.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
 import type * as lib_faqProfileActivity from "../lib/faqProfileActivity.js";
@@ -61,6 +63,8 @@ declare const fullApi: ApiFromModules<{
   homepage: typeof homepage;
   http: typeof http;
   "lib/applicationTriggers": typeof lib_applicationTriggers;
+  "lib/collaborativeAccess": typeof lib_collaborativeAccess;
+  "lib/collaborativeAccessValidators": typeof lib_collaborativeAccessValidators;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionInput": typeof lib_factionInput;
   "lib/faqProfileActivity": typeof lib_faqProfileActivity;
