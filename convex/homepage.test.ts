@@ -36,13 +36,13 @@ describe('homepage page data', () => {
       group_id: null,
       image_cover: null,
     });
-    const question = await asUser.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
+    const question = await asUser.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
       question: 'How does the homepage stay accurate?',
       tags: ['rules'],
     });
     const answer = await asUser.mutation(api.faq.createAnswer, {
-      faq_item_id: question._id,
+      faq_item_id: question.questionId,
       answer: 'Every source mutation updates the same aggregate transaction.',
     });
 

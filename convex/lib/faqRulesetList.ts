@@ -2,7 +2,7 @@ import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 import { profileSummary } from './profileSummary';
 
-/** FAQ list for a ruleset (same shape as `faq.byRuleset`). */
+/** FAQ list projection used by ruleset views. */
 export async function loadFaqItemsForRuleset(
   ctx: QueryCtx | MutationCtx,
   rulesetId: Id<'rulesets'>

@@ -6,6 +6,7 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test, vi } from 'vitest';
 
 import { api } from './_generated/api';
+import * as faqFunctions from './faq';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -46,6 +47,20 @@ async function faqFixture() {
 }
 
 describe('FAQ lifecycle', () => {
+  test('exports only the canonical lifecycle interface and stable deletion continuation', () => {
+    expect(Object.keys(faqFunctions).sort()).toEqual([
+      'createAnswer',
+      'createQuestion',
+      'deleteAnswer',
+      'deleteItemAnswerBatch',
+      'deleteQuestion',
+      'editAnswer',
+      'editQuestion',
+      'questionPage',
+      'setAcceptedAnswer',
+    ]);
+  });
+
   test('creates questions with and without an atomic initial answer', async () => {
     const { owner, ruleset } = await faqFixture();
 
@@ -76,39 +91,6 @@ describe('FAQ lifecycle', () => {
     expect(withAnswerPage.answers).toHaveLength(1);
     expect(withAnswerPage.answers[0]).toMatchObject({
       text: 'Yes, in the same mutation.',
-    });
-  });
-
-  test('keeps only the agreed widened-release aliases behaviorally compatible', async () => {
-    const { owner, answerer, ruleset } = await faqFixture();
-    const question = await owner.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
-      question: 'Does the old application transport still work?',
-      tags: ['rules'],
-    });
-    await owner.mutation(api.faq.updateItem, {
-      id: question._id,
-      question: 'Do the temporary aliases still work?',
-    });
-    const answer = await answerer.mutation(api.faq.createAnswer, {
-      faq_item_id: question._id,
-      answer: 'Yes, during the widened deployment.',
-    });
-    await answerer.mutation(api.faq.updateAnswer, {
-      id: answer._id,
-      answer: 'Yes, until the narrowed deployment.',
-    });
-
-    const legacyPage = await owner.query(api.faq.detailByRulesetSlugAndQuestionSlug, {
-      ruleset_slug: ruleset.slug,
-      question_slug: question.slug,
-    });
-    expect(legacyPage).toMatchObject({
-      question: 'Do the temporary aliases still work?',
-      faq_answers: [{ answer: 'Yes, until the narrowed deployment.' }],
-    });
-    await expect(owner.mutation(api.faq.deleteItem, { id: question._id })).resolves.toMatchObject({
-      id: question._id,
     });
   });
 
