@@ -6,10 +6,10 @@ export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'user
   const rows = await ctx.db
     .query('faq_items')
     .withIndex('by_asked_by_created', (q) => q.eq('asked_by', profileId))
+    .order('desc')
     .take(200);
-  const sorted = [...rows].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
   return await Promise.all(
-    sorted.map(async (item) => {
+    rows.map(async (item) => {
       const ruleset = await ctx.db.get(item.ruleset_id);
       if (!ruleset) {
         throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
@@ -26,10 +26,10 @@ export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'
   const answers = await ctx.db
     .query('faq_answers')
     .withIndex('by_answered_by_created', (q) => q.eq('answered_by', profileId))
+    .order('desc')
     .take(200);
-  const sorted = [...answers].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
   return await Promise.all(
-    sorted.map(async (answer) => {
+    answers.map(async (answer) => {
       const item = await ctx.db.get(answer.faq_item_id);
       if (!item) {
         throw new Error(`FAQ item ${answer.faq_item_id} missing for answer ${answer._id}`);

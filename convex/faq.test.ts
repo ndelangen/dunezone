@@ -211,6 +211,40 @@ describe('FAQ lifecycle', () => {
     ).rejects.toThrow('You already answered this question');
   });
 
+  test('does not offer another answer when the viewer answer is outside the visible bound', async () => {
+    const { t, ids, owner, answerer, ruleset } = await faqFixture();
+    const question = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
+      question: 'Can a bounded page still detect that I answered?',
+      tags: ['rules'],
+    });
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 200; index += 1) {
+        await ctx.db.insert('faq_answers', {
+          faq_item_id: question.questionId,
+          answer: `Visible answer ${index}`,
+          answered_by: ids.outsiderId,
+          created_at: new Date(index).toISOString(),
+        });
+      }
+      await ctx.db.insert('faq_answers', {
+        faq_item_id: question.questionId,
+        answer: 'The viewer answer beyond the page bound.',
+        answered_by: ids.answererId,
+        created_at: new Date(200).toISOString(),
+      });
+    });
+
+    const page = await answerer.query(api.faq.questionPage, {
+      rulesetSlug: ruleset.slug,
+      questionSlug: question.questionSlug,
+    });
+
+    expect(page.answers).toHaveLength(200);
+    expect(page.answers.some((answer) => answer.text.includes('viewer answer'))).toBe(false);
+    expect(page.viewer.answerQuestion).toBe(false);
+  });
+
   test('keeps question ownership and answer moderation independent of ruleset membership', async () => {
     const t = faqTest();
     const ids = await t.run(async (ctx) => {

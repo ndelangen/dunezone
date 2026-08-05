@@ -101,6 +101,17 @@ export type FaqVoidCommand = CommandState & {
   run: () => Promise<void>;
 };
 
+function commandState<TVariables, TResult>(
+  mutation: LiveMutationResult<TVariables, TResult>
+): CommandState {
+  return {
+    isPending: mutation.isPending,
+    isError: mutation.isError,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
+}
+
 function command<TInput, TVariables, TResult>(
   mutation: LiveMutationResult<TVariables, TResult>,
   variables: (input: TInput) => TVariables
@@ -109,10 +120,7 @@ function command<TInput, TVariables, TResult>(
     run: async (input) => {
       await mutation.mutateAsync(variables(input));
     },
-    isPending: mutation.isPending,
-    isError: mutation.isError,
-    error: mutation.error,
-    reset: mutation.reset,
+    ...commandState(mutation),
   };
 }
 
@@ -124,10 +132,7 @@ function voidCommand<TVariables, TResult>(
     run: async () => {
       await mutation.mutateAsync(variables());
     },
-    isPending: mutation.isPending,
-    isError: mutation.isError,
-    error: mutation.error,
-    reset: mutation.reset,
+    ...commandState(mutation),
   };
 }
 
@@ -217,26 +222,19 @@ export function useAskFaqQuestion() {
     { rulesetId: string; question: string; initialAnswer?: string; tags: FaqTag[] },
     FaqQuestionLocator
   >(api.faq.createQuestion);
+  const toVariables = (input: AskFaqQuestionInput) => ({
+    rulesetId: input.rulesetId,
+    question: faqQuestionSchema.parse(input.question),
+    initialAnswer:
+      input.initialAnswer === undefined || input.initialAnswer.trim().length === 0
+        ? undefined
+        : faqAnswerSchema.parse(input.initialAnswer),
+    tags: faqTagsSchema.parse(input.tags),
+  });
   return {
-    ...command(mutation, (input: AskFaqQuestionInput) => ({
-      rulesetId: input.rulesetId,
-      question: faqQuestionSchema.parse(input.question),
-      initialAnswer:
-        input.initialAnswer === undefined || input.initialAnswer.trim().length === 0
-          ? undefined
-          : faqAnswerSchema.parse(input.initialAnswer),
-      tags: faqTagsSchema.parse(input.tags),
-    })),
+    ...commandState(mutation),
     run: async (input: AskFaqQuestionInput): Promise<FaqQuestionLocator> => {
-      const locator = await mutation.mutateAsync({
-        rulesetId: input.rulesetId,
-        question: faqQuestionSchema.parse(input.question),
-        initialAnswer:
-          input.initialAnswer === undefined || input.initialAnswer.trim().length === 0
-            ? undefined
-            : faqAnswerSchema.parse(input.initialAnswer),
-        tags: faqTagsSchema.parse(input.tags),
-      });
+      const locator = await mutation.mutateAsync(toVariables(input));
       return {
         rulesetSlug: locator.rulesetSlug,
         questionSlug: locator.questionSlug,

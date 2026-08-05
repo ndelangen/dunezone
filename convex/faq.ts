@@ -150,7 +150,12 @@ async function questionPageHandler(
   const viewerId = await getAuthUserId(ctx);
   const questionOwner = viewerId === item.asked_by;
   const viewerAnswered = viewerId
-    ? answers.some((answer) => answer.answered_by === viewerId)
+    ? (await ctx.db
+        .query('faq_answers')
+        .withIndex('by_faq_item_answered_by', (q) =>
+          q.eq('faq_item_id', item._id).eq('answered_by', viewerId)
+        )
+        .unique()) !== null
     : false;
   const asker = await profileSummary(ctx, item.asked_by);
   const answerers = await Promise.all(
