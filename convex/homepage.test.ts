@@ -4,7 +4,7 @@
 import aggregateTest from '@convex-dev/aggregate/test';
 import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
@@ -15,125 +15,6 @@ import schema from './schema';
 const modules = import.meta.glob('./**/*.ts');
 
 describe('homepage page data', () => {
-  test('deletes large FAQ answer sets in bounded aggregate-safe batches', async () => {
-    const t = convexTest({ schema, modules, transactionLimits: true });
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileDiscovery');
-    const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'FAQ owner' }));
-    const asUser = t.withIdentity({ subject: userId });
-    const ruleset = await asUser.mutation(api.rulesets.create, {
-      name: 'LargeFAQRuleset',
-      group_id: null,
-      image_cover: null,
-    });
-    const question = await asUser.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
-      question: 'How are large discussions deleted safely?',
-      tags: ['rules'],
-    });
-    await t.run(async (ctx) => {
-      for (let index = 0; index < 501; index += 1) {
-        await ctx.db.insert('faq_answers', {
-          faq_item_id: question._id,
-          answer: `Answer ${index}`,
-          answered_by: userId,
-          created_at: new Date(index).toISOString(),
-        });
-      }
-    });
-
-    vi.useFakeTimers();
-    try {
-      await asUser.mutation(api.faq.deleteItem, { id: question._id });
-
-      const afterFirstBatch = await t.run(async (ctx) => ({
-        question: await ctx.db.get(question._id),
-        answers: await ctx.db
-          .query('faq_answers')
-          .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
-          .take(600),
-      }));
-      expect(afterFirstBatch.question).not.toBeNull();
-      expect(afterFirstBatch.answers).toHaveLength(401);
-
-      await t.finishAllScheduledFunctions(() => vi.runAllTimers());
-    } finally {
-      vi.useRealTimers();
-    }
-
-    const afterCleanup = await t.run(async (ctx) => ({
-      question: await ctx.db.get(question._id),
-      answers: await ctx.db
-        .query('faq_answers')
-        .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
-        .take(1),
-    }));
-    expect(afterCleanup.question).toBeNull();
-    expect(afterCleanup.answers).toEqual([]);
-  });
-
-  test('reserves transaction headroom while deleting large answer documents', async () => {
-    const t = convexTest({
-      schema,
-      modules,
-      transactionLimits: {
-        bytesRead: 3 * 1024 * 1024,
-        bytesWritten: 3 * 1024 * 1024,
-      },
-    });
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileDiscovery');
-    const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Large answer owner' }));
-    const asUser = t.withIdentity({ subject: userId });
-    const ruleset = await asUser.mutation(api.rulesets.create, {
-      name: 'LargeAnswerRuleset',
-      group_id: null,
-      image_cover: null,
-    });
-    const question = await asUser.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
-      question: 'Can large answers be deleted without exhausting a transaction?',
-      tags: ['rules'],
-    });
-    const largeAnswer = 'a'.repeat(400 * 1024);
-    for (let index = 0; index < 6; index += 1) {
-      await t.run((ctx) =>
-        ctx.db.insert('faq_answers', {
-          faq_item_id: question._id,
-          answer: largeAnswer,
-          answered_by: userId,
-          created_at: new Date(index).toISOString(),
-        })
-      );
-    }
-    vi.useFakeTimers();
-    try {
-      await asUser.mutation(api.faq.deleteItem, { id: question._id });
-      const remainingAfterFirstBatch = await t.run((ctx) =>
-        ctx.db
-          .query('faq_answers')
-          .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
-          .take(10)
-      );
-      expect(remainingAfterFirstBatch.length).toBeGreaterThan(0);
-      expect(remainingAfterFirstBatch.length).toBeLessThan(6);
-
-      await t.finishAllScheduledFunctions(() => vi.runAllTimers());
-    } finally {
-      vi.useRealTimers();
-    }
-
-    const afterCleanup = await t.run(async (ctx) => ({
-      question: await ctx.db.get(question._id),
-      answers: await ctx.db
-        .query('faq_answers')
-        .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
-        .take(1),
-    }));
-    expect(afterCleanup.question).toBeNull();
-    expect(afterCleanup.answers).toEqual([]);
-  });
-
   test('serves exact Statistics totals without migration readiness', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');

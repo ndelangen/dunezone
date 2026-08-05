@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import {
   loadFaqItemByRulesetAndSlug,
+  faqItemByRulesetSlugInitialData,
   useCreateFaqAnswer,
   useDeleteFaqAnswer,
   useDeleteFaqItem,
@@ -12,7 +13,6 @@ import {
   useUpdateFaqAnswer,
   useUpdateFaqItem,
 } from '@db/faq';
-import type { FaqItemByRulesetSlugInitialData } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug } from '@db/rulesets';
 import { Answer } from '@app/components/faq/Answer';
@@ -24,6 +24,7 @@ import { Card } from '@app/components/generic/surfaces/Card';
 import { UIButton } from '@app/components/generic/ui/UIButton';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
+import { orderFaqAnswers } from '@app/faq/orderAnswers';
 import { DEFAULT_FAQ_TAG, FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 import type { FaqTag } from '@app/faq/tags';
 
@@ -49,14 +50,7 @@ function FaqDetailPage() {
   const faqItem = useFaqItemByRulesetAndSlug(rulesetSlug, questionSlug, {
     initialData:
       'item' in loaderData && loaderData.item
-        ? ({
-            ...loaderData.item,
-            id: loaderData.item._id,
-            faq_answers: loaderData.item.faq_answers.map((a) => ({
-              ...a,
-              id: a._id,
-            })),
-          } as FaqItemByRulesetSlugInitialData)
+        ? faqItemByRulesetSlugInitialData(loaderData.item)
         : undefined,
   });
   const profile = useCurrentProfile();
@@ -78,12 +72,7 @@ function FaqDetailPage() {
     () => (Array.isArray(item?.faq_answers) ? item.faq_answers : []),
     [item?.faq_answers]
   );
-  const orderedAnswers =
-    item?.accepted_answer_id == null
-      ? answers
-      : [...answers].sort((a, b) =>
-          a._id === item.accepted_answer_id ? -1 : b._id === item.accepted_answer_id ? 1 : 0
-        );
+  const orderedAnswers = orderFaqAnswers(answers, item?.accepted_answer_id);
 
   const header = (
     <div>

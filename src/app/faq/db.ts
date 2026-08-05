@@ -190,6 +190,19 @@ export type FaqItemByRulesetSlugInitialData = NonNullable<
   NonNullable<Parameters<typeof useFaqItemByRulesetAndSlug>[2]>['initialData']
 >;
 
+export function faqItemByRulesetSlugInitialData(
+  item: Awaited<ReturnType<typeof loadFaqItemByRulesetAndSlug>>
+): FaqItemByRulesetSlugInitialData {
+  return {
+    ...item,
+    id: item._id,
+    faq_answers: item.faq_answers.map((answer) => ({
+      ...answer,
+      id: answer._id,
+    })),
+  };
+}
+
 export type FaqItemAskedByWithRuleset = FaqItemEntry & {
   ruleset: { id: string; name: string; slug: string };
 };
