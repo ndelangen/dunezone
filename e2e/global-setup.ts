@@ -81,6 +81,12 @@ export default async function globalSetup(config: FullConfig) {
   });
 
   await loginWithLocalAuth(baseUrl, {
+    email: userAEmail,
+    password: userPassword,
+    storageStatePath: '.playwright/user-a-ruleset.json',
+  });
+
+  await loginWithLocalAuth(baseUrl, {
     email: userBEmail,
     password: userPassword,
     storageStatePath: '.playwright/user-b.json',

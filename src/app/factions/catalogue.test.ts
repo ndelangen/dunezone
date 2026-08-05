@@ -4,7 +4,7 @@ import type { FactionCatalogueEntry } from '@db/factions';
 import { factionRulesetLabel } from '@app/components/factions/FactionList';
 import { assetPublishingFaction } from '@game/fixtures/assetPublishingFaction';
 
-import { filterAndSortFactions, normalizeFactionCatalogueSearch } from './catalogue';
+import { projectFactionCatalogue } from './catalogue';
 
 function faction(
   id: string,
@@ -47,12 +47,12 @@ describe('faction catalogue controls', () => {
       faction('2', 'Fremen', { leaders: ['Chani'] }),
     ];
 
-    expect(filterAndSortFactions(factions, {}, 'Atredes').map((entry) => entry.data.name)).toEqual([
-      'Atreides',
-    ]);
-    expect(filterAndSortFactions(factions, {}, 'Leto')).toHaveLength(1);
-    expect(filterAndSortFactions(factions, {}, 'Chani')).toHaveLength(1);
-    expect(filterAndSortFactions(factions, { ruleset: 'classic' }, 'Chani')).toEqual([]);
+    expect(
+      projectFactionCatalogue(factions, {}, 'Atredes').map((entry) => entry.data.name)
+    ).toEqual(['Atreides']);
+    expect(projectFactionCatalogue(factions, {}, 'Leto')).toHaveLength(1);
+    expect(projectFactionCatalogue(factions, {}, 'Chani')).toHaveLength(1);
+    expect(projectFactionCatalogue(factions, { ruleset: 'classic' }, 'Chani')).toEqual([]);
   });
 
   test('sorts dates newest-first, breaks ties by identity, and puts invalid dates last', () => {
@@ -64,16 +64,8 @@ describe('faction catalogue controls', () => {
     ];
 
     expect(
-      filterAndSortFactions(factions, { sort: 'created' }).map((entry) => entry.data.name)
+      projectFactionCatalogue(factions, { sort: 'created' }).map((entry) => entry.data.name)
     ).toEqual(['Newest', 'Alpha', 'Beta', 'Broken']);
-  });
-
-  test('normalizes unsupported rulesets while preserving search and sort', () => {
-    expect(
-      normalizeFactionCatalogueSearch({ q: '  duke  ', ruleset: 'removed', sort: 'updated' }, [
-        { id: 'active', slug: 'active', name: 'Active' } as never,
-      ])
-    ).toEqual({ q: 'duke', sort: 'updated' });
   });
 
   test('prioritizes the selected ruleset and summarizes the rest as +N', () => {

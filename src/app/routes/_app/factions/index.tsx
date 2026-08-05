@@ -13,10 +13,10 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { ArrowDownAZ, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
@@ -26,13 +26,7 @@ import { formatFactionCatalogueDate } from '@app/components/factions/factionCata
 import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
 import { FactionList } from '@app/components/factions/FactionList';
 import { PageLayout } from '@app/components/shell';
-import {
-  factionCatalogueSearchParams,
-  filterAndSortFactions,
-  isFactionCatalogueSort,
-  normalizeFactionCatalogueSearch,
-  parseFactionCatalogueSearch,
-} from '@app/factions/catalogue';
+import { parseFactionCatalogueSearch, useFactionCatalogueSession } from '@app/factions/catalogue';
 import type { FactionCatalogueSearch } from '@app/factions/catalogue';
 
 import styles from './FactionCatalogue.module.css';
@@ -48,39 +42,13 @@ export const Route = createFileRoute('/_app/factions/')({
 
 function FactionsPage() {
   const loaderData = Route.useLoaderData();
-  const search = Route.useSearch();
-  const navigate = useNavigate({ from: Route.fullPath });
   const catalogue = useFactionCataloguePage({ initialData: loaderData });
   const data = catalogue.data;
-  const [draftQuery, setDraftQuery] = useState(search.q ?? '');
-
-  useEffect(() => setDraftQuery(search.q ?? ''), [search.q]);
-
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
-    const canonical = normalizeFactionCatalogueSearch(search, data.rulesets);
-    const expected = factionCatalogueSearchParams(canonical).toString();
-    const current = new URLSearchParams(window.location.search).toString();
-    if (current !== expected) {
-      navigate({ to: '.', search: canonical, replace: true });
-    }
-  }, [data, navigate, search]);
+  const session = useFactionCatalogueSession(data);
 
   if (!data) {
     return <FactionCataloguePending />;
   }
-
-  const updateSearch = (patch: Partial<FactionCatalogueSearch>) => {
-    navigate({
-      to: '.',
-      search: (previous) => parseFactionCatalogueSearch({ ...previous, ...patch }),
-      replace: true,
-    });
-  };
-
-  const visibleFactions = filterAndSortFactions(data.factions, search, draftQuery);
   const hasFactions = data.factions.length > 0;
 
   return (
@@ -89,28 +57,26 @@ function FactionsPage() {
       toolbar={
         hasFactions ? (
           <CatalogueToolbar
-            draftQuery={draftQuery}
-            onDraftQueryChange={setDraftQuery}
-            onCommitQuery={() => updateSearch({ q: draftQuery.trim() || undefined })}
-            search={search}
+            draftQuery={session.query.value}
+            onDraftQueryChange={session.query.change}
+            onCommitQuery={session.query.commit}
+            search={session.search}
             rulesets={data.rulesets}
-            visibleCount={visibleFactions.length}
+            visibleCount={session.visibleFactions.length}
             totalCount={data.factions.length}
-            onSearchChange={updateSearch}
+            onSearchChange={session.changeSearch}
           />
         ) : undefined
       }
     >
       {hasFactions ? (
-        visibleFactions.length > 0 ? (
-          <FactionList factions={visibleFactions} selectedRulesetSlug={search.ruleset} />
-        ) : (
-          <FilteredEmptyState
-            onReset={() => {
-              setDraftQuery('');
-              updateSearch({ q: undefined, ruleset: undefined });
-            }}
+        session.visibleFactions.length > 0 ? (
+          <FactionList
+            factions={session.visibleFactions}
+            selectedRulesetSlug={session.search.ruleset}
           />
+        ) : (
+          <FilteredEmptyState onReset={session.reset} />
         )
       ) : (
         <Paper className={styles.stateCard} withBorder radius="md" p="xl">
@@ -205,7 +171,7 @@ function CatalogueToolbar({
   rulesets: FactionRulesetSummary[];
   visibleCount: number;
   totalCount: number;
-  onSearchChange: (patch: Partial<FactionCatalogueSearch>) => void;
+  onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
 }) {
   const [opened, setOpened] = useState(false);
   const rulesetOptions = useMemo(
@@ -250,9 +216,7 @@ function CatalogueToolbar({
         { value: 'updated', label: 'Chronological (updated)' },
       ]}
       allowDeselect={false}
-      onChange={(value) =>
-        onSearchChange({ sort: isFactionCatalogueSort(value) ? value : undefined })
-      }
+      onChange={(value) => onSearchChange({ sort: value === 'name' ? undefined : value })}
       aria-label="Sort factions"
       leftSection={<ArrowDownAZ size={15} aria-hidden />}
     />

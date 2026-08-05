@@ -20,42 +20,7 @@ async function loadFactionDraft(page: Page, factionName: string) {
   await page.getByRole('button', { name: 'Load faction' }).click();
 }
 
-test('owner can create and delete a ruleset in a two-user flow', async ({
-  page,
-  browser,
-}, testInfo) => {
-  test.skip(
-    testInfo.project.name !== 'userA',
-    'This scenario orchestrates both users from the userA project.'
-  );
-
-  const uniqueSuffix = Date.now();
-  const uniqueName = `E2ERuleset${uniqueSuffix}`;
-  const expectedSlug = uniqueName.toLowerCase();
-  await page.goto('/rulesets/create');
-  await page.getByRole('textbox', { name: 'Name' }).fill(uniqueName);
-  await page.getByRole('button', { name: /^create$/i }).click();
-  await expect(page).toHaveURL(new RegExp(`/rulesets/${expectedSlug}$`));
-
-  const createdUrl = page.url();
-  await expect(page.getByLabel('Edit ruleset')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText(uniqueName).first()).toBeVisible({ timeout: 30_000 });
-
-  const userBContext = await browser.newContext({ storageState: '.playwright/user-b.json' });
-  const userBPage = await userBContext.newPage();
-  await userBPage.goto(createdUrl);
-  await expect(userBPage.getByText(uniqueName).first()).toBeVisible({ timeout: 30_000 });
-  await expect(userBPage.getByLabel('Edit ruleset')).toHaveCount(0);
-  await userBContext.close();
-
-  page.once('dialog', (dialog) => dialog.accept());
-  await page.getByLabel('Delete ruleset').click();
-  await expect(page).toHaveURL(/\/rulesets\/?$/);
-  await expect(page.getByRole('link', { name: uniqueName })).toHaveCount(0);
-});
-
-test('owner can author a faction through its complete lifecycle', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'userA', 'One signed-in browser covers this happy flow.');
+test('owner can author a faction through its complete lifecycle', async ({ page }) => {
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1200, height: 900 });
 
@@ -192,20 +157,48 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     );
   });
 
-  await test.step('the updated target remains discoverable through the catalogue', async () => {
-    await page.goto('/factions');
-    const updatedFaction = page.getByRole('link', { name: factionAName, exact: true });
+  await test.step('catalogue state stays responsive, canonical, and in one history entry', async () => {
+    await page.setViewportSize({ width: 1200, height: 900 });
+    await page.goto('/factions?ruleset=missing&variant=prototype');
+    await expect(page).toHaveURL(/\/factions\/?$/);
+
+    const catalogue = page.getByRole('main');
+    const updatedFaction = catalogue.getByRole('link', { name: factionAName, exact: true });
+    const otherFaction = catalogue.getByRole('link', { name: factionBName, exact: true });
     await expect(updatedFaction).toBeVisible({ timeout: 30_000 });
+    await expect(otherFaction).toBeVisible();
 
     const search = page.getByRole('textbox', { name: 'Search factions' });
-    await search.fill(factionAName);
+    await search.fill(importedLeaderName);
     await expect(updatedFaction).toBeVisible();
+    await expect(otherFaction).toBeHidden();
+    expect(new URL(page.url()).searchParams.get('q')).toBeNull();
 
-    await search.fill('qwerty');
+    await search.press('Enter');
+    await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(importedLeaderName);
+
+    await page.getByRole('combobox', { name: 'Sort factions' }).click();
+    await page.getByRole('option', { name: 'Chronological (updated)' }).click();
+    await expect.poll(() => new URL(page.url()).searchParams.get('sort')).toBe('updated');
+
+    await page.getByRole('combobox', { name: 'Filter factions by ruleset' }).click();
+    await page.getByRole('option', { name: 'E2EBaselineRuleset' }).click();
     await expect(page.getByRole('heading', { name: 'No factions found' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Reset filters & search' })).toBeVisible();
+    await page.getByRole('button', { name: 'Reset filters & search' }).click();
 
-    await search.fill('');
+    await expect(updatedFaction).toBeVisible();
+    await expect(otherFaction).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.toString()).toBe('sort=updated');
+
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/edit$`));
+  });
+
+  await test.step('the updated target remains discoverable through the catalogue', async () => {
+    await page.goto('/factions');
+    const updatedFaction = page
+      .getByRole('main')
+      .getByRole('link', { name: factionAName, exact: true });
     await expect(updatedFaction).toBeVisible();
     await updatedFaction.click();
     await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/?$`));
