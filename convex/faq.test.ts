@@ -49,37 +49,114 @@ describe('FAQ lifecycle', () => {
   test('creates questions with and without an atomic initial answer', async () => {
     const { owner, ruleset } = await faqFixture();
 
-    const withoutAnswer = await owner.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
+    const withoutAnswer = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
       question: '  What happens without an initial answer?  ',
       tags: ['rules'],
     });
-    const withoutAnswerPage = await owner.query(api.faq.detailByRulesetSlugAndQuestionSlug, {
-      ruleset_slug: ruleset.slug,
-      question_slug: withoutAnswer.slug,
+    const withoutAnswerPage = await owner.query(api.faq.questionPage, {
+      rulesetSlug: ruleset.slug,
+      questionSlug: withoutAnswer.questionSlug,
     });
     expect(withoutAnswerPage).toMatchObject({
-      question: 'What happens without an initial answer?',
-      tags: ['rules'],
-      accepted_answer_id: null,
-      faq_answers: [],
+      question: { text: 'What happens without an initial answer?', tags: ['rules'] },
+      answers: [],
     });
 
-    const withAnswer = await owner.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
+    const withAnswer = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
       question: 'Can a question start answered?',
-      answer: '  Yes, in the same mutation.  ',
+      initialAnswer: '  Yes, in the same mutation.  ',
       tags: ['errata'],
     });
-    const withAnswerPage = await owner.query(api.faq.detailByRulesetSlugAndQuestionSlug, {
-      ruleset_slug: ruleset.slug,
-      question_slug: withAnswer.slug,
+    const withAnswerPage = await owner.query(api.faq.questionPage, {
+      rulesetSlug: ruleset.slug,
+      questionSlug: withAnswer.questionSlug,
     });
-    expect(withAnswerPage.faq_answers).toHaveLength(1);
-    expect(withAnswerPage.faq_answers[0]).toMatchObject({
-      faq_item_id: withAnswer._id,
-      answer: 'Yes, in the same mutation.',
-      answered_by: withAnswer.asked_by,
+    expect(withAnswerPage.answers).toHaveLength(1);
+    expect(withAnswerPage.answers[0]).toMatchObject({
+      text: 'Yes, in the same mutation.',
+    });
+  });
+
+  test('keeps only the agreed widened-release aliases behaviorally compatible', async () => {
+    const { owner, answerer, ruleset } = await faqFixture();
+    const question = await owner.mutation(api.faq.createItem, {
+      ruleset_id: ruleset._id,
+      question: 'Does the old application transport still work?',
+      tags: ['rules'],
+    });
+    await owner.mutation(api.faq.updateItem, {
+      id: question._id,
+      question: 'Do the temporary aliases still work?',
+    });
+    const answer = await answerer.mutation(api.faq.createAnswer, {
+      faq_item_id: question._id,
+      answer: 'Yes, during the widened deployment.',
+    });
+    await answerer.mutation(api.faq.updateAnswer, {
+      id: answer._id,
+      answer: 'Yes, until the narrowed deployment.',
+    });
+
+    const legacyPage = await owner.query(api.faq.detailByRulesetSlugAndQuestionSlug, {
+      ruleset_slug: ruleset.slug,
+      question_slug: question.slug,
+    });
+    expect(legacyPage).toMatchObject({
+      question: 'Do the temporary aliases still work?',
+      faq_answers: [{ answer: 'Yes, until the narrowed deployment.' }],
+    });
+    await expect(owner.mutation(api.faq.deleteItem, { id: question._id })).resolves.toMatchObject({
+      id: question._id,
+    });
+  });
+
+  test('projects accepted-first answers and viewer capabilities on the server', async () => {
+    const { owner, answerer, outsider, ruleset } = await faqFixture();
+    const question = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
+      question: 'Which answer should appear first?',
+      tags: ['rules'],
+    });
+    const first = await answerer.mutation(api.faq.createAnswer, {
+      faq_item_id: question.questionId,
+      answer: 'The earlier answer.',
+    });
+    const accepted = await outsider.mutation(api.faq.createAnswer, {
+      faq_item_id: question.questionId,
+      answer: 'The accepted answer.',
+    });
+    await owner.mutation(api.faq.setAcceptedAnswer, {
+      faq_item_id: question.questionId,
+      accepted_answer_id: accepted._id,
+    });
+
+    const ownerPage = await owner.query(api.faq.questionPage, {
+      rulesetSlug: ruleset.slug,
+      questionSlug: question.questionSlug,
+    });
+    expect(ownerPage.question.capabilities).toEqual({
+      editQuestion: true,
+      deleteQuestion: true,
+    });
+    expect(ownerPage.answers.map((answer) => answer.id)).toEqual([accepted._id, first._id]);
+    expect(ownerPage.answers[0].capabilities).toMatchObject({
+      deleteAnswer: true,
+      acceptAnswer: false,
+      unacceptAnswer: true,
+    });
+
+    const answererPage = await answerer.query(api.faq.questionPage, {
+      rulesetSlug: ruleset.slug,
+      questionSlug: question.questionSlug,
+    });
+    expect(answererPage.viewer.answerQuestion).toBe(false);
+    expect(
+      answererPage.answers.find((answer) => answer.id === first._id)?.capabilities
+    ).toMatchObject({
+      editAnswer: true,
+      deleteAnswer: true,
     });
   });
 
@@ -87,28 +164,28 @@ describe('FAQ lifecycle', () => {
     const { owner, answerer, ruleset } = await faqFixture();
 
     await expect(
-      owner.mutation(api.faq.createItem, {
-        ruleset_id: ruleset._id,
+      owner.mutation(api.faq.createQuestion, {
+        rulesetId: ruleset._id,
         question: '   ',
         tags: ['rules'],
       })
     ).rejects.toThrow('Question is required');
     await expect(
-      owner.mutation(api.faq.createItem, {
-        ruleset_id: ruleset._id,
+      owner.mutation(api.faq.createQuestion, {
+        rulesetId: ruleset._id,
         question: 'Which tag applies?',
         tags: [],
       })
     ).rejects.toThrow('Select at least one tag');
 
-    const question = await owner.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
+    const question = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
       question: 'What makes an answer valid?',
       tags: ['rules'],
     });
     await expect(
       answerer.mutation(api.faq.createAnswer, {
-        faq_item_id: question._id,
+        faq_item_id: question.questionId,
         answer: '   ',
       })
     ).rejects.toThrow('Answer is required');
@@ -116,19 +193,19 @@ describe('FAQ lifecycle', () => {
 
   test('allows at most one answer per user for a question', async () => {
     const { owner, answerer, ruleset } = await faqFixture();
-    const question = await owner.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
+    const question = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
       question: 'Can one person answer twice?',
       tags: ['rules'],
     });
 
     await answerer.mutation(api.faq.createAnswer, {
-      faq_item_id: question._id,
+      faq_item_id: question.questionId,
       answer: 'The first answer is accepted.',
     });
     await expect(
       answerer.mutation(api.faq.createAnswer, {
-        faq_item_id: question._id,
+        faq_item_id: question.questionId,
         answer: 'The second answer is rejected.',
       })
     ).rejects.toThrow('You already answered this question');
@@ -174,43 +251,43 @@ describe('FAQ lifecycle', () => {
       group_id: ids.groupId,
       image_cover: null,
     });
-    const question = await questionOwner.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
+    const question = await questionOwner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
       question: 'Who controls this question?',
       tags: ['rules'],
     });
     const answer = await groupMember.mutation(api.faq.createAnswer, {
-      faq_item_id: question._id,
+      faq_item_id: question.questionId,
       answer: 'The answer remains owned by its author.',
     });
 
     await expect(
-      questionOwner.mutation(api.faq.updateItem, {
-        id: question._id,
-        question: 'Does its author control this question?',
+      questionOwner.mutation(api.faq.editQuestion, {
+        questionId: question.questionId,
+        input: { question: 'Does its author control this question?', tags: ['rules'] },
       })
     ).resolves.toMatchObject({ question: 'Does its author control this question?' });
     await expect(
-      groupMember.mutation(api.faq.updateAnswer, {
-        id: answer._id,
-        answer: 'Only the answer author may rewrite it.',
+      groupMember.mutation(api.faq.editAnswer, {
+        answerId: answer._id,
+        input: { answer: 'Only the answer author may rewrite it.' },
       })
     ).resolves.toMatchObject({ answer: 'Only the answer author may rewrite it.' });
     await expect(
-      questionOwner.mutation(api.faq.updateAnswer, {
-        id: answer._id,
-        answer: 'The question owner may not rewrite it.',
+      questionOwner.mutation(api.faq.editAnswer, {
+        answerId: answer._id,
+        input: { answer: 'The question owner may not rewrite it.' },
       })
     ).rejects.toThrow('Not authorized');
     await expect(
-      outsider.mutation(api.faq.updateItem, {
-        id: question._id,
-        question: 'An unrelated user cannot rewrite it.',
+      outsider.mutation(api.faq.editQuestion, {
+        questionId: question.questionId,
+        input: { question: 'An unrelated user cannot rewrite it.', tags: ['rules'] },
       })
     ).rejects.toThrow('Not authorized');
-    await expect(outsider.mutation(api.faq.deleteItem, { id: question._id })).rejects.toThrow(
-      'Not authorized'
-    );
+    await expect(
+      outsider.mutation(api.faq.deleteQuestion, { questionId: question.questionId })
+    ).rejects.toThrow('Not authorized');
     await expect(outsider.mutation(api.faq.deleteAnswer, { id: answer._id })).rejects.toThrow(
       'Not authorized'
     );
@@ -218,91 +295,90 @@ describe('FAQ lifecycle', () => {
       questionOwner.mutation(api.faq.deleteAnswer, { id: answer._id })
     ).resolves.toMatchObject({ id: answer._id });
     await expect(
-      questionOwner.mutation(api.faq.deleteItem, { id: question._id })
-    ).resolves.toMatchObject({ id: question._id });
+      questionOwner.mutation(api.faq.deleteQuestion, { questionId: question.questionId })
+    ).resolves.toMatchObject({ id: question.questionId });
   });
 
   test('accepts only an answer from the same question and supports unaccepting it', async () => {
     const { owner, answerer, outsider, ruleset } = await faqFixture();
-    const question = await owner.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
+    const question = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
       question: 'Which answer is accepted?',
       tags: ['rules'],
     });
-    const otherQuestion = await owner.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
+    const otherQuestion = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
       question: 'Which answer belongs elsewhere?',
       tags: ['rules'],
     });
     const answer = await answerer.mutation(api.faq.createAnswer, {
-      faq_item_id: question._id,
+      faq_item_id: question.questionId,
       answer: 'This answer belongs to the first question.',
     });
     const otherAnswer = await outsider.mutation(api.faq.createAnswer, {
-      faq_item_id: otherQuestion._id,
+      faq_item_id: otherQuestion.questionId,
       answer: 'This answer belongs to the second question.',
     });
 
     await expect(
       answerer.mutation(api.faq.setAcceptedAnswer, {
-        faq_item_id: question._id,
+        faq_item_id: question.questionId,
         accepted_answer_id: answer._id,
       })
     ).rejects.toThrow('Not authorized');
     await expect(
       owner.mutation(api.faq.setAcceptedAnswer, {
-        faq_item_id: question._id,
+        faq_item_id: question.questionId,
         accepted_answer_id: otherAnswer._id,
       })
     ).rejects.toThrow('Accepted answer must belong to this question');
 
     await owner.mutation(api.faq.setAcceptedAnswer, {
-      faq_item_id: question._id,
+      faq_item_id: question.questionId,
       accepted_answer_id: answer._id,
     });
     expect(
-      await owner.query(api.faq.detailByRulesetSlugAndQuestionSlug, {
-        ruleset_slug: ruleset.slug,
-        question_slug: question.slug,
+      await owner.query(api.faq.questionPage, {
+        rulesetSlug: ruleset.slug,
+        questionSlug: question.questionSlug,
       })
-    ).toMatchObject({ accepted_answer_id: answer._id });
+    ).toMatchObject({ answers: [{ id: answer._id, accepted: true }] });
 
     await owner.mutation(api.faq.setAcceptedAnswer, {
-      faq_item_id: question._id,
+      faq_item_id: question.questionId,
       accepted_answer_id: null,
     });
     expect(
-      await owner.query(api.faq.detailByRulesetSlugAndQuestionSlug, {
-        ruleset_slug: ruleset.slug,
-        question_slug: question.slug,
+      await owner.query(api.faq.questionPage, {
+        rulesetSlug: ruleset.slug,
+        questionSlug: question.questionSlug,
       })
-    ).toMatchObject({ accepted_answer_id: null });
+    ).toMatchObject({ answers: [{ id: answer._id, accepted: false }] });
   });
 
   test('clears acceptance when the accepted answer is deleted', async () => {
     const { owner, answerer, ruleset } = await faqFixture();
-    const question = await owner.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
+    const question = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
       question: 'What happens when the accepted answer is removed?',
       tags: ['rules'],
     });
     const answer = await answerer.mutation(api.faq.createAnswer, {
-      faq_item_id: question._id,
+      faq_item_id: question.questionId,
       answer: 'The accepted-answer reference is cleared.',
     });
     await owner.mutation(api.faq.setAcceptedAnswer, {
-      faq_item_id: question._id,
+      faq_item_id: question.questionId,
       accepted_answer_id: answer._id,
     });
 
     await answerer.mutation(api.faq.deleteAnswer, { id: answer._id });
 
-    const page = await owner.query(api.faq.detailByRulesetSlugAndQuestionSlug, {
-      ruleset_slug: ruleset.slug,
-      question_slug: question.slug,
+    const page = await owner.query(api.faq.questionPage, {
+      rulesetSlug: ruleset.slug,
+      questionSlug: question.questionSlug,
     });
-    expect(page.accepted_answer_id).toBeNull();
-    expect(page.faq_answers).toEqual([]);
+    expect(page.answers).toEqual([]);
   });
 
   test('deletes large answer sets in bounded aggregate-safe batches', async () => {
@@ -314,15 +390,15 @@ describe('FAQ lifecycle', () => {
       group_id: null,
       image_cover: null,
     });
-    const question = await asUser.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
+    const question = await asUser.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
       question: 'How are large discussions deleted safely?',
       tags: ['rules'],
     });
     await t.run(async (ctx) => {
       for (let index = 0; index < 501; index += 1) {
         await ctx.db.insert('faq_answers', {
-          faq_item_id: question._id,
+          faq_item_id: question.questionId,
           answer: `Answer ${index}`,
           answered_by: userId,
           created_at: new Date(index).toISOString(),
@@ -332,12 +408,12 @@ describe('FAQ lifecycle', () => {
 
     vi.useFakeTimers();
     try {
-      await asUser.mutation(api.faq.deleteItem, { id: question._id });
+      await asUser.mutation(api.faq.deleteQuestion, { questionId: question.questionId });
       const afterFirstBatch = await t.run(async (ctx) => ({
-        question: await ctx.db.get(question._id),
+        question: await ctx.db.get(question.questionId),
         answers: await ctx.db
           .query('faq_answers')
-          .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
+          .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question.questionId))
           .take(600),
       }));
       expect(afterFirstBatch.question).not.toBeNull();
@@ -349,10 +425,10 @@ describe('FAQ lifecycle', () => {
     }
 
     const afterCleanup = await t.run(async (ctx) => ({
-      question: await ctx.db.get(question._id),
+      question: await ctx.db.get(question.questionId),
       answers: await ctx.db
         .query('faq_answers')
-        .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
+        .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question.questionId))
         .take(1),
     }));
     expect(afterCleanup.question).toBeNull();
@@ -371,8 +447,8 @@ describe('FAQ lifecycle', () => {
       group_id: null,
       image_cover: null,
     });
-    const question = await asUser.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
+    const question = await asUser.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
       question: 'Can large answers be deleted without exhausting a transaction?',
       tags: ['rules'],
     });
@@ -380,7 +456,7 @@ describe('FAQ lifecycle', () => {
     for (let index = 0; index < 6; index += 1) {
       await t.run((ctx) =>
         ctx.db.insert('faq_answers', {
-          faq_item_id: question._id,
+          faq_item_id: question.questionId,
           answer: largeAnswer,
           answered_by: userId,
           created_at: new Date(index).toISOString(),
@@ -390,11 +466,11 @@ describe('FAQ lifecycle', () => {
 
     vi.useFakeTimers();
     try {
-      await asUser.mutation(api.faq.deleteItem, { id: question._id });
+      await asUser.mutation(api.faq.deleteQuestion, { questionId: question.questionId });
       const remainingAfterFirstBatch = await t.run((ctx) =>
         ctx.db
           .query('faq_answers')
-          .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
+          .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question.questionId))
           .take(10)
       );
       expect(remainingAfterFirstBatch.length).toBeGreaterThan(0);
@@ -406,10 +482,10 @@ describe('FAQ lifecycle', () => {
     }
 
     const afterCleanup = await t.run(async (ctx) => ({
-      question: await ctx.db.get(question._id),
+      question: await ctx.db.get(question.questionId),
       answers: await ctx.db
         .query('faq_answers')
-        .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question._id))
+        .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', question.questionId))
         .take(1),
     }));
     expect(afterCleanup.question).toBeNull();

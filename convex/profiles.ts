@@ -2,12 +2,12 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { profileUserEditFormSchema } from '../src/app/profile/validation';
-import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
 import { enrichFactionsWithRulesets, listActiveRulesetSummaries } from './lib/factionCatalogue';
+import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './lib/faqProfileActivity';
 import { requireAuthUserId } from './lib/policy';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import {
@@ -118,12 +118,10 @@ export const getBySlug = query({
       (group): group is NonNullable<(typeof groupsWithNulls)[number]> => group !== null
     );
 
-    const faqAsked: any = await ctx.runQuery(api.faq.askedBy, {
-      profile_id: profile.user_id,
-    });
-    const faqAnswers: any = await ctx.runQuery(api.faq.answeredBy, {
-      profile_id: profile.user_id,
-    });
+    const [faqAsked, faqAnswers] = await Promise.all([
+      loadFaqQuestionsAskedBy(ctx, profile.user_id),
+      loadFaqAnswersGivenBy(ctx, profile.user_id),
+    ]);
 
     const factionRows = await ctx.db
       .query('factions')
