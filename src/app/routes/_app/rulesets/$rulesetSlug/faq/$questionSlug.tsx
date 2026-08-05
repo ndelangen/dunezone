@@ -2,18 +2,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import {
-  loadFaqItemByRulesetAndSlug,
-  useCreateFaqAnswer,
-  useDeleteFaqAnswer,
-  useDeleteFaqItem,
-  useFaqItemByRulesetAndSlug,
-  useSetAcceptedAnswer,
-  useUpdateFaqAnswer,
-  useUpdateFaqItem,
-} from '@db/faq';
-import type { FaqItemByRulesetSlugInitialData } from '@db/faq';
-import { useCurrentProfile } from '@db/profiles';
+import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import { loadRulesetBySlug } from '@db/rulesets';
 import { Answer } from '@app/components/faq/Answer';
 import { FormField } from '@app/components/form/FormField';
@@ -33,8 +22,11 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionS
   loader: async ({ params }) => {
     try {
       await loadRulesetBySlug(params.rulesetSlug);
-      const item = await loadFaqItemByRulesetAndSlug(params.rulesetSlug, params.questionSlug);
-      return { notFound: false, item };
+      const page = await loadFaqQuestionPage({
+        rulesetSlug: params.rulesetSlug,
+        questionSlug: params.questionSlug,
+      });
+      return { notFound: false, page };
     } catch {
       return { notFound: true };
     }
@@ -46,26 +38,12 @@ function FaqDetailPage() {
   const { rulesetSlug, questionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
-  const faqItem = useFaqItemByRulesetAndSlug(rulesetSlug, questionSlug, {
-    initialData:
-      'item' in loaderData && loaderData.item
-        ? ({
-            ...loaderData.item,
-            id: loaderData.item._id,
-            faq_answers: loaderData.item.faq_answers.map((a) => ({
-              ...a,
-              id: a._id,
-            })),
-          } as FaqItemByRulesetSlugInitialData)
-        : undefined,
-  });
-  const profile = useCurrentProfile();
-  const updateFaqItem = useUpdateFaqItem();
-  const deleteFaqItem = useDeleteFaqItem();
-  const createFaqAnswer = useCreateFaqAnswer();
-  const updateFaqAnswer = useUpdateFaqAnswer();
-  const deleteFaqAnswer = useDeleteFaqAnswer();
-  const setAcceptedAnswer = useSetAcceptedAnswer();
+  const faq = useFaqQuestionPage(
+    { rulesetSlug, questionSlug },
+    {
+      initialPage: 'page' in loaderData ? loaderData.page : undefined,
+    }
+  );
 
   const [editingQuestion, setEditingQuestion] = useState(false);
   const [editingAnswerId, setEditingAnswerId] = useState<string | null>(null);
@@ -73,17 +51,9 @@ function FaqDetailPage() {
   const [editTagValues, setEditTagValues] = useState<FaqTag[]>([]);
   const [editAnswerValue, setEditAnswerValue] = useState('');
 
-  const item = faqItem.data;
-  const answers = useMemo(
-    () => (Array.isArray(item?.faq_answers) ? item.faq_answers : []),
-    [item?.faq_answers]
-  );
-  const orderedAnswers =
-    item?.accepted_answer_id == null
-      ? answers
-      : [...answers].sort((a, b) =>
-          a._id === item.accepted_answer_id ? -1 : b._id === item.accepted_answer_id ? 1 : 0
-        );
+  const page = faq.page;
+  const item = page?.question;
+  const answers = useMemo(() => page?.answers ?? [], [page?.answers]);
 
   const header = (
     <div>
@@ -91,7 +61,10 @@ function FaqDetailPage() {
       <p>
         {item ? (
           <>
-            <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug: item.ruleset.slug }}>
+            <Link
+              to="/rulesets/$rulesetSlug"
+              params={{ rulesetSlug: page?.ruleset.slug ?? rulesetSlug }}
+            >
               Back to ruleset
             </Link>
             {' · '}
@@ -111,11 +84,11 @@ function FaqDetailPage() {
       if (!targetSlug) {
         return;
       }
-      const answer = answers.find((row) => row.answerer_profile?.slug === targetSlug);
+      const answer = answers.find((row) => row.author?.slug === targetSlug);
       if (!answer) {
         return;
       }
-      const node = document.getElementById(`faq-answer-${answer._id}`);
+      const node = document.getElementById(`faq-answer-${answer.id}`);
       node?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
     scrollToHash();
@@ -138,26 +111,21 @@ function FaqDetailPage() {
     return <PageLayout header={header}>Loading question…</PageLayout>;
   }
 
-  const faqItemId = item._id;
-  const isQuestionOwner = profile?.data?.user_id === item.asked_by;
-  const hasUserAnswered = answers.some((a) => a.answered_by === profile?.data?.user_id);
-  const showAddAnswerForm = !!profile?.data?.user_id && !hasUserAnswered;
-
-  const canEditAnswer = (a: (typeof answers)[0]) => a.answered_by === profile?.data?.user_id;
-  const canDeleteAnswer = (a: (typeof answers)[0]) =>
-    a.answered_by === profile?.data?.user_id || isQuestionOwner;
+  const showAddAnswerForm = page.viewer.answerQuestion;
+  const hasUserAnswered = !showAddAnswerForm && answers.some((a) => a.capabilities.editAnswer);
 
   const handleDeleteQuestion = () => {
     if (!window.confirm('Delete this question and all its answers? This cannot be undone.')) {
       return;
     }
-    deleteFaqItem.mutate(faqItemId, {
-      onSuccess: () => navigate({ to: '/rulesets/$rulesetSlug', params: { rulesetSlug } }),
-    });
+    void faq.deleteQuestion
+      .run()
+      .then(() => navigate({ to: '/rulesets/$rulesetSlug', params: { rulesetSlug } }))
+      .catch(() => undefined);
   };
 
   const startEditQuestion = () => {
-    setEditQuestionValue(item.question);
+    setEditQuestionValue(item.text);
     setEditTagValues(
       Array.isArray(item.tags) && item.tags.length > 0 ? (item.tags as FaqTag[]) : [DEFAULT_FAQ_TAG]
     );
@@ -180,43 +148,41 @@ function FaqDetailPage() {
     }
     const currentTags =
       Array.isArray(item.tags) && item.tags.length > 0 ? item.tags : [DEFAULT_FAQ_TAG];
-    const questionChanged = trimmed !== item.question;
+    const questionChanged = trimmed !== item.text;
     const tagsChanged = [...editTagValues].sort().join('|') !== [...currentTags].sort().join('|');
     if (!questionChanged && !tagsChanged) {
       setEditingQuestion(false);
       return;
     }
-    updateFaqItem.mutate(
-      { id: faqItemId, input: { question: trimmed, tags: editTagValues } },
-      {
-        onSuccess: () => setEditingQuestion(false),
-      }
-    );
+    void faq.editQuestion
+      .run({ question: trimmed, tags: editTagValues })
+      .then(() => setEditingQuestion(false))
+      .catch(() => undefined);
   };
 
   const startEditAnswer = (a: (typeof answers)[0]) => {
-    setEditAnswerValue(a.answer);
-    setEditingAnswerId(a._id);
+    setEditAnswerValue(a.text);
+    setEditingAnswerId(a.id);
   };
 
   const saveAnswer = (answerId: string) => {
     const trimmed = editAnswerValue.trim();
-    const a = answers.find((x) => x._id === answerId);
-    if (!a || !trimmed || trimmed === a.answer) {
+    const a = answers.find((x) => x.id === answerId);
+    if (!a || !trimmed || trimmed === a.text) {
       setEditingAnswerId(null);
       return;
     }
-    updateFaqAnswer.mutate(
-      { id: answerId, answer: trimmed },
-      { onSuccess: () => setEditingAnswerId(null) }
-    );
+    void faq.editAnswer
+      .run({ answerId, answer: trimmed })
+      .then(() => setEditingAnswerId(null))
+      .catch(() => undefined);
   };
 
   const handleDeleteAnswer = (answerId: string) => {
     if (!window.confirm('Delete this answer?')) {
       return;
     }
-    deleteFaqAnswer.mutate(answerId);
+    void faq.deleteAnswer.run({ answerId }).catch(() => undefined);
   };
 
   return (
@@ -255,7 +221,7 @@ function FaqDetailPage() {
                       iconOnly
                       aria-label="Save question"
                       onClick={() => saveQuestion()}
-                      disabled={updateFaqItem.isPending}
+                      disabled={faq.editQuestion.isPending}
                     >
                       <Check size={16} aria-hidden />
                     </UIButton>
@@ -271,27 +237,27 @@ function FaqDetailPage() {
                       <X size={16} aria-hidden />
                     </UIButton>
                   </FormTooltip>
-                  {updateFaqItem.isError && (
-                    <span className={styles.error}>{updateFaqItem.error?.message}</span>
+                  {faq.editQuestion.isError && (
+                    <span className={styles.error}>{faq.editQuestion.error?.message}</span>
                   )}
                 </ButtonGroup>
               </Stack>
             ) : (
               <>
                 <div className={styles.questionHeader}>
-                  {item.asker_profile && (
+                  {item.author && (
                     <ProfileLink
-                      slug={item.asker_profile.slug}
-                      username={item.asker_profile.username}
-                      avatar_url={item.asker_profile.avatar_url}
+                      slug={item.author.slug}
+                      username={item.author.username}
+                      avatar_url={item.author.avatarUrl}
                       className={styles.questionAskerLink}
                     />
                   )}
                   <div>
-                    <h2 className={styles.questionTitle}>{item.question}</h2>
+                    <h2 className={styles.questionTitle}>{item.text}</h2>
                   </div>
                 </div>
-                {isQuestionOwner && (
+                {item.capabilities.editQuestion && (
                   <ButtonGroup>
                     <FormTooltip content="Edit question">
                       <UIButton
@@ -310,13 +276,13 @@ function FaqDetailPage() {
                         iconOnly
                         aria-label="Delete question"
                         onClick={handleDeleteQuestion}
-                        disabled={deleteFaqItem.isPending}
+                        disabled={faq.deleteQuestion.isPending}
                       >
                         <Trash2 size={16} aria-hidden />
                       </UIButton>
                     </FormTooltip>
-                    {deleteFaqItem.isError && (
-                      <span className={styles.error}>{deleteFaqItem.error?.message}</span>
+                    {faq.deleteQuestion.isError && (
+                      <span className={styles.error}>{faq.deleteQuestion.error?.message}</span>
                     )}
                   </ButtonGroup>
                 )}
@@ -337,12 +303,15 @@ function FaqDetailPage() {
                 if (!answer) {
                   return;
                 }
-                createFaqAnswer.mutate({ faqItemId, answer }, { onSuccess: () => formEl.reset() });
+                void faq.createAnswer
+                  .run({ answer })
+                  .then(() => formEl.reset())
+                  .catch(() => undefined);
               }}
             >
               <FormField
                 hint="Add your answer (1 per person-you can edit it later)"
-                error={createFaqAnswer.isError ? createFaqAnswer.error?.message : undefined}
+                error={faq.createAnswer.isError ? faq.createAnswer.error?.message : undefined}
               >
                 <MultilineTextField
                   name="answer"
@@ -358,7 +327,7 @@ function FaqDetailPage() {
                     type="submit"
                     iconOnly
                     aria-label="Add answer"
-                    disabled={createFaqAnswer.isPending}
+                    disabled={faq.createAnswer.isPending}
                   >
                     <MessageSquarePlus size={16} aria-hidden />
                   </UIButton>
@@ -373,16 +342,16 @@ function FaqDetailPage() {
             </p>
           )}
 
-          {orderedAnswers.length > 0 ? (
+          {answers.length > 0 ? (
             <Answer.List className={styles.answerList}>
-              {orderedAnswers.map((a) => {
-                const isEditing = editingAnswerId === a._id;
-                const isUserAnswer = a.answered_by === profile?.data?.user_id;
-                const isAccepted = item.accepted_answer_id === a._id;
+              {answers.map((a) => {
+                const isEditing = editingAnswerId === a.id;
+                const isUserAnswer = a.capabilities.editAnswer;
+                const isAccepted = a.accepted;
                 return (
                   <Answer.Item
-                    key={a._id}
-                    id={`faq-answer-${a._id}`}
+                    key={a.id}
+                    id={`faq-answer-${a.id}`}
                     className={styles.answerItem}
                     isAccepted={isAccepted}
                   >
@@ -401,8 +370,8 @@ function FaqDetailPage() {
                               type="button"
                               iconOnly
                               aria-label="Save answer"
-                              onClick={() => saveAnswer(a._id)}
-                              disabled={updateFaqAnswer.isPending}
+                              onClick={() => saveAnswer(a.id)}
+                              disabled={faq.editAnswer.isPending}
                             >
                               <Check size={16} aria-hidden />
                             </UIButton>
@@ -418,47 +387,46 @@ function FaqDetailPage() {
                               <X size={16} aria-hidden />
                             </UIButton>
                           </FormTooltip>
-                          {updateFaqAnswer.isError && (
-                            <span className={styles.error}>{updateFaqAnswer.error?.message}</span>
+                          {faq.editAnswer.isError && (
+                            <span className={styles.error}>{faq.editAnswer.error?.message}</span>
                           )}
                         </ButtonGroup>
                       </Stack>
                     ) : (
                       <Stack gap={2}>
-                        {(isAccepted || isUserAnswer || a.answerer_profile) && (
+                        {(isAccepted || isUserAnswer || a.author) && (
                           <div className={styles.answerMetaRow}>
                             {isAccepted && <span>Accepted answer</span>}
                             {isUserAnswer && <span>Your answer-you can edit or delete it</span>}
-                            {a.answerer_profile && (
+                            {a.author && (
                               <ProfileLink
-                                slug={a.answerer_profile.slug}
-                                username={a.answerer_profile.username}
-                                avatar_url={a.answerer_profile.avatar_url}
+                                slug={a.author.slug}
+                                username={a.author.username}
+                                avatar_url={a.author.avatarUrl}
                               />
                             )}
                           </div>
                         )}
-                        <div className={styles.answerContent}>{a.answer}</div>
+                        <div className={styles.answerContent}>{a.text}</div>
                         <ButtonGroup>
-                          {isQuestionOwner && !isAccepted && (
+                          {a.capabilities.acceptAnswer && (
                             <FormTooltip content="Mark as accepted answer">
                               <UIButton
                                 type="button"
                                 iconOnly
                                 aria-label="Mark as accepted answer"
                                 onClick={() =>
-                                  setAcceptedAnswer.mutate({
-                                    faqItemId,
-                                    acceptedAnswerId: a._id,
-                                  })
+                                  void faq.setAcceptedAnswer
+                                    .run({ answerId: a.id })
+                                    .catch(() => undefined)
                                 }
-                                disabled={setAcceptedAnswer.isPending}
+                                disabled={faq.setAcceptedAnswer.isPending}
                               >
                                 <Check size={16} aria-hidden />
                               </UIButton>
                             </FormTooltip>
                           )}
-                          {isQuestionOwner && isAccepted && (
+                          {a.capabilities.unacceptAnswer && (
                             <FormTooltip content="Unmark accepted answer">
                               <UIButton
                                 type="button"
@@ -466,18 +434,17 @@ function FaqDetailPage() {
                                 iconOnly
                                 aria-label="Unmark accepted answer"
                                 onClick={() =>
-                                  setAcceptedAnswer.mutate({
-                                    faqItemId,
-                                    acceptedAnswerId: null,
-                                  })
+                                  void faq.setAcceptedAnswer
+                                    .run({ answerId: null })
+                                    .catch(() => undefined)
                                 }
-                                disabled={setAcceptedAnswer.isPending}
+                                disabled={faq.setAcceptedAnswer.isPending}
                               >
                                 <X size={16} aria-hidden />
                               </UIButton>
                             </FormTooltip>
                           )}
-                          {canEditAnswer(a) && (
+                          {a.capabilities.editAnswer && (
                             <FormTooltip content="Edit your answer">
                               <UIButton
                                 type="button"
@@ -489,15 +456,15 @@ function FaqDetailPage() {
                               </UIButton>
                             </FormTooltip>
                           )}
-                          {canDeleteAnswer(a) && (
+                          {a.capabilities.deleteAnswer && (
                             <FormTooltip content="Delete answer">
                               <UIButton
                                 variant="critical"
                                 type="button"
                                 iconOnly
                                 aria-label="Delete answer"
-                                onClick={() => handleDeleteAnswer(a._id)}
-                                disabled={deleteFaqAnswer.isPending}
+                                onClick={() => handleDeleteAnswer(a.id)}
+                                disabled={faq.deleteAnswer.isPending}
                               >
                                 <Trash2 size={16} aria-hidden />
                               </UIButton>

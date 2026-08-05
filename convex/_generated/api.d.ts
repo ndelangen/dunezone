@@ -20,6 +20,7 @@ import type * as http from "../http.js";
 import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
+import type * as lib_faqProfileActivity from "../lib/faqProfileActivity.js";
 import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_memberGroups from "../lib/memberGroups.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   "lib/applicationTriggers": typeof lib_applicationTriggers;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionInput": typeof lib_factionInput;
+  "lib/faqProfileActivity": typeof lib_faqProfileActivity;
   "lib/faqRulesetList": typeof lib_faqRulesetList;
   "lib/ids": typeof lib_ids;
   "lib/memberGroups": typeof lib_memberGroups;

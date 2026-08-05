@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 
-import { useCreateFaqItem } from '@db/faq';
+import { useAskFaqQuestion } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug, useRulesetBySlug } from '@db/rulesets';
 import { FormField } from '@app/components/form/FormField';
@@ -26,7 +26,7 @@ function FaqCreatePage() {
   const navigate = useNavigate();
   const ruleset = useRulesetBySlug(rulesetSlug, { initialData: loaderData.ruleset });
   const profile = useCurrentProfile();
-  const createFaqItem = useCreateFaqItem();
+  const askQuestion = useAskFaqQuestion();
   const rulesetRow = ruleset.data?.ruleset;
 
   const header = (
@@ -84,21 +84,21 @@ function FaqCreatePage() {
             if (selectedTags.length === 0) {
               return;
             }
-            createFaqItem.mutate(
-              { rulesetId, question, answer: answer || undefined, tags: selectedTags },
-              {
-                onSuccess: (entry) => {
-                  formEl.reset();
-                  navigate({
-                    to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                    params: {
-                      rulesetSlug,
-                      questionSlug: entry.slug,
-                    },
-                  });
-                },
-              }
-            );
+            void askQuestion
+              .run({
+                rulesetId,
+                question,
+                initialAnswer: answer || undefined,
+                tags: selectedTags,
+              })
+              .then((locator) => {
+                formEl.reset();
+                navigate({
+                  to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+                  params: locator,
+                });
+              })
+              .catch(() => undefined);
           }}
         >
           <FormField label="Ask a question">
@@ -125,11 +125,11 @@ function FaqCreatePage() {
             </Stack>
           </FormField>
           <ButtonGroup>
-            <UIButton type="submit" iconOnly={false} disabled={createFaqItem.isPending}>
-              {createFaqItem.isPending ? 'Asking…' : 'Ask'}
+            <UIButton type="submit" iconOnly={false} disabled={askQuestion.isPending}>
+              {askQuestion.isPending ? 'Asking…' : 'Ask'}
             </UIButton>
-            {createFaqItem.isError && (
-              <span className={styles.error}>{createFaqItem.error?.message}</span>
+            {askQuestion.isError && (
+              <span className={styles.error}>{askQuestion.error?.message}</span>
             )}
           </ButtonGroup>
         </Stack>

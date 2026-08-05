@@ -94,3 +94,56 @@ test('profile list includes activity counts', async () => {
     },
   });
 });
+
+test('profile detail returns the newest bounded FAQ activity', async () => {
+  const t = convexTest(schema, modules);
+  await t.run(async (ctx) => {
+    const userId = await ctx.db.insert('users', {});
+    await ctx.db.insert('profiles', {
+      user_id: userId,
+      username: 'Recent FAQ author',
+      avatar_url: null,
+      slug: 'recent-faq-author',
+      created_at: '2026-08-05T00:00:00.000Z',
+      updated_at: '2026-08-05T00:00:00.000Z',
+    });
+    const rulesetId = await ctx.db.insert('rulesets', {
+      name: 'FAQ activity',
+      slug: 'faq-activity',
+      created_at: '2026-08-05T00:00:00.000Z',
+      updated_at: '2026-08-05T00:00:00.000Z',
+      owner_id: userId,
+      group_id: null,
+      is_deleted: false,
+      image_cover: null,
+    });
+
+    for (let index = 0; index < 201; index += 1) {
+      const createdAt = new Date(index).toISOString();
+      const questionId = await ctx.db.insert('faq_items', {
+        ruleset_id: rulesetId,
+        slug: String(index),
+        question: `Question ${index}`,
+        asked_by: userId,
+        created_at: createdAt,
+        updated_at: createdAt,
+        accepted_answer_id: null,
+      });
+      await ctx.db.insert('faq_answers', {
+        faq_item_id: questionId,
+        answer: `Answer ${index}`,
+        answered_by: userId,
+        created_at: createdAt,
+      });
+    }
+  });
+
+  const profile = await t.query(api.profiles.getBySlug, { slug: 'recent-faq-author' });
+
+  expect(profile.faqAsked).toHaveLength(200);
+  expect(profile.faqAsked[0].slug).toBe('200');
+  expect(profile.faqAsked[199].slug).toBe('1');
+  expect(profile.faqAnswers).toHaveLength(200);
+  expect(profile.faqAnswers[0].answer).toBe('Answer 200');
+  expect(profile.faqAnswers[199].answer).toBe('Answer 1');
+});

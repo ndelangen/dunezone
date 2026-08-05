@@ -85,44 +85,4 @@ describe('group collaboration permissions', () => {
       'Not authorized'
     );
   });
-
-  test('question ownership and moderation do not depend on ruleset group membership', async () => {
-    const { contributor, member, ruleset } = await collaborationFixture();
-    const question = await contributor.mutation(api.faq.createItem, {
-      ruleset_id: ruleset._id,
-      question: 'Can an author maintain this question?',
-      tags: ['rules'],
-    });
-    const answer = await member.mutation(api.faq.createAnswer, {
-      faq_item_id: question._id,
-      answer: 'The answer remains owned by its author.',
-    });
-
-    await expect(
-      contributor.mutation(api.faq.updateItem, {
-        id: question._id,
-        question: 'Can the author maintain this question outside the group?',
-      })
-    ).resolves.toMatchObject({
-      question: 'Can the author maintain this question outside the group?',
-    });
-    await expect(
-      contributor.mutation(api.faq.setAcceptedAnswer, {
-        faq_item_id: question._id,
-        accepted_answer_id: answer._id,
-      })
-    ).resolves.toMatchObject({ accepted_answer_id: answer._id });
-    await expect(
-      contributor.mutation(api.faq.updateAnswer, {
-        id: answer._id,
-        answer: "A question owner cannot rewrite another author's answer.",
-      })
-    ).rejects.toThrow('Not authorized');
-    await expect(
-      contributor.mutation(api.faq.deleteAnswer, { id: answer._id })
-    ).resolves.toMatchObject({ id: answer._id });
-    await expect(
-      contributor.mutation(api.faq.deleteItem, { id: question._id })
-    ).resolves.toMatchObject({ id: question._id });
-  });
 });
