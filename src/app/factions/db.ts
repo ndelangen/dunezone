@@ -9,6 +9,10 @@ import type { FactionInput } from '@game/schema/faction';
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
 import type { PublicAssetPublishingStatusProjection } from '../../../convex/assetPublishingStatus';
+import type {
+  AssignedGroupSummary,
+  CollaborativeAccess,
+} from '../../../convex/lib/collaborativeAccess';
 
 export type Faction = FactionInput;
 export type FactionData = FactionInput;
@@ -100,29 +104,32 @@ export function factionRowsToEntries(rows: FactionRow[]): FactionEntry[] {
   return rows.map(toFactionEntry);
 }
 
-/** Assigned group + members (profile summaries) for faction detail; mirrors ruleset `groupAccess`. */
-export type FactionPageGroupAccess = {
-  group: Doc<'groups'>;
-  members: Array<{
-    membership: Doc<'group_members'>;
-    profile: {
-      id: string;
-      slug: string;
-      username: string | null;
-      avatar_url: string | null;
-    } | null;
-  }>;
-};
-
 export type FactionDetailPageData = {
   faction: FactionEntry;
   owner: Doc<'profiles'>;
-  group: Doc<'groups'> | null;
-  memberships: Doc<'group_members'>[];
-  groups: Doc<'groups'>[];
-  groupAccess: FactionPageGroupAccess | null;
   assetPublishing: PublicAssetPublishingStatusProjection;
+  viewerAccess: Extract<CollaborativeAccess, { kind: 'faction' }>;
+  assignableGroups: AssignedGroupSummary[];
+  rulesets: FactionRulesetSummary[];
 };
+
+type FactionDetailPageDataRaw = Omit<FactionDetailPageData, 'faction'> & {
+  faction: Omit<FactionRow, 'data'> & { data: unknown };
+};
+
+function toFactionDetailPageData(raw: FactionDetailPageDataRaw): FactionDetailPageData {
+  return {
+    faction: {
+      ...raw.faction,
+      data: CanonicalFactionStoredSchema.parse(raw.faction.data),
+    },
+    owner: raw.owner,
+    assetPublishing: raw.assetPublishing,
+    viewerAccess: raw.viewerAccess,
+    assignableGroups: raw.assignableGroups,
+    rulesets: raw.rulesets,
+  };
+}
 
 export async function loadFactionBySlug(slug: string): Promise<FactionDetailPageData> {
   return await loadFaction(slug);
@@ -166,21 +173,15 @@ export function useFaction(
   }
 ) {
   const liveData = useQuery(api.factions.getBySlug, { slug });
-  const normalized = liveData
-    ? {
-        ...liveData,
-        faction: toFactionEntry(liveData.faction),
-      }
-    : undefined;
+  const normalized = liveData ? toFactionDetailPageData(liveData) : undefined;
   const result = toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
   return {
     ...result,
     faction: result.data?.faction,
     owner: result.data?.owner,
-    group: result.data?.group,
-    memberships: result.data?.memberships,
-    groups: result.data?.groups,
-    groupAccess: result.data?.groupAccess ?? null,
+    viewerAccess: result.data?.viewerAccess,
+    assignableGroups: result.data?.assignableGroups ?? [],
+    rulesets: result.data?.rulesets ?? [],
     assetPublishing: result.data?.assetPublishing ?? {
       status: null,
       captureStatus: null,
@@ -370,7 +371,8 @@ export function useSetFactionGroup() {
 }
 
 export async function loadFaction(slug: string): Promise<FactionDetailPageData> {
-  return await db.query<FactionDetailPageData>(api.factions.getBySlug, {
+  const raw = await db.query<FactionDetailPageDataRaw>(api.factions.getBySlug, {
     slug,
   });
+  return toFactionDetailPageData(raw);
 }

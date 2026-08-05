@@ -4,36 +4,16 @@ import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 
 export type MembershipState = 'none' | 'pending' | 'active';
-export type StoredMembershipState = MembershipState | 'removed';
 
 export type PublicViewer =
   | { kind: 'anonymous' }
   | { kind: 'authenticated'; membership: MembershipState };
-
-type ViewerFacts =
-  | { kind: 'anonymous' }
-  | { kind: 'authenticated'; membership: StoredMembershipState; ownsSubject: boolean };
 
 export type AssignedGroupSummary = {
   id: Id<'groups'>;
   name: string;
   slug: string;
 };
-
-export type GroupAccessFacts = {
-  kind: 'group';
-  group: { eligible: boolean };
-  viewer: ViewerFacts;
-};
-
-export type AssetAccessFacts = {
-  kind: 'faction' | 'ruleset';
-  resource: { available: boolean };
-  group: { eligible: boolean; summary: AssignedGroupSummary | null };
-  viewer: ViewerFacts;
-};
-
-export type CollaborativeAccessFacts = GroupAccessFacts | AssetAccessFacts;
 
 export type CollaborativeAccess =
   | {
@@ -70,6 +50,27 @@ export type CollaborativeAccess =
         delete: boolean;
       };
     };
+
+export type StoredMembershipState = MembershipState | 'removed';
+
+type ViewerFacts =
+  | { kind: 'anonymous' }
+  | { kind: 'authenticated'; membership: StoredMembershipState; ownsSubject: boolean };
+
+export type GroupAccessFacts = {
+  kind: 'group';
+  group: { eligible: boolean };
+  viewer: ViewerFacts;
+};
+
+export type AssetAccessFacts = {
+  kind: 'faction' | 'ruleset';
+  resource: { available: boolean };
+  group: { eligible: boolean; summary: AssignedGroupSummary | null };
+  viewer: ViewerFacts;
+};
+
+export type CollaborativeAccessFacts = GroupAccessFacts | AssetAccessFacts;
 
 type CollaborativeSubject =
   | { kind: 'group'; id: Id<'groups'> }

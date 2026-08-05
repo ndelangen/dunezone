@@ -40,7 +40,9 @@ function FactionEditPage() {
   const profile = useCurrentProfile();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const { faction, group, assetPublishing } = useFaction(factionId, { initialData: loaderData });
+  const { faction, viewerAccess, assetPublishing } = useFaction(factionId, {
+    initialData: loaderData,
+  });
   const authoringFaction = faction ?? loaderData.faction;
   const authoring = useFactionAuthoring({
     sessionKey: authoringFaction._id,
@@ -78,7 +80,7 @@ function FactionEditPage() {
     </Stack>
   );
 
-  if (!profile.data?.user_id) {
+  if (viewerAccess?.viewer.kind === 'anonymous') {
     return (
       <PageLayout header={header} headerSize="compact">
         <Paper withBorder radius="md" p="xl">
@@ -110,8 +112,23 @@ function FactionEditPage() {
     );
   }
 
-  const canDelete = faction.owner_id === profile.data.user_id;
-  const canAssignGroup = canDelete;
+  if (!viewerAccess?.capabilities.edit) {
+    return (
+      <PageLayout header={header} headerSize="compact">
+        <Paper withBorder radius="md" p="xl">
+          <Text>
+            {faction.group_id
+              ? 'Only the faction owner or an active member of its group can edit this faction.'
+              : 'Only the faction owner can edit this faction.'}
+          </Text>
+        </Paper>
+      </PageLayout>
+    );
+  }
+
+  const assignedGroup = viewerAccess.assignedGroup;
+  const canDelete = viewerAccess.capabilities.delete;
+  const canAssignGroup = viewerAccess.capabilities.changeGroup;
 
   return (
     <PageLayout
@@ -141,7 +158,7 @@ function FactionEditPage() {
                 currentPublicSlug={faction.slug}
                 onLoaded={authoring.actions.loadDraft}
               />
-              {canAssignGroup && !group ? (
+              {canAssignGroup && !assignedGroup && profile.data?.user_id ? (
                 <FactionGroupPopover
                   disabled={setFactionGroup.isPending}
                   userId={profile.data.user_id}
@@ -154,7 +171,7 @@ function FactionEditPage() {
                   }}
                 />
               ) : null}
-              {canAssignGroup && group ? (
+              {canAssignGroup && assignedGroup ? (
                 <Tooltip label="Remove group">
                   <ActionIcon
                     type="button"
@@ -174,9 +191,9 @@ function FactionEditPage() {
             </>
           }
           context={
-            group ? (
+            assignedGroup ? (
               <Text size="xs" c="dimmed">
-                Group access: <strong>{group.name ?? group._id}</strong>
+                Group access: <strong>{assignedGroup.name}</strong>
               </Text>
             ) : null
           }

@@ -13,7 +13,6 @@ import {
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, BookOpen } from 'lucide-react';
 
-import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetDetailPage, useRulesetDetailPage } from '@db/rulesets';
 import { RulesetSettingsForm } from '@app/components/rulesets/RulesetSettingsForm';
 import { PageLayout } from '@app/components/shell';
@@ -37,7 +36,6 @@ function RulesetEditPage() {
   const detailSeed =
     !loaderData.notFound && loaderData.detailPage ? loaderData.detailPage : undefined;
   const page = useRulesetDetailPage(rulesetSlug, { initialData: detailSeed });
-  const profile = useCurrentProfile();
 
   const header = page.ruleset ? (
     <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
@@ -124,9 +122,9 @@ function RulesetEditPage() {
   }
 
   const r = page.ruleset;
-  const viewerUserId = profile.data?.user_id;
+  const viewerAccess = page.viewerAccess;
 
-  if (profile.isPending) {
+  if (!viewerAccess) {
     return (
       <PageLayout header={header} toolbar={toolbar}>
         <Paper withBorder p="xl" radius="md" aria-live="polite">
@@ -136,7 +134,7 @@ function RulesetEditPage() {
     );
   }
 
-  if (!viewerUserId) {
+  if (viewerAccess.viewer.kind === 'anonymous') {
     return (
       <PageLayout header={header} toolbar={toolbar}>
         <Paper withBorder p="xl" radius="md">
@@ -151,7 +149,7 @@ function RulesetEditPage() {
     );
   }
 
-  if (!page.canEditRuleset) {
+  if (!viewerAccess.capabilities.edit) {
     return (
       <PageLayout header={header} toolbar={toolbar}>
         <Paper withBorder p="xl" radius="md">
@@ -168,7 +166,11 @@ function RulesetEditPage() {
   return (
     <PageLayout header={header} toolbar={toolbar}>
       <Paper withBorder p="lg" radius="md">
-        <RulesetSettingsForm key={r.slug} initial={r} canRename={r.owner_id === viewerUserId} />
+        <RulesetSettingsForm
+          key={r.slug}
+          initial={r}
+          canRename={viewerAccess.capabilities.rename}
+        />
       </Paper>
     </PageLayout>
   );

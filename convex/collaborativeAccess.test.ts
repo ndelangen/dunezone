@@ -97,6 +97,10 @@ async function groupAccessFixture() {
       is_deleted: false,
       image_cover: null,
     });
+    await ctx.db.insert('ruleset_factions', {
+      ruleset_id: rulesetId,
+      faction_id: factionId,
+    });
     return {
       ownerId,
       assetOwnerId,
@@ -216,6 +220,9 @@ describe('collaborative access public projections', () => {
       { id: ids.groupId, name: 'Dune Designers', slug: 'dune-designers' },
     ]);
     expect(rulesetPage?.assignableGroups).toEqual(factionPage.assignableGroups);
+    expect(factionPage.rulesets).toEqual([
+      { id: ids.rulesetId, name: 'Collaborative Ruleset', slug: 'collaborative-ruleset' },
+    ]);
 
     expect(factionPage.memberships).toHaveLength(1);
     expect(factionPage.groupAccess?.members).toHaveLength(4);
