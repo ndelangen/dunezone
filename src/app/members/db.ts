@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import type { LiveMutationResult } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
@@ -12,6 +13,34 @@ export type GroupMemberEntry = GroupMemberRow & { id: string };
 export type GroupMemberInsert = GroupMemberEntry;
 export type GroupMemberUpdate = Partial<GroupMemberEntry>;
 export type GroupMemberStatus = GroupMemberRow['status'];
+
+type MembershipCommandAcknowledgement = {
+  membershipId: string;
+  status: GroupMemberStatus;
+};
+
+type GroupMembershipCommand<TInput> = {
+  run: (input: TInput) => Promise<void>;
+  isPending: boolean;
+  isError: boolean;
+  error: Error | null;
+  reset: () => void;
+};
+
+function membershipCommand<TInput, TVariables, TResult>(
+  mutation: LiveMutationResult<TVariables, TResult>,
+  variables: (input: TInput) => TVariables
+): GroupMembershipCommand<TInput> {
+  return {
+    run: async (input) => {
+      await mutation.mutateAsync(variables(input));
+    },
+    isPending: mutation.isPending,
+    isError: mutation.isError,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
+}
 
 export type UserGroupMembershipWithGroup = GroupMemberEntry & {
   groups: { id: string; name: string; slug: string } | null;
@@ -114,6 +143,36 @@ export function useGroupMember(groupId: string, userId: string) {
   return {
     ...result,
     data: result.data ? { ...result.data, id: result.data._id } : undefined,
+  };
+}
+
+export function useGroupMembershipWorkflow() {
+  const requestMutation = useLiveMutation<{ group_id: string }, GroupMemberRow>(
+    api.members.request
+  );
+  const approveMutation = useLiveMutation<
+    { membershipId: string },
+    MembershipCommandAcknowledgement
+  >(api.members.approveRequest);
+  const rejectMutation = useLiveMutation<
+    { membershipId: string },
+    MembershipCommandAcknowledgement
+  >(api.members.rejectRequest);
+  const removeMutation = useLiveMutation<
+    { membershipId: string },
+    MembershipCommandAcknowledgement
+  >(api.members.removeMember);
+  const addMutation = useLiveMutation<
+    { groupId: string; userId: string },
+    MembershipCommandAcknowledgement
+  >(api.members.addMember);
+
+  return {
+    request: membershipCommand(requestMutation, (groupId: string) => ({ group_id: groupId })),
+    approve: membershipCommand(approveMutation, (membershipId: string) => ({ membershipId })),
+    reject: membershipCommand(rejectMutation, (membershipId: string) => ({ membershipId })),
+    remove: membershipCommand(removeMutation, (membershipId: string) => ({ membershipId })),
+    add: membershipCommand(addMutation, (input: { groupId: string; userId: string }) => input),
   };
 }
 
