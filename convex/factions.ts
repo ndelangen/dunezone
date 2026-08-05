@@ -1,4 +1,3 @@
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { CanonicalFactionStoredSchema } from '../src/game/schema/faction';
@@ -7,12 +6,20 @@ import { query } from './_generated/server';
 import { factionSheetPublishingStatus } from './assetPublishingStatus';
 import { mutation } from './functions';
 import {
+  loadAssetAccessBundle,
+  requireAssignableGroup,
+  requireFactionSoftDelete,
+  requireFactionUpdate,
+  requireGroupReassignment,
+} from './lib/collaborativeAccess';
+import { factionDetailPageValidator } from './lib/collaborativeAccessValidators';
+import {
   enrichFactionsWithRulesets,
   listActiveRulesetSummaries,
   selectFactionCatalogueSpotlights,
 } from './lib/factionCatalogue';
 import { parseFactionInput } from './lib/factionInput';
-import { isActiveGroupMember, requireAuthUserId } from './lib/policy';
+import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { enqueueFactionSheetPublication } from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
@@ -43,39 +50,18 @@ function factionRowForClient(row: Doc<'factions'>) {
   };
 }
 
-/** Groups relevant to the faction row + viewer memberships only (no full-table scan). */
-async function groupsForFactionAndMemberships(
-  ctx: QueryCtx,
-  factionGroupId: Id<'groups'> | null | undefined,
-  memberships: { group_id: Id<'groups'> }[]
-) {
-  const groupIds = new Set<Id<'groups'>>();
-  if (factionGroupId) {
-    groupIds.add(factionGroupId);
-  }
-  for (const m of memberships) {
-    groupIds.add(m.group_id);
-  }
-  const groups = [];
-  for (const gid of groupIds) {
-    const g = await ctx.db.get('groups', gid);
-    if (g) {
-      groups.push(g);
-    }
-  }
-  return groups;
-}
-
 /** Faction detail page bundle (view, edit, and sheet preview). */
 async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
-  const row = await ctx.db
+  const locatedRow = await ctx.db
     .query('factions')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (!row || row.is_deleted) {
+  if (!locatedRow || locatedRow.is_deleted) {
     throw new Error(`Faction with slug ${slug} not found`);
   }
 
+  const access = await loadAssetAccessBundle(ctx, { kind: 'faction', row: locatedRow });
+  const row = access.subject;
   const ownerProfile = await ctx.db
     .query('profiles')
     .withIndex('by_user_id', (q) => q.eq('user_id', row.owner_id))
@@ -84,18 +70,8 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     throw new Error(`Profile with user id ${row.owner_id} not found`);
   }
 
-  const group = row.group_id ? await ctx.db.get('groups', row.group_id) : null;
-
-  const authUserId = await getAuthUserId(ctx);
-  const memberships =
-    authUserId != null
-      ? await ctx.db
-          .query('group_members')
-          .withIndex('by_user_status', (q) => q.eq('user_id', authUserId).eq('status', 'active'))
-          .take(500)
-      : [];
-
-  const groups = await groupsForFactionAndMemberships(ctx, row.group_id, memberships);
+  const memberships = access.memberships;
+  const groups = access.groups;
 
   let groupAccess: {
     group: Doc<'groups'>;
@@ -106,7 +82,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
   } | null = null;
 
   const linkedGroupId = row.group_id;
-  if (linkedGroupId && group) {
+  if (linkedGroupId && access.assignedGroup) {
     const groupMemberships = await ctx.db
       .query('group_members')
       .withIndex('by_group', (q) => q.eq('group_id', linkedGroupId))
@@ -117,7 +93,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
         profile: await profileSummary(ctx, m.user_id),
       }))
     );
-    groupAccess = { group, members };
+    groupAccess = { group: access.assignedGroup, members };
   }
 
   return {
@@ -126,16 +102,19 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
       data: factionDataForClient(row.data),
     },
     owner: ownerProfile,
-    group,
+    group: access.assignedGroup,
     memberships,
     groups,
     groupAccess,
     assetPublishing: await factionSheetPublishingStatus(ctx, row._id),
+    viewerAccess: access.viewerAccess,
+    assignableGroups: access.assignableGroups,
   };
 }
 
 export const getBySlug = query({
   args: { slug: v.string() },
+  returns: factionDetailPageValidator,
   handler: async (ctx, args) => loadFactionDetailPageBySlug(ctx, args.slug),
 });
 
@@ -290,10 +269,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     if (args.group_id) {
-      const canUseGroup = await isActiveGroupMember(ctx, args.group_id, userId);
-      if (!canUseGroup) {
-        throw new Error('Not authorized for group');
-      }
+      await requireAssignableGroup(ctx, args.group_id);
     }
 
     const data = parseFactionInput(args.data, {
@@ -327,30 +303,19 @@ export const update = mutation({
     data: v.any(),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const row = await ctx.db.get(args.id);
-    if (!row || row.is_deleted) {
-      throw new Error(`Faction with id ${args.id} not found`);
-    }
-    const isOwner = row.owner_id === userId;
-    const isGroupEditor =
-      row.group_id == null ? false : await isActiveGroupMember(ctx, row.group_id, userId);
-    if (!isOwner && !isGroupEditor) {
-      throw new Error('Not authorized');
-    }
-
     const data = parseFactionInput(args.data, {
       requireAuthoringSemantics: true,
     });
+    const access = await requireFactionUpdate(ctx, args.id, data);
     const slug = slugify(data.name);
     await assertFactionSlugAvailable(ctx, slug, args.id);
 
-    await ctx.db.patch(args.id, {
+    await ctx.db.patch(access.subject._id, {
       data,
       slug,
       updated_at: nowIso(),
     });
-    const updated = await ctx.db.get(args.id);
+    const updated = await ctx.db.get(access.subject._id);
     if (!updated) {
       throw new Error('Failed to update faction');
     }
@@ -365,26 +330,17 @@ export const setGroup = mutation({
     group_id: v.union(v.id('groups'), v.null()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const row = await ctx.db.get(args.id);
-    if (!row || row.is_deleted) {
-      throw new Error(`Faction with id ${args.id} not found`);
-    }
-    if (row.owner_id !== userId) {
-      throw new Error('Not authorized');
-    }
-    if (args.group_id) {
-      const canUseGroup = await isActiveGroupMember(ctx, args.group_id, userId);
-      if (!canUseGroup) {
-        throw new Error('Not authorized for group');
-      }
-    }
+    const access = await requireGroupReassignment(
+      ctx,
+      { kind: 'faction', id: args.id },
+      args.group_id
+    );
 
     await ctx.db.patch(args.id, {
       group_id: args.group_id,
       updated_at: nowIso(),
     });
-    const updated = await ctx.db.get(args.id);
+    const updated = await ctx.db.get(access.subject._id);
     if (!updated) {
       throw new Error('Failed to update faction group');
     }
@@ -395,16 +351,9 @@ export const setGroup = mutation({
 export const softDelete = mutation({
   args: { id: v.id('factions') },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const row = await ctx.db.get(args.id);
-    if (!row) {
-      throw new Error(`Faction with id ${args.id} not found`);
-    }
-    if (row.owner_id !== userId) {
-      throw new Error('Not authorized');
-    }
+    const access = await requireFactionSoftDelete(ctx, args.id);
 
-    await ctx.db.patch(args.id, {
+    await ctx.db.patch(access.subject._id, {
       is_deleted: true,
       updated_at: nowIso(),
     });

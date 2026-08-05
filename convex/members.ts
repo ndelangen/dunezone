@@ -4,11 +4,25 @@ import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { mutation } from './functions';
+import {
+  requireGroupCapability,
+  requireLegacyGroupOwner,
+  requireLegacyMembershipManager,
+  requireMembershipRequest,
+} from './lib/collaborativeAccess';
+import {
+  groupMemberValidator,
+  membershipCommandAcknowledgementValidator,
+} from './lib/collaborativeAccessValidators';
 import { listByUserActiveWithGroupsData } from './lib/memberGroups';
-import { isActiveGroupMember, requireAuthUserId } from './lib/policy';
+import { requireAuthUserId } from './lib/policy';
 import { nowIso } from './lib/utils';
 
 const statusValidator = v.union(v.literal('pending'), v.literal('active'), v.literal('removed'));
+
+function commandAcknowledgement(membership: Awaited<ReturnType<typeof requireMembership>>) {
+  return { membershipId: membership._id, status: membership.status };
+}
 
 async function getMembership(
   ctx: QueryCtx | MutationCtx,
@@ -21,8 +35,108 @@ async function getMembership(
     .unique();
 }
 
-async function loadGroup(ctx: QueryCtx | MutationCtx, groupId: Id<'groups'>) {
-  return await ctx.db.get(groupId);
+async function requireMembership(ctx: MutationCtx, membershipId: Id<'group_members'>) {
+  const membership = await ctx.db.get('group_members', membershipId);
+  if (!membership) {
+    throw new Error('Group member not found');
+  }
+  return membership;
+}
+
+async function approveRequestHandler(ctx: MutationCtx, membershipId: Id<'group_members'>) {
+  const membership = await requireMembership(ctx, membershipId);
+  const access = await requireGroupCapability(ctx, membership.group_id, 'addMember');
+  return await approveMembership(ctx, membership, access.viewerId as Id<'users'>);
+}
+
+async function approveMembership(
+  ctx: MutationCtx,
+  membership: Awaited<ReturnType<typeof requireMembership>>,
+  actorId: Id<'users'>
+) {
+  if (membership.status !== 'pending') {
+    throw new Error('Membership is not pending approval');
+  }
+  await ctx.db.patch(membership._id, {
+    status: 'active',
+    approved_by: actorId,
+    approved_at: nowIso(),
+  });
+  return await requireMembership(ctx, membership._id);
+}
+
+async function rejectRequestHandler(ctx: MutationCtx, membershipId: Id<'group_members'>) {
+  const membership = await requireMembership(ctx, membershipId);
+  await requireGroupCapability(ctx, membership.group_id, 'addMember');
+  return await rejectMembership(ctx, membership);
+}
+
+async function rejectMembership(
+  ctx: MutationCtx,
+  membership: Awaited<ReturnType<typeof requireMembership>>
+) {
+  if (membership.status !== 'pending') {
+    throw new Error('Membership is not pending approval');
+  }
+  await ctx.db.patch(membership._id, {
+    status: 'removed',
+    approved_by: null,
+    approved_at: null,
+  });
+  return await requireMembership(ctx, membership._id);
+}
+
+async function removeMemberHandler(ctx: MutationCtx, membershipId: Id<'group_members'>) {
+  const membership = await requireMembership(ctx, membershipId);
+  const access = await requireGroupCapability(ctx, membership.group_id, 'delete');
+  return await removeMembership(ctx, membership, access.subject.created_by);
+}
+
+async function removeMembership(
+  ctx: MutationCtx,
+  membership: Awaited<ReturnType<typeof requireMembership>>,
+  ownerId: Id<'users'>
+) {
+  if (membership.user_id === ownerId) {
+    throw new Error('Cannot remove the group owner');
+  }
+  if (membership.status !== 'active') {
+    throw new Error('Can only remove active members');
+  }
+  await ctx.db.patch(membership._id, {
+    status: 'removed',
+    approved_by: null,
+    approved_at: null,
+  });
+  return await requireMembership(ctx, membership._id);
+}
+
+async function addMemberHandler(
+  ctx: MutationCtx,
+  args: { groupId: Id<'groups'>; userId: Id<'users'> }
+) {
+  const actorId = await requireAuthUserId(ctx);
+  await requireGroupCapability(ctx, args.groupId, 'addMember');
+
+  const existing = await getMembership(ctx, args.groupId, args.userId);
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      status: 'active',
+      approved_by: actorId,
+      approved_at: nowIso(),
+    });
+    return await requireMembership(ctx, existing._id);
+  }
+
+  const membershipId = await ctx.db.insert('group_members', {
+    group_id: args.groupId,
+    user_id: args.userId,
+    status: 'active',
+    requested_at: nowIso(),
+    approved_by: actorId,
+    approved_at: nowIso(),
+  });
+  return await requireMembership(ctx, membershipId);
 }
 
 export const listByUserActiveWithGroups = query({
@@ -65,14 +179,11 @@ export const get = query({
 
 export const request = mutation({
   args: { group_id: v.id('groups') },
+  returns: groupMemberValidator,
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const group = await loadGroup(ctx, args.group_id);
-    if (!group) {
-      throw new Error('Group not found');
-    }
-
-    const existing = await getMembership(ctx, args.group_id, userId);
+    const access = await requireMembershipRequest(ctx, args.group_id);
+    const userId = access.viewerId as Id<'users'>;
+    const existing = access.viewerMembership;
     if (existing) {
       if (existing.status === 'pending' || existing.status === 'active') {
         return existing;
@@ -105,36 +216,34 @@ export const request = mutation({
   },
 });
 
+export const approveRequest = mutation({
+  args: { membershipId: v.id('group_members') },
+  returns: membershipCommandAcknowledgementValidator,
+  handler: async (ctx, args) =>
+    commandAcknowledgement(await approveRequestHandler(ctx, args.membershipId)),
+});
+
 export const approve = mutation({
   args: {
     group_id: v.id('groups'),
     user_id: v.id('users'),
   },
+  returns: groupMemberValidator,
   handler: async (ctx, args) => {
-    const actorId = await requireAuthUserId(ctx);
-    const canManage = await isActiveGroupMember(ctx, args.group_id, actorId);
-    if (!canManage) {
-      throw new Error('Not authorized');
-    }
-
+    const access = await requireLegacyMembershipManager(ctx, args.group_id);
     const row = await getMembership(ctx, args.group_id, args.user_id);
     if (!row) {
       throw new Error('Failed to approve group member');
     }
-    if (row.status !== 'pending') {
-      throw new Error('Membership is not pending approval');
-    }
-    await ctx.db.patch(row._id, {
-      status: 'active',
-      approved_by: actorId,
-      approved_at: nowIso(),
-    });
-    const updated = await ctx.db.get(row._id);
-    if (!updated) {
-      throw new Error('Failed to approve group member');
-    }
-    return updated;
+    return await approveMembership(ctx, row, access.viewerId as Id<'users'>);
   },
+});
+
+export const rejectRequest = mutation({
+  args: { membershipId: v.id('group_members') },
+  returns: membershipCommandAcknowledgementValidator,
+  handler: async (ctx, args) =>
+    commandAcknowledgement(await rejectRequestHandler(ctx, args.membershipId)),
 });
 
 export const reject = mutation({
@@ -142,31 +251,22 @@ export const reject = mutation({
     group_id: v.id('groups'),
     user_id: v.id('users'),
   },
+  returns: groupMemberValidator,
   handler: async (ctx, args) => {
-    const actorId = await requireAuthUserId(ctx);
-    const canManage = await isActiveGroupMember(ctx, args.group_id, actorId);
-    if (!canManage) {
-      throw new Error('Not authorized');
-    }
-
+    await requireLegacyMembershipManager(ctx, args.group_id);
     const row = await getMembership(ctx, args.group_id, args.user_id);
     if (!row) {
       throw new Error('Failed to reject group member');
     }
-    if (row.status !== 'pending') {
-      throw new Error('Membership is not pending approval');
-    }
-    await ctx.db.patch(row._id, {
-      status: 'removed',
-      approved_by: null,
-      approved_at: null,
-    });
-    const updated = await ctx.db.get(row._id);
-    if (!updated) {
-      throw new Error('Failed to reject group member');
-    }
-    return updated;
+    return await rejectMembership(ctx, row);
   },
+});
+
+export const removeMember = mutation({
+  args: { membershipId: v.id('group_members') },
+  returns: membershipCommandAcknowledgementValidator,
+  handler: async (ctx, args) =>
+    commandAcknowledgement(await removeMemberHandler(ctx, args.membershipId)),
 });
 
 export const remove = mutation({
@@ -174,33 +274,25 @@ export const remove = mutation({
     group_id: v.id('groups'),
     user_id: v.id('users'),
   },
+  returns: v.object({ groupId: v.id('groups'), userId: v.id('users') }),
   handler: async (ctx, args) => {
-    const actorId = await requireAuthUserId(ctx);
-    const group = await loadGroup(ctx, args.group_id);
-    if (!group) {
-      throw new Error('Group not found');
-    }
-    if (group.created_by !== actorId) {
-      throw new Error('Not authorized');
-    }
-    if (args.user_id === group.created_by) {
-      throw new Error('Cannot remove the group owner');
-    }
-
+    const access = await requireLegacyGroupOwner(ctx, args.group_id);
     const row = await getMembership(ctx, args.group_id, args.user_id);
     if (!row) {
       throw new Error('Failed to remove group member');
     }
-    if (row.status !== 'active') {
-      throw new Error('Can only remove active members');
-    }
-    await ctx.db.patch(row._id, {
-      status: 'removed',
-      approved_by: null,
-      approved_at: null,
-    });
+    await removeMembership(ctx, row, access.subject.created_by);
     return { groupId: args.group_id, userId: args.user_id };
   },
+});
+
+export const addMember = mutation({
+  args: {
+    groupId: v.id('groups'),
+    userId: v.id('users'),
+  },
+  returns: membershipCommandAcknowledgementValidator,
+  handler: async (ctx, args) => commandAcknowledgement(await addMemberHandler(ctx, args)),
 });
 
 export const add = mutation({
@@ -208,39 +300,7 @@ export const add = mutation({
     group_id: v.id('groups'),
     user_id: v.id('users'),
   },
-  handler: async (ctx, args) => {
-    const actorId = await requireAuthUserId(ctx);
-    const canManage = await isActiveGroupMember(ctx, args.group_id, actorId);
-    if (!canManage) {
-      throw new Error('Not authorized');
-    }
-
-    const existing = await getMembership(ctx, args.group_id, args.user_id);
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        status: 'active',
-        approved_by: actorId,
-        approved_at: nowIso(),
-      });
-      const updated = await ctx.db.get(existing._id);
-      if (!updated) {
-        throw new Error('Failed to add group member');
-      }
-      return updated;
-    }
-
-    const _id = await ctx.db.insert('group_members', {
-      group_id: args.group_id,
-      user_id: args.user_id,
-      status: 'active',
-      requested_at: nowIso(),
-      approved_by: actorId,
-      approved_at: nowIso(),
-    });
-    const created = await ctx.db.get(_id);
-    if (!created) {
-      throw new Error('Failed to add group member');
-    }
-    return created;
-  },
+  returns: groupMemberValidator,
+  handler: async (ctx, args) =>
+    await addMemberHandler(ctx, { groupId: args.group_id, userId: args.user_id }),
 });

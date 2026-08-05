@@ -1,4 +1,3 @@
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { rulesetInputSchema } from '../src/app/rulesets/validation';
@@ -6,9 +5,20 @@ import { CanonicalFactionStoredSchema } from '../src/game/schema/faction';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
+import {
+  loadAssetAccessBundle,
+  loadRulesetAccessForLoadedSubject,
+  requireAssignableGroup,
+  requireRulesetMaintenance,
+  requireRulesetSoftDelete,
+  requireRulesetUpdate,
+} from './lib/collaborativeAccess';
+import {
+  rulesetDetailPageValidator,
+  rulesetPublicBundleValidator,
+} from './lib/collaborativeAccessValidators';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
-import { listByUserActiveWithGroupsData } from './lib/memberGroups';
-import { canEditRuleset, isActiveGroupMember, requireAuthUserId } from './lib/policy';
+import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -102,49 +112,57 @@ export const get = query({
   },
 });
 
-async function rulesetPublicBundleBySlugMaybe(ctx: QueryCtx, slug: string) {
-  const row = await ctx.db
+async function rulesetBySlugMaybe(ctx: QueryCtx, slug: string) {
+  const locatedRow = await ctx.db
     .query('rulesets')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (!row || row.is_deleted) {
+  if (!locatedRow || locatedRow.is_deleted) {
     return null;
   }
+  return locatedRow;
+}
 
+async function rulesetPublicPage(
+  ctx: QueryCtx,
+  row: Doc<'rulesets'>,
+  viewerAccess: Awaited<ReturnType<typeof loadRulesetAccessForLoadedSubject>>['viewerAccess']
+) {
   const factions = await listPublicRulesetFactions(ctx, row._id);
-
-  const userId = await getAuthUserId(ctx);
-  const canEditRulesetForViewer =
-    userId != null && (await canEditRuleset(ctx, row, userId as unknown as Id<'users'>));
-
   return {
     ruleset: row,
     factions,
-    canEditRuleset: canEditRulesetForViewer,
+    canEditRuleset: viewerAccess.capabilities.edit,
+    viewerAccess,
   };
 }
 
 async function rulesetPublicBundleBySlug(ctx: QueryCtx, slug: string) {
-  const bundle = await rulesetPublicBundleBySlugMaybe(ctx, slug);
-  if (!bundle) {
+  const row = await rulesetBySlugMaybe(ctx, slug);
+  if (!row) {
     throw new Error(`Ruleset with slug ${slug} not found`);
   }
-  return bundle;
+  const access = await loadRulesetAccessForLoadedSubject(ctx, row);
+  return await rulesetPublicPage(ctx, row, access.viewerAccess);
 }
 
 export const getBySlug = query({
   args: { slug: v.string() },
+  returns: rulesetPublicBundleValidator,
   handler: async (ctx, args) => rulesetPublicBundleBySlug(ctx, args.slug),
 });
 
 export const detailPageBySlug = query({
   args: { slug: v.string() },
+  returns: rulesetDetailPageValidator,
   handler: async (ctx, args) => {
-    const base = await rulesetPublicBundleBySlugMaybe(ctx, args.slug);
-    if (!base) {
+    const row = await rulesetBySlugMaybe(ctx, args.slug);
+    if (!row) {
       return null;
     }
-    const faqItems = await loadFaqItemsForRuleset(ctx, base.ruleset._id);
+    const access = await loadAssetAccessBundle(ctx, { kind: 'ruleset', row });
+    const page = await rulesetPublicPage(ctx, row, access.viewerAccess);
+    const faqItems = await loadFaqItemsForRuleset(ctx, row._id);
 
     let groupAccess: {
       group: Doc<'groups'>;
@@ -154,33 +172,31 @@ export const detailPageBySlug = query({
       }>;
     } | null = null;
 
-    const linkedGroupId = base.ruleset.group_id;
-    if (linkedGroupId) {
-      const group = await ctx.db.get(linkedGroupId);
-      if (group) {
-        const memberships = await ctx.db
-          .query('group_members')
-          .withIndex('by_group', (q) => q.eq('group_id', linkedGroupId))
-          .take(500);
-        const members = await Promise.all(
-          memberships.map(async (m) => ({
-            membership: m,
-            profile: await profileSummary(ctx, m.user_id),
-          }))
-        );
-        groupAccess = { group, members };
-      }
+    const linkedGroupId = row.group_id;
+    if (linkedGroupId && access.assignedGroup) {
+      const memberships = await ctx.db
+        .query('group_members')
+        .withIndex('by_group', (q) => q.eq('group_id', linkedGroupId))
+        .take(500);
+      const members = await Promise.all(
+        memberships.map(async (m) => ({
+          membership: m,
+          profile: await profileSummary(ctx, m.user_id),
+        }))
+      );
+      groupAccess = { group: access.assignedGroup, members };
     }
 
-    const owner = await profileSummary(ctx, base.ruleset.owner_id);
+    const owner = await profileSummary(ctx, row.owner_id);
 
-    const authUserId = await getAuthUserId(ctx);
-    const viewerAssignableMemberships =
-      authUserId != null
-        ? await listByUserActiveWithGroupsData(ctx, authUserId as unknown as Id<'users'>)
-        : null;
-
-    return { ...base, groupAccess, faqItems, owner, viewerAssignableMemberships };
+    return {
+      ...page,
+      groupAccess,
+      faqItems,
+      owner,
+      viewerAssignableMemberships: access.viewerAssignableMemberships,
+      assignableGroups: access.assignableGroups,
+    };
   },
 });
 
@@ -200,15 +216,11 @@ export const factionDetails = query({
 export const canEdit = query({
   args: { ruleset_id: v.id('rulesets') },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
-      return false;
-    }
     const ruleset = await getRulesetById(ctx, args.ruleset_id);
     if (!ruleset) {
       return false;
     }
-    return await canEditRuleset(ctx, ruleset, userId);
+    return (await loadRulesetAccessForLoadedSubject(ctx, ruleset)).viewerAccess.capabilities.edit;
   },
 });
 
@@ -240,10 +252,7 @@ export const create = mutation({
     const normalizedName = parsed.data.name;
 
     if (args.group_id) {
-      const canUseGroup = await isActiveGroupMember(ctx, args.group_id, userId);
-      if (!canUseGroup) {
-        throw new Error('Not authorized for group');
-      }
+      await requireAssignableGroup(ctx, args.group_id);
     }
 
     const duplicate = await ctx.db
@@ -282,38 +291,17 @@ export const update = mutation({
     image_cover: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
     const parsed = rulesetInputSchema.safeParse({ name: args.name });
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(' ');
       throw new Error(msg || 'Invalid ruleset input');
     }
     const normalizedName = parsed.data.name;
-    const ruleset = await getRulesetById(ctx, args.id);
-    if (!ruleset || ruleset.is_deleted) {
-      throw new Error(`Ruleset with id ${args.id} not found`);
-    }
-
-    const isOwner = ruleset.owner_id === userId;
-    const canEdit = await canEditRuleset(ctx, ruleset, userId);
-    if (!canEdit) {
-      throw new Error('Not authorized');
-    }
-    if (!isOwner && normalizedName !== ruleset.name) {
-      throw new Error('Only the ruleset owner can rename this ruleset');
-    }
-    if (!isOwner && args.group_id !== undefined && args.group_id !== ruleset.group_id) {
-      throw new Error('Only the ruleset owner can change its group');
-    }
-
-    if (args.group_id !== undefined) {
-      if (args.group_id !== null) {
-        const canUseGroup = await isActiveGroupMember(ctx, args.group_id, userId);
-        if (!canUseGroup) {
-          throw new Error('Not authorized for group');
-        }
-      }
-    }
+    const access = await requireRulesetUpdate(ctx, args.id, {
+      name: normalizedName,
+      groupId: args.group_id,
+    });
+    const ruleset = access.subject;
 
     const duplicate = await ctx.db
       .query('rulesets')
@@ -353,15 +341,7 @@ export const update = mutation({
 export const softDelete = mutation({
   args: { id: v.id('rulesets') },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const ruleset = await getRulesetById(ctx, args.id);
-    if (!ruleset) {
-      throw new Error(`Ruleset with id ${args.id} not found`);
-    }
-
-    if (ruleset.owner_id !== userId) {
-      throw new Error('Not authorized');
-    }
+    const { subject: ruleset } = await requireRulesetSoftDelete(ctx, args.id);
 
     await ctx.db.patch(ruleset._id, {
       is_deleted: true,
@@ -376,16 +356,7 @@ export const addFaction = mutation({
     faction_id: v.id('factions'),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const ruleset = await getRulesetById(ctx, args.ruleset_id);
-    if (!ruleset || ruleset.is_deleted) {
-      throw new Error('Ruleset not found');
-    }
-
-    const allowed = await canEditRuleset(ctx, ruleset, userId);
-    if (!allowed) {
-      throw new Error('Not authorized');
-    }
+    await requireRulesetMaintenance(ctx, args.ruleset_id);
 
     const faction = await getFactionById(ctx, args.faction_id);
     if (!faction || faction.is_deleted) {
@@ -414,16 +385,7 @@ export const removeFaction = mutation({
     faction_id: v.id('factions'),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const ruleset = await getRulesetById(ctx, args.ruleset_id);
-    if (!ruleset || ruleset.is_deleted) {
-      throw new Error('Ruleset not found');
-    }
-
-    const allowed = await canEditRuleset(ctx, ruleset, userId);
-    if (!allowed) {
-      throw new Error('Not authorized');
-    }
+    await requireRulesetMaintenance(ctx, args.ruleset_id);
 
     const existing = await ctx.db
       .query('ruleset_factions')

@@ -6,6 +6,7 @@ import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
+import { profileDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { enrichFactionsWithRulesets, listActiveRulesetSummaries } from './lib/factionCatalogue';
 import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './lib/faqProfileActivity';
 import { requireAuthUserId } from './lib/policy';
@@ -97,6 +98,7 @@ export const getById = query({
 
 export const getBySlug = query({
   args: { slug: v.string() },
+  returns: profileDetailPageValidator,
   handler: async (ctx, args) => {
     const profile = await ctx.db
       .query('profiles')
@@ -117,6 +119,11 @@ export const getBySlug = query({
     const groups = groupsWithNulls.filter(
       (group): group is NonNullable<(typeof groupsWithNulls)[number]> => group !== null
     );
+    const groupSummaries = groups.map((group) => ({
+      id: group._id,
+      name: group.name,
+      slug: group.slug,
+    }));
 
     const [faqAsked, faqAnswers] = await Promise.all([
       loadFaqQuestionsAskedBy(ctx, profile.user_id),
@@ -139,6 +146,7 @@ export const getBySlug = query({
       faqAsked,
       faqAnswers,
       factions,
+      groupSummaries,
     };
   },
 });
