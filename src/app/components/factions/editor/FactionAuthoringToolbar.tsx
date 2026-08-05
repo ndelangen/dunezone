@@ -3,7 +3,7 @@ import { ArrowLeft, Eye, RotateCcw, Save } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { factionAssetPublishingCopy } from '@app/factions/assetPublishingStatus';
-import type { FactionSaveState } from '@app/factions/assetPublishingStatus';
+import type { FactionSaveState } from '@app/factions/authoringState';
 
 import type { PublicAssetPublishingStatusProjection } from '../../../../../convex/assetPublishingStatus';
 import styles from './FactionAuthoringToolbar.module.css';

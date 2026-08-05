@@ -166,11 +166,6 @@
   }
 
   .artifactColumn {
-    padding-top: var(--mantine-spacing-sm);
-    padding-left: 0;
-  }
-
-  .artifactDesk {
-    position: static;
+    display: none;
   }
 }

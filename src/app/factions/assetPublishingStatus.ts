@@ -2,8 +2,7 @@ import type {
   PublicAssetCaptureStatus,
   PublicAssetPublishingStatus,
 } from '../../../convex/assetPublishingStatus';
-
-export type FactionSaveState = 'idle' | 'saving' | 'saved' | 'error';
+import type { FactionSaveState } from './authoringState';
 
 const statusCopy: Record<PublicAssetPublishingStatus, string> = {
   current: 'Public assets are current.',
