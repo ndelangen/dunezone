@@ -217,6 +217,18 @@ describe('FAQ question page interface', () => {
       error: deleteError,
     });
 
+    act(() => hook.result.current.deleteQuestion.reset());
+    expect(hook.result.current.deleteQuestion).toMatchObject({
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+    expect(hook.result.current.editQuestion).toMatchObject({
+      isPending: true,
+      isError: false,
+      error: null,
+    });
+
     await act(async () => {
       pendingEdit.resolve(null);
       await editPromise;
@@ -228,18 +240,6 @@ describe('FAQ question page interface', () => {
       error: null,
     });
     expect(hook.result.current.deleteQuestion).toMatchObject({
-      isPending: false,
-      isError: true,
-      error: deleteError,
-    });
-
-    act(() => hook.result.current.deleteQuestion.reset());
-    expect(hook.result.current.deleteQuestion).toMatchObject({
-      isPending: false,
-      isError: false,
-      error: null,
-    });
-    expect(hook.result.current.editQuestion).toMatchObject({
       isPending: false,
       isError: false,
       error: null,
