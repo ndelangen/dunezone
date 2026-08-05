@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { getFunctionName } from 'convex/server';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { api } from '../../../convex/_generated/api';
@@ -56,6 +57,16 @@ const serverPage = {
   ],
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   for (const mutation of [
@@ -68,17 +79,23 @@ beforeEach(() => {
   ]) {
     mutation.mockResolvedValue(null);
   }
-  const mutations = [
-    mocks.editQuestion,
-    mocks.deleteQuestion,
-    mocks.createAnswer,
-    mocks.editAnswer,
-    mocks.deleteAnswer,
-    mocks.setAcceptedAnswer,
-  ];
-  mocks.useMutation.mockImplementation(
-    () => mutations[(mocks.useMutation.mock.calls.length - 1) % mutations.length]
-  );
+  const mutationsByReference = new Map([
+    [getFunctionName(api.faq.editQuestion), mocks.editQuestion],
+    [getFunctionName(api.faq.deleteQuestion), mocks.deleteQuestion],
+    [getFunctionName(api.faq.createAnswer), mocks.createAnswer],
+    [getFunctionName(api.faq.editAnswer), mocks.editAnswer],
+    [getFunctionName(api.faq.deleteAnswer), mocks.deleteAnswer],
+    [getFunctionName(api.faq.setAcceptedAnswer), mocks.setAcceptedAnswer],
+    [getFunctionName(api.faq.createQuestion), mocks.askQuestion],
+  ]);
+  mocks.useMutation.mockImplementation((mutationReference) => {
+    const functionName = getFunctionName(mutationReference);
+    const mutation = mutationsByReference.get(functionName);
+    if (!mutation) {
+      throw new Error(`Unexpected FAQ mutation reference: ${functionName}`);
+    }
+    return mutation;
+  });
 });
 
 describe('FAQ question page interface', () => {
@@ -160,13 +177,81 @@ describe('FAQ question page interface', () => {
     });
   });
 
+  test('keeps pending and error state isolated between commands', async () => {
+    mocks.useQuery.mockReturnValue(serverPage);
+    const pendingEdit = deferred<null>();
+    const deleteError = new Error('Delete failed');
+    mocks.editQuestion.mockReturnValueOnce(pendingEdit.promise);
+    mocks.deleteQuestion.mockRejectedValueOnce(deleteError);
+    const hook = renderHook(() =>
+      useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' })
+    );
+
+    let editPromise!: Promise<void>;
+    act(() => {
+      editPromise = hook.result.current.editQuestion.run({
+        question: 'Edited question?',
+        tags: ['errata'],
+      });
+    });
+
+    await waitFor(() => expect(hook.result.current.editQuestion.isPending).toBe(true));
+    expect(hook.result.current.deleteQuestion).toMatchObject({
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    await act(async () => {
+      await expect(hook.result.current.deleteQuestion.run()).rejects.toThrow('Delete failed');
+    });
+
+    expect(hook.result.current.editQuestion).toMatchObject({
+      isPending: true,
+      isError: false,
+      error: null,
+    });
+    expect(hook.result.current.deleteQuestion).toMatchObject({
+      isPending: false,
+      isError: true,
+      error: deleteError,
+    });
+
+    await act(async () => {
+      pendingEdit.resolve(null);
+      await editPromise;
+    });
+
+    expect(hook.result.current.editQuestion).toMatchObject({
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+    expect(hook.result.current.deleteQuestion).toMatchObject({
+      isPending: false,
+      isError: true,
+      error: deleteError,
+    });
+
+    act(() => hook.result.current.deleteQuestion.reset());
+    expect(hook.result.current.deleteQuestion).toMatchObject({
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+    expect(hook.result.current.editQuestion).toMatchObject({
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+  });
+
   test('asks a question through the canonical operation and returns its locator', async () => {
     mocks.askQuestion.mockResolvedValue({
       questionId: 'question-2',
       rulesetSlug: 'test-ruleset',
       questionSlug: '2',
     });
-    mocks.useMutation.mockReturnValue(mocks.askQuestion);
     const hook = renderHook(() => useAskFaqQuestion());
 
     let locator: { rulesetSlug: string; questionSlug: string } | undefined;
