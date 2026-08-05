@@ -32,9 +32,7 @@ import {
 import type { ComponentProps, ReactNode } from 'react';
 
 import { loadFaction, useFaction } from '@db/factions';
-import { useRequestGroupMembership } from '@db/members';
-import { useCurrentProfile } from '@db/profiles';
-import { loadRulesetsByFaction, useRulesetsByFaction } from '@db/rulesets';
+import { useGroupMembershipWorkflow } from '@db/members';
 import { IconStat } from '@app/components/content/IconStat';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
@@ -49,11 +47,7 @@ import styles from '../FactionDetail.module.css';
 
 export const Route = createFileRoute('/_app/factions/$factionId/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  loader: async ({ params }) => {
-    const faction = await loadFaction(params.factionId);
-    const rulesets = await loadRulesetsByFaction(faction.faction._id);
-    return { faction, rulesets };
-  },
+  loader: async ({ params }) => await loadFaction(params.factionId),
   pendingComponent: FactionDetailPending,
   errorComponent: FactionDetailError,
   component: FactionDetailPage,
@@ -100,37 +94,15 @@ function FactionDetailError({ error }: ErrorComponentProps) {
   );
 }
 
-function canEditFaction(
-  profileId: string | undefined,
-  ownerId: string | undefined,
-  groupId: string | null | undefined,
-  memberships: { group_id: string }[] | undefined
-) {
-  if (!profileId) {
-    return false;
-  }
-  if (profileId === ownerId) {
-    return true;
-  }
-  if (!groupId) {
-    return false;
-  }
-  return (memberships ?? []).some((membership) => membership.group_id === groupId);
-}
-
 function FactionDetailPage() {
   const { factionId } = Route.useParams();
   const loaderData = Route.useLoaderData();
-  const factionSeed = loaderData.faction;
+  const factionSeed = loaderData;
 
-  const { faction, memberships, groupAccess, owner, assetPublishing } = useFaction(factionId, {
+  const { faction, viewerAccess, owner, assetPublishing, rulesets } = useFaction(factionId, {
     initialData: factionSeed,
   });
-  const rulesets = useRulesetsByFaction(factionSeed.faction._id, {
-    initialData: loaderData.rulesets,
-  });
-  const profile = useCurrentProfile();
-  const requestMembership = useRequestGroupMembership();
+  const membershipWorkflow = useGroupMembershipWorkflow();
 
   if (!faction) {
     return (
@@ -154,16 +126,11 @@ function FactionDetailPage() {
     );
   }
 
-  const canEdit = canEditFaction(profile.data?._id, owner?._id, faction.group_id, memberships);
-  const profileUserId = profile.data?.user_id;
-  const assignedGroup = groupAccess?.group;
-  const groupMembersList = groupAccess?.members ?? [];
-  const viewerMembership = groupMembersList.find(
-    (entry) => entry.membership.user_id === profileUserId
-  )?.membership;
+  const canEdit = viewerAccess?.capabilities.edit ?? false;
+  const assignedGroup = viewerAccess?.assignedGroup ?? null;
   const membershipStatus =
-    viewerMembership && viewerMembership.status !== 'removed' ? viewerMembership.status : 'none';
-  const canRequestMembership = !!profileUserId && !!assignedGroup && membershipStatus === 'none';
+    viewerAccess?.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
+  const canRequestMembership = viewerAccess?.capabilities.requestMembership ?? false;
 
   const data = faction.data;
   const planets = data.planet ?? [];
@@ -580,7 +547,7 @@ function FactionDetailPage() {
                           : 'Not a member'}
                     </Badge>
                   </Group>
-                  {!profile.isPending && !profileUserId ? (
+                  {viewerAccess?.viewer.kind === 'anonymous' ? (
                     <Text size="sm">
                       <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
                         Log in
@@ -593,17 +560,19 @@ function FactionDetailPage() {
                       type="button"
                       variant="light"
                       leftSection={<UserPlus size={16} aria-hidden />}
-                      loading={requestMembership.isPending}
-                      onClick={() => requestMembership.mutate(assignedGroup._id)}
+                      loading={membershipWorkflow.request.isPending}
+                      onClick={() =>
+                        void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)
+                      }
                     >
                       Request membership
                     </Button>
                   ) : null}
                 </Stack>
               )}
-              {requestMembership.isError ? (
+              {membershipWorkflow.request.isError ? (
                 <Alert color="red" title="Membership request failed" role="alert">
-                  {requestMembership.error?.message}
+                  {membershipWorkflow.request.error?.message}
                 </Alert>
               ) : null}
             </Stack>
@@ -664,13 +633,9 @@ function FactionDetailPage() {
               <SectionHeading icon={<TopicIcon topic="rulesets" size={20} />}>
                 Rulesets
               </SectionHeading>
-              {rulesets.data === undefined ? (
-                <Text size="sm" c="dimmed">
-                  Loading rulesets…
-                </Text>
-              ) : rulesets.data.length > 0 ? (
+              {rulesets.length > 0 ? (
                 <Stack component="ul" gap="xs" m={0} pl="lg">
-                  {rulesets.data.map((ruleset) => (
+                  {rulesets.map((ruleset) => (
                     <li key={ruleset.id}>
                       <Anchor
                         renderRoot={(rootProps) => (

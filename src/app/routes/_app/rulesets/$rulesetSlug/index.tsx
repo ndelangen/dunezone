@@ -37,7 +37,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 
-import { useRequestGroupMembership } from '@db/members';
+import { useGroupMembershipWorkflow } from '@db/members';
 import { useCurrentProfile } from '@db/profiles';
 import {
   loadRulesetDetailPage,
@@ -53,6 +53,7 @@ import { PageLayout } from '@app/components/shell';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
 import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 import type { FaqTag } from '@app/faq/tags';
+import { rulesetActionVisibility } from '@app/rulesets/rulesetActionVisibility';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from '../RulesetDetail.module.css';
@@ -132,7 +133,7 @@ function RulesetDetailPage() {
   const profile = useCurrentProfile();
   const deleteRuleset = useDeleteRuleset();
   const updateRuleset = useUpdateRuleset();
-  const requestMembership = useRequestGroupMembership();
+  const membershipWorkflow = useGroupMembershipWorkflow();
 
   if (loaderData.notFound || !page.ruleset) {
     return (
@@ -156,22 +157,28 @@ function RulesetDetailPage() {
     );
   }
 
+  const viewerAccess = page.viewerAccess;
+  if (!viewerAccess) {
+    return <RulesetDetailPending />;
+  }
+
   const r = page.ruleset;
-  const isOwner = profile.data?.user_id === r.owner_id;
   const profileUserId = profile.data?.user_id;
-  const assignedGroup = page.groupAccess?.group;
-  const groupMembersList = page.groupAccess?.members ?? [];
-  const viewerMembership = groupMembersList.find(
-    (entry) => entry.membership.user_id === profileUserId
-  )?.membership;
+  const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus =
-    viewerMembership && viewerMembership.status !== 'removed' ? viewerMembership.status : 'none';
-  const canRequestMembership = !!profileUserId && !!assignedGroup && membershipStatus === 'none';
+    viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
+  const canRequestMembership = viewerAccess.capabilities.requestMembership;
   const answeredFaqCount = page.faqItems.filter((item) => item.accepted_answer_id != null).length;
   const mutationError =
     deleteRuleset.error?.message ??
-    requestMembership.error?.message ??
+    membershipWorkflow.request.error?.message ??
     updateRuleset.error?.message;
+  const actionVisibility = rulesetActionVisibility({
+    hasProfile: Boolean(profile.data?._id),
+    canChangeGroup: viewerAccess.capabilities.changeGroup,
+    canDelete: viewerAccess.capabilities.delete,
+    hasAssignedGroup: r.group_id != null,
+  });
 
   const handleDelete = () => {
     if (!window.confirm(`Delete ruleset "${r.name}"? This cannot be undone.`)) {
@@ -262,7 +269,7 @@ function RulesetDetailPage() {
                   <ArrowLeft size={17} aria-hidden />
                 </ActionIcon>
               </Tooltip>
-              {page.canEditRuleset ? (
+              {viewerAccess.capabilities.edit ? (
                 <Tooltip label="Edit ruleset">
                   <ActionIcon
                     variant="light"
@@ -283,83 +290,89 @@ function RulesetDetailPage() {
               ) : null}
             </Group>
 
-            {profile.data?._id ? (
+            {actionVisibility.askQuestion ||
+            actionVisibility.assignGroup ||
+            actionVisibility.removeGroup ||
+            actionVisibility.deleteRuleset ? (
               <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset actions">
-                <Tooltip label="Ask a question">
-                  <ActionIcon
-                    type="button"
-                    variant="filled"
-                    color="confirm"
-                    size="lg"
-                    aria-label="Ask a question"
-                    onClick={() =>
-                      navigate({
-                        to: '/rulesets/$rulesetSlug/faq/create',
-                        params: { rulesetSlug: r.slug },
-                      })
-                    }
-                  >
-                    <MessageCircleQuestionMark size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
-                {isOwner ? (
-                  <>
-                    {r.group_id == null ? (
-                      <GroupAssignPopover
-                        disabled={!isOwner || updateRuleset.isPending}
-                        userId={profileUserId}
-                        isUserPending={profile.isPending}
-                        prefetchedMemberships={page.viewerAssignableMemberships}
-                        onChangeGroup={async (nextGroupId) => {
-                          await updateRuleset.mutateAsync({
+                {actionVisibility.askQuestion ? (
+                  <Tooltip label="Ask a question">
+                    <ActionIcon
+                      type="button"
+                      variant="filled"
+                      color="confirm"
+                      size="lg"
+                      aria-label="Ask a question"
+                      onClick={() =>
+                        navigate({
+                          to: '/rulesets/$rulesetSlug/faq/create',
+                          params: { rulesetSlug: r.slug },
+                        })
+                      }
+                    >
+                      <MessageCircleQuestionMark size={17} aria-hidden />
+                    </ActionIcon>
+                  </Tooltip>
+                ) : null}
+                {actionVisibility.assignGroup ? (
+                  <GroupAssignPopover
+                    disabled={updateRuleset.isPending}
+                    userId={profileUserId}
+                    isUserPending={profile.isPending}
+                    prefetchedMemberships={page.viewerAssignableMemberships}
+                    onChangeGroup={async (nextGroupId) => {
+                      await updateRuleset.mutateAsync({
+                        id: r._id,
+                        input: { name: r.name },
+                        groupId: nextGroupId,
+                        imageCover: r.image_cover ?? null,
+                      });
+                    }}
+                    title="Assign Group"
+                    descriptionLines={[
+                      `Assign a group that can help maintain "${r.name}".`,
+                      'You can create and join groups from your profile.',
+                    ]}
+                  />
+                ) : null}
+                {actionVisibility.removeGroup ? (
+                  <Tooltip label="Remove group">
+                    <ActionIcon
+                      type="button"
+                      aria-label="Remove group"
+                      color="red"
+                      variant="light"
+                      size="lg"
+                      disabled={updateRuleset.isPending}
+                      onClick={() =>
+                        void updateRuleset
+                          .mutateAsync({
                             id: r._id,
                             input: { name: r.name },
-                            groupId: nextGroupId,
+                            groupId: null,
                             imageCover: r.image_cover ?? null,
-                          });
-                        }}
-                        title="Assign Group"
-                        descriptionLines={[
-                          `Assign a group that can help maintain "${r.name}".`,
-                          'You can create and join groups from your profile.',
-                        ]}
-                      />
-                    ) : (
-                      <Tooltip label="Remove group">
-                        <ActionIcon
-                          type="button"
-                          aria-label="Remove group"
-                          color="red"
-                          variant="light"
-                          size="lg"
-                          disabled={updateRuleset.isPending}
-                          onClick={() =>
-                            void updateRuleset.mutateAsync({
-                              id: r._id,
-                              input: { name: r.name },
-                              groupId: null,
-                              imageCover: r.image_cover ?? null,
-                            })
-                          }
-                        >
-                          <UserRoundMinus size={17} aria-hidden />
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                    <Tooltip label="Delete ruleset">
-                      <ActionIcon
-                        color="red"
-                        variant="light"
-                        type="button"
-                        size="lg"
-                        aria-label="Delete ruleset"
-                        onClick={handleDelete}
-                        disabled={deleteRuleset.isPending}
-                      >
-                        <Trash2 size={17} aria-hidden />
-                      </ActionIcon>
-                    </Tooltip>
-                  </>
+                          })
+                          .catch(() => undefined)
+                      }
+                    >
+                      <UserRoundMinus size={17} aria-hidden />
+                    </ActionIcon>
+                  </Tooltip>
+                ) : null}
+                {actionVisibility.deleteRuleset ? (
+                  <Tooltip label="Delete ruleset">
+                    <ActionIcon
+                      color="red"
+                      variant="light"
+                      type="button"
+                      size="lg"
+                      aria-label="Delete ruleset"
+                      onClick={handleDelete}
+                      disabled={deleteRuleset.isPending}
+                    >
+                      <Trash2 size={17} aria-hidden />
+                    </ActionIcon>
+                  </Tooltip>
                 ) : null}
               </Group>
             ) : null}
@@ -660,8 +673,12 @@ function RulesetDetailPage() {
                         type="button"
                         variant="light"
                         leftSection={<UserPlus size={16} aria-hidden />}
-                        loading={requestMembership.isPending}
-                        onClick={() => requestMembership.mutate(assignedGroup._id)}
+                        loading={membershipWorkflow.request.isPending}
+                        onClick={() =>
+                          void membershipWorkflow.request
+                            .run(assignedGroup.id)
+                            .catch(() => undefined)
+                        }
                       >
                         Request membership
                       </Button>

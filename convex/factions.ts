@@ -50,6 +50,19 @@ function factionRowForClient(row: Doc<'factions'>) {
   };
 }
 
+async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
+  const links = await ctx.db
+    .query('ruleset_factions')
+    .withIndex('by_faction', (q) => q.eq('faction_id', factionId))
+    .take(500);
+  const rulesets = await Promise.all(links.map((link) => ctx.db.get('rulesets', link.ruleset_id)));
+  return rulesets.flatMap((ruleset) =>
+    ruleset && !ruleset.is_deleted
+      ? [{ id: ruleset._id, name: ruleset.name, slug: ruleset.slug }]
+      : []
+  );
+}
+
 /** Faction detail page bundle (view, edit, and sheet preview). */
 async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
   const locatedRow = await ctx.db
@@ -109,6 +122,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     assetPublishing: await factionSheetPublishingStatus(ctx, row._id),
     viewerAccess: access.viewerAccess,
     assignableGroups: access.assignableGroups,
+    rulesets: await listFactionRulesets(ctx, row._id),
   };
 }
 

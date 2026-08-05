@@ -75,6 +75,12 @@ const assignedGroupSummaryValidator = v.object({
   slug: v.string(),
 });
 
+const rulesetSummaryValidator = v.object({
+  id: v.id('rulesets'),
+  name: v.string(),
+  slug: v.string(),
+});
+
 const profileSummaryValidator = v.object({
   id: v.id('profiles'),
   slug: v.string(),
@@ -152,6 +158,7 @@ export const factionDetailPageValidator = v.object({
   assetPublishing: assetPublishingValidator,
   viewerAccess: assetViewerAccessValidator('faction'),
   assignableGroups: v.array(assignedGroupSummaryValidator),
+  rulesets: v.array(rulesetSummaryValidator),
 });
 
 const rulesetFactionSummaryValidator = v.object({
@@ -202,12 +209,6 @@ const faqItemValidator = v.object({
 const faqListItemValidator = faqItemValidator.extend({
   faq_answers: v.array(faqAnswerValidator),
   asker_profile: v.union(profileSummaryValidator, v.null()),
-});
-
-const rulesetSummaryValidator = v.object({
-  id: v.id('rulesets'),
-  name: v.string(),
-  slug: v.string(),
 });
 
 const profileFaqQuestionValidator = faqItemValidator.extend({
