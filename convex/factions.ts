@@ -17,11 +17,7 @@ import {
   factionWithRulesetsValidator,
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
-import {
-  enrichFactionsWithRulesets,
-  listActiveRulesetSummaries,
-  selectFactionCatalogueSpotlights,
-} from './lib/factionCatalogue';
+import { loadFactionCatalogue, selectFactionCatalogueSpotlights } from './lib/factionCatalogue';
 import { parseFactionInput } from './lib/factionInput';
 import { requireAuthUserId } from './lib/policy';
 import { enqueueFactionSheetPublication } from './lib/publication';
@@ -128,12 +124,7 @@ export const cataloguePage = query({
     }),
   }),
   handler: async (ctx) => {
-    const rows = await ctx.db
-      .query('factions')
-      .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-      .take(500);
-    const rulesets = await listActiveRulesetSummaries(ctx);
-    const factions = await enrichFactionsWithRulesets(ctx, rows, rulesets);
+    const { factions, rulesets } = await loadFactionCatalogue(ctx);
 
     return {
       factions,

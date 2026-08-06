@@ -14,7 +14,12 @@ export type CatalogueFaction = Omit<Doc<'factions'>, 'data'> & {
   rulesets: FactionRulesetSummary[];
 };
 
-export async function listActiveRulesetSummaries(ctx: QueryCtx): Promise<FactionRulesetSummary[]> {
+const FACTION_LIMIT = 500;
+/* Bounded whole-index scan of ruleset_factions for the catalogue path; one read replaces one
+ * indexed read per faction. The bound mirrors the pre-existing per-faction take(500) caps. */
+const FACTION_LINK_SCAN_LIMIT = 5000;
+
+async function listActiveRulesetSummaries(ctx: QueryCtx): Promise<FactionRulesetSummary[]> {
   const rows = await ctx.db
     .query('rulesets')
     .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
@@ -23,41 +28,73 @@ export async function listActiveRulesetSummaries(ctx: QueryCtx): Promise<Faction
   return rows.map((row) => ({ id: row._id, slug: row.slug, name: row.name }));
 }
 
-export async function enrichFactionsWithRulesets(
+/**
+ * Faction catalogue read model: one call owns row selection, ruleset enrichment (active rulesets
+ * only, name-then-id order), and canonical faction parsing. The catalogue path batches the link
+ * table in one bounded scan; the owner path uses per-faction indexed reads, which win for the
+ * handful of factions one owner has.
+ */
+export async function loadFactionCatalogue(
   ctx: QueryCtx,
-  rows: Doc<'factions'>[],
-  activeRulesets: FactionRulesetSummary[]
-): Promise<CatalogueFaction[]> {
-  const activeRulesetById = new Map(activeRulesets.map((ruleset) => [ruleset.id, ruleset]));
+  options: { ownerId?: Id<'users'> } = {}
+): Promise<{ factions: CatalogueFaction[]; rulesets: FactionRulesetSummary[] }> {
+  const { ownerId } = options;
+  const rows = ownerId
+    ? await ctx.db
+        .query('factions')
+        .withIndex('by_owner_deleted', (q) => q.eq('owner_id', ownerId).eq('is_deleted', false))
+        .take(FACTION_LIMIT)
+    : await ctx.db
+        .query('factions')
+        .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+        .take(FACTION_LIMIT);
+  const rulesets = await listActiveRulesetSummaries(ctx);
+  const linksByFaction = ownerId
+    ? await factionLinksByIndexedReads(ctx, rows)
+    : await factionLinksByScan(ctx);
+  const activeRulesetById = new Map(rulesets.map((ruleset) => [ruleset.id, ruleset]));
 
-  return await Promise.all(
+  const factions = rows.map((row) => ({
+    ...row,
+    data: CanonicalFactionStoredSchema.parse(row.data),
+    rulesets: (linksByFaction.get(row._id) ?? [])
+      .map((rulesetId) => activeRulesetById.get(rulesetId))
+      .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
+      .sort(compareRulesets),
+  }));
+
+  return { factions, rulesets };
+}
+
+async function factionLinksByIndexedReads(ctx: QueryCtx, rows: Doc<'factions'>[]) {
+  const linksByFaction = new Map<Id<'factions'>, Id<'rulesets'>[]>();
+  await Promise.all(
     rows.map(async (row) => {
       const links = await ctx.db
         .query('ruleset_factions')
         .withIndex('by_faction', (q) => q.eq('faction_id', row._id))
         .take(500);
-      const rulesets = links
-        .map((link) => activeRulesetById.get(link.ruleset_id))
-        .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
-        .sort(compareRulesets);
-
-      return {
-        ...row,
-        data: CanonicalFactionStoredSchema.parse(row.data),
-        rulesets,
-      };
+      linksByFaction.set(
+        row._id,
+        links.map((link) => link.ruleset_id)
+      );
     })
   );
+  return linksByFaction;
 }
 
-export async function loadFactionCatalogueSpotlights(ctx: QueryCtx) {
-  const rows = await ctx.db
-    .query('factions')
-    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-    .take(500);
-  const rulesets = await listActiveRulesetSummaries(ctx);
-  const factions = await enrichFactionsWithRulesets(ctx, rows, rulesets);
-  return selectFactionCatalogueSpotlights(factions);
+async function factionLinksByScan(ctx: QueryCtx) {
+  const links = await ctx.db.query('ruleset_factions').take(FACTION_LINK_SCAN_LIMIT);
+  const linksByFaction = new Map<Id<'factions'>, Id<'rulesets'>[]>();
+  for (const link of links) {
+    const existing = linksByFaction.get(link.faction_id);
+    if (existing) {
+      existing.push(link.ruleset_id);
+    } else {
+      linksByFaction.set(link.faction_id, [link.ruleset_id]);
+    }
+  }
+  return linksByFaction;
 }
 
 /** Homepage spotlights omit ruleset enrichment because they only render faction identity. */
@@ -65,7 +102,7 @@ export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
   const rows = await ctx.db
     .query('factions')
     .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-    .take(500);
+    .take(FACTION_LIMIT);
   const selected = selectFactionCatalogueSpotlights(rows);
   const preview = (row: Doc<'factions'> | null) => {
     if (!row) {
