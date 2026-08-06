@@ -1,6 +1,6 @@
 import { ConvexHttpClient } from 'convex/browser';
 import { ConvexReactClient } from 'convex/react';
-import type { FunctionReference } from 'convex/server';
+import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 
 import { api } from '../../../../convex/_generated/api';
 
@@ -25,22 +25,25 @@ function convexBackendForDb(): ConvexReactClient | ConvexHttpClient {
 }
 
 export const db = {
-  query: async <T>(fn: FunctionReference<'query'>, args?: Record<string, unknown>): Promise<T> => {
+  query: async <Query extends FunctionReference<'query'>>(
+    fn: Query,
+    args: FunctionArgs<Query>
+  ): Promise<FunctionReturnType<Query>> => {
     const backend = convexBackendForDb();
-    return (await backend.query(fn, args as never)) as T;
+    return await backend.query(fn, args as never);
   },
-  mutation: async <T>(
-    fn: FunctionReference<'mutation'>,
-    args?: Record<string, unknown>
-  ): Promise<T> => {
+  mutation: async <Mutation extends FunctionReference<'mutation'>>(
+    fn: Mutation,
+    args: FunctionArgs<Mutation>
+  ): Promise<FunctionReturnType<Mutation>> => {
     const backend = convexBackendForDb();
-    return (await backend.mutation(fn, args as never)) as T;
+    return await backend.mutation(fn, args as never);
   },
 };
 
 export const auth = {
   getUser: async () => {
-    const userId = await db.query<string | null>(api.profiles.currentUserId, {});
+    const userId = await db.query(api.profiles.currentUserId, {});
     return { data: { user: userId ? { id: userId } : null } };
   },
 };
