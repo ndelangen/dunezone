@@ -45,6 +45,7 @@ import {
   useRulesetDetailPage,
   useUpdateRuleset,
 } from '@db/rulesets';
+import { viewerActionsFor } from '@app/access/viewerActions';
 import { IconStat } from '@app/components/content/IconStat';
 import { FaqList } from '@app/components/faq/FaqList';
 import { GroupAssignPopover } from '@app/components/groups/GroupAssignPopover';
@@ -53,7 +54,6 @@ import { PageLayout } from '@app/components/shell';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
 import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 import type { FaqTag } from '@app/faq/tags';
-import { rulesetActionVisibility } from '@app/rulesets/rulesetActionVisibility';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from '../RulesetDetail.module.css';
@@ -174,11 +174,9 @@ function RulesetDetailPage() {
     deleteRuleset.error?.message ??
     membershipWorkflow.request.error?.message ??
     updateRuleset.error?.message;
-  const actionVisibility = rulesetActionVisibility({
+  const actionVisibility = viewerActionsFor(viewerAccess, {
     hasProfile: Boolean(profile.data?._id),
-    canChangeGroup: viewerAccess.capabilities.changeGroup,
-    canDelete: viewerAccess.capabilities.delete,
-    hasAssignedGroup: r.group_id != null,
+    subjectGroupId: r.group_id,
   });
 
   const handleDelete = () => {
@@ -294,7 +292,7 @@ function RulesetDetailPage() {
             {actionVisibility.askQuestion ||
             actionVisibility.assignGroup ||
             actionVisibility.removeGroup ||
-            actionVisibility.deleteRuleset ? (
+            actionVisibility.canDelete ? (
               <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset actions">
                 {actionVisibility.askQuestion ? (
                   <Tooltip label="Ask a question">
@@ -358,7 +356,7 @@ function RulesetDetailPage() {
                     </ActionIcon>
                   </Tooltip>
                 ) : null}
-                {actionVisibility.deleteRuleset ? (
+                {actionVisibility.canDelete ? (
                   <Tooltip label="Delete ruleset">
                     <ActionIcon
                       color="red"
