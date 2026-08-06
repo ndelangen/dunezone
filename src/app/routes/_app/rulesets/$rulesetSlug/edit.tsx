@@ -1,13 +1,19 @@
+import {
+  ActionIcon,
+  Anchor,
+  Center,
+  Group,
+  Image,
+  Paper,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
+} from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, BookOpen } from 'lucide-react';
 
-import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetDetailPage, useRulesetDetailPage } from '@db/rulesets';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { ButtonGroup, Toolbar } from '@app/components/generic/layout';
-import { BlockCover } from '@app/components/generic/surfaces';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 import { RulesetSettingsForm } from '@app/components/rulesets/RulesetSettingsForm';
 import { PageLayout } from '@app/components/shell';
 
@@ -30,52 +36,77 @@ function RulesetEditPage() {
   const detailSeed =
     !loaderData.notFound && loaderData.detailPage ? loaderData.detailPage : undefined;
   const page = useRulesetDetailPage(rulesetSlug, { initialData: detailSeed });
-  const profile = useCurrentProfile();
 
   const header = page.ruleset ? (
-    <div className={styles.pageHead}>
-      <div className={styles.rulesetHeadCover}>
-        <BlockCover src={page.ruleset.image_cover} alt={`Cover for ${page.ruleset.name}`} />
-      </div>
-      <div className={styles.pageHeadText}>
-        <h1 className={styles.rulesetTitle}>Edit {page.ruleset.name}</h1>
-      </div>
-    </div>
+    <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
+      <Paper className={styles.rulesetHeadCover} radius="md" withBorder>
+        {page.ruleset.image_cover ? (
+          <Image
+            src={page.ruleset.image_cover}
+            fallbackSrc="/image/background/card.jpg"
+            alt={`Cover for ${page.ruleset.name}`}
+            className={styles.coverImage}
+          />
+        ) : (
+          <Center h="100%">
+            <Text size="xs" c="dimmed" ta="center">
+              No cover
+            </Text>
+          </Center>
+        )}
+      </Paper>
+      <Stack gap={6} className={styles.pageHeadText}>
+        <Title order={1} className={styles.rulesetTitle}>
+          Edit {page.ruleset.name}
+        </Title>
+      </Stack>
+    </Group>
   ) : (
-    <h1>Edit ruleset</h1>
+    <Title order={1}>Edit ruleset</Title>
   );
   const toolbar = (
-    <Toolbar>
-      <Toolbar.Left>
-        <ButtonGroup>
-          <FormTooltip content="Back to rulesets">
-            <UIButton variant="nav" to="/rulesets" aria-label="Back to rulesets">
-              <ArrowLeft size={16} aria-hidden />
-            </UIButton>
-          </FormTooltip>
-          {page.ruleset ? (
-            <FormTooltip content="View ruleset">
-              <UIButton
-                variant="secondary"
-                to="/rulesets/$rulesetSlug"
-                params={{ rulesetSlug: page.ruleset.slug }}
-                aria-label="View ruleset"
-              >
-                <BookOpen size={16} aria-hidden />
-              </UIButton>
-            </FormTooltip>
-          ) : null}
-        </ButtonGroup>
-      </Toolbar.Left>
-    </Toolbar>
+    <Paper withBorder p="sm" radius="md">
+      <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset navigation">
+        <Tooltip label="Back to rulesets">
+          <ActionIcon
+            variant="light"
+            color="gray"
+            size="lg"
+            aria-label="Back to rulesets"
+            renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
+          >
+            <ArrowLeft size={17} aria-hidden />
+          </ActionIcon>
+        </Tooltip>
+        {page.ruleset ? (
+          <Tooltip label="View ruleset">
+            <ActionIcon
+              variant="light"
+              color="dune"
+              size="lg"
+              aria-label="View ruleset"
+              renderRoot={(rootProps) => (
+                <Link
+                  {...rootProps}
+                  to="/rulesets/$rulesetSlug"
+                  params={{ rulesetSlug: page.ruleset?.slug ?? rulesetSlug }}
+                />
+              )}
+            >
+              <BookOpen size={17} aria-hidden />
+            </ActionIcon>
+          </Tooltip>
+        ) : null}
+      </Group>
+    </Paper>
   );
 
   if (loaderData.notFound) {
     return (
       <PageLayout header={header} toolbar={toolbar}>
-        <Card>
-          <p>Ruleset not found.</p>
-        </Card>
+        <Paper withBorder p="xl" radius="md">
+          <Text>Ruleset not found.</Text>
+        </Paper>
       </PageLayout>
     );
   }
@@ -83,51 +114,64 @@ function RulesetEditPage() {
   if (!page.ruleset) {
     return (
       <PageLayout header={header} toolbar={toolbar}>
-        <Card>
-          <p>Ruleset not found.</p>
-        </Card>
+        <Paper withBorder p="xl" radius="md">
+          <Text>Ruleset not found.</Text>
+        </Paper>
       </PageLayout>
     );
   }
 
   const r = page.ruleset;
-  const viewerUserId = profile.data?.user_id;
+  const viewerAccess = page.viewerAccess;
 
-  if (profile.isPending) {
+  if (!viewerAccess) {
     return (
       <PageLayout header={header} toolbar={toolbar}>
-        Loading profile…
+        <Paper withBorder p="xl" radius="md" aria-live="polite">
+          <Text>Loading profile…</Text>
+        </Paper>
       </PageLayout>
     );
   }
 
-  if (!viewerUserId) {
+  if (viewerAccess.viewer.kind === 'anonymous') {
     return (
       <PageLayout header={header} toolbar={toolbar}>
-        <Card>
-          <p>
-            <Link to="/auth/login">Log in</Link> to edit this ruleset.
-          </p>
-        </Card>
+        <Paper withBorder p="xl" radius="md">
+          <Text>
+            <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
+              Log in
+            </Anchor>{' '}
+            to edit this ruleset.
+          </Text>
+        </Paper>
       </PageLayout>
     );
   }
 
-  if (r.owner_id !== viewerUserId) {
+  if (!viewerAccess.capabilities.edit) {
     return (
       <PageLayout header={header} toolbar={toolbar}>
-        <Card>
-          <p>Only the ruleset owner can edit settings.</p>
-        </Card>
+        <Paper withBorder p="xl" radius="md">
+          <Text>
+            {r.group_id
+              ? 'Only the ruleset owner or an active member of its group can edit this ruleset.'
+              : 'Only the ruleset owner can edit this ruleset.'}
+          </Text>
+        </Paper>
       </PageLayout>
     );
   }
 
   return (
     <PageLayout header={header} toolbar={toolbar}>
-      <Card>
-        <RulesetSettingsForm key={r.slug} initial={r} />
-      </Card>
+      <Paper withBorder p="lg" radius="md">
+        <RulesetSettingsForm
+          key={r.slug}
+          initial={r}
+          canRename={viewerAccess.capabilities.rename}
+        />
+      </Paper>
     </PageLayout>
   );
 }

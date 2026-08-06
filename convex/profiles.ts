@@ -3,12 +3,17 @@ import { v } from 'convex/values';
 
 import { profileUserEditFormSchema } from '../src/app/profile/validation';
 import type { Id } from './_generated/dataModel';
-import { mutation, query } from './_generated/server';
+import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
-import { syncHomepageNewestMember } from './lib/homepageCommunity';
+import { mutation } from './functions';
+import { profileDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { loadProfileDetailBySlug } from './lib/profileDetail';
+import {
+  discoverableProfileValidator,
+  loadNewestDiscoverableProfiles,
+} from './lib/profileDiscovery';
 import { nowIso, slugify } from './lib/utils';
 
 async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
@@ -92,6 +97,7 @@ export const getById = query({
 
 export const getBySlug = query({
   args: { slug: v.string() },
+  returns: profileDetailPageValidator,
   handler: async (ctx, args) => await loadProfileDetailBySlug(ctx, args.slug),
 });
 
@@ -153,6 +159,12 @@ export const list = query({
   },
 });
 
+export const newestDiscoverable = query({
+  args: { limit: v.optional(v.number()) },
+  returns: v.array(discoverableProfileValidator),
+  handler: async (ctx, args) => await loadNewestDiscoverableProfiles(ctx, args.limit ?? 4),
+});
+
 export const updateCurrent = mutation({
   args: {
     username: v.string(),
@@ -205,7 +217,6 @@ export const updateCurrent = mutation({
     if (!updated) {
       throw new Error('Failed to update profile');
     }
-    await syncHomepageNewestMember(ctx, updated);
     return updated;
   },
 });

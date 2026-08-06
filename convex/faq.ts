@@ -1,14 +1,13 @@
+import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { FAQ_TAG_VALUES } from '../src/app/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/app/faq/validation';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { internalMutation, mutation, query } from './_generated/server';
-import { listFaqAnswersGivenBy, listFaqQuestionsAskedBy } from './lib/faqActivity';
-import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
-import { adjustHomepageRulesetFaqTotals } from './lib/homepageCommunity';
-import { canAccessRuleset, requireAuthUserId } from './lib/policy';
+import { query } from './_generated/server';
+import { internalMutation, mutation } from './functions';
+import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { nowIso } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -116,212 +115,250 @@ async function allocateNextFaqItemSlug(
   }
 }
 
-export const byRuleset = query({
-  args: { ruleset_id: v.id('rulesets') },
-  handler: async (ctx, args) => loadFaqItemsForRuleset(ctx, args.ruleset_id),
-});
+async function loadFaqItemByLocator(
+  ctx: QueryCtx | MutationCtx,
+  rulesetSlug: string,
+  questionSlug: string
+) {
+  const ruleset = await getRulesetBySlug(ctx, rulesetSlug);
+  if (!ruleset || ruleset.is_deleted) {
+    throw new Error(`Ruleset with slug ${rulesetSlug} not found`);
+  }
+  const item = await ctx.db
+    .query('faq_items')
+    .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', questionSlug))
+    .unique();
+  if (!item) {
+    throw new Error(`FAQ item with slug ${questionSlug} not found in ruleset ${rulesetSlug}`);
+  }
+  const answers = await ctx.db
+    .query('faq_answers')
+    .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
+    .take(200);
+  return { ruleset, item, answers };
+}
 
-export const detail = query({
-  args: { id: v.id('faq_items') },
-  handler: async (ctx, args) => {
-    const item = await getFaqItem(ctx, args.id);
-    if (!item) {
-      throw new Error(`FAQ item ${args.id} not found`);
-    }
-    const answers = await ctx.db
-      .query('faq_answers')
-      .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
-      .take(200);
+async function questionPageHandler(
+  ctx: QueryCtx,
+  args: { rulesetSlug: string; questionSlug: string }
+) {
+  const { ruleset, item, answers } = await loadFaqItemByLocator(
+    ctx,
+    args.rulesetSlug,
+    args.questionSlug
+  );
+  const viewerId = await getAuthUserId(ctx);
+  const questionOwner = viewerId === item.asked_by;
+  const viewerAnswered = viewerId
+    ? (await ctx.db
+        .query('faq_answers')
+        .withIndex('by_faq_item_answered_by', (q) =>
+          q.eq('faq_item_id', item._id).eq('answered_by', viewerId)
+        )
+        .unique()) !== null
+    : false;
+  const asker = await profileSummary(ctx, item.asked_by);
+  const answerers = await Promise.all(
+    answers.map((answer) => profileSummary(ctx, answer.answered_by))
+  );
+  const projectedAnswers = answers.map((answer, index) => {
+    const answerOwner = viewerId === answer.answered_by;
+    const accepted = item.accepted_answer_id === answer._id;
+    const author = answerers[index];
     return {
-      ...item,
-      faq_answers: answers,
-    };
-  },
-});
-
-export const detailByRulesetSlugAndQuestionSlug = query({
-  args: {
-    ruleset_slug: v.string(),
-    question_slug: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const ruleset = await getRulesetBySlug(ctx, args.ruleset_slug);
-    if (!ruleset || ruleset.is_deleted) {
-      throw new Error(`Ruleset with slug ${args.ruleset_slug} not found`);
-    }
-    const item = await ctx.db
-      .query('faq_items')
-      .withIndex('by_ruleset_slug', (q) =>
-        q.eq('ruleset_id', ruleset._id).eq('slug', args.question_slug)
-      )
-      .unique();
-    if (!item) {
-      throw new Error(
-        `FAQ item with slug ${args.question_slug} not found in ruleset ${args.ruleset_slug}`
-      );
-    }
-    const answers = await ctx.db
-      .query('faq_answers')
-      .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
-      .take(200);
-    const answerers = await Promise.all(
-      answers.map((answer) => profileSummary(ctx, answer.answered_by))
-    );
-    const askerProfile = await profileSummary(ctx, item.asked_by);
-    return {
-      ...item,
-      ruleset: {
-        id: ruleset._id,
-        slug: ruleset.slug,
-        name: ruleset.name,
+      id: answer._id,
+      text: answer.answer,
+      author: author
+        ? {
+            id: author.id,
+            slug: author.slug,
+            username: author.username,
+            avatarUrl: author.avatar_url,
+          }
+        : null,
+      createdAt: answer.created_at,
+      accepted,
+      capabilities: {
+        editAnswer: answerOwner,
+        deleteAnswer: answerOwner || questionOwner,
+        acceptAnswer: questionOwner && !accepted,
+        unacceptAnswer: questionOwner && accepted,
       },
-      asker_profile: askerProfile,
-      faq_answers: answers.map((answer, index) => ({
-        ...answer,
-        answerer_profile: answerers[index],
-      })),
     };
-  },
+  });
+  projectedAnswers.sort((left, right) => Number(right.accepted) - Number(left.accepted));
+
+  return {
+    ruleset: { id: ruleset._id, slug: ruleset.slug, name: ruleset.name },
+    question: {
+      id: item._id,
+      slug: item.slug,
+      text: item.question,
+      tags: item.tags,
+      author: asker
+        ? {
+            id: asker.id,
+            slug: asker.slug,
+            username: asker.username,
+            avatarUrl: asker.avatar_url,
+          }
+        : null,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      capabilities: {
+        editQuestion: questionOwner,
+        deleteQuestion: questionOwner,
+      },
+    },
+    viewer: { answerQuestion: viewerId !== null && !viewerAnswered },
+    answers: projectedAnswers,
+  };
+}
+
+export const questionPage = query({
+  args: { rulesetSlug: v.string(), questionSlug: v.string() },
+  handler: questionPageHandler,
 });
 
-export const askedBy = query({
-  args: { profile_id: v.id('users') },
-  handler: async (ctx, args) => await listFaqQuestionsAskedBy(ctx, args.profile_id),
-});
-
-export const answeredBy = query({
-  args: { profile_id: v.id('users') },
-  handler: async (ctx, args) => await listFaqAnswersGivenBy(ctx, args.profile_id),
-});
-
-export const createItem = mutation({
+async function createQuestionHandler(
+  ctx: MutationCtx,
   args: {
-    ruleset_id: v.id('rulesets'),
+    rulesetId: Id<'rulesets'>;
+    question: string;
+    initialAnswer?: string;
+    tags: (typeof FAQ_TAG_VALUES)[number][];
+  }
+) {
+  const userId = await requireAuthUserId(ctx);
+  const ruleset = await getRuleset(ctx, args.rulesetId);
+  if (!ruleset || ruleset.is_deleted) {
+    throw new Error('Ruleset not found');
+  }
+  const parsedQuestion = faqQuestionSchema.safeParse(args.question);
+  if (!parsedQuestion.success) {
+    const msg = parsedQuestion.error.issues.map((i) => i.message).join(' ');
+    throw new Error(msg || 'Invalid FAQ input');
+  }
+  const normalizedQuestion = parsedQuestion.data;
+  const parsedTags = faqTagsSchema.safeParse(args.tags);
+  if (!parsedTags.success) {
+    const msg = parsedTags.error.issues.map((i) => i.message).join(' ');
+    throw new Error(msg || 'Invalid FAQ input');
+  }
+  const normalizedTags = parsedTags.data;
+
+  const now = nowIso();
+  const slug = await allocateNextFaqItemSlug(ctx, args.rulesetId);
+  const faqItemId = await ctx.db.insert('faq_items', {
+    ruleset_id: args.rulesetId,
+    slug,
+    question: normalizedQuestion,
+    tags: normalizedTags,
+    asked_by: userId,
+    created_at: now,
+    updated_at: now,
+    accepted_answer_id: null,
+  });
+  const row = await ctx.db.get(faqItemId);
+  if (!row) {
+    throw new Error('Failed to create FAQ item');
+  }
+
+  const normalizedInitialAnswer = args.initialAnswer?.trim();
+  if (normalizedInitialAnswer && normalizedInitialAnswer.length > 0) {
+    const parsedAnswer = faqAnswerSchema.safeParse(normalizedInitialAnswer);
+    if (!parsedAnswer.success) {
+      const msg = parsedAnswer.error.issues.map((i) => i.message).join(' ');
+      throw new Error(msg || 'Invalid FAQ input');
+    }
+    await ctx.db.insert('faq_answers', {
+      faq_item_id: row._id,
+      answer: parsedAnswer.data,
+      answered_by: userId,
+      created_at: nowIso(),
+    });
+  }
+
+  return row;
+}
+
+export const createQuestion = mutation({
+  args: {
+    rulesetId: v.id('rulesets'),
     question: v.string(),
-    answer: v.optional(v.string()),
+    initialAnswer: v.optional(v.string()),
     tags: v.array(faqTagValidator),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const ruleset = await getRuleset(ctx, args.ruleset_id);
+    const question = await createQuestionHandler(ctx, args);
+    const ruleset = await getRuleset(ctx, question.ruleset_id);
     if (!ruleset || ruleset.is_deleted) {
       throw new Error('Ruleset not found');
     }
-    const parsedQuestion = faqQuestionSchema.safeParse(args.question);
-    if (!parsedQuestion.success) {
-      const msg = parsedQuestion.error.issues.map((i) => i.message).join(' ');
-      throw new Error(msg || 'Invalid FAQ input');
-    }
-    const normalizedQuestion = parsedQuestion.data;
-    const parsedTags = faqTagsSchema.safeParse(args.tags);
-    if (!parsedTags.success) {
-      const msg = parsedTags.error.issues.map((i) => i.message).join(' ');
-      throw new Error(msg || 'Invalid FAQ input');
-    }
-    const normalizedTags = parsedTags.data;
-
-    const now = nowIso();
-    const slug = await allocateNextFaqItemSlug(ctx, args.ruleset_id);
-    const faqItemId = await ctx.db.insert('faq_items', {
-      ruleset_id: args.ruleset_id,
-      slug,
-      question: normalizedQuestion,
-      tags: normalizedTags,
-      asked_by: userId,
-      created_at: now,
-      updated_at: now,
-      accepted_answer_id: null,
-    });
-    const row = await ctx.db.get(faqItemId);
-    if (!row) {
-      throw new Error('Failed to create FAQ item');
-    }
-
-    const normalizedInitialAnswer = args.answer?.trim();
-    let answerDelta = 0;
-    if (normalizedInitialAnswer && normalizedInitialAnswer.length > 0) {
-      const parsedAnswer = faqAnswerSchema.safeParse(normalizedInitialAnswer);
-      if (!parsedAnswer.success) {
-        const msg = parsedAnswer.error.issues.map((i) => i.message).join(' ');
-        throw new Error(msg || 'Invalid FAQ input');
-      }
-      await ctx.db.insert('faq_answers', {
-        faq_item_id: row._id,
-        answer: parsedAnswer.data,
-        answered_by: userId,
-        created_at: nowIso(),
-      });
-      answerDelta = 1;
-    }
-
-    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, {
-      questions: 1,
-      answers: answerDelta,
-    });
-
-    return row;
+    return {
+      questionId: question._id,
+      rulesetSlug: ruleset.slug,
+      questionSlug: question.slug,
+    };
   },
 });
 
-export const updateItem = mutation({
+async function editQuestionHandler(
+  ctx: MutationCtx,
   args: {
-    id: v.id('faq_items'),
-    question: v.optional(v.string()),
-    tags: v.optional(v.array(faqTagValidator)),
-    accepted_answer_id: v.optional(v.union(v.id('faq_answers'), v.null())),
-  },
-  handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const item = await getFaqItem(ctx, args.id);
-    if (!item) {
-      throw new Error(`FAQ item ${args.id} not found`);
-    }
-
-    const ruleset = await getRuleset(ctx, item.ruleset_id);
-    if (!ruleset || ruleset.is_deleted) {
-      throw new Error('Ruleset not found');
-    }
-    const allowed = await canAccessRuleset(ctx, ruleset, userId);
-    if (item.asked_by !== userId || !allowed) {
-      throw new Error('Not authorized');
-    }
-
-    const patch: {
-      updated_at: string;
-      question?: string;
-      tags?: (typeof FAQ_TAG_VALUES)[number][];
-      accepted_answer_id?: Id<'faq_answers'> | null;
-    } = {
-      updated_at: nowIso(),
+    questionId: Id<'faq_items'>;
+    input: {
+      question: string;
+      tags: (typeof FAQ_TAG_VALUES)[number][];
     };
-    if (args.question !== undefined) {
-      const parsedQuestion = faqQuestionSchema.safeParse(args.question);
-      if (!parsedQuestion.success) {
-        const msg = parsedQuestion.error.issues.map((i) => i.message).join(' ');
-        throw new Error(msg || 'Invalid FAQ input');
-      }
-      patch.question = parsedQuestion.data;
-    }
-    if (args.accepted_answer_id !== undefined) {
-      await assertAcceptedAnswerBelongsToItem(ctx, item._id, args.accepted_answer_id);
-      patch.accepted_answer_id = args.accepted_answer_id;
-    }
-    if (args.tags !== undefined) {
-      const parsedTags = faqTagsSchema.safeParse(args.tags);
-      if (!parsedTags.success) {
-        const msg = parsedTags.error.issues.map((i) => i.message).join(' ');
-        throw new Error(msg || 'Invalid FAQ input');
-      }
-      patch.tags = parsedTags.data;
-    }
+  }
+) {
+  const userId = await requireAuthUserId(ctx);
+  const item = await getFaqItem(ctx, args.questionId);
+  if (!item) {
+    throw new Error(`FAQ item ${args.questionId} not found`);
+  }
 
-    await ctx.db.patch(item._id, patch);
-    const updated = await ctx.db.get(item._id);
-    if (!updated) {
-      throw new Error(`FAQ item ${args.id} not found`);
-    }
-    return updated;
+  const ruleset = await getRuleset(ctx, item.ruleset_id);
+  if (!ruleset || ruleset.is_deleted) {
+    throw new Error('Ruleset not found');
+  }
+  if (item.asked_by !== userId) {
+    throw new Error('Not authorized');
+  }
+
+  const parsedQuestion = faqQuestionSchema.safeParse(args.input.question);
+  if (!parsedQuestion.success) {
+    const msg = parsedQuestion.error.issues.map((i) => i.message).join(' ');
+    throw new Error(msg || 'Invalid FAQ input');
+  }
+  const parsedTags = faqTagsSchema.safeParse(args.input.tags);
+  if (!parsedTags.success) {
+    const msg = parsedTags.error.issues.map((i) => i.message).join(' ');
+    throw new Error(msg || 'Invalid FAQ input');
+  }
+
+  await ctx.db.patch(item._id, {
+    question: parsedQuestion.data,
+    tags: parsedTags.data,
+    updated_at: nowIso(),
+  });
+  const updated = await ctx.db.get(item._id);
+  if (!updated) {
+    throw new Error(`FAQ item ${args.questionId} not found`);
+  }
+  return updated;
+}
+
+export const editQuestion = mutation({
+  args: {
+    questionId: v.id('faq_items'),
+    input: v.object({
+      question: v.string(),
+      tags: v.array(faqTagValidator),
+    }),
   },
+  handler: editQuestionHandler,
 });
 
 export const setAcceptedAnswer = mutation({
@@ -339,8 +376,7 @@ export const setAcceptedAnswer = mutation({
     if (!ruleset || ruleset.is_deleted) {
       throw new Error('Ruleset not found');
     }
-    const allowed = await canAccessRuleset(ctx, ruleset, userId);
-    if (item.asked_by !== userId || !allowed) {
+    if (item.asked_by !== userId) {
       throw new Error('Not authorized');
     }
 
@@ -358,50 +394,42 @@ export const setAcceptedAnswer = mutation({
   },
 });
 
-export const deleteItem = mutation({
-  args: { id: v.id('faq_items') },
-  handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const item = await getFaqItem(ctx, args.id);
-    if (!item) {
-      throw new Error(`FAQ item ${args.id} not found`);
-    }
+async function deleteQuestionHandler(ctx: MutationCtx, args: { questionId: Id<'faq_items'> }) {
+  const userId = await requireAuthUserId(ctx);
+  const item = await getFaqItem(ctx, args.questionId);
+  if (!item) {
+    throw new Error(`FAQ item ${args.questionId} not found`);
+  }
 
-    const ruleset = await getRuleset(ctx, item.ruleset_id);
-    if (!ruleset || ruleset.is_deleted) {
-      throw new Error('Ruleset not found');
-    }
-    const allowed = await canAccessRuleset(ctx, ruleset, userId);
-    if (item.asked_by !== userId || !allowed) {
-      throw new Error('Not authorized');
-    }
+  const ruleset = await getRuleset(ctx, item.ruleset_id);
+  if (!ruleset || ruleset.is_deleted) {
+    throw new Error('Ruleset not found');
+  }
+  if (item.asked_by !== userId) {
+    throw new Error('Not authorized');
+  }
 
-    const { deleted: deletedAnswerCount, shouldContinue } = await deleteFaqAnswerBatch(
-      ctx,
-      item._id
-    );
-    const done = !shouldContinue;
-    if (done) {
-      await ctx.db.delete(item._id);
-    }
-    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, {
-      questions: done ? -1 : 0,
-      answers: -deletedAnswerCount,
+  const { shouldContinue } = await deleteFaqAnswerBatch(ctx, item._id);
+  const done = !shouldContinue;
+  if (done) {
+    await ctx.db.delete(item._id);
+  }
+  if (!done) {
+    await ctx.scheduler.runAfter(0, internal.faq.deleteItemAnswerBatch, {
+      faq_item_id: item._id,
     });
-    if (!done) {
-      await ctx.scheduler.runAfter(0, internal.faq.deleteItemAnswerBatch, {
-        faq_item_id: item._id,
-        ruleset_id: ruleset._id,
-      });
-    }
-    return { id: args.id, rulesetId: item.ruleset_id, askedBy: item.asked_by };
-  },
+  }
+  return { id: args.questionId, rulesetId: item.ruleset_id, askedBy: item.asked_by };
+}
+
+export const deleteQuestion = mutation({
+  args: { questionId: v.id('faq_items') },
+  handler: deleteQuestionHandler,
 });
 
 export const deleteItemAnswerBatch = internalMutation({
   args: {
     faq_item_id: v.id('faq_items'),
-    ruleset_id: v.id('rulesets'),
   },
   handler: async (ctx, args): Promise<{ deleted: number; done: boolean }> => {
     const item = await ctx.db.get(args.faq_item_id);
@@ -412,12 +440,6 @@ export const deleteItemAnswerBatch = internalMutation({
     const done = !shouldContinue;
     if (done && item) {
       await ctx.db.delete(item._id);
-    }
-    if (deletedAnswerCount > 0 || (done && item)) {
-      await adjustHomepageRulesetFaqTotals(ctx, args.ruleset_id, {
-        questions: done && item ? -1 : 0,
-        answers: -deletedAnswerCount,
-      });
     }
     if (!done) {
       await ctx.scheduler.runAfter(0, internal.faq.deleteItemAnswerBatch, args);
@@ -463,7 +485,6 @@ export const createAnswer = mutation({
       answered_by: userId,
       created_at: nowIso(),
     });
-    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, { answers: 1 });
     const row = await ctx.db.get(_id);
     if (!row) {
       throw new Error('Failed to create FAQ answer');
@@ -472,30 +493,38 @@ export const createAnswer = mutation({
   },
 });
 
-export const updateAnswer = mutation({
-  args: { id: v.id('faq_answers'), answer: v.string() },
-  handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const parsedAnswer = faqAnswerSchema.safeParse(args.answer);
-    if (!parsedAnswer.success) {
-      const msg = parsedAnswer.error.issues.map((i) => i.message).join(' ');
-      throw new Error(msg || 'Invalid FAQ input');
-    }
-    const answer = await getFaqAnswer(ctx, args.id);
-    if (!answer) {
-      throw new Error(`FAQ answer ${args.id} not found`);
-    }
-    if (answer.answered_by !== userId) {
-      throw new Error('Not authorized');
-    }
+async function editAnswerHandler(
+  ctx: MutationCtx,
+  args: { answerId: Id<'faq_answers'>; input: { answer: string } }
+) {
+  const userId = await requireAuthUserId(ctx);
+  const parsedAnswer = faqAnswerSchema.safeParse(args.input.answer);
+  if (!parsedAnswer.success) {
+    const msg = parsedAnswer.error.issues.map((i) => i.message).join(' ');
+    throw new Error(msg || 'Invalid FAQ input');
+  }
+  const answer = await getFaqAnswer(ctx, args.answerId);
+  if (!answer) {
+    throw new Error(`FAQ answer ${args.answerId} not found`);
+  }
+  if (answer.answered_by !== userId) {
+    throw new Error('Not authorized');
+  }
 
-    await ctx.db.patch(answer._id, { answer: parsedAnswer.data });
-    const updated = await ctx.db.get(answer._id);
-    if (!updated) {
-      throw new Error(`FAQ answer ${args.id} not found`);
-    }
-    return updated;
+  await ctx.db.patch(answer._id, { answer: parsedAnswer.data });
+  const updated = await ctx.db.get(answer._id);
+  if (!updated) {
+    throw new Error(`FAQ answer ${args.answerId} not found`);
+  }
+  return updated;
+}
+
+export const editAnswer = mutation({
+  args: {
+    answerId: v.id('faq_answers'),
+    input: v.object({ answer: v.string() }),
   },
+  handler: editAnswerHandler,
 });
 
 export const deleteAnswer = mutation({
@@ -527,7 +556,6 @@ export const deleteAnswer = mutation({
     if (!ruleset) {
       throw new Error('Ruleset not found');
     }
-    await adjustHomepageRulesetFaqTotals(ctx, ruleset._id, { answers: -1 });
     return { id: args.id, faqItemId: answer.faq_item_id, answeredBy: answer.answered_by };
   },
 });

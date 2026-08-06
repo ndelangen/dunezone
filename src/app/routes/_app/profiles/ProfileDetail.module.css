@@ -49,15 +49,6 @@
   margin: 0;
 }
 
-.list {
-  margin: 0;
-  padding-left: 1.25rem;
-}
-
-.list li + li {
-  padding-top: var(--space-1);
-}
-
 .empty {
   margin: 0;
   font-size: 0.9rem;

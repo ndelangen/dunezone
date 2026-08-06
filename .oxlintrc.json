@@ -10,6 +10,18 @@
     "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
     "jsdoc/check-tag-names": ["error", { "definedTags": ["vitest-environment"] }],
     "jsx-a11y/prefer-tag-over-role": "off",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["**/_generated/server"],
+            "importNames": ["mutation", "internalMutation"],
+            "message": "Use the trigger-aware builders from ./functions instead."
+          }
+        ]
+      }
+    ],
     "object-shorthand": "error",
     "react/jsx-curly-brace-presence": [
       "error",

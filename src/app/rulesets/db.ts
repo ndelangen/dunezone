@@ -2,7 +2,6 @@ import { useQuery } from 'convex/react';
 
 import { db } from '@db/core';
 import type { FaqAnswerEntry, FaqItemWithDetails } from '@db/faq';
-import type { GroupMemberRow, UserGroupMembershipWithGroup } from '@db/members';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { rulesetInputSchema } from '@app/rulesets/validation';
 import { Background } from '@game/schema/faction';
@@ -10,6 +9,10 @@ import type { FactionData } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
+import type {
+  AssignedGroupSummary,
+  CollaborativeAccess,
+} from '../../../convex/lib/collaborativeAccess';
 
 export type Ruleset = { name: string };
 export type RulesetRow = Doc<'rulesets'>;
@@ -50,22 +53,26 @@ function normalizeRulesetFactionSummary(faction: RulesetFactionSummaryRaw): Rule
 export type RulesetPageData = {
   ruleset: RulesetEntry;
   factions: RulesetFactionSummary[];
-  canAccess: boolean;
+  viewerAccess: Extract<CollaborativeAccess, { kind: 'ruleset' }>;
 };
 
 export type RulesetDetailPageData = RulesetPageData & {
   owner: FaqItemWithDetails['asker_profile'];
-  /** Active memberships + groups for assign-group UI; null when viewer is not logged in. */
-  viewerAssignableMemberships: UserGroupMembershipWithGroup[] | null;
-  groupAccess: {
-    group: Doc<'groups'>;
-    members: Array<{
-      membership: Doc<'group_members'>;
-      profile: FaqItemWithDetails['asker_profile'];
-    }>;
-  } | null;
+  assignableGroups: AssignedGroupSummary[];
   faqItems: FaqItemWithDetails[];
 };
+
+function toRulesetPageData(raw: {
+  ruleset: RulesetRow;
+  factions: RulesetFactionSummaryRaw[];
+  viewerAccess: RulesetPageData['viewerAccess'];
+}): RulesetPageData {
+  return {
+    ruleset: toRulesetEntry(raw.ruleset),
+    factions: raw.factions.map(normalizeRulesetFactionSummary),
+    viewerAccess: raw.viewerAccess,
+  };
+}
 
 type FaqItemConvexRow = Omit<FaqItemWithDetails, 'id' | 'faq_answers'> & {
   faq_answers: Omit<FaqAnswerEntry, 'id'>[];
@@ -79,19 +86,6 @@ function mapFaqItemsFromConvex(items: FaqItemConvexRow[]): FaqItemWithDetails[] 
   }));
 }
 
-type AssignableMembershipConvexRow = GroupMemberRow & {
-  groups: { id: string; name: string; slug: string } | null;
-};
-
-function mapViewerAssignableMembershipsFromConvex(
-  rows: AssignableMembershipConvexRow[] | null
-): UserGroupMembershipWithGroup[] | null {
-  if (rows == null) {
-    return null;
-  }
-  return rows.map((entry) => ({ ...entry, id: entry._id, groups: entry.groups }));
-}
-
 function toRulesetEntry(entry: RulesetRow): RulesetEntry {
   return {
     ...entry,
@@ -100,9 +94,13 @@ function toRulesetEntry(entry: RulesetRow): RulesetEntry {
   };
 }
 
+export function rulesetRowsToEntries(entries: RulesetRow[]): RulesetEntry[] {
+  return entries.map(toRulesetEntry);
+}
+
 export async function loadRulesetsAll(): Promise<RulesetEntry[]> {
   const entries = await db.query<RulesetRow[]>(api.rulesets.list, {});
-  return entries.map(toRulesetEntry);
+  return rulesetRowsToEntries(entries);
 }
 
 export async function loadRuleset(id: string): Promise<RulesetEntry> {
@@ -114,23 +112,18 @@ export async function loadRulesetBySlug(slug: string): Promise<RulesetPageData> 
   const result = await db.query<{
     ruleset: RulesetRow;
     factions: RulesetFactionSummaryRaw[];
-    canAccess: boolean;
+    viewerAccess: RulesetPageData['viewerAccess'];
   }>(api.rulesets.getBySlug, { slug });
-  return {
-    ...result,
-    factions: result.factions.map(normalizeRulesetFactionSummary),
-    ruleset: toRulesetEntry(result.ruleset),
-  };
+  return toRulesetPageData(result);
 }
 
 export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetailPageData | null> {
   const raw = await db.query<{
     ruleset: RulesetRow;
     factions: RulesetFactionSummaryRaw[];
-    canAccess: boolean;
+    viewerAccess: RulesetPageData['viewerAccess'];
     owner: RulesetDetailPageData['owner'];
-    viewerAssignableMemberships: AssignableMembershipConvexRow[] | null;
-    groupAccess: RulesetDetailPageData['groupAccess'];
+    assignableGroups: AssignedGroupSummary[];
     faqItems: FaqItemConvexRow[];
   } | null>(api.rulesets.detailPageBySlug, { slug });
   if (!raw) {
@@ -139,12 +132,9 @@ export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetail
   return {
     ruleset: toRulesetEntry(raw.ruleset),
     factions: raw.factions.map(normalizeRulesetFactionSummary),
-    canAccess: raw.canAccess,
+    viewerAccess: raw.viewerAccess,
     owner: raw.owner,
-    viewerAssignableMemberships: mapViewerAssignableMembershipsFromConvex(
-      raw.viewerAssignableMemberships
-    ),
-    groupAccess: raw.groupAccess,
+    assignableGroups: raw.assignableGroups,
     faqItems: mapFaqItemsFromConvex(raw.faqItems),
   };
 }
@@ -160,17 +150,6 @@ export async function loadRulesetFactionsWithDetails(
     ruleset_id: rulesetId,
   });
   return factions.map(normalizeRulesetFactionSummary);
-}
-
-export async function loadCanAccessRuleset(rulesetId: string): Promise<boolean> {
-  return await db.query<boolean>(api.rulesets.canAccess, { ruleset_id: rulesetId });
-}
-
-export function useCanAccessRuleset(rulesetId: string) {
-  const liveData = useQuery(api.rulesets.canAccess, { ruleset_id: rulesetId } as never) as
-    | boolean
-    | undefined;
-  return toLiveQueryResult(liveData, true);
 }
 
 export async function loadRulesetsByFaction(factionId: string): Promise<RulesetEntry[]> {
@@ -206,16 +185,13 @@ export function useRuleset(id: string) {
 
 export function useRulesetBySlug(slug: string, options?: { initialData?: RulesetPageData }) {
   const liveData = useQuery(api.rulesets.getBySlug, { slug });
-  const result = toLiveQueryResult<{
-    ruleset: RulesetRow;
-    factions: RulesetFactionSummaryRaw[];
-    canAccess: boolean;
-  } | null>(liveData, true, () => (options?.initialData as never) ?? undefined);
+  const normalized = liveData ? toRulesetPageData(liveData) : undefined;
+  const result = toLiveQueryResult(normalized, true, () => options?.initialData);
   return {
     ...result,
     ruleset: result.data ? toRulesetEntry(result.data.ruleset) : undefined,
     factions: result.data?.factions.map(normalizeRulesetFactionSummary),
-    canAccess: result.data?.canAccess ?? false,
+    viewerAccess: result.data?.viewerAccess,
   };
 }
 
@@ -234,12 +210,9 @@ export function useRulesetDetailPage(
         : {
             ruleset: toRulesetEntry(liveData.ruleset),
             factions: liveData.factions.map(normalizeRulesetFactionSummary),
-            canAccess: liveData.canAccess,
+            viewerAccess: liveData.viewerAccess,
             owner: liveData.owner,
-            viewerAssignableMemberships: mapViewerAssignableMembershipsFromConvex(
-              liveData.viewerAssignableMemberships as AssignableMembershipConvexRow[] | null
-            ),
-            groupAccess: liveData.groupAccess,
+            assignableGroups: liveData.assignableGroups,
             faqItems: mapFaqItemsFromConvex(liveData.faqItems as FaqItemConvexRow[]),
           };
   const result = toLiveQueryResult(normalized, true, () => options?.initialData);
@@ -247,10 +220,9 @@ export function useRulesetDetailPage(
     ...result,
     ruleset: result.data?.ruleset,
     factions: result.data?.factions,
-    canAccess: result.data?.canAccess ?? false,
+    viewerAccess: result.data?.viewerAccess,
     owner: result.data?.owner ?? null,
-    viewerAssignableMemberships: result.data?.viewerAssignableMemberships ?? null,
-    groupAccess: result.data?.groupAccess ?? null,
+    assignableGroups: result.data?.assignableGroups ?? [],
     faqItems: result.data?.faqItems ?? [],
   };
 }

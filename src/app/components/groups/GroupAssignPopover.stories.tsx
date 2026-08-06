@@ -1,29 +1,16 @@
 import preview from '@sb/preview';
-import { useQuery } from 'convex/react';
-import { expect, fn, mocked, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 
-import type { UserGroupMembershipWithGroup } from '@db/members';
-
+import type { Id } from '../../../../convex/_generated/dataModel';
 import { GroupAssignPopover } from './GroupAssignPopover';
 
-const availableMemberships = [
+const availableGroups = [
   {
-    _id: 'membership-1',
-    id: 'membership-1',
-    _creationTime: Date.parse('2026-07-18T10:00:00.000Z'),
-    group_id: 'group-1',
-    user_id: 'user-1',
-    status: 'active',
-    requested_at: '2026-07-18T10:00:00.000Z',
-    approved_at: '2026-07-18T10:05:00.000Z',
-    approved_by: 'user-2',
-    groups: {
-      id: 'group-1',
-      name: 'Arrakeen Rules Council',
-      slug: 'arrakeen-rules-council',
-    },
+    id: 'group-1' as Id<'groups'>,
+    name: 'Arrakeen Rules Council',
+    slug: 'arrakeen-rules-council',
   },
-] as unknown as UserGroupMembershipWithGroup[];
+];
 
 const meta = preview.meta({
   component: GroupAssignPopover,
@@ -32,10 +19,8 @@ const meta = preview.meta({
   },
   args: {
     disabled: false,
-    userId: 'user-1',
-    isUserPending: false,
-    onChangeGroup: fn(async () => undefined),
-    prefetchedMemberships: availableMemberships,
+    onAssignGroup: fn(async () => undefined),
+    assignableGroups: availableGroups,
   },
 });
 
@@ -54,33 +39,12 @@ export const AvailableGroups = meta.story({
 
 export const NoAvailableGroups = meta.story({
   args: {
-    prefetchedMemberships: [],
+    assignableGroups: [],
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(page.getByRole('button', { name: 'Assign group' }));
     await expect(page.getByText('No groups are available yet.')).toBeVisible();
-  },
-});
-
-export const ConnectedWithMockedConvex = meta.story({
-  args: {
-    prefetchedMemberships: undefined,
-  },
-  beforeEach: () => {
-    mocked(useQuery).mockReturnValue(availableMemberships as never);
-  },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const trigger = page.getByRole('button', { name: 'Assign group' });
-
-    await userEvent.click(trigger);
-
-    await expect(
-      await page.findByRole('option', {
-        name: 'Arrakeen Rules Council (arrakeen-rules-council)',
-      })
-    ).toBeInTheDocument();
   },
 });
 

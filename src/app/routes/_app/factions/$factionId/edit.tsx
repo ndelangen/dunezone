@@ -14,54 +14,55 @@ import { Trash2, UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
-import type { Faction } from '@db/factions';
-import { useCurrentProfile } from '@db/profiles';
 import { FactionAuthoringToolbar } from '@app/components/factions/editor/FactionAuthoringToolbar';
 import { FactionEditor } from '@app/components/factions/editor/FactionEditor';
-import type {
-  FactionEditorHandle,
-  FactionEditorState,
-} from '@app/components/factions/editor/FactionEditor';
+import type { FactionAuthoringViewHandle } from '@app/components/factions/editor/FactionEditor';
 import { FactionGroupPopover } from '@app/components/factions/editor/FactionGroupPopover';
 import { FactionLoadPopover } from '@app/components/factions/editor/FactionLoadPopover';
+import { useFactionAuthoring } from '@app/components/factions/editor/useFactionAuthoring';
 import { PageLayout } from '@app/components/shell';
 import { loadFaction } from '@app/factions/db';
-import { FactionInputSchema } from '@game/schema/faction';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   loader: async ({ params }) => await loadFaction(params.factionId),
   component: FactionEditPage,
 });
 
-const initialEditorState: FactionEditorState = {
-  isDirty: false,
-  isNameBlank: false,
-  warnings: [],
-};
-
-function formatZodIssues(err: { issues: readonly { path: PropertyKey[]; message: string }[] }) {
-  return err.issues
-    .map((issue) => {
-      const path = issue.path.map((segment) => String(segment)).join('.') || '(root)';
-      return `${path}: ${issue.message}`;
-    })
-    .join('\n');
-}
-
 function FactionEditPage() {
   const { factionId } = Route.useParams();
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
-  const editorRef = useRef<FactionEditorHandle | null>(null);
+  const viewRef = useRef<FactionAuthoringViewHandle | null>(null);
   const updateFaction = useUpdateFaction();
   const deleteFaction = useDeleteFaction();
   const setFactionGroup = useSetFactionGroup();
-  const profile = useCurrentProfile();
-  const [editorErrors, setEditorErrors] = useState<string[]>([]);
-  const [editorState, setEditorState] = useState<FactionEditorState>(initialEditorState);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const { faction, group, assetPublishing } = useFaction(factionId, { initialData: loaderData });
+  const { faction, viewerAccess, assignableGroups, assetPublishing } = useFaction(factionId, {
+    initialData: loaderData,
+  });
+  const authoringFaction = faction ?? loaderData.faction;
+  const authoring = useFactionAuthoring({
+    sessionKey: authoringFaction._id,
+    initialData: authoringFaction.data,
+    persistence: {
+      save: async (draft) =>
+        await updateFaction.mutateAsync({ input: draft, id: authoringFaction._id }),
+      isPending: updateFaction.isPending,
+      error: updateFaction.error,
+      hasSaved: updateFaction.data !== undefined,
+      reset: updateFaction.reset,
+    },
+    onSaved: (entry) => {
+      if (entry.slug !== factionId) {
+        navigate({
+          to: '/factions/$factionId/edit',
+          params: { factionId: entry.slug },
+          replace: true,
+        });
+      }
+    },
+  });
   const header = (
     <Stack align="center" gap={4}>
       <Anchor
@@ -77,7 +78,7 @@ function FactionEditPage() {
     </Stack>
   );
 
-  if (!profile.data?.user_id) {
+  if (viewerAccess?.viewer.kind === 'anonymous') {
     return (
       <PageLayout header={header} headerSize="compact">
         <Paper withBorder radius="md" p="xl">
@@ -109,42 +110,23 @@ function FactionEditPage() {
     );
   }
 
-  const canDelete = faction.owner_id === profile.data.user_id;
-  const canAssignGroup = canDelete;
+  if (!viewerAccess?.capabilities.edit) {
+    return (
+      <PageLayout header={header} headerSize="compact">
+        <Paper withBorder radius="md" p="xl">
+          <Text>
+            {faction.group_id
+              ? 'Only the faction owner or an active member of its group can edit this faction.'
+              : 'Only the faction owner can edit this faction.'}
+          </Text>
+        </Paper>
+      </PageLayout>
+    );
+  }
 
-  const handleEditorSubmit = (values: Faction) => {
-    const parsed = FactionInputSchema.safeParse(values);
-    if (!parsed.success) {
-      setEditorErrors([formatZodIssues(parsed.error)]);
-      return;
-    }
-    setEditorErrors([]);
-    void (async () => {
-      try {
-        const entry = await updateFaction.mutateAsync({ input: parsed.data, id: faction._id });
-        editorRef.current?.markSaved(entry.data);
-        if (entry.slug !== factionId) {
-          navigate({
-            to: '/factions/$factionId/edit',
-            params: { factionId: entry.slug },
-            replace: true,
-          });
-        }
-      } catch (error) {
-        setEditorErrors([
-          error instanceof Error ? error.message : 'The faction could not be saved.',
-        ]);
-      }
-    })();
-  };
-
-  const saveState = updateFaction.isPending
-    ? 'saving'
-    : updateFaction.isError
-      ? 'error'
-      : updateFaction.data
-        ? 'saved'
-        : 'idle';
+  const assignedGroup = viewerAccess.assignedGroup;
+  const canDelete = viewerAccess.capabilities.delete;
+  const canAssignGroup = viewerAccess.capabilities.changeGroup;
 
   return (
     <PageLayout
@@ -152,15 +134,15 @@ function FactionEditPage() {
       headerSize="compact"
       toolbar={
         <FactionAuthoringToolbar
-          isDirty={editorState.isDirty}
-          isNameBlank={editorState.isNameBlank}
-          warningCount={editorState.warnings.length}
-          saveState={saveState}
+          isDirty={authoring.editing.isDirty}
+          isNameBlank={authoring.editing.isNameBlank}
+          warningCount={authoring.editing.warnings.length}
+          saveState={authoring.persistence.saveState}
           assetPublishing={assetPublishing}
-          onSave={() => editorRef.current?.submit()}
-          onReviewWarnings={() => editorRef.current?.focusFirstWarning()}
-          onReview={(trigger) => editorRef.current?.review(trigger)}
-          onReset={() => editorRef.current?.load()}
+          onSave={authoring.actions.submit}
+          onReviewWarnings={() => viewRef.current?.focusFirstWarning()}
+          onReview={(trigger) => viewRef.current?.openReview(trigger)}
+          onReset={authoring.actions.reset}
           onBack={() =>
             navigate({
               to: '/factions/$factionId',
@@ -172,14 +154,13 @@ function FactionEditPage() {
               <FactionLoadPopover
                 disabled={updateFaction.isPending}
                 currentPublicSlug={faction.slug}
-                onLoaded={(loaded) => editorRef.current?.load(loaded)}
+                onLoaded={authoring.actions.loadDraft}
               />
-              {canAssignGroup && !group ? (
+              {canAssignGroup && !assignedGroup ? (
                 <FactionGroupPopover
                   disabled={setFactionGroup.isPending}
-                  userId={profile.data.user_id}
-                  isUserPending={profile.isPending}
-                  onChangeGroup={async (nextGroupId) => {
+                  assignableGroups={assignableGroups}
+                  onAssignGroup={async (nextGroupId) => {
                     await setFactionGroup.mutateAsync({
                       id: faction._id,
                       groupId: nextGroupId,
@@ -187,7 +168,7 @@ function FactionEditPage() {
                   }}
                 />
               ) : null}
-              {canAssignGroup && group ? (
+              {canAssignGroup && assignedGroup ? (
                 <Tooltip label="Remove group">
                   <ActionIcon
                     type="button"
@@ -207,9 +188,9 @@ function FactionEditPage() {
             </>
           }
           context={
-            group ? (
+            assignedGroup ? (
               <Text size="xs" c="dimmed">
-                Group access: <strong>{group.name ?? group._id}</strong>
+                Group access: <strong>{assignedGroup.name}</strong>
               </Text>
             ) : null
           }
@@ -265,11 +246,11 @@ function FactionEditPage() {
     >
       <FactionEditor
         key={faction._id}
-        ref={editorRef}
-        factionEntry={faction}
-        errors={editorErrors}
-        onSubmit={handleEditorSubmit}
-        onStateChange={setEditorState}
+        ref={viewRef}
+        form={authoring.form}
+        errors={authoring.persistence.errors}
+        isNameBlank={authoring.editing.isNameBlank}
+        warnings={authoring.editing.warnings}
       />
     </PageLayout>
   );

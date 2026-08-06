@@ -3,6 +3,7 @@ import Google from '@auth/core/providers/google';
 import { Password } from '@convex-dev/auth/providers/Password';
 import { convexAuth } from '@convex-dev/auth/server';
 
+import { applicationTriggers } from './lib/applicationTriggers';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 
 const gemini = 'https://www.googleapis.com/auth/generative-language.retriever';
@@ -95,11 +96,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       return siteUrl;
     },
     async afterUserCreatedOrUpdated(ctx, { userId }) {
-      const user = await ctx.db.get(userId);
+      const triggerCtx = applicationTriggers.wrapDB(ctx);
+      const user = await triggerCtx.db.get(userId);
       if (!user) {
         return;
       }
-      await ensureProfileForUser(ctx, userId, profileSourcesFromUserDoc(user));
+      await ensureProfileForUser(triggerCtx, userId, profileSourcesFromUserDoc(user));
     },
   },
 });

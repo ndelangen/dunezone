@@ -1,6 +1,14 @@
+import { getRouteApi, useLocation } from '@tanstack/react-router';
 import Fuse from 'fuse.js';
+import { useEffect, useState } from 'react';
 
-import type { FactionCatalogueEntry, FactionRulesetSummary } from '@db/factions';
+import type {
+  FactionCatalogueEntry,
+  FactionCataloguePageData,
+  FactionRulesetSummary,
+} from '@db/factions';
+
+const factionCatalogueRoute = getRouteApi('/_app/factions/');
 
 export type FactionCatalogueSort = 'created' | 'updated';
 
@@ -24,7 +32,7 @@ export function parseFactionCatalogueSearch(
   };
 }
 
-export function normalizeFactionCatalogueSearch(
+function normalizeFactionCatalogueSearch(
   search: FactionCatalogueSearch,
   rulesets: FactionRulesetSummary[]
 ): FactionCatalogueSearch {
@@ -38,7 +46,7 @@ export function normalizeFactionCatalogueSearch(
   };
 }
 
-export function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
+function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
   const params = new URLSearchParams();
   if (search.q) {
     params.set('q', search.q);
@@ -52,7 +60,7 @@ export function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
   return params;
 }
 
-export function filterAndSortFactions(
+export function projectFactionCatalogue(
   factions: FactionCatalogueEntry[],
   search: FactionCatalogueSearch,
   draftQuery = search.q ?? ''
@@ -77,8 +85,55 @@ export function filterAndSortFactions(
   return matches.sort((left, right) => compareFactions(left, right, search.sort));
 }
 
-export function isFactionCatalogueSort(value: unknown): value is FactionCatalogueSort {
+function isFactionCatalogueSort(value: unknown): value is FactionCatalogueSort {
   return value === 'created' || value === 'updated';
+}
+
+export function useFactionCatalogueSession(
+  data: Pick<FactionCataloguePageData, 'factions' | 'rulesets'> | undefined
+) {
+  const navigate = factionCatalogueRoute.useNavigate();
+  const location = useLocation();
+  const search = parseFactionCatalogueSearch(location.search ?? {});
+  const rawSearch = location.searchStr;
+  const [draftQuery, setDraftQuery] = useState(search.q ?? '');
+
+  useEffect(() => setDraftQuery(search.q ?? ''), [search.q]);
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+    const canonical = normalizeFactionCatalogueSearch(search, data.rulesets);
+    const expected = factionCatalogueSearchParams(canonical).toString();
+    const current = new URLSearchParams(rawSearch).toString();
+    if (current !== expected) {
+      void navigate({ to: '.', search: canonical, replace: true });
+    }
+  }, [data, navigate, rawSearch, search]);
+
+  const changeSearch = (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => {
+    void navigate({
+      to: '.',
+      search: (previous) => parseFactionCatalogueSearch({ ...previous, ...patch }),
+      replace: true,
+    });
+  };
+
+  return {
+    search,
+    query: {
+      value: draftQuery,
+      change: setDraftQuery,
+      commit: () => changeSearch({ q: draftQuery }),
+    },
+    visibleFactions: data ? projectFactionCatalogue(data.factions, search, draftQuery) : [],
+    changeSearch,
+    reset: () => {
+      setDraftQuery('');
+      changeSearch({ q: undefined, ruleset: undefined });
+    },
+  };
 }
 
 function compareFactions(

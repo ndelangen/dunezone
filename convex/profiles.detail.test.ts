@@ -249,11 +249,9 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
 
     const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
 
-    expect(page.memberships).toHaveLength(1);
-    expect(page.memberships[0]?._id).toBe(seed.activeMembershipId);
-    expect(page.memberships[0]?.status).toBe('active');
-    expect(page.groups.map((group) => group._id)).toEqual([seed.activeGroupId]);
-    expect(page.groups[0]?.name).toBe('Sietch Tabr');
+    expect(page.groupSummaries).toEqual([
+      { id: seed.activeGroupId, name: 'Sietch Tabr', slug: 'sietch-tabr' },
+    ]);
   });
 
   test('excludes soft-deleted factions and parses faction data', async () => {

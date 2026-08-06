@@ -1,9 +1,12 @@
 import { v } from 'convex/values';
 
 import { groupInputSchema } from '../src/app/groups/validation';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
-import { mutation, query } from './_generated/server';
+import { query } from './_generated/server';
+import { mutation } from './functions';
+import { loadGroupAccessBundle, requireGroupCapability } from './lib/collaborativeAccess';
+import { groupDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import { nowIso, slugify } from './lib/utils';
 
@@ -39,35 +42,10 @@ export const getById = query({
   },
 });
 
-export const getBySlug = query({
-  args: { slug: v.string() },
-  handler: async (ctx, args) => {
-    const group = await ctx.db
-      .query('groups')
-      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
-      .unique();
-    if (!group) {
-      throw new Error(`Group with slug ${args.slug} not found`);
-    }
-
-    const members = await ctx.db
-      .query('group_members')
-      .withIndex('by_group', (q) => q.eq('group_id', group._id))
-      .take(500);
-
-    return {
-      group,
-      members,
-    };
-  },
-});
-
-/**
- * Group detail page: group, memberships, factions in group, and profiles for owner + every member
- * user_id (each user must have a profile row).
- */
+/** Group detail page with canonical access, owner, roster, and associated assets. */
 export const detailBySlug = query({
   args: { slug: v.string() },
+  returns: groupDetailPageValidator,
   handler: async (ctx, args) => {
     const group = await ctx.db
       .query('groups')
@@ -77,34 +55,26 @@ export const detailBySlug = query({
       throw new Error(`Group with slug ${args.slug} not found`);
     }
 
-    const members = await ctx.db
-      .query('group_members')
-      .withIndex('by_group', (q) => q.eq('group_id', group._id))
-      .take(500);
+    const accessBundle = await loadGroupAccessBundle(ctx, group);
 
     const factions = await ctx.db
       .query('factions')
       .withIndex('by_group_deleted', (q) => q.eq('group_id', group._id).eq('is_deleted', false))
       .take(500);
 
-    const userIds = new Set<Id<'users'>>([group.created_by]);
-    for (const m of members) {
-      userIds.add(m.user_id);
-    }
+    const rulesets = await ctx.db
+      .query('rulesets')
+      .withIndex('by_group_deleted', (q) => q.eq('group_id', group._id).eq('is_deleted', false))
+      .take(500);
 
-    const profiles: Doc<'profiles'>[] = [];
-    for (const uid of userIds) {
-      const profile = await ctx.db
-        .query('profiles')
-        .withIndex('by_user_id', (q) => q.eq('user_id', uid))
-        .unique();
-      if (!profile) {
-        throw new Error(`Invariant: every user must have a profile (missing for ${uid})`);
-      }
-      profiles.push(profile);
-    }
-
-    return { group, members, factions, profiles };
+    return {
+      group: accessBundle.subject,
+      factions,
+      rulesets,
+      owner: accessBundle.owner,
+      viewerAccess: accessBundle.viewerAccess,
+      roster: accessBundle.roster,
+    };
   },
 });
 
@@ -174,20 +144,13 @@ export const update = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
     const parsed = groupInputSchema.safeParse({ name: args.name });
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(' ');
       throw new Error(msg || 'Invalid group input');
     }
     const normalizedName = parsed.data.name;
-    const group = await ctx.db.get(args.id);
-    if (!group) {
-      throw new Error(`Group with id ${args.id} not found`);
-    }
-    if (group.created_by !== userId) {
-      throw new Error('Not authorized');
-    }
+    const { subject: group } = await requireGroupCapability(ctx, args.id, 'rename');
 
     const nameOwner = await ctx.db
       .query('groups')
@@ -210,19 +173,12 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id('groups') },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const group = await ctx.db.get(args.id);
-    if (!group) {
-      throw new Error(`Group with id ${args.id} not found`);
-    }
-    if (group.created_by !== userId) {
-      throw new Error('Not authorized');
-    }
-    await ctx.db.delete(args.id);
+    const { subject: group } = await requireGroupCapability(ctx, args.id, 'delete');
+    await ctx.db.delete(group._id);
 
     const rulesetsWithGroup = await ctx.db
       .query('rulesets')
-      .withIndex('by_group_deleted', (q) => q.eq('group_id', args.id).eq('is_deleted', false))
+      .withIndex('by_group_deleted', (q) => q.eq('group_id', group._id).eq('is_deleted', false))
       .take(100);
     for (const ruleset of rulesetsWithGroup) {
       await ctx.db.patch(ruleset._id, { group_id: null });
@@ -230,7 +186,7 @@ export const remove = mutation({
 
     const memberships = await ctx.db
       .query('group_members')
-      .withIndex('by_group', (q) => q.eq('group_id', args.id))
+      .withIndex('by_group', (q) => q.eq('group_id', group._id))
       .take(100);
     for (const membership of memberships) {
       await ctx.db.delete(membership._id);

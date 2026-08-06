@@ -4,12 +4,14 @@ import { useEffect, useRef } from 'react';
 
 import { db } from '@db/core';
 import { factionCatalogueRowsToEntries } from '@db/factions';
+import type { FactionCatalogueEntry } from '@db/factions';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { profileUserEditFormSchema } from '@app/profile/validation';
 import type { ProfileUserEditInput } from '@app/profile/validation';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
+import type { AssignedGroupSummary } from '../../../convex/lib/collaborativeAccess';
 
 export type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
@@ -25,14 +27,23 @@ export type ProfileListEntry = ProfileRow & {
 /** Server-owned profile detail contract; the read model lives in `convex/lib/profileDetail.ts`. */
 export type ProfileDetailResult = FunctionReturnType<typeof api.profiles.getBySlug>;
 
-export type ProfilePageData = ReturnType<typeof normalizeProfilePage>;
+export type ProfilePageData = {
+  profile: ProfileEntry;
+  groupSummaries: AssignedGroupSummary[];
+  faqAsked: ProfileDetailResult['faqAsked'];
+  faqAnswers: ProfileDetailResult['faqAnswers'];
+  factions: FactionCatalogueEntry[];
+  acceptedAnswerCount: number;
+};
 
 /** Canonical browser page model, shared by the route loader and the live subscription. */
-function normalizeProfilePage(result: ProfileDetailResult) {
+function normalizeProfilePage(result: ProfileDetailResult): ProfilePageData {
   return {
-    ...result,
+    profile: result.profile,
+    groupSummaries: result.groupSummaries,
+    faqAsked: result.faqAsked,
+    faqAnswers: result.faqAnswers,
     factions: factionCatalogueRowsToEntries(result.factions),
-    groupsById: new Map(result.groups.map((group) => [String(group._id), group])),
     acceptedAnswerCount: result.faqAnswers.filter(
       (answer) => answer.faq_item.accepted_answer_id === answer._id
     ).length,
@@ -90,19 +101,15 @@ export function useProfileBySlug(
   }
 ) {
   const liveData = useQuery(api.profiles.getBySlug, { slug });
-  const normalized: ProfilePageData | undefined = liveData
-    ? normalizeProfilePage(liveData)
-    : undefined;
+  const normalized = liveData ? normalizeProfilePage(liveData) : undefined;
   const result = toLiveQueryResult(normalized, true, () => options?.initialData);
   return {
     ...result,
     profile: result.data ? result.data.profile : undefined,
-    memberships: result.data?.memberships,
-    groups: result.data?.groups,
+    groupSummaries: result.data?.groupSummaries,
     faqAsked: result.data?.faqAsked,
     faqAnswers: result.data?.faqAnswers,
     factions: result.data?.factions,
-    groupsById: result.data?.groupsById,
     acceptedAnswerCount: result.data?.acceptedAnswerCount,
   };
 }

@@ -35,6 +35,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Verify schema narrowing prerequisites
+        run: bun run migrations:narrow-check
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_DEPLOYMENT: ${{ secrets.CONVEX_DEPLOYMENT }}
+
       - name: Deploy Convex
         run: bun run convex:deploy
         env:

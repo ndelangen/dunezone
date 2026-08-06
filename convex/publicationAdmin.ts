@@ -3,7 +3,8 @@ import { v } from 'convex/values';
 
 import { rendererRevisionsSchema } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
-import { internalMutation, internalQuery, mutation, query } from './_generated/server';
+import { internalQuery, query } from './_generated/server';
+import { internalMutation, mutation } from './functions';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
 

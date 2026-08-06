@@ -23,6 +23,7 @@ import {
   ProfileFaqAnswersGiven,
   ProfileFaqQuestionsAsked,
 } from '@app/components/profile/ProfileFaqActivity';
+import { ProfileGroupMemberships } from '@app/components/profile/ProfileGroupMemberships';
 import { PageLayout } from '@app/components/shell';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
 
@@ -69,7 +70,6 @@ function ProfileDetailPage() {
     await navigate({ to: '/auth/login' });
   };
 
-  const groupsById = profileData.groupsById ?? new Map();
   const acceptedAnswerCount = profileData.acceptedAnswerCount ?? 0;
 
   const toolbar = (
@@ -222,7 +222,7 @@ function ProfileDetailPage() {
                 </p>
                 <p>
                   <UsersRound size={18} aria-hidden />
-                  <strong>{profileData.memberships?.length ?? 0}</strong>
+                  <strong>{profileData.groupSummaries?.length ?? 0}</strong>
                   <span>Groups</span>
                 </p>
                 <p>
@@ -274,28 +274,7 @@ function ProfileDetailPage() {
                 </h2>
               }
             >
-              {profileData.memberships && profileData.memberships.length > 0 ? (
-                <ul className={styles.list}>
-                  {profileData.memberships.map((m) => {
-                    const group = groupsById.get(String(m.group_id));
-                    return (
-                      <li key={m._id}>
-                        {group?.slug ? (
-                          <Link to="/groups/$groupSlug" params={{ groupSlug: group.slug }}>
-                            {group.name}
-                          </Link>
-                        ) : group ? (
-                          <span>{group.name}</span>
-                        ) : (
-                          <span title={m.group_id}>Unknown group</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className={styles.empty}>Not a member of any groups.</p>
-              )}
+              <ProfileGroupMemberships groups={profileData.groupSummaries ?? []} />
             </Card>
           </Stack>
         </aside>

@@ -6,9 +6,9 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { UserGroupMembershipWithGroup } from '@db/members';
 import { appContentTheme } from '@app/theme';
 
+import type { Id } from '../../../../convex/_generated/dataModel';
 import { GroupAssignPopover } from './GroupAssignPopover';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -30,15 +30,6 @@ globalThis.ResizeObserver = class ResizeObserver {
   unobserve() {}
   disconnect() {}
 };
-
-vi.mock('@app/members/db', () => ({
-  useUserGroupMembershipGroups: (
-    memberships: Array<{
-      groups: { id: string; name: string; slug: string } | null;
-    }>
-  ) => memberships.map((membership) => membership.groups).filter(Boolean),
-  useUserGroupMemberships: () => ({ data: [], isPending: false }),
-}));
 
 let container: HTMLDivElement | undefined;
 let root: Root | undefined;
@@ -63,20 +54,14 @@ describe('GroupAssignPopover', () => {
         <MantineProvider theme={appContentTheme} forceColorScheme="light">
           <GroupAssignPopover
             disabled={false}
-            userId="user-1"
-            isUserPending={false}
-            onChangeGroup={vi.fn(async () => undefined)}
-            prefetchedMemberships={
-              [
-                {
-                  groups: {
-                    id: 'group-1',
-                    name: 'Arrakeen Rules Council',
-                    slug: 'arrakeen-rules-council',
-                  },
-                },
-              ] as unknown as UserGroupMembershipWithGroup[]
-            }
+            onAssignGroup={vi.fn(async () => undefined)}
+            assignableGroups={[
+              {
+                id: 'group-1' as Id<'groups'>,
+                name: 'Arrakeen Rules Council',
+                slug: 'arrakeen-rules-council',
+              },
+            ]}
           />
         </MantineProvider>
       );
@@ -115,5 +100,131 @@ describe('GroupAssignPopover', () => {
 
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     expect(document.activeElement).toBe(trigger);
+  });
+
+  it('submits only a selected server-derived group and closes after success', async () => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+    const groupId = 'group-1' as Id<'groups'>;
+    const onAssignGroup = vi.fn(async () => undefined);
+
+    await act(async () => {
+      root?.render(
+        <MantineProvider theme={appContentTheme} forceColorScheme="light">
+          <GroupAssignPopover
+            disabled={false}
+            onAssignGroup={onAssignGroup}
+            assignableGroups={[
+              {
+                id: groupId,
+                name: 'Arrakeen Rules Council',
+                slug: 'arrakeen-rules-council',
+              },
+            ]}
+          />
+        </MantineProvider>
+      );
+    });
+
+    const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="Assign group"]');
+    expect(trigger).not.toBeNull();
+    if (!trigger) {
+      return;
+    }
+    await act(async () => trigger.click());
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
+
+    const searchInput = document.querySelector<HTMLInputElement>(
+      'input[placeholder="Type group name or slug…"]'
+    );
+    expect(searchInput).not.toBeNull();
+    if (!searchInput) {
+      return;
+    }
+    await act(async () => searchInput.click());
+
+    const option = document.querySelector<HTMLElement>('[role="option"]');
+    expect(option?.textContent).toContain('Arrakeen Rules Council');
+    if (!option) {
+      return;
+    }
+    await act(async () => option.click());
+
+    const assignButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent?.includes('Assign selected group')
+    );
+    expect(assignButton).toBeDefined();
+    if (!assignButton) {
+      return;
+    }
+    await act(async () => assignButton.click());
+
+    expect(onAssignGroup).toHaveBeenCalledOnce();
+    expect(onAssignGroup).toHaveBeenCalledWith(groupId);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('normalizes an unknown assignment failure once and keeps the picker open', async () => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <MantineProvider theme={appContentTheme} forceColorScheme="light">
+          <GroupAssignPopover
+            disabled={false}
+            onAssignGroup={vi.fn(async () => {
+              throw 'transport failure';
+            })}
+            assignableGroups={[
+              {
+                id: 'group-1' as Id<'groups'>,
+                name: 'Arrakeen Rules Council',
+                slug: 'arrakeen-rules-council',
+              },
+            ]}
+          />
+        </MantineProvider>
+      );
+    });
+
+    const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="Assign group"]');
+    expect(trigger).not.toBeNull();
+    if (!trigger) {
+      return;
+    }
+    await act(async () => trigger.click());
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
+
+    const searchInput = document.querySelector<HTMLInputElement>(
+      'input[placeholder="Type group name or slug…"]'
+    );
+    expect(searchInput).not.toBeNull();
+    if (!searchInput) {
+      return;
+    }
+    await act(async () => searchInput.click());
+    const option = document.querySelector<HTMLElement>('[role="option"]');
+    expect(option).not.toBeNull();
+    if (!option) {
+      return;
+    }
+    await act(async () => option.click());
+
+    const assignButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent?.includes('Assign selected group')
+    );
+    expect(assignButton).toBeDefined();
+    if (!assignButton) {
+      return;
+    }
+    await act(async () => assignButton.click());
+
+    const alerts = document.querySelectorAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]?.textContent).toContain('Failed to assign group. Please try again.');
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
   });
 });
