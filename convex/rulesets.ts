@@ -132,7 +132,6 @@ async function rulesetPublicPage(
   return {
     ruleset: row,
     factions,
-    canEditRuleset: viewerAccess.capabilities.edit,
     viewerAccess,
   };
 }
@@ -164,37 +163,12 @@ export const detailPageBySlug = query({
     const page = await rulesetPublicPage(ctx, row, access.viewerAccess);
     const faqItems = await loadFaqItemsForRuleset(ctx, row._id);
 
-    let groupAccess: {
-      group: Doc<'groups'>;
-      members: Array<{
-        membership: Doc<'group_members'>;
-        profile: Awaited<ReturnType<typeof profileSummary>>;
-      }>;
-    } | null = null;
-
-    const linkedGroupId = row.group_id;
-    if (linkedGroupId && access.assignedGroup) {
-      const memberships = await ctx.db
-        .query('group_members')
-        .withIndex('by_group', (q) => q.eq('group_id', linkedGroupId))
-        .take(500);
-      const members = await Promise.all(
-        memberships.map(async (m) => ({
-          membership: m,
-          profile: await profileSummary(ctx, m.user_id),
-        }))
-      );
-      groupAccess = { group: access.assignedGroup, members };
-    }
-
     const owner = await profileSummary(ctx, row.owner_id);
 
     return {
       ...page,
-      groupAccess,
       faqItems,
       owner,
-      viewerAssignableMemberships: access.viewerAssignableMemberships,
       assignableGroups: access.assignableGroups,
     };
   },
@@ -211,17 +185,6 @@ export const factionIds = query({
 export const factionDetails = query({
   args: { ruleset_id: v.id('rulesets') },
   handler: async (ctx, args) => listPublicRulesetFactions(ctx, args.ruleset_id),
-});
-
-export const canEdit = query({
-  args: { ruleset_id: v.id('rulesets') },
-  handler: async (ctx, args) => {
-    const ruleset = await getRulesetById(ctx, args.ruleset_id);
-    if (!ruleset) {
-      return false;
-    }
-    return (await loadRulesetAccessForLoadedSubject(ctx, ruleset)).viewerAccess.capabilities.edit;
-  },
 });
 
 export const listByFaction = query({

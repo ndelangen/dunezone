@@ -36,8 +36,6 @@ const groupSummaries = [
 
 const serverPage = {
   profile,
-  memberships: [{ _id: 'legacy-membership' }],
-  groups: [{ _id: 'legacy-group' }],
   groupSummaries,
   faqAsked: [],
   faqAnswers: [],

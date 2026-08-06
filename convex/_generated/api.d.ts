@@ -25,7 +25,6 @@ import type * as lib_factionInput from "../lib/factionInput.js";
 import type * as lib_faqProfileActivity from "../lib/faqProfileActivity.js";
 import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
 import type * as lib_ids from "../lib/ids.js";
-import type * as lib_memberGroups from "../lib/memberGroups.js";
 import type * as lib_policy from "../lib/policy.js";
 import type * as lib_profileBootstrap from "../lib/profileBootstrap.js";
 import type * as lib_profileDiscovery from "../lib/profileDiscovery.js";
@@ -70,7 +69,6 @@ declare const fullApi: ApiFromModules<{
   "lib/faqProfileActivity": typeof lib_faqProfileActivity;
   "lib/faqRulesetList": typeof lib_faqRulesetList;
   "lib/ids": typeof lib_ids;
-  "lib/memberGroups": typeof lib_memberGroups;
   "lib/policy": typeof lib_policy;
   "lib/profileBootstrap": typeof lib_profileBootstrap;
   "lib/profileDiscovery": typeof lib_profileDiscovery;

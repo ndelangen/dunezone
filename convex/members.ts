@@ -1,34 +1,21 @@
 import { v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
-import { query } from './_generated/server';
-import type { MutationCtx, QueryCtx } from './_generated/server';
+import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
-import {
-  requireGroupCapability,
-  requireLegacyGroupOwner,
-  requireLegacyMembershipManager,
-  requireMembershipRequest,
-} from './lib/collaborativeAccess';
+import { requireGroupCapability, requireMembershipRequest } from './lib/collaborativeAccess';
 import {
   groupMemberValidator,
   membershipCommandAcknowledgementValidator,
 } from './lib/collaborativeAccessValidators';
-import { listByUserActiveWithGroupsData } from './lib/memberGroups';
 import { requireAuthUserId } from './lib/policy';
 import { nowIso } from './lib/utils';
-
-const statusValidator = v.union(v.literal('pending'), v.literal('active'), v.literal('removed'));
 
 function commandAcknowledgement(membership: Awaited<ReturnType<typeof requireMembership>>) {
   return { membershipId: membership._id, status: membership.status };
 }
 
-async function getMembership(
-  ctx: QueryCtx | MutationCtx,
-  groupId: Id<'groups'>,
-  userId: Id<'users'>
-) {
+async function getMembership(ctx: MutationCtx, groupId: Id<'groups'>, userId: Id<'users'>) {
   return await ctx.db
     .query('group_members')
     .withIndex('by_group_user', (q) => q.eq('group_id', groupId).eq('user_id', userId))
@@ -142,44 +129,6 @@ async function addMemberHandler(
   return await requireMembership(ctx, membershipId);
 }
 
-export const listByUserActiveWithGroups = query({
-  args: { user_id: v.id('users') },
-  handler: async (ctx, args) => listByUserActiveWithGroupsData(ctx, args.user_id),
-});
-
-export const listByGroup = query({
-  args: { group_id: v.id('groups') },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query('group_members')
-      .withIndex('by_group', (q) => q.eq('group_id', args.group_id))
-      .take(500);
-  },
-});
-
-export const listByGroupAndStatus = query({
-  args: { group_id: v.id('groups'), status: statusValidator },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query('group_members')
-      .withIndex('by_group_status', (q) =>
-        q.eq('group_id', args.group_id).eq('status', args.status)
-      )
-      .take(500);
-  },
-});
-
-export const get = query({
-  args: { group_id: v.id('groups'), user_id: v.id('users') },
-  handler: async (ctx, args) => {
-    const row = await getMembership(ctx, args.group_id, args.user_id);
-    if (!row) {
-      throw new Error('Group member not found');
-    }
-    return row;
-  },
-});
-
 export const request = mutation({
   args: { group_id: v.id('groups') },
   returns: groupMemberValidator,
@@ -226,43 +175,11 @@ export const approveRequest = mutation({
     commandAcknowledgement(await approveRequestHandler(ctx, args.membershipId)),
 });
 
-export const approve = mutation({
-  args: {
-    group_id: v.id('groups'),
-    user_id: v.id('users'),
-  },
-  returns: groupMemberValidator,
-  handler: async (ctx, args) => {
-    const access = await requireLegacyMembershipManager(ctx, args.group_id);
-    const row = await getMembership(ctx, args.group_id, args.user_id);
-    if (!row) {
-      throw new Error('Failed to approve group member');
-    }
-    return await approveMembership(ctx, row, access.viewerId as Id<'users'>);
-  },
-});
-
 export const rejectRequest = mutation({
   args: { membershipId: v.id('group_members') },
   returns: membershipCommandAcknowledgementValidator,
   handler: async (ctx, args) =>
     commandAcknowledgement(await rejectRequestHandler(ctx, args.membershipId)),
-});
-
-export const reject = mutation({
-  args: {
-    group_id: v.id('groups'),
-    user_id: v.id('users'),
-  },
-  returns: groupMemberValidator,
-  handler: async (ctx, args) => {
-    await requireLegacyMembershipManager(ctx, args.group_id);
-    const row = await getMembership(ctx, args.group_id, args.user_id);
-    if (!row) {
-      throw new Error('Failed to reject group member');
-    }
-    return await rejectMembership(ctx, row);
-  },
 });
 
 export const removeMember = mutation({
@@ -272,23 +189,6 @@ export const removeMember = mutation({
     commandAcknowledgement(await removeMemberHandler(ctx, args.membershipId)),
 });
 
-export const remove = mutation({
-  args: {
-    group_id: v.id('groups'),
-    user_id: v.id('users'),
-  },
-  returns: v.object({ groupId: v.id('groups'), userId: v.id('users') }),
-  handler: async (ctx, args) => {
-    const access = await requireLegacyGroupOwner(ctx, args.group_id);
-    const row = await getMembership(ctx, args.group_id, args.user_id);
-    if (!row) {
-      throw new Error('Failed to remove group member');
-    }
-    await removeMembership(ctx, row, access.subject.created_by);
-    return { groupId: args.group_id, userId: args.user_id };
-  },
-});
-
 export const addMember = mutation({
   args: {
     groupId: v.id('groups'),
@@ -296,14 +196,4 @@ export const addMember = mutation({
   },
   returns: membershipCommandAcknowledgementValidator,
   handler: async (ctx, args) => commandAcknowledgement(await addMemberHandler(ctx, args)),
-});
-
-export const add = mutation({
-  args: {
-    group_id: v.id('groups'),
-    user_id: v.id('users'),
-  },
-  returns: groupMemberValidator,
-  handler: async (ctx, args) =>
-    await addMemberHandler(ctx, { groupId: args.group_id, userId: args.user_id }),
 });

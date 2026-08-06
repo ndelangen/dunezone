@@ -2,6 +2,11 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, test } from 'vitest';
 
+import * as factionsApi from '../../convex/factions';
+import * as groupsApi from '../../convex/groups';
+import * as membersApi from '../../convex/members';
+import * as rulesetsApi from '../../convex/rulesets';
+
 const sources = {
   collaborativeAccess: readFileSync(
     new URL('../../convex/lib/collaborativeAccess.ts', import.meta.url),
@@ -47,6 +52,15 @@ const sources = {
 };
 
 describe('faction and ruleset collaborative-access caller contract', () => {
+  test('the narrowed Convex registry exposes only canonical collaborative-access transport', () => {
+    expect(Object.keys(membersApi).sort()).toEqual(
+      ['addMember', 'approveRequest', 'rejectRequest', 'removeMember', 'request'].sort()
+    );
+    expect(groupsApi).not.toHaveProperty('getBySlug');
+    expect(rulesetsApi).not.toHaveProperty('canEdit');
+    expect(factionsApi).not.toHaveProperty('getCreatePageContext');
+  });
+
   test('domain page adapters expose the canonical viewer projection', () => {
     expect(sources.factionDb).toContain('viewerAccess');
     expect(sources.rulesetDb).toContain('viewerAccess');
