@@ -19,16 +19,11 @@ import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessVali
 
 export type GroupRow = Doc<'groups'>;
 export type GroupEntry = GroupRow & { id: GroupRow['_id'] };
-export type GroupInsert = GroupEntry;
-export type GroupUpdate = Partial<GroupEntry>;
-
-export type GroupOwnerSummary = ProfileSummary;
-
 export type GroupDetailPageData = {
   group: GroupEntry;
   factions: FactionEntry[];
   rulesets: RulesetEntry[];
-  owner: GroupOwnerSummary | null;
+  owner: ProfileSummary | null;
   viewerAccess: Extract<CollaborativeAccess, { kind: 'group' }>;
   roster: GroupRosterEntry[];
 };
@@ -45,16 +40,6 @@ export async function loadGroupDetailBySlug(slug: string): Promise<GroupDetailPa
 export async function loadGroupEditBySlug(slug: string): Promise<GroupEditPageData> {
   const result = await loadGroupDetailBySlug(slug);
   return { group: result.group, viewerAccess: result.viewerAccess };
-}
-
-/** Call only when `id` is a real group id (mount a child component if the id is optional). */
-export function useGroup(id: string) {
-  const liveData = useQuery(api.groups.getById, { id } as never) as GroupRow | undefined;
-  const result = toLiveQueryResult(liveData, true);
-  return {
-    ...result,
-    data: result.data ? { ...result.data, id: result.data._id } : undefined,
-  };
 }
 
 function normalizeGroupDetailFromConvex(raw: GroupDetailPageRaw): GroupDetailPageData {
@@ -105,15 +90,6 @@ export function useGroupEditBySlug(slug: string, options?: { initialData?: Group
     ...result,
     group: result.data?.group,
     viewerAccess: result.data?.viewerAccess,
-  };
-}
-
-export function useGroupsAll(options?: { initialData?: GroupEntry[] }) {
-  const liveData = useQuery(api.groups.list, {});
-  const result = toLiveQueryResult(liveData, true, () => options?.initialData ?? undefined);
-  return {
-    ...result,
-    data: result.data?.map((entry) => ({ ...entry, id: entry._id })),
   };
 }
 

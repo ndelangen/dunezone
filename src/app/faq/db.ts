@@ -26,13 +26,6 @@ export type FaqQuestionLocator = {
   questionSlug: string;
 };
 
-export type FaqProfileSummary = {
-  id: string;
-  slug: string;
-  username: string | null;
-  avatarUrl: string | null;
-};
-
 export type FaqQuestionPage = FunctionReturnType<typeof api.faq.questionPage>;
 
 type CommandState = {
@@ -88,8 +81,6 @@ function voidCommand<TVariables, TResult>(
 export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<FaqQuestionPage> {
   return await db.query(api.faq.questionPage, locator);
 }
-
-export type UseFaqQuestionPageResult = ReturnType<typeof useFaqQuestionPage>;
 
 export function useFaqQuestionPage(
   locator: FaqQuestionLocator,
@@ -163,8 +154,6 @@ export type AskFaqQuestionInput = {
   initialAnswer?: string;
   tags: FaqTag[];
 };
-
-export type UseAskFaqQuestionResult = ReturnType<typeof useAskFaqQuestion>;
 
 export function useAskFaqQuestion() {
   const mutation = useLiveMutation<

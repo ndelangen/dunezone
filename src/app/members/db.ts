@@ -5,11 +5,9 @@ import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
 
 export type GroupMemberRow = Doc<'group_members'>;
-export type GroupMemberStatus = GroupMemberRow['status'];
-
 type MembershipCommandAcknowledgement = {
   membershipId: string;
-  status: GroupMemberStatus;
+  status: 'pending' | 'active' | 'removed';
 };
 
 type GroupMembershipCommand<TInput> = {

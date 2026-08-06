@@ -51,40 +51,6 @@ export async function loadProfilesAll(): Promise<ProfileListEntry[]> {
   return entries;
 }
 
-export async function loadCurrentUserId(): Promise<string | null> {
-  return await db.query(api.profiles.currentUserId, {});
-}
-
-export async function loadCurrentProfile(): Promise<ProfileEntry | null> {
-  const currentRaw = await db.query(api.profiles.current, {});
-  const current = currentRaw ? currentRaw : null;
-  if (current) {
-    const needsBackfill = current.slug === 'user' || !current.username || !current.avatar_url;
-    if (needsBackfill) {
-      const entry = await db.mutation(api.profiles.bootstrapCurrent, {});
-      return entry;
-    }
-    return current;
-  }
-
-  const userId = await loadCurrentUserId();
-  if (!userId) {
-    return null;
-  }
-
-  const entry = await db.mutation(api.profiles.bootstrapCurrent, {});
-  return entry;
-}
-
-export function useProfile(id: string) {
-  const liveData = useQuery(api.profiles.getById, { id } as never) as ProfileRow | null | undefined;
-  const result = toLiveQueryResult(liveData, true);
-  return {
-    ...result,
-    data: result.data ?? undefined,
-  };
-}
-
 export function useProfileBySlug(
   slug: string,
   options?: {

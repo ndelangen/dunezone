@@ -174,19 +174,6 @@ export const detailPageBySlug = query({
   },
 });
 
-export const factionIds = query({
-  args: { ruleset_id: v.id('rulesets') },
-  handler: async (ctx, args) => {
-    const factions = await listPublicRulesetFactions(ctx, args.ruleset_id);
-    return factions.map((faction) => faction.factionId);
-  },
-});
-
-export const factionDetails = query({
-  args: { ruleset_id: v.id('rulesets') },
-  handler: async (ctx, args) => listPublicRulesetFactions(ctx, args.ruleset_id),
-});
-
 export const listByFaction = query({
   args: { faction_id: v.id('factions') },
   handler: async (ctx, args) => {
