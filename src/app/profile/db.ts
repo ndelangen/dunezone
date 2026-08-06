@@ -42,26 +42,26 @@ function normalizeProfilePage(result: ProfileDetailResult) {
 }
 
 export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> {
-  const result = await db.query<ProfileDetailResult>(api.profiles.getBySlug, { slug });
+  const result = await db.query(api.profiles.getBySlug, { slug });
   return normalizeProfilePage(result);
 }
 
 export async function loadProfilesAll(): Promise<ProfileListEntry[]> {
-  const entries = await db.query<ProfileListEntry[]>(api.profiles.list, {});
+  const entries = await db.query(api.profiles.list, {});
   return entries;
 }
 
 export async function loadCurrentUserId(): Promise<string | null> {
-  return await db.query<string | null>(api.profiles.currentUserId, {});
+  return await db.query(api.profiles.currentUserId, {});
 }
 
 export async function loadCurrentProfile(): Promise<ProfileEntry | null> {
-  const currentRaw = await db.query<ProfileRow | null>(api.profiles.current, {});
+  const currentRaw = await db.query(api.profiles.current, {});
   const current = currentRaw ? currentRaw : null;
   if (current) {
     const needsBackfill = current.slug === 'user' || !current.username || !current.avatar_url;
     if (needsBackfill) {
-      const entry = await db.mutation<ProfileRow>(api.profiles.bootstrapCurrent, {});
+      const entry = await db.mutation(api.profiles.bootstrapCurrent, {});
       return entry;
     }
     return current;
@@ -72,7 +72,7 @@ export async function loadCurrentProfile(): Promise<ProfileEntry | null> {
     return null;
   }
 
-  const entry = await db.mutation<ProfileRow>(api.profiles.bootstrapCurrent, {});
+  const entry = await db.mutation(api.profiles.bootstrapCurrent, {});
   return entry;
 }
 

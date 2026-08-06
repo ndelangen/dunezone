@@ -1,43 +1,19 @@
 import { useQuery } from 'convex/react';
+import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 
-export type MigrationStatusRow = {
-  name: string;
-  state: 'inProgress' | 'success' | 'failed' | 'canceled' | 'unknown';
-  isDone: boolean;
-  processed: number;
-  latestStart: number;
-  latestEnd?: number;
-  error?: string;
-};
-
-export type MigrationRunSnapshot = {
-  _id: string;
-  migration_id: string;
-  state: 'inProgress' | 'success' | 'failed' | 'canceled' | 'unknown';
-  is_done: boolean;
-  processed: number;
-  latest_start: number;
-  latest_end?: number;
-  error?: string;
-  updated_at: string;
-};
-
-export type AdminMigrationDashboardData = {
-  statuses: MigrationStatusRow[];
-  snapshots: MigrationRunSnapshot[];
-};
+export type AdminMigrationDashboardData = FunctionReturnType<typeof api.migrations.adminDashboard>;
+export type MigrationStatusRow = AdminMigrationDashboardData['statuses'][number];
+export type MigrationRunSnapshot = AdminMigrationDashboardData['snapshots'][number];
 
 export async function loadAdminMigrationDashboard(
   ids?: string[]
 ): Promise<AdminMigrationDashboardData> {
-  return await db.query<AdminMigrationDashboardData>(api.migrations.adminDashboard, {
-    ids,
-  });
+  return await db.query(api.migrations.adminDashboard, { ids });
 }
 
 export function useAdminMigrationDashboard(options?: {
