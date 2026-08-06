@@ -1,24 +1,23 @@
 import { GroupAssignPopover } from '@app/components/groups/GroupAssignPopover';
 
+import type { AssignedGroupSummary } from '../../../../../convex/lib/collaborativeAccess';
+
 export interface FactionGroupPopoverProps {
   disabled: boolean;
-  userId: string | null | undefined;
-  isUserPending: boolean;
-  onChangeGroup: (groupId: string | null) => Promise<void>;
+  assignableGroups: AssignedGroupSummary[];
+  onAssignGroup: (groupId: string) => Promise<void>;
 }
 
 export function FactionGroupPopover({
-  onChangeGroup,
+  onAssignGroup,
   disabled,
-  userId,
-  isUserPending,
+  assignableGroups,
 }: FactionGroupPopoverProps) {
   return (
     <GroupAssignPopover
       disabled={disabled}
-      userId={userId}
-      isUserPending={isUserPending}
-      onChangeGroup={onChangeGroup}
+      assignableGroups={assignableGroups}
+      onAssignGroup={onAssignGroup}
       title="Assign Group"
       descriptionLines={[
         'Groups are used to allow group members to edit this faction.',

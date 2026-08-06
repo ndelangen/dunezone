@@ -1,5 +1,4 @@
 import { useQuery } from 'convex/react';
-import { useMemo } from 'react';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
@@ -42,21 +41,6 @@ function membershipCommand<TInput, TVariables, TResult>(
   };
 }
 
-export type UserGroupMembershipWithGroup = GroupMemberEntry & {
-  groups: { id: string; name: string; slug: string } | null;
-};
-
-export async function loadUserGroupMemberships(
-  userId: string
-): Promise<UserGroupMembershipWithGroup[]> {
-  const entries = await db.query<
-    (GroupMemberRow & { groups: { id: string; name: string; slug: string } | null })[]
-  >(api.members.listByUserActiveWithGroups, {
-    user_id: userId,
-  });
-  return entries.map((entry) => ({ ...entry, id: entry._id, groups: entry.groups }));
-}
-
 export async function loadGroupMembersByStatus(
   groupId: string,
   status: GroupMemberStatus
@@ -73,37 +57,6 @@ export async function loadGroupMembers(groupId: string): Promise<GroupMemberEntr
     group_id: groupId,
   });
   return entries.map((entry) => ({ ...entry, id: entry._id }));
-}
-
-/** Mount only when `userId` is defined (e.g. child of a component that already loaded profile). */
-export function useUserGroupMemberships(
-  userId: string,
-  options?: { initialData?: UserGroupMembershipWithGroup[] }
-) {
-  const liveData = useQuery(api.members.listByUserActiveWithGroups, {
-    user_id: userId,
-  } as never) as
-    | (GroupMemberRow & {
-        groups: { id: string; name: string; slug: string } | null;
-      })[]
-    | undefined;
-  const result = toLiveQueryResult(liveData, true, () => options?.initialData ?? undefined);
-  return {
-    ...result,
-    data: result.data?.map((entry) => ({ ...entry, id: entry._id, groups: entry.groups })),
-  };
-}
-
-export function useUserGroupMembershipGroups(
-  memberships: UserGroupMembershipWithGroup[] | undefined
-) {
-  return useMemo(
-    () =>
-      (memberships ?? [])
-        .map((membership) => membership.groups)
-        .filter((group): group is { id: string; name: string; slug: string } => Boolean(group)),
-    [memberships]
-  );
 }
 
 /** Mount only when `groupId` is a real group id. */

@@ -14,7 +14,6 @@ import { Trash2, UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
-import { useCurrentProfile } from '@db/profiles';
 import { FactionAuthoringToolbar } from '@app/components/factions/editor/FactionAuthoringToolbar';
 import { FactionEditor } from '@app/components/factions/editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/components/factions/editor/FactionEditor';
@@ -37,10 +36,9 @@ function FactionEditPage() {
   const updateFaction = useUpdateFaction();
   const deleteFaction = useDeleteFaction();
   const setFactionGroup = useSetFactionGroup();
-  const profile = useCurrentProfile();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const { faction, viewerAccess, assetPublishing } = useFaction(factionId, {
+  const { faction, viewerAccess, assignableGroups, assetPublishing } = useFaction(factionId, {
     initialData: loaderData,
   });
   const authoringFaction = faction ?? loaderData.faction;
@@ -158,12 +156,11 @@ function FactionEditPage() {
                 currentPublicSlug={faction.slug}
                 onLoaded={authoring.actions.loadDraft}
               />
-              {canAssignGroup && !assignedGroup && profile.data?.user_id ? (
+              {canAssignGroup && !assignedGroup ? (
                 <FactionGroupPopover
                   disabled={setFactionGroup.isPending}
-                  userId={profile.data.user_id}
-                  isUserPending={profile.isPending}
-                  onChangeGroup={async (nextGroupId) => {
+                  assignableGroups={assignableGroups}
+                  onAssignGroup={async (nextGroupId) => {
                     await setFactionGroup.mutateAsync({
                       id: faction._id,
                       groupId: nextGroupId,

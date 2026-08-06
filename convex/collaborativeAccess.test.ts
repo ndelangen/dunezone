@@ -231,6 +231,56 @@ describe('collaborative access public projections', () => {
     expect(rulesetPage?.viewerAssignableMemberships).toHaveLength(1);
   });
 
+  test('assignment projections include only existing Groups with active membership', async () => {
+    const { t, ids } = await groupAccessFixture();
+    const assignmentTargets = await t.run(async (ctx) => {
+      const insertGroup = async (name: string, slug: string) =>
+        await ctx.db.insert('groups', {
+          name,
+          slug,
+          created_at: now,
+          created_by: ids.ownerId,
+        });
+      const activeGroupId = await insertGroup('Active target', 'active-target');
+      const pendingGroupId = await insertGroup('Pending target', 'pending-target');
+      const removedGroupId = await insertGroup('Removed target', 'removed-target');
+      const deletedGroupId = await insertGroup('Deleted target', 'deleted-target');
+
+      for (const [groupId, status] of [
+        [activeGroupId, 'active'],
+        [pendingGroupId, 'pending'],
+        [removedGroupId, 'removed'],
+        [deletedGroupId, 'active'],
+      ] as const) {
+        await ctx.db.insert('group_members', {
+          group_id: groupId,
+          user_id: ids.assetOwnerId,
+          status,
+          requested_at: now,
+          approved_at: status === 'active' ? now : null,
+          approved_by: status === 'active' ? ids.ownerId : null,
+        });
+      }
+      await ctx.db.delete(deletedGroupId);
+
+      return { activeGroupId };
+    });
+    const assetOwner = t.withIdentity({ subject: ids.assetOwnerId });
+
+    const factionPage = await assetOwner.query(api.factions.getBySlug, {
+      slug: 'collaborative-faction',
+    });
+    const rulesetPage = await assetOwner.query(api.rulesets.detailPageBySlug, {
+      slug: 'collaborative-ruleset',
+    });
+    const expectedGroups = [
+      { id: assignmentTargets.activeGroupId, name: 'Active target', slug: 'active-target' },
+    ];
+
+    expect(factionPage.assignableGroups).toEqual(expectedGroups);
+    expect(rulesetPage?.assignableGroups).toEqual(expectedGroups);
+  });
+
   test('faction and ruleset public access cover every actor role symmetrically', async () => {
     const { t, ids } = await groupAccessFixture();
     const outsiderId = await t.run((ctx) => ctx.db.insert('users', { name: 'Asset outsider' }));
@@ -739,6 +789,99 @@ describe('collaborative access moderation commands', () => {
         group_id: ids.groupId,
       })
     ).resolves.toMatchObject({ group_id: ids.groupId });
+  });
+
+  test('faction and ruleset reassignment reject pending, removed, and deleted targets and accept an active target', async () => {
+    const { t, ids } = await groupAccessFixture();
+    const targetGroupIds = await t.run(async (ctx) => {
+      const insertGroup = async (name: string, slug: string) =>
+        await ctx.db.insert('groups', {
+          name,
+          slug,
+          created_at: now,
+          created_by: ids.ownerId,
+        });
+      const active = await insertGroup('Active command target', 'active-command-target');
+      const pending = await insertGroup('Pending command target', 'pending-command-target');
+      const removed = await insertGroup('Removed command target', 'removed-command-target');
+      const deleted = await insertGroup('Deleted command target', 'deleted-command-target');
+
+      for (const [groupId, status] of [
+        [active, 'active'],
+        [pending, 'pending'],
+        [removed, 'removed'],
+        [deleted, 'active'],
+      ] as const) {
+        await ctx.db.insert('group_members', {
+          group_id: groupId,
+          user_id: ids.assetOwnerId,
+          status,
+          requested_at: now,
+          approved_at: status === 'active' ? now : null,
+          approved_by: status === 'active' ? ids.ownerId : null,
+        });
+      }
+      await ctx.db.delete(deleted);
+
+      return { active, pending, removed, deleted };
+    });
+    const assetOwner = t.withIdentity({ subject: ids.assetOwnerId });
+
+    await assetOwner.mutation(api.factions.setGroup, { id: ids.factionId, group_id: null });
+    await assetOwner.mutation(api.rulesets.update, {
+      id: ids.rulesetId,
+      name: 'CollaborativeRuleset',
+      group_id: null,
+    });
+
+    for (const [groupId, expectedError] of [
+      [targetGroupIds.pending, 'Not authorized for group'],
+      [targetGroupIds.removed, 'Not authorized for group'],
+      [targetGroupIds.deleted, 'not found'],
+    ] as const) {
+      await expect(
+        assetOwner.mutation(api.factions.setGroup, { id: ids.factionId, group_id: groupId })
+      ).rejects.toThrow(expectedError);
+      await expect(
+        assetOwner.mutation(api.rulesets.update, {
+          id: ids.rulesetId,
+          name: 'CollaborativeRuleset',
+          group_id: groupId,
+        })
+      ).rejects.toThrow(expectedError);
+
+      const factionPage = await assetOwner.query(api.factions.getBySlug, {
+        slug: 'collaborative-faction',
+      });
+      const ruleset = await assetOwner.query(api.rulesets.get, { id: ids.rulesetId });
+      expect(factionPage.faction.group_id).toBeNull();
+      expect(ruleset.group_id ?? null).toBeNull();
+    }
+
+    await expect(
+      assetOwner.mutation(api.factions.setGroup, {
+        id: ids.factionId,
+        group_id: targetGroupIds.active,
+      })
+    ).resolves.toMatchObject({ group_id: targetGroupIds.active });
+    await expect(
+      assetOwner.mutation(api.rulesets.update, {
+        id: ids.rulesetId,
+        name: 'CollaborativeRuleset',
+        group_id: targetGroupIds.active,
+      })
+    ).resolves.toMatchObject({ group_id: targetGroupIds.active });
+
+    const factionPage = await assetOwner.query(api.factions.getBySlug, {
+      slug: 'collaborative-faction',
+    });
+    const ruleset = await assetOwner.query(api.rulesets.get, { id: ids.rulesetId });
+    const rulesetPage = await assetOwner.query(api.rulesets.detailPageBySlug, {
+      slug: ruleset.slug,
+    });
+    expect(factionPage.viewerAccess.assignedGroup?.id).toBe(targetGroupIds.active);
+    expect(ruleset.group_id).toBe(targetGroupIds.active);
+    expect(rulesetPage?.viewerAccess.assignedGroup?.id).toBe(targetGroupIds.active);
   });
 
   test('legacy pair shims authorize before revealing whether the target pair exists', async () => {
