@@ -1,5 +1,7 @@
 import { v } from 'convex/values';
 
+import { factionDataValidator } from './lib/factionData';
+
 import { query } from './_generated/server';
 import { loadFactionCatalogueSpotlightPreviews } from './lib/factionCatalogue';
 import { loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
@@ -9,11 +11,7 @@ const spotlightValidator = v.object({
   slug: v.string(),
   created_at: v.string(),
   updated_at: v.string(),
-  data: v.object({
-    name: v.string(),
-    logo: v.any(),
-    background: v.any(),
-  }),
+  data: factionDataValidator.pick('name', 'logo', 'background'),
 });
 
 const metricCountsValidator = v.object({

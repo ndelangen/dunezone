@@ -12,7 +12,11 @@ import {
   requireFactionUpdate,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
-import { factionDetailPageValidator } from './lib/collaborativeAccessValidators';
+import {
+  factionDetailPageValidator,
+  factionWithRulesetsValidator,
+  rulesetSummaryValidator,
+} from './lib/collaborativeAccessValidators';
 import {
   enrichFactionsWithRulesets,
   listActiveRulesetSummaries,
@@ -112,34 +116,16 @@ export const list = query({
   },
 });
 
-const rulesetSummaryValidator = v.object({
-  id: v.id('rulesets'),
-  slug: v.string(),
-  name: v.string(),
-});
-
-const catalogueFactionValidator = v.object({
-  _id: v.id('factions'),
-  _creationTime: v.number(),
-  owner_id: v.id('users'),
-  data: v.any(),
-  slug: v.string(),
-  created_at: v.string(),
-  updated_at: v.string(),
-  is_deleted: v.boolean(),
-  group_id: v.union(v.id('groups'), v.null()),
-  rulesets: v.array(rulesetSummaryValidator),
-});
 
 /** Public, viewer-independent bundle for the Faction catalogue route. */
 export const cataloguePage = query({
   args: {},
   returns: v.object({
-    factions: v.array(catalogueFactionValidator),
+    factions: v.array(factionWithRulesetsValidator),
     rulesets: v.array(rulesetSummaryValidator),
     spotlights: v.object({
-      newArrival: v.union(catalogueFactionValidator, v.null()),
-      freshlyUpdated: v.union(catalogueFactionValidator, v.null()),
+      newArrival: v.union(factionWithRulesetsValidator, v.null()),
+      freshlyUpdated: v.union(factionWithRulesetsValidator, v.null()),
     }),
   }),
   handler: async (ctx) => {
