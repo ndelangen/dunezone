@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { FactionSheetView } from '@app/components/factions/sheet/FactionSheetView';
 import type { FactionInput } from '@game/schema/faction';
 
+import { CAPTURE_PROTOCOL } from '../../shared/asset-publishing/capture-protocol';
 import { publisherCaptureSnapshotSchema } from '../../shared/asset-publishing/publisher-snapshot';
 import { publisherErrorMessage, redactPublisherResource } from './publisher-diagnostics';
 import { assertRequiredPublisherFonts } from './publisher-fonts';
@@ -162,7 +163,7 @@ export function PublisherFactionSheetCapture() {
     );
     void (async () => {
       try {
-        const response = await fetch('/__asset-publisher/snapshot', {
+        const response = await fetch(CAPTURE_PROTOCOL.paths.snapshot, {
           cache: 'no-store',
           credentials: 'same-origin',
           signal: controller.signal,
@@ -231,9 +232,11 @@ export function PublisherFactionSheetCapture() {
   return (
     <>
       <output
-        id="capture-status"
-        data-capture-state={state}
-        data-payload-hash={payloadHash}
+        id={CAPTURE_PROTOCOL.marker.id}
+        {...{
+          [CAPTURE_PROTOCOL.marker.stateAttribute]: state,
+          [CAPTURE_PROTOCOL.marker.payloadHashAttribute]: payloadHash,
+        }}
         aria-live="polite"
         hidden
       >

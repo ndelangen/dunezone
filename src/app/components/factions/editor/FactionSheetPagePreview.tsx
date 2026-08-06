@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 
 import type { Faction } from '@db/factions';
 
+import { CAPTURE_PROTOCOL } from '../../../../shared/asset-publishing/capture-protocol';
 import { FactionSheetView } from '../sheet/FactionSheetView';
 import styles from './FactionSheetPagePreview.module.css';
 
@@ -36,7 +37,9 @@ function alignIframePage(iframe: HTMLIFrameElement | null, pageNumber: 1 | 2) {
   if (!document) {
     return;
   }
-  const target = document.querySelector<HTMLElement>(`[data-faction-sheet-page="${pageNumber}"]`);
+  const target = document.querySelector<HTMLElement>(
+    `[${CAPTURE_PROTOCOL.pageMarker.attribute}="${pageNumber}"]`
+  );
   if (!target) {
     return;
   }

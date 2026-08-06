@@ -2,11 +2,12 @@ import {
   publisherErrorMessage,
   serializePublisherLogEvent,
 } from '../../src/app/capture/publisher-diagnostics';
+import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import { readBoundedJson, runWithDeadline } from './http';
 
-const JOB_HEADER = 'X-Publication-Job';
-const JOB_COOKIE = '__Host-publication_job';
-const DEADLINE_COOKIE = '__Host-asset_render_deadline';
+const JOB_HEADER = CAPTURE_PROTOCOL.credentials.jobHeader;
+const JOB_COOKIE = CAPTURE_PROTOCOL.credentials.jobCookie;
+const DEADLINE_COOKIE = CAPTURE_PROTOCOL.credentials.deadlineCookie;
 const MAX_SNAPSHOT_BYTES = 1_000_000;
 const SNAPSHOT_DEADLINE_MS = 30_000;
 
@@ -94,7 +95,7 @@ async function captureDocument(request: Request, env: CaptureEnv): Promise<Respo
   if (request.method !== 'GET' || (await validatePublicationJob(request, env)).status !== 'valid') {
     return noStoreJson({ error: 'Not found' }, 404);
   }
-  const assetUrl = new URL('/publisher-capture.html', request.url);
+  const assetUrl = new URL(CAPTURE_PROTOCOL.paths.bundleDocument, request.url);
   const asset = await env.ASSETS.fetch(new Request(assetUrl, request));
   const headers = new Headers(asset.headers);
   headers.set('Cache-Control', 'no-store');
@@ -142,13 +143,16 @@ export async function handleCaptureRoute(
   env: CaptureEnv
 ): Promise<Response | undefined> {
   const pathname = new URL(request.url).pathname;
-  if (pathname === '/__asset-publisher/capture') {
+  if (pathname === CAPTURE_PROTOCOL.paths.document) {
     return await captureDocument(request, env);
   }
-  if (pathname === '/__asset-publisher/snapshot') {
+  if (pathname === CAPTURE_PROTOCOL.paths.snapshot) {
     return await exactSnapshot(request, env);
   }
-  if (pathname === '/publisher-capture.html' || pathname.startsWith('/publisher-capture/')) {
+  if (
+    pathname === CAPTURE_PROTOCOL.paths.bundleDocument ||
+    pathname.startsWith(CAPTURE_PROTOCOL.paths.bundleAssetPrefix)
+  ) {
     return await gatedCaptureAsset(request, env);
   }
   return undefined;
