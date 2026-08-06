@@ -4,14 +4,16 @@
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Pending: Request Membership<br/>workflow.request(groupId)
-    Pending --> Active: Approve<br/>workflow.approve(membershipId)<br/>Sets approved_by/approved_at
-    Pending --> Removed: Reject<br/>workflow.reject(membershipId)
-    Active --> Removed: Remove<br/>workflow.remove(membershipId)
-    Removed --> Pending: Request again<br/>workflow.request(groupId)
+    [*] --> Pending: Request Membership<br/>workflow.request.run(groupId)
+    Pending --> Active: Approve<br/>workflow.approve.run(membershipId)<br/>Sets approved_by/approved_at
+    Pending --> Removed: Reject<br/>workflow.reject.run(membershipId)
+    Active --> Removed: Remove<br/>workflow.remove.run(membershipId)
+    Removed --> Pending: Request again<br/>workflow.request.run(groupId)
 ```
 
-Status transitions: `pending` → `active` (approved) or `removed` (rejected/removed).
+Status transitions: requests create `pending` memberships, approval moves `pending` → `active`, and
+rejection or removal moves a membership to `removed`. Calling `members.request` for a removed
+membership reactivates it as `pending`.
 
 ## Status Enum
 
