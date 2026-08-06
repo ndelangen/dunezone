@@ -7,10 +7,9 @@ import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
 import { profileDetailPageValidator } from './lib/collaborativeAccessValidators';
-import { enrichFactionsWithRulesets, listActiveRulesetSummaries } from './lib/factionCatalogue';
-import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './lib/faqProfileActivity';
 import { requireAuthUserId } from './lib/policy';
 import { ensureProfileForUser } from './lib/profileBootstrap';
+import { loadProfileDetailBySlug } from './lib/profileDetail';
 import {
   discoverableProfileValidator,
   loadNewestDiscoverableProfiles,
@@ -99,56 +98,7 @@ export const getById = query({
 export const getBySlug = query({
   args: { slug: v.string() },
   returns: profileDetailPageValidator,
-  handler: async (ctx, args) => {
-    const profile = await ctx.db
-      .query('profiles')
-      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
-      .unique();
-    if (!profile) {
-      throw new Error(`Profile with slug ${args.slug} not found`);
-    }
-
-    const memberships = await ctx.db
-      .query('group_members')
-      .withIndex('by_user_status', (q) => q.eq('user_id', profile.user_id).eq('status', 'active'))
-      .take(500);
-
-    const groupsWithNulls = await Promise.all(
-      memberships.map((membership) => ctx.db.get('groups', membership.group_id))
-    );
-    const groups = groupsWithNulls.filter(
-      (group): group is NonNullable<(typeof groupsWithNulls)[number]> => group !== null
-    );
-    // Public profile callers count and render only resolvable active Groups. A dangling
-    // membership cannot become a safe identity summary.
-    const groupSummaries = groups.map((group) => ({
-      id: group._id,
-      name: group.name,
-      slug: group.slug,
-    }));
-
-    const [faqAsked, faqAnswers] = await Promise.all([
-      loadFaqQuestionsAskedBy(ctx, profile.user_id),
-      loadFaqAnswersGivenBy(ctx, profile.user_id),
-    ]);
-
-    const factionRows = await ctx.db
-      .query('factions')
-      .withIndex('by_owner_deleted', (q) =>
-        q.eq('owner_id', profile.user_id).eq('is_deleted', false)
-      )
-      .take(500);
-    const activeRulesets = await listActiveRulesetSummaries(ctx);
-    const factions = await enrichFactionsWithRulesets(ctx, factionRows, activeRulesets);
-
-    return {
-      profile,
-      faqAsked,
-      faqAnswers,
-      factions,
-      groupSummaries,
-    };
-  },
+  handler: async (ctx, args) => await loadProfileDetailBySlug(ctx, args.slug),
 });
 
 export const getByUserId = query({

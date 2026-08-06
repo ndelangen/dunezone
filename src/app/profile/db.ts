@@ -1,17 +1,15 @@
 import { useMutation, useQuery } from 'convex/react';
+import type { FunctionReturnType } from 'convex/server';
 import { useEffect, useRef } from 'react';
 
 import { db } from '@db/core';
 import { factionCatalogueRowsToEntries } from '@db/factions';
-import type { FactionCatalogueEntry, FactionCatalogueRow } from '@db/factions';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { profileUserEditFormSchema } from '@app/profile/validation';
 import type { ProfileUserEditInput } from '@app/profile/validation';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
-import type { AssignedGroupSummary } from '../../../convex/lib/collaborativeAccess';
-import type { FaqAnswerWithParent, FaqItemAskedByWithRuleset } from '../faq/db';
 
 export type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
@@ -24,34 +22,27 @@ export type ProfileListEntry = ProfileRow & {
   };
 };
 
-export type ProfilePageData = {
-  profile: ProfileEntry;
-  groupSummaries: AssignedGroupSummary[];
-  faqAsked: FaqItemAskedByWithRuleset[];
-  faqAnswers: FaqAnswerWithParent[];
-  factions: FactionCatalogueEntry[];
-};
+/** Server-owned profile detail contract; the read model lives in `convex/lib/profileDetail.ts`. */
+export type ProfileDetailResult = FunctionReturnType<typeof api.profiles.getBySlug>;
 
-type ProfilePageTransport = {
-  profile: ProfileRow;
-  groupSummaries: AssignedGroupSummary[];
-  faqAsked: FaqItemAskedByWithRuleset[];
-  faqAnswers: FaqAnswerWithParent[];
-  factions: FactionCatalogueRow[];
-};
+export type ProfilePageData = ReturnType<typeof normalizeProfilePage>;
 
-function normalizeProfilePage(result: ProfilePageTransport): ProfilePageData {
+/** Canonical browser page model, shared by the route loader and the live subscription. */
+function normalizeProfilePage(result: ProfileDetailResult) {
   return {
     profile: result.profile,
     groupSummaries: result.groupSummaries,
     faqAsked: result.faqAsked,
     faqAnswers: result.faqAnswers,
     factions: factionCatalogueRowsToEntries(result.factions),
+    acceptedAnswerCount: result.faqAnswers.filter(
+      (answer) => answer.faq_item.accepted_answer_id === answer._id
+    ).length,
   };
 }
 
 export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> {
-  const result = await db.query<ProfilePageTransport>(api.profiles.getBySlug, { slug });
+  const result = await db.query<ProfileDetailResult>(api.profiles.getBySlug, { slug });
   return normalizeProfilePage(result);
 }
 
@@ -110,6 +101,7 @@ export function useProfileBySlug(
     faqAsked: result.data?.faqAsked,
     faqAnswers: result.data?.faqAnswers,
     factions: result.data?.factions,
+    acceptedAnswerCount: result.data?.acceptedAnswerCount,
   };
 }
 

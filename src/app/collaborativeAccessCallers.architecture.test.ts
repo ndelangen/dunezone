@@ -168,7 +168,8 @@ describe('faction and ruleset collaborative-access caller contract', () => {
   });
 
   test('profile detail consumes safe Group summaries without raw membership reconstruction', () => {
-    expect(sources.profileDb).toContain('groupSummaries: AssignedGroupSummary[]');
+    // ProfilePageData derives from the server contract (FunctionReturnType); the summaries-only
+    // guarantee lives in profileDetailPageValidator, not in this file's spelling. See ADR-0001.
     expect(sources.profileDb).not.toMatch(/^\s+memberships:/m);
     expect(sources.profileDb).not.toMatch(/^\s+groups:/m);
 

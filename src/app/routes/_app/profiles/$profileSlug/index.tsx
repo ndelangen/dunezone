@@ -70,9 +70,7 @@ function ProfileDetailPage() {
     await navigate({ to: '/auth/login' });
   };
 
-  const acceptedAnswerCount = (profileData.faqAnswers ?? []).filter(
-    (answer) => answer.faq_item.accepted_answer_id === answer._id
-  ).length;
+  const acceptedAnswerCount = profileData.acceptedAnswerCount ?? 0;
 
   const toolbar = (
     <Toolbar>
