@@ -1,4 +1,3 @@
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import type { FAQ_TAG_VALUES } from '../src/app/faq/tags';
@@ -7,9 +6,9 @@ import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
+import { faqQuestionPageValidator, loadFaqQuestionPage } from './lib/faqQuestionPage';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
-import { profileSummary } from './lib/profileSummary';
 import { nowIso } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -19,13 +18,6 @@ const FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS = 16;
 
 async function getRuleset(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
   return await ctx.db.get(id);
-}
-
-async function getRulesetBySlug(ctx: QueryCtx | MutationCtx, slug: string) {
-  return await ctx.db
-    .query('rulesets')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .unique();
 }
 
 async function getFaqItem(ctx: QueryCtx | MutationCtx, id: Id<'faq_items'>) {
@@ -107,109 +99,10 @@ async function allocateNextFaqItemSlug(
   }
 }
 
-async function loadFaqItemByLocator(
-  ctx: QueryCtx | MutationCtx,
-  rulesetSlug: string,
-  questionSlug: string
-) {
-  const ruleset = await getRulesetBySlug(ctx, rulesetSlug);
-  if (!ruleset || ruleset.is_deleted) {
-    throw new Error(`Ruleset with slug ${rulesetSlug} not found`);
-  }
-  const item = await ctx.db
-    .query('faq_items')
-    .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', questionSlug))
-    .unique();
-  if (!item) {
-    throw new Error(`FAQ item with slug ${questionSlug} not found in ruleset ${rulesetSlug}`);
-  }
-  const answers = await ctx.db
-    .query('faq_answers')
-    .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
-    .take(200);
-  return { ruleset, item, answers };
-}
-
-async function questionPageHandler(
-  ctx: QueryCtx,
-  args: { rulesetSlug: string; questionSlug: string }
-) {
-  const { ruleset, item, answers } = await loadFaqItemByLocator(
-    ctx,
-    args.rulesetSlug,
-    args.questionSlug
-  );
-  const viewerId = await getAuthUserId(ctx);
-  const questionOwner = viewerId === item.asked_by;
-  const viewerAnswered = viewerId
-    ? (await ctx.db
-        .query('faq_answers')
-        .withIndex('by_faq_item_answered_by', (q) =>
-          q.eq('faq_item_id', item._id).eq('answered_by', viewerId)
-        )
-        .unique()) !== null
-    : false;
-  const asker = await profileSummary(ctx, item.asked_by);
-  const answerers = await Promise.all(
-    answers.map((answer) => profileSummary(ctx, answer.answered_by))
-  );
-  const projectedAnswers = answers.map((answer, index) => {
-    const answerOwner = viewerId === answer.answered_by;
-    const accepted = item.accepted_answer_id === answer._id;
-    const author = answerers[index];
-    return {
-      id: answer._id,
-      text: answer.answer,
-      author: author
-        ? {
-            id: author.id,
-            slug: author.slug,
-            username: author.username,
-            avatarUrl: author.avatar_url,
-          }
-        : null,
-      createdAt: answer.created_at,
-      accepted,
-      capabilities: {
-        editAnswer: answerOwner,
-        deleteAnswer: answerOwner || questionOwner,
-        acceptAnswer: questionOwner && !accepted,
-        unacceptAnswer: questionOwner && accepted,
-      },
-    };
-  });
-  projectedAnswers.sort((left, right) => Number(right.accepted) - Number(left.accepted));
-
-  return {
-    ruleset: { id: ruleset._id, slug: ruleset.slug, name: ruleset.name },
-    question: {
-      id: item._id,
-      slug: item.slug,
-      text: item.question,
-      tags: item.tags,
-      author: asker
-        ? {
-            id: asker.id,
-            slug: asker.slug,
-            username: asker.username,
-            avatarUrl: asker.avatar_url,
-          }
-        : null,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at,
-      capabilities: {
-        editQuestion: questionOwner,
-        deleteQuestion: questionOwner,
-      },
-    },
-    viewer: { answerQuestion: viewerId !== null && !viewerAnswered },
-    answers: projectedAnswers,
-  };
-}
-
 export const questionPage = query({
   args: { rulesetSlug: v.string(), questionSlug: v.string() },
-  handler: questionPageHandler,
+  returns: faqQuestionPageValidator,
+  handler: async (ctx, args) => await loadFaqQuestionPage(ctx, args),
 });
 
 async function createQuestionHandler(

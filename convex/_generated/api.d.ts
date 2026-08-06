@@ -24,6 +24,7 @@ import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionData from "../lib/factionData.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
 import type * as lib_faqProfileActivity from "../lib/faqProfileActivity.js";
+import type * as lib_faqQuestionPage from "../lib/faqQuestionPage.js";
 import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
 import type * as lib_faqTags from "../lib/faqTags.js";
 import type * as lib_ids from "../lib/ids.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   "lib/factionData": typeof lib_factionData;
   "lib/factionInput": typeof lib_factionInput;
   "lib/faqProfileActivity": typeof lib_faqProfileActivity;
+  "lib/faqQuestionPage": typeof lib_faqQuestionPage;
   "lib/faqRulesetList": typeof lib_faqRulesetList;
   "lib/faqTags": typeof lib_faqTags;
   "lib/ids": typeof lib_ids;
