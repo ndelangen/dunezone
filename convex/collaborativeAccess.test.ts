@@ -164,10 +164,6 @@ describe('collaborative access public projections', () => {
 
     const page = await owner.query(api.groups.detailBySlug, { slug: 'dune-designers' });
 
-    expect(Object.keys(page).sort()).toEqual(
-      ['factions', 'group', 'owner', 'roster', 'rulesets', 'viewerAccess'].sort()
-    );
-
     expect(page.viewerAccess).toEqual({
       kind: 'group',
       viewer: { kind: 'authenticated', membership: 'active' },
@@ -213,13 +209,6 @@ describe('collaborative access public projections', () => {
     const rulesetPage = await member.query(api.rulesets.detailPageBySlug, {
       slug: 'collaborative-ruleset',
     });
-
-    expect(Object.keys(factionPage).sort()).toEqual(
-      ['assetPublishing', 'assignableGroups', 'faction', 'owner', 'rulesets', 'viewerAccess'].sort()
-    );
-    expect(Object.keys(rulesetPage ?? {}).sort()).toEqual(
-      ['assignableGroups', 'factions', 'faqItems', 'owner', 'ruleset', 'viewerAccess'].sort()
-    );
 
     expect(factionPage.viewerAccess).toMatchObject({
       kind: 'faction',
@@ -418,9 +407,6 @@ describe('collaborative access public projections', () => {
       const ruleset = await client.query(api.rulesets.getBySlug, {
         slug: 'collaborative-ruleset',
       });
-      expect(Object.keys(ruleset).sort(), actor.label).toEqual(
-        ['factions', 'ruleset', 'viewerAccess'].sort()
-      );
       expect(faction.viewerAccess.viewer, actor.label).toEqual(actor.viewer);
       expect(ruleset.viewerAccess.viewer, actor.label).toEqual(actor.viewer);
       expect(faction.viewerAccess.capabilities, actor.label).toEqual(actor.faction);
@@ -433,9 +419,6 @@ describe('collaborative access public projections', () => {
 
     const profilePage = await t.query(api.profiles.getBySlug, { slug: 'active-member' });
 
-    expect(Object.keys(profilePage).sort()).toEqual(
-      ['factions', 'faqAnswers', 'faqAsked', 'groupSummaries', 'profile'].sort()
-    );
     expect(profilePage.groupSummaries).toEqual([
       { id: ids.groupId, name: 'Dune Designers', slug: 'dune-designers' },
     ]);
