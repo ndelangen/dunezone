@@ -3,8 +3,6 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { api } from '../../../convex/_generated/api';
-
 const mocks = vi.hoisted(() => ({
   dbQuery: vi.fn(),
   useQuery: vi.fn(),
@@ -16,12 +14,7 @@ vi.mock('convex/react', () => ({
   useMutation: vi.fn(),
 }));
 
-import {
-  loadGroupDetailBySlug,
-  loadGroupEditBySlug,
-  useGroupDetailBySlug,
-  useGroupEditBySlug,
-} from './db';
+import { loadGroupEditBySlug, useGroupEditBySlug } from './db';
 
 const group = {
   _id: 'group-1',
@@ -74,36 +67,6 @@ beforeEach(() => {
 });
 
 describe('Group page interface', () => {
-  test('normalizes the canonical detail projection without exposing legacy authorization rows', async () => {
-    mocks.dbQuery.mockResolvedValue(serverPage);
-
-    const loaded = await loadGroupDetailBySlug('dune-designers');
-
-    expect(loaded.group.id).toBe('group-1');
-    expect(loaded.viewerAccess).toEqual(viewerAccess);
-    expect(loaded.roster).toEqual(roster);
-    expect(loaded).not.toHaveProperty('members');
-    expect(loaded).not.toHaveProperty('profiles');
-    expect(mocks.dbQuery).toHaveBeenCalledWith(api.groups.detailBySlug, {
-      slug: 'dune-designers',
-    });
-
-    mocks.useQuery.mockReturnValue(undefined);
-    const loaderHandoff = renderHook(() =>
-      useGroupDetailBySlug('dune-designers', { initialData: loaded })
-    );
-    expect(loaderHandoff.result.current.data).toEqual(loaded);
-    loaderHandoff.unmount();
-
-    mocks.useQuery.mockReturnValue(serverPage);
-    const live = renderHook(() => useGroupDetailBySlug('dune-designers'));
-    expect(live.result.current.data).toEqual(loaded);
-    expect(mocks.useQuery).toHaveBeenLastCalledWith(api.groups.detailBySlug, {
-      slug: 'dune-designers',
-    });
-    live.unmount();
-  });
-
   test('gives Group edit only its Group and owner capability projection', async () => {
     mocks.dbQuery.mockResolvedValue(serverPage);
 

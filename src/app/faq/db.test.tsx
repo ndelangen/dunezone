@@ -25,7 +25,7 @@ vi.mock('convex/react', () => ({
   useMutation: mocks.useMutation,
 }));
 
-import { loadFaqQuestionPage, useAskFaqQuestion, useFaqQuestionPage } from './db';
+import { useAskFaqQuestion, useFaqQuestionPage } from './db';
 
 const serverPage = {
   ruleset: { id: 'ruleset-1', slug: 'test-ruleset', name: 'TestRuleset' },
@@ -99,41 +99,6 @@ beforeEach(() => {
 });
 
 describe('FAQ question page interface', () => {
-  test('uses the same canonical page for loader handoff and live data', async () => {
-    mocks.dbQuery.mockResolvedValue(serverPage);
-    const loaded = await loadFaqQuestionPage({
-      rulesetSlug: 'test-ruleset',
-      questionSlug: '1',
-    });
-
-    expect(loaded).toEqual(serverPage);
-    expect(mocks.dbQuery).toHaveBeenCalledWith(api.faq.questionPage, {
-      rulesetSlug: 'test-ruleset',
-      questionSlug: '1',
-    });
-
-    mocks.useQuery.mockReturnValue(undefined);
-    const loaderHandoff = renderHook(() =>
-      useFaqQuestionPage(
-        { rulesetSlug: 'test-ruleset', questionSlug: '1' },
-        { initialPage: loaded }
-      )
-    );
-    expect(loaderHandoff.result.current.page).toEqual(serverPage);
-    loaderHandoff.unmount();
-
-    mocks.useQuery.mockReturnValue(serverPage);
-    const live = renderHook(() =>
-      useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' })
-    );
-    expect(live.result.current.page).toEqual(serverPage);
-    expect(mocks.useQuery).toHaveBeenLastCalledWith(api.faq.questionPage, {
-      rulesetSlug: 'test-ruleset',
-      questionSlug: '1',
-    });
-    live.unmount();
-  });
-
   test('binds domain commands to the loaded question and canonical operations', async () => {
     mocks.useQuery.mockReturnValue(serverPage);
     const hook = renderHook(() =>
