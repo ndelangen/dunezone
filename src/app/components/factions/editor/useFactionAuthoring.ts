@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Faction, FactionEntry } from '@db/factions';
 import type { FactionSaveState } from '@app/factions/authoringState';
-import { FactionInputSchema } from '@game/schema/faction';
 
-import { factionAuthoringWarnings, preserveFactionExtras } from './factionAuthoringContract';
+import { factionAuthoringWarnings } from './factionAuthoringContract';
+import { createFactionAuthoringSession } from './factionAuthoringSession';
 
 export type FactionAuthoringPersistence = {
   save: (draft: Faction) => Promise<FactionEntry>;
@@ -14,17 +14,6 @@ export type FactionAuthoringPersistence = {
   hasSaved: boolean;
   reset: () => void;
 };
-
-function formatZodIssues(error: {
-  issues: readonly { path: PropertyKey[]; message: string }[];
-}): string {
-  return error.issues
-    .map((issue) => {
-      const path = issue.path.map((segment) => String(segment)).join('.') || '(root)';
-      return `${path}: ${issue.message}`;
-    })
-    .join('\n');
-}
 
 export function useFactionAuthoring({
   sessionKey,
@@ -40,9 +29,11 @@ export function useFactionAuthoring({
   const sessionKeyRef = useRef(sessionKey);
   const initialBaselineRef = useRef<Faction>(undefined);
   initialBaselineRef.current ??= structuredClone(initialData);
-  const savedBaselineRef = useRef(initialBaselineRef.current);
-  const draftSourceRef = useRef(initialBaselineRef.current);
   const [errors, setErrors] = useState<string[]>([]);
+
+  const sessionRef = useRef<ReturnType<typeof createFactionAuthoringSession>>(undefined);
+  const latestRef = useRef({ persistence, onSaved });
+  latestRef.current = { persistence, onSaved };
 
   const form = useForm<
     Faction,
@@ -58,48 +49,33 @@ export function useFactionAuthoring({
     undefined,
     undefined
   >({
-    defaultValues: savedBaselineRef.current,
-    onSubmit: async ({ value }) => await persistDraft(value),
+    defaultValues: initialBaselineRef.current,
+    onSubmit: async ({ value }) => await sessionRef.current?.persistDraft(value),
   });
 
-  async function persistDraft(value: Faction) {
-    const parsed = FactionInputSchema.safeParse(
-      preserveFactionExtras(value, draftSourceRef.current)
-    );
-    if (!parsed.success) {
-      setErrors([formatZodIssues(parsed.error)]);
-      return;
-    }
-
-    setErrors([]);
-    let entry: FactionEntry;
-    try {
-      entry = await persistence.save(parsed.data);
-    } catch (error) {
-      setErrors([error instanceof Error ? error.message : 'The faction could not be saved.']);
-      return;
-    }
-
-    const canonical = structuredClone(entry.data);
-    savedBaselineRef.current = canonical;
-    draftSourceRef.current = canonical;
-    form.reset(canonical);
-    onSaved(entry);
-  }
+  sessionRef.current ??= createFactionAuthoringSession({
+    initialData,
+    form: {
+      reset: (values, options) => form.reset(values, options),
+      markLoadedDraftDirty: () =>
+        form.setFieldMeta('name', (meta) => ({ ...meta, isDirty: true, isTouched: true })),
+    },
+    persistence: {
+      save: (draft) => latestRef.current.persistence.save(draft),
+      reset: () => latestRef.current.persistence.reset(),
+    },
+    onSaved: (entry) => latestRef.current.onSaved(entry),
+    onErrors: setErrors,
+  });
+  const session = sessionRef.current;
 
   useEffect(() => {
     if (sessionKeyRef.current === sessionKey) {
       return;
     }
-
     sessionKeyRef.current = sessionKey;
-    const next = structuredClone(initialData);
-    savedBaselineRef.current = next;
-    draftSourceRef.current = next;
-    form.reset(next);
-    persistence.reset();
-    setErrors([]);
-  }, [form, initialData, persistence, sessionKey]);
+    session.switchSource(initialData);
+  }, [initialData, session, sessionKey]);
 
   const editing = useStore(form.store, (state) => ({
     isDirty: state.isDirty,
@@ -107,26 +83,8 @@ export function useFactionAuthoring({
     warnings: factionAuthoringWarnings(state.values),
   }));
 
-  const loadDraft = useCallback(
-    (draft: Faction) => {
-      const next = structuredClone(draft);
-      draftSourceRef.current = next;
-      form.reset(next, { keepDefaultValues: true });
-      form.setFieldMeta('name', (meta) => ({ ...meta, isDirty: true, isTouched: true }));
-      persistence.reset();
-      setErrors([]);
-    },
-    [form, persistence]
-  );
-
-  const reset = useCallback(() => {
-    const baseline = structuredClone(savedBaselineRef.current);
-    draftSourceRef.current = baseline;
-    form.reset(baseline);
-    persistence.reset();
-    setErrors([]);
-  }, [form, persistence]);
-
+  const loadDraft = useCallback((draft: Faction) => session.loadDraft(draft), [session]);
+  const reset = useCallback(() => session.reset(), [session]);
   const submit = useCallback(async () => await form.handleSubmit(), [form]);
 
   const saveState: FactionSaveState = persistence.isPending
