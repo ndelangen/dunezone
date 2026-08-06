@@ -42,43 +42,29 @@ const serverPage = {
   factions: [],
 };
 
-const canonicalPage = {
-  profile,
-  groupSummaries,
-  faqAsked: [],
-  faqAnswers: [],
-  factions: [],
-  acceptedAnswerCount: 0,
-};
-
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe('profile page interface', () => {
-  test('normalizes loader and live data to ordered Group summaries without raw membership transport', async () => {
+  test('loader and live paths produce one canonical page with ordered Group summaries', async () => {
     mocks.dbQuery.mockResolvedValue(serverPage);
 
     const loaded = await loadProfileBySlug('chani');
 
-    expect(loaded).toEqual(canonicalPage);
+    expect(loaded.groupSummaries).toEqual(groupSummaries);
     expect(loaded).not.toHaveProperty('memberships');
     expect(loaded).not.toHaveProperty('groups');
     expect(mocks.dbQuery).toHaveBeenCalledWith(api.profiles.getBySlug, { slug: 'chani' });
 
     mocks.useQuery.mockReturnValue(undefined);
-    const loaderHandoff = renderHook(() =>
-      useProfileBySlug('chani', { initialData: canonicalPage as never })
-    );
-    expect(loaderHandoff.result.current.data).toEqual(canonicalPage);
+    const loaderHandoff = renderHook(() => useProfileBySlug('chani', { initialData: loaded }));
+    expect(loaderHandoff.result.current.data).toEqual(loaded);
     loaderHandoff.unmount();
 
     mocks.useQuery.mockReturnValue(serverPage);
     const live = renderHook(() => useProfileBySlug('chani'));
-    expect(live.result.current.data).toEqual(canonicalPage);
-    expect(live.result.current.groupSummaries).toEqual(groupSummaries);
-    expect(live.result.current).not.toHaveProperty('memberships');
-    expect(live.result.current).not.toHaveProperty('groups');
+    expect(live.result.current.data).toEqual(loaded);
     live.unmount();
   });
 

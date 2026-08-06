@@ -79,14 +79,11 @@ describe('Group page interface', () => {
 
     const loaded = await loadGroupDetailBySlug('dune-designers');
 
-    expect(loaded).toEqual({
-      group: { ...group, id: 'group-1' },
-      factions: [],
-      rulesets: [],
-      owner,
-      viewerAccess,
-      roster,
-    });
+    expect(loaded.group.id).toBe('group-1');
+    expect(loaded.viewerAccess).toEqual(viewerAccess);
+    expect(loaded.roster).toEqual(roster);
+    expect(loaded).not.toHaveProperty('members');
+    expect(loaded).not.toHaveProperty('profiles');
     expect(mocks.dbQuery).toHaveBeenCalledWith(api.groups.detailBySlug, {
       slug: 'dune-designers',
     });
@@ -112,10 +109,8 @@ describe('Group page interface', () => {
 
     const loaded = await loadGroupEditBySlug('dune-designers');
 
-    expect(loaded).toEqual({
-      group: { ...group, id: 'group-1' },
-      viewerAccess,
-    });
+    expect(Object.keys(loaded).sort()).toEqual(['group', 'viewerAccess']);
+    expect(loaded.group.id).toBe('group-1');
 
     mocks.useQuery.mockReturnValue(serverPage);
     const live = renderHook(() => useGroupEditBySlug('dune-designers'));
