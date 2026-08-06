@@ -1,4 +1,5 @@
 import { useQuery } from 'convex/react';
+import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
@@ -7,7 +8,7 @@ import { CanonicalFactionStoredSchema, FactionInputSchema } from '@game/schema/f
 import type { FactionInput } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
-import type { Doc } from '../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../../convex/_generated/dataModel';
 import type { PublicAssetPublishingStatusProjection } from '../../../convex/assetPublishingStatus';
 import type {
   AssignedGroupSummary,
@@ -113,11 +114,9 @@ export type FactionDetailPageData = {
   rulesets: FactionRulesetSummary[];
 };
 
-type FactionDetailPageDataRaw = Omit<FactionDetailPageData, 'faction'> & {
-  faction: Omit<FactionRow, 'data'> & { data: unknown };
-};
-
-function toFactionDetailPageData(raw: FactionDetailPageDataRaw): FactionDetailPageData {
+function toFactionDetailPageData(
+  raw: FunctionReturnType<typeof api.factions.getBySlug>
+): FactionDetailPageData {
   return {
     faction: {
       ...raw.faction,
@@ -136,32 +135,25 @@ export async function loadFactionBySlug(slug: string): Promise<FactionDetailPage
 }
 
 export async function loadFactionsAll(): Promise<FactionEntry[]> {
-  const entries = await db.query<FactionRow[]>(api.factions.list, {});
+  const entries = await db.query(api.factions.list, {});
   return factionRowsToEntries(entries);
 }
 
 export async function loadFactionCataloguePage(): Promise<FactionCataloguePageData> {
-  const raw = await db.query<{
-    factions: FactionCatalogueRow[];
-    rulesets: FactionRulesetSummary[];
-    spotlights: {
-      newArrival: FactionCatalogueRow | null;
-      freshlyUpdated: FactionCatalogueRow | null;
-    };
-  }>(api.factions.cataloguePage, {});
+  const raw = await db.query(api.factions.cataloguePage, {});
   return toFactionCataloguePageData(raw);
 }
 
 export async function loadFactionsByOwner(ownerId: string): Promise<FactionEntry[]> {
-  const entries = await db.query<FactionRow[]>(api.factions.listByOwner, {
-    owner_id: ownerId,
+  const entries = await db.query(api.factions.listByOwner, {
+    owner_id: ownerId as Id<'users'>,
   });
   return factionRowsToEntries(entries);
 }
 
 export async function loadFactionsByGroup(groupId: string): Promise<FactionEntry[]> {
-  const entries = await db.query<FactionRow[]>(api.factions.listByGroup, {
-    group_id: groupId,
+  const entries = await db.query(api.factions.listByGroup, {
+    group_id: groupId as Id<'groups'>,
   });
   return factionRowsToEntries(entries);
 }
@@ -371,8 +363,6 @@ export function useSetFactionGroup() {
 }
 
 export async function loadFaction(slug: string): Promise<FactionDetailPageData> {
-  const raw = await db.query<FactionDetailPageDataRaw>(api.factions.getBySlug, {
-    slug,
-  });
+  const raw = await db.query(api.factions.getBySlug, { slug });
   return toFactionDetailPageData(raw);
 }
