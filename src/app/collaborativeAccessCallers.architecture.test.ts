@@ -16,6 +16,11 @@ const sources = {
     new URL('./routes/_app/factions/$factionId/edit.tsx', import.meta.url),
     'utf8'
   ),
+  groupAssignPopover: readFileSync(
+    new URL('./components/groups/GroupAssignPopover.tsx', import.meta.url),
+    'utf8'
+  ),
+  membersDb: readFileSync(new URL('./members/db.ts', import.meta.url), 'utf8'),
   rulesetDb: readFileSync(new URL('./rulesets/db.ts', import.meta.url), 'utf8'),
   rulesetDetail: readFileSync(
     new URL('./routes/_app/rulesets/$rulesetSlug/index.tsx', import.meta.url),
@@ -79,5 +84,18 @@ describe('faction and ruleset collaborative-access caller contract', () => {
         /void membershipWorkflow\.request\s*\.run\(assignedGroup\.id\)\s*\.catch\(\(\) => undefined\)/
       );
     }
+  });
+
+  test('assignment callers consume server-derived group summaries without raw membership fallbacks', () => {
+    expect(sources.groupAssignPopover).toContain('assignableGroups');
+    expect(sources.groupAssignPopover).not.toContain('prefetchedMemberships');
+    expect(sources.groupAssignPopover).not.toContain('useUserGroupMemberships');
+    expect(sources.groupAssignPopover).not.toContain('userId');
+
+    expect(sources.factionEdit).toContain('assignableGroups={assignableGroups}');
+    expect(sources.rulesetDetail).toContain('assignableGroups={page.assignableGroups}');
+    expect(sources.rulesetDetail).not.toContain('viewerAssignableMemberships');
+    expect(sources.rulesetDb).not.toContain('viewerAssignableMemberships');
+    expect(sources.membersDb).not.toContain('listByUserActiveWithGroups');
   });
 });

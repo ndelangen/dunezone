@@ -2,9 +2,7 @@ import {
   ActionIcon,
   Alert,
   Button,
-  Center,
   Group,
-  Loader,
   Popover,
   Select,
   Stack,
@@ -15,18 +13,14 @@ import {
 import { Check, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import type { UserGroupMembershipWithGroup } from '@db/members';
-import { useUserGroupMembershipGroups, useUserGroupMemberships } from '@app/members/db';
+import type { AssignedGroupSummary } from '../../../../convex/lib/collaborativeAccess';
 
 export interface GroupAssignPopoverProps {
   disabled: boolean;
-  userId: string | null | undefined;
-  isUserPending: boolean;
-  onChangeGroup: (groupId: string | null) => Promise<void>;
+  assignableGroups: AssignedGroupSummary[];
+  onAssignGroup: (groupId: string) => Promise<void>;
   title?: string;
   descriptionLines?: string[];
-  /** When set (including `null`), skips `listByUserActiveWithGroups` and uses this data instead. */
-  prefetchedMemberships?: UserGroupMembershipWithGroup[] | null;
 }
 
 type BodySharedProps = {
@@ -35,46 +29,43 @@ type BodySharedProps = {
   error: string | null;
   setError: (error: string | null) => void;
   disabled: boolean;
-  onChangeGroup: (groupId: string | null) => Promise<void>;
+  onAssignGroup: (groupId: string) => Promise<void>;
   title: string;
   descriptionLines: string[];
   onAssigned: () => void;
 };
 
 function GroupAssignPopoverBodyContent({
-  memberships,
-  isPending,
+  assignableGroups,
   selectedGroupId,
   setSelectedGroupId,
   error,
   setError,
   disabled,
-  onChangeGroup,
+  onAssignGroup,
   title,
   descriptionLines,
   onAssigned,
 }: BodySharedProps & {
-  memberships: UserGroupMembershipWithGroup[] | undefined;
-  isPending: boolean;
+  assignableGroups: AssignedGroupSummary[];
 }) {
   const [isAssigning, setIsAssigning] = useState(false);
-  const accessibleGroups = useUserGroupMembershipGroups(memberships);
   const memberGroupIdSet = useMemo(
-    () => new Set(accessibleGroups.map((group) => String(group.id))),
-    [accessibleGroups]
+    () => new Set(assignableGroups.map((group) => String(group.id))),
+    [assignableGroups]
   );
   const groupOptions = useMemo(
     () =>
-      accessibleGroups.map((group) => ({
+      assignableGroups.map((group) => ({
         value: group.id,
         label: `${group.name} (${group.slug})`,
       })),
-    [accessibleGroups]
+    [assignableGroups]
   );
 
   const handleAssignGroup = async () => {
-    const nextGroupId = selectedGroupId || null;
-    if (nextGroupId && !memberGroupIdSet.has(nextGroupId)) {
+    const nextGroupId = selectedGroupId;
+    if (!nextGroupId || !memberGroupIdSet.has(nextGroupId)) {
       setError('You can only assign to groups you are an active member of.');
       return;
     }
@@ -82,7 +73,7 @@ function GroupAssignPopoverBodyContent({
     setIsAssigning(true);
     setError(null);
     try {
-      await onChangeGroup(nextGroupId);
+      await onAssignGroup(nextGroupId);
       onAssigned();
     } catch (err) {
       const message =
@@ -112,11 +103,7 @@ function GroupAssignPopoverBodyContent({
         </Alert>
       ) : null}
 
-      {isPending ? (
-        <Center py="md">
-          <Loader size="sm" aria-label="Loading groups" />
-        </Center>
-      ) : groupOptions.length === 0 ? (
+      {groupOptions.length === 0 ? (
         <Text size="sm" c="dimmed">
           No groups are available yet.
         </Text>
@@ -151,52 +138,15 @@ function GroupAssignPopoverBodyContent({
   );
 }
 
-function GroupAssignPopoverBodyWithQuery({
-  userId,
-  ...shared
-}: BodySharedProps & { userId: string }) {
-  const memberships = useUserGroupMemberships(userId, { initialData: [] });
-  return (
-    <GroupAssignPopoverBodyContent
-      memberships={memberships.data}
-      isPending={memberships.isPending}
-      {...shared}
-    />
-  );
-}
-
-function GroupAssignPopoverBody({
-  userId,
-  prefetchedMemberships,
-  ...shared
-}: BodySharedProps & {
-  userId: string;
-  prefetchedMemberships?: UserGroupMembershipWithGroup[] | null;
-}) {
-  if (prefetchedMemberships !== undefined) {
-    return (
-      <GroupAssignPopoverBodyContent
-        memberships={prefetchedMemberships ?? []}
-        isPending={false}
-        {...shared}
-      />
-    );
-  }
-
-  return <GroupAssignPopoverBodyWithQuery userId={userId} {...shared} />;
-}
-
 export function GroupAssignPopover({
   disabled,
-  userId,
-  isUserPending,
-  onChangeGroup,
+  assignableGroups,
+  onAssignGroup,
   title = 'Assign Group',
   descriptionLines = [
     'Groups are used to allow group members to edit this item.',
     'You can create groups on your profile page.',
   ],
-  prefetchedMemberships,
 }: GroupAssignPopoverProps) {
   const [opened, setOpened] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState('');
@@ -236,28 +186,19 @@ export function GroupAssignPopover({
         </Popover.Target>
       </Tooltip>
       <Popover.Dropdown>
-        {opened && userId ? (
-          <GroupAssignPopoverBody
-            userId={userId}
-            prefetchedMemberships={prefetchedMemberships}
+        {opened ? (
+          <GroupAssignPopoverBodyContent
+            assignableGroups={assignableGroups}
             selectedGroupId={selectedGroupId}
             setSelectedGroupId={setSelectedGroupId}
             error={error}
             setError={setError}
             disabled={disabled}
-            onChangeGroup={onChangeGroup}
+            onAssignGroup={onAssignGroup}
             title={title}
             descriptionLines={descriptionLines}
             onAssigned={() => setOpened(false)}
           />
-        ) : opened && isUserPending ? (
-          <Center py="md">
-            <Loader size="sm" aria-label="Loading account" />
-          </Center>
-        ) : opened ? (
-          <Text size="sm" c="dimmed">
-            Sign in to assign a group.
-          </Text>
         ) : null}
       </Popover.Dropdown>
     </Popover>

@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { rulesetActionVisibility } from './rulesetActionVisibility';
 
 describe('rulesetActionVisibility', () => {
-  test('keeps deletion available without a bogus group action while profile resolves', () => {
+  test('keeps owner assignment and deletion independent of profile projection loading', () => {
     expect(
       rulesetActionVisibility({
         hasProfile: false,
@@ -13,7 +13,7 @@ describe('rulesetActionVisibility', () => {
       })
     ).toEqual({
       askQuestion: false,
-      assignGroup: false,
+      assignGroup: true,
       removeGroup: false,
       deleteRuleset: true,
     });

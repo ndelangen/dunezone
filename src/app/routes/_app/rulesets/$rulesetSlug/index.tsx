@@ -133,6 +133,7 @@ function RulesetDetailPage() {
   const profile = useCurrentProfile();
   const deleteRuleset = useDeleteRuleset();
   const updateRuleset = useUpdateRuleset();
+  const assignRulesetGroup = useUpdateRuleset();
   const membershipWorkflow = useGroupMembershipWorkflow();
 
   if (loaderData.notFound || !page.ruleset) {
@@ -163,7 +164,6 @@ function RulesetDetailPage() {
   }
 
   const r = page.ruleset;
-  const profileUserId = profile.data?.user_id;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus =
     viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
@@ -316,12 +316,10 @@ function RulesetDetailPage() {
                 ) : null}
                 {actionVisibility.assignGroup ? (
                   <GroupAssignPopover
-                    disabled={updateRuleset.isPending}
-                    userId={profileUserId}
-                    isUserPending={profile.isPending}
-                    prefetchedMemberships={page.viewerAssignableMemberships}
-                    onChangeGroup={async (nextGroupId) => {
-                      await updateRuleset.mutateAsync({
+                    disabled={assignRulesetGroup.isPending}
+                    assignableGroups={page.assignableGroups}
+                    onAssignGroup={async (nextGroupId) => {
+                      await assignRulesetGroup.mutateAsync({
                         id: r._id,
                         input: { name: r.name },
                         groupId: nextGroupId,

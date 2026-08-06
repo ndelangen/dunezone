@@ -13,7 +13,7 @@ export function rulesetActionVisibility({
 }: RulesetActionVisibilityInput) {
   return {
     askQuestion: hasProfile,
-    assignGroup: canChangeGroup && !hasAssignedGroup && hasProfile,
+    assignGroup: canChangeGroup && !hasAssignedGroup,
     removeGroup: canChangeGroup && hasAssignedGroup,
     deleteRuleset: canDelete,
   };
