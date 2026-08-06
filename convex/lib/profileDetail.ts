@@ -1,5 +1,5 @@
 import type { QueryCtx } from '../types';
-import { enrichFactionsWithRulesets, listActiveRulesetSummaries } from './factionCatalogue';
+import { loadFactionCatalogue } from './factionCatalogue';
 import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './faqProfileActivity';
 
 const PROFILE_DETAIL_LIMIT = 500;
@@ -43,12 +43,7 @@ export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
     loadFaqAnswersGivenBy(ctx, profile.user_id),
   ]);
 
-  const factionRows = await ctx.db
-    .query('factions')
-    .withIndex('by_owner_deleted', (q) => q.eq('owner_id', profile.user_id).eq('is_deleted', false))
-    .take(PROFILE_DETAIL_LIMIT);
-  const activeRulesets = await listActiveRulesetSummaries(ctx);
-  const factions = await enrichFactionsWithRulesets(ctx, factionRows, activeRulesets);
+  const { factions } = await loadFactionCatalogue(ctx, { ownerId: profile.user_id });
 
   return {
     profile,

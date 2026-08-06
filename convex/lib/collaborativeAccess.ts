@@ -486,8 +486,8 @@ export async function loadAssetAccessBundle(
   }
 
   const groupById = new Map<Id<'groups'>, Doc<'groups'>>();
-  for (const groupId of groupIds) {
-    const group = await ctx.db.get('groups', groupId);
+  const groups = await Promise.all([...groupIds].map((groupId) => ctx.db.get('groups', groupId)));
+  for (const group of groups) {
     if (group) {
       groupById.set(group._id, group);
     }
@@ -536,15 +536,20 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
   for (const membership of members) {
     userIds.add(membership.user_id);
   }
-  for (const userId of userIds) {
-    const profile = await ctx.db
-      .query('profiles')
-      .withIndex('by_user_id', (q) => q.eq('user_id', userId))
-      .unique();
-    if (!profile) {
-      throw new Error(`Invariant: every user must have a profile (missing for ${userId})`);
-    }
-    profileByUserId.set(userId, profile);
+  const profiles = await Promise.all(
+    [...userIds].map(async (userId) => {
+      const profile = await ctx.db
+        .query('profiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', userId))
+        .unique();
+      if (!profile) {
+        throw new Error(`Invariant: every user must have a profile (missing for ${userId})`);
+      }
+      return profile;
+    })
+  );
+  for (const profile of profiles) {
+    profileByUserId.set(profile.user_id, profile);
   }
 
   const actorIsActive =
