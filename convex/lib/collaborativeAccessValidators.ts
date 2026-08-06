@@ -1,65 +1,34 @@
 import { v } from 'convex/values';
+import type { Infer } from 'convex/values';
 
-const groupValidator = v.object({
-  _id: v.id('groups'),
-  _creationTime: v.number(),
-  name: v.string(),
-  slug: v.string(),
-  created_at: v.string(),
-  created_by: v.id('users'),
-});
+import schema from '../schema';
+import { factionBackgroundValidator, factionDataValidator } from './factionData';
 
-export const groupMemberValidator = v.object({
-  _id: v.id('group_members'),
-  _creationTime: v.number(),
-  group_id: v.id('groups'),
-  user_id: v.id('users'),
-  status: v.union(v.literal('pending'), v.literal('active'), v.literal('removed')),
-  requested_at: v.string(),
-  approved_at: v.union(v.string(), v.null()),
-  approved_by: v.union(v.id('users'), v.null()),
-});
+/**
+ * Document validators derive from their authority, `convex/schema.ts` (ADR-0002); faction `data`
+ * derives from the canonical faction Zod schema. Do not restate table shapes by hand here.
+ */
+function docValidator<Table extends keyof typeof schema.tables>(table: Table) {
+  return schema.tables[table].validator.extend({
+    _id: v.id(table),
+    _creationTime: v.number(),
+  });
+}
+
+const groupValidator = docValidator('groups');
+
+export const groupMemberValidator = docValidator('group_members');
 
 export const membershipCommandAcknowledgementValidator = v.object({
   membershipId: v.id('group_members'),
   status: v.union(v.literal('pending'), v.literal('active'), v.literal('removed')),
 });
 
-const profileValidator = v.object({
-  _id: v.id('profiles'),
-  _creationTime: v.number(),
-  user_id: v.id('users'),
-  username: v.union(v.string(), v.null()),
-  avatar_url: v.union(v.string(), v.null()),
-  slug: v.string(),
-  created_at: v.string(),
-  updated_at: v.string(),
-});
+const profileValidator = docValidator('profiles');
 
-const factionValidator = v.object({
-  _id: v.id('factions'),
-  _creationTime: v.number(),
-  owner_id: v.id('users'),
-  data: v.any(),
-  slug: v.string(),
-  created_at: v.string(),
-  updated_at: v.string(),
-  is_deleted: v.boolean(),
-  group_id: v.union(v.id('groups'), v.null()),
-});
+const factionValidator = docValidator('factions').extend({ data: factionDataValidator });
 
-const rulesetValidator = v.object({
-  _id: v.id('rulesets'),
-  _creationTime: v.number(),
-  name: v.string(),
-  slug: v.string(),
-  created_at: v.string(),
-  updated_at: v.string(),
-  owner_id: v.id('users'),
-  group_id: v.union(v.id('groups'), v.null()),
-  is_deleted: v.boolean(),
-  image_cover: v.union(v.string(), v.null()),
-});
+const rulesetValidator = docValidator('rulesets');
 
 const publicViewerValidator = v.union(
   v.object({ kind: v.literal('anonymous') }),
@@ -87,6 +56,9 @@ const profileSummaryValidator = v.object({
   username: v.union(v.string(), v.null()),
   avatar_url: v.union(v.string(), v.null()),
 });
+
+/** The Profile summary chip (see CONTEXT.md); derive from this, never restate. */
+export type ProfileSummary = Infer<typeof profileSummaryValidator>;
 
 const groupViewerAccessValidator = v.object({
   kind: v.literal('group'),
@@ -151,7 +123,10 @@ const rulesetFactionSummaryValidator = v.object({
   factionId: v.id('factions'),
   name: v.string(),
   urlSlug: v.string(),
-  identity: v.union(v.object({ logo: v.string(), background: v.any() }), v.null()),
+  identity: v.union(
+    v.object({ logo: v.string(), background: factionBackgroundValidator }),
+    v.null()
+  ),
 });
 
 export const rulesetPublicBundleValidator = v.object({
@@ -160,36 +135,9 @@ export const rulesetPublicBundleValidator = v.object({
   viewerAccess: assetViewerAccessValidator('ruleset'),
 });
 
-const faqTagValidator = v.union(
-  v.literal('rules'),
-  v.literal('army_list'),
-  v.literal('strategy'),
-  v.literal('balance'),
-  v.literal('errata'),
-  v.literal('other')
-);
+const faqAnswerValidator = docValidator('faq_answers');
 
-const faqAnswerValidator = v.object({
-  _id: v.id('faq_answers'),
-  _creationTime: v.number(),
-  faq_item_id: v.id('faq_items'),
-  answer: v.string(),
-  answered_by: v.id('users'),
-  created_at: v.string(),
-});
-
-const faqItemValidator = v.object({
-  _id: v.id('faq_items'),
-  _creationTime: v.number(),
-  ruleset_id: v.id('rulesets'),
-  slug: v.string(),
-  question: v.string(),
-  tags: v.optional(v.array(faqTagValidator)),
-  asked_by: v.id('users'),
-  created_at: v.string(),
-  updated_at: v.string(),
-  accepted_answer_id: v.union(v.id('faq_answers'), v.null()),
-});
+const faqItemValidator = docValidator('faq_items');
 
 const faqListItemValidator = faqItemValidator.extend({
   faq_answers: v.array(faqAnswerValidator),
@@ -213,7 +161,7 @@ const profileFaqAnswerValidator = faqAnswerValidator.extend({
   ruleset: rulesetSummaryValidator,
 });
 
-const profileFactionValidator = factionValidator.extend({
+export const factionWithRulesetsValidator = factionValidator.extend({
   rulesets: v.array(rulesetSummaryValidator),
 });
 
@@ -221,7 +169,7 @@ export const profileDetailPageValidator = v.object({
   profile: profileValidator,
   faqAsked: v.array(profileFaqQuestionValidator),
   faqAnswers: v.array(profileFaqAnswerValidator),
-  factions: v.array(profileFactionValidator),
+  factions: v.array(factionWithRulesetsValidator),
   groupSummaries: v.array(assignedGroupSummaryValidator),
 });
 
@@ -245,6 +193,7 @@ export const groupDetailPageValidator = v.object({
 
 export {
   factionValidator,
+  rulesetSummaryValidator,
   assignedGroupSummaryValidator,
   assetViewerAccessValidator,
   groupValidator,

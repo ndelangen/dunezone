@@ -14,6 +14,7 @@ import type {
   AssignedGroupSummary,
   CollaborativeAccess,
 } from '../../../convex/lib/collaborativeAccess';
+import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
 export type Ruleset = { name: string };
 export type RulesetRow = Doc<'rulesets'>;
@@ -58,7 +59,7 @@ export type RulesetPageData = {
 };
 
 export type RulesetDetailPageData = RulesetPageData & {
-  owner: FaqItemWithDetails['asker_profile'];
+  owner: ProfileSummary | null;
   assignableGroups: AssignedGroupSummary[];
   faqItems: FaqItemWithDetails[];
 };
