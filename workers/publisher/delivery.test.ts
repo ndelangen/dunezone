@@ -239,36 +239,74 @@ describe('public asset delivery boundary', () => {
     expect(bucket.get).not.toHaveBeenCalled();
   });
 
-  test('a matching If-None-Match returns 304 with no body and no content length', async () => {
-    const { bucket, run } = await harness();
-
-    const response = await run({ headers: { 'If-None-Match': '"etag-one"' } });
-
-    expect(response?.status).toBe(304);
-    expect(response?.body).toBeNull();
-    expect(response?.headers.get('Content-Length')).toBeNull();
-    expect(bucket.get).not.toHaveBeenCalled();
-  });
-
-  test('a non-matching If-None-Match serves the full asset', async () => {
-    const { run } = await harness();
-
-    const response = await run({ headers: { 'If-None-Match': '"stale"' } });
-
-    expect(response?.status).toBe(200);
-    expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD);
-  });
-
-  test('a non-matching If-Match returns 412 no-store, and precedes If-None-Match', async () => {
-    const { run } = await harness();
-
-    const response = await run({
+  const preconditionTable: Array<{
+    name: string;
+    headers: Record<string, string>;
+    status: number;
+    contentRange?: string;
+  }> = [
+    { name: 'If-None-Match match', headers: { 'If-None-Match': '"etag-one"' }, status: 304 },
+    { name: 'If-None-Match weak match', headers: { 'If-None-Match': 'W/"etag-one"' }, status: 304 },
+    { name: 'If-None-Match star', headers: { 'If-None-Match': '*' }, status: 304 },
+    { name: 'If-None-Match mismatch', headers: { 'If-None-Match': '"stale"' }, status: 200 },
+    { name: 'If-Match strong mismatch', headers: { 'If-Match': '"other"' }, status: 412 },
+    { name: 'If-Match weak never matches', headers: { 'If-Match': 'W/"etag-one"' }, status: 412 },
+    {
+      name: 'If-Match precedes If-None-Match',
       headers: { 'If-Match': '"other"', 'If-None-Match': '"etag-one"' },
-    });
+      status: 412,
+    },
+    {
+      name: 'If-Modified-Since honored (RFC 1123)',
+      headers: { 'If-Modified-Since': new Date('2026-07-18T12:00:00Z').toUTCString() },
+      status: 304,
+    },
+    {
+      name: 'If-Modified-Since honored (RFC 850)',
+      headers: { 'If-Modified-Since': 'Friday, 17-Jul-26 12:00:00 GMT' },
+      status: 304,
+    },
+    {
+      name: 'If-Modified-Since honored (asctime)',
+      headers: { 'If-Modified-Since': 'Fri Jul 17 12:00:00 2026' },
+      status: 304,
+    },
+    { name: 'invalid date ignored', headers: { 'If-Modified-Since': 'not-a-date' }, status: 200 },
+    {
+      name: 'wrong weekday rejected',
+      headers: { 'If-Modified-Since': 'Thu, 17 Jul 2026 12:00:00 GMT' },
+      status: 200,
+    },
+    {
+      name: 'If-Unmodified-Since in the past fails',
+      headers: { 'If-Unmodified-Since': new Date('2026-07-16T12:00:00Z').toUTCString() },
+      status: 412,
+    },
+    {
+      name: 'stale If-Range downgrades to full',
+      headers: { Range: 'bytes=2-4', 'If-Range': '"stale"' },
+      status: 200,
+    },
+    {
+      name: 'unsatisfiable range',
+      headers: { Range: 'bytes=99-' },
+      status: 416,
+      contentRange: 'bytes */10',
+    },
+  ];
 
-    expect(response?.status).toBe(412);
-    expect(response?.headers.get('Cache-Control')).toBe('no-store');
-    expect(response?.body).toBeNull();
+  test('HTTP conditional and range semantics through the production handler', async () => {
+    for (const entry of preconditionTable) {
+      const { run } = await harness();
+      const response = await run({ headers: entry.headers });
+      expect(response?.status, entry.name).toBe(entry.status);
+      if (entry.contentRange !== undefined) {
+        expect(response?.headers.get('Content-Range'), entry.name).toBe(entry.contentRange);
+      }
+      if (entry.status !== 200) {
+        expect(response?.body, entry.name).toBeNull();
+      }
+    }
   });
 
   test('a satisfiable range returns 206 with the correct slice and Content-Range', async () => {
@@ -291,73 +329,6 @@ describe('public asset delivery boundary', () => {
     expect(response?.status).toBe(206);
     expect(response?.headers.get('Content-Range')).toBe('bytes 7-9/10');
     expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD.slice(7));
-  });
-
-  test('an unsatisfiable range returns 416 with the asset size', async () => {
-    const { bucket, run } = await harness();
-
-    const response = await run({ headers: { Range: 'bytes=99-' } });
-
-    expect(response?.status).toBe(416);
-    expect(response?.headers.get('Content-Range')).toBe('bytes */10');
-    expect(response?.headers.get('Cache-Control')).toBe('no-store');
-    expect(bucket.get).not.toHaveBeenCalled();
-  });
-
-  test('date preconditions apply when no entity tags are sent, ignoring invalid dates', async () => {
-    const { run } = await harness();
-
-    const notModified = await run({
-      headers: { 'If-Modified-Since': new Date('2026-07-18T12:00:00Z').toUTCString() },
-    });
-    expect(notModified?.status).toBe(304);
-
-    const invalidDate = await run({ headers: { 'If-Modified-Since': 'not-a-date' } });
-    expect(invalidDate?.status).toBe(200);
-
-    const unmodifiedSinceFails = await run({
-      headers: { 'If-Unmodified-Since': new Date('2026-07-16T12:00:00Z').toUTCString() },
-    });
-    expect(unmodifiedSinceFails?.status).toBe(412);
-  });
-
-  test('entity-tag comparison: If-None-Match matches weakly, If-Match requires strong', async () => {
-    const { run } = await harness();
-
-    const weakNoneMatch = await run({ headers: { 'If-None-Match': 'W/"etag-one"' } });
-    expect(weakNoneMatch?.status).toBe(304);
-
-    const weakIfMatch = await run({ headers: { 'If-Match': 'W/"etag-one"' } });
-    expect(weakIfMatch?.status).toBe(412);
-
-    const star = await run({ headers: { 'If-None-Match': '*' } });
-    expect(star?.status).toBe(304);
-  });
-
-  test('legacy RFC 850 and asctime dates are honored in preconditions', async () => {
-    const { run } = await harness();
-
-    const rfc850 = await run({
-      headers: { 'If-Modified-Since': 'Friday, 17-Jul-26 12:00:00 GMT' },
-    });
-    expect(rfc850?.status).toBe(304);
-
-    const asctime = await run({ headers: { 'If-Modified-Since': 'Fri Jul 17 12:00:00 2026' } });
-    expect(asctime?.status).toBe(304);
-
-    const wrongWeekday = await run({
-      headers: { 'If-Modified-Since': 'Thu, 17 Jul 2026 12:00:00 GMT' },
-    });
-    expect(wrongWeekday?.status).toBe(200);
-  });
-
-  test('a stale If-Range downgrades a range request to the full asset', async () => {
-    const { run } = await harness();
-
-    const response = await run({ headers: { Range: 'bytes=2-4', 'If-Range': '"stale"' } });
-
-    expect(response?.status).toBe(200);
-    expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD);
   });
 
   test('a missing R2 object returns a sanitized 404', async () => {

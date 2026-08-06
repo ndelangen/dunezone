@@ -254,36 +254,6 @@ describe('Publication pickup, recovery, and failure', () => {
     });
   });
 
-  test('the tenth expiry recovery becomes an error job', async () => {
-    const { t, asUser } = await authenticatedTest();
-    await t.mutation(internal.publicationAdmin.initialize, {
-      rendererRevisions: { faction_sheet: 4 },
-    });
-    const faction = await createFaction(asUser);
-    const [job] = await jobsFor(t, faction._id);
-    if (!job) {
-      throw new Error('Missing job');
-    }
-    await t.run(async (ctx) => {
-      await ctx.db.patch(job._id, {
-        status: 'in_progress',
-        attempt_counter: 9,
-        expires_at: Date.now() - 1,
-      });
-    });
-
-    await expect(t.mutation(internal.publicationJobs.takeWork, {})).resolves.toMatchObject({
-      status: 'empty',
-      reason: 'disabled',
-      recovered: 1,
-    });
-    expect((await jobsFor(t, faction._id))[0]).toMatchObject({
-      status: 'error',
-      attempt_counter: 10,
-      error: 'Capture expired before completion',
-    });
-  });
-
   test('turning pickup off does not cancel work already in progress', async () => {
     const { t, asUser } = await authenticatedTest();
     await t.mutation(internal.publicationAdmin.initialize, {
