@@ -1,10 +1,11 @@
 import { useQuery } from 'convex/react';
+import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 import { factionRowsToEntries } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
 import { rulesetRowsToEntries } from '@db/rulesets';
-import type { RulesetEntry, RulesetRow } from '@db/rulesets';
+import type { RulesetEntry } from '@db/rulesets';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { groupInputSchema } from '@app/groups/validation';
 
@@ -38,17 +39,10 @@ export type GroupDetailPageData = {
 
 export type GroupEditPageData = Pick<GroupDetailPageData, 'group' | 'viewerAccess'>;
 
-type GroupDetailPageRaw = {
-  group: GroupRow;
-  factions: Doc<'factions'>[];
-  rulesets: RulesetRow[];
-  owner: GroupOwnerSummary | null;
-  viewerAccess: GroupDetailPageData['viewerAccess'];
-  roster: GroupRosterEntry[];
-};
+type GroupDetailPageRaw = FunctionReturnType<typeof api.groups.detailBySlug>;
 
 export async function loadGroupDetailBySlug(slug: string): Promise<GroupDetailPageData> {
-  const result = await db.query<GroupDetailPageRaw>(api.groups.detailBySlug, { slug });
+  const result = await db.query(api.groups.detailBySlug, { slug });
   return normalizeGroupDetailFromConvex(result);
 }
 
