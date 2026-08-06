@@ -13,14 +13,7 @@ import type { Doc } from '../../../convex/_generated/dataModel';
 
 export type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
-export type ProfileListEntry = ProfileRow & {
-  activity: {
-    groupCount: number;
-    factionCount: number;
-    questionCount: number;
-    answerCount: number;
-  };
-};
+export type ProfileListEntry = FunctionReturnType<typeof api.profiles.list>[number];
 
 /** Server-owned profile detail contract; the read model lives in `convex/lib/profileDetail.ts`. */
 export type ProfileDetailResult = FunctionReturnType<typeof api.profiles.getBySlug>;

@@ -105,6 +105,26 @@
       "id": "profile_discovery_ready",
       "phase": "narrow",
       "requires": ["profile_discovery_profiles_v1"]
+    },
+    {
+      "id": "profile_activity_memberships_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "profile_activity_factions_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "profile_activity_questions_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "profile_activity_answers_v1",
+      "phase": "widen",
+      "requires": []
     }
   ]
 }

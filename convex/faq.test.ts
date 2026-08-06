@@ -22,6 +22,7 @@ function faqTest(
     ? convexTest({ schema, modules, transactionLimits })
     : convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   return t;
 }

@@ -7,6 +7,12 @@ import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
+import {
+  reconcileAnswerActivity,
+  reconcileFactionActivity,
+  reconcileMembershipActivity,
+  reconcileQuestionActivity,
+} from './lib/profileActivity';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { reconcileProfileDiscovery } from './lib/profileDiscovery';
 import {
@@ -37,6 +43,10 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   statistics_questions_v1: internal.migrations.statistics_questions_v1,
   statistics_answers_v1: internal.migrations.statistics_answers_v1,
   profile_discovery_profiles_v1: internal.migrations.profile_discovery_profiles_v1,
+  profile_activity_memberships_v1: internal.migrations.profile_activity_memberships_v1,
+  profile_activity_factions_v1: internal.migrations.profile_activity_factions_v1,
+  profile_activity_questions_v1: internal.migrations.profile_activity_questions_v1,
+  profile_activity_answers_v1: internal.migrations.profile_activity_answers_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -325,6 +335,42 @@ export const statistics_answers_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (ctx, row) => {
     await reconcileAnswerStatistics(ctx, row);
+  },
+});
+
+/** Populates per-user activity counts from active memberships; live writes maintain them. */
+export const profile_activity_memberships_v1 = migrations.define({
+  table: 'group_members',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileMembershipActivity(ctx, row);
+  },
+});
+
+/** Populates per-user activity counts from non-deleted factions. */
+export const profile_activity_factions_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileFactionActivity(ctx, row);
+  },
+});
+
+/** Populates per-user activity counts from questions asked. */
+export const profile_activity_questions_v1 = migrations.define({
+  table: 'faq_items',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileQuestionActivity(ctx, row);
+  },
+});
+
+/** Populates per-user activity counts from answers given. */
+export const profile_activity_answers_v1 = migrations.define({
+  table: 'faq_answers',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileAnswerActivity(ctx, row);
   },
 });
 

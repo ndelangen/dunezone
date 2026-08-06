@@ -29,6 +29,7 @@ import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
 import type * as lib_faqTags from "../lib/faqTags.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_policy from "../lib/policy.js";
+import type * as lib_profileActivity from "../lib/profileActivity.js";
 import type * as lib_profileBootstrap from "../lib/profileBootstrap.js";
 import type * as lib_profileDetail from "../lib/profileDetail.js";
 import type * as lib_profileDiscovery from "../lib/profileDiscovery.js";
@@ -77,6 +78,7 @@ declare const fullApi: ApiFromModules<{
   "lib/faqTags": typeof lib_faqTags;
   "lib/ids": typeof lib_ids;
   "lib/policy": typeof lib_policy;
+  "lib/profileActivity": typeof lib_profileActivity;
   "lib/profileBootstrap": typeof lib_profileBootstrap;
   "lib/profileDetail": typeof lib_profileDetail;
   "lib/profileDiscovery": typeof lib_profileDiscovery;
@@ -128,4 +130,5 @@ export declare const components: {
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
   statistics: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"statistics">;
   profileDiscovery: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileDiscovery">;
+  profileActivity: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileActivity">;
 };
