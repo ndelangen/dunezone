@@ -15,6 +15,7 @@ type SeedResult = {
   userId: Id<'users'>;
   profileId: Id<'profiles'>;
   activeGroupId: Id<'groups'>;
+  laterGroupId: Id<'groups'>;
   activeMembershipId: Id<'group_members'>;
   advancedRulesetId: Id<'rulesets'>;
   basicRulesetId: Id<'rulesets'>;
@@ -93,6 +94,36 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
       approved_at: at(2),
       approved_by: userId,
     });
+    // Joined later than Sietch Tabr but sorts earlier by name: proves membership order wins.
+    const laterGroupId = await ctx.db.insert('groups', {
+      name: 'Arrakeen Guild',
+      slug: 'arrakeen-guild',
+      created_at: at(1),
+      created_by: userId,
+    });
+    await ctx.db.insert('group_members', {
+      group_id: laterGroupId,
+      user_id: userId,
+      status: 'active',
+      requested_at: at(3),
+      approved_at: at(3),
+      approved_by: userId,
+    });
+    const ghostGroupId = await ctx.db.insert('groups', {
+      name: 'Ghost Sietch',
+      slug: 'ghost-sietch',
+      created_at: at(1),
+      created_by: userId,
+    });
+    await ctx.db.insert('group_members', {
+      group_id: ghostGroupId,
+      user_id: userId,
+      status: 'active',
+      requested_at: at(4),
+      approved_at: at(4),
+      approved_by: userId,
+    });
+    await ctx.db.delete(ghostGroupId);
 
     const advancedRulesetId = await ctx.db.insert('rulesets', {
       name: 'Advanced',
@@ -212,6 +243,7 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
       userId,
       profileId,
       activeGroupId,
+      laterGroupId,
       activeMembershipId,
       advancedRulesetId,
       basicRulesetId,
@@ -251,7 +283,30 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
 
     expect(page.groupSummaries).toEqual([
       { id: seed.activeGroupId, name: 'Sietch Tabr', slug: 'sietch-tabr' },
+      { id: seed.laterGroupId, name: 'Arrakeen Guild', slug: 'arrakeen-guild' },
     ]);
+  });
+
+  test('group summaries keep membership order, not name order', async () => {
+    const t = convexTest(schema, modules);
+    const seed = await seedProfileDetail(t);
+
+    const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
+
+    expect(page.groupSummaries.map((group) => group.id)).toEqual([
+      seed.activeGroupId,
+      seed.laterGroupId,
+    ]);
+  });
+
+  test('an active membership whose group no longer resolves is dropped from the summaries', async () => {
+    const t = convexTest(schema, modules);
+    await seedProfileDetail(t);
+
+    const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
+
+    expect(page.groupSummaries.map((group) => group.name)).not.toContain('Ghost Sietch');
+    expect(page.groupSummaries).toHaveLength(2);
   });
 
   test('excludes soft-deleted factions and parses faction data', async () => {
