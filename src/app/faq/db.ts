@@ -21,23 +21,6 @@ export type FaqItemWithDetails = FaqItemEntry & {
   asker_profile: ProfileSummary | null;
 };
 
-export type FaqItemAskedByWithRuleset = FaqItemEntry & {
-  ruleset: { id: string; name: string; slug: string };
-};
-
-export type FaqAnswerWithParent = FaqAnswerEntry & {
-  faq_item: {
-    id: FaqItemRow['_id'];
-    slug: string;
-    question: string;
-    ruleset_id: string;
-    asked_by: string;
-    accepted_answer_id: string | null;
-  };
-  asker_profile: ProfileSummary | null;
-  ruleset: { id: string; name: string; slug: string };
-};
-
 export type FaqQuestionLocator = {
   rulesetSlug: string;
   questionSlug: string;

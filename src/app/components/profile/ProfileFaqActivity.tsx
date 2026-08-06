@@ -1,7 +1,10 @@
 import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 
-import type { FaqAnswerWithParent, FaqItemAskedByWithRuleset } from '@db/faq';
+import type { ProfilePageData } from '@db/profiles';
+
+type FaqQuestionAsked = ProfilePageData['faqAsked'][number];
+type FaqAnswerGiven = ProfilePageData['faqAnswers'][number];
 import { FaqItemList, FaqItemListRow } from '@app/components/faq/FaqItemList';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
@@ -20,7 +23,7 @@ function AskerChip({
   profile,
   viewedProfileId,
 }: {
-  profile: NonNullable<FaqAnswerWithParent['asker_profile']>;
+  profile: NonNullable<FaqAnswerGiven['asker_profile']>;
   viewedProfileId: string;
 }) {
   if (profile.id === viewedProfileId) {
@@ -39,7 +42,7 @@ function AskerChip({
   );
 }
 
-export function ProfileFaqQuestionsAsked({ items }: { items: FaqItemAskedByWithRuleset[] }) {
+export function ProfileFaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] }) {
   if (items.length === 0) {
     return <p className={styles.noResults}>No questions asked yet.</p>;
   }
@@ -78,7 +81,7 @@ export function ProfileFaqAnswersGiven({
   items,
   viewedProfileId,
 }: {
-  items: FaqAnswerWithParent[];
+  items: FaqAnswerGiven[];
   viewedProfileId: string;
 }) {
   if (items.length === 0) {
