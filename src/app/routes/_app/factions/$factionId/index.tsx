@@ -99,12 +99,13 @@ function FactionDetailPage() {
   const loaderData = Route.useLoaderData();
   const factionSeed = loaderData;
 
-  const { faction, viewerAccess, owner, assetPublishing, rulesets } = useFaction(factionId, {
+  const factionQuery = useFaction(factionId, {
     initialData: factionSeed,
   });
   const membershipWorkflow = useGroupMembershipWorkflow();
+  const page = factionQuery.data;
 
-  if (!faction) {
+  if (!page) {
     return (
       <PageLayout
         header={
@@ -125,6 +126,8 @@ function FactionDetailPage() {
       </PageLayout>
     );
   }
+
+  const { faction, viewerAccess, owner, assetPublishing, rulesets } = page;
 
   const canEdit = viewerAccess?.capabilities.edit ?? false;
   const assignedGroup = viewerAccess?.assignedGroup ?? null;

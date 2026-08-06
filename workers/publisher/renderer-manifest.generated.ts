@@ -3,8 +3,8 @@
 export const rendererManifest = {
   schemaVersion: 1,
   rendererIdentity:
-    'faction-sheet/sha256:9ec45c14e5e682be90c470afc2404cb7ec323e9ad00aee27e7e63ccbb42ad87f',
-  digest: '9ec45c14e5e682be90c470afc2404cb7ec323e9ad00aee27e7e63ccbb42ad87f',
+    'faction-sheet/sha256:6b9c7a66a42590a8862b722a8f5d2a120f7be99a4c72416e7f9f159abe815d44',
+  digest: '6b9c7a66a42590a8862b722a8f5d2a120f7be99a4c72416e7f9f159abe815d44',
   contract: {
     viewport: {
       width: 2100,

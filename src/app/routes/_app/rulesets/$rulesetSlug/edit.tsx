@@ -35,16 +35,17 @@ function RulesetEditPage() {
   const loaderData = Route.useLoaderData();
   const detailSeed =
     !loaderData.notFound && loaderData.detailPage ? loaderData.detailPage : undefined;
-  const page = useRulesetDetailPage(rulesetSlug, { initialData: detailSeed });
+  const pageQuery = useRulesetDetailPage(rulesetSlug, { initialData: detailSeed });
+  const page = pageQuery.data;
 
-  const header = page.ruleset ? (
+  const header = page?.ruleset ? (
     <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
       <Paper className={styles.rulesetHeadCover} radius="md" withBorder>
-        {page.ruleset.image_cover ? (
+        {page?.ruleset.image_cover ? (
           <Image
-            src={page.ruleset.image_cover}
+            src={page?.ruleset.image_cover}
             fallbackSrc="/image/background/card.jpg"
-            alt={`Cover for ${page.ruleset.name}`}
+            alt={`Cover for ${page?.ruleset.name}`}
             className={styles.coverImage}
           />
         ) : (
@@ -57,7 +58,7 @@ function RulesetEditPage() {
       </Paper>
       <Stack gap={6} className={styles.pageHeadText}>
         <Title order={1} className={styles.rulesetTitle}>
-          Edit {page.ruleset.name}
+          Edit {page?.ruleset.name}
         </Title>
       </Stack>
     </Group>
@@ -78,7 +79,7 @@ function RulesetEditPage() {
             <ArrowLeft size={17} aria-hidden />
           </ActionIcon>
         </Tooltip>
-        {page.ruleset ? (
+        {page?.ruleset ? (
           <Tooltip label="View ruleset">
             <ActionIcon
               variant="light"
@@ -89,7 +90,7 @@ function RulesetEditPage() {
                 <Link
                   {...rootProps}
                   to="/rulesets/$rulesetSlug"
-                  params={{ rulesetSlug: page.ruleset?.slug ?? rulesetSlug }}
+                  params={{ rulesetSlug: page?.ruleset?.slug ?? rulesetSlug }}
                 />
               )}
             >
@@ -111,7 +112,7 @@ function RulesetEditPage() {
     );
   }
 
-  if (!page.ruleset) {
+  if (!page?.ruleset) {
     return (
       <PageLayout header={header} toolbar={toolbar}>
         <Paper withBorder p="xl" radius="md">

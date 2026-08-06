@@ -64,15 +64,7 @@ export function useGroupDetailBySlug(
     true,
     () => options?.initialData
   );
-  return {
-    ...result,
-    group: result.data?.group,
-    factions: result.data?.factions,
-    rulesets: result.data?.rulesets,
-    owner: result.data?.owner ?? null,
-    viewerAccess: result.data?.viewerAccess,
-    roster: result.data?.roster,
-  };
+  return result;
 }
 
 export function useGroupEditBySlug(slug: string, options?: { initialData?: GroupEditPageData }) {
@@ -86,11 +78,7 @@ export function useGroupEditBySlug(slug: string, options?: { initialData?: Group
     true,
     () => options?.initialData
   );
-  return {
-    ...result,
-    group: result.data?.group,
-    viewerAccess: result.data?.viewerAccess,
-  };
+  return result;
 }
 
 /** Call only when `createdBy` is a real user id (e.g. mount a child after profile is known). */

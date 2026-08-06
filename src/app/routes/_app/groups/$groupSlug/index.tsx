@@ -37,19 +37,20 @@ function GroupDetailPage() {
     );
   }
 
-  if (!groupData.group || !groupData.viewerAccess) {
+  const page = groupData.data;
+  if (!page) {
     return <PageLayout header={<h1>Group</h1>}>Loading group…</PageLayout>;
   }
 
-  const group = groupData.group;
+  const group = page.group;
   const groupId = group._id;
-  const viewerAccess = groupData.viewerAccess;
-  const ownerProfile = groupData.owner;
+  const viewerAccess = page.viewerAccess;
+  const ownerProfile = page.owner;
   const membershipStatus =
     viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
-  const factions = groupData.factions ?? [];
-  const rulesets = groupData.rulesets ?? [];
-  const roster = groupData.roster ?? [];
+  const factions = page.factions;
+  const rulesets = page.rulesets;
+  const roster = page.roster;
 
   const membersModerationBusy =
     membershipWorkflow.approve.isPending ||

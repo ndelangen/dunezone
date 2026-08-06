@@ -60,15 +60,7 @@ export function useProfileBySlug(
   const liveData = useQuery(api.profiles.getBySlug, { slug });
   const normalized = liveData ? normalizeProfilePage(liveData) : undefined;
   const result = toLiveQueryResult(normalized, true, () => options?.initialData);
-  return {
-    ...result,
-    profile: result.data ? result.data.profile : undefined,
-    groupSummaries: result.data?.groupSummaries,
-    faqAsked: result.data?.faqAsked,
-    faqAnswers: result.data?.faqAnswers,
-    factions: result.data?.factions,
-    acceptedAnswerCount: result.data?.acceptedAnswerCount,
-  };
+  return result;
 }
 
 export function useProfilesAll(options?: { initialData?: ProfileListEntry[] }) {

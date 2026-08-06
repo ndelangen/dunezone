@@ -28,7 +28,8 @@ function formatDate(timestamp?: number) {
 function AdminMigrationsPage() {
   const loaderData = Route.useLoaderData();
   const profile = useCurrentProfile();
-  const dashboard = useAdminMigrationDashboard({ initialData: loaderData.dashboard });
+  const dashboardQuery = useAdminMigrationDashboard({ initialData: loaderData.dashboard });
+  const dashboard = dashboardQuery.data;
   const syncRuns = useSyncMigrationRuns();
 
   if (!profile.data?._id) {
@@ -46,7 +47,7 @@ function AdminMigrationsPage() {
   return (
     <PageLayout header={<h1>Migration activity</h1>}>
       <Stack gap={3}>
-        {dashboard.isPending && <p>Loading migration dashboard…</p>}
+        {dashboardQuery.isPending && <p>Loading migration dashboard…</p>}
         <Card>
           <Stack gap={2}>
             <h2>Live migration status</h2>
@@ -76,7 +77,7 @@ function AdminMigrationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {dashboard.statuses.map((row) => (
+                {(dashboard?.statuses ?? []).map((row) => (
                   <tr key={row.name}>
                     <td>{row.name}</td>
                     <td>{row.state}</td>
@@ -107,7 +108,7 @@ function AdminMigrationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {dashboard.snapshots.map((row) => (
+                {(dashboard?.snapshots ?? []).map((row) => (
                   <tr key={row._id}>
                     <td>{row.migration_id}</td>
                     <td>{row.state}</td>

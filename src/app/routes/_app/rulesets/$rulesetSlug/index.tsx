@@ -129,14 +129,15 @@ function RulesetDetailPage() {
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
   const detailSeed = loaderData.notFound ? undefined : loaderData.detailPage;
-  const page = useRulesetDetailPage(rulesetSlug, { initialData: detailSeed });
+  const pageQuery = useRulesetDetailPage(rulesetSlug, { initialData: detailSeed });
+  const page = pageQuery.data;
   const profile = useCurrentProfile();
   const deleteRuleset = useDeleteRuleset();
   const updateRuleset = useUpdateRuleset();
   const assignRulesetGroup = useUpdateRuleset();
   const membershipWorkflow = useGroupMembershipWorkflow();
 
-  if (loaderData.notFound || !page.ruleset) {
+  if (loaderData.notFound || !page) {
     return (
       <PageLayout
         header={
@@ -454,7 +455,7 @@ function RulesetDetailPage() {
             <SectionHeading id="factions-heading" icon={<Layers3 size={20} aria-hidden />}>
               Included factions
             </SectionHeading>
-            {page.factions && page.factions.length > 0 ? (
+            {page.factions.length > 0 ? (
               <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
                 {page.factions.map((f) => (
                   <Card key={f.factionId} withBorder padding="md" radius="md">
@@ -571,8 +572,8 @@ function RulesetDetailPage() {
               <Group gap="lg" wrap="wrap">
                 <IconStat
                   icon={<Layers3 size={17} aria-hidden />}
-                  value={page.factions?.length ?? 0}
-                  label={`${page.factions?.length ?? 0} ${(page.factions?.length ?? 0) === 1 ? 'faction' : 'factions'}`}
+                  value={page.factions.length}
+                  label={`${page.factions.length} ${page.factions.length === 1 ? 'faction' : 'factions'}`}
                 />
                 <IconStat
                   icon={<CircleHelp size={17} aria-hidden />}
