@@ -6,8 +6,9 @@ import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
-import { profileDetailPageValidator } from './lib/collaborativeAccessValidators';
+import { profileDetailPageValidator, profileValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
+import { loadProfileActivityCounts } from './lib/profileActivity';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { loadProfileDetailBySlug } from './lib/profileDetail';
 import {
@@ -101,47 +102,33 @@ export const getBySlug = query({
   handler: async (ctx, args) => await loadProfileDetailBySlug(ctx, args.slug),
 });
 
+const profileListEntryValidator = profileValidator.extend({
+  activity: v.object({
+    groupCount: v.number(),
+    factionCount: v.number(),
+    questionCount: v.number(),
+    answerCount: v.number(),
+  }),
+});
+
 export const list = query({
   args: {},
+  returns: v.array(profileListEntryValidator),
   handler: async (ctx) => {
     const profiles = await ctx.db.query('profiles').take(500);
-
-    return await Promise.all(
-      profiles.map(async (profile) => {
-        const [memberships, factions, questions, answers] = await Promise.all([
-          ctx.db
-            .query('group_members')
-            .withIndex('by_user_status', (q) =>
-              q.eq('user_id', profile.user_id).eq('status', 'active')
-            )
-            .take(500),
-          ctx.db
-            .query('factions')
-            .withIndex('by_owner_deleted', (q) =>
-              q.eq('owner_id', profile.user_id).eq('is_deleted', false)
-            )
-            .take(500),
-          ctx.db
-            .query('faq_items')
-            .withIndex('by_asked_by_created', (q) => q.eq('asked_by', profile.user_id))
-            .take(500),
-          ctx.db
-            .query('faq_answers')
-            .withIndex('by_answered_by_created', (q) => q.eq('answered_by', profile.user_id))
-            .take(500),
-        ]);
-
-        return {
-          ...profile,
-          activity: {
-            groupCount: memberships.length,
-            factionCount: factions.length,
-            questionCount: questions.length,
-            answerCount: answers.length,
-          },
-        };
-      })
+    const activity = await loadProfileActivityCounts(
+      ctx,
+      profiles.map((profile) => profile.user_id)
     );
+    return profiles.map((profile, index) => ({
+      ...profile,
+      activity: activity[index] ?? {
+        groupCount: 0,
+        factionCount: 0,
+        questionCount: 0,
+        answerCount: 0,
+      },
+    }));
   },
 });
 
