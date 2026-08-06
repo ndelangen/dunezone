@@ -20,6 +20,15 @@ const sources = {
     new URL('./components/groups/GroupAssignPopover.tsx', import.meta.url),
     'utf8'
   ),
+  groupDb: readFileSync(new URL('./groups/db.ts', import.meta.url), 'utf8'),
+  groupDetail: readFileSync(
+    new URL('./routes/_app/groups/$groupSlug/index.tsx', import.meta.url),
+    'utf8'
+  ),
+  groupEdit: readFileSync(
+    new URL('./routes/_app/groups/$groupSlug/edit.tsx', import.meta.url),
+    'utf8'
+  ),
   membersDb: readFileSync(new URL('./members/db.ts', import.meta.url), 'utf8'),
   rulesetDb: readFileSync(new URL('./rulesets/db.ts', import.meta.url), 'utf8'),
   rulesetDetail: readFileSync(
@@ -97,5 +106,45 @@ describe('faction and ruleset collaborative-access caller contract', () => {
     expect(sources.rulesetDetail).not.toContain('viewerAssignableMemberships');
     expect(sources.rulesetDb).not.toContain('viewerAssignableMemberships');
     expect(sources.membersDb).not.toContain('listByUserActiveWithGroups');
+  });
+
+  test('Group callers consume viewer access, owner summary, roster capabilities, and one workflow', () => {
+    expect(sources.groupDb).toContain('viewerAccess');
+    expect(sources.groupDb).toContain('owner: GroupOwnerSummary | null');
+    expect(sources.groupDb).toContain('roster: GroupRosterEntry[]');
+    expect(sources.groupDb).not.toMatch(/^\s+members:/m);
+    expect(sources.groupDb).not.toMatch(/^\s+profiles:/m);
+
+    expect(sources.groupDetail).toContain('groupData.viewerAccess');
+    expect(sources.groupDetail).toContain('groupData.owner');
+    expect(sources.groupDetail).toContain('groupData.roster');
+    expect(sources.groupDetail).toContain('useGroupMembershipWorkflow');
+    expect(sources.groupDetail).toContain('entry.capabilities.approve');
+    expect(sources.groupDetail).toContain('entry.capabilities.reject');
+    expect(sources.groupDetail).toContain('entry.capabilities.remove');
+    expect(sources.groupDetail).toMatch(/approve\s*\.run\(entry\.membershipId\)/);
+    expect(sources.groupDetail).toMatch(/reject\s*\.run\(entry\.membershipId\)/);
+    expect(sources.groupDetail).toContain('remove.run(membershipId)');
+    expect(sources.groupDetail).toContain('handleRemoveMember(entry.membershipId)');
+    expect(sources.groupDetail).not.toContain('useCurrentProfile');
+    expect(sources.groupDetail).not.toContain('useApproveGroupMember');
+    expect(sources.groupDetail).not.toContain('useRejectGroupMember');
+    expect(sources.groupDetail).not.toContain('useRemoveGroupMember');
+    expect(sources.groupDetail).not.toContain('useRequestGroupMembership');
+
+    expect(sources.groupEdit).toContain('useGroupEditBySlug');
+    expect(sources.groupEdit).toContain('viewerAccess.capabilities.rename');
+    expect(sources.groupEdit).not.toContain('useCurrentProfile');
+    expect(sources.groupEdit).not.toContain('group.created_by');
+
+    expect(sources.groupDb).not.toContain('api.groups.getBySlug');
+    expect(sources.groupDb).not.toContain('loadGroupBySlug');
+    expect(sources.groupDb).not.toContain('useGroupBySlug');
+    expect(sources.membersDb).not.toContain('api.members.listByGroup');
+    expect(sources.membersDb).not.toContain('api.members.get');
+    expect(sources.membersDb).not.toContain('useRequestGroupMembership');
+    expect(sources.membersDb).not.toContain('useApproveGroupMember');
+    expect(sources.membersDb).not.toContain('useRejectGroupMember');
+    expect(sources.membersDb).not.toContain('useRemoveGroupMember');
   });
 });

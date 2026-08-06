@@ -174,6 +174,12 @@ describe('collaborative access public projections', () => {
         addMember: true,
       },
     });
+    expect(page.owner).toEqual({
+      id: expect.any(String),
+      slug: 'group-owner',
+      username: 'Group owner',
+      avatar_url: null,
+    });
     expect(page.roster).toEqual([
       expect.objectContaining({
         membershipId: ids.membershipIds.owner,
@@ -446,6 +452,11 @@ describe('collaborative access public projections', () => {
       viewer: { kind: 'authenticated', membership: 'none' },
       capabilities: { rename: true, delete: true, addMember: false },
     });
+    expect(page.owner).toMatchObject({
+      slug: 'group-owner',
+      username: 'Group owner',
+    });
+    expect(page.roster.some((entry) => entry.membershipId === ids.membershipIds.owner)).toBe(false);
 
     const assetOwnerPage = await t
       .withIdentity({ subject: ids.assetOwnerId })

@@ -57,4 +57,43 @@ describe('Group membership workflow', () => {
     expect(mocks.remove).toHaveBeenCalledWith({ membershipId: 'membership-3' });
     expect(mocks.add).toHaveBeenCalledWith({ groupId: 'group-1', userId: 'user-1' });
   });
+
+  test('clears an earlier moderation failure when a different command succeeds', async () => {
+    mocks.approve.mockRejectedValueOnce(new Error('Approve failed'));
+    const hook = renderHook(() => useGroupMembershipWorkflow());
+
+    await act(async () => {
+      await expect(hook.result.current.approve.run('membership-1')).rejects.toThrow(
+        'Approve failed'
+      );
+    });
+    expect(hook.result.current.approve.error?.message).toBe('Approve failed');
+
+    await act(async () => {
+      await hook.result.current.reject.run('membership-1');
+    });
+
+    expect(hook.result.current.approve.error).toBeNull();
+    expect(hook.result.current.reject.error).toBeNull();
+    expect(hook.result.current.remove.error).toBeNull();
+  });
+
+  test('replaces an earlier moderation failure with the latest command failure', async () => {
+    mocks.approve.mockRejectedValueOnce(new Error('Approve failed'));
+    mocks.reject.mockRejectedValueOnce(new Error('Reject failed'));
+    const hook = renderHook(() => useGroupMembershipWorkflow());
+
+    await act(async () => {
+      await expect(hook.result.current.approve.run('membership-1')).rejects.toThrow(
+        'Approve failed'
+      );
+    });
+    await act(async () => {
+      await expect(hook.result.current.reject.run('membership-1')).rejects.toThrow('Reject failed');
+    });
+
+    expect(hook.result.current.approve.error).toBeNull();
+    expect(hook.result.current.reject.error?.message).toBe('Reject failed');
+    expect(hook.result.current.remove.error).toBeNull();
+  });
 });
