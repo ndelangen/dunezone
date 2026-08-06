@@ -22,11 +22,7 @@ export function useAdminMigrationDashboard(options?: {
     | AdminMigrationDashboardData
     | undefined;
   const result = toLiveQueryResult(liveData, true, () => options?.initialData);
-  return {
-    ...result,
-    statuses: result.data?.statuses ?? [],
-    snapshots: result.data?.snapshots ?? [],
-  };
+  return result;
 }
 
 export function useSyncMigrationRuns() {

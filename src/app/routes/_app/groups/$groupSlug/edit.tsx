@@ -22,7 +22,8 @@ function GroupEditPage() {
   const loaderData = Route.useLoaderData();
   const groupData = useGroupEditBySlug(groupSlug, { initialData: loaderData.groupEdit });
 
-  if (groupData.isError || !groupData.group || !groupData.viewerAccess) {
+  const editPage = groupData.data;
+  if (groupData.isError || !editPage) {
     return (
       <PageLayout header={<h1>Edit group</h1>}>
         <Card>
@@ -35,8 +36,8 @@ function GroupEditPage() {
     );
   }
 
-  const group = groupData.group;
-  const viewerAccess = groupData.viewerAccess;
+  const group = editPage.group;
+  const viewerAccess = editPage.viewerAccess;
   const header = <h1>{`Edit ${group.name}`}</h1>;
   const toolbar = (
     <Toolbar>

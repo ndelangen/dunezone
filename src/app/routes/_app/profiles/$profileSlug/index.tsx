@@ -40,12 +40,13 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
 function ProfileDetailPage() {
   const { profileSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
-  const profileData = useProfileBySlug(profileSlug, { initialData: loaderData.profilePage });
+  const profileQuery = useProfileBySlug(profileSlug, { initialData: loaderData.profilePage });
+  const page = profileQuery.data;
   const currentProfile = useCurrentProfile();
   const { signOut } = useAuthActions();
   const navigate = useNavigate();
 
-  if (!profileData.profile) {
+  if (!page) {
     return (
       <PageLayout header={<h1>Profile</h1>}>
         <Card>
@@ -58,9 +59,9 @@ function ProfileDetailPage() {
     );
   }
 
-  const isSelf = currentProfile.data?._id === profileData.profile._id;
+  const isSelf = currentProfile.data?._id === page.profile._id;
   const initials =
-    profileData.profile.username
+    page.profile.username
       ?.slice(0, 2)
       .toUpperCase()
       .replace(/[^A-Z]/g, '') || '?';
@@ -70,7 +71,7 @@ function ProfileDetailPage() {
     await navigate({ to: '/auth/login' });
   };
 
-  const acceptedAnswerCount = profileData.acceptedAnswerCount ?? 0;
+  const acceptedAnswerCount = page.acceptedAnswerCount;
 
   const toolbar = (
     <Toolbar>
@@ -124,17 +125,17 @@ function ProfileDetailPage() {
     <PageLayout
       header={
         <div className={styles.identityRow}>
-          {profileData.profile.avatar_url ? (
+          {page.profile.avatar_url ? (
             <img
-              src={profileData.profile.avatar_url}
-              alt={profileData.profile.username ?? 'Avatar'}
+              src={page.profile.avatar_url}
+              alt={page.profile.username ?? 'Avatar'}
               className={styles.avatar}
             />
           ) : (
             <span className={styles.avatarPlaceholder}>{initials}</span>
           )}
           <Stack gap={1}>
-            <h1 className={styles.displayName}>{profileData.profile.username ?? 'Unknown'}</h1>
+            <h1 className={styles.displayName}>{page.profile.username ?? 'Unknown'}</h1>
             {isSelf && <p className={styles.selfHint}>This is you!</p>}
             <p className={styles.profileSummary}>
               <strong>Proposed bio:</strong> A short introduction describing this contributor's
@@ -152,8 +153,8 @@ function ProfileDetailPage() {
             <h2 className={styles.iconHeading}>
               <Shield size={20} aria-hidden /> Factions created
             </h2>
-            {profileData.factions && profileData.factions.length > 0 ? (
-              <FactionList factions={profileData.factions} />
+            {page.factions.length > 0 ? (
+              <FactionList factions={page.factions} />
             ) : (
               <Card>
                 <p className={styles.empty}>No factions created yet.</p>
@@ -180,10 +181,10 @@ function ProfileDetailPage() {
               <MessageCircleReply size={20} aria-hidden /> Answers contributed
             </h2>
             <Card>
-              {profileData.faqAnswers && profileData.faqAnswers.length > 0 ? (
+              {page.faqAnswers.length > 0 ? (
                 <ProfileFaqAnswersGiven
-                  items={profileData.faqAnswers}
-                  viewedProfileId={profileData.profile._id}
+                  items={page.faqAnswers}
+                  viewedProfileId={page.profile._id}
                 />
               ) : (
                 <p className={styles.empty}>No FAQ answers yet.</p>
@@ -196,8 +197,8 @@ function ProfileDetailPage() {
               <CircleHelp size={20} aria-hidden /> Questions asked
             </h2>
             <Card>
-              {profileData.faqAsked && profileData.faqAsked.length > 0 ? (
-                <ProfileFaqQuestionsAsked items={profileData.faqAsked} />
+              {page.faqAsked.length > 0 ? (
+                <ProfileFaqQuestionsAsked items={page.faqAsked} />
               ) : (
                 <p className={styles.empty}>No questions asked yet.</p>
               )}
@@ -217,17 +218,17 @@ function ProfileDetailPage() {
               <div className={styles.factList}>
                 <p>
                   <Shield size={18} aria-hidden />
-                  <strong>{profileData.factions?.length ?? 0}</strong>
+                  <strong>{page.factions.length}</strong>
                   <span>Factions</span>
                 </p>
                 <p>
                   <UsersRound size={18} aria-hidden />
-                  <strong>{profileData.groupSummaries?.length ?? 0}</strong>
+                  <strong>{page.groupSummaries.length}</strong>
                   <span>Groups</span>
                 </p>
                 <p>
                   <MessageCircleReply size={18} aria-hidden />
-                  <strong>{profileData.faqAnswers?.length ?? 0}</strong>
+                  <strong>{page.faqAnswers.length}</strong>
                   <span>Answers</span>
                 </p>
                 <p>
@@ -237,7 +238,7 @@ function ProfileDetailPage() {
                 </p>
                 <p>
                   <CircleHelp size={18} aria-hidden />
-                  <strong>{profileData.faqAsked?.length ?? 0}</strong>
+                  <strong>{page.faqAsked.length}</strong>
                   <span>Questions</span>
                 </p>
               </div>
@@ -257,11 +258,11 @@ function ProfileDetailPage() {
                 </p>
                 <p className={styles.memberSince}>
                   Member since{' '}
-                  <time dateTime={profileData.profile.created_at}>
+                  <time dateTime={page.profile.created_at}>
                     {new Intl.DateTimeFormat('en', {
                       month: 'short',
                       year: 'numeric',
-                    }).format(new Date(profileData.profile.created_at))}
+                    }).format(new Date(page.profile.created_at))}
                   </time>
                 </p>
               </Stack>
@@ -274,7 +275,7 @@ function ProfileDetailPage() {
                 </h2>
               }
             >
-              <ProfileGroupMemberships groups={profileData.groupSummaries ?? []} />
+              <ProfileGroupMemberships groups={page.groupSummaries} />
             </Card>
           </Stack>
         </aside>

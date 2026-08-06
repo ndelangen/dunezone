@@ -3,9 +3,10 @@ import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 import type { FaqAnswerEntry, FaqItemWithDetails } from '@db/faq';
+import { parseClientBoundary } from '@app/db/core/clientBoundary';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { rulesetInputSchema } from '@app/rulesets/validation';
-import { Background } from '@game/schema/faction';
+import { BackgroundClientSchema } from '@game/schema/faction';
 import type { FactionData } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
@@ -39,7 +40,11 @@ function normalizeRulesetFactionSummary(faction: RulesetFactionSummaryRaw): Rule
     identity: faction.identity
       ? {
           logo: faction.identity.logo,
-          background: Background.parse(faction.identity.background),
+          background: parseClientBoundary(
+            BackgroundClientSchema,
+            faction.identity.background,
+            'Faction identity'
+          ),
         }
       : null,
   };
@@ -133,12 +138,7 @@ export function useRulesetBySlug(slug: string, options?: { initialData?: Ruleset
   const liveData = useQuery(api.rulesets.getBySlug, { slug });
   const normalized = liveData ? toRulesetPageData(liveData) : undefined;
   const result = toLiveQueryResult(normalized, true, () => options?.initialData);
-  return {
-    ...result,
-    ruleset: result.data ? toRulesetEntry(result.data.ruleset) : undefined,
-    factions: result.data?.factions.map(normalizeRulesetFactionSummary),
-    viewerAccess: result.data?.viewerAccess,
-  };
+  return result;
 }
 
 export function useRulesetDetailPage(
@@ -155,15 +155,7 @@ export function useRulesetDetailPage(
         ? null
         : normalizeRulesetDetailPage(liveData);
   const result = toLiveQueryResult(normalized, true, () => options?.initialData);
-  return {
-    ...result,
-    ruleset: result.data?.ruleset,
-    factions: result.data?.factions,
-    viewerAccess: result.data?.viewerAccess,
-    owner: result.data?.owner ?? null,
-    assignableGroups: result.data?.assignableGroups ?? [],
-    faqItems: result.data?.faqItems ?? [],
-  };
+  return result;
 }
 
 export function useCreateRuleset() {

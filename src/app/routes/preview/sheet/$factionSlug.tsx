@@ -24,7 +24,8 @@ export const Route = createFileRoute('/preview/sheet/$factionSlug')({
 function FactionSheetDbMode() {
   const { factionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
-  const { faction } = useFaction(factionSlug, { initialData: loaderData });
+  const factionQuery = useFaction(factionSlug, { initialData: loaderData });
+  const faction = factionQuery.data?.faction ?? loaderData?.faction;
 
   useEffect(() => {
     document.documentElement.dataset.factionSheet = '';
