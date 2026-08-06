@@ -1,4 +1,5 @@
 import { useQuery } from 'convex/react';
+import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 import type { FaqAnswerEntry, FaqItemWithDetails } from '@db/faq';
@@ -8,7 +9,7 @@ import { Background } from '@game/schema/faction';
 import type { FactionData } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
-import type { Doc } from '../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../../convex/_generated/dataModel';
 import type {
   AssignedGroupSummary,
   CollaborativeAccess,
@@ -62,15 +63,27 @@ export type RulesetDetailPageData = RulesetPageData & {
   faqItems: FaqItemWithDetails[];
 };
 
-function toRulesetPageData(raw: {
-  ruleset: RulesetRow;
-  factions: RulesetFactionSummaryRaw[];
-  viewerAccess: RulesetPageData['viewerAccess'];
-}): RulesetPageData {
+function toRulesetPageData(
+  raw: FunctionReturnType<typeof api.rulesets.getBySlug>
+): RulesetPageData {
   return {
     ruleset: toRulesetEntry(raw.ruleset),
     factions: raw.factions.map(normalizeRulesetFactionSummary),
     viewerAccess: raw.viewerAccess,
+  };
+}
+
+/** Canonical detail page model, shared by the route loader and the live subscription. */
+function normalizeRulesetDetailPage(
+  raw: NonNullable<FunctionReturnType<typeof api.rulesets.detailPageBySlug>>
+): RulesetDetailPageData {
+  return {
+    ruleset: toRulesetEntry(raw.ruleset),
+    factions: raw.factions.map(normalizeRulesetFactionSummary),
+    viewerAccess: raw.viewerAccess,
+    owner: raw.owner,
+    assignableGroups: raw.assignableGroups,
+    faqItems: mapFaqItemsFromConvex(raw.faqItems),
   };
 }
 
@@ -99,62 +112,41 @@ export function rulesetRowsToEntries(entries: RulesetRow[]): RulesetEntry[] {
 }
 
 export async function loadRulesetsAll(): Promise<RulesetEntry[]> {
-  const entries = await db.query<RulesetRow[]>(api.rulesets.list, {});
+  const entries = await db.query(api.rulesets.list, {});
   return rulesetRowsToEntries(entries);
 }
 
 export async function loadRuleset(id: string): Promise<RulesetEntry> {
-  const entry = await db.query<RulesetRow>(api.rulesets.get, { id });
+  const entry = await db.query(api.rulesets.get, { id: id as Id<'rulesets'> });
   return toRulesetEntry(entry);
 }
 
 export async function loadRulesetBySlug(slug: string): Promise<RulesetPageData> {
-  const result = await db.query<{
-    ruleset: RulesetRow;
-    factions: RulesetFactionSummaryRaw[];
-    viewerAccess: RulesetPageData['viewerAccess'];
-  }>(api.rulesets.getBySlug, { slug });
+  const result = await db.query(api.rulesets.getBySlug, { slug });
   return toRulesetPageData(result);
 }
 
 export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetailPageData | null> {
-  const raw = await db.query<{
-    ruleset: RulesetRow;
-    factions: RulesetFactionSummaryRaw[];
-    viewerAccess: RulesetPageData['viewerAccess'];
-    owner: RulesetDetailPageData['owner'];
-    assignableGroups: AssignedGroupSummary[];
-    faqItems: FaqItemConvexRow[];
-  } | null>(api.rulesets.detailPageBySlug, { slug });
-  if (!raw) {
-    return null;
-  }
-  return {
-    ruleset: toRulesetEntry(raw.ruleset),
-    factions: raw.factions.map(normalizeRulesetFactionSummary),
-    viewerAccess: raw.viewerAccess,
-    owner: raw.owner,
-    assignableGroups: raw.assignableGroups,
-    faqItems: mapFaqItemsFromConvex(raw.faqItems),
-  };
+  const raw = await db.query(api.rulesets.detailPageBySlug, { slug });
+  return raw ? normalizeRulesetDetailPage(raw) : null;
 }
 
 export async function loadRulesetFactions(rulesetId: string): Promise<string[]> {
-  return await db.query<string[]>(api.rulesets.factionIds, { ruleset_id: rulesetId });
+  return await db.query(api.rulesets.factionIds, { ruleset_id: rulesetId as Id<'rulesets'> });
 }
 
 export async function loadRulesetFactionsWithDetails(
   rulesetId: string
 ): Promise<RulesetFactionSummary[]> {
-  const factions = await db.query<RulesetFactionSummaryRaw[]>(api.rulesets.factionDetails, {
-    ruleset_id: rulesetId,
+  const factions = await db.query(api.rulesets.factionDetails, {
+    ruleset_id: rulesetId as Id<'rulesets'>,
   });
   return factions.map(normalizeRulesetFactionSummary);
 }
 
 export async function loadRulesetsByFaction(factionId: string): Promise<RulesetEntry[]> {
-  const entries = await db.query<RulesetRow[]>(api.rulesets.listByFaction, {
-    faction_id: factionId,
+  const entries = await db.query(api.rulesets.listByFaction, {
+    faction_id: factionId as Id<'factions'>,
   });
   return entries.map(toRulesetEntry);
 }
@@ -207,14 +199,7 @@ export function useRulesetDetailPage(
       ? undefined
       : liveData === null
         ? null
-        : {
-            ruleset: toRulesetEntry(liveData.ruleset),
-            factions: liveData.factions.map(normalizeRulesetFactionSummary),
-            viewerAccess: liveData.viewerAccess,
-            owner: liveData.owner,
-            assignableGroups: liveData.assignableGroups,
-            faqItems: mapFaqItemsFromConvex(liveData.faqItems as FaqItemConvexRow[]),
-          };
+        : normalizeRulesetDetailPage(liveData);
   const result = toLiveQueryResult(normalized, true, () => options?.initialData);
   return {
     ...result,
