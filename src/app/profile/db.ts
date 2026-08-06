@@ -4,14 +4,12 @@ import { useEffect, useRef } from 'react';
 
 import { db } from '@db/core';
 import { factionCatalogueRowsToEntries } from '@db/factions';
-import type { FactionCatalogueEntry } from '@db/factions';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { profileUserEditFormSchema } from '@app/profile/validation';
 import type { ProfileUserEditInput } from '@app/profile/validation';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
-import type { AssignedGroupSummary } from '../../../convex/lib/collaborativeAccess';
 
 export type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
@@ -27,17 +25,10 @@ export type ProfileListEntry = ProfileRow & {
 /** Server-owned profile detail contract; the read model lives in `convex/lib/profileDetail.ts`. */
 export type ProfileDetailResult = FunctionReturnType<typeof api.profiles.getBySlug>;
 
-export type ProfilePageData = {
-  profile: ProfileEntry;
-  groupSummaries: AssignedGroupSummary[];
-  faqAsked: ProfileDetailResult['faqAsked'];
-  faqAnswers: ProfileDetailResult['faqAnswers'];
-  factions: FactionCatalogueEntry[];
-  acceptedAnswerCount: number;
-};
+export type ProfilePageData = ReturnType<typeof normalizeProfilePage>;
 
 /** Canonical browser page model, shared by the route loader and the live subscription. */
-function normalizeProfilePage(result: ProfileDetailResult): ProfilePageData {
+function normalizeProfilePage(result: ProfileDetailResult) {
   return {
     profile: result.profile,
     groupSummaries: result.groupSummaries,
