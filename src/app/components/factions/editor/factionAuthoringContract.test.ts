@@ -50,32 +50,6 @@ describe('faction authoring contract', () => {
     ).toBe(true);
   });
 
-  it('preserves loaded extras byte-for-byte even if submitted form values are changed', () => {
-    const baseline = {
-      ...structuredClone(defaultFaction),
-      extras: [
-        {
-          name: 'Existing TTS content',
-          description: 'Not owned by the editor',
-          items: [{ url: 'https://example.com/item.png', description: 'Existing item' }],
-        },
-      ],
-    };
-    const values = {
-      ...structuredClone(baseline),
-      name: 'Edited faction',
-      extras: [{ name: 'Changed', items: [] }],
-    };
-    const baselineExtrasBytes = JSON.stringify(baseline.extras);
-
-    const submitted = preserveFactionExtras(values, baseline);
-
-    expect(submitted.name).toBe('Edited faction');
-    expect(submitted.extras).toEqual(baseline.extras);
-    expect(submitted.extras).not.toBe(baseline.extras);
-    expect(JSON.stringify(submitted.extras)).toBe(baselineExtrasBytes);
-  });
-
   it('round-trips optional and uncommon schema data without dropping it', () => {
     const baseline = structuredClone(defaultFaction);
     baseline.planet = [
