@@ -30,6 +30,11 @@ const sources = {
     'utf8'
   ),
   membersDb: readFileSync(new URL('./members/db.ts', import.meta.url), 'utf8'),
+  profileDb: readFileSync(new URL('./profile/db.ts', import.meta.url), 'utf8'),
+  profileDetail: readFileSync(
+    new URL('./routes/_app/profiles/$profileSlug/index.tsx', import.meta.url),
+    'utf8'
+  ),
   rulesetDb: readFileSync(new URL('./rulesets/db.ts', import.meta.url), 'utf8'),
   rulesetDetail: readFileSync(
     new URL('./routes/_app/rulesets/$rulesetSlug/index.tsx', import.meta.url),
@@ -146,5 +151,20 @@ describe('faction and ruleset collaborative-access caller contract', () => {
     expect(sources.membersDb).not.toContain('useApproveGroupMember');
     expect(sources.membersDb).not.toContain('useRejectGroupMember');
     expect(sources.membersDb).not.toContain('useRemoveGroupMember');
+  });
+
+  test('profile detail consumes safe Group summaries without raw membership reconstruction', () => {
+    expect(sources.profileDb).toContain('groupSummaries: AssignedGroupSummary[]');
+    expect(sources.profileDb).not.toMatch(/^\s+memberships:/m);
+    expect(sources.profileDb).not.toMatch(/^\s+groups:/m);
+
+    expect(sources.profileDetail).toContain('profileData.groupSummaries?.length');
+    expect(sources.profileDetail).toContain(
+      '<ProfileGroupMemberships groups={profileData.groupSummaries ?? []} />'
+    );
+    expect(sources.profileDetail).not.toContain('profileData.memberships');
+    expect(sources.profileDetail).not.toContain('groupsById');
+    expect(sources.profileDetail).not.toContain('group_id');
+    expect(sources.profileDetail).not.toContain('Unknown group');
   });
 });

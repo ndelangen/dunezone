@@ -439,6 +439,22 @@ describe('collaborative access public projections', () => {
     });
   });
 
+  test('profile Group summaries safely omit active memberships whose Group is missing', async () => {
+    const { t, ids } = await groupAccessFixture();
+    await t.run((ctx) => ctx.db.delete(ids.groupId));
+
+    const profilePage = await t.query(api.profiles.getBySlug, { slug: 'active-member' });
+
+    expect(profilePage.groupSummaries).toEqual([]);
+    expect(profilePage.groups).toEqual([]);
+    expect(profilePage.memberships).toHaveLength(1);
+    expect(profilePage.memberships[0]).toMatchObject({
+      group_id: ids.groupId,
+      user_id: ids.activeId,
+      status: 'active',
+    });
+  });
+
   test('ownership and active membership remain distinct trusted facts', async () => {
     const { t, ids } = await groupAccessFixture();
     await t.run(async (ctx) => {
