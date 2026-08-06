@@ -7,6 +7,7 @@ import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
+import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { nowIso } from './lib/utils';
@@ -16,14 +17,6 @@ const FAQ_ITEM_DELETE_BATCH_MAX_DOCUMENTS = 100;
 const FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES = 2 * 1024 * 1024;
 const FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS = 16;
 
-const faqTagValidator = v.union(
-  v.literal(FAQ_TAG_VALUES[0]),
-  v.literal(FAQ_TAG_VALUES[1]),
-  v.literal(FAQ_TAG_VALUES[2]),
-  v.literal(FAQ_TAG_VALUES[3]),
-  v.literal(FAQ_TAG_VALUES[4]),
-  v.literal(FAQ_TAG_VALUES[5])
-);
 
 async function getRuleset(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
   return await ctx.db.get(id);
