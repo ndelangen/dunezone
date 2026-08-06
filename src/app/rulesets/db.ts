@@ -104,7 +104,7 @@ function toRulesetEntry(entry: RulesetRow): RulesetEntry {
   return {
     ...entry,
     id: entry._id,
-    name: rulesetInputSchema.parse({ name: entry.name }).name,
+    name: entry.name,
   };
 }
 
@@ -170,7 +170,7 @@ export function useRuleset(id: string) {
       ? {
           ...result.data,
           id: result.data._id,
-          name: rulesetInputSchema.parse({ name: result.data.name }).name,
+          name: result.data.name,
         }
       : undefined,
   };
