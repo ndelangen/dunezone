@@ -36,6 +36,7 @@ import type * as lib_profileDiscovery from "../lib/profileDiscovery.js";
 import type * as lib_profileSummary from "../lib/profileSummary.js";
 import type * as lib_publication from "../lib/publication.js";
 import type * as lib_publicationHttp from "../lib/publicationHttp.js";
+import type * as lib_rulesetDetailPage from "../lib/rulesetDetailPage.js";
 import type * as lib_statistics from "../lib/statistics.js";
 import type * as lib_utils from "../lib/utils.js";
 import type * as localDevelopment from "../localDevelopment.js";
@@ -85,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   "lib/profileSummary": typeof lib_profileSummary;
   "lib/publication": typeof lib_publication;
   "lib/publicationHttp": typeof lib_publicationHttp;
+  "lib/rulesetDetailPage": typeof lib_rulesetDetailPage;
   "lib/statistics": typeof lib_statistics;
   "lib/utils": typeof lib_utils;
   localDevelopment: typeof localDevelopment;
