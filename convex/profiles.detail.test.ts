@@ -16,7 +16,6 @@ type SeedResult = {
   profileId: Id<'profiles'>;
   activeGroupId: Id<'groups'>;
   laterGroupId: Id<'groups'>;
-  activeMembershipId: Id<'group_members'>;
   advancedRulesetId: Id<'rulesets'>;
   basicRulesetId: Id<'rulesets'>;
   activeFactionId: Id<'factions'>;
@@ -70,7 +69,7 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
       created_at: at(1),
       created_by: userId,
     });
-    const activeMembershipId = await ctx.db.insert('group_members', {
+    await ctx.db.insert('group_members', {
       group_id: activeGroupId,
       user_id: userId,
       status: 'active',
@@ -244,7 +243,6 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
       profileId,
       activeGroupId,
       laterGroupId,
-      activeMembershipId,
       advancedRulesetId,
       basicRulesetId,
       activeFactionId,

@@ -1,35 +1,17 @@
-import type { Doc } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
-import type { AssignedGroupSummary } from './collaborativeAccess';
 import { enrichFactionsWithRulesets, listActiveRulesetSummaries } from './factionCatalogue';
-import type { CatalogueFaction } from './factionCatalogue';
 import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './faqProfileActivity';
 
 const PROFILE_DETAIL_LIMIT = 500;
 
 /**
- * Public profile-page projection. The runtime contract is `profileDetailPageValidator` in
- * `collaborativeAccessValidators.ts`; this type restates it with the parsed faction shape the
- * enrichment helpers guarantee.
- */
-export type ProfileDetailProjection = {
-  profile: Doc<'profiles'>;
-  faqAsked: Awaited<ReturnType<typeof loadFaqQuestionsAskedBy>>;
-  faqAnswers: Awaited<ReturnType<typeof loadFaqAnswersGivenBy>>;
-  factions: CatalogueFaction[];
-  groupSummaries: AssignedGroupSummary[];
-};
-
-/**
  * Profile-detail read model. Owns the joins, visibility rules (active memberships only,
  * soft-deleted factions excluded, faction rulesets limited to active ones), and ordering (FAQ
  * activity newest first, faction rulesets by name, Groups in membership order) behind
- * `api.profiles.getBySlug`.
+ * `api.profiles.getBySlug`. The runtime wire contract is `profileDetailPageValidator`; the precise
+ * TS projection (parsed faction data included) is inferred from this loader.
  */
-export async function loadProfileDetailBySlug(
-  ctx: QueryCtx,
-  slug: string
-): Promise<ProfileDetailProjection> {
+export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
   const profile = await ctx.db
     .query('profiles')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
@@ -76,3 +58,5 @@ export async function loadProfileDetailBySlug(
     groupSummaries,
   };
 }
+
+export type ProfileDetailProjection = Awaited<ReturnType<typeof loadProfileDetailBySlug>>;
