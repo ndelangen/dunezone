@@ -39,6 +39,13 @@ Follow the canonical validation guidance in [`docs/data-layer.md`](docs/data-lay
 - Shared Zod schemas parsed in Convex handlers (`safeParse`) for authoritative semantic/business rules.
 - Client-side parsing only for UX feedback.
 
+Type-safety and testing strategy follows
+[ADR-0002 (the confidence stack)](docs/adr/0002-confidence-stack.md): every shape has one
+authority and everything else derives from it; seam-level suites cover only what types cannot
+express; a few happy-path e2e specs are the confidence anchor. Before adding a test, check
+whether a type guarantee or an existing e2e path already covers it. Tests never assert on source
+text or dictate API shape ([ADR-0001](docs/adr/0001-contracts-over-expressions.md)).
+
 Before opening or updating any PR that changes application code, publisher code, or release
 assets, run `bun run publisher:release:verify`. The publisher Worker contains the application
 release, while its Renderer identity intentionally excludes application-only shell and chunk
