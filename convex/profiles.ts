@@ -119,6 +119,8 @@ export const getBySlug = query({
     const groups = groupsWithNulls.filter(
       (group): group is NonNullable<(typeof groupsWithNulls)[number]> => group !== null
     );
+    // Public profile callers count and render only resolvable active Groups. A dangling legacy
+    // membership remains available during widening but cannot become a safe identity summary.
     const groupSummaries = groups.map((group) => ({
       id: group._id,
       name: group.name,
