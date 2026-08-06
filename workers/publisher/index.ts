@@ -1,7 +1,7 @@
 import { publisherFailureFields } from '../../src/app/capture/publisher-diagnostics';
 import { openPublisherBrowser } from './browser';
 import { handleCaptureRoute } from './capture-route';
-import { MAX_ASSIGNED_ITEMS, parsePublisherConfig } from './config';
+import { EXECUTOR_REQUEST_MARGIN_MS, MAX_ASSIGNED_ITEMS, parsePublisherConfig } from './config';
 import { ConvexPublisherClient } from './convex';
 import { handlePublicAssetRequest } from './delivery';
 import { executeItemList } from './executor';
@@ -98,7 +98,7 @@ export const publisherWorker = {
     try {
       const config = parsePublisherConfig(env);
       const publisher = client(env, config.convexExecutorBaseUrl);
-      const work = await publisher.takeWork(Date.now() + 15_000);
+      const work = await publisher.takeWork(Date.now() + EXECUTOR_REQUEST_MARGIN_MS);
       if (work.status === 'empty') {
         log({
           event: 'asset_publisher_cron',

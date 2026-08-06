@@ -11,6 +11,8 @@ export type PublisherConfig = {
 };
 
 const COMPLETION_MARGIN_MS = 5000;
+/** Per-request clamp for executor round-trips; the single owner of the former hardcoded 15s. */
+export const EXECUTOR_REQUEST_MARGIN_MS = 15_000;
 export const MAX_ASSIGNED_ITEMS = PUBLICATION_MAX_PICKUP;
 
 function integer(name: string, value: string, minimum: number, maximum: number): number {
@@ -24,7 +26,7 @@ function integer(name: string, value: string, minimum: number, maximum: number):
   return parsed;
 }
 
-function absoluteHttpsUrl(name: string, value: string): string {
+export function absoluteHttpsUrl(name: string, value: string): string {
   const url = new URL(value);
   if (url.protocol !== 'https:' || url.username || url.password || url.hash) {
     throw new Error(`${name} must be an absolute HTTPS URL without credentials or fragment`);
@@ -71,5 +73,30 @@ export function parsePublisherConfig(env: Env): PublisherConfig {
     browserCaptureTimeoutMs,
     browserCleanupGraceMs,
     pdfMaxBytes: integer('PDF_MAX_BYTES', env.PDF_MAX_BYTES, 8_000_000, 8_000_000),
+  };
+}
+
+export type PublicationWorkBudget = {
+  workDeadlineAt: number;
+  completionDeadlineAt: number;
+  requestDeadline(): number;
+};
+
+/**
+ * The one timing contract for a publication work cycle: captures stop at the work deadline, the
+ * final report must land before the completion deadline, and each executor round-trip is clamped by
+ * the request margin. The validation in `parsePublisherConfig` guarantees these fit the executor's
+ * absolute lifecycle window.
+ */
+export function publicationWorkBudget(
+  config: Pick<PublisherConfig, 'workWindowMs' | 'browserCleanupGraceMs'>,
+  now: () => number
+): PublicationWorkBudget {
+  const workDeadlineAt = now() + config.workWindowMs;
+  const completionDeadlineAt = workDeadlineAt + config.browserCleanupGraceMs;
+  return {
+    workDeadlineAt,
+    completionDeadlineAt,
+    requestDeadline: () => Math.min(completionDeadlineAt, now() + EXECUTOR_REQUEST_MARGIN_MS),
   };
 }
