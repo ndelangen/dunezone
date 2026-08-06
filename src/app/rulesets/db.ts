@@ -9,7 +9,7 @@ import { Background } from '@game/schema/faction';
 import type { FactionData } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
-import type { Doc, Id } from '../../../convex/_generated/dataModel';
+import type { Doc } from '../../../convex/_generated/dataModel';
 import type {
   AssignedGroupSummary,
   CollaborativeAccess,
@@ -22,13 +22,6 @@ export type RulesetEntry = Omit<RulesetRow, 'name'> & {
   name: Ruleset['name'];
   id: RulesetRow['_id'];
 };
-export type RulesetInsert = Omit<RulesetEntry, 'name'> & {
-  name: Ruleset['name'];
-};
-export type RulesetUpdate = Omit<Partial<RulesetEntry>, 'name'> & {
-  name?: Ruleset['name'];
-};
-
 export type RulesetFactionSummary = {
   factionId: string;
   name: string;
@@ -117,11 +110,6 @@ export async function loadRulesetsAll(): Promise<RulesetEntry[]> {
   return rulesetRowsToEntries(entries);
 }
 
-export async function loadRuleset(id: string): Promise<RulesetEntry> {
-  const entry = await db.query(api.rulesets.get, { id: id as Id<'rulesets'> });
-  return toRulesetEntry(entry);
-}
-
 export async function loadRulesetBySlug(slug: string): Promise<RulesetPageData> {
   const result = await db.query(api.rulesets.getBySlug, { slug });
   return toRulesetPageData(result);
@@ -132,47 +120,12 @@ export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetail
   return raw ? normalizeRulesetDetailPage(raw) : null;
 }
 
-export async function loadRulesetFactions(rulesetId: string): Promise<string[]> {
-  return await db.query(api.rulesets.factionIds, { ruleset_id: rulesetId as Id<'rulesets'> });
-}
-
-export async function loadRulesetFactionsWithDetails(
-  rulesetId: string
-): Promise<RulesetFactionSummary[]> {
-  const factions = await db.query(api.rulesets.factionDetails, {
-    ruleset_id: rulesetId as Id<'rulesets'>,
-  });
-  return factions.map(normalizeRulesetFactionSummary);
-}
-
-export async function loadRulesetsByFaction(factionId: string): Promise<RulesetEntry[]> {
-  const entries = await db.query(api.rulesets.listByFaction, {
-    faction_id: factionId as Id<'factions'>,
-  });
-  return entries.map(toRulesetEntry);
-}
-
 export function useRulesetsAll(options?: { initialData?: RulesetEntry[] }) {
   const liveData = useQuery(api.rulesets.list, {});
   const result = toLiveQueryResult(liveData, true, () => options?.initialData ?? undefined);
   return {
     ...result,
     data: result.data?.map(toRulesetEntry),
-  };
-}
-
-export function useRuleset(id: string) {
-  const liveData = useQuery(api.rulesets.get, { id } as never) as RulesetRow | undefined;
-  const result = toLiveQueryResult(liveData, true);
-  return {
-    ...result,
-    data: result.data
-      ? {
-          ...result.data,
-          id: result.data._id,
-          name: result.data.name,
-        }
-      : undefined,
   };
 }
 
@@ -210,41 +163,6 @@ export function useRulesetDetailPage(
     owner: result.data?.owner ?? null,
     assignableGroups: result.data?.assignableGroups ?? [],
     faqItems: result.data?.faqItems ?? [],
-  };
-}
-
-export function useRulesetFactions(rulesetId: string) {
-  const liveData = useQuery(api.rulesets.factionIds, { ruleset_id: rulesetId } as never) as
-    | string[]
-    | undefined;
-  return toLiveQueryResult(liveData, true);
-}
-
-export function useRulesetFactionsWithDetails(
-  rulesetId: string,
-  options?: { initialData?: RulesetFactionSummary[] }
-) {
-  const liveData = useQuery(api.rulesets.factionDetails, {
-    ruleset_id: rulesetId,
-  } as never) as RulesetFactionSummaryRaw[] | undefined;
-  const result = toLiveQueryResult(liveData, true, () => options?.initialData ?? undefined);
-  return {
-    ...result,
-    data: result.data?.map(normalizeRulesetFactionSummary),
-  };
-}
-
-export function useRulesetsByFaction(
-  factionRowId: string,
-  options?: { initialData?: RulesetEntry[] }
-) {
-  const liveData = useQuery(api.rulesets.listByFaction, {
-    faction_id: factionRowId,
-  } as never) as RulesetRow[] | undefined;
-  const result = toLiveQueryResult(liveData, true, () => options?.initialData ?? undefined);
-  return {
-    ...result,
-    data: result.data?.map(toRulesetEntry),
   };
 }
 

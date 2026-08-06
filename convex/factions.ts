@@ -318,31 +318,3 @@ export const softDelete = mutation({
     });
   },
 });
-
-export const getFullBySlug = query({
-  args: { slug: v.string() },
-  handler: async (ctx, args) => {
-    const row = await ctx.db
-      .query('factions')
-      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
-      .unique();
-    if (!row || row.is_deleted) {
-      throw new Error(`Faction with slug ${args.slug} not found`);
-    }
-    const profile = await ctx.db
-      .query('profiles')
-      .withIndex('by_user_id', (q) => q.eq('user_id', row.owner_id))
-      .unique();
-    if (!profile) {
-      throw new Error(`Profile with user id ${row.owner_id} not found`);
-    }
-    const group = row.group_id ? await ctx.db.get('groups', row.group_id) : null;
-
-    return {
-      ...row,
-      data: factionDataForClient(row.data),
-      owner: profile,
-      group,
-    };
-  },
-});
