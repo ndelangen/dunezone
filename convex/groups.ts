@@ -42,33 +42,7 @@ export const getById = query({
   },
 });
 
-export const getBySlug = query({
-  args: { slug: v.string() },
-  handler: async (ctx, args) => {
-    const group = await ctx.db
-      .query('groups')
-      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
-      .unique();
-    if (!group) {
-      throw new Error(`Group with slug ${args.slug} not found`);
-    }
-
-    const members = await ctx.db
-      .query('group_members')
-      .withIndex('by_group', (q) => q.eq('group_id', group._id))
-      .take(500);
-
-    return {
-      group,
-      members,
-    };
-  },
-});
-
-/**
- * Group detail page: group, memberships, associated factions and rulesets, and profiles for the
- * owner + every member user_id (each user must have a profile row).
- */
+/** Group detail page with canonical access, owner, roster, and associated assets. */
 export const detailBySlug = query({
   args: { slug: v.string() },
   returns: groupDetailPageValidator,
@@ -95,10 +69,8 @@ export const detailBySlug = query({
 
     return {
       group: accessBundle.subject,
-      members: accessBundle.members,
       factions,
       rulesets,
-      profiles: accessBundle.profiles,
       owner: accessBundle.owner,
       viewerAccess: accessBundle.viewerAccess,
       roster: accessBundle.roster,

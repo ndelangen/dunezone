@@ -131,16 +131,6 @@ function assetViewerAccessValidator(kind: 'faction' | 'ruleset') {
   });
 }
 
-const groupAccessValidator = v.object({
-  group: groupValidator,
-  members: v.array(
-    v.object({
-      membership: groupMemberValidator,
-      profile: v.union(profileSummaryValidator, v.null()),
-    })
-  ),
-});
-
 const assetPublishingValidator = v.object({
   status: v.union(v.literal('current'), v.null()),
   captureStatus: v.union(v.literal('scheduled'), v.literal('in_progress'), v.null()),
@@ -151,10 +141,6 @@ const assetPublishingValidator = v.object({
 export const factionDetailPageValidator = v.object({
   faction: factionValidator,
   owner: profileValidator,
-  group: v.union(groupValidator, v.null()),
-  memberships: v.array(groupMemberValidator),
-  groups: v.array(groupValidator),
-  groupAccess: v.union(groupAccessValidator, v.null()),
   assetPublishing: assetPublishingValidator,
   viewerAccess: assetViewerAccessValidator('faction'),
   assignableGroups: v.array(assignedGroupSummaryValidator),
@@ -171,7 +157,6 @@ const rulesetFactionSummaryValidator = v.object({
 export const rulesetPublicBundleValidator = v.object({
   ruleset: rulesetValidator,
   factions: v.array(rulesetFactionSummaryValidator),
-  canEditRuleset: v.boolean(),
   viewerAccess: assetViewerAccessValidator('ruleset'),
 });
 
@@ -234,24 +219,16 @@ const profileFactionValidator = factionValidator.extend({
 
 export const profileDetailPageValidator = v.object({
   profile: profileValidator,
-  memberships: v.array(groupMemberValidator),
-  groups: v.array(groupValidator),
   faqAsked: v.array(profileFaqQuestionValidator),
   faqAnswers: v.array(profileFaqAnswerValidator),
   factions: v.array(profileFactionValidator),
   groupSummaries: v.array(assignedGroupSummaryValidator),
 });
 
-const membershipWithGroupValidator = groupMemberValidator.extend({
-  groups: v.union(assignedGroupSummaryValidator, v.null()),
-});
-
 export const rulesetDetailPageValidator = v.union(
   rulesetPublicBundleValidator.extend({
-    groupAccess: v.union(groupAccessValidator, v.null()),
     faqItems: v.array(faqListItemValidator),
     owner: v.union(profileSummaryValidator, v.null()),
-    viewerAssignableMemberships: v.union(v.array(membershipWithGroupValidator), v.null()),
     assignableGroups: v.array(assignedGroupSummaryValidator),
   }),
   v.null()
@@ -259,10 +236,8 @@ export const rulesetDetailPageValidator = v.union(
 
 export const groupDetailPageValidator = v.object({
   group: groupValidator,
-  members: v.array(groupMemberValidator),
   factions: v.array(factionValidator),
   rulesets: v.array(rulesetValidator),
-  profiles: v.array(profileValidator),
   owner: v.union(profileSummaryValidator, v.null()),
   viewerAccess: groupViewerAccessValidator,
   roster: v.array(rosterEntryValidator),

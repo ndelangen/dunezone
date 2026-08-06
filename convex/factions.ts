@@ -20,7 +20,6 @@ import {
 } from './lib/factionCatalogue';
 import { parseFactionInput } from './lib/factionInput';
 import { requireAuthUserId } from './lib/policy';
-import { profileSummary } from './lib/profileSummary';
 import { enqueueFactionSheetPublication } from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -83,42 +82,12 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     throw new Error(`Profile with user id ${row.owner_id} not found`);
   }
 
-  const memberships = access.memberships;
-  const groups = access.groups;
-
-  let groupAccess: {
-    group: Doc<'groups'>;
-    members: Array<{
-      membership: Doc<'group_members'>;
-      profile: Awaited<ReturnType<typeof profileSummary>>;
-    }>;
-  } | null = null;
-
-  const linkedGroupId = row.group_id;
-  if (linkedGroupId && access.assignedGroup) {
-    const groupMemberships = await ctx.db
-      .query('group_members')
-      .withIndex('by_group', (q) => q.eq('group_id', linkedGroupId))
-      .take(500);
-    const members = await Promise.all(
-      groupMemberships.map(async (m) => ({
-        membership: m,
-        profile: await profileSummary(ctx, m.user_id),
-      }))
-    );
-    groupAccess = { group: access.assignedGroup, members };
-  }
-
   return {
     faction: {
       ...row,
       data: factionDataForClient(row.data),
     },
     owner: ownerProfile,
-    group: access.assignedGroup,
-    memberships,
-    groups,
-    groupAccess,
     assetPublishing: await factionSheetPublishingStatus(ctx, row._id),
     viewerAccess: access.viewerAccess,
     assignableGroups: access.assignableGroups,
@@ -398,34 +367,6 @@ export const getFullBySlug = query({
       data: factionDataForClient(row.data),
       owner: profile,
       group,
-    };
-  },
-});
-
-export const getCreatePageContext = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await requireAuthUserId(ctx);
-
-    const profile = await ctx.db
-      .query('profiles')
-      .withIndex('by_user_id', (q) => q.eq('user_id', userId))
-      .unique();
-
-    const groups = await ctx.db
-      .query('groups')
-      .withIndex('by_created_by', (q) => q.eq('created_by', userId))
-      .take(500);
-
-    const memberships = await ctx.db
-      .query('group_members')
-      .withIndex('by_user_status', (q) => q.eq('user_id', userId).eq('status', 'active'))
-      .take(500);
-
-    return {
-      ownerProfile: profile,
-      groups,
-      memberships,
     };
   },
 });

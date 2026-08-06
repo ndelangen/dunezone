@@ -50,8 +50,15 @@ module:
 - **`request`**: Any authenticated user may request membership.
 - **`addMember`**: Any active member may directly add another user without a prior request.
 
-The legacy pair-argument moderation functions remain registered only for the widened deployment
-compatibility interval and are removed by the separate transport-narrowing release.
+Only the canonical membership transport is public: `request({ group_id })`, the membership-ID
+moderation commands, and `addMember({ groupId, userId })`. Page queries expose purpose-built
+`viewerAccess`, `roster`, `assignableGroups`, and `groupSummaries` projections rather than raw
+membership rows.
+
+The transport was widened before every application caller moved to that contract. The narrowing
+release may deploy only while the canonical Worker cutover commit
+`3a67eb6f523f0d15811d9725e9a63c11ad47c1d8` or a descendant is live. Once Convex is narrowed, a
+rollback to an older Worker requires Convex to be re-widened first.
 
 ## Group-associated content
 

@@ -340,40 +340,6 @@ export async function requireMembershipRequest(ctx: MutationCtx, groupId: Id<'gr
   return access;
 }
 
-export async function requireLegacyMembershipManager(ctx: MutationCtx, groupId: Id<'groups'>) {
-  const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
-  if (!viewerId) {
-    throw new Error('Not authenticated');
-  }
-  const group = await ctx.db.get('groups', groupId);
-  if (!group) {
-    throw new Error('Not authorized');
-  }
-  const viewerMembership = await membershipFor(ctx, groupId, viewerId);
-  const access = groupAccessFromLoaded(group, viewerId, viewerMembership);
-  if (!access.viewerAccess.capabilities.addMember) {
-    throw new Error('Not authorized');
-  }
-  return access;
-}
-
-export async function requireLegacyGroupOwner(ctx: MutationCtx, groupId: Id<'groups'>) {
-  const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
-  if (!viewerId) {
-    throw new Error('Not authenticated');
-  }
-  const group = await ctx.db.get('groups', groupId);
-  if (!group) {
-    throw new Error('Group not found');
-  }
-  const viewerMembership = await membershipFor(ctx, groupId, viewerId);
-  const access = groupAccessFromLoaded(group, viewerId, viewerMembership);
-  if (!access.viewerAccess.capabilities.delete) {
-    throw new Error('Not authorized');
-  }
-  return access;
-}
-
 export async function requireFactionUpdate(
   ctx: MutationCtx,
   factionId: Id<'factions'>,
@@ -484,22 +450,12 @@ export async function requireRulesetMaintenance(ctx: MutationCtx, rulesetId: Id<
   return access;
 }
 
-type ActiveMembershipWithGroup = Doc<'group_members'> & {
-  groups: AssignedGroupSummary | null;
-};
-
 type LoadedFactionAccessBundle = LoadedFactionAccess & {
-  memberships: Doc<'group_members'>[];
-  groups: Doc<'groups'>[];
   assignableGroups: AssignedGroupSummary[];
-  viewerAssignableMemberships: ActiveMembershipWithGroup[] | null;
 };
 
 type LoadedRulesetAccessBundle = LoadedRulesetAccess & {
-  memberships: Doc<'group_members'>[];
-  groups: Doc<'groups'>[];
   assignableGroups: AssignedGroupSummary[];
-  viewerAssignableMemberships: ActiveMembershipWithGroup[] | null;
 };
 
 export function loadAssetAccessBundle(
@@ -515,14 +471,12 @@ export async function loadAssetAccessBundle(
   subject: { kind: 'faction'; row: Doc<'factions'> } | { kind: 'ruleset'; row: Doc<'rulesets'> }
 ): Promise<LoadedFactionAccessBundle | LoadedRulesetAccessBundle> {
   const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
-  const legacyMembershipLimit = subject.kind === 'faction' ? 500 : 200;
   const memberships = viewerId
     ? await ctx.db
         .query('group_members')
         .withIndex('by_user_status', (q) => q.eq('user_id', viewerId).eq('status', 'active'))
-        .take(legacyMembershipLimit)
+        .take(200)
     : [];
-  const assignmentMemberships = memberships.slice(0, 200);
   const groupIds = new Set<Id<'groups'>>();
   if (subject.row.group_id) {
     groupIds.add(subject.row.group_id);
@@ -531,44 +485,28 @@ export async function loadAssetAccessBundle(
     groupIds.add(membership.group_id);
   }
 
-  const groups: Doc<'groups'>[] = [];
   const groupById = new Map<Id<'groups'>, Doc<'groups'>>();
   for (const groupId of groupIds) {
     const group = await ctx.db.get('groups', groupId);
     if (group) {
-      groups.push(group);
       groupById.set(group._id, group);
     }
   }
   const assignedGroup = subject.row.group_id ? (groupById.get(subject.row.group_id) ?? null) : null;
   const viewerMembership = await membershipFor(ctx, subject.row.group_id, viewerId);
-  const viewerAssignableMemberships = viewerId
-    ? assignmentMemberships.map((membership) => {
-        const group = groupById.get(membership.group_id);
-        return {
-          ...membership,
-          groups: group ? { id: group._id, name: group.name, slug: group.slug } : null,
-        };
-      })
-    : null;
-  const assignableGroups = (viewerAssignableMemberships ?? []).flatMap((membership) =>
-    membership.groups ? [membership.groups] : []
-  );
-  const collection = {
-    memberships,
-    groups,
-    assignableGroups,
-    viewerAssignableMemberships,
-  };
+  const assignableGroups = memberships.flatMap((membership) => {
+    const group = groupById.get(membership.group_id);
+    return group ? [{ id: group._id, name: group.name, slug: group.slug }] : [];
+  });
 
   return subject.kind === 'faction'
     ? {
         ...factionAccessFromLoaded(subject.row, assignedGroup, viewerId, viewerMembership),
-        ...collection,
+        assignableGroups,
       }
     : {
         ...rulesetAccessFromLoaded(subject.row, assignedGroup, viewerId, viewerMembership),
-        ...collection,
+        assignableGroups,
       };
 }
 
@@ -593,7 +531,6 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
     .take(500);
   const viewerMembership = await membershipFor(ctx, group._id, viewerId);
   const access = groupAccessFromLoaded(group, viewerId, viewerMembership);
-  const profiles: Doc<'profiles'>[] = [];
   const profileByUserId = new Map<Id<'users'>, Doc<'profiles'>>();
   const userIds = new Set<Id<'users'>>([access.subject.created_by]);
   for (const membership of members) {
@@ -607,7 +544,6 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
     if (!profile) {
       throw new Error(`Invariant: every user must have a profile (missing for ${userId})`);
     }
-    profiles.push(profile);
     profileByUserId.set(userId, profile);
   }
 
@@ -656,7 +592,7 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
       }
     : null;
 
-  return { ...access, members, profiles, owner, roster };
+  return { ...access, owner, roster };
 }
 
 export function evaluateCollaborativeAccess(facts: CollaborativeAccessFacts): CollaborativeAccess {

@@ -67,8 +67,6 @@ const serverPage = {
   owner,
   viewerAccess,
   roster,
-  members: [{ _id: 'legacy-membership' }],
-  profiles: [{ _id: 'legacy-profile' }],
 };
 
 beforeEach(() => {

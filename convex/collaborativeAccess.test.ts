@@ -158,11 +158,15 @@ describe('collaborative access public projections', () => {
     });
   });
 
-  test('Group detail adds trusted viewer access and roster without changing legacy rows', async () => {
+  test('Group detail exposes only the canonical access, owner, and roster projection', async () => {
     const { t, ids } = await groupAccessFixture();
     const owner = t.withIdentity({ subject: ids.ownerId });
 
     const page = await owner.query(api.groups.detailBySlug, { slug: 'dune-designers' });
+
+    expect(Object.keys(page).sort()).toEqual(
+      ['factions', 'group', 'owner', 'roster', 'rulesets', 'viewerAccess'].sort()
+    );
 
     expect(page.viewerAccess).toEqual({
       kind: 'group',
@@ -197,8 +201,6 @@ describe('collaborative access public projections', () => {
         capabilities: { approve: true, reject: true, remove: false },
       }),
     ]);
-    expect(page.members).toHaveLength(4);
-    expect(page.profiles).toHaveLength(4);
   });
 
   test('faction and ruleset pages project parity with their rename policy difference', async () => {
@@ -211,6 +213,13 @@ describe('collaborative access public projections', () => {
     const rulesetPage = await member.query(api.rulesets.detailPageBySlug, {
       slug: 'collaborative-ruleset',
     });
+
+    expect(Object.keys(factionPage).sort()).toEqual(
+      ['assetPublishing', 'assignableGroups', 'faction', 'owner', 'rulesets', 'viewerAccess'].sort()
+    );
+    expect(Object.keys(rulesetPage ?? {}).sort()).toEqual(
+      ['assignableGroups', 'factions', 'faqItems', 'owner', 'ruleset', 'viewerAccess'].sort()
+    );
 
     expect(factionPage.viewerAccess).toMatchObject({
       kind: 'faction',
@@ -229,12 +238,6 @@ describe('collaborative access public projections', () => {
     expect(factionPage.rulesets).toEqual([
       { id: ids.rulesetId, name: 'Collaborative Ruleset', slug: 'collaborative-ruleset' },
     ]);
-
-    expect(factionPage.memberships).toHaveLength(1);
-    expect(factionPage.groupAccess?.members).toHaveLength(4);
-    expect(rulesetPage?.canEditRuleset).toBe(true);
-    expect(rulesetPage?.groupAccess?.members).toHaveLength(4);
-    expect(rulesetPage?.viewerAssignableMemberships).toHaveLength(1);
   });
 
   test('assignment projections include only existing Groups with active membership', async () => {
@@ -415,6 +418,9 @@ describe('collaborative access public projections', () => {
       const ruleset = await client.query(api.rulesets.getBySlug, {
         slug: 'collaborative-ruleset',
       });
+      expect(Object.keys(ruleset).sort(), actor.label).toEqual(
+        ['factions', 'ruleset', 'viewerAccess'].sort()
+      );
       expect(faction.viewerAccess.viewer, actor.label).toEqual(actor.viewer);
       expect(ruleset.viewerAccess.viewer, actor.label).toEqual(actor.viewer);
       expect(faction.viewerAccess.capabilities, actor.label).toEqual(actor.faction);
@@ -422,21 +428,17 @@ describe('collaborative access public projections', () => {
     }
   });
 
-  test('profile detail adds safe Group summaries without removing legacy membership transport', async () => {
+  test('profile detail exposes canonical Group summaries without raw membership transport', async () => {
     const { t, ids } = await groupAccessFixture();
 
     const profilePage = await t.query(api.profiles.getBySlug, { slug: 'active-member' });
 
+    expect(Object.keys(profilePage).sort()).toEqual(
+      ['factions', 'faqAnswers', 'faqAsked', 'groupSummaries', 'profile'].sort()
+    );
     expect(profilePage.groupSummaries).toEqual([
       { id: ids.groupId, name: 'Dune Designers', slug: 'dune-designers' },
     ]);
-    expect(profilePage.memberships).toHaveLength(1);
-    expect(profilePage.groups).toHaveLength(1);
-    expect(profilePage.memberships[0]).toMatchObject({
-      group_id: ids.groupId,
-      user_id: ids.activeId,
-      status: 'active',
-    });
   });
 
   test('profile Group summaries safely omit active memberships whose Group is missing', async () => {
@@ -446,13 +448,6 @@ describe('collaborative access public projections', () => {
     const profilePage = await t.query(api.profiles.getBySlug, { slug: 'active-member' });
 
     expect(profilePage.groupSummaries).toEqual([]);
-    expect(profilePage.groups).toEqual([]);
-    expect(profilePage.memberships).toHaveLength(1);
-    expect(profilePage.memberships[0]).toMatchObject({
-      group_id: ids.groupId,
-      user_id: ids.activeId,
-      status: 'active',
-    });
   });
 
   test('ownership and active membership remain distinct trusted facts', async () => {
@@ -483,17 +478,22 @@ describe('collaborative access public projections', () => {
     });
   });
 
-  test('soft-deleted rulesets do not regain owner edit access', async () => {
+  test('soft-deleted rulesets are absent from canonical page projections', async () => {
     const { t, ids } = await groupAccessFixture();
     await t.run(async (ctx) => {
       await ctx.db.patch(ids.rulesetId, { is_deleted: true });
     });
 
     await expect(
-      t.withIdentity({ subject: ids.assetOwnerId }).query(api.rulesets.canEdit, {
-        ruleset_id: ids.rulesetId,
+      t.withIdentity({ subject: ids.assetOwnerId }).query(api.rulesets.getBySlug, {
+        slug: 'collaborative-ruleset',
       })
-    ).resolves.toBe(false);
+    ).rejects.toThrow('not found');
+    await expect(
+      t.withIdentity({ subject: ids.assetOwnerId }).query(api.rulesets.detailPageBySlug, {
+        slug: 'collaborative-ruleset',
+      })
+    ).resolves.toBeNull();
   });
 
   test('duplicate membership pairs fail the trusted lookup instead of becoming order-dependent', async () => {
@@ -608,17 +608,14 @@ describe('collaborative access public projections', () => {
       kind: 'authenticated',
       membership: 'active',
     });
-    expect(faction.memberships).toHaveLength(500);
-    expect(faction.groups).toHaveLength(501);
     expect(faction.assignableGroups).toHaveLength(200);
-    expect(ruleset?.viewerAssignableMemberships).toHaveLength(200);
     expect(ruleset?.assignableGroups).toHaveLength(200);
     expect(group.roster.some((entry) => entry.membershipId === capped.membershipId)).toBe(false);
   });
 });
 
 describe('collaborative access moderation commands', () => {
-  test('legacy soft-delete commands remain idempotent while deleted projections deny access', async () => {
+  test('soft-delete commands remain idempotent while deleted projections deny access', async () => {
     const { t, ids } = await groupAccessFixture();
     const assetOwner = t.withIdentity({ subject: ids.assetOwnerId });
 
@@ -635,8 +632,8 @@ describe('collaborative access moderation commands', () => {
       null
     );
     await expect(
-      assetOwner.query(api.rulesets.canEdit, { ruleset_id: ids.rulesetId })
-    ).resolves.toBe(false);
+      assetOwner.query(api.rulesets.detailPageBySlug, { slug: 'collaborative-ruleset' })
+    ).resolves.toBeNull();
   });
 
   test('request is authoritative, idempotent, and reactivates the same removed row', async () => {
@@ -671,7 +668,7 @@ describe('collaborative access moderation commands', () => {
     });
   });
 
-  test('canonical membership-id commands and exact legacy pair shims share one policy path', async () => {
+  test('canonical membership-id commands share one policy path', async () => {
     const { t, ids } = await groupAccessFixture();
     const owner = t.withIdentity({ subject: ids.ownerId });
 
@@ -679,12 +676,26 @@ describe('collaborative access moderation commands', () => {
       membershipId: ids.membershipIds.pending,
     });
     expect(approved).toEqual({ membershipId: ids.membershipIds.pending, status: 'active' });
+    const pageAfterApproval = await owner.query(api.groups.detailBySlug, {
+      slug: 'dune-designers',
+    });
+    expect(
+      pageAfterApproval.roster.find((entry) => entry.membershipId === ids.membershipIds.pending)
+    ).toMatchObject({ status: 'active', capabilities: { remove: true } });
     await expect(
       t.run((ctx) => ctx.db.get('group_members', ids.membershipIds.pending))
     ).resolves.toMatchObject({ status: 'active', approved_by: ids.ownerId });
 
     const rejectedId = await t.run(async (ctx) => {
       const userId = await ctx.db.insert('users', { name: 'Second requester' });
+      await ctx.db.insert('profiles', {
+        user_id: userId,
+        username: 'Second requester',
+        avatar_url: null,
+        slug: 'second-requester',
+        created_at: now,
+        updated_at: now,
+      });
       return await ctx.db.insert('group_members', {
         group_id: ids.groupId,
         user_id: userId,
@@ -698,19 +709,23 @@ describe('collaborative access moderation commands', () => {
       membershipId: rejectedId,
     });
     expect(rejected).toEqual({ membershipId: rejectedId, status: 'removed' });
+    const pageAfterRejection = await owner.query(api.groups.detailBySlug, {
+      slug: 'dune-designers',
+    });
+    expect(pageAfterRejection.roster.some((entry) => entry.membershipId === rejectedId)).toBe(
+      false
+    );
 
     const removed = await owner.mutation(api.members.removeMember, {
       membershipId: ids.membershipIds.active,
     });
     expect(removed).toEqual({ membershipId: ids.membershipIds.active, status: 'removed' });
-
-    const legacyApproved = await owner
-      .mutation(api.members.approve, {
-        group_id: ids.groupId,
-        user_id: ids.removedId,
-      })
-      .catch((error) => error);
-    expect(String(legacyApproved)).toContain('Membership is not pending approval');
+    const pageAfterRemoval = await owner.query(api.groups.detailBySlug, {
+      slug: 'dune-designers',
+    });
+    expect(
+      pageAfterRemoval.roster.some((entry) => entry.membershipId === ids.membershipIds.active)
+    ).toBe(false);
 
     await expect(
       t.withIdentity({ subject: ids.removedId }).mutation(api.members.rejectRequest, {
@@ -909,50 +924,5 @@ describe('collaborative access moderation commands', () => {
     expect(factionPage.viewerAccess.assignedGroup?.id).toBe(targetGroupIds.active);
     expect(ruleset.group_id).toBe(targetGroupIds.active);
     expect(rulesetPage?.viewerAccess.assignedGroup?.id).toBe(targetGroupIds.active);
-  });
-
-  test('legacy pair shims authorize before revealing whether the target pair exists', async () => {
-    const { t, ids } = await groupAccessFixture();
-    const { nonexistentUserId, missingGroupId } = await t.run(async (ctx) => {
-      const userId = await ctx.db.insert('users', { name: 'Nobody' });
-      const groupId = await ctx.db.insert('groups', {
-        name: 'Deleted transport target',
-        slug: 'deleted-transport-target',
-        created_at: now,
-        created_by: ids.ownerId,
-      });
-      await ctx.db.delete(groupId);
-      return { nonexistentUserId: userId, missingGroupId: groupId };
-    });
-
-    await expect(
-      t.mutation(api.members.approve, {
-        group_id: ids.groupId,
-        user_id: nonexistentUserId,
-      })
-    ).rejects.toThrow('Not authenticated');
-    await expect(
-      t.withIdentity({ subject: ids.removedId }).mutation(api.members.approve, {
-        group_id: ids.groupId,
-        user_id: nonexistentUserId,
-      })
-    ).rejects.toThrow('Not authorized');
-    await expect(
-      t.withIdentity({ subject: ids.ownerId }).mutation(api.members.approve, {
-        group_id: missingGroupId,
-        user_id: nonexistentUserId,
-      })
-    ).rejects.toThrow('Not authorized');
-    await expect(
-      t.withIdentity({ subject: ids.ownerId }).mutation(api.members.remove, {
-        group_id: missingGroupId,
-        user_id: nonexistentUserId,
-      })
-    ).rejects.toThrow('Group not found');
-    await expect(
-      t.withIdentity({ subject: ids.ownerId }).mutation(api.members.request, {
-        group_id: missingGroupId,
-      })
-    ).rejects.toThrow('Group not found');
   });
 });
