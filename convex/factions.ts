@@ -116,7 +116,6 @@ export const list = query({
   },
 });
 
-
 /** Public, viewer-independent bundle for the Faction catalogue route. */
 export const cataloguePage = query({
   args: {},

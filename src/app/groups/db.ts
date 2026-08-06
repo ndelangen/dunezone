@@ -15,18 +15,14 @@ import type {
   CollaborativeAccess,
   GroupRosterEntry,
 } from '../../../convex/lib/collaborativeAccess';
+import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
 export type GroupRow = Doc<'groups'>;
 export type GroupEntry = GroupRow & { id: GroupRow['_id'] };
 export type GroupInsert = GroupEntry;
 export type GroupUpdate = Partial<GroupEntry>;
 
-export type GroupOwnerSummary = {
-  id: Doc<'profiles'>['_id'];
-  slug: string;
-  username: string | null;
-  avatar_url: string | null;
-};
+export type GroupOwnerSummary = ProfileSummary;
 
 export type GroupDetailPageData = {
   group: GroupEntry;

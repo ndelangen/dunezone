@@ -1,7 +1,7 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
-import { FAQ_TAG_VALUES } from '../src/app/faq/tags';
+import type { FAQ_TAG_VALUES } from '../src/app/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/app/faq/validation';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -16,7 +16,6 @@ import type { MutationCtx, QueryCtx } from './types';
 const FAQ_ITEM_DELETE_BATCH_MAX_DOCUMENTS = 100;
 const FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES = 2 * 1024 * 1024;
 const FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS = 16;
-
 
 async function getRuleset(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
   return await ctx.db.get(id);

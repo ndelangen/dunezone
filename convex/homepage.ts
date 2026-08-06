@@ -1,9 +1,8 @@
 import { v } from 'convex/values';
 
-import { factionDataValidator } from './lib/factionData';
-
 import { query } from './_generated/server';
 import { loadFactionCatalogueSpotlightPreviews } from './lib/factionCatalogue';
+import { factionDataValidator } from './lib/factionData';
 import { loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
 import { loadGlobalStatisticsTotals } from './lib/statistics';
 

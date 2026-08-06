@@ -1,12 +1,12 @@
 import { v } from 'convex/values';
+import type { Infer } from 'convex/values';
 
 import schema from '../schema';
 import { factionBackgroundValidator, factionDataValidator } from './factionData';
 
 /**
- * Document validators derive from their authority, `convex/schema.ts`
- * (ADR-0002); faction `data` derives from the canonical faction Zod schema.
- * Do not restate table shapes by hand here.
+ * Document validators derive from their authority, `convex/schema.ts` (ADR-0002); faction `data`
+ * derives from the canonical faction Zod schema. Do not restate table shapes by hand here.
  */
 function docValidator<Table extends keyof typeof schema.tables>(table: Table) {
   return schema.tables[table].validator.extend({
@@ -56,6 +56,9 @@ const profileSummaryValidator = v.object({
   username: v.union(v.string(), v.null()),
   avatar_url: v.union(v.string(), v.null()),
 });
+
+/** The Profile summary chip (see CONTEXT.md); derive from this, never restate. */
+export type ProfileSummary = Infer<typeof profileSummaryValidator>;
 
 const groupViewerAccessValidator = v.object({
   kind: v.literal('group'),
@@ -120,7 +123,10 @@ const rulesetFactionSummaryValidator = v.object({
   factionId: v.id('factions'),
   name: v.string(),
   urlSlug: v.string(),
-  identity: v.union(v.object({ logo: v.string(), background: factionBackgroundValidator }), v.null()),
+  identity: v.union(
+    v.object({ logo: v.string(), background: factionBackgroundValidator }),
+    v.null()
+  ),
 });
 
 export const rulesetPublicBundleValidator = v.object({

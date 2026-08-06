@@ -9,6 +9,7 @@ import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '@app/faq/vali
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
+import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
 export type FaqItemRow = Doc<'faq_items'>;
 export type FaqAnswerRow = Doc<'faq_answers'>;
@@ -17,12 +18,7 @@ export type FaqAnswerEntry = FaqAnswerRow;
 
 export type FaqItemWithDetails = FaqItemEntry & {
   faq_answers: FaqAnswerEntry[];
-  asker_profile: {
-    id: string;
-    slug: string;
-    username: string | null;
-    avatar_url: string | null;
-  } | null;
+  asker_profile: ProfileSummary | null;
 };
 
 export type FaqItemAskedByWithRuleset = FaqItemEntry & {
@@ -38,12 +34,7 @@ export type FaqAnswerWithParent = FaqAnswerEntry & {
     asked_by: string;
     accepted_answer_id: string | null;
   };
-  asker_profile: {
-    id: string;
-    slug: string;
-    username: string | null;
-    avatar_url: string | null;
-  } | null;
+  asker_profile: ProfileSummary | null;
   ruleset: { id: string; name: string; slug: string };
 };
 
