@@ -18,7 +18,6 @@ import {
   assertReadyCaptureMarker,
   waitForCaptureMarkerSettled,
 } from './capture-lifecycle';
-import { captureDeadlineCookie, captureJobCookie } from './capture-route';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
@@ -120,7 +119,7 @@ export function publisherCaptureCookies(
 ): Parameters<BrowserContext['addCookies']>[0] {
   return [
     {
-      name: captureJobCookie,
+      name: CAPTURE_PROTOCOL.credentials.jobCookie,
       value: jobId,
       url: captureBaseUrl,
       httpOnly: true,
@@ -128,7 +127,7 @@ export function publisherCaptureCookies(
       sameSite: 'Strict',
     },
     {
-      name: captureDeadlineCookie,
+      name: CAPTURE_PROTOCOL.credentials.deadlineCookie,
       value: String(lifecycleDeadlineAt),
       url: captureBaseUrl,
       httpOnly: true,

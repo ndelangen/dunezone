@@ -1,6 +1,7 @@
 import { createCacheToken } from '../../convex/lib/publicationHttp';
 import { TargetRenderError } from './browser';
 import type { CapturedPdf, PublisherBrowserSession } from './browser';
+import { publicationWorkBudget } from './config';
 import type { PublisherConfig } from './config';
 import type { AssignedPublicationJob, ConvexPublisherClient } from './convex';
 import { putPublishedAsset } from './r2';
@@ -30,10 +31,6 @@ export type ItemListExecution = {
   browserSessionId: string | null;
 };
 
-function requestDeadline(now: () => number, absoluteDeadlineAt: number): number {
-  return Math.min(absoluteDeadlineAt, now() + 15_000);
-}
-
 function assertCapturedSize(captured: CapturedPdf, maximum: number): void {
   if (captured.bytes.byteLength <= 0 || captured.bytes.byteLength > maximum) {
     throw new TargetRenderError(`Captured PDF must be between 1 and ${maximum} bytes`);
@@ -51,8 +48,7 @@ export async function executeItemList(
   }
   const now = dependencies.now ?? Date.now;
   const signCacheToken = dependencies.signCacheToken ?? createCacheToken;
-  const workDeadlineAt = now() + config.workWindowMs;
-  const completionDeadlineAt = workDeadlineAt + config.browserCleanupGraceMs;
+  const budget = publicationWorkBudget(config, now);
   const result: ItemListExecution = {
     assigned: items.length,
     rendered: 0,
@@ -73,13 +69,13 @@ export async function executeItemList(
     result.browserSessionId = browser.sessionId();
 
     for (const item of items) {
-      if (now() >= workDeadlineAt) {
+      if (now() >= budget.workDeadlineAt) {
         break;
       }
       try {
         const captured = await browser.capture(
           item.jobId,
-          Math.min(config.browserCaptureTimeoutMs, workDeadlineAt - now())
+          Math.min(config.browserCaptureTimeoutMs, budget.workDeadlineAt - now())
         );
         assertCapturedSize(captured, config.pdfMaxBytes);
         result.rendered += 1;
@@ -99,7 +95,7 @@ export async function executeItemList(
         const completion = await dependencies.client.complete(
           item.jobId,
           cacheToken,
-          requestDeadline(now, completionDeadlineAt)
+          budget.requestDeadline()
         );
         if (completion === 'completed') {
           result.completed += 1;
@@ -111,11 +107,7 @@ export async function executeItemList(
         if (!(error instanceof TargetRenderError)) {
           throw error;
         }
-        const failure = await dependencies.client.fail(
-          item.jobId,
-          error,
-          requestDeadline(now, completionDeadlineAt)
-        );
+        const failure = await dependencies.client.fail(item.jobId, error, budget.requestDeadline());
         if (failure === 'missing') {
           result.missing += 1;
         } else {
