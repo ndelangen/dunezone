@@ -263,6 +263,7 @@ export const groupDetailPageValidator = v.object({
   factions: v.array(factionValidator),
   rulesets: v.array(rulesetValidator),
   profiles: v.array(profileValidator),
+  owner: v.union(profileSummaryValidator, v.null()),
   viewerAccess: groupViewerAccessValidator,
   roster: v.array(rosterEntryValidator),
 });

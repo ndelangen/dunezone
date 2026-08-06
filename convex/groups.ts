@@ -99,6 +99,7 @@ export const detailBySlug = query({
       factions,
       rulesets,
       profiles: accessBundle.profiles,
+      owner: accessBundle.owner,
       viewerAccess: accessBundle.viewerAccess,
       roster: accessBundle.roster,
     };

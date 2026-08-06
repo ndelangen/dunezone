@@ -10,53 +10,51 @@ import { groupInputSchema } from '@app/groups/validation';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
+import type {
+  CollaborativeAccess,
+  GroupRosterEntry,
+} from '../../../convex/lib/collaborativeAccess';
 
 export type GroupRow = Doc<'groups'>;
 export type GroupEntry = GroupRow & { id: GroupRow['_id'] };
 export type GroupInsert = GroupEntry;
 export type GroupUpdate = Partial<GroupEntry>;
 
-export type GroupPageData = {
-  group: GroupEntry;
-  members: Doc<'group_members'>[];
+export type GroupOwnerSummary = {
+  id: Doc<'profiles'>['_id'];
+  slug: string;
+  username: string | null;
+  avatar_url: string | null;
 };
-
-export type GroupMemberWithId = Doc<'group_members'> & { id: Doc<'group_members'>['_id'] };
 
 export type GroupDetailPageData = {
   group: GroupEntry;
-  members: GroupMemberWithId[];
   factions: FactionEntry[];
   rulesets: RulesetEntry[];
-  profiles: Doc<'profiles'>[];
+  owner: GroupOwnerSummary | null;
+  viewerAccess: Extract<CollaborativeAccess, { kind: 'group' }>;
+  roster: GroupRosterEntry[];
+};
+
+export type GroupEditPageData = Pick<GroupDetailPageData, 'group' | 'viewerAccess'>;
+
+type GroupDetailPageRaw = {
+  group: GroupRow;
+  factions: Doc<'factions'>[];
+  rulesets: RulesetRow[];
+  owner: GroupOwnerSummary | null;
+  viewerAccess: GroupDetailPageData['viewerAccess'];
+  roster: GroupRosterEntry[];
 };
 
 export async function loadGroupDetailBySlug(slug: string): Promise<GroupDetailPageData> {
-  const result = await db.query<{
-    group: GroupRow;
-    members: Doc<'group_members'>[];
-    factions: Doc<'factions'>[];
-    rulesets: RulesetRow[];
-    profiles: Doc<'profiles'>[];
-  }>(api.groups.detailBySlug, { slug });
-  return {
-    group: { ...result.group, id: result.group._id },
-    members: result.members.map((m) => ({ ...m, id: m._id })),
-    factions: factionRowsToEntries(result.factions),
-    rulesets: rulesetRowsToEntries(result.rulesets),
-    profiles: result.profiles,
-  };
+  const result = await db.query<GroupDetailPageRaw>(api.groups.detailBySlug, { slug });
+  return normalizeGroupDetailFromConvex(result);
 }
 
-export async function loadGroupBySlug(slug: string): Promise<GroupPageData> {
-  const result = await db.query<{
-    group: GroupRow;
-    members: Doc<'group_members'>[];
-  }>(api.groups.getBySlug, { slug });
-  return {
-    ...result,
-    group: { ...result.group, id: result.group._id },
-  };
+export async function loadGroupEditBySlug(slug: string): Promise<GroupEditPageData> {
+  const result = await loadGroupDetailBySlug(slug);
+  return { group: result.group, viewerAccess: result.viewerAccess };
 }
 
 /** Call only when `id` is a real group id (mount a child component if the id is optional). */
@@ -69,34 +67,14 @@ export function useGroup(id: string) {
   };
 }
 
-export function useGroupBySlug(slug: string, options?: { initialData?: GroupPageData }) {
-  const liveData = useQuery(api.groups.getBySlug, { slug });
-  const result = toLiveQueryResult<{
-    group: GroupRow;
-    members: Doc<'group_members'>[];
-  } | null>(liveData, true, () => (options?.initialData as never) ?? undefined);
-  return {
-    ...result,
-    group: result.data
-      ? ({ ...result.data.group, id: result.data.group._id } as GroupEntry)
-      : undefined,
-    members: result.data?.members,
-  };
-}
-
-function normalizeGroupDetailFromConvex(raw: {
-  group: GroupRow;
-  members: Doc<'group_members'>[];
-  factions: Doc<'factions'>[];
-  rulesets: RulesetRow[];
-  profiles: Doc<'profiles'>[];
-}): GroupDetailPageData {
+function normalizeGroupDetailFromConvex(raw: GroupDetailPageRaw): GroupDetailPageData {
   return {
     group: { ...raw.group, id: raw.group._id },
-    members: raw.members.map((m) => ({ ...m, id: m._id })),
     factions: factionRowsToEntries(raw.factions),
     rulesets: rulesetRowsToEntries(raw.rulesets),
-    profiles: raw.profiles,
+    owner: raw.owner,
+    viewerAccess: raw.viewerAccess,
+    roster: raw.roster,
   };
 }
 
@@ -114,10 +92,29 @@ export function useGroupDetailBySlug(
   return {
     ...result,
     group: result.data?.group,
-    members: result.data?.members,
     factions: result.data?.factions,
     rulesets: result.data?.rulesets,
-    profiles: result.data?.profiles,
+    owner: result.data?.owner ?? null,
+    viewerAccess: result.data?.viewerAccess,
+    roster: result.data?.roster,
+  };
+}
+
+export function useGroupEditBySlug(slug: string, options?: { initialData?: GroupEditPageData }) {
+  const liveData = useQuery(api.groups.detailBySlug, { slug });
+  const normalizedLive = liveData ? normalizeGroupDetailFromConvex(liveData) : undefined;
+  const editData = normalizedLive
+    ? { group: normalizedLive.group, viewerAccess: normalizedLive.viewerAccess }
+    : undefined;
+  const result = toLiveQueryResult<GroupEditPageData | undefined>(
+    editData,
+    true,
+    () => options?.initialData
+  );
+  return {
+    ...result,
+    group: result.data?.group,
+    viewerAccess: result.data?.viewerAccess,
   };
 }
 

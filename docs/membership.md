@@ -4,11 +4,11 @@
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Pending: Request Membership<br/>useRequestGroupMembership
-    Pending --> Active: Approve<br/>useApproveGroupMember<br/>Trigger sets approved_by/approved_at
-    Pending --> Removed: Reject<br/>useRejectGroupMember
-    Active --> Removed: Remove<br/>useRemoveGroupMember
-    Removed --> [*]
+    [*] --> Pending: Request Membership<br/>workflow.request(groupId)
+    Pending --> Active: Approve<br/>workflow.approve(membershipId)<br/>Sets approved_by/approved_at
+    Pending --> Removed: Reject<br/>workflow.reject(membershipId)
+    Active --> Removed: Remove<br/>workflow.remove(membershipId)
+    Removed --> Pending: Request again<br/>workflow.request(groupId)
 ```
 
 Status transitions: `pending` → `active` (approved) or `removed` (rejected/removed).
@@ -25,24 +25,31 @@ Status transitions: `pending` → `active` (approved) or `removed` (rejected/rem
 
 `approved_by` and `approved_at` are set in Convex membership mutations when status becomes `active`.
 
-## Hooks
+## Client workflow
 
-**Mutations**: `useRequestGroupMembership`, `useApproveGroupMember`, `useRejectGroupMember`, `useRemoveGroupMember`
+`useGroupMembershipWorkflow` exposes the named `request`, `approve`, `reject`, `remove`, and `add`
+commands with normalized pending and error state. Group detail consumes the canonical Group page
+projection: `viewerAccess` controls viewer actions, while each `roster` row controls approve, reject,
+and remove actions. Callers pass `membershipId` for moderation and never reconstruct authorization
+from raw membership rows.
 
-**Queries**: `useGroupMembers`, `useGroupMembersByStatus`, and `useGroupMember`. Asset page queries provide server-derived `assignableGroups`; assignment controls do not query or filter raw membership rows.
+Asset page queries provide server-derived `assignableGroups`; assignment controls do not query or
+filter raw membership rows.
 
 **Example**: [`src/app/members/db.ts`](../src/app/members/db.ts)
 
 ## Authorization
 
-Convex handlers in `convex/members.ts` enforce:
+Convex handlers in `convex/members.ts` enforce authorization through the trusted collaborative-access
+module:
 
-- **`approve` / `reject`**: Caller must be an **active** member of the group (`isActiveGroupMember`). Target row must be **`pending`**.
-- **`remove`**: Only the **group creator** (`groups.created_by`) may remove someone else. Cannot remove the creator. Target must be **`active`** (pending requests are handled with `reject`).
+- **`approveRequest` / `rejectRequest`**: Caller must be an **active** member of the Group. Target row must be **`pending`**.
+- **`removeMember`**: Only the **Group owner** may remove someone else. The owner cannot be removed. Target must be **`active`** (pending requests are handled with `rejectRequest`).
 - **`request`**: Any authenticated user may request membership.
-- **`add`**: Any active member may directly add another user without a prior request.
+- **`addMember`**: Any active member may directly add another user without a prior request.
 
-Shared helpers live in `convex/lib/policy.ts` (`requireAuthUserId`, `isActiveGroupMember`).
+The legacy pair-argument moderation functions remain registered only for the widened deployment
+compatibility interval and are removed by the separate transport-narrowing release.
 
 ## Group-associated content
 

@@ -646,7 +646,17 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
     ];
   });
 
-  return { ...access, members, profiles, roster };
+  const ownerProfile = profileByUserId.get(access.subject.created_by);
+  const owner = ownerProfile
+    ? {
+        id: ownerProfile._id,
+        slug: ownerProfile.slug,
+        username: ownerProfile.username,
+        avatar_url: ownerProfile.avatar_url,
+      }
+    : null;
+
+  return { ...access, members, profiles, owner, roster };
 }
 
 export function evaluateCollaborativeAccess(facts: CollaborativeAccessFacts): CollaborativeAccess {

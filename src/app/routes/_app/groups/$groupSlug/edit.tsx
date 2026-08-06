@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, Users } from 'lucide-react';
 
-import { loadGroupDetailBySlug, useGroupDetailBySlug } from '@db/groups';
-import { useCurrentProfile } from '@db/profiles';
+import { loadGroupEditBySlug, useGroupEditBySlug } from '@db/groups';
 import { FormTooltip } from '@app/components/form/FormTooltip';
 import { ButtonGroup, Toolbar } from '@app/components/generic/layout';
 import { Card } from '@app/components/generic/surfaces/Card';
@@ -12,8 +11,8 @@ import { PageLayout } from '@app/components/shell';
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/edit')({
   loader: async ({ params }) => {
-    const groupDetail = await loadGroupDetailBySlug(params.groupSlug);
-    return { groupDetail };
+    const groupEdit = await loadGroupEditBySlug(params.groupSlug);
+    return { groupEdit };
   },
   component: GroupEditPage,
 });
@@ -21,10 +20,9 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/edit')({
 function GroupEditPage() {
   const { groupSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
-  const groupData = useGroupDetailBySlug(groupSlug, { initialData: loaderData.groupDetail });
-  const profile = useCurrentProfile();
+  const groupData = useGroupEditBySlug(groupSlug, { initialData: loaderData.groupEdit });
 
-  if (groupData.isError || !groupData.group) {
+  if (groupData.isError || !groupData.group || !groupData.viewerAccess) {
     return (
       <PageLayout header={<h1>Edit group</h1>}>
         <Card>
@@ -38,7 +36,7 @@ function GroupEditPage() {
   }
 
   const group = groupData.group;
-  const viewerUserId = profile.data?.user_id;
+  const viewerAccess = groupData.viewerAccess;
   const header = <h1>{`Edit ${group.name}`}</h1>;
   const toolbar = (
     <Toolbar>
@@ -64,15 +62,7 @@ function GroupEditPage() {
     </Toolbar>
   );
 
-  if (profile.isPending) {
-    return (
-      <PageLayout header={header} toolbar={toolbar}>
-        Loading profile…
-      </PageLayout>
-    );
-  }
-
-  if (!viewerUserId) {
+  if (viewerAccess.viewer.kind === 'anonymous') {
     return (
       <PageLayout header={header} toolbar={toolbar}>
         <Card>
@@ -89,7 +79,7 @@ function GroupEditPage() {
     );
   }
 
-  if (viewerUserId !== group.created_by) {
+  if (!viewerAccess.capabilities.rename) {
     return (
       <PageLayout header={header} toolbar={toolbar}>
         <Card>

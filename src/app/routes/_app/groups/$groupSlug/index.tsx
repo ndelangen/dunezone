@@ -2,13 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, Check, Pencil, UserPlus, UserRoundMinus, X } from 'lucide-react';
 
 import { loadGroupDetailBySlug, useGroupDetailBySlug } from '@db/groups';
-import {
-  useApproveGroupMember,
-  useRejectGroupMember,
-  useRemoveGroupMember,
-  useRequestGroupMembership,
-} from '@db/members';
-import { useCurrentProfile } from '@db/profiles';
+import { useGroupMembershipWorkflow } from '@db/members';
 import { FormTooltip } from '@app/components/form/FormTooltip';
 import { ButtonGroup, Toolbar } from '@app/components/generic/layout';
 import { Card } from '@app/components/generic/surfaces/Card';
@@ -31,12 +25,7 @@ function GroupDetailPage() {
   const { groupSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
   const groupData = useGroupDetailBySlug(groupSlug, { initialData: loaderData.groupDetail });
-  const requestMembership = useRequestGroupMembership();
-  const approveMember = useApproveGroupMember();
-  const rejectMember = useRejectGroupMember();
-  const removeMember = useRemoveGroupMember();
-  const profile = useCurrentProfile();
-  const viewerUserId = profile.data?.user_id;
+  const membershipWorkflow = useGroupMembershipWorkflow();
 
   if (groupData.isError) {
     return (
@@ -48,41 +37,39 @@ function GroupDetailPage() {
     );
   }
 
-  if (!groupData.group) {
+  if (!groupData.group || !groupData.viewerAccess) {
     return <PageLayout header={<h1>Group</h1>}>Loading group…</PageLayout>;
   }
 
   const group = groupData.group;
   const groupId = group._id;
-  const members = groupData.members ?? [];
-  const profileByUserId = new Map((groupData.profiles ?? []).map((p) => [p.user_id, p]));
-  const ownerProfile = profileByUserId.get(group.created_by);
-  const viewerMembership = members.find((entry) => entry.user_id === viewerUserId);
+  const viewerAccess = groupData.viewerAccess;
+  const ownerProfile = groupData.owner;
   const membershipStatus =
-    viewerMembership && viewerMembership.status !== 'removed' ? viewerMembership.status : 'none';
-  const canRequestMembership = membershipStatus === 'none' && !!viewerUserId;
-  const viewerIsOwner = !!viewerUserId && viewerUserId === group.created_by;
-  const viewerCanModeratePending = membershipStatus === 'active';
+    viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const factions = groupData.factions ?? [];
   const rulesets = groupData.rulesets ?? [];
+  const roster = groupData.roster ?? [];
 
   const membersModerationBusy =
-    approveMember.isPending || rejectMember.isPending || removeMember.isPending;
+    membershipWorkflow.approve.isPending ||
+    membershipWorkflow.reject.isPending ||
+    membershipWorkflow.remove.isPending;
   const membersModerationError =
-    approveMember.error?.message ??
-    rejectMember.error?.message ??
-    removeMember.error?.message ??
+    membershipWorkflow.approve.error?.message ??
+    membershipWorkflow.reject.error?.message ??
+    membershipWorkflow.remove.error?.message ??
     null;
 
-  const handleRemoveMember = (memberUserId: string) => {
+  const handleRemoveMember = (membershipId: string) => {
     if (!window.confirm('Remove this member from the group?')) {
       return;
     }
-    removeMember.mutate({ groupId, userId: memberUserId });
+    void membershipWorkflow.remove.run(membershipId).catch(() => undefined);
   };
 
-  const activeMembers = members.filter((member) => member.status === 'active');
-  const pendingMembers = members.filter((member) => member.status === 'pending');
+  const activeMembers = roster.filter((member) => member.status === 'active');
+  const pendingMembers = roster.filter((member) => member.status === 'pending');
   const memberRows = [...activeMembers, ...pendingMembers];
 
   const header = <h1>{group.name}</h1>;
@@ -99,7 +86,7 @@ function GroupDetailPage() {
                   <ArrowLeft size={16} aria-hidden />
                 </UIButton>
               </FormTooltip>
-              {viewerIsOwner ? (
+              {viewerAccess.capabilities.rename ? (
                 <FormTooltip content="Edit group settings">
                   <UIButton
                     variant="secondary"
@@ -138,25 +125,27 @@ function GroupDetailPage() {
               : 'Not a member'}
         </p>
         {membershipStatus === 'pending' && <p>Your request is awaiting approval.</p>}
-        {!profile.isPending && !viewerUserId && (
+        {viewerAccess.viewer.kind === 'anonymous' && (
           <p>
             <Link to="/auth/login">Log in</Link> to request membership.
           </p>
         )}
-        {canRequestMembership && (
+        {viewerAccess.capabilities.requestMembership && (
           <FormTooltip content="Request membership">
             <UIButton
               type="button"
               iconOnly
               aria-label="Request membership"
-              disabled={requestMembership.isPending}
-              onClick={() => requestMembership.mutate(groupId)}
+              disabled={membershipWorkflow.request.isPending}
+              onClick={() => void membershipWorkflow.request.run(groupId).catch(() => undefined)}
             >
               <UserPlus size={16} aria-hidden />
             </UIButton>
           </FormTooltip>
         )}
-        {requestMembership.isError && <p role="alert">{requestMembership.error?.message}</p>}
+        {membershipWorkflow.request.isError && (
+          <p role="alert">{membershipWorkflow.request.error?.message}</p>
+        )}
       </Card>
 
       <Card>
@@ -166,61 +155,71 @@ function GroupDetailPage() {
         ) : (
           <ul>
             {memberRows.map((entry) => {
-              const memberProfile = profileByUserId.get(entry.user_id);
               const isPending = entry.status === 'pending';
-              const isOwnerRow = entry.user_id === group.created_by;
 
               return (
-                <li key={entry.id}>
+                <li key={entry.membershipId}>
                   <div className={pageStyles.memberRow}>
                     <div className={pageStyles.memberRowMain}>
-                      {memberProfile?.slug ? (
+                      {entry.user.slug ? (
                         <ProfileLink
-                          slug={memberProfile.slug}
-                          username={memberProfile.username}
-                          avatar_url={memberProfile.avatar_url}
+                          slug={entry.user.slug}
+                          username={entry.user.username}
+                          avatar_url={entry.user.avatar_url}
                         />
                       ) : (
-                        <span>{memberProfile?.username ?? entry.user_id}</span>
+                        <span>{entry.user.username ?? entry.user.id}</span>
                       )}
                       {isPending ? (
                         <>
                           <span className={pageStyles.pendingMeta}>(pending)</span>
                           <span className={pageStyles.pendingMeta}>
-                            {formatRelativeDate(entry.requested_at)}
+                            {formatRelativeDate(entry.requestedAt)}
                           </span>
                         </>
                       ) : null}
                     </div>
-                    {isPending && viewerCanModeratePending ? (
+                    {entry.capabilities.approve || entry.capabilities.reject ? (
                       <ButtonGroup>
-                        <FormTooltip content="Approve">
-                          <UIButton
-                            type="button"
-                            variant="confirm"
-                            iconOnly
-                            aria-label="Approve membership"
-                            disabled={membersModerationBusy}
-                            onClick={() => approveMember.mutate({ groupId, userId: entry.user_id })}
-                          >
-                            <Check size={16} aria-hidden />
-                          </UIButton>
-                        </FormTooltip>
-                        <FormTooltip content="Decline">
-                          <UIButton
-                            type="button"
-                            variant="critical"
-                            iconOnly
-                            aria-label="Decline membership"
-                            disabled={membersModerationBusy}
-                            onClick={() => rejectMember.mutate({ groupId, userId: entry.user_id })}
-                          >
-                            <X size={16} aria-hidden />
-                          </UIButton>
-                        </FormTooltip>
+                        {entry.capabilities.approve ? (
+                          <FormTooltip content="Approve">
+                            <UIButton
+                              type="button"
+                              variant="confirm"
+                              iconOnly
+                              aria-label="Approve membership"
+                              disabled={membersModerationBusy}
+                              onClick={() =>
+                                void membershipWorkflow.approve
+                                  .run(entry.membershipId)
+                                  .catch(() => undefined)
+                              }
+                            >
+                              <Check size={16} aria-hidden />
+                            </UIButton>
+                          </FormTooltip>
+                        ) : null}
+                        {entry.capabilities.reject ? (
+                          <FormTooltip content="Decline">
+                            <UIButton
+                              type="button"
+                              variant="critical"
+                              iconOnly
+                              aria-label="Decline membership"
+                              disabled={membersModerationBusy}
+                              onClick={() =>
+                                void membershipWorkflow.reject
+                                  .run(entry.membershipId)
+                                  .catch(() => undefined)
+                              }
+                            >
+                              <X size={16} aria-hidden />
+                            </UIButton>
+                          </FormTooltip>
+                        ) : null}
                       </ButtonGroup>
                     ) : null}
-                    {!isPending && viewerIsOwner && !isOwnerRow ? (
+                    {entry.capabilities.remove ? (
                       <ButtonGroup>
                         <FormTooltip content="Remove member">
                           <UIButton
@@ -229,7 +228,7 @@ function GroupDetailPage() {
                             iconOnly
                             aria-label="Remove member"
                             disabled={membersModerationBusy}
-                            onClick={() => handleRemoveMember(entry.user_id)}
+                            onClick={() => handleRemoveMember(entry.membershipId)}
                           >
                             <UserRoundMinus size={16} aria-hidden />
                           </UIButton>
