@@ -321,6 +321,36 @@ describe('public asset delivery boundary', () => {
     expect(unmodifiedSinceFails?.status).toBe(412);
   });
 
+  test('entity-tag comparison: If-None-Match matches weakly, If-Match requires strong', async () => {
+    const { run } = await harness();
+
+    const weakNoneMatch = await run({ headers: { 'If-None-Match': 'W/"etag-one"' } });
+    expect(weakNoneMatch?.status).toBe(304);
+
+    const weakIfMatch = await run({ headers: { 'If-Match': 'W/"etag-one"' } });
+    expect(weakIfMatch?.status).toBe(412);
+
+    const star = await run({ headers: { 'If-None-Match': '*' } });
+    expect(star?.status).toBe(304);
+  });
+
+  test('legacy RFC 850 and asctime dates are honored in preconditions', async () => {
+    const { run } = await harness();
+
+    const rfc850 = await run({
+      headers: { 'If-Modified-Since': 'Friday, 17-Jul-26 12:00:00 GMT' },
+    });
+    expect(rfc850?.status).toBe(304);
+
+    const asctime = await run({ headers: { 'If-Modified-Since': 'Fri Jul 17 12:00:00 2026' } });
+    expect(asctime?.status).toBe(304);
+
+    const wrongWeekday = await run({
+      headers: { 'If-Modified-Since': 'Thu, 17 Jul 2026 12:00:00 GMT' },
+    });
+    expect(wrongWeekday?.status).toBe(200);
+  });
+
   test('a stale If-Range downgrades a range request to the full asset', async () => {
     const { run } = await harness();
 
