@@ -4,6 +4,8 @@ import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
 
 import { assetPublishingFaction } from '../../src/game/fixtures/assetPublishingFaction';
+import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
+import { assertCapturePhysicalBounds, waitForCaptureMarkerSettled } from './capture-lifecycle';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
@@ -31,10 +33,13 @@ const server = Bun.serve({
   port: 0,
   async fetch(request) {
     const pathname = decodeURIComponent(new URL(request.url).pathname);
-    if (pathname === '/__asset-publisher/snapshot') {
+    if (pathname === CAPTURE_PROTOCOL.paths.snapshot) {
       return Response.json(snapshot, { headers: { 'Cache-Control': 'no-store' } });
     }
-    const relative = pathname === '/' ? 'publisher-capture.html' : pathname.replace(/^\/+/, '');
+    const relative =
+      pathname === '/'
+        ? CAPTURE_PROTOCOL.paths.bundleDocument.slice(1)
+        : pathname.replace(/^\/+/, '');
     if (relative.split('/').includes('..')) {
       return new Response('Not found', { status: 404 });
     }
@@ -51,26 +56,12 @@ function newPublisherPage(browser: Browser): Promise<Page> {
   });
 }
 
-async function waitForCaptureResult(page: Page): Promise<{
-  detail: string;
-  payloadHash: string | null;
-  state: string | null;
-}> {
-  const marker = page.locator('#capture-status');
-  await marker.waitFor({ state: 'attached' });
-  await page.waitForFunction(
-    () =>
-      document.querySelector('#capture-status')?.getAttribute('data-capture-state') !== 'loading'
-  );
-  return {
-    detail: (await marker.textContent()) ?? '',
-    payloadHash: await marker.getAttribute('data-payload-hash'),
-    state: await marker.getAttribute('data-capture-state'),
-  };
+function waitForCaptureResult(page: Page) {
+  return waitForCaptureMarkerSettled(page);
 }
 
 async function openCapture(page: Page) {
-  await page.goto(`http://127.0.0.1:${server.port}/publisher-capture.html`, {
+  await page.goto(`http://127.0.0.1:${server.port}${CAPTURE_PROTOCOL.paths.bundleDocument}`, {
     waitUntil: 'domcontentloaded',
   });
   return await waitForCaptureResult(page);
@@ -109,28 +100,7 @@ async function checkCorruptExternalUse(browser: Browser): Promise<void> {
 }
 
 async function assertPageBounds(page: Page): Promise<void> {
-  await page.emulateMedia({ media: 'print' });
-  const bodyMargin = await page.evaluate(() => getComputedStyle(document.body).margin);
-  invariant(bodyMargin === '0px', `Publisher body margin was ${bodyMargin}`);
-
-  const expectedWidthPx = (PUBLISHER_RENDERER_CONTRACT.pdf.pageWidthMm * 96) / 25.4;
-  const expectedHeightPx = (PUBLISHER_RENDERER_CONTRACT.pdf.pageHeightMm * 96) / 25.4;
-  const pages = page.locator('[data-faction-sheet-page]');
-  invariant(
-    (await pages.count()) === PUBLISHER_RENDERER_CONTRACT.pdf.pageCount,
-    `Production-shaped capture did not render exactly ${PUBLISHER_RENDERER_CONTRACT.pdf.pageCount} pages`
-  );
-  for (let index = 0; index < PUBLISHER_RENDERER_CONTRACT.pdf.pageCount; index += 1) {
-    const bounds = await pages.nth(index).boundingBox();
-    invariant(bounds, `Production-shaped capture page ${index + 1} had no bounds`);
-    invariant(
-      Math.abs(bounds.x) <= 0.5 &&
-        Math.abs(bounds.y - index * expectedHeightPx) <= 0.5 &&
-        Math.abs(bounds.width - expectedWidthPx) <= 0.5 &&
-        Math.abs(bounds.height - expectedHeightPx) <= 0.5,
-      `Production-shaped capture page ${index + 1} bounds were ${JSON.stringify(bounds)}`
-    );
-  }
+  await assertCapturePhysicalBounds(page);
   invariant(
     (await page.locator('[aria-label="Troop Token"]').count()) > 0,
     'Production-shaped capture must render omitted troop modifiers as bounded TroopToken components'

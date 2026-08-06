@@ -12,6 +12,12 @@ import {
   redactPublisherResource,
   sanitizePublisherDiagnostic,
 } from '../../src/app/capture/publisher-diagnostics';
+import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
+import {
+  assertCapturePhysicalBounds,
+  assertReadyCaptureMarker,
+  waitForCaptureMarkerSettled,
+} from './capture-lifecycle';
 import { captureDeadlineCookie, captureJobCookie } from './capture-route';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
@@ -145,44 +151,6 @@ export async function inspectPublisherPdf(bytes: Uint8Array) {
   }
 }
 
-async function assertPageBounds(page: Page, deadline: number): Promise<void> {
-  await page.emulateMedia({ media: 'print' });
-  const margins = await page.evaluate(() => {
-    const browserGlobal = globalThis as typeof globalThis & {
-      document: { body: unknown };
-      getComputedStyle(element: unknown): {
-        marginTop: string;
-        marginRight: string;
-        marginBottom: string;
-        marginLeft: string;
-      };
-    };
-    const style = browserGlobal.getComputedStyle(browserGlobal.document.body);
-    return [style.marginTop, style.marginRight, style.marginBottom, style.marginLeft];
-  });
-  if (margins.some((margin) => margin !== '0px')) {
-    throw new Error(`Capture document body margins are not zero: ${margins.join(' ')}`);
-  }
-  const width = (PDF_CONTRACT.pageWidthMm * 96) / 25.4;
-  const height = (PDF_CONTRACT.pageHeightMm * 96) / 25.4;
-  const pages = page.locator('[data-faction-sheet-page]');
-  if ((await pages.count()) !== PDF_CONTRACT.pageCount) {
-    throw new Error(`Capture route did not render exactly ${PDF_CONTRACT.pageCount} pages`);
-  }
-  for (let index = 0; index < PDF_CONTRACT.pageCount; index += 1) {
-    const bounds = await pages.nth(index).boundingBox({ timeout: remaining(deadline) });
-    if (
-      !bounds ||
-      Math.abs(bounds.x) > 0.5 ||
-      Math.abs(bounds.y - index * height) > 0.5 ||
-      Math.abs(bounds.width - width) > 0.5 ||
-      Math.abs(bounds.height - height) > 0.5
-    ) {
-      throw new Error(`Capture page ${index + 1} has invalid physical bounds`);
-    }
-  }
-}
-
 export class PublisherBrowserSession {
   constructor(
     private readonly browser: Browser,
@@ -210,41 +178,17 @@ export class PublisherBrowserSession {
       const page = await context.newPage();
       const diagnostics = registerCaptureDiagnostics(page);
       phase = 'load';
-      const response = await page.goto(`${this.captureBaseUrl}/__asset-publisher/capture`, {
+      const response = await page.goto(`${this.captureBaseUrl}${CAPTURE_PROTOCOL.paths.document}`, {
         waitUntil: 'domcontentloaded',
         timeout: remaining(deadline),
       });
       if (!response?.ok()) {
         throw new Error(`Capture navigation returned HTTP ${response?.status()}`);
       }
-      const marker = page.locator('#capture-status');
-      await marker.waitFor({ state: 'attached', timeout: remaining(deadline) });
-      await page.waitForFunction(
-        () => {
-          const browserGlobal = globalThis as typeof globalThis & {
-            document: {
-              querySelector(selector: string): { getAttribute(name: string): string | null } | null;
-            };
-          };
-          return (
-            browserGlobal.document
-              .querySelector('#capture-status')
-              ?.getAttribute('data-capture-state') !== 'loading'
-          );
-        },
-        undefined,
-        { timeout: remaining(deadline) }
-      );
-      const state = await marker.getAttribute('data-capture-state');
-      if (state !== 'ready') {
-        throw new Error(`Capture route reported ${state}: ${await marker.textContent()}`);
-      }
-      const payloadHash = await marker.getAttribute('data-payload-hash');
-      if (!payloadHash || !/^[0-9a-f]{64}$/.test(payloadHash)) {
-        throw new Error('Capture route did not expose the exact payload hash');
-      }
+      const markerResult = await waitForCaptureMarkerSettled(page, () => remaining(deadline));
+      const payloadHash = assertReadyCaptureMarker(markerResult);
       phase = 'validate';
-      await assertPageBounds(page, deadline);
+      await assertCapturePhysicalBounds(page, () => remaining(deadline));
       assertCaptureDiagnostics(diagnostics);
       phase = 'pdf';
       const bytes = await page.pdf({
