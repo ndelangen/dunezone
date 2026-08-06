@@ -5,6 +5,7 @@ import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/app/fa
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, query } from './_generated/server';
+import { listFaqAnswersGivenBy, listFaqQuestionsAskedBy } from './lib/faqActivity';
 import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
 import { adjustHomepageRulesetFaqTotals } from './lib/homepageCommunity';
 import { canAccessRuleset, requireAuthUserId } from './lib/policy';
@@ -185,65 +186,12 @@ export const detailByRulesetSlugAndQuestionSlug = query({
 
 export const askedBy = query({
   args: { profile_id: v.id('users') },
-  handler: async (ctx, args) => {
-    const rows = await ctx.db
-      .query('faq_items')
-      .withIndex('by_asked_by_created', (q) => q.eq('asked_by', args.profile_id))
-      .take(200);
-    const sorted = [...rows].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-    return await Promise.all(
-      sorted.map(async (item) => {
-        const ruleset = await getRuleset(ctx, item.ruleset_id);
-        if (!ruleset) {
-          throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
-        }
-        return {
-          ...item,
-          ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
-        };
-      })
-    );
-  },
+  handler: async (ctx, args) => await listFaqQuestionsAskedBy(ctx, args.profile_id),
 });
 
 export const answeredBy = query({
   args: { profile_id: v.id('users') },
-  handler: async (ctx, args) => {
-    const answers = await ctx.db
-      .query('faq_answers')
-      .withIndex('by_answered_by_created', (q) => q.eq('answered_by', args.profile_id))
-      .take(200);
-    const sorted = [...answers].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-    return await Promise.all(
-      sorted.map(async (answer) => {
-        const item = await getFaqItem(ctx, answer.faq_item_id);
-        if (!item) {
-          throw new Error(`FAQ item ${answer.faq_item_id} missing for answer ${answer._id}`);
-        }
-        const ruleset = await getRuleset(ctx, item.ruleset_id);
-        if (!ruleset) {
-          throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
-        }
-        return {
-          ...answer,
-          faq_item: {
-            id: item._id,
-            slug: item.slug,
-            question: item.question,
-            ruleset_id: item.ruleset_id,
-            asked_by: item.asked_by,
-            accepted_answer_id: item.accepted_answer_id ?? null,
-          },
-          asker_profile: await profileSummary(ctx, item.asked_by),
-          ruleset: {
-            id: ruleset._id,
-            name: ruleset.name,
-            slug: ruleset.slug,
-          },
-        };
-      })
-    );
-  },
+  handler: async (ctx, args) => await listFaqAnswersGivenBy(ctx, args.profile_id),
 });
 
 export const createItem = mutation({

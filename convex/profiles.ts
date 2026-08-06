@@ -2,14 +2,13 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { profileUserEditFormSchema } from '../src/app/profile/validation';
-import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
-import { enrichFactionsWithRulesets, listActiveRulesetSummaries } from './lib/factionCatalogue';
 import { syncHomepageNewestMember } from './lib/homepageCommunity';
 import { requireAuthUserId } from './lib/policy';
 import { ensureProfileForUser } from './lib/profileBootstrap';
+import { loadProfileDetailBySlug } from './lib/profileDetail';
 import { nowIso, slugify } from './lib/utils';
 
 async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
@@ -93,52 +92,7 @@ export const getById = query({
 
 export const getBySlug = query({
   args: { slug: v.string() },
-  handler: async (ctx, args) => {
-    const profile = await ctx.db
-      .query('profiles')
-      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
-      .unique();
-    if (!profile) {
-      throw new Error(`Profile with slug ${args.slug} not found`);
-    }
-
-    const memberships = await ctx.db
-      .query('group_members')
-      .withIndex('by_user_status', (q) => q.eq('user_id', profile.user_id).eq('status', 'active'))
-      .take(500);
-
-    const groupsWithNulls = await Promise.all(
-      memberships.map((membership) => ctx.db.get('groups', membership.group_id))
-    );
-    const groups = groupsWithNulls.filter(
-      (group): group is NonNullable<(typeof groupsWithNulls)[number]> => group !== null
-    );
-
-    const faqAsked: any = await ctx.runQuery(api.faq.askedBy, {
-      profile_id: profile.user_id,
-    });
-    const faqAnswers: any = await ctx.runQuery(api.faq.answeredBy, {
-      profile_id: profile.user_id,
-    });
-
-    const factionRows = await ctx.db
-      .query('factions')
-      .withIndex('by_owner_deleted', (q) =>
-        q.eq('owner_id', profile.user_id).eq('is_deleted', false)
-      )
-      .take(500);
-    const activeRulesets = await listActiveRulesetSummaries(ctx);
-    const factions = await enrichFactionsWithRulesets(ctx, factionRows, activeRulesets);
-
-    return {
-      profile,
-      memberships,
-      groups,
-      faqAsked,
-      faqAnswers,
-      factions,
-    };
-  },
+  handler: async (ctx, args) => await loadProfileDetailBySlug(ctx, args.slug),
 });
 
 export const getByUserId = query({

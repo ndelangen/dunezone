@@ -69,10 +69,8 @@ function ProfileDetailPage() {
     await navigate({ to: '/auth/login' });
   };
 
-  const groupsById = new Map((profileData.groups ?? []).map((g) => [String(g._id), g] as const));
-  const acceptedAnswerCount = (profileData.faqAnswers ?? []).filter(
-    (answer) => answer.faq_item.accepted_answer_id === answer._id
-  ).length;
+  const groupsById = profileData.groupsById ?? new Map();
+  const acceptedAnswerCount = profileData.acceptedAnswerCount ?? 0;
 
   const toolbar = (
     <Toolbar>
