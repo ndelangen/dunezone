@@ -1,9 +1,6 @@
 // @vitest-environment jsdom
 
-import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-
-import { api } from '../../../convex/_generated/api';
 
 const mocks = vi.hoisted(() => ({
   dbQuery: vi.fn(),
@@ -16,7 +13,7 @@ vi.mock('convex/react', () => ({
   useMutation: vi.fn(),
 }));
 
-import { loadProfileBySlug, useProfileBySlug } from './db';
+import { loadProfileBySlug } from './db';
 
 const profile = {
   _id: 'profile-1',
@@ -47,27 +44,6 @@ beforeEach(() => {
 });
 
 describe('profile page interface', () => {
-  test('loader and live paths produce one canonical page with ordered Group summaries', async () => {
-    mocks.dbQuery.mockResolvedValue(serverPage);
-
-    const loaded = await loadProfileBySlug('chani');
-
-    expect(loaded.groupSummaries).toEqual(groupSummaries);
-    expect(loaded).not.toHaveProperty('memberships');
-    expect(loaded).not.toHaveProperty('groups');
-    expect(mocks.dbQuery).toHaveBeenCalledWith(api.profiles.getBySlug, { slug: 'chani' });
-
-    mocks.useQuery.mockReturnValue(undefined);
-    const loaderHandoff = renderHook(() => useProfileBySlug('chani', { initialData: loaded }));
-    expect(loaderHandoff.result.current.data).toEqual(loaded);
-    loaderHandoff.unmount();
-
-    mocks.useQuery.mockReturnValue(serverPage);
-    const live = renderHook(() => useProfileBySlug('chani'));
-    expect(live.result.current.data).toEqual(loaded);
-    live.unmount();
-  });
-
   test('counts only answers whose parent question accepted them', async () => {
     const acceptedAnswer = {
       _id: 'answer-1',

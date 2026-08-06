@@ -87,9 +87,33 @@ export default async function globalSetup(config: FullConfig) {
   });
 
   await loginWithLocalAuth(baseUrl, {
+    email: userAEmail,
+    password: userPassword,
+    storageStatePath: '.playwright/user-a-faq.json',
+  });
+
+  await loginWithLocalAuth(baseUrl, {
+    email: userAEmail,
+    password: userPassword,
+    storageStatePath: '.playwright/user-a-group.json',
+  });
+
+  await loginWithLocalAuth(baseUrl, {
     email: userBEmail,
     password: userPassword,
     storageStatePath: '.playwright/user-b.json',
+  });
+
+  await loginWithLocalAuth(baseUrl, {
+    email: userBEmail,
+    password: userPassword,
+    storageStatePath: '.playwright/user-b-faq.json',
+  });
+
+  await loginWithLocalAuth(baseUrl, {
+    email: userBEmail,
+    password: userPassword,
+    storageStatePath: '.playwright/user-b-group.json',
   });
 
   execSync(`npx convex run e2e:seedBaseline '${JSON.stringify({ ownerEmail: userAEmail })}'`, {
