@@ -1,4 +1,5 @@
 import { useQuery } from 'convex/react';
+import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
@@ -58,33 +59,7 @@ export type FaqProfileSummary = {
   avatarUrl: string | null;
 };
 
-export type FaqQuestionPage = {
-  ruleset: { id: string; slug: string; name: string };
-  question: {
-    id: string;
-    slug: string;
-    text: string;
-    tags: FaqTag[];
-    author: FaqProfileSummary | null;
-    createdAt: string;
-    updatedAt: string;
-    capabilities: { editQuestion: boolean; deleteQuestion: boolean };
-  };
-  viewer: { answerQuestion: boolean };
-  answers: Array<{
-    id: string;
-    text: string;
-    author: FaqProfileSummary | null;
-    createdAt: string;
-    accepted: boolean;
-    capabilities: {
-      editAnswer: boolean;
-      deleteAnswer: boolean;
-      acceptAnswer: boolean;
-      unacceptAnswer: boolean;
-    };
-  }>;
-};
+export type FaqQuestionPage = FunctionReturnType<typeof api.faq.questionPage>;
 
 type CommandState = {
   isPending: boolean;
@@ -137,7 +112,7 @@ function voidCommand<TVariables, TResult>(
 }
 
 export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<FaqQuestionPage> {
-  return await db.query<FaqQuestionPage>(api.faq.questionPage, locator);
+  return await db.query(api.faq.questionPage, locator);
 }
 
 export type UseFaqQuestionPageResult = ReturnType<typeof useFaqQuestionPage>;
@@ -146,7 +121,7 @@ export function useFaqQuestionPage(
   locator: FaqQuestionLocator,
   options?: { initialPage?: FaqQuestionPage }
 ) {
-  const livePage = useQuery(api.faq.questionPage, locator) as FaqQuestionPage | undefined;
+  const livePage = useQuery(api.faq.questionPage, locator);
   const query = toLiveQueryResult(livePage, true, () => options?.initialPage);
   const questionId = query.data?.question.id;
 
