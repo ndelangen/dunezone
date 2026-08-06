@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import { ConvexPublisherClient, parseTakeWork } from './convex';
+import { parseTakeWorkResponse as parseTakeWork } from '../../src/shared/asset-publishing/publication';
+import { ConvexPublisherClient } from './convex';
 
 function assignedJob(index = 1) {
   return {

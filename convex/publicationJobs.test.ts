@@ -6,6 +6,7 @@ import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
+import { takeWorkResultSchema } from '../src/shared/asset-publishing/publication';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import schema from './schema';
@@ -50,6 +51,12 @@ afterEach(() => {
 });
 
 describe('Publication save coalescing', () => {
+  test('takeWork output parses against the shared executor wire schema', async () => {
+    const t = convexTest(schema, modules);
+    const empty = await t.mutation(internal.publicationJobs.takeWork, {});
+    expect(() => takeWorkResultSchema.parse(empty)).not.toThrow();
+  });
+
   test('updates one pending job payload and resets its attempts', async () => {
     const { t, asUser } = await authenticatedTest();
     const faction = await createFaction(asUser);

@@ -71,14 +71,12 @@ const groupViewerAccessValidator = v.object({
   }),
 });
 
+const factionViewerAccessValidator = assetViewerAccessValidator('faction');
+const rulesetViewerAccessValidator = assetViewerAccessValidator('ruleset');
+
 const rosterEntryValidator = v.object({
   membershipId: v.id('group_members'),
-  user: v.object({
-    id: v.id('profiles'),
-    slug: v.string(),
-    username: v.union(v.string(), v.null()),
-    avatar_url: v.union(v.string(), v.null()),
-  }),
+  user: profileSummaryValidator,
   status: v.union(v.literal('pending'), v.literal('active')),
   requestedAt: v.string(),
   capabilities: v.object({
@@ -88,7 +86,7 @@ const rosterEntryValidator = v.object({
   }),
 });
 
-function assetViewerAccessValidator(kind: 'faction' | 'ruleset') {
+function assetViewerAccessValidator<Kind extends 'faction' | 'ruleset'>(kind: Kind) {
   return v.object({
     kind: v.literal(kind),
     assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
@@ -114,7 +112,7 @@ export const factionDetailPageValidator = v.object({
   faction: factionValidator,
   owner: profileValidator,
   assetPublishing: assetPublishingValidator,
-  viewerAccess: assetViewerAccessValidator('faction'),
+  viewerAccess: factionViewerAccessValidator,
   assignableGroups: v.array(assignedGroupSummaryValidator),
   rulesets: v.array(rulesetSummaryValidator),
 });
@@ -132,7 +130,7 @@ const rulesetFactionSummaryValidator = v.object({
 export const rulesetPublicBundleValidator = v.object({
   ruleset: rulesetValidator,
   factions: v.array(rulesetFactionSummaryValidator),
-  viewerAccess: assetViewerAccessValidator('ruleset'),
+  viewerAccess: rulesetViewerAccessValidator,
 });
 
 const faqAnswerValidator = docValidator('faq_answers');
@@ -193,6 +191,8 @@ export const groupDetailPageValidator = v.object({
 
 export {
   factionValidator,
+  factionViewerAccessValidator,
+  rulesetViewerAccessValidator,
   rulesetSummaryValidator,
   assignedGroupSummaryValidator,
   assetViewerAccessValidator,
