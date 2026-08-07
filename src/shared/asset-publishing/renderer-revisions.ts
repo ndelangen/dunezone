@@ -5,5 +5,5 @@ import { FACTION_SHEET_ASSET_TYPE } from './publication';
  * Renderer implementation.
  */
 export const CHECKED_IN_RENDERER_REVISIONS = {
-  [FACTION_SHEET_ASSET_TYPE]: 5,
+  [FACTION_SHEET_ASSET_TYPE]: 6,
 } as const;
