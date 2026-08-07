@@ -178,9 +178,9 @@ describe('Cloudflare live drift check', () => {
       secretCount: 2,
       cronCount: 1,
       queueCount: 1,
-      bucketCount: 2,
+      bucketCount: 1,
     });
-    expect(live.requests).toHaveLength(11);
+    expect(live.requests).toHaveLength(8);
     expect(new Set(live.requests.map((request) => request.method))).toEqual(new Set(['GET']));
     expect(
       live.requests.find((request) => request.url.pathname.endsWith('/workers/domains'))?.url
