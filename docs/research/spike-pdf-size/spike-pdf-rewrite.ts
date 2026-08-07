@@ -1,8 +1,8 @@
+import path from 'node:path';
 // Spike part 3: actually rewrite baseline.pdf — swap Flate image XObjects for
 // JPEG (DCTDecode) streams in place, exactly what the #259 Worker step would do.
 // Produces real PDFs for visual judgment.
 import { inflateSync } from 'node:zlib';
-import path from 'node:path';
 
 import { PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
 
@@ -53,11 +53,12 @@ for (const [ref, obj] of doc.context.enumerateIndirectObjects()) {
     pipeline = pipeline.resize(outW, outH);
   }
   const q = channels === 3 ? Number(process.env.Q_RGB ?? QUALITY) : QUALITY;
-  const encoded = await pipeline
-    .jpeg({ quality: q, progressive: false, mozjpeg: true })
-    .toBuffer();
+  const encoded = await pipeline.jpeg({ quality: q, progressive: false, mozjpeg: true }).toBuffer();
   if (encoded.length >= obj.contents.length) continue;
-  if (process.env.DEBUG) console.log(`swap ${w}x${h} ch=${channels} smaskRef=${dict.has(PDFName.of('SMask'))} isMask=${dict.has(PDFName.of('Matte')) || ''} ${Math.round(obj.contents.length/1024)}KB -> ${Math.round(encoded.length/1024)}KB`);
+  if (process.env.DEBUG)
+    console.log(
+      `swap ${w}x${h} ch=${channels} smaskRef=${dict.has(PDFName.of('SMask'))} isMask=${dict.has(PDFName.of('Matte')) || ''} ${Math.round(obj.contents.length / 1024)}KB -> ${Math.round(encoded.length / 1024)}KB`
+    );
 
   dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
   dict.set(PDFName.of('Width'), doc.context.obj(outW));

@@ -1,3 +1,4 @@
+import path from 'node:path';
 // Clean PDF recompression harness — the validated reference for the Train 2
 // implementation (wayfinder #271), final policy per #257. Run with bun from the
 // repo root (pdf-lib from repo deps; sharp from a local install — adjust path).
@@ -9,7 +10,6 @@
 // (streaks this art style's grain at any quality; see report.md).
 // Only images >=300px in BOTH dims and without /SMask entries are ever touched.
 import { deflateSync, inflateSync } from 'node:zlib';
-import path from 'node:path';
 
 import { PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
 
@@ -29,7 +29,8 @@ type Policy =
 function parsePolicy(spec: string): Policy {
   if (spec === 'skip') return { kind: 'skip' };
   const [kind, a, b, c] = spec.split(':');
-  if (kind === 'jpeg') return { kind: 'jpeg', q: Number(a), chroma: b && c ? `${b}:${c}` : '4:2:0' };
+  if (kind === 'jpeg')
+    return { kind: 'jpeg', q: Number(a), chroma: b && c ? `${b}:${c}` : '4:2:0' };
   if (kind === 'lossless') return { kind: 'lossless', scale: Number(a) };
   throw new Error(`bad policy ${spec}`);
 }

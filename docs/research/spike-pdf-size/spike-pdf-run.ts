@@ -183,9 +183,7 @@ async function runCell(browser: Browser, cell: Cell) {
     const pages = page.locator('[data-faction-sheet-page]');
     const count = await pages.count();
     for (let i = 0; i < count; i += 1) {
-      await pages
-        .nth(i)
-        .screenshot({ path: path.join(outDir, `${cell.name}-page${i + 1}.png`) });
+      await pages.nth(i).screenshot({ path: path.join(outDir, `${cell.name}-page${i + 1}.png`) });
     }
   }
 

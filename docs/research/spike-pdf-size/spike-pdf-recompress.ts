@@ -1,8 +1,8 @@
+import path from 'node:path';
 // Spike part 2: (a) probe whether this Chromium emits DCT passthrough at all;
 // (b) estimate post-capture recompression by inflating baseline.pdf's Flate
 // image XObjects and re-encoding RGB ones as JPEG (the #259 approach, locally).
 import { inflateSync } from 'node:zlib';
-import path from 'node:path';
 
 import { PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
 import { chromium } from 'playwright';
@@ -39,7 +39,10 @@ for (const [, obj] of probeDoc.context.enumerateIndirectObjects()) {
     );
   }
 }
-console.log('PROBE bare <img> jpeg:', JSON.stringify({ pdfKb: Math.round(probeBytes.length / 1024), images: probeFilters }));
+console.log(
+  'PROBE bare <img> jpeg:',
+  JSON.stringify({ pdfKb: Math.round(probeBytes.length / 1024), images: probeFilters })
+);
 
 // --- (b) recompression estimate on baseline.pdf ---
 const sharp = (await import(path.join(spikeDir, 'node_modules/sharp/dist/index.cjs'))).default;
