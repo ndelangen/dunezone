@@ -15,6 +15,7 @@ const modules = import.meta.glob('./**/*.ts');
 test('maintains global and per-ruleset totals through wrapped writes', async () => {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
 
   const ids = await t.run(async (rawCtx) => {
@@ -139,6 +140,7 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
 test('backfills Statistics resumably and rebuilds after later writes bypass triggers', async () => {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   migrationsTest.register(t);
 

@@ -13,14 +13,7 @@ import type { Doc } from '../../../convex/_generated/dataModel';
 
 export type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
-export type ProfileListEntry = ProfileRow & {
-  activity: {
-    groupCount: number;
-    factionCount: number;
-    questionCount: number;
-    answerCount: number;
-  };
-};
+export type ProfileListEntry = FunctionReturnType<typeof api.profiles.list>[number];
 
 /** Server-owned profile detail contract; the read model lives in `convex/lib/profileDetail.ts`. */
 export type ProfileDetailResult = FunctionReturnType<typeof api.profiles.getBySlug>;
@@ -51,40 +44,6 @@ export async function loadProfilesAll(): Promise<ProfileListEntry[]> {
   return entries;
 }
 
-export async function loadCurrentUserId(): Promise<string | null> {
-  return await db.query(api.profiles.currentUserId, {});
-}
-
-export async function loadCurrentProfile(): Promise<ProfileEntry | null> {
-  const currentRaw = await db.query(api.profiles.current, {});
-  const current = currentRaw ? currentRaw : null;
-  if (current) {
-    const needsBackfill = current.slug === 'user' || !current.username || !current.avatar_url;
-    if (needsBackfill) {
-      const entry = await db.mutation(api.profiles.bootstrapCurrent, {});
-      return entry;
-    }
-    return current;
-  }
-
-  const userId = await loadCurrentUserId();
-  if (!userId) {
-    return null;
-  }
-
-  const entry = await db.mutation(api.profiles.bootstrapCurrent, {});
-  return entry;
-}
-
-export function useProfile(id: string) {
-  const liveData = useQuery(api.profiles.getById, { id } as never) as ProfileRow | null | undefined;
-  const result = toLiveQueryResult(liveData, true);
-  return {
-    ...result,
-    data: result.data ?? undefined,
-  };
-}
-
 export function useProfileBySlug(
   slug: string,
   options?: {
@@ -94,15 +53,7 @@ export function useProfileBySlug(
   const liveData = useQuery(api.profiles.getBySlug, { slug });
   const normalized = liveData ? normalizeProfilePage(liveData) : undefined;
   const result = toLiveQueryResult(normalized, true, () => options?.initialData);
-  return {
-    ...result,
-    profile: result.data ? result.data.profile : undefined,
-    groupSummaries: result.data?.groupSummaries,
-    faqAsked: result.data?.faqAsked,
-    faqAnswers: result.data?.faqAnswers,
-    factions: result.data?.factions,
-    acceptedAnswerCount: result.data?.acceptedAnswerCount,
-  };
+  return result;
 }
 
 export function useProfilesAll(options?: { initialData?: ProfileListEntry[] }) {

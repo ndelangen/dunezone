@@ -21,6 +21,7 @@ describe('local faction development import', () => {
   test('maps imported factions and groups onto the two local auth users', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
     const [ownerId, collaboratorId] = await t.run(async (ctx) => {
       const owner = await ctx.db.insert('users', { email: 'user-a@example.com' });
@@ -104,6 +105,7 @@ describe('local faction development import', () => {
     vi.stubEnv('IS_TEST', 'false');
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
 
     await expect(

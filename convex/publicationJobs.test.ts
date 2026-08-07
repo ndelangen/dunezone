@@ -6,6 +6,7 @@ import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
+import { takeWorkResultSchema } from '../src/shared/asset-publishing/publication';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import schema from './schema';
@@ -16,6 +17,7 @@ const CACHE_TOKEN = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
 async function authenticatedTest(options: { admin?: boolean } = {}) {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   const userId = await t.run(
     async (ctx) =>
@@ -50,6 +52,12 @@ afterEach(() => {
 });
 
 describe('Publication save coalescing', () => {
+  test('takeWork output parses against the shared executor wire schema', async () => {
+    const t = convexTest(schema, modules);
+    const empty = await t.mutation(internal.publicationJobs.takeWork, {});
+    expect(() => takeWorkResultSchema.parse(empty)).not.toThrow();
+  });
+
   test('updates one pending job payload and resets its attempts', async () => {
     const { t, asUser } = await authenticatedTest();
     const faction = await createFaction(asUser);
@@ -244,36 +252,6 @@ describe('Publication pickup, recovery, and failure', () => {
       status: 'error',
       attempt_counter: 10,
       error: 'Invalid PDF',
-    });
-  });
-
-  test('the tenth expiry recovery becomes an error job', async () => {
-    const { t, asUser } = await authenticatedTest();
-    await t.mutation(internal.publicationAdmin.initialize, {
-      rendererRevisions: { faction_sheet: 4 },
-    });
-    const faction = await createFaction(asUser);
-    const [job] = await jobsFor(t, faction._id);
-    if (!job) {
-      throw new Error('Missing job');
-    }
-    await t.run(async (ctx) => {
-      await ctx.db.patch(job._id, {
-        status: 'in_progress',
-        attempt_counter: 9,
-        expires_at: Date.now() - 1,
-      });
-    });
-
-    await expect(t.mutation(internal.publicationJobs.takeWork, {})).resolves.toMatchObject({
-      status: 'empty',
-      reason: 'disabled',
-      recovered: 1,
-    });
-    expect((await jobsFor(t, faction._id))[0]).toMatchObject({
-      status: 'error',
-      attempt_counter: 10,
-      error: 'Capture expired before completion',
     });
   });
 

@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
-import { loadRulesetBySlug } from '@db/rulesets';
 import { Answer } from '@app/components/faq/Answer';
 import { FormField } from '@app/components/form/FormField';
 import { FormTooltip } from '@app/components/form/FormTooltip';
@@ -13,15 +12,15 @@ import { Card } from '@app/components/generic/surfaces/Card';
 import { UIButton } from '@app/components/generic/ui/UIButton';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
-import { DEFAULT_FAQ_TAG, FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
-import type { FaqTag } from '@app/faq/tags';
+import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from '@app/faq/faqEditingSession';
+import type { FaqEditingSession } from '@app/faq/faqEditingSession';
+import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 
 import styles from './$questionSlug.module.css';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionSlug')({
   loader: async ({ params }) => {
     try {
-      await loadRulesetBySlug(params.rulesetSlug);
       const page = await loadFaqQuestionPage({
         rulesetSlug: params.rulesetSlug,
         questionSlug: params.questionSlug,
@@ -45,11 +44,16 @@ function FaqDetailPage() {
     }
   );
 
-  const [editingQuestion, setEditingQuestion] = useState(false);
-  const [editingAnswerId, setEditingAnswerId] = useState<string | null>(null);
-  const [editQuestionValue, setEditQuestionValue] = useState('');
-  const [editTagValues, setEditTagValues] = useState<FaqTag[]>([]);
-  const [editAnswerValue, setEditAnswerValue] = useState('');
+  const [editing, setEditing] = useState(INITIAL_FAQ_EDITING_STATE);
+  const editingSessionRef = useRef<FaqEditingSession>(undefined);
+  const commandsRef = useRef({ faq });
+  commandsRef.current = { faq };
+  editingSessionRef.current ??= createFaqEditingSession({
+    editQuestion: (input) => commandsRef.current.faq.editQuestion.run(input),
+    editAnswer: (input) => commandsRef.current.faq.editAnswer.run(input),
+    onState: setEditing,
+  });
+  const editingSession = editingSessionRef.current;
 
   const page = faq.page;
   const item = page?.question;
@@ -124,59 +128,11 @@ function FaqDetailPage() {
       .catch(() => undefined);
   };
 
-  const startEditQuestion = () => {
-    setEditQuestionValue(item.text);
-    setEditTagValues(
-      Array.isArray(item.tags) && item.tags.length > 0 ? (item.tags as FaqTag[]) : [DEFAULT_FAQ_TAG]
-    );
-    setEditingQuestion(true);
-  };
-
-  const toggleEditTag = (tag: FaqTag, checked: boolean) => {
-    setEditTagValues((prev) => {
-      if (checked) {
-        return prev.includes(tag) ? prev : [...prev, tag];
-      }
-      return prev.filter((value) => value !== tag);
-    });
-  };
-
-  const saveQuestion = () => {
-    const trimmed = editQuestionValue.trim();
-    if (!trimmed || editTagValues.length === 0) {
-      return;
-    }
-    const currentTags =
-      Array.isArray(item.tags) && item.tags.length > 0 ? item.tags : [DEFAULT_FAQ_TAG];
-    const questionChanged = trimmed !== item.text;
-    const tagsChanged = [...editTagValues].sort().join('|') !== [...currentTags].sort().join('|');
-    if (!questionChanged && !tagsChanged) {
-      setEditingQuestion(false);
-      return;
-    }
-    void faq.editQuestion
-      .run({ question: trimmed, tags: editTagValues })
-      .then(() => setEditingQuestion(false))
-      .catch(() => undefined);
-  };
-
-  const startEditAnswer = (a: (typeof answers)[0]) => {
-    setEditAnswerValue(a.text);
-    setEditingAnswerId(a.id);
-  };
-
-  const saveAnswer = (answerId: string) => {
-    const trimmed = editAnswerValue.trim();
-    const a = answers.find((x) => x.id === answerId);
-    if (!a || !trimmed || trimmed === a.text) {
-      setEditingAnswerId(null);
-      return;
-    }
-    void faq.editAnswer
-      .run({ answerId, answer: trimmed })
-      .then(() => setEditingAnswerId(null))
-      .catch(() => undefined);
-  };
+  const startEditQuestion = () => editingSession.startEditQuestion(item);
+  const saveQuestion = () => void editingSession.saveQuestion(item);
+  const startEditAnswer = (a: (typeof answers)[0]) => editingSession.startEditAnswer(a);
+  const saveAnswer = (answerId: string) =>
+    void editingSession.saveAnswer(answers.find((x) => x.id === answerId));
 
   const handleDeleteAnswer = (answerId: string) => {
     if (!window.confirm('Delete this answer?')) {
@@ -190,12 +146,12 @@ function FaqDetailPage() {
       <Card>
         <Stack gap={4}>
           <Stack gap={3}>
-            {editingQuestion ? (
+            {editing.editingQuestion ? (
               <Stack gap={3}>
                 <FormField label="Edit question">
                   <MultilineTextField
-                    value={editQuestionValue}
-                    onChange={(e) => setEditQuestionValue(e.target.value)}
+                    value={editing.questionValue}
+                    onChange={(e) => editingSession.setQuestionValue(e.target.value)}
                     rows={2}
                   />
                 </FormField>
@@ -206,8 +162,8 @@ function FaqDetailPage() {
                       <label key={tag} className={styles.tagOption}>
                         <input
                           type="checkbox"
-                          checked={editTagValues.includes(tag)}
-                          onChange={(e) => toggleEditTag(tag, e.target.checked)}
+                          checked={editing.tagValues.includes(tag)}
+                          onChange={(e) => editingSession.toggleTag(tag, e.target.checked)}
                         />
                         <span>{FAQ_TAG_LABELS[tag]}</span>
                       </label>
@@ -232,7 +188,7 @@ function FaqDetailPage() {
                       type="button"
                       iconOnly
                       aria-label="Cancel editing question"
-                      onClick={() => setEditingQuestion(false)}
+                      onClick={() => editingSession.cancelQuestion()}
                     >
                       <X size={16} aria-hidden />
                     </UIButton>
@@ -345,7 +301,7 @@ function FaqDetailPage() {
           {answers.length > 0 ? (
             <Answer.List className={styles.answerList}>
               {answers.map((a) => {
-                const isEditing = editingAnswerId === a.id;
+                const isEditing = editing.editingAnswerId === a.id;
                 const isUserAnswer = a.capabilities.editAnswer;
                 const isAccepted = a.accepted;
                 return (
@@ -359,8 +315,8 @@ function FaqDetailPage() {
                       <Stack gap={3}>
                         <FormField label="Edit your answer">
                           <MultilineTextField
-                            value={editAnswerValue}
-                            onChange={(e) => setEditAnswerValue(e.target.value)}
+                            value={editing.answerValue}
+                            onChange={(e) => editingSession.setAnswerValue(e.target.value)}
                             rows={3}
                           />
                         </FormField>
@@ -382,7 +338,7 @@ function FaqDetailPage() {
                               type="button"
                               iconOnly
                               aria-label="Cancel editing answer"
-                              onClick={() => setEditingAnswerId(null)}
+                              onClick={() => editingSession.cancelAnswer()}
                             >
                               <X size={16} aria-hidden />
                             </UIButton>

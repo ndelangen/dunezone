@@ -1,55 +1,26 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
+import type { Infer } from 'convex/values';
 
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import type {
+  assignedGroupSummaryValidator,
+  factionViewerAccessValidator,
+  groupViewerAccessValidator,
+  publicViewerValidator,
+  rulesetViewerAccessValidator,
+} from './collaborativeAccessValidators';
 
 export type MembershipState = 'none' | 'pending' | 'active';
 
-export type PublicViewer =
-  | { kind: 'anonymous' }
-  | { kind: 'authenticated'; membership: MembershipState };
+export type PublicViewer = Infer<typeof publicViewerValidator>;
 
-export type AssignedGroupSummary = {
-  id: Id<'groups'>;
-  name: string;
-  slug: string;
-};
+export type AssignedGroupSummary = Infer<typeof assignedGroupSummaryValidator>;
 
 export type CollaborativeAccess =
-  | {
-      kind: 'group';
-      viewer: PublicViewer;
-      capabilities: {
-        requestMembership: boolean;
-        rename: boolean;
-        delete: boolean;
-        addMember: boolean;
-      };
-    }
-  | {
-      kind: 'faction';
-      assignedGroup: AssignedGroupSummary | null;
-      viewer: PublicViewer;
-      capabilities: {
-        requestMembership: boolean;
-        edit: boolean;
-        rename: boolean;
-        changeGroup: boolean;
-        delete: boolean;
-      };
-    }
-  | {
-      kind: 'ruleset';
-      assignedGroup: AssignedGroupSummary | null;
-      viewer: PublicViewer;
-      capabilities: {
-        requestMembership: boolean;
-        edit: boolean;
-        rename: boolean;
-        changeGroup: boolean;
-        delete: boolean;
-      };
-    };
+  | Infer<typeof groupViewerAccessValidator>
+  | Infer<typeof factionViewerAccessValidator>
+  | Infer<typeof rulesetViewerAccessValidator>;
 
 export type StoredMembershipState = MembershipState | 'removed';
 

@@ -7,9 +7,6 @@ import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { api } from '../../../convex/_generated/api';
 
 export type AdminMigrationDashboardData = FunctionReturnType<typeof api.migrations.adminDashboard>;
-export type MigrationStatusRow = AdminMigrationDashboardData['statuses'][number];
-export type MigrationRunSnapshot = AdminMigrationDashboardData['snapshots'][number];
-
 export async function loadAdminMigrationDashboard(
   ids?: string[]
 ): Promise<AdminMigrationDashboardData> {
@@ -25,11 +22,7 @@ export function useAdminMigrationDashboard(options?: {
     | AdminMigrationDashboardData
     | undefined;
   const result = toLiveQueryResult(liveData, true, () => options?.initialData);
-  return {
-    ...result,
-    statuses: result.data?.statuses ?? [],
-    snapshots: result.data?.snapshots ?? [],
-  };
+  return result;
 }
 
 export function useSyncMigrationRuns() {

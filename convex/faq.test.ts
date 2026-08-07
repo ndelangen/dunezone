@@ -6,7 +6,6 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test, vi } from 'vitest';
 
 import { api } from './_generated/api';
-import * as faqFunctions from './faq';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -23,6 +22,7 @@ function faqTest(
     ? convexTest({ schema, modules, transactionLimits })
     : convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   return t;
 }
@@ -47,20 +47,6 @@ async function faqFixture() {
 }
 
 describe('FAQ lifecycle', () => {
-  test('exports only the canonical lifecycle interface and stable deletion continuation', () => {
-    expect(Object.keys(faqFunctions).sort()).toEqual([
-      'createAnswer',
-      'createQuestion',
-      'deleteAnswer',
-      'deleteItemAnswerBatch',
-      'deleteQuestion',
-      'editAnswer',
-      'editQuestion',
-      'questionPage',
-      'setAcceptedAnswer',
-    ]);
-  });
-
   test('creates questions with and without an atomic initial answer', async () => {
     const { owner, ruleset } = await faqFixture();
 

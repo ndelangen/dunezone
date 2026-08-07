@@ -2,11 +2,13 @@ import {
   publisherErrorMessage,
   serializePublisherLogEvent,
 } from '../../src/app/capture/publisher-diagnostics';
+import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
+import { absoluteHttpsUrl } from './config';
 import { readBoundedJson, runWithDeadline } from './http';
 
-const JOB_HEADER = 'X-Publication-Job';
-const JOB_COOKIE = '__Host-publication_job';
-const DEADLINE_COOKIE = '__Host-asset_render_deadline';
+const JOB_HEADER = CAPTURE_PROTOCOL.credentials.jobHeader;
+const JOB_COOKIE = CAPTURE_PROTOCOL.credentials.jobCookie;
+const DEADLINE_COOKIE = CAPTURE_PROTOCOL.credentials.deadlineCookie;
 const MAX_SNAPSHOT_BYTES = 1_000_000;
 const SNAPSHOT_DEADLINE_MS = 30_000;
 
@@ -20,14 +22,7 @@ function noStoreJson(value: unknown, status: number): Response {
 }
 
 function publicationJobId(request: Request): string | undefined {
-  const header = request.headers.get(JOB_HEADER) ?? undefined;
-  const cookie = request.headers
-    .get('Cookie')
-    ?.split(';')
-    .map((part) => part.trim())
-    .find((part) => part.startsWith(`${JOB_COOKIE}=`))
-    ?.slice(JOB_COOKIE.length + 1);
-  const value = header ?? cookie;
+  const value = request.headers.get(JOB_HEADER) ?? cookie(request, JOB_COOKIE);
   return typeof value === 'string' && value.length >= 1 && value.length <= 128 ? value : undefined;
 }
 
@@ -65,7 +60,7 @@ async function validatePublicationJob(
   }
   try {
     return await runWithDeadline(snapshotDeadline(request), async (signal) => {
-      const upstream = await fetch(env.CONVEX_RENDER_URL, {
+      const upstream = await fetch(absoluteHttpsUrl('CONVEX_RENDER_URL', env.CONVEX_RENDER_URL), {
         method: 'GET',
         headers: { Authorization: `Bearer ${jobId}` },
         signal,
@@ -94,7 +89,7 @@ async function captureDocument(request: Request, env: CaptureEnv): Promise<Respo
   if (request.method !== 'GET' || (await validatePublicationJob(request, env)).status !== 'valid') {
     return noStoreJson({ error: 'Not found' }, 404);
   }
-  const assetUrl = new URL('/publisher-capture.html', request.url);
+  const assetUrl = new URL(CAPTURE_PROTOCOL.paths.bundleDocument, request.url);
   const asset = await env.ASSETS.fetch(new Request(assetUrl, request));
   const headers = new Headers(asset.headers);
   headers.set('Cache-Control', 'no-store');
@@ -142,18 +137,17 @@ export async function handleCaptureRoute(
   env: CaptureEnv
 ): Promise<Response | undefined> {
   const pathname = new URL(request.url).pathname;
-  if (pathname === '/__asset-publisher/capture') {
+  if (pathname === CAPTURE_PROTOCOL.paths.document) {
     return await captureDocument(request, env);
   }
-  if (pathname === '/__asset-publisher/snapshot') {
+  if (pathname === CAPTURE_PROTOCOL.paths.snapshot) {
     return await exactSnapshot(request, env);
   }
-  if (pathname === '/publisher-capture.html' || pathname.startsWith('/publisher-capture/')) {
+  if (
+    pathname === CAPTURE_PROTOCOL.paths.bundleDocument ||
+    pathname.startsWith(CAPTURE_PROTOCOL.paths.bundleAssetPrefix)
+  ) {
     return await gatedCaptureAsset(request, env);
   }
   return undefined;
 }
-
-export const captureJobHeader = JOB_HEADER;
-export const captureJobCookie = JOB_COOKIE;
-export const captureDeadlineCookie = DEADLINE_COOKIE;

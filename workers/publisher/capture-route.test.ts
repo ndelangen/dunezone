@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { captureJobHeader, handleCaptureRoute } from './capture-route';
+import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
+import { handleCaptureRoute } from './capture-route';
 import type { CaptureEnv } from './capture-route';
 
 const jobId = 'publication-job-000000000000001';
@@ -44,7 +45,7 @@ describe('dedicated exact-snapshot capture boundary', () => {
     const assetFetch = vi.fn(async (_request: Request) => new Response('<html>capture</html>'));
     const response = await handleCaptureRoute(
       new Request('https://publisher.example.com/__asset-publisher/capture', {
-        headers: { [captureJobHeader]: jobId },
+        headers: { [CAPTURE_PROTOCOL.credentials.jobHeader]: jobId },
       }),
       env(assetFetch)
     );
@@ -105,7 +106,7 @@ describe('dedicated exact-snapshot capture boundary', () => {
       const response = await handleCaptureRoute(
         new Request(`https://publisher.example.com${pathname}`, {
           headers: {
-            [captureJobHeader]: invalidToken,
+            [CAPTURE_PROTOCOL.credentials.jobHeader]: invalidToken,
             Cookie: `__Host-publication_job=${invalidToken}`,
           },
         }),
@@ -129,7 +130,7 @@ describe('dedicated exact-snapshot capture boundary', () => {
     vi.stubGlobal('fetch', upstream);
     const response = await handleCaptureRoute(
       new Request('https://publisher.example.com/__asset-publisher/snapshot', {
-        headers: { [captureJobHeader]: jobId },
+        headers: { [CAPTURE_PROTOCOL.credentials.jobHeader]: jobId },
       }),
       env()
     );
@@ -156,7 +157,7 @@ describe('dedicated exact-snapshot capture boundary', () => {
     vi.stubGlobal('fetch', upstream);
     const response = await handleCaptureRoute(
       new Request('https://publisher.example.com/__asset-publisher/snapshot', {
-        headers: { [captureJobHeader]: 'x'.repeat(257) },
+        headers: { [CAPTURE_PROTOCOL.credentials.jobHeader]: 'x'.repeat(257) },
       }),
       env()
     );

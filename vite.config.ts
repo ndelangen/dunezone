@@ -7,7 +7,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
 
 const config = defineConfig({
   test: {
-    exclude: [...configDefaults.exclude, 'e2e/**'],
+    exclude: [...configDefaults.exclude, 'e2e/**', '.claude/**'],
   },
   build: {
     assetsDir: 'public', // will make your static assets appear under /public/

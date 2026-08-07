@@ -2,13 +2,13 @@ import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
+import { parseClientBoundary } from '@app/db/core/clientBoundary';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
-import type { LiveQueryResult } from '@app/db/core/live';
-import { CanonicalFactionStoredSchema, FactionInputSchema } from '@game/schema/faction';
+import { CanonicalFactionClientSchema, FactionInputSchema } from '@game/schema/faction';
 import type { FactionInput } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
-import type { Doc, Id } from '../../../convex/_generated/dataModel';
+import type { Doc } from '../../../convex/_generated/dataModel';
 import type { PublicAssetPublishingStatusProjection } from '../../../convex/assetPublishingStatus';
 import type {
   AssignedGroupSummary,
@@ -50,24 +50,17 @@ export type FactionCataloguePageData = {
   };
 };
 
-export type FactionInsert = Omit<FactionEntry, 'data'> & {
-  data: FactionData;
-};
-export type FactionUpdate = Omit<Partial<FactionEntry>, 'data'> & {
-  data?: FactionData;
-};
-
 function toFactionEntry(entry: FactionRow): FactionEntry {
   return {
     ...entry,
-    data: CanonicalFactionStoredSchema.parse(entry.data),
+    data: parseClientBoundary(CanonicalFactionClientSchema, entry.data, 'Faction data'),
   };
 }
 
 function toFactionCatalogueEntry(entry: FactionCatalogueRow): FactionCatalogueEntry {
   return {
     ...entry,
-    data: CanonicalFactionStoredSchema.parse(entry.data),
+    data: parseClientBoundary(CanonicalFactionClientSchema, entry.data, 'Faction data'),
   };
 }
 
@@ -120,7 +113,7 @@ function toFactionDetailPageData(
   return {
     faction: {
       ...raw.faction,
-      data: CanonicalFactionStoredSchema.parse(raw.faction.data),
+      data: parseClientBoundary(CanonicalFactionClientSchema, raw.faction.data, 'Faction data'),
     },
     owner: raw.owner,
     assetPublishing: raw.assetPublishing,
@@ -134,28 +127,9 @@ export async function loadFactionBySlug(slug: string): Promise<FactionDetailPage
   return await loadFaction(slug);
 }
 
-export async function loadFactionsAll(): Promise<FactionEntry[]> {
-  const entries = await db.query(api.factions.list, {});
-  return factionRowsToEntries(entries);
-}
-
 export async function loadFactionCataloguePage(): Promise<FactionCataloguePageData> {
   const raw = await db.query(api.factions.cataloguePage, {});
   return toFactionCataloguePageData(raw);
-}
-
-export async function loadFactionsByOwner(ownerId: string): Promise<FactionEntry[]> {
-  const entries = await db.query(api.factions.listByOwner, {
-    owner_id: ownerId as Id<'users'>,
-  });
-  return factionRowsToEntries(entries);
-}
-
-export async function loadFactionsByGroup(groupId: string): Promise<FactionEntry[]> {
-  const entries = await db.query(api.factions.listByGroup, {
-    group_id: groupId as Id<'groups'>,
-  });
-  return factionRowsToEntries(entries);
 }
 
 export function useFaction(
@@ -167,26 +141,7 @@ export function useFaction(
   const liveData = useQuery(api.factions.getBySlug, { slug });
   const normalized = liveData ? toFactionDetailPageData(liveData) : undefined;
   const result = toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
-  return {
-    ...result,
-    faction: result.data?.faction,
-    owner: result.data?.owner,
-    viewerAccess: result.data?.viewerAccess,
-    assignableGroups: result.data?.assignableGroups ?? [],
-    rulesets: result.data?.rulesets ?? [],
-    assetPublishing: result.data?.assetPublishing ?? {
-      status: null,
-      captureStatus: null,
-      publicationHref: null,
-      lastPublishedAt: null,
-    },
-  };
-}
-
-export function useFactionsAll(options?: { initialData?: FactionEntry[] }) {
-  const liveData = useQuery(api.factions.list, {});
-  const normalized = liveData ? factionRowsToEntries(liveData) : undefined;
-  return toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
+  return result;
 }
 
 export function useFactionCataloguePage(options?: { initialData?: FactionCataloguePageData }) {
@@ -214,35 +169,17 @@ export type FactionLoadPickerPayload = {
   memberGroupIds: Doc<'groups'>['_id'][];
 };
 
-export type FactionLoadPickerQuery = LiveQueryResult<FactionLoadPickerPayload>;
-
 export function useFactionLoadPicker(options?: { initialData?: FactionLoadPickerPayload }) {
   const liveData = useQuery(api.factions.listForLoadPicker, {});
   const normalized = liveData
     ? {
         rows: liveData.rows.map((row) => ({
           ...row,
-          data: CanonicalFactionStoredSchema.parse(row.data),
+          data: parseClientBoundary(CanonicalFactionClientSchema, row.data, 'Faction data'),
         })),
         memberGroupIds: liveData.memberGroupIds,
       }
     : undefined;
-  return toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
-}
-
-export function useFactionsByOwner(ownerId: string, options?: { initialData?: FactionEntry[] }) {
-  const liveData = useQuery(api.factions.listByOwner, {
-    owner_id: ownerId,
-  } as never);
-  const normalized = liveData ? factionRowsToEntries(liveData) : undefined;
-  return toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
-}
-
-export function useFactionsByGroup(groupId: string, options?: { initialData?: FactionEntry[] }) {
-  const liveData = useQuery(api.factions.listByGroup, {
-    group_id: groupId,
-  } as never);
-  const normalized = liveData ? factionRowsToEntries(liveData) : undefined;
   return toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
 }
 

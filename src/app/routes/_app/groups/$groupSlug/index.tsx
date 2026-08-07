@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Pencil, UserPlus, UserRoundMinus, X } from 'lucide-re
 
 import { loadGroupDetailBySlug, useGroupDetailBySlug } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
+import { viewerActionsFor } from '@app/access/viewerActions';
 import { FormTooltip } from '@app/components/form/FormTooltip';
 import { ButtonGroup, Toolbar } from '@app/components/generic/layout';
 import { Card } from '@app/components/generic/surfaces/Card';
@@ -37,19 +38,19 @@ function GroupDetailPage() {
     );
   }
 
-  if (!groupData.group || !groupData.viewerAccess) {
+  const page = groupData.data;
+  if (!page) {
     return <PageLayout header={<h1>Group</h1>}>Loading group…</PageLayout>;
   }
 
-  const group = groupData.group;
+  const group = page.group;
   const groupId = group._id;
-  const viewerAccess = groupData.viewerAccess;
-  const ownerProfile = groupData.owner;
-  const membershipStatus =
-    viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
-  const factions = groupData.factions ?? [];
-  const rulesets = groupData.rulesets ?? [];
-  const roster = groupData.roster ?? [];
+  const viewerAccess = page.viewerAccess;
+  const ownerProfile = page.owner;
+  const { membershipStatus } = viewerActionsFor(viewerAccess);
+  const factions = page.factions;
+  const rulesets = page.rulesets;
+  const roster = page.roster;
 
   const membersModerationBusy =
     membershipWorkflow.approve.isPending ||

@@ -1,6 +1,7 @@
 import { DirectAggregate } from '@convex-dev/aggregate';
 import type { Triggers } from 'convex-helpers/server/triggers';
 import { v } from 'convex/values';
+import type { Infer } from 'convex/values';
 
 import { components } from '../_generated/api';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
@@ -16,13 +17,7 @@ export const discoverableProfileValidator = v.object({
   createdAt: v.string(),
 });
 
-export type DiscoverableProfile = {
-  id: Id<'profiles'>;
-  slug: string;
-  username: string;
-  avatarUrl: string;
-  createdAt: string;
-};
+export type DiscoverableProfile = Infer<typeof discoverableProfileValidator>;
 
 type ProfileDiscoveryItem = {
   key: string;

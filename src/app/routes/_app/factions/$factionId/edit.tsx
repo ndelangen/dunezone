@@ -38,9 +38,11 @@ function FactionEditPage() {
   const setFactionGroup = useSetFactionGroup();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const { faction, viewerAccess, assignableGroups, assetPublishing } = useFaction(factionId, {
+  const factionQuery = useFaction(factionId, {
     initialData: loaderData,
   });
+  const { faction, viewerAccess, assignableGroups, assetPublishing } =
+    factionQuery.data ?? loaderData;
   const authoringFaction = faction ?? loaderData.faction;
   const authoring = useFactionAuthoring({
     sessionKey: authoringFaction._id,

@@ -33,6 +33,7 @@ import type { ComponentProps, ReactNode } from 'react';
 
 import { loadFaction, useFaction } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
+import { viewerActionsFor } from '@app/access/viewerActions';
 import { IconStat } from '@app/components/content/IconStat';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
@@ -99,12 +100,13 @@ function FactionDetailPage() {
   const loaderData = Route.useLoaderData();
   const factionSeed = loaderData;
 
-  const { faction, viewerAccess, owner, assetPublishing, rulesets } = useFaction(factionId, {
+  const factionQuery = useFaction(factionId, {
     initialData: factionSeed,
   });
   const membershipWorkflow = useGroupMembershipWorkflow();
+  const page = factionQuery.data;
 
-  if (!faction) {
+  if (!page) {
     return (
       <PageLayout
         header={
@@ -126,11 +128,12 @@ function FactionDetailPage() {
     );
   }
 
-  const canEdit = viewerAccess?.capabilities.edit ?? false;
-  const assignedGroup = viewerAccess?.assignedGroup ?? null;
-  const membershipStatus =
-    viewerAccess?.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
-  const canRequestMembership = viewerAccess?.capabilities.requestMembership ?? false;
+  const { faction, viewerAccess, owner, assetPublishing, rulesets } = page;
+
+  const { canEdit, assignedGroup, membershipStatus, canRequestMembership } = viewerActionsFor(
+    viewerAccess,
+    { subjectGroupId: faction.group_id }
+  );
 
   const data = faction.data;
   const planets = data.planet ?? [];

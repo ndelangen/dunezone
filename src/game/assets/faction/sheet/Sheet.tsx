@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import { CAPTURE_PROTOCOL } from '../../../../shared/asset-publishing/capture-protocol';
 import { MarkdownContent } from '../../../components/block/MarkdownContent';
 import type { FactionRender } from '../../../schema/faction';
 import { isLight } from '../../utils/contrast';
@@ -39,7 +40,7 @@ export const FactionSheet = (props: SheetProps) => {
 
 export function FactionSheetPage1(props: SheetProps) {
   return (
-    <div className={styles.page} data-faction-sheet-page="1">
+    <div className={styles.page} {...{ [CAPTURE_PROTOCOL.pageMarker.attribute]: '1' }}>
       <div className={`${styles.page_title} ${styles.title}`}>{props.name}</div>
       <div className={styles.logo}>
         <Token logo={props.logo} background={props.background} />
@@ -103,7 +104,7 @@ export function FactionSheetPage2(props: SheetProps) {
       {props.rules.advantages.filter((r) => !!r.karama).length > 0 ||
       props.troops.length > 0 ||
       props.leaders.length > 0 ? (
-        <div className={styles.page} data-faction-sheet-page="2">
+        <div className={styles.page} {...{ [CAPTURE_PROTOCOL.pageMarker.attribute]: '2' }}>
           <div className={`${styles.page_subtitle} ${styles.subtitle}`}>Karama effects</div>
           <div className={styles.details}>
             <div className={styles.karama}>

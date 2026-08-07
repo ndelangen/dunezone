@@ -1,13 +1,10 @@
 import { v } from 'convex/values';
 
 import { rulesetInputSchema } from '../src/app/rulesets/validation';
-import { CanonicalFactionStoredSchema } from '../src/game/schema/faction';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import {
-  loadAssetAccessBundle,
-  loadRulesetAccessForLoadedSubject,
   requireAssignableGroup,
   requireRulesetMaintenance,
   requireRulesetSoftDelete,
@@ -17,57 +14,16 @@ import {
   rulesetDetailPageValidator,
   rulesetPublicBundleValidator,
 } from './lib/collaborativeAccessValidators';
-import { loadFaqItemsForRuleset } from './lib/faqRulesetList';
 import { requireAuthUserId } from './lib/policy';
-import { profileSummary } from './lib/profileSummary';
+import {
+  loadRulesetDetailPageBySlug,
+  loadRulesetPublicBundleBySlug,
+} from './lib/rulesetDetailPage';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
 async function getRulesetById(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
   return await ctx.db.get(id);
-}
-
-async function getFactionById(ctx: QueryCtx | MutationCtx, id: Id<'factions'>) {
-  return await ctx.db.get(id);
-}
-
-function factionIdentityForClient(data: unknown) {
-  const parsedFaction = CanonicalFactionStoredSchema.safeParse(data);
-  if (!parsedFaction.success) {
-    return null;
-  }
-  const faction = parsedFaction.data;
-  return {
-    logo: faction.logo,
-    background: faction.background,
-  };
-}
-
-async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
-  const links = await ctx.db
-    .query('ruleset_factions')
-    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
-    .take(500);
-  const factions = await Promise.all(links.map((link) => getFactionById(ctx, link.faction_id)));
-
-  return factions.flatMap((faction) => {
-    if (!faction || faction.is_deleted) {
-      return [];
-    }
-    const dataObj =
-      faction.data != null && typeof faction.data === 'object' && !Array.isArray(faction.data)
-        ? (faction.data as Record<string, unknown>)
-        : null;
-    const name = typeof dataObj?.name === 'string' ? dataObj.name : String(faction._id);
-    return [
-      {
-        factionId: faction._id,
-        name,
-        urlSlug: faction.slug,
-        identity: factionIdentityForClient(faction.data),
-      },
-    ];
-  });
 }
 
 async function resolveUniqueRulesetSlug(
@@ -112,79 +68,16 @@ export const get = query({
   },
 });
 
-async function rulesetBySlugMaybe(ctx: QueryCtx, slug: string) {
-  const locatedRow = await ctx.db
-    .query('rulesets')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .unique();
-  if (!locatedRow || locatedRow.is_deleted) {
-    return null;
-  }
-  return locatedRow;
-}
-
-async function rulesetPublicPage(
-  ctx: QueryCtx,
-  row: Doc<'rulesets'>,
-  viewerAccess: Awaited<ReturnType<typeof loadRulesetAccessForLoadedSubject>>['viewerAccess']
-) {
-  const factions = await listPublicRulesetFactions(ctx, row._id);
-  return {
-    ruleset: row,
-    factions,
-    viewerAccess,
-  };
-}
-
-async function rulesetPublicBundleBySlug(ctx: QueryCtx, slug: string) {
-  const row = await rulesetBySlugMaybe(ctx, slug);
-  if (!row) {
-    throw new Error(`Ruleset with slug ${slug} not found`);
-  }
-  const access = await loadRulesetAccessForLoadedSubject(ctx, row);
-  return await rulesetPublicPage(ctx, row, access.viewerAccess);
-}
-
 export const getBySlug = query({
   args: { slug: v.string() },
   returns: rulesetPublicBundleValidator,
-  handler: async (ctx, args) => rulesetPublicBundleBySlug(ctx, args.slug),
+  handler: async (ctx, args) => await loadRulesetPublicBundleBySlug(ctx, args.slug),
 });
 
 export const detailPageBySlug = query({
   args: { slug: v.string() },
   returns: rulesetDetailPageValidator,
-  handler: async (ctx, args) => {
-    const row = await rulesetBySlugMaybe(ctx, args.slug);
-    if (!row) {
-      return null;
-    }
-    const access = await loadAssetAccessBundle(ctx, { kind: 'ruleset', row });
-    const page = await rulesetPublicPage(ctx, row, access.viewerAccess);
-    const faqItems = await loadFaqItemsForRuleset(ctx, row._id);
-
-    const owner = await profileSummary(ctx, row.owner_id);
-
-    return {
-      ...page,
-      faqItems,
-      owner,
-      assignableGroups: access.assignableGroups,
-    };
-  },
-});
-
-export const factionIds = query({
-  args: { ruleset_id: v.id('rulesets') },
-  handler: async (ctx, args) => {
-    const factions = await listPublicRulesetFactions(ctx, args.ruleset_id);
-    return factions.map((faction) => faction.factionId);
-  },
-});
-
-export const factionDetails = query({
-  args: { ruleset_id: v.id('rulesets') },
-  handler: async (ctx, args) => listPublicRulesetFactions(ctx, args.ruleset_id),
+  handler: async (ctx, args) => await loadRulesetDetailPageBySlug(ctx, args.slug),
 });
 
 export const listByFaction = query({
@@ -321,7 +214,7 @@ export const addFaction = mutation({
   handler: async (ctx, args) => {
     await requireRulesetMaintenance(ctx, args.ruleset_id);
 
-    const faction = await getFactionById(ctx, args.faction_id);
+    const faction = await ctx.db.get('factions', args.faction_id);
     if (!faction || faction.is_deleted) {
       throw new Error('Faction not found');
     }

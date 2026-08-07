@@ -162,3 +162,245 @@ describe('public faction-sheet delivery', () => {
     expect(response?.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
   });
 });
+
+function recordingBucket(bytes: Uint8Array, options: { etag?: string } = {}) {
+  const etag = options.etag ?? 'etag-one';
+  const head = vi.fn(async () => metadataObject({ etag }));
+  const get = vi.fn(async (_key: string, getOptions?: R2GetOptions) => {
+    const range = getOptions?.range as { offset: number; length: number } | undefined;
+    const sliced = range ? bytes.slice(range.offset, range.offset + range.length) : bytes;
+    return bodyObject(sliced, { etag, range, size: bytes.byteLength });
+  });
+  return { head, get, value: { head, get } satisfies PublicAssetBucket };
+}
+
+const PAYLOAD = new Uint8Array([10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+
+async function drained(ctx: PendingContext): Promise<void> {
+  await Promise.all(ctx.pending);
+}
+
+describe('public asset delivery boundary', () => {
+  async function harness() {
+    const token = await createCacheToken(FACTION_ID, 'faction_sheet', SECRET);
+    const bucket = recordingBucket(PAYLOAD);
+    const cacheState = cache();
+    const ctx = context();
+    const run = (init?: RequestInit) =>
+      handlePublicAssetRequest(request(token, init), env(bucket.value), ctx, {
+        cache: cacheState.value,
+      });
+    return { token, bucket, cacheState, ctx, run };
+  }
+
+  test('a full GET serves from R2, sets the asset headers, and populates the cache', async () => {
+    const { bucket, cacheState, ctx, run } = await harness();
+
+    const response = await run();
+
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get('Content-Type')).toBe('application/pdf');
+    expect(response?.headers.get('Content-Disposition')).toBe(
+      'inline; filename="faction-sheet.pdf"'
+    );
+    expect(response?.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+    expect(response?.headers.get('Accept-Ranges')).toBe('bytes');
+    expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD);
+    expect(bucket.head).toHaveBeenCalledTimes(1);
+    expect(bucket.get).toHaveBeenCalledTimes(1);
+    await drained(ctx);
+    expect(cacheState.put).toHaveBeenCalledTimes(1);
+  });
+
+  test('cached and uncached GETs are observably equivalent, and the cache hit skips R2 reads', async () => {
+    const { bucket, ctx, run } = await harness();
+    const first = await run();
+    const firstBytes = new Uint8Array(await first!.arrayBuffer());
+    await drained(ctx);
+
+    const second = await run();
+
+    expect(second?.status).toBe(200);
+    expect(new Uint8Array(await second!.arrayBuffer())).toEqual(firstBytes);
+    expect(bucket.get).toHaveBeenCalledTimes(1);
+    expect(second?.headers.get('Content-Type')).toBe(first?.headers.get('Content-Type'));
+    expect(second?.headers.get('ETag')).toBe(first?.headers.get('ETag'));
+  });
+
+  test('HEAD returns the GET metadata without a body and without an R2 object read', async () => {
+    const { bucket, run } = await harness();
+
+    const response = await run({ method: 'HEAD' });
+
+    expect(response?.status).toBe(200);
+    expect(response?.body).toBeNull();
+    expect(response?.headers.get('Content-Length')).toBe('10');
+    expect(response?.headers.get('Content-Type')).toBe('application/pdf');
+    expect(bucket.get).not.toHaveBeenCalled();
+  });
+
+  const preconditionTable: Array<{
+    name: string;
+    headers: Record<string, string>;
+    status: number;
+    contentRange?: string;
+  }> = [
+    { name: 'If-None-Match match', headers: { 'If-None-Match': '"etag-one"' }, status: 304 },
+    { name: 'If-None-Match weak match', headers: { 'If-None-Match': 'W/"etag-one"' }, status: 304 },
+    { name: 'If-None-Match star', headers: { 'If-None-Match': '*' }, status: 304 },
+    { name: 'If-None-Match mismatch', headers: { 'If-None-Match': '"stale"' }, status: 200 },
+    { name: 'If-Match strong mismatch', headers: { 'If-Match': '"other"' }, status: 412 },
+    { name: 'If-Match weak never matches', headers: { 'If-Match': 'W/"etag-one"' }, status: 412 },
+    {
+      name: 'If-Match precedes If-None-Match',
+      headers: { 'If-Match': '"other"', 'If-None-Match': '"etag-one"' },
+      status: 412,
+    },
+    {
+      name: 'If-Modified-Since honored (RFC 1123)',
+      headers: { 'If-Modified-Since': new Date('2026-07-18T12:00:00Z').toUTCString() },
+      status: 304,
+    },
+    {
+      name: 'If-Modified-Since honored (RFC 850)',
+      headers: { 'If-Modified-Since': 'Friday, 17-Jul-26 12:00:00 GMT' },
+      status: 304,
+    },
+    {
+      name: 'If-Modified-Since honored (asctime)',
+      headers: { 'If-Modified-Since': 'Fri Jul 17 12:00:00 2026' },
+      status: 304,
+    },
+    { name: 'invalid date ignored', headers: { 'If-Modified-Since': 'not-a-date' }, status: 200 },
+    {
+      name: 'wrong weekday rejected',
+      headers: { 'If-Modified-Since': 'Thu, 17 Jul 2026 12:00:00 GMT' },
+      status: 200,
+    },
+    {
+      name: 'If-Unmodified-Since in the past fails',
+      headers: { 'If-Unmodified-Since': new Date('2026-07-16T12:00:00Z').toUTCString() },
+      status: 412,
+    },
+    {
+      name: 'stale If-Range downgrades to full',
+      headers: { Range: 'bytes=2-4', 'If-Range': '"stale"' },
+      status: 200,
+    },
+    {
+      name: 'unsatisfiable range',
+      headers: { Range: 'bytes=99-' },
+      status: 416,
+      contentRange: 'bytes */10',
+    },
+  ];
+
+  test('HTTP conditional and range semantics through the production handler', async () => {
+    for (const entry of preconditionTable) {
+      const { run } = await harness();
+      const response = await run({ headers: entry.headers });
+      expect(response?.status, entry.name).toBe(entry.status);
+      if (entry.contentRange !== undefined) {
+        expect(response?.headers.get('Content-Range'), entry.name).toBe(entry.contentRange);
+      }
+      if (entry.status !== 200) {
+        expect(response?.body, entry.name).toBeNull();
+      }
+    }
+  });
+
+  test('a satisfiable range returns 206 with the correct slice and Content-Range', async () => {
+    const { run } = await harness();
+
+    const response = await run({ headers: { Range: 'bytes=2-4' } });
+
+    expect(response?.status).toBe(206);
+    expect(response?.headers.get('Content-Range')).toBe('bytes 2-4/10');
+    expect(response?.headers.get('Content-Length')).toBe('3');
+    expect(response?.headers.get('Cache-Control')).toBe('no-store');
+    expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD.slice(2, 5));
+  });
+
+  test('an open-ended range returns the remainder of the asset', async () => {
+    const { run } = await harness();
+
+    const response = await run({ headers: { Range: 'bytes=7-' } });
+
+    expect(response?.status).toBe(206);
+    expect(response?.headers.get('Content-Range')).toBe('bytes 7-9/10');
+    expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD.slice(7));
+  });
+
+  test('a missing R2 object returns a sanitized 404', async () => {
+    const token = await createCacheToken(FACTION_ID, 'faction_sheet', SECRET);
+    const head = vi.fn(async () => null);
+    const get = vi.fn();
+    const response = await handlePublicAssetRequest(
+      request(token),
+      env({ head, get } as PublicAssetBucket),
+      context(),
+      { cache: cache().value }
+    );
+
+    expect(response?.status).toBe(404);
+    expect(await response?.text()).toBe('Not Found');
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  test('an R2 failure returns a sanitized 503 exposing no provider details', async () => {
+    const token = await createCacheToken(FACTION_ID, 'faction_sheet', SECRET);
+    const head = vi.fn(async () => {
+      throw new Error('R2 internal: bucket key secret-name');
+    });
+    const response = await handlePublicAssetRequest(
+      request(token),
+      env({ head, get: vi.fn() } as PublicAssetBucket),
+      context(),
+      { cache: cache().value }
+    );
+
+    expect(response?.status).toBe(503);
+    expect(await response?.text()).toBe('Asset Temporarily Unavailable');
+    expect(response?.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  test('a cache failure falls through to R2 with an equivalent response', async () => {
+    const { bucket, token } = await harness();
+    const failingCache: PublicAssetCache = {
+      match: async () => {
+        throw new Error('cache backend down');
+      },
+      put: async () => {},
+    };
+
+    const response = await handlePublicAssetRequest(request(token), env(bucket.value), context(), {
+      cache: failingCache,
+    });
+
+    expect(response?.status).toBe(200);
+    expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD);
+  });
+
+  test('a stale cached body is cancelled exactly once before the fresh R2 read', async () => {
+    const { bucket, cacheState, token, run, ctx } = await harness();
+    const cancel = vi.fn(async () => {});
+    const staleStream = new ReadableStream({ cancel });
+    const canonical = request(token);
+    const url = new URL(canonical.url);
+    const staleKey = new Request(url.toString(), { method: 'GET' });
+    cacheState.entries.set(
+      staleKey.url,
+      new Response(staleStream, {
+        status: 200,
+        headers: { ETag: '"etag-stale"', 'Content-Length': '10' },
+      })
+    );
+
+    const response = await run();
+
+    expect(response?.status).toBe(200);
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(bucket.get).toHaveBeenCalledTimes(1);
+    await drained(ctx);
+  });
+});

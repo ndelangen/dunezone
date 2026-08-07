@@ -169,6 +169,7 @@ describe('faction authoring full-field round trip', () => {
   test('creates, schedules, reloads, edits, and shares every admitted field without loss', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run(
       async (ctx) => await ctx.db.insert('users', { name: 'Faction authoring proof user' })
@@ -213,7 +214,7 @@ describe('faction authoring full-field round trip', () => {
       throw new Error('Missing faction sheet job after create');
     }
 
-    const rulesetId = await t.run(async (ctx) => {
+    await t.run(async (ctx) => {
       const id = await ctx.db.insert('rulesets', {
         name: 'Canonical transition proof',
         slug: 'canonical-transition-proof',
@@ -260,18 +261,18 @@ describe('faction authoring full-field round trip', () => {
       ],
     });
     await expect(
-      t.query(api.rulesets.factionDetails, {
-        ruleset_id: rulesetId,
-      })
-    ).resolves.toMatchObject([
-      {
-        identity: {
-          background: {
-            invert: false,
+      t.query(api.rulesets.getBySlug, { slug: 'canonical-transition-proof' })
+    ).resolves.toMatchObject({
+      factions: [
+        {
+          identity: {
+            background: {
+              invert: false,
+            },
           },
         },
-      },
-    ]);
+      ],
+    });
 
     const editedInput: FactionInput = {
       ...structuredClone(createdInput),

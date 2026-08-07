@@ -3,7 +3,10 @@ import { v } from 'convex/values';
 import { query } from './_generated/server';
 import { loadFactionCatalogueSpotlightPreviews } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
+import {
+  discoverableProfileValidator,
+  loadNewestDiscoverableProfiles,
+} from './lib/profileDiscovery';
 import { loadGlobalStatisticsTotals } from './lib/statistics';
 
 const spotlightValidator = v.object({
@@ -26,15 +29,7 @@ const spotlightsValidator = v.object({
   freshlyUpdated: v.union(spotlightValidator, v.null()),
 });
 
-const newestMembersValidator = v.array(
-  v.object({
-    id: v.id('profiles'),
-    slug: v.string(),
-    username: v.string(),
-    avatarUrl: v.string(),
-    createdAt: v.string(),
-  })
-);
+const newestMembersValidator = v.array(discoverableProfileValidator);
 
 /** Permanent homepage read composed from reusable domain boundaries. */
 export const get = query({

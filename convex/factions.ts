@@ -14,10 +14,12 @@ import {
 } from './lib/collaborativeAccess';
 import {
   factionDetailPageValidator,
+  factionValidator,
   factionWithRulesetsValidator,
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
 import { loadFactionCatalogue, selectFactionCatalogueSpotlights } from './lib/factionCatalogue';
+import { factionDataValidator } from './lib/factionData';
 import { parseFactionInput } from './lib/factionInput';
 import { requireAuthUserId } from './lib/policy';
 import { enqueueFactionSheetPublication } from './lib/publication';
@@ -103,6 +105,7 @@ export const getBySlug = query({
 
 export const list = query({
   args: {},
+  returns: v.array(factionValidator),
   handler: async (ctx) => {
     const rows = await ctx.db
       .query('factions')
@@ -135,8 +138,22 @@ export const cataloguePage = query({
 });
 
 /** Factions + resolved group/owner labels and the caller's group memberships for the load picker. */
+const loadPickerRowValidator = v.object({
+  id: v.id('factions'),
+  slug: v.string(),
+  data: factionDataValidator,
+  groupId: v.union(v.id('groups'), v.null()),
+  groupLabel: v.string(),
+  ownerId: v.id('users'),
+  ownerUsername: v.union(v.string(), v.null()),
+});
+
 export const listForLoadPicker = query({
   args: {},
+  returns: v.object({
+    rows: v.array(loadPickerRowValidator),
+    memberGroupIds: v.array(v.id('groups')),
+  }),
   handler: async (ctx) => {
     const userId = await requireAuthUserId(ctx);
 
@@ -316,33 +333,5 @@ export const softDelete = mutation({
       is_deleted: true,
       updated_at: nowIso(),
     });
-  },
-});
-
-export const getFullBySlug = query({
-  args: { slug: v.string() },
-  handler: async (ctx, args) => {
-    const row = await ctx.db
-      .query('factions')
-      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
-      .unique();
-    if (!row || row.is_deleted) {
-      throw new Error(`Faction with slug ${args.slug} not found`);
-    }
-    const profile = await ctx.db
-      .query('profiles')
-      .withIndex('by_user_id', (q) => q.eq('user_id', row.owner_id))
-      .unique();
-    if (!profile) {
-      throw new Error(`Profile with user id ${row.owner_id} not found`);
-    }
-    const group = row.group_id ? await ctx.db.get('groups', row.group_id) : null;
-
-    return {
-      ...row,
-      data: factionDataForClient(row.data),
-      owner: profile,
-      group,
-    };
   },
 });

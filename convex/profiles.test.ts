@@ -1,16 +1,22 @@
 /// <reference types="vite/client" />
 
+import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { expect, test } from 'vitest';
 
 import { api } from './_generated/api';
+import { applicationTriggers } from './lib/applicationTriggers';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
 
 test('profile list includes activity counts', async () => {
   const t = convexTest(schema, modules);
-  const ids = await t.run(async (ctx) => {
+  aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileDiscovery');
+  aggregateTest.register(t, 'profileActivity');
+  const ids = await t.run(async (rawCtx) => {
+    const ctx = applicationTriggers.wrapDB(rawCtx);
     const userId = await ctx.db.insert('users', {});
     const profileId = await ctx.db.insert('profiles', {
       user_id: userId,

@@ -156,6 +156,14 @@ export const CanonicalFactionStoredSchema = z.strictObject({
   name: z.string(),
 });
 
+/**
+ * Client read-path variants: tolerate unknown top-level fields so additive server changes never
+ * break stale tabs; genuine breaks (missing or mistyped fields) still fail the client boundary (see
+ * db/core/clientBoundary).
+ */
+export const CanonicalFactionClientSchema = z.looseObject({ ...factionShape, name: z.string() });
+export const BackgroundClientSchema = z.looseObject(Background.shape);
+
 /** URL slug on the `factions` row — not a field on `FactionInput` / `factions.data`. */
 export const FactionRowSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
