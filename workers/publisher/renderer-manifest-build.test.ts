@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vitest';
 
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 import {
+  assertExactSharpVersion,
   computeRendererManifestDigest,
   isRendererManifestAsset,
   RENDERER_RUNTIME_CLOSURE_PATHS,
@@ -183,6 +184,28 @@ describe('current Renderer manifest digest', () => {
       .filter((entry) => isRendererManifestAsset(entry.path));
 
     expect(digest(changedApplicationEntries).digest).toBe(digest(rendererEntries).digest);
+  });
+
+  test.each(['0.35.3', '1.0.0', '0.36.0-rc.1', '0.35.3+build.7'])(
+    'accepts exact sharp version %s for the toolchain identity',
+    (version) => {
+      expect(assertExactSharpVersion(version)).toBe(version);
+    }
+  );
+
+  test.each([
+    undefined,
+    '',
+    '^0.35.3',
+    '~0.35.3',
+    '>=0.35.0',
+    'latest',
+    '*',
+    'workspace:*',
+    '0.35.0 - 0.36.0',
+    '0.35.3 || 0.36.0',
+  ])('rejects non-exact sharp version specifier %s', (version) => {
+    expect(() => assertExactSharpVersion(version)).toThrow(/exact-pinned/);
   });
 
   test('encoder output changes alone do not move the identity', () => {

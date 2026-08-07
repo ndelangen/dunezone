@@ -112,15 +112,24 @@ function entriesFor(repositoryRoot: string, files: string[]): RendererManifestEn
   }));
 }
 
+/** Exact SemVer only: `1.2.3` with optional prerelease/build metadata. */
+const EXACT_SEMVER =
+  /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+
+export function assertExactSharpVersion(version: string | undefined): string {
+  if (!version || !EXACT_SEMVER.test(version)) {
+    throw new Error(
+      `sharp must be an exact-pinned devDependency for renderer identity (got ${JSON.stringify(version)})`
+    );
+  }
+  return version;
+}
+
 function sharpVersionFrom(repositoryRoot: string): string {
   const manifest = JSON.parse(readFileSync(path.join(repositoryRoot, 'package.json'), 'utf8')) as {
     devDependencies?: Record<string, string>;
   };
-  const version = manifest.devDependencies?.sharp;
-  if (!version || /[\^~<>]/.test(version)) {
-    throw new Error('sharp must be an exact-pinned devDependency for renderer identity');
-  }
-  return version;
+  return assertExactSharpVersion(manifest.devDependencies?.sharp);
 }
 
 export function writeRendererManifest(
