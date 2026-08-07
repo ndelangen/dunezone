@@ -67,6 +67,8 @@ describe('single-Renderer Publication execution', () => {
       browserOpened: true,
       browserClosed: true,
       browserSessionId: 'browser-session-one',
+      recompressedImages: 0,
+      recompressionSavedBytes: 0,
     });
     expect(put).toHaveBeenCalledOnce();
     expect(complete).toHaveBeenCalledWith('job-one', cacheToken, NOW + 15_000);

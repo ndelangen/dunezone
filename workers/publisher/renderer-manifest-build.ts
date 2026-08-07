@@ -16,6 +16,7 @@ export const RENDERER_RUNTIME_CLOSURE_PATHS = [
   'workers/publisher/index.ts',
   'workers/publisher/renderer-contract.ts',
   'workers/publisher/pdf-inspection.ts',
+  'workers/publisher/pdf-recompress.ts',
   'src/app/capture/publisher-diagnostics.ts',
 ] as const;
 
