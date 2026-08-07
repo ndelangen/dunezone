@@ -7,6 +7,7 @@ import { assetPublishingFaction } from '../../src/game/fixtures/assetPublishingF
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import { assertCapturePhysicalBounds, waitForCaptureMarkerSettled } from './capture-lifecycle';
 import { inspectChromiumPdf } from './pdf-inspection';
+import { RECOMPRESSED_PDF_MAX_BYTES, recompressCapturedPdf } from './pdf-recompress';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
@@ -174,8 +175,25 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
         PUBLISHER_RENDERER_CONTRACT.pdf.pageSizeToleranceMm,
       `Production-shaped capture produced ${inspection.pageHeightMm.toFixed(2)} mm tall pages`
     );
+    // In-place recompression contract (#257): portraits downsampled losslessly,
+    // page structure untouched, output under the published ceiling.
+    const recompressed = await recompressCapturedPdf(new Uint8Array(pdf));
+    invariant(
+      recompressed.swappedImages > 0,
+      'Recompression must downsample the fixture leader portraits'
+    );
+    invariant(
+      recompressed.bytesAfter < recompressed.bytesBefore &&
+        recompressed.bytesAfter <= RECOMPRESSED_PDF_MAX_BYTES,
+      `Recompressed PDF is ${recompressed.bytesAfter} bytes`
+    );
+    const recompressedInspection = await inspectChromiumPdf(recompressed.bytes);
+    invariant(
+      recompressedInspection.pageCount === PUBLISHER_RENDERER_CONTRACT.pdf.pageCount,
+      'Recompression must preserve the page count'
+    );
     console.log(
-      `Publisher capture Chromium regression passed: ${inspection.pageCount} pages, ${pdf.byteLength} bytes`
+      `Publisher capture Chromium regression passed: ${inspection.pageCount} pages, ${pdf.byteLength} bytes (recompressed: ${recompressed.bytesAfter} bytes, ${recompressed.swappedImages} images)`
     );
   } finally {
     await page.close();
