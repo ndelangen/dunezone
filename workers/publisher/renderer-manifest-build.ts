@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
@@ -19,16 +19,23 @@ export const RENDERER_RUNTIME_CLOSURE_PATHS = [
   'src/app/capture/publisher-diagnostics.ts',
 ] as const;
 
-export function computeRendererManifestDigest(
-  entries: RendererManifestEntry[],
-  contract: unknown = PUBLISHER_RENDERER_CONTRACT
-): string {
+/**
+ * Generated images are identified by their INGREDIENTS, not their encoder output: media/ source
+ * bytes, the rules table, the generator script, and the pinned sharp version. All of these live in
+ * git, so the digest is identical on every machine — which keeps `publisher:release:verify` a local
+ * git-diff even though the served bytes are produced in CI (wayfinder #269). Encoder output is
+ * deliberately never hashed: sharp makes no byte-stability promise across platforms.
+ */
+export const GENERATED_IMAGE_INGREDIENT_PATHS = [
+  'src/shared/assetRules.ts',
+  'scripts/generate-images.ts',
+] as const;
+
+function digestEntries(prefix: string, entries: RendererManifestEntry[]): string {
   const sorted = [...entries].sort((left, right) => left.path.localeCompare(right.path));
   const paths = new Set<string>();
   const hash = createHash('sha256');
-  hash.update('faction-sheet-renderer-manifest\0v1\0');
-  hash.update(JSON.stringify(contract));
-  hash.update('\0');
+  hash.update(`${prefix}\0`);
   for (const entry of sorted) {
     if (!entry.path || paths.has(entry.path)) {
       throw new Error('Renderer manifest paths must be unique');
@@ -40,6 +47,42 @@ export function computeRendererManifestDigest(
     hash.update('\0');
   }
   return hash.digest('hex');
+}
+
+export type RendererManifestComponents = {
+  /** Media/ source bytes (plus committed public/web/logo.svg). */
+  sources: string;
+  /** Generator script + rules table + pinned sharp version. */
+  toolchain: string;
+  /** Capture bundle + runtime closure output bytes (locally reproducible). */
+  code: string;
+  /** The PDF/viewport contract. */
+  contract: string;
+};
+
+export function computeRendererManifestDigest(
+  codeEntries: RendererManifestEntry[],
+  sourceEntries: RendererManifestEntry[],
+  toolchainEntries: RendererManifestEntry[],
+  contract: unknown = PUBLISHER_RENDERER_CONTRACT
+): { digest: string; components: RendererManifestComponents } {
+  const components: RendererManifestComponents = {
+    sources: digestEntries('faction-sheet-renderer-sources\0v1', sourceEntries),
+    toolchain: digestEntries('faction-sheet-renderer-toolchain\0v1', toolchainEntries),
+    code: digestEntries('faction-sheet-renderer-code\0v1', codeEntries),
+    contract: createHash('sha256').update(JSON.stringify(contract)).digest('hex'),
+  };
+  const digest = createHash('sha256')
+    .update('faction-sheet-renderer-manifest\0v2\0')
+    .update(components.sources)
+    .update('\0')
+    .update(components.toolchain)
+    .update('\0')
+    .update(components.code)
+    .update('\0')
+    .update(components.contract)
+    .digest('hex');
+  return { digest, components };
 }
 
 function filesBelow(directory: string): string[] {
@@ -55,15 +98,36 @@ export function isRendererManifestAsset(relativePath: string): boolean {
     normalizedPath !== '_shell.html' &&
     normalizedPath !== 'index.html' &&
     !normalizedPath.startsWith('__storybook/') &&
-    !normalizedPath.startsWith('public/')
+    !normalizedPath.startsWith('public/') &&
+    // Generated image output is identified by ingredients, never by bytes.
+    !normalizedPath.startsWith('image/') &&
+    !normalizedPath.startsWith('web/')
   );
+}
+
+function entriesFor(repositoryRoot: string, files: string[]): RendererManifestEntry[] {
+  return files.map((file) => ({
+    path: path.relative(repositoryRoot, file).split(path.sep).join('/'),
+    bytes: readFileSync(file),
+  }));
+}
+
+function sharpVersionFrom(repositoryRoot: string): string {
+  const manifest = JSON.parse(readFileSync(path.join(repositoryRoot, 'package.json'), 'utf8')) as {
+    devDependencies?: Record<string, string>;
+  };
+  const version = manifest.devDependencies?.sharp;
+  if (!version || /[\^~<>]/.test(version)) {
+    throw new Error('sharp must be an exact-pinned devDependency for renderer identity');
+  }
+  return version;
 }
 
 export function writeRendererManifest(
   repositoryRoot: string,
   publisherDirectory: string
 ): { digest: string; entryCount: number } {
-  const files = [
+  const codeFiles = [
     ...filesBelow(publisherDirectory).filter((file) =>
       isRendererManifestAsset(path.relative(publisherDirectory, file))
     ),
@@ -71,11 +135,27 @@ export function writeRendererManifest(
       path.join(repositoryRoot, relativePath)
     ),
   ];
-  const digest = computeRendererManifestDigest(
-    files.map((file) => ({
-      path: path.relative(repositoryRoot, file).split(path.sep).join('/'),
-      bytes: readFileSync(file),
-    }))
+  const sourceFiles = [
+    ...filesBelow(path.join(repositoryRoot, 'media')),
+    path.join(repositoryRoot, 'public/web/logo.svg'),
+  ];
+  const toolchainEntries = [
+    ...entriesFor(
+      repositoryRoot,
+      GENERATED_IMAGE_INGREDIENT_PATHS.map((relativePath) =>
+        path.join(repositoryRoot, relativePath)
+      )
+    ),
+    {
+      path: 'toolchain/sharp-version',
+      bytes: new TextEncoder().encode(sharpVersionFrom(repositoryRoot)),
+    },
+  ];
+
+  const { digest, components } = computeRendererManifestDigest(
+    entriesFor(repositoryRoot, codeFiles),
+    entriesFor(repositoryRoot, sourceFiles),
+    toolchainEntries
   );
   const { pdf, viewport } = PUBLISHER_RENDERER_CONTRACT;
   const contract = `{
@@ -104,13 +184,21 @@ export function writeRendererManifest(
     path.join(repositoryRoot, 'workers/publisher/renderer-manifest.generated.ts'),
     `// Generated after assembling the complete publisher Static Assets release.\n` +
       `// Run \`bun run publisher:assets\` after changing Renderer assets or the PDF contract.\n` +
+      `// Generated images are identified by ingredients (media/ + rules + generator +\n` +
+      `// sharp version), so this file is reproducible on any machine (wayfinder #269).\n` +
       `export const rendererManifest = {\n` +
-      `  schemaVersion: 1,\n` +
+      `  schemaVersion: 2,\n` +
       `  rendererIdentity:\n` +
       `    'faction-sheet/sha256:${digest}',\n` +
       `  digest: '${digest}',\n` +
+      `  components: {\n` +
+      `    sources: '${components.sources}',\n` +
+      `    toolchain: '${components.toolchain}',\n` +
+      `    code: '${components.code}',\n` +
+      `    contract: '${components.contract}',\n` +
+      `  },\n` +
       `  contract: ${contract},\n` +
       `} as const;\n`
   );
-  return { digest, entryCount: files.length };
+  return { digest, entryCount: codeFiles.length + sourceFiles.length + toolchainEntries.length };
 }

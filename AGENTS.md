@@ -64,3 +64,16 @@ Use the default triage-label vocabulary. See `docs/agents/triage-labels.md`.
 ### Domain docs
 
 This is a single-context repository using root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
+
+## Image pipeline
+
+Raster image sources live in `media/**`; everything under `public/image/**` and
+`public/web/**` (except `logo.svg`) is generated output (gitignored). Run
+`bun run generate:images` after changing sources or `src/shared/assetRules.ts`
+(dev and Storybook need the generated files locally; CI produces the deployed
+bytes). `bun run verify:images` checks the output structurally. Renderer
+identity hashes the *ingredients* (media bytes + rules + generator + pinned
+sharp version), never encoder output — so `publisher:release:verify` remains a
+local check. Image keys such as `/image/texture/021.jpg` are opaque asset ids
+stored on faction documents; resolve them via the asset resolver, do not treat
+them as fetchable URLs (the canonical-name files are fallback safety nets).

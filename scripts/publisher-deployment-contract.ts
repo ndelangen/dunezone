@@ -148,7 +148,15 @@ export function validatePublisherDeployContract(
   );
   exactJson(config.secrets, { required: REQUIRED_SECRETS }, 'required Worker secret names');
 
-  invariant(rendererManifest.schemaVersion === 1, 'Renderer manifest schema changed unexpectedly');
+  invariant(rendererManifest.schemaVersion === 2, 'Renderer manifest schema changed unexpectedly');
+  invariant(
+    Object.keys(rendererManifest.components).sort().join(',') ===
+      'code,contract,sources,toolchain' &&
+      Object.values(rendererManifest.components).every((component) =>
+        /^[0-9a-f]{64}$/.test(component)
+      ),
+    'Renderer identity components are invalid'
+  );
   invariant(
     /^[0-9a-f]{64}$/.test(rendererManifest.digest) &&
       rendererManifest.rendererIdentity === `faction-sheet/sha256:${rendererManifest.digest}`,

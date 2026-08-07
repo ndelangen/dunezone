@@ -19,7 +19,6 @@ import path from 'node:path';
 import sharp from 'sharp';
 
 import { ASSET_RULES, FORMAT_EXTENSION, ruleForKey } from '../src/shared/assetRules';
-import type { CategoryRule } from '../src/shared/assetRules';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const mediaRoot = path.join(repoRoot, 'media');
@@ -39,12 +38,16 @@ async function generateOne(sourceAbsolute: string): Promise<MapEntry> {
   const relative = path.relative(mediaRoot, sourceAbsolute).split(path.sep).join('/');
   const key = `/${relative}`;
   const rule = ruleForKey(key);
-  if (!rule) throw new Error(`No asset rule covers ${key}`);
+  if (!rule) {
+    throw new Error(`No asset rule covers ${key}`);
+  }
 
   const source = sharp(sourceAbsolute);
   const [metadata, stats] = await Promise.all([source.metadata(), source.stats()]);
   const width = metadata.width ?? 0;
-  if (!width) throw new Error(`Cannot read dimensions of ${key}`);
+  if (!width) {
+    throw new Error(`Cannot read dimensions of ${key}`);
+  }
 
   if (!rule.transparent && !stats.isOpaque) {
     throw new Error(
@@ -65,8 +68,12 @@ async function generateOne(sourceAbsolute: string): Promise<MapEntry> {
 
   async function encode(targetWidth: number | null, outPath: string, format: string) {
     let pipeline = sharp(sourceAbsolute);
-    if (targetWidth && targetWidth < width) pipeline = pipeline.resize(targetWidth);
-    if (rule!.grayscale) pipeline = pipeline.grayscale();
+    if (targetWidth && targetWidth < width) {
+      pipeline = pipeline.resize(targetWidth);
+    }
+    if (rule!.grayscale) {
+      pipeline = pipeline.grayscale();
+    }
     if (format === 'jpeg') {
       pipeline = pipeline.jpeg({ quality: rule!.quality, progressive: true, mozjpeg: true });
     } else if (format === 'webp') {
@@ -81,7 +88,9 @@ async function generateOne(sourceAbsolute: string): Promise<MapEntry> {
   const extension = FORMAT_EXTENSION[rule.format];
   const sizes: string[] = [];
   for (const [sizeName, sizeWidth] of Object.entries(rule.sizes)) {
-    if (sizeWidth === undefined) continue;
+    if (sizeWidth === undefined) {
+      continue;
+    }
     await encode(
       sizeWidth,
       path.join(outDirectory, `${baseName}-${sizeName}.${extension}`),
@@ -103,7 +112,9 @@ async function generateOne(sourceAbsolute: string): Promise<MapEntry> {
 // Reset output directories so removals in media/ propagate.
 rmSync(path.join(publicRoot, 'image'), { recursive: true, force: true });
 for (const entry of readdirSync(path.join(publicRoot, 'web'))) {
-  if (entry !== 'logo.svg') rmSync(path.join(publicRoot, 'web', entry), { force: true });
+  if (entry !== 'logo.svg') {
+    rmSync(path.join(publicRoot, 'web', entry), { force: true });
+  }
 }
 
 const sources = walk(mediaRoot).filter((file) => RASTER.test(file));
