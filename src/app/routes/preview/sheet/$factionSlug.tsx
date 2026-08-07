@@ -6,6 +6,8 @@ import '@app/components/factions/sheet/FactionSheetDocument.css';
 import { FactionSheetView } from '@app/components/factions/sheet/FactionSheetView';
 import { useFactionSheetPostMessage } from '@app/hooks/useFactionSheetPostMessage';
 
+import { AssetRenderModeProvider } from '../../../../game/assets/assetRenderMode';
+
 export const Route = createFileRoute('/preview/sheet/$factionSlug')({
   validateSearch: (params: Record<string, unknown>): { mode: 'db' | 'live' } => {
     return params.mode === 'live' ? { mode: 'live' } : { mode: 'db' };
@@ -64,8 +66,10 @@ function FactionSheetLiveMode() {
 
 function FactionSheetPage() {
   const { mode } = Route.useSearch();
-  if (mode === 'live') {
-    return <FactionSheetLiveMode />;
-  }
-  return <FactionSheetDbMode />;
+  // The Cmd+P path renders print-grade variants (#254).
+  return (
+    <AssetRenderModeProvider mode="print">
+      {mode === 'live' ? <FactionSheetLiveMode /> : <FactionSheetDbMode />}
+    </AssetRenderModeProvider>
+  );
 }

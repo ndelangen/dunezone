@@ -5,6 +5,7 @@ import type { z } from 'zod';
 import { MarkdownContent } from '../../components/block/MarkdownContent';
 import { backgroundPresets } from '../../data/backgrounds';
 import type { Spice } from '../../data/objects';
+import { useAssetResolver } from '../assetRenderMode';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { useCountId } from '../utils/useCountId';
 import styles from './Card.module.css';
@@ -23,6 +24,7 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({
   highlights,
   overlays,
 }) => {
+  const resolveOverlay = useAssetResolver();
   const prefix = useCountId();
   const decalsFilter = `${prefix}decals-filter`;
 
@@ -101,7 +103,7 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({
         <use xlinkHref="/vector/background/map.svg#sectors" />
         {overlays?.map((overlay) => (
           <image
-            href={overlay.image}
+            href={resolveOverlay(overlay.image)}
             x={overlay.offset[0]}
             y={overlay.offset[1]}
             width={overlay.scale}

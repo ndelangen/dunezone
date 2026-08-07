@@ -18,6 +18,8 @@ import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
 import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
+import { assetColorStyle } from '@app/components/generic/assetColor';
+import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { backgroundTreatment } from '@game/assets/utils/Background';
 
 import { BACKGROUND_PATTERN_CATALOGUE } from './backgroundPatternCatalogue';
@@ -60,6 +62,7 @@ function PatternCatalogue({
   onChange: (image: Faction['background']['image']) => void;
   onClose: () => void;
 }) {
+  const resolve = useAssetResolver();
   return (
     <Box className={styles.patternCatalogue}>
       <Group justify="flex-end">
@@ -97,13 +100,14 @@ function PatternCatalogue({
               <AspectRatio ratio={1.35}>
                 <Box pos="relative">
                   <Image
-                    src={option.image}
+                    src={resolve(option.image, 'small')}
                     alt=""
                     fit="cover"
                     w="100%"
                     h="100%"
                     loading="lazy"
                     className={styles.patternImage}
+                    style={assetColorStyle(option.image)}
                   />
                   {selected ? (
                     <Box className={styles.selectedMark}>
@@ -222,6 +226,7 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
 }
 
 export function FactionFormSectionBackground({ form }: { form: FactionFormApi }) {
+  const resolve = useAssetResolver();
   const [libraryOpen, setLibraryOpen] = useState(false);
   const setBackground = (background: Faction['background']) =>
     form.setFieldValue('background', background);
@@ -266,7 +271,7 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
                         <Stack gap="xs">
                           <Box className={styles.selectedPattern}>
                             <Image
-                              src={background.image}
+                              src={resolve(background.image)}
                               alt=""
                               fit="cover"
                               w="100%"
