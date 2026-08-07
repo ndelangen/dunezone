@@ -16,13 +16,6 @@
       "storageClass": "Standard",
       "managedPublic": false,
       "customDomains": []
-    },
-    {
-      "name": "tanstack-start-asset-publisher-proof",
-      "location": "weur",
-      "storageClass": "Standard",
-      "managedPublic": false,
-      "customDomains": []
     }
   ]
 }
