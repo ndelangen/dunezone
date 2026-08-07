@@ -40,6 +40,18 @@ jobs:
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Restore generated images
+        id: image_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/image
+            public/web
+            src/game/data/assetMap.generated.ts
+          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
+      - name: Generate image variants
+        if: steps.image_cache.outputs.cache-hit != 'true'
+        run: bun run generate:images
       - name: Typecheck
         run: bun run typecheck
 
@@ -52,6 +64,18 @@ jobs:
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Restore generated images
+        id: image_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/image
+            public/web
+            src/game/data/assetMap.generated.ts
+          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
+      - name: Generate image variants
+        if: steps.image_cache.outputs.cache-hit != 'true'
+        run: bun run generate:images
       - name: Unit tests
         run: bun run test
 
@@ -66,6 +90,20 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Generate app artifacts
         run: bun run generate
+      - name: Restore generated images
+        id: image_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/image
+            public/web
+            src/game/data/assetMap.generated.ts
+          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
+      - name: Generate image variants
+        if: steps.image_cache.outputs.cache-hit != 'true'
+        run: bun run generate:images
+      - name: Verify generated images structurally
+        run: bun run verify:images
       - name: Build app
         run: bun run app:build
         env:
@@ -80,6 +118,22 @@ jobs:
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Restore generated images
+        id: image_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/image
+            public/web
+            src/game/data/assetMap.generated.ts
+          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
+      - name: Generate image variants
+        if: steps.image_cache.outputs.cache-hit != 'true'
+        run: bun run generate:images
+      - name: Verify generated images structurally
+        run: bun run verify:images
+      - name: Log generated output digest (informational, not part of identity)
+        run: find public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
       - name: Test publisher and delivery
         run: bun run publisher:test
       - name: Typecheck publisher
@@ -104,6 +158,18 @@ jobs:
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Restore generated images
+        id: image_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/image
+            public/web
+            src/game/data/assetMap.generated.ts
+          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
+      - name: Generate image variants
+        if: steps.image_cache.outputs.cache-hit != 'true'
+        run: bun run generate:images
       - name: Build Storybook
         run: bun run build-storybook
 
@@ -173,6 +239,20 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
+      - name: Restore generated images
+        id: image_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/image
+            public/web
+            src/game/data/assetMap.generated.ts
+          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
+      - name: Generate image variants
+        if: steps.image_cache.outputs.cache-hit != 'true'
+        run: bun run generate:images
+      - name: Verify generated images structurally
+        run: bun run verify:images
       - name: Create local E2E env file
         run: |
           cat > "$RUNNER_TEMP/.env.e2e.local" <<'EOF'

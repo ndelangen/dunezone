@@ -1,3 +1,4 @@
+import { resolveAsset } from '@game/assets/resolveAsset';
 import { DECAL, GENERIC, ICON, LEADERS, LOGO, TROOP, TROOP_MODIFIER } from '@game/data/generated';
 
 export const NONE_SELECT_VALUE = '__none__';
@@ -14,7 +15,7 @@ export function assetPathToPublicUrl(path: string): string {
 }
 
 export function assetOptionToPreviewSrc(path: string): string | null {
-  return isPreviewableAssetPath(path) ? assetPathToPublicUrl(path) : null;
+  return isPreviewableAssetPath(path) ? resolveAsset(assetPathToPublicUrl(path), 'large') : null;
 }
 
 export function toTitleCaseWord(word: string): string {

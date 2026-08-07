@@ -70,8 +70,9 @@ async function openCapture(page: Page) {
 async function checkCorruptSvgImage(browser: Browser): Promise<void> {
   const page = await newPublisherPage(browser);
   try {
-    await page.route('**/image/leader/official/jessica.png', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'image/png', body: 'not a png' });
+    // The sheet resolves keys to variant URLs (Train 1b): corrupt the variant it loads.
+    await page.route('**/image/leader/official/jessica-large.webp', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'image/webp', body: 'not a webp' });
     });
     const result = await openCapture(page);
     invariant(

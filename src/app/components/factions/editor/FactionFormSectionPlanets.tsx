@@ -21,6 +21,7 @@ import { useState } from 'react';
 import type { Faction } from '@db/factions';
 import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
 import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
+import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
@@ -38,6 +39,7 @@ function PlanetImageLibrary({
   onChange: (image: PlanetEntry['image']) => void;
   index: number;
 }) {
+  const resolve = useAssetResolver();
   const isCurated = CURATED_PLANET_IMAGES.some((option) => option.image === value);
 
   return (
@@ -89,7 +91,13 @@ function PlanetImageLibrary({
               >
                 <AspectRatio ratio={1}>
                   <Box pos="relative">
-                    <Image src={option.image} alt="" fit="contain" w="100%" h="100%" />
+                    <Image
+                      src={resolve(option.image, 'small')}
+                      alt=""
+                      fit="contain"
+                      w="100%"
+                      h="100%"
+                    />
                     {selected ? (
                       <ActionIcon
                         component="span"

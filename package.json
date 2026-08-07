@@ -18,6 +18,7 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "generate": "bun run ./scripts/generate.ts",
+    "generate:images": "bun run ./scripts/generate-images.ts",
     "lint": "oxlint . --deny-warnings",
     "lint:fix": "oxlint . --fix",
     "migrations:deploy": "bun run ./scripts/migration-guards.ts deploy 2700000 5000 --prod",
@@ -40,6 +41,7 @@
     "storybook": "storybook dev -p 6006",
     "test": "vitest run --passWithNoTests",
     "typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit",
+    "verify:images": "bun run ./scripts/verify-images.ts",
     "worktree:setup": "bash ./scripts/codex-worktree-setup.sh"
   },
   "dependencies": {
@@ -108,6 +110,7 @@
     "oxlint": "1.77.0",
     "playwright": "^1.62.1",
     "recursive-readdir-files": "^2.3.2",
+    "sharp": "0.35.3",
     "storybook": "^10.5.6",
     "typescript": "^6.0.3",
     "typescript-plugin-css-modules": "^5.2.0",

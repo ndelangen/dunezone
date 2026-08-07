@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { FactionSheetView } from '@app/components/factions/sheet/FactionSheetView';
 import type { FactionInput } from '@game/schema/faction';
 
+import { AssetRenderModeProvider } from '../../game/assets/assetRenderMode';
 import { CAPTURE_PROTOCOL } from '../../shared/asset-publishing/capture-protocol';
 import { publisherCaptureSnapshotSchema } from '../../shared/asset-publishing/publisher-snapshot';
 import { publisherErrorMessage, redactPublisherResource } from './publisher-diagnostics';
@@ -242,7 +243,11 @@ export function PublisherFactionSheetCapture() {
       >
         {detail}
       </output>
-      {faction ? <FactionSheetView faction={faction} /> : null}
+      {faction ? (
+        <AssetRenderModeProvider mode="print">
+          <FactionSheetView faction={faction} />
+        </AssetRenderModeProvider>
+      ) : null}
     </>
   );
 }

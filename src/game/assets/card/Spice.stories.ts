@@ -278,7 +278,7 @@ export const DiscoveryWindPassNorth = meta.story({
     text: `**Smuggler token** on Plastic Basin\n+\n**6 spice** on Wind Pass North`,
     overlays: [
       {
-        image: '/image/token/hiereg.png',
+        image: '/image/texture/052.jpg',
         offset: [105, 80],
         scale: 30,
       },

@@ -4,6 +4,7 @@ import type { z } from 'zod';
 
 import { StrokedUse } from '../../../components/block/StrokedUse';
 import type { FactionRender } from '../../../schema/faction';
+import { useAsset } from '../../assetRenderMode';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
 import { tint0 } from '../../utils/colors';
 import { useCountId } from '../../utils/useCountId';
@@ -15,6 +16,7 @@ const iconLocation = { x: 150 - iconSize.width / 2, y: 220 };
 type LeaderTokenProps = z.infer<typeof FactionRender.leaders>[0];
 
 export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, logo, name, strength }) => {
+  const resolvedImage = useAsset(image);
   const cid = useCountId();
   const prefix = useMemo(() => `${cid}_`, [cid]);
 
@@ -58,7 +60,7 @@ export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, logo, nam
         mask={`url(#${discMask})`}
         width={230}
         x={35}
-        xlinkHref={image}
+        xlinkHref={resolvedImage}
         y={16.6}
       />
       <circle

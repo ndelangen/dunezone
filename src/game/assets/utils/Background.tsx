@@ -4,6 +4,7 @@ import type { z } from 'zod';
 
 import { GRADIENT } from '../../schema/faction';
 import type { Background as BackGroundType } from '../../schema/faction';
+import { useAsset } from '../assetRenderMode';
 import styles from './Background.module.css';
 
 /** Maps authored studio values to the real pattern-mask treatment. */
@@ -33,6 +34,7 @@ export const Background: FC<z.infer<typeof BackGroundType>> = ({
   const textureMaskId = `bg-${base}-texture-mask`;
   const gradientId = (i: number) => `bg-${base}-g-${i}`;
   const treatment = backgroundTreatment({ invert, definition, influence });
+  const resolvedImage = useAsset(image);
 
   return (
     <svg
@@ -46,7 +48,7 @@ export const Background: FC<z.infer<typeof BackGroundType>> = ({
       <defs>
         <pattern id={textureId} width="100" height="100" patternUnits="userSpaceOnUse">
           <image
-            xlinkHref={image}
+            xlinkHref={resolvedImage}
             x="-1"
             y="-1"
             width="102"
