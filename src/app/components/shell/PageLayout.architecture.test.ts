@@ -17,9 +17,11 @@ function listRouteFiles(directory: string): string[] {
 }
 
 describe('PageLayout route contract', () => {
-  // Allowlisted source-scan (ADR-0001): "every terminal visual route mounts PageLayout" is a real
-  // structural rule with no type-level or lint-level expression. Everything else this file once
-  // asserted (import spellings, chunk-split literals, ghost components) was retired per ADR-0001.
+  /*
+   * Allowlisted source-scan (ADR-0001): "every terminal visual route mounts PageLayout" is a real
+   * structural rule with no type-level or lint-level expression. Everything else this file once
+   * asserted (import spellings, chunk-split literals, ghost components) was retired per ADR-0001.
+   */
   it('keeps terminal visual routes on PageLayout', () => {
     const routes = listRouteFiles(appRoutesDirectory).map((path) => ({
       relativePath: relative(appRoutesDirectory, path),

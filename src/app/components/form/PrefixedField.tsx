@@ -57,5 +57,3 @@ export function PrefixedField({
     </div>
   );
 }
-
-/** @deprecated Use `PrefixedField` instead. */

@@ -59,8 +59,8 @@ export function replaceExtension(name: string, ext: string): string {
 }
 
 function dedupeName(name: string, seen: Map<string, number>): string {
-  // Reserve every emitted candidate, not only originals: a.svg, a-1.svg, a.svg
-  // must yield a.svg, a-1.svg, a-2.svg — never a colliding second a-1.svg.
+  /* Reserve every emitted candidate, not only originals: a.svg, a-1.svg, a.svg
+     must yield a.svg, a-1.svg, a-2.svg — never a colliding second a-1.svg. */
   const emitted = seen;
   let candidate = name;
   let count = emitted.get(name) ?? 0;
