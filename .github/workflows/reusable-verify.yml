@@ -252,6 +252,8 @@ jobs:
           key: playwright-chromium-${{ steps.playwright.outputs.version }}
       - name: Install Chromium for story tests
         run: npx playwright install --with-deps chromium
+      - name: Verify generated images structurally
+        run: bun run verify:images
       - name: Run story tests with coverage
         run: bun run storybook:test --coverage.enabled=true
       - name: Upload storybook coverage to Codecov
