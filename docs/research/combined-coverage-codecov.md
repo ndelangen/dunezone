@@ -329,3 +329,19 @@ In order, each independently shippable; stop anywhere and the earlier steps keep
   ([commit status](https://docs.codecov.com/docs/commit-status)).
 - **Blocking anything on day one.** All statuses start `informational: true`; the only long-term
   candidate for enforcement is combined `patch` coverage.
+
+## 8. Post-adoption corrections (2026-08-08)
+
+Recorded here because the denominator decision
+([ticket #301](https://github.com/ndelangen/dunezone/issues/301)) is otherwise the authority:
+
+- The include globs shipped narrower than decided: `src/**/*.{ts,tsx}` etc. instead of bare
+  `src/**` — the bare globs pulled in non-code files (`workers/publisher/dist/**` local build
+  output, `tsconfig.json`) and inflated the denominator to 42k lines. Consequence to know:
+  a future `.js`/`.jsx`/`.mts` source file would silently drop out of the denominator until the
+  extension list grows.
+- The denominator lives in one module (`coverage-denominator.ts`) imported by both
+  `vite.config.ts` and `vitest.storybook.config.ts`, per the repo's one-authority rule.
+- `after_n_builds: 4` means a silently failed upload (`fail_ci_if_error: false`) silently
+  withholds the PR comment for that push; accepted — statuses still post per upload, and the
+  next push retries — documented in `codecov.yml`.

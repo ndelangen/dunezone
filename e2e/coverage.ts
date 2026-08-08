@@ -5,7 +5,7 @@
 // outputDir cache across Playwright workers; global-teardown.ts generates the
 // final lcov report.
 import { test as base, expect } from '@playwright/test';
-import type { Browser, BrowserContextOptions, Page } from '@playwright/test';
+import type { BrowserContext, BrowserContextOptions, Page } from '@playwright/test';
 import MCR from 'monocart-coverage-reports';
 import type { CoverageReportOptions } from 'monocart-coverage-reports';
 
@@ -34,50 +34,84 @@ export const mcrOptions: CoverageReportOptions = {
   sourceFilter: (sourcePath) => sourcePath.startsWith('src/'),
 };
 
+// The animation project asserts per-frame samples and runs isolated;
+// V8 precise coverage adds in-page overhead it cannot afford.
 const shouldCollect = () => coverageEnabled && test.info().project.name !== 'animation';
 
-/**
- * Coverage-aware replacement for `browser.newContext()` + `context.newPage()`. The returned `close`
- * collects the page's V8 coverage (when enabled) before closing the context — after close the CDP
- * session is gone and coverage is unrecoverable, so always close through it.
- */
-export async function newCoveredPage(
-  browser: Browser,
-  options: BrowserContextOptions
-): Promise<{ page: Page; close: () => Promise<void> }> {
-  const context = await browser.newContext(options);
-  const page = await context.newPage();
-  const collect = shouldCollect();
-  if (collect) {
-    await page.coverage.startJSCoverage({ resetOnNavigation: false });
-  }
-  return {
-    page,
-    close: async () => {
-      try {
-        if (collect) {
-          const entries = await page.coverage.stopJSCoverage();
-          await MCR(mcrOptions).add(entries);
-        }
-      } finally {
-        await context.close();
-      }
-    },
-  };
+const startCollecting = (page: Page) => page.coverage.startJSCoverage({ resetOnNavigation: false });
+
+// Collection must happen while the page's CDP session is alive — after the
+// context closes, the coverage is unrecoverable.
+async function collectInto(page: Page): Promise<void> {
+  const entries = await page.coverage.stopJSCoverage();
+  await MCR(mcrOptions).add(entries);
 }
 
-export const test = base.extend({
+/**
+ * Factory fixture: coverage-aware replacement for `browser.newContext()` + `context.newPage()` in
+ * multi-user specs. Prefer closing via the returned `close`; any page still open when the test ends
+ * — including when it fails mid-test — is collected and closed by the fixture teardown, so coverage
+ * is never silently dropped.
+ */
+type NewUserPage = (options: BrowserContextOptions) => Promise<{
+  page: Page;
+  close: () => Promise<void>;
+}>;
+
+interface OpenedPage {
+  page: Page;
+  context: BrowserContext;
+  collect: boolean;
+  closed: boolean;
+}
+
+export const test = base.extend<{ newUserPage: NewUserPage }>({
   page: async ({ page }, use) => {
-    // The animation project asserts per-frame samples and runs isolated;
-    // V8 precise coverage adds in-page overhead it cannot afford.
     const collect = shouldCollect();
     if (collect) {
-      await page.coverage.startJSCoverage({ resetOnNavigation: false });
+      await startCollecting(page);
     }
     await use(page);
     if (collect) {
-      const entries = await page.coverage.stopJSCoverage();
-      await MCR(mcrOptions).add(entries);
+      await collectInto(page);
+    }
+  },
+  newUserPage: async ({ browser }, use) => {
+    const opened: OpenedPage[] = [];
+    await use(async (options) => {
+      const context = await browser.newContext(options);
+      const page = await context.newPage();
+      const collect = shouldCollect();
+      if (collect) {
+        await startCollecting(page);
+      }
+      const entry: OpenedPage = { page, context, collect, closed: false };
+      opened.push(entry);
+      return {
+        page,
+        close: async () => {
+          entry.closed = true;
+          try {
+            if (collect) {
+              await collectInto(page);
+            }
+          } finally {
+            await context.close();
+          }
+        },
+      };
+    });
+    for (const entry of opened) {
+      if (entry.closed) {
+        continue;
+      }
+      try {
+        if (entry.collect) {
+          await collectInto(entry.page);
+        }
+      } finally {
+        await entry.context.close();
+      }
     }
   },
 });

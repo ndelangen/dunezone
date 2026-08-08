@@ -5,7 +5,11 @@
 
 codecov:
   notify:
-    # unit + publisher + e2e + storybook.
+    # unit + publisher + e2e + storybook. Known tradeoff with the
+    # fail_ci_if_error: false upload steps: if one upload silently fails,
+    # the PR comment for that push is silently withheld (statuses still
+    # post per upload; the next push retries). Accepted over the
+    # alternatives — partial-data comments or upload failures breaking CI.
     after_n_builds: 4
 
 coverage:

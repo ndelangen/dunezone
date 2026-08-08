@@ -1,8 +1,8 @@
-import { expect, longSpecTimeoutMs, newCoveredPage, test } from './coverage';
+import { expect, longSpecTimeoutMs, test } from './coverage';
 
 test.use({ storageState: '.playwright/user-a-group.json' });
 
-test('membership lifecycle: request, approve, moderate, remove', async ({ page, browser }) => {
+test('membership lifecycle: request, approve, moderate, remove', async ({ page, newUserPage }) => {
   test.setTimeout(longSpecTimeoutMs);
 
   const suffix = Date.now();
@@ -18,7 +18,7 @@ test('membership lifecycle: request, approve, moderate, remove', async ({ page, 
   });
   const groupUrl = page.url();
 
-  const userB = await newCoveredPage(browser, { storageState: '.playwright/user-b-group.json' });
+  const userB = await newUserPage({ storageState: '.playwright/user-b-group.json' });
   const userBPage = userB.page;
 
   await test.step('visitor requests membership', async () => {

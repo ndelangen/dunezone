@@ -1,8 +1,8 @@
-import { expect, newCoveredPage, test } from './coverage';
+import { expect, test } from './coverage';
 
 test.use({ storageState: '.playwright/user-a-ruleset.json' });
 
-test('owner can create and delete a ruleset in a two-user flow', async ({ page, browser }) => {
+test('owner can create and delete a ruleset in a two-user flow', async ({ page, newUserPage }) => {
   const uniqueSuffix = Date.now();
   const uniqueName = `E2ERuleset${uniqueSuffix}`;
   const expectedSlug = uniqueName.toLowerCase();
@@ -15,7 +15,7 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   await expect(page.getByLabel('Edit ruleset')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(uniqueName).first()).toBeVisible({ timeout: 30_000 });
 
-  const userB = await newCoveredPage(browser, { storageState: '.playwright/user-b.json' });
+  const userB = await newUserPage({ storageState: '.playwright/user-b.json' });
   const userBPage = userB.page;
   await userBPage.goto(createdUrl);
   await expect(userBPage.getByText(uniqueName).first()).toBeVisible({ timeout: 30_000 });
