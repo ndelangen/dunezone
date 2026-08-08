@@ -72,20 +72,27 @@ collision with the user-facing `/factions/<slug>` SPA route.
 
 ## Environment variables
 
-Set as GitHub repository secrets:
+Set as secrets on the GitHub `production` environment (deployment branch policy:
+`main` only, so no other ref can receive them):
 
-- `VITE_CONVEX_URL`
 - `CONVEX_DEPLOY_KEY`
-- `CONVEX_DEPLOYMENT`
-- `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`
-- `AUTH_DISCORD_ID` / `AUTH_DISCORD_SECRET`
-- `JWT_PRIVATE_KEY` / `JWKS`
-- `ASSET_PUBLISHER_ACTIVATION_SECRET`
 - `CLOUDFLARE_API_TOKEN`
+- `ASSET_PUBLISHER_ACTIVATION_SECRET`
 
-Set as a GitHub `production` environment variable:
+Set as GitHub `production` environment variables (public identifiers, not secrets):
 
 - `CLOUDFLARE_ACCOUNT_ID`
+- `CONVEX_DEPLOYMENT`
+- `VITE_CONVEX_URL`
+
+Set as GitHub repository secrets (used outside the `production` environment):
+
+- `CLOUDFLARE_READ_API_TOKEN` (Cloudflare live-drift audit)
+- `CODECOV_TOKEN` (coverage uploads in PR CI)
+
+Auth values (`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, `AUTH_DISCORD_ID` /
+`AUTH_DISCORD_SECRET`, `JWT_PRIVATE_KEY` / `JWKS`) live on the Convex deployment
+itself, not in GitHub.
 
 The Worker secrets `ASSET_PUBLISHER_EXECUTOR_SECRET` and
 `ASSET_PUBLISHER_CACHE_TOKEN_SECRET` remain installed directly in Cloudflare. CI
