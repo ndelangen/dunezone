@@ -1,4 +1,4 @@
-import { expect, test } from './coverage';
+import { expect, newCoveredPage, test } from './coverage';
 
 test.use({ storageState: '.playwright/user-a-ruleset.json' });
 
@@ -15,12 +15,12 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   await expect(page.getByLabel('Edit ruleset')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(uniqueName).first()).toBeVisible({ timeout: 30_000 });
 
-  const userBContext = await browser.newContext({ storageState: '.playwright/user-b.json' });
-  const userBPage = await userBContext.newPage();
+  const userB = await newCoveredPage(browser, { storageState: '.playwright/user-b.json' });
+  const userBPage = userB.page;
   await userBPage.goto(createdUrl);
   await expect(userBPage.getByText(uniqueName).first()).toBeVisible({ timeout: 30_000 });
   await expect(userBPage.getByLabel('Edit ruleset')).toHaveCount(0);
-  await userBContext.close();
+  await userB.close();
 
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByLabel('Delete ruleset').click();

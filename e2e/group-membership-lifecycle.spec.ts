@@ -1,4 +1,4 @@
-import { expect, test } from './coverage';
+import { expect, newCoveredPage, test } from './coverage';
 
 test.use({ storageState: '.playwright/user-a-group.json' });
 
@@ -18,8 +18,8 @@ test('membership lifecycle: request, approve, moderate, remove', async ({ page, 
   });
   const groupUrl = page.url();
 
-  const userBContext = await browser.newContext({ storageState: '.playwright/user-b-group.json' });
-  const userBPage = await userBContext.newPage();
+  const userB = await newCoveredPage(browser, { storageState: '.playwright/user-b-group.json' });
+  const userBPage = userB.page;
 
   await test.step('visitor requests membership', async () => {
     await userBPage.goto(groupUrl);
@@ -51,5 +51,5 @@ test('membership lifecycle: request, approve, moderate, remove', async ({ page, 
     await expect(userBPage.getByRole('button', { name: 'Request membership' })).toBeVisible();
   });
 
-  await userBContext.close();
+  await userB.close();
 });

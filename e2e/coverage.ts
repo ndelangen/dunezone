@@ -5,6 +5,7 @@
 // outputDir cache across Playwright workers; global-teardown.ts generates the
 // final lcov report.
 import { test as base, expect } from '@playwright/test';
+import type { Browser, BrowserContextOptions, Page } from '@playwright/test';
 import MCR from 'monocart-coverage-reports';
 import type { CoverageReportOptions } from 'monocart-coverage-reports';
 
@@ -28,11 +29,40 @@ export const mcrOptions: CoverageReportOptions = {
   sourceFilter: (sourcePath) => sourcePath.startsWith('src/'),
 };
 
+const shouldCollect = () => coverageEnabled && test.info().project.name !== 'animation';
+
+/**
+ * Coverage-aware replacement for `browser.newContext()` + `context.newPage()`. The returned `close`
+ * collects the page's V8 coverage (when enabled) before closing the context — after close the CDP
+ * session is gone and coverage is unrecoverable, so always close through it.
+ */
+export async function newCoveredPage(
+  browser: Browser,
+  options: BrowserContextOptions
+): Promise<{ page: Page; close: () => Promise<void> }> {
+  const context = await browser.newContext(options);
+  const page = await context.newPage();
+  const collect = shouldCollect();
+  if (collect) {
+    await page.coverage.startJSCoverage({ resetOnNavigation: false });
+  }
+  return {
+    page,
+    close: async () => {
+      if (collect) {
+        const entries = await page.coverage.stopJSCoverage();
+        await MCR(mcrOptions).add(entries);
+      }
+      await context.close();
+    },
+  };
+}
+
 export const test = base.extend({
   page: async ({ page }, use) => {
     // The animation project asserts per-frame samples and runs isolated;
     // V8 precise coverage adds in-page overhead it cannot afford.
-    const collect = coverageEnabled && test.info().project.name !== 'animation';
+    const collect = shouldCollect();
     if (collect) {
       await page.coverage.startJSCoverage({ resetOnNavigation: false });
     }

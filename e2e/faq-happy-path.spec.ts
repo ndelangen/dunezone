@@ -1,4 +1,4 @@
-import { expect, test } from './coverage';
+import { expect, newCoveredPage, test } from './coverage';
 
 test.use({ storageState: '.playwright/user-a-faq.json' });
 
@@ -18,8 +18,8 @@ test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, bro
   });
   const questionUrl = page.url();
 
-  const userBContext = await browser.newContext({ storageState: '.playwright/user-b-faq.json' });
-  const userBPage = await userBContext.newPage();
+  const userB = await newCoveredPage(browser, { storageState: '.playwright/user-b-faq.json' });
+  const userBPage = userB.page;
 
   await test.step('another member answers', async () => {
     await userBPage.goto(questionUrl);
@@ -49,5 +49,5 @@ test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, bro
     await expect(pickedFact.locator('strong')).toHaveText('1');
   });
 
-  await userBContext.close();
+  await userB.close();
 });
