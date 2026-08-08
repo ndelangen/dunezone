@@ -12,14 +12,13 @@ concurrency:
   group: deploy-production
   cancel-in-progress: false
 
+# No verify job here: branch protection on main (required ci_ok + audit
+# checks, strict up-to-date, PRs only, admins enforced) guarantees every
+# push is a merge whose content PR CI already verified via the merge
+# preview ref. Decision: https://github.com/ndelangen/dunezone/issues/286
 jobs:
-  verify:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/reusable-verify.yml
-
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: verify
     environment: production
     runs-on: ubuntu-latest
     permissions:
