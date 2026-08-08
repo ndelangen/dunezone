@@ -11,6 +11,11 @@ import type { CoverageReportOptions } from 'monocart-coverage-reports';
 
 export const coverageEnabled = process.env.E2E_COVERAGE === '1';
 
+// V8 collection costs the long specs real headroom in CI: faction-lifecycle
+// ran 78s of its 90s budget on a green coverage run and over it on a slower
+// runner. Coverage runs get 1.5x.
+export const longSpecTimeoutMs = coverageEnabled ? 135_000 : 90_000;
+
 export const mcrOptions: CoverageReportOptions = {
   name: 'e2e coverage',
   outputDir: 'coverage/e2e',

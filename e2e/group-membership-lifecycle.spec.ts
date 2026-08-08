@@ -1,9 +1,9 @@
-import { expect, newCoveredPage, test } from './coverage';
+import { expect, longSpecTimeoutMs, newCoveredPage, test } from './coverage';
 
 test.use({ storageState: '.playwright/user-a-group.json' });
 
 test('membership lifecycle: request, approve, moderate, remove', async ({ page, browser }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(longSpecTimeoutMs);
 
   const suffix = Date.now();
   const groupName = `E2EMembership${suffix}`;

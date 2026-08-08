@@ -1,9 +1,9 @@
-import { expect, newCoveredPage, test } from './coverage';
+import { expect, longSpecTimeoutMs, newCoveredPage, test } from './coverage';
 
 test.use({ storageState: '.playwright/user-a-faq.json' });
 
 test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, browser }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(longSpecTimeoutMs);
 
   const suffix = Date.now();
   const questionText = `What is the E2E spice cycle ${suffix}?`;
