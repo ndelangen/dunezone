@@ -37,7 +37,7 @@ Two consequences frame everything below: only wall-clock matters (compute is fre
 | 5 | Cache Bun's global install cache | ~5–15s | Low | Cheap experiment; measure `bun install` first |
 | 6 | `vite preview` (prebuilt) instead of `vite dev` | ~0 net | Medium | **Kill** as a speed play; revisit only if #1 shows transform contention |
 | 7 | Merge small jobs (lint/typecheck/skip-guard) | 0 (public repo ⇒ free minutes) | — | **Kill** |
-| 8 | deploy-main: build the Worker release in a parallel job | ~1.5–2.5 min off push→prod latency | Medium | **Do it** — biggest absolute win in the repo |
+| 8 | deploy-main: build the Worker release in a parallel job | ~~1.5–2.5 min~~ measured: ~10–15s net | Medium | **Killed by measurement** — build is 22s, not minutes; see §8 correction |
 | 9 | Merge queue; stop re-verifying on main | ~3 min off push→prod latency | Medium-high (structural) | Consider after #8 |
 | 10 | Shard e2e across 2 runner jobs (own backend each) | ~40s | Medium | Fallback if #1 proves flaky |
 | 11 | Misc: backend-only compose, larger runners, cache-key notes | ≤ a few seconds | — | Notes only |
@@ -291,12 +291,24 @@ jobs:
 
 Ordering constraints preserved: Convex deploy/migrations still precede the Worker deploy, and
 smoke/activate still follow it. The exactness check moves into `build_release` (same workspace
-that ran the build). **Expected saving:** the ~1.5–2.5 min of build work overlaps verify, so
-push→prod latency drops by roughly that amount, minus ~15–30s artifact upload/download.
-**Risk:** medium — the deploy step must consume exactly the uploaded assets (the existing
-`publisher:assets:check` re-verification in the deploy job covers drift), and artifacts count
-against storage (free-tier quota; retention can be 1 day). This is the largest absolute latency
-win anywhere in the pipeline.
+that ran the build).
+
+> **Correction (2026-08-08, measured — supersedes the estimate below): killed.** The estimate
+> assumed ~1.5–2.5 min of build work; the first post-trims production deploy
+> ([run 31251801825](https://github.com/ndelangen/dunezone/actions/runs/31251801825)) measured
+> `publisher:assets` at **22s** and the whole deploy job at **1.3 min** — the 4.4 min
+> push→prod total is dominated by verify's e2e (2.9 min), not the build. Net saving after
+> artifact overhead is ~10–15s, which does not pay for the added production-path complexity.
+> Implementation existed and was closed unmerged
+> ([#287](https://github.com/ndelangen/dunezone/pull/287)); revive it only if the build grows
+> past ~1 min. Decision: [#285](https://github.com/ndelangen/dunezone/issues/285). The
+> "largest absolute win" title passes to the merge queue (§9).
+
+Original (unmeasured) estimate, kept for the record: **Expected saving:** the ~1.5–2.5 min of
+build work overlaps verify, so push→prod latency drops by roughly that amount, minus ~15–30s
+artifact upload/download. **Risk:** medium — the deploy step must consume exactly the uploaded
+assets (the existing `publisher:assets:check` re-verification in the deploy job covers drift),
+and artifacts count against storage (free-tier quota; retention can be 1 day).
 
 ## 9. Merge queue: stop re-verifying on main
 
@@ -313,10 +325,11 @@ Costs: branch-protection/ruleset configuration ("Require merge queue"), adding `
 [`ci-pr.yml`](../../.github/workflows/ci-pr.yml) triggers, and — for a solo maintainer — the same
 checks now run *before* the merge completes, so merge-click→main latency grows by the CI time the
 deploy no longer pays. Net deploy latency improves; total time from "approve" to "live" is
-unchanged unless combined with #8 (which stacks: queue removes verify, #8 overlaps the build with
-nothing at all — the deploy job then starts near-immediately and only runs the sequential deploy
-tail). **Verdict:** correct architecture, medium-high ceremony; do #8 first, adopt this when the
-re-verify wait actually chafes.
+unchanged. **Verdict:** correct architecture, medium-high ceremony — and after §8's correction,
+this is the only remaining deploy-latency lever that matters: dropping the on-main re-verify is
+worth ~3 min against a deploy job that itself costs 1.3 min. Adopt when the re-verify wait
+actually chafes. Decision ticket:
+[#286](https://github.com/ndelangen/dunezone/issues/286).
 
 ## 10. Sharding e2e across runner jobs
 
