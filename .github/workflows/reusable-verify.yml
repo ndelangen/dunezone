@@ -88,6 +88,14 @@ jobs:
         run: bun run publisher:release:verify
         env:
           VITE_CONVEX_URL: https://exuberant-finch-263.eu-west-1.convex.cloud
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(bun -e 'console.log(require("@playwright/test/package.json").version)')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright.outputs.version }}
       - name: Install Chromium for publisher contract regression
         run: npx playwright install --with-deps chromium
       - name: Exercise narrow snapshot contract in Chromium
@@ -167,12 +175,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+      - name: Pre-pull Convex images in background
+        # Overlaps the image pull with dependency/browser install; compose up
+        # in e2e-local.sh finds the images already present (or pulls the rest).
+        run: docker compose -f docker-compose.convex-local.yml pull -q > /tmp/convex-pull.log 2>&1 &
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(bun -e 'console.log(require("@playwright/test/package.json").version)')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright.outputs.version }}
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
       - name: Create local E2E env file
         run: |
           cat > "$RUNNER_TEMP/.env.e2e.local" <<'EOF'

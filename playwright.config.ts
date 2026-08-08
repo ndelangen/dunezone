@@ -16,7 +16,7 @@ export default defineConfig({
   use: {
     baseURL: baseUrl,
     headless: process.env.PLAYWRIGHT_HEADLESS === 'true',
-    trace: 'on',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
