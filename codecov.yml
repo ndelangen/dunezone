@@ -35,3 +35,8 @@ flags:
 comment:
   after_n_builds: 4
   layout: "diff, flags, files"
+  # Bundle section: list only categories that actually changed, so the
+  # per-category split (app/images/vectors/objs/pages/fonts) surfaces real
+  # movement instead of restating six static sizes on every PR.
+  require_bundle_changes: true
+  bundle_change_threshold: "10Kb"

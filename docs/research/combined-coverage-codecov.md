@@ -358,8 +358,12 @@ Two further Codecov integrations, verified against primary sources before adopti
   has been unanswered since July 2025; nothing supports rolldown. Adopted instead:
   [`@codecov/bundle-analyzer`](https://github.com/codecov/codecov-javascript-bundler-plugins/tree/main/packages/bundle-analyzer)
   (same official monorepo), which analyzes the finished `dist/client` post-build — bundler-
-  agnostic, coarser per-module attribution than the in-bundler plugin would give. Uploads as
-  bundle `dunezone-client` from the `generate_and_build` job; not tokenless, so fork PRs skip it.
+  agnostic, coarser per-module attribution than the in-bundler plugin would give. Uploaded from the
+  `generate_and_build` job as one bundle per asset category (`dunezone-app` = compiled JS/CSS,
+  plus `-images`, `-vectors`, `-objs`, `-pages`, `-fonts`): `dist/client` is ~96% generated media
+  (84MB total vs ~3MB compiled app), and a single blob would let an image regeneration bury an
+  app-code regression. The PR comment lists only categories that moved
+  (`require_bundle_changes` + `bundle_change_threshold`). Not tokenless, so fork PRs skip it.
   Storybook/worker bundles can be added later with their own `--bundle-name`s.
 - **Test Analytics**: every suite emits JUnit XML (Vitest: `--reporter=junit`
   `--outputFile.junit=...` alongside the default reporter; Playwright: a `junit` entry in the
