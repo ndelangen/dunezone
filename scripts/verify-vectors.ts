@@ -12,7 +12,7 @@
  * 4. Baked paint elsewhere only where the rules allow it (`-multicolor` naming for decals)
  * 5. The map's enumerated place-ids all survive optimization
  * 6. No orphans: every generated file traces to a media source, and every source generated
- * 7. (warning until the in-repo tool emits it) media sources carry the authoring stamp
+ * 7. Media sources carry the authoring stamp (hard failure; the in-repo tool emits it)
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -41,10 +41,15 @@ function walk(directory: string): string[] {
 }
 
 const failures: string[] = [];
-const warnings: string[] = [];
 
 const PAINT_ATTRIBUTE = /\s(?:fill|stroke)="(?!none")/;
 const PAINT_STYLE = /\sstyle="[^"]*(?:fill|stroke)\s*:\s*(?!none)/;
+
+/** True when the stamp is an attribute of the opening root `<svg …>` tag itself. */
+function rootTagCarriesStamp(svg: string): boolean {
+  const rootTag = svg.match(/<svg\b[^>]*>/);
+  return rootTag !== null && rootTag[0].includes(`${VECTOR_AUTHORED_ATTRIBUTE}="`);
+}
 
 const sources = walk(mediaRoot).filter((file) => file.endsWith('.svg'));
 const sourceRelatives = new Set(
@@ -85,12 +90,17 @@ for (const relative of sourceRelatives) {
     failures.push(`${relative}: carries baked paint but its category inherits paint`);
   }
 
-  // 7. authoring stamp (warning until the tool emits it — #298/#311)
+  // 7. authoring stamp (#298; hard since #311 — the in-repo tool emits it, legacy sources are
+  // batch-stamped, so a missing stamp means the file never went through the authoring pipeline).
+  // Checked as an attribute of the root <svg> tag, not as a substring: a mention in a comment or
+  // text node must not satisfy the gate.
   const source = readFileSync(path.join(mediaRoot, relative), 'utf8');
-  if (!source.includes(`${VECTOR_AUTHORED_ATTRIBUTE}=`)) {
-    warnings.push(`${relative}: source has no ${VECTOR_AUTHORED_ATTRIBUTE} stamp`);
+  if (!rootTagCarriesStamp(source)) {
+    failures.push(
+      `${relative}: root <svg> has no ${VECTOR_AUTHORED_ATTRIBUTE} stamp — run it through the authoring tool`
+    );
   }
-  if (generated.includes(`${VECTOR_AUTHORED_ATTRIBUTE}=`)) {
+  if (rootTagCarriesStamp(generated)) {
     failures.push(`${relative}: authoring stamp leaked into generated output`);
   }
 }
@@ -118,14 +128,9 @@ for (const generated of walk(publicRoot)) {
   }
 }
 
-if (warnings.length > 0) {
-  console.warn(
-    `${warnings.length} unstamped source(s) — the authoring tool does not emit stamps yet (#311)`
-  );
-}
 if (failures.length > 0) {
   console.error(failures.slice(0, 40).join('\n'));
   console.error(`\n${failures.length} vector verification failure(s)`);
   process.exit(1);
 }
-console.log(JSON.stringify({ ok: true, sources: sourceRelatives.size, warnings: warnings.length }));
+console.log(JSON.stringify({ ok: true, sources: sourceRelatives.size }));

@@ -68,6 +68,7 @@
     "**/workers/publisher/worker-configuration.d.ts",
     "**/convex/_generated",
     "**/*.md",
-    "**/*.svg"
+    "**/*.svg",
+    "tools/**"
   ]
 }

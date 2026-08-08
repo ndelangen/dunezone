@@ -98,7 +98,8 @@ function readSvgHeight(svg: string): number {
   return 0;
 }
 
-export function svgToObj(svg: string, options: ObjExportOptions = DEFAULT_OBJ_OPTIONS): string {
+export function svgToObj(svg: string, partialOptions: Partial<ObjExportOptions> = {}): string {
+  const options: ObjExportOptions = { ...DEFAULT_OBJ_OPTIONS, ...partialOptions };
   const loader = new SVGLoader();
   const parsed = loader.parse(svg);
   const svgHeight = readSvgHeight(svg);

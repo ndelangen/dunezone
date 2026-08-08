@@ -85,6 +85,7 @@
     "**/*.gen.ts",
     "**/workers/publisher/worker-configuration.d.ts",
     "**/convex/_generated",
-    "docs/research/**"
+    "docs/research/**",
+    "tools/**"
   ]
 }
