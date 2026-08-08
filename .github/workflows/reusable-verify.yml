@@ -164,6 +164,11 @@ jobs:
         run: bun run verify:images
       - name: Verify generated vectors structurally
         run: bun run verify:vectors
+      - name: Verify committed OBJ pieces regenerate byte-identically
+        run: >-
+          bun run generate:objs &&
+          git diff --exit-code -- public/obj &&
+          test -z "$(git ls-files --others --exclude-standard public/obj)"
       - name: Build app
         run: bun run app:build
         env:

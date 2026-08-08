@@ -5,11 +5,11 @@
 export const rendererManifest = {
   schemaVersion: 2,
   rendererIdentity:
-    'faction-sheet/sha256:317aed717871fbab8572583dfa283d95d65093267d59f8a31ce8c9df2cc50c5c',
-  digest: '317aed717871fbab8572583dfa283d95d65093267d59f8a31ce8c9df2cc50c5c',
+    'faction-sheet/sha256:6589a541e93c5214d5a2b4f701cacdbcb7c18cf316b4384f9a3e521b066918fb',
+  digest: '6589a541e93c5214d5a2b4f701cacdbcb7c18cf316b4384f9a3e521b066918fb',
   components: {
     sources: 'f8e47bda9a5958b5cf26b40e8145a77ecfba864a9e617b3263132fa4ee2b9b0e',
-    toolchain: '4282c8c8a920165074004673a21e9e8d04dac1bd51c5cb7f02676760c738ceab',
+    toolchain: 'd50d78e5f4145a62d1fa4b8cfcca209791eeda9a55c0fbd2f5d60f0b4e2ef888',
     code: 'd04edf8149b266746de799590c04deb8366130d54b3e8e9fab1d97fd2a864c41',
     contract: '2920714c87493d104342355dda2b956202259513c78ce6195670034f31a656a6',
   },

@@ -27,17 +27,19 @@ export type VectorCategoryRule = {
   paint: VectorPaintPolicy;
   /** Preserve internal ids and group structure (fragment-id API files). */
   fragmentApi: boolean;
+  /** Generate committed .obj game pieces from this category (TTS use, #309). */
+  obj: boolean;
 };
 
 export const VECTOR_CATEGORY_RULES = {
-  background: { paint: 'baked-when-multicolor', fragmentApi: true },
-  decal: { paint: 'baked-when-multicolor', fragmentApi: false },
-  generic: { paint: 'inherit', fragmentApi: false },
-  icon: { paint: 'baked-when-multicolor', fragmentApi: false },
-  logo: { paint: 'inherit', fragmentApi: false },
-  troop: { paint: 'inherit', fragmentApi: false },
+  background: { paint: 'baked-when-multicolor', fragmentApi: true, obj: false },
+  decal: { paint: 'baked-when-multicolor', fragmentApi: false, obj: false },
+  generic: { paint: 'inherit', fragmentApi: false, obj: false },
+  icon: { paint: 'baked-when-multicolor', fragmentApi: false, obj: false },
+  logo: { paint: 'inherit', fragmentApi: false, obj: true },
+  troop: { paint: 'inherit', fragmentApi: false, obj: true },
   // Fragment API: consumers paint #outline and #star separately (the old two-tone look).
-  troop_modifier: { paint: 'inherit', fragmentApi: true },
+  troop_modifier: { paint: 'inherit', fragmentApi: true, obj: true },
 } as const satisfies Record<string, VectorCategoryRule>;
 
 export type VectorCategory = keyof typeof VECTOR_CATEGORY_RULES;
