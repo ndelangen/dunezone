@@ -1,19 +1,13 @@
 import { z } from 'zod';
 
-import { Background } from '../schema/faction';
+import { Background, Decal } from '../schema/faction';
 import { ALL } from './generated';
 
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
 const URL = z.string().url();
 
-export const Decal = z.strictObject({
-  id: ALL,
-  muted: z.boolean(),
-  outline: z.boolean(),
-  scale: SCALE,
-  offset: OFFSET,
-});
+export { Decal };
 
 export const Spice = z.strictObject({
   name: z.string(),

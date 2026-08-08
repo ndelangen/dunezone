@@ -30,7 +30,7 @@ const Leader = z.strictObject({
   image: LEADERS,
 });
 
-const Decal = z.strictObject({
+export const Decal = z.strictObject({
   id: ALL,
   muted: z.boolean(),
   outline: z.boolean(),

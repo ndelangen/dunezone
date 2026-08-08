@@ -1,7 +1,8 @@
 # OSS code quality, repo health, and change-insight tooling
 
-Date: 2026-08-08. Pricing and free tiers change; every claim below links its source as of this
-date.
+Date: 2026-08-08. Pricing and free tiers change; every pricing and free-tier claim below links
+its source as of this date. Repo-state observations describe the repo as of the research date —
+see [Adoption status](#adoption-status-2026-08-08) for what has changed since.
 
 ## Goal and constraints
 
@@ -17,7 +18,8 @@ only tools that are free for a public repository. Constraints that shaped the ve
 - **CI is already strict and fast** (~2.6–3.1 min wall-clock, see
   [CI speed and architecture](ci-speed-and-architecture.md)): lint, format, typecheck (native
   tsc), Vitest, Storybook build, Playwright e2e, Worker release dry-run, migration guards,
-  Cloudflare drift audit. What's *missing* is trend/diff insight (coverage, bundle size, dep
+  Cloudflare drift audit. What was *missing* at research time (since partly addressed — see
+  Adoption status) is trend/diff insight (coverage, bundle size, dep
   changes), security scanning, and dependency automation — there is no Dependabot/Renovate
   config, no CodeQL, no coverage collection (no `coverage` config in
   [`vite.config.ts`](../../vite.config.ts), no `@vitest/coverage-*` package), and `.github/`
@@ -252,6 +254,9 @@ axis of every PR.
 
 Next tier, in order: `oxlint --format=github` in CI (one flag), Knip (config session, then one CI
 job), scheduled osv-scanner, Harden-Runner in audit mode on `deploy-main.yml`.
+
+The shortlist and tiers above reflect the state at research time; the section below tracks what
+was actually adopted.
 
 ## Adoption status (2026-08-08)
 

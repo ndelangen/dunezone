@@ -13,9 +13,13 @@ const config: KnipConfig = {
     // Standalone scripts run ad hoc with `bun run ./scripts/...`.
     // Deliberately not scripts/lib/** — helpers there must be imported to count as used.
     'scripts/*.{ts,mjs}',
-    // Referenced by string from .storybook/main.ts (viteConfigPath).
-    '.storybook/vite.config.ts',
   ],
+  // Non-default vite config locations (custom `config` overrides the plugin
+  // default, so the root config must be listed too). The .storybook one is
+  // referenced by string from .storybook/main.ts (viteConfigPath).
+  vite: {
+    config: ['vite.config.ts', 'workers/publisher/vite.config.ts', '.storybook/vite.config.ts'],
+  },
   // Dev-toggle devtools: imported only from commented-out code in
   // src/app/routes/__root.tsx and vite.config.ts, kept for flipping on
   // during debugging.
