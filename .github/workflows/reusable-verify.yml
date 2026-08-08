@@ -146,6 +146,10 @@ jobs:
 
   generate_and_build:
     runs-on: ubuntu-latest
+    env:
+      # Job-level so the bundle-upload step's `if` can test it — the secrets
+      # context is not available in step-level `if` conditions.
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -184,11 +188,9 @@ jobs:
         # so the bundler-agnostic analyzer runs on the finished client build
         # instead. Not tokenless — skipped on fork PRs where the secret is
         # absent; never fails the build.
-        if: ${{ secrets.CODECOV_TOKEN != '' }}
+        if: ${{ env.CODECOV_TOKEN != '' }}
         continue-on-error: true
         run: bunx @codecov/bundle-analyzer ./dist/client --bundle-name=dunezone-client --upload-token="$CODECOV_TOKEN"
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   publisher_release:
     runs-on: ubuntu-latest

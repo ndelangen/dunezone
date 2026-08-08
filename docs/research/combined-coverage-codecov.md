@@ -366,5 +366,5 @@ Two further Codecov integrations, verified against primary sources before adopti
   reporter array) and uploads via `codecov/codecov-action@v5` with `report_type: test_results`
   (the standalone `test-results-action` is deprecated) and the suite's flag. Upload steps run
   `if: ${{ !cancelled() }}` — failed-run results are the entire point. Free plan includes
-  failed-test reporting (60-day retention); flaky-test *detection* is documented as a paid
-  feature, so treat its appearance on the OSS plan as a bonus, not a promise.
+  failed-test reporting (60-day retention). Flaky-test *detection* is available on the free plan
+  for public/open-source repositories; private repositories need Pro or Enterprise.
