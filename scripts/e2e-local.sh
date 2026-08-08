@@ -71,9 +71,14 @@ ensure_admin_key() {
   fi
   if [[ -f "$ADMIN_KEY_FILE" ]]; then
     CONVEX_SELF_HOSTED_ADMIN_KEY="$(<"$ADMIN_KEY_FILE")"
-  else
+  fi
+  if [[ -z "${CONVEX_SELF_HOSTED_ADMIN_KEY:-}" || "$CONVEX_SELF_HOSTED_ADMIN_KEY" == "replace-me" ]]; then
     echo "Generating self-hosted admin key..."
     CONVEX_SELF_HOSTED_ADMIN_KEY="$(compose exec -T backend ./generate_admin_key.sh | tr -d '\r')"
+    if [[ -z "$CONVEX_SELF_HOSTED_ADMIN_KEY" ]]; then
+      echo "Failed to generate a self-hosted admin key."
+      exit 1
+    fi
     mkdir -p "$ROOT_DIR/.playwright"
     printf '%s' "$CONVEX_SELF_HOSTED_ADMIN_KEY" >"$ADMIN_KEY_FILE"
   fi
@@ -174,6 +179,15 @@ load_app_pid() {
 }
 
 phase_up() {
+  # A previous phased run that never reached `down` leaves vite holding the
+  # app port, and the rm -rf below deletes its pid file — reap it now. Only
+  # kill a pid that is still a vite process; pids get recycled.
+  load_app_pid
+  if [[ -n "$APP_PID" ]] && ps -p "$APP_PID" -o command= 2>/dev/null | grep -q vite; then
+    kill "$APP_PID" >/dev/null 2>&1 || true
+  fi
+  APP_PID=""
+
   echo "Clearing previous Playwright artifacts..."
   rm -rf "$ROOT_DIR/test-results" "$ROOT_DIR/playwright-report" "$ROOT_DIR/.playwright"
 
