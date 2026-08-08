@@ -113,7 +113,9 @@ export function isRendererManifestAsset(relativePath: string): boolean {
     // Generated image and vector output is identified by ingredients, never by bytes.
     !normalizedPath.startsWith('image/') &&
     !normalizedPath.startsWith('web/') &&
-    !normalizedPath.startsWith('vector/')
+    !normalizedPath.startsWith('vector/') &&
+    // OBJ pieces live outside the renderer identity (#309): committed bytes, CI-diff guarded.
+    !normalizedPath.startsWith('obj/')
   );
 }
 
