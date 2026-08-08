@@ -18,7 +18,7 @@ export const factionSheetAssetDataSchema = z.strictObject({
   faction: FactionInputSchema,
 });
 
-export const publicationJobRequestSchema = z.strictObject({
+const publicationJobRequestSchema = z.strictObject({
   schemaVersion: z.literal(1),
   jobId: z.string().min(1).max(128),
 });
@@ -59,7 +59,7 @@ export type FactionSheetAssetData = z.infer<typeof factionSheetAssetDataSchema>;
  * schemas; the Convex mutation's id-branded validator stays the server-side authority, linked by a
  * drift test in convex/publicationJobs.test.ts.
  */
-export const assignedPublicationJobSchema = z.object({
+const assignedPublicationJobSchema = z.object({
   jobId: z.string(),
   assetType: z.literal('faction_sheet'),
   assetId: z.string(),

@@ -36,7 +36,7 @@ function formatZodIssues(err: { issues: readonly { path: PropertyKey[]; message:
     .join('\n');
 }
 
-export interface FactionLoadPopoverContentProps {
+interface FactionLoadPopoverContentProps {
   /** When provided, excludes the row with this faction URL slug from the picker. */
   currentPublicSlug?: string;
   onLoaded: (loaded: Faction) => void;
@@ -47,7 +47,7 @@ export interface FactionLoadPopoverContentProps {
  * Mounted only while the Mantine popover is open so the picker does not keep a Convex subscription
  * alive while this toolbar utility is idle.
  */
-export function FactionLoadPopoverContent({
+function FactionLoadPopoverContent({
   currentPublicSlug,
   onLoaded,
   onCancel,

@@ -129,6 +129,7 @@ export function FactionSheetPage2(props: SheetProps) {
                         <TroopToken
                           background={props.background}
                           image={troop.image}
+                          hue={troop.hue}
                           star={troop.star}
                           striped={troop.striped}
                         />
@@ -154,6 +155,7 @@ export function FactionSheetPage2(props: SheetProps) {
                               background={props.background}
                               image={troop.back.image}
                               star={troop.back.star}
+                              hue={troop.back.hue}
                               striped={troop.back.striped}
                             />
                           </div>

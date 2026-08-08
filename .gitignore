@@ -20,4 +20,11 @@ test-results
 /public/image/
 /public/web/*
 !/public/web/logo.svg
+# generated vector output (built from media/vector by scripts/generate-vectors.ts; CI is canonical)
+/public/vector/
 /src/game/data/assetMap.generated.ts
+
+# test coverage output
+coverage/
+# generated OBJ pieces (built from media/vector by scripts/generate-objs.ts; CI is canonical)
+/public/obj/

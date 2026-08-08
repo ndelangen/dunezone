@@ -1,10 +1,8 @@
 import type { Faction } from '@db/factions';
-import { DECAL, LEADERS, TROOP, TROOP_MODIFIER } from '@game/data/generated';
+import { DECAL, LEADERS, TROOP } from '@game/data/generated';
 import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 
-import { NONE_SELECT_VALUE, troopStarOptionToLabel } from './factionFormAssetUtils';
-
-export function defaultLeader(): Faction['leaders'][number] {
+function defaultLeader(): Faction['leaders'][number] {
   return {
     name: '',
     strength: '1',
@@ -12,7 +10,7 @@ export function defaultLeader(): Faction['leaders'][number] {
   };
 }
 
-export function nextStrengthChar(value: Faction['leaders'][number]['strength']): string {
+function nextStrengthChar(value: Faction['leaders'][number]['strength']): string {
   const raw =
     value === undefined || value === null ? '' : typeof value === 'number' ? String(value) : value;
   const ch = raw.trim().slice(-1);
@@ -35,7 +33,7 @@ export function nextStrengthChar(value: Faction['leaders'][number]['strength']):
   return '1';
 }
 
-export function nextLeaderImage(
+function nextLeaderImage(
   image: Faction['leaders'][number]['image']
 ): Faction['leaders'][number]['image'] {
   const total = LEADERS.options.length;
@@ -80,14 +78,6 @@ export function defaultTroop(): Faction['troops'][number] {
     count: 20,
   };
 }
-
-export const troopStarOptions = [
-  { value: NONE_SELECT_VALUE, label: 'None' },
-  ...TROOP_MODIFIER.options.map((opt) => ({
-    value: opt,
-    label: troopStarOptionToLabel(opt),
-  })),
-] as const;
 
 export function createTroopBackFromFront(
   front: Faction['troops'][number]

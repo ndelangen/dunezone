@@ -1,5 +1,6 @@
-import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+
+import { expect, longSpecTimeoutMs, test } from './coverage';
 
 async function createFaction(page: Page, name: string, factionLeaderName: string) {
   await page.goto('/factions/create');
@@ -21,7 +22,7 @@ async function loadFactionDraft(page: Page, factionName: string) {
 }
 
 test('owner can author a faction through its complete lifecycle', async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(longSpecTimeoutMs);
   await page.setViewportSize({ width: 1200, height: 900 });
 
   const suffix = Date.now();

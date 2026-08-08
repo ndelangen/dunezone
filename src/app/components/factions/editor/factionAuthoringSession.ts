@@ -104,5 +104,3 @@ export function createFactionAuthoringSession({
     },
   };
 }
-
-export type FactionAuthoringSession = ReturnType<typeof createFactionAuthoringSession>;

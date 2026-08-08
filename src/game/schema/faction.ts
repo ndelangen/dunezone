@@ -24,7 +24,7 @@ const RULE = z.strictObject({
   karama: z.string().optional(),
 });
 
-export const Leader = z.strictObject({
+const Leader = z.strictObject({
   name: z.string(),
   strength: STRENGTH.optional(),
   image: LEADERS,
@@ -38,19 +38,21 @@ export const Decal = z.strictObject({
   offset: OFFSET,
 });
 
-export const TroopSide = z.strictObject({
+const TroopSide = z.strictObject({
   image: TROOP,
   name: z.string(),
   description: z.string(),
   star: TROOP_MODIFIER.optional(),
+  hue: z.string().optional(),
   striped: z.boolean().optional(),
 });
 
-export const Troop = z.strictObject({
+const Troop = z.strictObject({
   image: TROOP,
   name: z.string(),
   description: z.string(),
   star: TROOP_MODIFIER.optional(),
+  hue: z.string().optional(),
   striped: z.boolean().optional(),
   back: TroopSide.optional(),
   count: z.number().int().positive(),
@@ -171,15 +173,6 @@ export type FactionInput = z.infer<typeof FactionInputSchema>;
 /** Convex `factions.data` payload; public slug is only on the faction row (`FactionEntry.slug`). */
 export type FactionData = FactionInput;
 
-/** Lowercase [a-z0-9] only; matches DB slugify base (no numeric uniqueness suffix). */
-export function factionSlugBaseFromName(name: string): string {
-  const raw = name
-    .trim()
-    .replace(/[^a-zA-Z0-9]+/g, '')
-    .toLowerCase();
-  return raw || 'faction';
-}
-
 export const FactionRender = {
   alliance: FactionInputSchema.transform((input) => ({
     title: input.name,
@@ -209,6 +202,7 @@ export const FactionRender = {
       image: troop.image,
       background: input.background,
       star: troop.star,
+      hue: troop.hue,
       striped: troop.striped,
     }))
   ),

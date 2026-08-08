@@ -83,8 +83,14 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Verify generated images structurally
         run: bun run verify:images
+      - name: Verify generated vectors structurally
+        run: bun run verify:vectors
+      - name: Generate OBJ pieces
+        run: bun run generate:objs
       - name: Log generated output digest (informational, not part of identity)
         run: find public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
       - name: Build unified Worker release

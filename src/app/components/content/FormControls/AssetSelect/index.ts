@@ -1,1 +1,1 @@
-export { AssetSelect, type AssetSelectOption, type AssetSelectProps } from './AssetSelect';
+export { AssetSelect } from './AssetSelect';

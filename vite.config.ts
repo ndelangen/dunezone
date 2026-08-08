@@ -5,9 +5,19 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
 import { configDefaults, defineConfig } from 'vitest/config';
 
+import { coverageExclude, coverageInclude } from './coverage-denominator';
+
 const config = defineConfig({
   test: {
     exclude: [...configDefaults.exclude, 'e2e/**', '.claude/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'lcov'],
+      // Whole-codebase denominator; anything not listed (scripts/, e2e/,
+      // docs/, .storybook/) is out by omission.
+      include: coverageInclude,
+      exclude: coverageExclude,
+    },
   },
   build: {
     assetsDir: 'public', // will make your static assets appear under /public/

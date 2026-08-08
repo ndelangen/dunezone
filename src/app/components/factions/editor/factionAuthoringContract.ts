@@ -164,7 +164,7 @@ export function preserveFactionExtras(values: Faction, baseline: Faction): Facti
   return next;
 }
 
-export type FactionAuthoringCoverageState = 'control' | 'preserved';
+type FactionAuthoringCoverageState = 'control' | 'preserved';
 
 type CoverageEntry = {
   state: FactionAuthoringCoverageState;
@@ -236,11 +236,13 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
       'troops[].name',
       'troops[].description',
       'troops[].star',
+      'troops[].hue',
       'troops[].striped',
       'troops[].back.image',
       'troops[].back.name',
       'troops[].back.description',
       'troops[].back.star',
+      'troops[].back.hue',
       'troops[].back.striped',
       'troops[].count',
     ],

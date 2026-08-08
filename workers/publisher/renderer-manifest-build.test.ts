@@ -142,7 +142,6 @@ describe('current Renderer manifest digest', () => {
     'publisher-capture.html',
     'publisher-capture/publisher-capture-hash.js',
     'font/font.woff2',
-    'vector/icon/karama.svg',
     'generated/utils/background/special.jpg',
     'dice.svg',
   ])('includes Renderer release asset %s', (assetPath) => {
@@ -155,10 +154,12 @@ describe('current Renderer manifest digest', () => {
     '__storybook/index.html',
     '__storybook/assets/Background.stories-hash.js',
     'public/FactionEditor-hash.js',
-    // Generated image output: identified by ingredients, never by bytes.
+    // Generated image and vector output: identified by ingredients, never by bytes.
     'image/texture/021.jpg',
     'image/texture/021-large.jpg',
     'web/head-large.jpg',
+    'vector/icon/karama.svg',
+    'obj/troop/atreides.obj',
   ])('excludes application-only or generated release asset %s', (assetPath) => {
     expect(isRendererManifestAsset(assetPath)).toBe(false);
   });

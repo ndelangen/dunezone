@@ -19,7 +19,3 @@ export const Text: FC<
     {children}
   </div>
 );
-
-export const NonBreaking: FC<PropsWithChildren> = ({ children }) => (
-  <div className={styles.nonBreaking}>{children}</div>
-);

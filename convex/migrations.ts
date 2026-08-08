@@ -7,6 +7,7 @@ import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
+import { DECAL_ID_RENAMES, DECAL_SCALE_FACTORS } from './lib/decalRetune';
 import {
   reconcileAnswerActivity,
   reconcileFactionActivity,
@@ -47,6 +48,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   profile_activity_factions_v1: internal.migrations.profile_activity_factions_v1,
   profile_activity_questions_v1: internal.migrations.profile_activity_questions_v1,
   profile_activity_answers_v1: internal.migrations.profile_activity_answers_v1,
+  faction_decal_retune_v1: internal.migrations.faction_decal_retune_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -374,6 +376,49 @@ export const profile_activity_answers_v1 = migrations.define({
   },
 });
 
+/**
+ * Vector-train retune (wayfinder #307): the train normalized decals into the shared square and 16
+ * baked-paint decals gained `-multicolor` names. Stored placements (faction.data.decals) get the
+ * matching rename + scale multiplier so cards render pixel-identically. Run-once semantics come
+ * from the migrations framework; factors live frozen in ./lib/decalRetune.
+ */
+export const faction_decal_retune_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const data = (row as { data?: { decals?: unknown } }).data;
+    if (!data || !Array.isArray(data.decals) || data.decals.length === 0) {
+      return;
+    }
+    let changed = false;
+    const decals = data.decals.map((decal) => {
+      if (typeof decal !== 'object' || decal === null) {
+        return decal;
+      }
+      const entry = decal as { id?: unknown; scale?: unknown };
+      if (typeof entry.id !== 'string') {
+        return decal;
+      }
+      const id = DECAL_ID_RENAMES[entry.id] ?? entry.id;
+      const factor = DECAL_SCALE_FACTORS[id] ?? 1;
+      const scale =
+        typeof entry.scale === 'number' && factor !== 1
+          ? Math.round(entry.scale * factor * 10_000) / 10_000
+          : entry.scale;
+      if (id !== entry.id || scale !== entry.scale) {
+        changed = true;
+        // Convex rejects `undefined` values — never introduce an own `scale: undefined` key.
+        return scale === undefined ? { ...entry, id } : { ...entry, id, scale };
+      }
+      return decal;
+    });
+    if (!changed) {
+      return;
+    }
+    return { data: { ...data, decals } };
+  },
+});
+
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([
@@ -391,6 +436,7 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.statistics_questions_v1,
   internal.migrations.statistics_answers_v1,
   internal.migrations.profile_discovery_profiles_v1,
+  internal.migrations.faction_decal_retune_v1,
 ]);
 
 export const runRequired = mutation({

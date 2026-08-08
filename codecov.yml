@@ -1,0 +1,42 @@
+# Codecov configuration — design in docs/research/combined-coverage-codecov.md
+# and the wayfinder map https://github.com/ndelangen/dunezone/issues/299.
+# Statuses are informational by owner decision: coverage informs review,
+# never gates a merge.
+
+codecov:
+  notify:
+    # unit + publisher + e2e + storybook. Known tradeoff with the
+    # fail_ci_if_error: false upload steps: if one upload silently fails,
+    # the PR comment for that push is silently withheld (statuses still
+    # post per upload; the next push retries). Accepted over the
+    # alternatives — partial-data comments or upload failures breaking CI.
+    after_n_builds: 4
+
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        target: auto
+        informational: true
+
+flags:
+  unit:
+    carryforward: true
+  publisher:
+    carryforward: true
+  e2e:
+    carryforward: true
+  storybook:
+    carryforward: true
+
+comment:
+  after_n_builds: 4
+  layout: "diff, flags, files"
+  # Bundle section: list only categories that actually changed, so the
+  # per-category split (app/images/vectors/objs/pages/fonts) surfaces real
+  # movement instead of restating six static sizes on every PR.
+  require_bundle_changes: true
+  bundle_change_threshold: "10Kb"

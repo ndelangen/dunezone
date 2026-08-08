@@ -286,6 +286,7 @@ function FactionDetailPage() {
                         <TroopToken
                           background={data.background}
                           image={troop.image}
+                          hue={troop.hue}
                           star={troop.star}
                           striped={troop.striped}
                         />

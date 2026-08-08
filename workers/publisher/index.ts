@@ -58,7 +58,7 @@ function handleStorybookEntry(
   return undefined;
 }
 
-export const publisherWorker = {
+const publisherWorker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const publicAsset = await handlePublicAssetRequest(request, env, ctx);
     if (publicAsset) {

@@ -125,6 +125,11 @@
       "id": "profile_activity_answers_v1",
       "phase": "widen",
       "requires": []
+    },
+    {
+      "id": "faction_decal_retune_v1",
+      "phase": "widen",
+      "requires": []
     }
   ]
 }

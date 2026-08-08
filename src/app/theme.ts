@@ -5,7 +5,7 @@ import type { MantineColorsTuple } from '@mantine/core';
  * Application-content colors mirrored from the persistent shell tokens. Keep this map aligned with
  * styles/tokens.css when the shell palette changes.
  */
-export const appShellColors = {
+const appShellColors = {
   text: '#2e2927',
   muted: '#735c47',
   link: '#84220c',

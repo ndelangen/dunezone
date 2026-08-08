@@ -2,6 +2,10 @@ name: Reusable Verify
 
 on:
   workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        description: Codecov upload token; omitted on fork PRs (tokenless fallback)
+        required: false
 
 permissions:
   contents: read
@@ -12,18 +16,52 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Lint and check formatting
-        run: bun run check
+      - name: Lint with inline PR annotations
+        run: bun run lint:ci
+      - name: Check formatting
+        run: bun run format:check
+
+  knip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2.2.0
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Restore generated images
+        id: image_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/image
+            public/web
+            src/game/data/assetMap.generated.ts
+          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
+      - name: Generate image variants
+        if: steps.image_cache.outputs.cache-hit != 'true'
+        run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
+      - name: Detect unused files, exports, and dependencies
+        run: bun run knip
 
   convex_skip_guard:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -36,6 +74,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -52,6 +92,8 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Typecheck
         run: bun run typecheck
 
@@ -60,6 +102,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -76,14 +120,41 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Unit tests
-        run: bun run test
+        run: bun run test --coverage --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-unit.junit.xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          flags: unit
+          disable_search: true
+          fail_ci_if_error: false
+      - name: Upload test results to Codecov
+        # Failure results are the point of Test Analytics — upload unless cancelled.
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/vitest-unit.junit.xml
+          flags: unit
+          disable_search: true
+          fail_ci_if_error: false
 
   generate_and_build:
     runs-on: ubuntu-latest
+    env:
+      # Job-level so the bundle-upload step's `if` can test it — the secrets
+      # context is not available in step-level `if` conditions.
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -102,18 +173,57 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Verify generated images structurally
         run: bun run verify:images
+      - name: Verify generated vectors structurally
+        run: bun run verify:vectors
+      - name: Generate OBJ pieces
+        run: bun run generate:objs
       - name: Build app
         run: bun run app:build
         env:
           VITE_CONVEX_URL: https://example.convex.cloud
+      - name: Upload bundle stats to Codecov (per category)
+        # @codecov/vite-plugin only peers with Vite <=6 (no rolldown support),
+        # so the bundler-agnostic analyzer runs on the finished client build
+        # instead. One bundle per asset category: dist/client is ~96% generated
+        # media, and a single blob would let an image regeneration bury an
+        # app-code regression. dunezone-app (compiled JS/CSS) is the one that
+        # tracks dependency/code bloat. Not tokenless — skipped on fork PRs
+        # where the secret is absent; never fails the build.
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          # Each category uploads independently: one transient failure must
+          # not suppress the remaining bundles. Aggregate status surfaces as a
+          # warning; continue-on-error keeps the job green either way.
+          status=0
+          upload() {
+            local name="$1"
+            shift
+            if ! bunx @codecov/bundle-analyzer "$@" --bundle-name="$name" --upload-token="$CODECOV_TOKEN"; then
+              echo "::warning::bundle upload failed: $name"
+              status=1
+            fi
+          }
+          upload dunezone-app dist/client/public
+          upload dunezone-images dist/client/image dist/client/web
+          upload dunezone-vectors dist/client/vector
+          upload dunezone-objs dist/client/obj
+          upload dunezone-pages dist/client/page
+          upload dunezone-fonts dist/client/font
+          exit "$status"
 
   publisher_release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -130,12 +240,36 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Verify generated images structurally
         run: bun run verify:images
+      - name: Verify generated vectors structurally
+        run: bun run verify:vectors
       - name: Log generated output digest (informational, not part of identity)
         run: find public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
+      - name: Generate OBJ pieces
+        run: bun run generate:objs
       - name: Test publisher and delivery
-        run: bun run publisher:test
+        run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-publisher.junit.xml
+      - name: Upload publisher coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          flags: publisher
+          disable_search: true
+          fail_ci_if_error: false
+      - name: Upload publisher test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/vitest-publisher.junit.xml
+          flags: publisher
+          disable_search: true
+          fail_ci_if_error: false
       - name: Typecheck publisher
         run: bun run publisher:typecheck
       - name: Build, verify manifest, and dry-run unified Worker release
@@ -162,6 +296,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -178,8 +314,42 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Build Storybook
         run: bun run build-storybook
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(bun -e 'console.log(require("@playwright/test/package.json").version)')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium for story tests
+        run: npx playwright install --with-deps chromium
+      - name: Verify generated images structurally
+        run: bun run verify:images
+      - name: Run story tests with coverage
+        run: bun run storybook:test --coverage.enabled=true --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-storybook.junit.xml
+      - name: Upload storybook coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/storybook/lcov.info
+          flags: storybook
+          disable_search: true
+          fail_ci_if_error: false
+      - name: Upload storybook test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/vitest-storybook.junit.xml
+          flags: storybook
+          disable_search: true
+          fail_ci_if_error: false
 
   migration_static_narrow:
     runs-on: ubuntu-latest
@@ -187,6 +357,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
@@ -241,6 +412,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Pre-pull Convex images in background
         # Overlaps the image pull with dependency/browser install. The wait
         # step below synchronizes before e2e-local.sh runs compose, so two
@@ -276,8 +449,12 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Verify generated images structurally
         run: bun run verify:images
+      - name: Verify generated vectors structurally
+        run: bun run verify:vectors
       - name: Create local E2E env file
         run: |
           cat > "$RUNNER_TEMP/.env.e2e.local" <<'EOF'
@@ -325,12 +502,31 @@ jobs:
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
           PLAYWRIGHT_HEADLESS: "true"
+          E2E_COVERAGE: "1"
       - name: Tear down E2E stack
         # Replaces the script's `trap cleanup EXIT`, which cannot span steps.
         if: always()
         run: bun run e2e:local down
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
+      - name: Upload e2e test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/playwright.junit.xml
+          flags: e2e
+          disable_search: true
+          fail_ci_if_error: false
+      - name: Upload e2e coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/e2e/lcov.info
+          flags: e2e
+          disable_search: true
+          fail_ci_if_error: false
       - name: Upload E2E artifacts
         if: always()
         uses: actions/upload-artifact@v4

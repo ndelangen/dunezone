@@ -1,15 +1,13 @@
 import { resolveAsset } from '@game/assets/resolveAsset';
 import { DECAL, GENERIC, ICON, LEADERS, LOGO, TROOP, TROOP_MODIFIER } from '@game/data/generated';
 
-export const NONE_SELECT_VALUE = '__none__';
-
 const PREVIEWABLE_EXT = /\.(svg|png|jpg|jpeg)$/i;
 
-export function isPreviewableAssetPath(path: string): boolean {
+function isPreviewableAssetPath(path: string): boolean {
   return PREVIEWABLE_EXT.test(path.trim());
 }
 
-export function assetPathToPublicUrl(path: string): string {
+function assetPathToPublicUrl(path: string): string {
   const p = path.trim().replace(/^\/+/, '');
   return `/${p}`;
 }
@@ -18,14 +16,14 @@ export function assetOptionToPreviewSrc(path: string): string | null {
   return isPreviewableAssetPath(path) ? resolveAsset(assetPathToPublicUrl(path), 'large') : null;
 }
 
-export function toTitleCaseWord(word: string): string {
+function toTitleCaseWord(word: string): string {
   if (word.length === 0) {
     return '';
   }
   return `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}`;
 }
 
-export function longestCommonPrefix(values: readonly string[]): string {
+function longestCommonPrefix(values: readonly string[]): string {
   if (values.length === 0) {
     return '';
   }
@@ -46,7 +44,7 @@ export function longestCommonPrefix(values: readonly string[]): string {
   return lastSlash >= 0 ? prefix.slice(0, lastSlash + 1) : '';
 }
 
-export function formatPathDisplay(rawValue: string, commonPrefix: string): string {
+function formatPathDisplay(rawValue: string, commonPrefix: string): string {
   const raw = rawValue.trim();
   if (raw.length === 0) {
     return rawValue;
@@ -65,7 +63,7 @@ export function formatPathDisplay(rawValue: string, commonPrefix: string): strin
   return parts.length > 0 ? parts.join(' - ') : rawValue;
 }
 
-export function createPathOptionLabeler(options: readonly string[]): (raw: string) => string {
+function createPathOptionLabeler(options: readonly string[]): (raw: string) => string {
   const commonPrefix = longestCommonPrefix(options);
   return (raw) => formatPathDisplay(raw, commonPrefix);
 }

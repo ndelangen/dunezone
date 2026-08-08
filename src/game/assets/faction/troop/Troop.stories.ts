@@ -28,6 +28,7 @@ export const Default = meta.story({
       influence: 0,
     },
     star: '/vector/troop_modifier/star-left-red.svg',
+    hue: undefined,
     striped: false,
     image: '/vector/troop/atreides.svg',
   },

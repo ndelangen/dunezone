@@ -98,7 +98,7 @@ export default defineMain({
       titlePrefix: 'Game Assets/Composition/Blocks',
     },
   ],
-  addons: ['@storybook/addon-docs'],
+  addons: ['@storybook/addon-docs', '@storybook/addon-vitest'],
   framework: {
     name: '@storybook/tanstack-react',
     options: {

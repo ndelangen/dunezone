@@ -20,7 +20,7 @@ function isAllCapsShouting(s: string): boolean {
   return letters === letters.toUpperCase();
 }
 
-export const profileDisplayNameSchema = z
+const profileDisplayNameSchema = z
   .string()
   .trim()
   .min(1, 'Display name is required')
@@ -31,7 +31,7 @@ export const profileDisplayNameSchema = z
     message: 'Display name cannot be all capitals',
   });
 
-export const profileAvatarUrlSchema = z
+const profileAvatarUrlSchema = z
   .string()
   .trim()
   .min(1, 'Avatar URL is required')
@@ -58,10 +58,3 @@ export const profileUserEditFormSchema = z.strictObject({
 });
 
 export type ProfileUserEditInput = z.infer<typeof profileUserEditFormSchema>;
-
-/** Canonical profile semantic validation surface. */
-export const profileValidationSchemas = {
-  displayName: profileDisplayNameSchema,
-  avatarUrl: profileAvatarUrlSchema,
-  input: profileUserEditFormSchema,
-} as const;
