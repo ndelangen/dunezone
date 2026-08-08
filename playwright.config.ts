@@ -15,6 +15,8 @@ export default defineConfig({
   // what makes cross-file parallelism safe under Convex Auth token rotation.
   workers: process.env.CI ? 3 : 1,
   globalSetup: './e2e/global-setup.ts',
+  // Generates the e2e lcov report when E2E_COVERAGE=1 (no-op otherwise).
+  globalTeardown: './e2e/global-teardown.ts',
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   use: {
     baseURL: baseUrl,

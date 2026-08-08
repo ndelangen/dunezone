@@ -1,5 +1,6 @@
-import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+
+import { expect, test } from './coverage';
 
 async function createFaction(page: Page, name: string, factionLeaderName: string) {
   await page.goto('/factions/create');
