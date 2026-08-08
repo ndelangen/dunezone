@@ -1,6 +1,6 @@
 import { Box, Select } from '@mantine/core';
 import preview from '@sb/preview';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { ListLengthActions } from '../ListLengthActions';
 import { ControlBlock } from './ControlBlock';
@@ -79,10 +79,10 @@ export const TruncatedText = meta.story({
     await expect(description.scrollWidth).toBeGreaterThan(description.clientWidth);
 
     await userEvent.hover(title);
-    await expect(page.getByRole('tooltip')).toHaveTextContent(longTitle);
+    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(longTitle));
 
     await userEvent.unhover(title);
     await userEvent.hover(description);
-    await expect(page.getByRole('tooltip')).toHaveTextContent(longDescription);
+    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(longDescription));
   },
 });

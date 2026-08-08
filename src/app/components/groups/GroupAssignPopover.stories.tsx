@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import type { Id } from '../../../../convex/_generated/dataModel';
 import { GroupAssignPopover } from './GroupAssignPopover';
@@ -33,7 +33,9 @@ export const AvailableGroups = meta.story({
 
     await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
     await expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.getByLabelText('Search groups')).toBeVisible();
+    await waitFor(() =>
+      expect(page.getByRole('combobox', { name: 'Search groups' })).toBeVisible()
+    );
   },
 });
 
@@ -44,7 +46,7 @@ export const NoAvailableGroups = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(page.getByRole('button', { name: 'Assign group' }));
-    await expect(page.getByText('No groups are available yet.')).toBeVisible();
+    await waitFor(() => expect(page.getByText('No groups are available yet.')).toBeVisible());
   },
 });
 
