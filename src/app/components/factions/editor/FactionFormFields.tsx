@@ -206,6 +206,7 @@ function ArtifactProof({
                 background={faction.background}
                 image={selectedTroop.image}
                 star={selectedTroop.star}
+                hue={selectedTroop.hue}
                 striped={selectedTroop.striped}
               />
             </Box>

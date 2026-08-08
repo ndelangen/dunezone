@@ -43,6 +43,7 @@ const TroopSide = z.strictObject({
   name: z.string(),
   description: z.string(),
   star: TROOP_MODIFIER.optional(),
+  hue: z.string().optional(),
   striped: z.boolean().optional(),
 });
 
@@ -51,6 +52,7 @@ const Troop = z.strictObject({
   name: z.string(),
   description: z.string(),
   star: TROOP_MODIFIER.optional(),
+  hue: z.string().optional(),
   striped: z.boolean().optional(),
   back: TroopSide.optional(),
   count: z.number().int().positive(),
@@ -200,6 +202,7 @@ export const FactionRender = {
       image: troop.image,
       background: input.background,
       star: troop.star,
+      hue: troop.hue,
       striped: troop.striped,
     }))
   ),

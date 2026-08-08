@@ -279,8 +279,8 @@ export const DiscoveryWindPassNorth = meta.story({
     overlays: [
       {
         image: '/image/texture/052.jpg',
-        offset: [105, 80],
-        scale: 30,
+        offset: [21.6, 16.4],
+        scale: 6.2,
       },
     ],
   },

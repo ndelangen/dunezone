@@ -36,7 +36,8 @@ export const VECTOR_CATEGORY_RULES = {
   icon: { paint: 'baked-when-multicolor', fragmentApi: false },
   logo: { paint: 'inherit', fragmentApi: false },
   troop: { paint: 'inherit', fragmentApi: false },
-  troop_modifier: { paint: 'inherit', fragmentApi: false },
+  // Fragment API: consumers paint #outline and #star separately (the old two-tone look).
+  troop_modifier: { paint: 'inherit', fragmentApi: true },
 } as const satisfies Record<string, VectorCategoryRule>;
 
 export type VectorCategory = keyof typeof VECTOR_CATEGORY_RULES;
