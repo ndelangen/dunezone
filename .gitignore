@@ -16,6 +16,9 @@ test-results
 .cursor/
 .codex-log/
 
+# research working notes stay local, never committed
+docs/research/
+
 # generated image variants (built from media/ by scripts/generate-images.ts; CI is canonical)
 /public/image/
 /public/web/*
