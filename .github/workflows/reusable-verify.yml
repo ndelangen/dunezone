@@ -196,11 +196,18 @@ jobs:
         if: ${{ env.CODECOV_TOKEN != '' }}
         continue-on-error: true
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          # Each category uploads independently: one transient failure must
+          # not suppress the remaining bundles. Aggregate status surfaces as a
+          # warning; continue-on-error keeps the job green either way.
+          status=0
           upload() {
             local name="$1"
             shift
-            bunx @codecov/bundle-analyzer "$@" --bundle-name="$name" --upload-token="$CODECOV_TOKEN"
+            if ! bunx @codecov/bundle-analyzer "$@" --bundle-name="$name" --upload-token="$CODECOV_TOKEN"; then
+              echo "::warning::bundle upload failed: $name"
+              status=1
+            fi
           }
           upload dunezone-app dist/client/public
           upload dunezone-images dist/client/image dist/client/web
@@ -208,6 +215,7 @@ jobs:
           upload dunezone-objs dist/client/obj
           upload dunezone-pages dist/client/page
           upload dunezone-fonts dist/client/font
+          exit "$status"
 
   publisher_release:
     runs-on: ubuntu-latest
