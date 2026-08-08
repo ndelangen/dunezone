@@ -257,7 +257,7 @@ export const treacheryCardFixtures = {
     name: 'Family Atomics',
     decals: [
       {
-        id: '/vector/decal/family-atomics.svg',
+        id: '/vector/decal/family-atomics-multicolor.svg',
         muted: false,
         offset: [0, 0],
         outline: false,

@@ -19,6 +19,7 @@
     "format:check": "oxfmt --check .",
     "generate": "bun run ./scripts/generate.ts",
     "generate:images": "bun run ./scripts/generate-images.ts",
+    "generate:vectors": "bun run ./scripts/generate-vectors.ts",
     "knip": "knip",
     "lint": "oxlint . --deny-warnings",
     "lint:ci": "oxlint . --deny-warnings --format=github",
@@ -44,6 +45,7 @@
     "test": "vitest run --passWithNoTests",
     "typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit",
     "verify:images": "bun run ./scripts/verify-images.ts",
+    "verify:vectors": "bun run ./scripts/verify-vectors.ts",
     "worktree:setup": "bash ./scripts/codex-worktree-setup.sh"
   },
   "dependencies": {
@@ -103,6 +105,7 @@
     "convex-test": "^0.0.55",
     "jsdom": "^30.0.1",
     "knip": "^6.32.0",
+    "linkedom": "0.18.12",
     "monocart-coverage-reports": "^2.12.12",
     "oxfmt": "0.62.0",
     "oxlint": "1.77.0",
@@ -110,6 +113,8 @@
     "recursive-readdir-files": "^2.3.2",
     "sharp": "0.35.3",
     "storybook": "^10.5.6",
+    "svgo": "4.0.2",
+    "svgpath": "2.6.0",
     "typescript": "^6.0.3",
     "typescript-plugin-css-modules": "^5.2.0",
     "vite": "^8.2.0",
