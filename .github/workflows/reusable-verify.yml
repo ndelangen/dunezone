@@ -373,6 +373,15 @@ jobs:
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
           PLAYWRIGHT_HEADLESS: "true"
+          E2E_COVERAGE: "1"
+      - name: Upload e2e coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/e2e/lcov.info
+          flags: e2e
+          disable_search: true
+          fail_ci_if_error: false
       - name: Upload E2E artifacts
         if: always()
         uses: actions/upload-artifact@v4

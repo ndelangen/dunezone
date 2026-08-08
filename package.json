@@ -103,6 +103,7 @@
     "convex-test": "^0.0.55",
     "jsdom": "^30.0.1",
     "knip": "^6.32.0",
+    "monocart-coverage-reports": "^2.12.12",
     "oxfmt": "0.62.0",
     "oxlint": "1.77.0",
     "playwright": "^1.62.1",
