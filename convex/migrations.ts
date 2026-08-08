@@ -407,7 +407,8 @@ export const faction_decal_retune_v1 = migrations.define({
           : entry.scale;
       if (id !== entry.id || scale !== entry.scale) {
         changed = true;
-        return { ...entry, id, scale };
+        // Convex rejects `undefined` values — never introduce an own `scale: undefined` key.
+        return scale === undefined ? { ...entry, id } : { ...entry, id, scale };
       }
       return decal;
     });

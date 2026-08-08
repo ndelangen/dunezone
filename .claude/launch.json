@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "storybook",
-      "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "storybook"],
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bun run generate:vectors && bun run storybook"],
       "port": 6006
     }
   ]
