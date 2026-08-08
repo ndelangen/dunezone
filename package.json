@@ -88,6 +88,7 @@
   "devDependencies": {
     "@cloudflare/playwright": "1.3.3",
     "@cloudflare/workers-types": "^5.20260804.1",
+    "@codecov/bundle-analyzer": "^2.0.1",
     "@edge-runtime/vm": "^5.0.0",
     "@playwright/test": "^1.62.1",
     "@storybook/addon-docs": "^10.5.6",

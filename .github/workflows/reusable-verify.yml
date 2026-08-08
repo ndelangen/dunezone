@@ -123,12 +123,23 @@ jobs:
       - name: Generate vector variants
         run: bun run generate:vectors
       - name: Unit tests
-        run: bun run test --coverage
+        run: bun run test --coverage --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-unit.junit.xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
+          flags: unit
+          disable_search: true
+          fail_ci_if_error: false
+      - name: Upload test results to Codecov
+        # Failure results are the point of Test Analytics — upload unless cancelled.
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/vitest-unit.junit.xml
           flags: unit
           disable_search: true
           fail_ci_if_error: false
@@ -168,6 +179,16 @@ jobs:
         run: bun run app:build
         env:
           VITE_CONVEX_URL: https://example.convex.cloud
+      - name: Upload bundle stats to Codecov
+        # @codecov/vite-plugin only peers with Vite <=6 (no rolldown support),
+        # so the bundler-agnostic analyzer runs on the finished client build
+        # instead. Not tokenless — skipped on fork PRs where the secret is
+        # absent; never fails the build.
+        if: ${{ secrets.CODECOV_TOKEN != '' }}
+        continue-on-error: true
+        run: bunx @codecov/bundle-analyzer ./dist/client --bundle-name=dunezone-client --upload-token="$CODECOV_TOKEN"
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   publisher_release:
     runs-on: ubuntu-latest
@@ -201,12 +222,22 @@ jobs:
       - name: Log generated output digest (informational, not part of identity)
         run: find public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
       - name: Test publisher and delivery
-        run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**'
+        run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-publisher.junit.xml
       - name: Upload publisher coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
+          flags: publisher
+          disable_search: true
+          fail_ci_if_error: false
+      - name: Upload publisher test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/vitest-publisher.junit.xml
           flags: publisher
           disable_search: true
           fail_ci_if_error: false
@@ -271,12 +302,22 @@ jobs:
       - name: Verify generated images structurally
         run: bun run verify:images
       - name: Run story tests with coverage
-        run: bun run storybook:test --coverage.enabled=true
+        run: bun run storybook:test --coverage.enabled=true --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-storybook.junit.xml
       - name: Upload storybook coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/storybook/lcov.info
+          flags: storybook
+          disable_search: true
+          fail_ci_if_error: false
+      - name: Upload storybook test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/vitest-storybook.junit.xml
           flags: storybook
           disable_search: true
           fail_ci_if_error: false
@@ -416,6 +457,16 @@ jobs:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
           PLAYWRIGHT_HEADLESS: "true"
           E2E_COVERAGE: "1"
+      - name: Upload e2e test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/playwright.junit.xml
+          flags: e2e
+          disable_search: true
+          fail_ci_if_error: false
       - name: Upload e2e coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
