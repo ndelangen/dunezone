@@ -103,7 +103,12 @@ export default async function globalSetup(config: FullConfig) {
       storageStatePath: '.playwright/user-b-group.json',
     },
   ];
-  await Promise.all(sessions.map((credentials) => loginWithLocalAuth(baseUrl, credentials)));
+  // The first login runs alone: it warms the vite dev server's on-demand
+  // module transforms. Eight cold first-loads at once starve each other and
+  // time out before the login form renders.
+  const [first, ...rest] = sessions;
+  await loginWithLocalAuth(baseUrl, first);
+  await Promise.all(rest.map((credentials) => loginWithLocalAuth(baseUrl, credentials)));
 
   execSync(`npx convex run e2e:seedBaseline '${JSON.stringify({ ownerEmail: userAEmail })}'`, {
     stdio: 'inherit',
