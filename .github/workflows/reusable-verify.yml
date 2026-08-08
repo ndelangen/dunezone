@@ -242,6 +242,28 @@ jobs:
         run: bun run generate:images
       - name: Build Storybook
         run: bun run build-storybook
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(bun -e 'console.log(require("@playwright/test/package.json").version)')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium for story tests
+        run: npx playwright install --with-deps chromium
+      - name: Verify generated images structurally
+        run: bun run verify:images
+      - name: Run story tests with coverage
+        run: bun run storybook:test --coverage.enabled=true
+      - name: Upload storybook coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/storybook/lcov.info
+          flags: storybook
+          disable_search: true
+          fail_ci_if_error: false
 
   migration_static_narrow:
     runs-on: ubuntu-latest

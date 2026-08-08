@@ -5,8 +5,8 @@
 
 codecov:
   notify:
-    # unit + publisher + e2e today; bump when the storybook flag lands.
-    after_n_builds: 3
+    # unit + publisher + e2e + storybook.
+    after_n_builds: 4
 
 coverage:
   status:
@@ -25,7 +25,9 @@ flags:
     carryforward: true
   e2e:
     carryforward: true
+  storybook:
+    carryforward: true
 
 comment:
-  after_n_builds: 3
+  after_n_builds: 4
   layout: "diff, flags, files"
