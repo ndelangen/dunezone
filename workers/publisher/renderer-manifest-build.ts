@@ -32,6 +32,16 @@ const GENERATED_IMAGE_INGREDIENT_PATHS = [
   'scripts/generate-images.ts',
 ] as const;
 
+/** Vector train ingredients (#306): rules + normalization + generator scripts. */
+const GENERATED_VECTOR_INGREDIENT_PATHS = [
+  'src/shared/vectorRules.ts',
+  'src/shared/vectorNormalize.ts',
+  'scripts/generate-vectors.ts',
+] as const;
+
+/** DevDependencies whose exact versions are renderer-identity ingredients. */
+const PINNED_TOOLCHAIN_DEPENDENCIES = ['sharp', 'svgo', 'svgpath', 'linkedom'] as const;
+
 function digestEntries(prefix: string, entries: RendererManifestEntry[]): string {
   const sorted = [...entries].sort((left, right) => left.path.localeCompare(right.path));
   const paths = new Set<string>();
@@ -100,9 +110,10 @@ export function isRendererManifestAsset(relativePath: string): boolean {
     normalizedPath !== 'index.html' &&
     !normalizedPath.startsWith('__storybook/') &&
     !normalizedPath.startsWith('public/') &&
-    // Generated image output is identified by ingredients, never by bytes.
+    // Generated image and vector output is identified by ingredients, never by bytes.
     !normalizedPath.startsWith('image/') &&
-    !normalizedPath.startsWith('web/')
+    !normalizedPath.startsWith('web/') &&
+    !normalizedPath.startsWith('vector/')
   );
 }
 
@@ -117,20 +128,23 @@ function entriesFor(repositoryRoot: string, files: string[]): RendererManifestEn
 const EXACT_SEMVER =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
-export function assertExactSharpVersion(version: string | undefined): string {
+export function assertExactSharpVersion(version: string | undefined, name = 'sharp'): string {
   if (!version || !EXACT_SEMVER.test(version)) {
     throw new Error(
-      `sharp must be an exact-pinned devDependency for renderer identity (got ${JSON.stringify(version)})`
+      `${name} must be an exact-pinned devDependency for renderer identity (got ${JSON.stringify(version)})`
     );
   }
   return version;
 }
 
-function sharpVersionFrom(repositoryRoot: string): string {
+function pinnedToolchainVersions(repositoryRoot: string): Array<{ name: string; version: string }> {
   const manifest = JSON.parse(readFileSync(path.join(repositoryRoot, 'package.json'), 'utf8')) as {
     devDependencies?: Record<string, string>;
   };
-  return assertExactSharpVersion(manifest.devDependencies?.sharp);
+  return PINNED_TOOLCHAIN_DEPENDENCIES.map((name) => ({
+    name,
+    version: assertExactSharpVersion(manifest.devDependencies?.[name], name),
+  }));
 }
 
 export function writeRendererManifest(
@@ -152,14 +166,14 @@ export function writeRendererManifest(
   const toolchainEntries = [
     ...entriesFor(
       repositoryRoot,
-      GENERATED_IMAGE_INGREDIENT_PATHS.map((relativePath) =>
-        path.join(repositoryRoot, relativePath)
+      [...GENERATED_IMAGE_INGREDIENT_PATHS, ...GENERATED_VECTOR_INGREDIENT_PATHS].map(
+        (relativePath) => path.join(repositoryRoot, relativePath)
       )
     ),
-    {
-      path: 'toolchain/sharp-version',
-      bytes: new TextEncoder().encode(sharpVersionFrom(repositoryRoot)),
-    },
+    ...pinnedToolchainVersions(repositoryRoot).map(({ name, version }) => ({
+      path: `toolchain/${name}-version`,
+      bytes: new TextEncoder().encode(version),
+    })),
   ];
 
   const { digest, components } = computeRendererManifestDigest(

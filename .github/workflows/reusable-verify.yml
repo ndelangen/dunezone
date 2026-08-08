@@ -50,6 +50,8 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Detect unused files, exports, and dependencies
         run: bun run knip
 
@@ -90,6 +92,8 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Typecheck
         run: bun run typecheck
 
@@ -116,6 +120,8 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Unit tests
         run: bun run test --coverage
       - name: Upload coverage to Codecov
@@ -152,8 +158,12 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Verify generated images structurally
         run: bun run verify:images
+      - name: Verify generated vectors structurally
+        run: bun run verify:vectors
       - name: Build app
         run: bun run app:build
         env:
@@ -182,8 +192,12 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Verify generated images structurally
         run: bun run verify:images
+      - name: Verify generated vectors structurally
+        run: bun run verify:vectors
       - name: Log generated output digest (informational, not part of identity)
         run: find public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
       - name: Test publisher and delivery
@@ -240,6 +254,8 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Build Storybook
         run: bun run build-storybook
       - name: Resolve Playwright version
@@ -363,8 +379,12 @@ jobs:
       - name: Generate image variants
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
+      - name: Generate vector variants
+        run: bun run generate:vectors
       - name: Verify generated images structurally
         run: bun run verify:images
+      - name: Verify generated vectors structurally
+        run: bun run verify:vectors
       - name: Create local E2E env file
         run: |
           cat > "$RUNNER_TEMP/.env.e2e.local" <<'EOF'

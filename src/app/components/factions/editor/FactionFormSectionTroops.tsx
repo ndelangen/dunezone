@@ -171,6 +171,7 @@ function TroopCard({
                               background={background}
                               image={currentTroop.image}
                               star={currentTroop.star}
+                              hue={currentTroop.hue}
                               striped={currentTroop.striped}
                             />
                           </Box>
@@ -185,6 +186,7 @@ function TroopCard({
                                 background={background}
                                 image={currentTroop.back.image}
                                 star={currentTroop.back.star}
+                                hue={currentTroop.back.hue}
                                 striped={currentTroop.back.striped}
                               />
                             </Box>

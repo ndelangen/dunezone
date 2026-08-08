@@ -5,5 +5,6 @@ import { FACTION_SHEET_ASSET_TYPE } from './publication';
  * Renderer implementation.
  */
 export const CHECKED_IN_RENDERER_REVISIONS = {
-  [FACTION_SHEET_ASSET_TYPE]: 7,
+  // 8: vector train (wayfinder #294) — normalized spaces, unclipped halos, retuned decals.
+  [FACTION_SHEET_ASSET_TYPE]: 8,
 } as const;
