@@ -4,6 +4,7 @@ import type { CapturedPdf, PublisherBrowserSession } from './browser';
 import { publicationWorkBudget } from './config';
 import type { PublisherConfig } from './config';
 import type { AssignedPublicationJob, ConvexPublisherClient } from './convex';
+import { recompressCapturedPdf, RECOMPRESSED_PDF_MAX_BYTES } from './pdf-recompress';
 import { putPublishedAsset } from './r2';
 import type { AssetBucket } from './r2';
 
@@ -29,6 +30,8 @@ export type ItemListExecution = {
   browserOpened: boolean;
   browserClosed: boolean;
   browserSessionId: string | null;
+  recompressedImages: number;
+  recompressionSavedBytes: number;
 };
 
 function assertCapturedSize(captured: CapturedPdf, maximum: number): void {
@@ -59,6 +62,8 @@ export async function executeItemList(
     browserOpened: false,
     browserClosed: false,
     browserSessionId: null,
+    recompressedImages: 0,
+    recompressionSavedBytes: 0,
   };
 
   let browser: BrowserSession | undefined;
@@ -80,6 +85,33 @@ export async function executeItemList(
         assertCapturedSize(captured, config.pdfMaxBytes);
         result.rendered += 1;
 
+        // In-place recompression (#257): lossless-downsample the big RGB
+        // portrait rasters; everything else byte-untouched. A recompression
+        // failure never blocks publishing — the capture is stored as-is.
+        let publishedBytes = captured.bytes;
+        try {
+          const recompressed = await recompressCapturedPdf(captured.bytes);
+          if (recompressed.bytesAfter > RECOMPRESSED_PDF_MAX_BYTES) {
+            throw new TargetRenderError(
+              `Recompressed PDF must be at most ${RECOMPRESSED_PDF_MAX_BYTES} bytes`
+            );
+          }
+          publishedBytes = recompressed.bytes;
+          result.recompressedImages += recompressed.swappedImages;
+          result.recompressionSavedBytes += recompressed.bytesBefore - recompressed.bytesAfter;
+        } catch (error) {
+          if (error instanceof TargetRenderError) {
+            throw error;
+          }
+          console.warn(
+            JSON.stringify({
+              event: 'publisher.recompression_failed',
+              jobId: item.jobId,
+              message: error instanceof Error ? error.message : String(error),
+            })
+          );
+        }
+
         const cacheToken = await signCacheToken(
           item.assetId,
           item.assetType,
@@ -90,7 +122,7 @@ export async function executeItemList(
           item,
           captured.payloadHash,
           cacheToken,
-          captured.bytes
+          publishedBytes
         );
         const completion = await dependencies.client.complete(
           item.jobId,

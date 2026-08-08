@@ -196,3 +196,16 @@ After each production deploy:
 - Verify profile bootstrap/update works.
 - Verify faction and ruleset create/update flows.
 - Verify FAQ create/question/answer flow.
+
+## Generated images
+
+`public/image/**` and `public/web/**` (except `logo.svg`) are generated in CI
+from `media/**` by `scripts/generate-images.ts` (see `src/shared/assetRules.ts`
+for the per-category rules). CI restores the generated tree from a cache keyed
+on the media/rules/generator/sharp digest and verifies it structurally
+(`bun run verify:images`) — it never re-encodes to compare bytes. The renderer
+identity in `workers/publisher/renderer-manifest.generated.ts` (schema v2)
+hashes those same ingredients plus the capture code and PDF contract, with
+per-component digests so a deploy log can attribute an identity change to
+sources, toolchain, code, or contract. A toolchain change (e.g. a sharp bump)
+intentionally triggers a visually-identical recapture wave.

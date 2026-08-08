@@ -31,7 +31,12 @@
     "curly": ["error", "all"],
     "eqeqeq": ["error", "smart"],
     "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
-    "jsdoc/check-tag-names": ["error", { "definedTags": ["vitest-environment"] }],
+    "jsdoc/check-tag-names": [
+      "error",
+      {
+        "definedTags": ["vitest-environment"]
+      }
+    ],
     "jsx-a11y/prefer-tag-over-role": "off",
     "no-restricted-imports": [
       "error",
@@ -79,6 +84,7 @@
     "**/routeTree.gen.ts",
     "**/*.gen.ts",
     "**/workers/publisher/worker-configuration.d.ts",
-    "**/convex/_generated"
+    "**/convex/_generated",
+    "docs/research/**"
   ]
 }

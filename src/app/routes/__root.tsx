@@ -35,7 +35,25 @@ export const Route = createRootRoute({
         content: 'RPI_TL3TCH_KTbnzwKeXOJ8LY8EklOlsRStyfysz-24',
       },
     ],
-    links: [],
+    links: [
+      // Train 1b (#255): the two LCP images and the two primary text faces.
+      { rel: 'preload', as: 'image', href: '/web/page-large.jpg', fetchPriority: 'high' },
+      { rel: 'preload', as: 'image', href: '/web/head-large.jpg', fetchPriority: 'high' },
+      {
+        rel: 'preload',
+        as: 'font',
+        type: 'font/woff2',
+        href: '/font/candara.woff2',
+        crossOrigin: 'anonymous',
+      },
+      {
+        rel: 'preload',
+        as: 'font',
+        type: 'font/woff2',
+        href: '/font/copperplategothic-bold.woff2',
+        crossOrigin: 'anonymous',
+      },
+    ],
   }),
   shellComponent: RootDocument,
 });

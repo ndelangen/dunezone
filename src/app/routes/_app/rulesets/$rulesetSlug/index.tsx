@@ -216,7 +216,7 @@ function RulesetDetailPage() {
             {r.image_cover ? (
               <Image
                 src={r.image_cover}
-                fallbackSrc="/image/background/card.jpg"
+                fallbackSrc="/image/background/card-large.jpg"
                 alt={`Cover for ${r.name}`}
                 className={styles.coverImage}
               />

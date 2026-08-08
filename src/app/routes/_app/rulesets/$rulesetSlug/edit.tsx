@@ -44,7 +44,7 @@ function RulesetEditPage() {
         {page?.ruleset.image_cover ? (
           <Image
             src={page?.ruleset.image_cover}
-            fallbackSrc="/image/background/card.jpg"
+            fallbackSrc="/image/background/card-large.jpg"
             alt={`Cover for ${page?.ruleset.name}`}
             className={styles.coverImage}
           />

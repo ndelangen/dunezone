@@ -36,7 +36,7 @@ export const WithPreview = meta.story({
       '/vector/icon/eye.svg',
       '/vector/icon/traitor.svg',
       '/vector/icon/alliance.svg',
-      '/vector/faction/atreides.webp',
+      '/vector/logo/atreides.svg',
     ],
     optionToPreviewSrc: toPreviewSrc,
   },

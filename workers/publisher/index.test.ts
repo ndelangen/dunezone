@@ -6,7 +6,8 @@ import { fakeR2Object } from './test-helpers';
 
 const browserMocks = vi.hoisted(() => ({ open: vi.fn() }));
 
-vi.mock('./browser', () => ({
+vi.mock('./browser', async (importOriginal) => ({
+  ...(await importOriginal()),
   openPublisherBrowser: browserMocks.open,
 }));
 

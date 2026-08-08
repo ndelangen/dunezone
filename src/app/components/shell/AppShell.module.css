@@ -44,15 +44,9 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: url("/web/head.png") no-repeat top center;
+  background: url("/web/head-large.jpg") no-repeat top center;
   background-size: cover;
-  filter: blur(12px);
-  transition: filter 0.3s ease-out;
   z-index: -1;
-}
-
-.loaded::before {
-  filter: blur(0);
 }
 
 .routeFrame:has([data-page-layout-compact="true"]) .hero {

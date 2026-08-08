@@ -15,6 +15,7 @@ import { forwardRef, useImperativeHandle, useState } from 'react';
 
 import { ConnectedTabs } from '@app/components/content/ConnectedTabs';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
+import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token } from '@game/assets/faction/token/Token';
@@ -101,6 +102,7 @@ function ArtifactProof({
     advantage: number;
   };
 }) {
+  const resolve = useAssetResolver();
   const [identityProof, setIdentityProof] = useState<'background' | 'token'>('background');
 
   return (
@@ -187,7 +189,7 @@ function ArtifactProof({
             <Box className={styles.planetProof}>
               <Image
                 key={selectedWorld.image}
-                src={selectedWorld.image}
+                src={resolve(selectedWorld.image)}
                 alt={selectedWorld.name}
                 fit="contain"
               />
