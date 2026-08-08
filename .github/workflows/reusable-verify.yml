@@ -185,14 +185,29 @@ jobs:
         run: bun run app:build
         env:
           VITE_CONVEX_URL: https://example.convex.cloud
-      - name: Upload bundle stats to Codecov
+      - name: Upload bundle stats to Codecov (per category)
         # @codecov/vite-plugin only peers with Vite <=6 (no rolldown support),
         # so the bundler-agnostic analyzer runs on the finished client build
-        # instead. Not tokenless — skipped on fork PRs where the secret is
-        # absent; never fails the build.
+        # instead. One bundle per asset category: dist/client is ~96% generated
+        # media, and a single blob would let an image regeneration bury an
+        # app-code regression. dunezone-app (compiled JS/CSS) is the one that
+        # tracks dependency/code bloat. Not tokenless — skipped on fork PRs
+        # where the secret is absent; never fails the build.
         if: ${{ env.CODECOV_TOKEN != '' }}
         continue-on-error: true
-        run: bunx @codecov/bundle-analyzer ./dist/client --bundle-name=dunezone-client --upload-token="$CODECOV_TOKEN"
+        run: |
+          set -euo pipefail
+          upload() {
+            local name="$1"
+            shift
+            bunx @codecov/bundle-analyzer "$@" --bundle-name="$name" --upload-token="$CODECOV_TOKEN"
+          }
+          upload dunezone-app dist/client/public
+          upload dunezone-images dist/client/image dist/client/web
+          upload dunezone-vectors dist/client/vector
+          upload dunezone-objs dist/client/obj
+          upload dunezone-pages dist/client/page
+          upload dunezone-fonts dist/client/font
 
   publisher_release:
     runs-on: ubuntu-latest
