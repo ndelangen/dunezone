@@ -96,6 +96,8 @@ jobs:
         run: bun run generate:vectors
       - name: Typecheck
         run: bun run typecheck
+      - name: Typecheck authoring tool
+        run: bun run tool:typecheck
 
   test:
     runs-on: ubuntu-latest
@@ -122,6 +124,8 @@ jobs:
         run: bun run generate:images
       - name: Generate vector variants
         run: bun run generate:vectors
+      - name: Authoring tool tests
+        run: bun run tool:test
       - name: Unit tests
         run: bun run test --coverage --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-unit.junit.xml
       - name: Upload coverage to Codecov

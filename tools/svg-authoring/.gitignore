@@ -1,0 +1,17 @@
+node_modules
+dist
+.output
+.nitro
+.tanstack
+.vite
+
+# Test artifacts
+test-results
+playwright-report
+coverage
+
+# Generated route tree
+src/routeTree.gen.ts
+
+# OS
+.DS_Store

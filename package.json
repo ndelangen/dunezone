@@ -1,6 +1,9 @@
 {
   "name": "dunezone",
   "private": true,
+  "workspaces": [
+    "tools/svg-authoring"
+  ],
   "type": "module",
   "scripts": {
     "app:build": "vite build",
@@ -45,6 +48,9 @@
     "storybook": "storybook dev -p 6006",
     "storybook:test": "vitest run --config vitest.storybook.config.ts",
     "test": "vitest run --passWithNoTests",
+    "tool:dev": "bun run --cwd tools/svg-authoring dev",
+    "tool:test": "bun run --cwd tools/svg-authoring test",
+    "tool:typecheck": "bun run --cwd tools/svg-authoring typecheck",
     "typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit",
     "verify:images": "bun run ./scripts/verify-images.ts",
     "verify:vectors": "bun run ./scripts/verify-vectors.ts",
