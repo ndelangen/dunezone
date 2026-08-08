@@ -1,8 +1,8 @@
-import { expect, longSpecTimeoutMs, newCoveredPage, test } from './coverage';
+import { expect, longSpecTimeoutMs, test } from './coverage';
 
 test.use({ storageState: '.playwright/user-a-faq.json' });
 
-test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, browser }) => {
+test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, newUserPage }) => {
   test.setTimeout(longSpecTimeoutMs);
 
   const suffix = Date.now();
@@ -18,7 +18,7 @@ test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, bro
   });
   const questionUrl = page.url();
 
-  const userB = await newCoveredPage(browser, { storageState: '.playwright/user-b-faq.json' });
+  const userB = await newUserPage({ storageState: '.playwright/user-b-faq.json' });
   const userBPage = userB.page;
 
   await test.step('another member answers', async () => {

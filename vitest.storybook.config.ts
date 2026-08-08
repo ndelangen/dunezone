@@ -5,7 +5,9 @@
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import viteReact from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
-import { coverageConfigDefaults, defineConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config';
+
+import { coverageExclude, coverageIncludeSrc } from './coverage-denominator';
 
 export default defineConfig({
   // Mirrors .storybook/vite.config.ts — the addon does not load the custom
@@ -15,6 +17,8 @@ export default defineConfig({
     'import.meta.env.VITE_CONVEX_URL': JSON.stringify('storybook-disconnected'),
   },
   resolve: {
+    // Typings in the current Vite package lag behind docs/runtime support
+    // (same cast as .storybook/vite.config.ts).
     ...({ tsconfigPaths: true } as Record<string, unknown>),
   },
   plugins: [viteReact(), storybookTest({ configDir: '.storybook' })],
@@ -32,17 +36,8 @@ export default defineConfig({
       reporter: ['text-summary', 'lcov'],
       reportsDirectory: 'coverage/storybook',
       // Stories only exercise src; suite-scoped like the publisher flag.
-      // Excludes mirror vite.config.ts per the denominator decision in
-      // https://github.com/ndelangen/dunezone/issues/301
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: [
-        ...coverageConfigDefaults.exclude,
-        '**/*.stories.{ts,tsx}',
-        'src/game/fixtures/**',
-        '**/*.gen.ts',
-        '**/*.generated.ts',
-        '**/*.d.ts',
-      ],
+      include: [coverageIncludeSrc],
+      exclude: coverageExclude,
     },
   },
 });
