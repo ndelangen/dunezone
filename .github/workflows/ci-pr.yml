@@ -13,3 +13,15 @@ concurrency:
 jobs:
   verify:
     uses: ./.github/workflows/reusable-verify.yml
+
+  # Single required-status-check context for branch protection: the workflow
+  # file owns the definition of "green", so protection settings never chase
+  # job renames. if: always() + explicit result check because a skipped
+  # required check would otherwise count as passing.
+  ci_ok:
+    if: always()
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require full verify success
+        run: test "${{ needs.verify.result }}" = "success"
