@@ -9,7 +9,7 @@ import { coverageExclude, coverageInclude } from './coverage-denominator';
 
 const config = defineConfig({
   test: {
-    exclude: [...configDefaults.exclude, 'e2e/**', '.claude/**'],
+    exclude: [...configDefaults.exclude, 'e2e/**', '.claude/**', 'tools/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'lcov'],
