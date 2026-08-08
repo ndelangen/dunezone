@@ -49,11 +49,14 @@ export async function newCoveredPage(
   return {
     page,
     close: async () => {
-      if (collect) {
-        const entries = await page.coverage.stopJSCoverage();
-        await MCR(mcrOptions).add(entries);
+      try {
+        if (collect) {
+          const entries = await page.coverage.stopJSCoverage();
+          await MCR(mcrOptions).add(entries);
+        }
+      } finally {
+        await context.close();
       }
-      await context.close();
     },
   };
 }
