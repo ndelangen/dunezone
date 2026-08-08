@@ -1,4 +1,4 @@
-import { Box, SimpleGrid, Stack, Switch, Textarea, TextInput } from '@mantine/core';
+import { Box, ColorInput, SimpleGrid, Stack, Switch, Textarea, TextInput } from '@mantine/core';
 
 import type { Faction } from '@db/factions';
 import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
@@ -42,6 +42,7 @@ export function TroopSideFields({
     ? (`troops[${i}].back.description` as const)
     : (`troops[${i}].description` as const);
   const starField = isBack ? (`troops[${i}].back.star` as const) : (`troops[${i}].star` as const);
+  const hueField = isBack ? (`troops[${i}].back.hue` as const) : (`troops[${i}].hue` as const);
   const stripedField = isBack
     ? (`troops[${i}].back.striped` as const)
     : (`troops[${i}].striped` as const);
@@ -147,6 +148,28 @@ export function TroopSideFields({
                         value ? (value as Faction['troops'][number]['star']) : undefined
                       )
                     }
+                  />
+                }
+              />
+            );
+          }}
+        </form.Field>
+
+        <form.Field name={hueField}>
+          {(field) => {
+            const title = isBack ? 'Back-side star color' : 'Star color';
+            return (
+              <ControlBlock
+                title={title}
+                description="Optional color for the star modifier; cream (red for -red stars) when unset."
+                input={
+                  <ColorInput
+                    id={`${idBase}-hue`}
+                    aria-label={title}
+                    placeholder="Default"
+                    value={field.state.value ?? ''}
+                    onBlur={field.handleBlur}
+                    onChangeEnd={(value) => field.handleChange(value ? value : undefined)}
                   />
                 }
               />

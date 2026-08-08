@@ -17,14 +17,14 @@ const leaders = await getFiles('/image/leader', 'media');
 const planet = await getFiles('/image/planet', 'media');
 const texture = await getFiles('/image/texture', 'media');
 
-// vectors
-const background = await getFiles('/vector/background');
-const generic = await getFiles('/vector/generic');
-const decal = await getFiles('/vector/decal');
-const icon = await getFiles('/vector/icon');
-const logo = await getFiles('/vector/logo');
-const troop = await getFiles('/vector/troop');
-const troop_modifier = await getFiles('/vector/troop_modifier');
+// vectors (media/ sources are truth; public/vector is generated output with identical names)
+const background = await getFiles('/vector/background', 'media');
+const generic = await getFiles('/vector/generic', 'media');
+const decal = await getFiles('/vector/decal', 'media');
+const icon = await getFiles('/vector/icon', 'media');
+const logo = await getFiles('/vector/logo', 'media');
+const troop = await getFiles('/vector/troop', 'media');
+const troop_modifier = await getFiles('/vector/troop_modifier', 'media');
 
 const enums = {
   background,

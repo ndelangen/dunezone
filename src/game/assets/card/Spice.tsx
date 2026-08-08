@@ -48,7 +48,7 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({
 
       <svg
         className={unique.map}
-        viewBox="0 0 487.06 487.06"
+        viewBox="0 0 100 100"
         xmlSpace="preserve"
         fillRule="evenodd"
         clipRule="evenodd"
@@ -58,7 +58,7 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({
 
       <svg
         className={unique.map_overlay}
-        viewBox="0 0 487.06 487.06"
+        viewBox="0 0 100 100"
         xmlSpace="preserve"
         fillRule="evenodd"
         clipRule="evenodd"
@@ -74,9 +74,9 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({
               0 0 1 0 0
               0 0 0 34 0"
             />
-            <feMorphology in="CONTRASTED" result="DILATED0" operator="dilate" radius="5" />
-            <feMorphology in="CONTRASTED" result="DILATED1" operator="dilate" radius="3" />
-            <feMorphology in="CONTRASTED" result="DILATED2" operator="dilate" radius="1" />
+            <feMorphology in="CONTRASTED" result="DILATED0" operator="dilate" radius="1.03" />
+            <feMorphology in="CONTRASTED" result="DILATED1" operator="dilate" radius="0.62" />
+            <feMorphology in="CONTRASTED" result="DILATED2" operator="dilate" radius="0.21" />
             <feFlood floodColor={foreGroundColor} floodOpacity="1" result="PINK0" />
             <feFlood floodColor={edgeColor} floodOpacity="1" result="PINK1" />
             <feFlood floodColor={highLightColor} floodOpacity="1" result="PINK2" />

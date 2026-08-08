@@ -5,12 +5,12 @@
 export const rendererManifest = {
   schemaVersion: 2,
   rendererIdentity:
-    'faction-sheet/sha256:e0423f0849ceddf52c53766c71338cda92f399588ac8f295e5c62d306c2c4fa2',
-  digest: 'e0423f0849ceddf52c53766c71338cda92f399588ac8f295e5c62d306c2c4fa2',
+    'faction-sheet/sha256:317aed717871fbab8572583dfa283d95d65093267d59f8a31ce8c9df2cc50c5c',
+  digest: '317aed717871fbab8572583dfa283d95d65093267d59f8a31ce8c9df2cc50c5c',
   components: {
-    sources: 'f811d2ed7cf706b29553be7f60604548d6d5c9a74bb8b1ab838c914d9cb0c406',
-    toolchain: 'bab222d4229402776633d8e13227f0cffe4ac4f1c77bcfa04d4d19d55144e2aa',
-    code: 'e698ceb3695ec2f69996921ad3e78c710f9afaf2808edc19a6e855e524556c62',
+    sources: 'f8e47bda9a5958b5cf26b40e8145a77ecfba864a9e617b3263132fa4ee2b9b0e',
+    toolchain: '4282c8c8a920165074004673a21e9e8d04dac1bd51c5cb7f02676760c738ceab',
+    code: 'd04edf8149b266746de799590c04deb8366130d54b3e8e9fab1d97fd2a864c41',
     contract: '2920714c87493d104342355dda2b956202259513c78ce6195670034f31a656a6',
   },
   contract: {

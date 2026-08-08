@@ -28,7 +28,7 @@ export const Default = meta.story({
         muted: true,
         offset: [-80, -60],
         outline: false,
-        scale: 0.45,
+        scale: 0.7821,
       },
       {
         id: '/vector/icon/kwisatz.svg',
