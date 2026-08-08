@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.use({ storageState: '.playwright/user-a-header.json' });
+
 test('the persistent page hero contracts when navigating to a headerless route', async ({
   page,
 }) => {

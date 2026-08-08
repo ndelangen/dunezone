@@ -74,47 +74,36 @@ export default async function globalSetup(config: FullConfig) {
   }
 
   await mkdir('.playwright', { recursive: true });
-  await loginWithLocalAuth(baseUrl, {
-    email: userAEmail,
-    password: userPassword,
-    storageStatePath: '.playwright/user-a.json',
-  });
-
-  await loginWithLocalAuth(baseUrl, {
-    email: userAEmail,
-    password: userPassword,
-    storageStatePath: '.playwright/user-a-ruleset.json',
-  });
-
-  await loginWithLocalAuth(baseUrl, {
-    email: userAEmail,
-    password: userPassword,
-    storageStatePath: '.playwright/user-a-faq.json',
-  });
-
-  await loginWithLocalAuth(baseUrl, {
-    email: userAEmail,
-    password: userPassword,
-    storageStatePath: '.playwright/user-a-group.json',
-  });
-
-  await loginWithLocalAuth(baseUrl, {
-    email: userBEmail,
-    password: userPassword,
-    storageStatePath: '.playwright/user-b.json',
-  });
-
-  await loginWithLocalAuth(baseUrl, {
-    email: userBEmail,
-    password: userPassword,
-    storageStatePath: '.playwright/user-b-faq.json',
-  });
-
-  await loginWithLocalAuth(baseUrl, {
-    email: userBEmail,
-    password: userPassword,
-    storageStatePath: '.playwright/user-b-group.json',
-  });
+  // Each spec file gets its own session: Convex Auth rotates refresh tokens,
+  // so two parallel workers sharing a storage state would invalidate each
+  // other's session mid-run. Logins are independent, so they run concurrently.
+  const sessions: Credentials[] = [
+    { email: userAEmail, password: userPassword, storageStatePath: '.playwright/user-a.json' },
+    {
+      email: userAEmail,
+      password: userPassword,
+      storageStatePath: '.playwright/user-a-header.json',
+    },
+    {
+      email: userAEmail,
+      password: userPassword,
+      storageStatePath: '.playwright/user-a-ruleset.json',
+    },
+    { email: userAEmail, password: userPassword, storageStatePath: '.playwright/user-a-faq.json' },
+    {
+      email: userAEmail,
+      password: userPassword,
+      storageStatePath: '.playwright/user-a-group.json',
+    },
+    { email: userBEmail, password: userPassword, storageStatePath: '.playwright/user-b.json' },
+    { email: userBEmail, password: userPassword, storageStatePath: '.playwright/user-b-faq.json' },
+    {
+      email: userBEmail,
+      password: userPassword,
+      storageStatePath: '.playwright/user-b-group.json',
+    },
+  ];
+  await Promise.all(sessions.map((credentials) => loginWithLocalAuth(baseUrl, credentials)));
 
   execSync(`npx convex run e2e:seedBaseline '${JSON.stringify({ ownerEmail: userAEmail })}'`, {
     stdio: 'inherit',

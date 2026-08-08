@@ -260,7 +260,10 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.playwright.outputs.version }}
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        # No --with-deps: the ubuntu-24.04 runner image already ships every
+        # shared library Chromium needs; Playwright validates at launch and
+        # fails fast if that ever stops being true.
+        run: npx playwright install chromium
       - name: Restore generated images
         id: image_cache
         uses: actions/cache@v4
