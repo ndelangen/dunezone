@@ -104,6 +104,10 @@ if (existsSync(mapPath)) {
       failures.push(`background/map.svg: place-id #${placeId} was dropped by optimization`);
     }
   }
+} else {
+  // Consumers hard-reference the map's fragment API; its absence is a failure even if the
+  // media source vanished too (the per-source check only fires while a source exists).
+  failures.push('background/map.svg: missing generated map (place-id API unavailable)');
 }
 
 // 6. no orphans
