@@ -179,6 +179,8 @@ jobs:
         run: bun run verify:images
       - name: Verify generated vectors structurally
         run: bun run verify:vectors
+      - name: Generate OBJ pieces
+        run: bun run generate:objs
       - name: Build app
         run: bun run app:build
         env:
@@ -223,6 +225,8 @@ jobs:
         run: bun run verify:vectors
       - name: Log generated output digest (informational, not part of identity)
         run: find public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
+      - name: Generate OBJ pieces
+        run: bun run generate:objs
       - name: Test publisher and delivery
         run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-publisher.junit.xml
       - name: Upload publisher coverage to Codecov

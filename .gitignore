@@ -26,3 +26,5 @@ test-results
 
 # test coverage output
 coverage/
+# generated OBJ pieces (built from media/vector by scripts/generate-objs.ts; CI is canonical)
+/public/obj/

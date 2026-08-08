@@ -159,6 +159,7 @@ describe('current Renderer manifest digest', () => {
     'image/texture/021-large.jpg',
     'web/head-large.jpg',
     'vector/icon/karama.svg',
+    'obj/troop/atreides.obj',
   ])('excludes application-only or generated release asset %s', (assetPath) => {
     expect(isRendererManifestAsset(assetPath)).toBe(false);
   });
