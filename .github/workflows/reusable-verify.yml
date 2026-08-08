@@ -295,6 +295,30 @@ jobs:
       - name: Check Worker startup
         run: bun run publisher:startup
 
+  tool_e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2.2.0
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(bun -e 'console.log(require("@playwright/test/package.json").version)')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Authoring tool E2E
+        run: bun run tool:test:e2e
+
   storybook:
     runs-on: ubuntu-latest
     steps:

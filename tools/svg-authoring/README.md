@@ -40,7 +40,7 @@ bun run dev      # http://localhost:3000
 ## Pipeline
 
 Each transformation is an isolated, testable pipeline step operating on SVG
-strings. Default order: **crop → aspect ratio → scale → flip → optimize**.
+strings. Default order: **crop → flip → optimize → recolor → root id → stamp → format**.
 
 Steps live in `src/lib/pipeline/steps/` and are registered in
 `src/lib/pipeline/registry.ts`. Pipeline logic is UI-agnostic and unit-tested
