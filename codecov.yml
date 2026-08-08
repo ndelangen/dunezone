@@ -1,0 +1,29 @@
+# Codecov configuration — design in docs/research/combined-coverage-codecov.md
+# and the wayfinder map https://github.com/ndelangen/dunezone/issues/299.
+# Statuses are informational by owner decision: coverage informs review,
+# never gates a merge.
+
+codecov:
+  notify:
+    # unit + publisher today; bump as e2e and storybook flags land.
+    after_n_builds: 2
+
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        target: auto
+        informational: true
+
+flags:
+  unit:
+    carryforward: true
+  publisher:
+    carryforward: true
+
+comment:
+  after_n_builds: 2
+  layout: "diff, flags, files"

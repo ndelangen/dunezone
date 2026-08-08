@@ -2,6 +2,10 @@ name: Reusable Verify
 
 on:
   workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        description: Codecov upload token; omitted on fork PRs (tokenless fallback)
+        required: false
 
 permissions:
   contents: read
@@ -113,7 +117,15 @@ jobs:
         if: steps.image_cache.outputs.cache-hit != 'true'
         run: bun run generate:images
       - name: Unit tests
-        run: bun run test
+        run: bun run test --coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          flags: unit
+          disable_search: true
+          fail_ci_if_error: false
 
   generate_and_build:
     runs-on: ubuntu-latest
@@ -175,7 +187,15 @@ jobs:
       - name: Log generated output digest (informational, not part of identity)
         run: find public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
       - name: Test publisher and delivery
-        run: bun run publisher:test
+        run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**'
+      - name: Upload publisher coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          flags: publisher
+          disable_search: true
+          fail_ci_if_error: false
       - name: Typecheck publisher
         run: bun run publisher:typecheck
       - name: Build, verify manifest, and dry-run unified Worker release
