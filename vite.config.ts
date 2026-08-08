@@ -19,7 +19,7 @@ const config = defineConfig({
         ...coverageConfigDefaults.exclude,
         // Local publisher build output (gitignored, but present on dev machines).
         'workers/publisher/dist/**',
-        '**/*.stories.tsx',
+        '**/*.stories.{ts,tsx}',
         'src/game/fixtures/**',
         'convex/_generated/**',
         '**/*.gen.ts',

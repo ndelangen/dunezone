@@ -13,10 +13,12 @@ concurrency:
 jobs:
   verify:
     uses: ./.github/workflows/reusable-verify.yml
-    # Codecov uploads need CODECOV_TOKEN inside the reusable workflow. Fork
-    # PRs get no secrets; codecov-action falls back to tokenless for public
-    # repos and the upload steps never fail the build.
-    secrets: inherit
+    # Codecov uploads need CODECOV_TOKEN inside the reusable workflow — pass
+    # only that secret (least privilege; the reusable workflow runs PR code).
+    # Fork PRs get no secrets; codecov-action falls back to tokenless for
+    # public repos and the upload steps never fail the build.
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # Single required-status-check context for branch protection: the workflow
   # file owns the definition of "green", so protection settings never chase

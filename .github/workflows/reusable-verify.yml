@@ -2,6 +2,10 @@ name: Reusable Verify
 
 on:
   workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        description: Codecov upload token; omitted on fork PRs (tokenless fallback)
+        required: false
 
 permissions:
   contents: read
@@ -183,7 +187,7 @@ jobs:
       - name: Log generated output digest (informational, not part of identity)
         run: find public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
       - name: Test publisher and delivery
-        run: bun run publisher:test --coverage '--coverage.include=workers/**'
+        run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**'
       - name: Upload publisher coverage to Codecov
         uses: codecov/codecov-action@v5
         with:

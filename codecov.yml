@@ -25,4 +25,5 @@ flags:
     carryforward: true
 
 comment:
+  after_n_builds: 2
   layout: "diff, flags, files"
