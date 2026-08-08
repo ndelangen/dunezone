@@ -1,26 +1,83 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Runs the whole flow by default (`e2e-local.sh` == `e2e-local.sh all`).
+# CI runs each phase as its own workflow step so the Actions UI shows
+# per-phase timing: up | provision | serve | test | down.
+# Values that must cross phase boundaries (admin key, resolved app URL,
+# vite pid, JWT material) live as files under .playwright/.
+PHASE="${1:-all}"
+case "$PHASE" in
+  all|up|provision|serve|test|down) ;;
+  *)
+    echo "Unknown phase: $PHASE"
+    echo "Usage: $0 [up|provision|serve|test|down]"
+    exit 1
+    ;;
+esac
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.convex-local.yml"
 ENV_FILE="${E2E_ENV_FILE:-$ROOT_DIR/.env.e2e.local}"
 APP_PID=""
 JWT_KEY_PATH=""
 JWKS_PATH=""
+ADMIN_KEY_FILE="$ROOT_DIR/.playwright/admin-key"
+APP_URL_FILE="$ROOT_DIR/.playwright/app-url"
+APP_PID_FILE="$ROOT_DIR/.playwright/vite.pid"
 
 if [[ ! -f "$ENV_FILE" ]]; then
-  echo "Missing env file: $ENV_FILE"
-  echo "Copy $ROOT_DIR/.env.e2e.local.example to .env.e2e.local and fill required values."
-  exit 1
+  if [[ "$PHASE" == "down" ]]; then
+    echo "Env file $ENV_FILE missing; tearing down with compose defaults."
+  else
+    echo "Missing env file: $ENV_FILE"
+    echo "Copy $ROOT_DIR/.env.e2e.local.example to .env.e2e.local and fill required values."
+    exit 1
+  fi
+else
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
 fi
-
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
 
 compose() {
   docker compose -f "$COMPOSE_FILE" "$@"
+}
+
+export_runtime_env() {
+  export CONVEX_SELF_HOSTED_URL="${CONVEX_SELF_HOSTED_URL:-http://127.0.0.1:3210}"
+  export VITE_CONVEX_URL="${VITE_CONVEX_URL:-$CONVEX_SELF_HOSTED_URL}"
+  export E2E_APP_PORT="${E2E_APP_PORT:-6001}"
+  export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-http://localhost:${E2E_APP_PORT}}"
+  export PLAYWRIGHT_HEADLESS="${PLAYWRIGHT_HEADLESS:-false}"
+  export VITE_E2E_LOCAL_AUTH="${VITE_E2E_LOCAL_AUTH:-true}"
+  export E2E_LOCAL_AUTH="${E2E_LOCAL_AUTH:-true}"
+  export IS_TEST="${IS_TEST:-true}"
+  export SITE_URL="${SITE_URL:-$PLAYWRIGHT_BASE_URL}"
+  export CONVEX_SITE_URL="${CONVEX_SITE_URL:-http://127.0.0.1:3211}"
+
+  # Ensure Convex CLI runs in self-hosted mode, even if the shell
+  # inherited cloud deployment variables from prior sessions.
+  unset CONVEX_DEPLOYMENT
+  unset CONVEX_URL
+  unset CONVEX_CLOUD_URL
+}
+
+ensure_admin_key() {
+  if [[ -n "${CONVEX_SELF_HOSTED_ADMIN_KEY:-}" && "$CONVEX_SELF_HOSTED_ADMIN_KEY" != "replace-me" ]]; then
+    export CONVEX_SELF_HOSTED_ADMIN_KEY
+    return
+  fi
+  if [[ -f "$ADMIN_KEY_FILE" ]]; then
+    CONVEX_SELF_HOSTED_ADMIN_KEY="$(<"$ADMIN_KEY_FILE")"
+  else
+    echo "Generating self-hosted admin key..."
+    CONVEX_SELF_HOSTED_ADMIN_KEY="$(compose exec -T backend ./generate_admin_key.sh | tr -d '\r')"
+    mkdir -p "$ROOT_DIR/.playwright"
+    printf '%s' "$CONVEX_SELF_HOSTED_ADMIN_KEY" >"$ADMIN_KEY_FILE"
+  fi
+  export CONVEX_SELF_HOSTED_ADMIN_KEY
 }
 
 ensure_local_auth_jwt_material() {
@@ -110,128 +167,151 @@ print_app_diagnostics() {
   tail -n 120 "$ROOT_DIR/.playwright/vite.log" || true
 }
 
-trap cleanup EXIT
-
-echo "Clearing previous Playwright artifacts..."
-rm -rf "$ROOT_DIR/test-results" "$ROOT_DIR/playwright-report" "$ROOT_DIR/.playwright"
-
-echo "Resetting any previous local Convex state..."
-compose down -v >/dev/null 2>&1 || true
-
-echo "Starting local Convex backend..."
-compose up -d
-
-echo "Waiting for Convex backend health..."
-for _ in {1..60}; do
-  if curl -fsS "${CONVEX_SELF_HOSTED_URL:-http://127.0.0.1:3210}/version" >/dev/null; then
-    break
+load_app_pid() {
+  if [[ -z "$APP_PID" && -f "$APP_PID_FILE" ]]; then
+    APP_PID="$(<"$APP_PID_FILE")"
   fi
-  sleep 1
-done
+}
 
-if ! curl -fsS "${CONVEX_SELF_HOSTED_URL:-http://127.0.0.1:3210}/version" >/dev/null; then
-  echo "Convex backend did not become healthy in time."
-  exit 1
-fi
+phase_up() {
+  echo "Clearing previous Playwright artifacts..."
+  rm -rf "$ROOT_DIR/test-results" "$ROOT_DIR/playwright-report" "$ROOT_DIR/.playwright"
 
-if [[ -z "${CONVEX_SELF_HOSTED_ADMIN_KEY:-}" || "${CONVEX_SELF_HOSTED_ADMIN_KEY}" == "replace-me" ]]; then
-  echo "Generating self-hosted admin key..."
-  CONVEX_SELF_HOSTED_ADMIN_KEY="$(compose exec -T backend ./generate_admin_key.sh | tr -d '\r')"
-  export CONVEX_SELF_HOSTED_ADMIN_KEY
-fi
+  echo "Resetting any previous local Convex state..."
+  compose down -v >/dev/null 2>&1 || true
 
-export CONVEX_SELF_HOSTED_URL="${CONVEX_SELF_HOSTED_URL:-http://127.0.0.1:3210}"
-export VITE_CONVEX_URL="${VITE_CONVEX_URL:-$CONVEX_SELF_HOSTED_URL}"
-export E2E_APP_PORT="${E2E_APP_PORT:-6001}"
-export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-http://localhost:${E2E_APP_PORT}}"
-export PLAYWRIGHT_HEADLESS="${PLAYWRIGHT_HEADLESS:-false}"
-export VITE_E2E_LOCAL_AUTH="${VITE_E2E_LOCAL_AUTH:-true}"
-export E2E_LOCAL_AUTH="${E2E_LOCAL_AUTH:-true}"
-export IS_TEST="${IS_TEST:-true}"
-export SITE_URL="${SITE_URL:-$PLAYWRIGHT_BASE_URL}"
-export CONVEX_SITE_URL="${CONVEX_SITE_URL:-http://127.0.0.1:3211}"
+  echo "Starting local Convex backend..."
+  compose up -d
 
-# Ensure Convex CLI runs in self-hosted mode, even if the shell
-# inherited cloud deployment variables from prior sessions.
-unset CONVEX_DEPLOYMENT
-unset CONVEX_URL
-unset CONVEX_CLOUD_URL
+  echo "Waiting for Convex backend health..."
+  for _ in {1..60}; do
+    if curl -fsS "${CONVEX_SELF_HOSTED_URL:-http://127.0.0.1:3210}/version" >/dev/null; then
+      break
+    fi
+    sleep 1
+  done
 
-ensure_local_auth_jwt_material
-ensure_jwt_material_files
+  if ! curl -fsS "${CONVEX_SELF_HOSTED_URL:-http://127.0.0.1:3210}/version" >/dev/null; then
+    echo "Convex backend did not become healthy in time."
+    exit 1
+  fi
+}
 
-echo "Pushing test env vars to local Convex deployment..."
-convex_local env set SITE_URL "$SITE_URL"
-convex_local env set E2E_LOCAL_AUTH "$E2E_LOCAL_AUTH"
-convex_local env set IS_TEST "$IS_TEST"
-convex_local env set JWT_PRIVATE_KEY --from-file "$JWT_KEY_PATH"
-convex_local env set JWKS --from-file "$JWKS_PATH"
-convex_local env set JWT_PRIVATE_KEY_B64 "$JWT_PRIVATE_KEY_B64"
-convex_local env set JWKS_B64 "$JWKS_B64"
+phase_provision() {
+  export_runtime_env
+  ensure_admin_key
+  ensure_local_auth_jwt_material
+  ensure_jwt_material_files
 
-if [[ "${E2E_RUN_MIGRATIONS:-0}" == "1" ]]; then
-  echo "Running migration guards for local deployment..."
-  bun run migrations:run-local-required
-else
-  echo "Skipping migrations:run-local-required (fresh ephemeral DB path). Set E2E_RUN_MIGRATIONS=1 to enable."
-fi
+  echo "Pushing test env vars to local Convex deployment..."
+  convex_local env set SITE_URL "$SITE_URL"
+  convex_local env set E2E_LOCAL_AUTH "$E2E_LOCAL_AUTH"
+  convex_local env set IS_TEST "$IS_TEST"
+  convex_local env set JWT_PRIVATE_KEY --from-file "$JWT_KEY_PATH"
+  convex_local env set JWKS --from-file "$JWKS_PATH"
+  convex_local env set JWT_PRIVATE_KEY_B64 "$JWT_PRIVATE_KEY_B64"
+  convex_local env set JWKS_B64 "$JWKS_B64"
 
-echo "Deploying Convex functions to local backend..."
-convex_local deploy
+  if [[ "${E2E_RUN_MIGRATIONS:-0}" == "1" ]]; then
+    echo "Running migration guards for local deployment..."
+    bun run migrations:run-local-required
+  else
+    echo "Skipping migrations:run-local-required (fresh ephemeral DB path). Set E2E_RUN_MIGRATIONS=1 to enable."
+  fi
 
-echo "Resetting test-only app tables..."
-convex_local run e2e:clearAll '{}'
+  echo "Deploying Convex functions to local backend..."
+  convex_local deploy
 
-mkdir -p "$ROOT_DIR/.playwright"
-echo "Starting app server for Playwright..."
-VITE_E2E_LOCAL_AUTH="$VITE_E2E_LOCAL_AUTH" VITE_CONVEX_URL="$VITE_CONVEX_URL" \
-  npx vite dev --port "$E2E_APP_PORT" >"$ROOT_DIR/.playwright/vite.log" 2>&1 &
-APP_PID=$!
+  echo "Resetting test-only app tables..."
+  convex_local run e2e:clearAll '{}'
+}
 
-APP_WAIT_URL_PRIMARY="$PLAYWRIGHT_BASE_URL"
-APP_WAIT_URL_FALLBACK=""
-if [[ "$PLAYWRIGHT_BASE_URL" == *"127.0.0.1"* ]]; then
-  APP_WAIT_URL_FALLBACK="${PLAYWRIGHT_BASE_URL/127.0.0.1/localhost}"
-elif [[ "$PLAYWRIGHT_BASE_URL" == *"localhost"* ]]; then
-  APP_WAIT_URL_FALLBACK="${PLAYWRIGHT_BASE_URL/localhost/127.0.0.1}"
-fi
+phase_serve() {
+  export_runtime_env
 
-echo "Waiting for app server on ${APP_WAIT_URL_PRIMARY}${APP_WAIT_URL_FALLBACK:+ (fallback ${APP_WAIT_URL_FALLBACK})}..."
-APP_READY_URL=""
-for _ in {1..60}; do
-  if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
-    echo "App process exited while waiting for readiness."
+  mkdir -p "$ROOT_DIR/.playwright"
+  echo "Starting app server for Playwright..."
+  VITE_E2E_LOCAL_AUTH="$VITE_E2E_LOCAL_AUTH" VITE_CONVEX_URL="$VITE_CONVEX_URL" \
+    npx vite dev --port "$E2E_APP_PORT" >"$ROOT_DIR/.playwright/vite.log" 2>&1 &
+  APP_PID=$!
+  printf '%s' "$APP_PID" >"$APP_PID_FILE"
+
+  local app_wait_url_primary="$PLAYWRIGHT_BASE_URL"
+  local app_wait_url_fallback=""
+  if [[ "$PLAYWRIGHT_BASE_URL" == *"127.0.0.1"* ]]; then
+    app_wait_url_fallback="${PLAYWRIGHT_BASE_URL/127.0.0.1/localhost}"
+  elif [[ "$PLAYWRIGHT_BASE_URL" == *"localhost"* ]]; then
+    app_wait_url_fallback="${PLAYWRIGHT_BASE_URL/localhost/127.0.0.1}"
+  fi
+
+  echo "Waiting for app server on ${app_wait_url_primary}${app_wait_url_fallback:+ (fallback ${app_wait_url_fallback})}..."
+  local app_ready_url=""
+  for _ in {1..60}; do
+    if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
+      echo "App process exited while waiting for readiness."
+      print_app_diagnostics
+      exit 1
+    fi
+    if curl -fsS "$app_wait_url_primary" >/dev/null; then
+      app_ready_url="$app_wait_url_primary"
+      break
+    fi
+    if [[ -n "$app_wait_url_fallback" ]] && curl -fsS "$app_wait_url_fallback" >/dev/null; then
+      app_ready_url="$app_wait_url_fallback"
+      break
+    fi
+    sleep 1
+  done
+
+  if [[ -z "$app_ready_url" ]]; then
+    echo "App server failed to become ready."
     print_app_diagnostics
     exit 1
   fi
-  if curl -fsS "$APP_WAIT_URL_PRIMARY" >/dev/null; then
-    APP_READY_URL="$APP_WAIT_URL_PRIMARY"
-    break
+
+  if [[ "$app_ready_url" != "$PLAYWRIGHT_BASE_URL" ]]; then
+    echo "Using reachable app URL: $app_ready_url"
+    export PLAYWRIGHT_BASE_URL="$app_ready_url"
   fi
-  if [[ -n "$APP_WAIT_URL_FALLBACK" ]] && curl -fsS "$APP_WAIT_URL_FALLBACK" >/dev/null; then
-    APP_READY_URL="$APP_WAIT_URL_FALLBACK"
-    break
+  printf '%s' "$PLAYWRIGHT_BASE_URL" >"$APP_URL_FILE"
+}
+
+phase_test() {
+  export_runtime_env
+  ensure_admin_key
+  load_app_pid
+  if [[ -f "$APP_URL_FILE" ]]; then
+    PLAYWRIGHT_BASE_URL="$(<"$APP_URL_FILE")"
+    export PLAYWRIGHT_BASE_URL
   fi
-  sleep 1
-done
 
-if [[ -z "$APP_READY_URL" ]]; then
-  echo "App server failed to become ready."
-  print_app_diagnostics
-  exit 1
-fi
+  echo "Running Playwright E2E suite..."
+  if ! npx playwright test; then
+    echo "Playwright failed."
+    print_app_diagnostics
+    close_playwright_browsers
+    exit 1
+  fi
 
-if [[ "$APP_READY_URL" != "$PLAYWRIGHT_BASE_URL" ]]; then
-  echo "Using reachable app URL: $APP_READY_URL"
-  export PLAYWRIGHT_BASE_URL="$APP_READY_URL"
-fi
-
-echo "Running Playwright E2E suite..."
-if ! npx playwright test; then
-  echo "Playwright failed."
-  print_app_diagnostics
   close_playwright_browsers
-  exit 1
-fi
+}
 
-close_playwright_browsers
+phase_down() {
+  load_app_pid
+  cleanup
+}
+
+case "$PHASE" in
+  all)
+    trap cleanup EXIT
+    phase_up
+    phase_provision
+    phase_serve
+    phase_test
+    ;;
+  up) phase_up ;;
+  provision) phase_provision ;;
+  serve) phase_serve ;;
+  test) phase_test ;;
+  down) phase_down ;;
+esac

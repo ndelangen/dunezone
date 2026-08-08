@@ -303,11 +303,34 @@ jobs:
       - name: Wait for Convex image pre-pull
         # Non-fatal on timeout or pull failure: compose up pulls whatever is missing.
         run: timeout 120 bash -c 'until [ -f /tmp/convex-pull.done ]; do sleep 1; done' || true
-      - name: Run Docker + Playwright E2E
-        run: bun run e2e:local
+      # The phases below are one flow (scripts/e2e-local.sh), split into steps
+      # so the Actions UI shows per-phase timing. State crosses step boundaries
+      # via files under .playwright/ (admin key, app URL, vite pid); the vite
+      # dev server backgrounded in "Start app server" keeps running into the
+      # Playwright step, same as the image pre-pull above.
+      - name: Boot Convex backend
+        run: bun run e2e:local up
+        env:
+          E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
+      - name: Provision Convex deployment
+        run: bun run e2e:local provision
+        env:
+          E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
+      - name: Start app server
+        run: bun run e2e:local serve
+        env:
+          E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
+      - name: Run Playwright E2E
+        run: bun run e2e:local test
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
           PLAYWRIGHT_HEADLESS: "true"
+      - name: Tear down E2E stack
+        # Replaces the script's `trap cleanup EXIT`, which cannot span steps.
+        if: always()
+        run: bun run e2e:local down
+        env:
+          E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
       - name: Upload E2E artifacts
         if: always()
         uses: actions/upload-artifact@v4
