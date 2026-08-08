@@ -26,17 +26,13 @@ type UIButtonAsAnchor = UIButtonShared &
     to?: undefined;
   };
 
-export type UIButtonAsButton = UIButtonShared &
+type UIButtonAsButton = UIButtonShared &
   ComponentPropsWithoutRef<'button'> & {
     to?: undefined;
     href?: undefined;
   };
 
 export type UIButtonProps = UIButtonAsLink | UIButtonAsAnchor | UIButtonAsButton;
-
-export type UIButtonLinkProps = Omit<UIButtonAsLink, 'children'> & {
-  children: ReactNode;
-};
 
 function uiButtonClassNames(variant: UIButtonVariant, iconOnly: boolean): string {
   const pieces: string[] = [styles.button];
@@ -101,8 +97,4 @@ export function UIButton({
       {children}
     </button>
   );
-}
-
-export function UIButtonLink(props: UIButtonLinkProps) {
-  return <UIButton {...props} />;
 }

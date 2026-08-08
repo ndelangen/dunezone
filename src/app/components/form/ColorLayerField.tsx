@@ -7,7 +7,7 @@ import { FormTooltip } from './FormTooltip';
 import { HexColorPicker } from './HexColorPicker';
 import { TextField } from './TextField';
 
-export type ColorStop = [string, number];
+type ColorStop = [string, number];
 
 export type LinearGradientColor = {
   type: 'linear';
@@ -15,7 +15,7 @@ export type LinearGradientColor = {
   stops: ColorStop[];
 };
 
-export type RadialGradientColor = {
+type RadialGradientColor = {
   type: 'radial';
   stops: ColorStop[];
   x?: number;

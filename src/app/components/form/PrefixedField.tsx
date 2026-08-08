@@ -59,4 +59,3 @@ export function PrefixedField({
 }
 
 /** @deprecated Use `PrefixedField` instead. */
-export const FormPrefixedInput = PrefixedField;

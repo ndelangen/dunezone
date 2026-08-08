@@ -10,7 +10,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 
-export const WORKERS_FREE_STATIC_ASSET_LIMIT = 20_000;
+const WORKERS_FREE_STATIC_ASSET_LIMIT = 20_000;
 export const WORKERS_STATIC_ASSET_FILE_LIMIT_BYTES = 25 * 1024 * 1024;
 
 export type PublisherAssetReport = {
@@ -34,7 +34,7 @@ const STORYBOOK_FORBIDDEN_RUNTIME_REFERENCES = [
 ] as const;
 const STORYBOOK_TEXT_EXTENSIONS = new Set(['.css', '.html', '.js', '.json']);
 
-export function normalizePublisherShell(shell: string): string {
+function normalizePublisherShell(shell: string): string {
   return shell.replace(
     /(i:"__root__\0",u:)\d+(,s:"success",ssr:!0)/g,
     (_match, prefix: string, suffix: string) => `${prefix}0${suffix}`

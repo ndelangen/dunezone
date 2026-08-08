@@ -263,5 +263,10 @@ job), scheduled osv-scanner, Harden-Runner in audit mode on `deploy-main.yml`.
 - **Knip**: adopted with [`knip.ts`](../../knip.ts) (route/publisher/worker/scripts entry points)
   and a `knip` job in `reusable-verify.yml`. Requires generated images for the
   `assetMap.generated` import to resolve, so the job reuses the generated-images cache.
+  Initial findings were cleaned up in full (~4,300 lines deleted): 21 dead files including the
+  dreamrules book (feature intentionally shelved — recover the page text from git history when
+  the book feature is redone), 8 unused dependencies, and ~112 unused exports/types. The three
+  `@tanstack/*devtools*` packages are `ignoreDependencies` (imported only from commented-out
+  dev-toggle code).
 - **Renovate / dependency automation**: deliberately not adopted — maintainer prefers avoiding
   update-churn PRs; dependency health is not a current pain point.

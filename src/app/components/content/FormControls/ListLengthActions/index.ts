@@ -1,1 +1,1 @@
-export { ListLengthActions, type ListLengthActionsProps } from './ListLengthActions';
+export { ListLengthActions } from './ListLengthActions';

@@ -16,6 +16,14 @@ const config: KnipConfig = {
     // Referenced by string from .storybook/main.ts (viteConfigPath).
     '.storybook/vite.config.ts',
   ],
+  // Dev-toggle devtools: imported only from commented-out code in
+  // src/app/routes/__root.tsx and vite.config.ts, kept for flipping on
+  // during debugging.
+  ignoreDependencies: [
+    '@tanstack/react-devtools',
+    '@tanstack/react-router-devtools',
+    '@tanstack/devtools-vite',
+  ],
   ignore: [
     // Research spikes, intentionally not wired into the app.
     'docs/**',

@@ -7,10 +7,7 @@ interface Size {
   height: number;
 }
 
-export const Svg: FC<PropsWithChildren & React.SVGProps<SVGSVGElement>> = ({
-  children,
-  ...props
-}) => (
+const Svg: FC<PropsWithChildren & React.SVGProps<SVGSVGElement>> = ({ children, ...props }) => (
   <svg className={styles.svg} {...props}>
     {children}
   </svg>

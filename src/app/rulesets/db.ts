@@ -23,7 +23,7 @@ export type RulesetEntry = Omit<RulesetRow, 'name'> & {
   name: Ruleset['name'];
   id: RulesetRow['_id'];
 };
-export type RulesetFactionSummary = {
+type RulesetFactionSummary = {
   factionId: string;
   name: string;
   urlSlug: string;
@@ -281,18 +281,4 @@ export function useDeleteRuleset() {
       ),
     mutateAsync: async (id: string) => await mutation.mutateAsync({ id }),
   };
-}
-
-export function useAddFactionToRuleset() {
-  return useLiveMutation<
-    { ruleset_id: string; faction_id: string },
-    { ruleset_id: string; faction_id: string }
-  >(api.rulesets.addFaction);
-}
-
-export function useRemoveFactionFromRuleset() {
-  return useLiveMutation<
-    { ruleset_id: string; faction_id: string },
-    { ruleset_id: string; faction_id: string }
-  >(api.rulesets.removeFaction);
 }

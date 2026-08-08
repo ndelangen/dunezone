@@ -164,7 +164,7 @@ export function preserveFactionExtras(values: Faction, baseline: Faction): Facti
   return next;
 }
 
-export type FactionAuthoringCoverageState = 'control' | 'preserved';
+type FactionAuthoringCoverageState = 'control' | 'preserved';
 
 type CoverageEntry = {
   state: FactionAuthoringCoverageState;

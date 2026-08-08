@@ -7,7 +7,7 @@ import styles from './Form.module.css';
 import type { TextFieldAppearance } from './TextField';
 import { textFieldClassNames } from './TextField';
 
-export interface OptionPickerOption {
+interface OptionPickerOption {
   value: string;
   label: ReactNode;
 }
