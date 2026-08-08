@@ -242,9 +242,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Pre-pull Convex images in background
-        # Overlaps the image pull with dependency/browser install; compose up
-        # in e2e-local.sh finds the images already present (or pulls the rest).
-        run: docker compose -f docker-compose.convex-local.yml pull -q > /tmp/convex-pull.log 2>&1 &
+        # Overlaps the image pull with dependency/browser install. The wait
+        # step below synchronizes before e2e-local.sh runs compose, so two
+        # compose processes never touch the same project concurrently.
+        run: |
+          (docker compose -f docker-compose.convex-local.yml pull -q > /tmp/convex-pull.log 2>&1 || true; touch /tmp/convex-pull.done) &
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -295,6 +297,9 @@ jobs:
           PLAYWRIGHT_USER_B_EMAIL=e2e-user-b@example.com
           PLAYWRIGHT_USER_PASSWORD=ci-test-password
           EOF
+      - name: Wait for Convex image pre-pull
+        # Non-fatal on timeout or pull failure: compose up pulls whatever is missing.
+        run: timeout 120 bash -c 'until [ -f /tmp/convex-pull.done ]; do sleep 1; done' || true
       - name: Run Docker + Playwright E2E
         run: bun run e2e:local
         env:
