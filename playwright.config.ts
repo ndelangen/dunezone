@@ -17,7 +17,12 @@ export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
   // Generates the e2e lcov report when E2E_COVERAGE=1 (no-op otherwise).
   globalTeardown: './e2e/global-teardown.ts',
-  reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
+  reporter: [
+    ['list'],
+    ['html', { open: 'never', outputFolder: 'playwright-report' }],
+    // Consumed by Codecov Test Analytics in CI; harmless locally.
+    ['junit', { outputFile: 'test-results/playwright.junit.xml' }],
+  ],
   use: {
     baseURL: baseUrl,
     headless: process.env.PLAYWRIGHT_HEADLESS === 'true',

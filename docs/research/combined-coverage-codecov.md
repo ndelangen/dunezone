@@ -348,3 +348,23 @@ Recorded here because the denominator decision
 - `after_n_builds: 4` means a silently failed upload (`fail_ci_if_error: false`) silently
   withholds the PR comment for that push; accepted — statuses still post per upload, and the
   next push retries — documented in `codecov.yml`.
+
+## 9. Bundle Analysis and Test Analytics (added 2026-08-08)
+
+Two further Codecov integrations, verified against primary sources before adoption:
+
+- **Bundle Analysis**: `@codecov/vite-plugin` is a dead end for this stack — its peer range stops
+  at Vite 6 and the Vite 7 request ([issue #264](https://github.com/codecov/codecov-javascript-bundler-plugins/issues/264))
+  has been unanswered since July 2025; nothing supports rolldown. Adopted instead:
+  [`@codecov/bundle-analyzer`](https://github.com/codecov/codecov-javascript-bundler-plugins/tree/main/packages/bundle-analyzer)
+  (same official monorepo), which analyzes the finished `dist/client` post-build — bundler-
+  agnostic, coarser per-module attribution than the in-bundler plugin would give. Uploads as
+  bundle `dunezone-client` from the `generate_and_build` job; not tokenless, so fork PRs skip it.
+  Storybook/worker bundles can be added later with their own `--bundle-name`s.
+- **Test Analytics**: every suite emits JUnit XML (Vitest: `--reporter=junit`
+  `--outputFile.junit=...` alongside the default reporter; Playwright: a `junit` entry in the
+  reporter array) and uploads via `codecov/codecov-action@v5` with `report_type: test_results`
+  (the standalone `test-results-action` is deprecated) and the suite's flag. Upload steps run
+  `if: ${{ !cancelled() }}` — failed-run results are the entire point. Free plan includes
+  failed-test reporting (60-day retention). Flaky-test *detection* is available on the free plan
+  for public/open-source repositories; private repositories need Pro or Enterprise.
