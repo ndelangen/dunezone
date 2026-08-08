@@ -1,7 +1,7 @@
 import { Group, Image, Select, Text } from '@mantine/core';
 import type { SelectProps } from '@mantine/core';
 
-export interface AssetSelectOption {
+interface AssetSelectOption {
   value: string;
   label: string;
   disabled?: boolean;

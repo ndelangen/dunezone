@@ -1,1 +1,1 @@
-export { ControlBlock, type ControlBlockProps } from './ControlBlock';
+export { ControlBlock } from './ControlBlock';

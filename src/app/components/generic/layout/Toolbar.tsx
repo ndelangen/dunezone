@@ -4,7 +4,7 @@ import type { ComponentPropsWithoutRef, PropsWithChildren, ReactNode } from 'rea
 
 import styles from './Toolbar.module.css';
 
-export type ToolbarSlotProps = PropsWithChildren;
+type ToolbarSlotProps = PropsWithChildren;
 
 function Left({ children }: ToolbarSlotProps) {
   return <>{children}</>;

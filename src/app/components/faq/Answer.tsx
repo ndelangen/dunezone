@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
 
-export type AnswerListProps = {
+type AnswerListProps = {
   children: ReactNode;
   className?: string;
 };
@@ -10,7 +10,7 @@ function List({ children, className }: AnswerListProps) {
   return <ul className={className}>{children}</ul>;
 }
 
-export type AnswerItemProps = {
+type AnswerItemProps = {
   children: ReactNode;
   className?: string;
   id?: string;

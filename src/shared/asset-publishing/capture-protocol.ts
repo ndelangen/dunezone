@@ -39,9 +39,6 @@ export const CAPTURE_PROTOCOL = {
   },
 } as const;
 
-export type CaptureMarkerState =
-  (typeof CAPTURE_PROTOCOL.states)[keyof typeof CAPTURE_PROTOCOL.states];
-
 const PAYLOAD_HASH_PATTERN = /^[0-9a-f]{64}$/;
 
 export function isCapturePayloadHash(value: string | null): value is string {

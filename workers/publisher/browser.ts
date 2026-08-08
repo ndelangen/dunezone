@@ -137,7 +137,7 @@ export function publisherCaptureCookies(
   ];
 }
 
-export async function inspectPublisherPdf(bytes: Uint8Array) {
+async function inspectPublisherPdf(bytes: Uint8Array) {
   try {
     const inspection = await inspectChromiumPdf(bytes);
     assertCapturedPdfOutput(inspection);

@@ -16,8 +16,6 @@ export type PublisherFontFaceSet = {
   check(font: string, text?: string): boolean;
 };
 
-export type RequiredPublisherFontFace = (typeof requiredPublisherFontFaces)[number];
-
 function normalizedFamily(value: string): string {
   return value.replaceAll(/["']/g, '').trim();
 }

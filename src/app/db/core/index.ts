@@ -2,13 +2,11 @@ import { ConvexHttpClient } from 'convex/browser';
 import { ConvexReactClient } from 'convex/react';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 
-import { api } from '../../../../convex/_generated/api';
-
 const convexUrl = import.meta.env.VITE_CONVEX_URL!;
 export const convex = new ConvexReactClient(convexUrl);
 
 /** TanStack Start sets this while generating static HTML; no user session or reliable backend. */
-export function isTanStackStartPrerendering(): boolean {
+function isTanStackStartPrerendering(): boolean {
   return typeof process !== 'undefined' && process.env?.TSS_PRERENDERING === 'true';
 }
 
@@ -38,12 +36,5 @@ export const db = {
   ): Promise<FunctionReturnType<Mutation>> => {
     const backend = convexBackendForDb();
     return await backend.mutation(fn, args as never);
-  },
-};
-
-export const auth = {
-  getUser: async () => {
-    const userId = await db.query(api.profiles.currentUserId, {});
-    return { data: { user: userId ? { id: userId } : null } };
   },
 };

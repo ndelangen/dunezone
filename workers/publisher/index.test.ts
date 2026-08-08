@@ -11,7 +11,7 @@ vi.mock('./browser', async (importOriginal) => ({
   openPublisherBrowser: browserMocks.open,
 }));
 
-import { publisherWorker } from './index';
+import publisherWorker from './index';
 
 const NOW = Date.parse('2026-07-17T12:00:00.000Z');
 const GIT_SHA = 'a'.repeat(40);

@@ -9,7 +9,7 @@ import styles from './HexColorPicker.module.css';
 import { PrefixedField } from './PrefixedField';
 import { TextField } from './TextField';
 
-export function normalizePickerHex(hex: string): string {
+function normalizePickerHex(hex: string): string {
   if (/^#[0-9a-f]{6}$/i.test(hex)) {
     return hex.toLowerCase();
   }

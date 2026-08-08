@@ -16,7 +16,7 @@ import { PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
 
 export const RECOMPRESS_RGB_SCALE = 0.35;
 /** Only square-ish art rasters; text/name masks are wide-short and stay lossless. */
-export const RECOMPRESS_MIN_DIMENSION_PX = 300;
+const RECOMPRESS_MIN_DIMENSION_PX = 300;
 /** Post-compression ceiling (#257): leader-heavy factions land well under this. */
 export const RECOMPRESSED_PDF_MAX_BYTES = 4_000_000;
 

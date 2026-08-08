@@ -12,18 +12,50 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Lint and check formatting
-        run: bun run check
+      - name: Lint with inline PR annotations
+        run: bun run lint:ci
+      - name: Check formatting
+        run: bun run format:check
+
+  knip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2.2.0
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Restore generated images
+        id: image_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/image
+            public/web
+            src/game/data/assetMap.generated.ts
+          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
+      - name: Generate image variants
+        if: steps.image_cache.outputs.cache-hit != 'true'
+        run: bun run generate:images
+      - name: Detect unused files, exports, and dependencies
+        run: bun run knip
 
   convex_skip_guard:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -36,6 +68,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -60,6 +94,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -84,6 +120,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -114,6 +152,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -162,6 +202,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
       - name: Install dependencies
@@ -187,6 +229,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
@@ -241,6 +284,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Pre-pull Convex images in background
         # Overlaps the image pull with dependency/browser install. The wait
         # step below synchronizes before e2e-local.sh runs compose, so two

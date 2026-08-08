@@ -27,7 +27,7 @@ export const RENDERER_RUNTIME_CLOSURE_PATHS = [
  * git-diff even though the served bytes are produced in CI (wayfinder #269). Encoder output is
  * deliberately never hashed: sharp makes no byte-stability promise across platforms.
  */
-export const GENERATED_IMAGE_INGREDIENT_PATHS = [
+const GENERATED_IMAGE_INGREDIENT_PATHS = [
   'src/shared/assetRules.ts',
   'scripts/generate-images.ts',
 ] as const;

@@ -11,9 +11,9 @@ import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
-export type FaqItemRow = Doc<'faq_items'>;
-export type FaqAnswerRow = Doc<'faq_answers'>;
-export type FaqItemEntry = FaqItemRow;
+type FaqItemRow = Doc<'faq_items'>;
+type FaqAnswerRow = Doc<'faq_answers'>;
+type FaqItemEntry = FaqItemRow;
 export type FaqAnswerEntry = FaqAnswerRow;
 
 export type FaqItemWithDetails = FaqItemEntry & {

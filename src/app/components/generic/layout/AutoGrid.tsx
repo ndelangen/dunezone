@@ -10,7 +10,7 @@ const gapClass = {
   6: styles.gap6,
 } as const;
 
-export type AutoGridGap = keyof typeof gapClass;
+type AutoGridGap = keyof typeof gapClass;
 
 type AutoGridStyle = CSSProperties & { '--auto-grid-min'?: string };
 
