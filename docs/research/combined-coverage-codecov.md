@@ -39,7 +39,7 @@ the value.
 integration" splits and multi-language repos; Codecov merges them and deliberately delays PR
 comments/notifications "until all reports are uploaded and merged"
 ([merging reports](https://docs.codecov.com/docs/merging-reports)). With three suites in three
-jobs, the comment may still fire early if a job is slow; `codecov.notify.after_n_builds: 3` in
+jobs, the comment may still fire early if a job is slow; `codecov.notify.after_n_builds` (now 4) in
 `codecov.yml` makes Codecov wait for all three uploads
 ([codecov.yml reference](https://docs.codecov.com/docs/codecovyml-reference)).
 
@@ -91,7 +91,7 @@ Proposed `codecov.yml`:
 ```yaml
 codecov:
   notify:
-    after_n_builds: 3 # unit, publisher, e2e (4 once storybook lands)
+    after_n_builds: 4 # unit, publisher, e2e, storybook
 coverage:
   status:
     project:
@@ -108,7 +108,10 @@ flags:
     carryforward: true
   e2e:
     carryforward: true
+  storybook:
+    carryforward: true
 comment:
+  after_n_builds: 4
   layout: "diff, flags, files"
 ```
 

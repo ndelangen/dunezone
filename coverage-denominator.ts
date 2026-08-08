@@ -7,7 +7,9 @@ import { coverageConfigDefaults } from 'vitest/config';
 // Extension-scoped rather than bare globs: bare `src/**` pulled non-code
 // files (local publisher dist output, tsconfig.json) into the denominator.
 // A new source extension (.js, .mts) must be added here to be counted.
-export const coverageInclude = ['src/**/*.{ts,tsx}', 'convex/**/*.ts', 'workers/**/*.ts'];
+export const coverageIncludeSrc = 'src/**/*.{ts,tsx}';
+
+export const coverageInclude = [coverageIncludeSrc, 'convex/**/*.ts', 'workers/**/*.ts'];
 
 export const coverageExclude = [
   ...coverageConfigDefaults.exclude,

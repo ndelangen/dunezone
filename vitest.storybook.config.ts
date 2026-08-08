@@ -7,7 +7,7 @@ import viteReact from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
-import { coverageExclude } from './coverage-denominator';
+import { coverageExclude, coverageIncludeSrc } from './coverage-denominator';
 
 export default defineConfig({
   // Mirrors .storybook/vite.config.ts — the addon does not load the custom
@@ -36,7 +36,7 @@ export default defineConfig({
       reporter: ['text-summary', 'lcov'],
       reportsDirectory: 'coverage/storybook',
       // Stories only exercise src; suite-scoped like the publisher flag.
-      include: ['src/**/*.{ts,tsx}'],
+      include: [coverageIncludeSrc],
       exclude: coverageExclude,
     },
   },
