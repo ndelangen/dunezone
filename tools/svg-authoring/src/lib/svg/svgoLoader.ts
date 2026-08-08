@@ -22,12 +22,20 @@ export async function ensureSvgo(): Promise<SvgoOptimize> {
       };
       cached = mod.optimize;
       return cached;
-    })();
+    })().catch((error) => {
+      loading = null; // allow a retry after a failed import
+      throw error;
+    });
   }
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error("SVGO load timed out")), LOAD_TIMEOUT_MS),
   );
-  return Promise.race([loading, timeout]);
+  try {
+    return await Promise.race([loading, timeout]);
+  } catch (error) {
+    loading = null; // a timed-out attempt must not poison future calls
+    throw error;
+  }
 }
 
 export function getSvgo(): SvgoOptimize | null {

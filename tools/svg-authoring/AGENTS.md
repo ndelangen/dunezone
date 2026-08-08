@@ -1,3 +1,10 @@
+> This tool lives inside the dunezone repo as a self-contained bun workspace
+> (wayfinder #311). Repo-wide conventions live in the root AGENTS.md and
+> docs/README.md — consult those first; run gates from the repo root
+> (\`bun run tool:typecheck\`, \`bun run tool:test\`). The workspace keeps its own
+> code style and is excluded from root lint/format/knip because it is
+> extraction-destined (a future public Netlify/npm release).
+
 # Codex repository guide
 
 ## Project overview

@@ -2,12 +2,8 @@ import type { SvgMeta, ViewBox } from "./types";
 
 export function parseViewBox(value: string | null): ViewBox | null {
   if (!value) return null;
-  const parts = value
-    .trim()
-    .split(/[\s,]+/)
-    .map(Number)
-    .filter(Number.isFinite);
-  if (parts.length < 4) return null;
+  const parts = value.trim().split(/[\s,]+/).map(Number);
+  if (parts.length !== 4 || !parts.every(Number.isFinite)) return null;
   return [parts[0], parts[1], parts[2], parts[3]];
 }
 

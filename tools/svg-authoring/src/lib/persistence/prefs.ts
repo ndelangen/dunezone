@@ -21,7 +21,22 @@ export function loadPrefs(): StepsState | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? (parsed as StepsState) : null;
+    if (!parsed || typeof parsed !== "object") return null;
+    // Drop structurally invalid entries so pipeline code can rely on
+    // steps[stepId].config being an object.
+    const valid: StepsState = {};
+    for (const [id, state] of Object.entries(parsed as Record<string, unknown>)) {
+      if (
+        state &&
+        typeof state === "object" &&
+        typeof (state as { enabled?: unknown }).enabled === "boolean" &&
+        (state as { config?: unknown }).config !== null &&
+        typeof (state as { config?: unknown }).config === "object"
+      ) {
+        valid[id] = state as StepsState[string];
+      }
+    }
+    return Object.keys(valid).length > 0 ? valid : null;
   } catch {
     return null;
   }

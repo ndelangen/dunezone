@@ -109,7 +109,7 @@ export function ObjExportPanel() {
             type="number"
             min={1}
             value={depth}
-            onChange={(e) => setDepth(Number(e.target.value))}
+            onChange={(e) => { const n = Number(e.target.value); if (Number.isFinite(n) && n >= 1) setDepth(n); }}
             className="w-20"
           />
         </div>
@@ -122,7 +122,7 @@ export function ObjExportPanel() {
             min={1}
             max={24}
             value={curveSegments}
-            onChange={(e) => setCurveSegments(Number(e.target.value))}
+            onChange={(e) => { const n = Number(e.target.value); if (Number.isFinite(n) && n >= 1) setCurveSegments(Math.round(n)); }}
             className="w-20"
           />
         </div>
@@ -135,7 +135,7 @@ export function ObjExportPanel() {
             min={0}
             max={8}
             value={precision}
-            onChange={(e) => setPrecision(Number(e.target.value))}
+            onChange={(e) => { const n = Number(e.target.value); if (Number.isFinite(n) && n >= 0) setPrecision(Math.round(n)); }}
             className="w-20"
           />
         </div>

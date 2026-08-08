@@ -29,7 +29,10 @@ export function usePersistence(): { hydrated: boolean } {
 
     loadSession()
       .then((docs) => {
-        if (docs && docs.length > 0) {
+        // Restore only while the workspace is still pristine: a whole-array
+        // replace must never discard documents the user added while the
+        // IndexedDB read was in flight.
+        if (docs && docs.length > 0 && useAppStore.getState().docs.length === 0) {
           useAppStore.setState({ docs, previewId: docs[0].id });
         }
       })

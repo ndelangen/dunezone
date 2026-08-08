@@ -46,11 +46,11 @@ test.describe("Stage 1 — ingest, crop, download", () => {
       .getByTestId("viewbox-badge");
     await expect(badge).toHaveText("0 0 100 100");
 
-    await page.getByTestId("margin-input").fill("10");
+    await page.getByTestId("margin-input").fill("0.1");
     await page.getByTestId("run-crop").click();
 
-    // content 20,30,30,20 padded by 10 -> 10 20 50 40
-    await expect(badge).toHaveText("10 20 50 40");
+    // content 20,30,30,20; margin = 0.1 * 30 = 3 -> 17 27 36 26
+    await expect(badge).toHaveText("17 27 36 26");
   });
 
   test("downloads a single cropped SVG", async ({ page }) => {

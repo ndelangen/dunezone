@@ -1,8 +1,14 @@
 # SVG Pipeline Tool
 
-A browser-only tool for batch-normalizing SVG files. Crop to content, normalize
-aspect ratio and scale, mirror, optimize dirty paths, and (later) export to OBJ —
-all client-side, no server, no auth. Nothing you upload ever leaves your machine.
+A browser-only tool for authoring dunezone vector sources. Crop to content with a
+proportional margin, mirror, optimize dirty paths, recolor, set the #root id, stamp
+provenance, pretty-format, and export OBJ previews — all client-side, no server, no
+auth. Nothing you upload ever leaves your machine.
+
+Scale/aspect normalization is deliberately NOT here: the dunezone build generator
+normalizes every source into the shared 0 0 100 100 space (wayfinder #294). This tool
+authors media/vector sources; the train owns the coordinate space. The OBJ chain is
+shared with the build (src/shared/svgToObj.ts).
 
 ## Stack
 

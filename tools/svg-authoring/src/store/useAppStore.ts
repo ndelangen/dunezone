@@ -167,33 +167,37 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSteps: (steps) => set({ steps }),
 
   runStepById: async (stepId) => {
-    const { docs, steps } = get();
     const step = getStep(stepId);
     if (!step) return;
-    if (stepId === "optimizePaths" && steps[stepId].config.level === "heavy") {
+    if (stepId === "optimizePaths" && get().steps[stepId].config.level === "heavy") {
       try {
         await ensureSvgo();
       } catch {
         /* heavy optimize will degrade to medium */
       }
     }
+    // Read state AFTER the potentially slow await so edits made while SVGO
+    // loaded are not overwritten by a stale snapshot.
+    const { docs, steps } = get();
     const next = runStep(docs, step, steps[stepId].config, ctx());
     set({ docs: next });
   },
 
   runPipeline: async () => {
-    const { docs, steps } = get();
-    const invocations: StepInvocation[] = PIPELINE_STEPS.filter(
-      (s) => steps[s.id]?.enabled,
-    ).map((s) => ({ step: s, config: steps[s.id].config }));
-    if (invocations.length === 0) return;
-    if (needsSvgo(steps)) {
+    if (needsSvgo(get().steps)) {
       try {
         await ensureSvgo();
       } catch {
         /* heavy optimize will degrade to medium */
       }
     }
+    // Read state AFTER the potentially slow await so edits made while SVGO
+    // loaded are not overwritten by a stale snapshot.
+    const { docs, steps } = get();
+    const invocations: StepInvocation[] = PIPELINE_STEPS.filter(
+      (s) => steps[s.id]?.enabled,
+    ).map((s) => ({ step: s, config: steps[s.id].config }));
+    if (invocations.length === 0) return;
     // The pipeline is a pure function of (original, flip flags, config): reset
     // selected docs to their source first so repeated runs are deterministic.
     const reset = docs.map((d) =>

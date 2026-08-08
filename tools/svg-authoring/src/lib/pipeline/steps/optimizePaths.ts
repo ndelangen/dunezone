@@ -59,12 +59,12 @@ function optimizeLight(
 }
 
 /** Medium: whole-document simplification via svg-path-simplify. */
-function optimizeMedium(svgString: string, precision: number): string {
+function optimizeMedium(svgString: string, precision: number, removeMetadata: boolean): string {
   try {
     const result = svgPathSimplify(svgString, {
       decimals: precision,
-      removeComments: true,
-      removeMetadata: true,
+      removeComments: removeMetadata,
+      removeMetadata,
       simplifyBezier: true,
       removeColinear: true,
       mergePaths: false,
@@ -99,7 +99,7 @@ export const optimizePaths: PipelineStep<OptimizeConfig> = {
 
     return docs.map((doc) => {
       if (config.level === "medium") {
-        const next = optimizeMedium(doc.current, precision);
+        const next = optimizeMedium(doc.current, precision, config.removeMetadata);
         return { ...doc, current: next };
       }
 
@@ -109,7 +109,7 @@ export const optimizePaths: PipelineStep<OptimizeConfig> = {
         if (getSvgo()) {
           return { ...doc, current: optimizeWithSvgo(doc.current, precision) };
         }
-        return { ...doc, current: optimizeMedium(doc.current, precision) };
+        return { ...doc, current: optimizeMedium(doc.current, precision, config.removeMetadata) };
       }
 
       // light

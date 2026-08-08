@@ -45,6 +45,12 @@ const failures: string[] = [];
 const PAINT_ATTRIBUTE = /\s(?:fill|stroke)="(?!none")/;
 const PAINT_STYLE = /\sstyle="[^"]*(?:fill|stroke)\s*:\s*(?!none)/;
 
+/** True when the stamp is an attribute of the opening root `<svg …>` tag itself. */
+function rootTagCarriesStamp(svg: string): boolean {
+  const rootTag = svg.match(/<svg\b[^>]*>/);
+  return rootTag !== null && rootTag[0].includes(`${VECTOR_AUTHORED_ATTRIBUTE}="`);
+}
+
 const sources = walk(mediaRoot).filter((file) => file.endsWith('.svg'));
 const sourceRelatives = new Set(
   sources.map((file) => path.relative(mediaRoot, file).split(path.sep).join('/'))
@@ -85,14 +91,16 @@ for (const relative of sourceRelatives) {
   }
 
   // 7. authoring stamp (#298; hard since #311 — the in-repo tool emits it, legacy sources are
-  // batch-stamped, so a missing stamp means the file never went through the authoring pipeline)
+  // batch-stamped, so a missing stamp means the file never went through the authoring pipeline).
+  // Checked as an attribute of the root <svg> tag, not as a substring: a mention in a comment or
+  // text node must not satisfy the gate.
   const source = readFileSync(path.join(mediaRoot, relative), 'utf8');
-  if (!source.includes(`${VECTOR_AUTHORED_ATTRIBUTE}=`)) {
+  if (!rootTagCarriesStamp(source)) {
     failures.push(
-      `${relative}: source has no ${VECTOR_AUTHORED_ATTRIBUTE} stamp — run it through the authoring tool`
+      `${relative}: root <svg> has no ${VECTOR_AUTHORED_ATTRIBUTE} stamp — run it through the authoring tool`
     );
   }
-  if (generated.includes(`${VECTOR_AUTHORED_ATTRIBUTE}=`)) {
+  if (rootTagCarriesStamp(generated)) {
     failures.push(`${relative}: authoring stamp leaked into generated output`);
   }
 }

@@ -10,6 +10,12 @@ function doc() {
 }
 
 describe("setRootId", () => {
+  it("applies the default root id from defaultConfig", () => {
+    const ctx = createTestContext();
+    const [out] = setRootId.run([doc()], setRootId.defaultConfig, ctx);
+    expect(out.current).toContain('id="root"');
+  });
+
   it("adds id=root by default", () => {
     const ctx = createTestContext();
     const [out] = setRootId.run([doc()], { id: "root" }, ctx);

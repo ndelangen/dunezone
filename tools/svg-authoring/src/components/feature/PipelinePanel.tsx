@@ -53,7 +53,12 @@ function NumberField({
         min={min}
         step={step}
         value={Number.isFinite(value) ? value : ""}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => {
+          const n = Number(e.target.value);
+          // Browser min/step are hints, not validation: never store NaN or
+          // negatives in step configuration.
+          if (Number.isFinite(n) && n >= min) onChange(n);
+        }}
         className="w-24"
       />
     </div>
