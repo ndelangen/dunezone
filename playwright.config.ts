@@ -24,8 +24,20 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   projects: [
+    // Runs alone, before everything else: this spec asserts on per-frame
+    // animation samples, which starve when parallel workers compete for CPU.
+    {
+      name: 'animation',
+      testMatch: /page-header-transition\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.playwright/user-a-header.json',
+      },
+    },
     {
       name: 'userA',
+      testIgnore: /page-header-transition\.spec\.ts/,
+      dependencies: ['animation'],
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.playwright/user-a.json',
