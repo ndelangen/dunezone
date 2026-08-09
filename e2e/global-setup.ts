@@ -74,9 +74,11 @@ export default async function globalSetup(config: FullConfig) {
   }
 
   await mkdir('.playwright', { recursive: true });
-  // Each spec file gets its own session: Convex Auth rotates refresh tokens,
-  // so two parallel workers sharing a storage state would invalidate each
-  // other's session mid-run. Logins are independent, so they run concurrently.
+  /**
+   * Each spec file gets its own session: Convex Auth rotates refresh tokens, so two parallel
+   * workers sharing a storage state would invalidate each other's session mid-run. Logins are
+   * independent, so they run concurrently.
+   */
   const sessions: Credentials[] = [
     { email: userAEmail, password: userPassword, storageStatePath: '.playwright/user-a.json' },
     {
@@ -103,12 +105,24 @@ export default async function globalSetup(config: FullConfig) {
       storageStatePath: '.playwright/user-b-group.json',
     },
   ];
-  // The first login runs alone: it warms the vite dev server's on-demand
-  // module transforms. Eight cold first-loads at once starve each other and
-  // time out before the login form renders.
-  const [first, ...rest] = sessions;
-  await loginWithLocalAuth(baseUrl, first);
-  await Promise.all(rest.map((credentials) => loginWithLocalAuth(baseUrl, credentials)));
+  /*
+   * Logins for the SAME user run sequentially: concurrent sign-ins write the same Convex Auth
+   * user doc, and the static build made logins fast enough to overlap in that mutation window
+   * (one of three simultaneous user-B logins timed out in CI). Distinct users don't contend, so
+   * their chains run in parallel. (The dev server's transform latency used to stagger this race
+   * away; the old first-login-alone warmup went with it.)
+   */
+  const byUser = new Map<string, Credentials[]>();
+  for (const session of sessions) {
+    byUser.set(session.email, [...(byUser.get(session.email) ?? []), session]);
+  }
+  await Promise.all(
+    [...byUser.values()].map(async (chain) => {
+      for (const credentials of chain) {
+        await loginWithLocalAuth(baseUrl, credentials);
+      }
+    })
+  );
 
   execSync(`npx convex run e2e:seedBaseline '${JSON.stringify({ ownerEmail: userAEmail })}'`, {
     stdio: 'inherit',

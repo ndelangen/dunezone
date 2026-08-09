@@ -104,8 +104,8 @@ export const optimizePaths: PipelineStep<OptimizeConfig> = {
       }
 
       if (config.level === "heavy") {
-        // SVGO must be preloaded by the caller (store) before running. If it
-        // is not yet available we degrade gracefully to medium.
+        /* SVGO must be preloaded by the caller (store) before running. If it
+           is not yet available we degrade gracefully to medium. */
         if (getSvgo()) {
           return { ...doc, current: optimizeWithSvgo(doc.current, precision) };
         }

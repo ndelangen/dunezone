@@ -11,17 +11,27 @@ permissions:
   contents: read
 
 jobs:
-  lint:
+  actionlint:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Lint GitHub Actions workflows
+        run: >-
+          docker run --rm -v "${PWD}:/repo" --workdir /repo
+          rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+          -color
+
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
       - name: Lint with inline PR annotations
         run: bun run lint:ci
       - name: Check formatting
@@ -29,71 +39,36 @@ jobs:
 
   knip:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Restore generated images
-        id: image_cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            public/image
-            public/web
-            src/game/data/assetMap.generated.ts
-          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
-      - name: Generate image variants
-        if: steps.image_cache.outputs.cache-hit != 'true'
-        run: bun run generate:images
-      - name: Generate vector variants
-        run: bun run generate:vectors
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
       - name: Detect unused files, exports, and dependencies
         run: bun run knip
 
   convex_skip_guard:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - name: Enforce Convex skip guard
         run: bun run check:convex-skip
 
   typecheck:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Restore generated images
-        id: image_cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            public/image
-            public/web
-            src/game/data/assetMap.generated.ts
-          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
-      - name: Generate image variants
-        if: steps.image_cache.outputs.cache-hit != 'true'
-        run: bun run generate:images
-      - name: Generate vector variants
-        run: bun run generate:vectors
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
       - name: Typecheck
         run: bun run typecheck
       - name: Typecheck authoring tool
@@ -101,35 +76,19 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Restore generated images
-        id: image_cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            public/image
-            public/web
-            src/game/data/assetMap.generated.ts
-          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
-      - name: Generate image variants
-        if: steps.image_cache.outputs.cache-hit != 'true'
-        run: bun run generate:images
-      - name: Generate vector variants
-        run: bun run generate:vectors
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
       - name: Authoring tool tests
         run: bun run tool:test
       - name: Unit tests
         run: bun run test --coverage --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-unit.junit.xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
@@ -139,7 +98,7 @@ jobs:
       - name: Upload test results to Codecov
         # Failure results are the point of Test Analytics — upload unless cancelled.
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -150,35 +109,19 @@ jobs:
 
   generate_and_build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       # Job-level so the bundle-upload step's `if` can test it — the secrets
       # context is not available in step-level `if` conditions.
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - name: Generate app artifacts
         run: bun run generate
-      - name: Restore generated images
-        id: image_cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            public/image
-            public/web
-            src/game/data/assetMap.generated.ts
-          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
-      - name: Generate image variants
-        if: steps.image_cache.outputs.cache-hit != 'true'
-        run: bun run generate:images
-      - name: Generate vector variants
-        run: bun run generate:vectors
+      - uses: ./.github/actions/generated-images
       - name: Verify generated images structurally
         run: bun run verify:images
       - name: Verify generated vectors structurally
@@ -190,20 +133,14 @@ jobs:
         env:
           VITE_CONVEX_URL: https://example.convex.cloud
       - name: Upload bundle stats to Codecov (per category)
-        # @codecov/vite-plugin only peers with Vite <=6 (no rolldown support),
-        # so the bundler-agnostic analyzer runs on the finished client build
-        # instead. One bundle per asset category: dist/client is ~96% generated
-        # media, and a single blob would let an image regeneration bury an
-        # app-code regression. dunezone-app (compiled JS/CSS) is the one that
-        # tracks dependency/code bloat. Not tokenless — skipped on fork PRs
-        # where the secret is absent; never fails the build.
+        # Bundler-agnostic analyzer (@codecov/vite-plugin peers with Vite <=6 only);
+        # one bundle per asset category so media regeneration can't bury an app-code
+        # regression. Skipped on fork PRs (no token); never fails the build.
         if: ${{ env.CODECOV_TOKEN != '' }}
         continue-on-error: true
         run: |
           set -uo pipefail
-          # Each category uploads independently: one transient failure must
-          # not suppress the remaining bundles. Aggregate status surfaces as a
-          # warning; continue-on-error keeps the job green either way.
+          # Categories upload independently; failures aggregate into one warning.
           status=0
           upload() {
             local name="$1"
@@ -213,7 +150,13 @@ jobs:
               status=1
             fi
           }
-          upload dunezone-app dist/client/public
+          # Vite emits base64-style hashes (index-De4XUz5O.js) which the
+          # analyzer's hex-only fallback regex never matches, so without a
+          # pattern every build reports all assets as deleted+added. Only the
+          # app bundle gets the pattern: the generated-media categories have
+          # stable un-hashed names, and the pattern would collapse any
+          # dash-containing name (foo-bar.png -> foo-*.png) into collisions.
+          upload dunezone-app dist/client/public --normalize-assets-pattern='[name]-[hash].js'
           upload dunezone-images dist/client/image dist/client/web
           upload dunezone-vectors dist/client/vector
           upload dunezone-objs dist/client/obj
@@ -223,41 +166,25 @@ jobs:
 
   publisher_release:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Restore generated images
-        id: image_cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            public/image
-            public/web
-            src/game/data/assetMap.generated.ts
-          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
-      - name: Generate image variants
-        if: steps.image_cache.outputs.cache-hit != 'true'
-        run: bun run generate:images
-      - name: Generate vector variants
-        run: bun run generate:vectors
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
       - name: Verify generated images structurally
         run: bun run verify:images
       - name: Verify generated vectors structurally
         run: bun run verify:vectors
-      - name: Log generated output digest (informational, not part of identity)
+      - name: Log generated output digest
         run: find public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
       - name: Generate OBJ pieces
         run: bun run generate:objs
       - name: Test publisher and delivery
         run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-publisher.junit.xml
       - name: Upload publisher coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
@@ -266,7 +193,7 @@ jobs:
           fail_ci_if_error: false
       - name: Upload publisher test results to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -280,16 +207,7 @@ jobs:
         run: bun run publisher:release:verify
         env:
           VITE_CONVEX_URL: https://exuberant-finch-263.eu-west-1.convex.cloud
-      - name: Resolve Playwright version
-        id: playwright
-        run: echo "version=$(bun -e 'console.log(require("@playwright/test/package.json").version)')" >> "$GITHUB_OUTPUT"
-      - name: Cache Playwright Chromium
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ steps.playwright.outputs.version }}
-      - name: Install Chromium for publisher contract regression
-        run: npx playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-chromium
       - name: Exercise narrow snapshot contract in Chromium
         run: bun run workers/publisher/capture-contract-regression.ts
       - name: Check Worker startup
@@ -297,71 +215,34 @@ jobs:
 
   tool_e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Resolve Playwright version
-        id: playwright
-        run: echo "version=$(bun -e 'console.log(require("@playwright/test/package.json").version)')" >> "$GITHUB_OUTPUT"
-      - name: Cache Playwright Chromium
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ steps.playwright.outputs.version }}
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/playwright-chromium
       - name: Authoring tool E2E
         run: bun run tool:test:e2e
 
   storybook:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Restore generated images
-        id: image_cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            public/image
-            public/web
-            src/game/data/assetMap.generated.ts
-          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
-      - name: Generate image variants
-        if: steps.image_cache.outputs.cache-hit != 'true'
-        run: bun run generate:images
-      - name: Generate vector variants
-        run: bun run generate:vectors
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
       - name: Build Storybook
         run: bun run build-storybook
-      - name: Resolve Playwright version
-        id: playwright
-        run: echo "version=$(bun -e 'console.log(require("@playwright/test/package.json").version)')" >> "$GITHUB_OUTPUT"
-      - name: Cache Playwright Chromium
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ steps.playwright.outputs.version }}
-      - name: Install Chromium for story tests
-        run: npx playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-chromium
       - name: Verify generated images structurally
         run: bun run verify:images
       - name: Run story tests with coverage
         run: bun run storybook:test --coverage.enabled=true --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-storybook.junit.xml
       - name: Upload storybook coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/storybook/lcov.info
@@ -370,7 +251,7 @@ jobs:
           fail_ci_if_error: false
       - name: Upload storybook test results to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -381,32 +262,21 @@ jobs:
 
   migration_static_narrow:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - name: Detect schema narrowing for slug fields
         id: narrow_check
+        # Reusable Verify only runs from PR CI, so base_ref is always set.
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
-
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BASE_REF="origin/${{ github.base_ref }}"
-            git fetch origin "${{ github.base_ref }}" --depth=1
-            RANGE="$BASE_REF...HEAD"
-          elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
-            RANGE="${{ github.event.before }}...HEAD"
-          else
-            RANGE="HEAD~1...HEAD"
-          fi
-
-          DIFF="$(git diff --unified=0 "$RANGE" -- convex/schema.ts || true)"
+          DIFF="$(git diff --unified=0 "origin/${BASE_REF}...HEAD" -- convex/schema.ts || true)"
           if echo "$DIFF" | grep -Eq "^-\\s*slug:\\s*v\\.optional\\(v\\.string\\(\\)\\)" && \
              echo "$DIFF" | grep -Eq "^\\+\\s*slug:\\s*v\\.string\\(\\)"; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -415,70 +285,26 @@ jobs:
           fi
       - name: Enforce static narrow guard contract
         if: steps.narrow_check.outputs.changed == 'true'
-        run: |
-          bun -e '
-          const manifest = await Bun.file("convex/migration-guards.json").json();
-          const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
-          if (entries.length === 0) throw new Error("migration-guards.json has no entries");
-          const ids = new Set(entries.map((e) => e.id));
-          const narrowEntries = entries.filter((e) => e.phase === "narrow");
-          if (narrowEntries.length === 0) throw new Error("At least one narrow entry is required when schema narrowing is detected");
-          for (const entry of entries) {
-            if (entry.phase !== "widen" && entry.phase !== "narrow") {
-              throw new Error(`Invalid phase for ${entry.id}`);
-            }
-            for (const req of entry.requires ?? []) {
-              if (!ids.has(req)) throw new Error(`Missing required migration id: ${req}`);
-            }
-          }
-          '
-          echo "Static narrow guard passed."
+        run: bun run migrations:static-check
 
   e2e_docker:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
       - name: Pre-pull Convex images in background
-        # Overlaps the image pull with dependency/browser install. The wait
-        # step below synchronizes before e2e-local.sh runs compose, so two
-        # compose processes never touch the same project concurrently.
+        # Overlaps the pull with dependency/browser install; the wait step below
+        # serializes before e2e-local.sh runs compose.
         run: |
           (docker compose -f docker-compose.convex-local.yml pull -q > /tmp/convex-pull.log 2>&1 || true; touch /tmp/convex-pull.done) &
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Resolve Playwright version
-        id: playwright
-        run: echo "version=$(bun -e 'console.log(require("@playwright/test/package.json").version)')" >> "$GITHUB_OUTPUT"
-      - name: Cache Playwright Chromium
-        uses: actions/cache@v4
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/playwright-chromium
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ steps.playwright.outputs.version }}
-      - name: Install Playwright browsers
-        # No --with-deps: the ubuntu-24.04 runner image already ships every
-        # shared library Chromium needs; Playwright validates at launch and
-        # fails fast if that ever stops being true.
-        run: npx playwright install chromium
-      - name: Restore generated images
-        id: image_cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            public/image
-            public/web
-            src/game/data/assetMap.generated.ts
-          key: generated-images-${{ hashFiles('media/**', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'bun.lock') }}
-      - name: Generate image variants
-        if: steps.image_cache.outputs.cache-hit != 'true'
-        run: bun run generate:images
-      - name: Generate vector variants
-        run: bun run generate:vectors
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
+      - uses: ./.github/actions/generated-images
       - name: Verify generated images structurally
         run: bun run verify:images
       - name: Verify generated vectors structurally
@@ -510,9 +336,10 @@ jobs:
         run: timeout 120 bash -c 'until [ -f /tmp/convex-pull.done ]; do sleep 1; done' || true
       # The phases below are one flow (scripts/e2e-local.sh), split into steps
       # so the Actions UI shows per-phase timing. State crosses step boundaries
-      # via files under .playwright/ (admin key, app URL, vite pid); the vite
-      # dev server backgrounded in "Start app server" keeps running into the
-      # Playwright step, same as the image pre-pull above.
+      # via files under .playwright/ (admin key, app URL, app server pid); the
+      # static server backgrounded in "Start app server" (production build,
+      # scripts/e2e-serve-dist.mjs) keeps running into the Playwright step,
+      # same as the image pre-pull above.
       - name: Boot Convex backend
         run: bun run e2e:local up
         env:
@@ -539,7 +366,7 @@ jobs:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
       - name: Upload e2e test results to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -548,7 +375,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload e2e coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/e2e/lcov.info
@@ -557,7 +384,7 @@ jobs:
           fail_ci_if_error: false
       - name: Upload E2E artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: e2e-artifacts-${{ github.run_id }}
           if-no-files-found: ignore
@@ -565,4 +392,5 @@ jobs:
           path: |
             ${{ github.workspace }}/playwright-report
             ${{ github.workspace }}/test-results
-            ${{ github.workspace }}/.playwright/vite.log
+            ${{ github.workspace }}/.playwright/app.log
+            ${{ github.workspace }}/.playwright/build.log
