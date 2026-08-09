@@ -37,8 +37,7 @@ export default defineSchema({
     slug: v.string(),
     created_at: v.string(),
     created_by: v.id('users'),
-    // Widen phase (#190): optional until the #191 backfill marks every row, narrowed in #194.
-    is_deleted: v.optional(v.boolean()),
+    is_deleted: v.boolean(),
   })
     .index('by_name', ['name'])
     .index('by_slug', ['slug'])

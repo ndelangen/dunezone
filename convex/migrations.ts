@@ -421,30 +421,18 @@ export const faction_decal_retune_v1 = migrations.define({
   },
 });
 
-/**
- * Marks every pre-lifecycle Group active (wayfinder #191). Rows that already carry the flag —
- * including soft-deleted ones — are never touched, so the backfill can never resurrect a Group.
- */
+/** Retains the completed Group lifecycle backfill identity through the schema-narrowing release. */
 export const groups_soft_delete_backfill_v1 = migrations.define({
   table: 'groups',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    if (row.is_deleted !== undefined) {
-      return;
-    }
-    return { is_deleted: false };
-  },
+  migrateOne: async () => undefined,
 });
 
-/** Successful completion proves every Group carries a lifecycle state; #194 narrows on it. */
+/** Retains the completed lifecycle verification identity; the narrowed schema now enforces it. */
 export const groups_soft_delete_verify_v1 = migrations.define({
   table: 'groups',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    if (row.is_deleted === undefined) {
-      throw new Error(`Group ${row._id} is missing its lifecycle state`);
-    }
-  },
+  migrateOne: async () => undefined,
 });
 
 const AUDIT_SCAN_LIMIT = 4096;
@@ -496,8 +484,7 @@ export const groupsLifecycleAudit = internalQuery({
       groups: {
         total: groups.length,
         truncated: groups.length === AUDIT_SCAN_LIMIT,
-        missingLifecycleFlag: groups.filter((group) => group.is_deleted === undefined).length,
-        deleted: groups.filter((group) => group.is_deleted === true).length,
+        deleted: groups.filter((group) => group.is_deleted).length,
       },
       factions: danglingReport(factions),
       rulesets: danglingReport(rulesets),
