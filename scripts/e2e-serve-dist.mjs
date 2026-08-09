@@ -1,10 +1,11 @@
+/*
+ * Static server for the e2e suite: serves the production client build (dist/client) with the same
+ * SPA semantics as the Cloudflare Worker release assembly — any path that is not a file on disk
+ * falls back to the prerendered _shell.html. Replaces `vite dev` in scripts/e2e-local.sh
+ * phase_serve so e2e tests exercise built, bundled code instead of on-demand dev transforms
+ * (which dominated slow-spec wall clock; see prototype/e2e-coverage-build-serve).
+ */
 import { readFileSync, existsSync, statSync } from 'node:fs';
-// Static server for the e2e suite: serves the production client build
-// (dist/client) with the same SPA semantics as the Cloudflare Worker release
-// assembly — any path that is not a file on disk falls back to the prerendered
-// _shell.html. Replaces `vite dev` in scripts/e2e-local.sh phase_serve so e2e
-// tests exercise built, bundled code instead of on-demand dev transforms
-// (which dominated slow-spec wall clock; see prototype/e2e-coverage-build-serve).
 import { createServer } from 'node:http';
 import { join, extname, normalize } from 'node:path';
 

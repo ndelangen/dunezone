@@ -5,8 +5,10 @@ import * as groupsApi from '../../convex/groups';
 import * as membersApi from '../../convex/members';
 import * as rulesetsApi from '../../convex/rulesets';
 
-// ADR-0001: the former source-text assertions are fully retired. The server-policy layering rule
-// lives in .oxlintrc.json (no-restricted-imports); wire guarantees live in the returns validators.
+/*
+ * ADR-0001: the former source-text assertions are fully retired. The server-policy layering rule
+ * lives in .oxlintrc.json (no-restricted-imports); wire guarantees live in the returns validators.
+ */
 describe('collaborative-access caller contract', () => {
   test('the narrowed Convex registry exposes only canonical collaborative-access transport', () => {
     expect(Object.keys(membersApi).sort()).toEqual(

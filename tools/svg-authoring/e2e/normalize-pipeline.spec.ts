@@ -11,8 +11,8 @@ function badgeFor(page: import("@playwright/test").Page, name: string) {
     .getByTestId("viewbox-badge");
 }
 
-// Scale/aspect normalization moved to the dunezone build generator; the tool
-// authors sources with a ratio-based crop margin and a provenance stamp.
+/* Scale/aspect normalization moved to the dunezone build generator; the tool
+   authors sources with a ratio-based crop margin and a provenance stamp. */
 test.describe("Stage 2 — ratio crop margin + provenance", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");

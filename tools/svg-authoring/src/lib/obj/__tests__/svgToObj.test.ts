@@ -140,8 +140,6 @@ describe("svgToObj", () => {
       weld: false,
     });
     expect(countLines(welded, "v ")).toBeLessThan(countLines(raw, "v "));
-    // Welded faces reference shared vertex indices, so the highest index used
-    // is far smaller than 3 * triangleCount.
     expect(countLines(welded, "v ")).toBeGreaterThan(0);
   });
 

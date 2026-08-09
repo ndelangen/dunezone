@@ -79,8 +79,8 @@ test.describe("Stage 4 — persistence, presets, heavy optimize", () => {
     await page.getByTestId("toggle-optimizePaths").click();
     await page.getByTestId("run-pipeline").click();
 
-    // The pipeline runs asynchronously (SVGO loads lazily); wait for the
-    // observable result (crop changes the viewBox) before exporting.
+    /* The pipeline runs asynchronously (SVGO loads lazily); wait for the
+       observable result (crop changes the viewBox) before exporting. */
     await expect(
       row(page, "pasted-1.svg").getByTestId("viewbox-badge"),
     ).toHaveText("10 10 20 20", { timeout: 10_000 });
