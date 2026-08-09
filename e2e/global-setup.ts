@@ -103,9 +103,9 @@ export default async function globalSetup(config: FullConfig) {
       storageStatePath: '.playwright/user-b-group.json',
     },
   ];
-  // The first login runs alone: it warms the vite dev server's on-demand
-  // module transforms. Eight cold first-loads at once starve each other and
-  // time out before the login form renders.
+  // The first login runs alone as a smoke test of the served build — one
+  // clean failure with a trace beats eight interleaved ones. (It predates the
+  // static server, when it also warmed vite dev's on-demand transforms.)
   const [first, ...rest] = sessions;
   await loginWithLocalAuth(baseUrl, first);
   await Promise.all(rest.map((credentials) => loginWithLocalAuth(baseUrl, credentials)));

@@ -4,6 +4,9 @@
 // them to monocart-coverage-reports, which persists raw data to the shared
 // outputDir cache across Playwright workers; global-teardown.ts generates the
 // final lcov report.
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { test as base, expect } from '@playwright/test';
 import type { BrowserContext, BrowserContextOptions, Page } from '@playwright/test';
 import MCR from 'monocart-coverage-reports';
@@ -20,18 +23,29 @@ export const mcrOptions: CoverageReportOptions = {
   name: 'e2e coverage',
   outputDir: 'coverage/e2e',
   reports: [['lcovonly'], ['console-summary']],
-  // Only modules served from the app's /src tree; dev-server dep bundles and
-  // vite client internals are not ours to count.
-  entryFilter: (entry) => entry.url.includes('/src/'),
-  // Vite dev inline sourcemaps carry bare filenames ("AppShell.tsx");
-  // info.distFile holds the served path, which IS the repo path for
-  // transform-in-place dev modules. Remap first, then filter.
+  // Built chunks are served under /public/ (vite build.assetsDir) and map
+  // back to src/ via their sourcemaps; the /src/ arm keeps dev-server runs
+  // working (transform-in-place module URLs). Everything else — dep bundles,
+  // vite client internals — is not ours to count.
+  entryFilter: (entry) =>
+    entry.url.includes('/src/') || /\/public\/[^?]*\.js$/.test(entry.url.split('?')[0] ?? ''),
+  // Two shapes arrive here. Built chunks: filePath is the sourcemap-resolved
+  // repo path ("src/app/..."), info.distFile the chunk. Dev modules: filePath
+  // is a bare filename ("AppShell.tsx"), info.distFile the served repo path.
+  // Whichever candidate contains src/ wins.
   sourcePath: (filePath, info) => {
-    const served = (info as { distFile?: string } | undefined)?.distFile ?? filePath;
-    const i = served.indexOf('src/');
-    return i >= 0 ? served.slice(i) : served;
+    for (const candidate of [filePath, (info as { distFile?: string } | undefined)?.distFile]) {
+      const i = candidate?.indexOf('src/') ?? -1;
+      if (i >= 0 && candidate) {
+        return candidate.slice(i);
+      }
+    }
+    return filePath;
   },
-  sourceFilter: (sourcePath) => sourcePath.startsWith('src/'),
+  // The on-disk check drops dependency sourcemaps whose sources also start
+  // with src/ (e.g. lucide-react ships src/utils/*.mjs) and synthetic
+  // modules (route-split virtuals, unmapped chunks) that have no repo file.
+  sourceFilter: (sourcePath) => sourcePath.startsWith('src/') && existsSync(resolve(sourcePath)),
 };
 
 // The animation project asserts per-frame samples and runs isolated;
