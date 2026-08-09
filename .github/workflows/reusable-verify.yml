@@ -150,7 +150,13 @@ jobs:
               status=1
             fi
           }
-          upload dunezone-app dist/client/public
+          # Vite emits base64-style hashes (index-De4XUz5O.js) which the
+          # analyzer's hex-only fallback regex never matches, so without a
+          # pattern every build reports all assets as deleted+added. Only the
+          # app bundle gets the pattern: the generated-media categories have
+          # stable un-hashed names, and the pattern would collapse any
+          # dash-containing name (foo-bar.png -> foo-*.png) into collisions.
+          upload dunezone-app dist/client/public --normalize-assets-pattern='[name]-[hash].js'
           upload dunezone-images dist/client/image dist/client/web
           upload dunezone-vectors dist/client/vector
           upload dunezone-objs dist/client/obj
