@@ -5,7 +5,11 @@ import type { Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { query } from './_generated/server';
 import { mutation } from './functions';
-import { loadGroupAccessBundle, requireGroupCapability } from './lib/collaborativeAccess';
+import {
+  liveGroupOrNull,
+  loadGroupAccessBundle,
+  requireGroupCapability,
+} from './lib/collaborativeAccess';
 import { groupDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import { nowIso, slugify } from './lib/utils';
@@ -34,7 +38,7 @@ async function resolveUniqueGroupSlug(
 export const getById = query({
   args: { id: v.id('groups') },
   handler: async (ctx, args) => {
-    const group = await ctx.db.get(args.id);
+    const group = liveGroupOrNull(await ctx.db.get(args.id));
     if (!group) {
       throw new Error(`Group with id ${args.id} not found`);
     }
@@ -47,10 +51,12 @@ export const detailBySlug = query({
   args: { slug: v.string() },
   returns: groupDetailPageValidator,
   handler: async (ctx, args) => {
-    const group = await ctx.db
-      .query('groups')
-      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
-      .unique();
+    const group = liveGroupOrNull(
+      await ctx.db
+        .query('groups')
+        .withIndex('by_slug', (q) => q.eq('slug', args.slug))
+        .unique()
+    );
     if (!group) {
       throw new Error(`Group with slug ${args.slug} not found`);
     }
@@ -81,7 +87,11 @@ export const detailBySlug = query({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query('groups').take(500);
+    // neq(true), not eq(false): pre-backfill rows without the flag stay live (widen window).
+    return await ctx.db
+      .query('groups')
+      .filter((q) => q.neq(q.field('is_deleted'), true))
+      .take(500);
   },
 });
 
@@ -91,6 +101,7 @@ export const listByCreator = query({
     return await ctx.db
       .query('groups')
       .withIndex('by_created_by', (q) => q.eq('created_by', args.created_by))
+      .filter((q) => q.neq(q.field('is_deleted'), true))
       .take(500);
   },
 });

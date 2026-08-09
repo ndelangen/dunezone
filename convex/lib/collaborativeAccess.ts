@@ -81,7 +81,7 @@ type AnyCtx = QueryCtx | MutationCtx;
  * soft-deleted or missing entirely (historical hard deletions left dangling ids) — projects to null
  * (ADR-0003).
  */
-function liveGroupOrNull(group: Doc<'groups'> | null): Doc<'groups'> | null {
+export function liveGroupOrNull(group: Doc<'groups'> | null): Doc<'groups'> | null {
   return group === null || group.is_deleted ? null : group;
 }
 

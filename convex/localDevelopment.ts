@@ -89,6 +89,7 @@ async function ensureImportedGroup(
       slug: group.slug,
       created_at: group.created_at,
       created_by: ownerId,
+      is_deleted: false,
     }));
 
   await ensureActiveMembership(ctx, groupId, ownerId, ownerId, group.created_at);

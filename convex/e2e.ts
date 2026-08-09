@@ -80,6 +80,23 @@ export const clearAll = mutation({
   },
 });
 
+/** Puts a Group into the deleted lifecycle state so specs can verify deleted-Group surfaces. */
+export const softDeleteGroupBySlug = mutation({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    assertTestMode();
+    const group = await ctx.db
+      .query('groups')
+      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
+      .unique();
+    if (!group) {
+      throw new Error(`Group with slug ${args.slug} not found`);
+    }
+    await ctx.db.patch(group._id, { is_deleted: true });
+    return { groupId: group._id };
+  },
+});
+
 export const seedBaseline = mutation({
   args: {
     ownerEmail: v.optional(v.string()),
@@ -119,6 +136,7 @@ export const seedBaseline = mutation({
       slug: 'e2e-baseline-group',
       created_at: now,
       created_by: ownerUser._id as Id<'users'>,
+      is_deleted: false,
     });
 
     await ctx.db.insert('group_members', {

@@ -1,4 +1,5 @@
 import type { QueryCtx } from '../types';
+import { liveGroupOrNull } from './collaborativeAccess';
 import { loadFactionCatalogue } from './factionCatalogue';
 import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './faqProfileActivity';
 
@@ -27,11 +28,12 @@ export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
   const groupsWithNulls = await Promise.all(
     memberships.map((membership) => ctx.db.get('groups', membership.group_id))
   );
-  const groups = groupsWithNulls.filter(
-    (group): group is NonNullable<(typeof groupsWithNulls)[number]> => group !== null
-  );
-  /* Public profile callers count and render only resolvable active Groups. A dangling
-   * membership cannot become a safe identity summary. */
+  const groups = groupsWithNulls.flatMap((group) => {
+    const live = liveGroupOrNull(group);
+    return live ? [live] : [];
+  });
+  /* Public profile callers count and render only live active Groups. A dangling or
+   * soft-deleted membership cannot become a safe identity summary (ADR-0003). */
   const groupSummaries = groups.map((group) => ({
     id: group._id,
     name: group.name,

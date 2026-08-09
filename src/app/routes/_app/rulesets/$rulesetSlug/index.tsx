@@ -613,13 +613,9 @@ function RulesetDetailPage() {
                   )}
                 </Box>
                 <Divider />
-                {r.group_id == null ? (
+                {!assignedGroup ? (
                   <Text size="sm" c="dimmed">
                     No maintaining group.
-                  </Text>
-                ) : !assignedGroup ? (
-                  <Text size="sm" c="dimmed">
-                    Group unavailable.
                   </Text>
                 ) : (
                   <Stack gap="sm">
