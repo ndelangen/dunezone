@@ -282,3 +282,19 @@ export function useDeleteRuleset() {
     mutateAsync: async (id: string) => await mutation.mutateAsync({ id }),
   };
 }
+
+export type OwnedRulesetForGroupAssign = {
+  id: string;
+  slug: string;
+  name: string;
+  groupId: string | null;
+  groupName: string | null;
+};
+
+/** Rulesets the viewer owns, for the Group detail page's "add a ruleset" picker. */
+export function useRulesetsOwnedForGroupAssign() {
+  const liveData = useQuery(api.rulesets.listOwnedForGroupAssign, {}) as
+    | OwnedRulesetForGroupAssign[]
+    | undefined;
+  return toLiveQueryResult(liveData, true);
+}

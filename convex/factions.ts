@@ -224,6 +224,55 @@ export const listByOwner = query({
   },
 });
 
+const ownedForGroupAssignRowValidator = v.object({
+  id: v.id('factions'),
+  slug: v.string(),
+  name: v.string(),
+  groupId: v.union(v.id('groups'), v.null()),
+  groupName: v.union(v.string(), v.null()),
+});
+
+/**
+ * Factions the viewer owns, with their current group's name resolved, for the group-detail "add my
+ * faction to this group" picker.
+ */
+export const listOwnedForGroupAssign = query({
+  args: {},
+  returns: v.array(ownedForGroupAssignRowValidator),
+  handler: async (ctx) => {
+    const userId = await requireAuthUserId(ctx);
+    const rows = await ctx.db
+      .query('factions')
+      .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', false))
+      .take(500);
+
+    const groupIds = new Set<Id<'groups'>>();
+    for (const row of rows) {
+      if (row.group_id) {
+        groupIds.add(row.group_id);
+      }
+    }
+    const groupNameById = new Map<string, string>();
+    for (const gid of groupIds) {
+      const group = await ctx.db.get('groups', gid);
+      if (group && !group.is_deleted) {
+        groupNameById.set(gid, group.name.trim());
+      }
+    }
+
+    return rows.map((row) => {
+      const groupId = row.group_id && groupNameById.has(row.group_id) ? row.group_id : null;
+      return {
+        id: row._id,
+        slug: row.slug,
+        name: factionDataForClient(row.data).name,
+        groupId,
+        groupName: groupId ? (groupNameById.get(groupId) ?? null) : null,
+      };
+    });
+  },
+});
+
 export const listByGroup = query({
   args: {
     group_id: v.id('groups'),

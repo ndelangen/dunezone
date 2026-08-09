@@ -303,3 +303,19 @@ export async function loadFaction(slug: string): Promise<FactionDetailPageData> 
   const raw = await db.query(api.factions.getBySlug, { slug });
   return toFactionDetailPageData(raw);
 }
+
+export type OwnedFactionForGroupAssign = {
+  id: string;
+  slug: string;
+  name: string;
+  groupId: string | null;
+  groupName: string | null;
+};
+
+/** Factions the viewer owns, for the Group detail page's "add a faction" picker. */
+export function useFactionsOwnedForGroupAssign() {
+  const liveData = useQuery(api.factions.listOwnedForGroupAssign, {}) as
+    | OwnedFactionForGroupAssign[]
+    | undefined;
+  return toLiveQueryResult(liveData, true);
+}
