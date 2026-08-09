@@ -102,6 +102,9 @@ jobs:
 
       - name: Smoke scheduled Worker release
         run: bun run ./scripts/publisher-deployment-contract.ts smoke
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Activate higher checked-in Renderer revisions
         run: bun run ./scripts/publication-revisions.ts activate
