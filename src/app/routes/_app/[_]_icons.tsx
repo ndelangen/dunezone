@@ -111,8 +111,11 @@ const ENTRIES_BY_SOURCE: Record<CatalogSource, CatalogEntry[]> = {
 function useInfiniteReveal(total: number, resetKey: string) {
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const totalRef = useRef(total);
-  totalRef.current = total;
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    totalRef.current = total;
+  }, [total]);
 
   useEffect(() => {
     setVisibleCount(BATCH_SIZE);
@@ -185,9 +188,12 @@ function useDuneSvgSizes(enabled: boolean) {
     for (const entry of missing) {
       fetch(entry.path, { method: 'HEAD' })
         .then((response) => {
-          const contentLength = response.headers.get('content-length');
-          if (contentLength) {
-            svgByteSizeCache.set(entry.path, Number.parseInt(contentLength, 10));
+          /* fetch() resolves (doesn't reject) on HTTP errors — a 404 page's own Content-Length
+             would otherwise get cached as if it were the SVG's size. */
+          const header = response.ok ? response.headers.get('content-length') : null;
+          const contentLength = header === null ? Number.NaN : Number(header);
+          if (Number.isSafeInteger(contentLength) && contentLength >= 0) {
+            svgByteSizeCache.set(entry.path, contentLength);
           }
         })
         .catch(() => {
