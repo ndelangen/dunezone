@@ -459,10 +459,30 @@ export const groupsLifecycleAudit = internalQuery({
   args: {},
   handler: async (ctx) => {
     const groups = await ctx.db.query('groups').take(AUDIT_SCAN_LIMIT);
-    const groupIds = new Set<Id<'groups'>>(groups.map((group) => group._id));
+
+    const factions = await ctx.db.query('factions').take(AUDIT_SCAN_LIMIT);
+    const rulesets = await ctx.db.query('rulesets').take(AUDIT_SCAN_LIMIT);
+    const memberships = await ctx.db.query('group_members').take(AUDIT_SCAN_LIMIT);
+
+    /**
+     * Every distinct referenced Group is resolved by primary key, so a reference is judged
+     * against the actual row — never against a truncated Group scan window.
+     */
+    const referencedIds = new Set<Id<'groups'>>();
+    for (const row of [...factions, ...rulesets, ...memberships]) {
+      if (row.group_id !== null) {
+        referencedIds.add(row.group_id);
+      }
+    }
+    const resolvesToRow = new Map<Id<'groups'>, boolean>();
+    for (const groupId of referencedIds) {
+      resolvesToRow.set(groupId, (await ctx.db.get('groups', groupId)) !== null);
+    }
 
     function danglingReport(rows: { _id: string; group_id: Id<'groups'> | null }[]) {
-      const dangling = rows.filter((row) => row.group_id !== null && !groupIds.has(row.group_id));
+      const dangling = rows.filter(
+        (row) => row.group_id !== null && resolvesToRow.get(row.group_id) === false
+      );
       return {
         scanned: rows.length,
         truncated: rows.length === AUDIT_SCAN_LIMIT,
@@ -471,10 +491,6 @@ export const groupsLifecycleAudit = internalQuery({
         danglingIds: dangling.slice(0, AUDIT_ID_SAMPLE_LIMIT).map((row) => row._id),
       };
     }
-
-    const factions = await ctx.db.query('factions').take(AUDIT_SCAN_LIMIT);
-    const rulesets = await ctx.db.query('rulesets').take(AUDIT_SCAN_LIMIT);
-    const memberships = await ctx.db.query('group_members').take(AUDIT_SCAN_LIMIT);
 
     return {
       groups: {
