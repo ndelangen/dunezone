@@ -247,15 +247,35 @@ describe('Group soft deletion lifecycle', () => {
     });
   });
 
-  test('a deleted Group exposes no capabilities on its detail page', async () => {
+  test('a deleted Group is not found on its detail page, for the owner too', async () => {
     const { t, ids } = await softDeletionFixture();
     await t.withIdentity({ subject: ids.ownerId }).mutation(api.groups.softDelete, {
       id: ids.groupId,
     });
 
-    const page = await t.withIdentity({ subject: ids.ownerId }).query(api.groups.detailBySlug, {
-      slug: 'dunedesigners',
+    await expect(
+      t.withIdentity({ subject: ids.ownerId }).query(api.groups.detailBySlug, {
+        slug: 'dunedesigners',
+      })
+    ).rejects.toThrow('not found');
+    await expect(
+      t.withIdentity({ subject: ids.ownerId }).query(api.groups.getById, { id: ids.groupId })
+    ).rejects.toThrow('not found');
+  });
+
+  test('deleted Groups are absent from discovery lists and profile summaries', async () => {
+    const { t, ids } = await softDeletionFixture();
+    await t.withIdentity({ subject: ids.ownerId }).mutation(api.groups.softDelete, {
+      id: ids.groupId,
     });
-    expect(Object.values(page.viewerAccess.capabilities).some(Boolean)).toBe(false);
+
+    const all = await t.query(api.groups.list, {});
+    expect(all.map((group) => group._id)).not.toContain(ids.groupId);
+
+    const byCreator = await t.query(api.groups.listByCreator, { created_by: ids.ownerId });
+    expect(byCreator).toEqual([]);
+
+    const profilePage = await t.query(api.profiles.getBySlug, { slug: 'active-member' });
+    expect(profilePage.groupSummaries).toEqual([]);
   });
 });
