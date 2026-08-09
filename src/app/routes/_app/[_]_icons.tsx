@@ -14,7 +14,7 @@ import {
 import { createFileRoute } from '@tanstack/react-router';
 import { icons, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { PageLayout } from '@app/components/shell';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@app/components/topics/TopicIcon';
@@ -100,31 +100,43 @@ const ENTRIES_BY_SOURCE: Record<CatalogSource, CatalogEntry[]> = {
 /**
  * Grows `visibleCount` in `BATCH_SIZE` steps as a sentinel element at the bottom of the grid enters
  * the viewport, and resets it whenever `resetKey` changes (new search, tab, or category).
+ *
+ * The sentinel is conditionally rendered (only while more entries remain), so a plain `useRef` +
+ * effect keyed on `total` can miss it: if a reset's clamped visible count happens to already equal
+ * the new total, the sentinel skips rendering on that exact commit, the effect observes nothing,
+ * and — because `total` doesn't change again on the next render — never re-fires once the sentinel
+ * does appear. A callback ref sidesteps this: it (dis)connects the observer exactly when the
+ * sentinel DOM node itself mounts or unmounts, independent of render timing.
  */
 function useInfiniteReveal(total: number, resetKey: string) {
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const totalRef = useRef(total);
+  totalRef.current = total;
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     setVisibleCount(BATCH_SIZE);
   }, [resetKey]);
 
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) {
+  const sentinelRef = useCallback((node: HTMLDivElement | null) => {
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+    if (!node) {
       return;
     }
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          setVisibleCount((count) => Math.min(count + BATCH_SIZE, total));
+          setVisibleCount((count) => Math.min(count + BATCH_SIZE, totalRef.current));
         }
       },
       { rootMargin: '600px' }
     );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [total]);
+    observer.observe(node);
+    observerRef.current = observer;
+  }, []);
+
+  useEffect(() => () => observerRef.current?.disconnect(), []);
 
   return { visibleCount: Math.min(visibleCount, total), sentinelRef };
 }
@@ -138,13 +150,25 @@ function formatBytes(bytes: number): string {
 
 /**
  * Byte size isn't in the generated manifest, so it's measured client-side, once, from the same
- * static files `<use>` already renders. Fetches every uncached Dune SVG in parallel the first time
- * the Dune SVGs tab opens, and bumps `version` in batches so cards and sort fill in progressively
- * rather than waiting on all ~500 requests to land.
+ * static files `<use>` already renders. Uses `HEAD` + `Content-Length` rather than downloading each
+ * body, so measuring all ~500 files costs headers only, not the SVG payloads themselves. Fetches
+ * every uncached Dune SVG in parallel the first time the Dune SVGs tab opens, and bumps `version`
+ * in batches so cards and sort fill in progressively rather than waiting on every request to land.
  */
 function useDuneSvgSizes(enabled: boolean) {
   const [version, setVersion] = useState(0);
   const startedRef = useRef(false);
+  const unmountedRef = useRef(false);
+
+  /* Tracks real unmount only — separate from the `[enabled]` effect below, whose cleanup fires on
+     every tab switch away from Dune, not just on unmount. Sharing one flag between the two used to
+     mean leaving mid-scan permanently stopped `setVersion` from ever firing again for that page
+     load, even though the in-flight fetches kept populating the cache in the background. */
+  useEffect(() => {
+    return () => {
+      unmountedRef.current = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!enabled || startedRef.current) {
@@ -157,28 +181,25 @@ function useDuneSvgSizes(enabled: boolean) {
         entry.source === 'dune' && !svgByteSizeCache.has(entry.path)
     );
     let completed = 0;
-    let cancelled = false;
 
     for (const entry of missing) {
-      fetch(entry.path)
-        .then((response) => response.arrayBuffer())
-        .then((buffer) => {
-          svgByteSizeCache.set(entry.path, buffer.byteLength);
+      fetch(entry.path, { method: 'HEAD' })
+        .then((response) => {
+          const contentLength = response.headers.get('content-length');
+          if (contentLength) {
+            svgByteSizeCache.set(entry.path, Number.parseInt(contentLength, 10));
+          }
         })
         .catch(() => {
           // Leave unmeasured — size display/sort just treats it as unknown.
         })
         .finally(() => {
           completed += 1;
-          if (!cancelled && (completed % 32 === 0 || completed === missing.length)) {
+          if (!unmountedRef.current && (completed % 32 === 0 || completed === missing.length)) {
             setVersion((v) => v + 1);
           }
         });
     }
-
-    return () => {
-      cancelled = true;
-    };
   }, [enabled]);
 
   return version;
@@ -211,15 +232,21 @@ function IconsPage() {
   }, [query, source, category]);
 
   const sortedEntries = useMemo(() => {
-    if (source !== 'dune' || sortMode === 'name') {
+    if (source !== 'dune') {
       return filteredEntries;
+    }
+    if (sortMode === 'name') {
+      return filteredEntries.slice().sort((a, b) => a.name.localeCompare(b.name));
     }
     const direction = sortMode === 'size-asc' ? 1 : -1;
     return filteredEntries.slice().sort((a, b) => {
-      const sizeA =
-        a.source === 'dune' ? (svgByteSizeCache.get(a.path) ?? Number.POSITIVE_INFINITY) : 0;
-      const sizeB =
-        b.source === 'dune' ? (svgByteSizeCache.get(b.path) ?? Number.POSITIVE_INFINITY) : 0;
+      const sizeA = a.source === 'dune' ? svgByteSizeCache.get(a.path) : undefined;
+      const sizeB = b.source === 'dune' ? svgByteSizeCache.get(b.path) : undefined;
+      /* Unmeasured entries sort after measured ones regardless of direction — multiplying
+         Infinity by -1 for descending order would otherwise put them first, not last. */
+      if (sizeA === undefined || sizeB === undefined) {
+        return sizeA === sizeB ? 0 : sizeA === undefined ? 1 : -1;
+      }
       return (sizeA - sizeB) * direction;
     });
     // sizesVersion isn't read directly, but its change means the cache this sort reads has grown.
