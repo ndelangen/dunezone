@@ -17,6 +17,11 @@ const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.conv
 const PUBLISHER_CRON = '*/5 * * * *';
 const REQUIRED_SECRETS = ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET', 'ASSET_PUBLISHER_EXECUTOR_SECRET'];
 const STORYBOOK_STORY_ID = 'game-assets-composition-background--radial-token';
+// Cloudflare edge propagation regularly exceeds a minute for a fresh deploy;
+// the budget must absorb that variance without masking a broken release.
+const SMOKE_RETRY_BUDGET_MS = 180_000;
+const SMOKE_INITIAL_RETRY_DELAY_MS = 5_000;
+const SMOKE_MAX_RETRY_DELAY_MS = 20_000;
 
 type JsonObject = Record<string, unknown>;
 
@@ -236,8 +241,11 @@ async function run(): Promise<void> {
   if (command === 'smoke') {
     const githubSha = requiredEnvironment(process.env, 'GITHUB_SHA');
     for (const origin of [PUBLISHER_ORIGIN, APPLICATION_ORIGIN]) {
+      const startedAt = Date.now();
+      const deadline = startedAt + SMOKE_RETRY_BUDGET_MS;
+      let retryDelay = SMOKE_INITIAL_RETRY_DELAY_MS;
       let lastFailure: unknown;
-      for (let attempt = 1; attempt <= 12; attempt += 1) {
+      for (;;) {
         try {
           const response = await fetch(`${origin}/__asset-publisher/health`, {
             headers: { Accept: 'application/json' },
@@ -257,15 +265,21 @@ async function run(): Promise<void> {
           break;
         } catch (error) {
           lastFailure = error;
-          if (attempt < 12) {
-            await new Promise((resolve) => setTimeout(resolve, 5000));
+          if (Date.now() + retryDelay > deadline) {
+            break;
           }
+          console.log(
+            `Publisher health not ready at ${origin} after ${Math.round((Date.now() - startedAt) / 1000)}s; retrying in ${retryDelay / 1000}s.`
+          );
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
+          retryDelay = Math.min(retryDelay * 2, SMOKE_MAX_RETRY_DELAY_MS);
         }
       }
       if (lastFailure) {
-        throw new Error(`Publisher health did not become ready at ${origin}`, {
-          cause: lastFailure,
-        });
+        throw new Error(
+          `Publisher health did not become ready at ${origin} within ${SMOKE_RETRY_BUDGET_MS / 1000}s`,
+          { cause: lastFailure }
+        );
       }
     }
 
