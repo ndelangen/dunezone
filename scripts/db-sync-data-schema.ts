@@ -21,16 +21,13 @@ type SchemaConfig = z.infer<typeof schemaConfigSchema>;
 
 const mySchemas: SchemaConfig[] = [];
 
-// Scan from current working directory (project root when script is run)
-// Pattern is relative to cwd - no "../" needed, just change the root if needed
-// Use absolute paths for easier imports
+// Glob is cwd-relative; run this script from the project root.
 for await (const file of glob.scan({
   onlyFiles: true,
 })) {
   const { name } = parse(file);
   const module = await import(file);
 
-  // Use standardized 'schema' export
   if (!module.schema || !(module.schema instanceof z.ZodObject)) {
     console.warn(`⚠ No 'schema' export found in ${file} or it's not a ZodObject, skipping`);
     continue;
@@ -213,13 +210,10 @@ function simplifyRedundantCombinators(node: unknown): unknown {
   return out;
 }
 
-// Helper function: Derive constraint name from table name
-// Column name is always 'data'
 function deriveConstraintName(name: string): string {
   return `${name}_data_schema_check`;
 }
 
-// Helper function: Extract timestamp from migration filename
 function extractTimestamp(filename: string): number | null {
   const match = filename.match(/^(\d{14})_/);
   if (!match) {
@@ -228,7 +222,6 @@ function extractTimestamp(filename: string): number | null {
   return parseInt(match[1], 10);
 }
 
-// Helper function: Find latest validation migration for a specific constraint
 async function findLatestValidationMigration(
   constraintName: string,
   migrationsDir: string
@@ -247,7 +240,6 @@ async function findLatestValidationMigration(
     const filePath = join(migrationsDir, file);
     const content = await readFile(filePath, 'utf-8');
 
-    // Check if migration contains the constraint name
     if (content.includes(constraintName)) {
       const timestamp = extractTimestamp(file);
       if (timestamp !== null) {
@@ -266,9 +258,11 @@ async function findLatestValidationMigration(
     return null;
   }
 
-  // Prefer newest on disk (so a just-written migration wins over an older file with a
-  // higher numeric prefix, e.g. 20260321133000 vs 20260320012157 on the next run).
-  // Tie-break: higher filename timestamp (stable clones where mtimes are identical).
+  /*
+   * Prefer newest on disk so a just-written migration wins over an older file with a higher
+   * numeric prefix (e.g. 20260321133000 vs 20260320012157 on the next run). Tie-break: higher
+   * filename timestamp (stable clones where mtimes are identical).
+   */
   matchingMigrations.sort((a, b) => {
     if (b.mtimeMs !== a.mtimeMs) {
       return b.mtimeMs - a.mtimeMs;
@@ -281,14 +275,12 @@ async function findLatestValidationMigration(
   };
 }
 
-// Helper function: Extract JSON schema from migration SQL
 function extractSchemaFromMigration(
   migrationContent: string,
   constraintName: string,
   columnName: string
 ): object | null {
-  // Look for extensions.jsonb_matches_schema('...'::json, column_name) pattern
-  // We need to find the constraint that matches our constraintName and extract the JSON literal
+  // Matches this constraint's `jsonb_matches_schema('<json>'::json, column)` CHECK and captures the JSON literal.
   const constraintRegex = new RegExp(
     `ADD CONSTRAINT ${constraintName}[\\s\\S]*?CHECK\\s*\\(\\s*extensions\\.jsonb_matches_schema\\s*\\(\\s*'([^']*(?:''[^']*)*)'::json\\s*,\\s*${columnName}\\s*\\)\\s*\\)`,
     'i'
@@ -299,7 +291,7 @@ function extractSchemaFromMigration(
     return null;
   }
 
-  // Unescape SQL string (handle '' -> ')
+  // Unescape the SQL string literal ('' -> ')
   const jsonString = match[1].replace(/''/g, "'");
 
   try {
@@ -339,21 +331,19 @@ function canonicalizeSchemaForComparison(node: unknown): unknown {
   return sorted;
 }
 
-// Helper function: Compare two JSON schemas (deep equality, order-insensitive combinator arrays)
 function compareSchemas(schema1: object, schema2: object): boolean {
   const a = canonicalizeSchemaForComparison(schema1);
   const b = canonicalizeSchemaForComparison(schema2);
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-// Helper function: Generate migration SQL
 function generateMigrationSQL(
   config: SchemaConfig,
   jsonSchema: object,
   includeExtension: boolean
 ): string {
   const schemaJsonString = JSON.stringify(jsonSchema, null, 2);
-  // Escape single quotes for SQL ('' -> '')
+  // Escape single quotes for the SQL string literal (' -> '')
   const escapedSchema = schemaJsonString.replace(/'/g, "''");
   const constraintName = deriveConstraintName(config.name);
   const columnName = 'data';
@@ -385,7 +375,6 @@ function generateMigrationSQL(
   return lines.join('\n');
 }
 
-// Helper function: Generate timestamp for migration filename
 function generateMigrationTimestamp(): string {
   const now = new Date();
   const year = now.getFullYear();
@@ -403,22 +392,19 @@ function generateMigrationTimestamp(): string {
 const migrationsDir = './supabase/migrations';
 let extensionIncluded = false;
 
-// Process each schema
 for (const config of mySchemas) {
   const constraintName = deriveConstraintName(config.name);
   const columnName = 'data';
 
-  // Step 1: Generate JSON schema in memory (same steps as written migrations)
+  // Apply the same transforms used in written migrations so comparison is apples-to-apples.
   let newSchema = z.toJSONSchema(config.schema, { unrepresentable: 'any' }) as object;
   if (RELAX_STRING_ENUMS.has(config.name)) {
     newSchema = relaxStringEnumsInJsonSchema(newSchema) as object;
   }
   newSchema = simplifyRedundantCombinators(newSchema) as object;
 
-  // Step 2: Find latest validation migration for this schema
   const latestMigration = await findLatestValidationMigration(constraintName, migrationsDir);
 
-  // Step 3: Compare schemas if migration exists
   if (latestMigration) {
     const extractedRaw = extractSchemaFromMigration(
       latestMigration.content,
@@ -441,10 +427,8 @@ for (const config of mySchemas) {
     }
   }
 
-  // Step 4: Generate migration SQL
   const migrationSQL = generateMigrationSQL(config, newSchema, !extensionIncluded);
 
-  // Step 5: Write migration file
   const timestamp = generateMigrationTimestamp();
   const migrationFilename = `${timestamp}_${config.name}_data_validation.sql`;
   const migrationPath = join(migrationsDir, migrationFilename);
@@ -452,7 +436,6 @@ for (const config of mySchemas) {
   await writeFile(migrationPath, migrationSQL);
   console.log(`✓ Generated migration: ${migrationFilename}`);
 
-  // Mark extension as included for subsequent migrations
   if (!extensionIncluded) {
     extensionIncluded = true;
   }

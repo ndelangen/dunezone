@@ -97,7 +97,6 @@
   margin-bottom: 0;
   background: rgba(255, 255, 255, 0.5);
   padding: var(--space-2);
-  /* box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12); */
 }
 
 .unitToolbarLeading,

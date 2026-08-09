@@ -5,7 +5,7 @@ set -euo pipefail
 # CI runs each phase as its own workflow step so the Actions UI shows
 # per-phase timing: up | provision | serve | test | down.
 # Values that must cross phase boundaries (admin key, resolved app URL,
-# vite pid, JWT material) live as files under .playwright/.
+# app server pid, JWT material) live as files under .playwright/.
 PHASE="${1:-all}"
 case "$PHASE" in
   all|up|provision|serve|test|down) ;;
@@ -24,7 +24,7 @@ JWT_KEY_PATH=""
 JWKS_PATH=""
 ADMIN_KEY_FILE="$ROOT_DIR/.playwright/admin-key"
 APP_URL_FILE="$ROOT_DIR/.playwright/app-url"
-APP_PID_FILE="$ROOT_DIR/.playwright/vite.pid"
+APP_PID_FILE="$ROOT_DIR/.playwright/app.pid"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   if [[ "$PHASE" == "down" ]]; then
@@ -168,8 +168,10 @@ print_app_diagnostics() {
       echo "  - app process is NOT running (pid=$APP_PID)"
     fi
   fi
-  echo "  - recent vite.log:"
-  tail -n 120 "$ROOT_DIR/.playwright/vite.log" || true
+  echo "  - recent app.log:"
+  tail -n 120 "$ROOT_DIR/.playwright/app.log" || true
+  echo "  - recent build.log:"
+  tail -n 40 "$ROOT_DIR/.playwright/build.log" || true
 }
 
 load_app_pid() {
@@ -179,11 +181,11 @@ load_app_pid() {
 }
 
 phase_up() {
-  # A previous phased run that never reached `down` leaves vite holding the
-  # app port, and the rm -rf below deletes its pid file — reap it now. Only
-  # kill a pid that is still a vite process; pids get recycled.
+  # A previous phased run that never reached `down` leaves the app server
+  # holding the port, and the rm -rf below deletes its pid file — reap it now.
+  # Only kill a pid that is still our server; pids get recycled.
   load_app_pid
-  if [[ -n "$APP_PID" ]] && ps -p "$APP_PID" -o command= 2>/dev/null | grep -q vite; then
+  if [[ -n "$APP_PID" ]] && ps -p "$APP_PID" -o command= 2>/dev/null | grep -Eq 'e2e-serve-dist|vite'; then
     kill "$APP_PID" >/dev/null 2>&1 || true
   fi
   APP_PID=""
@@ -244,9 +246,22 @@ phase_serve() {
   export_runtime_env
 
   mkdir -p "$ROOT_DIR/.playwright"
-  echo "Starting app server for Playwright..."
+  # E2E runs against the production build, served statically — vite dev's
+  # on-demand transforms dominated slow-spec wall clock. VITE_* env is baked
+  # at build time, so it must be set on the build, not the server. Sourcemaps
+  # let e2e/coverage.ts map V8 coverage of chunks back to src/; minify off
+  # keeps that mapping near-exact (validated on prototype/e2e-coverage-build-serve).
+  echo "Building app (vite build --sourcemap --minify false)..."
   VITE_E2E_LOCAL_AUTH="$VITE_E2E_LOCAL_AUTH" VITE_CONVEX_URL="$VITE_CONVEX_URL" \
-    npx vite dev --port "$E2E_APP_PORT" >"$ROOT_DIR/.playwright/vite.log" 2>&1 &
+    npx vite build --sourcemap --minify false >"$ROOT_DIR/.playwright/build.log" 2>&1 || {
+      echo "vite build failed."
+      tail -n 60 "$ROOT_DIR/.playwright/build.log" || true
+      exit 1
+    }
+
+  echo "Starting app server for Playwright..."
+  E2E_APP_PORT="$E2E_APP_PORT" \
+    node "$ROOT_DIR/scripts/e2e-serve-dist.mjs" >"$ROOT_DIR/.playwright/app.log" 2>&1 &
   APP_PID=$!
   printf '%s' "$APP_PID" >"$APP_PID_FILE"
 

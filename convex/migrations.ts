@@ -5,7 +5,7 @@ import { v } from 'convex/values';
 import { DEFAULT_FAQ_TAG } from '../src/app/faq/tags';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { query } from './_generated/server';
+import { internalQuery, query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { DECAL_ID_RENAMES, DECAL_SCALE_FACTORS } from './lib/decalRetune';
 import {
@@ -49,6 +49,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   profile_activity_questions_v1: internal.migrations.profile_activity_questions_v1,
   profile_activity_answers_v1: internal.migrations.profile_activity_answers_v1,
   faction_decal_retune_v1: internal.migrations.faction_decal_retune_v1,
+  groups_soft_delete_backfill_v1: internal.migrations.groups_soft_delete_backfill_v1,
+  groups_soft_delete_verify_v1: internal.migrations.groups_soft_delete_verify_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -419,6 +421,91 @@ export const faction_decal_retune_v1 = migrations.define({
   },
 });
 
+/**
+ * Marks every pre-lifecycle Group active (wayfinder #191). Rows that already carry the flag —
+ * including soft-deleted ones — are never touched, so the backfill can never resurrect a Group.
+ */
+export const groups_soft_delete_backfill_v1 = migrations.define({
+  table: 'groups',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    if (row.is_deleted !== undefined) {
+      return;
+    }
+    return { is_deleted: false };
+  },
+});
+
+/** Successful completion proves every Group carries a lifecycle state; #194 narrows on it. */
+export const groups_soft_delete_verify_v1 = migrations.define({
+  table: 'groups',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    if (row.is_deleted === undefined) {
+      throw new Error(`Group ${row._id} is missing its lifecycle state`);
+    }
+  },
+});
+
+const AUDIT_SCAN_LIMIT = 4096;
+const AUDIT_ID_SAMPLE_LIMIT = 50;
+
+/**
+ * Read-only evidence for the historical hard-delete audit (wayfinder #191, ADR-0003): counts group
+ * references that no longer resolve to a Group row. Repairs nothing — dangling references stay in
+ * place and the read layer projects them to null.
+ */
+export const groupsLifecycleAudit = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const groups = await ctx.db.query('groups').take(AUDIT_SCAN_LIMIT);
+
+    const factions = await ctx.db.query('factions').take(AUDIT_SCAN_LIMIT);
+    const rulesets = await ctx.db.query('rulesets').take(AUDIT_SCAN_LIMIT);
+    const memberships = await ctx.db.query('group_members').take(AUDIT_SCAN_LIMIT);
+
+    /**
+     * Every distinct referenced Group is resolved by primary key, so a reference is judged against
+     * the actual row — never against a truncated Group scan window.
+     */
+    const referencedIds = new Set<Id<'groups'>>();
+    for (const row of [...factions, ...rulesets, ...memberships]) {
+      if (row.group_id !== null) {
+        referencedIds.add(row.group_id);
+      }
+    }
+    const resolvesToRow = new Map<Id<'groups'>, boolean>();
+    for (const groupId of referencedIds) {
+      resolvesToRow.set(groupId, (await ctx.db.get('groups', groupId)) !== null);
+    }
+
+    function danglingReport(rows: { _id: string; group_id: Id<'groups'> | null }[]) {
+      const dangling = rows.filter(
+        (row) => row.group_id !== null && resolvesToRow.get(row.group_id) === false
+      );
+      return {
+        scanned: rows.length,
+        truncated: rows.length === AUDIT_SCAN_LIMIT,
+        withGroupReference: rows.filter((row) => row.group_id !== null).length,
+        dangling: dangling.length,
+        danglingIds: dangling.slice(0, AUDIT_ID_SAMPLE_LIMIT).map((row) => row._id),
+      };
+    }
+
+    return {
+      groups: {
+        total: groups.length,
+        truncated: groups.length === AUDIT_SCAN_LIMIT,
+        missingLifecycleFlag: groups.filter((group) => group.is_deleted === undefined).length,
+        deleted: groups.filter((group) => group.is_deleted === true).length,
+      },
+      factions: danglingReport(factions),
+      rulesets: danglingReport(rulesets),
+      memberships: danglingReport(memberships),
+    };
+  },
+});
+
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([
@@ -437,6 +524,8 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.statistics_answers_v1,
   internal.migrations.profile_discovery_profiles_v1,
   internal.migrations.faction_decal_retune_v1,
+  internal.migrations.groups_soft_delete_backfill_v1,
+  internal.migrations.groups_soft_delete_verify_v1,
 ]);
 
 export const runRequired = mutation({

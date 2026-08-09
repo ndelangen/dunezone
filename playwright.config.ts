@@ -10,9 +10,11 @@ export default defineConfig({
     timeout: 10_000,
   },
   fullyParallel: false,
-  // Spec files run in parallel workers; tests within a file stay ordered.
-  // Every spec file carries its own auth session (see global-setup), which is
-  // what makes cross-file parallelism safe under Convex Auth token rotation.
+  /**
+   * Spec files run in parallel workers; tests within a file stay ordered. Every spec file carries
+   * its own auth session (see global-setup), which is what makes cross-file parallelism safe under
+   * Convex Auth token rotation.
+   */
   workers: process.env.CI ? 3 : 1,
   globalSetup: './e2e/global-setup.ts',
   // Generates the e2e lcov report when E2E_COVERAGE=1 (no-op otherwise).
@@ -31,8 +33,8 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   projects: [
-    // Runs alone, before everything else: this spec asserts on per-frame
-    // animation samples, which starve when parallel workers compete for CPU.
+    /* Runs alone, before everything else: this spec asserts on per-frame
+       animation samples, which starve when parallel workers compete for CPU. */
     {
       name: 'animation',
       testMatch: /page-header-transition\.spec\.ts/,

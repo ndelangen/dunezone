@@ -99,9 +99,11 @@ async function generateOne(sourceAbsolute: string): Promise<MapEntry> {
     sizes.push(sizeName);
   }
 
-  // Safety net at the canonical name: same extension as the key so any
-  // unresolved reference (including the publisher capture, where a 404 is
-  // fatal) keeps rendering. Never upscaled, capped per rule.
+  /**
+   * Safety net at the canonical name: same extension as the key so any unresolved reference
+   * (including the publisher capture, where a 404 is fatal) keeps rendering. Never upscaled, capped
+   * per rule.
+   */
   const safetyFormat =
     canonicalExtension === 'png' ? 'png' : canonicalExtension === 'webp' ? 'webp' : 'jpeg';
   await encode(rule.safetyCapPx, path.join(outDirectory, path.basename(relative)), safetyFormat);

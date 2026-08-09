@@ -120,6 +120,7 @@ export const create = mutation({
       slug,
       created_by: userId,
       created_at: now,
+      is_deleted: false,
     });
     await ctx.db.insert('group_members', {
       group_id: _id,
@@ -170,28 +171,11 @@ export const update = mutation({
   },
 });
 
-export const remove = mutation({
+export const softDelete = mutation({
   args: { id: v.id('groups') },
   handler: async (ctx, args) => {
     const { subject: group } = await requireGroupCapability(ctx, args.id, 'delete');
-    await ctx.db.delete(group._id);
-
-    const rulesetsWithGroup = await ctx.db
-      .query('rulesets')
-      .withIndex('by_group_deleted', (q) => q.eq('group_id', group._id).eq('is_deleted', false))
-      .take(100);
-    for (const ruleset of rulesetsWithGroup) {
-      await ctx.db.patch(ruleset._id, { group_id: null });
-    }
-
-    const memberships = await ctx.db
-      .query('group_members')
-      .withIndex('by_group', (q) => q.eq('group_id', group._id))
-      .take(100);
-    for (const membership of memberships) {
-      await ctx.db.delete(membership._id);
-    }
-
+    await ctx.db.patch(group._id, { is_deleted: true });
     return args.id;
   },
 });

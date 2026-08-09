@@ -24,7 +24,7 @@ Convex schema and indexes are defined in [`convex/schema.ts`](../convex/schema.t
 
 **Tables**: factions, groups, group_members, profiles
 
-**Pattern**: Domain data is stored in Convex documents, validated with Zod in domain hooks and with function validators in Convex functions. Factions and rulesets use soft delete; groups use hard delete.
+**Pattern**: Domain data is stored in Convex documents, validated with Zod in domain hooks and with function validators in Convex functions. Factions, rulesets, and groups use soft delete.
 
 ## Domain File Pattern
 
@@ -117,14 +117,18 @@ export const updateSomething = mutation({
 
 ## Soft Delete Pattern
 
-Factions and rulesets use `is_deleted` flags instead of hard deletes:
+Factions, rulesets, and groups use `is_deleted` flags instead of hard deletes:
 
 - Queries filter deleted rows in Convex query handlers
 - Delete mutation sets `is_deleted: true`
+- Deleting a group never cascades: memberships and asset `group_id` associations survive
+- A group reference that does not resolve to a live group (soft-deleted, or a dangling id from
+  historical hard deletions) is projected to `null` inside the Convex layer
+  (`liveGroupOrNull` in [`convex/lib/collaborativeAccess.ts`](../convex/lib/collaborativeAccess.ts)),
+  so clients never see a deleted group or a dangling reference
+- Deleted names and slugs stay reserved (see ADR-0003)
 
 **Example**: [`src/app/factions/db.ts`](../src/app/factions/db.ts)
-
-Groups use hard delete (actual row removal).
 
 ## Convex `useQuery` in domain hooks (`src/app/**/db.ts`)
 

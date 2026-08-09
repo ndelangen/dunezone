@@ -210,8 +210,10 @@ describe('current Renderer manifest digest', () => {
   });
 
   test('encoder output changes alone do not move the identity', () => {
-    // The same ingredients must yield the same digest regardless of what the
-    // encoder produced — generated output is not part of the identity at all.
+    /*
+     * The same ingredients must yield the same digest regardless of what the encoder produced —
+     * generated output is not part of the identity at all.
+     */
     expect(digest().digest).toBe(digest().digest);
     expect(isRendererManifestAsset('image/leader/official/alia-small.webp')).toBe(false);
   });

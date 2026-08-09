@@ -76,6 +76,15 @@ type LoadedCollaborativeAccess = LoadedGroupAccess | LoadedFactionAccess | Loade
 
 type AnyCtx = QueryCtx | MutationCtx;
 
+/**
+ * The one projection rule for group references: a reference that does not resolve to a live Group —
+ * soft-deleted or missing entirely (historical hard deletions left dangling ids) — projects to null
+ * (ADR-0003).
+ */
+function liveGroupOrNull(group: Doc<'groups'> | null): Doc<'groups'> | null {
+  return group === null || group.is_deleted ? null : group;
+}
+
 async function requireAuthenticatedViewerId(ctx: AnyCtx) {
   const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
   if (!viewerId) {
@@ -125,7 +134,7 @@ function groupAccessFromLoaded(
     viewerId,
     viewerAccess: evaluateCollaborativeAccess({
       kind: 'group',
-      group: { eligible: true },
+      group: { eligible: !subject.is_deleted },
       viewer: viewerFacts(viewerId, subject.created_by, viewerMembership),
     }) as Extract<CollaborativeAccess, { kind: 'group' }>,
   };
@@ -200,7 +209,7 @@ export async function loadCollaborativeAccess(
   const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
 
   if (subject.kind === 'group') {
-    const row = await ctx.db.get('groups', subject.id);
+    const row = liveGroupOrNull(await ctx.db.get('groups', subject.id));
     if (!row) {
       throw new Error(`Group with id ${subject.id} not found`);
     }
@@ -213,7 +222,9 @@ export async function loadCollaborativeAccess(
     if (!row) {
       throw new Error(`Faction with id ${subject.id} not found`);
     }
-    const assignedGroup = row.group_id ? await ctx.db.get('groups', row.group_id) : null;
+    const assignedGroup = liveGroupOrNull(
+      row.group_id ? await ctx.db.get('groups', row.group_id) : null
+    );
     const viewerMembership = await membershipFor(ctx, assignedGroup?._id ?? null, viewerId);
     return factionAccessFromLoaded(row, assignedGroup, viewerId, viewerMembership);
   }
@@ -222,7 +233,7 @@ export async function loadCollaborativeAccess(
   if (!row) {
     throw new Error(`Ruleset with id ${subject.id} not found`);
   }
-  const assignedGroup = row.group_id ? await ctx.db.get(row.group_id) : null;
+  const assignedGroup = liveGroupOrNull(row.group_id ? await ctx.db.get(row.group_id) : null);
   const viewerMembership = await membershipFor(ctx, assignedGroup?._id ?? null, viewerId);
   return rulesetAccessFromLoaded(row, assignedGroup, viewerId, viewerMembership);
 }
@@ -242,7 +253,9 @@ export async function collaborativeAccessFor(
 
 export async function loadRulesetAccessForLoadedSubject(ctx: AnyCtx, ruleset: Doc<'rulesets'>) {
   const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
-  const assignedGroup = ruleset.group_id ? await ctx.db.get('groups', ruleset.group_id) : null;
+  const assignedGroup = liveGroupOrNull(
+    ruleset.group_id ? await ctx.db.get('groups', ruleset.group_id) : null
+  );
   const viewerMembership = await membershipFor(ctx, assignedGroup?._id ?? null, viewerId);
   return rulesetAccessFromLoaded(ruleset, assignedGroup, viewerId, viewerMembership);
 }
@@ -295,7 +308,7 @@ export async function requireAssignableGroup(ctx: MutationCtx, groupId: Id<'grou
 
 export async function requireMembershipRequest(ctx: MutationCtx, groupId: Id<'groups'>) {
   const viewerId = await requireAuthenticatedViewerId(ctx);
-  const group = await ctx.db.get('groups', groupId);
+  const group = liveGroupOrNull(await ctx.db.get('groups', groupId));
   if (!group) {
     throw new Error('Group not found');
   }
@@ -459,8 +472,9 @@ export async function loadAssetAccessBundle(
   const groupById = new Map<Id<'groups'>, Doc<'groups'>>();
   const groups = await Promise.all([...groupIds].map((groupId) => ctx.db.get('groups', groupId)));
   for (const group of groups) {
-    if (group) {
-      groupById.set(group._id, group);
+    const live = liveGroupOrNull(group);
+    if (live) {
+      groupById.set(live._id, live);
     }
   }
   const assignedGroup = subject.row.group_id ? (groupById.get(subject.row.group_id) ?? null) : null;
@@ -524,6 +538,7 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
   }
 
   const actorIsActive =
+    !group.is_deleted &&
     access.viewerAccess.viewer.kind === 'authenticated' &&
     access.viewerAccess.viewer.membership === 'active';
   const actorIsOwner = access.viewerAccess.capabilities.rename;
