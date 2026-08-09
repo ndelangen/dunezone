@@ -13,8 +13,10 @@ const config = defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'lcov'],
-      // Whole-codebase denominator; anything not listed (scripts/, e2e/,
-      // docs/, .storybook/) is out by omission.
+      /**
+       * Whole-codebase denominator; anything not listed (scripts/, e2e/, docs/, .storybook/) is out
+       * by omission.
+       */
       include: coverageInclude,
       exclude: coverageExclude,
     },
@@ -31,8 +33,10 @@ const config = defineConfig({
     // devtools(),
     tanstackStart({
       srcDirectory: './src/app',
-      // The Worker release assembly consumes `dist/client`. Prerender must run or there is no SPA
-      // shell; do not crawl the authenticated app.
+      /**
+       * The Worker release assembly consumes `dist/client`. Prerender must run or there is no SPA
+       * shell; do not crawl the authenticated app.
+       */
       prerender: {
         concurrency: Math.max(1, os.cpus().length),
         crawlLinks: false,

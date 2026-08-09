@@ -90,10 +90,12 @@ for (const relative of sourceRelatives) {
     failures.push(`${relative}: carries baked paint but its category inherits paint`);
   }
 
-  // 7. authoring stamp (#298; hard since #311 — the in-repo tool emits it, legacy sources are
-  // batch-stamped, so a missing stamp means the file never went through the authoring pipeline).
-  // Checked as an attribute of the root <svg> tag, not as a substring: a mention in a comment or
-  // text node must not satisfy the gate.
+  /*
+   * 7. authoring stamp (#298; hard since #311 — the in-repo tool emits it, legacy sources are
+   * batch-stamped, so a missing stamp means the file never went through the authoring pipeline).
+   * Checked as an attribute of the root <svg> tag, not as a substring: a mention in a comment or
+   * text node must not satisfy the gate.
+   */
   const source = readFileSync(path.join(mediaRoot, relative), 'utf8');
   if (!rootTagCarriesStamp(source)) {
     failures.push(
@@ -115,8 +117,10 @@ if (existsSync(mapPath)) {
     }
   }
 } else {
-  // Consumers hard-reference the map's fragment API; its absence is a failure even if the
-  // media source vanished too (the per-source check only fires while a source exists).
+  /*
+   * Consumers hard-reference the map's fragment API; its absence is a failure even if the media
+   * source vanished too (the per-source check only fires while a source exists).
+   */
   failures.push('background/map.svg: missing generated map (place-id API unavailable)');
 }
 

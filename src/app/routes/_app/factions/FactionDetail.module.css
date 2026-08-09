@@ -48,7 +48,6 @@
   gap: var(--mantine-spacing-md);
   min-width: 0;
   margin: calc(var(--mantine-spacing-xs) - var(--lane-bleed)) calc(-1 * var(--lane-bleed));
-  /* margin-right: 0; */
   -webkit-mask-image: linear-gradient(
     to right,
     transparent,

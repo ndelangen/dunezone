@@ -33,9 +33,11 @@ export function FrontDecals({
   const decalsMask = `${prefix}decals-mask`;
   const decalsFilter = `${prefix}decals-filter`;
 
-  // Square slot for square-normalized decal files (#307): stored scales were retuned by
-  // clamp(originalRatio, 1, 763/439) when the old 763×439 slot was retired, so art renders
-  // pixel-identically.
+  /**
+   * Square slot for square-normalized decal files (#307): stored scales were retuned by
+   * clamp(originalRatio, 1, 763/439) when the old 763×439 slot was retired, so art renders
+   * pixel-identically.
+   */
   const decalSize = { width: 439, height: 439 };
   const stroked = { filter: `url(#${decalsFilter})` };
   const empty = {};
