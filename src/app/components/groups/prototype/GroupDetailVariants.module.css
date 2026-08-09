@@ -1,0 +1,31 @@
+/* PROTOTYPE ONLY — throwaway layout scaffolding for the six Group detail concepts. */
+
+.twoColumnGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
+  gap: var(--mantine-spacing-xl);
+  align-items: start;
+}
+
+@media (max-width: 62em) {
+  .twoColumnGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.stickyAside {
+  position: sticky;
+  top: var(--mantine-spacing-md);
+}
+
+@media (max-width: 62em) {
+  .stickyAside {
+    position: static;
+  }
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-xs);
+}

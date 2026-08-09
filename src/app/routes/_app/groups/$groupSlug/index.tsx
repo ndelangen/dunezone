@@ -8,13 +8,30 @@ import { FormTooltip } from '@app/components/form/FormTooltip';
 import { ButtonGroup, Toolbar } from '@app/components/generic/layout';
 import { Card } from '@app/components/generic/surfaces/Card';
 import { UIButton } from '@app/components/generic/ui/UIButton';
+import { PrototypeSwitcher } from '@app/components/prototype/PrototypeSwitcher';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
+import { VARIANT_COMPONENTS, VARIANT_LIST } from '@app/components/groups/prototype/GroupDetailVariants';
+import type { VariantKey } from '@app/components/groups/prototype/GroupDetailVariants';
 
 import pageStyles from './index.module.css';
 
+/** PROTOTYPE ONLY — Wayfinder issue #183: throwaway `?variant=` switcher over 6 desktop concepts. */
+type PageVariant = 'current' | VariantKey;
+const PROTOTYPE_VARIANT_LIST: ReadonlyArray<{ key: PageVariant; name: string }> = [
+  { key: 'current', name: 'Current (shipped)' },
+  ...VARIANT_LIST,
+];
+function isPageVariant(value: unknown): value is PageVariant {
+  return typeof value === 'string' && PROTOTYPE_VARIANT_LIST.some((variant) => variant.key === value);
+}
+
 export const Route = createFileRoute('/_app/groups/$groupSlug/')({
+  validateSearch: (search: Record<string, unknown>): { variant?: PageVariant } =>
+    isPageVariant(search.variant) && search.variant !== 'current'
+      ? { variant: search.variant }
+      : {},
   loader: async ({ params }) => {
     const groupDetail = await loadGroupDetailBySlug(params.groupSlug);
     return { groupDetail };
@@ -24,6 +41,8 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
 
 function GroupDetailPage() {
   const { groupSlug } = Route.useParams();
+  const { variant = 'current' } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const loaderData = Route.useLoaderData();
   const groupData = useGroupDetailBySlug(groupSlug, { initialData: loaderData.groupDetail });
   const membershipWorkflow = useGroupMembershipWorkflow();
@@ -74,36 +93,84 @@ function GroupDetailPage() {
   const memberRows = [...activeMembers, ...pendingMembers];
 
   const header = <h1>{group.name}</h1>;
+  const toolbar = (
+    <Toolbar>
+      <Toolbar.Left>
+        <ButtonGroup>
+          <FormTooltip content="Back to profiles">
+            <UIButton variant="nav" to="/profiles" aria-label="Back to profiles">
+              <ArrowLeft size={16} aria-hidden />
+            </UIButton>
+          </FormTooltip>
+          {viewerAccess.capabilities.rename ? (
+            <FormTooltip content="Edit group settings">
+              <UIButton
+                variant="secondary"
+                to="/groups/$groupSlug/edit"
+                params={{ groupSlug }}
+                aria-label="Edit group settings"
+              >
+                <Pencil size={16} aria-hidden />
+              </UIButton>
+            </FormTooltip>
+          ) : null}
+        </ButtonGroup>
+      </Toolbar.Left>
+    </Toolbar>
+  );
+
+  const prototypeSwitcher = (
+    <PrototypeSwitcher
+      ariaLabel="Group detail prototype variants"
+      variants={PROTOTYPE_VARIANT_LIST}
+      current={variant}
+      onChange={(nextVariant) =>
+        void navigate({
+          search: { variant: nextVariant === 'current' ? undefined : nextVariant },
+          replace: true,
+        })
+      }
+    />
+  );
+
+  if (variant !== 'current') {
+    const VariantComponent = VARIANT_COMPONENTS[variant];
+    return (
+      <>
+        <PageLayout header={header} toolbar={toolbar}>
+          <VariantComponent
+            groupName={group.name}
+            ownerProfile={ownerProfile}
+            createdBy={group.created_by}
+            membershipStatus={membershipStatus}
+            isAnonymous={viewerAccess.viewer.kind === 'anonymous'}
+            canRequestMembership={viewerAccess.capabilities.requestMembership}
+            requestPending={membershipWorkflow.request.isPending}
+            requestError={membershipWorkflow.request.error?.message ?? null}
+            onRequestMembership={() => void membershipWorkflow.request.run(groupId).catch(() => undefined)}
+            activeMembers={activeMembers}
+            pendingMembers={pendingMembers}
+            moderationBusy={membersModerationBusy}
+            moderationError={membersModerationError}
+            onApprove={(membershipId) =>
+              void membershipWorkflow.approve.run(membershipId).catch(() => undefined)
+            }
+            onReject={(membershipId) =>
+              void membershipWorkflow.reject.run(membershipId).catch(() => undefined)
+            }
+            onRemove={handleRemoveMember}
+            factions={factions}
+            rulesets={rulesets}
+          />
+        </PageLayout>
+        {prototypeSwitcher}
+      </>
+    );
+  }
 
   return (
-    <PageLayout
-      header={header}
-      toolbar={
-        <Toolbar>
-          <Toolbar.Left>
-            <ButtonGroup>
-              <FormTooltip content="Back to profiles">
-                <UIButton variant="nav" to="/profiles" aria-label="Back to profiles">
-                  <ArrowLeft size={16} aria-hidden />
-                </UIButton>
-              </FormTooltip>
-              {viewerAccess.capabilities.rename ? (
-                <FormTooltip content="Edit group settings">
-                  <UIButton
-                    variant="secondary"
-                    to="/groups/$groupSlug/edit"
-                    params={{ groupSlug }}
-                    aria-label="Edit group settings"
-                  >
-                    <Pencil size={16} aria-hidden />
-                  </UIButton>
-                </FormTooltip>
-              ) : null}
-            </ButtonGroup>
-          </Toolbar.Left>
-        </Toolbar>
-      }
-    >
+    <>
+      <PageLayout header={header} toolbar={toolbar}>
       <Card>
         <p>
           Owner:{' '}
@@ -278,6 +345,8 @@ function GroupDetailPage() {
           </ul>
         )}
       </Card>
-    </PageLayout>
+      </PageLayout>
+      {prototypeSwitcher}
+    </>
   );
 }

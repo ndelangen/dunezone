@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 
+import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
@@ -168,5 +169,88 @@ export const importFactionBatch = mutation({
     }
 
     return { importedFactions: args.factions.length };
+  },
+});
+
+/**
+ * PROTOTYPE ONLY — Wayfinder issue #183: seeds one group with an owner, an active member, a
+ * pending member, a faction, and a ruleset so the `?variant=` switcher on the group detail page
+ * has real content to render. Not for merge — drop before landing the winning variant.
+ */
+export const seedGroupDetailPrototype = mutation({
+  args: {},
+  returns: v.object({ groupSlug: v.string() }),
+  handler: async (ctx) => {
+    assertLocalDevelopmentMode();
+
+    const now = nowIso();
+    const ownerId = await ctx.db.insert('users', { name: 'Prototype Owner' });
+    const activeMemberId = await ctx.db.insert('users', { name: 'Prototype Member' });
+    const pendingMemberId = await ctx.db.insert('users', { name: 'Pending Applicant' });
+
+    await ensureProfileForUser(ctx, ownerId, { displayName: 'Prototype Owner', imageUrl: null });
+    await ensureProfileForUser(ctx, activeMemberId, {
+      displayName: 'Prototype Member',
+      imageUrl: null,
+    });
+    await ensureProfileForUser(ctx, pendingMemberId, {
+      displayName: 'Pending Applicant',
+      imageUrl: null,
+    });
+
+    const groupId = await ctx.db.insert('groups', {
+      name: 'Prototype Guild',
+      slug: 'prototype-guild',
+      created_at: now,
+      created_by: ownerId,
+    });
+
+    await ctx.db.insert('group_members', {
+      group_id: groupId,
+      user_id: ownerId,
+      status: 'active',
+      requested_at: now,
+      approved_at: now,
+      approved_by: ownerId,
+    });
+    await ctx.db.insert('group_members', {
+      group_id: groupId,
+      user_id: activeMemberId,
+      status: 'active',
+      requested_at: now,
+      approved_at: now,
+      approved_by: ownerId,
+    });
+    await ctx.db.insert('group_members', {
+      group_id: groupId,
+      user_id: pendingMemberId,
+      status: 'pending',
+      requested_at: now,
+      approved_at: null,
+      approved_by: null,
+    });
+
+    await ctx.db.insert('factions', {
+      owner_id: ownerId,
+      data: assetPublishingFaction,
+      slug: 'prototype-atreides',
+      created_at: now,
+      updated_at: now,
+      is_deleted: false,
+      group_id: groupId,
+    });
+
+    await ctx.db.insert('rulesets', {
+      name: 'Prototype Ruleset',
+      slug: 'prototype-ruleset',
+      created_at: now,
+      updated_at: now,
+      owner_id: ownerId,
+      group_id: groupId,
+      is_deleted: false,
+      image_cover: null,
+    });
+
+    return { groupSlug: 'prototype-guild' };
   },
 });
