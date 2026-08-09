@@ -9,8 +9,8 @@ export default defineConfig({
     port: 3000,
   },
   optimizeDeps: {
-    // Pre-bundle the lazily imported, heavy deps so the dev dep-optimizer
-    // doesn't kick in mid-session (which makes dynamic imports fail to fetch).
+    /** Pre-bundle the lazily imported, heavy deps so the dev dep-optimizer
+     *  doesn't kick in mid-session (which makes dynamic imports fail to fetch). */
     include: [
       "svgo/browser",
       "three",

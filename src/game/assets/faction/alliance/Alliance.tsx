@@ -32,14 +32,12 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
     <div className={styles.card}>
       <div className={styles.decal_bg_1} />
 
-      {/* decals */}
       {decals.length > 0 && (
         <svg {...card} viewBox={`0 0 ${card.width} ${card.height}`} className={unique.overlay}>
           <FrontDecals {...{ decals, prefix }} />
         </svg>
       )}
 
-      {/* troop */}
       <svg className={unique.troop} viewBox="0 0 300 300">
         <StrokedUse
           x="50"

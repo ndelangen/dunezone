@@ -3,16 +3,17 @@ import { join, relative } from 'node:path';
 import { recursiveReaddirFiles } from 'recursive-readdir-files';
 
 async function getFiles(path: string, root: 'public' | 'media' = 'public') {
-  // Image enums read the media/ sources (public/image is generated output),
-  // but keys keep their canonical /image/... shape — they are opaque asset
-  // ids stored on faction documents, resolved via resolveAsset at render time.
+  /*
+   * Image enums read the media/ sources (public/image is generated output), but keys keep their
+   * canonical /image/... shape — they are opaque asset ids stored on faction documents, resolved
+   * via resolveAsset at render time.
+   */
   const dir = join(import.meta.dirname, '..', root, path);
   return (await recursiveReaddirFiles(dir))
     .map((f) => relative(join(dir, '..', '..'), f.path))
     .filter((f) => f.match(/\.(png|jpg|pdf|svg)$/));
 }
 
-// images
 const leaders = await getFiles('/image/leader', 'media');
 const planet = await getFiles('/image/planet', 'media');
 const texture = await getFiles('/image/texture', 'media');
