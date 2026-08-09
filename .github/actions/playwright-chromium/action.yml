@@ -1,0 +1,25 @@
+name: Playwright Chromium
+description: Install Chromium for Playwright with a version-keyed cache
+
+inputs:
+  with-deps:
+    description: >-
+      Also install OS shared libraries. "false" relies on the runner image already
+      shipping them; Playwright validates at launch and fails fast if that changes.
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve Playwright version
+      id: playwright
+      run: echo "version=$(bun -e 'console.log(require("@playwright/test/package.json").version)')" >> "$GITHUB_OUTPUT"
+      shell: bash
+    - name: Cache Playwright Chromium
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-chromium-${{ steps.playwright.outputs.version }}
+    - name: Install Chromium
+      run: npx playwright install ${{ inputs.with-deps == 'true' && '--with-deps' || '' }} chromium
+      shell: bash
