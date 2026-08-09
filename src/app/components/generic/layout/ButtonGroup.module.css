@@ -1,4 +1,3 @@
-/** Horizontal row of buttons or actions; prefer over ad-hoc flex containers for inline button groups. */
 .root {
   display: flex;
   align-items: center;

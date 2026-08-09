@@ -85,9 +85,11 @@ export async function executeItemList(
         assertCapturedSize(captured, config.pdfMaxBytes);
         result.rendered += 1;
 
-        // In-place recompression (#257): lossless-downsample the big RGB
-        // portrait rasters; everything else byte-untouched. A recompression
-        // failure never blocks publishing — the capture is stored as-is.
+        /*
+         * In-place recompression (#257): lossless-downsample the big RGB portrait rasters;
+         * everything else byte-untouched. A recompression failure never blocks publishing — the
+         * capture is stored as-is.
+         */
         let publishedBytes = captured.bytes;
         try {
           const recompressed = await recompressCapturedPdf(captured.bytes);

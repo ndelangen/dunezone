@@ -133,8 +133,8 @@ function bake(element: SvgElementLike, parent: Matrix): void {
   }
 
   const k = scaleOf(matrix);
-  // A stroked element without an explicit width uses the SVG default of 1 user unit — after
-  // coordinate baking that implicit 1 must become an explicit 1×k or strokes fatten by 1/k.
+  /* A stroked element without an explicit width uses the SVG default of 1 user unit — after
+     coordinate baking that implicit 1 must become an explicit 1×k or strokes fatten by 1/k. */
   const stroke = element.getAttribute('stroke');
   if (stroke && stroke !== 'none' && !element.getAttribute('stroke-width')) {
     element.setAttribute('stroke-width', String(round(k)));

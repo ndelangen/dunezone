@@ -175,8 +175,10 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
         PUBLISHER_RENDERER_CONTRACT.pdf.pageSizeToleranceMm,
       `Production-shaped capture produced ${inspection.pageHeightMm.toFixed(2)} mm tall pages`
     );
-    // In-place recompression contract (#257): portraits downsampled losslessly,
-    // page structure untouched, output under the published ceiling.
+    /*
+     * In-place recompression contract (#257): portraits downsampled losslessly, page structure
+     * untouched, output under the published ceiling.
+     */
     const recompressed = await recompressCapturedPdf(new Uint8Array(pdf));
     invariant(
       recompressed.swappedImages > 0,

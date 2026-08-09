@@ -53,9 +53,9 @@ export const mirrorFlip: PipelineStep<FlipConfig> = {
         const transform = mirrorTransform(doc.flip, cx, cy);
 
         if (!transform) {
-          // No flip desired: unwrap any existing flip group; if there is none the
-          // document is untouched — return it verbatim so serialization cannot
-          // reformat a no-op.
+          /* No flip desired: unwrap any existing flip group; if there is none the
+             document is untouched — return it verbatim so serialization cannot
+             reformat a no-op. */
           if (existing && existing.parentNode === el) {
             while (existing.firstChild) {
               el.insertBefore(existing.firstChild, existing);
