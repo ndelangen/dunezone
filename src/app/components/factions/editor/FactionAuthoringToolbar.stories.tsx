@@ -11,12 +11,16 @@ const toolbarActions = {
   onBack: () => undefined,
 };
 
-const cleanToolbar = {
+const cleanStatus = {
   isDirty: false,
   isNameBlank: false,
   warningCount: 0,
   saveState: 'idle' as const,
-  ...toolbarActions,
+};
+
+const cleanToolbar = {
+  status: cleanStatus,
+  actions: toolbarActions,
 };
 
 const meta = preview.meta({
@@ -42,20 +46,22 @@ export const Clean = meta.story({
 export const SaveFailed = meta.story({
   args: {
     ...cleanToolbar,
-    isDirty: true,
-    saveState: 'error',
+    status: { ...cleanStatus, isDirty: true, saveState: 'error' },
   },
 });
 
 export const PublishedAndCurrent = meta.story({
   args: {
     ...cleanToolbar,
-    saveState: 'saved',
-    assetPublishing: {
-      status: 'current',
-      captureStatus: null,
-      publicationHref: '/published/factions/storybook-faction/sheet.pdf',
-      lastPublishedAt: Date.parse('2026-08-04T18:30:00.000Z'),
+    status: {
+      ...cleanStatus,
+      saveState: 'saved',
+      assetPublishing: {
+        status: 'current',
+        captureStatus: null,
+        publicationHref: '/published/factions/storybook-faction/sheet.pdf',
+        lastPublishedAt: Date.parse('2026-08-04T18:30:00.000Z'),
+      },
     },
   },
 });

@@ -15,60 +15,76 @@ function formatPublishedAt(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
-export function FactionAuthoringToolbar({
-  isDirty,
-  isNameBlank,
-  warningCount,
-  saveState,
-  assetPublishing,
-  onSave,
-  onReviewWarnings,
-  onReview,
-  onReset,
-  onBack,
-  auxiliaryActions,
-  context,
-  destructiveActions,
-}: {
+type ToolbarStatusPresentation = {
+  label: string;
+  color: string;
+  publishingCopy: string;
+};
+
+function deriveToolbarStatus(
+  saveState: FactionSaveState,
+  isDirty: boolean,
+  assetPublishing: PublicAssetPublishingStatusProjection | undefined
+): ToolbarStatusPresentation {
+  const publishingCopy = assetPublishing
+    ? factionAssetPublishingCopy(assetPublishing.status, saveState, assetPublishing.captureStatus)
+    : saveState === 'error'
+      ? 'Changes were not saved.'
+      : saveState === 'saved'
+        ? 'Saved. Publication scheduled.'
+        : 'Saving this faction schedules its public assets.';
+
+  if (saveState === 'saving') {
+    return { label: 'Saving', color: 'blue', publishingCopy };
+  }
+  if (saveState === 'error') {
+    return { label: 'Save failed', color: 'red', publishingCopy };
+  }
+  if (isDirty) {
+    return { label: 'Unsaved changes', color: 'orange', publishingCopy };
+  }
+  if (saveState === 'saved') {
+    return { label: 'Saved', color: 'green', publishingCopy };
+  }
+  return { label: 'No unsaved changes', color: 'gray', publishingCopy };
+}
+
+export interface FactionAuthoringStatus {
   isDirty: boolean;
   isNameBlank: boolean;
   warningCount: number;
   saveState: FactionSaveState;
   assetPublishing?: PublicAssetPublishingStatusProjection;
+}
+
+export interface FactionAuthoringToolbarActions {
   onSave: () => void;
   onReviewWarnings: () => void;
   onReview: (trigger: HTMLButtonElement) => void;
   onReset: () => void;
   onBack: () => void;
+}
+
+export function FactionAuthoringToolbar({
+  status,
+  actions,
+  auxiliaryActions,
+  context,
+  destructiveActions,
+}: {
+  status: FactionAuthoringStatus;
+  actions: FactionAuthoringToolbarActions;
   auxiliaryActions?: ReactNode;
   context?: ReactNode;
   destructiveActions?: ReactNode;
 }) {
-  const statusLabel =
-    saveState === 'saving'
-      ? 'Saving'
-      : saveState === 'error'
-        ? 'Save failed'
-        : isDirty
-          ? 'Unsaved changes'
-          : saveState === 'saved'
-            ? 'Saved'
-            : 'No unsaved changes';
-  const statusColor =
-    saveState === 'error'
-      ? 'red'
-      : saveState === 'saving'
-        ? 'blue'
-        : isDirty
-          ? 'orange'
-          : saveState === 'saved'
-            ? 'green'
-            : 'gray';
-  const publishingCopy = assetPublishing
-    ? factionAssetPublishingCopy(assetPublishing.status, saveState, assetPublishing.captureStatus)
-    : saveState === 'saved'
-      ? 'Saved. Publication scheduled.'
-      : 'Saving this faction schedules its public assets.';
+  const { isDirty, isNameBlank, warningCount, saveState, assetPublishing } = status;
+  const { onSave, onReviewWarnings, onReview, onReset, onBack } = actions;
+  const {
+    label: statusLabel,
+    color: statusColor,
+    publishingCopy,
+  } = deriveToolbarStatus(saveState, isDirty, assetPublishing);
 
   return (
     <Paper withBorder p="sm" radius="md" className={styles.toolbar}>

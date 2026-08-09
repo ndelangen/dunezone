@@ -28,15 +28,19 @@ function FactionAuthoringFixture() {
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
       <Stack gap="clamp(var(--mantine-spacing-sm), 3vw, var(--mantine-spacing-xl))">
         <FactionAuthoringToolbar
-          isDirty={authoring.editing.isDirty}
-          isNameBlank={authoring.editing.isNameBlank}
-          warningCount={authoring.editing.warnings.length}
-          saveState={authoring.persistence.saveState}
-          onSave={authoring.actions.submit}
-          onReviewWarnings={() => viewRef.current?.focusFirstWarning()}
-          onReview={(trigger) => viewRef.current?.openReview(trigger)}
-          onReset={authoring.actions.reset}
-          onBack={() => undefined}
+          status={{
+            isDirty: authoring.editing.isDirty,
+            isNameBlank: authoring.editing.isNameBlank,
+            warningCount: authoring.editing.warnings.length,
+            saveState: authoring.persistence.saveState,
+          }}
+          actions={{
+            onSave: authoring.actions.submit,
+            onReviewWarnings: () => viewRef.current?.focusFirstWarning(),
+            onReview: (trigger) => viewRef.current?.openReview(trigger),
+            onReset: authoring.actions.reset,
+            onBack: () => undefined,
+          }}
         />
         <FactionEditor
           ref={viewRef}
