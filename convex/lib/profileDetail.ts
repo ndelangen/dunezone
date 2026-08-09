@@ -28,9 +28,10 @@ export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
   const groupsWithNulls = await Promise.all(
     memberships.map((membership) => ctx.db.get('groups', membership.group_id))
   );
-  const groups = groupsWithNulls
-    .map((group) => liveGroupOrNull(group))
-    .filter((group): group is NonNullable<(typeof groupsWithNulls)[number]> => group !== null);
+  const groups = groupsWithNulls.flatMap((group) => {
+    const live = liveGroupOrNull(group);
+    return live ? [live] : [];
+  });
   /* Public profile callers count and render only live active Groups. A dangling or
    * soft-deleted membership cannot become a safe identity summary (ADR-0003). */
   const groupSummaries = groups.map((group) => ({
