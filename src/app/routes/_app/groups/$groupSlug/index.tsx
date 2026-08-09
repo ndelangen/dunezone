@@ -362,16 +362,24 @@ function OwnerLine({
   );
 }
 
+const membershipBadgeColors: Record<MembershipStatus, string> = {
+  active: 'green',
+  pending: 'yellow',
+  none: 'gray',
+};
+
 function membershipBadgeColor(status: MembershipStatus) {
-  return status === 'active' ? 'green' : status === 'pending' ? 'yellow' : 'gray';
+  return membershipBadgeColors[status];
 }
 
+const membershipBadgeLabels: Record<MembershipStatus, string> = {
+  active: 'Active member',
+  pending: 'Pending approval',
+  none: 'Not a member',
+};
+
 function membershipBadgeLabel(status: MembershipStatus) {
-  return status === 'active'
-    ? 'Active member'
-    : status === 'pending'
-      ? 'Pending approval'
-      : 'Not a member';
+  return membershipBadgeLabels[status];
 }
 
 function MembershipStatusBadge({

@@ -14,6 +14,7 @@ import {
   rulesetDetailPageValidator,
   rulesetPublicBundleValidator,
 } from './lib/collaborativeAccessValidators';
+import { projectOwnedGroupRef, resolveLiveGroupNames } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
 import {
   loadRulesetDetailPageBySlug,
@@ -102,30 +103,14 @@ export const listOwnedForGroupAssign = query({
       .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', false))
       .take(500);
 
-    const groupIds = new Set<Id<'groups'>>();
-    for (const row of rows) {
-      if (row.group_id) {
-        groupIds.add(row.group_id);
-      }
-    }
-    const groupNameById = new Map<string, string>();
-    for (const gid of groupIds) {
-      const group = await ctx.db.get('groups', gid);
-      if (group && !group.is_deleted) {
-        groupNameById.set(gid, group.name.trim());
-      }
-    }
+    const groupNameById = await resolveLiveGroupNames(ctx, rows);
 
-    return rows.map((row) => {
-      const groupId = row.group_id && groupNameById.has(row.group_id) ? row.group_id : null;
-      return {
-        id: row._id,
-        slug: row.slug,
-        name: row.name,
-        groupId,
-        groupName: groupId ? (groupNameById.get(groupId) ?? null) : null,
-      };
-    });
+    return rows.map((row) => ({
+      id: row._id,
+      slug: row.slug,
+      name: row.name,
+      ...projectOwnedGroupRef(row.group_id, groupNameById),
+    }));
   },
 });
 

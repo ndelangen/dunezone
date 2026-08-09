@@ -283,7 +283,7 @@ export function useDeleteRuleset() {
   };
 }
 
-export type OwnedRulesetForGroupAssign = {
+type OwnedRulesetForGroupAssign = {
   id: string;
   slug: string;
   name: string;

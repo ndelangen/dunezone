@@ -304,7 +304,7 @@ export async function loadFaction(slug: string): Promise<FactionDetailPageData> 
   return toFactionDetailPageData(raw);
 }
 
-export type OwnedFactionForGroupAssign = {
+type OwnedFactionForGroupAssign = {
   id: string;
   slug: string;
   name: string;

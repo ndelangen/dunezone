@@ -1,6 +1,6 @@
 import { expect, longSpecTimeoutMs, test } from './coverage';
 
-test.use({ storageState: '.playwright/user-a-group.json' });
+test.use({ storageState: '.playwright/user-a-asset-assign.json' });
 
 test('owner adds an owned, unassigned faction to their Group', async ({ page }) => {
   test.setTimeout(longSpecTimeoutMs);

@@ -7,123 +7,148 @@ import { describe, expect, test } from 'vitest';
 import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import schema from './schema';
+import type { MutationCtx } from './types';
 
 const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-10T00:00:00.000Z';
 
+async function seedUsersAndGroups(ctx: MutationCtx) {
+  const ownerId = await ctx.db.insert('users', { name: 'Owner' });
+  const otherId = await ctx.db.insert('users', { name: 'Other owner' });
+
+  const targetGroupId = await ctx.db.insert('groups', {
+    name: 'Target Guild',
+    slug: 'target-guild',
+    created_at: now,
+    created_by: ownerId,
+    is_deleted: false,
+  });
+  const otherGroupId = await ctx.db.insert('groups', {
+    name: 'Other Guild',
+    slug: 'other-guild',
+    created_at: now,
+    created_by: ownerId,
+    is_deleted: false,
+  });
+  const deletedGroupId = await ctx.db.insert('groups', {
+    name: 'Deleted Guild',
+    slug: 'deleted-guild',
+    created_at: now,
+    created_by: ownerId,
+    is_deleted: true,
+  });
+
+  return { ownerId, otherId, targetGroupId, otherGroupId, deletedGroupId };
+}
+
+async function seedFactions(
+  ctx: MutationCtx,
+  seeded: Awaited<ReturnType<typeof seedUsersAndGroups>>
+) {
+  const { ownerId, otherId, otherGroupId, deletedGroupId } = seeded;
+
+  const unassignedFactionId = await ctx.db.insert('factions', {
+    owner_id: ownerId,
+    data: { ...assetPublishingFaction, name: 'Unassigned Faction' },
+    slug: 'unassigned-faction',
+    created_at: now,
+    updated_at: now,
+    is_deleted: false,
+    group_id: null,
+  });
+  const elsewhereFactionId = await ctx.db.insert('factions', {
+    owner_id: ownerId,
+    data: { ...assetPublishingFaction, name: 'Elsewhere Faction' },
+    slug: 'elsewhere-faction',
+    created_at: now,
+    updated_at: now,
+    is_deleted: false,
+    group_id: otherGroupId,
+  });
+  await ctx.db.insert('factions', {
+    owner_id: ownerId,
+    data: { ...assetPublishingFaction, name: 'Deleted Faction' },
+    slug: 'deleted-faction',
+    created_at: now,
+    updated_at: now,
+    is_deleted: true,
+    group_id: null,
+  });
+  await ctx.db.insert('factions', {
+    owner_id: otherId,
+    data: { ...assetPublishingFaction, name: 'Someone Elses Faction' },
+    slug: 'someone-elses-faction',
+    created_at: now,
+    updated_at: now,
+    is_deleted: false,
+    group_id: null,
+  });
+  const danglingGroupFactionId = await ctx.db.insert('factions', {
+    owner_id: ownerId,
+    data: { ...assetPublishingFaction, name: 'Dangling Group Faction' },
+    slug: 'dangling-group-faction',
+    created_at: now,
+    updated_at: now,
+    is_deleted: false,
+    group_id: deletedGroupId,
+  });
+
+  return { unassignedFactionId, elsewhereFactionId, danglingGroupFactionId };
+}
+
+async function seedRulesets(
+  ctx: MutationCtx,
+  seeded: Awaited<ReturnType<typeof seedUsersAndGroups>>
+) {
+  const { ownerId, otherId } = seeded;
+
+  const unassignedRulesetId = await ctx.db.insert('rulesets', {
+    name: 'UnassignedRuleset',
+    slug: 'unassigned-ruleset',
+    created_at: now,
+    updated_at: now,
+    owner_id: ownerId,
+    group_id: null,
+    is_deleted: false,
+    image_cover: null,
+  });
+  await ctx.db.insert('rulesets', {
+    name: 'DeletedRuleset',
+    slug: 'deleted-ruleset',
+    created_at: now,
+    updated_at: now,
+    owner_id: ownerId,
+    group_id: null,
+    is_deleted: true,
+    image_cover: null,
+  });
+  await ctx.db.insert('rulesets', {
+    name: 'SomeoneElsesRuleset',
+    slug: 'someone-elses-ruleset',
+    created_at: now,
+    updated_at: now,
+    owner_id: otherId,
+    group_id: null,
+    is_deleted: false,
+    image_cover: null,
+  });
+
+  return { unassignedRulesetId };
+}
+
 async function fixture() {
   const t = convexTest(schema, modules);
   const ids = await t.run(async (ctx) => {
-    const ownerId = await ctx.db.insert('users', { name: 'Owner' });
-    const otherId = await ctx.db.insert('users', { name: 'Other owner' });
-
-    const targetGroupId = await ctx.db.insert('groups', {
-      name: 'Target Guild',
-      slug: 'target-guild',
-      created_at: now,
-      created_by: ownerId,
-      is_deleted: false,
-    });
-    const otherGroupId = await ctx.db.insert('groups', {
-      name: 'Other Guild',
-      slug: 'other-guild',
-      created_at: now,
-      created_by: ownerId,
-      is_deleted: false,
-    });
-    const deletedGroupId = await ctx.db.insert('groups', {
-      name: 'Deleted Guild',
-      slug: 'deleted-guild',
-      created_at: now,
-      created_by: ownerId,
-      is_deleted: true,
-    });
-
-    const unassignedFactionId = await ctx.db.insert('factions', {
-      owner_id: ownerId,
-      data: { ...assetPublishingFaction, name: 'Unassigned Faction' },
-      slug: 'unassigned-faction',
-      created_at: now,
-      updated_at: now,
-      is_deleted: false,
-      group_id: null,
-    });
-    const elsewhereFactionId = await ctx.db.insert('factions', {
-      owner_id: ownerId,
-      data: { ...assetPublishingFaction, name: 'Elsewhere Faction' },
-      slug: 'elsewhere-faction',
-      created_at: now,
-      updated_at: now,
-      is_deleted: false,
-      group_id: otherGroupId,
-    });
-    await ctx.db.insert('factions', {
-      owner_id: ownerId,
-      data: { ...assetPublishingFaction, name: 'Deleted Faction' },
-      slug: 'deleted-faction',
-      created_at: now,
-      updated_at: now,
-      is_deleted: true,
-      group_id: null,
-    });
-    await ctx.db.insert('factions', {
-      owner_id: otherId,
-      data: { ...assetPublishingFaction, name: 'Someone Elses Faction' },
-      slug: 'someone-elses-faction',
-      created_at: now,
-      updated_at: now,
-      is_deleted: false,
-      group_id: null,
-    });
-    const danglingGroupFactionId = await ctx.db.insert('factions', {
-      owner_id: ownerId,
-      data: { ...assetPublishingFaction, name: 'Dangling Group Faction' },
-      slug: 'dangling-group-faction',
-      created_at: now,
-      updated_at: now,
-      is_deleted: false,
-      group_id: deletedGroupId,
-    });
-
-    const unassignedRulesetId = await ctx.db.insert('rulesets', {
-      name: 'UnassignedRuleset',
-      slug: 'unassigned-ruleset',
-      created_at: now,
-      updated_at: now,
-      owner_id: ownerId,
-      group_id: null,
-      is_deleted: false,
-      image_cover: null,
-    });
-    await ctx.db.insert('rulesets', {
-      name: 'DeletedRuleset',
-      slug: 'deleted-ruleset',
-      created_at: now,
-      updated_at: now,
-      owner_id: ownerId,
-      group_id: null,
-      is_deleted: true,
-      image_cover: null,
-    });
-    await ctx.db.insert('rulesets', {
-      name: 'SomeoneElsesRuleset',
-      slug: 'someone-elses-ruleset',
-      created_at: now,
-      updated_at: now,
-      owner_id: otherId,
-      group_id: null,
-      is_deleted: false,
-      image_cover: null,
-    });
+    const seeded = await seedUsersAndGroups(ctx);
+    const factionIds = await seedFactions(ctx, seeded);
+    const rulesetIds = await seedRulesets(ctx, seeded);
 
     return {
-      ownerId,
-      targetGroupId,
-      otherGroupId,
-      unassignedFactionId,
-      elsewhereFactionId,
-      danglingGroupFactionId,
-      unassignedRulesetId,
+      ownerId: seeded.ownerId,
+      targetGroupId: seeded.targetGroupId,
+      otherGroupId: seeded.otherGroupId,
+      ...factionIds,
+      ...rulesetIds,
     };
   });
 
