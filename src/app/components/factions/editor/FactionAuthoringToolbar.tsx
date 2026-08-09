@@ -28,9 +28,11 @@ function deriveToolbarStatus(
 ): ToolbarStatusPresentation {
   const publishingCopy = assetPublishing
     ? factionAssetPublishingCopy(assetPublishing.status, saveState, assetPublishing.captureStatus)
-    : saveState === 'saved'
-      ? 'Saved. Publication scheduled.'
-      : 'Saving this faction schedules its public assets.';
+    : saveState === 'error'
+      ? 'Changes were not saved.'
+      : saveState === 'saved'
+        ? 'Saved. Publication scheduled.'
+        : 'Saving this faction schedules its public assets.';
 
   if (saveState === 'saving') {
     return { label: 'Saving', color: 'blue', publishingCopy };
