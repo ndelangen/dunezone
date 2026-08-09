@@ -8,7 +8,7 @@ import styles from './SuggestField.module.css';
 import type { TextFieldAppearance } from './TextField';
 import { TextField } from './TextField';
 
-export interface SuggestFieldOptionAdapters {
+interface SuggestFieldOptionAdapters {
   toLabel?: (raw: string) => string;
   toSearchText?: (raw: string) => string;
   toPreviewSrc?: (raw: string) => string | null | undefined;
