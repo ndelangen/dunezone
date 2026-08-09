@@ -31,6 +31,7 @@ test('profile list includes activity counts', async () => {
       slug: 'sietch-tabr',
       created_at: '2026-07-19T00:00:00.000Z',
       created_by: userId,
+      is_deleted: false,
     });
     await ctx.db.insert('group_members', {
       group_id: groupId,

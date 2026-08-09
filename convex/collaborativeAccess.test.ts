@@ -28,6 +28,7 @@ async function groupAccessFixture() {
       slug: 'dune-designers',
       created_at: now,
       created_by: ownerId,
+      is_deleted: false,
     });
     for (const [userId, username, slug] of [
       [ownerId, 'Group owner', 'group-owner'],
@@ -239,6 +240,7 @@ describe('collaborative access public projections', () => {
           slug,
           created_at: now,
           created_by: ids.ownerId,
+          is_deleted: false,
         });
       const activeGroupId = await insertGroup('Active target', 'active-target');
       const pendingGroupId = await insertGroup('Pending target', 'pending-target');
@@ -525,6 +527,7 @@ describe('collaborative access public projections', () => {
         slug: 'membership-history',
         created_at: now,
         created_by: ids.ownerId,
+        is_deleted: false,
       });
       for (let index = 0; index < 500; index += 1) {
         await ctx.db.insert('group_members', {
@@ -550,6 +553,7 @@ describe('collaborative access public projections', () => {
           slug: `active-history-${index}`,
           created_at: now,
           created_by: ids.ownerId,
+          is_deleted: false,
         });
         await ctx.db.insert('group_members', {
           group_id: groupId,
@@ -826,6 +830,7 @@ describe('collaborative access moderation commands', () => {
           slug,
           created_at: now,
           created_by: ids.ownerId,
+          is_deleted: false,
         });
       const active = await insertGroup('Active command target', 'active-command-target');
       const pending = await insertGroup('Pending command target', 'pending-command-target');

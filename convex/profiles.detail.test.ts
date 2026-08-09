@@ -56,18 +56,21 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
       slug: 'sietch-tabr',
       created_at: at(1),
       created_by: userId,
+      is_deleted: false,
     });
     const pendingGroupId = await ctx.db.insert('groups', {
       name: 'Pending Sietch',
       slug: 'pending-sietch',
       created_at: at(1),
       created_by: userId,
+      is_deleted: false,
     });
     const removedGroupId = await ctx.db.insert('groups', {
       name: 'Removed Sietch',
       slug: 'removed-sietch',
       created_at: at(1),
       created_by: userId,
+      is_deleted: false,
     });
     await ctx.db.insert('group_members', {
       group_id: activeGroupId,
@@ -99,6 +102,7 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
       slug: 'arrakeen-guild',
       created_at: at(1),
       created_by: userId,
+      is_deleted: false,
     });
     await ctx.db.insert('group_members', {
       group_id: laterGroupId,
@@ -113,6 +117,7 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
       slug: 'ghost-sietch',
       created_at: at(1),
       created_by: userId,
+      is_deleted: false,
     });
     await ctx.db.insert('group_members', {
       group_id: ghostGroupId,

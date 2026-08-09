@@ -87,10 +87,9 @@ export const detailBySlug = query({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    // neq(true), not eq(false): pre-backfill rows without the flag stay live (widen window).
     return await ctx.db
       .query('groups')
-      .filter((q) => q.neq(q.field('is_deleted'), true))
+      .filter((q) => q.eq(q.field('is_deleted'), false))
       .take(500);
   },
 });
@@ -101,7 +100,7 @@ export const listByCreator = query({
     return await ctx.db
       .query('groups')
       .withIndex('by_created_by', (q) => q.eq('created_by', args.created_by))
-      .filter((q) => q.neq(q.field('is_deleted'), true))
+      .filter((q) => q.eq(q.field('is_deleted'), false))
       .take(500);
   },
 });

@@ -140,6 +140,11 @@
       "id": "groups_soft_delete_verify_v1",
       "phase": "widen",
       "requires": ["groups_soft_delete_backfill_v1"]
+    },
+    {
+      "id": "groups_soft_delete_narrow",
+      "phase": "narrow",
+      "requires": ["groups_soft_delete_backfill_v1", "groups_soft_delete_verify_v1"]
     }
   ]
 }
