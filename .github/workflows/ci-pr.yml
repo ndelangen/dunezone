@@ -13,21 +13,16 @@ concurrency:
 jobs:
   verify:
     uses: ./.github/workflows/reusable-verify.yml
-    # Codecov uploads need CODECOV_TOKEN inside the reusable workflow — pass
-    # only that secret (least privilege; the reusable workflow runs PR code).
-    # Fork PRs get no secrets; codecov-action falls back to tokenless for
-    # public repos and the upload steps never fail the build.
+    # Fork PRs get no secrets; codecov-action falls back to tokenless and never fails the build.
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  # Single required-status-check context for branch protection: the workflow
-  # file owns the definition of "green", so protection settings never chase
-  # job renames. if: always() + explicit result check because a skipped
-  # required check would otherwise count as passing.
+  # Single required check owning the definition of "green"; if: always() so a skipped verify can't pass (#290).
   ci_ok:
     if: always()
     needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Require full verify success
         run: test "${{ needs.verify.result }}" = "success"

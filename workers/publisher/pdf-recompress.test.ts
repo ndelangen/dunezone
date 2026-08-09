@@ -10,7 +10,7 @@ function noisyPixels(count: number): Uint8Array {
   const bytes = new Uint8Array(count);
   let state = 0x12_34_56_78;
   for (let index = 0; index < count; index += 1) {
-    // xorshift32 (Math.imul keeps 32-bit semantics): incompressible like grain.
+    // xorshift32; Math.imul keeps 32-bit semantics.
     state ^= state << 13;
     state ^= state >>> 17;
     state = Math.imul(state ^ (state << 5), 1);

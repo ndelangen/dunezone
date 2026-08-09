@@ -1,33 +1,38 @@
 import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
-  // The authoring tool is a self-contained workspace with its own conventions and
-  // test/typecheck gates; it is extraction-destined (see wayfinder #298).
+  /**
+   * The authoring tool is a self-contained workspace with its own conventions and test/typecheck
+   * gates; it is extraction-destined (see wayfinder #298).
+   */
   ignoreWorkspaces: ['tools/svg-authoring'],
   workspaces: {
     '.': {
       entry: [
-        // TanStack Start file-based routing: routes are loaded by the router
-        // plugin, not imported anywhere knip can see.
+        /* TanStack Start file-based routing: routes are loaded by the router
+           plugin, not imported anywhere knip can see. */
         'src/app/router.tsx',
         'src/app/routes/**/*.tsx',
         // Built via workers/publisher/vite.config.ts (publisher-capture.html input).
         'src/app/capture/publisher-entry.tsx',
         // Worker entry, referenced from workers/publisher/wrangler.jsonc.
         'workers/publisher/index.ts',
-        // Standalone scripts run ad hoc with `bun run ./scripts/...`.
-        // Deliberately not scripts/lib/** — helpers there must be imported to count as used.
+        /* Standalone scripts run ad hoc with `bun run ./scripts/...`. Deliberately
+           not scripts/lib/** — helpers there must be imported to count as used. */
         'scripts/*.{ts,mjs}',
       ],
-      // Non-default vite config locations (custom `config` overrides the plugin
-      // default, so the root config must be listed too). The .storybook one is
-      // referenced by string from .storybook/main.ts (viteConfigPath).
+      /**
+       * Non-default vite config locations (custom `config` overrides the plugin default, so the
+       * root config must be listed too). The .storybook one is referenced by string from
+       * .storybook/main.ts (viteConfigPath).
+       */
       vite: {
         config: ['vite.config.ts', 'workers/publisher/vite.config.ts', '.storybook/vite.config.ts'],
       },
-      // Dev-toggle devtools: imported only from commented-out code in
-      // src/app/routes/__root.tsx and vite.config.ts, kept for flipping on
-      // during debugging.
+      /**
+       * Dev-toggle devtools: imported only from commented-out code in src/app/routes/__root.tsx and
+       * vite.config.ts, kept for flipping on during debugging.
+       */
       ignoreDependencies: [
         '@tanstack/react-devtools',
         '@tanstack/react-router-devtools',
