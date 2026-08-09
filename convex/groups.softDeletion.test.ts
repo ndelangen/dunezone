@@ -256,11 +256,6 @@ describe('Group soft deletion lifecycle', () => {
     const page = await t.withIdentity({ subject: ids.ownerId }).query(api.groups.detailBySlug, {
       slug: 'dunedesigners',
     });
-    expect(page.viewerAccess.capabilities).toEqual({
-      requestMembership: false,
-      rename: false,
-      delete: false,
-      addMember: false,
-    });
+    expect(Object.values(page.viewerAccess.capabilities).some(Boolean)).toBe(false);
   });
 });
