@@ -136,21 +136,24 @@ function FactionEditPage() {
       headerSize="compact"
       toolbar={
         <FactionAuthoringToolbar
-          isDirty={authoring.editing.isDirty}
-          isNameBlank={authoring.editing.isNameBlank}
-          warningCount={authoring.editing.warnings.length}
-          saveState={authoring.persistence.saveState}
-          assetPublishing={assetPublishing}
-          onSave={authoring.actions.submit}
-          onReviewWarnings={() => viewRef.current?.focusFirstWarning()}
-          onReview={(trigger) => viewRef.current?.openReview(trigger)}
-          onReset={authoring.actions.reset}
-          onBack={() =>
-            navigate({
-              to: '/factions/$factionId',
-              params: { factionId },
-            })
-          }
+          status={{
+            isDirty: authoring.editing.isDirty,
+            isNameBlank: authoring.editing.isNameBlank,
+            warningCount: authoring.editing.warnings.length,
+            saveState: authoring.persistence.saveState,
+            assetPublishing,
+          }}
+          actions={{
+            onSave: authoring.actions.submit,
+            onReviewWarnings: () => viewRef.current?.focusFirstWarning(),
+            onReview: (trigger) => viewRef.current?.openReview(trigger),
+            onReset: authoring.actions.reset,
+            onBack: () =>
+              navigate({
+                to: '/factions/$factionId',
+                params: { factionId },
+              }),
+          }}
           auxiliaryActions={
             <>
               <FactionLoadPopover

@@ -15,35 +15,37 @@ function formatPublishedAt(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
-export function FactionAuthoringToolbar({
-  isDirty,
-  isNameBlank,
-  warningCount,
-  saveState,
-  assetPublishing,
-  onSave,
-  onReviewWarnings,
-  onReview,
-  onReset,
-  onBack,
-  auxiliaryActions,
-  context,
-  destructiveActions,
-}: {
+export interface FactionAuthoringStatus {
   isDirty: boolean;
   isNameBlank: boolean;
   warningCount: number;
   saveState: FactionSaveState;
   assetPublishing?: PublicAssetPublishingStatusProjection;
+}
+
+export interface FactionAuthoringToolbarActions {
   onSave: () => void;
   onReviewWarnings: () => void;
   onReview: (trigger: HTMLButtonElement) => void;
   onReset: () => void;
   onBack: () => void;
+}
+
+export function FactionAuthoringToolbar({
+  status,
+  actions,
+  auxiliaryActions,
+  context,
+  destructiveActions,
+}: {
+  status: FactionAuthoringStatus;
+  actions: FactionAuthoringToolbarActions;
   auxiliaryActions?: ReactNode;
   context?: ReactNode;
   destructiveActions?: ReactNode;
 }) {
+  const { isDirty, isNameBlank, warningCount, saveState, assetPublishing } = status;
+  const { onSave, onReviewWarnings, onReview, onReset, onBack } = actions;
   const statusLabel =
     saveState === 'saving'
       ? 'Saving'

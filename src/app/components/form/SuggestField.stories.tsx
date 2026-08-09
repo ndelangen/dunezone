@@ -38,6 +38,6 @@ export const WithPreview = meta.story({
       '/vector/icon/alliance.svg',
       '/vector/logo/atreides.svg',
     ],
-    optionToPreviewSrc: toPreviewSrc,
+    optionAdapters: { toPreviewSrc },
   },
 });

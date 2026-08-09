@@ -76,15 +76,19 @@ function CreateFactionPage() {
       headerSize="compact"
       toolbar={
         <FactionAuthoringToolbar
-          isDirty={authoring.editing.isDirty}
-          isNameBlank={authoring.editing.isNameBlank}
-          warningCount={authoring.editing.warnings.length}
-          saveState={authoring.persistence.saveState}
-          onSave={authoring.actions.submit}
-          onReviewWarnings={() => viewRef.current?.focusFirstWarning()}
-          onReview={(trigger) => viewRef.current?.openReview(trigger)}
-          onReset={authoring.actions.reset}
-          onBack={() => navigate({ to: '/factions' })}
+          status={{
+            isDirty: authoring.editing.isDirty,
+            isNameBlank: authoring.editing.isNameBlank,
+            warningCount: authoring.editing.warnings.length,
+            saveState: authoring.persistence.saveState,
+          }}
+          actions={{
+            onSave: authoring.actions.submit,
+            onReviewWarnings: () => viewRef.current?.focusFirstWarning(),
+            onReview: (trigger) => viewRef.current?.openReview(trigger),
+            onReset: authoring.actions.reset,
+            onBack: () => navigate({ to: '/factions' }),
+          }}
           auxiliaryActions={
             <FactionLoadPopover
               disabled={createFaction.isPending}
