@@ -61,15 +61,16 @@ export function replaceExtension(name: string, ext: string): string {
 function dedupeName(name: string, seen: Map<string, number>): string {
   /* Reserve every emitted candidate, not only originals: a.svg, a-1.svg, a.svg
      must yield a.svg, a-1.svg, a-2.svg — never a colliding second a-1.svg. */
-  const emitted = seen;
-  let candidate = name;
-  let count = emitted.get(name) ?? 0;
-  while (emitted.has(candidate) && emitted.get(candidate)! > 0) {
+  const dot = name.lastIndexOf(".");
+  const variant = (n: number) =>
+    n === 0 ? name : dot === -1 ? `${name}-${n}` : `${name.slice(0, dot)}-${n}${name.slice(dot)}`;
+  let count = seen.get(name) ?? 0;
+  let candidate = variant(count);
+  while (seen.has(candidate) && seen.get(candidate)! > 0) {
     count += 1;
-    const dot = name.lastIndexOf(".");
-    candidate = dot === -1 ? `${name}-${count}` : `${name.slice(0, dot)}-${count}${name.slice(dot)}`;
+    candidate = variant(count);
   }
-  emitted.set(name, count + 1);
-  emitted.set(candidate, (emitted.get(candidate) ?? 0) + 1);
+  seen.set(name, count + 1);
+  if (candidate !== name) seen.set(candidate, (seen.get(candidate) ?? 0) + 1);
   return candidate;
 }
