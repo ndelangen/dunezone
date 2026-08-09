@@ -61,8 +61,6 @@ export const BightOfTheCliff = meta.story({
   },
 });
 
-// Spice blows
-
 export const BrokenLand = meta.story({
   args: {
     name: 'Broken Land',

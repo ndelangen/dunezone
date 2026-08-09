@@ -13,9 +13,6 @@ function parseLength(value: string | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/**
- * Read layout metadata directly off an SVG root element.
- */
 export function readMeta(svg: SVGSVGElement): SvgMeta {
   const viewBox = parseViewBox(svg.getAttribute("viewBox"));
   let width = parseLength(svg.getAttribute("width"));

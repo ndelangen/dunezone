@@ -1,4 +1,3 @@
-/** Vertical flex stack; prefer over chaining margin-bottom on children. */
 .root {
   display: flex;
   flex-direction: column;

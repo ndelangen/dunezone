@@ -208,9 +208,11 @@ export class PublisherBrowserSession {
   }
 
   async close(): Promise<void> {
-    // Browser.close() owns the provider session lifecycle and closes all contexts. Closing the
-    // context concurrently races the CDP connection teardown and can turn a normal provider close
-    // into a rejected close promise even though the session has already ended.
+    /*
+     * Browser.close() owns the provider session lifecycle and closes all contexts. Closing the
+     * context concurrently races the CDP connection teardown and can turn a normal provider close
+     * into a rejected close promise even though the session has already ended.
+     */
     await this.browser.close();
   }
 }

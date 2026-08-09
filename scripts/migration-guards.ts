@@ -221,6 +221,22 @@ async function devStrictMode(timeoutMs: number, intervalMs: number) {
   });
 }
 
+async function staticCheckMode() {
+  const manifest = await loadManifest();
+  const ids = new Set(manifest.entries.map((entry) => entry.id));
+  if (!manifest.entries.some((entry) => entry.phase === 'narrow')) {
+    throw new Error('At least one narrow entry is required when schema narrowing is detected');
+  }
+  for (const entry of manifest.entries) {
+    for (const req of entry.requires) {
+      if (!ids.has(req)) {
+        throw new Error(`Missing required migration id: ${req}`);
+      }
+    }
+  }
+  console.log(JSON.stringify({ ok: true, entries: manifest.entries.length }));
+}
+
 async function narrowCheckMode(useProd: boolean) {
   const manifest = await loadManifest();
   const required = requiredForAnyNarrow(manifest.entries);
@@ -237,6 +253,8 @@ if (mode === 'deploy') {
   await deployMode(timeoutMs, intervalMs, useProd);
 } else if (mode === 'narrow-check') {
   await narrowCheckMode(useProd);
+} else if (mode === 'static-check') {
+  await staticCheckMode();
 } else if (mode === 'dev-strict') {
   await devStrictMode(timeoutMs, intervalMs);
 } else {
