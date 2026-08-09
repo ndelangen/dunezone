@@ -465,8 +465,8 @@ export const groupsLifecycleAudit = internalQuery({
     const memberships = await ctx.db.query('group_members').take(AUDIT_SCAN_LIMIT);
 
     /**
-     * Every distinct referenced Group is resolved by primary key, so a reference is judged
-     * against the actual row — never against a truncated Group scan window.
+     * Every distinct referenced Group is resolved by primary key, so a reference is judged against
+     * the actual row — never against a truncated Group scan window.
      */
     const referencedIds = new Set<Id<'groups'>>();
     for (const row of [...factions, ...rulesets, ...memberships]) {
