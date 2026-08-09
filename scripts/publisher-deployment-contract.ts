@@ -224,18 +224,22 @@ async function cloudflareApiResult(url: string, apiToken: string): Promise<unkno
     signal: AbortSignal.timeout(15_000),
   });
   const pathname = new URL(url).pathname;
+  const payload: unknown = await response.json().catch(() => undefined);
+  const body = payload === undefined ? undefined : object(payload, 'Cloudflare API response');
   invariant(
-    response.status === 200,
-    `Cloudflare API returned HTTP ${response.status} for ${pathname}`
+    body !== undefined && response.status === 200 && body.success === true,
+    `Cloudflare API request failed for ${pathname} (HTTP ${response.status}): ${
+      body === undefined ? 'unreadable body' : JSON.stringify(body.errors ?? [])
+    }`
   );
-  const body = object(await response.json(), 'Cloudflare API response');
-  invariant(body.success === true, `Cloudflare API reported failure for ${pathname}`);
   return body.result;
 }
 
-// The authoritative deploy gate: Cloudflare's control plane must report the
-// version tagged with GITHUB_SHA as the active deployment. Edge propagation is
-// Cloudflare's promise and is deliberately not gated on (#330).
+/**
+ * The authoritative deploy gate: Cloudflare's control plane must report the version tagged with
+ * GITHUB_SHA as the active deployment. Edge propagation is Cloudflare's promise and is deliberately
+ * not gated on (#330).
+ */
 async function assertActiveDeployment(
   githubSha: string,
   environment: NodeJS.ProcessEnv
@@ -259,6 +263,11 @@ async function assertActiveDeployment(
   const versionId = activeVersion.version_id;
   invariant(typeof versionId === 'string' && versionId.length > 0, 'Active version id is missing');
 
+  /*
+   * The versions list result shape is under-documented (bare array vs {items});
+   * both are accepted, each fully validated. Newest-first and unpaginated for
+   * our volume — the active version is expected on the first page.
+   */
   const versionsResult = await cloudflareApiResult(`${scriptApi}/versions`, apiToken);
   const versionItems = Array.isArray(versionsResult)
     ? versionsResult
@@ -277,6 +286,25 @@ async function assertActiveDeployment(
   );
 }
 
+/**
+ * Thrown when an origin returns a healthy body for a different release. Only this error — as the
+ * FINAL poll outcome — takes the advisory path; any later non-stale failure (5xx, timeout, bad
+ * body) must win and fail the deploy.
+ */
+class StaleEdgeError extends Error {
+  constructor(
+    readonly observedSha: string,
+    expectedSha: string
+  ) {
+    super(`Edge still serving ${observedSha} instead of ${expectedSha}`);
+  }
+}
+
+/**
+ * Couples to the PREVIOUS release's health payload shape: if identity.gitSha moves, slow
+ * propagation on the deploy that moves it hard-fails again (safe direction, but worth knowing when
+ * editing the health shape).
+ */
 function readObservedGitSha(healthValue: unknown): string | undefined {
   try {
     const identity = object(object(healthValue, 'health response').identity, 'health identity');
@@ -313,7 +341,6 @@ async function run(): Promise<void> {
     await assertActiveDeployment(githubSha, process.env);
     for (const origin of [PUBLISHER_ORIGIN, APPLICATION_ORIGIN]) {
       let lastFailure: unknown;
-      let staleSha: string | undefined;
       for (let attempt = 1; attempt <= 12; attempt += 1) {
         try {
           const response = await fetch(`${origin}/__asset-publisher/health`, {
@@ -325,10 +352,8 @@ async function run(): Promise<void> {
           const health: unknown = await response.json();
           const observedSha = readObservedGitSha(health);
           if (observedSha !== undefined && observedSha !== githubSha) {
-            staleSha = observedSha;
-            throw new Error(`Edge still serving ${observedSha}`);
+            throw new StaleEdgeError(observedSha, githubSha);
           }
-          staleSha = undefined;
           validatePublisherHealth(
             health,
             githubSha,
@@ -347,11 +372,13 @@ async function run(): Promise<void> {
         }
       }
       if (lastFailure) {
-        if (staleSha !== undefined) {
-          // Propagation lag, not a wrong deploy: the control plane already
-          // confirmed the tagged version is active, so this is advisory (#330).
+        if (lastFailure instanceof StaleEdgeError) {
+          /*
+           * Propagation lag, not a wrong deploy: the control plane already
+           * confirmed the tagged version is active, so this is advisory (#330).
+           */
           console.log(
-            `::warning::Cloudflare confirms ${githubSha} is the active deployment, but ${origin} still served ${staleSha} when the check gave up; trusting the control plane on propagation.`
+            `::warning::Cloudflare confirms ${githubSha} is the active deployment, but ${origin} still served ${lastFailure.observedSha} on the final check; trusting the control plane on propagation.`
           );
         } else {
           throw new Error(`Publisher health did not become ready at ${origin}`, {
