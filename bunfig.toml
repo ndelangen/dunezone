@@ -1,0 +1,6 @@
+# Supply-chain gate: never resolve package versions published less than 3 days
+# ago, so registry malware has time to be caught and yanked before we can adopt
+# it. Deploy-time installs are already exact via --frozen-lockfile; this guards
+# the moment the lockfile is updated. Decision: https://github.com/ndelangen/dunezone/issues/326
+[install]
+minimumReleaseAge = 259200
