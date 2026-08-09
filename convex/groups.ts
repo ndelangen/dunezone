@@ -87,19 +87,22 @@ export const detailBySlug = query({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const rows = await ctx.db.query('groups').take(500);
-    return rows.filter((row) => liveGroupOrNull(row) !== null);
+    // neq(true), not eq(false): pre-backfill rows without the flag stay live (widen window).
+    return await ctx.db
+      .query('groups')
+      .filter((q) => q.neq(q.field('is_deleted'), true))
+      .take(500);
   },
 });
 
 export const listByCreator = query({
   args: { created_by: v.id('users') },
   handler: async (ctx, args) => {
-    const rows = await ctx.db
+    return await ctx.db
       .query('groups')
       .withIndex('by_created_by', (q) => q.eq('created_by', args.created_by))
+      .filter((q) => q.neq(q.field('is_deleted'), true))
       .take(500);
-    return rows.filter((row) => liveGroupOrNull(row) !== null);
   },
 });
 
