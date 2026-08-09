@@ -1,7 +1,8 @@
+import { ActionIcon, Group, Paper, Tooltip } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowLeft, Check, Pencil, UserPlus, UserRoundMinus, X } from 'lucide-react';
+import { ArrowLeft, Check, Pencil, Trash2, UserPlus, UserRoundMinus, X } from 'lucide-react';
 
-import { loadGroupDetailBySlug, useGroupDetailBySlug } from '@db/groups';
+import { useDeleteGroup, loadGroupDetailBySlug, useGroupDetailBySlug } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { viewerActionsFor } from '@app/access/viewerActions';
 import { FormTooltip } from '@app/components/form/FormTooltip';
@@ -12,7 +13,11 @@ import { PrototypeSwitcher } from '@app/components/prototype/PrototypeSwitcher';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
-import { VARIANT_COMPONENTS, VARIANT_LIST } from '@app/components/groups/prototype/GroupDetailVariants';
+import {
+  RequestMembershipButton,
+  VARIANT_COMPONENTS,
+  VARIANT_LIST,
+} from '@app/components/groups/prototype/GroupDetailVariants';
 import type { VariantKey } from '@app/components/groups/prototype/GroupDetailVariants';
 
 import pageStyles from './index.module.css';
@@ -46,6 +51,7 @@ function GroupDetailPage() {
   const loaderData = Route.useLoaderData();
   const groupData = useGroupDetailBySlug(groupSlug, { initialData: loaderData.groupDetail });
   const membershipWorkflow = useGroupMembershipWorkflow();
+  const deleteGroup = useDeleteGroup();
 
   if (groupData.isError) {
     return (
@@ -88,6 +94,15 @@ function GroupDetailPage() {
     void membershipWorkflow.remove.run(membershipId).catch(() => undefined);
   };
 
+  const handleDeleteGroup = () => {
+    if (!window.confirm(`Delete group "${group.name}"? This cannot be undone.`)) {
+      return;
+    }
+    deleteGroup.mutate(groupId, {
+      onSuccess: () => void navigate({ to: '/profiles' }),
+    });
+  };
+
   const activeMembers = roster.filter((member) => member.status === 'active');
   const pendingMembers = roster.filter((member) => member.status === 'pending');
   const memberRows = [...activeMembers, ...pendingMembers];
@@ -119,6 +134,64 @@ function GroupDetailPage() {
     </Toolbar>
   );
 
+  const chosenToolbar = (
+    <Paper withBorder p="sm" radius="md">
+      <Group justify="space-between" gap="sm" wrap="wrap">
+        <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
+          <Tooltip label="Back to profiles">
+            <ActionIcon
+              variant="light"
+              color="gray"
+              size="lg"
+              aria-label="Back to profiles"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+            >
+              <ArrowLeft size={17} aria-hidden />
+            </ActionIcon>
+          </Tooltip>
+          {viewerAccess.capabilities.rename ? (
+            <Tooltip label="Edit group settings">
+              <ActionIcon
+                variant="light"
+                color="dune"
+                size="lg"
+                aria-label="Edit group settings"
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/groups/$groupSlug/edit" params={{ groupSlug }} />
+                )}
+              >
+                <Pencil size={17} aria-hidden />
+              </ActionIcon>
+            </Tooltip>
+          ) : null}
+          {viewerAccess.capabilities.delete ? (
+            <Tooltip label="Delete group">
+              <ActionIcon
+                type="button"
+                variant="light"
+                color="red"
+                size="lg"
+                aria-label="Delete group"
+                disabled={deleteGroup.isPending}
+                onClick={handleDeleteGroup}
+              >
+                <Trash2 size={17} aria-hidden />
+              </ActionIcon>
+            </Tooltip>
+          ) : null}
+        </Group>
+        <RequestMembershipButton
+          canRequestMembership={viewerAccess.capabilities.requestMembership}
+          isAnonymous={viewerAccess.viewer.kind === 'anonymous'}
+          requestPending={membershipWorkflow.request.isPending}
+          requestError={membershipWorkflow.request.error?.message ?? null}
+          onRequestMembership={() => void membershipWorkflow.request.run(groupId).catch(() => undefined)}
+          variant="filled"
+        />
+      </Group>
+    </Paper>
+  );
+
   const prototypeSwitcher = (
     <PrototypeSwitcher
       ariaLabel="Group detail prototype variants"
@@ -137,13 +210,14 @@ function GroupDetailPage() {
     const VariantComponent = VARIANT_COMPONENTS[variant];
     return (
       <>
-        <PageLayout header={header} toolbar={toolbar}>
+        <PageLayout header={header} toolbar={variant === 'a' ? chosenToolbar : toolbar}>
           <VariantComponent
             groupName={group.name}
             ownerProfile={ownerProfile}
             createdBy={group.created_by}
             membershipStatus={membershipStatus}
             isAnonymous={viewerAccess.viewer.kind === 'anonymous'}
+            isOwner={viewerAccess.capabilities.rename}
             canRequestMembership={viewerAccess.capabilities.requestMembership}
             requestPending={membershipWorkflow.request.isPending}
             requestError={membershipWorkflow.request.error?.message ?? null}

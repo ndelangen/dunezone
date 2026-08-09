@@ -133,6 +133,22 @@ export function useCreateGroup() {
   };
 }
 
+export function useDeleteGroup() {
+  const mutation = useLiveMutation<{ id: string }, string>(api.groups.remove);
+  return {
+    ...mutation,
+    mutate: (id: string, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) =>
+      mutation.mutate(
+        { id },
+        {
+          onSuccess: () => options?.onSuccess?.(),
+          onError: (error) => options?.onError?.(error),
+        }
+      ),
+    mutateAsync: async (id: string) => await mutation.mutateAsync({ id }),
+  };
+}
+
 export function useUpdateGroup() {
   const mutation = useLiveMutation<{ id: string; name: string }, GroupRow>(api.groups.update);
 

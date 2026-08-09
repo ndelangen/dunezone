@@ -51,6 +51,7 @@ export interface GroupDetailVariantProps {
   createdBy: string;
   membershipStatus: MembershipState;
   isAnonymous: boolean;
+  isOwner: boolean;
   canRequestMembership: boolean;
   requestPending: boolean;
   requestError: string | null;
@@ -91,7 +92,14 @@ function membershipBadgeLabel(status: MembershipState) {
   return status === 'active' ? 'Active member' : status === 'pending' ? 'Pending approval' : 'Not a member';
 }
 
-function MembershipStatusBadge({ status }: { status: MembershipState }) {
+function MembershipStatusBadge({ status, isOwner = false }: { status: MembershipState; isOwner?: boolean }) {
+  if (isOwner) {
+    return (
+      <Badge color="dune" variant="light" leftSection={<Crown size={12} aria-hidden />}>
+        Owner
+      </Badge>
+    );
+  }
   return (
     <Badge color={membershipBadgeColor(status)} variant="light">
       {membershipBadgeLabel(status)}
@@ -113,7 +121,7 @@ function OwnerLine({
   );
 }
 
-function RequestMembershipButton({
+export function RequestMembershipButton({
   canRequestMembership,
   isAnonymous,
   requestPending,
@@ -175,7 +183,7 @@ function MemberRow({
 }) {
   const isPending = entry.status === 'pending';
   return (
-    <Group justify="space-between" wrap="nowrap" gap="sm">
+    <Group justify="space-between" wrap="wrap" gap="sm">
       <Group gap="xs" wrap="nowrap" miw={0}>
         <Avatar src={entry.user.avatar_url} radius="xl" size="sm" />
         {entry.user.slug ? (
@@ -325,6 +333,64 @@ function SectionHeading({ icon, children }: { icon: ReactNode; children: ReactNo
   );
 }
 
+/**
+ * Dune-specific crest for the Factions section. These faction logo files ship without root
+ * width/height (see `Token`'s `StrokedUse` pattern) — reference the `#root` fragment via `<use>`
+ * inside an own viewBox rather than a plain `<img src>`, which renders as a broken 0x0 image.
+ */
+function FremenIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      aria-hidden
+      focusable="false"
+      style={{ display: 'block', flex: '0 0 auto', color: 'var(--mantine-color-dune-8)' }}
+    >
+      <use href="/vector/logo/fremen.svg#root" width={100} height={100} fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Pending membership requests, pulled out of the plain roster into their own highlighted, conditional panel. */
+function PendingRequestsPanel({
+  pendingMembers,
+  moderationBusy,
+  moderationError,
+  onApprove,
+  onReject,
+  onRemove,
+}: Pick<
+  GroupDetailVariantProps,
+  'pendingMembers' | 'moderationBusy' | 'moderationError' | 'onApprove' | 'onReject' | 'onRemove'
+>) {
+  if (pendingMembers.length === 0) {
+    return null;
+  }
+  return (
+    <Alert color="yellow" variant="light" title={`Pending requests (${pendingMembers.length})`}>
+      <Stack gap="xs">
+        {pendingMembers.map((entry) => (
+          <MemberRow
+            key={entry.membershipId}
+            entry={entry}
+            moderationBusy={moderationBusy}
+            onApprove={onApprove}
+            onReject={onReject}
+            onRemove={onRemove}
+          />
+        ))}
+        {moderationError && (
+          <Text size="sm" c="red" role="alert">
+            {moderationError}
+          </Text>
+        )}
+      </Stack>
+    </Alert>
+  );
+}
+
 /* ---------------------------------------------------------------------- */
 /* Variant A — Stewardship sidebar: creations lead a two-column layout,   */
 /* membership + roster live in a slim aside (mirrors the ruleset detail   */
@@ -337,7 +403,7 @@ export function VariantA(props: GroupDetailVariantProps) {
       <Stack gap="lg">
         <Card withBorder padding="lg" radius="md">
           <Stack gap="md">
-            <SectionHeading icon={<Layers3 size={18} aria-hidden />}>Factions maintained</SectionHeading>
+            <SectionHeading icon={<FremenIcon />}>Factions maintained</SectionHeading>
             <FactionList factions={props.factions} />
           </Stack>
         </Card>
@@ -352,28 +418,23 @@ export function VariantA(props: GroupDetailVariantProps) {
         <Card withBorder padding="lg" radius="md">
           <Stack gap="sm">
             <SectionHeading icon={<Crown size={18} aria-hidden />}>Stewardship</SectionHeading>
-            <Box>
-              <Text size="xs" c="dimmed" fw={700} tt="uppercase">
-                Owner
-              </Text>
-              <OwnerLine ownerProfile={props.ownerProfile} createdBy={props.createdBy} />
-            </Box>
+            <OwnerLine ownerProfile={props.ownerProfile} createdBy={props.createdBy} />
             <Divider />
             <Group justify="space-between">
               <Text size="sm" c="dimmed">
                 Your membership
               </Text>
-              <MembershipStatusBadge status={props.membershipStatus} />
+              <MembershipStatusBadge status={props.membershipStatus} isOwner={props.isOwner} />
             </Group>
-            <RequestMembershipButton {...props} />
           </Stack>
         </Card>
+        <PendingRequestsPanel {...props} />
         <Card withBorder padding="lg" radius="md">
           <Stack gap="sm">
             <SectionHeading icon={<UsersRound size={18} aria-hidden />}>
               Members ({props.activeMembers.length})
             </SectionHeading>
-            <MemberRoster {...props} />
+            <MemberRoster {...props} pendingMembers={[]} />
           </Stack>
         </Card>
       </Stack>
