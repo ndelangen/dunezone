@@ -154,7 +154,8 @@ describe('Cloudflare live drift check', () => {
     expect(workflow).toContain(
       'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0'
     );
-    expect(workflow).toContain(`ref: $${'{'}{ github.event.pull_request.base.sha || github.sha }}`);
+    expect(workflow).toContain(`ref: $${'{'}{ github.sha }}`);
+    expect(workflow).not.toContain('github.event.pull_request.base.sha');
     expect(workflow).toContain('persist-credentials: false');
     expect(workflow).toContain(
       `CLOUDFLARE_API_TOKEN: $${'{'}{ secrets.CLOUDFLARE_READ_API_TOKEN }}`
