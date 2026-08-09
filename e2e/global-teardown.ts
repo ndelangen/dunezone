@@ -2,6 +2,7 @@
  * Generates the e2e lcov report from the raw coverage cache the workers wrote via
  * e2e/coverage.ts. No-op unless E2E_COVERAGE=1.
  */
+import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -16,6 +17,10 @@ import { coverageEnabled, mcrOptions } from './coverage';
  * invariant is enforced on the final report: drop every lcov record outside src/.
  */
 async function dropNonSrcRecords(lcovPath: string): Promise<void> {
+  if (!existsSync(lcovPath)) {
+    // Nothing was generated — e.g. globalSetup failed before any test collected coverage.
+    return;
+  }
   const lcov = await readFile(lcovPath, 'utf8');
   const records = lcov.split('end_of_record\n');
   const kept = records.filter((record) => !record.includes('SF:') || record.includes('SF:src/'));

@@ -7,9 +7,10 @@
  */
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { join, extname, normalize } from 'node:path';
+import { join, extname, normalize, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = join(new URL('..', import.meta.url).pathname, 'dist', 'client');
+const ROOT = join(fileURLToPath(new URL('..', import.meta.url)), 'dist', 'client');
 const PORT = Number(process.env.E2E_APP_PORT ?? process.argv[2] ?? 6001);
 
 const MIME = {
@@ -38,9 +39,13 @@ if (!existsSync(join(ROOT, '_shell.html'))) {
 
 const server = createServer((req, res) => {
   const urlPath = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
-  // normalize() collapses any ../ so requests cannot escape dist/client.
+  /*
+   * normalize() collapses any ../ (including percent-encoded ones — the pathname is decoded
+   * above) and the ROOT + sep prefix check rejects what remains, including sibling-directory
+   * escapes like /%2e%2e%2fclient-server/ which a bare ROOT prefix would let through.
+   */
   let file = normalize(join(ROOT, urlPath));
-  if (!file.startsWith(ROOT) || !existsSync(file) || statSync(file).isDirectory()) {
+  if (!file.startsWith(ROOT + sep) || !existsSync(file) || statSync(file).isDirectory()) {
     file = join(ROOT, '_shell.html');
   }
   try {
