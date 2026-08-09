@@ -143,9 +143,25 @@ function resolveTypedOption(
   return null;
 }
 
+function computePreviewGeom(inputRect: DOMRect, optionRect: DOMRect | undefined): PreviewGeom {
+  let left = inputRect.left - PREVIEW_SIZE - PREVIEW_GAP;
+  if (left < VIEWPORT_PAD) {
+    left = inputRect.right + PREVIEW_GAP;
+  }
+
+  const anchorTop = optionRect
+    ? optionRect.top + optionRect.height / 2
+    : inputRect.top + inputRect.height / 2;
+  const top = Math.min(
+    Math.max(VIEWPORT_PAD, anchorTop - PREVIEW_SIZE / 2),
+    window.innerHeight - PREVIEW_SIZE - VIEWPORT_PAD
+  );
+  return { left, top };
+}
+
 function useComboboxListPosition(
   open: boolean,
-  hasOptions: boolean,
+  optionCount: number,
   inputRef: RefObject<HTMLInputElement | null>
 ): ListGeom | null {
   const [listGeom, setListGeom] = useState<ListGeom | null>(null);
@@ -161,7 +177,7 @@ function useComboboxListPosition(
   }, [inputRef]);
 
   useLayoutEffect(() => {
-    if (!open || !hasOptions) {
+    if (!open || optionCount === 0) {
       setListGeom(null);
       return;
     }
@@ -177,7 +193,7 @@ function useComboboxListPosition(
       window.removeEventListener('resize', updateListPosition);
       window.removeEventListener('scroll', updateListPosition, true);
     };
-  }, [open, hasOptions, updateListPosition, inputRef]);
+  }, [open, optionCount, updateListPosition, inputRef]);
 
   return listGeom;
 }
@@ -213,10 +229,17 @@ function usePreviewPosition({
   const showListRef = useRef(showList);
   const highlightRef = useRef(highlight);
   const flatRef = useRef(flatOptions);
-  openRef.current = open;
-  showListRef.current = showList;
-  highlightRef.current = highlight;
-  flatRef.current = flatOptions;
+
+  /**
+   * Sync refs in a layout effect (not during render) so a discarded/replayed render can't leave the
+   * rAF and observer callbacks below reading stale state.
+   */
+  useLayoutEffect(() => {
+    openRef.current = open;
+    showListRef.current = showList;
+    highlightRef.current = highlight;
+    flatRef.current = flatOptions;
+  }, [open, showList, highlight, flatOptions]);
 
   // oxlint-disable-next-line react/exhaustive-deps -- listGeom is a resync trigger, not read directly below.
   useLayoutEffect(() => {
@@ -242,22 +265,11 @@ function usePreviewPosition({
         setPreviewGeom(null);
         return;
       }
-      const ir = inputEl.getBoundingClientRect();
       const optId = `${listId}-opt-${h}`;
       const optEl = portalRef.current?.querySelector<HTMLElement>(`#${CSS.escape(optId)}`) ?? null;
-
-      let left = ir.left - PREVIEW_SIZE - PREVIEW_GAP;
-      if (left < VIEWPORT_PAD) {
-        left = ir.right + PREVIEW_GAP;
-      }
-
-      const or = optEl?.getBoundingClientRect();
-      const anchorTop = or ? or.top + or.height / 2 : ir.top + ir.height / 2;
-      const top = Math.min(
-        Math.max(VIEWPORT_PAD, anchorTop - PREVIEW_SIZE / 2),
-        window.innerHeight - PREVIEW_SIZE - VIEWPORT_PAD
+      setPreviewGeom(
+        computePreviewGeom(inputEl.getBoundingClientRect(), optEl?.getBoundingClientRect())
       );
-      setPreviewGeom({ left, top });
     };
 
     sync();
@@ -444,7 +456,7 @@ export function SuggestField({
     }
   }, [partition.flat.length, highlight]);
 
-  const listGeom = useComboboxListPosition(open, options.length > 0, inputRef);
+  const listGeom = useComboboxListPosition(open, options.length, inputRef);
   const showList = open && options.length > 0 && listGeom != null;
 
   useLayoutEffect(() => {
@@ -564,7 +576,7 @@ export function SuggestField({
           aria-expanded={open}
           aria-controls={listId}
           aria-activedescendant={
-            showList && partition.flat[highlight] ? `${id}-opt-${highlight}` : undefined
+            showList && partition.flat[highlight] ? `${listId}-opt-${highlight}` : undefined
           }
           aria-autocomplete="list"
           autoComplete="off"
