@@ -176,16 +176,25 @@ export const importFactionBatch = mutation({
  * PROTOTYPE ONLY — Wayfinder issue #183: seeds one group with an owner, an active member, a
  * pending member, a faction, and a ruleset so the `?variant=` switcher on the group detail page
  * has real content to render. Not for merge — drop before landing the winning variant.
+ *
+ * `ownerEmail`/`activeMemberEmail` must already be real, password-login-capable local accounts
+ * (sign in once via /auth/login under E2E_LOCAL_AUTH first) — issue #348's entity-picker only
+ * shows to a signed-in active member, so testing it needs a real session, not a dummy user.
  */
 export const seedGroupDetailPrototype = mutation({
-  args: {},
+  args: {
+    ownerEmail: v.string(),
+    activeMemberEmail: v.string(),
+  },
   returns: v.object({ groupSlug: v.string() }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     assertLocalDevelopmentMode();
 
     const now = nowIso();
-    const ownerId = await ctx.db.insert('users', { name: 'Prototype Owner' });
-    const activeMemberId = await ctx.db.insert('users', { name: 'Prototype Member' });
+    const owner = await findUserByEmail(ctx, args.ownerEmail);
+    const activeMember = await findUserByEmail(ctx, args.activeMemberEmail);
+    const ownerId = owner._id;
+    const activeMemberId = activeMember._id;
     const pendingMemberId = await ctx.db.insert('users', { name: 'Pending Applicant' });
 
     await ensureProfileForUser(ctx, ownerId, { displayName: 'Prototype Owner', imageUrl: null });
@@ -203,6 +212,21 @@ export const seedGroupDetailPrototype = mutation({
       slug: 'prototype-guild',
       created_at: now,
       created_by: ownerId,
+    });
+
+    const otherGroupId = await ctx.db.insert('groups', {
+      name: 'Other Guild',
+      slug: 'other-guild',
+      created_at: now,
+      created_by: ownerId,
+    });
+    await ctx.db.insert('group_members', {
+      group_id: otherGroupId,
+      user_id: activeMemberId,
+      status: 'active',
+      requested_at: now,
+      approved_at: now,
+      approved_by: ownerId,
     });
 
     await ctx.db.insert('group_members', {
@@ -241,12 +265,53 @@ export const seedGroupDetailPrototype = mutation({
     });
 
     await ctx.db.insert('rulesets', {
-      name: 'Prototype Ruleset',
+      name: 'PrototypeRuleset',
       slug: 'prototype-ruleset',
       created_at: now,
       updated_at: now,
       owner_id: ownerId,
       group_id: groupId,
+      is_deleted: false,
+      image_cover: null,
+    });
+
+    // Owned by the active member (not the owner) — exercises the entity-picker as the member,
+    // not the owner, and covers both branches: an unassigned pick and a reassign-with-confirm pick.
+    await ctx.db.insert('factions', {
+      owner_id: activeMemberId,
+      data: { ...assetPublishingFaction, name: 'Unassigned Harkonnen' },
+      slug: 'prototype-harkonnen-unassigned',
+      created_at: now,
+      updated_at: now,
+      is_deleted: false,
+      group_id: null,
+    });
+    await ctx.db.insert('factions', {
+      owner_id: activeMemberId,
+      data: { ...assetPublishingFaction, name: 'Other Guild Ordos' },
+      slug: 'prototype-ordos-other-guild',
+      created_at: now,
+      updated_at: now,
+      is_deleted: false,
+      group_id: otherGroupId,
+    });
+    await ctx.db.insert('rulesets', {
+      name: 'UnassignedRuleset',
+      slug: 'prototype-ruleset-unassigned',
+      created_at: now,
+      updated_at: now,
+      owner_id: activeMemberId,
+      group_id: null,
+      is_deleted: false,
+      image_cover: null,
+    });
+    await ctx.db.insert('rulesets', {
+      name: 'OtherGuildRuleset',
+      slug: 'prototype-ruleset-other-guild',
+      created_at: now,
+      updated_at: now,
+      owner_id: activeMemberId,
+      group_id: otherGroupId,
       is_deleted: false,
       image_cover: null,
     });

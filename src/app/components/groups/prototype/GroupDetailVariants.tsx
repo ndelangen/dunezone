@@ -35,23 +35,26 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import type { FactionEntry } from '@db/factions';
-import type { RulesetEntry } from '@db/rulesets';
+import type { FactionEntry, OwnedFactionForGroupAssign } from '@db/factions';
+import type { OwnedRulesetForGroupAssign, RulesetEntry } from '@db/rulesets';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 
 import type { GroupRosterEntry } from '../../../../../convex/lib/collaborativeAccess';
 import type { MembershipState } from '../../../../../convex/lib/collaborativeAccess';
 import type { ProfileSummary } from '../../../../../convex/lib/collaborativeAccessValidators';
+import { AssetAssignPopover } from './AssetAssignPopover';
 import styles from './GroupDetailVariants.module.css';
 
 export interface GroupDetailVariantProps {
+  groupId: string;
   groupName: string;
   ownerProfile: ProfileSummary | null;
   createdBy: string;
   membershipStatus: MembershipState;
   isAnonymous: boolean;
   isOwner: boolean;
+  isActiveMember: boolean;
   canRequestMembership: boolean;
   requestPending: boolean;
   requestError: string | null;
@@ -65,6 +68,12 @@ export interface GroupDetailVariantProps {
   onRemove: (membershipId: string) => void;
   factions: FactionEntry[];
   rulesets: RulesetEntry[];
+  ownedFactions: OwnedFactionForGroupAssign[];
+  ownedRulesets: OwnedRulesetForGroupAssign[];
+  assignFactionBusy: boolean;
+  assignRulesetBusy: boolean;
+  onAssignFaction: (factionId: string) => Promise<void>;
+  onAssignRuleset: (rulesetId: string) => Promise<void>;
 }
 
 export type VariantKey = 'a' | 'b' | 'c' | 'd' | 'e' | 'f';
@@ -403,13 +412,37 @@ export function VariantA(props: GroupDetailVariantProps) {
       <Stack gap="lg">
         <Card withBorder padding="lg" radius="md">
           <Stack gap="md">
-            <SectionHeading icon={<FremenIcon />}>Factions maintained</SectionHeading>
+            <Group justify="space-between" wrap="nowrap">
+              <SectionHeading icon={<FremenIcon />}>Factions maintained</SectionHeading>
+              {props.isActiveMember && (
+                <AssetAssignPopover
+                  kind="faction"
+                  disabled={props.assignFactionBusy}
+                  currentGroupId={props.groupId}
+                  currentGroupName={props.groupName}
+                  ownedItems={props.ownedFactions}
+                  onAssign={props.onAssignFaction}
+                />
+              )}
+            </Group>
             <FactionList factions={props.factions} />
           </Stack>
         </Card>
         <Card withBorder padding="lg" radius="md">
           <Stack gap="md">
-            <SectionHeading icon={<BookOpen size={18} aria-hidden />}>Rulesets maintained</SectionHeading>
+            <Group justify="space-between" wrap="nowrap">
+              <SectionHeading icon={<BookOpen size={18} aria-hidden />}>Rulesets maintained</SectionHeading>
+              {props.isActiveMember && (
+                <AssetAssignPopover
+                  kind="ruleset"
+                  disabled={props.assignRulesetBusy}
+                  currentGroupId={props.groupId}
+                  currentGroupName={props.groupName}
+                  ownedItems={props.ownedRulesets}
+                  onAssign={props.onAssignRuleset}
+                />
+              )}
+            </Group>
             <RulesetList rulesets={props.rulesets} />
           </Stack>
         </Card>

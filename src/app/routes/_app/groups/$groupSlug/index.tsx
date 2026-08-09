@@ -2,8 +2,10 @@ import { ActionIcon, Group, Paper, Tooltip } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, Check, Pencil, Trash2, UserPlus, UserRoundMinus, X } from 'lucide-react';
 
+import { useFactionsOwnedForGroupAssign, useSetFactionGroup } from '@db/factions';
 import { useDeleteGroup, loadGroupDetailBySlug, useGroupDetailBySlug } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
+import { useRulesetsOwnedForGroupAssign, useUpdateRuleset } from '@db/rulesets';
 import { viewerActionsFor } from '@app/access/viewerActions';
 import { FormTooltip } from '@app/components/form/FormTooltip';
 import { ButtonGroup, Toolbar } from '@app/components/generic/layout';
@@ -52,6 +54,10 @@ function GroupDetailPage() {
   const groupData = useGroupDetailBySlug(groupSlug, { initialData: loaderData.groupDetail });
   const membershipWorkflow = useGroupMembershipWorkflow();
   const deleteGroup = useDeleteGroup();
+  const setFactionGroup = useSetFactionGroup();
+  const updateRuleset = useUpdateRuleset();
+  const ownedFactionsQuery = useFactionsOwnedForGroupAssign();
+  const ownedRulesetsQuery = useRulesetsOwnedForGroupAssign();
 
   if (groupData.isError) {
     return (
@@ -103,9 +109,23 @@ function GroupDetailPage() {
     });
   };
 
+  const handleAssignFaction = async (factionId: string) => {
+    await setFactionGroup.mutateAsync({ id: factionId, groupId });
+  };
+
+  const handleAssignRuleset = async (rulesetId: string) => {
+    const owned = ownedRulesetsQuery.data?.find((item) => item.id === rulesetId);
+    await updateRuleset.mutateAsync({
+      id: rulesetId,
+      input: { name: owned?.name ?? '' },
+      groupId,
+    });
+  };
+
   const activeMembers = roster.filter((member) => member.status === 'active');
   const pendingMembers = roster.filter((member) => member.status === 'pending');
   const memberRows = [...activeMembers, ...pendingMembers];
+  const isActiveMember = membershipStatus === 'active';
 
   const header = <h1>{group.name}</h1>;
   const toolbar = (
@@ -212,12 +232,14 @@ function GroupDetailPage() {
       <>
         <PageLayout header={header} toolbar={variant === 'a' ? chosenToolbar : toolbar}>
           <VariantComponent
+            groupId={groupId}
             groupName={group.name}
             ownerProfile={ownerProfile}
             createdBy={group.created_by}
             membershipStatus={membershipStatus}
             isAnonymous={viewerAccess.viewer.kind === 'anonymous'}
             isOwner={viewerAccess.capabilities.rename}
+            isActiveMember={isActiveMember}
             canRequestMembership={viewerAccess.capabilities.requestMembership}
             requestPending={membershipWorkflow.request.isPending}
             requestError={membershipWorkflow.request.error?.message ?? null}
@@ -235,6 +257,12 @@ function GroupDetailPage() {
             onRemove={handleRemoveMember}
             factions={factions}
             rulesets={rulesets}
+            ownedFactions={ownedFactionsQuery.data ?? []}
+            ownedRulesets={ownedRulesetsQuery.data ?? []}
+            assignFactionBusy={setFactionGroup.isPending}
+            assignRulesetBusy={updateRuleset.isPending}
+            onAssignFaction={handleAssignFaction}
+            onAssignRuleset={handleAssignRuleset}
           />
         </PageLayout>
         {prototypeSwitcher}

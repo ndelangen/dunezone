@@ -224,6 +224,43 @@ export const listByOwner = query({
   },
 });
 
+/**
+ * PROTOTYPE ONLY — Wayfinder issue #348: factions the viewer owns, with their current group's
+ * name resolved, for the group-detail "add my faction to this group" picker.
+ */
+export const listOwnedForGroupAssign = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireAuthUserId(ctx);
+    const rows = await ctx.db
+      .query('factions')
+      .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', false))
+      .take(500);
+
+    const groupIds = new Set<Id<'groups'>>();
+    for (const row of rows) {
+      if (row.group_id) {
+        groupIds.add(row.group_id);
+      }
+    }
+    const groupNameById = new Map<string, string>();
+    for (const gid of groupIds) {
+      const group = await ctx.db.get('groups', gid);
+      if (group) {
+        groupNameById.set(gid, group.name.trim());
+      }
+    }
+
+    return rows.map((row) => ({
+      id: row._id,
+      slug: row.slug,
+      name: factionDataForClient(row.data).name,
+      groupId: row.group_id ?? null,
+      groupName: row.group_id ? (groupNameById.get(row.group_id) ?? null) : null,
+    }));
+  },
+});
+
 export const listByGroup = query({
   args: {
     group_id: v.id('groups'),
