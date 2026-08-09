@@ -13,6 +13,10 @@ export const coverageInclude = [coverageIncludeSrc, 'convex/**/*.ts', 'workers/*
 
 export const coverageExclude = [
   ...coverageConfigDefaults.exclude,
+  // Vitest 4 only auto-excludes the current run's own test glob, so the
+  // storybook run (tests = *.stories.*) counted every *.test.* file as an
+  // uncovered source file. Exclude test files from every flag explicitly.
+  '**/*.{test,spec}.{ts,tsx}',
   // Local publisher build output (gitignored, but present on dev machines).
   'workers/publisher/dist/**',
   '**/*.stories.{ts,tsx}',
