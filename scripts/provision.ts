@@ -160,8 +160,11 @@ function run(command: string, args: string[], options: CommandOptions = {}) {
     encoding: 'utf8',
     stdio: options.quiet ? ['ignore', 'pipe', 'pipe'] : 'inherit',
   });
+  if (result.error) {
+    throw new Error(`${command} ${args.join(' ')} failed: ${result.error.message}`);
+  }
   if (result.status !== 0) {
-    const details = options.quiet ? result.stderr.trim() : '';
+    const details = options.quiet ? (result.stderr ?? '').trim() : '';
     const suffix = details.length > 0 ? `: ${details}` : '';
     throw new Error(`${command} ${args.join(' ')} failed${suffix}`);
   }
