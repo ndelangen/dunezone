@@ -28,6 +28,7 @@ import type * as lib_faqProfileActivity from "../lib/faqProfileActivity.js";
 import type * as lib_faqQuestionPage from "../lib/faqQuestionPage.js";
 import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
 import type * as lib_faqTags from "../lib/faqTags.js";
+import type * as lib_groupAssignPicker from "../lib/groupAssignPicker.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_policy from "../lib/policy.js";
 import type * as lib_profileActivity from "../lib/profileActivity.js";
@@ -79,6 +80,7 @@ declare const fullApi: ApiFromModules<{
   "lib/faqQuestionPage": typeof lib_faqQuestionPage;
   "lib/faqRulesetList": typeof lib_faqRulesetList;
   "lib/faqTags": typeof lib_faqTags;
+  "lib/groupAssignPicker": typeof lib_groupAssignPicker;
   "lib/ids": typeof lib_ids;
   "lib/policy": typeof lib_policy;
   "lib/profileActivity": typeof lib_profileActivity;

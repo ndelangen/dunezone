@@ -30,9 +30,9 @@ test('membership lifecycle: request, approve, moderate, remove', async ({ page, 
 
   await test.step('owner approves from the roster', async () => {
     await page.goto(groupUrl);
-    await expect(page.getByText('(pending)')).toBeVisible();
+    await expect(page.getByText('Pending requests')).toBeVisible();
     await page.getByRole('button', { name: 'Approve membership' }).click();
-    await expect(page.getByText('(pending)')).not.toBeVisible();
+    await expect(page.getByText('Pending requests')).not.toBeVisible();
   });
 
   await test.step('member sees active status through the live subscription', async () => {
