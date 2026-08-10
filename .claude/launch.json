@@ -14,16 +14,15 @@
         "-c",
         "bun run generate:vectors && bun run migrations:dev-strict && bunx convex dev --start 'bun run app:dev'"
       ],
+      "env": { "APP_DEV_PORT": "3000" },
       "port": 3000,
       "autoPort": false
     },
     {
       "name": "app-local",
       "runtimeExecutable": "bash",
-      "runtimeArgs": [
-        "-c",
-        "bun run generate:vectors && APP_DEV_PORT=3100 bun run app:dev --local"
-      ],
+      "runtimeArgs": ["-c", "bun run generate:vectors && bun run app:dev --local"],
+      "env": { "APP_DEV_PORT": "3100" },
       "port": 3100,
       "autoPort": false
     }
