@@ -3,6 +3,8 @@ import { generateKeyPairSync } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { CLEARED_AFTER_CLONE } from '../convex/lib/provisioningContract';
+
 /**
  * The unified provision pipeline (map #352, ticket #359).
  *
@@ -21,21 +23,6 @@ import path from 'node:path';
 
 export type ProvisionTarget = 'e2e' | 'local' | 'dev';
 export type ProvisionStage = 'backend' | 'configure' | 'code' | 'data';
-
-/**
- * Tables the prod clone never keeps (decided on ticket #355): the auth session/token tables are
- * bound to the source deployment's signing keys, and cloned publication-queue rows are work-claims
- * that must never be acted on outside prod. Everything else in the snapshot stays.
- */
-export const CLEARED_AFTER_CLONE = [
-  'authSessions',
-  'authRefreshTokens',
-  'authVerificationCodes',
-  'authVerifiers',
-  'authRateLimits',
-  'publication_jobs',
-  'publication_assets',
-] as const;
 
 const PRODUCTION_CREDENTIAL_KEYS = ['CONVEX_DEPLOY_KEY', 'CONVEX_PROD_DEPLOY_KEY'] as const;
 
@@ -314,6 +301,17 @@ export function cloneProductionData(
   console.log('Importing the snapshot into the target deployment...');
   targetConvex(deployment, ['import', '--replace-all', '-y', snapshotPath], env);
   clearClonedTables(deployment, env, workDirectory);
+  assertRebuildContract(deployment, env);
+}
+
+/**
+ * A clone that fails its contract is not a completed clone, so the assertion is part of the data
+ * stage rather than a separate caller's responsibility. The query throws on violation, which exits
+ * `convex run` non-zero and fails whoever invoked the pipeline.
+ */
+function assertRebuildContract(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
+  console.log('Verifying the rebuild contract...');
+  targetConvex(deployment, ['run', 'provisioningChecks:assertRebuildContract', '{}'], env);
 }
 
 function clearClonedTables(

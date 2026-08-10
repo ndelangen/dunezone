@@ -117,3 +117,12 @@ jobs:
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           CONVEX_DEPLOYMENT: ${{ vars.CONVEX_DEPLOYMENT }}
+
+  # Production has already shipped when this starts: a failed dev rebuild reddens the run without
+  # ever gating the release.
+  dev_rebuild:
+    needs: deploy
+    uses: ./.github/workflows/dev-rebuild.yml
+    with:
+      base: ${{ github.event.before }}
+    secrets: inherit
