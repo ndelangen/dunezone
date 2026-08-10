@@ -8,6 +8,7 @@ describe('dev rebuild trigger', () => {
     expect(needsDataRebuild(['convex/migrations.ts'])).toBe(true);
     expect(needsDataRebuild(['convex/migrationsTemplate.ts'])).toBe(true);
     expect(needsDataRebuild(['convex/migration-guards.json'])).toBe(true);
+    expect(needsDataRebuild(['convex/migrations/backfillFactionSlugs.ts'])).toBe(true);
     expect(needsDataRebuild(['src/app/routes/_app/index.tsx', 'convex/schema.ts'])).toBe(true);
   });
 
@@ -15,6 +16,7 @@ describe('dev rebuild trigger', () => {
     expect(needsDataRebuild([])).toBe(false);
     expect(needsDataRebuild(['convex/factions.ts', 'docs/README.md'])).toBe(false);
     expect(needsDataRebuild(['convex/migrations.groupsSoftDelete.test.ts'])).toBe(false);
+    expect(needsDataRebuild(['convex/migrations/backfillFactionSlugs.test.ts'])).toBe(false);
   });
 
   test('rebuilds whenever the change range cannot be trusted', () => {
