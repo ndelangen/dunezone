@@ -14,7 +14,10 @@ import {
   rulesetDetailPageValidator,
   rulesetPublicBundleValidator,
 } from './lib/collaborativeAccessValidators';
-import { projectOwnedGroupRef, resolveLiveGroupNames } from './lib/groupAssignPicker';
+import {
+  buildOwnedForGroupAssignRows,
+  ownedForGroupAssignRowValidator,
+} from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
 import {
   loadRulesetDetailPageBySlug,
@@ -81,36 +84,20 @@ export const detailPageBySlug = query({
   handler: async (ctx, args) => await loadRulesetDetailPageBySlug(ctx, args.slug),
 });
 
-const ownedForGroupAssignRowValidator = v.object({
-  id: v.id('rulesets'),
-  slug: v.string(),
-  name: v.string(),
-  groupId: v.union(v.id('groups'), v.null()),
-  groupName: v.union(v.string(), v.null()),
-});
-
 /**
  * Rulesets the viewer owns, with their current group's name resolved, for the group-detail "add my
  * ruleset to this group" picker.
  */
 export const listOwnedForGroupAssign = query({
   args: {},
-  returns: v.array(ownedForGroupAssignRowValidator),
+  returns: v.array(ownedForGroupAssignRowValidator('rulesets')),
   handler: async (ctx) => {
     const userId = await requireAuthUserId(ctx);
     const rows = await ctx.db
       .query('rulesets')
       .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', false))
       .take(500);
-
-    const groupNameById = await resolveLiveGroupNames(ctx, rows);
-
-    return rows.map((row) => ({
-      id: row._id,
-      slug: row.slug,
-      name: row.name,
-      ...projectOwnedGroupRef(row.group_id, groupNameById),
-    }));
+    return await buildOwnedForGroupAssignRows(ctx, rows, (row) => row.name);
   },
 });
 

@@ -6,6 +6,12 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "bun run generate:vectors && bun run storybook"],
       "port": 6006
+    },
+    {
+      "name": "app-local",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bun run generate:vectors && bun run app:dev --local"],
+      "port": 3000
     }
   ]
 }
