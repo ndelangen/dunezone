@@ -30,8 +30,13 @@ type Decision = {
   reason: string;
 };
 
+/** Spawning an absolute path keeps the lookup off PATH, which need not be trustworthy. */
+function gitExecutable(): string {
+  return Bun.which('git') ?? '/usr/bin/git';
+}
+
 function git(args: string[]) {
-  return spawnSync('git', args, { encoding: 'utf8' });
+  return spawnSync(gitExecutable(), args, { encoding: 'utf8' });
 }
 
 function commitIsPresent(commit: string) {
