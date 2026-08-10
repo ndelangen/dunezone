@@ -53,14 +53,15 @@ jobs:
           DEV_REBUILD_HEAD: ${{ github.sha }}
           DEV_REBUILD_FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
 
-      # Runs every merge: cheap, and Convex validates dev's existing data against the pushed
-      # schema, so it also fails loudly if a rebuild was ever skipped when it should not have been.
+      # Safe on its own only because an unchanged schema cannot be rejected by dev's existing data.
+      # When the data is being rebuilt, the rebuild owns the push and orders it against the import.
       - name: Push main to the dev deployment
+        if: steps.decision.outputs.rebuild != 'true'
         run: bun run provision dev --stage code
         env:
           CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}
 
-      - name: Rebuild dev data from production
+      - name: Rebuild dev from production
         if: steps.decision.outputs.rebuild == 'true'
         run: bun run provision dev --stage data
         env:

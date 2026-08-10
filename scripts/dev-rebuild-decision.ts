@@ -20,7 +20,7 @@ export function needsDataRebuild(changedFiles: readonly string[]): boolean {
     return (
       file === 'convex/schema.ts' ||
       file === 'convex/migration-guards.json' ||
-      /^convex\/migrations[^/]*\.ts$/.test(file)
+      /^convex\/migrations.*\.ts$/.test(file)
     );
   });
 }

@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { CLEARED_AFTER_CLONE } from '../convex/lib/provisioningContract';
+import schema from '../convex/schema';
 
 /**
  * The unified provision pipeline (map #352, ticket #359).
@@ -292,16 +293,59 @@ export function cloneProductionData(
   env: NodeJS.ProcessEnv,
   workDirectory: string
 ) {
+  const snapshotPath = exportProductionSnapshot(env, workDirectory);
+  importSnapshot(deployment, env, snapshotPath, workDirectory);
+}
+
+/**
+ * Rebuilding a long-lived deployment cannot simply push code and then import: a schema push is
+ * validated against the data already there, and an import is validated against the schema already
+ * there, so a narrowing change breaks the first order and a widening change breaks the second.
+ * Clearing first escapes both — empty tables satisfy every schema — which is also what lets a
+ * deployment whose data went stale recover instead of deadlocking on its own failed push.
+ */
+export function rebuildFromProduction(
+  deployment: TargetDeployment,
+  env: NodeJS.ProcessEnv,
+  workDirectory: string
+) {
+  const snapshotPath = exportProductionSnapshot(env, workDirectory);
+  clearAllTables(deployment, env, workDirectory);
+  console.log('Pushing code to the target deployment...');
+  pushCode(deployment, env);
+  importSnapshot(deployment, env, snapshotPath, workDirectory);
+}
+
+function exportProductionSnapshot(env: NodeJS.ProcessEnv, workDirectory: string) {
   mkdirSync(workDirectory, { recursive: true });
   const snapshotPath = path.join(workDirectory, 'prod-snapshot.zip');
   console.log('Exporting the production snapshot...');
   run('bunx', ['convex', 'export', '--prod', '--path', snapshotPath], {
     env: productionExportEnvironment(env),
   });
+  return snapshotPath;
+}
+
+function importSnapshot(
+  deployment: TargetDeployment,
+  env: NodeJS.ProcessEnv,
+  snapshotPath: string,
+  workDirectory: string
+) {
   console.log('Importing the snapshot into the target deployment...');
   targetConvex(deployment, ['import', '--replace-all', '-y', snapshotPath], env);
   clearClonedTables(deployment, env, workDirectory);
   assertRebuildContract(deployment, env);
+}
+
+/** Empties every table the schema declares so the next schema push cannot be rejected by data. */
+function clearAllTables(
+  deployment: TargetDeployment,
+  env: NodeJS.ProcessEnv,
+  workDirectory: string
+) {
+  console.log('Clearing the target deployment before pushing the new schema...');
+  clearTables(deployment, env, workDirectory, Object.keys(schema.tables));
 }
 
 /**
@@ -319,10 +363,20 @@ function clearClonedTables(
   env: NodeJS.ProcessEnv,
   workDirectory: string
 ) {
+  clearTables(deployment, env, workDirectory, CLEARED_AFTER_CLONE);
+}
+
+function clearTables(
+  deployment: TargetDeployment,
+  env: NodeJS.ProcessEnv,
+  workDirectory: string,
+  tables: readonly string[]
+) {
+  mkdirSync(workDirectory, { recursive: true });
   const emptyPath = path.join(workDirectory, 'empty.jsonl');
   writeFileSync(emptyPath, '');
-  for (const table of CLEARED_AFTER_CLONE) {
-    console.log(`Clearing cloned table ${table}...`);
+  for (const table of tables) {
+    console.log(`Clearing table ${table}...`);
     targetConvex(deployment, ['import', '--replace', '-y', '--table', table, emptyPath], env);
   }
 }
@@ -460,14 +514,17 @@ function provisionCloudDev(
     throw new Error('Set CONVEX_DEV_DEPLOY_KEY (a deployment-scoped dev deploy key)');
   }
   const deployment: CloudDevDeployment = { kind: 'cloud-dev', deployKey };
-  if (stages.includes('code')) {
-    console.log('Pushing code to the cloud dev deployment...');
-    pushCode(deployment, env);
-  }
+  /*
+   * A data rebuild carries its own code push: the two are ordered against each other (clear, push,
+   * import), so asking for data means asking for the code that data has to satisfy.
+   */
   if (stages.includes('data')) {
-    cloneProductionData(deployment, env, workDirectory);
+    rebuildFromProduction(deployment, env, workDirectory);
+    console.log('Cloud dev deployment rebuilt from production.');
+    return;
   }
-  console.log('Cloud dev deployment rebuilt from production.');
+  console.log('Pushing code to the cloud dev deployment...');
+  pushCode(deployment, env);
 }
 
 async function resolveSelfHostedDeployment(

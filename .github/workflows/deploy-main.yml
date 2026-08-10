@@ -125,4 +125,6 @@ jobs:
     uses: ./.github/workflows/dev-rebuild.yml
     with:
       base: ${{ github.event.before }}
-    secrets: inherit
+    secrets:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}

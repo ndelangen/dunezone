@@ -87,9 +87,11 @@ that can invalidate or reshape dev's existing data. Ordinary merges therefore le
 session and any dev-side experiments intact.
 
 Run the `Rebuild dev deployment` workflow manually (Actions → Run workflow) to force fresh
-production data at any time. A skipped rebuild cannot go unnoticed for long: Convex validates
-existing data against every pushed schema, so data left stale by a missed rebuild fails the
-next merge's code push loudly.
+production data at any time. A skipped or failed rebuild cannot go unnoticed for long, and it
+recovers: Convex validates existing data against every pushed schema, so stale dev data fails
+the next ordinary merge's code push loudly, and a rebuild clears the target before pushing the
+new schema — which is why a forced rebuild heals a deployment whose data a schema change has
+already made unpushable.
 
 ## Common Workflows
 
