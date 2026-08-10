@@ -402,16 +402,10 @@ function OwnerLine({
   );
 }
 
-const membershipBadgeColors: Record<MembershipStatus, string> = {
-  active: 'green',
-  pending: 'yellow',
-  none: 'gray',
-};
-
-const membershipBadgeLabels: Record<MembershipStatus, string> = {
-  active: 'Active member',
-  pending: 'Pending approval',
-  none: 'Not a member',
+const membershipBadges: Record<MembershipStatus, { color: string; label: string }> = {
+  active: { color: 'green', label: 'Active member' },
+  pending: { color: 'yellow', label: 'Pending approval' },
+  none: { color: 'gray', label: 'Not a member' },
 };
 
 function MembershipStatusBadge({
@@ -428,9 +422,10 @@ function MembershipStatusBadge({
       </Badge>
     );
   }
+  const badge = membershipBadges[status];
   return (
-    <Badge color={membershipBadgeColors[status]} variant="light">
-      {membershipBadgeLabels[status]}
+    <Badge color={badge.color} variant="light">
+      {badge.label}
     </Badge>
   );
 }
