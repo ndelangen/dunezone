@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
@@ -5,10 +6,6 @@ import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { nowIso } from './lib/utils';
-
-const REMAP_BATCH_SIZE = 50;
-
-const cursorValidator = v.union(v.string(), v.null());
 
 const batchResultValidator = v.object({
   isDone: v.boolean(),
@@ -23,10 +20,17 @@ function assertProvisioningMode() {
 
 async function findUserByEmail(ctx: MutationCtx, email: string): Promise<Doc<'users'>> {
   const normalizedEmail = email.trim().toLowerCase();
-  const user = await ctx.db
+  const indexed = await ctx.db
     .query('users')
     .withIndex('email', (q) => q.eq('email', normalizedEmail))
     .unique();
+  if (indexed) {
+    return indexed;
+  }
+  // Stored emails are not guaranteed lowercase; fall back to a bounded scan.
+  const user = (await ctx.db.query('users').take(500)).find(
+    (candidate) => candidate.email?.trim().toLowerCase() === normalizedEmail
+  );
   if (!user) {
     throw new Error(`Local auth user not found: ${normalizedEmail}`);
   }
@@ -108,15 +112,13 @@ export const prepareLocalUsers = internalMutation({
 export const remapFactionOwnershipBatch = internalMutation({
   args: {
     ownerEmail: v.string(),
-    cursor: cursorValidator,
+    paginationOpts: paginationOptsValidator,
   },
   returns: batchResultValidator,
   handler: async (ctx, args) => {
     assertProvisioningMode();
     const owner = await findUserByEmail(ctx, args.ownerEmail);
-    const result = await ctx.db
-      .query('factions')
-      .paginate({ numItems: REMAP_BATCH_SIZE, cursor: args.cursor });
+    const result = await ctx.db.query('factions').paginate(args.paginationOpts);
 
     for (const faction of result.page) {
       if (faction.owner_id !== owner._id) {
@@ -132,16 +134,14 @@ export const remapGroupOwnershipBatch = internalMutation({
   args: {
     ownerEmail: v.string(),
     collaboratorEmail: v.string(),
-    cursor: cursorValidator,
+    paginationOpts: paginationOptsValidator,
   },
   returns: batchResultValidator,
   handler: async (ctx, args) => {
     assertProvisioningMode();
     const owner = await findUserByEmail(ctx, args.ownerEmail);
     const collaborator = await findUserByEmail(ctx, args.collaboratorEmail);
-    const result = await ctx.db
-      .query('groups')
-      .paginate({ numItems: REMAP_BATCH_SIZE, cursor: args.cursor });
+    const result = await ctx.db.query('groups').paginate(args.paginationOpts);
 
     for (const group of result.page) {
       if (group.created_by !== owner._id) {

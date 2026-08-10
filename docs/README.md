@@ -68,7 +68,11 @@ stays "log in as A, edit anything". Use the two configured local accounts in
 provision target is structurally unable to touch production (no production credentials
 ever reach its commands). `bun run provision dev` is the same pipeline pointed at the
 long-lived cloud dev deployment, used by CI to rebuild it as a production replica after
-each deploy (requires `CONVEX_DEV_DEPLOY_KEY`, plus `CONVEX_PROD_DEPLOY_KEY` in CI).
+each deploy. It requires `CONVEX_DEV_DEPLOY_KEY`; the prod snapshot export uses
+`CONVEX_PROD_DEPLOY_KEY` when set and otherwise falls back to the ambient
+`CONVEX_DEPLOY_KEY` (the repo's deploy secret is the prod key). A bare
+`bun run provision local` intentionally refuses to run — the local users stage needs the
+running app, so the complete local environment always comes from `bun run app:dev --local`.
 
 ## Common Workflows
 

@@ -57,12 +57,12 @@ describe('provisioning ownership remap', () => {
     });
     const factionPass = await t.mutation(internal.provisioning.remapFactionOwnershipBatch, {
       ownerEmail: 'user-a@example.com',
-      cursor: null,
+      paginationOpts: { numItems: 50, cursor: null },
     });
     const groupPass = await t.mutation(internal.provisioning.remapGroupOwnershipBatch, {
       ownerEmail: 'user-a@example.com',
       collaboratorEmail: 'user-b@example.com',
-      cursor: null,
+      paginationOpts: { numItems: 50, cursor: null },
     });
 
     expect(factionPass.isDone).toBe(true);
@@ -97,7 +97,7 @@ describe('provisioning ownership remap', () => {
     await expect(
       t.mutation(internal.provisioning.remapFactionOwnershipBatch, {
         ownerEmail: 'user-a@example.com',
-        cursor: null,
+        paginationOpts: { numItems: 50, cursor: null },
       })
     ).rejects.toThrow('IS_TEST');
   });

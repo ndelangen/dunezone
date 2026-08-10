@@ -6,7 +6,6 @@ import {
   parseEnvFile,
   parseProvisionArgs,
   selfHostedEnvironment,
-  stagesForTarget,
 } from './provision';
 
 describe('provision pipeline', () => {
@@ -29,20 +28,22 @@ describe('provision pipeline', () => {
     expect(parseProvisionArgs(['e2e'])).toEqual({
       target: 'e2e',
       stages: ['backend', 'configure', 'code', 'data'],
+      stagesExplicit: false,
     });
     expect(parseProvisionArgs(['e2e', '--stage', 'backend'])).toEqual({
       target: 'e2e',
       stages: ['backend'],
+      stagesExplicit: true,
     });
-    expect(parseProvisionArgs(['dev'])).toEqual({ target: 'dev', stages: ['code', 'data'] });
+    expect(parseProvisionArgs(['dev'])).toEqual({
+      target: 'dev',
+      stages: ['code', 'data'],
+      stagesExplicit: false,
+    });
     expect(() => parseProvisionArgs(['prod'])).toThrow('Usage: provision');
     expect(() => parseProvisionArgs(['dev', '--stage', 'backend'])).toThrow(
       'Invalid stage for target dev'
     );
-  });
-
-  test('the cloud dev deployment never starts a docker backend', () => {
-    expect(stagesForTarget('dev')).not.toContain('backend');
   });
 
   test('parses pretty-printed multi-line convex run results', () => {

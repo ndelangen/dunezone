@@ -140,15 +140,15 @@ export function cloudDevEnvironment(
 }
 
 /**
- * Environment for the read-only prod snapshot export. Uses the dedicated CONVEX_PROD_DEPLOY_KEY
- * when set (CI); otherwise the logged-in CLI plus `--prod` resolves production from the checked-out
- * project config.
+ * Environment for the read-only prod snapshot export. Prefers the dedicated CONVEX_PROD_DEPLOY_KEY,
+ * falls back to the ambient CONVEX_DEPLOY_KEY (the repo's deploy secret is the prod key — #353),
+ * and otherwise relies on the logged-in CLI plus `--prod`.
  */
 function productionExportEnvironment(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return commandEnvironment(base, {
     CONVEX_SELF_HOSTED_URL: undefined,
     CONVEX_SELF_HOSTED_ADMIN_KEY: undefined,
-    CONVEX_DEPLOY_KEY: base.CONVEX_PROD_DEPLOY_KEY ?? undefined,
+    CONVEX_DEPLOY_KEY: base.CONVEX_PROD_DEPLOY_KEY ?? base.CONVEX_DEPLOY_KEY ?? undefined,
     CONVEX_PROD_DEPLOY_KEY: undefined,
   });
 }
@@ -331,6 +331,8 @@ function clearClonedTables(
 
 type RemapBatchResult = { isDone: boolean; continueCursor: string };
 
+const REMAP_BATCH_SIZE = 50;
+
 /**
  * Parses a `convex run` result: non-TTY output is pretty-printed JSON spanning multiple lines, so
  * the whole output is one JSON value.
@@ -388,14 +390,14 @@ export function remapOwnershipToLocalUsers(
   drainRemapBatches((cursor) =>
     runProvisioningMutation(deployment, env, 'provisioning:remapFactionOwnershipBatch', {
       ownerEmail,
-      cursor,
+      paginationOpts: { numItems: REMAP_BATCH_SIZE, cursor },
     })
   );
   drainRemapBatches((cursor) =>
     runProvisioningMutation(deployment, env, 'provisioning:remapGroupOwnershipBatch', {
       ownerEmail,
       collaboratorEmail,
-      cursor,
+      paginationOpts: { numItems: REMAP_BATCH_SIZE, cursor },
     })
   );
 }
@@ -411,6 +413,8 @@ export function stagesForTarget(target: ProvisionTarget): ProvisionStage[] {
 export type ProvisionArgs = {
   target: ProvisionTarget;
   stages: ProvisionStage[];
+  /** True when the caller named stages with --stage flags rather than taking the default set. */
+  stagesExplicit: boolean;
 };
 
 const PROVISION_TARGETS: readonly ProvisionTarget[] = ['e2e', 'local', 'dev'];
@@ -432,7 +436,7 @@ function parseStageFlags(rest: string[], target: ProvisionTarget): ProvisionStag
     }
     stages.push(stage);
   }
-  return stages.length > 0 ? stages : allowed;
+  return stages;
 }
 
 export function parseProvisionArgs(argv: string[]): ProvisionArgs {
@@ -440,7 +444,12 @@ export function parseProvisionArgs(argv: string[]): ProvisionArgs {
   if (!isProvisionTarget(target)) {
     throw new Error(`Usage: provision <e2e|local|dev> [--stage <backend|configure|code|data>]...`);
   }
-  return { target, stages: parseStageFlags(rest, target) };
+  const explicit = parseStageFlags(rest, target);
+  return {
+    target,
+    stages: explicit.length > 0 ? explicit : stagesForTarget(target),
+    stagesExplicit: explicit.length > 0,
+  };
 }
 
 function provisionCloudDev(
@@ -518,6 +527,16 @@ async function runCli(args: ProvisionArgs) {
   if (args.target === 'dev') {
     provisionCloudDev(args.stages, process.env, workDirectory);
     return;
+  }
+  if (args.target === 'local' && !args.stagesExplicit) {
+    /*
+     * The local users stage (A/B accounts + ownership remap) needs the
+     * running app, so this CLI alone cannot produce a complete local
+     * environment — refuse rather than report a half-provisioned success.
+     */
+    throw new Error(
+      "The local target is provisioned by 'bun run app:dev --local' (its users stage needs the running app). Pass explicit --stage flags for partial provisioning."
+    );
   }
   await provisionSelfHosted(args.target, args.stages, process.env, workDirectory);
 }
