@@ -13,9 +13,12 @@ import {
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+/**
+ * The popover's minimal structural requirement on a picked row — satisfied by the (validator-
+ * derived) `listOwnedForGroupAssign` row types, which remain the shape's authority.
+ */
 export interface AssetAssignOption {
   id: string;
-  slug: string;
   name: string;
   groupId: string | null;
   groupName: string | null;
@@ -24,6 +27,7 @@ export interface AssetAssignOption {
 export interface AssetAssignPopoverProps {
   kind: 'faction' | 'ruleset';
   disabled: boolean;
+  loading: boolean;
   currentGroupId: string;
   currentGroupName: string;
   ownedItems: AssetAssignOption[];
@@ -37,6 +41,7 @@ export interface AssetAssignPopoverProps {
 export function AssetAssignPopover({
   kind,
   disabled,
+  loading,
   currentGroupId,
   currentGroupName,
   ownedItems,
@@ -119,7 +124,7 @@ export function AssetAssignPopover({
             size="sm"
             aria-label={`Add a ${kind} you own`}
             disabled={disabled}
-            onClick={() => setOpened((current) => !current)}
+            onClick={() => handleOpenedChange(!opened)}
           >
             <Plus size={14} aria-hidden />
           </ActionIcon>
@@ -144,13 +149,19 @@ export function AssetAssignPopover({
               </Alert>
             ) : null}
 
-            {options.length === 0 ? (
+            {loading ? (
+              <Text size="sm" c="dimmed">
+                Loading your {kind}s…
+              </Text>
+            ) : null}
+            {!loading && options.length === 0 ? (
               <Text size="sm" c="dimmed">
                 {ownedItems.length === 0
                   ? `You don't own any ${kind}s yet.`
                   : `All your ${kind}s are already in this group.`}
               </Text>
-            ) : (
+            ) : null}
+            {!loading && options.length > 0 ? (
               <Stack gap="md">
                 <Select
                   label={`Search your ${kind}s`}
@@ -176,7 +187,7 @@ export function AssetAssignPopover({
                   </Button>
                 </Group>
               </Stack>
-            )}
+            ) : null}
           </Stack>
         ) : null}
       </Popover.Dropdown>

@@ -283,18 +283,8 @@ export function useDeleteRuleset() {
   };
 }
 
-type OwnedRulesetForGroupAssign = {
-  id: string;
-  slug: string;
-  name: string;
-  groupId: string | null;
-  groupName: string | null;
-};
-
 /** Rulesets the viewer owns, for the Group detail page's "add a ruleset" picker. */
 export function useRulesetsOwnedForGroupAssign() {
-  const liveData = useQuery(api.rulesets.listOwnedForGroupAssign, {}) as
-    | OwnedRulesetForGroupAssign[]
-    | undefined;
+  const liveData = useQuery(api.rulesets.listOwnedForGroupAssign, {});
   return toLiveQueryResult(liveData, true);
 }

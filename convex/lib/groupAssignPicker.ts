@@ -2,8 +2,11 @@ import { v } from 'convex/values';
 
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import { liveGroupOrNull } from './collaborativeAccess';
 
 type OwnedRowWithGroup = { group_id: Id<'groups'> | null };
+
+export const OWNED_FOR_GROUP_ASSIGN_LIMIT = 500;
 
 /** Live (non-deleted) group names for every distinct group_id referenced by `rows`. */
 export async function resolveLiveGroupNames(
@@ -16,11 +19,12 @@ export async function resolveLiveGroupNames(
       groupIds.add(row.group_id);
     }
   }
+  const groups = await Promise.all([...groupIds].map((gid) => ctx.db.get('groups', gid)));
   const groupNameById = new Map<Id<'groups'>, string>();
-  for (const gid of groupIds) {
-    const group = await ctx.db.get('groups', gid);
-    if (group && !group.is_deleted) {
-      groupNameById.set(gid, group.name.trim());
+  for (const candidate of groups) {
+    const group = liveGroupOrNull(candidate);
+    if (group) {
+      groupNameById.set(group._id, group.name.trim());
     }
   }
   return groupNameById;

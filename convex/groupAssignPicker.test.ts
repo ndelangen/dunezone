@@ -183,7 +183,9 @@ describe('factions.listOwnedForGroupAssign', () => {
 
   test('requires authentication', async () => {
     const { t } = await fixture();
-    await expect(t.query(api.factions.listOwnedForGroupAssign, {})).rejects.toThrow();
+    await expect(t.query(api.factions.listOwnedForGroupAssign, {})).rejects.toThrow(
+      /Not authenticated/
+    );
   });
 });
 
@@ -204,6 +206,8 @@ describe('rulesets.listOwnedForGroupAssign', () => {
 
   test('requires authentication', async () => {
     const { t } = await fixture();
-    await expect(t.query(api.rulesets.listOwnedForGroupAssign, {})).rejects.toThrow();
+    await expect(t.query(api.rulesets.listOwnedForGroupAssign, {})).rejects.toThrow(
+      /Not authenticated/
+    );
   });
 });

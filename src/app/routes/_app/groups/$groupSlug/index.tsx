@@ -213,6 +213,11 @@ function GroupDetailPage() {
               }
             />
           </Group>
+          {deleteGroup.error && (
+            <Text size="sm" c="red" role="alert" mt="xs">
+              Delete failed: {deleteGroup.error.message}
+            </Text>
+          )}
         </Paper>
       }
     >
@@ -269,10 +274,15 @@ function GroupDetailPage() {
             </Stack>
           </Card>
 
+          {membersModerationError && (
+            <Alert color="red" variant="light" title="Moderation failed" role="alert">
+              {membersModerationError}
+            </Alert>
+          )}
+
           <PendingRequestsPanel
             pendingMembers={pendingMembers}
             moderationBusy={membersModerationBusy}
-            moderationError={membersModerationError}
             onApprove={(membershipId) =>
               void membershipWorkflow.approve.run(membershipId).catch(() => undefined)
             }
@@ -289,7 +299,6 @@ function GroupDetailPage() {
               <MemberRoster
                 members={activeMembers}
                 moderationBusy={membersModerationBusy}
-                moderationError={membersModerationError}
                 onApprove={(membershipId) =>
                   void membershipWorkflow.approve.run(membershipId).catch(() => undefined)
                 }
@@ -321,24 +330,37 @@ function SectionHeading({ icon, children }: { icon: ReactNode; children: ReactNo
   );
 }
 
-type AssignPickerProps = Omit<AssetAssignPopoverProps, 'kind' | 'ownedItems'>;
+type AssignPickerProps = Omit<AssetAssignPopoverProps, 'kind' | 'ownedItems' | 'loading'>;
 
 /**
  * Only mounted for active members (see call sites): the owned-factions query requires
  * authentication, so it must not be called for anonymous, pending, or non-member viewers.
+ * Subscribing to a second query beyond the page query deviates from DD-013's default; that was
+ * decided explicitly for this picker (issues #348/#182: keep `detailBySlug` unchanged, expose the
+ * viewer-scoped owned lists as their own queries).
  */
 function FactionAssignPicker(props: AssignPickerProps) {
   const ownedFactionsQuery = useFactionsOwnedForGroupAssign();
   return (
-    <AssetAssignPopover kind="faction" ownedItems={ownedFactionsQuery.data ?? []} {...props} />
+    <AssetAssignPopover
+      kind="faction"
+      ownedItems={ownedFactionsQuery.data ?? []}
+      loading={ownedFactionsQuery.isLoading}
+      {...props}
+    />
   );
 }
 
-/** Same rule as `FactionAssignPicker`: only mount this for active members. */
+/** Same rules as `FactionAssignPicker`: only mount this for active members. */
 function RulesetAssignPicker(props: AssignPickerProps) {
   const ownedRulesetsQuery = useRulesetsOwnedForGroupAssign();
   return (
-    <AssetAssignPopover kind="ruleset" ownedItems={ownedRulesetsQuery.data ?? []} {...props} />
+    <AssetAssignPopover
+      kind="ruleset"
+      ownedItems={ownedRulesetsQuery.data ?? []}
+      loading={ownedRulesetsQuery.isLoading}
+      {...props}
+    />
   );
 }
 
@@ -386,19 +408,11 @@ const membershipBadgeColors: Record<MembershipStatus, string> = {
   none: 'gray',
 };
 
-function membershipBadgeColor(status: MembershipStatus) {
-  return membershipBadgeColors[status];
-}
-
 const membershipBadgeLabels: Record<MembershipStatus, string> = {
   active: 'Active member',
   pending: 'Pending approval',
   none: 'Not a member',
 };
-
-function membershipBadgeLabel(status: MembershipStatus) {
-  return membershipBadgeLabels[status];
-}
 
 function MembershipStatusBadge({
   status,
@@ -415,8 +429,8 @@ function MembershipStatusBadge({
     );
   }
   return (
-    <Badge color={membershipBadgeColor(status)} variant="light">
-      {membershipBadgeLabel(status)}
+    <Badge color={membershipBadgeColors[status]} variant="light">
+      {membershipBadgeLabels[status]}
     </Badge>
   );
 }
@@ -476,7 +490,7 @@ function MemberRow({
   moderationBusy: boolean;
   onApprove: (membershipId: string) => void;
   onReject: (membershipId: string) => void;
-  onRemove: (membershipId: string) => void;
+  onRemove?: (membershipId: string) => void;
 }) {
   const isPending = entry.status === 'pending';
   return (
@@ -521,7 +535,7 @@ function MemberRow({
             </ActionIcon>
           </Tooltip>
         )}
-        {entry.capabilities.remove && (
+        {entry.capabilities.remove && onRemove && (
           <Tooltip label="Remove member">
             <ActionIcon
               aria-label="Remove member"
@@ -542,43 +556,35 @@ function MemberRow({
 function MemberRoster({
   members,
   moderationBusy,
-  moderationError,
   onApprove,
   onReject,
   onRemove,
 }: {
   members: RosterEntry[];
   moderationBusy: boolean;
-  moderationError: string | null;
   onApprove: (membershipId: string) => void;
   onReject: (membershipId: string) => void;
   onRemove: (membershipId: string) => void;
 }) {
+  if (members.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No members yet.
+      </Text>
+    );
+  }
   return (
-    <Stack gap="sm">
-      {members.length === 0 ? (
-        <Text size="sm" c="dimmed">
-          No members yet.
-        </Text>
-      ) : (
-        <Stack gap="xs">
-          {members.map((entry) => (
-            <MemberRow
-              key={entry.membershipId}
-              entry={entry}
-              moderationBusy={moderationBusy}
-              onApprove={onApprove}
-              onReject={onReject}
-              onRemove={onRemove}
-            />
-          ))}
-        </Stack>
-      )}
-      {moderationError && (
-        <Text size="sm" c="red" role="alert">
-          {moderationError}
-        </Text>
-      )}
+    <Stack gap="xs">
+      {members.map((entry) => (
+        <MemberRow
+          key={entry.membershipId}
+          entry={entry}
+          moderationBusy={moderationBusy}
+          onApprove={onApprove}
+          onReject={onReject}
+          onRemove={onRemove}
+        />
+      ))}
     </Stack>
   );
 }
@@ -590,13 +596,11 @@ function MemberRoster({
 function PendingRequestsPanel({
   pendingMembers,
   moderationBusy,
-  moderationError,
   onApprove,
   onReject,
 }: {
   pendingMembers: RosterEntry[];
   moderationBusy: boolean;
-  moderationError: string | null;
   onApprove: (membershipId: string) => void;
   onReject: (membershipId: string) => void;
 }) {
@@ -613,14 +617,8 @@ function PendingRequestsPanel({
             moderationBusy={moderationBusy}
             onApprove={onApprove}
             onReject={onReject}
-            onRemove={() => undefined}
           />
         ))}
-        {moderationError && (
-          <Text size="sm" c="red" role="alert">
-            {moderationError}
-          </Text>
-        )}
       </Stack>
     </Alert>
   );

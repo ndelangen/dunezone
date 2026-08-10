@@ -16,6 +16,7 @@ import {
 } from './lib/collaborativeAccessValidators';
 import {
   buildOwnedForGroupAssignRows,
+  OWNED_FOR_GROUP_ASSIGN_LIMIT,
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
@@ -96,7 +97,7 @@ export const listOwnedForGroupAssign = query({
     const rows = await ctx.db
       .query('rulesets')
       .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', false))
-      .take(500);
+      .take(OWNED_FOR_GROUP_ASSIGN_LIMIT);
     return await buildOwnedForGroupAssignRows(ctx, rows, (row) => row.name);
   },
 });

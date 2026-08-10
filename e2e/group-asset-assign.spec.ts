@@ -36,6 +36,7 @@ test('owner adds an owned, unassigned faction to their Group', async ({ page }) 
     await page.getByRole('option').filter({ hasText: factionName }).click();
     await page.getByRole('button', { name: 'Add to this group' }).click();
 
-    await expect(page.getByText(factionName)).toBeVisible();
+    await expect(page.getByRole('link', { name: factionName })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add to this group' })).not.toBeVisible();
   });
 });
