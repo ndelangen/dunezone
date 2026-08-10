@@ -332,8 +332,24 @@ function clearClonedTables(
 type RemapBatchResult = { isDone: boolean; continueCursor: string };
 
 /**
+ * Parses a `convex run` result: non-TTY output is pretty-printed JSON spanning multiple lines, so
+ * the whole output is one JSON value.
+ */
+export function parseConvexRunResult<Result>(output: string, functionName: string): Result {
+  const trimmed = output.trim();
+  if (trimmed.length === 0) {
+    throw new Error(`${functionName} produced no output`);
+  }
+  try {
+    return JSON.parse(trimmed) as Result;
+  } catch {
+    throw new Error(`${functionName} returned unparseable output:\n${output}`);
+  }
+}
+
+/**
  * Runs an internal provisioning mutation through the CLI (admin-key authorized) and returns its
- * result, parsed from the last output line.
+ * parsed result.
  */
 function runProvisioningMutation<Result>(
   deployment: SelfHostedDeployment,
@@ -342,12 +358,7 @@ function runProvisioningMutation<Result>(
   args: Record<string, unknown>
 ): Result {
   const output = targetConvex(deployment, ['run', functionName, JSON.stringify(args)], env, true);
-  const lines = output.split('\n').filter((line) => line.trim().length > 0);
-  const resultLine = lines.at(-1);
-  if (!resultLine) {
-    throw new Error(`${functionName} produced no output`);
-  }
-  return JSON.parse(resultLine) as Result;
+  return parseConvexRunResult<Result>(output, functionName);
 }
 
 function drainRemapBatches(fetchBatch: (cursor: string | null) => RemapBatchResult) {

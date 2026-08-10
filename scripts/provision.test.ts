@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
   cloudDevEnvironment,
+  parseConvexRunResult,
   parseEnvFile,
   parseProvisionArgs,
   selfHostedEnvironment,
@@ -42,6 +43,14 @@ describe('provision pipeline', () => {
 
   test('the cloud dev deployment never starts a docker backend', () => {
     expect(stagesForTarget('dev')).not.toContain('backend');
+  });
+
+  test('parses pretty-printed multi-line convex run results', () => {
+    expect(
+      parseConvexRunResult('{\n  "isDone": true,\n  "continueCursor": "c1"\n}\n', 'f')
+    ).toEqual({ isDone: true, continueCursor: 'c1' });
+    expect(() => parseConvexRunResult('', 'provisioning:x')).toThrow('produced no output');
+    expect(() => parseConvexRunResult('not json', 'provisioning:x')).toThrow('unparseable output');
   });
 
   test('self-hosted commands never receive production credentials', () => {
