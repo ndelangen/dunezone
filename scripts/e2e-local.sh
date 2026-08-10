@@ -6,6 +6,8 @@ set -euo pipefail
 # per-phase timing: up | provision | serve | test | down.
 # Values that must cross phase boundaries (admin key, resolved app URL,
 # app server pid, JWT material) live as files under .playwright/.
+# Backend and provisioning stages delegate to the unified pipeline in
+# scripts/provision.ts (e2e target: fixture data, never production).
 PHASE="${1:-all}"
 case "$PHASE" in
   all|up|provision|serve|test|down) ;;
@@ -20,8 +22,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.convex-local.yml"
 ENV_FILE="${E2E_ENV_FILE:-$ROOT_DIR/.env.e2e.local}"
 APP_PID=""
-JWT_KEY_PATH=""
-JWKS_PATH=""
 ADMIN_KEY_FILE="$ROOT_DIR/.playwright/admin-key"
 APP_URL_FILE="$ROOT_DIR/.playwright/app-url"
 APP_PID_FILE="$ROOT_DIR/.playwright/app.pid"
@@ -85,54 +85,6 @@ ensure_admin_key() {
   export CONVEX_SELF_HOSTED_ADMIN_KEY
 }
 
-ensure_local_auth_jwt_material() {
-  if [[ -n "${JWT_PRIVATE_KEY:-}" && -n "${JWKS:-}" ]]; then
-    JWT_PRIVATE_KEY_B64="$(printf '%s' "$JWT_PRIVATE_KEY" | base64 | tr -d '\n')"
-    JWKS_B64="$(printf '%s' "$JWKS" | base64 | tr -d '\n')"
-    export JWT_PRIVATE_KEY_B64
-    export JWKS_B64
-    return
-  fi
-
-  mkdir -p "$ROOT_DIR/.playwright"
-  local jwt_key_path="$ROOT_DIR/.playwright/e2e-jwt-private-key.pem"
-  local jwks_path="$ROOT_DIR/.playwright/e2e-jwks.json"
-
-  echo "Generating ephemeral JWT material for local Convex Auth..."
-  node -e "const { generateKeyPairSync } = require('node:crypto'); const fs = require('node:fs'); const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 }); fs.writeFileSync(process.argv[1], privateKey.export({ format: 'pem', type: 'pkcs8' })); fs.writeFileSync(process.argv[2], JSON.stringify({ keys: [publicKey.export({ format: 'jwk' })] }));" "$jwt_key_path" "$jwks_path"
-
-  JWT_PRIVATE_KEY="$(<"$jwt_key_path")"
-  JWKS="$(<"$jwks_path")"
-  JWT_PRIVATE_KEY_B64="$(base64 <"$jwt_key_path" | tr -d '\n')"
-  JWKS_B64="$(base64 <"$jwks_path" | tr -d '\n')"
-  export JWT_PRIVATE_KEY
-  export JWKS
-  export JWT_PRIVATE_KEY_B64
-  export JWKS_B64
-  JWT_KEY_PATH="$jwt_key_path"
-  JWKS_PATH="$jwks_path"
-}
-
-ensure_jwt_material_files() {
-  if [[ -n "$JWT_KEY_PATH" && -n "$JWKS_PATH" && -f "$JWT_KEY_PATH" && -f "$JWKS_PATH" ]]; then
-    return
-  fi
-  mkdir -p "$ROOT_DIR/.playwright"
-  JWT_KEY_PATH="$ROOT_DIR/.playwright/e2e-jwt-private-key.pem"
-  JWKS_PATH="$ROOT_DIR/.playwright/e2e-jwks.json"
-  printf '%s' "${JWT_PRIVATE_KEY:-}" >"$JWT_KEY_PATH"
-  printf '%s' "${JWKS:-}" >"$JWKS_PATH"
-}
-
-convex_local() {
-  CONVEX_DEPLOYMENT= \
-  CONVEX_URL= \
-  CONVEX_CLOUD_URL= \
-  CONVEX_SELF_HOSTED_URL="$CONVEX_SELF_HOSTED_URL" \
-  CONVEX_SELF_HOSTED_ADMIN_KEY="$CONVEX_SELF_HOSTED_ADMIN_KEY" \
-    npx convex "$@"
-}
-
 cleanup() {
   if [[ -n "$APP_PID" ]]; then
     kill "$APP_PID" >/dev/null 2>&1 || true
@@ -193,40 +145,17 @@ phase_up() {
   echo "Clearing previous Playwright artifacts..."
   rm -rf "$ROOT_DIR/test-results" "$ROOT_DIR/playwright-report" "$ROOT_DIR/.playwright"
 
-  echo "Resetting any previous local Convex state..."
-  compose down -v >/dev/null 2>&1 || true
-
-  echo "Starting local Convex backend..."
-  compose up -d
-
-  echo "Waiting for Convex backend health..."
-  for _ in {1..60}; do
-    if curl -fsS "${CONVEX_SELF_HOSTED_URL:-http://127.0.0.1:3210}/version" >/dev/null; then
-      break
-    fi
-    sleep 1
-  done
-
-  if ! curl -fsS "${CONVEX_SELF_HOSTED_URL:-http://127.0.0.1:3210}/version" >/dev/null; then
-    echo "Convex backend did not become healthy in time."
-    exit 1
-  fi
+  export_runtime_env
+  echo "Resetting and starting the local Convex backend..."
+  bun run "$ROOT_DIR/scripts/provision.ts" e2e --stage backend
 }
 
 phase_provision() {
   export_runtime_env
   ensure_admin_key
-  ensure_local_auth_jwt_material
-  ensure_jwt_material_files
 
-  echo "Pushing test env vars to local Convex deployment..."
-  convex_local env set SITE_URL "$SITE_URL"
-  convex_local env set E2E_LOCAL_AUTH "$E2E_LOCAL_AUTH"
-  convex_local env set IS_TEST "$IS_TEST"
-  convex_local env set JWT_PRIVATE_KEY --from-file "$JWT_KEY_PATH"
-  convex_local env set JWKS --from-file "$JWKS_PATH"
-  convex_local env set JWT_PRIVATE_KEY_B64 "$JWT_PRIVATE_KEY_B64"
-  convex_local env set JWKS_B64 "$JWKS_B64"
+  echo "Configuring and deploying the local Convex deployment..."
+  bun run "$ROOT_DIR/scripts/provision.ts" e2e --stage configure --stage code
 
   if [[ "${E2E_RUN_MIGRATIONS:-0}" == "1" ]]; then
     echo "Running migration guards for local deployment..."
@@ -235,11 +164,8 @@ phase_provision() {
     echo "Skipping migrations:run-local-required (fresh ephemeral DB path). Set E2E_RUN_MIGRATIONS=1 to enable."
   fi
 
-  echo "Deploying Convex functions to local backend..."
-  convex_local deploy
-
-  echo "Resetting test-only app tables..."
-  convex_local run e2e:clearAll '{}'
+  echo "Resetting fixture data..."
+  bun run "$ROOT_DIR/scripts/provision.ts" e2e --stage data
 }
 
 phase_serve() {

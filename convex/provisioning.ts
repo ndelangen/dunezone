@@ -1,33 +1,33 @@
+import { paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
-import { mutation } from './functions';
+import { internalMutation } from './functions';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { nowIso } from './lib/utils';
 
-const importedGroupValidator = v.object({
-  name: v.string(),
-  slug: v.string(),
-  created_at: v.string(),
+const batchResultValidator = v.object({
+  isDone: v.boolean(),
+  continueCursor: v.string(),
 });
 
-const importedFactionValidator = v.object({
-  data: v.any(),
-  slug: v.string(),
-  created_at: v.string(),
-  updated_at: v.string(),
-  group: v.union(importedGroupValidator, v.null()),
-});
-
-function assertLocalDevelopmentMode() {
+function assertProvisioningMode() {
   if (process.env.IS_TEST !== 'true') {
-    throw new Error('Local development helpers are only available when IS_TEST=true');
+    throw new Error('Provisioning helpers are only available when IS_TEST=true');
   }
 }
 
 async function findUserByEmail(ctx: MutationCtx, email: string): Promise<Doc<'users'>> {
   const normalizedEmail = email.trim().toLowerCase();
+  const indexed = await ctx.db
+    .query('users')
+    .withIndex('email', (q) => q.eq('email', normalizedEmail))
+    .unique();
+  if (indexed) {
+    return indexed;
+  }
+  // Stored emails are not guaranteed lowercase; fall back to a bounded scan.
   const user = (await ctx.db.query('users').take(500)).find(
     (candidate) => candidate.email?.trim().toLowerCase() === normalizedEmail
   );
@@ -41,9 +41,9 @@ async function ensureActiveMembership(
   ctx: MutationCtx,
   groupId: Id<'groups'>,
   userId: Id<'users'>,
-  approvedBy: Id<'users'>,
-  timestamp: string
+  approvedBy: Id<'users'>
 ) {
+  const timestamp = nowIso();
   const existing = await ctx.db
     .query('group_members')
     .withIndex('by_group_user', (q) => q.eq('group_id', groupId).eq('user_id', userId))
@@ -68,35 +68,6 @@ async function ensureActiveMembership(
   });
 }
 
-async function ensureImportedGroup(
-  ctx: MutationCtx,
-  group: {
-    name: string;
-    slug: string;
-    created_at: string;
-  },
-  ownerId: Id<'users'>,
-  collaboratorId: Id<'users'>
-) {
-  const existing = await ctx.db
-    .query('groups')
-    .withIndex('by_slug', (q) => q.eq('slug', group.slug))
-    .unique();
-  const groupId =
-    existing?._id ??
-    (await ctx.db.insert('groups', {
-      name: group.name,
-      slug: group.slug,
-      created_at: group.created_at,
-      created_by: ownerId,
-      is_deleted: false,
-    }));
-
-  await ensureActiveMembership(ctx, groupId, ownerId, ownerId, group.created_at);
-  await ensureActiveMembership(ctx, groupId, collaboratorId, ownerId, group.created_at);
-  return groupId;
-}
-
 async function prepareLocalProfile(
   ctx: MutationCtx,
   user: Doc<'users'>,
@@ -114,7 +85,7 @@ async function prepareLocalProfile(
   });
 }
 
-export const prepareFactionImport = mutation({
+export const prepareLocalUsers = internalMutation({
   args: {
     ownerEmail: v.string(),
     collaboratorEmail: v.string(),
@@ -124,7 +95,7 @@ export const prepareFactionImport = mutation({
     collaboratorId: v.id('users'),
   }),
   handler: async (ctx, args) => {
-    assertLocalDevelopmentMode();
+    assertProvisioningMode();
     const owner = await findUserByEmail(ctx, args.ownerEmail);
     const collaborator = await findUserByEmail(ctx, args.collaboratorEmail);
 
@@ -138,36 +109,48 @@ export const prepareFactionImport = mutation({
   },
 });
 
-export const importFactionBatch = mutation({
+export const remapFactionOwnershipBatch = internalMutation({
+  args: {
+    ownerEmail: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: batchResultValidator,
+  handler: async (ctx, args) => {
+    assertProvisioningMode();
+    const owner = await findUserByEmail(ctx, args.ownerEmail);
+    const result = await ctx.db.query('factions').paginate(args.paginationOpts);
+
+    for (const faction of result.page) {
+      if (faction.owner_id !== owner._id) {
+        await ctx.db.patch(faction._id, { owner_id: owner._id });
+      }
+    }
+
+    return { isDone: result.isDone, continueCursor: result.continueCursor };
+  },
+});
+
+export const remapGroupOwnershipBatch = internalMutation({
   args: {
     ownerEmail: v.string(),
     collaboratorEmail: v.string(),
-    factions: v.array(importedFactionValidator),
+    paginationOpts: paginationOptsValidator,
   },
-  returns: v.object({
-    importedFactions: v.number(),
-  }),
+  returns: batchResultValidator,
   handler: async (ctx, args) => {
-    assertLocalDevelopmentMode();
+    assertProvisioningMode();
     const owner = await findUserByEmail(ctx, args.ownerEmail);
     const collaborator = await findUserByEmail(ctx, args.collaboratorEmail);
+    const result = await ctx.db.query('groups').paginate(args.paginationOpts);
 
-    for (const faction of args.factions) {
-      const groupId = faction.group
-        ? await ensureImportedGroup(ctx, faction.group, owner._id, collaborator._id)
-        : null;
-
-      await ctx.db.insert('factions', {
-        owner_id: owner._id,
-        data: faction.data,
-        slug: faction.slug,
-        created_at: faction.created_at,
-        updated_at: faction.updated_at,
-        is_deleted: false,
-        group_id: groupId,
-      });
+    for (const group of result.page) {
+      if (group.created_by !== owner._id) {
+        await ctx.db.patch(group._id, { created_by: owner._id });
+      }
+      await ensureActiveMembership(ctx, group._id, owner._id, owner._id);
+      await ensureActiveMembership(ctx, group._id, collaborator._id, owner._id);
     }
 
-    return { importedFactions: args.factions.length };
+    return { isDone: result.isDone, continueCursor: result.continueCursor };
   },
 });
