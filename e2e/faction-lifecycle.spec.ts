@@ -118,6 +118,16 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/edit$`));
     await expect(page.getByText('Saved', { exact: true })).toBeVisible();
 
+    /*
+     * Without a reload: the editor must keep showing the just-saved draft, not
+     * snap back to the values it loaded the page with.
+     */
+    await page.getByRole('tab', { name: /^Faction leader/ }).click();
+    await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(
+      importedLeaderName
+    );
+    await page.getByRole('tab', { name: 'Identity & Appearance', exact: true }).click();
+
     const savedFactionName = page.getByRole('textbox', { name: 'Faction name' });
     await savedFactionName.fill(`${factionAName} local`);
     await page.getByRole('button', { name: 'Reset unsaved edits' }).click();
