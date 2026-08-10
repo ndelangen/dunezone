@@ -40,6 +40,10 @@ import { useRulesetsOwnedForGroupAssign, useUpdateRuleset } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 import { viewerActionsFor } from '@app/access/viewerActions';
 import { AssetAssignPopover } from '@app/components/groups/AssetAssignPopover';
+import type {
+  AssetAssignOption,
+  AssetAssignPopoverProps,
+} from '@app/components/groups/AssetAssignPopover';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
@@ -66,8 +70,6 @@ function GroupDetailPage() {
   const deleteGroup = useDeleteGroup();
   const setFactionGroup = useSetFactionGroup();
   const updateRuleset = useUpdateRuleset();
-  const ownedFactionsQuery = useFactionsOwnedForGroupAssign();
-  const ownedRulesetsQuery = useRulesetsOwnedForGroupAssign();
 
   if (groupData.isError) {
     return (
@@ -140,15 +142,14 @@ function GroupDetailPage() {
     });
   };
 
-  const handleAssignFaction = async (factionId: string) => {
-    await setFactionGroup.mutateAsync({ id: factionId, groupId });
+  const handleAssignFaction = async (item: AssetAssignOption) => {
+    await setFactionGroup.mutateAsync({ id: item.id, groupId });
   };
 
-  const handleAssignRuleset = async (rulesetId: string) => {
-    const owned = ownedRulesetsQuery.data?.find((item) => item.id === rulesetId);
+  const handleAssignRuleset = async (item: AssetAssignOption) => {
     await updateRuleset.mutateAsync({
-      id: rulesetId,
-      input: { name: owned?.name ?? '' },
+      id: item.id,
+      input: { name: item.name },
       groupId,
     });
   };
@@ -222,12 +223,10 @@ function GroupDetailPage() {
               <Group justify="space-between" wrap="nowrap">
                 <SectionHeading icon={<FremenIcon />}>Factions maintained</SectionHeading>
                 {isActiveMember && (
-                  <AssetAssignPopover
-                    kind="faction"
+                  <FactionAssignPicker
                     disabled={setFactionGroup.isPending}
                     currentGroupId={groupId}
                     currentGroupName={group.name}
-                    ownedItems={ownedFactionsQuery.data ?? []}
                     onAssign={handleAssignFaction}
                   />
                 )}
@@ -242,12 +241,10 @@ function GroupDetailPage() {
                   Rulesets maintained
                 </SectionHeading>
                 {isActiveMember && (
-                  <AssetAssignPopover
-                    kind="ruleset"
+                  <RulesetAssignPicker
                     disabled={updateRuleset.isPending}
                     currentGroupId={groupId}
                     currentGroupName={group.name}
-                    ownedItems={ownedRulesetsQuery.data ?? []}
                     onAssign={handleAssignRuleset}
                   />
                 )}
@@ -321,6 +318,27 @@ function SectionHeading({ icon, children }: { icon: ReactNode; children: ReactNo
       </Title>
       {icon}
     </Group>
+  );
+}
+
+type AssignPickerProps = Omit<AssetAssignPopoverProps, 'kind' | 'ownedItems'>;
+
+/**
+ * Only mounted for active members (see call sites): the owned-factions query requires
+ * authentication, so it must not be called for anonymous, pending, or non-member viewers.
+ */
+function FactionAssignPicker(props: AssignPickerProps) {
+  const ownedFactionsQuery = useFactionsOwnedForGroupAssign();
+  return (
+    <AssetAssignPopover kind="faction" ownedItems={ownedFactionsQuery.data ?? []} {...props} />
+  );
+}
+
+/** Same rule as `FactionAssignPicker`: only mount this for active members. */
+function RulesetAssignPicker(props: AssignPickerProps) {
+  const ownedRulesetsQuery = useRulesetsOwnedForGroupAssign();
+  return (
+    <AssetAssignPopover kind="ruleset" ownedItems={ownedRulesetsQuery.data ?? []} {...props} />
   );
 }
 

@@ -13,7 +13,7 @@ import {
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-interface AssetAssignOption {
+export interface AssetAssignOption {
   id: string;
   slug: string;
   name: string;
@@ -27,7 +27,7 @@ export interface AssetAssignPopoverProps {
   currentGroupId: string;
   currentGroupName: string;
   ownedItems: AssetAssignOption[];
-  onAssign: (itemId: string) => Promise<void>;
+  onAssign: (item: AssetAssignOption) => Promise<void>;
 }
 
 /**
@@ -91,7 +91,7 @@ export function AssetAssignPopover({
     setIsAssigning(true);
     setError(null);
     try {
-      await onAssign(item.id);
+      await onAssign(item);
       setOpened(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to add ${kind}. Please try again.`);
