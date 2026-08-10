@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
-import { mutation } from './functions';
+import { internalMutation } from './functions';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { nowIso } from './lib/utils';
 
@@ -81,7 +81,7 @@ async function prepareLocalProfile(
   });
 }
 
-export const prepareLocalUsers = mutation({
+export const prepareLocalUsers = internalMutation({
   args: {
     ownerEmail: v.string(),
     collaboratorEmail: v.string(),
@@ -105,7 +105,7 @@ export const prepareLocalUsers = mutation({
   },
 });
 
-export const remapFactionOwnershipBatch = mutation({
+export const remapFactionOwnershipBatch = internalMutation({
   args: {
     ownerEmail: v.string(),
     cursor: cursorValidator,
@@ -128,7 +128,7 @@ export const remapFactionOwnershipBatch = mutation({
   },
 });
 
-export const remapGroupOwnershipBatch = mutation({
+export const remapGroupOwnershipBatch = internalMutation({
   args: {
     ownerEmail: v.string(),
     collaboratorEmail: v.string(),

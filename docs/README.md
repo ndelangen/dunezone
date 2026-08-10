@@ -48,7 +48,7 @@ used by the application or publisher typecheck scripts.
 
 `bun run app:dev --local` is the opt-in authenticated local environment for browser review.
 It requires Docker, the existing `.env.e2e.local` credentials (copy
-`.env.e2e.local.example` when needed), and a Convex CLI login able to export production.
+`.env.e2e.local.example` when needed), and a Convex CLI login able to export from production.
 Each start runs the unified provision pipeline (`scripts/provision.ts`): reset the local
 Convex volume, push the checked-out functions, atomically import a point-in-time
 production snapshot, and clear the tables the clone never keeps (auth session/token

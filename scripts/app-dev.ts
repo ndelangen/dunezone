@@ -86,7 +86,7 @@ function printHelp() {
 
 function runMigrationGuards(env: NodeJS.ProcessEnv) {
   const result = spawnSync(
-    'bun',
+    process.execPath,
     ['run', './scripts/migration-guards.ts', 'dev-strict', '300000', '2000'],
     { cwd: rootDirectory, env, stdio: 'inherit' }
   );
@@ -182,7 +182,7 @@ async function runLocalDevelopment() {
     await ensureLocalAuthUser(baseUrl, collaboratorEmail, password);
 
     console.log('Handing cloned factions and groups to the local reviewer accounts...');
-    await remapOwnershipToLocalUsers(localUrl, ownerEmail, collaboratorEmail);
+    remapOwnershipToLocalUsers(deployment, localEnv, ownerEmail, collaboratorEmail);
     console.log(`Local development is ready at ${baseUrl}.`);
     console.log(`Sign in as ${ownerEmail} or ${collaboratorEmail} using the configured password.`);
 

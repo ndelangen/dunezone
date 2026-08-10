@@ -4,7 +4,7 @@ import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { api } from './_generated/api';
+import { internal } from './_generated/api';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -51,15 +51,15 @@ describe('provisioning ownership remap', () => {
       return { prodUserId: prodUser };
     });
 
-    const { ownerId, collaboratorId } = await t.mutation(api.provisioning.prepareLocalUsers, {
+    const { ownerId, collaboratorId } = await t.mutation(internal.provisioning.prepareLocalUsers, {
       ownerEmail: 'user-a@example.com',
       collaboratorEmail: 'user-b@example.com',
     });
-    const factionPass = await t.mutation(api.provisioning.remapFactionOwnershipBatch, {
+    const factionPass = await t.mutation(internal.provisioning.remapFactionOwnershipBatch, {
       ownerEmail: 'user-a@example.com',
       cursor: null,
     });
-    const groupPass = await t.mutation(api.provisioning.remapGroupOwnershipBatch, {
+    const groupPass = await t.mutation(internal.provisioning.remapGroupOwnershipBatch, {
       ownerEmail: 'user-a@example.com',
       collaboratorEmail: 'user-b@example.com',
       cursor: null,
@@ -95,7 +95,7 @@ describe('provisioning ownership remap', () => {
     vi.stubEnv('IS_TEST', 'false');
     const t = prepared();
     await expect(
-      t.mutation(api.provisioning.remapFactionOwnershipBatch, {
+      t.mutation(internal.provisioning.remapFactionOwnershipBatch, {
         ownerEmail: 'user-a@example.com',
         cursor: null,
       })

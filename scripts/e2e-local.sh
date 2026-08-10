@@ -154,8 +154,8 @@ phase_provision() {
   export_runtime_env
   ensure_admin_key
 
-  echo "Configuring the local Convex deployment..."
-  bun run "$ROOT_DIR/scripts/provision.ts" e2e --stage configure
+  echo "Configuring and deploying the local Convex deployment..."
+  bun run "$ROOT_DIR/scripts/provision.ts" e2e --stage configure --stage code
 
   if [[ "${E2E_RUN_MIGRATIONS:-0}" == "1" ]]; then
     echo "Running migration guards for local deployment..."
@@ -164,8 +164,8 @@ phase_provision() {
     echo "Skipping migrations:run-local-required (fresh ephemeral DB path). Set E2E_RUN_MIGRATIONS=1 to enable."
   fi
 
-  echo "Deploying functions and resetting fixture data..."
-  bun run "$ROOT_DIR/scripts/provision.ts" e2e --stage code --stage data
+  echo "Resetting fixture data..."
+  bun run "$ROOT_DIR/scripts/provision.ts" e2e --stage data
 }
 
 phase_serve() {
