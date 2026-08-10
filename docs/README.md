@@ -20,7 +20,7 @@ Quick reference for understanding and working with the codebase.
 ```bash
 # Development
 bun run app:dev           # Dev server on port 3000, using the configured online Convex deployment
-bun run app:dev --local   # Disposable local Convex + local auth + production faction copy
+bun run app:dev --local   # Disposable local Convex + local auth + production data clone
 bun run app:build         # Build for production
 bun run app:preview       # Preview production build locally
 
@@ -47,23 +47,28 @@ used by the application or publisher typecheck scripts.
 ### Disposable local app development
 
 `bun run app:dev --local` is the opt-in authenticated local environment for browser review.
-It requires Docker and the existing `.env.e2e.local` credentials (copy
-`.env.e2e.local.example` when needed). Each start resets the local Convex volume, creates
-the two configured local password users, and copies active production factions plus their
-directly referenced groups through a read-only production query.
+It requires Docker, the existing `.env.e2e.local` credentials (copy
+`.env.e2e.local.example` when needed), and a Convex CLI login able to export production.
+Each start runs the unified provision pipeline (`scripts/provision.ts`): reset the local
+Convex volume, push the checked-out functions, atomically import a point-in-time
+production snapshot, and clear the tables the clone never keeps (auth session/token
+tables and the publication queue — the `CLEARED_AFTER_CLONE` list).
 
 The backend and dashboard images are pinned to multi-platform digests in
 `docker-compose.convex-local.yml`, so an existing Docker cache cannot silently select an
 older runtime. When upgrading the Convex packages, update both image digests together and
 verify a clean `bun run app:dev --local` start.
 
-The local mapping is intentionally simple: user A owns every copied faction and group,
-while user B is an active member of every copied group. Production users, profiles,
-sessions, publisher state, rulesets, and operational tables are not copied. Use the two
-configured local accounts in `/auth/login`; no real account is required.
+After the two configured local password users sign in, every cloned faction and group is
+handed to user A (user B becomes an active member of every group) so the review workflow
+stays "log in as A, edit anything". Use the two configured local accounts in
+`/auth/login`; no real account is required.
 
-`bun run e2e:local` remains the deterministic fixture-backed E2E environment and does not
-perform this production copy.
+`bun run e2e:local` remains the deterministic fixture-backed E2E environment; its
+provision target is structurally unable to touch production (no production credentials
+ever reach its commands). `bun run provision dev` is the same pipeline pointed at the
+long-lived cloud dev deployment, used by CI to rebuild it as a production replica after
+each deploy (requires `CONVEX_DEV_DEPLOY_KEY`, plus `CONVEX_PROD_DEPLOY_KEY` in CI).
 
 ## Common Workflows
 
