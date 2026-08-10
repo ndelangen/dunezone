@@ -51,8 +51,11 @@ It requires Docker, the existing `.env.e2e.local` credentials (copy
 `.env.e2e.local.example` when needed), and a Convex CLI login able to export from production.
 Each start runs the unified provision pipeline (`scripts/provision.ts`): reset the local
 Convex volume, push the checked-out functions, atomically import a point-in-time
-production snapshot, and clear the tables the clone never keeps (auth session/token
-tables and the publication queue — the `CLEARED_AFTER_CLONE` list).
+production snapshot, clear the tables the clone never keeps (auth session/token tables
+and the publication queue), then assert the rebuild contract. The cleared and required
+table lists live in [`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts)
+so the pipeline and the `provisioningChecks:assertRebuildContract` query cannot drift
+apart, and a table rename becomes a compile error rather than a silently skipped cleanup.
 
 The backend and dashboard images are pinned to multi-platform digests in
 `docker-compose.convex-local.yml`, so an existing Docker cache cannot silently select an
@@ -73,6 +76,22 @@ each deploy. It requires `CONVEX_DEV_DEPLOY_KEY`; the prod snapshot export uses
 `CONVEX_DEPLOY_KEY` (the repo's deploy secret is the prod key). A bare
 `bun run provision local` intentionally refuses to run — the local users stage needs the
 running app, so the complete local environment always comes from `bun run app:dev --local`.
+
+### Keeping the cloud dev deployment usable
+
+`deploy-main` calls the `Rebuild dev deployment` workflow once production has shipped, so a
+failed rebuild reddens the run without ever gating the release. Every merge pushes main's
+functions to the dev deployment; the **data** is only re-cloned when the merge touches
+`convex/schema.ts`, `convex/migrations*.ts`, or `convex/migration-guards.json` — the changes
+that can invalidate or reshape dev's existing data. Ordinary merges therefore leave your dev
+session and any dev-side experiments intact.
+
+Run the `Rebuild dev deployment` workflow manually (Actions → Run workflow) to force fresh
+production data at any time. A skipped or failed rebuild cannot go unnoticed for long, and it
+recovers: Convex validates existing data against every pushed schema, so stale dev data fails
+the next ordinary merge's code push loudly, and a rebuild clears the target before pushing the
+new schema — which is why a forced rebuild heals a deployment whose data a schema change has
+already made unpushable.
 
 ## Common Workflows
 

@@ -1,0 +1,69 @@
+name: Rebuild dev deployment
+
+# Rebuilds the long-lived cloud dev deployment as a production replica (map #352).
+# Called by deploy-main after production has shipped, or dispatched manually to force fresh data.
+on:
+  workflow_call:
+    inputs:
+      base:
+        description: Commit the change range is measured from; an empty value forces a rebuild.
+        required: false
+        type: string
+    secrets:
+      CONVEX_DEPLOY_KEY:
+        description: Production deploy key; reads the snapshot the dev deployment is rebuilt from.
+        required: true
+      CONVEX_DEV_DEPLOY_KEY:
+        description: Deploy key scoped to the dev deployment; pushes code and imports data.
+        required: true
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild the data even when no schema or migration file changed.
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dev-rebuild
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          # The trigger decision diffs against the previous main commit.
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup
+
+      - name: Decide whether the data stage runs
+        id: decision
+        run: bun run ./scripts/dev-rebuild-decision.ts
+        env:
+          DEV_REBUILD_BASE: ${{ inputs.base }}
+          DEV_REBUILD_HEAD: ${{ github.sha }}
+          DEV_REBUILD_FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
+
+      # Safe on its own only because an unchanged schema cannot be rejected by dev's existing data.
+      # When the data is being rebuilt, the rebuild owns the push and orders it against the import.
+      - name: Push main to the dev deployment
+        if: steps.decision.outputs.rebuild != 'true'
+        run: bun run provision dev --stage code
+        env:
+          CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}
+
+      - name: Rebuild dev from production
+        if: steps.decision.outputs.rebuild == 'true'
+        run: bun run provision dev --stage data
+        env:
+          CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}
+          CONVEX_PROD_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
