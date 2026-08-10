@@ -8,10 +8,23 @@
       "port": 6006
     },
     {
+      "name": "app-hosted",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "bun run generate:vectors && bun run migrations:dev-strict && bunx convex dev --start 'bun run app:dev'"
+      ],
+      "env": { "APP_DEV_PORT": "3000" },
+      "port": 3000,
+      "autoPort": false
+    },
+    {
       "name": "app-local",
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "bun run generate:vectors && bun run app:dev --local"],
-      "port": 3000
+      "env": { "APP_DEV_PORT": "3100" },
+      "port": 3100,
+      "autoPort": false
     }
   ]
 }

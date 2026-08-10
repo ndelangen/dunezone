@@ -56,7 +56,17 @@ export function useFactionAuthoring({
   sessionRef.current ??= createFactionAuthoringSession({
     initialData,
     form: {
-      reset: (values, options) => form.reset(values, options),
+      reset: (values, options) => {
+        if (!options?.keepDefaultValues) {
+          /*
+           * form.reset(values) adopts `values` as the form's defaultValues, but useForm
+           * re-applies the hook's defaultValues on every render and overwrites an
+           * untouched form whenever the two disagree — keep the hook's copy in step.
+           */
+          initialBaselineRef.current = structuredClone(values);
+        }
+        form.reset(values, options);
+      },
       markLoadedDraftDirty: () =>
         form.setFieldMeta('name', (meta) => ({ ...meta, isDirty: true, isTouched: true })),
     },
