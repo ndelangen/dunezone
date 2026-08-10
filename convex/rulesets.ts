@@ -14,6 +14,11 @@ import {
   rulesetDetailPageValidator,
   rulesetPublicBundleValidator,
 } from './lib/collaborativeAccessValidators';
+import {
+  buildOwnedForGroupAssignRows,
+  OWNED_FOR_GROUP_ASSIGN_LIMIT,
+  ownedForGroupAssignRowValidator,
+} from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
 import {
   loadRulesetDetailPageBySlug,
@@ -78,6 +83,23 @@ export const detailPageBySlug = query({
   args: { slug: v.string() },
   returns: rulesetDetailPageValidator,
   handler: async (ctx, args) => await loadRulesetDetailPageBySlug(ctx, args.slug),
+});
+
+/**
+ * Rulesets the viewer owns, with their current group's name resolved, for the group-detail "add my
+ * ruleset to this group" picker.
+ */
+export const listOwnedForGroupAssign = query({
+  args: {},
+  returns: v.array(ownedForGroupAssignRowValidator('rulesets')),
+  handler: async (ctx) => {
+    const userId = await requireAuthUserId(ctx);
+    const rows = await ctx.db
+      .query('rulesets')
+      .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', false))
+      .take(OWNED_FOR_GROUP_ASSIGN_LIMIT);
+    return await buildOwnedForGroupAssignRows(ctx, rows, (row) => row.name);
+  },
 });
 
 export const listByFaction = query({
