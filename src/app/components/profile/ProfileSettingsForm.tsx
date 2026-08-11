@@ -1,12 +1,11 @@
+import { Button, Group, Stack } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
+import { FormField } from '@ui/input/FormField';
+import { TextField } from '@ui/input/TextField';
 import { useState } from 'react';
 
 import { useUpdateCurrentProfile } from '@db/profiles';
 import type { ProfileEntry } from '@db/profiles';
-import { FormField } from '@app/components/form/FormField';
-import { TextField } from '@app/components/form/TextField';
-import { ButtonGroup, Stack } from '@app/components/generic/layout';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 import { profileSlugBaseFromName } from '@app/profile/validation';
 
 export function ProfileSettingsForm({ initial }: { initial: ProfileEntry }) {
@@ -41,7 +40,7 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileEntry }) {
     update.isError && update.error instanceof Error ? update.error.message : null;
 
   return (
-    <Stack as="form" gap={3} onSubmit={handleSubmit}>
+    <Stack component="form" gap="sm" onSubmit={handleSubmit}>
       <FormField
         label="Display name"
         htmlFor="profile-display-name"
@@ -83,11 +82,11 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileEntry }) {
       </FormField>
 
       {mutationError && <p role="alert">{mutationError}</p>}
-      <ButtonGroup>
-        <UIButton type="submit" iconOnly={false} disabled={update.isPending}>
+      <Group gap="xs" wrap="nowrap">
+        <Button variant="filled" color="confirm" type="submit" disabled={update.isPending}>
           {update.isPending ? 'Saving…' : 'Save profile'}
-        </UIButton>
-      </ButtonGroup>
+        </Button>
+      </Group>
     </Stack>
   );
 }

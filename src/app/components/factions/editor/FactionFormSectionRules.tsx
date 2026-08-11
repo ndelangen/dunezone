@@ -1,6 +1,5 @@
-import { Divider, NumberInput, SimpleGrid, Stack, Text, Textarea, TextInput } from '@mantine/core';
-
-import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
+import { Divider, NumberInput, SimpleGrid, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import { ControlBlock } from '@ui/input/ControlBlock';
 
 import type { FactionFormApi } from './factionFormTypes';
 
@@ -25,7 +24,7 @@ function SetupFields({ form }: { form: FactionFormApi }) {
             {(field) => {
               const warningId = 'rules-start-warning';
               return (
-                <Stack gap={4}>
+                <Stack gap="md">
                   <ControlBlock
                     title="Starting instructions"
                     description="Free-form setup instructions shown in the faction rules output. Do not repeat the structured spice amount here unless the prose genuinely needs it."
@@ -54,7 +53,7 @@ function SetupFields({ form }: { form: FactionFormApi }) {
             {(field) => {
               const warningId = 'rules-revival-warning';
               return (
-                <Stack gap={4}>
+                <Stack gap="md">
                   <ControlBlock
                     title="Revival instructions"
                     description="Explains this faction's revival rule in the faction rules output."
@@ -112,7 +111,7 @@ function SetupFields({ form }: { form: FactionFormApi }) {
 function FateFields({ form }: { form: FactionFormApi }) {
   return (
     <Stack component="section" gap="md" aria-labelledby="fate-fields-heading">
-      <Stack gap={2}>
+      <Stack gap="xs">
         <Text id="fate-fields-heading" fw={700} size="lg">
           Fate
         </Text>
@@ -143,7 +142,7 @@ function FateFields({ form }: { form: FactionFormApi }) {
           {(field) => {
             const warningId = 'rules-fate-text-warning';
             return (
-              <Stack gap={4}>
+              <Stack gap="md">
                 <Textarea
                   id="rules-fate-text"
                   label="Fate rule"

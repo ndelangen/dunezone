@@ -1,4 +1,5 @@
-import { ActionIcon, Badge, Button, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { Surface } from '@ui/surface';
 import { ArrowLeft, Eye, RotateCcw, Save } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -87,7 +88,7 @@ export function FactionAuthoringToolbar({
   } = deriveToolbarStatus(saveState, isDirty, assetPublishing);
 
   return (
-    <Paper withBorder p="sm" radius="md" className={styles.toolbar}>
+    <Surface padding="sm" className={styles.toolbar}>
       <Group justify="space-between" gap="sm" wrap="nowrap" className={styles.toolbarRow}>
         <Group gap="sm" wrap="nowrap" className={styles.leading}>
           <Tooltip label="Back">
@@ -102,7 +103,7 @@ export function FactionAuthoringToolbar({
               <ArrowLeft size={17} aria-hidden />
             </ActionIcon>
           </Tooltip>
-          <Stack gap={3} className={styles.status}>
+          <Stack gap="sm" className={styles.status}>
             <Group gap="xs" wrap="nowrap">
               <Badge color={statusColor} variant="light">
                 {statusLabel}
@@ -178,6 +179,6 @@ export function FactionAuthoringToolbar({
           </Button>
         </Group>
       </Group>
-    </Paper>
+    </Surface>
   );
 }

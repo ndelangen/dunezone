@@ -1,5 +1,6 @@
-import { Anchor, Paper, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Surface } from '@ui/surface';
 import { useRef } from 'react';
 
 import { useCreateFaction } from '@db/factions';
@@ -53,7 +54,7 @@ function CreateFactionPage() {
   if (!ownerUserId) {
     return (
       <PageLayout header={header} headerSize="compact">
-        <Paper withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Stack gap="sm">
             <Text>
               <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
@@ -65,7 +66,7 @@ function CreateFactionPage() {
               Back to factions
             </Anchor>
           </Stack>
-        </Paper>
+        </Surface>
       </PageLayout>
     );
   }

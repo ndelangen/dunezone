@@ -1,6 +1,5 @@
 import {
   Badge,
-  Card,
   Center,
   Group,
   Image,
@@ -14,6 +13,7 @@ import {
   Title,
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { Surface } from '@ui/surface';
 import { icons, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -179,11 +179,11 @@ function IconsPage() {
             ))}
           </SimpleGrid>
         ) : (
-          <Paper withBorder p="xl" radius="md">
+          <Surface padding="xl">
             <Text ta="center" c="dimmed">
               No icons match “{query.trim()}”.
             </Text>
-          </Paper>
+          </Surface>
         )}
 
         {pageCount > 1 ? (
@@ -204,7 +204,7 @@ function IconsPage() {
 
 function IconCatalogCard({ entry }: { entry: CatalogEntry }) {
   return (
-    <Card withBorder padding="sm" radius="md">
+    <Surface padding="sm">
       <Stack align="center" gap="sm">
         <Center h={52}>
           {entry.source === 'topics' ? (
@@ -224,7 +224,7 @@ function IconCatalogCard({ entry }: { entry: CatalogEntry }) {
           </Badge>
         ) : null}
       </Stack>
-    </Card>
+    </Surface>
   );
 }
 

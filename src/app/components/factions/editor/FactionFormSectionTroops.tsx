@@ -7,18 +7,18 @@ import {
   Grid,
   Group,
   NumberInput,
-  Paper,
   SegmentedControl,
   SimpleGrid,
   Stack,
   Text,
   TextInput,
 } from '@mantine/core';
+import { ControlBlock } from '@ui/input/ControlBlock';
+import { ListLengthActions } from '@ui/input/ListLengthActions';
+import { Surface } from '@ui/surface';
 import { Rotate3d } from 'lucide-react';
 import { useState } from 'react';
 
-import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
-import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
@@ -48,7 +48,7 @@ function TroopCard({
   const hasBack = troop.back != null;
 
   return (
-    <Paper withBorder radius="md" p="md">
+    <Surface padding="md">
       <Stack gap="md">
         <Group justify="space-between" align="flex-start" wrap="wrap">
           <Box>
@@ -165,7 +165,7 @@ function TroopCard({
                         Used on: troop tokens
                       </Text>
                       <Group justify="center" gap="md" wrap="wrap">
-                        <Stack align="center" gap={4}>
+                        <Stack align="center" gap="md">
                           <Box w={104} aria-label={`Front token preview for troop ${index + 1}`}>
                             <TroopToken
                               background={background}
@@ -180,7 +180,7 @@ function TroopCard({
                           </Text>
                         </Stack>
                         {currentTroop.back ? (
-                          <Stack align="center" gap={4}>
+                          <Stack align="center" gap="md">
                             <Box w={104} aria-label={`Back token preview for troop ${index + 1}`}>
                               <TroopToken
                                 background={background}
@@ -204,7 +204,7 @@ function TroopCard({
           ) : null}
         </Grid>
       </Stack>
-    </Paper>
+    </Surface>
   );
 }
 

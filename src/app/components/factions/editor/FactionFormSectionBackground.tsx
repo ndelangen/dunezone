@@ -13,15 +13,15 @@ import {
   Tooltip,
   UnstyledButton,
 } from '@mantine/core';
+import { ControlBlock } from '@ui/input/ControlBlock';
 import { Check, Shuffle, X } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
-import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
-import { assetColorStyle } from '@app/components/generic/assetColor';
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { backgroundTreatment } from '@game/assets/utils/Background';
 
+import { assetColorStyle } from './assetColor';
 import { BACKGROUND_PATTERN_CATALOGUE } from './backgroundPatternCatalogue';
 import { FactionBackgroundColorLayer } from './FactionBackgroundColorLayer';
 import {
@@ -151,7 +151,7 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
             </form.Field>
             <form.Field name="background.definition">
               {(field) => (
-                <Stack gap={4}>
+                <Stack gap="md">
                   <Group justify="space-between">
                     <Text component="label" htmlFor="bg-definition" fw={600} size="sm">
                       Definition
@@ -182,7 +182,7 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
               {(field) => {
                 const exactValue = clampInfluence(field.state.value);
                 return (
-                  <Stack gap={4}>
+                  <Stack gap="md">
                     <Group justify="space-between" align="baseline" wrap="nowrap">
                       <Text component="label" htmlFor="bg-influence" fw={600} size="sm">
                         Influence

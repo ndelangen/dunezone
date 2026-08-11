@@ -14,11 +14,11 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { ActionIcon, Box, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { ControlBlock } from '@ui/input/ControlBlock';
+import { ListLengthActions } from '@ui/input/ListLengthActions';
 import { GripVertical } from 'lucide-react';
 
 import type { Faction } from '@db/factions';
-import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
-import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 import { getSortableIds, indexFromSortableId } from '@app/lib/dnd-sortable-ids';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 import { TTSColor } from '@game/schema/faction';

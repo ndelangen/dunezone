@@ -1,0 +1,60 @@
+/*
+ * The single definition of the pane treatment. Nothing else in the codebase should re-declare
+ * this combination — extend `Surface` instead.
+ */
+.surface {
+  box-sizing: border-box;
+  background-color: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--mantine-radius-md);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(8px);
+}
+
+.sm {
+  padding: var(--mantine-spacing-sm);
+}
+
+.md {
+  padding: var(--mantine-spacing-md);
+}
+
+.lg {
+  padding: var(--mantine-spacing-lg);
+}
+
+.xl {
+  padding: var(--mantine-spacing-xl);
+}
+
+.interactive {
+  display: block;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.15s ease;
+}
+
+.interactive:hover {
+  transform: translateY(-2px);
+  background-color: color-mix(in srgb, var(--panel-bg) 60%, white);
+  box-shadow: 0 4px 24px 0 rgb(0 0 0 / 30%);
+}
+
+.interactive:focus-visible {
+  outline: 3px solid var(--mantine-color-dune-6);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive {
+    transition: none;
+  }
+
+  .interactive:hover {
+    transform: none;
+  }
+}

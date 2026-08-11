@@ -1,11 +1,12 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Grid, Group, Paper, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Badge, Box, Grid, Group, Stack, Text, TextInput } from '@mantine/core';
+import { AssetSelect } from '@ui/input/AssetSelect';
+import { ControlBlock } from '@ui/input/ControlBlock';
+import { ListLengthActions } from '@ui/input/ListLengthActions';
+import { Surface } from '@ui/surface';
 import { useLayoutEffect, useState } from 'react';
 
 import type { Faction } from '@db/factions';
-import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
-import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
-import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { LEADERS } from '@game/data/generated';
 
@@ -41,13 +42,7 @@ function SupportingLeaderCard({
   }
 
   return (
-    <Paper
-      component="section"
-      aria-label={`Edit supporting leader ${index + 1}`}
-      withBorder
-      radius="md"
-      p="md"
-    >
+    <Surface padding="md">
       <Stack gap="md">
         <Grid gap="xl" align="center">
           <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
@@ -58,7 +53,7 @@ function SupportingLeaderCard({
                   const blank = value.trim().length === 0;
                   const warningId = `leader-${index}-name-warning`;
                   return (
-                    <Stack gap={4}>
+                    <Stack gap="md">
                       <ControlBlock
                         title="Leader name"
                         description="Printed around this leader token."
@@ -180,7 +175,7 @@ function SupportingLeaderCard({
           ) : null}
         </Grid>
       </Stack>
-    </Paper>
+    </Surface>
   );
 }
 

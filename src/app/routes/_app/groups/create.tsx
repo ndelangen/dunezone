@@ -1,16 +1,16 @@
+import { ActionIcon, Group, Stack } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { FormField } from '@ui/input/FormField';
+import { FormTooltip } from '@ui/input/FormTooltip';
+import { TextField } from '@ui/input/TextField';
+import { Surface } from '@ui/surface';
 import { Save, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { useCreateGroup } from '@db/groups';
 import { useCurrentProfile } from '@db/profiles';
-import { FormField } from '@app/components/form/FormField';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { TextField } from '@app/components/form/TextField';
-import { ButtonGroup, Stack, Toolbar } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 import { PageLayout } from '@app/components/shell';
+import { Toolbar } from '@app/components/shell/Toolbar';
 
 export const Route = createFileRoute('/_app/groups/create')({
   component: GroupCreatePage,
@@ -29,14 +29,14 @@ function GroupCreatePage() {
   if (!profile.data?._id || !profile.data.slug) {
     return (
       <PageLayout header={groupCreateHeader}>
-        <Card>
+        <Surface padding="lg">
           <p>
             <Link to="/auth/login">Log in</Link> to start a group.
           </p>
           <p>
             <Link to="/profiles">Back to profiles</Link>
           </p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
@@ -50,23 +50,26 @@ function GroupCreatePage() {
       toolbar={
         <Toolbar>
           <Toolbar.Left>
-            <ButtonGroup>
+            <Group gap="xs" wrap="nowrap">
               <FormTooltip content="Save group">
-                <UIButton
+                <ActionIcon
+                  variant="filled"
+                  color="confirm"
+                  size="lg"
                   type="submit"
                   form={GROUP_CREATE_FORM_ID}
-                  iconOnly
                   aria-label="Save group"
                   disabled={!canSubmit}
                 >
                   <Save size={16} aria-hidden />
-                </UIButton>
+                </ActionIcon>
               </FormTooltip>
               <FormTooltip content="Close create group">
-                <UIButton
+                <ActionIcon
+                  variant="light"
+                  color="dune"
+                  size="lg"
                   type="button"
-                  variant="secondary"
-                  iconOnly
                   aria-label="Close create group"
                   disabled={createGroup.isPending}
                   onClick={() =>
@@ -77,17 +80,17 @@ function GroupCreatePage() {
                   }
                 >
                   <X size={16} aria-hidden />
-                </UIButton>
+                </ActionIcon>
               </FormTooltip>
-            </ButtonGroup>
+            </Group>
           </Toolbar.Left>
         </Toolbar>
       }
     >
-      <Card>
+      <Surface padding="lg">
         <Stack
-          as="form"
-          gap={3}
+          component="form"
+          gap="sm"
           id={GROUP_CREATE_FORM_ID}
           onSubmit={(e) => {
             e.preventDefault();
@@ -132,7 +135,7 @@ function GroupCreatePage() {
             />
           </FormField>
         </Stack>
-      </Card>
+      </Surface>
     </PageLayout>
   );
 }

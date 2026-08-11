@@ -1,17 +1,17 @@
+import { ActionIcon, Button, Group, Stack } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { FormField } from '@ui/input/FormField';
+import { FormTooltip } from '@ui/input/FormTooltip';
+import { TextField } from '@ui/input/TextField';
+import { Surface } from '@ui/surface';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import { useGroupsByCreator } from '@db/groups';
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
-import { FormField } from '@app/components/form/FormField';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { TextField } from '@app/components/form/TextField';
-import { ButtonGroup, Stack, Toolbar } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 import { PageLayout } from '@app/components/shell';
+import { Toolbar } from '@app/components/shell/Toolbar';
 
 export const Route = createFileRoute('/_app/rulesets/create')({
   component: CreateRulesetPage,
@@ -26,8 +26,8 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
 
   return (
     <Stack
-      as="form"
-      gap={3}
+      component="form"
+      gap="sm"
       onSubmit={(e) => {
         e.preventDefault();
         const nextName = name.trim();
@@ -72,16 +72,17 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
           ))}
         </select>
       </FormField>
-      <ButtonGroup>
-        <UIButton
+      <Group gap="xs" wrap="nowrap">
+        <Button
+          variant="filled"
+          color="confirm"
           type="submit"
-          iconOnly={false}
           disabled={createRuleset.isPending || name.trim().length === 0}
         >
           <Plus size={16} aria-hidden />
           <span>{createRuleset.isPending ? 'Creating…' : 'Create'}</span>
-        </UIButton>
-      </ButtonGroup>
+        </Button>
+      </Group>
     </Stack>
   );
 }
@@ -96,27 +97,33 @@ function CreateRulesetPage() {
         <Toolbar>
           <Toolbar.Left>
             <FormTooltip content="Back to rulesets">
-              <UIButton variant="nav" to="/rulesets" aria-label="Back to rulesets">
+              <ActionIcon
+                variant="light"
+                color="gray"
+                size="lg"
+                aria-label="Back to rulesets"
+                renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
+              >
                 <ArrowLeft size={16} aria-hidden />
-              </UIButton>
+              </ActionIcon>
             </FormTooltip>
           </Toolbar.Left>
         </Toolbar>
       }
     >
       {!profile.data?.user_id ? (
-        <Card>
+        <Surface padding="lg">
           <p>
             <Link to="/auth/login">Log in</Link> to create a ruleset.
           </p>
           <p>
             <Link to="/rulesets">Back to rulesets</Link>
           </p>
-        </Card>
+        </Surface>
       ) : (
-        <Card>
+        <Surface padding="lg">
           <CreateRulesetForm ownerUserId={profile.data.user_id} />
-        </Card>
+        </Surface>
       )}
     </PageLayout>
   );

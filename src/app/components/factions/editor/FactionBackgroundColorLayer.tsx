@@ -5,7 +5,6 @@ import {
   ColorInput,
   Group,
   NumberInput,
-  Paper,
   Popover,
   SegmentedControl,
   SimpleGrid,
@@ -14,11 +13,12 @@ import {
   Tooltip,
   UnstyledButton,
 } from '@mantine/core';
+import { ControlBlock } from '@ui/input/ControlBlock';
+import { Surface } from '@ui/surface';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import type { Faction } from '@db/factions';
-import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
 
 type ColorLayer = Faction['background']['colors'][number];
 type LinearLayer = Extract<ColorLayer, { type: 'linear' }>;
@@ -113,7 +113,7 @@ export function FactionBackgroundColorLayer({
     <Popover width={440} position="bottom-start" shadow="md" withinPortal={false}>
       <Popover.Target>
         <UnstyledButton type="button" aria-label={`Edit ${label.toLowerCase()} color layer`}>
-          <Paper withBorder radius="md" p="sm">
+          <Surface padding="sm">
             <Group justify="space-between" gap="sm" wrap="nowrap">
               <Box>
                 <Text fw={700}>{label}</Text>
@@ -131,12 +131,12 @@ export function FactionBackgroundColorLayer({
                 }}
               />
             </Group>
-          </Paper>
+          </Surface>
         </UnstyledButton>
       </Popover.Target>
       <Popover.Dropdown>
         <Stack gap="md">
-          <Stack gap={2}>
+          <Stack gap="xs">
             <Text fw={700}>{label}</Text>
             <Text size="xs" c="dimmed">
               {description}
@@ -263,7 +263,7 @@ function GradientFields({
             ) : null}
 
             {value.stops.map((stop, index) => (
-              <Paper key={`${label}-stop-${index}`} withBorder radius="sm" p="sm">
+              <Surface key={`${label}-stop-${index}`} padding="sm">
                 <SimpleGrid cols={{ base: 1, xs: 2 }}>
                   <ColorInput
                     label={`Stop ${index + 1} color`}
@@ -343,7 +343,7 @@ function GradientFields({
                     </ActionIcon>
                   </Tooltip>
                 </Group>
-              </Paper>
+              </Surface>
             ))}
           </Stack>
         }

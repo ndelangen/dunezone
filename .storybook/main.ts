@@ -46,32 +46,32 @@ export default defineMain({
       titlePrefix: 'Application/Topics',
     },
     {
-      directory: '../src/app/components/content',
-      titlePrefix: 'Application/Shared Content',
+      directory: '../src/ui/input',
+      titlePrefix: 'Inputs',
     },
     {
-      directory: '../src/app/components/foundation',
-      titlePrefix: 'Application/Foundation',
+      directory: '../src/ui/action',
+      titlePrefix: 'Actions',
     },
     {
-      directory: '../src/app/components/layout',
-      titlePrefix: 'Application/Layout',
+      directory: '../src/ui/content',
+      titlePrefix: 'Content',
     },
     {
-      directory: '../src/app/components/form',
-      titlePrefix: 'Application/Legacy/Form',
+      directory: '../src/ui/list',
+      titlePrefix: 'Lists',
     },
     {
-      directory: '../src/app/components/generic/layout',
-      titlePrefix: 'Application/Legacy/Layout',
+      directory: '../src/ui/surface',
+      titlePrefix: 'Surfaces',
     },
     {
-      directory: '../src/app/components/generic/surfaces',
-      titlePrefix: 'Application/Legacy/Surfaces',
+      directory: '../src/ui/layout',
+      titlePrefix: 'Layout',
     },
     {
-      directory: '../src/app/components/generic/ui',
-      titlePrefix: 'Application/Legacy/UI',
+      directory: '../src/app/components/shell',
+      titlePrefix: 'Application/Shell',
     },
     {
       directory: '../src/game/assets/faction',

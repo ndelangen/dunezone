@@ -1,11 +1,10 @@
+import { ActionIcon, Group, Stack } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { FormTooltip } from '@ui/input/FormTooltip';
+import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
 import { useCurrentProfile } from '@db/profiles';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { ButtonGroup, Stack } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 import { PageLayout } from '@app/components/shell';
 import {
   loadAdminMigrationDashboard,
@@ -35,35 +34,37 @@ function AdminMigrationsPage() {
   if (!profile.data?._id) {
     return (
       <PageLayout header={<h1>Migration activity</h1>}>
-        <Card>
+        <Surface padding="lg">
           <p>
             <Link to="/auth/login">Log in</Link> to view migration activity.
           </p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
 
   return (
     <PageLayout header={<h1>Migration activity</h1>}>
-      <Stack gap={3}>
+      <Stack gap="sm">
         {dashboardQuery.isPending && <p>Loading migration dashboard…</p>}
-        <Card>
-          <Stack gap={2}>
+        <Surface padding="lg">
+          <Stack gap="xs">
             <h2>Live migration status</h2>
-            <ButtonGroup>
+            <Group gap="xs" wrap="nowrap">
               <FormTooltip content="Sync status snapshot to migration_runs table">
-                <UIButton
+                <ActionIcon
+                  variant="filled"
+                  color="confirm"
+                  size="lg"
                   type="button"
-                  iconOnly
                   aria-label="Sync migration status"
                   disabled={syncRuns.isPending}
                   onClick={() => syncRuns.mutate({})}
                 >
                   <RefreshCw size={16} aria-hidden />
-                </UIButton>
+                </ActionIcon>
               </FormTooltip>
-            </ButtonGroup>
+            </Group>
             <table>
               <thead>
                 <tr>
@@ -91,10 +92,10 @@ function AdminMigrationsPage() {
               </tbody>
             </table>
           </Stack>
-        </Card>
+        </Surface>
 
-        <Card>
-          <Stack gap={2}>
+        <Surface padding="lg">
+          <Stack gap="xs">
             <h2>Recorded snapshots</h2>
             <table>
               <thead>
@@ -121,7 +122,7 @@ function AdminMigrationsPage() {
               </tbody>
             </table>
           </Stack>
-        </Card>
+        </Surface>
       </Stack>
     </PageLayout>
   );

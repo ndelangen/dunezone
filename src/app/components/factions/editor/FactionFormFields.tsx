@@ -5,15 +5,15 @@ import {
   Button,
   Group,
   Image,
-  Paper,
   SegmentedControl,
   Stack,
   Text,
 } from '@mantine/core';
+import { Surface } from '@ui/surface';
+import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Globe2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
-import { ConnectedTabs } from '@app/components/content/ConnectedTabs';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
@@ -217,7 +217,7 @@ function ArtifactProof({
           title = 'Faction-sheet excerpt';
           usedOn = 'Faction sheet';
           artifact = (
-            <Paper className={styles.rulesProof} withBorder p="lg">
+            <Surface padding="lg">
               <Text ff="serif" fw={800} tt="uppercase">
                 At start
               </Text>
@@ -230,13 +230,13 @@ function ArtifactProof({
               <Text ff="serif" size="sm">
                 {faction.rules.revivalText}
               </Text>
-            </Paper>
+            </Surface>
           );
         } else if (activeChapter === 'advantages') {
           title = 'Advantage excerpt';
           usedOn = 'Faction sheet';
           artifact = selectedAdvantage ? (
-            <Paper className={styles.rulesProof} withBorder p="lg">
+            <Surface padding="lg">
               <Text ff="serif" fw={800} tt="uppercase">
                 {selectedAdvantage.title || 'Faction advantage'}
               </Text>
@@ -248,21 +248,14 @@ function ArtifactProof({
                   <strong>Karama:</strong> {selectedAdvantage.karama}
                 </Text>
               ) : null}
-            </Paper>
+            </Surface>
           ) : (
             <PreviewEmpty>No faction advantages yet.</PreviewEmpty>
           );
         }
 
         return (
-          <Paper
-            className={styles.artifactDesk}
-            component="section"
-            aria-label={`${title} live preview`}
-            withBorder
-            radius="lg"
-            p="md"
-          >
+          <Surface padding="md" as="section">
             {activeChapter === 'identity' ? (
               <Box className={styles.identityProof}>
                 {artifact}
@@ -305,7 +298,7 @@ function ArtifactProof({
                 Used on: {usedOn}.
               </Text>
             </Box>
-          </Paper>
+          </Surface>
         );
       }}
     </form.Subscribe>

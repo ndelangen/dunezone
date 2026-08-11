@@ -1,15 +1,30 @@
+import { ActionIcon, Anchor, Group, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowLeft, Check, Pencil, UserPlus, UserRoundMinus, X } from 'lucide-react';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { Section } from '@ui/content/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { FormTooltip } from '@ui/input/FormTooltip';
+import { Links } from '@ui/list/Links';
+import { Surface } from '@ui/surface';
+import { Card } from '@ui/surface/Card';
+import {
+  ArrowLeft,
+  Check,
+  Layers3,
+  Pencil,
+  UserPlus,
+  UserRoundMinus,
+  UsersRound,
+  X,
+} from 'lucide-react';
 
 import { loadGroupDetailBySlug, useGroupDetailBySlug } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { viewerActionsFor } from '@app/access/viewerActions';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { ButtonGroup, Toolbar } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
+import { Toolbar } from '@app/components/shell/Toolbar';
+import { TopicIcon } from '@app/components/topics/TopicIcon';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 
 import pageStyles from './index.module.css';
@@ -31,9 +46,9 @@ function GroupDetailPage() {
   if (groupData.isError) {
     return (
       <PageLayout header={<h1>Group</h1>}>
-        <Card>
+        <Surface padding="lg">
           <p>Group not found.</p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
@@ -81,67 +96,95 @@ function GroupDetailPage() {
       toolbar={
         <Toolbar>
           <Toolbar.Left>
-            <ButtonGroup>
+            <Group gap="xs" wrap="nowrap">
               <FormTooltip content="Back to profiles">
-                <UIButton variant="nav" to="/profiles" aria-label="Back to profiles">
+                <ActionIcon
+                  variant="light"
+                  color="gray"
+                  size="lg"
+                  aria-label="Back to profiles"
+                  renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+                >
                   <ArrowLeft size={16} aria-hidden />
-                </UIButton>
+                </ActionIcon>
               </FormTooltip>
               {viewerAccess.capabilities.rename ? (
                 <FormTooltip content="Edit group settings">
-                  <UIButton
-                    variant="secondary"
-                    to="/groups/$groupSlug/edit"
-                    params={{ groupSlug }}
+                  <ActionIcon
+                    variant="light"
+                    color="dune"
+                    size="lg"
                     aria-label="Edit group settings"
+                    renderRoot={(rootProps) => (
+                      <Link {...rootProps} to="/groups/$groupSlug/edit" params={{ groupSlug }} />
+                    )}
                   >
                     <Pencil size={16} aria-hidden />
-                  </UIButton>
+                  </ActionIcon>
                 </FormTooltip>
               ) : null}
-            </ButtonGroup>
+            </Group>
           </Toolbar.Left>
         </Toolbar>
       }
     >
-      <Card>
-        <p>
-          Owner:{' '}
-          {ownerProfile?.slug ? (
-            <ProfileLink
-              slug={ownerProfile.slug}
-              username={ownerProfile.username}
-              avatar_url={ownerProfile.avatar_url}
-            />
-          ) : (
-            (ownerProfile?.username ?? group.created_by)
-          )}
-        </p>
-        <p>
-          Membership status:{' '}
-          {membershipStatus === 'active'
-            ? 'Active member'
-            : membershipStatus === 'pending'
-              ? 'Pending approval'
-              : 'Not a member'}
-        </p>
-        {membershipStatus === 'pending' && <p>Your request is awaiting approval.</p>}
+      <Card header={<Section icon={<UsersRound size={20} aria-hidden />} title="Stewardship" />}>
+        <Eyebrow>Owner</Eyebrow>
+        {ownerProfile?.slug ? (
+          <ProfileLink
+            slug={ownerProfile.slug}
+            username={ownerProfile.username}
+            avatar_url={ownerProfile.avatar_url}
+          />
+        ) : (
+          <Text fw={600}>{ownerProfile?.username ?? group.created_by}</Text>
+        )}
+        <Group justify="space-between" gap="xs" mt="sm">
+          <Text size="sm" c="dimmed">
+            Your membership
+          </Text>
+          <StatusBadge
+            tone={
+              membershipStatus === 'active'
+                ? 'positive'
+                : membershipStatus === 'pending'
+                  ? 'pending'
+                  : 'neutral'
+            }
+          >
+            {membershipStatus === 'active'
+              ? 'Active member'
+              : membershipStatus === 'pending'
+                ? 'Pending approval'
+                : 'Not a member'}
+          </StatusBadge>
+        </Group>
+        {membershipStatus === 'pending' && (
+          <Text size="sm" c="dimmed">
+            Your request is awaiting approval.
+          </Text>
+        )}
         {viewerAccess.viewer.kind === 'anonymous' && (
-          <p>
-            <Link to="/auth/login">Log in</Link> to request membership.
-          </p>
+          <Text size="sm">
+            <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
+              Log in
+            </Anchor>{' '}
+            to request membership.
+          </Text>
         )}
         {viewerAccess.capabilities.requestMembership && (
           <FormTooltip content="Request membership">
-            <UIButton
+            <ActionIcon
+              variant="filled"
+              color="confirm"
+              size="lg"
               type="button"
-              iconOnly
               aria-label="Request membership"
               disabled={membershipWorkflow.request.isPending}
               onClick={() => void membershipWorkflow.request.run(groupId).catch(() => undefined)}
             >
               <UserPlus size={16} aria-hidden />
-            </UIButton>
+            </ActionIcon>
           </FormTooltip>
         )}
         {membershipWorkflow.request.isError && (
@@ -149,10 +192,11 @@ function GroupDetailPage() {
         )}
       </Card>
 
-      <Card>
-        <h3>Members</h3>
+      <Card header={<Section icon={<UsersRound size={20} aria-hidden />} title="Members" />}>
         {memberRows.length === 0 ? (
-          <p>No members yet.</p>
+          <Text size="sm" c="dimmed">
+            No members yet.
+          </Text>
         ) : (
           <ul>
             {memberRows.map((entry) => {
@@ -181,13 +225,14 @@ function GroupDetailPage() {
                       ) : null}
                     </div>
                     {entry.capabilities.approve || entry.capabilities.reject ? (
-                      <ButtonGroup>
+                      <Group gap="xs" wrap="nowrap">
                         {entry.capabilities.approve ? (
                           <FormTooltip content="Approve">
-                            <UIButton
+                            <ActionIcon
+                              variant="filled"
+                              color="confirm"
+                              size="lg"
                               type="button"
-                              variant="confirm"
-                              iconOnly
                               aria-label="Approve membership"
                               disabled={membersModerationBusy}
                               onClick={() =>
@@ -197,15 +242,16 @@ function GroupDetailPage() {
                               }
                             >
                               <Check size={16} aria-hidden />
-                            </UIButton>
+                            </ActionIcon>
                           </FormTooltip>
                         ) : null}
                         {entry.capabilities.reject ? (
                           <FormTooltip content="Decline">
-                            <UIButton
+                            <ActionIcon
+                              variant="light"
+                              color="red"
+                              size="lg"
                               type="button"
-                              variant="critical"
-                              iconOnly
                               aria-label="Decline membership"
                               disabled={membersModerationBusy}
                               onClick={() =>
@@ -215,26 +261,27 @@ function GroupDetailPage() {
                               }
                             >
                               <X size={16} aria-hidden />
-                            </UIButton>
+                            </ActionIcon>
                           </FormTooltip>
                         ) : null}
-                      </ButtonGroup>
+                      </Group>
                     ) : null}
                     {entry.capabilities.remove ? (
-                      <ButtonGroup>
+                      <Group gap="xs" wrap="nowrap">
                         <FormTooltip content="Remove member">
-                          <UIButton
+                          <ActionIcon
+                            variant="light"
+                            color="red"
+                            size="lg"
                             type="button"
-                            variant="critical"
-                            iconOnly
                             aria-label="Remove member"
                             disabled={membersModerationBusy}
                             onClick={() => handleRemoveMember(entry.membershipId)}
                           >
                             <UserRoundMinus size={16} aria-hidden />
-                          </UIButton>
+                          </ActionIcon>
                         </FormTooltip>
-                      </ButtonGroup>
+                      </Group>
                     ) : null}
                   </div>
                 </li>
@@ -245,37 +292,43 @@ function GroupDetailPage() {
         {membersModerationError ? <p role="alert">{membersModerationError}</p> : null}
       </Card>
 
-      <Card>
-        <h3>Factions</h3>
+      <Card header={<Section icon={<Layers3 size={20} aria-hidden />} title="Factions" />}>
         {factions.length === 0 ? (
-          <p>No factions in this group yet.</p>
+          <Text size="sm" c="dimmed">
+            No factions in this group yet.
+          </Text>
         ) : (
-          <ul>
+          <Links>
             {factions.map((faction) => (
-              <li key={faction._id}>
-                <Link to="/factions/$factionId" params={{ factionId: faction.slug }}>
-                  {faction.data.name}
-                </Link>
-              </li>
+              <Links.Item
+                key={faction._id}
+                to="/factions/$factionId"
+                params={{ factionId: faction.slug }}
+              >
+                {faction.data.name}
+              </Links.Item>
             ))}
-          </ul>
+          </Links>
         )}
       </Card>
 
-      <Card>
-        <h3>Rulesets</h3>
+      <Card header={<Section icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets" />}>
         {rulesets.length === 0 ? (
-          <p>No rulesets in this group yet.</p>
+          <Text size="sm" c="dimmed">
+            No rulesets in this group yet.
+          </Text>
         ) : (
-          <ul>
+          <Links>
             {rulesets.map((ruleset) => (
-              <li key={ruleset._id}>
-                <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
-                  {ruleset.name}
-                </Link>
-              </li>
+              <Links.Item
+                key={ruleset._id}
+                to="/rulesets/$rulesetSlug"
+                params={{ rulesetSlug: ruleset.slug }}
+              >
+                {ruleset.name}
+              </Links.Item>
             ))}
-          </ul>
+          </Links>
         )}
       </Card>
     </PageLayout>

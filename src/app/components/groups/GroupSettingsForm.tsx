@@ -1,12 +1,11 @@
+import { Button, Group, Stack } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
+import { FormField } from '@ui/input/FormField';
+import { TextField } from '@ui/input/TextField';
 import { useEffect, useState } from 'react';
 
 import { useUpdateGroup } from '@db/groups';
 import type { GroupEntry } from '@db/groups';
-import { FormField } from '@app/components/form/FormField';
-import { TextField } from '@app/components/form/TextField';
-import { ButtonGroup, Stack } from '@app/components/generic/layout';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 import { groupInputSchema } from '@app/groups/validation';
 
 export function GroupSettingsForm({ initial }: { initial: GroupEntry }) {
@@ -53,7 +52,7 @@ export function GroupSettingsForm({ initial }: { initial: GroupEntry }) {
   };
 
   return (
-    <Stack as="form" gap={3} onSubmit={handleSubmit}>
+    <Stack component="form" gap="sm" onSubmit={handleSubmit}>
       <FormField
         label="Group name"
         htmlFor="group-settings-name"
@@ -75,11 +74,11 @@ export function GroupSettingsForm({ initial }: { initial: GroupEntry }) {
           }}
         />
       </FormField>
-      <ButtonGroup>
-        <UIButton type="submit" iconOnly={false} disabled={!canSave}>
+      <Group gap="xs" wrap="nowrap">
+        <Button variant="filled" color="confirm" type="submit" disabled={!canSave}>
           {updateGroup.isPending ? 'Saving…' : 'Save group'}
-        </UIButton>
-      </ButtonGroup>
+        </Button>
+      </Group>
     </Stack>
   );
 }

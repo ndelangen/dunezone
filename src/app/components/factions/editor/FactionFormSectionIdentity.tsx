@@ -1,8 +1,8 @@
 import { Box, ColorInput, Stack, Text, TextInput } from '@mantine/core';
+import { AssetSelect } from '@ui/input/AssetSelect';
+import { ControlBlock } from '@ui/input/ControlBlock';
 
 import type { Faction } from '@db/factions';
-import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
-import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
 
 import { assetOptionToPreviewSrc, logoOptions, logoOptionToLabel } from './factionFormAssetUtils';
 import styles from './FactionFormSectionIdentity.module.css';
@@ -31,7 +31,7 @@ export function FactionFormSectionIdentity({
       aria-labelledby={showIntro ? 'faction-identity-heading' : undefined}
     >
       {showIntro ? (
-        <Stack gap={2}>
+        <Stack gap="xs">
           <Text id="faction-identity-heading" fw={700} size="lg">
             Faction identity
           </Text>

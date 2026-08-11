@@ -3,9 +3,7 @@ import {
   Alert,
   Button,
   Drawer,
-  Group,
   Loader,
-  Paper,
   Select,
   Stack,
   Text,
@@ -15,13 +13,16 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { CallToAction } from '@ui/action/CallToAction';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { SectionIntro } from '@ui/layout/SectionIntro';
+import { Surface } from '@ui/surface';
 import { ArrowDownAZ, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
-import { CreateFactionCta } from '@app/components/factions/CreateFactionCta';
 import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
 import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
 import { FactionList } from '@app/components/factions/FactionList';
@@ -79,12 +80,12 @@ function FactionsPage() {
           <FilteredEmptyState onReset={session.reset} />
         )
       ) : (
-        <Paper className={styles.stateCard} withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Title order={2}>There are no factions</Title>
           <Text c="dimmed" mt="xs">
             Create the first faction to begin the collection.
           </Text>
-        </Paper>
+        </Surface>
       )}
     </PageLayout>
   );
@@ -93,13 +94,13 @@ function FactionsPage() {
 function FactionCataloguePending() {
   return (
     <PageLayout header={<CatalogueHeader />}>
-      <Paper className={styles.stateCard} withBorder radius="md" p="xl" aria-live="polite">
+      <Surface padding="xl">
         <Stack align="center" gap="sm">
           <Loader size="sm" />
           <Title order={2}>Loading factions</Title>
           <Text c="dimmed">The faction catalogue is still loading.</Text>
         </Stack>
-      </Paper>
+      </Surface>
     </PageLayout>
   );
 }
@@ -119,18 +120,23 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
 
   return (
     <Stack className={styles.catalogueHeader} gap="lg">
-      <Group justify="space-between" align="end" wrap="wrap" gap="md">
-        <Stack gap={4}>
-          <Text tt="uppercase" size="xs" fw={800} lts="0.12em" c="dune.8">
-            Explore the collection
-          </Text>
-          <Title order={1}>Faction catalogue</Title>
+      <SectionIntro
+        eyebrow={<Eyebrow tone="accent">Explore the collection</Eyebrow>}
+        heading={<Title order={1}>Faction catalogue</Title>}
+        description={
           <Text size="sm" c="dimmed">
             Browse the living collection of community factions.
           </Text>
-        </Stack>
-        <CreateFactionCta attention />
-      </Group>
+        }
+        action={
+          <CallToAction
+            attention
+            renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
+          >
+            Create your own faction
+          </CallToAction>
+        }
+      />
 
       {hasSpotlight ? (
         <div className={styles.spotlightRail}>
@@ -222,56 +228,55 @@ function CatalogueToolbar({
     />
   );
 
+  /* PageLayout owns the toolbar's pane; a second one here would nest. */
   return (
     <>
-      <Paper className={styles.toolbar} withBorder radius="md" p="sm">
-        <div className={styles.toolbarGrid}>
-          <Text className={styles.resultCount} size="sm" c="dimmed">
-            {visibleCount === totalCount
-              ? `${totalCount} factions`
-              : `${visibleCount} of ${totalCount} factions`}
-          </Text>
-          <fieldset className={styles.joinedFilters} aria-label="Faction catalogue filters">
-            <TextInput
-              className={styles.searchField}
-              variant="unstyled"
-              value={draftQuery}
-              onChange={(event) => onDraftQueryChange(event.currentTarget.value)}
-              onBlur={onCommitQuery}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="Search factions…"
-              aria-label="Search factions"
-              leftSection={<Search size={16} aria-hidden />}
-            />
-            {rulesetSelect(undefined, true)}
-            {sortSelect(undefined, true)}
-            <Tooltip label="Refine factions">
-              <ActionIcon
-                className={styles.mobileRefineButton}
-                variant="subtle"
-                color="gray"
-                size="lg"
-                aria-label="Refine factions"
-                onClick={() => setOpened(true)}
-              >
-                <SlidersHorizontal size={17} aria-hidden />
-              </ActionIcon>
-            </Tooltip>
-          </fieldset>
-          <Tooltip label="Create new faction">
+      <div className={styles.toolbarGrid}>
+        <Text className={styles.resultCount} size="sm" c="dimmed">
+          {visibleCount === totalCount
+            ? `${totalCount} factions`
+            : `${visibleCount} of ${totalCount} factions`}
+        </Text>
+        <fieldset className={styles.joinedFilters} aria-label="Faction catalogue filters">
+          <TextInput
+            className={styles.searchField}
+            variant="unstyled"
+            value={draftQuery}
+            onChange={(event) => onDraftQueryChange(event.currentTarget.value)}
+            onBlur={onCommitQuery}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Search factions…"
+            aria-label="Search factions"
+            leftSection={<Search size={16} aria-hidden />}
+          />
+          {rulesetSelect(undefined, true)}
+          {sortSelect(undefined, true)}
+          <Tooltip label="Refine factions">
             <ActionIcon
-              className={styles.toolbarCreateButton}
-              variant="filled"
-              color="confirm"
+              className={styles.mobileRefineButton}
+              variant="subtle"
+              color="gray"
               size="lg"
-              aria-label="Create new faction"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
+              aria-label="Refine factions"
+              onClick={() => setOpened(true)}
             >
-              <Plus size={17} aria-hidden />
+              <SlidersHorizontal size={17} aria-hidden />
             </ActionIcon>
           </Tooltip>
-        </div>
-      </Paper>
+        </fieldset>
+        <Tooltip label="Create new faction">
+          <ActionIcon
+            className={styles.toolbarCreateButton}
+            variant="filled"
+            color="confirm"
+            size="lg"
+            aria-label="Create new faction"
+            renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
+          >
+            <Plus size={17} aria-hidden />
+          </ActionIcon>
+        </Tooltip>
+      </div>
       <Drawer
         opened={opened}
         onClose={() => setOpened(false)}
@@ -291,7 +296,7 @@ function CatalogueToolbar({
 
 function FilteredEmptyState({ onReset }: { onReset: () => void }) {
   return (
-    <Paper className={styles.stateCard} withBorder radius="md" p="xl">
+    <Surface padding="xl">
       <Stack gap="sm" align="center">
         <Title order={2}>No factions found</Title>
         <Text c="dimmed">Try another search or reset the catalogue filters.</Text>
@@ -299,6 +304,6 @@ function FilteredEmptyState({ onReset }: { onReset: () => void }) {
           Reset filters &amp; search
         </Button>
       </Stack>
-    </Paper>
+    </Surface>
   );
 }

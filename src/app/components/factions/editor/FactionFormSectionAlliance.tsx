@@ -5,19 +5,19 @@ import {
   Grid,
   Group,
   NumberInput,
-  Paper,
   Slider,
   Stack,
   Switch,
   Text,
   Textarea,
 } from '@mantine/core';
+import { AssetSelect } from '@ui/input/AssetSelect';
+import { ControlBlock } from '@ui/input/ControlBlock';
+import { ListLengthActions } from '@ui/input/ListLengthActions';
+import { Surface } from '@ui/surface';
 import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
-import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
-import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
-import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
@@ -42,7 +42,7 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
   }
 
   return (
-    <Paper withBorder radius="md" p="md">
+    <Surface padding="md">
       <Stack gap="md">
         <Box>
           <Text fw={700}>Alliance decal {index + 1}</Text>
@@ -205,7 +205,7 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
           </Grid.Col>
         </Grid>
       </Stack>
-    </Paper>
+    </Surface>
   );
 }
 
@@ -261,7 +261,7 @@ export function FactionFormSectionAlliance({
   const selectDecalIndex = onSelectedDecalIndexChange ?? setInternalSelectedDecalIndex;
   return (
     <Stack component="section" gap="md" aria-labelledby="alliance-card-heading">
-      <Stack gap={2}>
+      <Stack gap="xs">
         <Text id="alliance-card-heading" fw={700} size="lg">
           Alliance card
         </Text>
@@ -277,7 +277,7 @@ export function FactionFormSectionAlliance({
               {(field) => {
                 const blank = field.state.value.trim().length === 0;
                 return (
-                  <Stack gap={4}>
+                  <Stack gap="md">
                     <ControlBlock
                       title="Alliance ability"
                       description="Rules text printed on the alliance card. Markdown is supported."

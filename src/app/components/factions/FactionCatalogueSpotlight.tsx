@@ -1,13 +1,13 @@
-import { Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
-import { ChevronRight } from 'lucide-react';
+import { Spotlight } from '@ui/surface/Spotlight';
 
 import type { FactionCatalogueSpotlightData } from '@db/factions';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
-import styles from './FactionCatalogueSpotlight.module.css';
-
-/** A compact link for a faction singled out by catalogue recency. */
+/**
+ * Binds a faction to the generic spotlight row: its token as the artwork, its detail route as the
+ * destination. Only the faction-shaped knowledge lives here; the row itself is shared.
+ */
 export function FactionCatalogueSpotlight({
   faction,
   label,
@@ -18,29 +18,14 @@ export function FactionCatalogueSpotlight({
   meta: string;
 }) {
   return (
-    <UnstyledButton
-      className={styles.root}
+    <Spotlight
+      media={<FactionToken logo={faction.data.logo} background={faction.data.background} />}
+      eyebrow={label}
+      title={faction.data.name}
+      meta={meta}
       renderRoot={(rootProps) => (
         <Link {...rootProps} to="/factions/$factionId" params={{ factionId: faction.slug }} />
       )}
-    >
-      <Group wrap="nowrap" gap="sm">
-        <div className={styles.token} aria-hidden>
-          <FactionToken logo={faction.data.logo} background={faction.data.background} />
-        </div>
-        <Stack gap={1} miw={0} flex={1}>
-          <Text size="xs" tt="uppercase" fw={800} c="dune.8">
-            {label}
-          </Text>
-          <Text fw={700} truncate>
-            {faction.data.name}
-          </Text>
-          <Text size="xs" c="dimmed">
-            {meta}
-          </Text>
-        </Stack>
-        <ChevronRight size={18} aria-hidden />
-      </Group>
-    </UnstyledButton>
+    />
   );
 }

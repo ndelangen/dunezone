@@ -47,7 +47,7 @@ export function FactionLoadOptionRow({
           <FactionToken logo={logo} background={background} />
         </Box>
       </Box>
-      <Stack gap={1} miw={0}>
+      <Stack gap="xs" miw={0}>
         <Text size="sm" fw={700} lh={1.25}>
           {name}
         </Text>

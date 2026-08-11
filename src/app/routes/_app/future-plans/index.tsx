@@ -1,9 +1,9 @@
 import {
   Anchor,
   Badge,
+  Box,
   Button,
   Grid,
-  Group,
   Paper,
   SimpleGrid,
   Stack,
@@ -12,6 +12,9 @@ import {
   Title,
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { AtlasLayout } from '@ui/layout/AtlasLayout';
+import { Bullets } from '@ui/list/Bullets';
 import {
   ArrowRight,
   BookOpen,
@@ -30,8 +33,6 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { FuturePlanCapability } from '@app/components/future/FuturePlanCapability';
-import { AtlasLayout } from '@app/components/layout/AtlasLayout';
 import { PageLayout } from '@app/components/shell';
 
 import styles from './index.module.css';
@@ -154,7 +155,7 @@ function FuturePlansPage() {
       header={
         <SimpleGrid className={styles.hero} cols={{ base: 1, md: 2 }} spacing="xl">
           <Stack gap="xs">
-            <Text className={styles.eyebrow}>Our ambitions</Text>
+            <Eyebrow tone="inverse">Our ambitions</Eyebrow>
             <Title order={1}>A map of what Dune Zone could become</Title>
           </Stack>
           <Text size="lg">
@@ -172,28 +173,24 @@ function FuturePlansPage() {
             <Badge color="gray" variant="filled" w="fit-content">
               All planned
             </Badge>
-            <Text fw={700} size="sm" tt="uppercase" lts="0.12em">
-              The territory
-            </Text>
-            <Stack component="nav" aria-label="Future plan themes" gap={0}>
-              {FUTURE_PLANS.map((plan) => (
-                <Anchor
-                  className={styles.indexLink}
-                  href={`#atlas-${plan.number}`}
-                  key={plan.number}
-                >
-                  <Group wrap="nowrap" gap="sm">
-                    <ThemeIcon variant="light" radius="xl" size="lg" aria-hidden>
-                      {plan.icon}
-                    </ThemeIcon>
-                    <Text component="span" fw={700} flex={1}>
-                      {plan.shortTitle}
-                    </Text>
-                    <ArrowRight size={16} aria-hidden />
-                  </Group>
-                </Anchor>
-              ))}
-            </Stack>
+            <Eyebrow>The territory</Eyebrow>
+            <nav aria-label="Future plan themes">
+              <Bullets gap="none">
+                {FUTURE_PLANS.map((plan) => (
+                  <Bullets.Item
+                    key={plan.number}
+                    icon={plan.icon}
+                    title={plan.shortTitle}
+                    trailing={<ArrowRight size={16} aria-hidden />}
+                    renderLink={(content) => (
+                      <Anchor className={styles.indexLink} href={`#atlas-${plan.number}`}>
+                        {content}
+                      </Anchor>
+                    )}
+                  />
+                ))}
+              </Bullets>
+            </nav>
             <Anchor href={GITHUB_BACKLOG} target="_blank" rel="noopener noreferrer" fw={700}>
               Follow the development backlog <ArrowRight size={15} aria-hidden />
             </Anchor>
@@ -214,18 +211,25 @@ function FuturePlansPage() {
                   <Text className={styles.coordinate}>{plan.number}</Text>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, sm: 10 }}>
-                  <Text className={styles.eyebrow}>Planned territory</Text>
+                  <Eyebrow tone="accent">Planned territory</Eyebrow>
                   <Title order={2}>{plan.title}</Title>
                   <Text className={styles.statement} c="dimmed" mt="sm">
                     {plan.statement}
                   </Text>
                 </Grid.Col>
               </Grid>
-              <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="xl" ml={{ base: 0, sm: '16.6667%' }}>
-                {plan.capabilities.map((capability) => (
-                  <FuturePlanCapability key={capability.title} {...capability} />
-                ))}
-              </SimpleGrid>
+              <Box ml={{ base: 0, sm: '16.6667%' }}>
+                <Bullets gap="xl" columns={{ base: 1, sm: 3 }}>
+                  {plan.capabilities.map((capability) => (
+                    <Bullets.Item
+                      key={capability.title}
+                      icon={capability.icon}
+                      title={capability.title}
+                      detail={capability.detail}
+                    />
+                  ))}
+                </Bullets>
+              </Box>
             </Stack>
           ))}
 
@@ -240,7 +244,7 @@ function FuturePlansPage() {
                 <Lightbulb />
               </ThemeIcon>
               <Stack gap="xs">
-                <Text className={styles.eyebrow}>And more…</Text>
+                <Eyebrow tone="accent">And more…</Eyebrow>
                 <Title order={2}>Put a new destination on the map</Title>
                 <Text c="dimmed">
                   Open an idea for the community to discuss, or pick up an issue and help build the

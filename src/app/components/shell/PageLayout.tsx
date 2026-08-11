@@ -7,7 +7,10 @@ export interface PageLayoutProps {
   header?: ReactNode;
   /** Reduce the hero height for content-heavy detail pages. */
   headerSize?: 'default' | 'compact';
-  /** Page-level controls rendered before the main content. */
+  /**
+   * Page-level controls rendered before the main content. The layout owns the surface they sit on,
+   * so pages supply only the controls.
+   */
   toolbar?: ReactNode;
   children: ReactNode;
 }

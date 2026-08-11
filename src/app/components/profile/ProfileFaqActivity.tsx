@@ -5,7 +5,8 @@ import type { ProfilePageData } from '@db/profiles';
 
 type FaqQuestionAsked = ProfilePageData['faqAsked'][number];
 type FaqAnswerGiven = ProfilePageData['faqAnswers'][number];
-import { FaqItemList, FaqItemListRow } from '@app/components/faq/FaqItemList';
+import { SectionedSurface } from '@ui/surface/SectionedSurface';
+
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 
@@ -48,9 +49,9 @@ export function ProfileFaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] 
   }
 
   return (
-    <FaqItemList>
+    <SectionedSurface>
       {items.map((item) => (
-        <FaqItemListRow key={item._id}>
+        <SectionedSurface.Row key={item._id}>
           <div className={styles.contextStrip}>
             <Link
               to="/rulesets/$rulesetSlug"
@@ -71,9 +72,9 @@ export function ProfileFaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] 
           >
             <span className={styles.question}>{item.question}</span>
           </Link>
-        </FaqItemListRow>
+        </SectionedSurface.Row>
       ))}
-    </FaqItemList>
+    </SectionedSurface>
   );
 }
 
@@ -89,12 +90,12 @@ export function ProfileFaqAnswersGiven({
   }
 
   return (
-    <FaqItemList>
+    <SectionedSurface>
       {items.map((row) => {
         const isPicked = row.faq_item.accepted_answer_id === row._id;
 
         return (
-          <FaqItemListRow key={row._id}>
+          <SectionedSurface.Row key={row._id}>
             <div className={styles.contextStrip}>
               <Link
                 to="/rulesets/$rulesetSlug"
@@ -130,9 +131,9 @@ export function ProfileFaqAnswersGiven({
                 <span className={clsx(styles.badge, styles.badgeAnswered)}>Picked answer</span>
               </div>
             ) : null}
-          </FaqItemListRow>
+          </SectionedSurface.Row>
         );
       })}
-    </FaqItemList>
+    </SectionedSurface>
   );
 }

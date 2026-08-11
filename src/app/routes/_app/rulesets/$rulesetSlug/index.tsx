@@ -2,14 +2,11 @@ import {
   ActionIcon,
   Alert,
   Anchor,
-  Badge,
   Box,
   Button,
-  Card,
   Divider,
   Group,
   Image,
-  Paper,
   Select,
   SimpleGrid,
   Stack,
@@ -20,6 +17,15 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { Section } from '@ui/content/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { Region } from '@ui/layout/Region';
+import { SectionIntro } from '@ui/layout/SectionIntro';
+import { Stats } from '@ui/list/Stats';
+import { Surface } from '@ui/surface';
+import { Card } from '@ui/surface/Card';
+import { Spotlight } from '@ui/surface/Spotlight';
 import {
   ArrowLeft,
   BookOpen,
@@ -46,11 +52,12 @@ import {
   useUpdateRuleset,
 } from '@db/rulesets';
 import { viewerActionsFor } from '@app/access/viewerActions';
-import { IconStat } from '@app/components/content/IconStat';
 import { FaqList } from '@app/components/faq/FaqList';
 import { GroupAssignPopover } from '@app/components/groups/GroupAssignPopover';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
+import { ProposedContent } from '@app/components/ProposedContent';
 import { PageLayout } from '@app/components/shell';
+import { Toolbar } from '@app/components/shell/Toolbar';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
 import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 import type { FaqTag } from '@app/faq/tags';
@@ -94,12 +101,12 @@ function RulesetDetailPending() {
         </Stack>
       }
     >
-      <Paper withBorder p="xl" radius="md" aria-live="polite">
+      <Surface padding="xl">
         <Stack gap="xs">
           <Title order={2}>Loading ruleset</Title>
           <Text c="dimmed">The ruleset details are still loading.</Text>
         </Stack>
-      </Paper>
+      </Surface>
     </PageLayout>
   );
 }
@@ -149,12 +156,12 @@ function RulesetDetailPage() {
           </Stack>
         }
       >
-        <Paper withBorder p="xl" radius="md">
+        <Surface padding="xl">
           <Stack gap="xs">
             <Title order={2}>Ruleset not found</Title>
             <Text c="dimmed">This ruleset does not exist or was deleted.</Text>
           </Stack>
-        </Paper>
+        </Surface>
       </PageLayout>
     );
   }
@@ -212,7 +219,7 @@ function RulesetDetailPage() {
       headerSize="compact"
       header={
         <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
-          <Paper className={styles.rulesetHeadCover} radius="md" withBorder>
+          <Surface className={styles.rulesetHeadCover}>
             {r.image_cover ? (
               <Image
                 src={r.image_cover}
@@ -224,7 +231,7 @@ function RulesetDetailPage() {
             <span className={styles.rulesetHeadGlyph}>
               <TopicIcon topic="rulesets" size={28} />
             </span>
-          </Paper>
+          </Surface>
           <Stack gap={6} className={styles.pageHeadText}>
             <Anchor
               size="sm"
@@ -254,8 +261,8 @@ function RulesetDetailPage() {
         </Group>
       }
       toolbar={
-        <Paper withBorder p="sm" radius="md">
-          <Group justify="space-between" gap="sm" wrap="wrap">
+        <Toolbar>
+          <Toolbar.Left>
             <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
               <Tooltip label="Back to rulesets">
                 <ActionIcon
@@ -288,7 +295,9 @@ function RulesetDetailPage() {
                 </Tooltip>
               ) : null}
             </Group>
+          </Toolbar.Left>
 
+          <Toolbar.Right>
             {actionVisibility.askQuestion ||
             actionVisibility.assignGroup ||
             actionVisibility.removeGroup ||
@@ -373,8 +382,8 @@ function RulesetDetailPage() {
                 ) : null}
               </Group>
             ) : null}
-          </Group>
-        </Paper>
+          </Toolbar.Right>
+        </Toolbar>
       }
     >
       <Box className={styles.detailGrid}>
@@ -385,15 +394,14 @@ function RulesetDetailPage() {
             </Alert>
           ) : null}
 
-          <Stack component="section" id="overview" aria-labelledby="overview-heading" gap="md">
-            <SectionHeading id="overview-heading" icon={<BookOpen size={20} aria-hidden />}>
-              About this ruleset
-            </SectionHeading>
-            <Paper withBorder p="lg" radius="md">
-              <Stack gap="sm">
-                <Badge variant="light" color="gray" w="fit-content">
-                  Planned content · new fields required
-                </Badge>
+          <Region
+            id="overview"
+            heading={
+              <Section icon={<BookOpen size={20} aria-hidden />} title="About this ruleset" />
+            }
+          >
+            <Surface padding="lg">
+              <ProposedContent label="Planned content · new fields required">
                 <Text>
                   A concise introduction explaining the ruleset&apos;s purpose, intended audience,
                   and how it differs from the base game.
@@ -402,20 +410,29 @@ function RulesetDetailPage() {
                   Compatibility should identify the base edition or parent ruleset, required
                   expansions, and whether this ruleset can be mixed with other variants.
                 </Text>
-              </Stack>
-            </Paper>
-          </Stack>
+              </ProposedContent>
+            </Surface>
+          </Region>
 
-          <Stack component="section" id="rules" aria-labelledby="rules-heading" gap="md">
-            <Stack gap={4}>
-              <SectionHeading id="rules-heading" icon={<TopicIcon topic="rules" size={20} />}>
-                Rules and variants
-              </SectionHeading>
-              <Text c="dimmed" size="sm">
-                Proposed structured rule sections would make the ruleset useful before the FAQ has
-                accumulated questions.
-              </Text>
-            </Stack>
+          <Region
+            id="rules"
+            heading={
+              <SectionIntro
+                heading={
+                  <Section
+                    icon={<TopicIcon topic="rules" size={20} />}
+                    title="Rules and variants"
+                  />
+                }
+                description={
+                  <Text c="dimmed" size="sm">
+                    Proposed structured rule sections would make the ruleset useful before the FAQ
+                    has accumulated questions.
+                  </Text>
+                }
+              />
+            }
+          >
             <Stack gap="md">
               {[
                 [
@@ -435,81 +452,69 @@ function RulesetDetailPage() {
                   'Clearly optional modules that groups may enable independently.',
                 ],
               ].map(([title, description]) => (
-                <Card key={title} withBorder padding="lg" radius="md">
-                  <Stack gap="xs">
-                    <Title order={3} size="h4">
-                      {title}
-                    </Title>
-                    <Text size="sm" c="dimmed">
-                      {description}
-                    </Text>
-                  </Stack>
+                <Card key={title} header={<Section level="subsection" title={title} />}>
+                  <Text size="sm" c="dimmed">
+                    {description}
+                  </Text>
                 </Card>
               ))}
             </Stack>
-          </Stack>
+          </Region>
 
-          <Stack component="section" id="factions" aria-labelledby="factions-heading" gap="md">
-            <SectionHeading id="factions-heading" icon={<Layers3 size={20} aria-hidden />}>
-              Included factions
-            </SectionHeading>
+          <Region
+            id="factions"
+            heading={<Section icon={<Layers3 size={20} aria-hidden />} title="Included factions" />}
+          >
             {page.factions.length > 0 ? (
               <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
                 {page.factions.map((f) => (
-                  <Card key={f.factionId} withBorder padding="md" radius="md">
-                    <Group gap="md" wrap="nowrap">
-                      <div className={styles.factionToken} aria-hidden>
-                        {f.identity ? (
-                          <FactionToken logo={f.identity.logo} background={f.identity.background} />
-                        ) : (
-                          <TopicIcon topic="identity" size={24} />
-                        )}
-                      </div>
-                      <Stack gap={4} miw={0}>
-                        <Anchor
-                          fw={700}
-                          size="lg"
-                          renderRoot={(rootProps) => (
-                            <Link
-                              {...rootProps}
-                              to="/factions/$factionId"
-                              params={{ factionId: f.urlSlug }}
-                            />
-                          )}
-                        >
-                          {f.name}
-                        </Anchor>
-                        <Text size="sm" c="dimmed">
-                          View faction details, components, and special rules.
-                        </Text>
-                      </Stack>
-                    </Group>
-                  </Card>
+                  <Spotlight
+                    key={f.factionId}
+                    media={
+                      f.identity ? (
+                        <FactionToken logo={f.identity.logo} background={f.identity.background} />
+                      ) : (
+                        <TopicIcon topic="identity" size={24} />
+                      )
+                    }
+                    title={f.name}
+                    meta="Details, components, and special rules"
+                    renderRoot={(rootProps) => (
+                      <Link
+                        {...rootProps}
+                        to="/factions/$factionId"
+                        params={{ factionId: f.urlSlug }}
+                      />
+                    )}
+                  />
                 ))}
               </SimpleGrid>
             ) : (
-              <Paper withBorder p="lg" radius="md">
-                <Text c="dimmed">No factions have been added to this ruleset yet.</Text>
-              </Paper>
+              <Surface padding="lg">
+                <Text size="sm" c="dimmed">
+                  No factions have been added to this ruleset yet.
+                </Text>
+              </Surface>
             )}
-          </Stack>
+          </Region>
         </Stack>
 
-        <Stack
-          component="section"
+        <Region
           id="faq"
-          aria-labelledby="faq-heading"
-          gap="md"
           className={styles.communityColumn}
+          heading={
+            <SectionIntro
+              heading={
+                <Section icon={<CircleHelp size={20} aria-hidden />} title="Community FAQ" />
+              }
+              description={
+                <Text size="sm" c="dimmed">
+                  Browse community questions and accepted answers.
+                </Text>
+              }
+            />
+          }
         >
-          <Stack gap={4}>
-            <SectionHeading id="faq-heading" icon={<CircleHelp size={20} aria-hidden />}>
-              Community FAQ
-            </SectionHeading>
-            <Text size="sm" c="dimmed">
-              Browse community questions and accepted answers.
-            </Text>
-          </Stack>
           <TextInput
             value={search.q ?? ''}
             onChange={(event) => handleFaqSearchChange(event.currentTarget.value)}
@@ -553,7 +558,7 @@ function RulesetDetailPage() {
             searchQuery={search.q ?? ''}
             selectedTag={search.tag}
           />
-        </Stack>
+        </Region>
 
         <Stack
           gap="md"
@@ -562,161 +567,126 @@ function RulesetDetailPage() {
           miw={0}
           className={styles.detailsColumn}
         >
-          <Card withBorder padding="lg" radius="md">
-            <Stack gap="md">
-              <SectionHeading icon={<ListTree size={19} aria-hidden />} order={2}>
-                At a glance
-              </SectionHeading>
-              <Group gap="lg" wrap="wrap">
-                <IconStat
-                  icon={<Layers3 size={17} aria-hidden />}
-                  value={page.factions.length}
-                  label={`${page.factions.length} ${page.factions.length === 1 ? 'faction' : 'factions'}`}
-                />
-                <IconStat
-                  icon={<CircleHelp size={17} aria-hidden />}
-                  value={page.faqItems.length}
-                  label={`${page.faqItems.length} ${page.faqItems.length === 1 ? 'question' : 'questions'}`}
-                />
-                <IconStat
-                  icon={<CheckCircle2 size={17} aria-hidden />}
-                  value={answeredFaqCount}
-                  label={`${answeredFaqCount} answered ${answeredFaqCount === 1 ? 'question' : 'questions'}`}
-                />
-                <IconStat
-                  icon={<FileText size={17} aria-hidden />}
-                  value="—"
-                  label="Version not specified"
-                />
-              </Group>
-            </Stack>
+          <Card header={<Section icon={<ListTree size={20} aria-hidden />} title="At a glance" />}>
+            <Stats
+              items={[
+                {
+                  key: 'factions',
+                  icon: <Layers3 size={17} aria-hidden />,
+                  value: page.factions.length,
+                  label: `${page.factions.length} ${page.factions.length === 1 ? 'faction' : 'factions'}`,
+                },
+                {
+                  key: 'questions',
+                  icon: <CircleHelp size={17} aria-hidden />,
+                  value: page.faqItems.length,
+                  label: `${page.faqItems.length} ${page.faqItems.length === 1 ? 'question' : 'questions'}`,
+                },
+                {
+                  key: 'answered',
+                  icon: <CheckCircle2 size={17} aria-hidden />,
+                  value: answeredFaqCount,
+                  label: `${answeredFaqCount} answered ${answeredFaqCount === 1 ? 'question' : 'questions'}`,
+                },
+                {
+                  key: 'version',
+                  icon: <FileText size={17} aria-hidden />,
+                  value: '—',
+                  label: 'Version not specified',
+                },
+              ]}
+            />
           </Card>
 
-          <Card withBorder padding="lg" radius="md">
-            <Stack gap="md">
-              <SectionHeading icon={<UsersRound size={19} aria-hidden />} order={2}>
-                Stewardship
-              </SectionHeading>
-              <Stack gap="sm">
-                <Box>
-                  <Text size="xs" c="dimmed" fw={700} tt="uppercase">
-                    Owner
-                  </Text>
-                  {page.owner ? (
-                    <ProfileLink
-                      slug={page.owner.slug}
-                      username={page.owner.username}
-                      avatar_url={page.owner.avatar_url}
-                    />
-                  ) : (
-                    <Text size="sm">Unknown</Text>
-                  )}
-                </Box>
-                <Divider />
-                {!assignedGroup ? (
-                  <Text size="sm" c="dimmed">
-                    No maintaining group.
-                  </Text>
-                ) : (
-                  <Stack gap="sm">
-                    <Box>
-                      <Text size="xs" c="dimmed" fw={700} tt="uppercase">
-                        Maintaining group
-                      </Text>
-                      {assignedGroup.slug ? (
-                        <Anchor
-                          fw={600}
-                          renderRoot={(rootProps) => (
-                            <Link
-                              {...rootProps}
-                              to="/groups/$groupSlug"
-                              params={{ groupSlug: assignedGroup.slug }}
-                            />
-                          )}
-                        >
-                          {assignedGroup.name}
-                        </Anchor>
-                      ) : (
-                        <Text fw={600}>{assignedGroup.name}</Text>
-                      )}
-                    </Box>
-                    <Group justify="space-between" gap="xs">
-                      <Text size="sm" c="dimmed">
-                        Your membership
-                      </Text>
-                      <Badge
-                        color={
-                          membershipStatus === 'active'
-                            ? 'green'
-                            : membershipStatus === 'pending'
-                              ? 'yellow'
-                              : 'gray'
-                        }
-                        variant="light"
-                      >
-                        {membershipStatus === 'active'
-                          ? 'Active'
-                          : membershipStatus === 'pending'
-                            ? 'Pending'
-                            : 'Not a member'}
-                      </Badge>
-                    </Group>
-                    {canRequestMembership ? (
-                      <Button
-                        type="button"
-                        variant="light"
-                        leftSection={<UserPlus size={16} aria-hidden />}
-                        loading={membershipWorkflow.request.isPending}
-                        onClick={() =>
-                          void membershipWorkflow.request
-                            .run(assignedGroup.id)
-                            .catch(() => undefined)
-                        }
-                      >
-                        Request membership
-                      </Button>
-                    ) : null}
-                  </Stack>
-                )}
-              </Stack>
-            </Stack>
-          </Card>
-
-          <Card withBorder padding="lg" radius="md">
+          <Card
+            header={<Section icon={<UsersRound size={20} aria-hidden />} title="Stewardship" />}
+          >
             <Stack gap="sm">
-              <SectionHeading icon={<FileText size={19} aria-hidden />} order={2}>
-                Resources
-              </SectionHeading>
-              <Badge variant="light" color="gray" w="fit-content">
-                Proposed content
-              </Badge>
+              <Box>
+                <Eyebrow>Owner</Eyebrow>
+                {page.owner ? (
+                  <ProfileLink
+                    slug={page.owner.slug}
+                    username={page.owner.username}
+                    avatar_url={page.owner.avatar_url}
+                  />
+                ) : (
+                  <Text size="sm">Unknown</Text>
+                )}
+              </Box>
+              <Divider />
+              {!assignedGroup ? (
+                <Text size="sm" c="dimmed">
+                  No maintaining group.
+                </Text>
+              ) : (
+                <Stack gap="sm">
+                  <Box>
+                    <Eyebrow>Maintaining group</Eyebrow>
+                    {assignedGroup.slug ? (
+                      <Anchor
+                        fw={600}
+                        renderRoot={(rootProps) => (
+                          <Link
+                            {...rootProps}
+                            to="/groups/$groupSlug"
+                            params={{ groupSlug: assignedGroup.slug }}
+                          />
+                        )}
+                      >
+                        {assignedGroup.name}
+                      </Anchor>
+                    ) : (
+                      <Text fw={600}>{assignedGroup.name}</Text>
+                    )}
+                  </Box>
+                  <Group justify="space-between" gap="xs">
+                    <Text size="sm" c="dimmed">
+                      Your membership
+                    </Text>
+                    <StatusBadge
+                      tone={
+                        membershipStatus === 'active'
+                          ? 'positive'
+                          : membershipStatus === 'pending'
+                            ? 'pending'
+                            : 'neutral'
+                      }
+                    >
+                      {membershipStatus === 'active'
+                        ? 'Active'
+                        : membershipStatus === 'pending'
+                          ? 'Pending'
+                          : 'Not a member'}
+                    </StatusBadge>
+                  </Group>
+                  {canRequestMembership ? (
+                    <Button
+                      type="button"
+                      variant="light"
+                      leftSection={<UserPlus size={16} aria-hidden />}
+                      loading={membershipWorkflow.request.isPending}
+                      onClick={() =>
+                        void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)
+                      }
+                    >
+                      Request membership
+                    </Button>
+                  ) : null}
+                </Stack>
+              )}
+            </Stack>
+          </Card>
+
+          <Card header={<Section icon={<FileText size={20} aria-hidden />} title="Resources" />}>
+            <ProposedContent label="Proposed content">
               <Text size="sm" c="dimmed">
                 Printable rules, release notes, and a version history could live here.
               </Text>
-            </Stack>
+            </ProposedContent>
           </Card>
         </Stack>
       </Box>
     </PageLayout>
-  );
-}
-
-function SectionHeading({
-  icon,
-  children,
-  order = 2,
-  ...props
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  order?: 2 | 3;
-} & React.ComponentProps<typeof Group>) {
-  return (
-    <Group gap="xs" wrap="nowrap" c="var(--color-text, var(--mantine-color-text))" {...props}>
-      <Title order={order} size={order === 2 ? 'h3' : 'h4'}>
-        {children}
-      </Title>
-      {icon}
-    </Group>
   );
 }

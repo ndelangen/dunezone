@@ -1,7 +1,8 @@
+import { Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { Surface } from '@ui/surface';
 
 import { loadRulesetsAll, useRulesetsAll } from '@db/rulesets';
-import { BlockCover, BlockLink } from '@app/components/generic/surfaces';
 import { PageLayout } from '@app/components/shell';
 
 import styles from './RulesetsIndex.module.css';
@@ -31,21 +32,34 @@ function RulesetsPage() {
       {rulesets.data && rulesets.data.length > 0 ? (
         <div className={styles.grid}>
           {rulesets.data.map((r) => (
-            <BlockLink
+            <Surface
               key={r.id}
-              to="/rulesets/$rulesetSlug"
-              params={{ rulesetSlug: r.slug }}
+              interactive
+              padding="sm"
               className={styles.card}
+              renderRoot={({ className, children }) => (
+                <Link
+                  to="/rulesets/$rulesetSlug"
+                  params={{ rulesetSlug: r.slug }}
+                  className={className}
+                >
+                  {children}
+                </Link>
+              )}
             >
-              <div className={styles.coverSlot}>
-                <BlockCover src={r.image_cover} />
+              <div className={styles.cover}>
+                {r.image_cover ? (
+                  <img src={r.image_cover} alt="" className={styles.coverImage} />
+                ) : null}
               </div>
               <span className={styles.name}>{r.name}</span>
-            </BlockLink>
+            </Surface>
           ))}
         </div>
       ) : (
-        <p>No rulesets yet.</p>
+        <Text size="sm" c="dimmed">
+          No rulesets yet.
+        </Text>
       )}
     </PageLayout>
   );

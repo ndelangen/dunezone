@@ -1,8 +1,8 @@
 import { Box, Grid, Stack, Text, TextInput } from '@mantine/core';
+import { AssetSelect } from '@ui/input/AssetSelect';
+import { ControlBlock } from '@ui/input/ControlBlock';
 
 import type { Faction } from '@db/factions';
-import { AssetSelect } from '@app/components/content/FormControls/AssetSelect';
-import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { LEADERS } from '@game/data/generated';
 
@@ -30,7 +30,7 @@ export function FactionFormSectionHero({
               {(field) => {
                 const blank = field.state.value.trim().length === 0;
                 return (
-                  <Stack gap={4}>
+                  <Stack gap="md">
                     <ControlBlock
                       title="Faction leader name"
                       description="Printed around the leader portrait on the Faction shield."

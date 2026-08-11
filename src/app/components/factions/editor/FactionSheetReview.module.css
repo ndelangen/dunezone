@@ -165,14 +165,6 @@
   border-top: 1px solid rgb(231 218 195 / 18%);
 }
 
-.proofDeskEyebrow {
-  color: #d7a765;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
 .sheetCanvasShell {
   container: faction-review-plane / size;
   position: relative;

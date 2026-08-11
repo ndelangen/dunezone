@@ -1,15 +1,6 @@
-import {
-  ActionIcon,
-  Anchor,
-  Button,
-  Group,
-  Paper,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-} from '@mantine/core';
+import { ActionIcon, Anchor, Button, Group, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Surface } from '@ui/surface';
 import { Trash2, UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
@@ -83,7 +74,7 @@ function FactionEditPage() {
   if (viewerAccess?.viewer.kind === 'anonymous') {
     return (
       <PageLayout header={header} headerSize="compact">
-        <Paper withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Stack gap="sm">
             <Text>
               <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
@@ -99,7 +90,7 @@ function FactionEditPage() {
               Back to faction
             </Anchor>
           </Stack>
-        </Paper>
+        </Surface>
       </PageLayout>
     );
   }
@@ -115,13 +106,13 @@ function FactionEditPage() {
   if (!viewerAccess?.capabilities.edit) {
     return (
       <PageLayout header={header} headerSize="compact">
-        <Paper withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Text>
             {faction.group_id
               ? 'Only the faction owner or an active member of its group can edit this faction.'
               : 'Only the faction owner can edit this faction.'}
           </Text>
-        </Paper>
+        </Surface>
       </PageLayout>
     );
   }

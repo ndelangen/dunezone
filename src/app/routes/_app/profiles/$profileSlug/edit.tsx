@@ -1,13 +1,13 @@
+import { ActionIcon, Group } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { FormTooltip } from '@ui/input/FormTooltip';
+import { Surface } from '@ui/surface';
 import { ArrowLeft, User } from 'lucide-react';
 
 import { useCurrentProfile } from '@db/profiles';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { ButtonGroup, Toolbar } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 import { ProfileSettingsForm } from '@app/components/profile/ProfileSettingsForm';
 import { PageLayout } from '@app/components/shell';
+import { Toolbar } from '@app/components/shell/Toolbar';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/edit')({
   component: ProfileSettingsPage,
@@ -20,11 +20,11 @@ function ProfileSettingsPage() {
   if (!profile.data) {
     return (
       <PageLayout>
-        <Card>
+        <Surface padding="lg">
           <p>
             <Link to="/auth/login">Log in</Link> to edit your profile.
           </p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
@@ -32,47 +32,63 @@ function ProfileSettingsPage() {
   if (profile.data.slug !== profileSlug) {
     return (
       <PageLayout>
-        <Card>
+        <Surface padding="lg">
           <p>You can only edit your own profile.</p>
           <p>
             <Link to="/profiles/$profileSlug/edit" params={{ profileSlug: profile.data.slug }}>
               Go to your profile settings
             </Link>
           </p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
 
+  /* Hoisted: narrowing on `profile.data` does not survive into the renderRoot closure. */
+  const ownSlug = profile.data.slug;
+
   const toolbar = (
     <Toolbar>
       <Toolbar.Left>
-        <ButtonGroup>
+        <Group gap="xs" wrap="nowrap">
           <FormTooltip content="Back to profiles">
-            <UIButton variant="nav" to="/profiles" aria-label="Back to profiles">
+            <ActionIcon
+              variant="light"
+              color="gray"
+              size="lg"
+              aria-label="Back to profiles"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+            >
               <ArrowLeft size={16} aria-hidden />
-            </UIButton>
+            </ActionIcon>
           </FormTooltip>
           <FormTooltip content="View public profile">
-            <UIButton
-              variant="secondary"
-              to="/profiles/$profileSlug"
-              params={{ profileSlug: profile.data.slug }}
+            <ActionIcon
+              variant="light"
+              color="dune"
+              size="lg"
               aria-label="View public profile"
+              renderRoot={(rootProps) => (
+                <Link
+                  {...rootProps}
+                  to="/profiles/$profileSlug"
+                  params={{ profileSlug: ownSlug }}
+                />
+              )}
             >
               <User size={16} aria-hidden />
-            </UIButton>
+            </ActionIcon>
           </FormTooltip>
-        </ButtonGroup>
+        </Group>
       </Toolbar.Left>
     </Toolbar>
   );
 
   return (
     <PageLayout toolbar={toolbar}>
-      <Card>
+      <Surface padding="lg">
         <ProfileSettingsForm key={profile.data.slug} initial={profile.data} />
-      </Card>
+      </Surface>
     </PageLayout>
   );
 }

@@ -1,9 +1,9 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import { Alert, Box, Group, Paper, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import { Alert, Box, Group, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import { ControlBlock } from '@ui/input/ControlBlock';
+import { ListLengthActions } from '@ui/input/ListLengthActions';
+import { Surface } from '@ui/surface';
 import { useState } from 'react';
-
-import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
-import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
 import { defaultAdvantage } from './factionFormDefaults';
@@ -17,7 +17,7 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
   const warningId = `adv-${index}-text-warning`;
 
   return (
-    <Paper withBorder radius="md" p="md">
+    <Surface padding="md">
       <Stack gap="md">
         <Box>
           <Text fw={700}>Advantage {index + 1}</Text>
@@ -48,7 +48,7 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
           {(field) => {
             const textIsBlank = field.state.value.trim().length === 0;
             return (
-              <Stack gap={4}>
+              <Stack gap="md">
                 <ControlBlock
                   title="Advantage rule"
                   description="The primary rules text for this faction advantage."
@@ -95,7 +95,7 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
           )}
         </form.Field>
       </Stack>
-    </Paper>
+    </Surface>
   );
 }
 
@@ -113,7 +113,7 @@ export function FactionFormSectionAdvantages({
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
   return (
     <Stack component="section" gap="md" aria-labelledby="advantages-heading">
-      <Stack gap={2}>
+      <Stack gap="xs">
         <Text id="advantages-heading" fw={700} size="lg">
           Faction advantages
         </Text>

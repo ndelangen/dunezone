@@ -11,16 +11,17 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Textarea,
   TextInput,
+  Textarea,
   UnstyledButton,
 } from '@mantine/core';
+import { ControlBlock } from '@ui/input/ControlBlock';
+import { ListLengthActions } from '@ui/input/ListLengthActions';
+import { Surface } from '@ui/surface';
 import { Check } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
-import { ControlBlock } from '@app/components/content/FormControls/ControlBlock';
-import { ListLengthActions } from '@app/components/content/FormControls/ListLengthActions';
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 
@@ -134,7 +135,7 @@ function PlanetCard({ form, index }: { form: FactionFormApi; index: number }) {
   }
 
   return (
-    <Paper withBorder radius="md" p="md">
+    <Surface padding="md">
       <Stack gap="md">
         <Box>
           <Text fw={700}>Planet {index + 1}</Text>
@@ -192,7 +193,7 @@ function PlanetCard({ form, index }: { form: FactionFormApi; index: number }) {
           </form.Field>
         </SimpleGrid>
       </Stack>
-    </Paper>
+    </Surface>
   );
 }
 

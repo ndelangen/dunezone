@@ -1,4 +1,6 @@
-import { ActionIcon, Alert, Box, Button, Group, Stack, Text, Title } from '@mantine/core';
+import { ActionIcon, Alert, Button, Group, Stack, Text, Title } from '@mantine/core';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { SectionIntro } from '@ui/layout/SectionIntro';
 import { ChevronDown, Link2, X } from 'lucide-react';
 import {
   forwardRef,
@@ -101,7 +103,7 @@ function ReviewProofDesk({ faction }: { faction: Faction }) {
     <div className={styles.proofDesk} data-faction-review-proof-desk>
       <Group justify="space-between" gap="md" wrap="nowrap" className={styles.proofDeskHeader}>
         <div>
-          <Text className={styles.proofDeskEyebrow}>Folio proof</Text>
+          <Eyebrow tone="inverse">Folio proof</Eyebrow>
           <Text fw={700}>Faction sheet and shield</Text>
         </div>
         <Text size="xs" ta="right">
@@ -157,30 +159,32 @@ function ReviewHeading({
 }) {
   return (
     <Stack gap="sm" className={styles.reviewHeading}>
-      <Group justify="space-between" align="flex-start" gap="md" wrap="nowrap">
-        <Box>
-          <Text className={styles.proofDeskEyebrow}>Current unsaved draft</Text>
-          <Title order={2}>Review faction artifacts</Title>
+      <SectionIntro
+        eyebrow={<Eyebrow tone="accent">Current unsaved draft</Eyebrow>}
+        heading={<Title order={2}>Review faction artifacts</Title>}
+        description={
           <Text size="sm" c="dimmed">
             Editing is paused while the review plane is open.
           </Text>
-        </Box>
-        <Group gap="xs" wrap="nowrap">
-          <Button type="button" variant="default" leftSection={<X size={16} />} onClick={onClose}>
-            Return to editing
-          </Button>
-          <ActionIcon
-            ref={closeButtonRef}
-            type="button"
-            variant="default"
-            size="lg"
-            aria-label="Close faction sheet review"
-            onClick={onClose}
-          >
-            <X size={18} aria-hidden />
-          </ActionIcon>
-        </Group>
-      </Group>
+        }
+        action={
+          <Group gap="xs" wrap="nowrap">
+            <Button type="button" variant="default" leftSection={<X size={16} />} onClick={onClose}>
+              Return to editing
+            </Button>
+            <ActionIcon
+              ref={closeButtonRef}
+              type="button"
+              variant="default"
+              size="lg"
+              aria-label="Close faction sheet review"
+              onClick={onClose}
+            >
+              <X size={18} aria-hidden />
+            </ActionIcon>
+          </Group>
+        }
+      />
       <Alert
         variant="light"
         color="orange"

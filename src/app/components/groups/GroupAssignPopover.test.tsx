@@ -1,12 +1,11 @@
 // @vitest-environment jsdom
 
 import { MantineProvider } from '@mantine/core';
+import { appContentTheme } from '@ui/theme';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
-import { appContentTheme } from '@app/theme';
 
 import type { Id } from '../../../../convex/_generated/dataModel';
 import { GroupAssignPopover } from './GroupAssignPopover';

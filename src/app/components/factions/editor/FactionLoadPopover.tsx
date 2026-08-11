@@ -6,7 +6,6 @@ import {
   Center,
   Group,
   Loader,
-  Paper,
   Popover,
   Select,
   Stack,
@@ -15,6 +14,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
+import { Surface } from '@ui/surface';
 import { Copy } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -106,7 +106,7 @@ function FactionLoadPopoverContent({
 
   return (
     <Stack gap="md">
-      <Stack gap={4}>
+      <Stack gap="md">
         <Title order={3} size="h4">
           Load existing faction
         </Title>
@@ -181,7 +181,7 @@ function FactionLoadPopoverContent({
       )}
 
       {selectedRow ? (
-        <Paper withBorder p="sm" radius="md">
+        <Surface padding="sm">
           <Stack gap="sm">
             <Text size="sm" fw={700}>
               Replace this unsaved draft?
@@ -209,7 +209,7 @@ function FactionLoadPopoverContent({
               </Button>
             </Group>
           </Stack>
-        </Paper>
+        </Surface>
       ) : null}
 
       {currentProfileSlug ? (

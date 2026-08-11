@@ -7,7 +7,6 @@ import {
   Button,
   Group,
   Loader,
-  Paper,
   SimpleGrid,
   Stack,
   Text,
@@ -15,16 +14,21 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { CallToAction } from '@ui/action/CallToAction';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { Section } from '@ui/content/Section';
+import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
+import { Region } from '@ui/layout/Region';
+import { SectionIntro } from '@ui/layout/SectionIntro';
+import { TriptychLayout } from '@ui/layout/TriptychLayout';
+import { Bullets } from '@ui/list/Bullets';
+import { Surface } from '@ui/surface';
 import { ArrowRight, BookOpen, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
 
 import { loadHomepage, useHomepage } from '@db/homepage';
 import { AnimatedLeaderToken } from '@app/components/factions/AnimatedLeaderToken';
-import { CreateFactionCta } from '@app/components/factions/CreateFactionCta';
 import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
 import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
-import { FuturePlanItem } from '@app/components/future/FuturePlanItem';
-import { AsymmetricSplitLayout } from '@app/components/layout/AsymmetricSplitLayout';
-import { TriptychLayout } from '@app/components/layout/TriptychLayout';
 import { PageLayout } from '@app/components/shell';
 
 import styles from './index.module.css';
@@ -59,7 +63,7 @@ function IndexPage() {
     <PageLayout
       header={
         <Stack className={styles.hero} align="center" justify="center" gap="sm">
-          <Text className={styles.heroKicker}>A game of conquest, diplomacy & betrayal</Text>
+          <Eyebrow tone="inverse">A game of conquest, diplomacy &amp; betrayal</Eyebrow>
           <Title order={1} className={styles.heroTitle}>
             Make Dune your own
           </Title>
@@ -70,9 +74,13 @@ function IndexPage() {
             <Button size="sm" renderRoot={(props) => <Link {...props} to="/rulesets" />}>
               Discover the game
             </Button>
-            <CreateFactionCta size="sm" withArrow>
+            <CallToAction
+              size="sm"
+              direction="forward"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
+            >
               Start creating
-            </CreateFactionCta>
+            </CallToAction>
           </Group>
         </Stack>
       }
@@ -126,7 +134,12 @@ function IndexPage() {
                   share it with friends.
                 </Text>
                 <Group mt="sm">
-                  <CreateFactionCta withArrow>Start creating</CreateFactionCta>
+                  <CallToAction
+                    direction="forward"
+                    renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
+                  >
+                    Start creating
+                  </CallToAction>
                   <Button
                     variant="subtle"
                     color="confirm"
@@ -140,16 +153,10 @@ function IndexPage() {
           }
         />
 
-        <Paper
-          component="section"
-          className={styles.communityBand}
-          p={{ base: 'lg', md: 'xl' }}
-          radius="lg"
-          withBorder
-        >
+        <Surface className={styles.communityBand}>
           <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" verticalSpacing="xl">
             <Stack gap="sm">
-              <Text className={styles.kicker}>Built by people around the table</Text>
+              <Eyebrow tone="accent">Built by people around the table</Eyebrow>
               <Title order={2}>A living game needs a living community</Title>
               <Text c="dimmed">
                 Find the people making factions, answering edge cases, and bringing new players into
@@ -220,82 +227,85 @@ function IndexPage() {
               </Group>
             </Stack>
           </SimpleGrid>
-        </Paper>
+        </Surface>
 
         <AsymmetricSplitLayout
           className={styles.discoveryLayout}
           wide={
-            <Box className={styles.discoveryColumn}>
-              <Stack gap="lg">
-                <Group justify="space-between" align="end" wrap="wrap" gap="md">
-                  <Box>
-                    <Text className={styles.kicker}>From the catalogue</Text>
-                    <Title order={2}>New ideas are arriving</Title>
-                  </Box>
-                  <Anchor component={Link} to="/factions" fw={700} className={styles.headingLink}>
-                    See every faction <ArrowRight size={15} aria-hidden />
-                  </Anchor>
-                </Group>
-                <Stack gap="sm">
-                  {data.spotlights.newArrival ? (
-                    <FactionCatalogueSpotlight
-                      faction={data.spotlights.newArrival}
-                      label="New arrival"
-                      meta={`Created ${formatFactionCatalogueDate(data.spotlights.newArrival.created_at)}`}
-                    />
-                  ) : null}
-                  {data.spotlights.freshlyUpdated ? (
-                    <FactionCatalogueSpotlight
-                      faction={data.spotlights.freshlyUpdated}
-                      label="Freshly updated"
-                      meta={`Updated ${formatFactionCatalogueDate(data.spotlights.freshlyUpdated.updated_at)}`}
-                    />
-                  ) : null}
-                  {!data.spotlights.newArrival && !data.spotlights.freshlyUpdated ? (
-                    <Text c="dimmed">The catalogue is waiting for its first faction.</Text>
-                  ) : null}
-                </Stack>
+            <Region
+              className={styles.discoveryColumn}
+              heading={
+                <SectionIntro
+                  eyebrow={<Eyebrow tone="accent">From the catalogue</Eyebrow>}
+                  heading={<Section level="page" title="New ideas are arriving" />}
+                  action={
+                    <Anchor component={Link} to="/factions" fw={700} className={styles.headingLink}>
+                      See every faction <ArrowRight size={15} aria-hidden />
+                    </Anchor>
+                  }
+                />
+              }
+            >
+              <Stack gap="sm">
+                {data.spotlights.newArrival ? (
+                  <FactionCatalogueSpotlight
+                    faction={data.spotlights.newArrival}
+                    label="New arrival"
+                    meta={`Created ${formatFactionCatalogueDate(data.spotlights.newArrival.created_at)}`}
+                  />
+                ) : null}
+                {data.spotlights.freshlyUpdated ? (
+                  <FactionCatalogueSpotlight
+                    faction={data.spotlights.freshlyUpdated}
+                    label="Freshly updated"
+                    meta={`Updated ${formatFactionCatalogueDate(data.spotlights.freshlyUpdated.updated_at)}`}
+                  />
+                ) : null}
+                {!data.spotlights.newArrival && !data.spotlights.freshlyUpdated ? (
+                  <Text c="dimmed">The catalogue is waiting for its first faction.</Text>
+                ) : null}
               </Stack>
-            </Box>
+            </Region>
           }
           narrow={
-            <Box className={styles.discoveryColumn}>
-              <Stack gap="lg">
-                <Group justify="space-between" align="end" wrap="wrap" gap="md">
-                  <Box>
+            <Region
+              className={styles.discoveryColumn}
+              heading={
+                <SectionIntro
+                  eyebrow={
                     <Badge color="gray" variant="filled">
                       Planned
                     </Badge>
-                    <Title order={2} mt="xs">
-                      What we’ll make next
-                    </Title>
-                  </Box>
-                  <Anchor
-                    component={Link}
-                    to="/future-plans"
-                    fw={700}
-                    className={styles.headingLink}
-                  >
-                    Future plans <ArrowRight size={15} aria-hidden />
-                  </Anchor>
-                </Group>
-                <Stack gap="md">
-                  <FuturePlanItem icon={<BookOpen size={20} />}>
-                    Web-native rulebooks
-                  </FuturePlanItem>
-                  <FuturePlanItem icon={<Printer size={20} />}>PDF and TTS output</FuturePlanItem>
-                  <FuturePlanItem icon={<Trophy size={20} />}>
-                    Results and leaderboards
-                  </FuturePlanItem>
-                  <FuturePlanItem icon={<MessageCircle size={20} />}>
-                    An Atreides card tracker
-                  </FuturePlanItem>
-                  <Anchor component={Link} to="/future-plans" fw={700}>
-                    What should we make after that?
-                  </Anchor>
-                </Stack>
+                  }
+                  heading={<Section level="page" title="What we’ll make next" />}
+                  action={
+                    <Anchor
+                      component={Link}
+                      to="/future-plans"
+                      fw={700}
+                      className={styles.headingLink}
+                    >
+                      Future plans <ArrowRight size={15} aria-hidden />
+                    </Anchor>
+                  }
+                />
+              }
+            >
+              <Stack gap="md">
+                <Bullets>
+                  <Bullets.Item icon={<BookOpen size={20} />} title="Web-native rulebooks" />
+                  <Bullets.Item icon={<Printer size={20} />} title="PDF and TTS output" />
+                  <Bullets.Item icon={<Trophy size={20} />} title="Results and leaderboards" />
+                  <Bullets.Item
+                    icon={<MessageCircle size={20} />}
+                    title="An Atreides card tracker"
+                  />
+                </Bullets>
+                <Anchor component={Link} to="/future-plans" fw={700}>
+                  What should we make after that?
+                </Anchor>
               </Stack>
-            </Box>
+            </Region>
           }
         />
       </Stack>
@@ -306,13 +316,13 @@ function IndexPage() {
 function HomepagePending() {
   return (
     <PageLayout header={<Title order={1}>Make Dune your own</Title>}>
-      <Paper p="xl" withBorder radius="md" aria-live="polite">
+      <Surface>
         <Stack align="center" gap="sm">
           <Loader size="sm" />
           <Title order={2}>Setting the table</Title>
           <Text c="dimmed">The latest work from the community is loading.</Text>
         </Stack>
-      </Paper>
+      </Surface>
     </PageLayout>
   );
 }

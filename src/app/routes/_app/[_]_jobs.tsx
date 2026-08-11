@@ -6,7 +6,6 @@ import {
   Group,
   Loader,
   Pagination,
-  Paper,
   Select,
   Stack,
   Switch,
@@ -15,6 +14,7 @@ import {
   Title,
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { Surface } from '@ui/surface';
 import { AlertCircle, BriefcaseBusiness } from 'lucide-react';
 import { useState } from 'react';
 
@@ -69,7 +69,7 @@ function PublicationJobsPage() {
         </Alert>
       ) : (
         <Stack gap="lg">
-          <Paper withBorder p="lg" radius="md">
+          <Surface padding="lg">
             <Stack gap="lg">
               <Group justify="space-between" align="flex-start" wrap="wrap">
                 <div>
@@ -118,9 +118,9 @@ function PublicationJobsPage() {
                 </div>
               </Group>
             </Stack>
-          </Paper>
+          </Surface>
 
-          <Paper withBorder radius="md">
+          <Surface>
             <Group p="md" justify="space-between" align="end" wrap="wrap">
               <Group align="end">
                 <Select
@@ -207,7 +207,7 @@ function PublicationJobsPage() {
                 </Table.Tbody>
               </Table>
             </Table.ScrollContainer>
-          </Paper>
+          </Surface>
 
           {result.total > PAGE_SIZE ? (
             <Center>
