@@ -2,12 +2,12 @@ import { ActionIcon, Group } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormTooltip } from '@ui/input/FormTooltip';
 import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, User } from 'lucide-react';
 
 import { useCurrentProfile } from '@db/profiles';
 import { ProfileSettingsForm } from '@app/components/profile/ProfileSettingsForm';
 import { PageLayout } from '@app/components/shell';
-import { Toolbar } from '@app/components/shell/Toolbar';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/edit')({
   component: ProfileSettingsPage,

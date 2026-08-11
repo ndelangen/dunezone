@@ -26,6 +26,7 @@ import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Spotlight } from '@ui/surface/Spotlight';
+import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
   BookOpen,
@@ -57,7 +58,6 @@ import { GroupAssignPopover } from '@app/components/groups/GroupAssignPopover';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { ProposedContent } from '@app/components/ProposedContent';
 import { PageLayout } from '@app/components/shell';
-import { Toolbar } from '@app/components/shell/Toolbar';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
 import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 import type { FaqTag } from '@app/faq/tags';

@@ -7,6 +7,7 @@ import { FormTooltip } from '@ui/input/FormTooltip';
 import { Links } from '@ui/list/Links';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
+import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
   Check,
@@ -23,7 +24,6 @@ import { useGroupMembershipWorkflow } from '@db/members';
 import { viewerActionsFor } from '@app/access/viewerActions';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
-import { Toolbar } from '@app/components/shell/Toolbar';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 

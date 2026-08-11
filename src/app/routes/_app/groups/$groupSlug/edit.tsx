@@ -2,12 +2,12 @@ import { ActionIcon, Group } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormTooltip } from '@ui/input/FormTooltip';
 import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Users } from 'lucide-react';
 
 import { loadGroupEditBySlug, useGroupEditBySlug } from '@db/groups';
 import { GroupSettingsForm } from '@app/components/groups/GroupSettingsForm';
 import { PageLayout } from '@app/components/shell';
-import { Toolbar } from '@app/components/shell/Toolbar';
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/edit')({
   loader: async ({ params }) => {

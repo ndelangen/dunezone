@@ -4,13 +4,13 @@ import { FormField } from '@ui/input/FormField';
 import { FormTooltip } from '@ui/input/FormTooltip';
 import { TextField } from '@ui/input/TextField';
 import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { Save, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { useCreateGroup } from '@db/groups';
 import { useCurrentProfile } from '@db/profiles';
 import { PageLayout } from '@app/components/shell';
-import { Toolbar } from '@app/components/shell/Toolbar';
 
 export const Route = createFileRoute('/_app/groups/create')({
   component: GroupCreatePage,

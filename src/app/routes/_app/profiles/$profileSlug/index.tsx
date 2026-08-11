@@ -8,6 +8,7 @@ import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
+import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -29,7 +30,6 @@ import {
 } from '@app/components/profile/ProfileFaqActivity';
 import { ProposedContent } from '@app/components/ProposedContent';
 import { PageLayout } from '@app/components/shell';
-import { Toolbar } from '@app/components/shell/Toolbar';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
 
 import styles from '../ProfileDetail.module.css';

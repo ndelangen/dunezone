@@ -26,6 +26,7 @@ import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
+import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
   Download,
@@ -42,7 +43,6 @@ import { useGroupMembershipWorkflow } from '@db/members';
 import { viewerActionsFor } from '@app/access/viewerActions';
 import { ProfileLink } from '@app/components/profile/ProfileLink';
 import { PageLayout } from '@app/components/shell';
-import { Toolbar } from '@app/components/shell/Toolbar';
 import { TopicIcon } from '@app/components/topics/TopicIcon';
 import { factionAssetPublishingCopy } from '@app/factions/assetPublishingStatus';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';

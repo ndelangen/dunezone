@@ -17,6 +17,7 @@ import { CallToAction } from '@ui/action/CallToAction';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { SectionIntro } from '@ui/layout/SectionIntro';
 import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
@@ -228,55 +229,60 @@ function CatalogueToolbar({
     />
   );
 
-  /* PageLayout owns the toolbar's pane; a second one here would nest. */
   return (
     <>
-      <div className={styles.toolbarGrid}>
-        <Text className={styles.resultCount} size="sm" c="dimmed">
-          {visibleCount === totalCount
-            ? `${totalCount} factions`
-            : `${visibleCount} of ${totalCount} factions`}
-        </Text>
-        <fieldset className={styles.joinedFilters} aria-label="Faction catalogue filters">
-          <TextInput
-            className={styles.searchField}
-            variant="unstyled"
-            value={draftQuery}
-            onChange={(event) => onDraftQueryChange(event.currentTarget.value)}
-            onBlur={onCommitQuery}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Search factions…"
-            aria-label="Search factions"
-            leftSection={<Search size={16} aria-hidden />}
-          />
-          {rulesetSelect(undefined, true)}
-          {sortSelect(undefined, true)}
-          <Tooltip label="Refine factions">
+      <Toolbar>
+        <Toolbar.Left>
+          <Text size="sm" c="dimmed" className={styles.resultCount}>
+            {visibleCount === totalCount
+              ? `${totalCount} factions`
+              : `${visibleCount} of ${totalCount} factions`}
+          </Text>
+        </Toolbar.Left>
+        <Toolbar.Center>
+          {/* The band's centre width comes from this field, not from the toolbar. */}
+          <fieldset className={styles.joinedFilters} aria-label="Faction catalogue filters">
+            <TextInput
+              className={styles.searchField}
+              variant="unstyled"
+              value={draftQuery}
+              onChange={(event) => onDraftQueryChange(event.currentTarget.value)}
+              onBlur={onCommitQuery}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search factions…"
+              aria-label="Search factions"
+              leftSection={<Search size={16} aria-hidden />}
+            />
+            {rulesetSelect(undefined, true)}
+            {sortSelect(undefined, true)}
+            <Tooltip label="Refine factions">
+              <ActionIcon
+                className={styles.mobileRefineButton}
+                variant="subtle"
+                color="gray"
+                size="lg"
+                aria-label="Refine factions"
+                onClick={() => setOpened(true)}
+              >
+                <SlidersHorizontal size={17} aria-hidden />
+              </ActionIcon>
+            </Tooltip>
+          </fieldset>
+        </Toolbar.Center>
+        <Toolbar.Right>
+          <Tooltip label="Create new faction">
             <ActionIcon
-              className={styles.mobileRefineButton}
-              variant="subtle"
-              color="gray"
+              variant="filled"
+              color="confirm"
               size="lg"
-              aria-label="Refine factions"
-              onClick={() => setOpened(true)}
+              aria-label="Create new faction"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
             >
-              <SlidersHorizontal size={17} aria-hidden />
+              <Plus size={17} aria-hidden />
             </ActionIcon>
           </Tooltip>
-        </fieldset>
-        <Tooltip label="Create new faction">
-          <ActionIcon
-            className={styles.toolbarCreateButton}
-            variant="filled"
-            color="confirm"
-            size="lg"
-            aria-label="Create new faction"
-            renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
-          >
-            <Plus size={17} aria-hidden />
-          </ActionIcon>
-        </Tooltip>
-      </div>
+        </Toolbar.Right>
+      </Toolbar>
       <Drawer
         opened={opened}
         onClose={() => setOpened(false)}

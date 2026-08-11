@@ -20,11 +20,14 @@ function Right({ children }: ToolbarSlotProps) {
 }
 
 /**
- * The band of page-level controls beneath the hero.
+ * A pane of controls, divided into what leads, what labels, and what acts.
  *
- * Owns the whole band, including the pane it sits on — a page hands it controls, never chrome. It
- * lives in the app shell rather than the interface kit because it is a fixed part of this
- * application's page furniture, not a general arrangement primitive.
+ * Callers own the controls. This owns the band they sit in: the pane, its gutter, and the three
+ * positions — `Left` and `Right` share the remaining width and pull to their outer edges, `Center`
+ * takes only the room it needs.
+ *
+ * It is a surface, so it must not be placed inside one. A page hands it controls, never chrome —
+ * there is no variant of this without the pane, because a bare row of buttons is a `Group`.
  */
 export type ToolbarProps = {
   className?: string;

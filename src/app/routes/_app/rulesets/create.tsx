@@ -4,6 +4,7 @@ import { FormField } from '@ui/input/FormField';
 import { FormTooltip } from '@ui/input/FormTooltip';
 import { TextField } from '@ui/input/TextField';
 import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useState } from 'react';
 
@@ -11,7 +12,6 @@ import { useGroupsByCreator } from '@db/groups';
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
 import { PageLayout } from '@app/components/shell';
-import { Toolbar } from '@app/components/shell/Toolbar';
 
 export const Route = createFileRoute('/_app/rulesets/create')({
   component: CreateRulesetPage,

@@ -8,8 +8,8 @@ export interface PageLayoutProps {
   /** Reduce the hero height for content-heavy detail pages. */
   headerSize?: 'default' | 'compact';
   /**
-   * Page-level controls rendered before the main content. The layout owns the surface they sit on,
-   * so pages supply only the controls.
+   * A `Toolbar`, rendered before the main content. It is a surface and brings its own pane, so this
+   * slot adds nothing around it — anything passed here needs a pane of its own.
    */
   toolbar?: ReactNode;
   children: ReactNode;
