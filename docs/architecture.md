@@ -42,7 +42,7 @@ Route tree auto-generates: [`src/app/routeTree.gen.ts`](../src/app/routeTree.gen
 Configured in [`tsconfig.json`](../tsconfig.json):
 
 - `@db/core` → `src/app/db/core/index.ts` (DB client, types)
-- `@db/*` → `src/app/*/db.ts` (domain hooks)
+- `@db/*` → `src/app/db/*.ts` (domain data modules)
 - `@app/*` → `src/app/*` (app code)
 - `@ui/*` → `src/app/ui/*` (every published component)
 - `@game/*` → `src/game/*` (print-faithful renderers)
@@ -60,7 +60,7 @@ Which category a component belongs to is decided by the taxonomy in
   things. No Convex client, no *value* imports from `@db/**` (`import type` is fine and expected), and
   no router data hooks — `Link` stays allowed, `useNavigate` does not.
 - `src/app/**` — the application: routes (which own their own page composition), domain data modules
-  (`<domain>/db.ts`), the shell (`shell/`), document-rendering glue (`sheet/`, `capture/`), and
+  (`db/<domain>.ts`), the shell (`shell/`), document-rendering glue (`sheet/`, `capture/`), and
   `widgets/<name>` for assemblies two or more routes install whole. There is no `components/`
   directory here — every published component lives in `src/app/ui`.
 - `src/game/**` — print-faithful renderers, independent of Mantine and the kit.
@@ -71,7 +71,7 @@ Which category a component belongs to is decided by the taxonomy in
 
 1. Route [`src/app/routes/_app/index.tsx`](../src/app/routes/_app/index.tsx) — `loader: loadHomepage`
    fetches through `db.query()` before first render.
-2. Domain hook [`src/app/homepage/db.ts`](../src/app/homepage/db.ts) — `useHomepage({ initialData:
+2. Domain hook [`src/app/db/homepage.ts`](../src/app/db/homepage.ts) — `useHomepage({ initialData:
    loaderData })` subscribes via Convex `useQuery` and keeps the screen live.
 3. Database — Convex document database with function-level authorization checks.
 

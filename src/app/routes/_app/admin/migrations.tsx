@@ -5,12 +5,12 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
-import { useCurrentProfile } from '@db/profiles';
 import {
   loadAdminMigrationDashboard,
   useAdminMigrationDashboard,
   useSyncMigrationRuns,
-} from '@app/migrations/db';
+} from '@db/migrations';
+import { useCurrentProfile } from '@db/profiles';
 
 export const Route = createFileRoute('/_app/admin/migrations')({
   loader: async () => ({ dashboard: await loadAdminMigrationDashboard() }),

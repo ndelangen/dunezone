@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart TD
-    Schema[Zod Schema<br/>src/app/<domain>/validation.ts<br/>or src/game/schema/] --> DomainFile[Domain File<br/>src/app/<domain>/db.ts]
+    Schema[Zod Schema<br/>src/shared/<domain>/validation.ts<br/>or src/game/schema/] --> DomainFile[Domain File<br/>src/app/db/<domain>.ts]
     DomainFile --> Types[Types]
     DomainFile --> Loaders[Loaders<br/>db.query]
     DomainFile --> Queries[Live query hooks]
@@ -20,7 +20,7 @@ are no query keys and no cache; see [State Management](./state-management.md).
 ## Convex Schema
 
 Convex schema and indexes are defined in [`convex/schema.ts`](../convex/schema.ts). Domain-level Zod
-schemas live in `src/app/<domain>/validation.ts` and `src/game/schema/`.
+schemas live in `src/shared/<domain>/validation.ts` and `src/game/schema/`.
 
 ## Basic DB Structure
 
@@ -62,11 +62,11 @@ export function useFactionCataloguePage(options?: { initialData?: FactionCatalog
 }
 ```
 
-**Example**: [`src/app/factions/db.ts`](../src/app/factions/db.ts)
+**Example**: [`src/app/db/factions.ts`](../src/app/db/factions.ts)
 
 ## Data Validation
 
-Shared domain Zod schemas in `src/app/<domain>/validation.ts` validate at runtime:
+Shared domain Zod schemas in `src/shared/<domain>/validation.ts` validate at runtime:
 
 - Before database operations (mutations)
 - After database reads (queries)
@@ -123,7 +123,7 @@ export const updateSomething = mutation({
 
 ### Current Exemplars
 
-- Shared profile semantic schema: [`src/app/profile/validation.ts`](../src/app/profile/validation.ts)
+- Shared profile semantic schema: [`src/shared/profile/validation.ts`](../src/shared/profile/validation.ts)
 - Server-authoritative parse in mutation: [`convex/profiles.ts`](../convex/profiles.ts)
 
 ## Soft Delete Pattern
@@ -139,10 +139,10 @@ Factions, rulesets, and groups use `is_deleted` flags instead of hard deletes:
   so clients never see a deleted group or a dangling reference
 - Deleted names and slugs stay reserved (see ADR-0003)
 
-**Example**: [`src/app/factions/db.ts`](../src/app/factions/db.ts)
+**Example**: [`src/app/db/factions.ts`](../src/app/db/factions.ts)
 
-## Convex `useQuery` in domain hooks (`src/app/**/db.ts`)
+## Convex `useQuery` in domain hooks (`src/app/db/*.ts`)
 
 Avoid Convex React `"skip"` and `enabled ? args : 'skip'` in domain data modules. When a subscription should not run, **unmount** the component that calls `useQuery` (for example, render a child only when `open && userId`, or split route shells so live-only paths do not mount DB-mode hooks). Route loaders continue to prefetch with `db.query`; route leaves use matching `useQuery` with the same arguments and `initialData` from the loader where applicable.
 
-**Guard**: `bun run check:convex-skip` fails if `"skip"` appears in any `src/app/**/db.ts` file.
+**Guard**: `bun run check:convex-skip` fails if `"skip"` appears in any `src/app/db/*.ts` file.

@@ -25,7 +25,7 @@ vi.mock('convex/react', () => ({
   useMutation: mocks.useMutation,
 }));
 
-import { useAskFaqQuestion, useFaqQuestionPage } from './db';
+import { useAskFaqQuestion, useFaqQuestionPage } from './faq';
 
 const serverPage = {
   ruleset: { id: 'ruleset-1', slug: 'test-ruleset', name: 'TestRuleset' },

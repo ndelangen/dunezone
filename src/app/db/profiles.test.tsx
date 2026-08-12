@@ -13,7 +13,7 @@ vi.mock('convex/react', () => ({
   useMutation: vi.fn(),
 }));
 
-import { loadProfileBySlug } from './db';
+import { loadProfileBySlug } from './profiles';
 
 const profile = {
   _id: 'profile-1',

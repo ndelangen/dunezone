@@ -54,4 +54,4 @@ If a legacy user has no profile, the client’s `useCurrentProfile()` calls `pro
 **Hooks**: `useCurrentProfile()`, `useProfileBySlug(slug)`, `useProfilesAll()`,
 `useUpdateCurrentProfile()` — profile lookups are slug-based, never by id
 
-**Example**: [`src/app/profile/db.ts`](../src/app/profile/db.ts)
+**Example**: [`src/app/db/profiles.ts`](../src/app/db/profiles.ts)

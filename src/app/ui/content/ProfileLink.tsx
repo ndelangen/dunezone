@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import type { CSSProperties, ReactNode } from 'react';
 
-import type { ProfileEntry } from '@db/profile';
+import type { ProfileEntry } from '@db/profiles';
 
 import styles from './ProfileLink.module.css';
 

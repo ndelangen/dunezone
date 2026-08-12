@@ -7,7 +7,7 @@ import { Trash2, UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
-import { loadFaction } from '@app/factions/db';
+import { loadFaction } from '@db/factions';
 import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';

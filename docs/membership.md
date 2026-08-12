@@ -19,7 +19,7 @@ membership reactivates it as `pending`.
 
 **Type**: an inline Convex literal union on the `group_members` table
 ([`convex/schema.ts`](../convex/schema.ts)), mirrored client-side in
-[`src/app/members/db.ts`](../src/app/members/db.ts)
+[`src/app/db/members.ts`](../src/app/db/members.ts)
 
 - `pending` - Membership requested, awaiting approval
 - `active` - Approved, active member
@@ -40,7 +40,7 @@ from raw membership rows.
 Asset page queries provide server-derived `assignableGroups`; assignment controls do not query or
 filter raw membership rows.
 
-**Example**: [`src/app/members/db.ts`](../src/app/members/db.ts)
+**Example**: [`src/app/db/members.ts`](../src/app/db/members.ts)
 
 ## Authorization
 
