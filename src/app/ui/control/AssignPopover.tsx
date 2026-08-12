@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 import { useId, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
-export interface AssignPopoverOption {
+interface AssignPopoverOption {
   value: string;
   /** How this choice reads, including any context the reader needs to tell two apart. */
   label: string;
@@ -30,8 +30,18 @@ export interface AssignPopoverProps {
   loading?: boolean;
   /** The trigger's glyph. */
   icon: ReactNode;
-  /** Names the trigger and the dropdown. Defaults to `Assign <noun>`. */
+  /** Names the dropdown. Defaults to `Assign <noun>`. */
   title?: string;
+  /**
+   * The trigger's accessible name, when it differs from the dropdown's title — the trigger says
+   * what the reader is about to do ("Add a faction you own"), the dropdown says where they now
+   * are.
+   */
+  triggerLabel?: string;
+  /** Overrides `Search <noun>s` on the field, where the product says it differently. */
+  searchLabel?: string;
+  /** Overrides `Assign selected <noun>` on the commit button. */
+  submitLabel?: string;
   /** Lines under the title — why this exists, or what the pick costs. */
   descriptionLines?: string[];
   /** Replaces `No <noun>s are available yet.` when the caller knows a better reason. */
@@ -46,11 +56,16 @@ function AssignPopoverBody({
   disabled,
   loading = false,
   title,
+  searchLabel,
+  submitLabel,
   descriptionLines,
   emptyMessage,
   labelId,
   onAssigned,
-}: Omit<AssignPopoverProps, 'icon' | 'size'> & { labelId: string; onAssigned: () => void }) {
+}: Omit<AssignPopoverProps, 'icon' | 'size' | 'triggerLabel'> & {
+  labelId: string;
+  onAssigned: () => void;
+}) {
   const [selected, setSelected] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
@@ -109,7 +124,7 @@ function AssignPopoverBody({
       ) : (
         <Stack gap="md">
           <Select
-            label={`Search ${noun}s`}
+            label={searchLabel ?? `Search ${noun}s`}
             value={selected || null}
             onChange={(value) => setSelected(value ?? '')}
             data={options}
@@ -128,7 +143,7 @@ function AssignPopoverBody({
               disabled={disabled || !selected}
               loading={isAssigning}
             >
-              Assign selected {noun}
+              {submitLabel ?? `Assign selected ${noun}`}
             </Button>
           </Group>
         </Stack>
@@ -167,7 +182,7 @@ export function AssignPopover({ icon, size = 'lg', ...body }: AssignPopoverProps
     >
       <Popover.Target>
         <IconAction
-          label={body.title ?? `Assign ${body.noun}`}
+          label={body.triggerLabel ?? body.title ?? `Assign ${body.noun}`}
           variant="light"
           size={size}
           disabled={body.disabled}
