@@ -4,8 +4,8 @@ import { useEffect } from 'react';
 import { loadFactionBySlug, useFaction } from '@db/factions';
 import '@app/print/sheet/sheet-page.css';
 import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
+import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
 
-import { AssetRenderModeProvider } from '../../../../game/assets/assetRenderMode';
 import { useFactionSheetPostMessage } from './-useFactionSheetPostMessage';
 
 export const Route = createFileRoute('/preview/sheet/$factionSlug')({
