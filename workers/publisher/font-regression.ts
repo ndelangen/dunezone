@@ -52,9 +52,11 @@ const cssFile = readdirSync(path.join(publisherDist, 'publisher-capture')).find(
 );
 invariant(cssFile, 'Publisher capture CSS is missing; run publisher:assets first');
 
-// The built filename is content-hashed, so serve it under a stable alias in the same
-// directory: relative url() references inside the CSS still resolve, and the discovered
-// filename never reaches the HTML.
+/*
+ * The built filename is content-hashed, so serve it under a stable alias in the same
+ * directory: relative url() references inside the CSS still resolve, and the discovered
+ * filename never reaches the HTML.
+ */
 const cssHref = '/publisher-capture/font-regression.css';
 
 const server = Bun.serve({
@@ -72,9 +74,7 @@ const server = Bun.serve({
       );
     }
     if (pathname === cssHref) {
-      return new Response(Bun.file(path.join(publisherDist, 'publisher-capture', cssFile)), {
-        headers: { 'Content-Type': 'text/css; charset=utf-8' },
-      });
+      return new Response(Bun.file(path.join(publisherDist, 'publisher-capture', cssFile)));
     }
     if (pathname === '/broken-required.woff2') {
       return new Response('not a woff2', { headers: { 'Content-Type': 'font/woff2' } });
