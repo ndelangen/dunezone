@@ -23,6 +23,11 @@ const meta = preview.meta({
   parameters: { layout: 'centered' },
 });
 
+/** Both ends found, and the item actually lands somewhere new. */
+function movesSomewhere(from: number, to: number) {
+  return from >= 0 && to >= 0 && from !== to;
+}
+
 function SortableListDemo() {
   const [items, setItems] = useState(['Alpha', 'Bravo', 'Charlie']);
   const sensors = useSensors(
@@ -35,15 +40,11 @@ function SortableListDemo() {
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={({ active, over }: DragEndEvent) => {
-        if (!over) {
-          return;
-        }
         const from = items.indexOf(String(active.id));
-        const to = items.indexOf(String(over.id));
-        if (from < 0 || to < 0 || from === to) {
-          return;
+        const to = over ? items.indexOf(String(over.id)) : -1;
+        if (movesSomewhere(from, to)) {
+          setItems((prev) => arrayMove(prev, from, to));
         }
-        setItems((prev) => arrayMove(prev, from, to));
       }}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>

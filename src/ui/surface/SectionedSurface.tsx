@@ -1,5 +1,5 @@
 import { Table } from '@mantine/core';
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 
 import styles from './SectionedSurface.module.css';
 import { Surface } from './Surface';
@@ -64,30 +64,38 @@ function isInteractiveTarget(target: EventTarget) {
  * Whole-row activation is the fiddly part this owns: keyboard support, and not hijacking clicks
  * that were aimed at a link or button nested inside the row.
  */
+/** Everything that turns a plain row into the link — or nothing at all, when it is not one. */
+function activationProps(onActivate: (() => void) | undefined, ariaLabel: string | undefined) {
+  if (!onActivate) {
+    return {};
+  }
+
+  return {
+    className: styles.interactiveRow,
+    role: 'link',
+    tabIndex: 0,
+    'aria-label': ariaLabel,
+    onClick: (event: MouseEvent<HTMLTableRowElement>) => {
+      if (!isInteractiveTarget(event.target)) {
+        onActivate();
+      }
+    },
+    onKeyDown: (event: KeyboardEvent<HTMLTableRowElement>) => {
+      if (event.target !== event.currentTarget) {
+        return;
+      }
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+      event.preventDefault();
+      onActivate();
+    },
+  };
+}
+
 function Row({ children, onActivate, ariaLabel }: SectionedSurfaceRowProps) {
   return (
-    <Table.Tr
-      className={onActivate ? styles.interactiveRow : undefined}
-      role={onActivate ? 'link' : undefined}
-      tabIndex={onActivate ? 0 : undefined}
-      aria-label={onActivate ? ariaLabel : undefined}
-      onClick={(event) => {
-        if (!onActivate || isInteractiveTarget(event.target)) {
-          return;
-        }
-        onActivate();
-      }}
-      onKeyDown={(event) => {
-        if (!onActivate || event.target !== event.currentTarget) {
-          return;
-        }
-        if (event.key !== 'Enter' && event.key !== ' ') {
-          return;
-        }
-        event.preventDefault();
-        onActivate();
-      }}
-    >
+    <Table.Tr {...activationProps(onActivate, ariaLabel)}>
       <Table.Td className={styles.rowCell}>{children}</Table.Td>
     </Table.Tr>
   );
