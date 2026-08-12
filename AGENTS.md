@@ -92,6 +92,10 @@ Rules between categories:
   the app.
 - **Kind is judged at the membrane.** What a caller hands a component decides its kind; its
   insides are composition, governed by the rules above.
+- **Adornments are not slots.** A glyph (`icon`), an action (`action`, `tool`) and hover text stay
+  `ReactNode` in every category and never count against a slot budget — they decorate the thing,
+  they are not the thing. So a Block may take `icon` and `action` beside the one region it names,
+  and framing furniture for a control (`ControlBlock`) is a Control, not a Block.
 - **Pages compose; that is where the heavy JSX belongs.** A recurring composition earns a Block
   only when its words can travel as data.
 

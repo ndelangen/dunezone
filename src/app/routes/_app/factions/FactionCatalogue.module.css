@@ -44,12 +44,6 @@
   display: none;
 }
 
-.stateCard {
-  width: min(100%, 32rem);
-  align-self: center;
-  text-align: center;
-}
-
 @media (max-width: 48em) {
   .catalogueHeader {
     gap: var(--mantine-spacing-sm);

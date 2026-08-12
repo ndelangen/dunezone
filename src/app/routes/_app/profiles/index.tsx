@@ -27,7 +27,7 @@ function ProfilesPage() {
   const profiles = useProfilesAll({ initialData: loaderData.profiles });
 
   return (
-    <PageLayout>
+    <PageLayout header={<h1>Profiles</h1>}>
       {profiles.data && profiles.data.length > 0 ? (
         <Surface padding="lg">
           <Stack component="ul" gap="xs" className={styles.list}>

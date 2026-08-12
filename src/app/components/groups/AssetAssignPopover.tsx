@@ -1,7 +1,7 @@
-import { Alert, Button, Group, Popover, Select, Stack, Text, Title } from '@mantine/core';
+import { Alert, Button, Group, Popover, Select, Stack, Text } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 
 /**
  * The popover's minimal structural requirement on a picked row — satisfied by the (validator-
@@ -37,6 +37,7 @@ export function AssetAssignPopover({
   ownedItems,
   onAssign,
 }: AssetAssignPopoverProps) {
+  const labelId = useId();
   const [opened, setOpened] = useState(false);
   const [selectedId, setSelectedId] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -116,13 +117,14 @@ export function AssetAssignPopover({
           icon={<Plus size={14} aria-hidden />}
         />
       </Popover.Target>
-      <Popover.Dropdown>
+      <Popover.Dropdown aria-labelledby={labelId}>
         {opened ? (
           <Stack gap="md">
             <Stack gap={4}>
-              <Title order={3} size="h4">
+              {/* Names the dropdown rather than the page: see GroupAssignPopover. */}
+              <Text id={labelId} fw={700} fz="h4">
                 Add a {kind}
-              </Title>
+              </Text>
               <Text size="sm" c="dimmed">
                 Only {kind}s you own are listed. Moving one already in another group needs
                 confirmation.

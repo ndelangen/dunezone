@@ -7,13 +7,6 @@
   margin: 0 auto;
 }
 
-.formColumn {
-  display: flex;
-  flex-direction: column;
-  gap: var(--mantine-spacing-xl);
-  min-width: 0;
-}
-
 .workbench {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
@@ -31,20 +24,17 @@
   padding-left: var(--mantine-spacing-md);
 }
 
+/* The desk the artifact sits on. Surface owns the pane itself — border, infill, blur, shadow —
+   so this is only what makes it a desk: it follows you down a long chapter form, and it is ruled
+   like drafting paper. */
 .artifactDesk {
-  --paper-bg: var(--glass-surface-1);
-
   position: sticky;
   top: calc(var(--app-shell-header-offset, 0px) + 5.5rem);
   overflow: hidden;
-  background-color: var(--glass-surface-1);
   background-image:
     linear-gradient(rgb(145 107 52 / 7%) 1px, transparent 1px),
     linear-gradient(90deg, rgb(145 107 52 / 7%) 1px, transparent 1px);
   background-size: 1.5rem 1.5rem;
-  border-color: var(--panel-border);
-  box-shadow: var(--panel-shadow);
-  backdrop-filter: blur(8px);
 }
 
 .identityProof {

@@ -257,7 +257,12 @@ function ArtifactProof({
         }
 
         return (
-          <Surface padding="md" as="section">
+          <Surface
+            padding="md"
+            as="section"
+            className={styles.artifactDesk}
+            aria-label={`${title} live preview`}
+          >
             {activeChapter === 'identity' ? (
               <Box className={styles.identityProof}>
                 {artifact}

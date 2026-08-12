@@ -245,10 +245,12 @@ function FactionDetailPage() {
           <Stack gap="xl">
             <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">
               <div className={styles.horizontalLane}>
-                {data.leaders.map((leader) => (
+                {/* Position disambiguates: an author may field two identical leaders, and a
+                    faction's lists carry no ids of their own. */}
+                {data.leaders.map((leader, index) => (
                   <article
                     className={styles.leaderTile}
-                    key={`${leader.name}-${leader.image}`}
+                    key={`${leader.name}-${leader.image}-${index}`}
                     title={`${leader.name}, strength ${leader.strength ?? 'not specified'}`}
                   >
                     <LeaderToken {...leader} background={data.background} logo={data.logo} />
@@ -259,12 +261,12 @@ function FactionDetailPage() {
 
             <Section icon={<TopicIcon topic="troops" size={20} />} title="Troops">
               <div className={styles.horizontalLane}>
-                {data.troops.map((troop) => (
+                {data.troops.map((troop, index) => (
                   <Surface
                     as="article"
                     padding="sm"
                     className={styles.troopTile}
-                    key={`${troop.name}-${troop.image}`}
+                    key={`${troop.name}-${troop.image}-${index}`}
                   >
                     <Group wrap="nowrap" gap="md">
                       <div className={styles.troopToken}>
@@ -300,12 +302,12 @@ function FactionDetailPage() {
             {planets.length > 0 ? (
               <Section icon={<MapPin size={20} aria-hidden />} title="Planets">
                 <div className={styles.horizontalLane}>
-                  {planets.map((planet) => (
+                  {planets.map((planet, index) => (
                     <Surface
                       as="article"
                       padding="md"
                       className={styles.planetTile}
-                      key={`${planet.name}-${planet.image}`}
+                      key={`${planet.name}-${planet.image}-${index}`}
                     >
                       <Stack gap="xs">
                         <Text fw={700}>{planet.name}</Text>
@@ -324,7 +326,7 @@ function FactionDetailPage() {
                 <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                   {data.rules.advantages.map((advantage, index) => (
                     <Card
-                      key={`${advantage.title ?? 'advantage'}-${advantage.text}`}
+                      key={`${advantage.title ?? 'advantage'}-${advantage.text}-${index}`}
                       title={advantage.title ?? `Advantage ${index + 1}`}
                     >
                       <Stack gap="sm">

@@ -24,6 +24,14 @@ export interface SurfaceProps {
   /** Semantic element. The pane is often a `section` or `article`, not a bare box. */
   as?: 'div' | 'section' | 'article' | 'aside';
   /**
+   * Names the pane for assistive tech. Required in practice whenever `as` is not `div`: an unnamed
+   * `section` or `aside` is not exposed as a landmark at all, so the semantic element buys the tag
+   * and none of the meaning. Use `aria-labelledby` when a visible heading already says it, and
+   * `aria-label` when nothing on screen does.
+   */
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+  /**
    * Lifts on hover and focus. Only for a surface that is itself the click target; a surface
    * containing controls should stay still.
    */
@@ -57,6 +65,8 @@ export function Surface({
   interactive = false,
   renderRoot,
   className,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
 }: SurfaceProps) {
   const insideSurface = useContext(InsideSurface);
 
@@ -78,9 +88,16 @@ export function Surface({
   return (
     <InsideSurface.Provider value>
       {renderRoot ? (
-        renderRoot({ className: surfaceClass, children })
+        renderRoot({
+          className: surfaceClass,
+          children,
+          'aria-label': ariaLabel,
+          'aria-labelledby': ariaLabelledBy,
+        })
       ) : (
-        <Element className={surfaceClass}>{children}</Element>
+        <Element className={surfaceClass} aria-label={ariaLabel} aria-labelledby={ariaLabelledBy}>
+          {children}
+        </Element>
       )}
     </InsideSurface.Provider>
   );

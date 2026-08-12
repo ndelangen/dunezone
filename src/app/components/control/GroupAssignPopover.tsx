@@ -1,7 +1,7 @@
-import { Alert, Button, Group, Popover, Select, Stack, Text, Title } from '@mantine/core';
+import { Alert, Button, Group, Popover, Select, Stack, Text } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { Check, Users } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 
 import type { AssignedGroupSummary } from '../../../../convex/lib/collaborativeAccess';
 
@@ -36,8 +36,10 @@ function GroupAssignPopoverBodyContent({
   title,
   descriptionLines,
   onAssigned,
+  labelId,
 }: BodySharedProps & {
   assignableGroups: AssignedGroupSummary[];
+  labelId: string;
 }) {
   const [isAssigning, setIsAssigning] = useState(false);
   const memberGroupIdSet = useMemo(
@@ -77,9 +79,12 @@ function GroupAssignPopoverBodyContent({
   return (
     <Stack gap="md">
       <Stack gap={4}>
-        <Title order={3} size="h4">
+        {/* Not a heading: a popover is not part of the page outline, and the level it would
+            have to claim depends on a caller this component cannot see. It names the dropdown
+            through `aria-labelledby` instead. */}
+        <Text id={labelId} fw={700} fz="h4">
           {title}
-        </Title>
+        </Text>
         {descriptionLines.map((line) => (
           <Text key={line} size="sm" c="dimmed">
             {line}
@@ -150,6 +155,8 @@ export function GroupAssignPopover({
     }
   };
 
+  const labelId = useId();
+
   return (
     <Popover
       opened={opened}
@@ -171,9 +178,10 @@ export function GroupAssignPopover({
           icon={<Users size={17} aria-hidden />}
         />
       </Popover.Target>
-      <Popover.Dropdown>
+      <Popover.Dropdown aria-labelledby={labelId}>
         {opened ? (
           <GroupAssignPopoverBodyContent
+            labelId={labelId}
             assignableGroups={assignableGroups}
             selectedGroupId={selectedGroupId}
             setSelectedGroupId={setSelectedGroupId}

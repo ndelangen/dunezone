@@ -44,8 +44,9 @@ export function FactionCard({
             <LeaderToken {...hero} strength={undefined} background={background} logo={logo} />
           </div>
           <div className={styles.leaders}>
-            {leaders.slice(0, 3).map((leader) => (
-              <span key={`${leader.name}-${leader.image}`}>
+            {/* Position disambiguates: two identical leaders on one faction is legal authoring. */}
+            {leaders.slice(0, 3).map((leader, index) => (
+              <span key={`${leader.name}-${leader.image}-${index}`}>
                 <LeaderToken {...leader} background={background} logo={logo} />
               </span>
             ))}
