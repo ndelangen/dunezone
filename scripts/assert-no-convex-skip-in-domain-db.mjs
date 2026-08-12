@@ -22,7 +22,8 @@ async function* walk(dir) {
       e.isFile() &&
       e.name.endsWith('.ts') &&
       !e.name.endsWith('.d.ts') &&
-      !e.name.includes('.test.')
+      !e.name.includes('.test.') &&
+      !e.name.includes('.spec.')
     ) {
       yield p;
     }
