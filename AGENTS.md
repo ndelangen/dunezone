@@ -57,11 +57,20 @@ may compose a game renderer or a pure helper. What it may not do is fetch, or de
 goes next, because either one makes it unusable in a story and unusable on a second page. So
 [`.oxlintrc.json`](.oxlintrc.json) forbids, inside `src/app/ui`:
 
-- the Convex client in any form;
-- **value** imports from `@db/**` — `allowTypeImports` keeps `import type` legal, since a type is a
-  statement about what you render, not a dependency;
-- `useNavigate`, `useLoaderData`, `useParams`, `useSearch` — `Link`, `createLink` and `renderRoot`
-  stay allowed, because pointing at a place is presentation and going there is a page's decision.
+- the Convex client in any form, including the relative path to `convex/_generated`;
+- **value** imports from a data module by *every* spelling — `@db/**`, `@app/db/**`, `@app/*/db`,
+  and the relative forms with or without a `.ts` extension. One alias is not one path: `@db/core`
+  and `@app/db/core` are the same file, and it exports a live `ConvexReactClient`.
+  `allowTypeImports` keeps `import type` legal, since a type is a statement about what you render,
+  not a dependency;
+- the router's data and navigation surface — `useRouter` first of all, since it returns the whole
+  router with `.navigate()` on it, plus `useLocation`, `useMatch(es)`, `useParams`, `useSearch`,
+  `useLoaderData`, `useRouteContext`, `Navigate`, `redirect` and the rest. `Link`, `createLink`,
+  `useLinkProps`, `useMatchRoute` and `renderRoot` stay allowed: pointing at a place is
+  presentation, going there is a page's decision;
+- `@app/shell/**`, `@app/widgets/**` and `@app/routes/**` — direction, not fetching. The shell,
+  widgets and routes are built *out of* the kit; the reverse inverts the taxonomy and invites a
+  cycle.
 
 Nothing is exempt and no filename marks an escape. An earlier version of this rule banned every
 `@app`/`@db`/`@game` import and needed a `*.domain.tsx` suffix to carve out the seven components that

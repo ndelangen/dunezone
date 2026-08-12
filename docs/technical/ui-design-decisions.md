@@ -348,10 +348,18 @@ This document records durable UI decisions for consistency across features.
   and the proxy was both too strict and too loose.
 - Rule: Inside `src/app/ui/**`, a component renders what it is given; it does not go and get things.
   Concretely, [`.oxlintrc.json`](../../.oxlintrc.json) forbids the Convex client in any form; **value**
-  imports from `@db/**`, with `allowTypeImports` keeping `import type` legal; and the router's data
-  hooks (`useNavigate`, `useLoaderData`, `useParams`, `useSearch`) while leaving `Link`, `createLink`
-  and `renderRoot` allowed. Nothing else is restricted, nothing is exempt, and no filename marks an
-  escape — the `*.domain.tsx` suffix is deleted.
+  imports from a data module by every spelling it has (`@db/**`, `@app/db/**`, `@app/*/db`, and the
+  relative forms with or without a `.ts` extension), with `allowTypeImports` keeping `import type`
+  legal; the router's data and navigation surface, `useRouter` included, while leaving `Link`,
+  `createLink` and `renderRoot` allowed; and imports of `@app/shell`, `@app/widgets` or `@app/routes`,
+  which are built out of the kit rather than the other way round. Nothing is exempt and no filename
+  marks an escape — the `*.domain.tsx` suffix is deleted.
+- Note on the spellings: the first version of this rule named `@db/**` and four router hooks, which
+  looked complete and was not. `@app/db/core` reaches the same live client through the other alias;
+  `../../factions/db.ts` dodges a pattern that expects the specifier to end in `db`; and `useRouter`
+  returns an object with `.navigate()` on it, which made naming the four hooks decorative. Each hole
+  was found by probing the rule with throwaway files rather than by reading the config, and each
+  closed pattern is verified to leave the real kit at zero diagnostics.
 - Examples:
   - `import type { FactionCatalogueEntry } from '@db/factions'` is welcome: a type is a statement
     about what you render, not a dependency on how it was fetched.

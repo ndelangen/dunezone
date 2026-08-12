@@ -39,15 +39,50 @@
                 "message": "A component must not fetch. Convex belongs in a domain module (`src/app/<domain>/db.ts`); take the result as a prop."
               },
               {
-                "group": ["@db/**", "**/src/app/*/db", "../**/db"],
+                "group": [
+                  "@db/**",
+                  "@app/db",
+                  "@app/db/**",
+                  "@app/*/db",
+                  "@app/*/db.*",
+                  "**/src/app/db/**",
+                  "**/src/app/*/db",
+                  "**/src/app/*/db.*",
+                  "../**/db",
+                  "../**/db.*",
+                  "../**/db/core",
+                  "../**/db/core/*"
+                ],
                 "allowTypeImports": true,
                 "message": "A component must not fetch. Import the *type* if you need to say what shape you render (`import type { FactionEntry }`), and take the value as a prop."
+              },
+              {
+                "group": ["@app/shell/**", "@app/widgets/**", "@app/routes/**"],
+                "message": "The kit is imported by the shell, by widgets and by routes — never the other way around."
               }
             ],
             "paths": [
               {
                 "name": "@tanstack/react-router",
-                "importNames": ["useNavigate", "useLoaderData", "useParams", "useSearch"],
+                "importNames": [
+                  "useNavigate",
+                  "useLoaderData",
+                  "useLoaderDeps",
+                  "useParams",
+                  "useSearch",
+                  "useRouter",
+                  "useRouterState",
+                  "useMatch",
+                  "useMatches",
+                  "useChildMatches",
+                  "useParentMatches",
+                  "useLocation",
+                  "useRouteContext",
+                  "useBlocker",
+                  "useCanGoBack",
+                  "Navigate",
+                  "redirect"
+                ],
                 "message": "A component may point at a place — `Link`, `createLink`, `renderRoot` — but it may not decide to go there, or read the route it happens to be on. Take a callback, or let the caller render the Link."
               }
             ]
