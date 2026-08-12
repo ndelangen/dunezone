@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { UsersRound } from 'lucide-react';
 
-import { Section } from '../content/Section';
+import { StatusBadge } from '../content/StatusBadge';
 import { Card } from './Card';
 import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
 
@@ -10,35 +10,31 @@ const meta = preview.meta({
   component: Card,
   parameters: { layout: 'padded' },
   args: {
-    header: <Section icon={<UsersRound size={20} aria-hidden />} title="Stewardship" />,
+    title: 'Stewardship',
+    icon: <UsersRound size={20} aria-hidden />,
     children: <SurfaceFiller />,
   },
 });
 
-/** The heading is required — it is what distinguishes a Card from a plain `Surface`. */
+/** The title is required — it is what distinguishes a Card from a plain `Surface`. */
 export const Default = meta.story({});
 
-export const TallBody = meta.story({
-  args: {
-    header: <Section icon={<UsersRound size={20} aria-hidden />} title="Members" />,
-    children: <SurfaceFiller height={320} />,
-  },
+/** The glyph is decorative, so a card reads the same without one. */
+export const WithoutIcon = meta.story({
+  args: { icon: undefined, title: 'About' },
 });
 
-/**
- * `subsection` for a card that is one division among several inside a larger region — the region's
- * own heading is already carrying the level above it.
- */
-export const SubsectionHeading = meta.story({
-  args: {
-    header: <Section level="subsection" title="Setup changes" />,
-  },
+/** One control beside the name — a status, or a single button. */
+export const WithAction = meta.story({
+  args: { title: 'Files', action: <StatusBadge tone="positive">Current</StatusBadge> },
+});
+
+export const TallBody = meta.story({
+  args: { title: 'Members', children: <SurfaceFiller height={320} /> },
 });
 
 /** The sidebar width every Card in the app has to survive. */
 export const Narrow = meta.story({
-  args: {
-    header: <Section icon={<UsersRound size={20} aria-hidden />} title="At a glance" />,
-  },
+  args: { title: 'At a glance' },
   globals: { viewport: { value: 'contentNarrow' } },
 });

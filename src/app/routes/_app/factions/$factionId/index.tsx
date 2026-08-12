@@ -17,11 +17,9 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { Section } from '@ui/content/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { Region } from '@ui/layout/Region';
-import { SectionIntro } from '@ui/layout/SectionIntro';
 import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
@@ -258,9 +256,7 @@ function FactionDetailPage() {
       >
         <Box miw={0} style={{ flex: '1 1 auto' }}>
           <Stack gap="xl">
-            <Region
-              heading={<Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders" />}
-            >
+            <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">
               <div className={styles.horizontalLane}>
                 {data.leaders.map((leader) => (
                   <article
@@ -272,11 +268,9 @@ function FactionDetailPage() {
                   </article>
                 ))}
               </div>
-            </Region>
+            </Section>
 
-            <Region
-              heading={<Section icon={<TopicIcon topic="troops" size={20} />} title="Troops" />}
-            >
+            <Section icon={<TopicIcon topic="troops" size={20} />} title="Troops">
               <div className={styles.horizontalLane}>
                 {data.troops.map((troop) => (
                   <Surface
@@ -314,10 +308,10 @@ function FactionDetailPage() {
                   </Surface>
                 ))}
               </div>
-            </Region>
+            </Section>
 
             {planets.length > 0 ? (
-              <Region heading={<Section icon={<MapPin size={20} aria-hidden />} title="Planets" />}>
+              <Section icon={<MapPin size={20} aria-hidden />} title="Planets">
                 <div className={styles.horizontalLane}>
                   {planets.map((planet) => (
                     <Surface
@@ -335,25 +329,16 @@ function FactionDetailPage() {
                     </Surface>
                   ))}
                 </div>
-              </Region>
+              </Section>
             ) : null}
 
-            <Region
-              heading={
-                <Section icon={<TopicIcon topic="advantages" size={20} />} title="Advantages" />
-              }
-            >
+            <Section icon={<TopicIcon topic="advantages" size={20} />} title="Advantages">
               {data.rules.advantages.length > 0 ? (
                 <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                   {data.rules.advantages.map((advantage, index) => (
                     <Card
                       key={`${advantage.title ?? 'advantage'}-${advantage.text}`}
-                      header={
-                        <Section
-                          level="subsection"
-                          title={advantage.title ?? `Advantage ${index + 1}`}
-                        />
-                      }
+                      title={advantage.title ?? `Advantage ${index + 1}`}
                     >
                       <Stack gap="sm">
                         <Text size="sm">{advantage.text}</Text>
@@ -374,28 +359,15 @@ function FactionDetailPage() {
                   <Text c="dimmed">No faction advantages have been added yet.</Text>
                 </Surface>
               )}
-            </Region>
+            </Section>
 
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-              <Card
-                header={
-                  <Section
-                    icon={<TopicIcon topic="alliance" size={20} />}
-                    level="subsection"
-                    title="Alliance"
-                  />
-                }
-              >
+              <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
                 <Text size="sm">{data.rules.alliance.text}</Text>
               </Card>
               <Card
-                header={
-                  <Section
-                    icon={<TopicIcon topic="fate" size={20} />}
-                    level="subsection"
-                    title={data.rules.fate.title || 'Fate'}
-                  />
-                }
+                icon={<TopicIcon topic="fate" size={20} />}
+                title={data.rules.fate.title || 'Fate'}
               >
                 <Text size="sm">{data.rules.fate.text}</Text>
               </Card>
@@ -411,9 +383,7 @@ function FactionDetailPage() {
           miw={0}
           style={{ flex: '0 0 auto' }}
         >
-          <Region
-            heading={<Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader" />}
-          >
+          <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
             <div className={styles.loreHeroToken}>
               <LeaderToken
                 {...data.hero}
@@ -422,9 +392,9 @@ function FactionDetailPage() {
                 logo={data.logo}
               />
             </div>
-          </Region>
+          </Section>
 
-          <Region heading={<Section icon={<TopicIcon topic="setup" size={20} />} title="Setup" />}>
+          <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
             <Surface padding="lg">
               <Stack gap="lg">
                 <Box>
@@ -498,11 +468,9 @@ function FactionDetailPage() {
                 </Box>
               </Stack>
             </Surface>
-          </Region>
+          </Section>
 
-          <Card
-            header={<Section icon={<UsersRound size={20} aria-hidden />} title="Stewardship" />}
-          >
+          <Card icon={<UsersRound size={20} aria-hidden />} title="Stewardship">
             {!assignedGroup ? (
               <Text size="sm" c="dimmed">
                 No maintaining group.
@@ -579,32 +547,29 @@ function FactionDetailPage() {
           </Card>
 
           <Card
-            header={
-              <SectionIntro
-                heading={<Section icon={<FileText size={20} aria-hidden />} title="Files" />}
-                action={
-                  <StatusBadge
-                    live
-                    tone={
-                      publishingStatus === 'current'
-                        ? 'positive'
-                        : publishingStatus === 'scheduled'
-                          ? 'pending'
-                          : publishingStatus === 'in_progress'
-                            ? 'progress'
-                            : 'neutral'
-                    }
-                  >
-                    {publishingStatus === 'in_progress'
-                      ? 'In progress'
-                      : publishingStatus === 'scheduled'
-                        ? 'Scheduled'
-                        : publishingStatus === 'current'
-                          ? 'Current'
-                          : 'Unavailable'}
-                  </StatusBadge>
+            icon={<FileText size={20} aria-hidden />}
+            title="Files"
+            action={
+              <StatusBadge
+                live
+                tone={
+                  publishingStatus === 'current'
+                    ? 'positive'
+                    : publishingStatus === 'scheduled'
+                      ? 'pending'
+                      : publishingStatus === 'in_progress'
+                        ? 'progress'
+                        : 'neutral'
                 }
-              />
+              >
+                {publishingStatus === 'in_progress'
+                  ? 'In progress'
+                  : publishingStatus === 'scheduled'
+                    ? 'Scheduled'
+                    : publishingStatus === 'current'
+                      ? 'Current'
+                      : 'Unavailable'}
+              </StatusBadge>
             }
           >
             <Stack gap="sm">
@@ -631,9 +596,7 @@ function FactionDetailPage() {
             </Stack>
           </Card>
 
-          <Card
-            header={<Section icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets" />}
-          >
+          <Card icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets">
             {rulesets.length === 0 ? (
               <Text size="sm" c="dimmed">
                 Not in a ruleset yet.

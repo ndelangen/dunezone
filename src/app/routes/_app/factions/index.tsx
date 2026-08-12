@@ -3,6 +3,7 @@ import {
   Alert,
   Button,
   Drawer,
+  Group,
   Loader,
   Select,
   Stack,
@@ -13,9 +14,8 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { CallToAction } from '@ui/action/CallToAction';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { SectionIntro } from '@ui/layout/SectionIntro';
+import { CallToAction } from '@ui/control/CallToAction';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
@@ -121,23 +121,21 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
 
   return (
     <Stack className={styles.catalogueHeader} gap="lg">
-      <SectionIntro
-        eyebrow={<Eyebrow tone="accent">Explore the collection</Eyebrow>}
-        heading={<Title order={1}>Faction catalogue</Title>}
-        description={
+      <Group justify="space-between" align="flex-start" wrap="wrap" gap="md">
+        <Stack gap={4} align="flex-start" miw={0}>
+          <Eyebrow tone="accent">Explore the collection</Eyebrow>
+          <Title order={1}>Faction catalogue</Title>
           <Text size="sm" c="dimmed">
             Browse the living collection of community factions.
           </Text>
-        }
-        action={
-          <CallToAction
-            attention
-            renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
-          >
-            Create your own faction
-          </CallToAction>
-        }
-      />
+        </Stack>
+        <CallToAction
+          attention
+          renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
+        >
+          Create your own faction
+        </CallToAction>
+      </Group>
 
       {hasSpotlight ? (
         <div className={styles.spotlightRail}>

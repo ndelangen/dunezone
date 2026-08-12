@@ -1,9 +1,8 @@
 import { ActionIcon, Anchor, Group, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { Section } from '@ui/content/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { FormTooltip } from '@ui/input/FormTooltip';
+import { FormTooltip } from '@ui/control/FormTooltip';
 import { Links } from '@ui/list/Links';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -128,7 +127,7 @@ function GroupDetailPage() {
         </Toolbar>
       }
     >
-      <Card header={<Section icon={<UsersRound size={20} aria-hidden />} title="Stewardship" />}>
+      <Card icon={<UsersRound size={20} aria-hidden />} title="Stewardship">
         <Eyebrow>Owner</Eyebrow>
         {ownerProfile?.slug ? (
           <ProfileLink
@@ -192,7 +191,7 @@ function GroupDetailPage() {
         )}
       </Card>
 
-      <Card header={<Section icon={<UsersRound size={20} aria-hidden />} title="Members" />}>
+      <Card icon={<UsersRound size={20} aria-hidden />} title="Members">
         {memberRows.length === 0 ? (
           <Text size="sm" c="dimmed">
             No members yet.
@@ -292,7 +291,7 @@ function GroupDetailPage() {
         {membersModerationError ? <p role="alert">{membersModerationError}</p> : null}
       </Card>
 
-      <Card header={<Section icon={<Layers3 size={20} aria-hidden />} title="Factions" />}>
+      <Card icon={<Layers3 size={20} aria-hidden />} title="Factions">
         {factions.length === 0 ? (
           <Text size="sm" c="dimmed">
             No factions in this group yet.
@@ -312,7 +311,7 @@ function GroupDetailPage() {
         )}
       </Card>
 
-      <Card header={<Section icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets" />}>
+      <Card icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets">
         {rulesets.length === 0 ? (
           <Text size="sm" c="dimmed">
             No rulesets in this group yet.

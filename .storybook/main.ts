@@ -30,8 +30,8 @@ export default defineMain({
       titlePrefix: 'Application/Factions',
     },
     {
-      directory: '../src/app/components/factions/editor',
-      titlePrefix: 'Application/Factions/Editor',
+      directory: '../src/app/widgets/faction-editor',
+      titlePrefix: 'Widgets/Faction Editor',
     },
     {
       directory: '../src/app/components/faq',
@@ -46,12 +46,12 @@ export default defineMain({
       titlePrefix: 'Application/Topics',
     },
     {
-      directory: '../src/ui/input',
-      titlePrefix: 'Inputs',
+      directory: '../src/ui/block',
+      titlePrefix: 'Blocks',
     },
     {
-      directory: '../src/ui/action',
-      titlePrefix: 'Actions',
+      directory: '../src/ui/control',
+      titlePrefix: 'Controls',
     },
     {
       directory: '../src/ui/content',

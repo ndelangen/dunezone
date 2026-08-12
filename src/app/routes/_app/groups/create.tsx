@@ -1,8 +1,8 @@
 import { ActionIcon, Group, Stack } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormField } from '@ui/input/FormField';
-import { FormTooltip } from '@ui/input/FormTooltip';
-import { TextField } from '@ui/input/TextField';
+import { FormField } from '@ui/control/FormField';
+import { FormTooltip } from '@ui/control/FormTooltip';
+import { TextField } from '@ui/control/TextField';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { Save, X } from 'lucide-react';

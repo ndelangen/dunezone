@@ -1,9 +1,8 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { ActionIcon, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { Section } from '@ui/content/Section';
-import { FormTooltip } from '@ui/input/FormTooltip';
-import { Region } from '@ui/layout/Region';
+import { Section } from '@ui/block/Section';
+import { FormTooltip } from '@ui/control/FormTooltip';
 import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
@@ -170,9 +169,7 @@ function ProfileDetailPage() {
     >
       <div className={styles.contentColumns}>
         <Stack gap="md" className={styles.mainColumn}>
-          <Region
-            heading={<Section icon={<Shield size={20} aria-hidden />} title="Factions created" />}
-          >
+          <Section icon={<Shield size={20} aria-hidden />} title="Factions created">
             {page.factions.length > 0 ? (
               <FactionList factions={page.factions} />
             ) : (
@@ -182,16 +179,9 @@ function ProfileDetailPage() {
                 </Text>
               </Surface>
             )}
-          </Region>
+          </Section>
 
-          <Region
-            heading={
-              <Section
-                icon={<TopicIcon topic="rulesets" size={20} />}
-                title="Rulesets maintained"
-              />
-            }
-          >
+          <Section icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets maintained">
             <Surface padding="lg">
               <ProposedContent label="Proposed content · page query required">
                 <Text size="sm" c="dimmed">
@@ -199,16 +189,9 @@ function ProfileDetailPage() {
                 </Text>
               </ProposedContent>
             </Surface>
-          </Region>
+          </Section>
 
-          <Region
-            heading={
-              <Section
-                icon={<MessageCircleReply size={20} aria-hidden />}
-                title="Answers contributed"
-              />
-            }
-          >
+          <Section icon={<MessageCircleReply size={20} aria-hidden />} title="Answers contributed">
             {page.faqAnswers.length > 0 ? (
               <ProfileFaqAnswersGiven items={page.faqAnswers} viewedProfileId={page.profile._id} />
             ) : (
@@ -218,13 +201,9 @@ function ProfileDetailPage() {
                 </Text>
               </Surface>
             )}
-          </Region>
+          </Section>
 
-          <Region
-            heading={
-              <Section icon={<CircleHelp size={20} aria-hidden />} title="Questions asked" />
-            }
-          >
+          <Section icon={<CircleHelp size={20} aria-hidden />} title="Questions asked">
             {page.faqAsked.length > 0 ? (
               <ProfileFaqQuestionsAsked items={page.faqAsked} />
             ) : (
@@ -234,14 +213,12 @@ function ProfileDetailPage() {
                 </Text>
               </Surface>
             )}
-          </Region>
+          </Section>
         </Stack>
 
         <aside className={styles.sidebar} aria-label="Profile details">
           <Stack gap="sm">
-            <Card
-              header={<Section icon={<UsersRound size={20} aria-hidden />} title="At a glance" />}
-            >
+            <Card icon={<UsersRound size={20} aria-hidden />} title="At a glance">
               <Stats
                 orientation="column"
                 items={[
@@ -284,7 +261,7 @@ function ProfileDetailPage() {
               />
             </Card>
 
-            <Card header={<Section icon={<Link2 size={20} aria-hidden />} title="About" />}>
+            <Card icon={<Link2 size={20} aria-hidden />} title="About">
               <Stack gap="xs">
                 <ProposedContent label="Proposed profile fields">
                   <Text size="sm" c="dimmed">
@@ -303,7 +280,7 @@ function ProfileDetailPage() {
               </Stack>
             </Card>
 
-            <Card header={<Section icon={<UsersRound size={20} aria-hidden />} title="Groups" />}>
+            <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">
               {page.groupSummaries.length === 0 ? (
                 <Text size="sm" c="dimmed">
                   Not a member of any groups.

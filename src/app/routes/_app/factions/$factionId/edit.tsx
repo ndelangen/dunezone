@@ -5,14 +5,14 @@ import { Trash2, UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
-import { FactionAuthoringToolbar } from '@app/components/factions/editor/FactionAuthoringToolbar';
-import { FactionEditor } from '@app/components/factions/editor/FactionEditor';
-import type { FactionAuthoringViewHandle } from '@app/components/factions/editor/FactionEditor';
-import { FactionGroupPopover } from '@app/components/factions/editor/FactionGroupPopover';
-import { FactionLoadPopover } from '@app/components/factions/editor/FactionLoadPopover';
-import { useFactionAuthoring } from '@app/components/factions/editor/useFactionAuthoring';
 import { PageLayout } from '@app/components/shell';
 import { loadFaction } from '@app/factions/db';
+import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
+import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
+import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
+import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPopover';
+import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
+import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   loader: async ({ params }) => await loadFaction(params.factionId),

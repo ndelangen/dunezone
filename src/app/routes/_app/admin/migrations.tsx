@@ -1,6 +1,6 @@
 import { ActionIcon, Group, Stack } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { FormTooltip } from '@ui/input/FormTooltip';
+import { FormTooltip } from '@ui/control/FormTooltip';
 import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 

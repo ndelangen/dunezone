@@ -1,6 +1,6 @@
 import { ActionIcon, Group } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { FormTooltip } from '@ui/input/FormTooltip';
+import { FormTooltip } from '@ui/control/FormTooltip';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Users } from 'lucide-react';

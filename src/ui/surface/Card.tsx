@@ -1,38 +1,58 @@
+import { Group } from '@mantine/core';
+import { useId } from 'react';
 import type { ReactNode } from 'react';
 
-import { HeadingSlot } from '../content/headingSlot';
+import { BlockHeading } from '../block/BlockHeading';
+import { OneLevelDeeper, useSectionDepth } from '../block/depth';
 import styles from './Card.module.css';
 import { Surface } from './Surface';
 
 export interface CardProps {
   /**
-   * Required. A Card without a heading is a `Surface` — the heading is the whole reason this
-   * component exists, not an embellishment on it. Usually a `Section`.
+   * Required. A Card without a title is a `Surface` — the title is the whole reason this component
+   * exists, not an embellishment on it.
    */
-  header: ReactNode;
+  title: string;
+  /** Topical glyph beside the title. Decorative — the words carry the meaning. */
+  icon?: ReactNode;
+  /** The single control that belongs beside the title: a status, one button. */
+  action?: ReactNode;
   children: ReactNode;
 }
 
 /**
- * A titled region of a page.
+ * A pane with a name on it.
  *
- * Callers own the title and the body. This component owns the relationship between them: the
- * gutter, the gap that separates heading from content, and clipping to the rounded corner.
+ * Callers pass the words and the body; this owns the pane, the gap between title and content, and
+ * how loudly the title speaks for how deep the card sits — a card inside a `Section` is quieter
+ * than one standing on its own.
  *
- * The pane it sits on is `Surface`, and that division is deliberate — `Surface` answers "content
- * needs a plane", `Card` answers "this region needs a name". When the header was optional the two
- * answered the same question and picking between them was a coin toss.
+ * The pane is `Surface`, and that division is deliberate: `Surface` answers "content needs a
+ * plane", `Card` answers "this pane needs a name". When the title was optional the two answered the
+ * same question and picking between them was a coin toss.
  *
- * For a named region whose content brings panes of its own — a list of cards, a grid of spotlights
- * — use `Region` instead. Putting those in a card would nest surfaces.
+ * Content that brings panes of its own — a list of cards, a grid of spotlights — belongs in a
+ * `Section` instead, or the surfaces would nest.
  */
-export function Card({ header, children }: CardProps) {
+export function Card({ title, icon, action, children }: CardProps) {
+  const headingId = useId();
+  const depth = useSectionDepth();
+
   return (
     <Surface padding="lg" className={styles.card}>
       <div className={styles.header}>
-        <HeadingSlot>{header}</HeadingSlot>
+        {action == null ? (
+          <BlockHeading id={headingId} title={title} icon={icon} />
+        ) : (
+          <Group justify="space-between" align="end" wrap="wrap" gap="md">
+            <BlockHeading id={headingId} title={title} icon={icon} />
+            {action}
+          </Group>
+        )}
       </div>
-      <div className={styles.body}>{children}</div>
+      <div className={styles.body}>
+        <OneLevelDeeper depth={depth}>{children}</OneLevelDeeper>
+      </div>
     </Surface>
   );
 }

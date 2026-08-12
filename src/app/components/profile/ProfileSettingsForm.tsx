@@ -1,7 +1,7 @@
 import { Button, Group, Stack } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
-import { FormField } from '@ui/input/FormField';
-import { TextField } from '@ui/input/TextField';
+import { FormField } from '@ui/control/FormField';
+import { TextField } from '@ui/control/TextField';
 import { useState } from 'react';
 
 import { useUpdateCurrentProfile } from '@db/profiles';

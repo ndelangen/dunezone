@@ -17,11 +17,9 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { Section } from '@ui/content/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { Region } from '@ui/layout/Region';
-import { SectionIntro } from '@ui/layout/SectionIntro';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -394,11 +392,10 @@ function RulesetDetailPage() {
             </Alert>
           ) : null}
 
-          <Region
+          <Section
             id="overview"
-            heading={
-              <Section icon={<BookOpen size={20} aria-hidden />} title="About this ruleset" />
-            }
+            icon={<BookOpen size={20} aria-hidden />}
+            title="About this ruleset"
           >
             <Surface padding="lg">
               <ProposedContent label="Planned content · new fields required">
@@ -412,26 +409,13 @@ function RulesetDetailPage() {
                 </Text>
               </ProposedContent>
             </Surface>
-          </Region>
+          </Section>
 
-          <Region
+          <Section
             id="rules"
-            heading={
-              <SectionIntro
-                heading={
-                  <Section
-                    icon={<TopicIcon topic="rules" size={20} />}
-                    title="Rules and variants"
-                  />
-                }
-                description={
-                  <Text c="dimmed" size="sm">
-                    Proposed structured rule sections would make the ruleset useful before the FAQ
-                    has accumulated questions.
-                  </Text>
-                }
-              />
-            }
+            icon={<TopicIcon topic="rules" size={20} />}
+            title="Rules and variants"
+            description="Proposed structured rule sections would make the ruleset useful before the FAQ has accumulated questions."
           >
             <Stack gap="md">
               {[
@@ -452,19 +436,16 @@ function RulesetDetailPage() {
                   'Clearly optional modules that groups may enable independently.',
                 ],
               ].map(([title, description]) => (
-                <Card key={title} header={<Section level="subsection" title={title} />}>
+                <Card key={title} title={title}>
                   <Text size="sm" c="dimmed">
                     {description}
                   </Text>
                 </Card>
               ))}
             </Stack>
-          </Region>
+          </Section>
 
-          <Region
-            id="factions"
-            heading={<Section icon={<Layers3 size={20} aria-hidden />} title="Included factions" />}
-          >
+          <Section id="factions" icon={<Layers3 size={20} aria-hidden />} title="Included factions">
             {page.factions.length > 0 ? (
               <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
                 {page.factions.map((f) => (
@@ -496,24 +477,15 @@ function RulesetDetailPage() {
                 </Text>
               </Surface>
             )}
-          </Region>
+          </Section>
         </Stack>
 
-        <Region
+        <Section
           id="faq"
           className={styles.communityColumn}
-          heading={
-            <SectionIntro
-              heading={
-                <Section icon={<CircleHelp size={20} aria-hidden />} title="Community FAQ" />
-              }
-              description={
-                <Text size="sm" c="dimmed">
-                  Browse community questions and accepted answers.
-                </Text>
-              }
-            />
-          }
+          icon={<CircleHelp size={20} aria-hidden />}
+          title="Community FAQ"
+          description="Browse community questions and accepted answers."
         >
           <TextInput
             value={search.q ?? ''}
@@ -558,7 +530,7 @@ function RulesetDetailPage() {
             searchQuery={search.q ?? ''}
             selectedTag={search.tag}
           />
-        </Region>
+        </Section>
 
         <Stack
           gap="md"
@@ -567,7 +539,7 @@ function RulesetDetailPage() {
           miw={0}
           className={styles.detailsColumn}
         >
-          <Card header={<Section icon={<ListTree size={20} aria-hidden />} title="At a glance" />}>
+          <Card icon={<ListTree size={20} aria-hidden />} title="At a glance">
             <Stats
               items={[
                 {
@@ -598,9 +570,7 @@ function RulesetDetailPage() {
             />
           </Card>
 
-          <Card
-            header={<Section icon={<UsersRound size={20} aria-hidden />} title="Stewardship" />}
-          >
+          <Card icon={<UsersRound size={20} aria-hidden />} title="Stewardship">
             <Stack gap="sm">
               <Box>
                 <Eyebrow>Owner</Eyebrow>
@@ -678,7 +648,7 @@ function RulesetDetailPage() {
             </Stack>
           </Card>
 
-          <Card header={<Section icon={<FileText size={20} aria-hidden />} title="Resources" />}>
+          <Card icon={<FileText size={20} aria-hidden />} title="Resources">
             <ProposedContent label="Proposed content">
               <Text size="sm" c="dimmed">
                 Printable rules, release notes, and a version history could live here.

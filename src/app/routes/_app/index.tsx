@@ -14,12 +14,10 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { CallToAction } from '@ui/action/CallToAction';
+import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { Section } from '@ui/content/Section';
+import { CallToAction } from '@ui/control/CallToAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
-import { Region } from '@ui/layout/Region';
-import { SectionIntro } from '@ui/layout/SectionIntro';
 import { TriptychLayout } from '@ui/layout/TriptychLayout';
 import { Bullets } from '@ui/list/Bullets';
 import { Surface } from '@ui/surface';
@@ -232,18 +230,14 @@ function IndexPage() {
         <AsymmetricSplitLayout
           className={styles.discoveryLayout}
           wide={
-            <Region
+            <Section
               className={styles.discoveryColumn}
-              heading={
-                <SectionIntro
-                  eyebrow={<Eyebrow tone="accent">From the catalogue</Eyebrow>}
-                  heading={<Section level="page" title="New ideas are arriving" />}
-                  action={
-                    <Anchor component={Link} to="/factions" fw={700} className={styles.headingLink}>
-                      See every faction <ArrowRight size={15} aria-hidden />
-                    </Anchor>
-                  }
-                />
+              eyebrow="From the catalogue"
+              title="New ideas are arriving"
+              action={
+                <Anchor component={Link} to="/factions" fw={700} className={styles.headingLink}>
+                  See every faction <ArrowRight size={15} aria-hidden />
+                </Anchor>
               }
             >
               <Stack gap="sm">
@@ -265,30 +259,17 @@ function IndexPage() {
                   <Text c="dimmed">The catalogue is waiting for its first faction.</Text>
                 ) : null}
               </Stack>
-            </Region>
+            </Section>
           }
           narrow={
-            <Region
+            <Section
               className={styles.discoveryColumn}
-              heading={
-                <SectionIntro
-                  eyebrow={
-                    <Badge color="gray" variant="filled">
-                      Planned
-                    </Badge>
-                  }
-                  heading={<Section level="page" title="What we’ll make next" />}
-                  action={
-                    <Anchor
-                      component={Link}
-                      to="/future-plans"
-                      fw={700}
-                      className={styles.headingLink}
-                    >
-                      Future plans <ArrowRight size={15} aria-hidden />
-                    </Anchor>
-                  }
-                />
+              eyebrow="Planned"
+              title="What we’ll make next"
+              action={
+                <Anchor component={Link} to="/future-plans" fw={700} className={styles.headingLink}>
+                  Future plans <ArrowRight size={15} aria-hidden />
+                </Anchor>
               }
             >
               <Stack gap="md">
@@ -305,7 +286,7 @@ function IndexPage() {
                   What should we make after that?
                 </Anchor>
               </Stack>
-            </Region>
+            </Section>
           }
         />
       </Stack>

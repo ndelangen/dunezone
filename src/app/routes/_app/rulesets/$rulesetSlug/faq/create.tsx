@@ -1,8 +1,8 @@
 import { Button, Group, Stack } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormField } from '@ui/input/FormField';
-import { MultilineTextField } from '@ui/input/MultilineTextField';
-import { TextField } from '@ui/input/TextField';
+import { FormField } from '@ui/control/FormField';
+import { MultilineTextField } from '@ui/control/MultilineTextField';
+import { TextField } from '@ui/control/TextField';
 import { Surface } from '@ui/surface';
 
 import { useAskFaqQuestion } from '@db/faq';

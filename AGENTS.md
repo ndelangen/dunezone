@@ -31,6 +31,69 @@ Convex agent skills for common tasks can be installed by running
 - The checked-in `Fresh default branch` Codex local environment runs this preflight automatically
   when a new worktree is created, then installs the frozen dependency graph.
 
+## Component taxonomy
+
+Every component is exactly one of these. The category is the folder; the folder is the Storybook
+root. Both stay flat — one level, no nesting. What a caller hands a component decides its category.
+
+| Category | Folder | Caller hands it | It owns |
+|---|---|---|---|
+| **Content** | `src/ui/content` | data | one kind of content, rendered our way — words, a status, a link |
+| **Controls** | `src/ui/control` | a value + onChange, or an intent | the user changing things — editing a value, committing an action — and the furniture around doing so |
+| **Lists** | `src/ui/list` | items of one shape | the rhythm between items — sequence, dividers, gaps |
+| **Layout** | `src/ui/layout` | slots only | where things go — never what they are |
+| **Surfaces** | `src/ui/surface` | slots for content; words only to name itself | the pane — border, infill, blur. **Surfaces never nest** |
+| **Blocks** | `src/ui/block` | data; at most one slot for the region it names | turning words into Content components in one fixed arrangement |
+
+Outside the kit:
+
+- **Application** (`src/app/components/<feature>`) — the same kinds with domain knowledge, filed
+  by feature because their readers search by feature. The lint boundary is the judge: if it
+  compiles without `@app/@db/@game`, it is kit and must move to `src/ui`.
+- **Widgets** (`src/app/widgets/<name>`) — an assembly too domain-specific to be kit and too
+  shared to be one page's JSX. Prefab: built outside the page only because two or more routes
+  install the identical thing.
+  - **Last resort.** A widget exists only when ≥2 routes need the same assembly. One route → it
+    is page composition, not a component.
+  - **Pages own the data.** A page hands a widget its value and callbacks; a widget never fetches
+    and never routes. The day it does, it has become a page fragment wearing a component's name.
+  - **Kit all the way down.** A widget adds no new visual vocabulary; anything novel inside gets
+    extracted to the kit first.
+  - **Organs allowed.** A widget may split its body into private files; nothing outside the
+    widget imports them.
+  - **The shelf is a metric.** Every widget is a concession. When `src/app/widgets/` grows,
+    something upstream went wrong.
+- **Game assets** (`src/game`) — print-faithful renderers. Own their colours, never themed.
+
+Rules between categories:
+
+- **Only Surfaces paint.** Everything else is transparent; Content marks nothing but its own text.
+- **Surfaces never nest.**
+- **Only Blocks — and a Surface naming itself — render headings.** Loudness comes from depth,
+  never from a prop.
+- **Receivers vs producers.** Layouts and Surfaces *receive* built content through slots. Blocks,
+  Lists and Content *produce* content from data. Controls *change* data. A component doing two of
+  these is two components.
+- **Knowledge points one way.** Content knows the theme. Blocks know Content. Lists know their
+  item shape. Layouts and Surfaces know nothing about their contents. Nothing in `src/ui` knows
+  the app.
+- **Kind is judged at the membrane.** What a caller hands a component decides its kind; its
+  insides are composition, governed by the rules above.
+- **Pages compose; that is where the heavy JSX belongs.** A recurring composition earns a Block
+  only when its words can travel as data.
+
+The tells:
+
+- A control promises change; a link promises a place — judge by the promise, not the tag.
+- Main content arriving as `ReactNode` → Layout or Surface.
+- A string prop becoming a heading → Block, or a Surface naming itself.
+- Two components answering the same question → one dies.
+- The JSDoc cannot say "callers own X; this owns Y" in one sentence → not a component.
+
+Glyphs (`icon`) and controls (`action`) stay `ReactNode` everywhere — "data" means *the words are
+data*. Every kit component has stories; Mantine components used by the app get stories too, filed
+by kind under our theme, indistinguishable from ours.
+
 ## Validation Convention
 
 Follow the canonical validation guidance in [`docs/data-layer.md`](docs/data-layer.md):
