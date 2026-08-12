@@ -28,7 +28,7 @@ flowchart TD
 
 ## Domain hook shape
 
-Every `src/app/<domain>/db.ts` read hook is the same three lines: subscribe, normalize, wrap.
+Every read hook in `src/app/db/<domain>.ts` is the same three lines: subscribe, normalize, wrap.
 
 ```typescript
 export function useFaction(slug: string, options?: { initialData?: FactionDetailPageData }) {
@@ -43,7 +43,7 @@ export function useFaction(slug: string, options?: { initialData?: FactionDetail
 subscription is still undefined. `isError` is always `false` — a failed Convex subscription throws
 to the route's error boundary rather than resolving into a result object.
 
-**Example**: [`src/app/factions/db.ts`](../src/app/factions/db.ts)
+**Example**: [`src/app/db/factions.ts`](../src/app/db/factions.ts)
 
 ## Mutations
 
@@ -57,7 +57,7 @@ a cache, invalidating a sibling list, or refetching after a write are all mistak
 either no-ops or a second read of data that is already arriving.
 
 **Example**: `useCreateFaction`, `useUpdateFaction`, `useDeleteFaction` in
-[`src/app/factions/db.ts`](../src/app/factions/db.ts)
+[`src/app/db/factions.ts`](../src/app/db/factions.ts)
 
 ## Rules
 

@@ -1,5 +1,5 @@
 import { Group, Stack, TextInput } from '@mantine/core';
-import { profileSlugBaseFromName } from '@shared/profile/validation';
+import { profileSlugBaseFromName } from '@shared/profiles/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';

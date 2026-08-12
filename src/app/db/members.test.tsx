@@ -18,7 +18,7 @@ vi.mock('convex/react', () => ({
 }));
 vi.mock('@db/core', () => ({ db: { query: vi.fn() } }));
 
-import { useGroupMembershipWorkflow } from './db';
+import { useGroupMembershipWorkflow } from './members';
 
 beforeEach(() => {
   vi.clearAllMocks();

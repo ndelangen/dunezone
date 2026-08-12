@@ -19,8 +19,8 @@ import { Surface } from '@ui/surface';
 import { AlertCircle, BriefcaseBusiness } from 'lucide-react';
 import { useState } from 'react';
 
-import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@app/publications/db';
-import type { PublicationJobStatus } from '@app/publications/db';
+import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@db/publications';
+import type { PublicationJobStatus } from '@db/publications';
 
 const PAGE_SIZE = 25;
 

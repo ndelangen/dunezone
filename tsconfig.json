@@ -16,7 +16,7 @@
     "paths": {
       "@sb/*": ["./.storybook/*"],
       "@db/core": ["./src/app/db/core/index.ts"],
-      "@db/*": ["./src/app/*/db.ts"],
+      "@db/*": ["./src/app/db/*.ts"],
       "@app/*": ["./src/app/*"],
       "@ui/*": ["./src/app/ui/*"],
       "@data/*": ["./src/data/*"],
