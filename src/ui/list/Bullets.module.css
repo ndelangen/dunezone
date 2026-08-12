@@ -1,0 +1,17 @@
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  min-width: 0;
+}
+
+/*
+ * A wrapping link is inline by default, which silently collapses any padding or rule the caller
+ * gives it. The item owns filling its own row so callers cannot forget.
+ */
+.linked > * {
+  display: block;
+}

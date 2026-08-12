@@ -1,7 +1,8 @@
 import { List, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { Surface } from '@ui/surface';
 
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/privacy/')({
   component: PrivacyPage,
@@ -41,7 +42,7 @@ function PrivacyPage() {
     >
       <Stack gap="xl">
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
-          <Paper component="section" withBorder radius="md" p="xl">
+          <Surface padding="xl">
             <Stack gap="md">
               <Title order={2}>What we keep private</Title>
               <Text>We need a small amount of private information to run your account:</Text>
@@ -65,9 +66,9 @@ function PrivacyPage() {
                 your profile or anywhere else on the public website.
               </Text>
             </Stack>
-          </Paper>
+          </Surface>
 
-          <Paper component="section" withBorder radius="md" p="xl">
+          <Surface padding="xl">
             <Stack gap="md">
               <Title order={2}>What everyone can see</Title>
               <Text>Your public profile can show:</Text>
@@ -92,10 +93,10 @@ function PrivacyPage() {
                 set up your public profile.
               </Text>
             </Stack>
-          </Paper>
+          </Surface>
         </SimpleGrid>
 
-        <Paper component="section" withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Stack gap="md">
             <Title order={2}>Your choices</Title>
             <List spacing="sm">
@@ -108,9 +109,9 @@ function PrivacyPage() {
               <List.Item>Do not share anything here that you want to keep private.</List.Item>
             </List>
           </Stack>
-        </Paper>
+        </Surface>
 
-        <Paper component="section" withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Stack gap="md">
             <Title order={2}>Your data rights</Title>
             <Text>We follow the GDPR rules that protect your personal data.</Text>
@@ -132,9 +133,9 @@ function PrivacyPage() {
               other private sign-in details in your message.
             </Text>
           </Stack>
-        </Paper>
+        </Surface>
 
-        <Paper component="section" withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Stack gap="md">
             <Title order={2}>What we do with the data</Title>
             <Text>
@@ -150,9 +151,9 @@ function PrivacyPage() {
               but we do not sell access to them.
             </Text>
           </Stack>
-        </Paper>
+        </Surface>
 
-        <Paper component="section" withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Stack gap="md">
             <Title order={2}>Code of conduct</Title>
             <Text>Be kind and treat other people with respect.</Text>
@@ -173,9 +174,9 @@ function PrivacyPage() {
               will not knowingly allow a violation to remain on Dune Zone.
             </Text>
           </Stack>
-        </Paper>
+        </Surface>
 
-        <Paper component="section" withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Stack gap="md">
             <Title order={2}>Copyright</Title>
             <Text>
@@ -197,9 +198,9 @@ function PrivacyPage() {
               legal right to use it.
             </Text>
           </Stack>
-        </Paper>
+        </Surface>
 
-        <Paper component="section" withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Stack gap="md">
             <Title order={2}>A free hobby project</Title>
             <Text>Dune Zone is a hobby project. You can use it free of charge.</Text>
@@ -211,7 +212,7 @@ function PrivacyPage() {
               Please do not use Dune Zone as the only place where you keep something important.
             </Text>
           </Stack>
-        </Paper>
+        </Surface>
 
         <Text c="dimmed" size="sm">
           Last updated 27 July 2026. If anything changes, we will update this page.

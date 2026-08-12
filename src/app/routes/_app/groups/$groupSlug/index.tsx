@@ -1,22 +1,22 @@
 import {
-  ActionIcon,
   Alert,
   Anchor,
   Avatar,
   Badge,
   Box,
   Button,
-  Card,
   Divider,
   Group,
-  Paper,
   Skeleton,
   Stack,
   Text,
   Title,
-  Tooltip,
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
+import { Surface } from '@ui/surface';
+import { Card } from '@ui/surface/Card';
+import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
   BookOpen,
@@ -29,7 +29,6 @@ import {
   UsersRound,
   X,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
 
 import { useFactionsOwnedForGroupAssign, useSetFactionGroup } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
@@ -39,13 +38,13 @@ import { useGroupMembershipWorkflow } from '@db/members';
 import { useRulesetsOwnedForGroupAssign, useUpdateRuleset } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 import { viewerActionsFor } from '@app/access/viewerActions';
+import { ProfileLink } from '@app/components/content/ProfileLink';
 import { AssetAssignPopover } from '@app/components/groups/AssetAssignPopover';
 import type {
   AssetAssignOption,
   AssetAssignPopoverProps,
 } from '@app/components/groups/AssetAssignPopover';
-import { ProfileLink } from '@app/components/profile/ProfileLink';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 
 import styles from './index.module.css';
@@ -74,11 +73,11 @@ function GroupDetailPage() {
   if (groupData.isError) {
     return (
       <PageLayout header={<Title order={1}>Group</Title>}>
-        <Paper withBorder p="xl" radius="md">
+        <Surface padding="xl">
           <Alert color="red" title="Group could not be loaded" role="alert">
             <Text size="sm">This group may have been deleted, or the link may be incorrect.</Text>
           </Alert>
-        </Paper>
+        </Surface>
       </PageLayout>
     );
   }
@@ -158,111 +157,102 @@ function GroupDetailPage() {
     <PageLayout
       header={<Title order={1}>{group.name}</Title>}
       toolbar={
-        <Paper withBorder p="sm" radius="md">
-          <Group justify="space-between" gap="sm" wrap="wrap">
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
-              <Tooltip label="Back to profiles">
-                <ActionIcon
+        <>
+          <Toolbar>
+            <Toolbar.Left>
+              <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
+                <IconAction
+                  label="Back to profiles"
                   variant="light"
                   color="gray"
                   size="lg"
-                  aria-label="Back to profiles"
                   renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-                >
-                  <ArrowLeft size={17} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
-              {viewerAccess.capabilities.rename ? (
-                <Tooltip label="Edit group settings">
-                  <ActionIcon
+                  icon={<ArrowLeft size={17} aria-hidden />}
+                />
+                {viewerAccess.capabilities.rename ? (
+                  <IconAction
+                    label="Edit group settings"
                     variant="light"
                     color="dune"
                     size="lg"
-                    aria-label="Edit group settings"
                     renderRoot={(rootProps) => (
                       <Link {...rootProps} to="/groups/$groupSlug/edit" params={{ groupSlug }} />
                     )}
-                  >
-                    <Pencil size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
-              ) : null}
-              {viewerAccess.capabilities.delete ? (
-                <Tooltip label="Delete group">
-                  <ActionIcon
-                    type="button"
+                    icon={<Pencil size={17} aria-hidden />}
+                  />
+                ) : null}
+                {viewerAccess.capabilities.delete ? (
+                  <IconAction
+                    label="Delete group"
                     variant="light"
                     color="red"
                     size="lg"
-                    aria-label="Delete group"
                     disabled={deleteGroup.isPending}
                     onClick={handleDeleteGroup}
-                  >
-                    <Trash2 size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
-              ) : null}
-            </Group>
-            <RequestMembershipButton
-              canRequestMembership={viewerAccess.capabilities.requestMembership}
-              isAnonymous={isAnonymous}
-              requestPending={membershipWorkflow.request.isPending}
-              requestError={membershipWorkflow.request.error?.message ?? null}
-              onRequestMembership={() =>
-                void membershipWorkflow.request.run(groupId).catch(() => undefined)
-              }
-            />
-          </Group>
+                    icon={<Trash2 size={17} aria-hidden />}
+                  />
+                ) : null}
+              </Group>
+            </Toolbar.Left>
+            <Toolbar.Right>
+              <RequestMembershipButton
+                canRequestMembership={viewerAccess.capabilities.requestMembership}
+                isAnonymous={isAnonymous}
+                requestPending={membershipWorkflow.request.isPending}
+                requestError={membershipWorkflow.request.error?.message ?? null}
+                onRequestMembership={() =>
+                  void membershipWorkflow.request.run(groupId).catch(() => undefined)
+                }
+              />
+            </Toolbar.Right>
+          </Toolbar>
           {deleteGroup.error && (
             <Text size="sm" c="red" role="alert" mt="xs">
               Delete failed: {deleteGroup.error.message}
             </Text>
           )}
-        </Paper>
+        </>
       }
     >
       <Box className={styles.twoColumnGrid}>
         <Stack gap="lg">
-          <Card withBorder padding="lg" radius="md">
-            <Stack gap="md">
-              <Group justify="space-between" wrap="nowrap">
-                <SectionHeading icon={<FremenIcon />}>Factions maintained</SectionHeading>
-                {isActiveMember && (
-                  <FactionAssignPicker
-                    disabled={setFactionGroup.isPending}
-                    currentGroupId={groupId}
-                    currentGroupName={group.name}
-                    onAssign={handleAssignFaction}
-                  />
-                )}
-              </Group>
-              <FactionList factions={factions} />
-            </Stack>
+          <Card
+            icon={<FremenIcon />}
+            title="Factions maintained"
+            action={
+              isActiveMember ? (
+                <FactionAssignPicker
+                  disabled={setFactionGroup.isPending}
+                  currentGroupId={groupId}
+                  currentGroupName={group.name}
+                  onAssign={handleAssignFaction}
+                />
+              ) : undefined
+            }
+          >
+            <FactionList factions={factions} />
           </Card>
-          <Card withBorder padding="lg" radius="md">
-            <Stack gap="md">
-              <Group justify="space-between" wrap="nowrap">
-                <SectionHeading icon={<BookOpen size={18} aria-hidden />}>
-                  Rulesets maintained
-                </SectionHeading>
-                {isActiveMember && (
-                  <RulesetAssignPicker
-                    disabled={updateRuleset.isPending}
-                    currentGroupId={groupId}
-                    currentGroupName={group.name}
-                    onAssign={handleAssignRuleset}
-                  />
-                )}
-              </Group>
-              <RulesetList rulesets={rulesets} />
-            </Stack>
+          <Card
+            icon={<BookOpen size={18} aria-hidden />}
+            title="Rulesets maintained"
+            action={
+              isActiveMember ? (
+                <RulesetAssignPicker
+                  disabled={updateRuleset.isPending}
+                  currentGroupId={groupId}
+                  currentGroupName={group.name}
+                  onAssign={handleAssignRuleset}
+                />
+              ) : undefined
+            }
+          >
+            <RulesetList rulesets={rulesets} />
           </Card>
         </Stack>
 
         <Stack gap="lg">
-          <Card withBorder padding="lg" radius="md">
+          <Card icon={<Crown size={18} aria-hidden />} title="Stewardship">
             <Stack gap="sm">
-              <SectionHeading icon={<Crown size={18} aria-hidden />}>Stewardship</SectionHeading>
               <OwnerLine ownerProfile={ownerProfile} createdBy={group.created_by} />
               <Divider />
               <Group justify="space-between">
@@ -291,23 +281,21 @@ function GroupDetailPage() {
             }
           />
 
-          <Card withBorder padding="lg" radius="md">
-            <Stack gap="sm">
-              <SectionHeading icon={<UsersRound size={18} aria-hidden />}>
-                Members ({activeMembers.length})
-              </SectionHeading>
-              <MemberRoster
-                members={activeMembers}
-                moderationBusy={membersModerationBusy}
-                onApprove={(membershipId) =>
-                  void membershipWorkflow.approve.run(membershipId).catch(() => undefined)
-                }
-                onReject={(membershipId) =>
-                  void membershipWorkflow.reject.run(membershipId).catch(() => undefined)
-                }
-                onRemove={handleRemoveMember}
-              />
-            </Stack>
+          <Card
+            icon={<UsersRound size={18} aria-hidden />}
+            title={`Members (${activeMembers.length})`}
+          >
+            <MemberRoster
+              members={activeMembers}
+              moderationBusy={membersModerationBusy}
+              onApprove={(membershipId) =>
+                void membershipWorkflow.approve.run(membershipId).catch(() => undefined)
+              }
+              onReject={(membershipId) =>
+                void membershipWorkflow.reject.run(membershipId).catch(() => undefined)
+              }
+              onRemove={handleRemoveMember}
+            />
           </Card>
         </Stack>
       </Box>
@@ -318,17 +306,6 @@ function GroupDetailPage() {
 /* ---------------------------------------------------------------------- */
 /* Page-local presentation helpers.                                       */
 /* ---------------------------------------------------------------------- */
-
-function SectionHeading({ icon, children }: { icon: ReactNode; children: ReactNode }) {
-  return (
-    <Group gap="xs" wrap="nowrap">
-      <Title order={3} size="h4">
-        {children}
-      </Title>
-      {icon}
-    </Group>
-  );
-}
 
 type AssignPickerProps = Omit<AssetAssignPopoverProps, 'kind' | 'ownedItems' | 'loading'>;
 
@@ -505,43 +482,36 @@ function MemberRow({
       </Group>
       <Group gap={4} wrap="nowrap">
         {entry.capabilities.approve && (
-          <Tooltip label="Approve">
-            <ActionIcon
-              aria-label="Approve membership"
-              color="confirm"
-              variant="light"
-              disabled={moderationBusy}
-              onClick={() => onApprove(entry.membershipId)}
-            >
-              <Check size={15} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Approve membership"
+            tooltip="Approve"
+            color="confirm"
+            variant="light"
+            disabled={moderationBusy}
+            onClick={() => onApprove(entry.membershipId)}
+            icon={<Check size={15} aria-hidden />}
+          />
         )}
         {entry.capabilities.reject && (
-          <Tooltip label="Decline">
-            <ActionIcon
-              aria-label="Decline membership"
-              color="red"
-              variant="light"
-              disabled={moderationBusy}
-              onClick={() => onReject(entry.membershipId)}
-            >
-              <X size={15} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Decline membership"
+            tooltip="Decline"
+            color="red"
+            variant="light"
+            disabled={moderationBusy}
+            onClick={() => onReject(entry.membershipId)}
+            icon={<X size={15} aria-hidden />}
+          />
         )}
         {entry.capabilities.remove && onRemove && (
-          <Tooltip label="Remove member">
-            <ActionIcon
-              aria-label="Remove member"
-              color="red"
-              variant="light"
-              disabled={moderationBusy}
-              onClick={() => onRemove(entry.membershipId)}
-            >
-              <UserRoundMinus size={15} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Remove member"
+            color="red"
+            variant="light"
+            disabled={moderationBusy}
+            onClick={() => onRemove(entry.membershipId)}
+            icon={<UserRoundMinus size={15} aria-hidden />}
+          />
         )}
       </Group>
     </Group>

@@ -1,5 +1,13 @@
 import { useAuthActions } from '@convex-dev/auth/react';
+import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Section } from '@ui/block/Section';
+import { IconAction } from '@ui/control/IconAction';
+import { Links } from '@ui/list/Links';
+import { Stats } from '@ui/list/Stats';
+import { Surface } from '@ui/surface';
+import { Card } from '@ui/surface/Card';
+import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -14,18 +22,14 @@ import {
 } from 'lucide-react';
 
 import { loadProfileBySlug, useCurrentProfile, useProfileBySlug } from '@db/profiles';
-import { FactionList } from '@app/components/factions/FactionList';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { ButtonGroup, Stack, Toolbar } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
+import { ProposedContent } from '@app/components/block/ProposedContent';
+import { TopicIcon } from '@app/components/content/TopicIcon';
+import { PageLayout } from '@app/components/layout/PageLayout';
+import { FactionList } from '@app/components/list/FactionList';
 import {
   ProfileFaqAnswersGiven,
   ProfileFaqQuestionsAsked,
 } from '@app/components/profile/ProfileFaqActivity';
-import { ProfileGroupMemberships } from '@app/components/profile/ProfileGroupMemberships';
-import { PageLayout } from '@app/components/shell';
-import { TopicIcon } from '@app/components/topics/TopicIcon';
 
 import styles from '../ProfileDetail.module.css';
 
@@ -49,12 +53,12 @@ function ProfileDetailPage() {
   if (!page) {
     return (
       <PageLayout header={<h1>Profile</h1>}>
-        <Card>
+        <Surface padding="lg">
           <p>Profile not found.</p>
           <p>
             <Link to="/profiles">Back to profiles</Link>
           </p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
@@ -76,46 +80,49 @@ function ProfileDetailPage() {
   const toolbar = (
     <Toolbar>
       <Toolbar.Left>
-        <ButtonGroup>
-          <FormTooltip content="Back to profiles">
-            <UIButton variant="nav" to="/profiles" aria-label="Back to profiles">
-              <ArrowLeft size={16} aria-hidden />
-            </UIButton>
-          </FormTooltip>
+        <Group gap="xs" wrap="nowrap">
+          <IconAction
+            label="Back to profiles"
+            variant="light"
+            color="gray"
+            size="lg"
+            renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+            icon={<ArrowLeft size={16} aria-hidden />}
+          />
           {isSelf ? (
-            <FormTooltip content="Edit profile">
-              <UIButton
-                variant="secondary"
-                to="/profiles/$profileSlug/edit"
-                params={{ profileSlug }}
-                aria-label="Edit profile"
-              >
-                <Pencil size={16} aria-hidden />
-              </UIButton>
-            </FormTooltip>
+            <IconAction
+              label="Edit profile"
+              variant="light"
+              color="dune"
+              size="lg"
+              renderRoot={(rootProps) => (
+                <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />
+              )}
+              icon={<Pencil size={16} aria-hidden />}
+            />
           ) : null}
           {isSelf ? (
-            <FormTooltip content="Start group">
-              <UIButton variant="confirm" to="/groups/create" aria-label="Start group">
-                <UserPlus size={16} aria-hidden />
-              </UIButton>
-            </FormTooltip>
+            <IconAction
+              label="Start group"
+              variant="filled"
+              color="confirm"
+              size="lg"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/groups/create" />}
+              icon={<UserPlus size={16} aria-hidden />}
+            />
           ) : null}
-        </ButtonGroup>
+        </Group>
       </Toolbar.Left>
       {isSelf ? (
         <Toolbar.Right>
-          <FormTooltip content="Log out">
-            <UIButton
-              type="button"
-              variant="critical"
-              iconOnly
-              aria-label="Log out"
-              onClick={() => void handleSignOut()}
-            >
-              <LogOut size={16} aria-hidden />
-            </UIButton>
-          </FormTooltip>
+          <IconAction
+            label="Log out"
+            variant="light"
+            color="red"
+            size="lg"
+            onClick={() => void handleSignOut()}
+            icon={<LogOut size={16} aria-hidden />}
+          />
         </Toolbar.Right>
       ) : null}
     </Toolbar>
@@ -134,7 +141,7 @@ function ProfileDetailPage() {
           ) : (
             <span className={styles.avatarPlaceholder}>{initials}</span>
           )}
-          <Stack gap={1}>
+          <Stack gap="xs">
             <h1 className={styles.displayName}>{page.profile.username ?? 'Unknown'}</h1>
             {isSelf && <p className={styles.selfHint}>This is you!</p>}
             <p className={styles.profileSummary}>
@@ -148,114 +155,106 @@ function ProfileDetailPage() {
       toolbar={toolbar}
     >
       <div className={styles.contentColumns}>
-        <Stack gap={4} className={styles.mainColumn}>
-          <section className={styles.section}>
-            <h2 className={styles.iconHeading}>
-              <Shield size={20} aria-hidden /> Factions created
-            </h2>
+        <Stack gap="md" className={styles.mainColumn}>
+          <Section icon={<Shield size={20} aria-hidden />} title="Factions created">
             {page.factions.length > 0 ? (
               <FactionList factions={page.factions} />
             ) : (
-              <Card>
-                <p className={styles.empty}>No factions created yet.</p>
-              </Card>
+              <Surface padding="lg">
+                <Text size="sm" c="dimmed">
+                  No factions created yet.
+                </Text>
+              </Surface>
             )}
-          </section>
+          </Section>
 
-          <section className={styles.section}>
-            <h2 className={styles.iconHeading}>
-              <TopicIcon topic="rulesets" size={20} /> Rulesets maintained
-            </h2>
-            <Card>
-              <Stack gap={2}>
-                <p className={styles.proposedLabel}>Proposed content · page query required</p>
-                <p className={styles.empty}>
+          <Section icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets maintained">
+            <Surface padding="lg">
+              <ProposedContent label="Proposed content · page query required">
+                <Text size="sm" c="dimmed">
                   Rulesets owned or maintained by this contributor would appear here.
-                </p>
-              </Stack>
-            </Card>
-          </section>
+                </Text>
+              </ProposedContent>
+            </Surface>
+          </Section>
 
-          <section className={styles.section}>
-            <h2 className={styles.iconHeading}>
-              <MessageCircleReply size={20} aria-hidden /> Answers contributed
-            </h2>
-            <Card>
-              {page.faqAnswers.length > 0 ? (
-                <ProfileFaqAnswersGiven
-                  items={page.faqAnswers}
-                  viewedProfileId={page.profile._id}
-                />
-              ) : (
-                <p className={styles.empty}>No FAQ answers yet.</p>
-              )}
-            </Card>
-          </section>
+          <Section icon={<MessageCircleReply size={20} aria-hidden />} title="Answers contributed">
+            {page.faqAnswers.length > 0 ? (
+              <ProfileFaqAnswersGiven items={page.faqAnswers} viewedProfileId={page.profile._id} />
+            ) : (
+              <Surface padding="lg">
+                <Text size="sm" c="dimmed">
+                  No FAQ answers yet.
+                </Text>
+              </Surface>
+            )}
+          </Section>
 
-          <section className={styles.section}>
-            <h2 className={styles.iconHeading}>
-              <CircleHelp size={20} aria-hidden /> Questions asked
-            </h2>
-            <Card>
-              {page.faqAsked.length > 0 ? (
-                <ProfileFaqQuestionsAsked items={page.faqAsked} />
-              ) : (
-                <p className={styles.empty}>No questions asked yet.</p>
-              )}
-            </Card>
-          </section>
+          <Section icon={<CircleHelp size={20} aria-hidden />} title="Questions asked">
+            {page.faqAsked.length > 0 ? (
+              <ProfileFaqQuestionsAsked items={page.faqAsked} />
+            ) : (
+              <Surface padding="lg">
+                <Text size="sm" c="dimmed">
+                  No questions asked yet.
+                </Text>
+              </Surface>
+            )}
+          </Section>
         </Stack>
 
         <aside className={styles.sidebar} aria-label="Profile details">
-          <Stack gap={3}>
-            <Card
-              header={
-                <h2 className={styles.iconHeading}>
-                  <UsersRound size={20} aria-hidden /> At a glance
-                </h2>
-              }
-            >
-              <div className={styles.factList}>
-                <p>
-                  <Shield size={18} aria-hidden />
-                  <strong>{page.factions.length}</strong>
-                  <span>Factions</span>
-                </p>
-                <p>
-                  <UsersRound size={18} aria-hidden />
-                  <strong>{page.groupSummaries.length}</strong>
-                  <span>Groups</span>
-                </p>
-                <p>
-                  <MessageCircleReply size={18} aria-hidden />
-                  <strong>{page.faqAnswers.length}</strong>
-                  <span>Answers</span>
-                </p>
-                <p>
-                  <CheckCircle2 size={18} aria-hidden />
-                  <strong>{acceptedAnswerCount}</strong>
-                  <span>Picked answers</span>
-                </p>
-                <p>
-                  <CircleHelp size={18} aria-hidden />
-                  <strong>{page.faqAsked.length}</strong>
-                  <span>Questions</span>
-                </p>
-              </div>
+          <Stack gap="sm">
+            <Card icon={<UsersRound size={20} aria-hidden />} title="At a glance">
+              <Stats
+                orientation="column"
+                items={[
+                  {
+                    key: 'factions',
+                    icon: <Shield size={18} aria-hidden />,
+                    value: page.factions.length,
+                    name: 'Factions',
+                    label: `${page.factions.length} factions`,
+                  },
+                  {
+                    key: 'groups',
+                    icon: <UsersRound size={18} aria-hidden />,
+                    value: page.groupSummaries.length,
+                    name: 'Groups',
+                    label: `${page.groupSummaries.length} groups`,
+                  },
+                  {
+                    key: 'answers',
+                    icon: <MessageCircleReply size={18} aria-hidden />,
+                    value: page.faqAnswers.length,
+                    name: 'Answers',
+                    label: `${page.faqAnswers.length} answers`,
+                  },
+                  {
+                    key: 'picked',
+                    icon: <CheckCircle2 size={18} aria-hidden />,
+                    value: acceptedAnswerCount,
+                    name: 'Picked answers',
+                    label: `${acceptedAnswerCount} picked answers`,
+                  },
+                  {
+                    key: 'questions',
+                    icon: <CircleHelp size={18} aria-hidden />,
+                    value: page.faqAsked.length,
+                    name: 'Questions',
+                    label: `${page.faqAsked.length} questions`,
+                  },
+                ]}
+              />
             </Card>
 
-            <Card
-              header={
-                <h2 className={styles.iconHeading}>
-                  <Link2 size={20} aria-hidden /> About
-                </h2>
-              }
-            >
-              <Stack gap={2}>
-                <p className={styles.proposedLabel}>Proposed profile fields</p>
-                <p className={styles.empty}>
-                  A short bio and a small set of relevant external links could live here.
-                </p>
+            <Card icon={<Link2 size={20} aria-hidden />} title="About">
+              <Stack gap="xs">
+                <ProposedContent label="Proposed profile fields">
+                  <Text size="sm" c="dimmed">
+                    A short bio and a small set of relevant external links could live here.
+                  </Text>
+                </ProposedContent>
                 <p className={styles.memberSince}>
                   Member since{' '}
                   <time dateTime={page.profile.created_at}>
@@ -268,14 +267,24 @@ function ProfileDetailPage() {
               </Stack>
             </Card>
 
-            <Card
-              header={
-                <h2 className={styles.iconHeading}>
-                  <UsersRound size={20} aria-hidden /> Groups
-                </h2>
-              }
-            >
-              <ProfileGroupMemberships groups={page.groupSummaries} />
+            <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">
+              {page.groupSummaries.length === 0 ? (
+                <Text size="sm" c="dimmed">
+                  Not a member of any groups.
+                </Text>
+              ) : (
+                <Links>
+                  {page.groupSummaries.map((group) => (
+                    <Links.Item
+                      key={group.id}
+                      to="/groups/$groupSlug"
+                      params={{ groupSlug: group.slug }}
+                    >
+                      {group.name}
+                    </Links.Item>
+                  ))}
+                </Links>
+              )}
             </Card>
           </Stack>
         </aside>

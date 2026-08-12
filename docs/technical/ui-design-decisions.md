@@ -195,7 +195,7 @@ This document records durable UI decisions for consistency across features.
 - Changed on: 2026-07-18
 
 ## DD-015: Mantine owns standard application-content UI
-- Status: accepted
+- Status: superseded
 - Context: The home-grown generic primitive, form-presentation, layout, and surface layers duplicated maintained library concerns and encouraged new work to deepen a parallel component system. The application still needs clear ownership for product-specific composition, distinctive Dune Zone visuals, and precision-rendered game and document output.
 - Rule:
   - Use Mantine directly for standard application controls, surfaces, layout, feedback, overlays, and typography.
@@ -218,6 +218,9 @@ This document records durable UI decisions for consistency across features.
   - A domain-specific component may use custom CSS and visuals when standard Mantine UI would erase product meaning or renderer fidelity.
   - Before the Mantine foundation dependency lands, do not add Mantine imports prematurely and do not deepen the legacy primitive system; coordinate the work with the foundation or migration scope.
 - Changed on: 2026-07-19
+- Superseded on: 2026-08-12 by DD-017. Mantine remains the base library, but a domain-free
+  interface kit (`src/ui`) now owns the concerns the app repeats; renderer isolation and the
+  no-thin-wrappers rule carry forward.
 
 ## DD-016: Recurring topics use one canonical icon mapping
 - Status: accepted
@@ -231,3 +234,24 @@ This document records durable UI decisions for consistency across features.
   - One-off topics without a canonical mapping may keep a locally selected icon until they recur or receive product direction.
   - Renderer-owned game visuals remain isolated and do not consume the application component.
 - Changed on: 2026-07-20
+
+## DD-017: The component taxonomy governs all interface components
+- Status: accepted
+- Context: DD-015 made Mantine the only sanctioned shared layer, so recurring concerns (the pane
+  treatment, titled regions, heading levels) were re-spelled at every call site and drifted. A
+  domain-free kit was rebuilt deliberately, category by category, with a rule for what may live
+  in each.
+- Rule: The taxonomy in [`AGENTS.md`](../../AGENTS.md#component-taxonomy) is canonical. Six kit
+  categories under `src/ui` — Content, Controls, Lists, Layout, Surfaces, Blocks — each defined
+  by what a caller hands the component. Application components keep the same kinds with domain
+  knowledge, filed by feature. Widgets (`src/app/widgets`) are the last-resort shared assemblies
+  with their own rules. The category is the folder; the folder is the Storybook root.
+- Examples:
+  - `Surface` owns the pane; surfaces never nest.
+  - `Section` (a Block) takes words and owns the heading; loudness derives from depth.
+  - `FactionEditor` is a Widget: two routes install it whole; pages own its data.
+  - Mantine components the app uses get stories under our theme, filed by kind.
+- Exceptions:
+  - Thin wrappers that merely rename a Mantine component remain prohibited (carried from DD-015).
+  - Game, sheet, print, capture, and publishing renderers stay outside the kit and Mantine.
+- Changed on: 2026-08-12

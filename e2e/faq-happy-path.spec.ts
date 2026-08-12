@@ -45,8 +45,8 @@ test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, new
     expect(answererHref).toBeTruthy();
     await page.goto(answererHref!);
     await expect(page.getByText(questionText)).toBeVisible();
-    const pickedFact = page.locator('p', { hasText: 'Picked answers' });
-    await expect(pickedFact.locator('strong')).toHaveText('1');
+    /* The stat's phrase is what it promises a reader; its markup is the Stats component's own. */
+    await expect(page.getByText('1 picked answers', { exact: true })).toBeAttached();
   });
 
   await userB.close();

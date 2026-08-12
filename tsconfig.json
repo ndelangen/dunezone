@@ -18,6 +18,7 @@
       "@db/core": ["./src/app/db/core/index.ts"],
       "@db/*": ["./src/app/*/db.ts"],
       "@app/*": ["./src/app/*"],
+      "@ui/*": ["./src/ui/*"],
       "@data/*": ["./src/data/*"],
       "@game/*": ["./src/game/*"]
     },

@@ -1,17 +1,7 @@
-import {
-  ActionIcon,
-  Alert,
-  Button,
-  Group,
-  Popover,
-  Select,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-} from '@mantine/core';
+import { Alert, Button, Group, Popover, Select, Stack, Text } from '@mantine/core';
+import { IconAction } from '@ui/control/IconAction';
 import { Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 
 /**
  * The popover's minimal structural requirement on a picked row — satisfied by the (validator-
@@ -47,6 +37,7 @@ export function AssetAssignPopover({
   ownedItems,
   onAssign,
 }: AssetAssignPopoverProps) {
+  const labelId = useId();
   const [opened, setOpened] = useState(false);
   const [selectedId, setSelectedId] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -116,27 +107,24 @@ export function AssetAssignPopover({
       trapFocus
       returnFocus
     >
-      <Tooltip label={`Add a ${kind} you own`}>
-        <Popover.Target>
-          <ActionIcon
-            type="button"
-            variant="light"
-            size="sm"
-            aria-label={`Add a ${kind} you own`}
-            disabled={disabled}
-            onClick={() => handleOpenedChange(!opened)}
-          >
-            <Plus size={14} aria-hidden />
-          </ActionIcon>
-        </Popover.Target>
-      </Tooltip>
-      <Popover.Dropdown>
+      <Popover.Target>
+        <IconAction
+          label={`Add a ${kind} you own`}
+          variant="light"
+          size="sm"
+          disabled={disabled}
+          onClick={() => handleOpenedChange(!opened)}
+          icon={<Plus size={14} aria-hidden />}
+        />
+      </Popover.Target>
+      <Popover.Dropdown aria-labelledby={labelId}>
         {opened ? (
           <Stack gap="md">
             <Stack gap={4}>
-              <Title order={3} size="h4">
+              {/* Names the dropdown rather than the page: see GroupAssignPopover. */}
+              <Text id={labelId} fw={700} fz="h4">
                 Add a {kind}
-              </Title>
+              </Text>
               <Text size="sm" c="dimmed">
                 Only {kind}s you own are listed. Moving one already in another group needs
                 confirmation.

@@ -1,7 +1,7 @@
 import { Link, useLocation } from '@tanstack/react-router';
 
+import { PageLayout } from '../layout/PageLayout';
 import { ApplicationChrome } from './ApplicationChrome';
-import { PageLayout } from './PageLayout';
 
 export function AppNotFound() {
   const pathname = useLocation({ select: (location) => location.pathname });

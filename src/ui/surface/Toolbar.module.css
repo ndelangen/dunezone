@@ -1,0 +1,39 @@
+.root {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.left,
+.right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  /* The edges hold controls, so they take their content's width as a floor and share whatever is
+     left over. They are not shrinkable: when the band runs out of room the centre gives way, never
+     the buttons — a crushed edge overlaps its neighbour instead of getting smaller. */
+  flex: 1 0 auto;
+}
+
+.left {
+  justify-content: flex-start;
+}
+
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+
+  /* Sized by its content and free to shrink. Not `flex: 0`, which resolves to a `0%` basis and so
+     sizes from min-content instead — that ignores a width the content asked for, and any content
+     that does ask for one then cannot shrink and overflows the band. */
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.right {
+  justify-content: flex-end;
+}

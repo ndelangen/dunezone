@@ -7,8 +7,8 @@ import '@mantine/core/styles.layer.css';
 import '../src/app/styles/fonts.css';
 import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
-import { appContentTheme } from '../src/app/theme';
 import * as sizes from '../src/game/data/sizes';
+import { appContentTheme } from '../src/ui/theme';
 
 /* Storybook has no backend or auth context. Connected components must opt into
    deterministic, per-story return values from these network-incapable mocks. */
@@ -21,6 +21,10 @@ export default definePreview({
     layout: 'centered',
     viewport: {
       options: {
+        /* Constrained widths a story can select when its subject *is* the behaviour at that
+           width. Stories are otherwise left responsive, which is the more useful default. */
+        contentNarrow: { name: 'Content narrow', styles: { width: '260px', height: '620px' } },
+        contentColumn: { name: 'Content column', styles: { width: '620px', height: '620px' } },
         page: {
           name: 'Page',
           styles: {
@@ -130,7 +134,9 @@ export default definePreview({
         <Story />
       );
 
-      if (title.startsWith('Application/')) {
+      /* Everything but the game assets is themed interface. Game assets are self-contained SVG
+         renderers that carry their own colour and must not inherit the app's palette. */
+      if (!title.startsWith('Game Assets/')) {
         return (
           <MantineProvider theme={appContentTheme} forceColorScheme="light">
             {story}

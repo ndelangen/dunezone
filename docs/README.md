@@ -100,9 +100,11 @@ already made unpushable.
 - Keep stories colocated with the component they render. Storybook navigation is owned by the
   source entries and `titlePrefix` values in `.storybook/main.ts`.
 - Prefer auto-titles. Add a relative `title` only when a filename cannot express the useful
-  product-facing label; never repeat `Application` or `Game Assets` in story metadata.
-- Application stories belong under Factions, FAQ, Groups, Topics, Shared Content, Foundation, or
-  Legacy. Legacy stories are migration-only regression coverage, not canonical APIs for new UI.
+  product-facing label; never repeat the category or `Game Assets` in story metadata.
+- Stories file under their category root — Blocks, Content, Controls, Layout, Lists, Surfaces —
+  fed by both `src/ui/<category>` and `src/app/components/<category>`; the sidebar does not say
+  who wrote a component. Widget stories file under Widgets. There is no Application root. See the
+  component taxonomy in [`AGENTS.md`](../AGENTS.md#component-taxonomy).
 - Game Assets stories belong under Faction, Cards, Tokens, or Composition. Comparative asset
   catalogues may remain exhaustive when side-by-side inspection is the story's purpose.
 - Rulebook stories are intentionally not indexed while their redesign is pending.
@@ -160,8 +162,8 @@ already made unpushable.
 
    Keep nested parent routes outlet-only. The printable faction-sheet route and non-visual auth
    callbacks are the intentional layout exceptions. For styled application content, follow the
-   [Mantine-first UI ownership model](./technical/ui-component-hierarchy.md); do not introduce new
-   legacy generic cards or layout wrappers.
+   [component taxonomy](../AGENTS.md#component-taxonomy) and the
+   [ownership rules](./technical/ui-component-hierarchy.md) around it.
 
 3. Route tree auto-generates from file structure.
 
@@ -180,6 +182,5 @@ Dune card/faction rendering and Storybook stories live in `src/game`; source art
 - [Membership](./membership.md) - Group membership approval flow
 - [Deployment](./deployment.md) - Cloudflare Worker deployment process
 - [Convex Migrations](./convex-migrations.md) - Required widen/migrate/verify/narrow runbook + CI/deploy guards
-- [UI Component Hierarchy](./technical/ui-component-hierarchy.md) - Composition layers, dependency direction, CSS ownership
+- [UI Taxonomy & Ownership](./technical/ui-component-hierarchy.md) - Ownership rules around the canonical taxonomy in `AGENTS.md`
 - [UI Design Decisions](./technical/ui-design-decisions.md) - Accepted UI semantics and consistency defaults
-- [UI Content Migration](./technical/ui-content-migration.md) - Settled Mantine pilot conventions, remaining routes, and legacy retirement waves

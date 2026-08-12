@@ -1,15 +1,11 @@
+import { Button, Group, Input, Stack, TextInput, Textarea } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Surface } from '@ui/surface';
 
 import { useAskFaqQuestion } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug, useRulesetBySlug } from '@db/rulesets';
-import { FormField } from '@app/components/form/FormField';
-import { MultilineTextField } from '@app/components/form/MultilineTextField';
-import { TextField } from '@app/components/form/TextField';
-import { ButtonGroup, Stack } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import type { FaqTag } from '@app/faq/tags';
 import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 
@@ -51,21 +47,21 @@ function FaqCreatePage() {
   if (!profile?.data?._id) {
     return (
       <PageLayout header={header}>
-        <Card>
+        <Surface padding="lg">
           <p>
             <Link to="/auth/login">Log in</Link> to ask a question.
           </p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
 
   return (
     <PageLayout header={header}>
-      <Card>
+      <Surface padding="lg">
         <Stack
-          as="form"
-          gap={3}
+          component="form"
+          gap="sm"
           onSubmit={(e) => {
             e.preventDefault();
             const formEl = e.target as HTMLFormElement;
@@ -101,20 +97,22 @@ function FaqCreatePage() {
               .catch(() => undefined);
           }}
         >
-          <FormField label="Ask a question">
-            <TextField
-              type="text"
-              name="question"
-              required
-              minLength={1}
-              placeholder="Your question..."
-            />
-          </FormField>
-          <FormField label="Your answer (optional-you can add or edit it later)">
-            <MultilineTextField name="answer" rows={3} placeholder="Optional answer..." />
-          </FormField>
-          <FormField label="Tags">
-            <Stack as="fieldset" gap={2} className={styles.tagFieldset}>
+          <TextInput
+            label="Ask a question"
+            type="text"
+            name="question"
+            required
+            minLength={1}
+            placeholder="Your question..."
+          />
+          <Textarea
+            label="Your answer (optional-you can add or edit it later)"
+            name="answer"
+            rows={3}
+            placeholder="Optional answer..."
+          />
+          <Input.Wrapper label="Tags">
+            <Stack component="fieldset" gap="xs" className={styles.tagFieldset}>
               <legend className={styles.visuallyHidden}>FAQ tags</legend>
               {FAQ_TAG_VALUES.map((tag) => (
                 <label key={tag} className={styles.tagOption}>
@@ -123,17 +121,17 @@ function FaqCreatePage() {
                 </label>
               ))}
             </Stack>
-          </FormField>
-          <ButtonGroup>
-            <UIButton type="submit" iconOnly={false} disabled={askQuestion.isPending}>
+          </Input.Wrapper>
+          <Group gap="xs" wrap="nowrap">
+            <Button variant="filled" color="confirm" type="submit" disabled={askQuestion.isPending}>
               {askQuestion.isPending ? 'Asking…' : 'Ask'}
-            </UIButton>
+            </Button>
             {askQuestion.isError && (
               <span className={styles.error}>{askQuestion.error?.message}</span>
             )}
-          </ButtonGroup>
+          </Group>
         </Stack>
-      </Card>
+      </Surface>
     </PageLayout>
   );
 }

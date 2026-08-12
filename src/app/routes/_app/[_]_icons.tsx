@@ -1,5 +1,4 @@
 import {
-  Card,
   Chip,
   Group,
   Paper,
@@ -12,13 +11,14 @@ import {
   Title,
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { Surface } from '@ui/surface';
 import { icons, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { PageLayout } from '@app/components/shell';
-import { TOPIC_ICON_TOPICS, TopicIcon } from '@app/components/topics/TopicIcon';
-import type { TopicIconTopic } from '@app/components/topics/TopicIcon';
+import { TOPIC_ICON_TOPICS, TopicIcon } from '@app/components/content/TopicIcon';
+import type { TopicIconTopic } from '@app/components/content/TopicIcon';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import {
   BACKGROUND,
   DECAL,
@@ -369,11 +369,11 @@ function IconsPage() {
             ))}
           </SimpleGrid>
         ) : (
-          <Paper withBorder p="xl" radius="md">
+          <Surface padding="xl">
             <Text ta="center" c="dimmed">
               No icons match “{query.trim()}”.
             </Text>
-          </Paper>
+          </Surface>
         )}
 
         {visibleCount < sortedEntries.length ? (
@@ -397,7 +397,7 @@ function IconCatalogCard({ entry }: { entry: CatalogEntry }) {
   const sizeBytes = entry.source === 'dune' ? svgByteSizeCache.get(entry.path) : undefined;
 
   return (
-    <Card withBorder padding={6} radius="md">
+    <Surface padding="sm">
       <Stack align="center" gap={2}>
         <div style={iconSlotStyle}>
           {entry.source === 'topics' ? (
@@ -420,7 +420,7 @@ function IconCatalogCard({ entry }: { entry: CatalogEntry }) {
           </Text>
         ) : null}
       </Stack>
-    </Card>
+    </Surface>
   );
 }
 

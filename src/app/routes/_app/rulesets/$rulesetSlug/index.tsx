@@ -1,25 +1,29 @@
 import {
-  ActionIcon,
   Alert,
   Anchor,
-  Badge,
   Box,
   Button,
-  Card,
   Divider,
   Group,
   Image,
-  Paper,
   Select,
   SimpleGrid,
   Stack,
   Text,
   TextInput,
   Title,
-  Tooltip,
 } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { Section } from '@ui/block/Section';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { IconAction } from '@ui/control/IconAction';
+import { Stats } from '@ui/list/Stats';
+import { Surface } from '@ui/surface';
+import { Card } from '@ui/surface/Card';
+import { Spotlight } from '@ui/surface/Spotlight';
+import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
   BookOpen,
@@ -46,12 +50,12 @@ import {
   useUpdateRuleset,
 } from '@db/rulesets';
 import { viewerActionsFor } from '@app/access/viewerActions';
-import { IconStat } from '@app/components/content/IconStat';
-import { FaqList } from '@app/components/faq/FaqList';
-import { GroupAssignPopover } from '@app/components/groups/GroupAssignPopover';
-import { ProfileLink } from '@app/components/profile/ProfileLink';
-import { PageLayout } from '@app/components/shell';
-import { TopicIcon } from '@app/components/topics/TopicIcon';
+import { ProposedContent } from '@app/components/block/ProposedContent';
+import { ProfileLink } from '@app/components/content/ProfileLink';
+import { TopicIcon } from '@app/components/content/TopicIcon';
+import { GroupAssignPopover } from '@app/components/control/GroupAssignPopover';
+import { PageLayout } from '@app/components/layout/PageLayout';
+import { FaqList } from '@app/components/list/FaqList';
 import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 import type { FaqTag } from '@app/faq/tags';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -94,12 +98,12 @@ function RulesetDetailPending() {
         </Stack>
       }
     >
-      <Paper withBorder p="xl" radius="md" aria-live="polite">
+      <Surface padding="xl">
         <Stack gap="xs">
           <Title order={2}>Loading ruleset</Title>
           <Text c="dimmed">The ruleset details are still loading.</Text>
         </Stack>
-      </Paper>
+      </Surface>
     </PageLayout>
   );
 }
@@ -149,12 +153,12 @@ function RulesetDetailPage() {
           </Stack>
         }
       >
-        <Paper withBorder p="xl" radius="md">
+        <Surface padding="xl">
           <Stack gap="xs">
             <Title order={2}>Ruleset not found</Title>
             <Text c="dimmed">This ruleset does not exist or was deleted.</Text>
           </Stack>
-        </Paper>
+        </Surface>
       </PageLayout>
     );
   }
@@ -212,7 +216,7 @@ function RulesetDetailPage() {
       headerSize="compact"
       header={
         <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
-          <Paper className={styles.rulesetHeadCover} radius="md" withBorder>
+          <Surface className={styles.rulesetHeadCover}>
             {r.image_cover ? (
               <Image
                 src={r.image_cover}
@@ -224,7 +228,7 @@ function RulesetDetailPage() {
             <span className={styles.rulesetHeadGlyph}>
               <TopicIcon topic="rulesets" size={28} />
             </span>
-          </Paper>
+          </Surface>
           <Stack gap={6} className={styles.pageHeadText}>
             <Anchor
               size="sm"
@@ -254,64 +258,56 @@ function RulesetDetailPage() {
         </Group>
       }
       toolbar={
-        <Paper withBorder p="sm" radius="md">
-          <Group justify="space-between" gap="sm" wrap="wrap">
+        <Toolbar>
+          <Toolbar.Left>
             <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
-              <Tooltip label="Back to rulesets">
-                <ActionIcon
-                  variant="light"
-                  color="gray"
-                  size="lg"
-                  aria-label="Back to rulesets"
-                  renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
-                >
-                  <ArrowLeft size={17} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
+              <IconAction
+                label="Back to rulesets"
+                variant="light"
+                color="gray"
+                size="lg"
+                renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
+                icon={<ArrowLeft size={17} aria-hidden />}
+              />
               {viewerAccess.capabilities.edit ? (
-                <Tooltip label="Edit ruleset">
-                  <ActionIcon
-                    variant="light"
-                    color="dune"
-                    size="lg"
-                    aria-label="Edit ruleset"
-                    renderRoot={(rootProps) => (
-                      <Link
-                        {...rootProps}
-                        to="/rulesets/$rulesetSlug/edit"
-                        params={{ rulesetSlug: r.slug }}
-                      />
-                    )}
-                  >
-                    <Pencil size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
+                <IconAction
+                  label="Edit ruleset"
+                  variant="light"
+                  color="dune"
+                  size="lg"
+                  renderRoot={(rootProps) => (
+                    <Link
+                      {...rootProps}
+                      to="/rulesets/$rulesetSlug/edit"
+                      params={{ rulesetSlug: r.slug }}
+                    />
+                  )}
+                  icon={<Pencil size={17} aria-hidden />}
+                />
               ) : null}
             </Group>
+          </Toolbar.Left>
 
+          <Toolbar.Right>
             {actionVisibility.askQuestion ||
             actionVisibility.assignGroup ||
             actionVisibility.removeGroup ||
             actionVisibility.canDelete ? (
               <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset actions">
                 {actionVisibility.askQuestion ? (
-                  <Tooltip label="Ask a question">
-                    <ActionIcon
-                      type="button"
-                      variant="filled"
-                      color="confirm"
-                      size="lg"
-                      aria-label="Ask a question"
-                      onClick={() =>
-                        navigate({
-                          to: '/rulesets/$rulesetSlug/faq/create',
-                          params: { rulesetSlug: r.slug },
-                        })
-                      }
-                    >
-                      <MessageCircleQuestionMark size={17} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
+                  <IconAction
+                    label="Ask a question"
+                    variant="filled"
+                    color="confirm"
+                    size="lg"
+                    onClick={() =>
+                      navigate({
+                        to: '/rulesets/$rulesetSlug/faq/create',
+                        params: { rulesetSlug: r.slug },
+                      })
+                    }
+                    icon={<MessageCircleQuestionMark size={17} aria-hidden />}
+                  />
                 ) : null}
                 {actionVisibility.assignGroup ? (
                   <GroupAssignPopover
@@ -333,48 +329,40 @@ function RulesetDetailPage() {
                   />
                 ) : null}
                 {actionVisibility.removeGroup ? (
-                  <Tooltip label="Remove group">
-                    <ActionIcon
-                      type="button"
-                      aria-label="Remove group"
-                      color="red"
-                      variant="light"
-                      size="lg"
-                      disabled={updateRuleset.isPending}
-                      onClick={() =>
-                        void updateRuleset
-                          .mutateAsync({
-                            id: r._id,
-                            input: { name: r.name },
-                            groupId: null,
-                            imageCover: r.image_cover ?? null,
-                          })
-                          .catch(() => undefined)
-                      }
-                    >
-                      <UserRoundMinus size={17} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
+                  <IconAction
+                    label="Remove group"
+                    color="red"
+                    variant="light"
+                    size="lg"
+                    disabled={updateRuleset.isPending}
+                    onClick={() =>
+                      void updateRuleset
+                        .mutateAsync({
+                          id: r._id,
+                          input: { name: r.name },
+                          groupId: null,
+                          imageCover: r.image_cover ?? null,
+                        })
+                        .catch(() => undefined)
+                    }
+                    icon={<UserRoundMinus size={17} aria-hidden />}
+                  />
                 ) : null}
                 {actionVisibility.canDelete ? (
-                  <Tooltip label="Delete ruleset">
-                    <ActionIcon
-                      color="red"
-                      variant="light"
-                      type="button"
-                      size="lg"
-                      aria-label="Delete ruleset"
-                      onClick={handleDelete}
-                      disabled={deleteRuleset.isPending}
-                    >
-                      <Trash2 size={17} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
+                  <IconAction
+                    label="Delete ruleset"
+                    color="red"
+                    variant="light"
+                    size="lg"
+                    onClick={handleDelete}
+                    disabled={deleteRuleset.isPending}
+                    icon={<Trash2 size={17} aria-hidden />}
+                  />
                 ) : null}
               </Group>
             ) : null}
-          </Group>
-        </Paper>
+          </Toolbar.Right>
+        </Toolbar>
       }
     >
       <Box className={styles.detailGrid}>
@@ -385,15 +373,13 @@ function RulesetDetailPage() {
             </Alert>
           ) : null}
 
-          <Stack component="section" id="overview" aria-labelledby="overview-heading" gap="md">
-            <SectionHeading id="overview-heading" icon={<BookOpen size={20} aria-hidden />}>
-              About this ruleset
-            </SectionHeading>
-            <Paper withBorder p="lg" radius="md">
-              <Stack gap="sm">
-                <Badge variant="light" color="gray" w="fit-content">
-                  Planned content · new fields required
-                </Badge>
+          <Section
+            id="overview"
+            icon={<BookOpen size={20} aria-hidden />}
+            title="About this ruleset"
+          >
+            <Surface padding="lg">
+              <ProposedContent label="Planned content · new fields required">
                 <Text>
                   A concise introduction explaining the ruleset&apos;s purpose, intended audience,
                   and how it differs from the base game.
@@ -402,20 +388,16 @@ function RulesetDetailPage() {
                   Compatibility should identify the base edition or parent ruleset, required
                   expansions, and whether this ruleset can be mixed with other variants.
                 </Text>
-              </Stack>
-            </Paper>
-          </Stack>
+              </ProposedContent>
+            </Surface>
+          </Section>
 
-          <Stack component="section" id="rules" aria-labelledby="rules-heading" gap="md">
-            <Stack gap={4}>
-              <SectionHeading id="rules-heading" icon={<TopicIcon topic="rules" size={20} />}>
-                Rules and variants
-              </SectionHeading>
-              <Text c="dimmed" size="sm">
-                Proposed structured rule sections would make the ruleset useful before the FAQ has
-                accumulated questions.
-              </Text>
-            </Stack>
+          <Section
+            id="rules"
+            icon={<TopicIcon topic="rules" size={20} />}
+            title="Rules and variants"
+            description="Proposed structured rule sections would make the ruleset useful before the FAQ has accumulated questions."
+          >
             <Stack gap="md">
               {[
                 [
@@ -435,81 +417,57 @@ function RulesetDetailPage() {
                   'Clearly optional modules that groups may enable independently.',
                 ],
               ].map(([title, description]) => (
-                <Card key={title} withBorder padding="lg" radius="md">
-                  <Stack gap="xs">
-                    <Title order={3} size="h4">
-                      {title}
-                    </Title>
-                    <Text size="sm" c="dimmed">
-                      {description}
-                    </Text>
-                  </Stack>
+                <Card key={title} title={title}>
+                  <Text size="sm" c="dimmed">
+                    {description}
+                  </Text>
                 </Card>
               ))}
             </Stack>
-          </Stack>
+          </Section>
 
-          <Stack component="section" id="factions" aria-labelledby="factions-heading" gap="md">
-            <SectionHeading id="factions-heading" icon={<Layers3 size={20} aria-hidden />}>
-              Included factions
-            </SectionHeading>
+          <Section id="factions" icon={<Layers3 size={20} aria-hidden />} title="Included factions">
             {page.factions.length > 0 ? (
               <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
                 {page.factions.map((f) => (
-                  <Card key={f.factionId} withBorder padding="md" radius="md">
-                    <Group gap="md" wrap="nowrap">
-                      <div className={styles.factionToken} aria-hidden>
-                        {f.identity ? (
-                          <FactionToken logo={f.identity.logo} background={f.identity.background} />
-                        ) : (
-                          <TopicIcon topic="identity" size={24} />
-                        )}
-                      </div>
-                      <Stack gap={4} miw={0}>
-                        <Anchor
-                          fw={700}
-                          size="lg"
-                          renderRoot={(rootProps) => (
-                            <Link
-                              {...rootProps}
-                              to="/factions/$factionId"
-                              params={{ factionId: f.urlSlug }}
-                            />
-                          )}
-                        >
-                          {f.name}
-                        </Anchor>
-                        <Text size="sm" c="dimmed">
-                          View faction details, components, and special rules.
-                        </Text>
-                      </Stack>
-                    </Group>
-                  </Card>
+                  <Spotlight
+                    key={f.factionId}
+                    media={
+                      f.identity ? (
+                        <FactionToken logo={f.identity.logo} background={f.identity.background} />
+                      ) : (
+                        <TopicIcon topic="identity" size={24} />
+                      )
+                    }
+                    title={f.name}
+                    meta="Details, components, and special rules"
+                    renderRoot={(rootProps) => (
+                      <Link
+                        {...rootProps}
+                        to="/factions/$factionId"
+                        params={{ factionId: f.urlSlug }}
+                      />
+                    )}
+                  />
                 ))}
               </SimpleGrid>
             ) : (
-              <Paper withBorder p="lg" radius="md">
-                <Text c="dimmed">No factions have been added to this ruleset yet.</Text>
-              </Paper>
+              <Surface padding="lg">
+                <Text size="sm" c="dimmed">
+                  No factions have been added to this ruleset yet.
+                </Text>
+              </Surface>
             )}
-          </Stack>
+          </Section>
         </Stack>
 
-        <Stack
-          component="section"
+        <Section
           id="faq"
-          aria-labelledby="faq-heading"
-          gap="md"
           className={styles.communityColumn}
+          icon={<CircleHelp size={20} aria-hidden />}
+          title="Community FAQ"
+          description="Browse community questions and accepted answers."
         >
-          <Stack gap={4}>
-            <SectionHeading id="faq-heading" icon={<CircleHelp size={20} aria-hidden />}>
-              Community FAQ
-            </SectionHeading>
-            <Text size="sm" c="dimmed">
-              Browse community questions and accepted answers.
-            </Text>
-          </Stack>
           <TextInput
             value={search.q ?? ''}
             onChange={(event) => handleFaqSearchChange(event.currentTarget.value)}
@@ -553,7 +511,7 @@ function RulesetDetailPage() {
             searchQuery={search.q ?? ''}
             selectedTag={search.tag}
           />
-        </Stack>
+        </Section>
 
         <Stack
           gap="md"
@@ -562,161 +520,124 @@ function RulesetDetailPage() {
           miw={0}
           className={styles.detailsColumn}
         >
-          <Card withBorder padding="lg" radius="md">
-            <Stack gap="md">
-              <SectionHeading icon={<ListTree size={19} aria-hidden />} order={2}>
-                At a glance
-              </SectionHeading>
-              <Group gap="lg" wrap="wrap">
-                <IconStat
-                  icon={<Layers3 size={17} aria-hidden />}
-                  value={page.factions.length}
-                  label={`${page.factions.length} ${page.factions.length === 1 ? 'faction' : 'factions'}`}
-                />
-                <IconStat
-                  icon={<CircleHelp size={17} aria-hidden />}
-                  value={page.faqItems.length}
-                  label={`${page.faqItems.length} ${page.faqItems.length === 1 ? 'question' : 'questions'}`}
-                />
-                <IconStat
-                  icon={<CheckCircle2 size={17} aria-hidden />}
-                  value={answeredFaqCount}
-                  label={`${answeredFaqCount} answered ${answeredFaqCount === 1 ? 'question' : 'questions'}`}
-                />
-                <IconStat
-                  icon={<FileText size={17} aria-hidden />}
-                  value="—"
-                  label="Version not specified"
-                />
-              </Group>
-            </Stack>
+          <Card icon={<ListTree size={20} aria-hidden />} title="At a glance">
+            <Stats
+              items={[
+                {
+                  key: 'factions',
+                  icon: <Layers3 size={17} aria-hidden />,
+                  value: page.factions.length,
+                  label: `${page.factions.length} ${page.factions.length === 1 ? 'faction' : 'factions'}`,
+                },
+                {
+                  key: 'questions',
+                  icon: <CircleHelp size={17} aria-hidden />,
+                  value: page.faqItems.length,
+                  label: `${page.faqItems.length} ${page.faqItems.length === 1 ? 'question' : 'questions'}`,
+                },
+                {
+                  key: 'answered',
+                  icon: <CheckCircle2 size={17} aria-hidden />,
+                  value: answeredFaqCount,
+                  label: `${answeredFaqCount} answered ${answeredFaqCount === 1 ? 'question' : 'questions'}`,
+                },
+                {
+                  key: 'version',
+                  icon: <FileText size={17} aria-hidden />,
+                  value: '—',
+                  label: 'Version not specified',
+                },
+              ]}
+            />
           </Card>
 
-          <Card withBorder padding="lg" radius="md">
-            <Stack gap="md">
-              <SectionHeading icon={<UsersRound size={19} aria-hidden />} order={2}>
-                Stewardship
-              </SectionHeading>
-              <Stack gap="sm">
-                <Box>
-                  <Text size="xs" c="dimmed" fw={700} tt="uppercase">
-                    Owner
-                  </Text>
-                  {page.owner ? (
-                    <ProfileLink
-                      slug={page.owner.slug}
-                      username={page.owner.username}
-                      avatar_url={page.owner.avatar_url}
-                    />
-                  ) : (
-                    <Text size="sm">Unknown</Text>
-                  )}
-                </Box>
-                <Divider />
-                {!assignedGroup ? (
-                  <Text size="sm" c="dimmed">
-                    No maintaining group.
-                  </Text>
-                ) : (
-                  <Stack gap="sm">
-                    <Box>
-                      <Text size="xs" c="dimmed" fw={700} tt="uppercase">
-                        Maintaining group
-                      </Text>
-                      {assignedGroup.slug ? (
-                        <Anchor
-                          fw={600}
-                          renderRoot={(rootProps) => (
-                            <Link
-                              {...rootProps}
-                              to="/groups/$groupSlug"
-                              params={{ groupSlug: assignedGroup.slug }}
-                            />
-                          )}
-                        >
-                          {assignedGroup.name}
-                        </Anchor>
-                      ) : (
-                        <Text fw={600}>{assignedGroup.name}</Text>
-                      )}
-                    </Box>
-                    <Group justify="space-between" gap="xs">
-                      <Text size="sm" c="dimmed">
-                        Your membership
-                      </Text>
-                      <Badge
-                        color={
-                          membershipStatus === 'active'
-                            ? 'green'
-                            : membershipStatus === 'pending'
-                              ? 'yellow'
-                              : 'gray'
-                        }
-                        variant="light"
-                      >
-                        {membershipStatus === 'active'
-                          ? 'Active'
-                          : membershipStatus === 'pending'
-                            ? 'Pending'
-                            : 'Not a member'}
-                      </Badge>
-                    </Group>
-                    {canRequestMembership ? (
-                      <Button
-                        type="button"
-                        variant="light"
-                        leftSection={<UserPlus size={16} aria-hidden />}
-                        loading={membershipWorkflow.request.isPending}
-                        onClick={() =>
-                          void membershipWorkflow.request
-                            .run(assignedGroup.id)
-                            .catch(() => undefined)
-                        }
-                      >
-                        Request membership
-                      </Button>
-                    ) : null}
-                  </Stack>
-                )}
-              </Stack>
-            </Stack>
-          </Card>
-
-          <Card withBorder padding="lg" radius="md">
+          <Card icon={<UsersRound size={20} aria-hidden />} title="Stewardship">
             <Stack gap="sm">
-              <SectionHeading icon={<FileText size={19} aria-hidden />} order={2}>
-                Resources
-              </SectionHeading>
-              <Badge variant="light" color="gray" w="fit-content">
-                Proposed content
-              </Badge>
+              <Box>
+                <Eyebrow>Owner</Eyebrow>
+                {page.owner ? (
+                  <ProfileLink
+                    slug={page.owner.slug}
+                    username={page.owner.username}
+                    avatar_url={page.owner.avatar_url}
+                  />
+                ) : (
+                  <Text size="sm">Unknown</Text>
+                )}
+              </Box>
+              <Divider />
+              {!assignedGroup ? (
+                <Text size="sm" c="dimmed">
+                  No maintaining group.
+                </Text>
+              ) : (
+                <Stack gap="sm">
+                  <Box>
+                    <Eyebrow>Maintaining group</Eyebrow>
+                    {assignedGroup.slug ? (
+                      <Anchor
+                        fw={600}
+                        renderRoot={(rootProps) => (
+                          <Link
+                            {...rootProps}
+                            to="/groups/$groupSlug"
+                            params={{ groupSlug: assignedGroup.slug }}
+                          />
+                        )}
+                      >
+                        {assignedGroup.name}
+                      </Anchor>
+                    ) : (
+                      <Text fw={600}>{assignedGroup.name}</Text>
+                    )}
+                  </Box>
+                  <Group justify="space-between" gap="xs">
+                    <Text size="sm" c="dimmed">
+                      Your membership
+                    </Text>
+                    <StatusBadge
+                      tone={
+                        membershipStatus === 'active'
+                          ? 'positive'
+                          : membershipStatus === 'pending'
+                            ? 'pending'
+                            : 'neutral'
+                      }
+                    >
+                      {membershipStatus === 'active'
+                        ? 'Active'
+                        : membershipStatus === 'pending'
+                          ? 'Pending'
+                          : 'Not a member'}
+                    </StatusBadge>
+                  </Group>
+                  {canRequestMembership ? (
+                    <Button
+                      type="button"
+                      variant="light"
+                      leftSection={<UserPlus size={16} aria-hidden />}
+                      loading={membershipWorkflow.request.isPending}
+                      onClick={() =>
+                        void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)
+                      }
+                    >
+                      Request membership
+                    </Button>
+                  ) : null}
+                </Stack>
+              )}
+            </Stack>
+          </Card>
+
+          <Card icon={<FileText size={20} aria-hidden />} title="Resources">
+            <ProposedContent label="Proposed content">
               <Text size="sm" c="dimmed">
                 Printable rules, release notes, and a version history could live here.
               </Text>
-            </Stack>
+            </ProposedContent>
           </Card>
         </Stack>
       </Box>
     </PageLayout>
-  );
-}
-
-function SectionHeading({
-  icon,
-  children,
-  order = 2,
-  ...props
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  order?: 2 | 3;
-} & React.ComponentProps<typeof Group>) {
-  return (
-    <Group gap="xs" wrap="nowrap" c="var(--color-text, var(--mantine-color-text))" {...props}>
-      <Title order={order} size={order === 2 ? 'h3' : 'h4'}>
-        {children}
-      </Title>
-      {icon}
-    </Group>
   );
 }

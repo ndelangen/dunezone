@@ -1,15 +1,16 @@
-import { Anchor, Paper, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Surface } from '@ui/surface';
 import { useRef } from 'react';
 
 import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
-import { FactionAuthoringToolbar } from '@app/components/factions/editor/FactionAuthoringToolbar';
-import { FactionEditor } from '@app/components/factions/editor/FactionEditor';
-import type { FactionAuthoringViewHandle } from '@app/components/factions/editor/FactionEditor';
-import { FactionLoadPopover } from '@app/components/factions/editor/FactionLoadPopover';
-import { useFactionAuthoring } from '@app/components/factions/editor/useFactionAuthoring';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
+import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
+import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
+import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
+import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
+import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { defaultFaction } from '@data/defaultFaction';
 
 export const Route = createFileRoute('/_app/factions/create')({
@@ -53,7 +54,7 @@ function CreateFactionPage() {
   if (!ownerUserId) {
     return (
       <PageLayout header={header} headerSize="compact">
-        <Paper withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Stack gap="sm">
             <Text>
               <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
@@ -65,7 +66,7 @@ function CreateFactionPage() {
               Back to factions
             </Anchor>
           </Stack>
-        </Paper>
+        </Surface>
       </PageLayout>
     );
   }

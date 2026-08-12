@@ -1,13 +1,13 @@
+import { Group } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
+import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Users } from 'lucide-react';
 
 import { loadGroupEditBySlug, useGroupEditBySlug } from '@db/groups';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { ButtonGroup, Toolbar } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 import { GroupSettingsForm } from '@app/components/groups/GroupSettingsForm';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/edit')({
   loader: async ({ params }) => {
@@ -26,12 +26,12 @@ function GroupEditPage() {
   if (groupData.isError || !editPage) {
     return (
       <PageLayout header={<h1>Edit group</h1>}>
-        <Card>
+        <Surface padding="lg">
           <p>Group not found.</p>
           <p>
             <Link to="/profiles">Back to profiles</Link>
           </p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
@@ -42,23 +42,26 @@ function GroupEditPage() {
   const toolbar = (
     <Toolbar>
       <Toolbar.Left>
-        <ButtonGroup>
-          <FormTooltip content="Back to profiles">
-            <UIButton variant="nav" to="/profiles" aria-label="Back to profiles">
-              <ArrowLeft size={16} aria-hidden />
-            </UIButton>
-          </FormTooltip>
-          <FormTooltip content="View group">
-            <UIButton
-              variant="secondary"
-              to="/groups/$groupSlug"
-              params={{ groupSlug: group.slug }}
-              aria-label="View group"
-            >
-              <Users size={16} aria-hidden />
-            </UIButton>
-          </FormTooltip>
-        </ButtonGroup>
+        <Group gap="xs" wrap="nowrap">
+          <IconAction
+            label="Back to profiles"
+            variant="light"
+            color="gray"
+            size="lg"
+            renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+            icon={<ArrowLeft size={16} aria-hidden />}
+          />
+          <IconAction
+            label="View group"
+            variant="light"
+            color="dune"
+            size="lg"
+            renderRoot={(rootProps) => (
+              <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: group.slug }} />
+            )}
+            icon={<Users size={16} aria-hidden />}
+          />
+        </Group>
       </Toolbar.Left>
     </Toolbar>
   );
@@ -66,7 +69,7 @@ function GroupEditPage() {
   if (viewerAccess.viewer.kind === 'anonymous') {
     return (
       <PageLayout header={header} toolbar={toolbar}>
-        <Card>
+        <Surface padding="lg">
           <p>
             <Link to="/auth/login">Log in</Link> to edit group settings.
           </p>
@@ -75,7 +78,7 @@ function GroupEditPage() {
               Back to group
             </Link>
           </p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
@@ -83,23 +86,23 @@ function GroupEditPage() {
   if (!viewerAccess.capabilities.rename) {
     return (
       <PageLayout header={header} toolbar={toolbar}>
-        <Card>
+        <Surface padding="lg">
           <p>Only the owner can edit the group settings.</p>
           <p>
             <Link to="/groups/$groupSlug" params={{ groupSlug: group.slug }}>
               Back to group
             </Link>
           </p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
 
   return (
     <PageLayout header={header} toolbar={toolbar}>
-      <Card>
+      <Surface padding="lg">
         <GroupSettingsForm key={group.slug} initial={group} />
-      </Card>
+      </Surface>
     </PageLayout>
   );
 }

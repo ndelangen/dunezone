@@ -1,0 +1,162 @@
+.card {
+  position: relative;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mantine-color-white);
+  border: 0;
+  border-radius: var(--mantine-radius-md);
+  aspect-ratio: 1;
+  box-shadow: var(--mantine-shadow-md);
+  text-align: left;
+  text-decoration: none;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.card:hover {
+  box-shadow: var(--mantine-shadow-xl);
+  transform: translateY(-3px);
+}
+
+.card:focus-visible {
+  outline: 3px solid var(--mantine-color-dune-6);
+  outline-offset: 2px;
+}
+
+.artwork {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(to bottom, rgba(8, 6, 4, 0.2), transparent 35%),
+    linear-gradient(to top, rgba(8, 6, 4, 0.88), transparent 62%);
+}
+
+.factionToken,
+.hero,
+.leaders span {
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.factionToken > *,
+.hero > *,
+.leaders span > * {
+  position: absolute;
+  inset: 0;
+}
+
+.factionToken {
+  position: absolute;
+  top: 3%;
+  right: 3%;
+  z-index: 3;
+  width: 20%;
+  aspect-ratio: 1;
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.38));
+}
+
+.cast {
+  position: absolute;
+  inset: 16% 0;
+  z-index: 2;
+}
+
+.hero {
+  position: absolute;
+  right: 5%;
+  bottom: 0;
+  width: 48%;
+  aspect-ratio: 1;
+  filter: drop-shadow(0 12px 17px rgba(0, 0, 0, 0.38));
+  transition: transform 160ms ease;
+}
+
+.card:hover .hero {
+  transform: translateY(-4px) scale(1.025);
+}
+
+.leaders {
+  position: absolute;
+  bottom: 0.25rem;
+  left: 6%;
+  display: flex;
+  align-items: end;
+  width: 55%;
+}
+
+.leaders span {
+  position: relative;
+  width: 29%;
+  aspect-ratio: 1;
+  margin-left: -5.5%;
+  filter: drop-shadow(0 4px 7px rgba(0, 0, 0, 0.45));
+}
+
+.leaders span:first-child {
+  margin-left: 0;
+}
+
+.caption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  box-sizing: border-box;
+  min-height: 20%;
+  padding: 6% 5% 3.5%;
+  background: linear-gradient(to top, rgba(7, 5, 4, 0.8), rgba(7, 5, 4, 0.48) 70%, transparent);
+}
+
+.name {
+  color: inherit;
+  line-height: 1.12;
+}
+
+.ruleset {
+  margin-top: 0.15rem;
+  color: rgba(255, 248, 231, 0.78);
+  line-height: 1.15;
+}
+
+@media (max-width: 48em) {
+  .card:hover .hero {
+    transform: translateY(-2px) scale(1.015);
+  }
+
+  .leaders {
+    left: 4%;
+  }
+
+  .leaders span {
+    margin-left: -5.5%;
+  }
+
+  .name {
+    font-size: var(--mantine-font-size-sm);
+    line-height: 1.12;
+  }
+
+  .ruleset {
+    font-size: 0.625rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .hero {
+    transition: none;
+  }
+}

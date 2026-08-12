@@ -1,16 +1,14 @@
+import { Group, Stack, TextInput } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
+import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { Save, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { useCreateGroup } from '@db/groups';
 import { useCurrentProfile } from '@db/profiles';
-import { FormField } from '@app/components/form/FormField';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { TextField } from '@app/components/form/TextField';
-import { ButtonGroup, Stack, Toolbar } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/groups/create')({
   component: GroupCreatePage,
@@ -29,14 +27,14 @@ function GroupCreatePage() {
   if (!profile.data?._id || !profile.data.slug) {
     return (
       <PageLayout header={groupCreateHeader}>
-        <Card>
+        <Surface padding="lg">
           <p>
             <Link to="/auth/login">Log in</Link> to start a group.
           </p>
           <p>
             <Link to="/profiles">Back to profiles</Link>
           </p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
@@ -50,44 +48,40 @@ function GroupCreatePage() {
       toolbar={
         <Toolbar>
           <Toolbar.Left>
-            <ButtonGroup>
-              <FormTooltip content="Save group">
-                <UIButton
-                  type="submit"
-                  form={GROUP_CREATE_FORM_ID}
-                  iconOnly
-                  aria-label="Save group"
-                  disabled={!canSubmit}
-                >
-                  <Save size={16} aria-hidden />
-                </UIButton>
-              </FormTooltip>
-              <FormTooltip content="Close create group">
-                <UIButton
-                  type="button"
-                  variant="secondary"
-                  iconOnly
-                  aria-label="Close create group"
-                  disabled={createGroup.isPending}
-                  onClick={() =>
-                    navigate({
-                      to: '/profiles/$profileSlug',
-                      params: { profileSlug: profileRow.slug },
-                    })
-                  }
-                >
-                  <X size={16} aria-hidden />
-                </UIButton>
-              </FormTooltip>
-            </ButtonGroup>
+            <Group gap="xs" wrap="nowrap">
+              <IconAction
+                label="Save group"
+                variant="filled"
+                color="confirm"
+                size="lg"
+                type="submit"
+                form={GROUP_CREATE_FORM_ID}
+                disabled={!canSubmit}
+                icon={<Save size={16} aria-hidden />}
+              />
+              <IconAction
+                label="Close create group"
+                variant="light"
+                color="dune"
+                size="lg"
+                disabled={createGroup.isPending}
+                onClick={() =>
+                  navigate({
+                    to: '/profiles/$profileSlug',
+                    params: { profileSlug: profileRow.slug },
+                  })
+                }
+                icon={<X size={16} aria-hidden />}
+              />
+            </Group>
           </Toolbar.Left>
         </Toolbar>
       }
     >
-      <Card>
+      <Surface padding="lg">
         <Stack
-          as="form"
-          gap={3}
+          component="form"
+          gap="sm"
           id={GROUP_CREATE_FORM_ID}
           onSubmit={(e) => {
             e.preventDefault();
@@ -111,28 +105,23 @@ function GroupCreatePage() {
             );
           }}
         >
-          <FormField
+          <TextInput
             label="Group name"
-            htmlFor="group-name"
             error={submitError ?? createGroup.error?.message}
-          >
-            <TextField
-              id="group-name"
-              name="name"
-              required
-              minLength={1}
-              title="Group name may only contain letters and numbers"
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-                if (submitError) {
-                  setSubmitError(null);
-                }
-              }}
-            />
-          </FormField>
+            name="name"
+            required
+            minLength={1}
+            title="Group name may only contain letters and numbers"
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value);
+              if (submitError) {
+                setSubmitError(null);
+              }
+            }}
+          />
         </Stack>
-      </Card>
+      </Surface>
     </PageLayout>
   );
 }

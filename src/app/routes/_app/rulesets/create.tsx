@@ -1,17 +1,15 @@
+import { Button, Group, NativeSelect, Stack, TextInput } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
+import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import { useGroupsByCreator } from '@db/groups';
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
-import { FormField } from '@app/components/form/FormField';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { TextField } from '@app/components/form/TextField';
-import { ButtonGroup, Stack, Toolbar } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/rulesets/create')({
   component: CreateRulesetPage,
@@ -26,8 +24,8 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
 
   return (
     <Stack
-      as="form"
-      gap={3}
+      component="form"
+      gap="sm"
       onSubmit={(e) => {
         e.preventDefault();
         const nextName = name.trim();
@@ -47,41 +45,36 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
         );
       }}
     >
-      <FormField label="Name" htmlFor="ruleset-name" error={createRuleset.error?.message}>
-        <TextField
-          id="ruleset-name"
-          name="name"
-          required
-          minLength={1}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-      </FormField>
-      <FormField label="Group" htmlFor="ruleset-group">
-        <select
-          id="ruleset-group"
-          name="group"
-          value={groupId ?? ''}
-          onChange={(event) => setGroupId(event.target.value === '' ? null : event.target.value)}
-        >
-          <option value="">No group</option>
-          {groups.data?.map((group) => (
-            <option key={group.id} value={group.id}>
-              {group.name}
-            </option>
-          ))}
-        </select>
-      </FormField>
-      <ButtonGroup>
-        <UIButton
+      <TextInput
+        label="Name"
+        error={createRuleset.error?.message}
+        name="name"
+        required
+        minLength={1}
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
+      <NativeSelect
+        label="Group"
+        name="group"
+        value={groupId ?? ''}
+        onChange={(event) => setGroupId(event.target.value === '' ? null : event.target.value)}
+        data={[
+          { value: '', label: 'No group' },
+          ...(groups.data?.map((group) => ({ value: group.id, label: group.name })) ?? []),
+        ]}
+      />
+      <Group gap="xs" wrap="nowrap">
+        <Button
+          variant="filled"
+          color="confirm"
           type="submit"
-          iconOnly={false}
           disabled={createRuleset.isPending || name.trim().length === 0}
         >
           <Plus size={16} aria-hidden />
           <span>{createRuleset.isPending ? 'Creating…' : 'Create'}</span>
-        </UIButton>
-      </ButtonGroup>
+        </Button>
+      </Group>
     </Stack>
   );
 }
@@ -95,28 +88,31 @@ function CreateRulesetPage() {
       toolbar={
         <Toolbar>
           <Toolbar.Left>
-            <FormTooltip content="Back to rulesets">
-              <UIButton variant="nav" to="/rulesets" aria-label="Back to rulesets">
-                <ArrowLeft size={16} aria-hidden />
-              </UIButton>
-            </FormTooltip>
+            <IconAction
+              label="Back to rulesets"
+              variant="light"
+              color="gray"
+              size="lg"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
+              icon={<ArrowLeft size={16} aria-hidden />}
+            />
           </Toolbar.Left>
         </Toolbar>
       }
     >
       {!profile.data?.user_id ? (
-        <Card>
+        <Surface padding="lg">
           <p>
             <Link to="/auth/login">Log in</Link> to create a ruleset.
           </p>
           <p>
             <Link to="/rulesets">Back to rulesets</Link>
           </p>
-        </Card>
+        </Surface>
       ) : (
-        <Card>
+        <Surface padding="lg">
           <CreateRulesetForm ownerUserId={profile.data.user_id} />
-        </Card>
+        </Surface>
       )}
     </PageLayout>
   );

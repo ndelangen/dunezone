@@ -1,0 +1,22 @@
+/* The pane clips its own rows so the first and last hairlines meet the rounded corner. */
+.surface {
+  overflow: hidden;
+}
+
+.list {
+  table-layout: auto;
+}
+
+.rowCell {
+  min-width: 0;
+  color: inherit;
+}
+
+.interactiveRow {
+  cursor: pointer;
+}
+
+.interactiveRow:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}
