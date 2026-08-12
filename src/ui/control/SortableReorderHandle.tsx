@@ -1,8 +1,8 @@
 import type { useSortable } from '@dnd-kit/sortable';
+import { Tooltip } from '@mantine/core';
 import clsx from 'clsx';
 import { GripVertical } from 'lucide-react';
 
-import { FormTooltip } from './FormTooltip';
 import styles from './SortableDnd.module.css';
 
 export type SortableHandleProps = Pick<
@@ -24,7 +24,7 @@ export function SortableReorderHandle({
   listeners?: SortableHandleProps['listeners'];
 }) {
   return (
-    <FormTooltip content={label} side="left" align="center" collisionPadding={12}>
+    <Tooltip label={label} position="left">
       <button
         type="button"
         className={clsx(styles.reorderHandle, className)}
@@ -35,6 +35,6 @@ export function SortableReorderHandle({
       >
         <GripVertical size={16} aria-hidden />
       </button>
-    </FormTooltip>
+    </Tooltip>
   );
 }

@@ -1,8 +1,7 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { ActionIcon, Group, Stack, Text } from '@mantine/core';
+import { ActionIcon, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
-import { FormTooltip } from '@ui/control/FormTooltip';
 import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
@@ -81,7 +80,7 @@ function ProfileDetailPage() {
     <Toolbar>
       <Toolbar.Left>
         <Group gap="xs" wrap="nowrap">
-          <FormTooltip content="Back to profiles">
+          <Tooltip label="Back to profiles">
             <ActionIcon
               variant="light"
               color="gray"
@@ -91,9 +90,9 @@ function ProfileDetailPage() {
             >
               <ArrowLeft size={16} aria-hidden />
             </ActionIcon>
-          </FormTooltip>
+          </Tooltip>
           {isSelf ? (
-            <FormTooltip content="Edit profile">
+            <Tooltip label="Edit profile">
               <ActionIcon
                 variant="light"
                 color="dune"
@@ -105,10 +104,10 @@ function ProfileDetailPage() {
               >
                 <Pencil size={16} aria-hidden />
               </ActionIcon>
-            </FormTooltip>
+            </Tooltip>
           ) : null}
           {isSelf ? (
-            <FormTooltip content="Start group">
+            <Tooltip label="Start group">
               <ActionIcon
                 variant="filled"
                 color="confirm"
@@ -118,13 +117,13 @@ function ProfileDetailPage() {
               >
                 <UserPlus size={16} aria-hidden />
               </ActionIcon>
-            </FormTooltip>
+            </Tooltip>
           ) : null}
         </Group>
       </Toolbar.Left>
       {isSelf ? (
         <Toolbar.Right>
-          <FormTooltip content="Log out">
+          <Tooltip label="Log out">
             <ActionIcon
               variant="light"
               color="red"
@@ -135,7 +134,7 @@ function ProfileDetailPage() {
             >
               <LogOut size={16} aria-hidden />
             </ActionIcon>
-          </FormTooltip>
+          </Tooltip>
         </Toolbar.Right>
       ) : null}
     </Toolbar>

@@ -1,6 +1,5 @@
-import { ActionIcon, Group, Stack } from '@mantine/core';
+import { ActionIcon, Group, Stack, Tooltip } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { FormTooltip } from '@ui/control/FormTooltip';
 import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
@@ -51,7 +50,7 @@ function AdminMigrationsPage() {
           <Stack gap="xs">
             <h2>Live migration status</h2>
             <Group gap="xs" wrap="nowrap">
-              <FormTooltip content="Sync status snapshot to migration_runs table">
+              <Tooltip label="Sync status snapshot to migration_runs table">
                 <ActionIcon
                   variant="filled"
                   color="confirm"
@@ -63,7 +62,7 @@ function AdminMigrationsPage() {
                 >
                   <RefreshCw size={16} aria-hidden />
                 </ActionIcon>
-              </FormTooltip>
+              </Tooltip>
             </Group>
             <table>
               <thead>

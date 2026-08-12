@@ -1,7 +1,5 @@
-import { Button, Group, Stack } from '@mantine/core';
+import { Button, Group, Stack, TextInput } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
-import { FormField } from '@ui/control/FormField';
-import { TextField } from '@ui/control/TextField';
 import { useEffect, useState } from 'react';
 
 import { useUpdateGroup } from '@db/groups';
@@ -53,27 +51,22 @@ export function GroupSettingsForm({ initial }: { initial: GroupEntry }) {
 
   return (
     <Stack component="form" gap="sm" onSubmit={handleSubmit}>
-      <FormField
+      <TextInput
         label="Group name"
-        htmlFor="group-settings-name"
+        description="Renaming may change this group's URL slug. Bookmarks and shared links that use the old address may stop working until updated."
         error={fieldError}
-        hint="Renaming may change this group's URL slug. Bookmarks and shared links that use the old address may stop working until updated."
-      >
-        <TextField
-          id="group-settings-name"
-          name="name"
-          required
-          minLength={1}
-          title="Group name may only contain letters and numbers"
-          value={name}
-          onChange={(event) => {
-            setName(event.target.value);
-            if (submitError) {
-              setSubmitError(null);
-            }
-          }}
-        />
-      </FormField>
+        name="name"
+        required
+        minLength={1}
+        title="Group name may only contain letters and numbers"
+        value={name}
+        onChange={(event) => {
+          setName(event.target.value);
+          if (submitError) {
+            setSubmitError(null);
+          }
+        }}
+      />
       <Group gap="xs" wrap="nowrap">
         <Button variant="filled" color="confirm" type="submit" disabled={!canSave}>
           {updateGroup.isPending ? 'Saving…' : 'Save group'}

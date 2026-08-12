@@ -1,8 +1,5 @@
-import { ActionIcon, Group, Stack } from '@mantine/core';
+import { ActionIcon, Group, Stack, TextInput, Tooltip } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormField } from '@ui/control/FormField';
-import { FormTooltip } from '@ui/control/FormTooltip';
-import { TextField } from '@ui/control/TextField';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { Save, X } from 'lucide-react';
@@ -51,7 +48,7 @@ function GroupCreatePage() {
         <Toolbar>
           <Toolbar.Left>
             <Group gap="xs" wrap="nowrap">
-              <FormTooltip content="Save group">
+              <Tooltip label="Save group">
                 <ActionIcon
                   variant="filled"
                   color="confirm"
@@ -63,8 +60,8 @@ function GroupCreatePage() {
                 >
                   <Save size={16} aria-hidden />
                 </ActionIcon>
-              </FormTooltip>
-              <FormTooltip content="Close create group">
+              </Tooltip>
+              <Tooltip label="Close create group">
                 <ActionIcon
                   variant="light"
                   color="dune"
@@ -81,7 +78,7 @@ function GroupCreatePage() {
                 >
                   <X size={16} aria-hidden />
                 </ActionIcon>
-              </FormTooltip>
+              </Tooltip>
             </Group>
           </Toolbar.Left>
         </Toolbar>
@@ -114,26 +111,21 @@ function GroupCreatePage() {
             );
           }}
         >
-          <FormField
+          <TextInput
             label="Group name"
-            htmlFor="group-name"
             error={submitError ?? createGroup.error?.message}
-          >
-            <TextField
-              id="group-name"
-              name="name"
-              required
-              minLength={1}
-              title="Group name may only contain letters and numbers"
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-                if (submitError) {
-                  setSubmitError(null);
-                }
-              }}
-            />
-          </FormField>
+            name="name"
+            required
+            minLength={1}
+            title="Group name may only contain letters and numbers"
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value);
+              if (submitError) {
+                setSubmitError(null);
+              }
+            }}
+          />
         </Stack>
       </Surface>
     </PageLayout>

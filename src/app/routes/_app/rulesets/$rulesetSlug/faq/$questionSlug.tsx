@@ -1,8 +1,5 @@
-import { ActionIcon, Group, Stack } from '@mantine/core';
+import { ActionIcon, Group, Input, Stack, Textarea, Tooltip } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormField } from '@ui/control/FormField';
-import { FormTooltip } from '@ui/control/FormTooltip';
-import { MultilineTextField } from '@ui/control/MultilineTextField';
 import { Surface } from '@ui/surface';
 import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -146,14 +143,13 @@ function FaqDetailPage() {
           <Stack gap="sm">
             {editing.editingQuestion ? (
               <Stack gap="sm">
-                <FormField label="Edit question">
-                  <MultilineTextField
-                    value={editing.questionValue}
-                    onChange={(e) => editingSession.setQuestionValue(e.target.value)}
-                    rows={2}
-                  />
-                </FormField>
-                <FormField label="Tags">
+                <Textarea
+                  label="Edit question"
+                  value={editing.questionValue}
+                  onChange={(e) => editingSession.setQuestionValue(e.target.value)}
+                  rows={2}
+                />
+                <Input.Wrapper label="Tags">
                   <Stack component="fieldset" gap="xs" className={styles.tagFieldset}>
                     <legend className={styles.visuallyHidden}>FAQ tags</legend>
                     {FAQ_TAG_VALUES.map((tag) => (
@@ -167,9 +163,9 @@ function FaqDetailPage() {
                       </label>
                     ))}
                   </Stack>
-                </FormField>
+                </Input.Wrapper>
                 <Group gap="xs" wrap="nowrap">
-                  <FormTooltip content="Save question">
+                  <Tooltip label="Save question">
                     <ActionIcon
                       variant="filled"
                       color="confirm"
@@ -181,8 +177,8 @@ function FaqDetailPage() {
                     >
                       <Check size={16} aria-hidden />
                     </ActionIcon>
-                  </FormTooltip>
-                  <FormTooltip content="Cancel editing question">
+                  </Tooltip>
+                  <Tooltip label="Cancel editing question">
                     <ActionIcon
                       variant="light"
                       color="dune"
@@ -193,7 +189,7 @@ function FaqDetailPage() {
                     >
                       <X size={16} aria-hidden />
                     </ActionIcon>
-                  </FormTooltip>
+                  </Tooltip>
                   {faq.editQuestion.isError && (
                     <span className={styles.error}>{faq.editQuestion.error?.message}</span>
                   )}
@@ -216,7 +212,7 @@ function FaqDetailPage() {
                 </div>
                 {item.capabilities.editQuestion && (
                   <Group gap="xs" wrap="nowrap">
-                    <FormTooltip content="Edit question">
+                    <Tooltip label="Edit question">
                       <ActionIcon
                         variant="filled"
                         color="confirm"
@@ -227,8 +223,8 @@ function FaqDetailPage() {
                       >
                         <Pencil size={16} aria-hidden />
                       </ActionIcon>
-                    </FormTooltip>
-                    <FormTooltip content="Delete question">
+                    </Tooltip>
+                    <Tooltip label="Delete question">
                       <ActionIcon
                         variant="light"
                         color="red"
@@ -240,7 +236,7 @@ function FaqDetailPage() {
                       >
                         <Trash2 size={16} aria-hidden />
                       </ActionIcon>
-                    </FormTooltip>
+                    </Tooltip>
                     {faq.deleteQuestion.isError && (
                       <span className={styles.error}>{faq.deleteQuestion.error?.message}</span>
                     )}
@@ -269,20 +265,17 @@ function FaqDetailPage() {
                   .catch(() => undefined);
               }}
             >
-              <FormField
-                hint="Add your answer (1 per person-you can edit it later)"
+              <Textarea
+                description="Add your answer (1 per person-you can edit it later)"
                 error={faq.createAnswer.isError ? faq.createAnswer.error?.message : undefined}
-              >
-                <MultilineTextField
-                  name="answer"
-                  rows={3}
-                  required
-                  minLength={1}
-                  placeholder="Your answer..."
-                />
-              </FormField>
+                name="answer"
+                rows={3}
+                required
+                minLength={1}
+                placeholder="Your answer..."
+              />
               <Group gap="xs" wrap="nowrap">
-                <FormTooltip content="Add answer">
+                <Tooltip label="Add answer">
                   <ActionIcon
                     variant="filled"
                     color="confirm"
@@ -293,7 +286,7 @@ function FaqDetailPage() {
                   >
                     <MessageSquarePlus size={16} aria-hidden />
                   </ActionIcon>
-                </FormTooltip>
+                </Tooltip>
               </Group>
             </Stack>
           )}
@@ -319,15 +312,14 @@ function FaqDetailPage() {
                   >
                     {isEditing ? (
                       <Stack gap="sm">
-                        <FormField label="Edit your answer">
-                          <MultilineTextField
-                            value={editing.answerValue}
-                            onChange={(e) => editingSession.setAnswerValue(e.target.value)}
-                            rows={3}
-                          />
-                        </FormField>
+                        <Textarea
+                          label="Edit your answer"
+                          value={editing.answerValue}
+                          onChange={(e) => editingSession.setAnswerValue(e.target.value)}
+                          rows={3}
+                        />
                         <Group gap="xs" wrap="nowrap">
-                          <FormTooltip content="Save answer">
+                          <Tooltip label="Save answer">
                             <ActionIcon
                               variant="filled"
                               color="confirm"
@@ -339,8 +331,8 @@ function FaqDetailPage() {
                             >
                               <Check size={16} aria-hidden />
                             </ActionIcon>
-                          </FormTooltip>
-                          <FormTooltip content="Cancel editing answer">
+                          </Tooltip>
+                          <Tooltip label="Cancel editing answer">
                             <ActionIcon
                               variant="light"
                               color="dune"
@@ -351,7 +343,7 @@ function FaqDetailPage() {
                             >
                               <X size={16} aria-hidden />
                             </ActionIcon>
-                          </FormTooltip>
+                          </Tooltip>
                           {faq.editAnswer.isError && (
                             <span className={styles.error}>{faq.editAnswer.error?.message}</span>
                           )}
@@ -375,7 +367,7 @@ function FaqDetailPage() {
                         <div className={styles.answerContent}>{a.text}</div>
                         <Group gap="xs" wrap="nowrap">
                           {a.capabilities.acceptAnswer && (
-                            <FormTooltip content="Mark as accepted answer">
+                            <Tooltip label="Mark as accepted answer">
                               <ActionIcon
                                 variant="filled"
                                 color="confirm"
@@ -391,10 +383,10 @@ function FaqDetailPage() {
                               >
                                 <Check size={16} aria-hidden />
                               </ActionIcon>
-                            </FormTooltip>
+                            </Tooltip>
                           )}
                           {a.capabilities.unacceptAnswer && (
-                            <FormTooltip content="Unmark accepted answer">
+                            <Tooltip label="Unmark accepted answer">
                               <ActionIcon
                                 variant="light"
                                 color="dune"
@@ -410,10 +402,10 @@ function FaqDetailPage() {
                               >
                                 <X size={16} aria-hidden />
                               </ActionIcon>
-                            </FormTooltip>
+                            </Tooltip>
                           )}
                           {a.capabilities.editAnswer && (
-                            <FormTooltip content="Edit your answer">
+                            <Tooltip label="Edit your answer">
                               <ActionIcon
                                 variant="filled"
                                 color="confirm"
@@ -424,10 +416,10 @@ function FaqDetailPage() {
                               >
                                 <Pencil size={16} aria-hidden />
                               </ActionIcon>
-                            </FormTooltip>
+                            </Tooltip>
                           )}
                           {a.capabilities.deleteAnswer && (
-                            <FormTooltip content="Delete answer">
+                            <Tooltip label="Delete answer">
                               <ActionIcon
                                 variant="light"
                                 color="red"
@@ -439,7 +431,7 @@ function FaqDetailPage() {
                               >
                                 <Trash2 size={16} aria-hidden />
                               </ActionIcon>
-                            </FormTooltip>
+                            </Tooltip>
                           )}
                         </Group>
                       </Stack>

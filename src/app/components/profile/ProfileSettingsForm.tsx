@@ -1,7 +1,5 @@
-import { Button, Group, Stack } from '@mantine/core';
+import { Button, Group, Stack, TextInput } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
-import { FormField } from '@ui/control/FormField';
-import { TextField } from '@ui/control/TextField';
 import { useState } from 'react';
 
 import { useUpdateCurrentProfile } from '@db/profiles';
@@ -41,10 +39,9 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileEntry }) {
 
   return (
     <Stack component="form" gap="sm" onSubmit={handleSubmit}>
-      <FormField
+      <TextInput
         label="Display name"
-        htmlFor="profile-display-name"
-        hint={
+        description={
           <>
             Letters and numbers only, 5–30 characters, not all capitals. Your public profile URL
             uses an id derived from this name (e.g. <code>…/profiles/{basePreview}</code>, with a
@@ -52,34 +49,25 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileEntry }) {
             may break—including bookmarks and pasted links.
           </>
         }
-      >
-        <TextField
-          id="profile-display-name"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          autoComplete="nickname"
-          maxLength={30}
-        />
-      </FormField>
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        autoComplete="nickname"
+        maxLength={30}
+      />
 
-      <FormField
+      <TextInput
         label="Avatar image URL"
-        htmlFor="profile-avatar-url"
-        hint={
+        description={
           <>
             Must be a full <code>https://</code> URL. Avatar URL is required.
           </>
         }
-      >
-        <TextField
-          id="profile-avatar-url"
-          type="url"
-          value={avatarUrl}
-          onChange={(e) => setAvatarUrl(e.target.value)}
-          placeholder="https://…"
-          autoComplete="off"
-        />
-      </FormField>
+        type="url"
+        value={avatarUrl}
+        onChange={(e) => setAvatarUrl(e.target.value)}
+        placeholder="https://…"
+        autoComplete="off"
+      />
 
       {mutationError && <p role="alert">{mutationError}</p>}
       <Group gap="xs" wrap="nowrap">

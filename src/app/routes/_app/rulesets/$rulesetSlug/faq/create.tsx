@@ -1,8 +1,5 @@
-import { Button, Group, Stack } from '@mantine/core';
+import { Button, Group, Input, Stack, TextInput, Textarea } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormField } from '@ui/control/FormField';
-import { MultilineTextField } from '@ui/control/MultilineTextField';
-import { TextField } from '@ui/control/TextField';
 import { Surface } from '@ui/surface';
 
 import { useAskFaqQuestion } from '@db/faq';
@@ -100,19 +97,21 @@ function FaqCreatePage() {
               .catch(() => undefined);
           }}
         >
-          <FormField label="Ask a question">
-            <TextField
-              type="text"
-              name="question"
-              required
-              minLength={1}
-              placeholder="Your question..."
-            />
-          </FormField>
-          <FormField label="Your answer (optional-you can add or edit it later)">
-            <MultilineTextField name="answer" rows={3} placeholder="Optional answer..." />
-          </FormField>
-          <FormField label="Tags">
+          <TextInput
+            label="Ask a question"
+            type="text"
+            name="question"
+            required
+            minLength={1}
+            placeholder="Your question..."
+          />
+          <Textarea
+            label="Your answer (optional-you can add or edit it later)"
+            name="answer"
+            rows={3}
+            placeholder="Optional answer..."
+          />
+          <Input.Wrapper label="Tags">
             <Stack component="fieldset" gap="xs" className={styles.tagFieldset}>
               <legend className={styles.visuallyHidden}>FAQ tags</legend>
               {FAQ_TAG_VALUES.map((tag) => (
@@ -122,7 +121,7 @@ function FaqCreatePage() {
                 </label>
               ))}
             </Stack>
-          </FormField>
+          </Input.Wrapper>
           <Group gap="xs" wrap="nowrap">
             <Button variant="filled" color="confirm" type="submit" disabled={askQuestion.isPending}>
               {askQuestion.isPending ? 'Asking…' : 'Ask'}

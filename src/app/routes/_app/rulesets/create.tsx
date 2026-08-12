@@ -1,8 +1,5 @@
-import { ActionIcon, Button, Group, Stack } from '@mantine/core';
+import { ActionIcon, Button, Group, NativeSelect, Stack, TextInput, Tooltip } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormField } from '@ui/control/FormField';
-import { FormTooltip } from '@ui/control/FormTooltip';
-import { TextField } from '@ui/control/TextField';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Plus } from 'lucide-react';
@@ -47,31 +44,25 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
         );
       }}
     >
-      <FormField label="Name" htmlFor="ruleset-name" error={createRuleset.error?.message}>
-        <TextField
-          id="ruleset-name"
-          name="name"
-          required
-          minLength={1}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-      </FormField>
-      <FormField label="Group" htmlFor="ruleset-group">
-        <select
-          id="ruleset-group"
-          name="group"
-          value={groupId ?? ''}
-          onChange={(event) => setGroupId(event.target.value === '' ? null : event.target.value)}
-        >
-          <option value="">No group</option>
-          {groups.data?.map((group) => (
-            <option key={group.id} value={group.id}>
-              {group.name}
-            </option>
-          ))}
-        </select>
-      </FormField>
+      <TextInput
+        label="Name"
+        error={createRuleset.error?.message}
+        name="name"
+        required
+        minLength={1}
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
+      <NativeSelect
+        label="Group"
+        name="group"
+        value={groupId ?? ''}
+        onChange={(event) => setGroupId(event.target.value === '' ? null : event.target.value)}
+        data={[
+          { value: '', label: 'No group' },
+          ...(groups.data?.map((group) => ({ value: group.id, label: group.name })) ?? []),
+        ]}
+      />
       <Group gap="xs" wrap="nowrap">
         <Button
           variant="filled"
@@ -96,7 +87,7 @@ function CreateRulesetPage() {
       toolbar={
         <Toolbar>
           <Toolbar.Left>
-            <FormTooltip content="Back to rulesets">
+            <Tooltip label="Back to rulesets">
               <ActionIcon
                 variant="light"
                 color="gray"
@@ -106,7 +97,7 @@ function CreateRulesetPage() {
               >
                 <ArrowLeft size={16} aria-hidden />
               </ActionIcon>
-            </FormTooltip>
+            </Tooltip>
           </Toolbar.Left>
         </Toolbar>
       }

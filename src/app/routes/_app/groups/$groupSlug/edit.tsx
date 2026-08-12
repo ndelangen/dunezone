@@ -1,6 +1,5 @@
-import { ActionIcon, Group } from '@mantine/core';
+import { ActionIcon, Group, Tooltip } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { FormTooltip } from '@ui/control/FormTooltip';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Users } from 'lucide-react';
@@ -43,7 +42,7 @@ function GroupEditPage() {
     <Toolbar>
       <Toolbar.Left>
         <Group gap="xs" wrap="nowrap">
-          <FormTooltip content="Back to profiles">
+          <Tooltip label="Back to profiles">
             <ActionIcon
               variant="light"
               color="gray"
@@ -53,8 +52,8 @@ function GroupEditPage() {
             >
               <ArrowLeft size={16} aria-hidden />
             </ActionIcon>
-          </FormTooltip>
-          <FormTooltip content="View group">
+          </Tooltip>
+          <Tooltip label="View group">
             <ActionIcon
               variant="light"
               color="dune"
@@ -66,7 +65,7 @@ function GroupEditPage() {
             >
               <Users size={16} aria-hidden />
             </ActionIcon>
-          </FormTooltip>
+          </Tooltip>
         </Group>
       </Toolbar.Left>
     </Toolbar>

@@ -1,8 +1,7 @@
-import { ActionIcon, Anchor, Group, Text } from '@mantine/core';
+import { ActionIcon, Anchor, Group, Text, Tooltip } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { FormTooltip } from '@ui/control/FormTooltip';
 import { Links } from '@ui/list/Links';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -96,7 +95,7 @@ function GroupDetailPage() {
         <Toolbar>
           <Toolbar.Left>
             <Group gap="xs" wrap="nowrap">
-              <FormTooltip content="Back to profiles">
+              <Tooltip label="Back to profiles">
                 <ActionIcon
                   variant="light"
                   color="gray"
@@ -106,9 +105,9 @@ function GroupDetailPage() {
                 >
                   <ArrowLeft size={16} aria-hidden />
                 </ActionIcon>
-              </FormTooltip>
+              </Tooltip>
               {viewerAccess.capabilities.rename ? (
-                <FormTooltip content="Edit group settings">
+                <Tooltip label="Edit group settings">
                   <ActionIcon
                     variant="light"
                     color="dune"
@@ -120,7 +119,7 @@ function GroupDetailPage() {
                   >
                     <Pencil size={16} aria-hidden />
                   </ActionIcon>
-                </FormTooltip>
+                </Tooltip>
               ) : null}
             </Group>
           </Toolbar.Left>
@@ -172,7 +171,7 @@ function GroupDetailPage() {
           </Text>
         )}
         {viewerAccess.capabilities.requestMembership && (
-          <FormTooltip content="Request membership">
+          <Tooltip label="Request membership">
             <ActionIcon
               variant="filled"
               color="confirm"
@@ -184,7 +183,7 @@ function GroupDetailPage() {
             >
               <UserPlus size={16} aria-hidden />
             </ActionIcon>
-          </FormTooltip>
+          </Tooltip>
         )}
         {membershipWorkflow.request.isError && (
           <p role="alert">{membershipWorkflow.request.error?.message}</p>
@@ -226,7 +225,7 @@ function GroupDetailPage() {
                     {entry.capabilities.approve || entry.capabilities.reject ? (
                       <Group gap="xs" wrap="nowrap">
                         {entry.capabilities.approve ? (
-                          <FormTooltip content="Approve">
+                          <Tooltip label="Approve">
                             <ActionIcon
                               variant="filled"
                               color="confirm"
@@ -242,10 +241,10 @@ function GroupDetailPage() {
                             >
                               <Check size={16} aria-hidden />
                             </ActionIcon>
-                          </FormTooltip>
+                          </Tooltip>
                         ) : null}
                         {entry.capabilities.reject ? (
-                          <FormTooltip content="Decline">
+                          <Tooltip label="Decline">
                             <ActionIcon
                               variant="light"
                               color="red"
@@ -261,13 +260,13 @@ function GroupDetailPage() {
                             >
                               <X size={16} aria-hidden />
                             </ActionIcon>
-                          </FormTooltip>
+                          </Tooltip>
                         ) : null}
                       </Group>
                     ) : null}
                     {entry.capabilities.remove ? (
                       <Group gap="xs" wrap="nowrap">
-                        <FormTooltip content="Remove member">
+                        <Tooltip label="Remove member">
                           <ActionIcon
                             variant="light"
                             color="red"
@@ -279,7 +278,7 @@ function GroupDetailPage() {
                           >
                             <UserRoundMinus size={16} aria-hidden />
                           </ActionIcon>
-                        </FormTooltip>
+                        </Tooltip>
                       </Group>
                     ) : null}
                   </div>
