@@ -12,7 +12,8 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
-import { ActionIcon, Box, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { Box, Text, UnstyledButton } from '@mantine/core';
+import { IconAction } from '@ui/control/IconAction';
 import { GripVertical } from 'lucide-react';
 
 import { indexFromSortableId } from '@app/lib/dnd-sortable-ids';
@@ -46,20 +47,17 @@ function ShelfItem({
       data-selected={selected}
       style={sortable.style}
     >
-      <Tooltip label={`Reorder ${item.label}`}>
-        <ActionIcon
-          ref={sortable.handle.ref}
-          {...sortable.handle.attributes}
-          {...sortable.handle.listeners}
-          type="button"
-          className={styles.handle}
-          variant="subtle"
-          color="gray"
-          aria-label={`Drag to reorder ${item.label}`}
-        >
-          <GripVertical size={17} aria-hidden />
-        </ActionIcon>
-      </Tooltip>
+      <IconAction
+        label={`Drag to reorder ${item.label}`}
+        tooltip={`Reorder ${item.label}`}
+        ref={sortable.handle.ref}
+        {...sortable.handle.attributes}
+        {...sortable.handle.listeners}
+        className={styles.handle}
+        variant="subtle"
+        color="gray"
+        icon={<GripVertical size={17} aria-hidden />}
+      />
       <UnstyledButton
         type="button"
         className={styles.select}

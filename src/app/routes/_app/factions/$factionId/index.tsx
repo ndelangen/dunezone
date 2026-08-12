@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   Alert,
   Anchor,
   Badge,
@@ -20,6 +19,7 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { IconAction } from '@ui/control/IconAction';
 import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
@@ -178,71 +178,58 @@ function FactionDetailPage() {
         <Toolbar>
           <Toolbar.Left>
             <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
-              <Tooltip label="Back to factions">
-                <ActionIcon
-                  variant="light"
-                  color="gray"
-                  size="lg"
-                  aria-label="Back to factions"
-                  renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
-                >
-                  <ArrowLeft size={17} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
+              <IconAction
+                label="Back to factions"
+                variant="light"
+                color="gray"
+                size="lg"
+                renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
+                icon={<ArrowLeft size={17} aria-hidden />}
+              />
               {canEdit ? (
-                <Tooltip label="Edit faction">
-                  <ActionIcon
-                    variant="light"
-                    color="dune"
-                    size="lg"
-                    aria-label="Edit faction"
-                    renderRoot={(rootProps) => (
-                      <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
-                    )}
-                  >
-                    <Pencil size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
+                <IconAction
+                  label="Edit faction"
+                  variant="light"
+                  color="dune"
+                  size="lg"
+                  renderRoot={(rootProps) => (
+                    <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
+                  )}
+                  icon={<Pencil size={17} aria-hidden />}
+                />
               ) : null}
             </Group>
           </Toolbar.Left>
 
           <Toolbar.Right>
             <Group gap="xs" wrap="wrap" role="group" aria-label="Faction actions">
-              <Tooltip label="Preview faction sheet">
-                <ActionIcon
-                  variant="filled"
-                  color="confirm"
-                  size="lg"
-                  aria-label="Preview faction sheet"
-                  renderRoot={(rootProps) => (
-                    <Link
-                      {...rootProps}
-                      to="/preview/sheet/$factionSlug"
-                      params={{ factionSlug: factionId }}
-                      search={{ mode: 'db' }}
-                      target="_blank"
-                    />
-                  )}
-                >
-                  <Eye size={17} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
-              {assetPublishing.publicationHref ? (
-                <Tooltip label="Open published PDF">
-                  <ActionIcon
-                    component="a"
-                    variant="light"
-                    color="dune"
-                    size="lg"
-                    aria-label="Open published PDF"
-                    href={assetPublishing.publicationHref}
+              <IconAction
+                label="Preview faction sheet"
+                variant="filled"
+                color="confirm"
+                size="lg"
+                renderRoot={(rootProps) => (
+                  <Link
+                    {...rootProps}
+                    to="/preview/sheet/$factionSlug"
+                    params={{ factionSlug: factionId }}
+                    search={{ mode: 'db' }}
                     target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Download size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
+                  />
+                )}
+                icon={<Eye size={17} aria-hidden />}
+              />
+              {assetPublishing.publicationHref ? (
+                <IconAction
+                  label="Open published PDF"
+                  variant="light"
+                  color="dune"
+                  size="lg"
+                  href={assetPublishing.publicationHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  icon={<Download size={17} aria-hidden />}
+                />
               ) : null}
             </Group>
           </Toolbar.Right>

@@ -1,7 +1,8 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { ActionIcon, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
+import { IconAction } from '@ui/control/IconAction';
 import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
@@ -80,61 +81,48 @@ function ProfileDetailPage() {
     <Toolbar>
       <Toolbar.Left>
         <Group gap="xs" wrap="nowrap">
-          <Tooltip label="Back to profiles">
-            <ActionIcon
-              variant="light"
-              color="gray"
-              size="lg"
-              aria-label="Back to profiles"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-            >
-              <ArrowLeft size={16} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Back to profiles"
+            variant="light"
+            color="gray"
+            size="lg"
+            renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+            icon={<ArrowLeft size={16} aria-hidden />}
+          />
           {isSelf ? (
-            <Tooltip label="Edit profile">
-              <ActionIcon
-                variant="light"
-                color="dune"
-                size="lg"
-                aria-label="Edit profile"
-                renderRoot={(rootProps) => (
-                  <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />
-                )}
-              >
-                <Pencil size={16} aria-hidden />
-              </ActionIcon>
-            </Tooltip>
+            <IconAction
+              label="Edit profile"
+              variant="light"
+              color="dune"
+              size="lg"
+              renderRoot={(rootProps) => (
+                <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />
+              )}
+              icon={<Pencil size={16} aria-hidden />}
+            />
           ) : null}
           {isSelf ? (
-            <Tooltip label="Start group">
-              <ActionIcon
-                variant="filled"
-                color="confirm"
-                size="lg"
-                aria-label="Start group"
-                renderRoot={(rootProps) => <Link {...rootProps} to="/groups/create" />}
-              >
-                <UserPlus size={16} aria-hidden />
-              </ActionIcon>
-            </Tooltip>
+            <IconAction
+              label="Start group"
+              variant="filled"
+              color="confirm"
+              size="lg"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/groups/create" />}
+              icon={<UserPlus size={16} aria-hidden />}
+            />
           ) : null}
         </Group>
       </Toolbar.Left>
       {isSelf ? (
         <Toolbar.Right>
-          <Tooltip label="Log out">
-            <ActionIcon
-              variant="light"
-              color="red"
-              size="lg"
-              type="button"
-              aria-label="Log out"
-              onClick={() => void handleSignOut()}
-            >
-              <LogOut size={16} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Log out"
+            variant="light"
+            color="red"
+            size="lg"
+            onClick={() => void handleSignOut()}
+            icon={<LogOut size={16} aria-hidden />}
+          />
         </Toolbar.Right>
       ) : null}
     </Toolbar>

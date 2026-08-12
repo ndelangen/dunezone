@@ -1,5 +1,6 @@
-import { ActionIcon, Button, Group, NativeSelect, Stack, TextInput, Tooltip } from '@mantine/core';
+import { Button, Group, NativeSelect, Stack, TextInput } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Plus } from 'lucide-react';
@@ -87,17 +88,14 @@ function CreateRulesetPage() {
       toolbar={
         <Toolbar>
           <Toolbar.Left>
-            <Tooltip label="Back to rulesets">
-              <ActionIcon
-                variant="light"
-                color="gray"
-                size="lg"
-                aria-label="Back to rulesets"
-                renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
-              >
-                <ArrowLeft size={16} aria-hidden />
-              </ActionIcon>
-            </Tooltip>
+            <IconAction
+              label="Back to rulesets"
+              variant="light"
+              color="gray"
+              size="lg"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
+              icon={<ArrowLeft size={16} aria-hidden />}
+            />
           </Toolbar.Left>
         </Toolbar>
       }

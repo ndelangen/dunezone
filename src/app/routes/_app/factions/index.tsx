@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   Alert,
   Button,
   Drawer,
@@ -10,12 +9,12 @@ import {
   Text,
   TextInput,
   Title,
-  Tooltip,
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { CallToAction } from '@ui/control/CallToAction';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
@@ -253,32 +252,26 @@ function CatalogueToolbar({
             />
             {rulesetSelect(undefined, true)}
             {sortSelect(undefined, true)}
-            <Tooltip label="Refine factions">
-              <ActionIcon
-                className={styles.mobileRefineButton}
-                variant="subtle"
-                color="gray"
-                size="lg"
-                aria-label="Refine factions"
-                onClick={() => setOpened(true)}
-              >
-                <SlidersHorizontal size={17} aria-hidden />
-              </ActionIcon>
-            </Tooltip>
+            <IconAction
+              label="Refine factions"
+              className={styles.mobileRefineButton}
+              variant="subtle"
+              color="gray"
+              size="lg"
+              onClick={() => setOpened(true)}
+              icon={<SlidersHorizontal size={17} aria-hidden />}
+            />
           </fieldset>
         </Toolbar.Center>
         <Toolbar.Right>
-          <Tooltip label="Create new faction">
-            <ActionIcon
-              variant="filled"
-              color="confirm"
-              size="lg"
-              aria-label="Create new faction"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
-            >
-              <Plus size={17} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Create new faction"
+            variant="filled"
+            color="confirm"
+            size="lg"
+            renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
+            icon={<Plus size={17} aria-hidden />}
+          />
         </Toolbar.Right>
       </Toolbar>
       <Drawer

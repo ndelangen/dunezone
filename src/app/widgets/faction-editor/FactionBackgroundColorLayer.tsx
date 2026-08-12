@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   Box,
   Button,
   ColorInput,
@@ -10,10 +9,10 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Tooltip,
   UnstyledButton,
 } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
@@ -293,55 +292,43 @@ function GradientFields({
                   />
                 </SimpleGrid>
                 <Group justify="flex-end" gap={4} mt="xs">
-                  <Tooltip label={`Move stop ${index + 1} earlier`}>
-                    <ActionIcon
-                      type="button"
-                      variant="subtle"
-                      color="gray"
-                      disabled={index === 0}
-                      aria-label={`Move stop ${index + 1} earlier`}
-                      onClick={() => {
-                        if (index === 0) {
-                          return;
-                        }
-                        const next = [...value.stops];
-                        [next[index - 1], next[index]] = [next[index], next[index - 1]];
-                        updateStops(next);
-                      }}
-                    >
-                      <ArrowUp size={16} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
-                  <Tooltip label={`Move stop ${index + 1} later`}>
-                    <ActionIcon
-                      type="button"
-                      variant="subtle"
-                      color="gray"
-                      disabled={index === value.stops.length - 1}
-                      aria-label={`Move stop ${index + 1} later`}
-                      onClick={() => {
-                        if (index === value.stops.length - 1) {
-                          return;
-                        }
-                        const next = [...value.stops];
-                        [next[index], next[index + 1]] = [next[index + 1], next[index]];
-                        updateStops(next);
-                      }}
-                    >
-                      <ArrowDown size={16} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
-                  <Tooltip label={`Remove stop ${index + 1}`}>
-                    <ActionIcon
-                      type="button"
-                      variant="light"
-                      color="red"
-                      aria-label={`Remove stop ${index + 1}`}
-                      onClick={() => updateStops(value.stops.filter((_, i) => i !== index))}
-                    >
-                      <Trash2 size={16} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
+                  <IconAction
+                    label={`Move stop ${index + 1} earlier`}
+                    variant="subtle"
+                    color="gray"
+                    disabled={index === 0}
+                    onClick={() => {
+                      if (index === 0) {
+                        return;
+                      }
+                      const next = [...value.stops];
+                      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                      updateStops(next);
+                    }}
+                    icon={<ArrowUp size={16} aria-hidden />}
+                  />
+                  <IconAction
+                    label={`Move stop ${index + 1} later`}
+                    variant="subtle"
+                    color="gray"
+                    disabled={index === value.stops.length - 1}
+                    onClick={() => {
+                      if (index === value.stops.length - 1) {
+                        return;
+                      }
+                      const next = [...value.stops];
+                      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                      updateStops(next);
+                    }}
+                    icon={<ArrowDown size={16} aria-hidden />}
+                  />
+                  <IconAction
+                    label={`Remove stop ${index + 1}`}
+                    variant="light"
+                    color="red"
+                    onClick={() => updateStops(value.stops.filter((_, i) => i !== index))}
+                    icon={<Trash2 size={16} aria-hidden />}
+                  />
                 </Group>
               </Surface>
             ))}

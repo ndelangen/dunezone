@@ -1,4 +1,5 @@
-import { ActionIcon, Badge, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { Badge, Button, Group, Stack, Text } from '@mantine/core';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { ArrowLeft, Eye, RotateCcw, Save } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -91,18 +92,14 @@ export function FactionAuthoringToolbar({
     <Surface padding="sm" className={styles.toolbar}>
       <Group justify="space-between" gap="sm" wrap="nowrap" className={styles.toolbarRow}>
         <Group gap="sm" wrap="nowrap" className={styles.leading}>
-          <Tooltip label="Back">
-            <ActionIcon
-              type="button"
-              variant="light"
-              color="gray"
-              size="lg"
-              aria-label="Back"
-              onClick={onBack}
-            >
-              <ArrowLeft size={17} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Back"
+            variant="light"
+            color="gray"
+            size="lg"
+            onClick={onBack}
+            icon={<ArrowLeft size={17} aria-hidden />}
+          />
           <Stack gap="sm" className={styles.status}>
             <Group gap="xs" wrap="nowrap">
               <Badge color={statusColor} variant="light">
@@ -144,19 +141,15 @@ export function FactionAuthoringToolbar({
 
         <Group gap="xs" wrap="nowrap" className={styles.actions}>
           <div className={styles.auxiliarySlot}>{auxiliaryActions}</div>
-          <Tooltip label="Reset unsaved edits">
-            <ActionIcon
-              type="button"
-              variant="light"
-              color="gray"
-              size="lg"
-              aria-label="Reset unsaved edits"
-              disabled={!isDirty || saveState === 'saving'}
-              onClick={onReset}
-            >
-              <RotateCcw size={17} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Reset unsaved edits"
+            variant="light"
+            color="gray"
+            size="lg"
+            disabled={!isDirty || saveState === 'saving'}
+            onClick={onReset}
+            icon={<RotateCcw size={17} aria-hidden />}
+          />
           <Button
             className={styles.reviewAction}
             type="button"

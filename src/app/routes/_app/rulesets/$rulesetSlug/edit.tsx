@@ -1,15 +1,6 @@
-import {
-  ActionIcon,
-  Anchor,
-  Center,
-  Group,
-  Image,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-} from '@mantine/core';
+import { Anchor, Center, Group, Image, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { ArrowLeft, BookOpen } from 'lucide-react';
 
@@ -68,35 +59,29 @@ function RulesetEditPage() {
   const toolbar = (
     <Surface padding="sm">
       <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset navigation">
-        <Tooltip label="Back to rulesets">
-          <ActionIcon
-            variant="light"
-            color="gray"
-            size="lg"
-            aria-label="Back to rulesets"
-            renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
-          >
-            <ArrowLeft size={17} aria-hidden />
-          </ActionIcon>
-        </Tooltip>
+        <IconAction
+          label="Back to rulesets"
+          variant="light"
+          color="gray"
+          size="lg"
+          renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
+          icon={<ArrowLeft size={17} aria-hidden />}
+        />
         {page?.ruleset ? (
-          <Tooltip label="View ruleset">
-            <ActionIcon
-              variant="light"
-              color="dune"
-              size="lg"
-              aria-label="View ruleset"
-              renderRoot={(rootProps) => (
-                <Link
-                  {...rootProps}
-                  to="/rulesets/$rulesetSlug"
-                  params={{ rulesetSlug: page?.ruleset?.slug ?? rulesetSlug }}
-                />
-              )}
-            >
-              <BookOpen size={17} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="View ruleset"
+            variant="light"
+            color="dune"
+            size="lg"
+            renderRoot={(rootProps) => (
+              <Link
+                {...rootProps}
+                to="/rulesets/$rulesetSlug"
+                params={{ rulesetSlug: page?.ruleset?.slug ?? rulesetSlug }}
+              />
+            )}
+            icon={<BookOpen size={17} aria-hidden />}
+          />
         ) : null}
       </Group>
     </Surface>

@@ -13,8 +13,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ActionIcon, Box, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { Box, Group, Select, Stack, Text } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { IconAction } from '@ui/control/IconAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { GripVertical } from 'lucide-react';
 
@@ -121,21 +122,18 @@ function TtsColorRow({
           }
         }}
       />
-      <Tooltip label={`Reorder TTS color ${index + 1}`}>
-        <ActionIcon
-          ref={sortable.handle.ref}
-          {...sortable.handle.attributes}
-          {...sortable.handle.listeners}
-          className={styles.dragHandle}
-          type="button"
-          variant="transparent"
-          color="gray"
-          size="lg"
-          aria-label={`Drag to reorder TTS color ${index + 1}`}
-        >
-          <GripVertical size={17} aria-hidden />
-        </ActionIcon>
-      </Tooltip>
+      <IconAction
+        label={`Drag to reorder TTS color ${index + 1}`}
+        tooltip={`Reorder TTS color ${index + 1}`}
+        ref={sortable.handle.ref}
+        {...sortable.handle.attributes}
+        {...sortable.handle.listeners}
+        className={styles.dragHandle}
+        variant="transparent"
+        color="gray"
+        size="lg"
+        icon={<GripVertical size={17} aria-hidden />}
+      />
     </Box>
   );
 }

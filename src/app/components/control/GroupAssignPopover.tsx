@@ -1,15 +1,5 @@
-import {
-  ActionIcon,
-  Alert,
-  Button,
-  Group,
-  Popover,
-  Select,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-} from '@mantine/core';
+import { Alert, Button, Group, Popover, Select, Stack, Text, Title } from '@mantine/core';
+import { IconAction } from '@ui/control/IconAction';
 import { Check, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -171,20 +161,16 @@ export function GroupAssignPopover({
       trapFocus
       returnFocus
     >
-      <Tooltip label="Assign group">
-        <Popover.Target>
-          <ActionIcon
-            type="button"
-            variant="light"
-            size="lg"
-            aria-label="Assign group"
-            disabled={disabled}
-            onClick={() => setOpened((current) => !current)}
-          >
-            <Users size={17} aria-hidden />
-          </ActionIcon>
-        </Popover.Target>
-      </Tooltip>
+      <Popover.Target>
+        <IconAction
+          label="Assign group"
+          variant="light"
+          size="lg"
+          disabled={disabled}
+          onClick={() => setOpened((current) => !current)}
+          icon={<Users size={17} aria-hidden />}
+        />
+      </Popover.Target>
       <Popover.Dropdown>
         {opened ? (
           <GroupAssignPopoverBodyContent

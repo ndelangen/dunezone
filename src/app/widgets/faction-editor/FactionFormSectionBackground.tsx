@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   AspectRatio,
   Box,
   Button,
@@ -10,10 +9,10 @@ import {
   Stack,
   Switch,
   Text,
-  Tooltip,
   UnstyledButton,
 } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { IconAction } from '@ui/control/IconAction';
 import { Check, Shuffle, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -66,17 +65,13 @@ function PatternCatalogue({
   return (
     <Box className={styles.patternCatalogue}>
       <Group justify="flex-end">
-        <Tooltip label="Close pattern library">
-          <ActionIcon
-            type="button"
-            variant="subtle"
-            color="gray"
-            aria-label="Close pattern library"
-            onClick={onClose}
-          >
-            <X size={18} aria-hidden />
-          </ActionIcon>
-        </Tooltip>
+        <IconAction
+          label="Close pattern library"
+          variant="subtle"
+          color="gray"
+          onClick={onClose}
+          icon={<X size={18} aria-hidden />}
+        />
       </Group>
       <Box
         className={styles.patternScroller}

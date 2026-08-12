@@ -1,5 +1,6 @@
-import { ActionIcon, Anchor, Button, Group, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { Anchor, Button, Group, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { Trash2, UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -165,21 +166,17 @@ function FactionEditPage() {
                 />
               ) : null}
               {canAssignGroup && assignedGroup ? (
-                <Tooltip label="Remove group">
-                  <ActionIcon
-                    type="button"
-                    variant="light"
-                    color="red"
-                    size="lg"
-                    aria-label="Remove group"
-                    disabled={setFactionGroup.isPending}
-                    onClick={() =>
-                      void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })
-                    }
-                  >
-                    <UserRoundMinus size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
+                <IconAction
+                  label="Remove group"
+                  variant="light"
+                  color="red"
+                  size="lg"
+                  disabled={setFactionGroup.isPending}
+                  onClick={() =>
+                    void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })
+                  }
+                  icon={<UserRoundMinus size={17} aria-hidden />}
+                />
               ) : null}
             </>
           }
@@ -222,18 +219,14 @@ function FactionEditPage() {
                   </Button>
                 </Group>
               ) : (
-                <Tooltip label="Delete faction">
-                  <ActionIcon
-                    type="button"
-                    variant="light"
-                    color="red"
-                    size="lg"
-                    aria-label="Delete faction"
-                    onClick={() => setConfirmDelete(true)}
-                  >
-                    <Trash2 size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
+                <IconAction
+                  label="Delete faction"
+                  variant="light"
+                  color="red"
+                  size="lg"
+                  onClick={() => setConfirmDelete(true)}
+                  icon={<Trash2 size={17} aria-hidden />}
+                />
               )
             ) : null
           }

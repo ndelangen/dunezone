@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   Alert,
   Anchor,
   Box,
@@ -13,13 +12,13 @@ import {
   Text,
   TextInput,
   Title,
-  Tooltip,
 } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { IconAction } from '@ui/control/IconAction';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -262,35 +261,29 @@ function RulesetDetailPage() {
         <Toolbar>
           <Toolbar.Left>
             <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
-              <Tooltip label="Back to rulesets">
-                <ActionIcon
-                  variant="light"
-                  color="gray"
-                  size="lg"
-                  aria-label="Back to rulesets"
-                  renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
-                >
-                  <ArrowLeft size={17} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
+              <IconAction
+                label="Back to rulesets"
+                variant="light"
+                color="gray"
+                size="lg"
+                renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
+                icon={<ArrowLeft size={17} aria-hidden />}
+              />
               {viewerAccess.capabilities.edit ? (
-                <Tooltip label="Edit ruleset">
-                  <ActionIcon
-                    variant="light"
-                    color="dune"
-                    size="lg"
-                    aria-label="Edit ruleset"
-                    renderRoot={(rootProps) => (
-                      <Link
-                        {...rootProps}
-                        to="/rulesets/$rulesetSlug/edit"
-                        params={{ rulesetSlug: r.slug }}
-                      />
-                    )}
-                  >
-                    <Pencil size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
+                <IconAction
+                  label="Edit ruleset"
+                  variant="light"
+                  color="dune"
+                  size="lg"
+                  renderRoot={(rootProps) => (
+                    <Link
+                      {...rootProps}
+                      to="/rulesets/$rulesetSlug/edit"
+                      params={{ rulesetSlug: r.slug }}
+                    />
+                  )}
+                  icon={<Pencil size={17} aria-hidden />}
+                />
               ) : null}
             </Group>
           </Toolbar.Left>
@@ -302,23 +295,19 @@ function RulesetDetailPage() {
             actionVisibility.canDelete ? (
               <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset actions">
                 {actionVisibility.askQuestion ? (
-                  <Tooltip label="Ask a question">
-                    <ActionIcon
-                      type="button"
-                      variant="filled"
-                      color="confirm"
-                      size="lg"
-                      aria-label="Ask a question"
-                      onClick={() =>
-                        navigate({
-                          to: '/rulesets/$rulesetSlug/faq/create',
-                          params: { rulesetSlug: r.slug },
-                        })
-                      }
-                    >
-                      <MessageCircleQuestionMark size={17} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
+                  <IconAction
+                    label="Ask a question"
+                    variant="filled"
+                    color="confirm"
+                    size="lg"
+                    onClick={() =>
+                      navigate({
+                        to: '/rulesets/$rulesetSlug/faq/create',
+                        params: { rulesetSlug: r.slug },
+                      })
+                    }
+                    icon={<MessageCircleQuestionMark size={17} aria-hidden />}
+                  />
                 ) : null}
                 {actionVisibility.assignGroup ? (
                   <GroupAssignPopover
@@ -340,43 +329,35 @@ function RulesetDetailPage() {
                   />
                 ) : null}
                 {actionVisibility.removeGroup ? (
-                  <Tooltip label="Remove group">
-                    <ActionIcon
-                      type="button"
-                      aria-label="Remove group"
-                      color="red"
-                      variant="light"
-                      size="lg"
-                      disabled={updateRuleset.isPending}
-                      onClick={() =>
-                        void updateRuleset
-                          .mutateAsync({
-                            id: r._id,
-                            input: { name: r.name },
-                            groupId: null,
-                            imageCover: r.image_cover ?? null,
-                          })
-                          .catch(() => undefined)
-                      }
-                    >
-                      <UserRoundMinus size={17} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
+                  <IconAction
+                    label="Remove group"
+                    color="red"
+                    variant="light"
+                    size="lg"
+                    disabled={updateRuleset.isPending}
+                    onClick={() =>
+                      void updateRuleset
+                        .mutateAsync({
+                          id: r._id,
+                          input: { name: r.name },
+                          groupId: null,
+                          imageCover: r.image_cover ?? null,
+                        })
+                        .catch(() => undefined)
+                    }
+                    icon={<UserRoundMinus size={17} aria-hidden />}
+                  />
                 ) : null}
                 {actionVisibility.canDelete ? (
-                  <Tooltip label="Delete ruleset">
-                    <ActionIcon
-                      color="red"
-                      variant="light"
-                      type="button"
-                      size="lg"
-                      aria-label="Delete ruleset"
-                      onClick={handleDelete}
-                      disabled={deleteRuleset.isPending}
-                    >
-                      <Trash2 size={17} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
+                  <IconAction
+                    label="Delete ruleset"
+                    color="red"
+                    variant="light"
+                    size="lg"
+                    onClick={handleDelete}
+                    disabled={deleteRuleset.isPending}
+                    icon={<Trash2 size={17} aria-hidden />}
+                  />
                 ) : null}
               </Group>
             ) : null}

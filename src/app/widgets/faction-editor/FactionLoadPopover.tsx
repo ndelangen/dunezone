@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   Alert,
   Anchor,
   Button,
@@ -11,9 +10,9 @@ import {
   Stack,
   Text,
   Title,
-  Tooltip,
 } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { Copy } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -258,21 +257,17 @@ export function FactionLoadPopover({
       trapFocus
       returnFocus
     >
-      <Tooltip label="Load existing faction">
-        <Popover.Target>
-          <ActionIcon
-            type="button"
-            variant="light"
-            color="gray"
-            size="lg"
-            aria-label="Load existing faction"
-            disabled={disabled}
-            onClick={() => setOpened((current) => !current)}
-          >
-            <Copy size={17} aria-hidden />
-          </ActionIcon>
-        </Popover.Target>
-      </Tooltip>
+      <Popover.Target>
+        <IconAction
+          label="Load existing faction"
+          variant="light"
+          color="gray"
+          size="lg"
+          disabled={disabled}
+          onClick={() => setOpened((current) => !current)}
+          icon={<Copy size={17} aria-hidden />}
+        />
+      </Popover.Target>
       <Popover.Dropdown>
         {opened ? (
           <FactionLoadPopoverContent

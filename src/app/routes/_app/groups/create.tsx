@@ -1,5 +1,6 @@
-import { ActionIcon, Group, Stack, TextInput, Tooltip } from '@mantine/core';
+import { Group, Stack, TextInput } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { Save, X } from 'lucide-react';
@@ -48,37 +49,30 @@ function GroupCreatePage() {
         <Toolbar>
           <Toolbar.Left>
             <Group gap="xs" wrap="nowrap">
-              <Tooltip label="Save group">
-                <ActionIcon
-                  variant="filled"
-                  color="confirm"
-                  size="lg"
-                  type="submit"
-                  form={GROUP_CREATE_FORM_ID}
-                  aria-label="Save group"
-                  disabled={!canSubmit}
-                >
-                  <Save size={16} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label="Close create group">
-                <ActionIcon
-                  variant="light"
-                  color="dune"
-                  size="lg"
-                  type="button"
-                  aria-label="Close create group"
-                  disabled={createGroup.isPending}
-                  onClick={() =>
-                    navigate({
-                      to: '/profiles/$profileSlug',
-                      params: { profileSlug: profileRow.slug },
-                    })
-                  }
-                >
-                  <X size={16} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
+              <IconAction
+                label="Save group"
+                variant="filled"
+                color="confirm"
+                size="lg"
+                type="submit"
+                form={GROUP_CREATE_FORM_ID}
+                disabled={!canSubmit}
+                icon={<Save size={16} aria-hidden />}
+              />
+              <IconAction
+                label="Close create group"
+                variant="light"
+                color="dune"
+                size="lg"
+                disabled={createGroup.isPending}
+                onClick={() =>
+                  navigate({
+                    to: '/profiles/$profileSlug',
+                    params: { profileSlug: profileRow.slug },
+                  })
+                }
+                icon={<X size={16} aria-hidden />}
+              />
             </Group>
           </Toolbar.Left>
         </Toolbar>

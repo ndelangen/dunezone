@@ -1,15 +1,5 @@
-import {
-  ActionIcon,
-  Alert,
-  Button,
-  Group,
-  Popover,
-  Select,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-} from '@mantine/core';
+import { Alert, Button, Group, Popover, Select, Stack, Text, Title } from '@mantine/core';
+import { IconAction } from '@ui/control/IconAction';
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -116,20 +106,16 @@ export function AssetAssignPopover({
       trapFocus
       returnFocus
     >
-      <Tooltip label={`Add a ${kind} you own`}>
-        <Popover.Target>
-          <ActionIcon
-            type="button"
-            variant="light"
-            size="sm"
-            aria-label={`Add a ${kind} you own`}
-            disabled={disabled}
-            onClick={() => handleOpenedChange(!opened)}
-          >
-            <Plus size={14} aria-hidden />
-          </ActionIcon>
-        </Popover.Target>
-      </Tooltip>
+      <Popover.Target>
+        <IconAction
+          label={`Add a ${kind} you own`}
+          variant="light"
+          size="sm"
+          disabled={disabled}
+          onClick={() => handleOpenedChange(!opened)}
+          icon={<Plus size={14} aria-hidden />}
+        />
+      </Popover.Target>
       <Popover.Dropdown>
         {opened ? (
           <Stack gap="md">

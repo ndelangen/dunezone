@@ -1,5 +1,6 @@
-import { ActionIcon, Group, Tooltip } from '@mantine/core';
+import { Group } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Users } from 'lucide-react';
@@ -42,30 +43,24 @@ function GroupEditPage() {
     <Toolbar>
       <Toolbar.Left>
         <Group gap="xs" wrap="nowrap">
-          <Tooltip label="Back to profiles">
-            <ActionIcon
-              variant="light"
-              color="gray"
-              size="lg"
-              aria-label="Back to profiles"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-            >
-              <ArrowLeft size={16} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="View group">
-            <ActionIcon
-              variant="light"
-              color="dune"
-              size="lg"
-              aria-label="View group"
-              renderRoot={(rootProps) => (
-                <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: group.slug }} />
-              )}
-            >
-              <Users size={16} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Back to profiles"
+            variant="light"
+            color="gray"
+            size="lg"
+            renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+            icon={<ArrowLeft size={16} aria-hidden />}
+          />
+          <IconAction
+            label="View group"
+            variant="light"
+            color="dune"
+            size="lg"
+            renderRoot={(rootProps) => (
+              <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: group.slug }} />
+            )}
+            icon={<Users size={16} aria-hidden />}
+          />
         </Group>
       </Toolbar.Left>
     </Toolbar>

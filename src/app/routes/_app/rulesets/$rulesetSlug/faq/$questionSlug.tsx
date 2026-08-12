@@ -1,5 +1,6 @@
-import { ActionIcon, Group, Input, Stack, Textarea, Tooltip } from '@mantine/core';
+import { Group, Input, Stack, Textarea } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -165,31 +166,23 @@ function FaqDetailPage() {
                   </Stack>
                 </Input.Wrapper>
                 <Group gap="xs" wrap="nowrap">
-                  <Tooltip label="Save question">
-                    <ActionIcon
-                      variant="filled"
-                      color="confirm"
-                      size="lg"
-                      type="button"
-                      aria-label="Save question"
-                      onClick={() => saveQuestion()}
-                      disabled={faq.editQuestion.isPending}
-                    >
-                      <Check size={16} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
-                  <Tooltip label="Cancel editing question">
-                    <ActionIcon
-                      variant="light"
-                      color="dune"
-                      size="lg"
-                      type="button"
-                      aria-label="Cancel editing question"
-                      onClick={() => editingSession.cancelQuestion()}
-                    >
-                      <X size={16} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
+                  <IconAction
+                    label="Save question"
+                    variant="filled"
+                    color="confirm"
+                    size="lg"
+                    onClick={() => saveQuestion()}
+                    disabled={faq.editQuestion.isPending}
+                    icon={<Check size={16} aria-hidden />}
+                  />
+                  <IconAction
+                    label="Cancel editing question"
+                    variant="light"
+                    color="dune"
+                    size="lg"
+                    onClick={() => editingSession.cancelQuestion()}
+                    icon={<X size={16} aria-hidden />}
+                  />
                   {faq.editQuestion.isError && (
                     <span className={styles.error}>{faq.editQuestion.error?.message}</span>
                   )}
@@ -212,31 +205,23 @@ function FaqDetailPage() {
                 </div>
                 {item.capabilities.editQuestion && (
                   <Group gap="xs" wrap="nowrap">
-                    <Tooltip label="Edit question">
-                      <ActionIcon
-                        variant="filled"
-                        color="confirm"
-                        size="lg"
-                        type="button"
-                        aria-label="Edit question"
-                        onClick={startEditQuestion}
-                      >
-                        <Pencil size={16} aria-hidden />
-                      </ActionIcon>
-                    </Tooltip>
-                    <Tooltip label="Delete question">
-                      <ActionIcon
-                        variant="light"
-                        color="red"
-                        size="lg"
-                        type="button"
-                        aria-label="Delete question"
-                        onClick={handleDeleteQuestion}
-                        disabled={faq.deleteQuestion.isPending}
-                      >
-                        <Trash2 size={16} aria-hidden />
-                      </ActionIcon>
-                    </Tooltip>
+                    <IconAction
+                      label="Edit question"
+                      variant="filled"
+                      color="confirm"
+                      size="lg"
+                      onClick={startEditQuestion}
+                      icon={<Pencil size={16} aria-hidden />}
+                    />
+                    <IconAction
+                      label="Delete question"
+                      variant="light"
+                      color="red"
+                      size="lg"
+                      onClick={handleDeleteQuestion}
+                      disabled={faq.deleteQuestion.isPending}
+                      icon={<Trash2 size={16} aria-hidden />}
+                    />
                     {faq.deleteQuestion.isError && (
                       <span className={styles.error}>{faq.deleteQuestion.error?.message}</span>
                     )}
@@ -275,18 +260,15 @@ function FaqDetailPage() {
                 placeholder="Your answer..."
               />
               <Group gap="xs" wrap="nowrap">
-                <Tooltip label="Add answer">
-                  <ActionIcon
-                    variant="filled"
-                    color="confirm"
-                    size="lg"
-                    type="submit"
-                    aria-label="Add answer"
-                    disabled={faq.createAnswer.isPending}
-                  >
-                    <MessageSquarePlus size={16} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
+                <IconAction
+                  label="Add answer"
+                  variant="filled"
+                  color="confirm"
+                  size="lg"
+                  type="submit"
+                  disabled={faq.createAnswer.isPending}
+                  icon={<MessageSquarePlus size={16} aria-hidden />}
+                />
               </Group>
             </Stack>
           )}
@@ -319,31 +301,23 @@ function FaqDetailPage() {
                           rows={3}
                         />
                         <Group gap="xs" wrap="nowrap">
-                          <Tooltip label="Save answer">
-                            <ActionIcon
-                              variant="filled"
-                              color="confirm"
-                              size="lg"
-                              type="button"
-                              aria-label="Save answer"
-                              onClick={() => saveAnswer(a.id)}
-                              disabled={faq.editAnswer.isPending}
-                            >
-                              <Check size={16} aria-hidden />
-                            </ActionIcon>
-                          </Tooltip>
-                          <Tooltip label="Cancel editing answer">
-                            <ActionIcon
-                              variant="light"
-                              color="dune"
-                              size="lg"
-                              type="button"
-                              aria-label="Cancel editing answer"
-                              onClick={() => editingSession.cancelAnswer()}
-                            >
-                              <X size={16} aria-hidden />
-                            </ActionIcon>
-                          </Tooltip>
+                          <IconAction
+                            label="Save answer"
+                            variant="filled"
+                            color="confirm"
+                            size="lg"
+                            onClick={() => saveAnswer(a.id)}
+                            disabled={faq.editAnswer.isPending}
+                            icon={<Check size={16} aria-hidden />}
+                          />
+                          <IconAction
+                            label="Cancel editing answer"
+                            variant="light"
+                            color="dune"
+                            size="lg"
+                            onClick={() => editingSession.cancelAnswer()}
+                            icon={<X size={16} aria-hidden />}
+                          />
                           {faq.editAnswer.isError && (
                             <span className={styles.error}>{faq.editAnswer.error?.message}</span>
                           )}
@@ -367,71 +341,55 @@ function FaqDetailPage() {
                         <div className={styles.answerContent}>{a.text}</div>
                         <Group gap="xs" wrap="nowrap">
                           {a.capabilities.acceptAnswer && (
-                            <Tooltip label="Mark as accepted answer">
-                              <ActionIcon
-                                variant="filled"
-                                color="confirm"
-                                size="lg"
-                                type="button"
-                                aria-label="Mark as accepted answer"
-                                onClick={() =>
-                                  void faq.setAcceptedAnswer
-                                    .run({ answerId: a.id })
-                                    .catch(() => undefined)
-                                }
-                                disabled={faq.setAcceptedAnswer.isPending}
-                              >
-                                <Check size={16} aria-hidden />
-                              </ActionIcon>
-                            </Tooltip>
+                            <IconAction
+                              label="Mark as accepted answer"
+                              variant="filled"
+                              color="confirm"
+                              size="lg"
+                              onClick={() =>
+                                void faq.setAcceptedAnswer
+                                  .run({ answerId: a.id })
+                                  .catch(() => undefined)
+                              }
+                              disabled={faq.setAcceptedAnswer.isPending}
+                              icon={<Check size={16} aria-hidden />}
+                            />
                           )}
                           {a.capabilities.unacceptAnswer && (
-                            <Tooltip label="Unmark accepted answer">
-                              <ActionIcon
-                                variant="light"
-                                color="dune"
-                                size="lg"
-                                type="button"
-                                aria-label="Unmark accepted answer"
-                                onClick={() =>
-                                  void faq.setAcceptedAnswer
-                                    .run({ answerId: null })
-                                    .catch(() => undefined)
-                                }
-                                disabled={faq.setAcceptedAnswer.isPending}
-                              >
-                                <X size={16} aria-hidden />
-                              </ActionIcon>
-                            </Tooltip>
+                            <IconAction
+                              label="Unmark accepted answer"
+                              variant="light"
+                              color="dune"
+                              size="lg"
+                              onClick={() =>
+                                void faq.setAcceptedAnswer
+                                  .run({ answerId: null })
+                                  .catch(() => undefined)
+                              }
+                              disabled={faq.setAcceptedAnswer.isPending}
+                              icon={<X size={16} aria-hidden />}
+                            />
                           )}
                           {a.capabilities.editAnswer && (
-                            <Tooltip label="Edit your answer">
-                              <ActionIcon
-                                variant="filled"
-                                color="confirm"
-                                size="lg"
-                                type="button"
-                                aria-label="Edit your answer"
-                                onClick={() => startEditAnswer(a)}
-                              >
-                                <Pencil size={16} aria-hidden />
-                              </ActionIcon>
-                            </Tooltip>
+                            <IconAction
+                              label="Edit your answer"
+                              variant="filled"
+                              color="confirm"
+                              size="lg"
+                              onClick={() => startEditAnswer(a)}
+                              icon={<Pencil size={16} aria-hidden />}
+                            />
                           )}
                           {a.capabilities.deleteAnswer && (
-                            <Tooltip label="Delete answer">
-                              <ActionIcon
-                                variant="light"
-                                color="red"
-                                size="lg"
-                                type="button"
-                                aria-label="Delete answer"
-                                onClick={() => handleDeleteAnswer(a.id)}
-                                disabled={faq.deleteAnswer.isPending}
-                              >
-                                <Trash2 size={16} aria-hidden />
-                              </ActionIcon>
-                            </Tooltip>
+                            <IconAction
+                              label="Delete answer"
+                              variant="light"
+                              color="red"
+                              size="lg"
+                              onClick={() => handleDeleteAnswer(a.id)}
+                              disabled={faq.deleteAnswer.isPending}
+                              icon={<Trash2 size={16} aria-hidden />}
+                            />
                           )}
                         </Group>
                       </Stack>

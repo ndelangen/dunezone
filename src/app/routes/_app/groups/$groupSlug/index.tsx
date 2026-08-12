@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   Alert,
   Anchor,
   Avatar,
@@ -12,9 +11,9 @@ import {
   Stack,
   Text,
   Title,
-  Tooltip,
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
@@ -162,46 +161,36 @@ function GroupDetailPage() {
           <Toolbar>
             <Toolbar.Left>
               <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
-                <Tooltip label="Back to profiles">
-                  <ActionIcon
-                    variant="light"
-                    color="gray"
-                    size="lg"
-                    aria-label="Back to profiles"
-                    renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-                  >
-                    <ArrowLeft size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
+                <IconAction
+                  label="Back to profiles"
+                  variant="light"
+                  color="gray"
+                  size="lg"
+                  renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+                  icon={<ArrowLeft size={17} aria-hidden />}
+                />
                 {viewerAccess.capabilities.rename ? (
-                  <Tooltip label="Edit group settings">
-                    <ActionIcon
-                      variant="light"
-                      color="dune"
-                      size="lg"
-                      aria-label="Edit group settings"
-                      renderRoot={(rootProps) => (
-                        <Link {...rootProps} to="/groups/$groupSlug/edit" params={{ groupSlug }} />
-                      )}
-                    >
-                      <Pencil size={17} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
+                  <IconAction
+                    label="Edit group settings"
+                    variant="light"
+                    color="dune"
+                    size="lg"
+                    renderRoot={(rootProps) => (
+                      <Link {...rootProps} to="/groups/$groupSlug/edit" params={{ groupSlug }} />
+                    )}
+                    icon={<Pencil size={17} aria-hidden />}
+                  />
                 ) : null}
                 {viewerAccess.capabilities.delete ? (
-                  <Tooltip label="Delete group">
-                    <ActionIcon
-                      type="button"
-                      variant="light"
-                      color="red"
-                      size="lg"
-                      aria-label="Delete group"
-                      disabled={deleteGroup.isPending}
-                      onClick={handleDeleteGroup}
-                    >
-                      <Trash2 size={17} aria-hidden />
-                    </ActionIcon>
-                  </Tooltip>
+                  <IconAction
+                    label="Delete group"
+                    variant="light"
+                    color="red"
+                    size="lg"
+                    disabled={deleteGroup.isPending}
+                    onClick={handleDeleteGroup}
+                    icon={<Trash2 size={17} aria-hidden />}
+                  />
                 ) : null}
               </Group>
             </Toolbar.Left>
@@ -493,43 +482,36 @@ function MemberRow({
       </Group>
       <Group gap={4} wrap="nowrap">
         {entry.capabilities.approve && (
-          <Tooltip label="Approve">
-            <ActionIcon
-              aria-label="Approve membership"
-              color="confirm"
-              variant="light"
-              disabled={moderationBusy}
-              onClick={() => onApprove(entry.membershipId)}
-            >
-              <Check size={15} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Approve membership"
+            tooltip="Approve"
+            color="confirm"
+            variant="light"
+            disabled={moderationBusy}
+            onClick={() => onApprove(entry.membershipId)}
+            icon={<Check size={15} aria-hidden />}
+          />
         )}
         {entry.capabilities.reject && (
-          <Tooltip label="Decline">
-            <ActionIcon
-              aria-label="Decline membership"
-              color="red"
-              variant="light"
-              disabled={moderationBusy}
-              onClick={() => onReject(entry.membershipId)}
-            >
-              <X size={15} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Decline membership"
+            tooltip="Decline"
+            color="red"
+            variant="light"
+            disabled={moderationBusy}
+            onClick={() => onReject(entry.membershipId)}
+            icon={<X size={15} aria-hidden />}
+          />
         )}
         {entry.capabilities.remove && onRemove && (
-          <Tooltip label="Remove member">
-            <ActionIcon
-              aria-label="Remove member"
-              color="red"
-              variant="light"
-              disabled={moderationBusy}
-              onClick={() => onRemove(entry.membershipId)}
-            >
-              <UserRoundMinus size={15} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
+          <IconAction
+            label="Remove member"
+            color="red"
+            variant="light"
+            disabled={moderationBusy}
+            onClick={() => onRemove(entry.membershipId)}
+            icon={<UserRoundMinus size={15} aria-hidden />}
+          />
         )}
       </Group>
     </Group>
