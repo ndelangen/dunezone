@@ -51,12 +51,12 @@ import {
   useUpdateRuleset,
 } from '@db/rulesets';
 import { viewerActionsFor } from '@app/access/viewerActions';
-import { FaqList } from '@app/components/faq/FaqList';
-import { GroupAssignPopover } from '@app/components/groups/GroupAssignPopover';
-import { ProfileLink } from '@app/components/profile/ProfileLink';
-import { ProposedContent } from '@app/components/ProposedContent';
-import { PageLayout } from '@app/components/shell';
-import { TopicIcon } from '@app/components/topics/TopicIcon';
+import { ProposedContent } from '@app/components/block/ProposedContent';
+import { ProfileLink } from '@app/components/content/ProfileLink';
+import { TopicIcon } from '@app/components/content/TopicIcon';
+import { GroupAssignPopover } from '@app/components/control/GroupAssignPopover';
+import { PageLayout } from '@app/components/layout/PageLayout';
+import { FaqList } from '@app/components/list/FaqList';
 import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 import type { FaqTag } from '@app/faq/tags';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';

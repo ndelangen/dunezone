@@ -4,7 +4,7 @@ import { expect, within } from 'storybook/test';
 import type { FactionCatalogueEntry } from '@db/factions';
 import { assetPublishingFaction } from '@game/fixtures/assetPublishingFaction';
 
-import { FactionCard } from './FactionList';
+import { FactionCard } from './FactionCard';
 
 const baseFaction = {
   _id: 'faction-atreides',

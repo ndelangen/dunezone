@@ -18,9 +18,9 @@ import { icons, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { PageLayout } from '@app/components/shell';
-import { TOPIC_ICON_TOPICS, TopicIcon } from '@app/components/topics/TopicIcon';
-import type { TopicIconTopic } from '@app/components/topics/TopicIcon';
+import { TOPIC_ICON_TOPICS, TopicIcon } from '@app/components/content/TopicIcon';
+import type { TopicIconTopic } from '@app/components/content/TopicIcon';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import {
   BACKGROUND,
   DECAL,

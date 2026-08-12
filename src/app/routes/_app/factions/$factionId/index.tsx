@@ -39,9 +39,9 @@ import {
 import { loadFaction, useFaction } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { viewerActionsFor } from '@app/access/viewerActions';
-import { ProfileLink } from '@app/components/profile/ProfileLink';
-import { PageLayout } from '@app/components/shell';
-import { TopicIcon } from '@app/components/topics/TopicIcon';
+import { ProfileLink } from '@app/components/content/ProfileLink';
+import { TopicIcon } from '@app/components/content/TopicIcon';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import { factionAssetPublishingCopy } from '@app/factions/assetPublishingStatus';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';

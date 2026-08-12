@@ -5,7 +5,7 @@ import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
 import { useCurrentProfile } from '@db/profiles';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import {
   loadAdminMigrationDashboard,
   useAdminMigrationDashboard,

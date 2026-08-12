@@ -5,8 +5,8 @@ import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { PageLayout } from '../layout/PageLayout';
 import { AppShell } from './AppShell';
-import { PageLayout } from './PageLayout';
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
@@ -16,7 +16,7 @@ vi.mock('@db/profiles', () => ({
   useCurrentProfile: () => ({ data: null }),
 }));
 
-vi.mock('@app/components/profile/ProfileLink', () => ({
+vi.mock('@app/components/content/ProfileLink', () => ({
   ProfileLink: () => null,
 }));
 

@@ -5,8 +5,8 @@ import { Surface } from '@ui/surface';
 import { CircleHelp, MessageCircleReply, Shield, UsersRound } from 'lucide-react';
 
 import { loadProfilesAll, useProfilesAll } from '@db/profiles';
-import { ProfileLink } from '@app/components/profile/ProfileLink';
-import { PageLayout } from '@app/components/shell';
+import { ProfileLink } from '@app/components/content/ProfileLink';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 import styles from './ProfilesIndex.module.css';
 

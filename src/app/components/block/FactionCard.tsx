@@ -6,33 +6,17 @@ import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 
-import styles from './FactionList.module.css';
+import styles from './FactionCard.module.css';
 
-export type FactionListProps = {
-  factions: FactionCatalogueEntry[];
-  selectedRulesetSlug?: string;
-  className?: string;
-};
-
-/** Shared responsive faction-card grid used by catalogue and profile detail pages. */
-export function FactionList({ factions, selectedRulesetSlug, className }: FactionListProps) {
-  if (factions.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className={[styles.grid, className].filter(Boolean).join(' ')}>
-      {factions.map((faction) => (
-        <FactionCard
-          key={faction._id}
-          faction={faction}
-          selectedRulesetSlug={selectedRulesetSlug}
-        />
-      ))}
-    </div>
-  );
-}
-
+/**
+ * A faction, as one tile: its artwork, its token, its leaders, its name. The whole tile is a link
+ * to the faction.
+ *
+ * A Block — callers hand it the faction document and this owns which piece becomes what: the
+ * background renders as full-bleed artwork, the hero leads the cast, the first three leaders fan
+ * out beside it, the name captions the bottom. The artwork is game-asset content, not a pane
+ * treatment; nothing here is a slot.
+ */
 export function FactionCard({
   faction,
   selectedRulesetSlug,
@@ -82,6 +66,7 @@ export function FactionCard({
   );
 }
 
+/** The card's ruleset caption: the selected ruleset when the faction is in it, else its first. */
 export function factionRulesetLabel(
   faction: Pick<FactionCatalogueEntry, 'rulesets'>,
   selectedRulesetSlug?: string

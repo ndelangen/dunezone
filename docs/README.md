@@ -73,10 +73,10 @@ perform this production copy.
   source entries and `titlePrefix` values in `.storybook/main.ts`.
 - Prefer auto-titles. Add a relative `title` only when a filename cannot express the useful
   product-facing label; never repeat `Application` or `Game Assets` in story metadata.
-- Kit stories file under their category root — Actions were merged into Controls; the roots are
-  Blocks, Content, Controls, Layout, Lists, Surfaces — mirroring `src/ui/<category>`. Application
-  stories file by feature (Factions, FAQ, Groups, Topics, Shell); widget stories under Widgets.
-  See the component taxonomy in [`AGENTS.md`](../AGENTS.md#component-taxonomy).
+- Stories file under their category root — Blocks, Content, Controls, Layout, Lists, Surfaces —
+  fed by both `src/ui/<category>` and `src/app/components/<category>`; the sidebar does not say
+  who wrote a component. Widget stories file under Widgets. There is no Application root. See the
+  component taxonomy in [`AGENTS.md`](../AGENTS.md#component-taxonomy).
 - Game Assets stories belong under Faction, Cards, Tokens, or Composition. Comparative asset
   catalogues may remain exhaustive when side-by-side inspection is the story's purpose.
 - Rulebook stories are intentionally not indexed while their redesign is pending.

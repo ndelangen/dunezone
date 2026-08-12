@@ -24,10 +24,10 @@ import { Surface } from '@ui/surface';
 import { ArrowRight, BookOpen, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
 
 import { loadHomepage, useHomepage } from '@db/homepage';
-import { AnimatedLeaderToken } from '@app/components/factions/AnimatedLeaderToken';
+import { FactionCatalogueSpotlight } from '@app/components/block/FactionCatalogueSpotlight';
+import { AnimatedLeaderToken } from '@app/components/content/AnimatedLeaderToken';
 import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
-import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 import styles from './index.module.css';
 

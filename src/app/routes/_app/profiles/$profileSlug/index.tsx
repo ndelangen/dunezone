@@ -22,14 +22,14 @@ import {
 } from 'lucide-react';
 
 import { loadProfileBySlug, useCurrentProfile, useProfileBySlug } from '@db/profiles';
-import { FactionList } from '@app/components/factions/FactionList';
+import { ProposedContent } from '@app/components/block/ProposedContent';
+import { TopicIcon } from '@app/components/content/TopicIcon';
+import { PageLayout } from '@app/components/layout/PageLayout';
+import { FactionList } from '@app/components/list/FactionList';
 import {
   ProfileFaqAnswersGiven,
   ProfileFaqQuestionsAsked,
 } from '@app/components/profile/ProfileFaqActivity';
-import { ProposedContent } from '@app/components/ProposedContent';
-import { PageLayout } from '@app/components/shell';
-import { TopicIcon } from '@app/components/topics/TopicIcon';
 
 import styles from '../ProfileDetail.module.css';
 

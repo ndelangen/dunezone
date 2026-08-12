@@ -6,7 +6,7 @@ import { CircleCheck, CircleDashed } from 'lucide-react';
 import { useMemo } from 'react';
 
 import type { FaqItemWithDetails } from '@db/faq';
-import { ProfileLink } from '@app/components/profile/ProfileLink';
+import { ProfileLink } from '@app/components/content/ProfileLink';
 import { FAQ_TAG_LABELS } from '@app/faq/tags';
 import type { FaqTag } from '@app/faq/tags';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';

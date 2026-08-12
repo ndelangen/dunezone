@@ -7,7 +7,7 @@ type FaqQuestionAsked = ProfilePageData['faqAsked'][number];
 type FaqAnswerGiven = ProfilePageData['faqAnswers'][number];
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
 
-import { ProfileLink } from '@app/components/profile/ProfileLink';
+import { ProfileLink } from '@app/components/content/ProfileLink';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 
 import styles from './ProfileFaqActivity.module.css';

@@ -7,7 +7,7 @@ import { ArrowLeft, Users } from 'lucide-react';
 
 import { loadGroupEditBySlug, useGroupEditBySlug } from '@db/groups';
 import { GroupSettingsForm } from '@app/components/groups/GroupSettingsForm';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/edit')({
   loader: async ({ params }) => {

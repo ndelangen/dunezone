@@ -1,4 +1,4 @@
-import { GroupAssignPopover } from '@app/components/groups/GroupAssignPopover';
+import { GroupAssignPopover } from '@app/components/control/GroupAssignPopover';
 
 import type { AssignedGroupSummary } from '../../../../convex/lib/collaborativeAccess';
 

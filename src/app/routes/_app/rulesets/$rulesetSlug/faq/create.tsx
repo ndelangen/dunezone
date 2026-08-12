@@ -8,7 +8,7 @@ import { Surface } from '@ui/surface';
 import { useAskFaqQuestion } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug, useRulesetBySlug } from '@db/rulesets';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import type { FaqTag } from '@app/faq/tags';
 import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 

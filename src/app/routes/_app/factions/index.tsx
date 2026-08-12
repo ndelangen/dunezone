@@ -24,10 +24,10 @@ import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
+import { FactionCatalogueSpotlight } from '@app/components/block/FactionCatalogueSpotlight';
 import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
-import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
-import { FactionList } from '@app/components/factions/FactionList';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
+import { FactionList } from '@app/components/list/FactionList';
 import { parseFactionCatalogueSearch, useFactionCatalogueSession } from '@app/factions/catalogue';
 import type { FactionCatalogueSearch } from '@app/factions/catalogue';
 

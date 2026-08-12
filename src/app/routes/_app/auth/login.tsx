@@ -4,7 +4,7 @@ import { Surface } from '@ui/surface';
 
 import { useCurrentProfile } from '@db/profiles';
 import { LoginForm } from '@app/components/auth/LoginForm';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/auth/login')({
   component: LoginPage,

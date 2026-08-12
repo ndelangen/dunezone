@@ -21,9 +21,9 @@ import {
 import { loadGroupDetailBySlug, useGroupDetailBySlug } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { viewerActionsFor } from '@app/access/viewerActions';
-import { ProfileLink } from '@app/components/profile/ProfileLink';
-import { PageLayout } from '@app/components/shell';
-import { TopicIcon } from '@app/components/topics/TopicIcon';
+import { ProfileLink } from '@app/components/content/ProfileLink';
+import { TopicIcon } from '@app/components/content/TopicIcon';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 
 import pageStyles from './index.module.css';

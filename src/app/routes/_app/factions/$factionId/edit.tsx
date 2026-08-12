@@ -5,7 +5,7 @@ import { Trash2, UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import { loadFaction } from '@app/factions/db';
 import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';

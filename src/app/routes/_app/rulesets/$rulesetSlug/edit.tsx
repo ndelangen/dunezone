@@ -14,8 +14,8 @@ import { Surface } from '@ui/surface';
 import { ArrowLeft, BookOpen } from 'lucide-react';
 
 import { loadRulesetDetailPage, useRulesetDetailPage } from '@db/rulesets';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import { RulesetSettingsForm } from '@app/components/rulesets/RulesetSettingsForm';
-import { PageLayout } from '@app/components/shell';
 
 import styles from './edit.module.css';
 

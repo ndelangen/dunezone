@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 import styles from './index.module.css';
 

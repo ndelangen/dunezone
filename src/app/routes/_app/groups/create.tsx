@@ -10,7 +10,7 @@ import { useState } from 'react';
 
 import { useCreateGroup } from '@db/groups';
 import { useCurrentProfile } from '@db/profiles';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/groups/create')({
   component: GroupCreatePage,

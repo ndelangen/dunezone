@@ -25,28 +25,15 @@ const managerTitleScript = `
 export default defineMain({
   stories: [
     {
-      directory: '../src/app/components/factions',
-      files: '*.stories.tsx',
-      titlePrefix: 'Application/Factions',
-    },
-    {
       directory: '../src/app/widgets/faction-editor',
       titlePrefix: 'Widgets/Faction Editor',
     },
     {
-      directory: '../src/app/components/faq',
-      titlePrefix: 'Application/FAQ',
-    },
-    {
-      directory: '../src/app/components/groups',
-      titlePrefix: 'Application/Groups',
-    },
-    {
-      directory: '../src/app/components/topics',
-      titlePrefix: 'Application/Topics',
-    },
-    {
       directory: '../src/ui/block',
+      titlePrefix: 'Blocks',
+    },
+    {
+      directory: '../src/app/components/block',
       titlePrefix: 'Blocks',
     },
     {
@@ -54,11 +41,23 @@ export default defineMain({
       titlePrefix: 'Controls',
     },
     {
+      directory: '../src/app/components/control',
+      titlePrefix: 'Controls',
+    },
+    {
       directory: '../src/ui/content',
       titlePrefix: 'Content',
     },
     {
+      directory: '../src/app/components/content',
+      titlePrefix: 'Content',
+    },
+    {
       directory: '../src/ui/list',
+      titlePrefix: 'Lists',
+    },
+    {
+      directory: '../src/app/components/list',
       titlePrefix: 'Lists',
     },
     {
@@ -70,8 +69,8 @@ export default defineMain({
       titlePrefix: 'Layout',
     },
     {
-      directory: '../src/app/components/shell',
-      titlePrefix: 'Application/Shell',
+      directory: '../src/app/components/layout',
+      titlePrefix: 'Layout',
     },
     {
       directory: '../src/game/assets/faction',

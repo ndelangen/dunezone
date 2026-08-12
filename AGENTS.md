@@ -47,9 +47,13 @@ root. Both stay flat — one level, no nesting. What a caller hands a component 
 
 Outside the kit:
 
-- **Application** (`src/app/components/<feature>`) — the same kinds with domain knowledge, filed
-  by feature because their readers search by feature. The lint boundary is the judge: if it
-  compiles without `@app/@db/@game`, it is kit and must move to `src/ui`.
+- **Application components** (`src/app/components/<category>`) — the same categories with domain
+  knowledge baked in, filed by kind exactly like the kit; each folder feeds the *same* Storybook
+  root as its `src/ui` counterpart, so the sidebar never says who wrote a component or which side
+  of the lint boundary it lives on. The boundary is the only reason for two trees: if it compiles
+  without `@app/@db/@game`, it belongs in `src/ui`. There is no "Application" category or root.
+  Feature folders (`components/<feature>`) still exist but hold **only organs** — one-page forms,
+  the shell's chrome (`components/shell`), renderer glue — never published components.
 - **Widgets** (`src/app/widgets/<name>`) — an assembly too domain-specific to be kit and too
   shared to be one page's JSX. Prefab: built outside the page only because two or more routes
   install the identical thing.
@@ -63,7 +67,16 @@ Outside the kit:
     widget imports them.
   - **The shelf is a metric.** Every widget is a concession. When `src/app/widgets/` grows,
     something upstream went wrong.
-- **Game assets** (`src/game`) — print-faithful renderers. Own their colours, never themed.
+- **Game assets** (`src/game`) — print-faithful renderers. Own their colours, never themed. The
+  document-rendering glue around them (`factions/sheet/`, `src/app/capture/`) belongs to this
+  world, not to the interface taxonomy.
+
+Not everything in a component folder is a component. Types, the theme, and story fixtures are
+support modules. **Organs exist at every level, not only inside widgets**: a file whose only
+importers are its own feature's or category's machinery is an organ — "organ" *is* its
+classification, it needs no story, and nothing outside may import it. The kit has organs of its
+own (`BlockHeading`, the depth context); a feature may keep a one-route form as an organ of its
+page.
 
 Rules between categories:
 
@@ -85,6 +98,8 @@ Rules between categories:
 The tells:
 
 - A control promises change; a link promises a place — judge by the promise, not the tag.
+- The look is not the contract: a component handed only data is a Block even when it renders
+  something pane-like — its artwork is content, not the pane treatment.
 - Main content arriving as `ReactNode` → Layout or Surface.
 - A string prop becoming a heading → Block, or a Surface naming itself.
 - Two components answering the same question → one dies.

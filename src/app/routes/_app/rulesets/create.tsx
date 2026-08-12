@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { useGroupsByCreator } from '@db/groups';
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/rulesets/create')({
   component: CreateRulesetPage,

@@ -2,10 +2,19 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "APP_DEV_PORT=${APP_DEV_PORT:-3001} bun run app:dev"],
+      "port": 3001
+    },
+    {
       "name": "storybook",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "bun run generate:vectors && bun run storybook"],
-      "port": 6006
+      "runtimeArgs": [
+        "-c",
+        "bun run generate:vectors && bunx storybook dev -p ${STORYBOOK_PORT:-6007} --no-open"
+      ],
+      "port": 6007
     }
   ]
 }

@@ -14,7 +14,7 @@ import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Globe2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
-import { TopicIcon } from '@app/components/topics/TopicIcon';
+import { TopicIcon } from '@app/components/content/TopicIcon';
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';

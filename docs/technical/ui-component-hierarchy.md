@@ -12,7 +12,7 @@ what the taxonomy does not: ownership rules that sit around it.
 |---|---|---|
 | Interface kit | `src/ui/**` | Domain-free; lint forbids `@app/@db/@game/@data` imports. Composes Mantine under `appContentTheme`. |
 | Mantine | `@mantine/core` | The base library. Used directly where no kit component owns the concern; kit components used where one does. Mantine components the app uses get stories, filed by kind. |
-| Application components | `src/app/components/<feature>` | The taxonomy's kinds with domain knowledge baked in. |
+| Application components | `src/app/components/<category>` | The taxonomy's kinds with domain knowledge, filed by kind; feature folders hold only organs. |
 | Widgets | `src/app/widgets/<name>` | Shared assemblies; see the widget rules in `AGENTS.md`. |
 | Application shell | `src/app/components/shell/**` | `AppShell` owns persistent chrome; terminal routes compose `PageLayout` slots directly. |
 | Game and document renderers | `src/game/**`, sheet/print/capture/publishing entry points | Independent of Mantine and the kit; exact rendering output preserved. |

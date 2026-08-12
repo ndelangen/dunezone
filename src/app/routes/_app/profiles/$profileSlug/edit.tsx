@@ -6,8 +6,8 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, User } from 'lucide-react';
 
 import { useCurrentProfile } from '@db/profiles';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import { ProfileSettingsForm } from '@app/components/profile/ProfileSettingsForm';
-import { PageLayout } from '@app/components/shell';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/edit')({
   component: ProfileSettingsPage,
