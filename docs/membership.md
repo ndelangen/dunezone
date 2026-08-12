@@ -17,7 +17,9 @@ membership reactivates it as `pending`.
 
 ## Status Enum
 
-**Type**: `group_member_status` enum
+**Type**: an inline Convex literal union on the `group_members` table
+([`convex/schema.ts`](../convex/schema.ts)), mirrored client-side in
+[`src/app/members/db.ts`](../src/app/members/db.ts)
 
 - `pending` - Membership requested, awaiting approval
 - `active` - Approved, active member

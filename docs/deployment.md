@@ -38,8 +38,11 @@ Build the unified application and capture release with:
 VITE_CONVEX_URL=https://exuberant-finch-263.eu-west-1.convex.cloud bun run publisher:assets
 ```
 
-This builds `dist/client`, builds the isolated capture bundle, and assembles both
-into `workers/publisher/dist`. The assembly copies TanStack's `_shell.html` to the
+This builds `dist/client`, builds Storybook into `storybook-static`, builds the
+isolated capture bundle, and assembles all three into `workers/publisher/dist`.
+Storybook is part of the release, not an extra: the assembly requires
+`__storybook/index.html`, `__storybook/iframe.html`, and `__storybook/index.json`
+and reports a story count. The assembly also copies TanStack's `_shell.html` to the
 `index.html` Cloudflare Static Assets requires for SPA fallback and fails if the
 final bundle violates Workers asset-count or per-file limits.
 
@@ -64,6 +67,7 @@ are Worker-first:
 | `/published` and `/published/*` | Stable public generated-asset delivery |
 | `/__asset-publisher` and `/__asset-publisher/*` | Health and operational endpoints |
 | `/publisher-capture`, `/publisher-capture.html`, `/publisher-capture/*` | Protected capture document and bundle |
+| `/__storybook` and `/__storybook/` | Rewritten to the built Storybook's `index.html` |
 | Everything else, including `/factions/*` | Static asset lookup, then SPA fallback |
 
 The faction-sheet delivery path is
@@ -77,7 +81,6 @@ Set as secrets on the GitHub `production` environment (deployment branch policy:
 
 - `CONVEX_DEPLOY_KEY`
 - `CLOUDFLARE_API_TOKEN`
-- `ASSET_PUBLISHER_ACTIVATION_SECRET`
 
 Set as GitHub `production` environment variables (public identifiers, not secrets):
 
@@ -89,10 +92,12 @@ Set as GitHub repository secrets (used outside the `production` environment):
 
 - `CLOUDFLARE_READ_API_TOKEN` (Cloudflare live-drift audit)
 - `CODECOV_TOKEN` (coverage uploads in PR CI)
+- `CONVEX_DEV_DEPLOY_KEY` (passed to the `dev_rebuild` job that follows a production deploy)
 
 Auth values (`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, `AUTH_DISCORD_ID` /
 `AUTH_DISCORD_SECRET`, `JWT_PRIVATE_KEY` / `JWKS`) live on the Convex deployment
-itself, not in GitHub.
+itself, not in GitHub. So does `ASSET_PUBLISHER_ACTIVATION_SECRET`, which `convex/http.ts` reads and
+`scripts/publication-revisions.ts` fetches with `bunx convex env get … --prod`.
 
 The Worker secrets `ASSET_PUBLISHER_EXECUTOR_SECRET` and
 `ASSET_PUBLISHER_CACHE_TOKEN_SECRET` remain installed directly in Cloudflare. CI
@@ -104,20 +109,25 @@ validates their names but never reads, rotates, or reinstalls their values.
 
 On every push to `main`:
 
-1. Install dependencies.
+1. Install dependencies, then verify schema-narrowing prerequisites
+   (`migrations:narrow-check`) — this runs *before* the Convex deploy and blocks it.
 2. Deploy Convex and run required migrations.
 3. Create `admin_settings` when absent, with pickup disabled and the checked-in
    Renderer revision map. Existing settings are unchanged.
 4. Validate the exact Worker release contract.
 5. Check generated Worker bindings and typecheck the release.
-6. Build the SPA and capture bundle once with the production Convex URL.
-7. Verify assembled assets and reject generated-source drift.
-8. Dry-run, then deploy the Worker with the full merged Git SHA.
-9. Smoke the workers.dev and `dune.zone` health endpoints.
-10. Read the stored Renderer revisions. If any checked-in revision is higher,
+6. Regenerate and verify generated output — images (`verify:images`), vectors
+   (`verify:vectors`), OBJ pieces (`generate:objs`) — and log the output digest.
+7. Build the SPA, Storybook, and capture bundle once with the production Convex URL.
+8. Verify assembled assets and reject generated-source drift.
+9. Dry-run, then deploy the Worker with the full merged Git SHA.
+10. Smoke the workers.dev and `dune.zone` health endpoints, including `/__storybook`.
+11. Read the stored Renderer revisions. If any checked-in revision is higher,
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
-11. Set Convex Auth `SITE_URL` to `https://dune.zone`.
+12. Set Convex Auth `SITE_URL` to `https://dune.zone`.
+13. A follow-on `dev_rebuild` job (`needs: deploy`) rebuilds the dev deployment from
+    production — [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml).
 
 The revision step rejects a checked-in value lower than production. Equal values
 are a no-op. A revision activation stores the new values before scheduling scans,

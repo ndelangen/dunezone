@@ -100,7 +100,7 @@ On failure, the command prints the required ids, latest statuses, and the exact 
 
 ```bash
 # Deploy widen or narrow-compatible Convex code
-npm run convex:deploy
+bun run convex:deploy
 
 # Start or resume required manifest migrations and wait for readiness
 bun run scripts/migration-guards.ts deploy 2700000 5000 --prod
@@ -111,9 +111,12 @@ bun run scripts/migration-guards.ts narrow-check --prod
 # Strict local/dev startup preflight
 bun run scripts/migration-guards.ts dev-strict 300000 2000
 
-# Alias used by convex:dev and for manual local catch-up
+# Alias of migrations:dev-strict, for manual local catch-up.
+# (convex:dev runs `migrations:dev-strict && convex dev` — it does not call this alias.)
 bun run migrations:run-local-required
 
+# Static guard: fails a PR that narrows a slug field. Runs in PR CI.
+bun run migrations:static-check
 ```
 
 ## Templates and references

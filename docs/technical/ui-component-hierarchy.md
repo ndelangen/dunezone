@@ -1,20 +1,23 @@
 # UI component taxonomy and ownership
 
-The component taxonomy in [`AGENTS.md`](../../AGENTS.md#component-taxonomy) is canonical: six kit
-categories under `src/ui` (Content, Controls, Lists, Layout, Surfaces, Blocks), plus Application
-components filed by feature, Widgets as the last-resort shared assemblies, and isolated game
-renderers. The category is the folder; the folder is the Storybook root. This document holds only
-what the taxonomy does not: ownership rules that sit around it.
+The component taxonomy in [`AGENTS.md`](../../AGENTS.md#component-taxonomy) is canonical: six
+categories under `src/app/ui` (Content, Controls, Lists, Layout, Surfaces, Blocks) holding **every**
+published component. Widgets are the
+last-resort shared assemblies, game renderers stay isolated, and only organs are filed by feature. The
+category is the folder; the folder is the Storybook root. This document holds only what the taxonomy
+does not: ownership rules that sit around it.
 
 ## Ownership
 
 | Owner | Location | Rule |
 |---|---|---|
-| Interface kit | `src/ui/**` | Domain-free; lint forbids `@app/@db/@game/@data` imports. Composes Mantine under `appContentTheme`. |
+| Components | `src/app/ui/**` (alias `@ui/*`) | Every published component, filed by category. One rule: it renders what it is given — no Convex client, no `@db` values (types are fine), no router data hooks. Composes Mantine under `appContentTheme`. |
 | Mantine | `@mantine/core` | The base library. Used directly where no kit component owns the concern; kit components used where one does. Mantine components the app uses get stories, filed by kind. |
-| Application components | `src/app/components/<category>` | The taxonomy's kinds with domain knowledge, filed by kind; feature folders hold only organs. |
+| Page composition | the route file itself | One page's own JSX, split into local functions when the route grows. Never exported as a feature component: one page → route, two or more pages → Widget. |
+| Document-rendering glue | `src/app/sheet/`, `src/app/capture/` | Wraps the game renderers for the preview route and the publisher capture. Not published, not storied. |
 | Widgets | `src/app/widgets/<name>` | Shared assemblies; see the widget rules in `AGENTS.md`. |
-| Application shell | `src/app/components/shell/**` | `AppShell` owns persistent chrome; terminal routes compose `PageLayout` slots directly. |
+| Application shell | `src/app/shell/**` | `AppRoot` owns the persistent frame and document effects, `AppHeader` the artwork band, `AppFooter` the closing waypoints. Organs, not kit — filed under the `Shell` Storybook root. See DD-018. |
+| Page frame | `src/app/ui/layout/PageLayout.tsx` | Terminal routes compose its slots directly; import from `@ui/layout/PageLayout`. Domain-free, but its `data-page-layout-*` contract is read by the shell (DD-018). |
 | Game and document renderers | `src/game/**`, sheet/print/capture/publishing entry points | Independent of Mantine and the kit; exact rendering output preserved. |
 
 ## Route and data ownership
@@ -31,9 +34,13 @@ what the taxonomy does not: ownership rules that sit around it.
 ## Styling ownership
 
 - The kit owns the pane treatment (`Surface`), heading levels (depth-derived), and typography
-  defaults (`src/ui/theme.ts`). Pages do not restate them.
+  defaults (`src/app/ui/theme.ts`). Pages do not restate them.
 - CSS Modules are valid for domain visuals, shell ownership, and page-specific composition; a
   component's TSX owner is the only importer of its stylesheet. No CSS `composes`.
+- Every class a module defines must be used, and every class a component reaches for must exist:
+  `bun run check:css-orphans` enforces both across `src/app` (which contains the kit)
+  ([`scripts/assert-no-orphan-css-classes.mjs`](../../scripts/assert-no-orphan-css-classes.mjs)).
+  `src/game` is out of scope there, by design.
 - Placement (`className`) may be passed into kit components; appearance may not.
 - TanStack Router's typed `Link` owns navigation; Mantine and kit components reach it through
   `renderRoot` at the call site.

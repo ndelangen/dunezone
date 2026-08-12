@@ -5,10 +5,16 @@ Quick reference for understanding and working with the codebase.
 ## Entry Points
 
 **Starting a new feature?**
-1. Routes: `src/app/routes/` (file-based routing)
-2. Domain logic: `src/app/<domain>/db.ts` (data access hooks)
+1. Routes: `src/app/routes/` (file-based routing; `_app` is a pathless layout)
+2. Domain logic: `src/app/<domain>/db.ts` (loaders plus live query and mutation hooks)
 3. Schemas: `src/app/<domain>/validation.ts` and `src/game/schema/` (Zod schemas)
 4. Validation standard: [`docs/data-layer.md`](./data-layer.md) (Convex `v` + shared Zod)
+5. UI: every published component lives in `src/app/ui/<category>` (alias `@ui/*`), and the component
+   taxonomy in [`AGENTS.md`](../AGENTS.md#component-taxonomy) decides which category. Lint holds one
+   line there: a component renders what it is given — it never fetches and never navigates itself.
+   `src/app/widgets/<name>` is only for an assembly two or more routes install whole. Anything one
+   page needs stays in that page's route file as local functions. Pages compose: heavy JSX at the
+   route is the intended shape.
 
 **Debugging?**
 - Router: [`src/app/router.tsx`](../src/app/router.tsx)
@@ -101,10 +107,10 @@ already made unpushable.
   source entries and `titlePrefix` values in `.storybook/main.ts`.
 - Prefer auto-titles. Add a relative `title` only when a filename cannot express the useful
   product-facing label; never repeat the category or `Game Assets` in story metadata.
-- Stories file under their category root — Blocks, Content, Controls, Layout, Lists, Surfaces —
-  fed by both `src/ui/<category>` and `src/app/components/<category>`; the sidebar does not say
-  who wrote a component. Widget stories file under Widgets. There is no Application root. See the
-  component taxonomy in [`AGENTS.md`](../AGENTS.md#component-taxonomy).
+- Stories file under their category root — Blocks, Content, Controls, Layout, Lists, Surfaces — one
+  root per `src/app/ui/<category>`; the sidebar does not say whether a component knows the app. Widget stories file under Widgets, and the application chrome files under
+  Shell. There is no Application root. See the component taxonomy in
+  [`AGENTS.md`](../AGENTS.md#component-taxonomy).
 - Game Assets stories belong under Faction, Cards, Tokens, or Composition. Comparative asset
   catalogues may remain exhaustive when side-by-side inspection is the story's purpose.
 - Rulebook stories are intentionally not indexed while their redesign is pending.
@@ -122,16 +128,21 @@ already made unpushable.
    ```
 
 2. Create domain db file in `src/app/domain-name/db.ts`:
-   - Types (wrap DB types)
-   - Query keys (hierarchical structure)
-   - Query hooks (`useDomain...`)
-   - Mutation hooks (`useCreateDomain`, `useUpdateDomain`, etc.)
+   - Types (wrap Convex `Doc<'table'>` types)
+   - Loaders (`loadDomain...`, via `db.query`) for route first paint
+   - Live query hooks (`useDomain...`, via Convex `useQuery` + `toLiveQueryResult`)
+   - Mutation hooks (`useCreateDomain`, `useUpdateDomain`, etc., via `useLiveMutation`)
+
+   There are no query keys and no cache invalidation — see
+   [`state-management.md`](./state-management.md).
 
 3. Add/update Convex schema & functions in `convex/`.
 4. Run/deploy Convex:
    ```bash
-   npm run convex:dev
-   npm run convex:deploy
+   bun run convex:dev
+   ```
+   ```bash
+   bun run convex:deploy
    ```
 
 ### Adding a New Route
@@ -141,7 +152,8 @@ already made unpushable.
    - `_app/about.tsx` → `/about`
    - `_app/users/$userId/index.tsx` → `/users/:userId`
 
-2. Use a loader for data and compose every terminal visual route with `PageLayout`:
+2. Use a loader for data and compose every terminal visual route with `PageLayout`, imported from
+   `@ui/layout/PageLayout`:
    ```typescript
    export const Route = createFileRoute('/path')({
       loader: async () => { ... },
@@ -167,9 +179,13 @@ already made unpushable.
 
 3. Route tree auto-generates from file structure.
 
-## Game assets (`src/game`, `public/`)
+## Game assets (`src/game`, `media/`)
 
-Dune card/faction rendering and Storybook stories live in `src/game`; source artwork lives in `public/`. `scripts/generate.ts` refreshes the typed public-asset catalog used by game schemas.
+Dune card/faction rendering and Storybook stories live in `src/game`. **Source** artwork lives in
+`media/**`; everything under `public/image/**` and `public/web/**` except `logo.svg` is generated
+output and gitignored — run `bun run generate:images` locally, and see the image pipeline section of
+[`AGENTS.md`](../AGENTS.md). `scripts/generate.ts` refreshes the typed public-asset catalog used by
+game schemas.
 
 ## Detailed Documentation
 
@@ -178,7 +194,7 @@ Dune card/faction rendering and Storybook stories live in `src/game`; source art
 - [Routing](./routing.md) - Route configuration, file-based routing
 - [Authentication](./authentication.md) - Auth patterns, Convex Auth integration
 - [User Data Contract](./user-data-contract.md) - What belongs in `users` vs `profiles`
-- [State Management](./state-management.md) - TanStack Query, cache patterns
+- [State Management](./state-management.md) - Convex live subscriptions, the loader/`initialData` handoff
 - [Membership](./membership.md) - Group membership approval flow
 - [Deployment](./deployment.md) - Cloudflare Worker deployment process
 - [Convex Migrations](./convex-migrations.md) - Required widen/migrate/verify/narrow runbook + CI/deploy guards

@@ -6,49 +6,60 @@
 flowchart TD
     Schema[Zod Schema<br/>src/app/<domain>/validation.ts<br/>or src/game/schema/] --> DomainFile[Domain File<br/>src/app/<domain>/db.ts]
     DomainFile --> Types[Types]
-    DomainFile --> QueryKeys[Query Keys]
-    DomainFile --> Queries[Query Hooks]
-    DomainFile --> Mutations[Mutation Hooks]
-    Queries --> TanStackQuery[TanStack Query]
-    Mutations --> TanStackQuery
-    TanStackQuery --> Convex[(Convex)]
+    DomainFile --> Loaders[Loaders<br/>db.query]
+    DomainFile --> Queries[Live query hooks]
+    DomainFile --> Mutations[Mutation hooks]
+    Loaders --> Convex[(Convex)]
+    Queries -->|useQuery + toLiveQueryResult| Convex
+    Mutations -->|useLiveMutation| Convex
 ```
 
-Each domain file follows this structure: types → query keys → queries → mutations.
+Each domain file follows this structure: types → loaders → live query hooks → mutation hooks. There
+are no query keys and no cache; see [State Management](./state-management.md).
 
 ## Convex Schema
 
-Convex schema and indexes are defined in [`convex/schema.ts`](../convex/schema.ts). Domain-level validation still uses Zod schemas in `src/data/`.
+Convex schema and indexes are defined in [`convex/schema.ts`](../convex/schema.ts). Domain-level Zod
+schemas live in `src/app/<domain>/validation.ts` and `src/game/schema/`.
 
 ## Basic DB Structure
 
-**Tables**: factions, groups, group_members, profiles
+**Tables**: `users`, `counters`, `profiles`, `groups`, `group_members`, `factions`,
+`publication_assets`, `publication_jobs`, `admin_settings`, `rulesets`, `migration_runs`,
+`ruleset_factions`, `faq_items`, `faq_answers` — plus the Convex Auth tables.
 
-**Pattern**: Domain data is stored in Convex documents, validated with Zod in domain hooks and with function validators in Convex functions. Factions, rulesets, and groups use soft delete.
+**Pattern**: Domain data is stored in Convex documents, validated with function validators at the
+boundary and shared Zod schemas inside the handler. Factions, rulesets, and groups use soft delete.
 
 ## Domain File Pattern
 
 ### 1. Types
 
-Wrap database types with domain types:
+Wrap Convex document types with domain types:
 
 ```typescript
-export type FactionEntry = Omit<Tables<'factions'>, 'data'> & {
-  data: Faction;  // Validated Zod type
+export type FactionRow = Doc<'factions'>;
+export type FactionEntry = Omit<FactionRow, 'data'> & {
+  data: FactionData; // Validated Zod type
 };
 ```
 
-### 2. Query Keys
+### 2. Loaders and hooks
 
-Hierarchical structure for cache invalidation:
+A loader reads once for first paint; the hook subscribes and takes the loader's result as
+`initialData`:
 
 ```typescript
-export const domainKeys = {
-  all: ['domain'] as const,
-  lists: () => [...domainKeys.all, 'list'] as const,
-  list: (filters: object) => [...domainKeys.lists(), filters] as const,
-  detail: (id: string) => [...domainKeys.all, 'detail', id] as const,
-};
+export async function loadFactionCataloguePage(): Promise<FactionCataloguePageData> {
+  const raw = await db.query(api.factions.cataloguePage, {});
+  return toFactionCataloguePageData(raw);
+}
+
+export function useFactionCataloguePage(options?: { initialData?: FactionCataloguePageData }) {
+  const liveData = useQuery(api.factions.cataloguePage, {});
+  const normalized = liveData ? toFactionCataloguePageData(liveData) : undefined;
+  return toLiveQueryResult(normalized, true, () => options?.initialData);
+}
 ```
 
 **Example**: [`src/app/factions/db.ts`](../src/app/factions/db.ts)

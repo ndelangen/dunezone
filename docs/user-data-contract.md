@@ -48,10 +48,11 @@ Define which user-related fields belong to Convex Auth tables vs app-level profi
 - **On sign-in**, Convex Auth runs `afterUserCreatedOrUpdated`, which ensures a `profiles` row via `ensureProfileForUser` from the `users` document (no reliance on `ctx.auth` identity in that internal mutation).
 - **`createProfileIfMissing`** (used by `bootstrapCurrent` and `updateCurrent`) merges JWT/session identity with the `users` row, then delegates to `ensureProfileForUser` for insert or backfill of missing `username` / `avatar_url`.
 - **`profiles_from_users_v1`** ([`convex/migrations.ts`](../convex/migrations.ts)) walks `users` and creates any missing `profiles` rows using the same rules; it is part of the guarded migration set in [`convex/migration-guards.json`](../convex/migration-guards.json) and runs with deploy / dev-strict (see [`docs/convex-migrations.md`](./convex-migrations.md)).
-- If profile is incomplete (`slug === "user"` or missing username/avatar), bootstrap backfills:
-  - `username` from identity/auth user
-  - `avatar_url` from identity/auth user image
-  - `slug` from username via `slugify`, uniqueness checked on `profiles.by_slug`
+- If an existing profile is missing `username` or `avatar_url`, bootstrap backfills those two fields
+  only, from the identity / auth user (image for the avatar).
+- `slug` is allocated **once, on insert** — `slugify` plus a uniqueness walk on `profiles.by_slug`
+  (`allocateUniqueProfileSlug`). Bootstrap never re-slugs an existing row; only an explicit
+  `updateCurrent` username change recomputes it. The insert-time fallback username is `nameless`.
 - `updateCurrent` lets users edit `username` and `avatar_url`; username changes recompute slug, and both display name and avatar URL are required.
 
 ## Query Rules

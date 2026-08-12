@@ -33,16 +33,17 @@ Auth is enforced server-side in Convex mutations:
 const userId = await requireAuthUserId(ctx);
 ```
 
-**Examples**: [`src/app/factions/db.ts`](../src/app/factions/db.ts), [`src/app/groups/db.ts`](../src/app/groups/db.ts)
+**Examples**: [`convex/members.ts`](../convex/members.ts), [`convex/profiles.ts`](../convex/profiles.ts)
 
 ## Auth Routes
 
-Routes in `src/app/routes/auth/`:
+The visual auth routes live under the `_app` layout, so they carry application chrome; only the
+non-visual hand-off sits outside it:
 
-- `login.tsx` → `/auth/login` - Login form
-- `oauth.tsx` → `/auth/oauth` - Legacy compatibility redirect
-- `error.tsx` → `/auth/error` - Auth error page
-- `index.tsx` → `/auth` - Auth landing
+- `_app/auth/login.tsx` → `/auth/login` - Login form
+- `_app/auth/error.tsx` → `/auth/error` - Auth error page
+- `_app/auth/index.tsx` → `/auth` - Auth landing
+- `auth/oauth.tsx` → `/auth/oauth` - Legacy compatibility redirect, outside `_app`
 
 ## Profiles
 
@@ -50,6 +51,7 @@ A `profiles` document is created in Convex when an auth user is created or updat
 
 If a legacy user has no profile, the client’s `useCurrentProfile()` calls `profiles.bootstrapCurrent` once when `currentUserId` is set and `profiles.current` is still `null`. For bulk repair, missing profiles are backfilled by the **`profiles_from_users_v1`** Convex migration (see [`convex/migrations.ts`](../convex/migrations.ts)), which runs with the rest of the widen migrations via `bun run migrations:deploy` / `bun run migrations:dev-strict` and appears on [`/admin/migrations`](../src/app/routes/_app/admin/migrations.tsx).
 
-**Hooks**: `useCurrentProfile()`, `useProfile(id)`, `useUpdateCurrentProfile()`
+**Hooks**: `useCurrentProfile()`, `useProfileBySlug(slug)`, `useProfilesAll()`,
+`useUpdateCurrentProfile()` — profile lookups are slug-based, never by id
 
 **Example**: [`src/app/profile/db.ts`](../src/app/profile/db.ts)

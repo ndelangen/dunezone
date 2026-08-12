@@ -16,7 +16,7 @@ Convex agent skills for common tasks can be installed by running
 
 - Start with [`docs/README.md`](docs/README.md) for architecture and workflow links.
 - Stack: TanStack Router/Query, Convex, Vite, and Storybook.
-- Non-obvious workflow: `npm run generate` refreshes generated game data outputs.
+- Non-obvious workflow: `bun run generate` refreshes generated game data outputs.
 - `bun run app:dev` uses the configured online Convex deployment. Add `--local` for the
   disposable Docker-backed environment with local test auth and a cloned production
   snapshot; see `docs/README.md`.
@@ -38,22 +38,59 @@ root. Both stay flat — one level, no nesting. What a caller hands a component 
 
 | Category | Folder | Caller hands it | It owns |
 |---|---|---|---|
-| **Content** | `src/ui/content` | data | one kind of content, rendered our way — words, a status, a link |
-| **Controls** | `src/ui/control` | a value + onChange, or an intent | the user changing things — editing a value, committing an action — and the furniture around doing so |
-| **Lists** | `src/ui/list` | items of one shape | the rhythm between items — sequence, dividers, gaps |
-| **Layout** | `src/ui/layout` | slots only | where things go — never what they are |
-| **Surfaces** | `src/ui/surface` | slots for content; words only to name itself | the pane — border, infill, blur. **Surfaces never nest** |
-| **Blocks** | `src/ui/block` | data; at most one slot for the region it names | turning words into Content components in one fixed arrangement |
+| **Content** | `src/app/ui/content` | data | one kind of content, rendered our way — words, a status, a link |
+| **Controls** | `src/app/ui/control` | a value + onChange, or an intent | the user changing things — editing a value, committing an action — and the furniture around doing so |
+| **Lists** | `src/app/ui/list` | items of one shape | the rhythm between items — sequence, dividers, gaps |
+| **Layout** | `src/app/ui/layout` | slots only | where things go — never what they are |
+| **Surfaces** | `src/app/ui/surface` | slots for content; words only to name itself | the pane — border, infill, blur. **Surfaces never nest** |
+| **Blocks** | `src/app/ui/block` | data; at most one slot for the region it names | turning words into Content components in one fixed arrangement |
+
+**One tree, inside the app.** Every published component lives in `src/app/ui/<category>`, reached
+through the `@ui/*` alias. There is no second components directory and no "Application" category or
+root. It sits under `src/app` because there is one application and the kit is not a package anyone
+extracts — a top-level `src/ui` promised an independence that does not exist.
+
+**One rule guards it: a component renders what it is given; it does not go and get things.** That is
+narrower than "domain-free", deliberately. A component may know the *shape* of what it renders — a
+`FactionCatalogueEntry` type says exactly that, and types are erased at compile time anyway — and it
+may compose a game renderer or a pure helper. What it may not do is fetch, or decide where the reader
+goes next, because either one makes it unusable in a story and unusable on a second page. So
+[`.oxlintrc.json`](.oxlintrc.json) forbids, inside `src/app/ui`:
+
+- the Convex client in any form;
+- **value** imports from `@db/**` — `allowTypeImports` keeps `import type` legal, since a type is a
+  statement about what you render, not a dependency;
+- `useNavigate`, `useLoaderData`, `useParams`, `useSearch` — `Link`, `createLink` and `renderRoot`
+  stay allowed, because pointing at a place is presentation and going there is a page's decision.
+
+Nothing is exempt and no filename marks an escape. An earlier version of this rule banned every
+`@app`/`@db`/`@game` import and needed a `*.domain.tsx` suffix to carve out the seven components that
+tripped it; every one of those imports turned out to be a type, a renderer, or a pure formatter, while
+the one real violation — a list that called `useNavigate` — went unnoticed because the router was not
+on the list. The suffix is gone.
 
 Outside the kit:
 
-- **Application components** (`src/app/components/<category>`) — the same categories with domain
-  knowledge baked in, filed by kind exactly like the kit; each folder feeds the *same* Storybook
-  root as its `src/ui` counterpart, so the sidebar never says who wrote a component or which side
-  of the lint boundary it lives on. The boundary is the only reason for two trees: if it compiles
-  without `@app/@db/@game`, it belongs in `src/ui`. There is no "Application" category or root.
-  Feature folders (`components/<feature>`) still exist but hold **only organs** — one-page forms,
-  the shell's chrome (`components/shell`), renderer glue — never published components.
+- **One page's composition belongs in the route file.** Not in a component folder — in the route,
+  as local functions. `SignInPanel` lives inside `routes/_app/auth/login.tsx`, with its stylesheet
+  as `login.module.css` beside it, because exactly one page signs anyone in. Splitting a long route
+  into local functions is encouraged; exporting those pieces as feature components is not, because
+  an export invites a second caller that the piece was never designed for.
+  - **One page → route. Two or more pages → Widget.** That is the whole ladder for page
+    composition, and it runs before any question about categories: a piece with a single caller
+    cannot be vocabulary, whatever shape it has.
+  - **There is no `src/app/components` at all.** It is deleted, and it should not come back: the name
+    was the problem, because anything filed under it looked like a component whether or not it was
+    one. What used to sit there went to the place that says what it is — `src/app/ui/<category>` when it
+    was really vocabulary, the route when it was page composition, `src/app/sheet/` for the
+    document-rendering glue, and `src/app/shell/` for the chrome.
+- **The application shell** (`src/app/shell`) — the chrome every page sits in: `AppRoot`
+  (the frame and the document-level effects), `AppHeader` (the artwork band), `AppFooter`. Organs by
+  classification — nothing outside the folder imports them — but unlike other organs they **do carry
+  stories**, filed under a `Shell` root, because the chrome's states are worth looking at and cannot
+  be reached from any page's story. It is not a category and never will be: the six are decided by
+  what a caller hands a component, and the shell is decided by position. See DD-018 in
+  `docs/technical/ui-design-decisions.md` for why the header is neither a Surface nor a Layout.
 - **Widgets** (`src/app/widgets/<name>`) — an assembly too domain-specific to be kit and too
   shared to be one page's JSX. Prefab: built outside the page only because two or more routes
   install the identical thing.
@@ -68,8 +105,11 @@ Outside the kit:
   - **The shelf is a metric.** Every widget is a concession. When `src/app/widgets/` grows,
     something upstream went wrong.
 - **Game assets** (`src/game`) — print-faithful renderers. Own their colours, never themed. The
-  document-rendering glue around them (`factions/sheet/`, `src/app/capture/`) belongs to this
-  world, not to the interface taxonomy.
+  document-rendering glue around them (`src/app/sheet/`, `src/app/capture/`) belongs to this
+  world, not to the interface taxonomy. It has composition pieces of its own in
+  `src/game/components/block`, filed under `Game Assets/Composition/Blocks`: they reuse the word
+  "block" for the same shape — words in, one fixed arrangement out — but they are print vocabulary,
+  governed by renderer fidelity rather than by the rules below.
 
 Not everything in a component folder is a component. Types, the theme, and story fixtures are
 support modules. **Organs exist at every level, not only inside widgets**: a file whose only
@@ -88,8 +128,8 @@ Rules between categories:
   Lists and Content *produce* content from data. Controls *change* data. A component doing two of
   these is two components.
 - **Knowledge points one way.** Content knows the theme. Blocks know Content. Lists know their
-  item shape. Layouts and Surfaces know nothing about their contents. Nothing in `src/ui` knows
-  the app.
+  item shape. Layouts and Surfaces know nothing about their contents. No component fetches, and none
+  navigates on its own behalf.
 - **Kind is judged at the membrane.** What a caller hands a component decides its kind; its
   insides are composition, governed by the rules above.
 - **Adornments are not slots.** A glyph (`icon`), an action (`action`, `tool`) and hover text stay
@@ -110,8 +150,12 @@ The tells:
 - The JSDoc cannot say "callers own X; this owns Y" in one sentence → not a component.
 
 Glyphs (`icon`) and controls (`action`) stay `ReactNode` everywhere — "data" means *the words are
-data*. Every kit component has stories; Mantine components used by the app get stories too, filed
-by kind under our theme, indistinguishable from ours.
+data*. Every component in `src/app/ui` has stories; Mantine components used by
+the app get stories too, filed by kind under our theme, indistinguishable from ours. Two kinds of
+file are exempt: organs, and a component whose story lives under a sibling's name because the two
+only make sense together (`SortableItem` and `SortableReorderHandle` share `SortableDnd.stories.tsx`,
+which is why no `SortableDnd.tsx` exists). Currently missing and owed: `PageLayout`, `FactionList`,
+`ProposedContent`.
 
 ## Validation Convention
 
