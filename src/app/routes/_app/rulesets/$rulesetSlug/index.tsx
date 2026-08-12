@@ -312,6 +312,7 @@ function RulesetDetailPage() {
                 {actionVisibility.assignGroup ? (
                   <AssignPopover
                     noun="group"
+                    triggerLabel="Assign group"
                     icon={<UsersRound size={17} aria-hidden />}
                     disabled={assignRulesetGroup.isPending}
                     options={page.assignableGroups.map((group) => ({

@@ -350,6 +350,9 @@ function OwnedAssetPicker({
       size="sm"
       icon={<Plus size={14} aria-hidden />}
       title={`Add a ${noun}`}
+      triggerLabel={`Add a ${noun} you own`}
+      searchLabel={`Search your ${noun}s`}
+      submitLabel="Add to this group"
       descriptionLines={[
         `Only ${noun}s you own are listed.`,
         'Moving one already in another group needs confirmation.',

@@ -18,6 +18,7 @@ export function FactionGroupPopover({
   return (
     <AssignPopover
       noun="group"
+      triggerLabel="Assign group"
       icon={<Users size={17} aria-hidden />}
       title="Assign Group"
       descriptionLines={[
