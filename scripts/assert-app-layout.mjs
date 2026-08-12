@@ -32,13 +32,16 @@ const entries = await readdir(appRoot);
 const unexpected = entries.filter((name) => !ALLOWED.has(name));
 
 if (unexpected.length > 0) {
+  const offenders = unexpected.map((name) => `  - ${name}`).join('\n');
+  const roles = [...ALLOWED].map(([name, why]) => `  - ${name} — ${why}`).join('\n');
   console.error(
-    `Unexpected top-level entries in src/app:\n${unexpected.map((n) => `  - ${n}`).join('\n')}\n\n` +
-      `src/app holds one entry per role:\n` +
-      [...ALLOWED].map(([name, why]) => `  - ${name} — ${why}`).join('\n') +
-      `\n\nA plain module follows the same ladder as a component: one caller means it lives beside ` +
-      `that caller, two or more means it belongs to a home named for its concern. If the new entry ` +
-      `is genuinely a new role, document it in AGENTS.md and add it to scripts/assert-app-layout.mjs.`
+    'Unexpected top-level entries in src/app:\n' +
+      offenders +
+      '\n\nsrc/app holds one entry per role:\n' +
+      roles +
+      '\n\nA plain module follows the same ladder as a component: one caller means it lives beside ' +
+      'that caller, two or more means it belongs to a home named for its concern. If the new entry ' +
+      'is genuinely a new role, document it in AGENTS.md and add it to scripts/assert-app-layout.mjs.'
   );
   process.exit(1);
 }
