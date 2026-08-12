@@ -5,10 +5,10 @@ import { useState } from 'react';
 import type { ComponentType, CSSProperties } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { SurfaceFiller } from '../SurfaceFiller.stories.fixture';
 import { ConnectedTabs } from './ConnectedTabs';
 import type { ConnectedTabsProps } from './ConnectedTabs';
 import storyStyles from './ConnectedTabs.stories.module.css';
+import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
 
 type ExampleTab = 'overview' | 'people' | 'settings';
 

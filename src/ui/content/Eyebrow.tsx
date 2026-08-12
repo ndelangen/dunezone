@@ -1,8 +1,8 @@
 import { Text } from '@mantine/core';
-import type { ReactNode } from 'react';
 
 export interface EyebrowProps {
-  children: ReactNode;
+  /** The label itself. A string, not a node: the words are the data this renders. */
+  children: string;
   /**
    * `accent` ties the label to the brand, `muted` lets it recede behind the content it names, and
    * `inverse` keeps it legible on the dark hero artwork.

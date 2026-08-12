@@ -217,7 +217,9 @@ function ArtifactProof({
           title = 'Faction-sheet excerpt';
           usedOn = 'Faction sheet';
           artifact = (
-            <Surface padding="lg">
+            /* Paper, not a pane: this is an excerpt of the printed faction sheet, and it renders
+               inside the workbench surface below — surfaces never nest. */
+            <Box className={styles.rulesProof} p="lg">
               <Text ff="serif" fw={800} tt="uppercase">
                 At start
               </Text>
@@ -230,13 +232,13 @@ function ArtifactProof({
               <Text ff="serif" size="sm">
                 {faction.rules.revivalText}
               </Text>
-            </Surface>
+            </Box>
           );
         } else if (activeChapter === 'advantages') {
           title = 'Advantage excerpt';
           usedOn = 'Faction sheet';
           artifact = selectedAdvantage ? (
-            <Surface padding="lg">
+            <Box className={styles.rulesProof} p="lg">
               <Text ff="serif" fw={800} tt="uppercase">
                 {selectedAdvantage.title || 'Faction advantage'}
               </Text>
@@ -248,7 +250,7 @@ function ArtifactProof({
                   <strong>Karama:</strong> {selectedAdvantage.karama}
                 </Text>
               ) : null}
-            </Surface>
+            </Box>
           ) : (
             <PreviewEmpty>No faction advantages yet.</PreviewEmpty>
           );

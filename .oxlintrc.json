@@ -21,12 +21,16 @@
             "patterns": [
               {
                 "group": [
-                  "@app/*",
-                  "@db/*",
-                  "@game/*",
-                  "@data/*",
+                  "@app/**",
+                  "@db/**",
+                  "@game/**",
+                  "@data/**",
                   "**/src/app/**",
-                  "**/src/game/**"
+                  "**/src/game/**",
+                  "**/src/data/**",
+                  "../**/app/**",
+                  "../**/game/**",
+                  "../**/data/**"
                 ],
                 "message": "src/ui is the domain-free interface kit: it must not know about the application or the game. Move the domain-aware part to the caller, or take it as a prop."
               }

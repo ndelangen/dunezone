@@ -124,6 +124,8 @@
 .rulesProof {
   min-height: 15rem;
   margin-top: var(--mantine-spacing-lg);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-default);
   background: #fffdf1;
 }
 

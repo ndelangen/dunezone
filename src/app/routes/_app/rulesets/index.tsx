@@ -50,7 +50,9 @@ function RulesetsPage() {
               <div className={styles.cover}>
                 {r.image_cover ? (
                   <img src={r.image_cover} alt="" className={styles.coverImage} />
-                ) : null}
+                ) : (
+                  <span className={styles.coverPlaceholder}>No cover</span>
+                )}
               </div>
               <span className={styles.name}>{r.name}</span>
             </Surface>

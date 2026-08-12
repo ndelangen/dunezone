@@ -2,8 +2,8 @@ import { Box, Select } from '@mantine/core';
 import preview from '@sb/preview';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
-import { ListLengthActions } from '../ListLengthActions';
 import { ControlBlock } from './ControlBlock';
+import { ListLengthActions } from './ListLengthActions';
 
 const input = (
   <Select

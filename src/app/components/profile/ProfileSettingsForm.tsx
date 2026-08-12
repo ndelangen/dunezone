@@ -41,6 +41,7 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileEntry }) {
     <Stack component="form" gap="sm" onSubmit={handleSubmit}>
       <TextInput
         label="Display name"
+        required
         description={
           <>
             Letters and numbers only, 5–30 characters, not all capitals. Your public profile URL
@@ -57,9 +58,10 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileEntry }) {
 
       <TextInput
         label="Avatar image URL"
+        required
         description={
           <>
-            Must be a full <code>https://</code> URL. Avatar URL is required.
+            Must be a full <code>https://</code> URL.
           </>
         }
         type="url"

@@ -27,6 +27,17 @@
   object-fit: cover;
 }
 
+.coverPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
 .name {
   margin: 0;
   font-size: 0.95rem;

@@ -9,7 +9,8 @@ import styles from './ConnectedTabs.module.css';
 
 export interface ConnectedTabsItem<Value extends string> {
   value: Value;
-  label: ReactNode;
+  /** Words, so a string: the narrow layout puts this same text inside a native select. */
+  label: string;
   icon: ReactNode;
   indicator?: ReactNode;
   disabled?: boolean;

@@ -18,7 +18,7 @@ export interface SpotlightProps {
    * Why this one was singled out, e.g. `New arrival`. Omit when every peer is here for the same
    * reason.
    */
-  eyebrow?: ReactNode;
+  eyebrow?: string;
   title: ReactNode;
   /**
    * Required. One line of supporting fact — a date, a summary. A title on its own gives the reader
