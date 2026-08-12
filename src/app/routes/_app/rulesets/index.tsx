@@ -1,9 +1,9 @@
 import { Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 
 import { loadRulesetsAll, useRulesetsAll } from '@db/rulesets';
-import { PageLayout } from '@app/components/layout/PageLayout';
 
 import styles from './RulesetsIndex.module.css';
 

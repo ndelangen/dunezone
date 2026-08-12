@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import '@app/components/factions/sheet/FactionSheetDocument.css';
+import '@app/sheet/FactionSheetDocument.css';
 import '@app/styles/fonts.css';
 import '@app/styles/tokens.css';
 

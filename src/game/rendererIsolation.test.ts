@@ -18,7 +18,11 @@ describe('renderer isolation', () => {
       expect(source, name).not.toContain('@mantine');
       expect(source, name).not.toContain('@radix-ui');
       expect(source, name).not.toContain('ConnectedTabs');
-      expect(source, name).not.toContain('/app/components/content/');
+      /* The interface kit and the application, by their aliases. `/app/components/content/` used to
+         stand here; that path stopped existing when every component moved to `src/ui`, which made
+         this assertion pass for the wrong reason. */
+      expect(source, name).not.toContain("from '@ui/");
+      expect(source, name).not.toContain("from '@app/");
     }
   });
 });

@@ -1,10 +1,10 @@
 /* Preserve the legacy shell around Mantine's layered baseline without overriding Mantine parts. */
-body:has([data-app-shell]) {
+body:has([data-app-root]) {
   background-color: rgba(0, 0, 0, 0);
   color: var(--color-text, #2e2927);
 }
 
-[data-app-shell] {
+[data-app-root] {
   box-sizing: content-box;
   line-height: normal;
 }

@@ -1,14 +1,103 @@
-import { Anchor, Center, Group, Image, Stack, Text, Title } from '@mantine/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { Anchor, Center, Group, Image, Stack, Text, TextInput, Title } from '@mantine/core';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
+import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
+import { SubmitAction } from '@ui/control/SubmitAction';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ArrowLeft, BookOpen } from 'lucide-react';
+import { useState } from 'react';
 
-import { loadRulesetDetailPage, useRulesetDetailPage } from '@db/rulesets';
-import { PageLayout } from '@app/components/layout/PageLayout';
-import { RulesetSettingsForm } from '@app/components/rulesets/RulesetSettingsForm';
+import { loadRulesetDetailPage, useRulesetDetailPage, useUpdateRuleset } from '@db/rulesets';
+import type { RulesetEntry } from '@db/rulesets';
 
 import styles from './edit.module.css';
+
+function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRename: boolean }) {
+  const navigate = useNavigate();
+  const updateRuleset = useUpdateRuleset();
+  const [name, setName] = useState(initial.name);
+  const [coverUrl, setCoverUrl] = useState(initial.image_cover ?? '');
+
+  const mutationError =
+    updateRuleset.isError && updateRuleset.error instanceof Error
+      ? updateRuleset.error.message
+      : null;
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const nextName = name.trim();
+    if (!nextName) {
+      return;
+    }
+    const trimmedCover = coverUrl.trim();
+    const previousSlug = initial.slug;
+    try {
+      const entry = await updateRuleset.mutateAsync({
+        id: initial._id,
+        input: { name: nextName },
+        imageCover: trimmedCover === '' ? null : trimmedCover,
+      });
+      if (previousSlug !== entry.slug) {
+        navigate({
+          to: '/rulesets/$rulesetSlug/edit',
+          params: { rulesetSlug: entry.slug },
+          replace: true,
+        });
+      }
+    } catch {
+      /* surfaced through mutationError */
+    }
+  };
+
+  return (
+    <Stack component="form" gap="md" onSubmit={handleSubmit}>
+      <TextInput
+        id="ruleset-settings-name"
+        name="name"
+        label="Name"
+        description={
+          canRename ? (
+            <SlugRenameNotice noun="ruleset" url={`…/rulesets/${initial.slug}`} />
+          ) : (
+            'Only the ruleset owner can rename it.'
+          )
+        }
+        required
+        minLength={1}
+        value={name}
+        onChange={(event) => setName(event.currentTarget.value)}
+        disabled={!canRename}
+      />
+
+      <TextInput
+        id="ruleset-settings-cover"
+        type="url"
+        label="Cover image URL"
+        description={
+          <>
+            Optional. Use a full <code>https://</code> URL. Leave empty to clear the cover.
+          </>
+        }
+        value={coverUrl}
+        onChange={(event) => setCoverUrl(event.currentTarget.value)}
+        placeholder="https://…"
+        autoComplete="off"
+      />
+
+      {mutationError ? (
+        <FormError title="Ruleset could not be saved">{mutationError}</FormError>
+      ) : null}
+
+      <Group justify="flex-end">
+        <SubmitAction pending={updateRuleset.isPending} disabled={name.trim().length === 0}>
+          Save changes
+        </SubmitAction>
+      </Group>
+    </Stack>
+  );
+}
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/edit')({
   loader: async ({ params }) => {
@@ -152,11 +241,7 @@ function RulesetEditPage() {
   return (
     <PageLayout header={header} toolbar={toolbar}>
       <Surface padding="lg">
-        <RulesetSettingsForm
-          key={r.slug}
-          initial={r}
-          canRename={viewerAccess.capabilities.rename}
-        />
+        <RulesetSettings key={r.slug} initial={r} canRename={viewerAccess.capabilities.rename} />
       </Surface>
     </PageLayout>
   );

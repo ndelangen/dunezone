@@ -1,11 +1,11 @@
 import { Button, Group, Input, Stack, TextInput, Textarea } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 
 import { useAskFaqQuestion } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug, useRulesetBySlug } from '@db/rulesets';
-import { PageLayout } from '@app/components/layout/PageLayout';
 import type { FaqTag } from '@app/faq/tags';
 import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 

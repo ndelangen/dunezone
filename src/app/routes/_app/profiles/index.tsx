@@ -1,12 +1,12 @@
 import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { ProfileLink } from '@ui/content/ProfileLink';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { CircleHelp, MessageCircleReply, Shield, UsersRound } from 'lucide-react';
 
 import { loadProfilesAll, useProfilesAll } from '@db/profiles';
-import { ProfileLink } from '@app/components/content/ProfileLink';
-import { PageLayout } from '@app/components/layout/PageLayout';
 
 import styles from './ProfilesIndex.module.css';
 

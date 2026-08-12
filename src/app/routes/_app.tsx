@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useLocation } from '@tanstack/react-router';
 
-import { ApplicationChrome } from '@app/components/shell/ApplicationChrome';
-import { AppNotFound } from '@app/components/shell/AppNotFound';
+import { ApplicationChrome } from '@app/shell/ApplicationChrome';
+import { AppNotFound } from '@app/shell/AppNotFound';
 
 export const Route = createFileRoute('/_app')({
   codeSplitGroupings: [['component', 'notFoundComponent']],

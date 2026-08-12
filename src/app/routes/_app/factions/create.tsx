@@ -1,11 +1,11 @@
 import { Anchor, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { useRef } from 'react';
 
 import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
-import { PageLayout } from '@app/components/layout/PageLayout';
 import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';

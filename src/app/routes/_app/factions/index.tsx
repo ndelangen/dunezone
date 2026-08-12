@@ -12,9 +12,12 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
+import { PageLayout } from '@ui/layout/PageLayout';
+import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
@@ -23,12 +26,9 @@ import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
-import { FactionCatalogueSpotlight } from '@app/components/block/FactionCatalogueSpotlight';
-import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
-import { PageLayout } from '@app/components/layout/PageLayout';
-import { FactionList } from '@app/components/list/FactionList';
 import { parseFactionCatalogueSearch, useFactionCatalogueSession } from '@app/factions/catalogue';
 import type { FactionCatalogueSearch } from '@app/factions/catalogue';
+import { formatFactionCatalogueDate } from '@app/factions/catalogueDate';
 
 import styles from './FactionCatalogue.module.css';
 

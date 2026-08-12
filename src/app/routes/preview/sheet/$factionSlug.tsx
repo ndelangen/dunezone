@@ -2,9 +2,9 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 import { loadFactionBySlug, useFaction } from '@db/factions';
-import '@app/components/factions/sheet/FactionSheetDocument.css';
-import { FactionSheetView } from '@app/components/factions/sheet/FactionSheetView';
+import '@app/sheet/FactionSheetDocument.css';
 import { useFactionSheetPostMessage } from '@app/hooks/useFactionSheetPostMessage';
+import { FactionSheetView } from '@app/sheet/FactionSheetView';
 
 import { AssetRenderModeProvider } from '../../../../game/assets/assetRenderMode';
 

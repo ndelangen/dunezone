@@ -1,13 +1,92 @@
-import { Group } from '@mantine/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { Group, Stack, TextInput } from '@mantine/core';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
+import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
+import { SubmitAction } from '@ui/control/SubmitAction';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, User } from 'lucide-react';
+import { useState } from 'react';
 
-import { useCurrentProfile } from '@db/profiles';
-import { PageLayout } from '@app/components/layout/PageLayout';
-import { ProfileSettingsForm } from '@app/components/profile/ProfileSettingsForm';
+import { useCurrentProfile, useUpdateCurrentProfile } from '@db/profiles';
+import type { ProfileEntry } from '@db/profiles';
+import { profileSlugBaseFromName } from '@app/profile/validation';
+
+function ProfileSettings({ initial }: { initial: ProfileEntry }) {
+  const navigate = useNavigate();
+  const update = useUpdateCurrentProfile();
+  const [username, setUsername] = useState(initial.username ?? '');
+  const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url ?? '');
+
+  const mutationError =
+    update.isError && update.error instanceof Error ? update.error.message : null;
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const previousSlug = initial.slug;
+    update.mutate(
+      { input: { username, avatar_url: avatarUrl } },
+      {
+        onSuccess: (entry) => {
+          if (previousSlug !== entry.slug) {
+            navigate({
+              to: '/profiles/$profileSlug',
+              params: { profileSlug: entry.slug },
+              replace: true,
+            });
+          }
+        },
+      }
+    );
+  };
+
+  return (
+    <Stack component="form" gap="sm" onSubmit={handleSubmit}>
+      <TextInput
+        label="Display name"
+        required
+        description={
+          <>
+            Letters and numbers only, 5–30 characters, not all capitals.{' '}
+            <SlugRenameNotice
+              noun="profile"
+              url={`…/profiles/${profileSlugBaseFromName(username)}`}
+              note="A number is appended when the derived id is already taken."
+            />
+          </>
+        }
+        value={username}
+        onChange={(event) => setUsername(event.target.value)}
+        autoComplete="nickname"
+        maxLength={30}
+      />
+
+      <TextInput
+        label="Avatar image URL"
+        required
+        description={
+          <>
+            Must be a full <code>https://</code> URL.
+          </>
+        }
+        type="url"
+        value={avatarUrl}
+        onChange={(event) => setAvatarUrl(event.target.value)}
+        placeholder="https://…"
+        autoComplete="off"
+      />
+
+      {mutationError ? (
+        <FormError title="Profile could not be saved">{mutationError}</FormError>
+      ) : null}
+      <Group gap="xs" wrap="nowrap">
+        <SubmitAction pending={update.isPending}>Save profile</SubmitAction>
+      </Group>
+    </Stack>
+  );
+}
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/edit')({
   component: ProfileSettingsPage,
@@ -77,7 +156,7 @@ function ProfileSettingsPage() {
   return (
     <PageLayout toolbar={toolbar}>
       <Surface padding="lg">
-        <ProfileSettingsForm key={profile.data.slug} initial={profile.data} />
+        <ProfileSettings key={profile.data.slug} initial={profile.data} />
       </Surface>
     </PageLayout>
   );

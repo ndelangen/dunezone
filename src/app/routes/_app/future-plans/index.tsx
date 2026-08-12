@@ -14,6 +14,7 @@ import {
 import { createFileRoute } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { AtlasLayout } from '@ui/layout/AtlasLayout';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
 import {
   ArrowRight,
@@ -32,8 +33,6 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-
-import { PageLayout } from '@app/components/layout/PageLayout';
 
 import styles from './index.module.css';
 

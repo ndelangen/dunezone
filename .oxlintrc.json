@@ -13,26 +13,42 @@
       }
     },
     {
-      "files": ["src/ui/**"],
+      /**
+       * A component renders what it is given; it does not go and get things.
+       *
+       * That is the whole rule, and it is narrower than "domain-free" on purpose. A component may
+       * know the *shape* of what it renders — a `FactionCatalogueEntry` type says exactly that, and
+       * types are erased anyway — and it may compose a game renderer or a pure helper. What it may
+       * not do is reach for data itself, or decide where the reader goes next, because either one
+       * makes it unusable in a story and unusable on a second page.
+       */
+      "files": ["src/app/ui/**"],
+      "excludeFiles": [
+        "src/app/ui/**/*.stories.tsx",
+        "src/app/ui/**/*.stories.fixture.tsx",
+        "src/app/ui/**/*.test.ts",
+        "src/app/ui/**/*.test.tsx"
+      ],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "group": [
-                  "@app/**",
-                  "@db/**",
-                  "@game/**",
-                  "@data/**",
-                  "**/src/app/**",
-                  "**/src/game/**",
-                  "**/src/data/**",
-                  "../**/app/**",
-                  "../**/game/**",
-                  "../**/data/**"
-                ],
-                "message": "src/ui is the domain-free interface kit: it must not know about the application or the game. Move the domain-aware part to the caller, or take it as a prop."
+                "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
+                "message": "A component must not fetch. Convex belongs in a domain module (`src/app/<domain>/db.ts`); take the result as a prop."
+              },
+              {
+                "group": ["@db/**", "**/src/app/*/db", "../**/db"],
+                "allowTypeImports": true,
+                "message": "A component must not fetch. Import the *type* if you need to say what shape you render (`import type { FactionEntry }`), and take the value as a prop."
+              }
+            ],
+            "paths": [
+              {
+                "name": "@tanstack/react-router",
+                "importNames": ["useNavigate", "useLoaderData", "useParams", "useSearch"],
+                "message": "A component may point at a place — `Link`, `createLink`, `renderRoot` — but it may not decide to go there, or read the route it happens to be on. Take a callback, or let the caller render the Link."
               }
             ]
           }

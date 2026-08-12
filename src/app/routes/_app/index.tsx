@@ -14,20 +14,20 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { Section } from '@ui/block/Section';
+import { AnimatedLeaderToken } from '@ui/content/AnimatedLeaderToken';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { CallToAction } from '@ui/control/CallToAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { TriptychLayout } from '@ui/layout/TriptychLayout';
 import { Bullets } from '@ui/list/Bullets';
 import { Surface } from '@ui/surface';
 import { ArrowRight, BookOpen, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
 
 import { loadHomepage, useHomepage } from '@db/homepage';
-import { FactionCatalogueSpotlight } from '@app/components/block/FactionCatalogueSpotlight';
-import { AnimatedLeaderToken } from '@app/components/content/AnimatedLeaderToken';
-import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
-import { PageLayout } from '@app/components/layout/PageLayout';
+import { formatFactionCatalogueDate } from '@app/factions/catalogueDate';
 
 import styles from './index.module.css';
 

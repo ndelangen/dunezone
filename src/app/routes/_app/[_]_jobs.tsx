@@ -14,11 +14,11 @@ import {
   Title,
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { AlertCircle, BriefcaseBusiness } from 'lucide-react';
 import { useState } from 'react';
 
-import { PageLayout } from '@app/components/layout/PageLayout';
 import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@app/publications/db';
 import type { PublicationJobStatus } from '@app/publications/db';
 

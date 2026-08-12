@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { FactionSheetView } from '@app/components/factions/sheet/FactionSheetView';
+import { FactionSheetView } from '@app/sheet/FactionSheetView';
 import type { FactionInput } from '@game/schema/faction';
 
 import { AssetRenderModeProvider } from '../../game/assets/assetRenderMode';

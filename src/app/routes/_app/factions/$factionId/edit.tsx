@@ -1,12 +1,12 @@
 import { Anchor, Button, Group, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { IconAction } from '@ui/control/IconAction';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Trash2, UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
-import { PageLayout } from '@app/components/layout/PageLayout';
 import { loadFaction } from '@app/factions/db';
 import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';

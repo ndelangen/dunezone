@@ -1,13 +1,88 @@
-import { Group } from '@mantine/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { Group, Stack, TextInput } from '@mantine/core';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
+import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
+import { SubmitAction } from '@ui/control/SubmitAction';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-import { loadGroupEditBySlug, useGroupEditBySlug } from '@db/groups';
-import { GroupSettingsForm } from '@app/components/groups/GroupSettingsForm';
-import { PageLayout } from '@app/components/layout/PageLayout';
+import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
+import type { GroupEntry } from '@db/groups';
+import { groupInputSchema } from '@app/groups/validation';
+
+function GroupSettings({ initial }: { initial: GroupEntry }) {
+  const navigate = useNavigate();
+  const updateGroup = useUpdateGroup();
+  const [name, setName] = useState(initial.name);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setName(initial.name);
+  }, [initial.name]);
+
+  const mutationError =
+    updateGroup.isError && updateGroup.error instanceof Error ? updateGroup.error.message : null;
+  const failure = submitError ?? mutationError;
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitError(null);
+    const parsed = groupInputSchema.safeParse({ name: name.trim() });
+    if (!parsed.success) {
+      setSubmitError(
+        parsed.error.issues.map((issue) => issue.message).join(' ') || 'Invalid group name'
+      );
+      return;
+    }
+    const previousSlug = initial.slug;
+    updateGroup.mutate(
+      { id: initial.id, input: parsed.data },
+      {
+        onSuccess: (entry) => {
+          setSubmitError(null);
+          if (previousSlug !== entry.slug) {
+            navigate({
+              to: '/groups/$groupSlug/edit',
+              params: { groupSlug: entry.slug },
+              replace: true,
+            });
+          }
+        },
+        onError: (error) => setSubmitError(error.message),
+      }
+    );
+  };
+
+  return (
+    <Stack component="form" gap="sm" onSubmit={handleSubmit}>
+      <TextInput
+        label="Group name"
+        description={<SlugRenameNotice noun="group" url={`…/groups/${initial.slug}`} />}
+        name="name"
+        required
+        minLength={1}
+        title="Group name may only contain letters and numbers"
+        value={name}
+        onChange={(event) => {
+          setName(event.target.value);
+          if (submitError) {
+            setSubmitError(null);
+          }
+        }}
+      />
+      {failure ? <FormError title="Group could not be saved">{failure}</FormError> : null}
+      <Group gap="xs" wrap="nowrap">
+        <SubmitAction pending={updateGroup.isPending} disabled={name.trim().length === 0}>
+          Save group
+        </SubmitAction>
+      </Group>
+    </Stack>
+  );
+}
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/edit')({
   loader: async ({ params }) => {
@@ -101,7 +176,7 @@ function GroupEditPage() {
   return (
     <PageLayout header={header} toolbar={toolbar}>
       <Surface padding="lg">
-        <GroupSettingsForm key={group.slug} initial={group} />
+        <GroupSettings key={group.slug} initial={group} />
       </Surface>
     </PageLayout>
   );

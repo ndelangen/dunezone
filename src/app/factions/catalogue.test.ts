@@ -1,7 +1,7 @@
+import { factionRulesetLabel } from '@ui/block/FactionCard';
 import { describe, expect, test } from 'vitest';
 
 import type { FactionCatalogueEntry } from '@db/factions';
-import { factionRulesetLabel } from '@app/components/block/FactionCard';
 import { assetPublishingFaction } from '@game/fixtures/assetPublishingFaction';
 
 import { projectFactionCatalogue } from './catalogue';

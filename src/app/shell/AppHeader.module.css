@@ -1,0 +1,59 @@
+.frame {
+  position: relative;
+  display: grid;
+  grid-template-areas:
+    "hero"
+    "content";
+  grid-template-columns: minmax(0, 1fr);
+  gap: 40px;
+}
+
+.band {
+  grid-area: hero;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3064 / 1125;
+  overflow: hidden;
+  border-radius: 6px;
+  box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.5);
+  transition:
+    aspect-ratio 0.2s ease-out,
+    height 0.2s ease-out;
+}
+
+.band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/web/head-large.jpg") no-repeat top center;
+  background-size: cover;
+  z-index: -1;
+}
+
+.frame:has([data-page-layout-compact="true"]) .band {
+  aspect-ratio: 3064 / 178;
+}
+
+.frame:has([data-page-layout-header-size="compact"]) .band {
+  aspect-ratio: 3064 / 760;
+}
+
+@media (max-width: 900px) {
+  .band {
+    aspect-ratio: unset;
+    height: 319px;
+  }
+
+  .band::before {
+    background-size: auto 319px;
+    background-position: left top;
+  }
+
+  .frame:has([data-page-layout-compact="true"]) .band {
+    height: 51px;
+  }
+
+  .frame:has([data-page-layout-header-size="compact"]) .band {
+    height: 220px;
+  }
+}

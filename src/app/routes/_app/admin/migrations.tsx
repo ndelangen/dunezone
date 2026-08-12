@@ -1,11 +1,11 @@
 import { Group, Stack } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { IconAction } from '@ui/control/IconAction';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
 import { useCurrentProfile } from '@db/profiles';
-import { PageLayout } from '@app/components/layout/PageLayout';
 import {
   loadAdminMigrationDashboard,
   useAdminMigrationDashboard,

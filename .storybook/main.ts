@@ -29,48 +29,32 @@ export default defineMain({
       titlePrefix: 'Widgets/Faction Editor',
     },
     {
-      directory: '../src/ui/block',
+      directory: '../src/app/ui/block',
       titlePrefix: 'Blocks',
     },
     {
-      directory: '../src/app/components/block',
-      titlePrefix: 'Blocks',
-    },
-    {
-      directory: '../src/ui/control',
+      directory: '../src/app/ui/control',
       titlePrefix: 'Controls',
     },
     {
-      directory: '../src/app/components/control',
-      titlePrefix: 'Controls',
-    },
-    {
-      directory: '../src/ui/content',
+      directory: '../src/app/ui/content',
       titlePrefix: 'Content',
     },
     {
-      directory: '../src/app/components/content',
-      titlePrefix: 'Content',
-    },
-    {
-      directory: '../src/ui/list',
+      directory: '../src/app/ui/list',
       titlePrefix: 'Lists',
     },
     {
-      directory: '../src/app/components/list',
-      titlePrefix: 'Lists',
-    },
-    {
-      directory: '../src/ui/surface',
+      directory: '../src/app/ui/surface',
       titlePrefix: 'Surfaces',
     },
     {
-      directory: '../src/ui/layout',
+      directory: '../src/app/ui/layout',
       titlePrefix: 'Layout',
     },
     {
-      directory: '../src/app/components/layout',
-      titlePrefix: 'Layout',
+      directory: '../src/app/shell',
+      titlePrefix: 'Shell',
     },
     {
       directory: '../src/game/assets/faction',

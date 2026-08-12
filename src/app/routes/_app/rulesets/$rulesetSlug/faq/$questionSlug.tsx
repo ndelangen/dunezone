@@ -1,13 +1,13 @@
 import { Group, Input, Stack, Textarea } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { ProfileLink } from '@ui/content/ProfileLink';
 import { IconAction } from '@ui/control/IconAction';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
-import { ProfileLink } from '@app/components/content/ProfileLink';
-import { PageLayout } from '@app/components/layout/PageLayout';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from '@app/faq/faqEditingSession';
 import type { FaqEditingSession } from '@app/faq/faqEditingSession';
 import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';

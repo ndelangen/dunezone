@@ -1,6 +1,7 @@
 import { Button, Group, NativeSelect, Stack, TextInput } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { IconAction } from '@ui/control/IconAction';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Plus } from 'lucide-react';
@@ -9,7 +10,6 @@ import { useState } from 'react';
 import { useGroupsByCreator } from '@db/groups';
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
-import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/rulesets/create')({
   component: CreateRulesetPage,
