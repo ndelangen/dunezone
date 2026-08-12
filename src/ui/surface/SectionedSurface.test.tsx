@@ -66,4 +66,12 @@ describe('Sectioned surface row', () => {
     fireEvent.keyDown(screen.getByRole('link', { name: 'Open the entry' }), { key: 'Enter' });
     expect(onActivate).toHaveBeenCalledTimes(1);
   });
+
+  test('leaves Space to the page, since the row is a link and not a button', () => {
+    const onActivate = vi.fn();
+    renderRow(onActivate, vi.fn());
+
+    fireEvent.keyDown(screen.getByRole('link', { name: 'Open the entry' }), { key: ' ' });
+    expect(onActivate).not.toHaveBeenCalled();
+  });
 });

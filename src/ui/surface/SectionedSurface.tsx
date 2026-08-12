@@ -80,11 +80,10 @@ function activationProps(onActivate: (() => void) | undefined, ariaLabel: string
         onActivate();
       }
     },
+    /* Enter only. A link activates on Enter; Space belongs to buttons, and swallowing it here
+       would cost a keyboard reader the page scroll while the row has focus. */
     onKeyDown: (event: KeyboardEvent<HTMLTableRowElement>) => {
-      if (event.target !== event.currentTarget) {
-        return;
-      }
-      if (event.key !== 'Enter' && event.key !== ' ') {
+      if (event.target !== event.currentTarget || event.key !== 'Enter') {
         return;
       }
       event.preventDefault();

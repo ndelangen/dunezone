@@ -13,7 +13,10 @@ import { useSectionDepth } from './depth';
  */
 export function BlockHeading({ id, title, icon }: { id: string; title: string; icon?: ReactNode }) {
   const depth = useSectionDepth();
-  const order = depth === 0 ? 2 : 3;
+  /* The outline keeps descending — `h2`, `h3`, `h4` … — so a block three deep does not claim to be
+     a sibling of one two deep. The visual scale stops at the second step, because past that the
+     distinction is carried by the surrounding pane rather than by type size. */
+  const order = Math.min(depth + 2, 6) as 2 | 3 | 4 | 5 | 6;
 
   return (
     <Group gap="xs" wrap="nowrap" c="var(--color-text, var(--mantine-color-text))">

@@ -20,19 +20,33 @@ interface FaqListProps {
   selectedTag?: FaqTag;
 }
 
+/**
+ * The questions a reader asked for: the chosen tag narrows the set, then the words rank what is
+ * left by fuzzy match on the question itself.
+ */
+function matchingFaqItems(
+  items: FaqItemWithDetails[],
+  searchQuery: string,
+  selectedTag?: FaqTag
+): FaqItemWithDetails[] {
+  const tagged = selectedTag
+    ? items.filter((item) => (item.tags ?? []).includes(selectedTag))
+    : items;
+  const query = searchQuery.trim();
+  if (!query) {
+    return tagged;
+  }
+  return new Fuse(tagged, { keys: ['question'], threshold: 0.4 })
+    .search(query)
+    .map((result) => result.item);
+}
+
 export function FaqList({ items, rulesetSlug, searchQuery, selectedTag }: FaqListProps) {
   const navigate = useNavigate();
-  const filtered = useMemo(() => {
-    const tagFiltered = selectedTag
-      ? items.filter((item) => (item.tags ?? []).includes(selectedTag))
-      : items;
-    if (!searchQuery.trim()) {
-      return tagFiltered;
-    }
-    return new Fuse(tagFiltered, { keys: ['question'], threshold: 0.4 })
-      .search(searchQuery.trim())
-      .map((r) => r.item);
-  }, [items, searchQuery, selectedTag]);
+  const filtered = useMemo(
+    () => matchingFaqItems(items, searchQuery, selectedTag),
+    [items, searchQuery, selectedTag]
+  );
 
   if (items.length === 0) {
     return (
