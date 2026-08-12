@@ -136,23 +136,19 @@ function AssignPopoverPlaceholder({ children }: { children: string }) {
   );
 }
 
-function AssignPopoverBody({
+/**
+ * The pick and its commit: what is selected, whether a commit is in flight, and what went wrong.
+ *
+ * Separate from the rendering because it is the only imperative part — the guard against a stale
+ * selection, the latch, and the two ways a commit can end without closing (a rejection, or a caller
+ * that resolved `false` because the reader backed out).
+ */
+function useAssignCommit({
   noun,
   options,
   onAssign,
-  disabled,
-  loading = false,
-  title,
-  searchLabel,
-  submitLabel,
-  descriptionLines,
-  emptyMessage,
-  labelId,
   onAssigned,
-}: Omit<AssignPopoverProps, 'icon' | 'size' | 'triggerLabel'> & {
-  labelId: string;
-  onAssigned: () => void;
-}) {
+}: Pick<AssignPopoverProps, 'noun' | 'options' | 'onAssign'> & { onAssigned: () => void }) {
   const [selected, setSelected] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
@@ -178,6 +174,35 @@ function AssignPopoverBody({
     }
   };
 
+  return { selected, setSelected, error, isAssigning, commit };
+}
+
+function AssignPopoverBody({
+  noun,
+  options,
+  onAssign,
+  disabled,
+  loading = false,
+  title,
+  searchLabel,
+  submitLabel,
+  descriptionLines,
+  emptyMessage,
+  labelId,
+  onAssigned,
+}: Omit<AssignPopoverProps, 'icon' | 'size' | 'triggerLabel'> & {
+  labelId: string;
+  onAssigned: () => void;
+}) {
+  const { selected, setSelected, error, isAssigning, commit } = useAssignCommit({
+    noun,
+    options,
+    onAssign,
+    onAssigned,
+  });
+  const hasOptions = !loading && options.length > 0;
+  const isEmpty = !loading && options.length === 0;
+
   return (
     <Stack gap="md">
       <AssignPopoverHeading
@@ -194,13 +219,13 @@ function AssignPopoverBody({
 
       {loading ? <AssignPopoverPlaceholder>{`Loading ${noun}s…`}</AssignPopoverPlaceholder> : null}
 
-      {!loading && options.length === 0 ? (
+      {isEmpty ? (
         <AssignPopoverPlaceholder>
           {emptyMessage ?? `No ${noun}s are available yet.`}
         </AssignPopoverPlaceholder>
       ) : null}
 
-      {!loading && options.length > 0 ? (
+      {hasOptions ? (
         <AssignPopoverPicker
           noun={noun}
           options={options}
@@ -227,8 +252,9 @@ function AssignPopoverBody({
  *
  * It replaced two components that asked the same question from opposite ends — one picked a group
  * for an asset, one picked an asset for a group — and had drifted apart in their labels, their
- * empty states, and whether a failure was announced at all. Every word here derives from `noun`, so
- * the two directions cannot drift again.
+ * empty states, and whether a failure was announced at all. Every label defaults from `noun`, so
+ * the two directions cannot drift apart by accident — a page overrides the words only where it
+ * means something different by them.
  */
 export function AssignPopover({ icon, size = 'lg', ...body }: AssignPopoverProps) {
   const [opened, setOpened] = useState(false);
