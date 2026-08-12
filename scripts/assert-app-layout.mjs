@@ -15,12 +15,11 @@ import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const ALLOWED = new Map([
-  ['capture', 'publisher capture entry — game-asset glue, see AGENTS.md'],
   ['db', 'the domain data modules, and the only doorway to Convex'],
+  ['print', 'the game renderers as printable documents — the sheet bridge, the capture page'],
   ['routeTree.gen.ts', 'generated'],
   ['router.tsx', 'the router instance'],
   ['routes', 'file-based routes; co-located non-route files take the `-` prefix'],
-  ['sheet', 'faction sheet document glue — game-asset glue, see AGENTS.md'],
   ['shell', 'the chrome every page sits in'],
   ['styles', 'global stylesheets'],
   ['ui', 'the component kit, filed by category'],

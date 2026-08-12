@@ -91,7 +91,7 @@ Outside the kit:
   - **There is no `src/app/components` at all.** It is deleted, and it should not come back: the name
     was the problem, because anything filed under it looked like a component whether or not it was
     one. What used to sit there went to the place that says what it is — `src/app/ui/<category>` when it
-    was really vocabulary, the route when it was page composition, `src/app/sheet/` for the
+    was really vocabulary, the route when it was page composition, `src/app/print/` for the
     document-rendering glue, and `src/app/shell/` for the chrome.
 - **The application shell** (`src/app/shell`) — the chrome every page sits in: `AppRoot`
   (the frame and the document-level effects), `AppHeader` (the artwork band), `AppFooter`. Organs by
@@ -114,8 +114,12 @@ Outside the kit:
   - **The shelf is a metric.** Every widget is a concession. When `src/app/widgets/` grows,
     something upstream went wrong.
 - **Game assets** (`src/game`) — print-faithful renderers. Own their colours, never themed. The
-  document-rendering glue around them (`src/app/sheet/`, `src/app/capture/`) belongs to this
-  world, not to the interface taxonomy. It has composition pieces of its own in
+  glue that turns them into documents lives in **`src/app/print/`** and belongs to this world, not
+  to the interface taxonomy: `print/sheet/` is the bridge a `Faction` row crosses to reach the sheet
+  renderer — it exists because `src/game` may not import `@db`, so something has to do that parse —
+  and `print/capture/` is the standalone page the publisher screenshots. The dependency runs one
+  way, capture into sheet, which is why the sheet is not filed under capture. It has composition
+  pieces of its own in
   `src/game/components/block`, filed under `Game Assets/Composition/Blocks`: they reuse the word
   "block" for the same shape — words in, one fixed arrangement out — but they are print vocabulary,
   governed by renderer fidelity rather than by the rules below.
@@ -131,8 +135,8 @@ beside it; `dnd-sortable-ids.ts` had two files in one widget, so it is that widg
 formatters and the publishing copy turn data into words, which is Content's job, so they are support
 modules in the kit.
 
-**`src/app`'s top level is a closed set**, one entry per role: `capture`, `db`, `routes`, `sheet`,
-`shell`, `styles`, `ui`, `widgets`, plus `router.tsx` and the generated route tree.
+**`src/app`'s top level is a closed set**, one entry per role: `db`, `print`, `routes`, `shell`,
+`styles`, `ui`, `widgets`, plus `router.tsx` and the generated route tree.
 `bun run check:app-layout` fails on anything else, because folders outlive the scheme that created
 them and the ones above sat empty-but-alive for months. Adding a role means documenting it here
 first. Inside `routes/`, a co-located non-route file takes TanStack's `-` prefix (`-catalogue.ts`) —
@@ -194,7 +198,7 @@ and relatively from `convex/` and `workers/`, which sit outside `src` and have n
 Two boundaries depend on it, and both are absolute because nothing legitimate crosses them any more:
 `convex/**` may not import `src/app/**`, and `workers/**` may not either. Before this layer existed
 seven convex modules reached into `src/app/*/validation` for shared Zod schemas and the publisher
-Worker reached into `src/app/capture` for its diagnostics — so the "server must not import client
+Worker reached into the app's capture folder for its diagnostics — so the "server must not import client
 code" rule could only be written for one named file, and it never fired. **A rule that has to
 tolerate exceptions cannot be enforced; move the exceptions out and then it can.** When you find
 yourself widening a guard to fit the code, check whether the code wants hoisting instead.
