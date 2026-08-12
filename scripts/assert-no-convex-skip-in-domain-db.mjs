@@ -27,7 +27,11 @@ async function* walk(dir) {
 const offenders = [];
 for await (const file of walk(dbRoot)) {
   const text = await readFile(file, 'utf8');
-  if (text.includes("'skip'") || text.includes('"skip"')) {
+  /* Every quote style, because a missed violation is the failure that matters. The word appearing
+     inside a comment does trip this — deliberately left alone: a false positive announces itself and
+     costs a rename, while a regex that strips comments to avoid it can just as easily strip a real
+     violation on the same line. */
+  if (/(['"`])skip\1/.test(text)) {
     offenders.push(relative(root, file));
   }
 }

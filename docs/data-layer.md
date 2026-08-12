@@ -123,7 +123,7 @@ export const updateSomething = mutation({
 
 ### Current Exemplars
 
-- Shared profile semantic schema: [`src/shared/profile/validation.ts`](../src/shared/profile/validation.ts)
+- Shared profile semantic schema: [`src/shared/profiles/validation.ts`](../src/shared/profiles/validation.ts)
 - Server-authoritative parse in mutation: [`convex/profiles.ts`](../convex/profiles.ts)
 
 ## Soft Delete Pattern
@@ -145,4 +145,4 @@ Factions, rulesets, and groups use `is_deleted` flags instead of hard deletes:
 
 Avoid Convex React `"skip"` and `enabled ? args : 'skip'` in domain data modules. When a subscription should not run, **unmount** the component that calls `useQuery` (for example, render a child only when `open && userId`, or split route shells so live-only paths do not mount DB-mode hooks). Route loaders continue to prefetch with `db.query`; route leaves use matching `useQuery` with the same arguments and `initialData` from the loader where applicable.
 
-**Guard**: `bun run check:convex-skip` fails if `"skip"` appears in any `src/app/db/*.ts` file.
+**Guard**: `bun run check:convex-skip` fails if `skip` appears as a quoted string — single, double or backtick — anywhere under `src/app/db/**/*.ts`, `core/` included.
