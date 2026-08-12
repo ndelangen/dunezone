@@ -14,20 +14,26 @@
  * the scope the day that stops being true.
  */
 
-import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
-const cssFiles = execSync("git ls-files 'src/ui/*.module.css' 'src/app/*.module.css'", {
-  encoding: 'utf8',
-})
-  .trim()
-  .split('\n')
-  .filter(Boolean);
-const sourceFiles = execSync("git ls-files '*.ts' '*.tsx'", { encoding: 'utf8' })
-  .trim()
-  .split('\n')
-  .filter(Boolean);
+/* Walked rather than shelled out to `git ls-files`: invoking a bare binary resolves it through
+   `$PATH`, and everything this needs is under `src/`, which carries nothing ignored. */
+function filesUnder(root, extensions) {
+  return (
+    readdirSync(root, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile() && extensions.some((ext) => entry.name.endsWith(ext)))
+      /* `parentPath` is already relative to the cwd, because `root` is — keep it that way so these
+       line up with the specifiers resolved below. */
+      .map((entry) => join(entry.parentPath, entry.name))
+  );
+}
+
+const cssFiles = [
+  ...filesUnder('src/ui', ['.module.css']),
+  ...filesUnder('src/app', ['.module.css']),
+];
+const sourceFiles = filesUnder('src', ['.ts', '.tsx']);
 
 /**
  * Which source files import each stylesheet, and under what name. The binding is read from the
@@ -46,11 +52,12 @@ for (const source of sourceFiles) {
   }
 }
 
+/* One static pattern for every `object.prop` and `object['prop']` in a file, filtered by binding
+   afterwards — building a regex per binding would mean interpolating parsed text into a pattern. */
+const PROPERTY_ACCESS = /\b(\w+)\s*(?:\.\s*([A-Za-z_]\w*)|\[\s*'([^']+)'\s*\])/g;
 /* `styles[expression]` builds a class name at runtime, so no static reading of that file can
    decide which rules are live. Those stylesheets are skipped rather than guessed at. */
-const computedAccess = (binding) => new RegExp(`\\b${binding}\\s*\\[\\s*[^'\\]]`);
-const namedAccess = (binding) =>
-  new RegExp(`\\b${binding}\\s*(?:\\.\\s*([A-Za-z_]\\w*)|\\[\\s*'([^']+)'\\s*\\])`, 'g');
+const COMPUTED_ACCESS = /\b(\w+)\s*\[\s*[^'\]]/g;
 
 const orphans = [];
 const missing = [];
@@ -84,12 +91,18 @@ for (const cssFile of cssFiles) {
   let computed = false;
   for (const { file, binding } of importers) {
     const text = readFileSync(file, 'utf8');
-    if (computedAccess(binding).test(text)) {
-      computed = true;
+    for (const match of text.matchAll(COMPUTED_ACCESS)) {
+      if (match[1] === binding) {
+        computed = true;
+      }
+    }
+    if (computed) {
       break;
     }
-    for (const match of text.matchAll(namedAccess(binding))) {
-      used.add(match[1] ?? match[2]);
+    for (const match of text.matchAll(PROPERTY_ACCESS)) {
+      if (match[1] === binding) {
+        used.add(match[2] ?? match[3]);
+      }
     }
   }
   if (computed) {
