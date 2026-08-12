@@ -109,6 +109,36 @@ function getButton(name: string) {
   return button;
 }
 
+/** One layout pass: the component only remeasures when its observers fire. */
+async function flushResizeObservers() {
+  await act(async () => {
+    for (const callback of resizeObserverCallbacks) {
+      callback([], {} as ResizeObserver);
+    }
+  });
+}
+
+/** Jsdom measures everything as zero, so the three elements the hook reads are mocked together. */
+function mockGeometry(
+  elements: { tabsRoot: HTMLElement; panelShell: HTMLElement; activeTab: HTMLElement },
+  dimensions: { width: number; height: number; panelX: number; tabHeight: number }
+) {
+  vi.spyOn(elements.tabsRoot, 'getBoundingClientRect').mockImplementation(() =>
+    rect({ left: 0, top: 0, width: dimensions.width, height: dimensions.height })
+  );
+  vi.spyOn(elements.panelShell, 'getBoundingClientRect').mockImplementation(() =>
+    rect({
+      left: dimensions.panelX,
+      top: 0,
+      width: dimensions.width - dimensions.panelX,
+      height: dimensions.height,
+    })
+  );
+  vi.spyOn(elements.activeTab, 'getBoundingClientRect').mockImplementation(() =>
+    rect({ left: 0, top: 0, width: dimensions.panelX, height: dimensions.tabHeight })
+  );
+}
+
 beforeEach(async () => {
   resizeObserverCallbacks.length = 0;
   vi.stubGlobal('ResizeObserver', ResizeObserverStub);
@@ -191,32 +221,9 @@ describe('ConnectedTabs', () => {
       throw new Error('Missing connected-tabs geometry elements');
     }
 
-    const dimensions = {
-      width: 760,
-      height: 400,
-      panelX: 180,
-      tabHeight: 64,
-    };
-    vi.spyOn(tabsRoot, 'getBoundingClientRect').mockImplementation(() =>
-      rect({ left: 0, top: 0, width: dimensions.width, height: dimensions.height })
-    );
-    vi.spyOn(panelShell, 'getBoundingClientRect').mockImplementation(() =>
-      rect({
-        left: dimensions.panelX,
-        top: 0,
-        width: dimensions.width - dimensions.panelX,
-        height: dimensions.height,
-      })
-    );
-    vi.spyOn(activeTab, 'getBoundingClientRect').mockImplementation(() =>
-      rect({ left: 0, top: 0, width: dimensions.panelX, height: dimensions.tabHeight })
-    );
-
-    await act(async () => {
-      for (const callback of resizeObserverCallbacks) {
-        callback([], {} as ResizeObserver);
-      }
-    });
+    const dimensions = { width: 760, height: 400, panelX: 180, tabHeight: 64 };
+    mockGeometry({ tabsRoot, panelShell, activeTab }, dimensions);
+    await flushResizeObservers();
 
     const contour = container?.querySelector<SVGPathElement>('svg[class*="geometryContour"] path');
     const contourSvg = contour?.closest('svg');
@@ -228,14 +235,8 @@ describe('ConnectedTabs', () => {
       { width: 600, height: 610, panelX: 158 },
       { width: 520, height: 720, panelX: 148 },
     ]) {
-      dimensions.width = frame.width;
-      dimensions.height = frame.height;
-      dimensions.panelX = frame.panelX;
-      await act(async () => {
-        for (const callback of resizeObserverCallbacks) {
-          callback([], {} as ResizeObserver);
-        }
-      });
+      Object.assign(dimensions, frame);
+      await flushResizeObservers();
 
       expect(contourSvg?.getAttribute('viewBox')).toBe(`0 0 ${frame.width} ${frame.height}`);
       expect(contour?.getAttribute('d')).not.toBe(previousPath);
