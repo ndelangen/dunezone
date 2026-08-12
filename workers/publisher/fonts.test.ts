@@ -4,8 +4,8 @@ import {
   assertPublisherFontFaces,
   assertRequiredPublisherFonts,
   requiredPublisherFontFaces,
-} from '../../src/app/capture/publisher-fonts';
-import type { PublisherFontFaceSet } from '../../src/app/capture/publisher-fonts';
+} from '../../src/shared/asset-publishing/publisher-fonts';
+import type { PublisherFontFaceSet } from '../../src/shared/asset-publishing/publisher-fonts';
 
 function fontSet(missing?: (typeof requiredPublisherFontFaces)[number]): PublisherFontFaceSet {
   return {

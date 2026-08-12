@@ -1,4 +1,5 @@
 import { Group, Stack, TextInput } from '@mantine/core';
+import { groupInputSchema } from '@shared/groups/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
@@ -12,7 +13,6 @@ import { useState } from 'react';
 
 import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
 import type { GroupEntry } from '@db/groups';
-import { groupInputSchema } from '@app/groups/validation';
 
 function GroupSettings({ initial }: { initial: GroupEntry }) {
   const navigate = useNavigate();

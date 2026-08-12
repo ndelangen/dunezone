@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 
-import type { FAQ_TAG_VALUES } from '../src/app/faq/tags';
-import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/app/faq/validation';
+import type { FAQ_TAG_VALUES } from '../src/shared/faq/tags';
+import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared/faq/validation';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';

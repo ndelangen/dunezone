@@ -166,6 +166,26 @@ only make sense together (`SortableItem` and `SortableReorderHandle` share `Sort
 which is why no `SortableDnd.tsx` exists). A rule stated alongside its own violations is not a rule,
 so the three components that were missing stories when this was written now have them.
 
+## Shared contracts
+
+`src/shared/**` holds what more than one deploy artifact needs: the Zod schemas and tag vocabularies
+the client and the Convex server both parse against, the asset rules the generators and the Worker
+both read, and the publisher's diagnostics and font contracts. Import it as `@shared/*` from the app,
+and relatively from `convex/` and `workers/`, which sit outside `src` and have no path aliases.
+
+Two boundaries depend on it, and both are absolute because nothing legitimate crosses them any more:
+`convex/**` may not import `src/app/**`, and `workers/**` may not either. Before this layer existed
+seven convex modules reached into `src/app/*/validation` for shared Zod schemas and the publisher
+Worker reached into `src/app/capture` for its diagnostics — so the "server must not import client
+code" rule could only be written for one named file, and it never fired. **A rule that has to
+tolerate exceptions cannot be enforced; move the exceptions out and then it can.** When you find
+yourself widening a guard to fit the code, check whether the code wants hoisting instead.
+
+Moving a file named in `RENDERER_RUNTIME_CLOSURE_PATHS` changes the renderer digest, so
+`publisher:release:verify` will report a `renderer-manifest.generated.ts` diff to commit. That is
+identity, not staleness: regeneration is driven by the checked-in `renderer_revisions`, which a move
+does not touch.
+
 ## Validation Convention
 
 Follow the canonical validation guidance in [`docs/data-layer.md`](docs/data-layer.md):

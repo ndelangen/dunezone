@@ -1,5 +1,5 @@
-import { DEFAULT_FAQ_TAG } from '@app/faq/tags';
-import type { FaqTag } from '@app/faq/tags';
+import { DEFAULT_FAQ_TAG } from '@shared/faq/tags';
+import type { FaqTag } from '@shared/faq/tags';
 
 export type FaqEditingState = {
   editingQuestion: boolean;

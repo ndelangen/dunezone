@@ -20,6 +20,7 @@
       "@app/*": ["./src/app/*"],
       "@ui/*": ["./src/app/ui/*"],
       "@data/*": ["./src/data/*"],
+      "@shared/*": ["./src/shared/*"],
       "@game/*": ["./src/game/*"]
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],

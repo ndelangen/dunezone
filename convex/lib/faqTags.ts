@@ -1,6 +1,6 @@
 import { literals } from 'convex-helpers/validators';
 
-import { FAQ_TAG_VALUES } from '../../src/app/faq/tags';
+import { FAQ_TAG_VALUES } from '../../src/shared/faq/tags';
 
 /**
  * The one wire validator for the FAQ tag vocabulary, derived from its authority `FAQ_TAG_VALUES`

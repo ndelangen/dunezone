@@ -13,6 +13,8 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
+import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@shared/faq/tags';
+import type { FaqTag } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { ProposedContent } from '@ui/block/ProposedContent';
@@ -56,8 +58,6 @@ import {
   useUpdateRuleset,
 } from '@db/rulesets';
 import { viewerActionsFor } from '@app/access/viewerActions';
-import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
-import type { FaqTag } from '@app/faq/tags';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from '../RulesetDetail.module.css';

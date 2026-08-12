@@ -1,11 +1,11 @@
+import type { FaqTag } from '@shared/faq/tags';
+import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '@shared/faq/validation';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import type { LiveMutationResult } from '@app/db/core/live';
-import type { FaqTag } from '@app/faq/tags';
-import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '@app/faq/validation';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';

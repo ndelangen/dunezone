@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 
-import { rulesetInputSchema } from '../src/app/rulesets/validation';
+import { rulesetInputSchema } from '../src/shared/rulesets/validation';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';

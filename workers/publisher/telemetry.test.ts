@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { publisherFailureFields } from '../../src/app/capture/publisher-diagnostics';
+import { publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { boundedPublisherTelemetryEvent, MAX_TELEMETRY_EVENT_BYTES } from './telemetry';
 
 describe('bounded publisher telemetry', () => {
