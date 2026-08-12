@@ -33,6 +33,7 @@
     "migrations:narrow-check": "bun run ./scripts/migration-guards.ts narrow-check --prod",
     "migrations:run-local-required": "bun run migrations:dev-strict",
     "migrations:static-check": "bun run ./scripts/migration-guards.ts static-check",
+    "provision": "bun run ./scripts/provision.ts",
     "publisher:assets": "bun run app:build && bun run build-storybook && vite build --config workers/publisher/vite.config.ts && bun run ./scripts/assemble-publisher-assets.ts",
     "publisher:assets:check": "bun run ./scripts/assemble-publisher-assets.ts --check-only",
     "publisher:capture-contract-regression": "bun run publisher:assets && bun run workers/publisher/capture-contract-regression.ts",

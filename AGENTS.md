@@ -18,8 +18,8 @@ Convex agent skills for common tasks can be installed by running
 - Stack: TanStack Router/Query, Convex, Vite, and Storybook.
 - Non-obvious workflow: `npm run generate` refreshes generated game data outputs.
 - `bun run app:dev` uses the configured online Convex deployment. Add `--local` for the
-  disposable Docker-backed environment with local test auth and a read-only copy of active
-  production factions; see `docs/README.md`.
+  disposable Docker-backed environment with local test auth and a cloned production
+  snapshot; see `docs/README.md`.
 
 ## Worktree Freshness
 

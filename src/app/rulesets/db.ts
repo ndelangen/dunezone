@@ -282,3 +282,9 @@ export function useDeleteRuleset() {
     mutateAsync: async (id: string) => await mutation.mutateAsync({ id }),
   };
 }
+
+/** Rulesets the viewer owns, for the Group detail page's "add a ruleset" picker. */
+export function useRulesetsOwnedForGroupAssign() {
+  const liveData = useQuery(api.rulesets.listOwnedForGroupAssign, {});
+  return toLiveQueryResult(liveData, true);
+}

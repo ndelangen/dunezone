@@ -20,7 +20,7 @@ Quick reference for understanding and working with the codebase.
 ```bash
 # Development
 bun run app:dev           # Dev server on port 3000, using the configured online Convex deployment
-bun run app:dev --local   # Disposable local Convex + local auth + production faction copy
+bun run app:dev --local   # Disposable local Convex + local auth + production data clone
 bun run app:build         # Build for production
 bun run app:preview       # Preview production build locally
 
@@ -47,23 +47,51 @@ used by the application or publisher typecheck scripts.
 ### Disposable local app development
 
 `bun run app:dev --local` is the opt-in authenticated local environment for browser review.
-It requires Docker and the existing `.env.e2e.local` credentials (copy
-`.env.e2e.local.example` when needed). Each start resets the local Convex volume, creates
-the two configured local password users, and copies active production factions plus their
-directly referenced groups through a read-only production query.
+It requires Docker, the existing `.env.e2e.local` credentials (copy
+`.env.e2e.local.example` when needed), and a Convex CLI login able to export from production.
+Each start runs the unified provision pipeline (`scripts/provision.ts`): reset the local
+Convex volume, push the checked-out functions, atomically import a point-in-time
+production snapshot, clear the tables the clone never keeps (auth session/token tables
+and the publication queue), then assert the rebuild contract. The cleared and required
+table lists live in [`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts)
+so the pipeline and the `provisioningChecks:assertRebuildContract` query cannot drift
+apart, and a table rename becomes a compile error rather than a silently skipped cleanup.
 
 The backend and dashboard images are pinned to multi-platform digests in
 `docker-compose.convex-local.yml`, so an existing Docker cache cannot silently select an
 older runtime. When upgrading the Convex packages, update both image digests together and
 verify a clean `bun run app:dev --local` start.
 
-The local mapping is intentionally simple: user A owns every copied faction and group,
-while user B is an active member of every copied group. Production users, profiles,
-sessions, publisher state, rulesets, and operational tables are not copied. Use the two
-configured local accounts in `/auth/login`; no real account is required.
+After the two configured local password users sign in, every cloned faction and group is
+handed to user A (user B becomes an active member of every group) so the review workflow
+stays "log in as A, edit anything". Use the two configured local accounts in
+`/auth/login`; no real account is required.
 
-`bun run e2e:local` remains the deterministic fixture-backed E2E environment and does not
-perform this production copy.
+`bun run e2e:local` remains the deterministic fixture-backed E2E environment; its
+provision target is structurally unable to touch production (no production credentials
+ever reach its commands). `bun run provision dev` is the same pipeline pointed at the
+long-lived cloud dev deployment, used by CI to rebuild it as a production replica after
+each deploy. It requires `CONVEX_DEV_DEPLOY_KEY`; the prod snapshot export uses
+`CONVEX_PROD_DEPLOY_KEY` when set and otherwise falls back to the ambient
+`CONVEX_DEPLOY_KEY` (the repo's deploy secret is the prod key). A bare
+`bun run provision local` intentionally refuses to run — the local users stage needs the
+running app, so the complete local environment always comes from `bun run app:dev --local`.
+
+### Keeping the cloud dev deployment usable
+
+`deploy-main` calls the `Rebuild dev deployment` workflow once production has shipped, so a
+failed rebuild reddens the run without ever gating the release. Every merge pushes main's
+functions to the dev deployment; the **data** is only re-cloned when the merge touches
+`convex/schema.ts`, `convex/migrations*.ts`, or `convex/migration-guards.json` — the changes
+that can invalidate or reshape dev's existing data. Ordinary merges therefore leave your dev
+session and any dev-side experiments intact.
+
+Run the `Rebuild dev deployment` workflow manually (Actions → Run workflow) to force fresh
+production data at any time. A skipped or failed rebuild cannot go unnoticed for long, and it
+recovers: Convex validates existing data against every pushed schema, so stale dev data fails
+the next ordinary merge's code push loudly, and a rebuild clears the target before pushing the
+new schema — which is why a forced rebuild heals a deployment whose data a schema change has
+already made unpushable.
 
 ## Common Workflows
 
@@ -72,7 +100,7 @@ perform this production copy.
 - Keep stories colocated with the component they render. Storybook navigation is owned by the
   source entries and `titlePrefix` values in `.storybook/main.ts`.
 - Prefer auto-titles. Add a relative `title` only when a filename cannot express the useful
-  product-facing label; never repeat `Application` or `Game Assets` in story metadata.
+  product-facing label; never repeat the category or `Game Assets` in story metadata.
 - Stories file under their category root — Blocks, Content, Controls, Layout, Lists, Surfaces —
   fed by both `src/ui/<category>` and `src/app/components/<category>`; the sidebar does not say
   who wrote a component. Widget stories file under Widgets. There is no Application root. See the
