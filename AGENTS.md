@@ -120,6 +120,24 @@ Outside the kit:
   "block" for the same shape — words in, one fixed arrangement out — but they are print vocabulary,
   governed by renderer fidelity rather than by the rules below.
 
+**A plain module follows the same ladder as a component.** A function, a hook or a type is not
+exempt from "one caller → beside that caller; two or more → a home named for its concern" just
+because the six categories never claimed it. This is the rule that was missing while `src/app` was
+filed by domain, and its absence is what left `access/`, `factions/`, `faq/`, `utils/`, `hooks/` and
+`lib/` standing after the data modules moved to `src/app/db` and the validators to `src/shared` —
+folders named for a noun or for a file type, holding a formatter here and a one-line type there.
+Where they went, and why: `catalogue.ts` and `faqEditingSession.ts` had one route each, so they sit
+beside it; `dnd-sortable-ids.ts` had two files in one widget, so it is that widget's organ; the date
+formatters and the publishing copy turn data into words, which is Content's job, so they are support
+modules in the kit.
+
+**`src/app`'s top level is a closed set**, one entry per role: `capture`, `db`, `routes`, `sheet`,
+`shell`, `styles`, `ui`, `widgets`, plus `router.tsx` and the generated route tree.
+`bun run check:app-layout` fails on anything else, because folders outlive the scheme that created
+them and the ones above sat empty-but-alive for months. Adding a role means documenting it here
+first. Inside `routes/`, a co-located non-route file takes TanStack's `-` prefix (`-catalogue.ts`) —
+without it the router scans the file and warns.
+
 Not everything in a component folder is a component. Types, the theme, and story fixtures are
 support modules. **Organs exist at every level, not only inside widgets**: a file whose only
 importers are its own feature's or category's machinery is an organ — "organ" *is* its
@@ -180,6 +198,19 @@ Worker reached into `src/app/capture` for its diagnostics — so the "server mus
 code" rule could only be written for one named file, and it never fired. **A rule that has to
 tolerate exceptions cannot be enforced; move the exceptions out and then it can.** When you find
 yourself widening a guard to fit the code, check whether the code wants hoisting instead.
+
+## The Convex doorway
+
+`src/app/db` is the only place in `src/**` that may import Convex — the generated API, the types
+under `convex/lib`, and the `convex` package itself. Everything else takes what it needs from the
+domain module that owns it, which re-exports the Convex shapes the app uses (`AssignedGroupSummary`
+from `@db/groups`, `PublicAssetPublishingStatus` from `@db/factions`).
+
+The rule is worth more than tidiness because a second doorway loses type precision. Each page query
+narrows its access type per kind — `Extract<CollaborativeAccess, { kind: 'faction' }>` — and the two
+modules that imported `convex/lib` directly both took the *wide* union and re-narrowed it at
+runtime, handing their callers `unknown` and optionals where the db layer had already been exact.
+`no-restricted-imports` enforces this for all of `src/**` except `src/app/db/**`.
 
 Moving a file named in `RENDERER_RUNTIME_CLOSURE_PATHS` changes the renderer digest, so
 `publisher:release:verify` will report a `renderer-manifest.generated.ts` diff to commit. That is

@@ -5,10 +5,9 @@ import type { ProfilePageData } from '@db/profiles';
 
 type FaqQuestionAsked = ProfilePageData['faqAsked'][number];
 type FaqAnswerGiven = ProfilePageData['faqAnswers'][number];
+import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
-
-import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 
 import styles from './FaqActivity.module.css';
 

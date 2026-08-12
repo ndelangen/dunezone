@@ -14,6 +14,32 @@
     },
     {
       /**
+       * `src/app/db` is the application's only doorway to Convex.
+       *
+       * Every Convex shape the application needs is re-exported from the domain module that owns
+       * it, so a second import path never opens. Before this rule the app had two doorways —
+       * `src/app/access/viewerActions.ts` and `src/app/factions/assetPublishingStatus.ts` both
+       * reached `convex/lib` directly — and each one widened a type the db layer had already
+       * narrowed per page.
+       */
+      "files": ["src/**"],
+      "excludeFiles": ["src/app/db/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
+                "message": "Only `src/app/db` may import Convex. Re-export the shape you need from the domain module that owns it (`@db/factions`, `@db/groups`) and import it from there."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      /**
        * A component renders what it is given; it does not go and get things.
        *
        * That is the whole rule, and it is narrower than "domain-free" on purpose. A component may

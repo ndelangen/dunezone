@@ -20,10 +20,10 @@ import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { GripVertical } from 'lucide-react';
 
 import type { Faction } from '@db/factions';
-import { getSortableIds, indexFromSortableId } from '@app/lib/dnd-sortable-ids';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 import { TTSColor } from '@game/schema/faction';
 
+import { getSortableIds, indexFromSortableId } from './dnd-sortable-ids';
 import styles from './TtsColorsEditor.module.css';
 import { useFactionSortableItem } from './useFactionSortableItem';
 

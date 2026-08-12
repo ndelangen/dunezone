@@ -1,3 +1,8 @@
+/**
+ * How this application writes dates. Content and Lists render them; routes reuse the same two
+ * functions so a timestamp reads the same wherever it appears.
+ */
+
 /** Short relative or calendar label for ISO timestamps (FAQ lists, profiles). */
 export function formatRelativeDate(iso: string): string {
   const date = new Date(iso);
@@ -24,4 +29,18 @@ export function formatRelativeDate(iso: string): string {
     day: 'numeric',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
   });
+}
+
+/** Keep catalogue spotlight dates stable across routes and time zones. */
+export function formatFactionCatalogueDate(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    return 'recently';
+  }
+  return new Intl.DateTimeFormat('en', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
 }

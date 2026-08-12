@@ -17,6 +17,7 @@ import {
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
+import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -41,8 +42,6 @@ import {
 
 import { loadFaction, useFaction } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
-import { viewerActionsFor } from '@app/access/viewerActions';
-import { factionAssetPublishingCopy } from '@app/factions/assetPublishingStatus';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
@@ -134,10 +133,10 @@ function FactionDetailPage() {
 
   const { faction, viewerAccess, owner, assetPublishing, rulesets } = page;
 
-  const { canEdit, assignedGroup, membershipStatus, canRequestMembership } = viewerActionsFor(
-    viewerAccess,
-    { subjectGroupId: faction.group_id }
-  );
+  const { edit: canEdit, requestMembership: canRequestMembership } = viewerAccess.capabilities;
+  const assignedGroup = viewerAccess.assignedGroup;
+  const membershipStatus =
+    viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
 
   const data = faction.data;
   const planets = data.planet ?? [];

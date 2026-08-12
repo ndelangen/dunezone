@@ -1,7 +1,7 @@
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { Users } from 'lucide-react';
 
-import type { AssignedGroupSummary } from '../../../../convex/lib/collaborativeAccess';
+import type { AssignedGroupSummary } from '@db/groups';
 
 export interface FactionGroupPopoverProps {
   disabled: boolean;

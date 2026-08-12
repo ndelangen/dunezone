@@ -9,10 +9,10 @@ import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
-import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from '@app/faq/faqEditingSession';
-import type { FaqEditingSession } from '@app/faq/faqEditingSession';
 
 import styles from './$questionSlug.module.css';
+import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from './-faqEditingSession';
+import type { FaqEditingSession } from './-faqEditingSession';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionSlug')({
   loader: async ({ params }) => {

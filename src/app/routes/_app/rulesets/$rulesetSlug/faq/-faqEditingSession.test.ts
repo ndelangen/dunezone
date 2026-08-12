@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import { createFaqEditingSession } from './faqEditingSession';
+import { createFaqEditingSession } from './-faqEditingSession';
 
 function harness(overrides?: {
   editQuestion?: () => Promise<void>;

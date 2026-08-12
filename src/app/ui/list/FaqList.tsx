@@ -2,6 +2,7 @@ import { Anchor, Badge, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { FAQ_TAG_LABELS } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { Link } from '@tanstack/react-router';
+import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
 import Fuse from 'fuse.js';
@@ -9,7 +10,6 @@ import { CircleCheck, CircleDashed } from 'lucide-react';
 import { useMemo } from 'react';
 
 import type { FaqItemWithDetails } from '@db/faq';
-import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 
 import styles from './FaqList.module.css';
 

@@ -13,6 +13,7 @@ import {
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
+import { formatFactionCatalogueDate } from '@ui/content/dates';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -26,10 +27,9 @@ import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
-import { parseFactionCatalogueSearch, useFactionCatalogueSession } from '@app/factions/catalogue';
-import type { FactionCatalogueSearch } from '@app/factions/catalogue';
-import { formatFactionCatalogueDate } from '@app/factions/catalogueDate';
 
+import { parseFactionCatalogueSearch, useFactionCatalogueSession } from './-catalogue';
+import type { FactionCatalogueSearch } from './-catalogue';
 import styles from './FactionCatalogue.module.css';
 
 export const Route = createFileRoute('/_app/factions/')({

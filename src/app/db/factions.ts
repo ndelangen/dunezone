@@ -9,11 +9,25 @@ import type { FactionInput } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
-import type { PublicAssetPublishingStatusProjection } from '../../../convex/assetPublishingStatus';
+import type {
+  PublicAssetCaptureStatus,
+  PublicAssetPublishingStatus,
+  PublicAssetPublishingStatusProjection,
+} from '../../../convex/assetPublishingStatus';
 import type {
   AssignedGroupSummary,
   CollaborativeAccess,
 } from '../../../convex/lib/collaborativeAccess';
+
+/**
+ * The app reaches Convex only through this layer, so the shapes it needs are re-exported here
+ * rather than imported from `convex/` a second time.
+ */
+export type {
+  PublicAssetCaptureStatus,
+  PublicAssetPublishingStatus,
+  PublicAssetPublishingStatusProjection,
+};
 
 export type Faction = FactionInput;
 export type FactionData = FactionInput;

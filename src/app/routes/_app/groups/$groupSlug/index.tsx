@@ -13,6 +13,7 @@ import {
   Title,
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { IconAction } from '@ui/control/IconAction';
@@ -37,12 +38,10 @@ import {
 import { useFactionsOwnedForGroupAssign, useSetFactionGroup } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
 import { loadGroupDetailBySlug, useDeleteGroup, useGroupDetailBySlug } from '@db/groups';
-import type { GroupDetailPageData } from '@db/groups';
+import type { GroupDetailPageData, MembershipState } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { useRulesetsOwnedForGroupAssign, useUpdateRuleset } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
-import { viewerActionsFor } from '@app/access/viewerActions';
-import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 
 import styles from './index.module.css';
 
@@ -58,7 +57,6 @@ type AssetAssignOption = {
 };
 
 type RosterEntry = GroupDetailPageData['roster'][number];
-type MembershipStatus = ReturnType<typeof viewerActionsFor>['membershipStatus'];
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/')({
   loader: async ({ params }) => {
@@ -112,7 +110,8 @@ function GroupDetailPage() {
   const groupId = group._id;
   const viewerAccess = page.viewerAccess;
   const ownerProfile = page.owner;
-  const { membershipStatus } = viewerActionsFor(viewerAccess);
+  const membershipStatus =
+    viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const isOwner = viewerAccess.capabilities.rename;
   const isActiveMember = membershipStatus === 'active';
   const isAnonymous = viewerAccess.viewer.kind === 'anonymous';
@@ -459,19 +458,13 @@ function OwnerLine({
   );
 }
 
-const membershipBadges: Record<MembershipStatus, { color: string; label: string }> = {
+const membershipBadges: Record<MembershipState, { color: string; label: string }> = {
   active: { color: 'green', label: 'Active member' },
   pending: { color: 'yellow', label: 'Pending approval' },
   none: { color: 'gray', label: 'Not a member' },
 };
 
-function MembershipStatusBadge({
-  status,
-  isOwner,
-}: {
-  status: MembershipStatus;
-  isOwner: boolean;
-}) {
+function MembershipStatusBadge({ status, isOwner }: { status: MembershipState; isOwner: boolean }) {
   if (isOwner) {
     return (
       <Badge color="dune" variant="light" leftSection={<Crown size={12} aria-hidden />}>

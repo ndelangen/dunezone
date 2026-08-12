@@ -11,6 +11,7 @@
     "app:preview": "vite preview",
     "build-storybook": "storybook build",
     "check": "bun run lint && bun run format:check",
+    "check:app-layout": "node scripts/assert-app-layout.mjs",
     "check:convex-skip": "node scripts/assert-no-convex-skip-in-domain-db.mjs",
     "check:css-orphans": "node scripts/assert-no-orphan-css-classes.mjs",
     "cloudflare:drift-check": "bun run ./scripts/cloudflare-live-drift.ts",

@@ -363,8 +363,9 @@ This document records durable UI decisions for consistency across features.
 - Examples:
   - `import type { FactionCatalogueEntry } from '@db/factions'` is welcome: a type is a statement
     about what you render, not a dependency on how it was fetched.
-  - `@game` renderers and pure helpers like `formatRelativeDate` stay allowed. They compute and draw;
-    they do not reach.
+  - `@game` renderers and pure helpers stay allowed. They compute and draw; they do not reach. The
+    helpers that turn data into words now live in the kit itself — `@ui/content/dates`,
+    `@ui/content/assetPublishingStatus` — since that is Content's job description.
   - Pointing at a place is presentation, so a component may render a `Link`. Deciding to go there is a
     page's call, so `FaqList` now takes `onOpenQuestion` and the ruleset route navigates.
   - The kit moved to `src/app/ui` at the same time, reached through the unchanged `@ui/*` alias. There

@@ -57,7 +57,6 @@ import {
   useRulesetDetailPage,
   useUpdateRuleset,
 } from '@db/rulesets';
-import { viewerActionsFor } from '@app/access/viewerActions';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from '../RulesetDetail.module.css';
@@ -178,10 +177,16 @@ function RulesetDetailPage() {
     deleteRuleset.error?.message ??
     membershipWorkflow.request.error?.message ??
     updateRuleset.error?.message;
-  const actionVisibility = viewerActionsFor(viewerAccess, {
-    hasProfile: Boolean(profile.data?._id),
-    subjectGroupId: r.group_id,
-  });
+  const canChangeGroup = viewerAccess.capabilities.changeGroup;
+  const hasAssignment = r.group_id != null;
+  const actionVisibility = {
+    askQuestion: Boolean(profile.data?._id),
+    canDelete: viewerAccess.capabilities.delete,
+    /** Offer assignment only when the ruleset carries no assignment at all. */
+    assignGroup: canChangeGroup && !hasAssignment,
+    /** Removal stays available for dangling assignments (row assigned, group unresolvable). */
+    removeGroup: canChangeGroup && hasAssignment,
+  };
 
   const handleDelete = () => {
     if (!window.confirm(`Delete ruleset "${r.name}"? This cannot be undone.`)) {

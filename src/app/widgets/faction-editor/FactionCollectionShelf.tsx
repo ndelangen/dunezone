@@ -16,8 +16,7 @@ import { Box, Text, UnstyledButton } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { GripVertical } from 'lucide-react';
 
-import { indexFromSortableId } from '@app/lib/dnd-sortable-ids';
-
+import { indexFromSortableId } from './dnd-sortable-ids';
 import styles from './FactionCollectionShelf.module.css';
 import { useFactionSortableItem } from './useFactionSortableItem';
 

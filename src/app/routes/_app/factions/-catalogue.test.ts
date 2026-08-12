@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest';
 import type { FactionCatalogueEntry } from '@db/factions';
 import { assetPublishingFaction } from '@game/fixtures/assetPublishingFaction';
 
-import { projectFactionCatalogue } from './catalogue';
+import { projectFactionCatalogue } from './-catalogue';
 
 function faction(
   id: string,

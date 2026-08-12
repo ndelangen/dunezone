@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest';
 
-import * as factionsApi from '../../convex/factions';
-import * as groupsApi from '../../convex/groups';
-import * as membersApi from '../../convex/members';
-import * as rulesetsApi from '../../convex/rulesets';
+import * as factionsApi from './factions';
+import * as groupsApi from './groups';
+import * as membersApi from './members';
+import * as rulesetsApi from './rulesets';
 
 /*
  * ADR-0001: the former source-text assertions are fully retired. The server-policy layering rule

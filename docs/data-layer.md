@@ -17,6 +17,19 @@ flowchart TD
 Each domain file follows this structure: types → loaders → live query hooks → mutation hooks. There
 are no query keys and no cache; see [State Management](./state-management.md).
 
+## The only doorway to Convex
+
+`src/app/db` is the only place in `src/**` that may import Convex — the generated API, the types
+under `convex/lib`, or the `convex` package. A domain module re-exports the Convex shapes the rest
+of the application needs, so a second import path never opens:
+
+```typescript
+export type { AssignedGroupSummary, MembershipState }; // src/app/db/groups.ts
+```
+
+Enforced by `no-restricted-imports` for all of `src/**` except `src/app/db/**`. See the Convex
+doorway section in [`AGENTS.md`](../AGENTS.md) for why a second doorway costs type precision.
+
 ## Convex Schema
 
 Convex schema and indexes are defined in [`convex/schema.ts`](../convex/schema.ts). Domain-level Zod

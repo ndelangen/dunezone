@@ -1,8 +1,7 @@
-import type {
-  PublicAssetCaptureStatus,
-  PublicAssetPublishingStatus,
-} from '../../../convex/assetPublishingStatus';
-import type { FactionSaveState } from './authoringState';
+import type { PublicAssetCaptureStatus, PublicAssetPublishingStatus } from '@db/factions';
+
+/** Where an editor is in its save cycle; the copy below leads with it when it is not idle. */
+export type FactionSaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const statusCopy: Record<PublicAssetPublishingStatus, string> = {
   current: 'Public assets are current.',

@@ -3,10 +3,10 @@ import { useEffect } from 'react';
 
 import { loadFactionBySlug, useFaction } from '@db/factions';
 import '@app/sheet/FactionSheetDocument.css';
-import { useFactionSheetPostMessage } from '@app/hooks/useFactionSheetPostMessage';
 import { FactionSheetView } from '@app/sheet/FactionSheetView';
 
 import { AssetRenderModeProvider } from '../../../../game/assets/assetRenderMode';
+import { useFactionSheetPostMessage } from './-useFactionSheetPostMessage';
 
 export const Route = createFileRoute('/preview/sheet/$factionSlug')({
   validateSearch: (params: Record<string, unknown>): { mode: 'db' | 'live' } => {

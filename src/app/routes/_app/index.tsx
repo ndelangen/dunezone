@@ -17,6 +17,7 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { Section } from '@ui/block/Section';
 import { AnimatedLeaderToken } from '@ui/content/AnimatedLeaderToken';
+import { formatFactionCatalogueDate } from '@ui/content/dates';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { CallToAction } from '@ui/control/CallToAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
@@ -27,7 +28,6 @@ import { Surface } from '@ui/surface';
 import { ArrowRight, BookOpen, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
 
 import { loadHomepage, useHomepage } from '@db/homepage';
-import { formatFactionCatalogueDate } from '@app/factions/catalogueDate';
 
 import styles from './index.module.css';
 

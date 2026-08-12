@@ -1,8 +1,8 @@
 import { useForm, useStore } from '@tanstack/react-form';
+import type { FactionSaveState } from '@ui/content/assetPublishingStatus';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Faction, FactionEntry } from '@db/factions';
-import type { FactionSaveState } from '@app/factions/authoringState';
 
 import { factionAuthoringWarnings } from './factionAuthoringContract';
 import { createFactionAuthoringSession } from './factionAuthoringSession';

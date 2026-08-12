@@ -12,10 +12,18 @@ import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
 import type {
+  AssignedGroupSummary,
   CollaborativeAccess,
   GroupRosterEntry,
+  MembershipState,
 } from '../../../convex/lib/collaborativeAccess';
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
+
+/**
+ * The app reaches Convex only through this layer, so the shapes it needs are re-exported here
+ * rather than imported from `convex/` a second time.
+ */
+export type { AssignedGroupSummary, MembershipState };
 
 export type GroupRow = Doc<'groups'>;
 export type GroupEntry = GroupRow & { id: GroupRow['_id'] };
