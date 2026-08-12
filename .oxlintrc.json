@@ -103,26 +103,15 @@
                   "../src/app/**",
                   "../../src/app/**",
                   "@app/**",
-                  "@ui/**"
+                  "@ui/**",
+                  "@db/**"
                 ],
-                "message": "The server must not import client code. A contract both sides need — a Zod schema, a tag vocabulary — belongs in `src/shared/`, which both may import."
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "files": ["convex/lib/collaborativeAccess.ts"],
-      "rules": {
-        "no-restricted-imports": [
-          "error",
-          {
-            "patterns": [
+                "message": "The server must not import client code. A contract both sides need — a Zod schema, a tag vocabulary — belongs in `src/shared/`, which both may import. `@db/*` resolves to `src/app/<domain>/db.ts`, so it is client code too."
+              },
               {
                 "group": ["**/_generated/server"],
                 "importNames": ["mutation", "internalMutation"],
-                "message": "Use the trigger-aware builders from ./functions instead."
+                "message": "Use the trigger-aware builders from ./functions instead. Restated here because an override replaces the root rule for the files it matches rather than adding to it."
               }
             ]
           }
@@ -142,9 +131,15 @@
                   "../src/app/**",
                   "../../src/app/**",
                   "@app/**",
-                  "@ui/**"
+                  "@ui/**",
+                  "@db/**"
                 ],
-                "message": "The publisher Worker is a separate deploy artifact and must not import application code. Shared runtime contracts belong in `src/shared/`."
+                "message": "The publisher Worker is a separate deploy artifact and must not import application code. Shared runtime contracts belong in `src/shared/`. `@db/*` resolves to `src/app/<domain>/db.ts`, so it is application code too."
+              },
+              {
+                "group": ["**/_generated/server"],
+                "importNames": ["mutation", "internalMutation"],
+                "message": "Use the trigger-aware builders from ./functions instead. Restated here because an override replaces the root rule for the files it matches rather than adding to it."
               }
             ]
           }
