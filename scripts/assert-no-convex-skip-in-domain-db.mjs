@@ -18,7 +18,12 @@ async function* walk(dir) {
     const p = join(dir, e.name);
     if (e.isDirectory()) {
       yield* walk(p);
-    } else if (e.isFile() && e.name.endsWith('.ts') && !e.name.includes('.test.')) {
+    } else if (
+      e.isFile() &&
+      e.name.endsWith('.ts') &&
+      !e.name.endsWith('.d.ts') &&
+      !e.name.includes('.test.')
+    ) {
       yield p;
     }
   }
