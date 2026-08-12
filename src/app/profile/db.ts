@@ -1,3 +1,5 @@
+import { profileUserEditFormSchema } from '@shared/profile/validation';
+import type { ProfileUserEditInput } from '@shared/profile/validation';
 import { useMutation, useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 import { useEffect, useRef } from 'react';
@@ -5,8 +7,6 @@ import { useEffect, useRef } from 'react';
 import { db } from '@db/core';
 import { factionCatalogueRowsToEntries } from '@db/factions';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
-import { profileUserEditFormSchema } from '@app/profile/validation';
-import type { ProfileUserEditInput } from '@app/profile/validation';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';

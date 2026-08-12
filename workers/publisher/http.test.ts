@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from 'vitest';
 import {
   publisherErrorMessage,
   serializePublisherLogEvent,
-} from '../../src/app/capture/publisher-diagnostics';
+} from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { PublisherHttpError, postJson, readBoundedJson, runWithDeadline } from './http';
 
 describe('bounded Convex HTTP client', () => {

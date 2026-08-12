@@ -1,6 +1,5 @@
+import { alphanumericNameSchema } from '@shared/validation/names';
 import { z } from 'zod';
-
-import { alphanumericNameSchema } from '@app/validation/names';
 
 const rulesetNameSchema = alphanumericNameSchema('Ruleset name');
 

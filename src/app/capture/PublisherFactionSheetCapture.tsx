@@ -1,3 +1,8 @@
+import {
+  publisherErrorMessage,
+  redactPublisherResource,
+} from '@shared/asset-publishing/publisher-diagnostics';
+import { assertRequiredPublisherFonts } from '@shared/asset-publishing/publisher-fonts';
 import { useEffect, useState } from 'react';
 
 import { FactionSheetView } from '@app/sheet/FactionSheetView';
@@ -6,8 +11,6 @@ import type { FactionInput } from '@game/schema/faction';
 import { AssetRenderModeProvider } from '../../game/assets/assetRenderMode';
 import { CAPTURE_PROTOCOL } from '../../shared/asset-publishing/capture-protocol';
 import { publisherCaptureSnapshotSchema } from '../../shared/asset-publishing/publisher-snapshot';
-import { publisherErrorMessage, redactPublisherResource } from './publisher-diagnostics';
-import { assertRequiredPublisherFonts } from './publisher-fonts';
 
 const ASSET_SETTLE_TIMEOUT_MS = 15_000;
 

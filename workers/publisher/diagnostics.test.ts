@@ -6,7 +6,7 @@ import {
   redactPublisherResource,
   sanitizePublisherDiagnostic,
   serializePublisherLogEvent,
-} from '../../src/app/capture/publisher-diagnostics';
+} from '../../src/shared/asset-publishing/publisher-diagnostics';
 
 const signedUrl =
   'https://signed-user:SECRET_PASSWORD@cdn.example.com/private/SECRET_PATH/art.png?token=SECRET_QUERY#SECRET_FRAGMENT';

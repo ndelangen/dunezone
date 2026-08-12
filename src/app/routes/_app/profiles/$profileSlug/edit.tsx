@@ -1,4 +1,5 @@
 import { Group, Stack, TextInput } from '@mantine/core';
+import { profileSlugBaseFromName } from '@shared/profile/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
@@ -12,7 +13,6 @@ import { useState } from 'react';
 
 import { useCurrentProfile, useUpdateCurrentProfile } from '@db/profiles';
 import type { ProfileEntry } from '@db/profiles';
-import { profileSlugBaseFromName } from '@app/profile/validation';
 
 function ProfileSettings({ initial }: { initial: ProfileEntry }) {
   const navigate = useNavigate();

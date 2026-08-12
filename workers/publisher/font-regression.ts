@@ -7,8 +7,8 @@ import type { Page } from 'playwright';
 import {
   assertPublisherFontFaces,
   assertRequiredPublisherFonts,
-} from '../../src/app/capture/publisher-fonts';
-import type { PublisherFontFaceSet } from '../../src/app/capture/publisher-fonts';
+} from '../../src/shared/asset-publishing/publisher-fonts';
+import type { PublisherFontFaceSet } from '../../src/shared/asset-publishing/publisher-fonts';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const publisherDist = path.join(repositoryRoot, 'workers/publisher/dist');

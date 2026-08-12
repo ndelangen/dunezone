@@ -1,4 +1,5 @@
 import { Group, Input, Stack, Textarea } from '@mantine/core';
+import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { IconAction } from '@ui/control/IconAction';
@@ -10,7 +11,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from '@app/faq/faqEditingSession';
 import type { FaqEditingSession } from '@app/faq/faqEditingSession';
-import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
 
 import styles from './$questionSlug.module.css';
 

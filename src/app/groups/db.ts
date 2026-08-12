@@ -1,3 +1,4 @@
+import { groupInputSchema } from '@shared/groups/validation';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
@@ -7,7 +8,6 @@ import type { FactionEntry } from '@db/factions';
 import { rulesetRowsToEntries } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
-import { groupInputSchema } from '@app/groups/validation';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
