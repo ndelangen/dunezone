@@ -39,6 +39,17 @@ scans the route files and fails on a terminal route that omits it. The reasoning
 `/auth/login`, `auth/oauth.tsx` → `/auth/oauth`. Route tree auto-generates:
 [`src/app/routeTree.gen.ts`](../src/app/routeTree.gen.ts)
 
+### Files in `routes/` that are not routes
+
+A page's composition belongs in its route file, and a piece with one caller belongs beside that
+caller — so route folders hold helpers, hooks and their tests as well as routes. The generator
+scans every file in the directory, so **a co-located non-route file takes the `-` prefix**:
+[`-catalogue.ts`](../src/app/routes/_app/factions/-catalogue.ts),
+`-faqEditingSession.ts`, `-useFactionSheetPostMessage.ts`. Without it the build warns that the file
+exports no `Route` and excludes it anyway. Vitest still collects `-`-prefixed test files.
+
+The prefix doubles as a reading aid: everything in a route folder without one is a URL.
+
 ## Route Pattern
 
 ```typescript

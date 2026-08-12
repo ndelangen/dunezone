@@ -25,6 +25,46 @@ membership reactivates it as `pending`.
 - `active` - Approved, active member
 - `removed` - Rejected or removed
 
+## Viewer access projection
+
+Page queries hand each detail route a `viewerAccess` already narrowed to that page's kind —
+`Extract<CollaborativeAccess, { kind: 'faction' }>` and so on
+([`src/app/db/factions.ts`](../src/app/db/factions.ts),
+[`groups.ts`](../src/app/db/groups.ts), [`rulesets.ts`](../src/app/db/rulesets.ts)). Routes read
+`viewerAccess.capabilities.*` directly. There is deliberately no client-side projection helper
+between the two: one existed, took the *wide* union, and re-narrowed at runtime what every caller
+already knew statically.
+
+Three properties of the wire shape are worth knowing before writing defensive code against it:
+
+- **`viewer.membership` has three states, not four.** `'removed'` is server-internal: it lives on
+  the stored `group_members` row and on `ViewerFacts`, and `evaluateCollaborativeAccess` collapses
+  it to `'none'` before projecting ([`convex/lib/collaborativeAccess.ts`](../convex/lib/collaborativeAccess.ts)).
+  A removed member is indistinguishable from a stranger to the client, which is what lets them
+  request membership again. So `Record<MembershipState, …>` over the viewer's status is exhaustive
+  with three keys.
+- **Every capability is a non-optional boolean.** The validators declare `v.boolean()`, so
+  `capabilities.edit ?? false` is dead code — read the field.
+- **A group-kind access has no `edit`, `changeGroup` or `assignedGroup`.** Those are asset-only, and
+  the per-kind narrowing means the compiler enforces it rather than a runtime `kind` check.
+
+### Group assignment affordances
+
+For an asset, `group.eligible` is `assignedGroup !== null`, and a soft-deleted or dangling group
+reference projects to `assignedGroup: null` while the row's own `group_id` stays set. The client
+rule follows from that pair, not from `assignedGroup` alone:
+
+- **Offer assignment** only when the row carries no assignment at all — `changeGroup && group_id == null`.
+- **Keep removal available** whenever the row is assigned, including when the group no longer
+  resolves — `changeGroup && group_id != null`.
+
+The dangling case is the one that matters: the owner sees **Remove from group**, never **Assign to
+group**, because assigning is the wrong repair for a reference that already exists. Server-side
+coverage is in [`convex/groups.softDeletion.test.ts`](../convex/groups.softDeletion.test.ts); the
+client branch is two expressions in
+[`rulesets/$rulesetSlug/index.tsx`](../src/app/routes/_app/rulesets/$rulesetSlug/index.tsx) and is
+recorded here because inlining the projection removed the unit test that used to state it.
+
 ## Approval Metadata
 
 `approved_by` and `approved_at` are set in Convex membership mutations when status becomes `active`.
