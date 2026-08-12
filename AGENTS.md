@@ -206,11 +206,14 @@ under `convex/lib`, and the `convex` package itself. Everything else takes what 
 domain module that owns it, which re-exports the Convex shapes the app uses (`AssignedGroupSummary`
 from `@db/groups`, `PublicAssetPublishingStatus` from `@db/factions`).
 
-The rule is worth more than tidiness because a second doorway loses type precision. Each page query
-narrows its access type per kind — `Extract<CollaborativeAccess, { kind: 'faction' }>` — and the two
-modules that imported `convex/lib` directly both took the *wide* union and re-narrowed it at
-runtime, handing their callers `unknown` and optionals where the db layer had already been exact.
-`no-restricted-imports` enforces this for all of `src/**` except `src/app/db/**`.
+The rule is mostly about keeping one import path, but one of the two modules that had opened a
+second one showed the sharper cost. Each page query narrows its access type per kind —
+`Extract<CollaborativeAccess, { kind: 'faction' }>` — and `src/app/access/viewerActions.ts` reached
+past that to `convex/lib` for the *wide* `CollaborativeAccess`, took it as possibly-`undefined` with
+a `subjectGroupId: unknown` beside it, and re-narrowed at runtime with a `kind !== 'group'` check its
+three callers had already settled statically. The other module imported two string-literal unions
+and cost nothing but the second path. `no-restricted-imports` enforces this for all of `src/**`
+except `src/app/db/**`.
 
 Moving a file named in `RENDERER_RUNTIME_CLOSURE_PATHS` changes the renderer digest, so
 `publisher:release:verify` will report a `renderer-manifest.generated.ts` diff to commit. That is

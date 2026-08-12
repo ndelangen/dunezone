@@ -17,10 +17,11 @@
        * `src/app/db` is the application's only doorway to Convex.
        *
        * Every Convex shape the application needs is re-exported from the domain module that owns
-       * it, so a second import path never opens. Before this rule the app had two doorways —
-       * `src/app/access/viewerActions.ts` and `src/app/factions/assetPublishingStatus.ts` both
-       * reached `convex/lib` directly — and each one widened a type the db layer had already
-       * narrowed per page.
+       * it, so a second import path never opens. Two modules had opened one:
+       * `src/app/factions/assetPublishingStatus.ts`, which only wanted two string-literal unions,
+       * and `src/app/access/viewerActions.ts`, which took the wide `CollaborativeAccess` from
+       * `convex/lib` and re-narrowed it at runtime after every page query had already narrowed it
+       * per kind. Both are gone; the rule keeps the doorway single.
        */
       "files": ["src/**"],
       "excludeFiles": ["src/app/db/**"],
