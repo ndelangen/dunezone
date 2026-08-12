@@ -52,19 +52,29 @@ const cssFile = readdirSync(path.join(publisherDist, 'publisher-capture')).find(
 );
 invariant(cssFile, 'Publisher capture CSS is missing; run publisher:assets first');
 
+/*
+ * The built filename is content-hashed, so serve it under a stable alias in the same
+ * directory: relative url() references inside the CSS still resolve, and the discovered
+ * filename never reaches the HTML.
+ */
+const cssHref = '/publisher-capture/font-regression.css';
+
 const server = Bun.serve({
   port: 0,
   async fetch(request) {
     const pathname = decodeURIComponent(new URL(request.url).pathname);
     if (pathname === '/font-regression.html') {
       return new Response(
-        `<!doctype html><html><head><link rel="stylesheet" href="/publisher-capture/${cssFile}">
+        `<!doctype html><html><head><link rel="stylesheet" href="${cssHref}">
         <style>
           @font-face { font-family: "StyleSubstitution"; src: url("/font/advokat-modern.woff2") format("woff2"); font-weight: 400; font-style: italic; }
           @font-face { font-family: "BrokenRequired"; src: url("/broken-required.woff2") format("woff2"); font-weight: 400; font-style: normal; }
         </style></head><body>Publisher font regression</body></html>`,
         { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
       );
+    }
+    if (pathname === cssHref) {
+      return new Response(Bun.file(path.join(publisherDist, 'publisher-capture', cssFile)));
     }
     if (pathname === '/broken-required.woff2') {
       return new Response('not a woff2', { headers: { 'Content-Type': 'font/woff2' } });
