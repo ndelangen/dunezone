@@ -67,7 +67,7 @@ Which category a component belongs to is decided by the taxonomy in
 
 ## How Things Come Together
 
-**Example: Loading the home page**
+### Example: Loading the home page
 
 1. Route [`src/app/routes/_app/index.tsx`](../src/app/routes/_app/index.tsx) — `loader: loadHomepage`
    fetches through `db.query()` before first render.

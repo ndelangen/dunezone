@@ -163,8 +163,8 @@ data*. Every component in `src/app/ui` has stories; Mantine components used by
 the app get stories too, filed by kind under our theme, indistinguishable from ours. Two kinds of
 file are exempt: organs, and a component whose story lives under a sibling's name because the two
 only make sense together (`SortableItem` and `SortableReorderHandle` share `SortableDnd.stories.tsx`,
-which is why no `SortableDnd.tsx` exists). Currently missing and owed: `PageLayout`, `FactionList`,
-`ProposedContent`.
+which is why no `SortableDnd.tsx` exists). A rule stated alongside its own violations is not a rule,
+so the three components that were missing stories when this was written now have them.
 
 ## Validation Convention
 

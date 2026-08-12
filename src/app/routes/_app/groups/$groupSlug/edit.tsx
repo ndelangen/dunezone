@@ -8,7 +8,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
 import type { GroupEntry } from '@db/groups';
@@ -17,12 +17,11 @@ import { groupInputSchema } from '@app/groups/validation';
 function GroupSettings({ initial }: { initial: GroupEntry }) {
   const navigate = useNavigate();
   const updateGroup = useUpdateGroup();
+  /* No effect syncing `name` back from `initial`: the page mounts this with `key={group.slug}`, so a
+     rename remounts it and resets the field. An effect on top of that only adds a way for a
+     background update to overwrite what someone is typing. `RulesetSettings` works the same way. */
   const [name, setName] = useState(initial.name);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setName(initial.name);
-  }, [initial.name]);
 
   const mutationError =
     updateGroup.isError && updateGroup.error instanceof Error ? updateGroup.error.message : null;

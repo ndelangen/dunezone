@@ -49,6 +49,93 @@ export interface AssignPopoverProps {
   size?: 'sm' | 'lg';
 }
 
+/** The dropdown's own name and any lines under it. Not a heading — see the note at the call site. */
+function AssignPopoverHeading({
+  labelId,
+  title,
+  descriptionLines,
+}: {
+  labelId: string;
+  title: string;
+  descriptionLines?: string[];
+}) {
+  return (
+    <Stack gap={4}>
+      {/* Not a heading: a popover is not part of the page outline, and the level it would have to
+          claim depends on a caller this component cannot see. It names the dropdown through
+          `aria-labelledby` instead. */}
+      <Text id={labelId} fw={700} fz="h4">
+        {title}
+      </Text>
+      {descriptionLines?.map((line) => (
+        <Text key={line} size="sm" c="dimmed">
+          {line}
+        </Text>
+      ))}
+    </Stack>
+  );
+}
+
+/** The pick itself, mounted only once there is something to choose from. */
+function AssignPopoverPicker({
+  noun,
+  options,
+  searchLabel,
+  submitLabel,
+  selected,
+  onSelect,
+  disabled,
+  isAssigning,
+  onCommit,
+}: {
+  noun: string;
+  options: AssignPopoverOption[];
+  searchLabel?: string;
+  submitLabel?: string;
+  selected: string;
+  onSelect: (value: string) => void;
+  disabled: boolean;
+  isAssigning: boolean;
+  onCommit: () => void;
+}) {
+  return (
+    <Stack gap="md">
+      <Select
+        label={searchLabel ?? `Search ${noun}s`}
+        value={selected || null}
+        onChange={(value) => onSelect(value ?? '')}
+        data={options}
+        searchable
+        clearable
+        placeholder={`Type ${noun} name…`}
+        nothingFoundMessage={`No matching ${noun}s`}
+        comboboxProps={{ withinPortal: false }}
+        disabled={disabled || isAssigning}
+      />
+      <Group justify="flex-end">
+        <Button
+          type="button"
+          leftSection={<Check size={16} aria-hidden />}
+          onClick={onCommit}
+          disabled={disabled || !selected}
+          loading={isAssigning}
+        >
+          {submitLabel ?? `Assign selected ${noun}`}
+        </Button>
+      </Group>
+    </Stack>
+  );
+}
+
+/** One line standing in for the picker while there is nothing to pick, or nothing yet loaded. */
+function AssignPopoverPlaceholder({ children }: { children: string }) {
+  return (
+    <Text size="sm" c="dimmed">
+      {children}
+    </Text>
+  );
+}
+
 function AssignPopoverBody({
   noun,
   options,
@@ -93,19 +180,11 @@ function AssignPopoverBody({
 
   return (
     <Stack gap="md">
-      <Stack gap={4}>
-        {/* Not a heading: a popover is not part of the page outline, and the level it would have to
-            claim depends on a caller this component cannot see. It names the dropdown through
-            `aria-labelledby` instead. */}
-        <Text id={labelId} fw={700} fz="h4">
-          {title ?? `Assign ${noun}`}
-        </Text>
-        {descriptionLines?.map((line) => (
-          <Text key={line} size="sm" c="dimmed">
-            {line}
-          </Text>
-        ))}
-      </Stack>
+      <AssignPopoverHeading
+        labelId={labelId}
+        title={title ?? `Assign ${noun}`}
+        descriptionLines={descriptionLines}
+      />
 
       {error ? (
         <Alert color="red" title={`Could not assign this ${noun}`} role="alert">
@@ -113,41 +192,27 @@ function AssignPopoverBody({
         </Alert>
       ) : null}
 
-      {loading ? (
-        <Text size="sm" c="dimmed">
-          Loading {noun}s…
-        </Text>
-      ) : options.length === 0 ? (
-        <Text size="sm" c="dimmed">
+      {loading ? <AssignPopoverPlaceholder>{`Loading ${noun}s…`}</AssignPopoverPlaceholder> : null}
+
+      {!loading && options.length === 0 ? (
+        <AssignPopoverPlaceholder>
           {emptyMessage ?? `No ${noun}s are available yet.`}
-        </Text>
-      ) : (
-        <Stack gap="md">
-          <Select
-            label={searchLabel ?? `Search ${noun}s`}
-            value={selected || null}
-            onChange={(value) => setSelected(value ?? '')}
-            data={options}
-            searchable
-            clearable
-            placeholder={`Type ${noun} name…`}
-            nothingFoundMessage={`No matching ${noun}s`}
-            comboboxProps={{ withinPortal: false }}
-            disabled={disabled || isAssigning}
-          />
-          <Group justify="flex-end">
-            <Button
-              type="button"
-              leftSection={<Check size={16} aria-hidden />}
-              onClick={() => void commit()}
-              disabled={disabled || !selected}
-              loading={isAssigning}
-            >
-              {submitLabel ?? `Assign selected ${noun}`}
-            </Button>
-          </Group>
-        </Stack>
-      )}
+        </AssignPopoverPlaceholder>
+      ) : null}
+
+      {!loading && options.length > 0 ? (
+        <AssignPopoverPicker
+          noun={noun}
+          options={options}
+          searchLabel={searchLabel}
+          submitLabel={submitLabel}
+          selected={selected}
+          onSelect={setSelected}
+          disabled={disabled}
+          isAssigning={isAssigning}
+          onCommit={() => void commit()}
+        />
+      ) : null}
     </Stack>
   );
 }

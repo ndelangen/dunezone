@@ -252,7 +252,7 @@ This document records durable UI decisions for consistency across features.
   domain-free kit was rebuilt deliberately, category by category, with a rule for what may live
   in each.
 - Rule: The taxonomy in [`AGENTS.md`](../../AGENTS.md#component-taxonomy) is canonical. Six
-  categories under `src/ui` — Content, Controls, Lists, Layout, Surfaces, Blocks — each defined
+  categories under `src/app/ui` — Content, Controls, Lists, Layout, Surfaces, Blocks — each defined
   by what a caller hands the component, and each holding every published component of that kind.
   Feature folders keep only organs. Widgets (`src/app/widgets`) are the last-resort shared assemblies
   with their own rules. The category is the folder; the folder is the Storybook root. (Originally this

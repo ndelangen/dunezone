@@ -23,6 +23,18 @@ function ProfileSettings({ initial }: { initial: ProfileEntry }) {
   const mutationError =
     update.isError && update.error instanceof Error ? update.error.message : null;
 
+  /* `profileSlugBaseFromName` throws when the name has no slug-able characters, and this field is
+     controlled — so an empty or punctuation-only value would take the render down with it. There is
+     nothing to preview in that case, which is also when the rename warning has nothing to warn
+     about. */
+  const slugPreview = (() => {
+    try {
+      return profileSlugBaseFromName(username);
+    } catch {
+      return null;
+    }
+  })();
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     const previousSlug = initial.slug;
@@ -49,12 +61,17 @@ function ProfileSettings({ initial }: { initial: ProfileEntry }) {
         required
         description={
           <>
-            Letters and numbers only, 5–30 characters, not all capitals.{' '}
-            <SlugRenameNotice
-              noun="profile"
-              url={`…/profiles/${profileSlugBaseFromName(username)}`}
-              note="A number is appended when the derived id is already taken."
-            />
+            Letters and numbers only, 5–30 characters, not all capitals.
+            {slugPreview ? (
+              <>
+                {' '}
+                <SlugRenameNotice
+                  noun="profile"
+                  url={`…/profiles/${slugPreview}`}
+                  note="A number is appended when the derived id is already taken."
+                />
+              </>
+            ) : null}
           </>
         }
         value={username}
