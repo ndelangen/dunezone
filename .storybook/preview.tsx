@@ -7,8 +7,8 @@ import '@mantine/core/styles.layer.css';
 import '../src/app/styles/fonts.css';
 import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
+import { appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
-import { appContentTheme } from '../src/ui/theme';
 
 /* Storybook has no backend or auth context. Connected components must opt into
    deterministic, per-story return values from these network-incapable mocks. */

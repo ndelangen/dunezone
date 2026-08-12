@@ -1,8 +1,8 @@
+import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import {
   publisherErrorMessage,
   serializePublisherLogEvent,
-} from '../../src/app/capture/publisher-diagnostics';
-import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
+} from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { absoluteHttpsUrl } from './config';
 import { readBoundedJson, runWithDeadline } from './http';
 

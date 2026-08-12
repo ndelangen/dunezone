@@ -4,58 +4,82 @@
 
 ```mermaid
 flowchart TD
-    Schema[Zod Schema<br/>src/app/<domain>/validation.ts<br/>or src/game/schema/] --> DomainFile[Domain File<br/>src/app/<domain>/db.ts]
+    Schema[Zod Schema<br/>src/shared/<domain>/validation.ts<br/>or src/game/schema/] --> DomainFile[Domain File<br/>src/app/db/<domain>.ts]
     DomainFile --> Types[Types]
-    DomainFile --> QueryKeys[Query Keys]
-    DomainFile --> Queries[Query Hooks]
-    DomainFile --> Mutations[Mutation Hooks]
-    Queries --> TanStackQuery[TanStack Query]
-    Mutations --> TanStackQuery
-    TanStackQuery --> Convex[(Convex)]
+    DomainFile --> Loaders[Loaders<br/>db.query]
+    DomainFile --> Queries[Live query hooks]
+    DomainFile --> Mutations[Mutation hooks]
+    Loaders --> Convex[(Convex)]
+    Queries -->|useQuery + toLiveQueryResult| Convex
+    Mutations -->|useLiveMutation| Convex
 ```
 
-Each domain file follows this structure: types → query keys → queries → mutations.
+Each domain file follows this structure: types → loaders → live query hooks → mutation hooks. There
+are no query keys and no cache; see [State Management](./state-management.md).
+
+## The only doorway to Convex
+
+`src/app/db` is the only place in `src/**` that may import Convex — the generated API, the types
+under `convex/lib`, or the `convex` package. A domain module re-exports the Convex shapes the rest
+of the application needs, so a second import path never opens:
+
+```typescript
+export type { AssignedGroupSummary, MembershipState }; // src/app/db/groups.ts
+```
+
+Enforced by `no-restricted-imports` for all of `src/**` except `src/app/db/**`. See the Convex
+doorway section in [`AGENTS.md`](../AGENTS.md) for why a second doorway costs type precision.
 
 ## Convex Schema
 
-Convex schema and indexes are defined in [`convex/schema.ts`](../convex/schema.ts). Domain-level validation still uses Zod schemas in `src/data/`.
+Convex schema and indexes are defined in [`convex/schema.ts`](../convex/schema.ts). Domain-level Zod
+schemas live in `src/shared/<domain>/validation.ts` and `src/game/schema/`.
 
 ## Basic DB Structure
 
-**Tables**: factions, groups, group_members, profiles
+**Tables**: `users`, `counters`, `profiles`, `groups`, `group_members`, `factions`,
+`publication_assets`, `publication_jobs`, `admin_settings`, `rulesets`, `migration_runs`,
+`ruleset_factions`, `faq_items`, `faq_answers` — plus the Convex Auth tables.
 
-**Pattern**: Domain data is stored in Convex documents, validated with Zod in domain hooks and with function validators in Convex functions. Factions, rulesets, and groups use soft delete.
+**Pattern**: Domain data is stored in Convex documents, validated with function validators at the
+boundary and shared Zod schemas inside the handler. Factions, rulesets, and groups use soft delete.
 
 ## Domain File Pattern
 
 ### 1. Types
 
-Wrap database types with domain types:
+Wrap Convex document types with domain types:
 
 ```typescript
-export type FactionEntry = Omit<Tables<'factions'>, 'data'> & {
-  data: Faction;  // Validated Zod type
+export type FactionRow = Doc<'factions'>;
+export type FactionEntry = Omit<FactionRow, 'data'> & {
+  data: FactionData; // Validated Zod type
 };
 ```
 
-### 2. Query Keys
+### 2. Loaders and hooks
 
-Hierarchical structure for cache invalidation:
+A loader reads once for first paint; the hook subscribes and takes the loader's result as
+`initialData`:
 
 ```typescript
-export const domainKeys = {
-  all: ['domain'] as const,
-  lists: () => [...domainKeys.all, 'list'] as const,
-  list: (filters: object) => [...domainKeys.lists(), filters] as const,
-  detail: (id: string) => [...domainKeys.all, 'detail', id] as const,
-};
+export async function loadFactionCataloguePage(): Promise<FactionCataloguePageData> {
+  const raw = await db.query(api.factions.cataloguePage, {});
+  return toFactionCataloguePageData(raw);
+}
+
+export function useFactionCataloguePage(options?: { initialData?: FactionCataloguePageData }) {
+  const liveData = useQuery(api.factions.cataloguePage, {});
+  const normalized = liveData ? toFactionCataloguePageData(liveData) : undefined;
+  return toLiveQueryResult(normalized, true, () => options?.initialData);
+}
 ```
 
-**Example**: [`src/app/factions/db.ts`](../src/app/factions/db.ts)
+**Example**: [`src/app/db/factions.ts`](../src/app/db/factions.ts)
 
 ## Data Validation
 
-Shared domain Zod schemas in `src/app/<domain>/validation.ts` validate at runtime:
+Shared domain Zod schemas in `src/shared/<domain>/validation.ts` validate at runtime:
 
 - Before database operations (mutations)
 - After database reads (queries)
@@ -112,7 +136,7 @@ export const updateSomething = mutation({
 
 ### Current Exemplars
 
-- Shared profile semantic schema: [`src/app/profile/validation.ts`](../src/app/profile/validation.ts)
+- Shared profile semantic schema: [`src/shared/profiles/validation.ts`](../src/shared/profiles/validation.ts)
 - Server-authoritative parse in mutation: [`convex/profiles.ts`](../convex/profiles.ts)
 
 ## Soft Delete Pattern
@@ -128,10 +152,10 @@ Factions, rulesets, and groups use `is_deleted` flags instead of hard deletes:
   so clients never see a deleted group or a dangling reference
 - Deleted names and slugs stay reserved (see ADR-0003)
 
-**Example**: [`src/app/factions/db.ts`](../src/app/factions/db.ts)
+**Example**: [`src/app/db/factions.ts`](../src/app/db/factions.ts)
 
-## Convex `useQuery` in domain hooks (`src/app/**/db.ts`)
+## Convex `useQuery` in domain hooks (`src/app/db/*.ts`)
 
 Avoid Convex React `"skip"` and `enabled ? args : 'skip'` in domain data modules. When a subscription should not run, **unmount** the component that calls `useQuery` (for example, render a child only when `open && userId`, or split route shells so live-only paths do not mount DB-mode hooks). Route loaders continue to prefetch with `db.query`; route leaves use matching `useQuery` with the same arguments and `initialData` from the loader where applicable.
 
-**Guard**: `bun run check:convex-skip` fails if `"skip"` appears in any `src/app/**/db.ts` file.
+**Guard**: `bun run check:convex-skip` fails if `skip` appears as a quoted string — single, double or backtick — anywhere under `src/app/db/**/*.ts`, `core/` included.

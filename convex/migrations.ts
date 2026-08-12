@@ -2,7 +2,7 @@ import { Migrations } from '@convex-dev/migrations';
 import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 
-import { DEFAULT_FAQ_TAG } from '../src/app/faq/tags';
+import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalQuery, query } from './_generated/server';

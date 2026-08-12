@@ -1,4 +1,4 @@
-import { publisherErrorMessage } from '../../src/app/capture/publisher-diagnostics';
+import { publisherErrorMessage } from '../../src/shared/asset-publishing/publisher-diagnostics';
 
 const DEFAULT_MAX_JSON_BYTES = 1_000_000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;

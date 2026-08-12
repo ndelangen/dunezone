@@ -1,4 +1,4 @@
-import { publisherFailureFields } from '../../src/app/capture/publisher-diagnostics';
+import { publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { openPublisherBrowser } from './browser';
 import { handleCaptureRoute } from './capture-route';
 import { EXECUTOR_REQUEST_MARGIN_MS, MAX_ASSIGNED_ITEMS, parsePublisherConfig } from './config';

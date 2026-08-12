@@ -22,7 +22,9 @@ Confidence comes from three layers, in priority order:
    - Where a semantic Zod schema exists (e.g. canonical faction data), Zod is
      the authority; Convex validators should derive from it (e.g. via
      `zodToConvex` from `convex-helpers`) rather than restate it or escape to
-     `v.any()`.
+     `v.any()`. Still outstanding: `convex/lib/factionData.ts` provides the
+     derived validator, but `convex/schema.ts` keeps `factions.data: v.any()`.
+     This bullet describes the target, not the current state.
    - Plain document shapes derive from `convex/schema.ts`
      (`schema.tables.<t>.validator`).
    - Client types derive from the server contract (`FunctionReturnType`,
@@ -50,8 +52,9 @@ infrastructure state that no type system or e2e spec can express.
 
 - New tests need a reason a type guarantee or an existing e2e path cannot
   cover; "more coverage" is not a reason.
-- #236 is aimed at Zod-derived validators, not just validator deduplication.
-- #241 adds group-membership and FAQ happy-path e2e specs, then retires the
-  client seam tests made redundant by derived types (#234).
+- #236 (Zod-derived validators), #241 (group-membership and FAQ happy-path e2e)
+  and #234 (retiring the client seam tests derived types made redundant) are all
+  closed. The e2e layer is now 6 specs / 450 lines, so the ratio quoted above is
+  historical.
 - Architecture reviews should flag test accumulation against this stack the
   same way they flag shallow modules.

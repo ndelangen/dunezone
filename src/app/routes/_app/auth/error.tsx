@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-
-import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/auth/error')({
   component: AuthErrorPage,

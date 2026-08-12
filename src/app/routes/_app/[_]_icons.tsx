@@ -11,14 +11,14 @@ import {
   Title,
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
+import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { icons, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { TOPIC_ICON_TOPICS, TopicIcon } from '@app/components/content/TopicIcon';
-import type { TopicIconTopic } from '@app/components/content/TopicIcon';
-import { PageLayout } from '@app/components/layout/PageLayout';
 import {
   BACKGROUND,
   DECAL,

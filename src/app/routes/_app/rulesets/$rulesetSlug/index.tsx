@@ -13,12 +13,20 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
+import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@shared/faq/tags';
+import type { FaqTag } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { TopicIcon } from '@ui/content/TopicIcon';
+import { AssignPopover } from '@ui/control/AssignPopover';
 import { IconAction } from '@ui/control/IconAction';
+import { PageLayout } from '@ui/layout/PageLayout';
+import { FaqList } from '@ui/list/FaqList';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -49,15 +57,6 @@ import {
   useRulesetDetailPage,
   useUpdateRuleset,
 } from '@db/rulesets';
-import { viewerActionsFor } from '@app/access/viewerActions';
-import { ProposedContent } from '@app/components/block/ProposedContent';
-import { ProfileLink } from '@app/components/content/ProfileLink';
-import { TopicIcon } from '@app/components/content/TopicIcon';
-import { GroupAssignPopover } from '@app/components/control/GroupAssignPopover';
-import { PageLayout } from '@app/components/layout/PageLayout';
-import { FaqList } from '@app/components/list/FaqList';
-import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
-import type { FaqTag } from '@app/faq/tags';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from '../RulesetDetail.module.css';
@@ -178,10 +177,16 @@ function RulesetDetailPage() {
     deleteRuleset.error?.message ??
     membershipWorkflow.request.error?.message ??
     updateRuleset.error?.message;
-  const actionVisibility = viewerActionsFor(viewerAccess, {
-    hasProfile: Boolean(profile.data?._id),
-    subjectGroupId: r.group_id,
-  });
+  const canChangeGroup = viewerAccess.capabilities.changeGroup;
+  const hasAssignment = r.group_id != null;
+  const actionVisibility = {
+    askQuestion: Boolean(profile.data?._id),
+    canDelete: viewerAccess.capabilities.delete,
+    /** Offer assignment only when the ruleset carries no assignment at all. */
+    assignGroup: canChangeGroup && !hasAssignment,
+    /** Removal stays available for dangling assignments (row assigned, group unresolvable). */
+    removeGroup: canChangeGroup && hasAssignment,
+  };
 
   const handleDelete = () => {
     if (!window.confirm(`Delete ruleset "${r.name}"? This cannot be undone.`)) {
@@ -310,10 +315,16 @@ function RulesetDetailPage() {
                   />
                 ) : null}
                 {actionVisibility.assignGroup ? (
-                  <GroupAssignPopover
+                  <AssignPopover
+                    noun="group"
+                    triggerLabel="Assign group"
+                    icon={<UsersRound size={17} aria-hidden />}
                     disabled={assignRulesetGroup.isPending}
-                    assignableGroups={page.assignableGroups}
-                    onAssignGroup={async (nextGroupId) => {
+                    options={page.assignableGroups.map((group) => ({
+                      value: group.id,
+                      label: `${group.name} (${group.slug})`,
+                    }))}
+                    onAssign={async (nextGroupId) => {
                       await assignRulesetGroup.mutateAsync({
                         id: r._id,
                         input: { name: r.name },
@@ -510,6 +521,12 @@ function RulesetDetailPage() {
             rulesetSlug={r.slug}
             searchQuery={search.q ?? ''}
             selectedTag={search.tag}
+            onOpenQuestion={(questionSlug) =>
+              navigate({
+                to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+                params: { rulesetSlug: r.slug, questionSlug },
+              })
+            }
           />
         </Section>
 

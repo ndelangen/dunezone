@@ -1,13 +1,13 @@
 import { Badge, Button, Group, Stack, Text } from '@mantine/core';
+import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
+import type { FactionSaveState } from '@ui/content/assetPublishingStatus';
 import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { ArrowLeft, Eye, RotateCcw, Save } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { factionAssetPublishingCopy } from '@app/factions/assetPublishingStatus';
-import type { FactionSaveState } from '@app/factions/authoringState';
+import type { PublicAssetPublishingStatusProjection } from '@db/factions';
 
-import type { PublicAssetPublishingStatusProjection } from '../../../../convex/assetPublishingStatus';
 import styles from './FactionAuthoringToolbar.module.css';
 
 function formatPublishedAt(timestamp: number): string {

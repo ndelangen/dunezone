@@ -13,7 +13,11 @@ import {
   Title,
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { formatRelativeDate } from '@ui/content/dates';
+import { ProfileLink } from '@ui/content/ProfileLink';
+import { AssignPopover } from '@ui/control/AssignPopover';
 import { IconAction } from '@ui/control/IconAction';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
@@ -23,6 +27,7 @@ import {
   Check,
   Crown,
   Pencil,
+  Plus,
   Trash2,
   UserPlus,
   UserRoundMinus,
@@ -33,24 +38,25 @@ import {
 import { useFactionsOwnedForGroupAssign, useSetFactionGroup } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
 import { loadGroupDetailBySlug, useDeleteGroup, useGroupDetailBySlug } from '@db/groups';
-import type { GroupDetailPageData } from '@db/groups';
+import type { GroupDetailPageData, MembershipState } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { useRulesetsOwnedForGroupAssign, useUpdateRuleset } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
-import { viewerActionsFor } from '@app/access/viewerActions';
-import { ProfileLink } from '@app/components/content/ProfileLink';
-import { AssetAssignPopover } from '@app/components/groups/AssetAssignPopover';
-import type {
-  AssetAssignOption,
-  AssetAssignPopoverProps,
-} from '@app/components/groups/AssetAssignPopover';
-import { PageLayout } from '@app/components/layout/PageLayout';
-import { formatRelativeDate } from '@app/utils/formatRelativeDate';
 
 import styles from './index.module.css';
 
+/**
+ * The structural minimum both owned-asset queries satisfy. Their validator-derived row types remain
+ * the authority for the shape; this names only the part the picker reads.
+ */
+type AssetAssignOption = {
+  id: string;
+  name: string;
+  groupId: string | null;
+  groupName: string | null;
+};
+
 type RosterEntry = GroupDetailPageData['roster'][number];
-type MembershipStatus = ReturnType<typeof viewerActionsFor>['membershipStatus'];
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/')({
   loader: async ({ params }) => {
@@ -104,7 +110,8 @@ function GroupDetailPage() {
   const groupId = group._id;
   const viewerAccess = page.viewerAccess;
   const ownerProfile = page.owner;
-  const { membershipStatus } = viewerActionsFor(viewerAccess);
+  const membershipStatus =
+    viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const isOwner = viewerAccess.capabilities.rename;
   const isActiveMember = membershipStatus === 'active';
   const isAnonymous = viewerAccess.viewer.kind === 'anonymous';
@@ -307,7 +314,79 @@ function GroupDetailPage() {
 /* Page-local presentation helpers.                                       */
 /* ---------------------------------------------------------------------- */
 
-type AssignPickerProps = Omit<AssetAssignPopoverProps, 'kind' | 'ownedItems' | 'loading'>;
+type AssignPickerProps = {
+  disabled: boolean;
+  currentGroupId: string;
+  currentGroupName: string;
+  onAssign: (item: AssetAssignOption) => Promise<void>;
+};
+
+/**
+ * Labels this viewer's own factions or rulesets for `AssignPopover`, and owns the one thing the kit
+ * control must not: asking before a move. An asset already maintained by another group leaves that
+ * group when it is added here, which is a consequence only this page knows about — so the
+ * confirmation lives here, and backing out resolves `false` to leave the popover open.
+ */
+function OwnedAssetPicker({
+  noun,
+  items,
+  loading,
+  disabled,
+  currentGroupId,
+  currentGroupName,
+  onAssign,
+}: AssignPickerProps & {
+  noun: string;
+  items: AssetAssignOption[];
+  loading: boolean;
+}) {
+  const assignable = items.filter((item) => item.groupId !== currentGroupId);
+  const byId = new Map(assignable.map((item) => [item.id, item]));
+
+  return (
+    <AssignPopover
+      noun={noun}
+      size="sm"
+      icon={<Plus size={14} aria-hidden />}
+      title={`Add a ${noun}`}
+      triggerLabel={`Add a ${noun} you own`}
+      searchLabel={`Search your ${noun}s`}
+      submitLabel="Add to this group"
+      descriptionLines={[
+        `Only ${noun}s you own are listed.`,
+        'Moving one already in another group needs confirmation.',
+      ]}
+      disabled={disabled}
+      loading={loading}
+      options={assignable.map((item) => ({
+        value: item.id,
+        label: item.groupName
+          ? `${item.name} — currently in ${item.groupName}`
+          : `${item.name} — unassigned`,
+      }))}
+      emptyMessage={
+        items.length === 0
+          ? `You don't own any ${noun}s yet.`
+          : `All your ${noun}s are already in this group.`
+      }
+      onAssign={async (value) => {
+        const item = byId.get(value);
+        if (!item) {
+          return false;
+        }
+        if (item.groupId !== null) {
+          const confirmed = window.confirm(
+            `Move "${item.name}" from "${item.groupName}" to "${currentGroupName}"? It will no longer be maintained by "${item.groupName}".`
+          );
+          if (!confirmed) {
+            return false;
+          }
+        }
+        await onAssign(item);
+      }}
+    />
+  );
+}
 
 /**
  * Only mounted for active members (see call sites): the owned-factions query requires
@@ -319,9 +398,9 @@ type AssignPickerProps = Omit<AssetAssignPopoverProps, 'kind' | 'ownedItems' | '
 function FactionAssignPicker(props: AssignPickerProps) {
   const ownedFactionsQuery = useFactionsOwnedForGroupAssign();
   return (
-    <AssetAssignPopover
-      kind="faction"
-      ownedItems={ownedFactionsQuery.data ?? []}
+    <OwnedAssetPicker
+      noun="faction"
+      items={ownedFactionsQuery.data ?? []}
       loading={ownedFactionsQuery.isLoading}
       {...props}
     />
@@ -332,9 +411,9 @@ function FactionAssignPicker(props: AssignPickerProps) {
 function RulesetAssignPicker(props: AssignPickerProps) {
   const ownedRulesetsQuery = useRulesetsOwnedForGroupAssign();
   return (
-    <AssetAssignPopover
-      kind="ruleset"
-      ownedItems={ownedRulesetsQuery.data ?? []}
+    <OwnedAssetPicker
+      noun="ruleset"
+      items={ownedRulesetsQuery.data ?? []}
       loading={ownedRulesetsQuery.isLoading}
       {...props}
     />
@@ -379,19 +458,13 @@ function OwnerLine({
   );
 }
 
-const membershipBadges: Record<MembershipStatus, { color: string; label: string }> = {
+const membershipBadges: Record<MembershipState, { color: string; label: string }> = {
   active: { color: 'green', label: 'Active member' },
   pending: { color: 'yellow', label: 'Pending approval' },
   none: { color: 'gray', label: 'Not a member' },
 };
 
-function MembershipStatusBadge({
-  status,
-  isOwner,
-}: {
-  status: MembershipStatus;
-  isOwner: boolean;
-}) {
+function MembershipStatusBadge({ status, isOwner }: { status: MembershipState; isOwner: boolean }) {
   if (isOwner) {
     return (
       <Badge color="dune" variant="light" leftSection={<Crown size={12} aria-hidden />}>

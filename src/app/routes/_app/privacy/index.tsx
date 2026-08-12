@@ -1,8 +1,7 @@
 import { List, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-
-import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/privacy/')({
   component: PrivacyPage,

@@ -16,10 +16,11 @@
     "paths": {
       "@sb/*": ["./.storybook/*"],
       "@db/core": ["./src/app/db/core/index.ts"],
-      "@db/*": ["./src/app/*/db.ts"],
+      "@db/*": ["./src/app/db/*.ts"],
       "@app/*": ["./src/app/*"],
-      "@ui/*": ["./src/ui/*"],
+      "@ui/*": ["./src/app/ui/*"],
       "@data/*": ["./src/data/*"],
+      "@shared/*": ["./src/shared/*"],
       "@game/*": ["./src/game/*"]
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],

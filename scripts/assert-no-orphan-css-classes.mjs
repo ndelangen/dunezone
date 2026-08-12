@@ -8,10 +8,11 @@
  * That exact mistake shipped three times in one refactor (`.rulesetHeadCover`, `.rulesProof`,
  * `.artifactDesk`) before anyone looked at the CSS.
  *
- * Scoped to the interface tree. `src/game` is print-faithful renderers whose stylesheets are kept
- * in step with SVG templates by hand; they carry known orphans that are not safe to delete without
- * comparing rendered output, so they sit outside this check rather than silently failing it. Widen
- * the scope the day that stops being true.
+ * Scoped to the application tree (which contains the interface kit at `src/app/ui`). `src/game` is
+ * print-faithful renderers whose stylesheets are kept in step with SVG templates by hand; they
+ * carry known orphans that are not safe to delete without comparing rendered output, so they sit
+ * outside this check rather than silently failing it. Widen the scope the day that stops being
+ * true.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
@@ -29,10 +30,8 @@ function filesUnder(root, extensions) {
   );
 }
 
-const cssFiles = [
-  ...filesUnder('src/ui', ['.module.css']),
-  ...filesUnder('src/app', ['.module.css']),
-];
+/* `src/app` now contains the interface kit at `src/app/ui`, so one walk covers both. */
+const cssFiles = filesUnder('src/app', ['.module.css']);
 const sourceFiles = filesUnder('src', ['.ts', '.tsx']);
 
 /**

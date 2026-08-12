@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 
-import { groupInputSchema } from '../src/app/groups/validation';
+import { groupInputSchema } from '../src/shared/groups/validation';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { query } from './_generated/server';

@@ -13,26 +13,26 @@
       }
     },
     {
-      "files": ["src/ui/**"],
+      /**
+       * `src/app/db` is the application's only doorway to Convex.
+       *
+       * Every Convex shape the application needs is re-exported from the domain module that owns
+       * it, so a second import path never opens. Two modules had opened one:
+       * `src/app/factions/assetPublishingStatus.ts`, which only wanted two string-literal unions,
+       * and `src/app/access/viewerActions.ts`, which took the wide `CollaborativeAccess` from
+       * `convex/lib` and re-narrowed it at runtime after every page query had already narrowed it
+       * per kind. Both are gone; the rule keeps the doorway single.
+       */
+      "files": ["src/**"],
+      "excludeFiles": ["src/app/db/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "group": [
-                  "@app/**",
-                  "@db/**",
-                  "@game/**",
-                  "@data/**",
-                  "**/src/app/**",
-                  "**/src/game/**",
-                  "**/src/data/**",
-                  "../**/app/**",
-                  "../**/game/**",
-                  "../**/data/**"
-                ],
-                "message": "src/ui is the domain-free interface kit: it must not know about the application or the game. Move the domain-aware part to the caller, or take it as a prop."
+                "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
+                "message": "Only `src/app/db` may import Convex. Re-export the shape you need from the domain module that owns it (`@db/factions`, `@db/groups`) and import it from there."
               }
             ]
           }
@@ -40,20 +40,128 @@
       }
     },
     {
-      "files": ["convex/lib/collaborativeAccess.ts"],
+      /**
+       * A component renders what it is given; it does not go and get things.
+       *
+       * That is the whole rule, and it is narrower than "domain-free" on purpose. A component may
+       * know the *shape* of what it renders — a `FactionCatalogueEntry` type says exactly that, and
+       * types are erased anyway — and it may compose a game renderer or a pure helper. What it may
+       * not do is reach for data itself, or decide where the reader goes next, because either one
+       * makes it unusable in a story and unusable on a second page.
+       */
+      "files": ["src/app/ui/**"],
+      "excludeFiles": [
+        "src/app/ui/**/*.stories.tsx",
+        "src/app/ui/**/*.stories.fixture.tsx",
+        "src/app/ui/**/*.test.ts",
+        "src/app/ui/**/*.test.tsx"
+      ],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "group": ["**/src/app/**", "../../src/app/**"],
-                "message": "The server policy module must not import client code (ADR-0001; was #233's allowlisted source-text assertion)."
+                "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
+                "message": "A component must not fetch. Convex belongs in a domain module under `src/app/db`; take the result as a prop."
+              },
+              {
+                "group": [
+                  "@db/**",
+                  "@app/db",
+                  "@app/db/**",
+                  "**/src/app/db/**",
+                  "../**/db/*",
+                  "../**/db/core",
+                  "../**/db/core/*"
+                ],
+                "allowTypeImports": true,
+                "message": "A component must not fetch. Import the *type* if you need to say what shape you render (`import type { FactionEntry }`), and take the value as a prop."
+              },
+              {
+                "group": ["@app/shell/**", "@app/widgets/**", "@app/routes/**"],
+                "message": "The kit is imported by the shell, by widgets and by routes — never the other way around."
+              }
+            ],
+            "paths": [
+              {
+                "name": "@tanstack/react-router",
+                "importNames": [
+                  "useNavigate",
+                  "useLoaderData",
+                  "useLoaderDeps",
+                  "useParams",
+                  "useSearch",
+                  "useRouter",
+                  "useRouterState",
+                  "useMatch",
+                  "useMatches",
+                  "useChildMatches",
+                  "useParentMatches",
+                  "useLocation",
+                  "useRouteContext",
+                  "useBlocker",
+                  "useCanGoBack",
+                  "Navigate",
+                  "redirect"
+                ],
+                "message": "A component may point at a place — `Link`, `createLink`, `renderRoot` — but it may not decide to go there, or read the route it happens to be on. Take a callback, or let the caller render the Link."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["convex/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/src/app/**",
+                  "../src/app/**",
+                  "../../src/app/**",
+                  "@app/**",
+                  "@ui/**",
+                  "@db/**"
+                ],
+                "message": "The server must not import client code. A contract both sides need — a Zod schema, a tag vocabulary — belongs in `src/shared/`, which both may import. `@db/*` resolves into `src/app/db` — a domain module, or `core/index.ts` for `@db/core` — so it is client code too."
               },
               {
                 "group": ["**/_generated/server"],
                 "importNames": ["mutation", "internalMutation"],
-                "message": "Use the trigger-aware builders from ./functions instead."
+                "message": "Use the trigger-aware builders from ./functions instead. Restated here because an override replaces the root rule for the files it matches rather than adding to it."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["workers/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/src/app/**",
+                  "../src/app/**",
+                  "../../src/app/**",
+                  "@app/**",
+                  "@ui/**",
+                  "@db/**"
+                ],
+                "message": "The publisher Worker is a separate deploy artifact and must not import application code. Shared runtime contracts belong in `src/shared/`. `@db/*` resolves into `src/app/db` — a domain module, or `core/index.ts` for `@db/core` — so it is application code too."
+              },
+              {
+                "group": ["**/_generated/server"],
+                "importNames": ["mutation", "internalMutation"],
+                "message": "Use the trigger-aware builders from ./functions instead. Restated here because an override replaces the root rule for the files it matches rather than adding to it."
               }
             ]
           }

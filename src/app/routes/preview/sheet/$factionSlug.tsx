@@ -2,11 +2,11 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 import { loadFactionBySlug, useFaction } from '@db/factions';
-import '@app/components/factions/sheet/FactionSheetDocument.css';
-import { FactionSheetView } from '@app/components/factions/sheet/FactionSheetView';
-import { useFactionSheetPostMessage } from '@app/hooks/useFactionSheetPostMessage';
+import '@app/sheet/FactionSheetDocument.css';
+import { FactionSheetView } from '@app/sheet/FactionSheetView';
 
 import { AssetRenderModeProvider } from '../../../../game/assets/assetRenderMode';
+import { useFactionSheetPostMessage } from './-useFactionSheetPostMessage';
 
 export const Route = createFileRoute('/preview/sheet/$factionSlug')({
   validateSearch: (params: Record<string, unknown>): { mode: 'db' | 'live' } => {

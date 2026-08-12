@@ -1,8 +1,13 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
+import { PageLayout } from '@ui/layout/PageLayout';
+import { FactionList } from '@ui/list/FactionList';
+import { FaqAnswersGiven, FaqQuestionsAsked } from '@ui/list/FaqActivity';
 import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
@@ -22,14 +27,6 @@ import {
 } from 'lucide-react';
 
 import { loadProfileBySlug, useCurrentProfile, useProfileBySlug } from '@db/profiles';
-import { ProposedContent } from '@app/components/block/ProposedContent';
-import { TopicIcon } from '@app/components/content/TopicIcon';
-import { PageLayout } from '@app/components/layout/PageLayout';
-import { FactionList } from '@app/components/list/FactionList';
-import {
-  ProfileFaqAnswersGiven,
-  ProfileFaqQuestionsAsked,
-} from '@app/components/profile/ProfileFaqActivity';
 
 import styles from '../ProfileDetail.module.css';
 
@@ -180,7 +177,7 @@ function ProfileDetailPage() {
 
           <Section icon={<MessageCircleReply size={20} aria-hidden />} title="Answers contributed">
             {page.faqAnswers.length > 0 ? (
-              <ProfileFaqAnswersGiven items={page.faqAnswers} viewedProfileId={page.profile._id} />
+              <FaqAnswersGiven items={page.faqAnswers} viewedProfileId={page.profile._id} />
             ) : (
               <Surface padding="lg">
                 <Text size="sm" c="dimmed">
@@ -192,7 +189,7 @@ function ProfileDetailPage() {
 
           <Section icon={<CircleHelp size={20} aria-hidden />} title="Questions asked">
             {page.faqAsked.length > 0 ? (
-              <ProfileFaqQuestionsAsked items={page.faqAsked} />
+              <FaqQuestionsAsked items={page.faqAsked} />
             ) : (
               <Surface padding="lg">
                 <Text size="sm" c="dimmed">

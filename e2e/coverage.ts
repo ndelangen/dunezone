@@ -36,7 +36,7 @@ export const mcrOptions: CoverageReportOptions = {
   /*
    * Two shapes arrive here. Built chunks: filePath is the sourcemap-resolved repo path
    * ("src/app/..."), info.distFile the chunk. Dev modules: filePath is a bare filename
-   * ("AppShell.tsx"), info.distFile the served repo path. Whichever candidate contains src/ wins.
+   * ("AppRoot.tsx"), info.distFile the served repo path. Whichever candidate contains src/ wins.
    */
   sourcePath: (filePath, info) => {
     for (const candidate of [filePath, (info as { distFile?: string } | undefined)?.distFile]) {

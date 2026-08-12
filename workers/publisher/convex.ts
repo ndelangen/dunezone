@@ -1,6 +1,6 @@
-import { publisherErrorMessage } from '../../src/app/capture/publisher-diagnostics';
 import { parseTakeWorkResponse } from '../../src/shared/asset-publishing/publication';
 import type { TakeWorkResult } from '../../src/shared/asset-publishing/publication';
+import { publisherErrorMessage } from '../../src/shared/asset-publishing/publisher-diagnostics';
 
 export type {
   AssignedPublicationJob,

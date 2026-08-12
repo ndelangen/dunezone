@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-
-import { PageLayout } from '@app/components/layout/PageLayout';
+import { PageLayout } from '@ui/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/assets/')({
   component: AssetsPage,

@@ -7,12 +7,12 @@ import type {
   Response as PlaywrightResponse,
 } from '@cloudflare/playwright';
 
+import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import {
   publisherErrorMessage,
   redactPublisherResource,
   sanitizePublisherDiagnostic,
-} from '../../src/app/capture/publisher-diagnostics';
-import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
+} from '../../src/shared/asset-publishing/publisher-diagnostics';
 import {
   assertCapturePhysicalBounds,
   assertReadyCaptureMarker,
