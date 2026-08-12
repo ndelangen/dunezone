@@ -5,15 +5,37 @@
 }
 
 .card {
-  aspect-ratio: 1;
+  display: flex;
   flex-direction: column;
-  padding: 1rem;
   gap: 0.75rem;
+  aspect-ratio: 1;
 }
 
-.coverSlot {
+/* Cover frame: was BlockCover, which existed only for this one grid. */
+.cover {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+  background: rgb(255 255 255 / 8%);
+  border-radius: 4px;
+}
+
+.coverImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.coverPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  text-align: center;
 }
 
 .name {

@@ -1,16 +1,13 @@
 import {
-  ActionIcon,
   Alert,
   Anchor,
   Badge,
   Box,
   Button,
-  Card,
   ColorSwatch,
   Divider,
   Flex,
   Group,
-  Paper,
   SimpleGrid,
   Stack,
   Text,
@@ -19,6 +16,15 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { Section } from '@ui/block/Section';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { IconAction } from '@ui/control/IconAction';
+import { Links } from '@ui/list/Links';
+import { Stats } from '@ui/list/Stats';
+import { Surface } from '@ui/surface';
+import { Card } from '@ui/surface/Card';
+import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
   Download,
@@ -29,15 +35,13 @@ import {
   UserPlus,
   UsersRound,
 } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
 
 import { loadFaction, useFaction } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { viewerActionsFor } from '@app/access/viewerActions';
-import { IconStat } from '@app/components/content/IconStat';
-import { ProfileLink } from '@app/components/profile/ProfileLink';
-import { PageLayout } from '@app/components/shell';
-import { TopicIcon } from '@app/components/topics/TopicIcon';
+import { ProfileLink } from '@app/components/content/ProfileLink';
+import { TopicIcon } from '@app/components/content/TopicIcon';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import { factionAssetPublishingCopy } from '@app/factions/assetPublishingStatus';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -66,12 +70,12 @@ function FactionDetailPending() {
         </Stack>
       }
     >
-      <Paper withBorder p="xl" radius="md" aria-live="polite">
+      <Surface padding="xl">
         <Stack gap="xs">
           <Title order={2}>Loading faction</Title>
           <Text c="dimmed">The faction details are still loading.</Text>
         </Stack>
-      </Paper>
+      </Surface>
     </PageLayout>
   );
 }
@@ -118,12 +122,12 @@ function FactionDetailPage() {
           </Stack>
         }
       >
-        <Paper withBorder p="xl" radius="md">
+        <Surface padding="xl">
           <Stack gap="xs">
             <Title order={2}>Loading faction</Title>
             <Text c="dimmed">The faction details are still loading.</Text>
           </Stack>
-        </Paper>
+        </Surface>
       </PageLayout>
     );
   }
@@ -171,76 +175,65 @@ function FactionDetailPage() {
         </Group>
       }
       toolbar={
-        <Paper withBorder p="sm" radius="md">
-          <Group justify="space-between" gap="sm" wrap="wrap">
+        <Toolbar>
+          <Toolbar.Left>
             <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
-              <Tooltip label="Back to factions">
-                <ActionIcon
-                  variant="light"
-                  color="gray"
-                  size="lg"
-                  aria-label="Back to factions"
-                  renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
-                >
-                  <ArrowLeft size={17} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
+              <IconAction
+                label="Back to factions"
+                variant="light"
+                color="gray"
+                size="lg"
+                renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
+                icon={<ArrowLeft size={17} aria-hidden />}
+              />
               {canEdit ? (
-                <Tooltip label="Edit faction">
-                  <ActionIcon
-                    variant="light"
-                    color="dune"
-                    size="lg"
-                    aria-label="Edit faction"
-                    renderRoot={(rootProps) => (
-                      <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
-                    )}
-                  >
-                    <Pencil size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
-              ) : null}
-            </Group>
-
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Faction actions">
-              <Tooltip label="Preview faction sheet">
-                <ActionIcon
-                  variant="filled"
-                  color="confirm"
+                <IconAction
+                  label="Edit faction"
+                  variant="light"
+                  color="dune"
                   size="lg"
-                  aria-label="Preview faction sheet"
                   renderRoot={(rootProps) => (
-                    <Link
-                      {...rootProps}
-                      to="/preview/sheet/$factionSlug"
-                      params={{ factionSlug: factionId }}
-                      search={{ mode: 'db' }}
-                      target="_blank"
-                    />
+                    <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
                   )}
-                >
-                  <Eye size={17} aria-hidden />
-                </ActionIcon>
-              </Tooltip>
-              {assetPublishing.publicationHref ? (
-                <Tooltip label="Open published PDF">
-                  <ActionIcon
-                    component="a"
-                    variant="light"
-                    color="dune"
-                    size="lg"
-                    aria-label="Open published PDF"
-                    href={assetPublishing.publicationHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Download size={17} aria-hidden />
-                  </ActionIcon>
-                </Tooltip>
+                  icon={<Pencil size={17} aria-hidden />}
+                />
               ) : null}
             </Group>
-          </Group>
-        </Paper>
+          </Toolbar.Left>
+
+          <Toolbar.Right>
+            <Group gap="xs" wrap="wrap" role="group" aria-label="Faction actions">
+              <IconAction
+                label="Preview faction sheet"
+                variant="filled"
+                color="confirm"
+                size="lg"
+                renderRoot={(rootProps) => (
+                  <Link
+                    {...rootProps}
+                    to="/preview/sheet/$factionSlug"
+                    params={{ factionSlug: factionId }}
+                    search={{ mode: 'db' }}
+                    target="_blank"
+                  />
+                )}
+                icon={<Eye size={17} aria-hidden />}
+              />
+              {assetPublishing.publicationHref ? (
+                <IconAction
+                  label="Open published PDF"
+                  variant="light"
+                  color="dune"
+                  size="lg"
+                  href={assetPublishing.publicationHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  icon={<Download size={17} aria-hidden />}
+                />
+              ) : null}
+            </Group>
+          </Toolbar.Right>
+        </Toolbar>
       }
     >
       <Flex
@@ -250,36 +243,30 @@ function FactionDetailPage() {
       >
         <Box miw={0} style={{ flex: '1 1 auto' }}>
           <Stack gap="xl">
-            <Stack component="section" aria-labelledby="leaders-heading" gap="md">
-              <SectionHeading id="leaders-heading" icon={<TopicIcon topic="leaders" size={20} />}>
-                Leaders
-              </SectionHeading>
+            <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">
               <div className={styles.horizontalLane}>
-                {data.leaders.map((leader) => (
+                {/* Position disambiguates: an author may field two identical leaders, and a
+                    faction's lists carry no ids of their own. */}
+                {data.leaders.map((leader, index) => (
                   <article
                     className={styles.leaderTile}
-                    key={`${leader.name}-${leader.image}`}
+                    key={`${leader.name}-${leader.image}-${index}`}
                     title={`${leader.name}, strength ${leader.strength ?? 'not specified'}`}
                   >
                     <LeaderToken {...leader} background={data.background} logo={data.logo} />
                   </article>
                 ))}
               </div>
-            </Stack>
+            </Section>
 
-            <Stack component="section" aria-labelledby="troops-heading" gap="md">
-              <SectionHeading id="troops-heading" icon={<TopicIcon topic="troops" size={20} />}>
-                Troops
-              </SectionHeading>
+            <Section icon={<TopicIcon topic="troops" size={20} />} title="Troops">
               <div className={styles.horizontalLane}>
-                {data.troops.map((troop) => (
-                  <Paper
-                    component="article"
-                    withBorder
-                    p="sm"
-                    radius="md"
+                {data.troops.map((troop, index) => (
+                  <Surface
+                    as="article"
+                    padding="sm"
                     className={styles.troopTile}
-                    key={`${troop.name}-${troop.image}`}
+                    key={`${troop.name}-${troop.image}-${index}`}
                   >
                     <Group wrap="nowrap" gap="md">
                       <div className={styles.troopToken}>
@@ -307,25 +294,20 @@ function FactionDetailPage() {
                         ) : null}
                       </Stack>
                     </Group>
-                  </Paper>
+                  </Surface>
                 ))}
               </div>
-            </Stack>
+            </Section>
 
             {planets.length > 0 ? (
-              <Stack component="section" aria-labelledby="planets-heading" gap="md">
-                <SectionHeading id="planets-heading" icon={<MapPin size={20} aria-hidden />}>
-                  Planets
-                </SectionHeading>
+              <Section icon={<MapPin size={20} aria-hidden />} title="Planets">
                 <div className={styles.horizontalLane}>
-                  {planets.map((planet) => (
-                    <Paper
-                      component="article"
-                      withBorder
-                      p="md"
-                      radius="md"
+                  {planets.map((planet, index) => (
+                    <Surface
+                      as="article"
+                      padding="md"
                       className={styles.planetTile}
-                      key={`${planet.name}-${planet.image}`}
+                      key={`${planet.name}-${planet.image}-${index}`}
                     >
                       <Stack gap="xs">
                         <Text fw={700}>{planet.name}</Text>
@@ -333,32 +315,21 @@ function FactionDetailPage() {
                           {planet.description}
                         </Text>
                       </Stack>
-                    </Paper>
+                    </Surface>
                   ))}
                 </div>
-              </Stack>
+              </Section>
             ) : null}
 
-            <Stack component="section" aria-labelledby="advantages-heading" gap="md">
-              <SectionHeading
-                id="advantages-heading"
-                icon={<TopicIcon topic="advantages" size={20} />}
-              >
-                Advantages
-              </SectionHeading>
+            <Section icon={<TopicIcon topic="advantages" size={20} />} title="Advantages">
               {data.rules.advantages.length > 0 ? (
                 <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                   {data.rules.advantages.map((advantage, index) => (
                     <Card
-                      key={`${advantage.title ?? 'advantage'}-${advantage.text}`}
-                      withBorder
-                      padding="lg"
-                      radius="md"
+                      key={`${advantage.title ?? 'advantage'}-${advantage.text}-${index}`}
+                      title={advantage.title ?? `Advantage ${index + 1}`}
                     >
                       <Stack gap="sm">
-                        <Title order={3} size="h4">
-                          {advantage.title ?? `Advantage ${index + 1}`}
-                        </Title>
                         <Text size="sm">{advantage.text}</Text>
                         {advantage.karama ? (
                           <Group gap="xs" wrap="nowrap" align="flex-start">
@@ -373,28 +344,21 @@ function FactionDetailPage() {
                   ))}
                 </SimpleGrid>
               ) : (
-                <Paper withBorder p="lg" radius="md">
+                <Surface padding="lg">
                   <Text c="dimmed">No faction advantages have been added yet.</Text>
-                </Paper>
+                </Surface>
               )}
-            </Stack>
+            </Section>
 
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-              <Card withBorder padding="lg" radius="md">
-                <Stack gap="md">
-                  <SectionHeading icon={<TopicIcon topic="alliance" size={20} />} order={3}>
-                    Alliance
-                  </SectionHeading>
-                  <Text size="sm">{data.rules.alliance.text}</Text>
-                </Stack>
+              <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
+                <Text size="sm">{data.rules.alliance.text}</Text>
               </Card>
-              <Card withBorder padding="lg" radius="md">
-                <Stack gap="md">
-                  <SectionHeading icon={<TopicIcon topic="fate" size={20} />} order={3}>
-                    {data.rules.fate.title ?? 'Fate'}
-                  </SectionHeading>
-                  <Text size="sm">{data.rules.fate.text}</Text>
-                </Stack>
+              <Card
+                icon={<TopicIcon topic="fate" size={20} />}
+                title={data.rules.fate.title || 'Fate'}
+              >
+                <Text size="sm">{data.rules.fate.text}</Text>
               </Card>
             </SimpleGrid>
           </Stack>
@@ -408,10 +372,7 @@ function FactionDetailPage() {
           miw={0}
           style={{ flex: '0 0 auto' }}
         >
-          <Stack component="section" aria-labelledby="faction-leader-heading" gap="md">
-            <SectionHeading id="faction-leader-heading" icon={<TopicIcon topic="hero" size={20} />}>
-              Faction leader
-            </SectionHeading>
+          <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
             <div className={styles.loreHeroToken}>
               <LeaderToken
                 {...data.hero}
@@ -420,35 +381,39 @@ function FactionDetailPage() {
                 logo={data.logo}
               />
             </div>
-          </Stack>
+          </Section>
 
-          <Stack component="section" aria-labelledby="setup-heading" gap="md">
-            <SectionHeading id="setup-heading" icon={<TopicIcon topic="setup" size={20} />}>
-              Setup
-            </SectionHeading>
-            <Card withBorder padding="lg" radius="md">
+          <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
+            <Surface padding="lg">
               <Stack gap="lg">
                 <Box>
                   <Title order={3} size="h4">
                     Components
                   </Title>
-                  <Group gap="lg" mt="sm" wrap="wrap">
-                    <IconStat
-                      icon={<TopicIcon topic="spice" size={17} />}
-                      value={data.rules.spiceCount}
-                      label={`${data.rules.spiceCount} spice`}
+                  <Box mt="sm">
+                    <Stats
+                      items={[
+                        {
+                          key: 'spice',
+                          icon: <TopicIcon topic="spice" size={17} />,
+                          value: data.rules.spiceCount,
+                          label: `${data.rules.spiceCount} spice`,
+                        },
+                        {
+                          key: 'leaders',
+                          icon: <TopicIcon topic="leaders" size={17} />,
+                          value: data.leaders.length,
+                          label: `${data.leaders.length} ${data.leaders.length === 1 ? 'leader' : 'leaders'}`,
+                        },
+                        {
+                          key: 'troops',
+                          icon: <TopicIcon topic="troops" size={17} />,
+                          value: troopCount,
+                          label: `${troopCount} ${troopCount === 1 ? 'troop' : 'troops'}`,
+                        },
+                      ]}
                     />
-                    <IconStat
-                      icon={<TopicIcon topic="leaders" size={17} />}
-                      value={data.leaders.length}
-                      label={`${data.leaders.length} ${data.leaders.length === 1 ? 'leader' : 'leaders'}`}
-                    />
-                    <IconStat
-                      icon={<TopicIcon topic="troops" size={17} />}
-                      value={troopCount}
-                      label={`${troopCount} ${troopCount === 1 ? 'troop' : 'troops'}`}
-                    />
-                  </Group>
+                  </Box>
                   <Stack gap="xs" mt="lg">
                     <Title order={4} size="h5">
                       Preferred TTS color
@@ -491,120 +456,112 @@ function FactionDetailPage() {
                   </Text>
                 </Box>
               </Stack>
-            </Card>
-          </Stack>
+            </Surface>
+          </Section>
 
-          <Card withBorder padding="lg" radius="md">
-            <Stack gap="md">
-              <SectionHeading icon={<UsersRound size={20} aria-hidden />}>
-                Stewardship
-              </SectionHeading>
-              {!assignedGroup ? (
-                <Text size="sm" c="dimmed">
-                  No maintaining group.
-                </Text>
-              ) : (
-                <Stack gap="sm">
-                  <Box>
-                    <Text size="xs" c="dimmed" fw={700} tt="uppercase">
-                      Maintaining group
-                    </Text>
-                    {assignedGroup.slug ? (
-                      <Anchor
-                        fw={600}
-                        renderRoot={(rootProps) => (
-                          <Link
-                            {...rootProps}
-                            to="/groups/$groupSlug"
-                            params={{ groupSlug: assignedGroup.slug }}
-                          />
-                        )}
-                      >
-                        {assignedGroup.name}
-                      </Anchor>
-                    ) : (
-                      <Text fw={600}>{assignedGroup.name}</Text>
-                    )}
-                  </Box>
-                  <Group justify="space-between" gap="xs">
-                    <Text size="sm" c="dimmed">
-                      Your membership
-                    </Text>
-                    <Badge
-                      color={
-                        membershipStatus === 'active'
-                          ? 'green'
-                          : membershipStatus === 'pending'
-                            ? 'yellow'
-                            : 'gray'
-                      }
-                      variant="light"
+          <Card icon={<UsersRound size={20} aria-hidden />} title="Stewardship">
+            {!assignedGroup ? (
+              <Text size="sm" c="dimmed">
+                No maintaining group.
+              </Text>
+            ) : (
+              <Stack gap="sm">
+                <Box>
+                  <Eyebrow>Maintaining group</Eyebrow>
+                  {assignedGroup.slug ? (
+                    <Anchor
+                      fw={600}
+                      renderRoot={(rootProps) => (
+                        <Link
+                          {...rootProps}
+                          to="/groups/$groupSlug"
+                          params={{ groupSlug: assignedGroup.slug }}
+                        />
+                      )}
                     >
-                      {membershipStatus === 'active'
-                        ? 'Active'
+                      {assignedGroup.name}
+                    </Anchor>
+                  ) : (
+                    <Text fw={600}>{assignedGroup.name}</Text>
+                  )}
+                </Box>
+                <Group justify="space-between" gap="xs">
+                  <Text size="sm" c="dimmed">
+                    Your membership
+                  </Text>
+                  <StatusBadge
+                    tone={
+                      membershipStatus === 'active'
+                        ? 'positive'
                         : membershipStatus === 'pending'
-                          ? 'Pending'
-                          : 'Not a member'}
-                    </Badge>
-                  </Group>
-                  {viewerAccess?.viewer.kind === 'anonymous' ? (
-                    <Text size="sm">
-                      <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
-                        Log in
-                      </Anchor>{' '}
-                      to join.
-                    </Text>
-                  ) : null}
-                  {canRequestMembership ? (
-                    <Button
-                      type="button"
-                      variant="light"
-                      leftSection={<UserPlus size={16} aria-hidden />}
-                      loading={membershipWorkflow.request.isPending}
-                      onClick={() =>
-                        void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)
-                      }
-                    >
-                      Request membership
-                    </Button>
-                  ) : null}
-                </Stack>
-              )}
-              {membershipWorkflow.request.isError ? (
-                <Alert color="red" title="Membership request failed" role="alert">
-                  {membershipWorkflow.request.error?.message}
-                </Alert>
-              ) : null}
-            </Stack>
+                          ? 'pending'
+                          : 'neutral'
+                    }
+                  >
+                    {membershipStatus === 'active'
+                      ? 'Active'
+                      : membershipStatus === 'pending'
+                        ? 'Pending'
+                        : 'Not a member'}
+                  </StatusBadge>
+                </Group>
+                {viewerAccess?.viewer.kind === 'anonymous' ? (
+                  <Text size="sm">
+                    <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
+                      Log in
+                    </Anchor>{' '}
+                    to join.
+                  </Text>
+                ) : null}
+                {canRequestMembership ? (
+                  <Button
+                    type="button"
+                    variant="light"
+                    leftSection={<UserPlus size={16} aria-hidden />}
+                    loading={membershipWorkflow.request.isPending}
+                    onClick={() =>
+                      void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)
+                    }
+                  >
+                    Request membership
+                  </Button>
+                ) : null}
+              </Stack>
+            )}
+            {membershipWorkflow.request.isError ? (
+              <Alert color="red" title="Membership request failed" role="alert">
+                {membershipWorkflow.request.error?.message}
+              </Alert>
+            ) : null}
           </Card>
 
-          <Card withBorder padding="lg" radius="md">
-            <Stack gap="sm">
-              <Group justify="space-between" align="flex-start" gap="sm">
-                <SectionHeading icon={<FileText size={20} aria-hidden />}>Files</SectionHeading>
-                <Badge
-                  variant="light"
-                  color={
-                    publishingStatus === 'current'
-                      ? 'green'
-                      : publishingStatus === 'scheduled'
-                        ? 'yellow'
-                        : publishingStatus === 'in_progress'
-                          ? 'blue'
-                          : 'gray'
-                  }
-                  role="status"
-                  aria-live="polite"
-                >
-                  {publishingStatus === 'in_progress'
-                    ? 'In progress'
+          <Card
+            icon={<FileText size={20} aria-hidden />}
+            title="Files"
+            action={
+              <StatusBadge
+                live
+                tone={
+                  publishingStatus === 'current'
+                    ? 'positive'
                     : publishingStatus === 'scheduled'
-                      ? 'Scheduled'
-                      : publishingStatus === 'current'
-                        ? 'Current'
-                        : 'Unavailable'}
-                </Badge>
-              </Group>
+                      ? 'pending'
+                      : publishingStatus === 'in_progress'
+                        ? 'progress'
+                        : 'neutral'
+                }
+              >
+                {publishingStatus === 'in_progress'
+                  ? 'In progress'
+                  : publishingStatus === 'scheduled'
+                    ? 'Scheduled'
+                    : publishingStatus === 'current'
+                      ? 'Current'
+                      : 'Unavailable'}
+              </StatusBadge>
+            }
+          >
+            <Stack gap="sm">
               <Text size="sm" c="dimmed">
                 {factionAssetPublishingCopy(
                   assetPublishing.status,
@@ -628,58 +585,27 @@ function FactionDetailPage() {
             </Stack>
           </Card>
 
-          <Card withBorder padding="lg" radius="md">
-            <Stack gap="sm">
-              <SectionHeading icon={<TopicIcon topic="rulesets" size={20} />}>
-                Rulesets
-              </SectionHeading>
-              {rulesets.length > 0 ? (
-                <Stack component="ul" gap="xs" m={0} pl="lg">
-                  {rulesets.map((ruleset) => (
-                    <li key={ruleset.id}>
-                      <Anchor
-                        renderRoot={(rootProps) => (
-                          <Link
-                            {...rootProps}
-                            to="/rulesets/$rulesetSlug"
-                            params={{ rulesetSlug: ruleset.slug }}
-                          />
-                        )}
-                      >
-                        {ruleset.name}
-                      </Anchor>
-                    </li>
-                  ))}
-                </Stack>
-              ) : (
-                <Text size="sm" c="dimmed">
-                  Not in a ruleset yet.
-                </Text>
-              )}
-            </Stack>
+          <Card icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets">
+            {rulesets.length === 0 ? (
+              <Text size="sm" c="dimmed">
+                Not in a ruleset yet.
+              </Text>
+            ) : (
+              <Links>
+                {rulesets.map((ruleset) => (
+                  <Links.Item
+                    key={ruleset.id}
+                    to="/rulesets/$rulesetSlug"
+                    params={{ rulesetSlug: ruleset.slug }}
+                  >
+                    {ruleset.name}
+                  </Links.Item>
+                ))}
+              </Links>
+            )}
           </Card>
         </Stack>
       </Flex>
     </PageLayout>
-  );
-}
-
-function SectionHeading({
-  icon,
-  children,
-  order = 2,
-  ...props
-}: {
-  icon: ReactNode;
-  children: ReactNode;
-  order?: 2 | 3;
-} & ComponentProps<typeof Group>) {
-  return (
-    <Group gap="xs" wrap="nowrap" c="var(--color-text, var(--mantine-color-text))" {...props}>
-      <Title order={order} size={order === 2 ? 'h3' : 'h4'}>
-        {children}
-      </Title>
-      {icon}
-    </Group>
   );
 }

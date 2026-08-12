@@ -25,53 +25,52 @@ const managerTitleScript = `
 export default defineMain({
   stories: [
     {
-      directory: '../src/app/components/factions',
-      files: '*.stories.tsx',
-      titlePrefix: 'Application/Factions',
+      directory: '../src/app/widgets/faction-editor',
+      titlePrefix: 'Widgets/Faction Editor',
     },
     {
-      directory: '../src/app/components/factions/editor',
-      titlePrefix: 'Application/Factions/Editor',
+      directory: '../src/ui/block',
+      titlePrefix: 'Blocks',
     },
     {
-      directory: '../src/app/components/faq',
-      titlePrefix: 'Application/FAQ',
+      directory: '../src/app/components/block',
+      titlePrefix: 'Blocks',
     },
     {
-      directory: '../src/app/components/groups',
-      titlePrefix: 'Application/Groups',
+      directory: '../src/ui/control',
+      titlePrefix: 'Controls',
     },
     {
-      directory: '../src/app/components/topics',
-      titlePrefix: 'Application/Topics',
+      directory: '../src/app/components/control',
+      titlePrefix: 'Controls',
+    },
+    {
+      directory: '../src/ui/content',
+      titlePrefix: 'Content',
     },
     {
       directory: '../src/app/components/content',
-      titlePrefix: 'Application/Shared Content',
+      titlePrefix: 'Content',
     },
     {
-      directory: '../src/app/components/foundation',
-      titlePrefix: 'Application/Foundation',
+      directory: '../src/ui/list',
+      titlePrefix: 'Lists',
+    },
+    {
+      directory: '../src/app/components/list',
+      titlePrefix: 'Lists',
+    },
+    {
+      directory: '../src/ui/surface',
+      titlePrefix: 'Surfaces',
+    },
+    {
+      directory: '../src/ui/layout',
+      titlePrefix: 'Layout',
     },
     {
       directory: '../src/app/components/layout',
-      titlePrefix: 'Application/Layout',
-    },
-    {
-      directory: '../src/app/components/form',
-      titlePrefix: 'Application/Legacy/Form',
-    },
-    {
-      directory: '../src/app/components/generic/layout',
-      titlePrefix: 'Application/Legacy/Layout',
-    },
-    {
-      directory: '../src/app/components/generic/surfaces',
-      titlePrefix: 'Application/Legacy/Surfaces',
-    },
-    {
-      directory: '../src/app/components/generic/ui',
-      titlePrefix: 'Application/Legacy/UI',
+      titlePrefix: 'Layout',
     },
     {
       directory: '../src/game/assets/faction',

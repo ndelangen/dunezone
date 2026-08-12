@@ -95,29 +95,6 @@
   min-width: 0;
 }
 
-.factionToken {
-  position: relative;
-  display: grid;
-  flex: 0 0 4rem;
-  width: 4rem;
-  height: 4rem;
-  place-items: center;
-  overflow: hidden;
-  color: var(--mantine-color-dune-8);
-  border-radius: 50%;
-  background: var(--mantine-color-dune-1);
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.28));
-}
-
-.factionToken > * {
-  position: absolute;
-  inset: 0;
-}
-
-.factionToken > span {
-  inset: auto;
-}
-
 @media (max-width: 62em) {
   .detailGrid {
     grid-template-areas:

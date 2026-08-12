@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { Surface } from '@ui/surface';
 
-import { Card } from '@app/components/generic/surfaces/Card';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 
 export const Route = createFileRoute('/_app/auth/error')({
   component: AuthErrorPage,
@@ -18,10 +18,10 @@ function AuthErrorPage() {
 
   return (
     <PageLayout header={<h1>Sign-in error</h1>}>
-      <Card>
+      <Surface padding="lg">
         <h2>Sorry, something went wrong.</h2>
         {params?.error ? <p>Code error: {params.error}</p> : <p>An unspecified error occurred.</p>}
-      </Card>
+      </Surface>
     </PageLayout>
   );
 }

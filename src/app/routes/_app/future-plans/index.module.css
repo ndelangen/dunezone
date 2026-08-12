@@ -11,18 +11,6 @@
   line-height: 0.98;
 }
 
-.eyebrow {
-  color: var(--mantine-color-dune-8);
-  font-size: var(--mantine-font-size-xs);
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.hero .eyebrow {
-  color: var(--mantine-color-yellow-2);
-}
-
 .atlasFrame {
   padding: 3.5rem clamp(0rem, 2vw, 1.5rem) 1rem;
 }

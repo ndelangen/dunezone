@@ -1,9 +1,8 @@
 import { useAuthActions } from '@convex-dev/auth/react';
+import { Stack } from '@mantine/core';
 import { useState } from 'react';
 import type { ComponentPropsWithoutRef } from 'react';
 import { SiDiscord } from 'react-icons/si';
-
-import { Stack } from '@app/components/generic/layout';
 
 import { GoogleColoredMark } from './GoogleColoredMark';
 import styles from './LoginForm.module.css';
@@ -59,8 +58,8 @@ export function LoginForm(props: ComponentPropsWithoutRef<'div'>) {
   return (
     <div className={styles.root} {...props}>
       <Stack
-        as="form"
-        gap={3}
+        component="form"
+        gap="sm"
         onSubmit={(e) => {
           if (localAuthEnabled) {
             void handleLocalLogin(e);

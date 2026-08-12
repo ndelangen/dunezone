@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 
 import { useCurrentProfile } from '@db/profiles';
-import { ProfileLink } from '@app/components/profile/ProfileLink';
+import { ProfileLink } from '@app/components/content/ProfileLink';
 
 import styles from './SiteNavigation.module.css';
 

@@ -1,12 +1,9 @@
+import { Button, Group, Stack, TextInput } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useUpdateCurrentProfile } from '@db/profiles';
 import type { ProfileEntry } from '@db/profiles';
-import { FormField } from '@app/components/form/FormField';
-import { TextField } from '@app/components/form/TextField';
-import { ButtonGroup, Stack } from '@app/components/generic/layout';
-import { UIButton } from '@app/components/generic/ui/UIButton';
 import { profileSlugBaseFromName } from '@app/profile/validation';
 
 export function ProfileSettingsForm({ initial }: { initial: ProfileEntry }) {
@@ -41,11 +38,11 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileEntry }) {
     update.isError && update.error instanceof Error ? update.error.message : null;
 
   return (
-    <Stack as="form" gap={3} onSubmit={handleSubmit}>
-      <FormField
+    <Stack component="form" gap="sm" onSubmit={handleSubmit}>
+      <TextInput
         label="Display name"
-        htmlFor="profile-display-name"
-        hint={
+        required
+        description={
           <>
             Letters and numbers only, 5–30 characters, not all capitals. Your public profile URL
             uses an id derived from this name (e.g. <code>…/profiles/{basePreview}</code>, with a
@@ -53,41 +50,33 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileEntry }) {
             may break—including bookmarks and pasted links.
           </>
         }
-      >
-        <TextField
-          id="profile-display-name"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          autoComplete="nickname"
-          maxLength={30}
-        />
-      </FormField>
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        autoComplete="nickname"
+        maxLength={30}
+      />
 
-      <FormField
+      <TextInput
         label="Avatar image URL"
-        htmlFor="profile-avatar-url"
-        hint={
+        required
+        description={
           <>
-            Must be a full <code>https://</code> URL. Avatar URL is required.
+            Must be a full <code>https://</code> URL.
           </>
         }
-      >
-        <TextField
-          id="profile-avatar-url"
-          type="url"
-          value={avatarUrl}
-          onChange={(e) => setAvatarUrl(e.target.value)}
-          placeholder="https://…"
-          autoComplete="off"
-        />
-      </FormField>
+        type="url"
+        value={avatarUrl}
+        onChange={(e) => setAvatarUrl(e.target.value)}
+        placeholder="https://…"
+        autoComplete="off"
+      />
 
       {mutationError && <p role="alert">{mutationError}</p>}
-      <ButtonGroup>
-        <UIButton type="submit" iconOnly={false} disabled={update.isPending}>
+      <Group gap="xs" wrap="nowrap">
+        <Button variant="filled" color="confirm" type="submit" disabled={update.isPending}>
           {update.isPending ? 'Saving…' : 'Save profile'}
-        </UIButton>
-      </ButtonGroup>
+        </Button>
+      </Group>
     </Stack>
   );
 }

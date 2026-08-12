@@ -1,12 +1,11 @@
+import { Group, Stack } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
+import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
 import { useCurrentProfile } from '@db/profiles';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { ButtonGroup, Stack } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import {
   loadAdminMigrationDashboard,
   useAdminMigrationDashboard,
@@ -35,35 +34,34 @@ function AdminMigrationsPage() {
   if (!profile.data?._id) {
     return (
       <PageLayout header={<h1>Migration activity</h1>}>
-        <Card>
+        <Surface padding="lg">
           <p>
             <Link to="/auth/login">Log in</Link> to view migration activity.
           </p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
 
   return (
     <PageLayout header={<h1>Migration activity</h1>}>
-      <Stack gap={3}>
+      <Stack gap="sm">
         {dashboardQuery.isPending && <p>Loading migration dashboard…</p>}
-        <Card>
-          <Stack gap={2}>
+        <Surface padding="lg">
+          <Stack gap="xs">
             <h2>Live migration status</h2>
-            <ButtonGroup>
-              <FormTooltip content="Sync status snapshot to migration_runs table">
-                <UIButton
-                  type="button"
-                  iconOnly
-                  aria-label="Sync migration status"
-                  disabled={syncRuns.isPending}
-                  onClick={() => syncRuns.mutate({})}
-                >
-                  <RefreshCw size={16} aria-hidden />
-                </UIButton>
-              </FormTooltip>
-            </ButtonGroup>
+            <Group gap="xs" wrap="nowrap">
+              <IconAction
+                label="Sync migration status"
+                tooltip="Sync status snapshot to migration_runs table"
+                variant="filled"
+                color="confirm"
+                size="lg"
+                disabled={syncRuns.isPending}
+                onClick={() => syncRuns.mutate({})}
+                icon={<RefreshCw size={16} aria-hidden />}
+              />
+            </Group>
             <table>
               <thead>
                 <tr>
@@ -91,10 +89,10 @@ function AdminMigrationsPage() {
               </tbody>
             </table>
           </Stack>
-        </Card>
+        </Surface>
 
-        <Card>
-          <Stack gap={2}>
+        <Surface padding="lg">
+          <Stack gap="xs">
             <h2>Recorded snapshots</h2>
             <table>
               <thead>
@@ -121,7 +119,7 @@ function AdminMigrationsPage() {
               </tbody>
             </table>
           </Stack>
-        </Card>
+        </Surface>
       </Stack>
     </PageLayout>
   );

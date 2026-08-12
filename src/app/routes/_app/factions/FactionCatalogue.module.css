@@ -10,23 +10,12 @@
   min-width: 0;
 }
 
-.toolbar {
-  background: color-mix(in srgb, var(--mantine-color-white) 76%, transparent);
-  backdrop-filter: blur(9px);
-}
-
-.toolbarGrid {
-  display: grid;
-  grid-template-columns: minmax(7rem, 1fr) minmax(28rem, 44rem) minmax(3rem, 1fr);
-  gap: var(--mantine-spacing-md);
-  align-items: center;
-}
-
-.resultCount {
-  justify-self: start;
-}
-
 .joinedFilters {
+  /* The width the toolbar's centre takes. It belongs here because it is a fact about this field —
+     three controls joined into one — not about toolbars. `min-width: 0` keeps it shrinkable, so
+     narrow viewports narrow the field rather than overflowing the band. */
+  width: 44rem;
+
   display: flex;
   align-items: stretch;
   min-width: 0;
@@ -55,16 +44,6 @@
   display: none;
 }
 
-.toolbarCreateButton {
-  justify-self: end;
-}
-
-.stateCard {
-  width: min(100%, 32rem);
-  align-self: center;
-  text-align: center;
-}
-
 @media (max-width: 48em) {
   .catalogueHeader {
     gap: var(--mantine-spacing-sm);
@@ -84,11 +63,6 @@
 
   .spotlightRail {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--mantine-spacing-xs);
-  }
-
-  .toolbarGrid {
-    grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--mantine-spacing-xs);
   }
 

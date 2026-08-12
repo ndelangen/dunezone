@@ -1,17 +1,13 @@
+import { Group, Input, Stack, Textarea } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { IconAction } from '@ui/control/IconAction';
+import { Surface } from '@ui/surface';
 import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
-import { Answer } from '@app/components/faq/Answer';
-import { FormField } from '@app/components/form/FormField';
-import { FormTooltip } from '@app/components/form/FormTooltip';
-import { MultilineTextField } from '@app/components/form/MultilineTextField';
-import { ButtonGroup, Stack } from '@app/components/generic/layout';
-import { Card } from '@app/components/generic/surfaces/Card';
-import { UIButton } from '@app/components/generic/ui/UIButton';
-import { ProfileLink } from '@app/components/profile/ProfileLink';
-import { PageLayout } from '@app/components/shell';
+import { ProfileLink } from '@app/components/content/ProfileLink';
+import { PageLayout } from '@app/components/layout/PageLayout';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from '@app/faq/faqEditingSession';
 import type { FaqEditingSession } from '@app/faq/faqEditingSession';
 import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@app/faq/tags';
@@ -103,10 +99,10 @@ function FaqDetailPage() {
   if (loaderData?.notFound) {
     return (
       <PageLayout header={header}>
-        <Card>
+        <Surface padding="lg">
           <h2>Question not found</h2>
           <p>This FAQ question does not exist in this ruleset.</p>
-        </Card>
+        </Surface>
       </PageLayout>
     );
   }
@@ -143,20 +139,19 @@ function FaqDetailPage() {
 
   return (
     <PageLayout header={header}>
-      <Card>
-        <Stack gap={4}>
-          <Stack gap={3}>
+      <Surface padding="lg">
+        <Stack gap="md">
+          <Stack gap="sm">
             {editing.editingQuestion ? (
-              <Stack gap={3}>
-                <FormField label="Edit question">
-                  <MultilineTextField
-                    value={editing.questionValue}
-                    onChange={(e) => editingSession.setQuestionValue(e.target.value)}
-                    rows={2}
-                  />
-                </FormField>
-                <FormField label="Tags">
-                  <Stack as="fieldset" gap={2} className={styles.tagFieldset}>
+              <Stack gap="sm">
+                <Textarea
+                  label="Edit question"
+                  value={editing.questionValue}
+                  onChange={(e) => editingSession.setQuestionValue(e.target.value)}
+                  rows={2}
+                />
+                <Input.Wrapper label="Tags">
+                  <Stack component="fieldset" gap="xs" className={styles.tagFieldset}>
                     <legend className={styles.visuallyHidden}>FAQ tags</legend>
                     {FAQ_TAG_VALUES.map((tag) => (
                       <label key={tag} className={styles.tagOption}>
@@ -169,34 +164,29 @@ function FaqDetailPage() {
                       </label>
                     ))}
                   </Stack>
-                </FormField>
-                <ButtonGroup>
-                  <FormTooltip content="Save question">
-                    <UIButton
-                      type="button"
-                      iconOnly
-                      aria-label="Save question"
-                      onClick={() => saveQuestion()}
-                      disabled={faq.editQuestion.isPending}
-                    >
-                      <Check size={16} aria-hidden />
-                    </UIButton>
-                  </FormTooltip>
-                  <FormTooltip content="Cancel editing question">
-                    <UIButton
-                      variant="secondary"
-                      type="button"
-                      iconOnly
-                      aria-label="Cancel editing question"
-                      onClick={() => editingSession.cancelQuestion()}
-                    >
-                      <X size={16} aria-hidden />
-                    </UIButton>
-                  </FormTooltip>
+                </Input.Wrapper>
+                <Group gap="xs" wrap="nowrap">
+                  <IconAction
+                    label="Save question"
+                    variant="filled"
+                    color="confirm"
+                    size="lg"
+                    onClick={() => saveQuestion()}
+                    disabled={faq.editQuestion.isPending}
+                    icon={<Check size={16} aria-hidden />}
+                  />
+                  <IconAction
+                    label="Cancel editing question"
+                    variant="light"
+                    color="dune"
+                    size="lg"
+                    onClick={() => editingSession.cancelQuestion()}
+                    icon={<X size={16} aria-hidden />}
+                  />
                   {faq.editQuestion.isError && (
                     <span className={styles.error}>{faq.editQuestion.error?.message}</span>
                   )}
-                </ButtonGroup>
+                </Group>
               </Stack>
             ) : (
               <>
@@ -214,33 +204,28 @@ function FaqDetailPage() {
                   </div>
                 </div>
                 {item.capabilities.editQuestion && (
-                  <ButtonGroup>
-                    <FormTooltip content="Edit question">
-                      <UIButton
-                        type="button"
-                        iconOnly
-                        aria-label="Edit question"
-                        onClick={startEditQuestion}
-                      >
-                        <Pencil size={16} aria-hidden />
-                      </UIButton>
-                    </FormTooltip>
-                    <FormTooltip content="Delete question">
-                      <UIButton
-                        variant="critical"
-                        type="button"
-                        iconOnly
-                        aria-label="Delete question"
-                        onClick={handleDeleteQuestion}
-                        disabled={faq.deleteQuestion.isPending}
-                      >
-                        <Trash2 size={16} aria-hidden />
-                      </UIButton>
-                    </FormTooltip>
+                  <Group gap="xs" wrap="nowrap">
+                    <IconAction
+                      label="Edit question"
+                      variant="filled"
+                      color="confirm"
+                      size="lg"
+                      onClick={startEditQuestion}
+                      icon={<Pencil size={16} aria-hidden />}
+                    />
+                    <IconAction
+                      label="Delete question"
+                      variant="light"
+                      color="red"
+                      size="lg"
+                      onClick={handleDeleteQuestion}
+                      disabled={faq.deleteQuestion.isPending}
+                      icon={<Trash2 size={16} aria-hidden />}
+                    />
                     {faq.deleteQuestion.isError && (
                       <span className={styles.error}>{faq.deleteQuestion.error?.message}</span>
                     )}
-                  </ButtonGroup>
+                  </Group>
                 )}
               </>
             )}
@@ -248,8 +233,8 @@ function FaqDetailPage() {
 
           {showAddAnswerForm && (
             <Stack
-              as="form"
-              gap={3}
+              component="form"
+              gap="sm"
               onSubmit={(e) => {
                 e.preventDefault();
                 const formEl = e.target as HTMLFormElement;
@@ -265,30 +250,26 @@ function FaqDetailPage() {
                   .catch(() => undefined);
               }}
             >
-              <FormField
-                hint="Add your answer (1 per person-you can edit it later)"
+              <Textarea
+                description="Add your answer (1 per person-you can edit it later)"
                 error={faq.createAnswer.isError ? faq.createAnswer.error?.message : undefined}
-              >
-                <MultilineTextField
-                  name="answer"
-                  rows={3}
-                  required
-                  minLength={1}
-                  placeholder="Your answer..."
+                name="answer"
+                rows={3}
+                required
+                minLength={1}
+                placeholder="Your answer..."
+              />
+              <Group gap="xs" wrap="nowrap">
+                <IconAction
+                  label="Add answer"
+                  variant="filled"
+                  color="confirm"
+                  size="lg"
+                  type="submit"
+                  disabled={faq.createAnswer.isPending}
+                  icon={<MessageSquarePlus size={16} aria-hidden />}
                 />
-              </FormField>
-              <ButtonGroup>
-                <FormTooltip content="Add answer">
-                  <UIButton
-                    type="submit"
-                    iconOnly
-                    aria-label="Add answer"
-                    disabled={faq.createAnswer.isPending}
-                  >
-                    <MessageSquarePlus size={16} aria-hidden />
-                  </UIButton>
-                </FormTooltip>
-              </ButtonGroup>
+              </Group>
             </Stack>
           )}
 
@@ -299,57 +280,51 @@ function FaqDetailPage() {
           )}
 
           {answers.length > 0 ? (
-            <Answer.List className={styles.answerList}>
+            <ul className={styles.answerList}>
               {answers.map((a) => {
                 const isEditing = editing.editingAnswerId === a.id;
                 const isUserAnswer = a.capabilities.editAnswer;
                 const isAccepted = a.accepted;
                 return (
-                  <Answer.Item
+                  <li
                     key={a.id}
                     id={`faq-answer-${a.id}`}
                     className={styles.answerItem}
-                    isAccepted={isAccepted}
+                    data-accepted={isAccepted ? 'true' : 'false'}
                   >
                     {isEditing ? (
-                      <Stack gap={3}>
-                        <FormField label="Edit your answer">
-                          <MultilineTextField
-                            value={editing.answerValue}
-                            onChange={(e) => editingSession.setAnswerValue(e.target.value)}
-                            rows={3}
+                      <Stack gap="sm">
+                        <Textarea
+                          label="Edit your answer"
+                          value={editing.answerValue}
+                          onChange={(e) => editingSession.setAnswerValue(e.target.value)}
+                          rows={3}
+                        />
+                        <Group gap="xs" wrap="nowrap">
+                          <IconAction
+                            label="Save answer"
+                            variant="filled"
+                            color="confirm"
+                            size="lg"
+                            onClick={() => saveAnswer(a.id)}
+                            disabled={faq.editAnswer.isPending}
+                            icon={<Check size={16} aria-hidden />}
                           />
-                        </FormField>
-                        <ButtonGroup>
-                          <FormTooltip content="Save answer">
-                            <UIButton
-                              type="button"
-                              iconOnly
-                              aria-label="Save answer"
-                              onClick={() => saveAnswer(a.id)}
-                              disabled={faq.editAnswer.isPending}
-                            >
-                              <Check size={16} aria-hidden />
-                            </UIButton>
-                          </FormTooltip>
-                          <FormTooltip content="Cancel editing answer">
-                            <UIButton
-                              variant="secondary"
-                              type="button"
-                              iconOnly
-                              aria-label="Cancel editing answer"
-                              onClick={() => editingSession.cancelAnswer()}
-                            >
-                              <X size={16} aria-hidden />
-                            </UIButton>
-                          </FormTooltip>
+                          <IconAction
+                            label="Cancel editing answer"
+                            variant="light"
+                            color="dune"
+                            size="lg"
+                            onClick={() => editingSession.cancelAnswer()}
+                            icon={<X size={16} aria-hidden />}
+                          />
                           {faq.editAnswer.isError && (
                             <span className={styles.error}>{faq.editAnswer.error?.message}</span>
                           )}
-                        </ButtonGroup>
+                        </Group>
                       </Stack>
                     ) : (
-                      <Stack gap={2}>
+                      <Stack gap="xs">
                         {(isAccepted || isUserAnswer || a.author) && (
                           <div className={styles.answerMetaRow}>
                             {isAccepted && <span>Accepted answer</span>}
@@ -364,80 +339,70 @@ function FaqDetailPage() {
                           </div>
                         )}
                         <div className={styles.answerContent}>{a.text}</div>
-                        <ButtonGroup>
+                        <Group gap="xs" wrap="nowrap">
                           {a.capabilities.acceptAnswer && (
-                            <FormTooltip content="Mark as accepted answer">
-                              <UIButton
-                                type="button"
-                                iconOnly
-                                aria-label="Mark as accepted answer"
-                                onClick={() =>
-                                  void faq.setAcceptedAnswer
-                                    .run({ answerId: a.id })
-                                    .catch(() => undefined)
-                                }
-                                disabled={faq.setAcceptedAnswer.isPending}
-                              >
-                                <Check size={16} aria-hidden />
-                              </UIButton>
-                            </FormTooltip>
+                            <IconAction
+                              label="Mark as accepted answer"
+                              variant="filled"
+                              color="confirm"
+                              size="lg"
+                              onClick={() =>
+                                void faq.setAcceptedAnswer
+                                  .run({ answerId: a.id })
+                                  .catch(() => undefined)
+                              }
+                              disabled={faq.setAcceptedAnswer.isPending}
+                              icon={<Check size={16} aria-hidden />}
+                            />
                           )}
                           {a.capabilities.unacceptAnswer && (
-                            <FormTooltip content="Unmark accepted answer">
-                              <UIButton
-                                type="button"
-                                variant="secondary"
-                                iconOnly
-                                aria-label="Unmark accepted answer"
-                                onClick={() =>
-                                  void faq.setAcceptedAnswer
-                                    .run({ answerId: null })
-                                    .catch(() => undefined)
-                                }
-                                disabled={faq.setAcceptedAnswer.isPending}
-                              >
-                                <X size={16} aria-hidden />
-                              </UIButton>
-                            </FormTooltip>
+                            <IconAction
+                              label="Unmark accepted answer"
+                              variant="light"
+                              color="dune"
+                              size="lg"
+                              onClick={() =>
+                                void faq.setAcceptedAnswer
+                                  .run({ answerId: null })
+                                  .catch(() => undefined)
+                              }
+                              disabled={faq.setAcceptedAnswer.isPending}
+                              icon={<X size={16} aria-hidden />}
+                            />
                           )}
                           {a.capabilities.editAnswer && (
-                            <FormTooltip content="Edit your answer">
-                              <UIButton
-                                type="button"
-                                iconOnly
-                                aria-label="Edit your answer"
-                                onClick={() => startEditAnswer(a)}
-                              >
-                                <Pencil size={16} aria-hidden />
-                              </UIButton>
-                            </FormTooltip>
+                            <IconAction
+                              label="Edit your answer"
+                              variant="filled"
+                              color="confirm"
+                              size="lg"
+                              onClick={() => startEditAnswer(a)}
+                              icon={<Pencil size={16} aria-hidden />}
+                            />
                           )}
                           {a.capabilities.deleteAnswer && (
-                            <FormTooltip content="Delete answer">
-                              <UIButton
-                                variant="critical"
-                                type="button"
-                                iconOnly
-                                aria-label="Delete answer"
-                                onClick={() => handleDeleteAnswer(a.id)}
-                                disabled={faq.deleteAnswer.isPending}
-                              >
-                                <Trash2 size={16} aria-hidden />
-                              </UIButton>
-                            </FormTooltip>
+                            <IconAction
+                              label="Delete answer"
+                              variant="light"
+                              color="red"
+                              size="lg"
+                              onClick={() => handleDeleteAnswer(a.id)}
+                              disabled={faq.deleteAnswer.isPending}
+                              icon={<Trash2 size={16} aria-hidden />}
+                            />
                           )}
-                        </ButtonGroup>
+                        </Group>
                       </Stack>
                     )}
-                  </Answer.Item>
+                  </li>
                 );
               })}
-            </Answer.List>
+            </ul>
           ) : (
             <p>No answers yet.</p>
           )}
         </Stack>
-      </Card>
+      </Surface>
     </PageLayout>
   );
 }

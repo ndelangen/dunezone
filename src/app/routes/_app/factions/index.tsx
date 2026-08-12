@@ -1,31 +1,32 @@
 import {
-  ActionIcon,
   Alert,
   Button,
   Drawer,
   Group,
   Loader,
-  Paper,
   Select,
   Stack,
   Text,
   TextInput,
   Title,
-  Tooltip,
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { CallToAction } from '@ui/control/CallToAction';
+import { IconAction } from '@ui/control/IconAction';
+import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
-import { CreateFactionCta } from '@app/components/factions/CreateFactionCta';
+import { FactionCatalogueSpotlight } from '@app/components/block/FactionCatalogueSpotlight';
 import { formatFactionCatalogueDate } from '@app/components/factions/factionCatalogueDate';
-import { FactionCatalogueSpotlight } from '@app/components/factions/FactionCatalogueSpotlight';
-import { FactionList } from '@app/components/factions/FactionList';
-import { PageLayout } from '@app/components/shell';
+import { PageLayout } from '@app/components/layout/PageLayout';
+import { FactionList } from '@app/components/list/FactionList';
 import { parseFactionCatalogueSearch, useFactionCatalogueSession } from '@app/factions/catalogue';
 import type { FactionCatalogueSearch } from '@app/factions/catalogue';
 
@@ -79,12 +80,12 @@ function FactionsPage() {
           <FilteredEmptyState onReset={session.reset} />
         )
       ) : (
-        <Paper className={styles.stateCard} withBorder radius="md" p="xl">
+        <Surface padding="xl">
           <Title order={2}>There are no factions</Title>
           <Text c="dimmed" mt="xs">
             Create the first faction to begin the collection.
           </Text>
-        </Paper>
+        </Surface>
       )}
     </PageLayout>
   );
@@ -93,13 +94,13 @@ function FactionsPage() {
 function FactionCataloguePending() {
   return (
     <PageLayout header={<CatalogueHeader />}>
-      <Paper className={styles.stateCard} withBorder radius="md" p="xl" aria-live="polite">
+      <Surface padding="xl">
         <Stack align="center" gap="sm">
           <Loader size="sm" />
           <Title order={2}>Loading factions</Title>
           <Text c="dimmed">The faction catalogue is still loading.</Text>
         </Stack>
-      </Paper>
+      </Surface>
     </PageLayout>
   );
 }
@@ -119,17 +120,20 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
 
   return (
     <Stack className={styles.catalogueHeader} gap="lg">
-      <Group justify="space-between" align="end" wrap="wrap" gap="md">
-        <Stack gap={4}>
-          <Text tt="uppercase" size="xs" fw={800} lts="0.12em" c="dune.8">
-            Explore the collection
-          </Text>
+      <Group justify="space-between" align="flex-start" wrap="wrap" gap="md">
+        <Stack gap={4} align="flex-start" miw={0}>
+          <Eyebrow tone="accent">Explore the collection</Eyebrow>
           <Title order={1}>Faction catalogue</Title>
           <Text size="sm" c="dimmed">
             Browse the living collection of community factions.
           </Text>
         </Stack>
-        <CreateFactionCta attention />
+        <CallToAction
+          attention
+          renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
+        >
+          Create your own faction
+        </CallToAction>
       </Group>
 
       {hasSpotlight ? (
@@ -224,13 +228,16 @@ function CatalogueToolbar({
 
   return (
     <>
-      <Paper className={styles.toolbar} withBorder radius="md" p="sm">
-        <div className={styles.toolbarGrid}>
-          <Text className={styles.resultCount} size="sm" c="dimmed">
+      <Toolbar>
+        <Toolbar.Left>
+          <Text size="sm" c="dimmed" className={styles.resultCount}>
             {visibleCount === totalCount
               ? `${totalCount} factions`
               : `${visibleCount} of ${totalCount} factions`}
           </Text>
+        </Toolbar.Left>
+        <Toolbar.Center>
+          {/* The band's centre width comes from this field, not from the toolbar. */}
           <fieldset className={styles.joinedFilters} aria-label="Faction catalogue filters">
             <TextInput
               className={styles.searchField}
@@ -245,33 +252,28 @@ function CatalogueToolbar({
             />
             {rulesetSelect(undefined, true)}
             {sortSelect(undefined, true)}
-            <Tooltip label="Refine factions">
-              <ActionIcon
-                className={styles.mobileRefineButton}
-                variant="subtle"
-                color="gray"
-                size="lg"
-                aria-label="Refine factions"
-                onClick={() => setOpened(true)}
-              >
-                <SlidersHorizontal size={17} aria-hidden />
-              </ActionIcon>
-            </Tooltip>
-          </fieldset>
-          <Tooltip label="Create new faction">
-            <ActionIcon
-              className={styles.toolbarCreateButton}
-              variant="filled"
-              color="confirm"
+            <IconAction
+              label="Refine factions"
+              className={styles.mobileRefineButton}
+              variant="subtle"
+              color="gray"
               size="lg"
-              aria-label="Create new faction"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
-            >
-              <Plus size={17} aria-hidden />
-            </ActionIcon>
-          </Tooltip>
-        </div>
-      </Paper>
+              onClick={() => setOpened(true)}
+              icon={<SlidersHorizontal size={17} aria-hidden />}
+            />
+          </fieldset>
+        </Toolbar.Center>
+        <Toolbar.Right>
+          <IconAction
+            label="Create new faction"
+            variant="filled"
+            color="confirm"
+            size="lg"
+            renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
+            icon={<Plus size={17} aria-hidden />}
+          />
+        </Toolbar.Right>
+      </Toolbar>
       <Drawer
         opened={opened}
         onClose={() => setOpened(false)}
@@ -291,7 +293,7 @@ function CatalogueToolbar({
 
 function FilteredEmptyState({ onReset }: { onReset: () => void }) {
   return (
-    <Paper className={styles.stateCard} withBorder radius="md" p="xl">
+    <Surface padding="xl">
       <Stack gap="sm" align="center">
         <Title order={2}>No factions found</Title>
         <Text c="dimmed">Try another search or reset the catalogue filters.</Text>
@@ -299,6 +301,6 @@ function FilteredEmptyState({ onReset }: { onReset: () => void }) {
           Reset filters &amp; search
         </Button>
       </Stack>
-    </Paper>
+    </Surface>
   );
 }

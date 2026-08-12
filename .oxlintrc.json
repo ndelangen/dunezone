@@ -13,6 +13,33 @@
       }
     },
     {
+      "files": ["src/ui/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@app/**",
+                  "@db/**",
+                  "@game/**",
+                  "@data/**",
+                  "**/src/app/**",
+                  "**/src/game/**",
+                  "**/src/data/**",
+                  "../**/app/**",
+                  "../**/game/**",
+                  "../**/data/**"
+                ],
+                "message": "src/ui is the domain-free interface kit: it must not know about the application or the game. Move the domain-aware part to the caller, or take it as a prop."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["convex/lib/collaborativeAccess.ts"],
       "rules": {
         "no-restricted-imports": [

@@ -1,8 +1,7 @@
 import { MantineProvider } from '@mantine/core';
+import { appContentTheme } from '@ui/theme';
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
-
-import { appContentTheme } from '@app/theme';
 
 import '@mantine/core/styles.layer.css';
 import '../../styles/mantine-shell-compatibility.css';
