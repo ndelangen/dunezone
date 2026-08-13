@@ -19,7 +19,6 @@
       "@db/*": ["./src/app/db/*.ts"],
       "@app/*": ["./src/app/*"],
       "@ui/*": ["./src/app/ui/*"],
-      "@data/*": ["./src/data/*"],
       "@shared/*": ["./src/shared/*"],
       "@game/*": ["./src/game/*"]
     },
