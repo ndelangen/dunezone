@@ -3,8 +3,8 @@ import preview from '@sb/preview';
 import { useForm } from '@tanstack/react-form';
 
 import type { Faction } from '@db/factions';
-import { defaultFaction } from '@data/defaultFaction';
 
+import { defaultFaction } from './defaultFaction';
 import { FactionFormSectionBackground } from './FactionFormSectionBackground';
 
 function BackgroundStudioFixture({ background }: { background: Faction['background'] }) {

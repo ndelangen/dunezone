@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { defaultFaction } from '@data/defaultFaction';
 import { FactionInputSchema } from '@game/schema/faction';
 
+import { defaultFaction } from './defaultFaction';
 import {
   factionAuthoringCoverage,
   factionAuthoringWarnings,

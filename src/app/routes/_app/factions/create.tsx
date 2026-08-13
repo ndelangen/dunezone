@@ -6,12 +6,12 @@ import { useRef } from 'react';
 
 import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
+import { defaultFaction } from '@app/widgets/faction-editor/defaultFaction';
 import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
-import { defaultFaction } from '@data/defaultFaction';
 
 export const Route = createFileRoute('/_app/factions/create')({
   component: CreateFactionPage,

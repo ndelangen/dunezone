@@ -3,9 +3,9 @@ import preview from '@sb/preview';
 import { useForm } from '@tanstack/react-form';
 
 import type { Faction } from '@db/factions';
-import { defaultFaction } from '@data/defaultFaction';
 import { DECAL, LEADERS } from '@game/data/generated';
 
+import { defaultFaction } from './defaultFaction';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
 import { FactionFormSectionHero } from './FactionFormSectionHero';
 import { FactionFormSectionLeaders } from './FactionFormSectionLeaders';
