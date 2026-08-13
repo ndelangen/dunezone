@@ -144,6 +144,10 @@
                   "**/app/**"
                 ],
                 "message": "src/shared is imported by both the browser app and the server deploy, so it must not import the browser app. If a shared file needs something from src/app, that thing is not shared — hoist it into src/shared or leave the code in the app."
+              },
+              {
+                "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
+                "message": "src/shared must not import Convex either — it is parsed on both sides of the deploy boundary and reaches neither runtime's client. Restated here because this override replaces the repo-wide src/** convex-doorway rule for the files it matches rather than adding to it."
               }
             ]
           }
