@@ -113,6 +113,28 @@ Outside the kit:
     widget imports them.
   - **The shelf is a metric.** Every widget is a concession. When `src/app/widgets/` grows,
     something upstream went wrong.
+- **Pickers** (`src/app/pickers/<Name>Picker.tsx`) — the one place a component may fetch, and the
+  reason "a widget never fetches" is a rule about *where fetching lives* rather than a blanket ban.
+  A Picker is a domain control whose whole job is to let the user choose from a list its options are
+  its own to load — the factions you can load, the users you can assign — and it loads them **lazily
+  and read-only**, so a page that renders a "pick a user" control never queries every user up front
+  just in case the control is opened. That laziness is the entire justification (DD-013 subscription
+  discipline: hold no subscription you are not using); a Picker that fetched eagerly, or fetched page
+  data, or *mutated*, would just be a widget breaking the rule.
+  - **The contract.** A Picker fetches only what presenting its own options needs, through reads that
+    are torn down when it leaves the screen; it never mutates and never reads the page's data; the
+    chosen value leaves through an `onPick`-style callback, and the caller (a route, through a
+    widget) decides what happens next — including any mutation.
+  - **When it subscribes.** Two shapes. Wrapped in a container that already gates mounting — a
+    popover mounted only while open — a Picker subscribes the moment it mounts, because being mounted
+    already means the reader signalled intent (`FactionPicker` inside `FactionLoadPopover` is this
+    case). Rendered inline with no such gate, a Picker instead defers its subscription to its own
+    control's open, since its trigger must stay mounted to be clickable while its options must not
+    load until wanted. The inline shape has no instance yet; it lands with its first consumer rather
+    than as an unused code path.
+  - **Domain, not kit.** A Picker knows *what* it fetches, so it can never live in the domain-free
+    kit; it renders *through* the kit (a `Select`, an `AssignPopover`). It is a peer of Widgets, not
+    a seventh kit category.
 - **Game assets** (`src/game`) — print-faithful renderers. Own their colours, never themed. The
   glue that turns them into documents lives in **`src/app/print/`** and belongs to this world, not
   to the interface taxonomy: `print/sheet/` is the bridge a `Faction` row crosses to reach the sheet

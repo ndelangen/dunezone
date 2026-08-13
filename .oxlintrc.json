@@ -113,6 +113,49 @@
       }
     },
     {
+      /*
+       * A widget never fetches. A page (route) fetches once and hands the widget its data and its
+       * mutation callbacks; the widget renders and calls back. The one apparent exception —
+       * loading a saved faction — is not a widget concern at all: it is a Picker (see src/app/pickers
+       * and the Pickers section in AGENTS.md), a domain control that lazily fetches its own options.
+       * So the ban is total here, with type imports still allowed because a widget states the shape
+       * it renders. Stories and tests are excluded: they stand in for the route and supply fixtures.
+       */
+      "files": ["src/app/widgets/**"],
+      "excludeFiles": [
+        "src/app/widgets/**/*.stories.tsx",
+        "src/app/widgets/**/*.stories.fixture.tsx",
+        "src/app/widgets/**/*.test.ts",
+        "src/app/widgets/**/*.test.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
+                "message": "A widget must not fetch. Route data reaches a widget as a prop; the query lives in a route via src/app/db. If it is a control's own lazily-loaded option list, it is a Picker (src/app/pickers), not a widget."
+              },
+              {
+                "group": [
+                  "@db/**",
+                  "@app/db",
+                  "@app/db/**",
+                  "**/src/app/db/**",
+                  "../**/db/*",
+                  "../**/db/core",
+                  "../**/db/core/*"
+                ],
+                "allowTypeImports": true,
+                "message": "A widget must not fetch. Import the *type* to say what shape you render (`import type { FactionEntry }`) and take the value as a prop. A lazily-fetched option list is a Picker (src/app/pickers)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["convex/**"],
       "rules": {
         "no-restricted-imports": [

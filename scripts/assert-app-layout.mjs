@@ -16,6 +16,7 @@ import { join } from 'node:path';
 
 const ALLOWED = new Map([
   ['db', 'the domain data modules, and the only doorway to Convex'],
+  ['pickers', 'domain controls that lazily fetch their own options; never mutate'],
   ['print', 'the game renderers as printable documents — the sheet bridge, the capture page'],
   ['routeTree.gen.ts', 'generated'],
   ['router.tsx', 'the router instance'],
