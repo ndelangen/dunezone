@@ -1,8 +1,8 @@
+import type { FactionRender } from '@shared/factions/schema';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { shield as size } from '../../../data/sizes';
-import type { FactionRender } from '../../../schema/faction';
 import { useCountId } from '../../utils/useCountId';
 import { LeaderToken } from '../leader/Leader';
 import { Token } from '../token/Token';

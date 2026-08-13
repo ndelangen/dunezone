@@ -1,6 +1,6 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 
-import { Background, CanonicalFactionStoredSchema } from '../../src/game/schema/faction';
+import { Background, CanonicalFactionStoredSchema } from '../../src/shared/factions/schema';
 
 /**
  * Wire validators for faction payloads, derived from their authority — the canonical faction Zod

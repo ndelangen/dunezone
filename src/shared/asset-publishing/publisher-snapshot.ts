@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { FactionInputSchema, FactionRowSlugSchema } from '../../game/schema/faction';
+import { FactionInputSchema, FactionRowSlugSchema } from '../factions/schema';
 
 /** Shared exact contract for the protected Convex producer and Browser capture consumer. */
 export const publisherCaptureSnapshotSchema = z.strictObject({

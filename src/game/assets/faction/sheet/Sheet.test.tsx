@@ -17,8 +17,9 @@ vi.mock('../troop/Troop', () => ({
   TroopToken: () => <div data-test-troop-token />,
 }));
 
-import { assetPublishingFaction } from '../../../fixtures/assetPublishingFaction';
-import { FactionRender } from '../../../schema/faction';
+import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
+import { FactionRender } from '@shared/factions/schema';
+
 import { FactionSheetPage1, FactionSheetPage2 } from './Sheet';
 
 function factionSheetProps() {

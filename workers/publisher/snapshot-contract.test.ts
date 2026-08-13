@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
-import { assetPublishingFaction } from '../../src/game/fixtures/assetPublishingFaction';
 import { publisherCaptureSnapshotSchema } from '../../src/shared/asset-publishing/publisher-snapshot';
+import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 
 const productionEnvelope = {
   ok: true,

@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
+import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
+import { FactionRender } from '@shared/factions/schema';
 
-import { assetPublishingFaction } from '../../../fixtures/assetPublishingFaction';
-import { FactionRender } from '../../../schema/faction';
 import { FactionSheet } from './Sheet';
 
 const meta = preview.meta({

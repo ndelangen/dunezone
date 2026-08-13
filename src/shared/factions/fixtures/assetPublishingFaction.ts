@@ -1,5 +1,5 @@
-import { FactionInputSchema } from '../schema/faction';
-import type { FactionInput } from '../schema/faction';
+import { FactionInputSchema } from '../schema';
+import type { FactionInput } from '../schema';
 
 const assetPublishingFactionInput = {
   name: 'Atreides',

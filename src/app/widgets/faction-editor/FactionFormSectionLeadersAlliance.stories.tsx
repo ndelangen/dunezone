@@ -1,9 +1,9 @@
 import { Box, Stack } from '@mantine/core';
 import preview from '@sb/preview';
+import { DECAL, LEADERS } from '@shared/assetIds';
 import { useForm } from '@tanstack/react-form';
 
 import type { Faction } from '@db/factions';
-import { DECAL, LEADERS } from '@game/data/generated';
 
 import { defaultFaction } from './defaultFaction';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';

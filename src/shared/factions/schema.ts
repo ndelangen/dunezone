@@ -10,7 +10,7 @@ import {
   TEXTURE,
   TROOP,
   TROOP_MODIFIER,
-} from '../data/generated';
+} from '../assetIds';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
 const OFFSET = z.tuple([z.number(), z.number()]);

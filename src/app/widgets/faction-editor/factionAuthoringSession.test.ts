@@ -1,7 +1,7 @@
+import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { describe, expect, test, vi } from 'vitest';
 
 import type { Faction, FactionEntry } from '@db/factions';
-import { assetPublishingFaction } from '@game/fixtures/assetPublishingFaction';
 
 import { createFactionAuthoringSession } from './factionAuthoringSession';
 

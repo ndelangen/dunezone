@@ -1,6 +1,5 @@
+import type { TTSColor } from '@shared/factions/schema';
 import type { z } from 'zod';
-
-import type { TTSColor } from '@game/schema/faction';
 
 type TtsColor = z.infer<typeof TTSColor>;
 

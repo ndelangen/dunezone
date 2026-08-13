@@ -1,3 +1,5 @@
+import { BackgroundClientSchema } from '@shared/factions/schema';
+import type { FactionData } from '@shared/factions/schema';
 import { rulesetInputSchema } from '@shared/rulesets/validation';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
@@ -6,8 +8,6 @@ import { db } from '@db/core';
 import type { FaqAnswerEntry, FaqItemWithDetails } from '@db/faq';
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
-import { BackgroundClientSchema } from '@game/schema/faction';
-import type { FactionData } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';

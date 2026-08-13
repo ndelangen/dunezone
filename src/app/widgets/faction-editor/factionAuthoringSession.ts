@@ -1,5 +1,6 @@
+import { FactionInputSchema } from '@shared/factions/schema';
+
 import type { Faction, FactionEntry } from '@db/factions';
-import { FactionInputSchema } from '@game/schema/faction';
 
 import { preserveFactionExtras } from './factionAuthoringContract';
 

@@ -5,11 +5,11 @@ import {
 } from '@shared/asset-publishing/publisher-diagnostics';
 import { assertRequiredPublisherFonts } from '@shared/asset-publishing/publisher-fonts';
 import { publisherCaptureSnapshotSchema } from '@shared/asset-publishing/publisher-snapshot';
+import type { FactionInput } from '@shared/factions/schema';
 import { useEffect, useState } from 'react';
 
 import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
-import type { FactionInput } from '@game/schema/faction';
 
 const ASSET_SETTLE_TIMEOUT_MS = 15_000;
 

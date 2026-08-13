@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
+import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 
 import type { FactionCatalogueEntry } from '@db/factions';
-import { assetPublishingFaction } from '@game/fixtures/assetPublishingFaction';
 
 import { FactionList } from './FactionList';
 

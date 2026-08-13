@@ -1,10 +1,10 @@
+import type { FactionRender } from '@shared/factions/schema';
 /* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
 import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { MarkdownContent } from '../../../components/block/MarkdownContent';
 import { backgroundPresets } from '../../../data/backgrounds';
-import type { FactionRender } from '../../../schema/faction';
 import styles from '../../card/Card.module.css';
 import { Token } from '../../faction/token/Token';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';

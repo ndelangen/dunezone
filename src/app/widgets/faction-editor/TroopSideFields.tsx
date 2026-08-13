@@ -1,9 +1,9 @@
 import { Box, ColorInput, SimpleGrid, Stack, Switch, TextInput, Textarea } from '@mantine/core';
+import { TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 
 import type { Faction } from '@db/factions';
-import { TROOP, TROOP_MODIFIER } from '@game/data/generated';
 
 import {
   assetOptionToPreviewSrc,

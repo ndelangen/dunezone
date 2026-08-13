@@ -1,7 +1,7 @@
+import type { FactionRender } from '@shared/factions/schema';
 import type { z } from 'zod';
 
 import { backgroundPresets } from '../data/backgrounds';
-import type { FactionRender } from '../schema/faction';
 
 export type FactionTokenData = z.infer<typeof FactionRender.token>;
 

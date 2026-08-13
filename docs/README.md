@@ -7,7 +7,8 @@ Quick reference for understanding and working with the codebase.
 **Starting a new feature?**
 1. Routes: `src/app/routes/` (file-based routing; `_app` is a pathless layout)
 2. Domain logic: `src/app/db/<domain>.ts` (loaders plus live query and mutation hooks)
-3. Schemas: `src/shared/<domain>/validation.ts` and `src/game/schema/` (Zod schemas)
+3. Schemas: `src/shared/<domain>/` (Zod schemas — the validators, and the faction contract in
+   `src/shared/factions/schema.ts` with its asset-id vocabulary in `src/shared/assetIds.ts`)
 4. Validation standard: [`docs/data-layer.md`](./data-layer.md) (Convex `v` + shared Zod)
 5. UI: every published component lives in `src/app/ui/<category>` (alias `@ui/*`), and the component
    taxonomy in [`AGENTS.md`](../AGENTS.md#component-taxonomy) decides which category. Lint holds one
@@ -121,7 +122,8 @@ already made unpushable.
 
 ### Adding a New Domain
 
-1. Create Zod schema in `src/app/domain-name/validation.ts` (or `src/game/schema/` for game-domain types):
+1. Create Zod schema in `src/shared/<domain>/validation.ts` (a cross-artifact contract both the app
+   and Convex parse against):
    ```typescript
    import { z } from 'zod';
    export const schema = z.object({ ... });

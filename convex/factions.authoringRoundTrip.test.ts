@@ -5,10 +5,10 @@ import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
-import { PLANET, TROOP_MODIFIER } from '../src/game/data/generated';
-import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
-import { CanonicalFactionStoredSchema, FactionInputSchema } from '../src/game/schema/faction';
-import type { FactionInput } from '../src/game/schema/faction';
+import { PLANET, TROOP_MODIFIER } from '../src/shared/assetIds';
+import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { CanonicalFactionStoredSchema, FactionInputSchema } from '../src/shared/factions/schema';
+import type { FactionInput } from '../src/shared/factions/schema';
 import { api } from './_generated/api';
 import schema from './schema';
 

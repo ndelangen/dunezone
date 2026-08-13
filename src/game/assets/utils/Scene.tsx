@@ -1,10 +1,10 @@
+import { FactionRender } from '@shared/factions/schema';
+import type { FactionInput } from '@shared/factions/schema';
 import { Fragment } from 'react/jsx-runtime';
 
 import { Fan } from '../../components/block/Fan';
 import { backgroundPresets } from '../../data/backgrounds';
 import { card as cardSize } from '../../data/sizes';
-import { FactionRender } from '../../schema/faction';
-import type { FactionInput } from '../../schema/faction';
 import { AllianceCard } from '../faction/alliance/Alliance';
 import { LeaderToken } from '../faction/leader/Leader';
 import { FactionSheetPage1, FactionSheetPage2 } from '../faction/sheet/Sheet';

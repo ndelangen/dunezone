@@ -1,7 +1,7 @@
+import { Background } from '@shared/factions/schema';
 import { describe, expect, it } from 'vitest';
 
 import type { Faction } from '@db/factions';
-import { Background } from '@game/schema/faction';
 
 import { BACKGROUND_PATTERN_CATALOGUE } from './backgroundPatternCatalogue';
 import {

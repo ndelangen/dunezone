@@ -1,9 +1,9 @@
+import type { FactionRender } from '@shared/factions/schema';
 import { useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { StrokedUse } from '../../../components/block/StrokedUse';
-import type { FactionRender } from '../../../schema/faction';
 import { useAsset } from '../../assetRenderMode';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
 import { tint0 } from '../../utils/colors';

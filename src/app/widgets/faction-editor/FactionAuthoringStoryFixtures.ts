@@ -1,5 +1,6 @@
+import { DECAL, LEADERS, PLANET, TROOP_MODIFIER } from '@shared/assetIds';
+
 import type { Faction, FactionEntry } from '@db/factions';
-import { DECAL, LEADERS, PLANET, TROOP_MODIFIER } from '@game/data/generated';
 
 import { defaultFaction } from './defaultFaction';
 

@@ -1,6 +1,7 @@
+import { FactionRender } from '@shared/factions/schema';
+
 import type { Faction } from '@db/factions';
 import { FactionSheet } from '@game/assets/faction/sheet/Sheet';
-import { FactionRender } from '@game/schema/faction';
 
 import sheetPrint from './FactionSheetPrint.module.css';
 

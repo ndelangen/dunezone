@@ -1,5 +1,6 @@
+import { BACKGROUND, TEXTURE } from '@shared/assetIds';
+
 import type { Faction } from '@db/factions';
-import { BACKGROUND, TEXTURE } from '@game/data/generated';
 
 type BackgroundPatternPath = Faction['background']['image'];
 

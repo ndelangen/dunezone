@@ -1,6 +1,5 @@
+import type { Background } from '@shared/factions/schema';
 import type { z } from 'zod';
-
-import type { Background } from '../schema/faction';
 
 export type BackgroundData = z.infer<typeof Background>;
 

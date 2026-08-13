@@ -223,10 +223,10 @@ carries no `paths`, so the day `convex codegen` writes that file every alias in 
 once. Relative paths are the spelling that survives that, and keeping both artifacts on the same
 convention keeps the rule simple.
 
-Three boundaries depend on it, all absolute because nothing legitimate crosses them. Two guard it
-from outside: `convex/**` may not import `src/app/**`, and `workers/**` may not either. The third
-guards it from inside: `src/shared/**` may not import the browser app (`@app`/`@ui`/`@db`, or a
-relative `../app/…`). That last one is the positive counterpart — if a shared file needed something
+Three boundaries keep the browser app out of the shared layer, all absolute because nothing
+legitimate crosses them. Two guard it from outside: `convex/**` may not import `src/app/**`, and
+`workers/**` may not either. The third guards it from inside: `src/shared/**` may not import the
+browser app (`@app`/`@ui`/`@db`, or a relative `../app/…`). That last one is the positive counterpart — if a shared file needed something
 from `src/app`, that thing would not actually be shared — and its lint pattern is written for the
 spelling a file *inside* `src` uses to reach the app (`../app`), not the `../src/app` spelling the
 outside artifacts use; copying the outside pattern verbatim would have matched nothing and passed
@@ -237,7 +237,19 @@ file, and it never fired. **A rule that has to tolerate exceptions cannot be enf
 exceptions out and then it can.** When you find yourself widening a guard to fit the code, check
 whether the code wants hoisting instead.
 
-`src/game` (the renderers) has its own fence, `src/game/rendererIsolation.test.ts`, which forbids
+And the boundary runs the other way too: `convex/**`, `workers/**` and `src/shared/**` may not
+import `src/game` (`@game`, or a relative reach). The renderers are browser-only; nothing the server
+or the shared layer needs lives among them. This became enforceable only once the faction contract —
+a Zod schema five Convex modules parse against — moved out of `src/game/schema/` to
+`src/shared/factions/schema.ts`, taking its generated asset-id vocabulary (`src/shared/assetIds.ts`)
+and its shared test fixture (`src/shared/factions/fixtures/`) with it. Before that move a universal
+contract sat in a folder named for renderers, and the `.oxlintrc.json` message already claimed
+"a Zod schema … belongs in `src/shared/`" while the code did not; the move made the claim true and
+the ban possible, with zero exceptions. The shared side of the ban is written `**/game/**` (the
+`../../game` spelling a file inside `src` uses), not `**/src/game/**` (the outside spelling) — the
+same vacuous-pattern trap as the app ban.
+
+`src/game` also has its own inward fence, `src/game/rendererIsolation.test.ts`, which forbids
 Mantine, Radix, and any reach into the app — by alias or by relative climb. It is a test rather than
 a lint override because it also bans framework packages a `no-restricted-imports` group would not
 naturally express.

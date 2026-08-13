@@ -1,11 +1,11 @@
+import { CanonicalFactionClientSchema, FactionInputSchema } from '@shared/factions/schema';
+import type { FactionInput } from '@shared/factions/schema';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
-import { CanonicalFactionClientSchema, FactionInputSchema } from '@game/schema/faction';
-import type { FactionInput } from '@game/schema/faction';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';

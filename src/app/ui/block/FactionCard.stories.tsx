@@ -1,8 +1,8 @@
 import preview from '@sb/preview';
+import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { expect, within } from 'storybook/test';
 
 import type { FactionCatalogueEntry } from '@db/factions';
-import { assetPublishingFaction } from '@game/fixtures/assetPublishingFaction';
 
 import { FactionCard } from './FactionCard';
 

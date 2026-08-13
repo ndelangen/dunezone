@@ -14,6 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Box, Group, Select, Stack, Text } from '@mantine/core';
+import { TTSColor } from '@shared/factions/schema';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -21,7 +22,6 @@ import { GripVertical } from 'lucide-react';
 
 import type { Faction } from '@db/factions';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
-import { TTSColor } from '@game/schema/faction';
 
 import { getSortableIds, indexFromSortableId } from './dnd-sortable-ids';
 import styles from './TtsColorsEditor.module.css';

@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 
-import { CanonicalFactionStoredSchema } from '../src/game/schema/faction';
+import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { factionSheetPublishingStatus } from './assetPublishingStatus';
