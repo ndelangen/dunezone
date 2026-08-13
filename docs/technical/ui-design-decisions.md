@@ -1,14 +1,17 @@
 # UI design decisions
 
 This log records durable UI decisions and, more importantly, **why they exist**. The rules
-themselves are canonical in [`AGENTS.md`](../../AGENTS.md) and enforced by guards; this log is the
-reasoning behind them — the incidents that earned each rule.
+are canonical in [`AGENTS.md`](../../AGENTS.md), in a guard, or in the code that carries them; this
+log is the reasoning behind them — the incidents that earned each rule.
 
 ## How to use this log
 
-- **One rule, one home.** A live rule is stated once — in `AGENTS.md` (or a guard). An entry here
-  does not restate a rule that lives there; it records the *why*. Two entries must never enforce the
-  same thing.
+- **One rule, one home.** Every live rule has exactly one *normative* home — usually `AGENTS.md` or a
+  guard, sometimes the code that carries it (`theme.ts`, `TopicIcon.tsx`), and for the few not yet
+  lifted into `AGENTS.md` (action semantics, the one-query rule) this log *is* that home. An entry
+  here records the *why*; where it names the rule, it is a one-line pointer tagged with the canonical
+  home (`Rule (stated in AGENTS.md): …`), never a second authority you could edit in isolation. Two
+  editable copies of one rule is the thing this forbids.
 - **The war story survives.** When entries merge, or a rule moves to `AGENTS.md`, the incident that
   motivated it is kept. A rule without its story loses its strength — a reader who cannot see what
   went wrong cannot tell whether the rule still applies.
@@ -35,7 +38,7 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
 | The shell is chrome, not a category | `AGENTS.md` (application shell) | `[M]` `check:app-layout` + the `data-page-layout-*` contract | DD-018 |
 | Layouts own spacing; named compound slots; container queries not media; ≥2 slots | `AGENTS.md` (Rules between categories) | `[M]` `containerQueries.test.ts` (the container-query half) | DD-003 |
 | Every terminal `_app` route mounts `PageLayout`; the leaf owns composition | `AGENTS.md` (routes) | `[M]` `PageLayout.architecture.test.ts` (mount check) | DD-014 |
-| One Convex page query per route, plus `useCurrentProfile` | this log (`AGENTS.md` cites it by name) | `[D]` (`check:convex-skip` is an *adjacent* rule, not this one) | DD-013 |
+| At most one Convex page query per route, plus `useCurrentProfile` when auth-aware | this log (`AGENTS.md` cites it by name) | `[D]` (`check:convex-skip` is an *adjacent* rule, not this one) | DD-013 |
 | Action semantics — icon-only buttons, one styled toolbar primary, colour by intent | this log | `[D]` (the kit carries it: `IconAction`, `CallToAction`, the theme tuples) | DD-005 |
 | Recurring topics use one canonical icon mapping | this log (`TopicIcon.tsx` is the code home) | `[D]` | DD-016 |
 | Extract a component only at a real concern boundary | `AGENTS.md` (the membrane tells) | `[D]` | DD-009 |
@@ -44,9 +47,9 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
 
 ---
 
-# Active decisions
+## Active decisions
 
-## DD-003: Layout components own spacing, and lay out through named slots
+### DD-003: Layout components own spacing, and lay out through named slots
 - Status: accepted
 - Context: Margin-led spacing scattered through leaf components produces inconsistent layout and
   buries every page in nested `<Stack><Group><Grid>…`. The original rule — parent-owned spacing,
@@ -80,7 +83,25 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
     (DD-018). It is genuinely viewport-scoped, not a container. The guard excepts it by name.
 - Changed on: 2026-08-13
 
-## DD-005: Action semantics — icon-only buttons, one toolbar primary, colour by intent
+### DD-004: One owner per stylesheet — no CSS `composes`
+- Status: accepted in part — DD-004's first half ("avoid custom CSS") is superseded by DD-015; this
+  live remnant keeps its why. The rule lives in the Styling section of
+  [`ui-component-hierarchy.md`](./ui-component-hierarchy.md).
+- Context: `composes` pulls declarations across module boundaries, so the stylesheet a rule actually
+  comes from stops being greppable and two files quietly co-own one class. The original "avoid custom
+  CSS, prohibit `composes`" rule lost its first half when Mantine became the default (DD-015); the
+  second half survived on its own merit.
+- Rule (stated in `ui-component-hierarchy.md`): no CSS `composes`; exactly one TSX component owns each
+  `.module.css`. Share through the component, not the stylesheet.
+- Why (the derivation worth keeping): ownership you cannot grep is ownership that drifts — the same
+  failure the kit boundary (DD-020) and the taxonomy (DD-017) guard against, applied to styles. A
+  reader must be able to open one TSX file and see every rule that styles it.
+- Provenance: **pre-emptive** — a discipline, no incident. `check:css-orphans`
+  ([`assert-no-orphan-css-classes.mjs`](../../scripts/assert-no-orphan-css-classes.mjs)) catches
+  orphaned/unimported stylesheets only; the one-owner rule itself is documented.
+- Changed on: 2026-08-13
+
+### DD-005: Action semantics — icon-only buttons, one toolbar primary, colour by intent
 - Status: accepted (absorbs DD-006 and DD-007)
 - Context: Actions become unpredictable when their meaning is carried by hue rather than intent, when
   a toolbar has several competing "primary" buttons, or when an icon-only control has no explicit
@@ -106,7 +127,7 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
     product/user direction.
 - Changed on: 2026-08-13 (combined from DD-005/006/007, originally 2026-03-25)
 
-## DD-009: Extract a component only at a real concern boundary
+### DD-009: Extract a component only at a real concern boundary
 - Status: accepted (absorbs DD-012)
 - Context: Splitting JSX into "helper" components without a clear responsibility boundary produces
   prop bloat, indirection, and harder reasoning for no reuse. **The war story:**
@@ -130,7 +151,7 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
     route state; or a long JSX block moved to a file without reducing responsibility or API surface.
 - Changed on: 2026-08-13 (combined DD-009 + DD-012, originally 2026-04-01)
 
-## DD-013: One Convex page query per route, plus optional profile
+### DD-013: One Convex page query per route, plus optional profile
 - Status: accepted
 - Context: Mounting several `useQuery` hooks on one route multiplies live subscriptions, complicates
   loading states, and scatters the authoritative shape of a screen across Convex functions. This
@@ -150,10 +171,10 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
     call-out its docstring provides. See DD-021.
 - Provenance note: **`check:convex-skip` does not enforce this rule.** That guard bans `useQuery("skip")`
   inside `src/app/db` — an adjacent, narrower concern whose own header states a *preference* and names
-  no incident. The one-query rule is documented-only; its guard is pre-emptive.
+  no incident. The one-query rule has no guard — it is documented-only. (`check:convex-skip` is pre-emptive as its own, separate rule.)
 - Changed on: 2026-04-04
 
-## DD-014: Leaf routes own page composition
+### DD-014: Leaf routes own page composition
 - Status: accepted — rule now in `AGENTS.md` (routes); this entry keeps the why
 - Context: A parent-owned `staticData.PageHead` bridge split one screen into detached header and
   body sub-views, duplicated the page subscription, and hid the whole composition across router
@@ -168,7 +189,23 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
   style: it forecloses the earned incident but names no incident of its own.
 - Changed on: 2026-07-18
 
-## DD-016: Recurring topics use one canonical icon mapping
+### DD-015: Renderers stay isolated
+- Status: accepted in part — DD-015's pivot (Mantine owns standard content) is itself superseded by
+  DD-017; the renderer-isolation remnant is live and keeps its why. The rule lives in
+  [`AGENTS.md`](../../AGENTS.md) (game assets).
+- Context: When the generic UI system was retired, game-asset renderers were deliberately walled off
+  from it. A renderer that reaches into Mantine, Radix, or app code stops being portable — the same
+  asset must paint identically in a worker, in print, and in the browser, and none of those load the
+  app shell.
+- Rule (stated in `AGENTS.md`): renderers import no Mantine, no Radix, no `src/app`; they are pure
+  over their inputs, with no thin wrappers around app UI leaking in.
+- Why (the derivation worth keeping): isolation is what lets one renderer serve three deploy targets;
+  a single app import would couple print and worker output to the browser bundle.
+- Provenance: **earned** — by the coupling the generic system caused. Enforced by
+  [`rendererIsolation.test.ts`](../../src/game/rendererIsolation.test.ts).
+- Changed on: 2026-08-13
+
+### DD-016: Recurring topics use one canonical icon mapping
 - Status: accepted
 - Context: The same topic appeared with different icons between the faction editor and the detail
   pages, weakening recognition.
@@ -180,7 +217,7 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
     direction. Renderer-owned game visuals stay isolated and do not consume `TopicIcon`.
 - Changed on: 2026-07-20
 
-## DD-017: The component taxonomy governs all interface components
+### DD-017: The component taxonomy governs all interface components
 - Status: accepted — rule now in `AGENTS.md`; this entry keeps the why
 - Context: DD-015 made Mantine the only sanctioned shared layer, so recurring concerns (the pane
   treatment, titled regions, heading levels) were re-spelled at every call site and drifted. **That
@@ -192,13 +229,13 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
   organs; Widgets are the last-resort shared assemblies; Pickers (DD-021) are the one fetching peer.
 - Changed on: 2026-08-12
 
-## DD-018: The application shell is chrome, not a category
+### DD-018: The application shell is chrome, not a category
 - Status: accepted — rule now in `AGENTS.md`; this entry keeps the derivation
 - Context: The header had no component and no story — four lines of JSX inside `AppShell` whose height
   was negotiated in CSS with whatever page mounted. Asking which category it belonged to exposed that
   it belongs to none.
 - Why (the derivation worth keeping): `Surface` is one specific treatment, a pane content sits *on*
-  (border, translucent infill, blur); the header is full-bleed artwork content sits *beside* in a
+  (border, translucent infill, blur); the header is full-bleed artwork that content sits *beside* in a
   shared grid row, overlapping only by `z-index`. It is not a Layout either — Layouts are transparent
   and it paints. So the shell is decided by *position*, not by what a caller hands it, and lives in
   `src/app/shell/**` as named organs.
@@ -214,7 +251,7 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
   is not kit vocabulary.
 - Changed on: 2026-08-12
 
-## DD-020: A component renders what it is given
+### DD-020: A component renders what it is given
 - Status: accepted — rule now in `AGENTS.md` + oxlint; this entry keeps the why (absorbs DD-019)
 - Context: An earlier version of the kit boundary (DD-019) banned every `@app`/`@db`/`@game` import
   and carved out the seven components that tripped it with a `*.domain.tsx` suffix. **The war story:**
@@ -238,7 +275,7 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
   alias; the relative `db.ts` spelling; `useRouter` returning an object with `.navigate()` on it).
 - Changed on: 2026-08-12
 
-## DD-021: Pickers — the one place a component may fetch
+### DD-021: Pickers — the one place a component may fetch
 - Status: accepted
 - Context: The rule "a widget never fetches" looked like it made the faction load popover a violation.
   It is not: that popover is a control that fetches *its own options* lazily, so a page rendering a
@@ -263,12 +300,12 @@ a rule; it indexes them. `[M]` machine-enforced · `[D]` documented-only · `[C]
 
 ---
 
-# Provenance of the guards
+## Provenance of the guards
 
 Verified against each entry's text and the guard, not assumed — two claims came back different from
 how the log read.
 
-| Rule (DD) | Guard | Earned / pre-emptive | Incident |
+| Rule (DD) | Guard | Provenance | Incident |
 |-----------|-------|----------------------|----------|
 | Renders what it is given (DD-020) | `.oxlintrc.json` `src/app/ui/**` | **earned** | `FaqList` called `useNavigate`, slipped the alias ban |
 | Closed `src/app` top level (DD-017) | `check:app-layout` | **earned** | folders "empty-but-alive for months" after the domain scheme was dismantled |
@@ -284,7 +321,7 @@ how the log read.
 
 ---
 
-# History
+## History
 
 The generic component system, its retirement, and the taxonomy that replaced it. These entries are
 kept only so their numbers resolve and their reasoning is not lost; do not follow their rules.
@@ -299,11 +336,11 @@ DD-019's two-tree/`*.domain.tsx` boundary with the behavioural import rule.
 
 - **DD-001** Reuse existing shared components first — *superseded by DD-015.* Discovery now starts with Mantine, then the kit.
 - **DD-002** Component layering / dependency direction — *superseded by DD-015.* Its lasting lesson, cited by DD-019/020: `generic/**` twice decayed by absorbing domain knowledge, which is why the kit boundary is behavioural.
-- **DD-004** Avoid custom CSS, prohibit `composes` — *superseded by DD-015 in part.* "Avoid CSS" is dead (Mantine is the default), but **the no-`composes` / one-owner-per-stylesheet half is live** — see the Styling section of `docs/technical/ui-component-hierarchy.md`.
+- **DD-004** Avoid custom CSS, prohibit `composes` — *"avoid CSS" superseded by DD-015.* The no-`composes` / one-owner-per-stylesheet half is live and now carries its own why at **DD-004 above**.
 - **DD-006, DD-007** Toolbar primary / colour intent — *folded into DD-005 (Action semantics).*
 - **DD-008** Generic components require stories — *superseded by DD-015.* Live story expectation is in `AGENTS.md`; installed Mantine and route-local composition are exempt.
 - **DD-010** Placement generic-first but domain-honest — *superseded by DD-015 → DD-017.* Placement is the taxonomy's job; domain-honesty is the DD-020 boundary.
 - **DD-011** One shared component, one canonical path — *superseded by DD-015 → DD-017.* "One canonical path" became "one tree, inside the app".
 - **DD-012** Concern boundaries, not sub-views — *folded into DD-009,* which carries its `RulesetGroupToolbarControl` war story.
-- **DD-015** Mantine owns standard application-content UI — *superseded by DD-017.* The pivot that retired the generic system; the renderer-isolation and no-thin-wrappers rules carried forward. The migration finished and the named legacy paths are deleted.
+- **DD-015** Mantine owns standard application-content UI — *superseded by DD-017.* The pivot that retired the generic system; the migration finished and the named legacy paths are deleted. Its live renderer-isolation remnant carries its own why at **DD-015 above**.
 - **DD-019** One components tree, domain boundary in the filename — *superseded by DD-020.* Collapsing to one tree was right; the alias deny-list and the `*.domain.tsx` suffix were not — its one-tree rationale is folded into DD-020.
