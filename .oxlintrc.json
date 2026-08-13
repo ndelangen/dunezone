@@ -133,7 +133,16 @@
           {
             "patterns": [
               {
-                "group": ["@app/**", "@ui/**", "@db/**", "**/app/**"],
+                "group": [
+                  "@app",
+                  "@app/**",
+                  "@ui",
+                  "@ui/**",
+                  "@db",
+                  "@db/**",
+                  "**/app",
+                  "**/app/**"
+                ],
                 "message": "src/shared is imported by both the browser app and the server deploy, so it must not import the browser app. If a shared file needs something from src/app, that thing is not shared — hoist it into src/shared or leave the code in the app."
               }
             ]
@@ -150,11 +159,15 @@
             "patterns": [
               {
                 "group": [
+                  "**/src/app",
                   "**/src/app/**",
                   "../src/app/**",
                   "../../src/app/**",
+                  "@app",
                   "@app/**",
+                  "@ui",
                   "@ui/**",
+                  "@db",
                   "@db/**"
                 ],
                 "message": "The server must not import client code. A contract both sides need — a Zod schema, a tag vocabulary — belongs in `src/shared/`, which both may import. `@db/*` resolves into `src/app/db` — a domain module, or `core/index.ts` for `@db/core` — so it is client code too."
@@ -178,11 +191,15 @@
             "patterns": [
               {
                 "group": [
+                  "**/src/app",
                   "**/src/app/**",
                   "../src/app/**",
                   "../../src/app/**",
+                  "@app",
                   "@app/**",
+                  "@ui",
                   "@ui/**",
+                  "@db",
                   "@db/**"
                 ],
                 "message": "The publisher Worker is a separate deploy artifact and must not import application code. Shared runtime contracts belong in `src/shared/`. `@db/*` resolves into `src/app/db` — a domain module, or `core/index.ts` for `@db/core` — so it is application code too."

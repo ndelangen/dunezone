@@ -12,9 +12,14 @@ const rendererDirectory = new URL('.', import.meta.url);
  * (`@ui` and `@db` both resolve under `src/app`, so a relative reach into either also passes
  * through an `app/` segment). Catching only the aliases would leave the relative spelling as a
  * silent hole — no oxlint override guards `src/game`, so this test is the only fence.
+ *
+ * The alias or the climb is followed by either a `/` (a deeper path) or the closing quote (a bare
+ * `import x from '@db'` at a package/index entry). Requiring the slash alone would miss the bare
+ * form. A trailing character other than those two — `@database`, `../data/` — is a different module
+ * and correctly not matched.
  */
 const FORBIDDEN_MODULE_REACH =
-  /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](?:@(?:ui|app|db)\/|(?:\.\.\/)+app\/)/;
+  /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](?:@(?:ui|app|db)|(?:\.\.\/)+app)(?:\/|['"])/;
 
 describe('renderer isolation', () => {
   it('keeps the renderer independent from application UI frameworks', () => {
