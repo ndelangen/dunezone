@@ -49,13 +49,18 @@ function ProfileDetailPage() {
 
   if (!page) {
     return (
-      <PageLayout header={<h1>Profile</h1>}>
-        <Surface padding="lg">
-          <p>Profile not found.</p>
-          <p>
-            <Link to="/profiles">Back to profiles</Link>
-          </p>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>
+          <h1>Profile</h1>
+        </PageLayout.Header>
+        <PageLayout.Content>
+          <Surface padding="lg">
+            <p>Profile not found.</p>
+            <p>
+              <Link to="/profiles">Back to profiles</Link>
+            </p>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
@@ -126,8 +131,8 @@ function ProfileDetailPage() {
   );
 
   return (
-    <PageLayout
-      header={
+    <PageLayout>
+      <PageLayout.Header size="compact">
         <div className={styles.identityRow}>
           {page.profile.avatar_url ? (
             <img
@@ -147,145 +152,148 @@ function ProfileDetailPage() {
             </p>
           </Stack>
         </div>
-      }
-      headerSize="compact"
-      toolbar={toolbar}
-    >
-      <div className={styles.contentColumns}>
-        <Stack gap="md" className={styles.mainColumn}>
-          <Section icon={<Shield size={20} aria-hidden />} title="Factions created">
-            {page.factions.length > 0 ? (
-              <FactionList factions={page.factions} />
-            ) : (
-              <Surface padding="lg">
-                <Text size="sm" c="dimmed">
-                  No factions created yet.
-                </Text>
-              </Surface>
-            )}
-          </Section>
-
-          <Section icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets maintained">
-            <Surface padding="lg">
-              <ProposedContent label="Proposed content · page query required">
-                <Text size="sm" c="dimmed">
-                  Rulesets owned or maintained by this contributor would appear here.
-                </Text>
-              </ProposedContent>
-            </Surface>
-          </Section>
-
-          <Section icon={<MessageCircleReply size={20} aria-hidden />} title="Answers contributed">
-            {page.faqAnswers.length > 0 ? (
-              <FaqAnswersGiven items={page.faqAnswers} viewedProfileId={page.profile._id} />
-            ) : (
-              <Surface padding="lg">
-                <Text size="sm" c="dimmed">
-                  No FAQ answers yet.
-                </Text>
-              </Surface>
-            )}
-          </Section>
-
-          <Section icon={<CircleHelp size={20} aria-hidden />} title="Questions asked">
-            {page.faqAsked.length > 0 ? (
-              <FaqQuestionsAsked items={page.faqAsked} />
-            ) : (
-              <Surface padding="lg">
-                <Text size="sm" c="dimmed">
-                  No questions asked yet.
-                </Text>
-              </Surface>
-            )}
-          </Section>
-        </Stack>
-
-        <aside className={styles.sidebar} aria-label="Profile details">
-          <Stack gap="sm">
-            <Card icon={<UsersRound size={20} aria-hidden />} title="At a glance">
-              <Stats
-                orientation="column"
-                items={[
-                  {
-                    key: 'factions',
-                    icon: <Shield size={18} aria-hidden />,
-                    value: page.factions.length,
-                    name: 'Factions',
-                    label: `${page.factions.length} factions`,
-                  },
-                  {
-                    key: 'groups',
-                    icon: <UsersRound size={18} aria-hidden />,
-                    value: page.groupSummaries.length,
-                    name: 'Groups',
-                    label: `${page.groupSummaries.length} groups`,
-                  },
-                  {
-                    key: 'answers',
-                    icon: <MessageCircleReply size={18} aria-hidden />,
-                    value: page.faqAnswers.length,
-                    name: 'Answers',
-                    label: `${page.faqAnswers.length} answers`,
-                  },
-                  {
-                    key: 'picked',
-                    icon: <CheckCircle2 size={18} aria-hidden />,
-                    value: acceptedAnswerCount,
-                    name: 'Picked answers',
-                    label: `${acceptedAnswerCount} picked answers`,
-                  },
-                  {
-                    key: 'questions',
-                    icon: <CircleHelp size={18} aria-hidden />,
-                    value: page.faqAsked.length,
-                    name: 'Questions',
-                    label: `${page.faqAsked.length} questions`,
-                  },
-                ]}
-              />
-            </Card>
-
-            <Card icon={<Link2 size={20} aria-hidden />} title="About">
-              <Stack gap="xs">
-                <ProposedContent label="Proposed profile fields">
+      </PageLayout.Header>
+      <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+      <PageLayout.Content>
+        <div className={styles.contentColumns}>
+          <Stack gap="md" className={styles.mainColumn}>
+            <Section icon={<Shield size={20} aria-hidden />} title="Factions created">
+              {page.factions.length > 0 ? (
+                <FactionList factions={page.factions} />
+              ) : (
+                <Surface padding="lg">
                   <Text size="sm" c="dimmed">
-                    A short bio and a small set of relevant external links could live here.
+                    No factions created yet.
+                  </Text>
+                </Surface>
+              )}
+            </Section>
+
+            <Section icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets maintained">
+              <Surface padding="lg">
+                <ProposedContent label="Proposed content · page query required">
+                  <Text size="sm" c="dimmed">
+                    Rulesets owned or maintained by this contributor would appear here.
                   </Text>
                 </ProposedContent>
-                <p className={styles.memberSince}>
-                  Member since{' '}
-                  <time dateTime={page.profile.created_at}>
-                    {new Intl.DateTimeFormat('en', {
-                      month: 'short',
-                      year: 'numeric',
-                    }).format(new Date(page.profile.created_at))}
-                  </time>
-                </p>
-              </Stack>
-            </Card>
+              </Surface>
+            </Section>
 
-            <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">
-              {page.groupSummaries.length === 0 ? (
-                <Text size="sm" c="dimmed">
-                  Not a member of any groups.
-                </Text>
+            <Section
+              icon={<MessageCircleReply size={20} aria-hidden />}
+              title="Answers contributed"
+            >
+              {page.faqAnswers.length > 0 ? (
+                <FaqAnswersGiven items={page.faqAnswers} viewedProfileId={page.profile._id} />
               ) : (
-                <Links>
-                  {page.groupSummaries.map((group) => (
-                    <Links.Item
-                      key={group.id}
-                      to="/groups/$groupSlug"
-                      params={{ groupSlug: group.slug }}
-                    >
-                      {group.name}
-                    </Links.Item>
-                  ))}
-                </Links>
+                <Surface padding="lg">
+                  <Text size="sm" c="dimmed">
+                    No FAQ answers yet.
+                  </Text>
+                </Surface>
               )}
-            </Card>
+            </Section>
+
+            <Section icon={<CircleHelp size={20} aria-hidden />} title="Questions asked">
+              {page.faqAsked.length > 0 ? (
+                <FaqQuestionsAsked items={page.faqAsked} />
+              ) : (
+                <Surface padding="lg">
+                  <Text size="sm" c="dimmed">
+                    No questions asked yet.
+                  </Text>
+                </Surface>
+              )}
+            </Section>
           </Stack>
-        </aside>
-      </div>
+
+          <aside className={styles.sidebar} aria-label="Profile details">
+            <Stack gap="sm">
+              <Card icon={<UsersRound size={20} aria-hidden />} title="At a glance">
+                <Stats
+                  orientation="column"
+                  items={[
+                    {
+                      key: 'factions',
+                      icon: <Shield size={18} aria-hidden />,
+                      value: page.factions.length,
+                      name: 'Factions',
+                      label: `${page.factions.length} factions`,
+                    },
+                    {
+                      key: 'groups',
+                      icon: <UsersRound size={18} aria-hidden />,
+                      value: page.groupSummaries.length,
+                      name: 'Groups',
+                      label: `${page.groupSummaries.length} groups`,
+                    },
+                    {
+                      key: 'answers',
+                      icon: <MessageCircleReply size={18} aria-hidden />,
+                      value: page.faqAnswers.length,
+                      name: 'Answers',
+                      label: `${page.faqAnswers.length} answers`,
+                    },
+                    {
+                      key: 'picked',
+                      icon: <CheckCircle2 size={18} aria-hidden />,
+                      value: acceptedAnswerCount,
+                      name: 'Picked answers',
+                      label: `${acceptedAnswerCount} picked answers`,
+                    },
+                    {
+                      key: 'questions',
+                      icon: <CircleHelp size={18} aria-hidden />,
+                      value: page.faqAsked.length,
+                      name: 'Questions',
+                      label: `${page.faqAsked.length} questions`,
+                    },
+                  ]}
+                />
+              </Card>
+
+              <Card icon={<Link2 size={20} aria-hidden />} title="About">
+                <Stack gap="xs">
+                  <ProposedContent label="Proposed profile fields">
+                    <Text size="sm" c="dimmed">
+                      A short bio and a small set of relevant external links could live here.
+                    </Text>
+                  </ProposedContent>
+                  <p className={styles.memberSince}>
+                    Member since{' '}
+                    <time dateTime={page.profile.created_at}>
+                      {new Intl.DateTimeFormat('en', {
+                        month: 'short',
+                        year: 'numeric',
+                      }).format(new Date(page.profile.created_at))}
+                    </time>
+                  </p>
+                </Stack>
+              </Card>
+
+              <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">
+                {page.groupSummaries.length === 0 ? (
+                  <Text size="sm" c="dimmed">
+                    Not a member of any groups.
+                  </Text>
+                ) : (
+                  <Links>
+                    {page.groupSummaries.map((group) => (
+                      <Links.Item
+                        key={group.id}
+                        to="/groups/$groupSlug"
+                        params={{ groupSlug: group.slug }}
+                      >
+                        {group.name}
+                      </Links.Item>
+                    ))}
+                  </Links>
+                )}
+              </Card>
+            </Stack>
+          </aside>
+        </div>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

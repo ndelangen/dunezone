@@ -99,17 +99,25 @@ function FaqDetailPage() {
 
   if (loaderData?.notFound) {
     return (
-      <PageLayout header={header}>
-        <Surface padding="lg">
-          <h2>Question not found</h2>
-          <p>This FAQ question does not exist in this ruleset.</p>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>{header}</PageLayout.Header>
+        <PageLayout.Content>
+          <Surface padding="lg">
+            <h2>Question not found</h2>
+            <p>This FAQ question does not exist in this ruleset.</p>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   if (!item) {
-    return <PageLayout header={header}>Loading question…</PageLayout>;
+    return (
+      <PageLayout>
+        <PageLayout.Header>{header}</PageLayout.Header>
+        <PageLayout.Content>Loading question…</PageLayout.Content>
+      </PageLayout>
+    );
   }
 
   const showAddAnswerForm = page.viewer.answerQuestion;
@@ -139,271 +147,274 @@ function FaqDetailPage() {
   };
 
   return (
-    <PageLayout header={header}>
-      <Surface padding="lg">
-        <Stack gap="md">
-          <Stack gap="sm">
-            {editing.editingQuestion ? (
-              <Stack gap="sm">
-                <Textarea
-                  label="Edit question"
-                  value={editing.questionValue}
-                  onChange={(e) => editingSession.setQuestionValue(e.target.value)}
-                  rows={2}
-                />
-                <Input.Wrapper label="Tags">
-                  <Stack component="fieldset" gap="xs" className={styles.tagFieldset}>
-                    <legend className={styles.visuallyHidden}>FAQ tags</legend>
-                    {FAQ_TAG_VALUES.map((tag) => (
-                      <label key={tag} className={styles.tagOption}>
-                        <input
-                          type="checkbox"
-                          checked={editing.tagValues.includes(tag)}
-                          onChange={(e) => editingSession.toggleTag(tag, e.target.checked)}
-                        />
-                        <span>{FAQ_TAG_LABELS[tag]}</span>
-                      </label>
-                    ))}
-                  </Stack>
-                </Input.Wrapper>
-                <Group gap="xs" wrap="nowrap">
-                  <IconAction
-                    label="Save question"
-                    variant="filled"
-                    color="confirm"
-                    size="lg"
-                    onClick={() => saveQuestion()}
-                    disabled={faq.editQuestion.isPending}
-                    icon={<Check size={16} aria-hidden />}
+    <PageLayout>
+      <PageLayout.Header>{header}</PageLayout.Header>
+      <PageLayout.Content>
+        <Surface padding="lg">
+          <Stack gap="md">
+            <Stack gap="sm">
+              {editing.editingQuestion ? (
+                <Stack gap="sm">
+                  <Textarea
+                    label="Edit question"
+                    value={editing.questionValue}
+                    onChange={(e) => editingSession.setQuestionValue(e.target.value)}
+                    rows={2}
                   />
-                  <IconAction
-                    label="Cancel editing question"
-                    variant="light"
-                    color="dune"
-                    size="lg"
-                    onClick={() => editingSession.cancelQuestion()}
-                    icon={<X size={16} aria-hidden />}
-                  />
-                  {faq.editQuestion.isError && (
-                    <span className={styles.error}>{faq.editQuestion.error?.message}</span>
-                  )}
-                </Group>
-              </Stack>
-            ) : (
-              <>
-                <div className={styles.questionHeader}>
-                  {item.author && (
-                    <ProfileLink
-                      slug={item.author.slug}
-                      username={item.author.username}
-                      avatar_url={item.author.avatarUrl}
-                      className={styles.questionAskerLink}
-                    />
-                  )}
-                  <div>
-                    <h2 className={styles.questionTitle}>{item.text}</h2>
-                  </div>
-                </div>
-                {item.capabilities.editQuestion && (
+                  <Input.Wrapper label="Tags">
+                    <Stack component="fieldset" gap="xs" className={styles.tagFieldset}>
+                      <legend className={styles.visuallyHidden}>FAQ tags</legend>
+                      {FAQ_TAG_VALUES.map((tag) => (
+                        <label key={tag} className={styles.tagOption}>
+                          <input
+                            type="checkbox"
+                            checked={editing.tagValues.includes(tag)}
+                            onChange={(e) => editingSession.toggleTag(tag, e.target.checked)}
+                          />
+                          <span>{FAQ_TAG_LABELS[tag]}</span>
+                        </label>
+                      ))}
+                    </Stack>
+                  </Input.Wrapper>
                   <Group gap="xs" wrap="nowrap">
                     <IconAction
-                      label="Edit question"
+                      label="Save question"
                       variant="filled"
                       color="confirm"
                       size="lg"
-                      onClick={startEditQuestion}
-                      icon={<Pencil size={16} aria-hidden />}
+                      onClick={() => saveQuestion()}
+                      disabled={faq.editQuestion.isPending}
+                      icon={<Check size={16} aria-hidden />}
                     />
                     <IconAction
-                      label="Delete question"
+                      label="Cancel editing question"
                       variant="light"
-                      color="red"
+                      color="dune"
                       size="lg"
-                      onClick={handleDeleteQuestion}
-                      disabled={faq.deleteQuestion.isPending}
-                      icon={<Trash2 size={16} aria-hidden />}
+                      onClick={() => editingSession.cancelQuestion()}
+                      icon={<X size={16} aria-hidden />}
                     />
-                    {faq.deleteQuestion.isError && (
-                      <span className={styles.error}>{faq.deleteQuestion.error?.message}</span>
+                    {faq.editQuestion.isError && (
+                      <span className={styles.error}>{faq.editQuestion.error?.message}</span>
                     )}
                   </Group>
-                )}
-              </>
-            )}
-          </Stack>
-
-          {showAddAnswerForm && (
-            <Stack
-              component="form"
-              gap="sm"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formEl = e.target as HTMLFormElement;
-                const answer = (
-                  formEl.elements.namedItem('answer') as HTMLTextAreaElement
-                ).value.trim();
-                if (!answer) {
-                  return;
-                }
-                void faq.createAnswer
-                  .run({ answer })
-                  .then(() => formEl.reset())
-                  .catch(() => undefined);
-              }}
-            >
-              <Textarea
-                description="Add your answer (1 per person-you can edit it later)"
-                error={faq.createAnswer.isError ? faq.createAnswer.error?.message : undefined}
-                name="answer"
-                rows={3}
-                required
-                minLength={1}
-                placeholder="Your answer..."
-              />
-              <Group gap="xs" wrap="nowrap">
-                <IconAction
-                  label="Add answer"
-                  variant="filled"
-                  color="confirm"
-                  size="lg"
-                  type="submit"
-                  disabled={faq.createAnswer.isPending}
-                  icon={<MessageSquarePlus size={16} aria-hidden />}
-                />
-              </Group>
+                </Stack>
+              ) : (
+                <>
+                  <div className={styles.questionHeader}>
+                    {item.author && (
+                      <ProfileLink
+                        slug={item.author.slug}
+                        username={item.author.username}
+                        avatar_url={item.author.avatarUrl}
+                        className={styles.questionAskerLink}
+                      />
+                    )}
+                    <div>
+                      <h2 className={styles.questionTitle}>{item.text}</h2>
+                    </div>
+                  </div>
+                  {item.capabilities.editQuestion && (
+                    <Group gap="xs" wrap="nowrap">
+                      <IconAction
+                        label="Edit question"
+                        variant="filled"
+                        color="confirm"
+                        size="lg"
+                        onClick={startEditQuestion}
+                        icon={<Pencil size={16} aria-hidden />}
+                      />
+                      <IconAction
+                        label="Delete question"
+                        variant="light"
+                        color="red"
+                        size="lg"
+                        onClick={handleDeleteQuestion}
+                        disabled={faq.deleteQuestion.isPending}
+                        icon={<Trash2 size={16} aria-hidden />}
+                      />
+                      {faq.deleteQuestion.isError && (
+                        <span className={styles.error}>{faq.deleteQuestion.error?.message}</span>
+                      )}
+                    </Group>
+                  )}
+                </>
+              )}
             </Stack>
-          )}
 
-          {hasUserAnswered && !showAddAnswerForm && (
-            <p className={styles.hintBlock}>
-              You&apos;ve answered. You can edit your answer below.
-            </p>
-          )}
+            {showAddAnswerForm && (
+              <Stack
+                component="form"
+                gap="sm"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formEl = e.target as HTMLFormElement;
+                  const answer = (
+                    formEl.elements.namedItem('answer') as HTMLTextAreaElement
+                  ).value.trim();
+                  if (!answer) {
+                    return;
+                  }
+                  void faq.createAnswer
+                    .run({ answer })
+                    .then(() => formEl.reset())
+                    .catch(() => undefined);
+                }}
+              >
+                <Textarea
+                  description="Add your answer (1 per person-you can edit it later)"
+                  error={faq.createAnswer.isError ? faq.createAnswer.error?.message : undefined}
+                  name="answer"
+                  rows={3}
+                  required
+                  minLength={1}
+                  placeholder="Your answer..."
+                />
+                <Group gap="xs" wrap="nowrap">
+                  <IconAction
+                    label="Add answer"
+                    variant="filled"
+                    color="confirm"
+                    size="lg"
+                    type="submit"
+                    disabled={faq.createAnswer.isPending}
+                    icon={<MessageSquarePlus size={16} aria-hidden />}
+                  />
+                </Group>
+              </Stack>
+            )}
 
-          {answers.length > 0 ? (
-            <ul className={styles.answerList}>
-              {answers.map((a) => {
-                const isEditing = editing.editingAnswerId === a.id;
-                const isUserAnswer = a.capabilities.editAnswer;
-                const isAccepted = a.accepted;
-                return (
-                  <li
-                    key={a.id}
-                    id={`faq-answer-${a.id}`}
-                    className={styles.answerItem}
-                    data-accepted={isAccepted ? 'true' : 'false'}
-                  >
-                    {isEditing ? (
-                      <Stack gap="sm">
-                        <Textarea
-                          label="Edit your answer"
-                          value={editing.answerValue}
-                          onChange={(e) => editingSession.setAnswerValue(e.target.value)}
-                          rows={3}
-                        />
-                        <Group gap="xs" wrap="nowrap">
-                          <IconAction
-                            label="Save answer"
-                            variant="filled"
-                            color="confirm"
-                            size="lg"
-                            onClick={() => saveAnswer(a.id)}
-                            disabled={faq.editAnswer.isPending}
-                            icon={<Check size={16} aria-hidden />}
+            {hasUserAnswered && !showAddAnswerForm && (
+              <p className={styles.hintBlock}>
+                You&apos;ve answered. You can edit your answer below.
+              </p>
+            )}
+
+            {answers.length > 0 ? (
+              <ul className={styles.answerList}>
+                {answers.map((a) => {
+                  const isEditing = editing.editingAnswerId === a.id;
+                  const isUserAnswer = a.capabilities.editAnswer;
+                  const isAccepted = a.accepted;
+                  return (
+                    <li
+                      key={a.id}
+                      id={`faq-answer-${a.id}`}
+                      className={styles.answerItem}
+                      data-accepted={isAccepted ? 'true' : 'false'}
+                    >
+                      {isEditing ? (
+                        <Stack gap="sm">
+                          <Textarea
+                            label="Edit your answer"
+                            value={editing.answerValue}
+                            onChange={(e) => editingSession.setAnswerValue(e.target.value)}
+                            rows={3}
                           />
-                          <IconAction
-                            label="Cancel editing answer"
-                            variant="light"
-                            color="dune"
-                            size="lg"
-                            onClick={() => editingSession.cancelAnswer()}
-                            icon={<X size={16} aria-hidden />}
-                          />
-                          {faq.editAnswer.isError && (
-                            <span className={styles.error}>{faq.editAnswer.error?.message}</span>
-                          )}
-                        </Group>
-                      </Stack>
-                    ) : (
-                      <Stack gap="xs">
-                        {(isAccepted || isUserAnswer || a.author) && (
-                          <div className={styles.answerMetaRow}>
-                            {isAccepted && <span>Accepted answer</span>}
-                            {isUserAnswer && <span>Your answer-you can edit or delete it</span>}
-                            {a.author && (
-                              <ProfileLink
-                                slug={a.author.slug}
-                                username={a.author.username}
-                                avatar_url={a.author.avatarUrl}
-                              />
-                            )}
-                          </div>
-                        )}
-                        <div className={styles.answerContent}>{a.text}</div>
-                        <Group gap="xs" wrap="nowrap">
-                          {a.capabilities.acceptAnswer && (
+                          <Group gap="xs" wrap="nowrap">
                             <IconAction
-                              label="Mark as accepted answer"
+                              label="Save answer"
                               variant="filled"
                               color="confirm"
                               size="lg"
-                              onClick={() =>
-                                void faq.setAcceptedAnswer
-                                  .run({ answerId: a.id })
-                                  .catch(() => undefined)
-                              }
-                              disabled={faq.setAcceptedAnswer.isPending}
+                              onClick={() => saveAnswer(a.id)}
+                              disabled={faq.editAnswer.isPending}
                               icon={<Check size={16} aria-hidden />}
                             />
-                          )}
-                          {a.capabilities.unacceptAnswer && (
                             <IconAction
-                              label="Unmark accepted answer"
+                              label="Cancel editing answer"
                               variant="light"
                               color="dune"
                               size="lg"
-                              onClick={() =>
-                                void faq.setAcceptedAnswer
-                                  .run({ answerId: null })
-                                  .catch(() => undefined)
-                              }
-                              disabled={faq.setAcceptedAnswer.isPending}
+                              onClick={() => editingSession.cancelAnswer()}
                               icon={<X size={16} aria-hidden />}
                             />
+                            {faq.editAnswer.isError && (
+                              <span className={styles.error}>{faq.editAnswer.error?.message}</span>
+                            )}
+                          </Group>
+                        </Stack>
+                      ) : (
+                        <Stack gap="xs">
+                          {(isAccepted || isUserAnswer || a.author) && (
+                            <div className={styles.answerMetaRow}>
+                              {isAccepted && <span>Accepted answer</span>}
+                              {isUserAnswer && <span>Your answer-you can edit or delete it</span>}
+                              {a.author && (
+                                <ProfileLink
+                                  slug={a.author.slug}
+                                  username={a.author.username}
+                                  avatar_url={a.author.avatarUrl}
+                                />
+                              )}
+                            </div>
                           )}
-                          {a.capabilities.editAnswer && (
-                            <IconAction
-                              label="Edit your answer"
-                              variant="filled"
-                              color="confirm"
-                              size="lg"
-                              onClick={() => startEditAnswer(a)}
-                              icon={<Pencil size={16} aria-hidden />}
-                            />
-                          )}
-                          {a.capabilities.deleteAnswer && (
-                            <IconAction
-                              label="Delete answer"
-                              variant="light"
-                              color="red"
-                              size="lg"
-                              onClick={() => handleDeleteAnswer(a.id)}
-                              disabled={faq.deleteAnswer.isPending}
-                              icon={<Trash2 size={16} aria-hidden />}
-                            />
-                          )}
-                        </Group>
-                      </Stack>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p>No answers yet.</p>
-          )}
-        </Stack>
-      </Surface>
+                          <div className={styles.answerContent}>{a.text}</div>
+                          <Group gap="xs" wrap="nowrap">
+                            {a.capabilities.acceptAnswer && (
+                              <IconAction
+                                label="Mark as accepted answer"
+                                variant="filled"
+                                color="confirm"
+                                size="lg"
+                                onClick={() =>
+                                  void faq.setAcceptedAnswer
+                                    .run({ answerId: a.id })
+                                    .catch(() => undefined)
+                                }
+                                disabled={faq.setAcceptedAnswer.isPending}
+                                icon={<Check size={16} aria-hidden />}
+                              />
+                            )}
+                            {a.capabilities.unacceptAnswer && (
+                              <IconAction
+                                label="Unmark accepted answer"
+                                variant="light"
+                                color="dune"
+                                size="lg"
+                                onClick={() =>
+                                  void faq.setAcceptedAnswer
+                                    .run({ answerId: null })
+                                    .catch(() => undefined)
+                                }
+                                disabled={faq.setAcceptedAnswer.isPending}
+                                icon={<X size={16} aria-hidden />}
+                              />
+                            )}
+                            {a.capabilities.editAnswer && (
+                              <IconAction
+                                label="Edit your answer"
+                                variant="filled"
+                                color="confirm"
+                                size="lg"
+                                onClick={() => startEditAnswer(a)}
+                                icon={<Pencil size={16} aria-hidden />}
+                              />
+                            )}
+                            {a.capabilities.deleteAnswer && (
+                              <IconAction
+                                label="Delete answer"
+                                variant="light"
+                                color="red"
+                                size="lg"
+                                onClick={() => handleDeleteAnswer(a.id)}
+                                disabled={faq.deleteAnswer.isPending}
+                                icon={<Trash2 size={16} aria-hidden />}
+                              />
+                            )}
+                          </Group>
+                        </Stack>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p>No answers yet.</p>
+            )}
+          </Stack>
+        </Surface>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

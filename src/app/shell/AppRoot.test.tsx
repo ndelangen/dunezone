@@ -42,8 +42,13 @@ describe('AppRoot page header', () => {
     act(() => {
       root.render(
         <AppRoot pathname="/privacy">
-          <PageLayout header={<h1>Privacy policy</h1>}>
-            <p>Privacy content</p>
+          <PageLayout>
+            <PageLayout.Header>
+              <h1>Privacy policy</h1>
+            </PageLayout.Header>
+            <PageLayout.Content>
+              <p>Privacy content</p>
+            </PageLayout.Content>
           </PageLayout>
         </AppRoot>
       );

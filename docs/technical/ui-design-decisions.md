@@ -52,17 +52,39 @@ This document records durable UI decisions for consistency across features.
 - Changed on: 2026-03-25
 - Superseded on: 2026-07-19 by DD-015. The legacy generic/form/layout hierarchy is replaced by the Mantine, shared-content, domain, shell, and renderer ownership model.
 
-## DD-003: Layout spacing uses reusable wrappers, flex + gap, and grid
-- Status: superseded
-- Context: Margin-led spacing in leaf components causes inconsistent layout behavior.
-- Rule: Handle spacing and alignment in reusable parent layout wrappers. Prefer flexbox + `gap` for one-dimensional layout and CSS Grid for two-dimensional layout.
+## DD-003: Layout components own spacing, and lay out through named slots
+- Status: accepted
+- Context: Margin-led spacing scattered through leaf components produces inconsistent layout and
+  buries every page in nested `<Stack><Group><Grid>…`. The original rule — parent-owned spacing,
+  flex+`gap`/grid — was only half-retired by DD-015: DD-015 replaced the specific legacy
+  `generic/layout` *wrappers* with Mantine's `Stack`/`Group`/`Grid`, but stated in the same breath
+  that "parent-owned spacing remains useful". This entry reinstates that surviving principle and
+  strengthens it into a Layout-component discipline, because the kit had already grown custom
+  layouts (`PageLayout`, `TriptychLayout`, `AtlasLayout`, `AsymmetricSplitLayout`) with no rule
+  written down for them.
+- Rule:
+  - **Spacing is owned by the Layout, not the leaf.** A leaf control never carries page
+    margin/padding; a Layout arranges its slots. Margin only for unavoidable third-party constraints.
+  - **Layout components are custom, built on Mantine primitives.** A recurring layout situation
+    becomes a named component so a page composes `<TriptychLayout>` instead of re-nesting flex/grid
+    at the call site.
+  - **Responsive by container query, not media query.** A Layout lays out by the room it is given,
+    so it stays context-independent. Guarded by
+    [`containerQueries.test.ts`](../../src/app/ui/layout/containerQueries.test.ts).
+  - **Every Layout lays out through named slots**, as compound children —
+    `<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…</TriptychLayout>` — so the
+    composition reads top-down and large content never rides inside a prop value.
+  - **No single-slot Layout.** One slot is a passthrough, not a layout; a Layout earns its existence
+    by arranging two or more.
 - Examples:
-  - Use stack/row/grid-style wrappers to orchestrate spacing.
-  - Keep leaf controls focused on control concerns, not page spacing.
+  - `PageLayout` (`.Header`/`.Toolbar`/`.Content`), `TriptychLayout` (`.Left`/`.Center`/`.Right`),
+    `AtlasLayout` (`.Sidebar`/`.Content`), `AsymmetricSplitLayout` (`.Wide`/`.Narrow`).
 - Exceptions:
-  - Margin may be used only for unavoidable third-party constraints and should be documented in implementation notes.
-- Changed on: 2026-03-25
-- Superseded on: 2026-07-19 by DD-015. Flex, `gap`, grid, and parent-owned spacing remain useful, but new reusable legacy layout wrappers are no longer the default.
+  - **`PageLayout` uses `@media`, not a container query, and it is the one exemption.** It is the
+    shell's page frame — its children join `AppHeader`'s grid through `display: contents`, and it is
+    sized against the viewport in concert with the shell through the `data-page-layout-*` bridge
+    (DD-018). It is genuinely viewport-scoped, not a container. The guard excepts it by name.
+- Changed on: 2026-08-13
 
 ## DD-004: Avoid custom CSS and prohibit CSS composes
 - Status: superseded

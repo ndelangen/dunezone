@@ -17,8 +17,8 @@ function RulesetsPage() {
   const rulesets = useRulesetsAll({ initialData: loaderData.rulesets });
 
   return (
-    <PageLayout
-      header={
+    <PageLayout>
+      <PageLayout.Header>
         <div>
           <h1>Rulesets</h1>
           <p>
@@ -27,42 +27,43 @@ function RulesetsPage() {
             </Link>
           </p>
         </div>
-      }
-    >
-      {rulesets.data && rulesets.data.length > 0 ? (
-        <div className={styles.grid}>
-          {rulesets.data.map((r) => (
-            <Surface
-              key={r.id}
-              interactive
-              padding="sm"
-              className={styles.card}
-              renderRoot={({ className, children }) => (
-                <Link
-                  to="/rulesets/$rulesetSlug"
-                  params={{ rulesetSlug: r.slug }}
-                  className={className}
-                >
-                  {children}
-                </Link>
-              )}
-            >
-              <div className={styles.cover}>
-                {r.image_cover ? (
-                  <img src={r.image_cover} alt="" className={styles.coverImage} />
-                ) : (
-                  <span className={styles.coverPlaceholder}>No cover</span>
+      </PageLayout.Header>
+      <PageLayout.Content>
+        {rulesets.data && rulesets.data.length > 0 ? (
+          <div className={styles.grid}>
+            {rulesets.data.map((r) => (
+              <Surface
+                key={r.id}
+                interactive
+                padding="sm"
+                className={styles.card}
+                renderRoot={({ className, children }) => (
+                  <Link
+                    to="/rulesets/$rulesetSlug"
+                    params={{ rulesetSlug: r.slug }}
+                    className={className}
+                  >
+                    {children}
+                  </Link>
                 )}
-              </div>
-              <span className={styles.name}>{r.name}</span>
-            </Surface>
-          ))}
-        </div>
-      ) : (
-        <Text size="sm" c="dimmed">
-          No rulesets yet.
-        </Text>
-      )}
+              >
+                <div className={styles.cover}>
+                  {r.image_cover ? (
+                    <img src={r.image_cover} alt="" className={styles.coverImage} />
+                  ) : (
+                    <span className={styles.coverPlaceholder}>No cover</span>
+                  )}
+                </div>
+                <span className={styles.name}>{r.name}</span>
+              </Surface>
+            ))}
+          </div>
+        ) : (
+          <Text size="sm" c="dimmed">
+            No rulesets yet.
+          </Text>
+        )}
+      </PageLayout.Content>
     </PageLayout>
   );
 }

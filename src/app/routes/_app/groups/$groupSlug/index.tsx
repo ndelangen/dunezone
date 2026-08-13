@@ -78,12 +78,17 @@ function GroupDetailPage() {
 
   if (groupData.isError) {
     return (
-      <PageLayout header={<Title order={1}>Group</Title>}>
-        <Surface padding="xl">
-          <Alert color="red" title="Group could not be loaded" role="alert">
-            <Text size="sm">This group may have been deleted, or the link may be incorrect.</Text>
-          </Alert>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>
+          <Title order={1}>Group</Title>
+        </PageLayout.Header>
+        <PageLayout.Content>
+          <Surface padding="xl">
+            <Alert color="red" title="Group could not be loaded" role="alert">
+              <Text size="sm">This group may have been deleted, or the link may be incorrect.</Text>
+            </Alert>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
@@ -91,17 +96,22 @@ function GroupDetailPage() {
   const page = groupData.data;
   if (!page) {
     return (
-      <PageLayout header={<Title order={1}>Group</Title>}>
-        <Box className={styles.twoColumnGrid}>
-          <Stack gap="lg">
-            <Skeleton height={140} radius="md" />
-            <Skeleton height={140} radius="md" />
-          </Stack>
-          <Stack gap="lg">
-            <Skeleton height={160} radius="md" />
-            <Skeleton height={160} radius="md" />
-          </Stack>
-        </Box>
+      <PageLayout>
+        <PageLayout.Header>
+          <Title order={1}>Group</Title>
+        </PageLayout.Header>
+        <PageLayout.Content>
+          <Box className={styles.twoColumnGrid}>
+            <Stack gap="lg">
+              <Skeleton height={140} radius="md" />
+              <Skeleton height={140} radius="md" />
+            </Stack>
+            <Stack gap="lg">
+              <Skeleton height={160} radius="md" />
+              <Skeleton height={160} radius="md" />
+            </Stack>
+          </Box>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
@@ -161,9 +171,11 @@ function GroupDetailPage() {
   };
 
   return (
-    <PageLayout
-      header={<Title order={1}>{group.name}</Title>}
-      toolbar={
+    <PageLayout>
+      <PageLayout.Header>
+        <Title order={1}>{group.name}</Title>
+      </PageLayout.Header>
+      <PageLayout.Toolbar>
         <>
           <Toolbar>
             <Toolbar.Left>
@@ -219,81 +231,66 @@ function GroupDetailPage() {
             </Text>
           )}
         </>
-      }
-    >
-      <Box className={styles.twoColumnGrid}>
-        <Stack gap="lg">
-          <Card
-            icon={<FremenIcon />}
-            title="Factions maintained"
-            action={
-              isActiveMember ? (
-                <FactionAssignPicker
-                  disabled={setFactionGroup.isPending}
-                  currentGroupId={groupId}
-                  currentGroupName={group.name}
-                  onAssign={handleAssignFaction}
-                />
-              ) : undefined
-            }
-          >
-            <FactionList factions={factions} />
-          </Card>
-          <Card
-            icon={<BookOpen size={18} aria-hidden />}
-            title="Rulesets maintained"
-            action={
-              isActiveMember ? (
-                <RulesetAssignPicker
-                  disabled={updateRuleset.isPending}
-                  currentGroupId={groupId}
-                  currentGroupName={group.name}
-                  onAssign={handleAssignRuleset}
-                />
-              ) : undefined
-            }
-          >
-            <RulesetList rulesets={rulesets} />
-          </Card>
-        </Stack>
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        <Box className={styles.twoColumnGrid}>
+          <Stack gap="lg">
+            <Card
+              icon={<FremenIcon />}
+              title="Factions maintained"
+              action={
+                isActiveMember ? (
+                  <FactionAssignPicker
+                    disabled={setFactionGroup.isPending}
+                    currentGroupId={groupId}
+                    currentGroupName={group.name}
+                    onAssign={handleAssignFaction}
+                  />
+                ) : undefined
+              }
+            >
+              <FactionList factions={factions} />
+            </Card>
+            <Card
+              icon={<BookOpen size={18} aria-hidden />}
+              title="Rulesets maintained"
+              action={
+                isActiveMember ? (
+                  <RulesetAssignPicker
+                    disabled={updateRuleset.isPending}
+                    currentGroupId={groupId}
+                    currentGroupName={group.name}
+                    onAssign={handleAssignRuleset}
+                  />
+                ) : undefined
+              }
+            >
+              <RulesetList rulesets={rulesets} />
+            </Card>
+          </Stack>
 
-        <Stack gap="lg">
-          <Card icon={<Crown size={18} aria-hidden />} title="Stewardship">
-            <Stack gap="sm">
-              <OwnerLine ownerProfile={ownerProfile} createdBy={group.created_by} />
-              <Divider />
-              <Group justify="space-between">
-                <Text size="sm" c="dimmed">
-                  Your membership
-                </Text>
-                <MembershipStatusBadge status={membershipStatus} isOwner={isOwner} />
-              </Group>
-            </Stack>
-          </Card>
+          <Stack gap="lg">
+            <Card icon={<Crown size={18} aria-hidden />} title="Stewardship">
+              <Stack gap="sm">
+                <OwnerLine ownerProfile={ownerProfile} createdBy={group.created_by} />
+                <Divider />
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">
+                    Your membership
+                  </Text>
+                  <MembershipStatusBadge status={membershipStatus} isOwner={isOwner} />
+                </Group>
+              </Stack>
+            </Card>
 
-          {membersModerationError && (
-            <Alert color="red" variant="light" title="Moderation failed" role="alert">
-              {membersModerationError}
-            </Alert>
-          )}
+            {membersModerationError && (
+              <Alert color="red" variant="light" title="Moderation failed" role="alert">
+                {membersModerationError}
+              </Alert>
+            )}
 
-          <PendingRequestsPanel
-            pendingMembers={pendingMembers}
-            moderationBusy={membersModerationBusy}
-            onApprove={(membershipId) =>
-              void membershipWorkflow.approve.run(membershipId).catch(() => undefined)
-            }
-            onReject={(membershipId) =>
-              void membershipWorkflow.reject.run(membershipId).catch(() => undefined)
-            }
-          />
-
-          <Card
-            icon={<UsersRound size={18} aria-hidden />}
-            title={`Members (${activeMembers.length})`}
-          >
-            <MemberRoster
-              members={activeMembers}
+            <PendingRequestsPanel
+              pendingMembers={pendingMembers}
               moderationBusy={membersModerationBusy}
               onApprove={(membershipId) =>
                 void membershipWorkflow.approve.run(membershipId).catch(() => undefined)
@@ -301,11 +298,27 @@ function GroupDetailPage() {
               onReject={(membershipId) =>
                 void membershipWorkflow.reject.run(membershipId).catch(() => undefined)
               }
-              onRemove={handleRemoveMember}
             />
-          </Card>
-        </Stack>
-      </Box>
+
+            <Card
+              icon={<UsersRound size={18} aria-hidden />}
+              title={`Members (${activeMembers.length})`}
+            >
+              <MemberRoster
+                members={activeMembers}
+                moderationBusy={membersModerationBusy}
+                onApprove={(membershipId) =>
+                  void membershipWorkflow.approve.run(membershipId).catch(() => undefined)
+                }
+                onReject={(membershipId) =>
+                  void membershipWorkflow.reject.run(membershipId).catch(() => undefined)
+                }
+                onRemove={handleRemoveMember}
+              />
+            </Card>
+          </Stack>
+        </Box>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

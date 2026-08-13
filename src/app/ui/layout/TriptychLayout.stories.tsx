@@ -14,20 +14,32 @@ const meta = preview.meta({
       },
     },
   },
-  args: {
-    left: <LayoutSlotPlaceholder name="left" minHeight={320} />,
-    center: <LayoutSlotPlaceholder name="center" minHeight={320} />,
-    right: <LayoutSlotPlaceholder name="right" minHeight={320} />,
-  },
-  argTypes: { className: { control: false }, centerClassName: { control: false } },
 });
+
+function Triptych() {
+  return (
+    <TriptychLayout>
+      <TriptychLayout.Left>
+        <LayoutSlotPlaceholder name="left" minHeight={320} />
+      </TriptychLayout.Left>
+      <TriptychLayout.Center>
+        <LayoutSlotPlaceholder name="center" minHeight={320} />
+      </TriptychLayout.Center>
+      <TriptychLayout.Right>
+        <LayoutSlotPlaceholder name="right" minHeight={320} />
+      </TriptychLayout.Right>
+    </TriptychLayout>
+  );
+}
 
 /** Above the container breakpoint: three columns, centre filled. */
 export const ThreeColumns = meta.story({
+  render: () => <Triptych />,
   globals: { viewport: { value: 'appDesktop' } },
 });
 
 /** Below it: one column, in source order. */
 export const Stacked = meta.story({
+  render: () => <Triptych />,
   globals: { viewport: { value: 'appConstrained' } },
 });

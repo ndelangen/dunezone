@@ -53,29 +53,31 @@ function CreateFactionPage() {
 
   if (!ownerUserId) {
     return (
-      <PageLayout header={header} headerSize="compact">
-        <Surface padding="xl">
-          <Stack gap="sm">
-            <Text>
-              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
-                Log in
-              </Anchor>{' '}
-              to create a faction.
-            </Text>
-            <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>
-              Back to factions
-            </Anchor>
-          </Stack>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header size="compact">{header}</PageLayout.Header>
+        <PageLayout.Content>
+          <Surface padding="xl">
+            <Stack gap="sm">
+              <Text>
+                <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
+                  Log in
+                </Anchor>{' '}
+                to create a faction.
+              </Text>
+              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>
+                Back to factions
+              </Anchor>
+            </Stack>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   return (
-    <PageLayout
-      header={header}
-      headerSize="compact"
-      toolbar={
+    <PageLayout>
+      <PageLayout.Header size="compact">{header}</PageLayout.Header>
+      <PageLayout.Toolbar>
         <FactionAuthoringToolbar
           status={{
             isDirty: authoring.editing.isDirty,
@@ -102,16 +104,17 @@ function CreateFactionPage() {
             </Text>
           }
         />
-      }
-    >
-      <FactionEditor
-        key="create"
-        ref={viewRef}
-        form={authoring.form}
-        errors={authoring.persistence.errors}
-        isNameBlank={authoring.editing.isNameBlank}
-        warnings={authoring.editing.warnings}
-      />
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        <FactionEditor
+          key="create"
+          ref={viewRef}
+          form={authoring.form}
+          errors={authoring.persistence.errors}
+          isNameBlank={authoring.editing.isNameBlank}
+          warnings={authoring.editing.warnings}
+        />
+      </PageLayout.Content>
     </PageLayout>
   );
 }

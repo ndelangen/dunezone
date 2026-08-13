@@ -8,9 +8,14 @@ export function AppNotFound() {
 
   return (
     <ApplicationChrome pathname={pathname}>
-      <PageLayout header={<h1>404 - Page Not Found</h1>}>
-        <p>The page you're looking for doesn't exist.</p>
-        <Link to="/">Go back home</Link>
+      <PageLayout>
+        <PageLayout.Header>
+          <h1>404 - Page Not Found</h1>
+        </PageLayout.Header>
+        <PageLayout.Content>
+          <p>The page you're looking for doesn't exist.</p>
+          <Link to="/">Go back home</Link>
+        </PageLayout.Content>
       </PageLayout>
     </ApplicationChrome>
   );

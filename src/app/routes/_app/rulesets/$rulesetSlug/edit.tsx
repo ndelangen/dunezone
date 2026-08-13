@@ -178,20 +178,28 @@ function RulesetEditPage() {
 
   if (loaderData.notFound) {
     return (
-      <PageLayout header={header} toolbar={toolbar}>
-        <Surface padding="xl">
-          <Text>Ruleset not found.</Text>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>{header}</PageLayout.Header>
+        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+        <PageLayout.Content>
+          <Surface padding="xl">
+            <Text>Ruleset not found.</Text>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   if (!page?.ruleset) {
     return (
-      <PageLayout header={header} toolbar={toolbar}>
-        <Surface padding="xl">
-          <Text>Ruleset not found.</Text>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>{header}</PageLayout.Header>
+        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+        <PageLayout.Content>
+          <Surface padding="xl">
+            <Text>Ruleset not found.</Text>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
@@ -201,48 +209,64 @@ function RulesetEditPage() {
 
   if (!viewerAccess) {
     return (
-      <PageLayout header={header} toolbar={toolbar}>
-        <Surface padding="xl">
-          <Text>Loading profile…</Text>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>{header}</PageLayout.Header>
+        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+        <PageLayout.Content>
+          <Surface padding="xl">
+            <Text>Loading profile…</Text>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   if (viewerAccess.viewer.kind === 'anonymous') {
     return (
-      <PageLayout header={header} toolbar={toolbar}>
-        <Surface padding="xl">
-          <Text>
-            <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
-              Log in
-            </Anchor>{' '}
-            to edit this ruleset.
-          </Text>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>{header}</PageLayout.Header>
+        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+        <PageLayout.Content>
+          <Surface padding="xl">
+            <Text>
+              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
+                Log in
+              </Anchor>{' '}
+              to edit this ruleset.
+            </Text>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   if (!viewerAccess.capabilities.edit) {
     return (
-      <PageLayout header={header} toolbar={toolbar}>
-        <Surface padding="xl">
-          <Text>
-            {r.group_id
-              ? 'Only the ruleset owner or an active member of its group can edit this ruleset.'
-              : 'Only the ruleset owner can edit this ruleset.'}
-          </Text>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>{header}</PageLayout.Header>
+        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+        <PageLayout.Content>
+          <Surface padding="xl">
+            <Text>
+              {r.group_id
+                ? 'Only the ruleset owner or an active member of its group can edit this ruleset.'
+                : 'Only the ruleset owner can edit this ruleset.'}
+            </Text>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   return (
-    <PageLayout header={header} toolbar={toolbar}>
-      <Surface padding="lg">
-        <RulesetSettings key={r.slug} initial={r} canRename={viewerAccess.capabilities.rename} />
-      </Surface>
+    <PageLayout>
+      <PageLayout.Header>{header}</PageLayout.Header>
+      <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+      <PageLayout.Content>
+        <Surface padding="lg">
+          <RulesetSettings key={r.slug} initial={r} canRename={viewerAccess.capabilities.rename} />
+        </Surface>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

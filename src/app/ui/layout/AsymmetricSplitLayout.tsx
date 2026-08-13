@@ -1,17 +1,38 @@
 import clsx from 'clsx';
-import type { ReactNode } from 'react';
+import { Children, isValidElement } from 'react';
+import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './AsymmetricSplitLayout.module.css';
 
-export function AsymmetricSplitLayout({
+function Wide(_: PropsWithChildren): null {
+  return null;
+}
+
+function Narrow(_: PropsWithChildren): null {
+  return null;
+}
+
+/** A wide column beside a narrow one, responsive by container query. */
+function AsymmetricSplitLayoutBase({
   className,
-  wide,
-  narrow,
-}: {
-  className?: string;
-  wide: ReactNode;
-  narrow: ReactNode;
-}) {
+  children,
+}: PropsWithChildren<{ className?: string }>) {
+  let wide: ReactNode = null;
+  let narrow: ReactNode = null;
+
+  Children.forEach(children, (child) => {
+    if (!isValidElement(child)) {
+      return;
+    }
+    if (child.type === Wide) {
+      wide = (child.props as PropsWithChildren).children;
+      return;
+    }
+    if (child.type === Narrow) {
+      narrow = (child.props as PropsWithChildren).children;
+    }
+  });
+
   return (
     <div className={clsx(styles.root, className)}>
       <div className={styles.layout}>
@@ -21,3 +42,15 @@ export function AsymmetricSplitLayout({
     </div>
   );
 }
+
+type AsymmetricSplitLayoutComponent = ((
+  props: PropsWithChildren<{ className?: string }>
+) => ReactNode) & {
+  Wide: typeof Wide;
+  Narrow: typeof Narrow;
+};
+
+export const AsymmetricSplitLayout = Object.assign(AsymmetricSplitLayoutBase, {
+  Wide,
+  Narrow,
+}) as AsymmetricSplitLayoutComponent;

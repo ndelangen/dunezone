@@ -116,11 +116,13 @@ function ProfileSettingsPage() {
   if (!profile.data) {
     return (
       <PageLayout>
-        <Surface padding="lg">
-          <p>
-            <Link to="/auth/login">Log in</Link> to edit your profile.
-          </p>
-        </Surface>
+        <PageLayout.Content>
+          <Surface padding="lg">
+            <p>
+              <Link to="/auth/login">Log in</Link> to edit your profile.
+            </p>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
@@ -128,14 +130,16 @@ function ProfileSettingsPage() {
   if (profile.data.slug !== profileSlug) {
     return (
       <PageLayout>
-        <Surface padding="lg">
-          <p>You can only edit your own profile.</p>
-          <p>
-            <Link to="/profiles/$profileSlug/edit" params={{ profileSlug: profile.data.slug }}>
-              Go to your profile settings
-            </Link>
-          </p>
-        </Surface>
+        <PageLayout.Content>
+          <Surface padding="lg">
+            <p>You can only edit your own profile.</p>
+            <p>
+              <Link to="/profiles/$profileSlug/edit" params={{ profileSlug: profile.data.slug }}>
+                Go to your profile settings
+              </Link>
+            </p>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
@@ -171,10 +175,13 @@ function ProfileSettingsPage() {
   );
 
   return (
-    <PageLayout toolbar={toolbar}>
-      <Surface padding="lg">
-        <ProfileSettings key={profile.data.slug} initial={profile.data} />
-      </Surface>
+    <PageLayout>
+      <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+      <PageLayout.Content>
+        <Surface padding="lg">
+          <ProfileSettings key={profile.data.slug} initial={profile.data} />
+        </Surface>
+      </PageLayout.Content>
     </PageLayout>
   );
 }
