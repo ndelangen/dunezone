@@ -1,6 +1,7 @@
 import { Group, Input, Stack, Textarea } from '@mantine/core';
-import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@shared/faq/tags';
+import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';

@@ -1,7 +1,8 @@
 import { Button, Group, Input, Stack, TextInput, Textarea } from '@mantine/core';
 import type { FaqTag } from '@shared/faq/tags';
-import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@shared/faq/tags';
+import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 
