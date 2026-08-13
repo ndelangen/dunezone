@@ -105,9 +105,10 @@ by name); the rest convention. Canonical in [`AGENTS.md`](../../AGENTS.md). Layo
 
 A parent-owned `staticData.PageHead` bridge once split one screen into detached header and body
 sub-views, duplicated the page query, and hid the whole composition across router metadata and the
-shell. So every terminal `_app` route renders `PageLayout` directly, filling its
-`Header`/`Toolbar`/`Content` slots alongside its content; route parents are outlet-only, and
-`AppRoot` owns only persistent chrome and document effects.
+shell. So every terminal `_app` route renders `PageLayout` directly and fills only the slots that
+page needs — often all of `Header`/`Toolbar`/`Content`, but a page may omit the header and render
+`Content` alone, which marks it compact. Route parents are outlet-only, and `AppRoot` owns only
+persistent chrome and document effects.
 
 *Enforced by
 [`PageLayout.architecture.test.ts`](../../src/app/ui/layout/PageLayout.architecture.test.ts) (every
@@ -120,9 +121,12 @@ terminal route mounts it). Canonical in [`AGENTS.md`](../../AGENTS.md).*
 Mounting several `useQuery` hooks on a route multiplies live subscriptions, complicates loading
 states, and scatters a screen's authoritative shape across Convex functions. Each route subscribes to
 **at most one Convex query for page data**, plus `useCurrentProfile` when the UI is auth-aware;
-derive UI-ready fields inside that query and pass server-derived collections (such as a Picker's
-options) into controls rather than adding child subscriptions. This subscription discipline is the
-real reason widgets don't fetch and Pickers fetch only lazily. Mutations don't count.
+derive UI-ready fields inside that query, and pass small server-derived collections into controls
+through it rather than adding child subscriptions. The one documented exception is a lazily-mounted
+[Picker](#pickers-are-the-one-place-a-component-may-fetch), which may hold its own read-only options
+subscription — so a control choosing from a large set never forces those rows into the page query.
+This subscription discipline is the real reason widgets don't fetch and Pickers fetch only lazily.
+Mutations don't count.
 
 *Convention — no automated guard. (`check:convex-skip` bans `useQuery("skip")` inside `src/app/db`, a
 separate, adjacent rule.) Stated here; [`AGENTS.md`](../../AGENTS.md) and
