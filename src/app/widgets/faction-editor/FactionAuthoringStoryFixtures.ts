@@ -1,6 +1,7 @@
 import type { Faction, FactionEntry } from '@db/factions';
-import { defaultFaction } from '@data/defaultFaction';
 import { DECAL, LEADERS, PLANET, TROOP_MODIFIER } from '@game/data/generated';
+
+import { defaultFaction } from './defaultFaction';
 
 export function representativeFaction(): Faction {
   const faction = structuredClone(defaultFaction);

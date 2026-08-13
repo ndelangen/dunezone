@@ -215,15 +215,32 @@ so the three components that were missing stories when this was written now have
 `src/shared/**` holds what more than one deploy artifact needs: the Zod schemas and tag vocabularies
 the client and the Convex server both parse against, the asset rules the generators and the Worker
 both read, and the publisher's diagnostics and font contracts. Import it as `@shared/*` from the app,
-and relatively from `convex/` and `workers/`, which sit outside `src` and have no path aliases.
+and relatively from `convex/` and `workers/`. Use relative imports there deliberately, not because
+aliases are unavailable: `workers/` has its own tsconfig with no `paths`, so it genuinely cannot
+resolve `@shared`; `convex/` has no tsconfig of its own and falls under the root one, so it *does*
+resolve `@shared` (and `@game`) today — but Convex's generated `convex/tsconfig.json` template
+carries no `paths`, so the day `convex codegen` writes that file every alias in `convex/` breaks at
+once. Relative paths are the spelling that survives that, and keeping both artifacts on the same
+convention keeps the rule simple.
 
-Two boundaries depend on it, and both are absolute because nothing legitimate crosses them any more:
-`convex/**` may not import `src/app/**`, and `workers/**` may not either. Before this layer existed
-seven convex modules reached into `src/app/*/validation` for shared Zod schemas and the publisher
-Worker reached into the app's capture folder for its diagnostics — so the "server must not import client
-code" rule could only be written for one named file, and it never fired. **A rule that has to
-tolerate exceptions cannot be enforced; move the exceptions out and then it can.** When you find
-yourself widening a guard to fit the code, check whether the code wants hoisting instead.
+Three boundaries depend on it, all absolute because nothing legitimate crosses them. Two guard it
+from outside: `convex/**` may not import `src/app/**`, and `workers/**` may not either. The third
+guards it from inside: `src/shared/**` may not import the browser app (`@app`/`@ui`/`@db`, or a
+relative `../app/…`). That last one is the positive counterpart — if a shared file needed something
+from `src/app`, that thing would not actually be shared — and its lint pattern is written for the
+spelling a file *inside* `src` uses to reach the app (`../app`), not the `../src/app` spelling the
+outside artifacts use; copying the outside pattern verbatim would have matched nothing and passed
+silently. Before this layer existed seven convex modules reached into `src/app/*/validation` for
+shared Zod schemas and the publisher Worker reached into the app's capture folder for its
+diagnostics — so the "server must not import client code" rule could only be written for one named
+file, and it never fired. **A rule that has to tolerate exceptions cannot be enforced; move the
+exceptions out and then it can.** When you find yourself widening a guard to fit the code, check
+whether the code wants hoisting instead.
+
+`src/game` (the renderers) has its own fence, `src/game/rendererIsolation.test.ts`, which forbids
+Mantine, Radix, and any reach into the app — by alias or by relative climb. It is a test rather than
+a lint override because it also bans framework packages a `no-restricted-imports` group would not
+naturally express.
 
 ## The Convex doorway
 

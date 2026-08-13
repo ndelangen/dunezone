@@ -1,8 +1,8 @@
 import { Anchor, Badge, Group, Stack, Text, Tooltip } from '@mantine/core';
-import { FAQ_TAG_LABELS } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { Link } from '@tanstack/react-router';
 import { formatRelativeDate } from '@ui/content/dates';
+import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
 import Fuse from 'fuse.js';

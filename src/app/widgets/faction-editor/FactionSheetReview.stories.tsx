@@ -4,8 +4,8 @@ import { useRef } from 'react';
 import { userEvent, within } from 'storybook/test';
 
 import type { Faction } from '@db/factions';
-import { defaultFaction } from '@data/defaultFaction';
 
+import { defaultFaction } from './defaultFaction';
 import { FactionSheetReview } from './FactionSheetReview';
 import type { FactionSheetReviewHandle } from './FactionSheetReview';
 

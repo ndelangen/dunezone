@@ -156,6 +156,48 @@
       }
     },
     {
+      /*
+       * src/shared is the layer BOTH the browser app and the server deploy import from, so it must
+       * never reach back into the browser app: if a shared file needed something from src/app, that
+       * thing would not actually be shared. This is the positive counterpart to the convex-to-app
+       * and workers-to-app bans below — the same boundary, guarded from the other side.
+       *
+       * The pattern is deliberately NOT copied from those overrides. A convex file reaches the app
+       * with a leading ../src/app path; a src/shared file already sits inside src, so it reaches the
+       * app as ../app instead — a different spelling. The globstar-app-globstar pattern in the group
+       * catches that relative form at any depth (verified zero false positives: no legitimate
+       * src/shared import contains an app path segment); the three aliases catch the aliased form.
+       * See the message string for the rule itself.
+       */
+      "files": ["src/shared/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@app",
+                  "@app/**",
+                  "@ui",
+                  "@ui/**",
+                  "@db",
+                  "@db/**",
+                  "**/app",
+                  "**/app/**"
+                ],
+                "message": "src/shared is imported by both the browser app and the server deploy, so it must not import the browser app. If a shared file needs something from src/app, that thing is not shared — hoist it into src/shared or leave the code in the app."
+              },
+              {
+                "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
+                "message": "src/shared must not import Convex either — it is parsed on both sides of the deploy boundary and reaches neither runtime's client. Restated here because this override replaces the repo-wide src/** convex-doorway rule for the files it matches rather than adding to it."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["convex/**"],
       "rules": {
         "no-restricted-imports": [
@@ -164,11 +206,15 @@
             "patterns": [
               {
                 "group": [
+                  "**/src/app",
                   "**/src/app/**",
                   "../src/app/**",
                   "../../src/app/**",
+                  "@app",
                   "@app/**",
+                  "@ui",
                   "@ui/**",
+                  "@db",
                   "@db/**"
                 ],
                 "message": "The server must not import client code. A contract both sides need — a Zod schema, a tag vocabulary — belongs in `src/shared/`, which both may import. `@db/*` resolves into `src/app/db` — a domain module, or `core/index.ts` for `@db/core` — so it is client code too."
@@ -192,11 +238,15 @@
             "patterns": [
               {
                 "group": [
+                  "**/src/app",
                   "**/src/app/**",
                   "../src/app/**",
                   "../../src/app/**",
+                  "@app",
                   "@app/**",
+                  "@ui",
                   "@ui/**",
+                  "@db",
                   "@db/**"
                 ],
                 "message": "The publisher Worker is a separate deploy artifact and must not import application code. Shared runtime contracts belong in `src/shared/`. `@db/*` resolves into `src/app/db` — a domain module, or `core/index.ts` for `@db/core` — so it is application code too."
