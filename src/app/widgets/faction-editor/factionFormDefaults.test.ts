@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { defaultFaction } from '@data/defaultFaction';
 import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 
+import { defaultFaction } from './defaultFaction';
 import {
   createTroopBackFromFront,
   defaultAdvantage,
