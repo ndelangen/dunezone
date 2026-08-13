@@ -6,9 +6,10 @@ const layoutDir = new URL('.', import.meta.url);
 
 /*
  * A Layout is responsive by container query, so it lays out by the room it is given, not the size
- * of the window (DD-003). `PageLayout` is the one exemption: it is the shell's page frame, sized
- * against the viewport in concert with `AppHeader` through the `data-page-layout-*` bridge
- * (DD-018), so it is genuinely viewport-scoped and uses `@media`.
+ * of the window (the "Layouts own spacing" rule in docs/technical/ui-design-decisions.md).
+ * `PageLayout` is the one exemption: it is the shell's page frame, sized against the viewport in
+ * concert with `AppHeader` through the `data-page-layout-*` bridge (the "shell is chrome" rule), so
+ * it is genuinely viewport-scoped and uses `@media`.
  */
 const VIEWPORT_EXEMPT = new Set(['PageLayout.module.css']);
 

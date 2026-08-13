@@ -61,9 +61,9 @@ either no-ops or a second read of data that is already arriving.
 
 ## Rules
 
-- One Convex page query per route, plus `useCurrentProfile` when the UI is auth-aware — see DD-013
-  in [`technical/ui-design-decisions.md`](technical/ui-design-decisions.md). Derive what the screen
-  needs inside that query rather than adding child subscriptions.
+- One Convex page query per route, plus `useCurrentProfile` when the UI is auth-aware — see
+  [*One Convex query per route*](technical/ui-design-decisions.md#one-convex-query-per-route). Derive
+  what the screen needs inside that query rather than adding child subscriptions.
 - Pass loader data down as `initialData`; do not re-query in a child for data the page already has.
 - Client-side parsing is for UX feedback only. The authoritative parse happens in the Convex
   handler — see [`data-layer.md`](data-layer.md).

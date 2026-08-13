@@ -404,7 +404,7 @@ function OwnedAssetPicker({
 /**
  * Only mounted for active members (see call sites): the owned-factions query requires
  * authentication, so it must not be called for anonymous, pending, or non-member viewers.
- * Subscribing to a second query beyond the page query deviates from DD-013's default; that was
+ * Subscribing to a second query beyond the page query deviates from the one-query-per-route default; that was
  * decided explicitly for this picker (issues #348/#182: keep `detailBySlug` unchanged, expose the
  * viewer-scoped owned lists as their own queries).
  */
