@@ -33,94 +33,104 @@ function AdminMigrationsPage() {
 
   if (!profile.data?._id) {
     return (
-      <PageLayout header={<h1>Migration activity</h1>}>
-        <Surface padding="lg">
-          <p>
-            <Link to="/auth/login">Log in</Link> to view migration activity.
-          </p>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>
+          <h1>Migration activity</h1>
+        </PageLayout.Header>
+        <PageLayout.Content>
+          <Surface padding="lg">
+            <p>
+              <Link to="/auth/login">Log in</Link> to view migration activity.
+            </p>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   return (
-    <PageLayout header={<h1>Migration activity</h1>}>
-      <Stack gap="sm">
-        {dashboardQuery.isPending && <p>Loading migration dashboard…</p>}
-        <Surface padding="lg">
-          <Stack gap="xs">
-            <h2>Live migration status</h2>
-            <Group gap="xs" wrap="nowrap">
-              <IconAction
-                label="Sync migration status"
-                tooltip="Sync status snapshot to migration_runs table"
-                variant="filled"
-                color="confirm"
-                size="lg"
-                disabled={syncRuns.isPending}
-                onClick={() => syncRuns.mutate({})}
-                icon={<RefreshCw size={16} aria-hidden />}
-              />
-            </Group>
-            <table>
-              <thead>
-                <tr>
-                  <th align="left">Migration</th>
-                  <th align="left">State</th>
-                  <th align="left">Done</th>
-                  <th align="left">Processed</th>
-                  <th align="left">Started</th>
-                  <th align="left">Ended</th>
-                  <th align="left">Error</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(dashboard?.statuses ?? []).map((row) => (
-                  <tr key={row.name}>
-                    <td>{row.name}</td>
-                    <td>{row.state}</td>
-                    <td>{row.isDone ? 'yes' : 'no'}</td>
-                    <td>{row.processed}</td>
-                    <td>{formatDate(row.latestStart)}</td>
-                    <td>{formatDate(row.latestEnd)}</td>
-                    <td>{row.error ?? '-'}</td>
+    <PageLayout>
+      <PageLayout.Header>
+        <h1>Migration activity</h1>
+      </PageLayout.Header>
+      <PageLayout.Content>
+        <Stack gap="sm">
+          {dashboardQuery.isPending && <p>Loading migration dashboard…</p>}
+          <Surface padding="lg">
+            <Stack gap="xs">
+              <h2>Live migration status</h2>
+              <Group gap="xs" wrap="nowrap">
+                <IconAction
+                  label="Sync migration status"
+                  tooltip="Sync status snapshot to migration_runs table"
+                  variant="filled"
+                  color="confirm"
+                  size="lg"
+                  disabled={syncRuns.isPending}
+                  onClick={() => syncRuns.mutate({})}
+                  icon={<RefreshCw size={16} aria-hidden />}
+                />
+              </Group>
+              <table>
+                <thead>
+                  <tr>
+                    <th align="left">Migration</th>
+                    <th align="left">State</th>
+                    <th align="left">Done</th>
+                    <th align="left">Processed</th>
+                    <th align="left">Started</th>
+                    <th align="left">Ended</th>
+                    <th align="left">Error</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Stack>
-        </Surface>
+                </thead>
+                <tbody>
+                  {(dashboard?.statuses ?? []).map((row) => (
+                    <tr key={row.name}>
+                      <td>{row.name}</td>
+                      <td>{row.state}</td>
+                      <td>{row.isDone ? 'yes' : 'no'}</td>
+                      <td>{row.processed}</td>
+                      <td>{formatDate(row.latestStart)}</td>
+                      <td>{formatDate(row.latestEnd)}</td>
+                      <td>{row.error ?? '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Stack>
+          </Surface>
 
-        <Surface padding="lg">
-          <Stack gap="xs">
-            <h2>Recorded snapshots</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th align="left">Migration ID</th>
-                  <th align="left">State</th>
-                  <th align="left">Done</th>
-                  <th align="left">Processed</th>
-                  <th align="left">Updated</th>
-                  <th align="left">Error</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(dashboard?.snapshots ?? []).map((row) => (
-                  <tr key={row._id}>
-                    <td>{row.migration_id}</td>
-                    <td>{row.state}</td>
-                    <td>{row.is_done ? 'yes' : 'no'}</td>
-                    <td>{row.processed}</td>
-                    <td>{row.updated_at}</td>
-                    <td>{row.error ?? '-'}</td>
+          <Surface padding="lg">
+            <Stack gap="xs">
+              <h2>Recorded snapshots</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th align="left">Migration ID</th>
+                    <th align="left">State</th>
+                    <th align="left">Done</th>
+                    <th align="left">Processed</th>
+                    <th align="left">Updated</th>
+                    <th align="left">Error</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Stack>
-        </Surface>
-      </Stack>
+                </thead>
+                <tbody>
+                  {(dashboard?.snapshots ?? []).map((row) => (
+                    <tr key={row._id}>
+                      <td>{row.migration_id}</td>
+                      <td>{row.state}</td>
+                      <td>{row.is_done ? 'yes' : 'no'}</td>
+                      <td>{row.processed}</td>
+                      <td>{row.updated_at}</td>
+                      <td>{row.error ?? '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Stack>
+          </Surface>
+        </Stack>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

@@ -99,13 +99,18 @@ function GroupEditPage() {
   const editPage = groupData.data;
   if (groupData.isError || !editPage) {
     return (
-      <PageLayout header={<h1>Edit group</h1>}>
-        <Surface padding="lg">
-          <p>Group not found.</p>
-          <p>
-            <Link to="/profiles">Back to profiles</Link>
-          </p>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>
+          <h1>Edit group</h1>
+        </PageLayout.Header>
+        <PageLayout.Content>
+          <Surface padding="lg">
+            <p>Group not found.</p>
+            <p>
+              <Link to="/profiles">Back to profiles</Link>
+            </p>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
@@ -142,41 +147,53 @@ function GroupEditPage() {
 
   if (viewerAccess.viewer.kind === 'anonymous') {
     return (
-      <PageLayout header={header} toolbar={toolbar}>
-        <Surface padding="lg">
-          <p>
-            <Link to="/auth/login">Log in</Link> to edit group settings.
-          </p>
-          <p>
-            <Link to="/groups/$groupSlug" params={{ groupSlug: group.slug }}>
-              Back to group
-            </Link>
-          </p>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>{header}</PageLayout.Header>
+        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+        <PageLayout.Content>
+          <Surface padding="lg">
+            <p>
+              <Link to="/auth/login">Log in</Link> to edit group settings.
+            </p>
+            <p>
+              <Link to="/groups/$groupSlug" params={{ groupSlug: group.slug }}>
+                Back to group
+              </Link>
+            </p>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   if (!viewerAccess.capabilities.rename) {
     return (
-      <PageLayout header={header} toolbar={toolbar}>
-        <Surface padding="lg">
-          <p>Only the owner can edit the group settings.</p>
-          <p>
-            <Link to="/groups/$groupSlug" params={{ groupSlug: group.slug }}>
-              Back to group
-            </Link>
-          </p>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>{header}</PageLayout.Header>
+        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+        <PageLayout.Content>
+          <Surface padding="lg">
+            <p>Only the owner can edit the group settings.</p>
+            <p>
+              <Link to="/groups/$groupSlug" params={{ groupSlug: group.slug }}>
+                Back to group
+              </Link>
+            </p>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   return (
-    <PageLayout header={header} toolbar={toolbar}>
-      <Surface padding="lg">
-        <GroupSettings key={group.slug} initial={group} />
-      </Surface>
+    <PageLayout>
+      <PageLayout.Header>{header}</PageLayout.Header>
+      <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+      <PageLayout.Content>
+        <Surface padding="lg">
+          <GroupSettings key={group.slug} initial={group} />
+        </Surface>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

@@ -41,98 +41,119 @@ function FaqCreatePage() {
   );
 
   if (!rulesetRow) {
-    return <PageLayout header={header}>Loading ruleset…</PageLayout>;
+    return (
+      <PageLayout>
+        <PageLayout.Header>{header}</PageLayout.Header>
+        <PageLayout.Content>Loading ruleset…</PageLayout.Content>
+      </PageLayout>
+    );
   }
   const rulesetId = rulesetRow._id;
 
   if (!profile?.data?._id) {
     return (
-      <PageLayout header={header}>
-        <Surface padding="lg">
-          <p>
-            <Link to="/auth/login">Log in</Link> to ask a question.
-          </p>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>{header}</PageLayout.Header>
+        <PageLayout.Content>
+          <Surface padding="lg">
+            <p>
+              <Link to="/auth/login">Log in</Link> to ask a question.
+            </p>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   return (
-    <PageLayout header={header}>
-      <Surface padding="lg">
-        <Stack
-          component="form"
-          gap="sm"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const formEl = e.target as HTMLFormElement;
-            const question = (
-              formEl.elements.namedItem('question') as HTMLInputElement
-            ).value.trim();
-            const answer = (
-              formEl.elements.namedItem('answer') as HTMLTextAreaElement
-            ).value.trim();
-            const selectedTags = Array.from(
-              formEl.querySelectorAll<HTMLInputElement>('input[name="tags"]:checked')
-            ).map((input) => input.value as FaqTag);
-            if (!question) {
-              return;
-            }
-            if (selectedTags.length === 0) {
-              return;
-            }
-            void askQuestion
-              .run({
-                rulesetId,
-                question,
-                initialAnswer: answer || undefined,
-                tags: selectedTags,
-              })
-              .then((locator) => {
-                formEl.reset();
-                navigate({
-                  to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                  params: locator,
-                });
-              })
-              .catch(() => undefined);
-          }}
-        >
-          <TextInput
-            label="Ask a question"
-            type="text"
-            name="question"
-            required
-            minLength={1}
-            placeholder="Your question..."
-          />
-          <Textarea
-            label="Your answer (optional-you can add or edit it later)"
-            name="answer"
-            rows={3}
-            placeholder="Optional answer..."
-          />
-          <Input.Wrapper label="Tags">
-            <Stack component="fieldset" gap="xs" className={styles.tagFieldset}>
-              <legend className={styles.visuallyHidden}>FAQ tags</legend>
-              {FAQ_TAG_VALUES.map((tag) => (
-                <label key={tag} className={styles.tagOption}>
-                  <input type="checkbox" name="tags" value={tag} defaultChecked={tag === 'other'} />
-                  <span>{FAQ_TAG_LABELS[tag]}</span>
-                </label>
-              ))}
-            </Stack>
-          </Input.Wrapper>
-          <Group gap="xs" wrap="nowrap">
-            <Button variant="filled" color="confirm" type="submit" disabled={askQuestion.isPending}>
-              {askQuestion.isPending ? 'Asking…' : 'Ask'}
-            </Button>
-            {askQuestion.isError && (
-              <span className={styles.error}>{askQuestion.error?.message}</span>
-            )}
-          </Group>
-        </Stack>
-      </Surface>
+    <PageLayout>
+      <PageLayout.Header>{header}</PageLayout.Header>
+      <PageLayout.Content>
+        <Surface padding="lg">
+          <Stack
+            component="form"
+            gap="sm"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const formEl = e.target as HTMLFormElement;
+              const question = (
+                formEl.elements.namedItem('question') as HTMLInputElement
+              ).value.trim();
+              const answer = (
+                formEl.elements.namedItem('answer') as HTMLTextAreaElement
+              ).value.trim();
+              const selectedTags = Array.from(
+                formEl.querySelectorAll<HTMLInputElement>('input[name="tags"]:checked')
+              ).map((input) => input.value as FaqTag);
+              if (!question) {
+                return;
+              }
+              if (selectedTags.length === 0) {
+                return;
+              }
+              void askQuestion
+                .run({
+                  rulesetId,
+                  question,
+                  initialAnswer: answer || undefined,
+                  tags: selectedTags,
+                })
+                .then((locator) => {
+                  formEl.reset();
+                  navigate({
+                    to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+                    params: locator,
+                  });
+                })
+                .catch(() => undefined);
+            }}
+          >
+            <TextInput
+              label="Ask a question"
+              type="text"
+              name="question"
+              required
+              minLength={1}
+              placeholder="Your question..."
+            />
+            <Textarea
+              label="Your answer (optional-you can add or edit it later)"
+              name="answer"
+              rows={3}
+              placeholder="Optional answer..."
+            />
+            <Input.Wrapper label="Tags">
+              <Stack component="fieldset" gap="xs" className={styles.tagFieldset}>
+                <legend className={styles.visuallyHidden}>FAQ tags</legend>
+                {FAQ_TAG_VALUES.map((tag) => (
+                  <label key={tag} className={styles.tagOption}>
+                    <input
+                      type="checkbox"
+                      name="tags"
+                      value={tag}
+                      defaultChecked={tag === 'other'}
+                    />
+                    <span>{FAQ_TAG_LABELS[tag]}</span>
+                  </label>
+                ))}
+              </Stack>
+            </Input.Wrapper>
+            <Group gap="xs" wrap="nowrap">
+              <Button
+                variant="filled"
+                color="confirm"
+                type="submit"
+                disabled={askQuestion.isPending}
+              >
+                {askQuestion.isPending ? 'Asking…' : 'Ask'}
+              </Button>
+              {askQuestion.isError && (
+                <span className={styles.error}>{askQuestion.error?.message}</span>
+              )}
+            </Group>
+          </Stack>
+        </Surface>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

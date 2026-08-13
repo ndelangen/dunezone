@@ -33,11 +33,15 @@ export function ShellPageBackdrop({ children }: { children: ReactNode }) {
  */
 function ShellStoryPage({ headerSize }: { headerSize?: 'default' | 'compact' }) {
   return (
-    <PageLayout
-      header={headerSize && <LayoutSlotPlaceholder name="header slot" minHeight={0} />}
-      headerSize={headerSize}
-    >
-      <LayoutSlotPlaceholder name="children slot" minHeight={1400} />
+    <PageLayout>
+      {headerSize && (
+        <PageLayout.Header size={headerSize}>
+          <LayoutSlotPlaceholder name="header slot" minHeight={0} />
+        </PageLayout.Header>
+      )}
+      <PageLayout.Content>
+        <LayoutSlotPlaceholder name="children slot" minHeight={1400} />
+      </PageLayout.Content>
     </PageLayout>
   );
 }

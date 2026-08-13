@@ -74,46 +74,55 @@ function FactionEditPage() {
 
   if (viewerAccess?.viewer.kind === 'anonymous') {
     return (
-      <PageLayout header={header} headerSize="compact">
-        <Surface padding="xl">
-          <Stack gap="sm">
-            <Text>
-              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
-                Log in
-              </Anchor>{' '}
-              to edit factions.
-            </Text>
-            <Anchor
-              renderRoot={(rootProps) => (
-                <Link {...rootProps} to="/factions/$factionId" params={{ factionId }} />
-              )}
-            >
-              Back to faction
-            </Anchor>
-          </Stack>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header size="compact">{header}</PageLayout.Header>
+        <PageLayout.Content>
+          <Surface padding="xl">
+            <Stack gap="sm">
+              <Text>
+                <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
+                  Log in
+                </Anchor>{' '}
+                to edit factions.
+              </Text>
+              <Anchor
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/factions/$factionId" params={{ factionId }} />
+                )}
+              >
+                Back to faction
+              </Anchor>
+            </Stack>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   if (!faction) {
     return (
-      <PageLayout header={header} headerSize="compact">
-        <Text>Loading faction…</Text>
+      <PageLayout>
+        <PageLayout.Header size="compact">{header}</PageLayout.Header>
+        <PageLayout.Content>
+          <Text>Loading faction…</Text>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
 
   if (!viewerAccess?.capabilities.edit) {
     return (
-      <PageLayout header={header} headerSize="compact">
-        <Surface padding="xl">
-          <Text>
-            {faction.group_id
-              ? 'Only the faction owner or an active member of its group can edit this faction.'
-              : 'Only the faction owner can edit this faction.'}
-          </Text>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header size="compact">{header}</PageLayout.Header>
+        <PageLayout.Content>
+          <Surface padding="xl">
+            <Text>
+              {faction.group_id
+                ? 'Only the faction owner or an active member of its group can edit this faction.'
+                : 'Only the faction owner can edit this faction.'}
+            </Text>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
@@ -123,10 +132,9 @@ function FactionEditPage() {
   const canAssignGroup = viewerAccess.capabilities.changeGroup;
 
   return (
-    <PageLayout
-      header={header}
-      headerSize="compact"
-      toolbar={
+    <PageLayout>
+      <PageLayout.Header size="compact">{header}</PageLayout.Header>
+      <PageLayout.Toolbar>
         <FactionAuthoringToolbar
           status={{
             isDirty: authoring.editing.isDirty,
@@ -231,16 +239,17 @@ function FactionEditPage() {
             ) : null
           }
         />
-      }
-    >
-      <FactionEditor
-        key={faction._id}
-        ref={viewRef}
-        form={authoring.form}
-        errors={authoring.persistence.errors}
-        isNameBlank={authoring.editing.isNameBlank}
-        warnings={authoring.editing.warnings}
-      />
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        <FactionEditor
+          key={faction._id}
+          ref={viewRef}
+          form={authoring.form}
+          errors={authoring.persistence.errors}
+          isNameBlank={authoring.editing.isNameBlank}
+          warnings={authoring.editing.warnings}
+        />
+      </PageLayout.Content>
     </PageLayout>
   );
 }

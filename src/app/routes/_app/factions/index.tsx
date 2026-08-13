@@ -53,10 +53,12 @@ function FactionsPage() {
   const hasFactions = data.factions.length > 0;
 
   return (
-    <PageLayout
-      header={<CatalogueHeader spotlights={hasFactions ? data.spotlights : undefined} />}
-      toolbar={
-        hasFactions ? (
+    <PageLayout>
+      <PageLayout.Header>
+        <CatalogueHeader spotlights={hasFactions ? data.spotlights : undefined} />
+      </PageLayout.Header>
+      <PageLayout.Toolbar>
+        {hasFactions ? (
           <CatalogueToolbar
             draftQuery={session.query.value}
             onDraftQueryChange={session.query.change}
@@ -67,50 +69,61 @@ function FactionsPage() {
             totalCount={data.factions.length}
             onSearchChange={session.changeSearch}
           />
-        ) : undefined
-      }
-    >
-      {hasFactions ? (
-        session.visibleFactions.length > 0 ? (
-          <FactionList
-            factions={session.visibleFactions}
-            selectedRulesetSlug={session.search.ruleset}
-          />
+        ) : undefined}
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        {hasFactions ? (
+          session.visibleFactions.length > 0 ? (
+            <FactionList
+              factions={session.visibleFactions}
+              selectedRulesetSlug={session.search.ruleset}
+            />
+          ) : (
+            <FilteredEmptyState onReset={session.reset} />
+          )
         ) : (
-          <FilteredEmptyState onReset={session.reset} />
-        )
-      ) : (
-        <Surface padding="xl">
-          <Title order={2}>There are no factions</Title>
-          <Text c="dimmed" mt="xs">
-            Create the first faction to begin the collection.
-          </Text>
-        </Surface>
-      )}
+          <Surface padding="xl">
+            <Title order={2}>There are no factions</Title>
+            <Text c="dimmed" mt="xs">
+              Create the first faction to begin the collection.
+            </Text>
+          </Surface>
+        )}
+      </PageLayout.Content>
     </PageLayout>
   );
 }
 
 function FactionCataloguePending() {
   return (
-    <PageLayout header={<CatalogueHeader />}>
-      <Surface padding="xl">
-        <Stack align="center" gap="sm">
-          <Loader size="sm" />
-          <Title order={2}>Loading factions</Title>
-          <Text c="dimmed">The faction catalogue is still loading.</Text>
-        </Stack>
-      </Surface>
+    <PageLayout>
+      <PageLayout.Header>
+        <CatalogueHeader />
+      </PageLayout.Header>
+      <PageLayout.Content>
+        <Surface padding="xl">
+          <Stack align="center" gap="sm">
+            <Loader size="sm" />
+            <Title order={2}>Loading factions</Title>
+            <Text c="dimmed">The faction catalogue is still loading.</Text>
+          </Stack>
+        </Surface>
+      </PageLayout.Content>
     </PageLayout>
   );
 }
 
 function FactionCatalogueError({ error }: ErrorComponentProps) {
   return (
-    <PageLayout header={<CatalogueHeader />}>
-      <Alert color="red" title="Faction catalogue could not be loaded" role="alert">
-        <Text size="sm">{error.message || 'An unexpected error occurred.'}</Text>
-      </Alert>
+    <PageLayout>
+      <PageLayout.Header>
+        <CatalogueHeader />
+      </PageLayout.Header>
+      <PageLayout.Content>
+        <Alert color="red" title="Faction catalogue could not be loaded" role="alert">
+          <Text size="sm">{error.message || 'An unexpected error occurred.'}</Text>
+        </Alert>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

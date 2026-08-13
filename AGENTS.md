@@ -180,6 +180,13 @@ Rules between categories:
 - **Receivers vs producers.** Layouts and Surfaces *receive* built content through slots. Blocks,
   Lists and Content *produce* content from data. Controls *change* data. A component doing two of
   these is two components.
+- **Layouts own spacing and lay out through named slots.** A Layout arranges its slots; a leaf never
+  carries page margin/padding. Every Layout is a custom component built on Mantine primitives that
+  takes **named compound slots** (`<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…`),
+  never fewer than two, and is responsive **by container query, not media query** — so it lays out by
+  the room it is given. `PageLayout` is the one exemption from the container-query rule: it is the
+  shell's page frame, viewport-scoped in concert with `AppHeader` (see DD-003 and DD-018).
+  `containerQueries.test.ts` guards it.
 - **Knowledge points one way.** Content knows the theme. Blocks know Content. Lists know their
   item shape. Layouts and Surfaces know nothing about their contents. No component fetches, and none
   navigates on its own behalf.

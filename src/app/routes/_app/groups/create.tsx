@@ -26,15 +26,18 @@ function GroupCreatePage() {
 
   if (!profile.data?._id || !profile.data.slug) {
     return (
-      <PageLayout header={groupCreateHeader}>
-        <Surface padding="lg">
-          <p>
-            <Link to="/auth/login">Log in</Link> to start a group.
-          </p>
-          <p>
-            <Link to="/profiles">Back to profiles</Link>
-          </p>
-        </Surface>
+      <PageLayout>
+        <PageLayout.Header>{groupCreateHeader}</PageLayout.Header>
+        <PageLayout.Content>
+          <Surface padding="lg">
+            <p>
+              <Link to="/auth/login">Log in</Link> to start a group.
+            </p>
+            <p>
+              <Link to="/profiles">Back to profiles</Link>
+            </p>
+          </Surface>
+        </PageLayout.Content>
       </PageLayout>
     );
   }
@@ -43,9 +46,9 @@ function GroupCreatePage() {
   const canSubmit = !createGroup.isPending && name.trim().length > 0;
 
   return (
-    <PageLayout
-      header={groupCreateHeader}
-      toolbar={
+    <PageLayout>
+      <PageLayout.Header>{groupCreateHeader}</PageLayout.Header>
+      <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left>
             <Group gap="xs" wrap="nowrap">
@@ -76,52 +79,53 @@ function GroupCreatePage() {
             </Group>
           </Toolbar.Left>
         </Toolbar>
-      }
-    >
-      <Surface padding="lg">
-        <Stack
-          component="form"
-          gap="sm"
-          id={GROUP_CREATE_FORM_ID}
-          onSubmit={(e) => {
-            e.preventDefault();
-            const nextName = name.trim();
-            if (!nextName) {
-              return;
-            }
-            setSubmitError(null);
-            createGroup.mutate(
-              { input: { name: nextName } },
-              {
-                onSuccess: () => {
-                  setSubmitError(null);
-                  navigate({
-                    to: '/profiles/$profileSlug',
-                    params: { profileSlug: profileRow.slug },
-                  });
-                },
-                onError: (error) => setSubmitError(error.message),
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        <Surface padding="lg">
+          <Stack
+            component="form"
+            gap="sm"
+            id={GROUP_CREATE_FORM_ID}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const nextName = name.trim();
+              if (!nextName) {
+                return;
               }
-            );
-          }}
-        >
-          <TextInput
-            label="Group name"
-            error={submitError ?? createGroup.error?.message}
-            name="name"
-            required
-            minLength={1}
-            title="Group name may only contain letters and numbers"
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              if (submitError) {
-                setSubmitError(null);
-              }
+              setSubmitError(null);
+              createGroup.mutate(
+                { input: { name: nextName } },
+                {
+                  onSuccess: () => {
+                    setSubmitError(null);
+                    navigate({
+                      to: '/profiles/$profileSlug',
+                      params: { profileSlug: profileRow.slug },
+                    });
+                  },
+                  onError: (error) => setSubmitError(error.message),
+                }
+              );
             }}
-          />
-        </Stack>
-      </Surface>
+          >
+            <TextInput
+              label="Group name"
+              error={submitError ?? createGroup.error?.message}
+              name="name"
+              required
+              minLength={1}
+              title="Group name may only contain letters and numbers"
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value);
+                if (submitError) {
+                  setSubmitError(null);
+                }
+              }}
+            />
+          </Stack>
+        </Surface>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

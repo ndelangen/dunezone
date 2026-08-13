@@ -7,27 +7,28 @@ export const Route = createFileRoute('/_app/auth/')({
 
 function AuthLandingPage() {
   return (
-    <PageLayout
-      header={
+    <PageLayout>
+      <PageLayout.Header>
         <h1>
           <span>TANSTACK</span> <span>AUTH</span>
         </h1>
-      }
-    >
-      <p>The framework for next generation AI applications</p>
-      <p>
-        Full-stack framework powered by TanStack Router for React and Solid. Build modern
-        applications with server functions, streaming, and type safety.
-      </p>
-      <div>
-        <Link to="/auth/login">Sign in</Link>
-        <a href="https://tanstack.com/start" target="_blank" rel="noopener noreferrer">
-          Documentation
-        </a>
+      </PageLayout.Header>
+      <PageLayout.Content>
+        <p>The framework for next generation AI applications</p>
         <p>
-          Begin your TanStack Start journey by editing <code>/src/routes/index.tsx</code>
+          Full-stack framework powered by TanStack Router for React and Solid. Build modern
+          applications with server functions, streaming, and type safety.
         </p>
-      </div>
+        <div>
+          <Link to="/auth/login">Sign in</Link>
+          <a href="https://tanstack.com/start" target="_blank" rel="noopener noreferrer">
+            Documentation
+          </a>
+          <p>
+            Begin your TanStack Start journey by editing <code>/src/routes/index.tsx</code>
+          </p>
+        </div>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

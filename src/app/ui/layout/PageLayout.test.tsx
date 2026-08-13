@@ -6,8 +6,16 @@ import { PageLayout } from './PageLayout';
 describe('PageLayout', () => {
   it('renders the route-owned slots in page order', () => {
     const markup = renderToStaticMarkup(
-      <PageLayout header={<h1>Page title</h1>} toolbar={<div>Page tools</div>}>
-        <p>Page content</p>
+      <PageLayout>
+        <PageLayout.Header>
+          <h1>Page title</h1>
+        </PageLayout.Header>
+        <PageLayout.Toolbar>
+          <div>Page tools</div>
+        </PageLayout.Toolbar>
+        <PageLayout.Content>
+          <p>Page content</p>
+        </PageLayout.Content>
       </PageLayout>
     );
 
@@ -20,8 +28,13 @@ describe('PageLayout', () => {
 
   it('supports a shorter hero for content-heavy detail pages', () => {
     const markup = renderToStaticMarkup(
-      <PageLayout header={<h1>Faction</h1>} headerSize="compact">
-        <p>Faction content</p>
+      <PageLayout>
+        <PageLayout.Header size="compact">
+          <h1>Faction</h1>
+        </PageLayout.Header>
+        <PageLayout.Content>
+          <p>Faction content</p>
+        </PageLayout.Content>
       </PageLayout>
     );
 
@@ -32,7 +45,9 @@ describe('PageLayout', () => {
   it('supports an intentionally compact page without a header slot', () => {
     const markup = renderToStaticMarkup(
       <PageLayout>
-        <p>Minimal content</p>
+        <PageLayout.Content>
+          <p>Minimal content</p>
+        </PageLayout.Content>
       </PageLayout>
     );
 

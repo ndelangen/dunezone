@@ -181,18 +181,23 @@ function LoginPage() {
   const profile = useCurrentProfile();
 
   return (
-    <PageLayout header={<h1>Sign in</h1>}>
-      <Surface padding="lg">
-        {profile.data ? (
-          <Stack gap="sm">
-            <h2>You're signed in</h2>
-            <p>{profile.data.username ?? 'Player'}</p>
-            <Link to="/">Go to home</Link>
-          </Stack>
-        ) : (
-          <SignInPanel />
-        )}
-      </Surface>
+    <PageLayout>
+      <PageLayout.Header>
+        <h1>Sign in</h1>
+      </PageLayout.Header>
+      <PageLayout.Content>
+        <Surface padding="lg">
+          {profile.data ? (
+            <Stack gap="sm">
+              <h2>You're signed in</h2>
+              <p>{profile.data.username ?? 'Player'}</p>
+              <Link to="/">Go to home</Link>
+            </Stack>
+          ) : (
+            <SignInPanel />
+          )}
+        </Surface>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

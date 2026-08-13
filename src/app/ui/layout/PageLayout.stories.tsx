@@ -48,15 +48,6 @@ const meta = preview.meta({
       },
     },
   },
-  args: {
-    header: <LayoutSlotPlaceholder name="header slot" minHeight={0} />,
-    children: <LayoutSlotPlaceholder name="children slot" minHeight={320} />,
-  },
-  argTypes: {
-    header: { control: false },
-    toolbar: { control: false },
-    children: { control: false },
-  },
   decorators: [
     (Story) => (
       <ShellFrame>
@@ -66,23 +57,41 @@ const meta = preview.meta({
   ],
 });
 
+const headerSlot = <LayoutSlotPlaceholder name="header slot" minHeight={0} />;
+const contentSlot = <LayoutSlotPlaceholder name="children slot" minHeight={320} />;
+
 /** The header sits in the band's row, aligned to its lower edge. */
 export const WithHeader = meta.story({
+  render: () => (
+    <PageLayout>
+      <PageLayout.Header>{headerSlot}</PageLayout.Header>
+      <PageLayout.Content>{contentSlot}</PageLayout.Content>
+    </PageLayout>
+  ),
   globals: { viewport: { value: 'appDesktop' } },
 });
 
-/** `headerSize="compact"` gives the header less of the row, for content-heavy detail pages. */
+/** `size="compact"` gives the header less of the row, for content-heavy detail pages. */
 export const CompactHeader = meta.story({
-  args: { headerSize: 'compact' },
+  render: () => (
+    <PageLayout>
+      <PageLayout.Header size="compact">{headerSlot}</PageLayout.Header>
+      <PageLayout.Content>{contentSlot}</PageLayout.Content>
+    </PageLayout>
+  ),
   globals: { viewport: { value: 'appDesktop' } },
 });
 
 /**
- * Omitting `header` is what marks a page intentionally compact — it sets
+ * Omitting the `Header` slot is what marks a page intentionally compact — it sets
  * `data-page-layout-compact`, which the real shell frame reads to collapse the band.
  */
 export const NoHeader = meta.story({
-  args: { header: undefined },
+  render: () => (
+    <PageLayout>
+      <PageLayout.Content>{contentSlot}</PageLayout.Content>
+    </PageLayout>
+  ),
   globals: { viewport: { value: 'appDesktop' } },
 });
 
@@ -91,18 +100,28 @@ export const NoHeader = meta.story({
  * `Toolbar` is a surface and does.
  */
 export const WithToolbar = meta.story({
-  args: {
-    toolbar: (
-      <Toolbar>
-        <Toolbar.Left>
-          <LayoutSlotPlaceholder name="toolbar controls" minHeight={0} />
-        </Toolbar.Left>
-      </Toolbar>
-    ),
-  },
+  render: () => (
+    <PageLayout>
+      <PageLayout.Header>{headerSlot}</PageLayout.Header>
+      <PageLayout.Toolbar>
+        <Toolbar>
+          <Toolbar.Left>
+            <LayoutSlotPlaceholder name="toolbar controls" minHeight={0} />
+          </Toolbar.Left>
+        </Toolbar>
+      </PageLayout.Toolbar>
+      <PageLayout.Content>{contentSlot}</PageLayout.Content>
+    </PageLayout>
+  ),
   globals: { viewport: { value: 'appDesktop' } },
 });
 
 export const Mobile = meta.story({
+  render: () => (
+    <PageLayout>
+      <PageLayout.Header>{headerSlot}</PageLayout.Header>
+      <PageLayout.Content>{contentSlot}</PageLayout.Content>
+    </PageLayout>
+  ),
   globals: { viewport: { value: 'appMobile' } },
 });

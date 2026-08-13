@@ -257,9 +257,8 @@ function IconsPage() {
   const visibleEntries = sortedEntries.slice(0, visibleCount);
 
   return (
-    <PageLayout
-      headerSize="compact"
-      header={
+    <PageLayout>
+      <PageLayout.Header size="compact">
         <Stack align="center" gap="xs">
           <Title order={1}>Icon catalog</Title>
           <Text ta="center" maw={680}>
@@ -267,8 +266,8 @@ function IconsPage() {
             in this project.
           </Text>
         </Stack>
-      }
-      toolbar={
+      </PageLayout.Header>
+      <PageLayout.Toolbar>
         <Paper withBorder p="md" radius="md" mb="xl">
           <Stack gap="md">
             <TextInput
@@ -334,43 +333,44 @@ function IconsPage() {
             ) : null}
           </Stack>
         </Paper>
-      }
-    >
-      <Stack gap="lg">
-        <Group justify="space-between" align="baseline" gap="sm">
-          <Title order={2} size="h3">
-            {source === 'topics'
-              ? 'Canonical topics'
-              : source === 'lucide'
-                ? 'Lucide'
-                : category === ALL_DUNE_CATEGORY
-                  ? 'Dune SVGs'
-                  : `Dune SVGs — ${category}`}
-          </Title>
-          <Text size="sm" c="dimmed">
-            showing {visibleEntries.length} of {sortedEntries.length}{' '}
-            {sortedEntries.length === 1 ? 'match' : 'matches'}
-          </Text>
-        </Group>
-
-        {visibleEntries.length > 0 ? (
-          <SimpleGrid cols={{ base: 2, xs: 3, sm: 4, md: 5 }} spacing="xs">
-            {visibleEntries.map((entry) => (
-              <IconCatalogCard entry={entry} key={catalogEntryKey(entry)} />
-            ))}
-          </SimpleGrid>
-        ) : (
-          <Surface padding="xl">
-            <Text ta="center" c="dimmed">
-              No icons match “{query.trim()}”.
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        <Stack gap="lg">
+          <Group justify="space-between" align="baseline" gap="sm">
+            <Title order={2} size="h3">
+              {source === 'topics'
+                ? 'Canonical topics'
+                : source === 'lucide'
+                  ? 'Lucide'
+                  : category === ALL_DUNE_CATEGORY
+                    ? 'Dune SVGs'
+                    : `Dune SVGs — ${category}`}
+            </Title>
+            <Text size="sm" c="dimmed">
+              showing {visibleEntries.length} of {sortedEntries.length}{' '}
+              {sortedEntries.length === 1 ? 'match' : 'matches'}
             </Text>
-          </Surface>
-        )}
+          </Group>
 
-        {visibleCount < sortedEntries.length ? (
-          <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />
-        ) : null}
-      </Stack>
+          {visibleEntries.length > 0 ? (
+            <SimpleGrid cols={{ base: 2, xs: 3, sm: 4, md: 5 }} spacing="xs">
+              {visibleEntries.map((entry) => (
+                <IconCatalogCard entry={entry} key={catalogEntryKey(entry)} />
+              ))}
+            </SimpleGrid>
+          ) : (
+            <Surface padding="xl">
+              <Text ta="center" c="dimmed">
+                No icons match “{query.trim()}”.
+              </Text>
+            </Surface>
+          )}
+
+          {visibleCount < sortedEntries.length ? (
+            <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />
+          ) : null}
+        </Stack>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

@@ -83,9 +83,11 @@ function CreateRulesetPage() {
   const profile = useCurrentProfile();
 
   return (
-    <PageLayout
-      header={<h1>Create ruleset</h1>}
-      toolbar={
+    <PageLayout>
+      <PageLayout.Header>
+        <h1>Create ruleset</h1>
+      </PageLayout.Header>
+      <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left>
             <IconAction
@@ -98,22 +100,23 @@ function CreateRulesetPage() {
             />
           </Toolbar.Left>
         </Toolbar>
-      }
-    >
-      {!profile.data?.user_id ? (
-        <Surface padding="lg">
-          <p>
-            <Link to="/auth/login">Log in</Link> to create a ruleset.
-          </p>
-          <p>
-            <Link to="/rulesets">Back to rulesets</Link>
-          </p>
-        </Surface>
-      ) : (
-        <Surface padding="lg">
-          <CreateRulesetForm ownerUserId={profile.data.user_id} />
-        </Surface>
-      )}
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        {!profile.data?.user_id ? (
+          <Surface padding="lg">
+            <p>
+              <Link to="/auth/login">Log in</Link> to create a ruleset.
+            </p>
+            <p>
+              <Link to="/rulesets">Back to rulesets</Link>
+            </p>
+          </Surface>
+        ) : (
+          <Surface padding="lg">
+            <CreateRulesetForm ownerUserId={profile.data.user_id} />
+          </Surface>
+        )}
+      </PageLayout.Content>
     </PageLayout>
   );
 }
