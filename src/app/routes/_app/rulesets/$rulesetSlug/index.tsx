@@ -13,13 +13,14 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { FAQ_TAG_LABELS, FAQ_TAG_VALUES } from '@shared/faq/tags';
+import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
