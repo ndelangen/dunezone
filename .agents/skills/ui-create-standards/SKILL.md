@@ -75,7 +75,7 @@ Do not add Mantine imports, theme dependencies, CSS, provider usage, or styling 
 - `src/game/**`;
 - faction sheet or other document renderers;
 - print styles;
-- capture entry points under `src/app/capture/**`;
+- capture entry points under `src/app/print/capture/**`;
 - publishing renderer entry points.
 
 Mantine may arrange an embedded game visual in an application page, but it must not style the visual's internals or change its rendered output.

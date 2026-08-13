@@ -7,10 +7,9 @@ import { assertRequiredPublisherFonts } from '@shared/asset-publishing/publisher
 import { publisherCaptureSnapshotSchema } from '@shared/asset-publishing/publisher-snapshot';
 import { useEffect, useState } from 'react';
 
-import { FactionSheetView } from '@app/sheet/FactionSheetView';
+import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
+import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
 import type { FactionInput } from '@game/schema/faction';
-
-import { AssetRenderModeProvider } from '../../game/assets/assetRenderMode';
 
 const ASSET_SETTLE_TIMEOUT_MS = 15_000;
 

@@ -3,7 +3,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { Faction } from '@db/factions';
-import { FactionSheetView } from '@app/sheet/FactionSheetView';
+import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 
 import styles from './FactionSheetPagePreview.module.css';
 

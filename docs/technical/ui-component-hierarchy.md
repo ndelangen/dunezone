@@ -14,7 +14,7 @@ does not: ownership rules that sit around it.
 | Components | `src/app/ui/**` (alias `@ui/*`) | Every published component, filed by category. One rule: it renders what it is given — no Convex client, no `@db` values (types are fine), no router data hooks. Composes Mantine under `appContentTheme`. |
 | Mantine | `@mantine/core` | The base library. Used directly where no kit component owns the concern; kit components used where one does. Mantine components the app uses get stories, filed by kind. |
 | Page composition | the route file itself | One page's own JSX, split into local functions when the route grows. Never exported as a feature component: one page → route, two or more pages → Widget. |
-| Document-rendering glue | `src/app/sheet/`, `src/app/capture/` | Wraps the game renderers for the preview route and the publisher capture. Not published, not storied. |
+| Document-rendering glue | `src/app/print/` | `print/sheet/` bridges a `Faction` row to the sheet renderer; `print/capture/` is the page the publisher screenshots. Not published, not storied. |
 | Widgets | `src/app/widgets/<name>` | Shared assemblies; see the widget rules in `AGENTS.md`. |
 | Application shell | `src/app/shell/**` | `AppRoot` owns the persistent frame and document effects, `AppHeader` the artwork band, `AppFooter` the closing waypoints. Organs, not kit — filed under the `Shell` Storybook root. See DD-018. |
 | Page frame | `src/app/ui/layout/PageLayout.tsx` | Terminal routes compose its slots directly; import from `@ui/layout/PageLayout`. Domain-free, but its `data-page-layout-*` contract is read by the shell (DD-018). |

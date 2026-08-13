@@ -14,7 +14,7 @@ const config: KnipConfig = {
         'src/app/router.tsx',
         'src/app/routes/**/*.tsx',
         // Built via workers/publisher/vite.config.ts (publisher-capture.html input).
-        'src/app/capture/publisher-entry.tsx',
+        'src/app/print/capture/publisher-entry.tsx',
         // Worker entry, referenced from workers/publisher/wrangler.jsonc.
         'workers/publisher/index.ts',
         /* Standalone scripts run ad hoc with `bun run ./scripts/...`. Deliberately
