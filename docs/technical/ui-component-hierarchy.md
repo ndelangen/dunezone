@@ -22,8 +22,9 @@ does not: ownership rules that sit around it.
 
 ## Route and data ownership
 
-- Every terminal visual `_app` route renders `PageLayout` and supplies `header`, optional
-  `toolbar`, and content together. Nested parent routes remain outlet-only.
+- Every terminal visual `_app` route renders `PageLayout` and supplies the slots it needs —
+  `content`, usually a `header` (omit it for a compact page), and an optional `toolbar`. Nested
+  parent routes remain outlet-only.
 - Each route subscribes to at most one Convex query for page data, plus `useCurrentProfile` when
   needed. Pass query-derived data down; do not create nested subscriptions for the same screen.
 - Pages compose — heavy JSX at the page level is the intended shape. Widgets receive data and

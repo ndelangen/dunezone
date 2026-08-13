@@ -27,8 +27,9 @@ chrome: `auth/oauth.tsx` (a non-visual hand-off) and `preview/sheet/$factionSlug
 document-rendering target).
 
 **Every terminal visual route must render `PageLayout`** from
-[`@ui/layout/PageLayout`](../src/app/ui/layout/PageLayout.tsx), supplying its
-`header`, optional `toolbar`, and content together. Nested parent routes stay outlet-only. This is
+[`@ui/layout/PageLayout`](../src/app/ui/layout/PageLayout.tsx), supplying the slots that page needs —
+`content`, usually a `header` (omit it for a compact page), and an optional `toolbar`. Nested parent
+routes stay outlet-only. This is
 enforced — [`PageLayout.architecture.test.ts`](../src/app/ui/layout/PageLayout.architecture.test.ts)
 scans the route files and fails on a terminal route that omits it. The reasoning is
 [*Terminal routes mount PageLayout*](technical/ui-design-decisions.md#terminal-routes-mount-pagelayout).
