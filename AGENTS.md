@@ -115,9 +115,9 @@ Outside the kit:
     something upstream went wrong.
 - **Pickers** (`src/app/pickers/<Name>Picker.tsx`) — the one place a component may fetch, and the
   reason "a widget never fetches" is a rule about *where fetching lives* rather than a blanket ban.
-  A Picker is a domain control whose whole job is to let the user choose from a list its options are
-  its own to load — the factions you can load, the users you can assign — and it loads them **lazily
-  and read-only**, so a page that renders a "pick a user" control never queries every user up front
+  A Picker is a domain control whose whole job is to let the user choose from a list it loads
+  itself — the factions you can load, the users you can assign — and it loads them **lazily and
+  read-only**, so a page that renders a "pick a user" control never queries every user up front
   just in case the control is opened. That laziness is the entire justification (DD-013 subscription
   discipline: hold no subscription you are not using); a Picker that fetched eagerly, or fetched page
   data, or *mutated*, would just be a widget breaking the rule.
@@ -157,8 +157,8 @@ beside it; `dnd-sortable-ids.ts` had two files in one widget, so it is that widg
 formatters and the publishing copy turn data into words, which is Content's job, so they are support
 modules in the kit.
 
-**`src/app`'s top level is a closed set**, one entry per role: `db`, `print`, `routes`, `shell`,
-`styles`, `ui`, `widgets`, plus `router.tsx` and the generated route tree.
+**`src/app`'s top level is a closed set**, one entry per role: `db`, `pickers`, `print`, `routes`,
+`shell`, `styles`, `ui`, `widgets`, plus `router.tsx` and the generated route tree.
 `bun run check:app-layout` fails on anything else, because folders outlive the scheme that created
 them and the ones above sat empty-but-alive for months. Adding a role means documenting it here
 first. Inside `routes/`, a co-located non-route file takes TanStack's `-` prefix (`-catalogue.ts`) —

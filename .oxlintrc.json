@@ -126,7 +126,9 @@
         "src/app/widgets/**/*.stories.tsx",
         "src/app/widgets/**/*.stories.fixture.tsx",
         "src/app/widgets/**/*.test.ts",
-        "src/app/widgets/**/*.test.tsx"
+        "src/app/widgets/**/*.test.tsx",
+        "src/app/widgets/**/*.spec.ts",
+        "src/app/widgets/**/*.spec.tsx"
       ],
       "rules": {
         "no-restricted-imports": [

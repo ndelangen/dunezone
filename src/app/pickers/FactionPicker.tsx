@@ -127,7 +127,6 @@ export function FactionPicker({ currentPublicSlug, onLoaded, onCancel }: Faction
         </Text>
       ) : (
         <Select
-          id="faction-load"
           label="Search factions"
           value={selectedId || null}
           onChange={(value) => {
