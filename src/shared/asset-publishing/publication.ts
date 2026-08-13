@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { FactionInputSchema, FactionRowSlugSchema } from '../../game/schema/faction';
+import { FactionInputSchema, FactionRowSlugSchema } from '../factions/schema';
 
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
 export const PUBLICATION_MAX_ATTEMPTS = 10;

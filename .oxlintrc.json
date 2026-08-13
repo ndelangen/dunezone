@@ -193,6 +193,10 @@
               {
                 "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
                 "message": "src/shared must not import Convex either — it is parsed on both sides of the deploy boundary and reaches neither runtime's client. Restated here because this override replaces the repo-wide src/** convex-doorway rule for the files it matches rather than adding to it."
+              },
+              {
+                "group": ["@game", "@game/**", "**/game", "**/game/**"],
+                "message": "src/shared must not import the game renderers. The faction contract and its asset-id vocabulary now live in src/shared (factions/schema, assetIds); src/game holds only browser renderers, and a shared contract — parsed by the server too — must never reach them."
               }
             ]
           }
@@ -220,6 +224,10 @@
                   "@db/**"
                 ],
                 "message": "The server must not import client code. A contract both sides need — a Zod schema, a tag vocabulary — belongs in `src/shared/`, which both may import. `@db/*` resolves into `src/app/db` — a domain module, or `core/index.ts` for `@db/core` — so it is client code too."
+              },
+              {
+                "group": ["@game", "@game/**", "**/game", "**/game/**"],
+                "message": "The server must not import the game renderers either. The faction contract moved to src/shared/factions/schema (with its asset-id vocabulary in src/shared/assetIds); src/game is browser-only renderers now, and nothing the server parses lives there."
               },
               {
                 "group": ["**/_generated/server"],
@@ -252,6 +260,10 @@
                   "@db/**"
                 ],
                 "message": "The publisher Worker is a separate deploy artifact and must not import application code. Shared runtime contracts belong in `src/shared/`. `@db/*` resolves into `src/app/db` — a domain module, or `core/index.ts` for `@db/core` — so it is application code too."
+              },
+              {
+                "group": ["@game", "@game/**", "**/game", "**/game/**"],
+                "message": "The publisher Worker must not import the game renderers as source — it renders them through its own capture page, which is app code. The faction contract lives in src/shared; src/game is browser renderers."
               },
               {
                 "group": ["**/_generated/server"],

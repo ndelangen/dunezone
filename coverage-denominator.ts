@@ -27,6 +27,7 @@ export const coverageExclude = [
   'workers/publisher/dist/**',
   '**/*.stories.{ts,tsx}',
   'src/game/fixtures/**',
+  'src/shared/factions/fixtures/**',
   'convex/_generated/**',
   '**/*.gen.ts',
   '**/*.generated.ts',

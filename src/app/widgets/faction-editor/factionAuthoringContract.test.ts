@@ -1,7 +1,6 @@
+import { FactionInputSchema } from '@shared/factions/schema';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-
-import { FactionInputSchema } from '@game/schema/faction';
 
 import { defaultFaction } from './defaultFaction';
 import {

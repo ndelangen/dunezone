@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart TD
-    Schema[Zod Schema<br/>src/shared/<domain>/validation.ts<br/>or src/game/schema/] --> DomainFile[Domain File<br/>src/app/db/<domain>.ts]
+    Schema[Zod Schema<br/>src/shared/<domain>/] --> DomainFile[Domain File<br/>src/app/db/<domain>.ts]
     DomainFile --> Types[Types]
     DomainFile --> Loaders[Loaders<br/>db.query]
     DomainFile --> Queries[Live query hooks]
@@ -33,7 +33,10 @@ doorway section in [`AGENTS.md`](../AGENTS.md) for why a second doorway costs ty
 ## Convex Schema
 
 Convex schema and indexes are defined in [`convex/schema.ts`](../convex/schema.ts). Domain-level Zod
-schemas live in `src/shared/<domain>/validation.ts` and `src/game/schema/`.
+schemas live in `src/shared/<domain>/` — the validators in `validation.ts`, and the faction
+contract in [`src/shared/factions/schema.ts`](../src/shared/factions/schema.ts) with its generated
+asset-id vocabulary in [`src/shared/assetIds.ts`](../src/shared/assetIds.ts). They sit in `src/shared`
+because both the app and the Convex server parse against them.
 
 ## Basic DB Structure
 
@@ -85,7 +88,7 @@ Shared domain Zod schemas in `src/shared/<domain>/validation.ts` validate at run
 - After database reads (queries)
 - Type inference: `type Faction = z.infer<typeof schema>`
 
-**Example**: [`src/game/schema/faction.ts`](../src/game/schema/faction.ts)
+**Example**: [`src/shared/factions/schema.ts`](../src/shared/factions/schema.ts)
 
 ## Validation Standard
 

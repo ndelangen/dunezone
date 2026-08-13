@@ -41,7 +41,7 @@ const enums = {
 };
 
 await Bun.write(
-  join(import.meta.dirname, '..', 'src/game/data/generated.ts'),
+  join(import.meta.dirname, '..', 'src/shared/assetIds.ts'),
   `
 import { z } from 'zod';
 

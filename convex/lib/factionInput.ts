@@ -1,4 +1,4 @@
-import { CanonicalFactionStoredSchema, FactionInputSchema } from '../../src/game/schema/faction';
+import { CanonicalFactionStoredSchema, FactionInputSchema } from '../../src/shared/factions/schema';
 
 export function parseFactionInput(
   input: unknown,

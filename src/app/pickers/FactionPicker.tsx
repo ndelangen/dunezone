@@ -10,6 +10,7 @@ import {
   Text,
   Title,
 } from '@mantine/core';
+import { CanonicalFactionStoredSchema } from '@shared/factions/schema';
 import { Link } from '@tanstack/react-router';
 import { Surface } from '@ui/surface';
 import { useMemo, useState } from 'react';
@@ -17,7 +18,6 @@ import { useMemo, useState } from 'react';
 import { useFactionLoadPicker } from '@db/factions';
 import type { Faction, FactionLoadPickerRow } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
-import { CanonicalFactionStoredSchema } from '@game/schema/faction';
 
 import {
   FactionLoadOptionRow,

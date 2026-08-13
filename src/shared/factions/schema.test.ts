@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { assetPublishingFaction } from '../fixtures/assetPublishingFaction';
-import { Background, CanonicalFactionStoredSchema, FactionInputSchema } from './faction';
+import { assetPublishingFaction } from './fixtures/assetPublishingFaction';
+import { Background, CanonicalFactionStoredSchema, FactionInputSchema } from './schema';
 
 describe('faction schema', () => {
   it('rejects the retired legacy background shape', () => {

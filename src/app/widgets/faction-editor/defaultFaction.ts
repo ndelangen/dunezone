@@ -1,6 +1,7 @@
+import { LEADERS, LOGO, TROOP } from '@shared/assetIds';
+import { FactionInputSchema } from '@shared/factions/schema';
+
 import type { Faction } from '@db/factions';
-import { LEADERS, LOGO, TROOP } from '@game/data/generated';
-import { FactionInputSchema } from '@game/schema/faction';
 
 const defaultFactionInput = {
   name: 'New faction',

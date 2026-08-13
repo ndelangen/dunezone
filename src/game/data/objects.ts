@@ -1,7 +1,6 @@
+import { ALL } from '@shared/assetIds';
+import { Background, Decal } from '@shared/factions/schema';
 import { z } from 'zod';
-
-import { Background, Decal } from '../schema/faction';
-import { ALL } from './generated';
 
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);

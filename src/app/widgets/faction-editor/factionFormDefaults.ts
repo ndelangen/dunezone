@@ -1,5 +1,6 @@
+import { DECAL, LEADERS, TROOP } from '@shared/assetIds';
+
 import type { Faction } from '@db/factions';
-import { DECAL, LEADERS, TROOP } from '@game/data/generated';
 import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 
 function defaultLeader(): Faction['leaders'][number] {

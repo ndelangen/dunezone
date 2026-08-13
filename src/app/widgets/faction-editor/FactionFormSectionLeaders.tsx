@@ -1,5 +1,6 @@
 import { arrayMove } from '@dnd-kit/sortable';
 import { Alert, Badge, Box, Grid, Group, Stack, Text, TextInput } from '@mantine/core';
+import { LEADERS } from '@shared/assetIds';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -8,7 +9,6 @@ import { useLayoutEffect, useState } from 'react';
 
 import type { Faction } from '@db/factions';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
-import { LEADERS } from '@game/data/generated';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
 import { assetOptionToPreviewSrc, leaderOptionToLabel } from './factionFormAssetUtils';

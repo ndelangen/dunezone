@@ -1,9 +1,9 @@
+import { GRADIENT } from '@shared/factions/schema';
+import type { Background as BackGroundType } from '@shared/factions/schema';
 import { useId } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { GRADIENT } from '../../schema/faction';
-import type { Background as BackGroundType } from '../../schema/faction';
 import { useAsset } from '../assetRenderMode';
 import styles from './Background.module.css';
 

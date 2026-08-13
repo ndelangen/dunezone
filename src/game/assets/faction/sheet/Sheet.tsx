@@ -1,8 +1,8 @@
+import type { FactionRender } from '@shared/factions/schema';
 import type { z } from 'zod';
 
 import { CAPTURE_PROTOCOL } from '../../../../shared/asset-publishing/capture-protocol';
 import { MarkdownContent } from '../../../components/block/MarkdownContent';
-import type { FactionRender } from '../../../schema/faction';
 import { isLight } from '../../utils/contrast';
 import { LeaderToken } from '../leader/Leader';
 import { Token } from '../token/Token';

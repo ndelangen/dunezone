@@ -3,8 +3,8 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
 
-import { assetPublishingFaction } from '../../src/game/fixtures/assetPublishingFaction';
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
+import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { assertCapturePhysicalBounds, waitForCaptureMarkerSettled } from './capture-lifecycle';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { RECOMPRESSED_PDF_MAX_BYTES, recompressCapturedPdf } from './pdf-recompress';

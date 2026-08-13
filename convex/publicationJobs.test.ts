@@ -5,8 +5,8 @@ import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { assetPublishingFaction } from '../src/game/fixtures/assetPublishingFaction';
 import { takeWorkResultSchema } from '../src/shared/asset-publishing/publication';
+import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import schema from './schema';

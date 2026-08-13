@@ -1,4 +1,5 @@
 import { ActionIcon, Alert, Button, Group, Stack, Text, Title } from '@mantine/core';
+import { FactionRender } from '@shared/factions/schema';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { ChevronDown, Link2, X } from 'lucide-react';
 import {
@@ -15,7 +16,6 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { Faction } from '@db/factions';
 import { Shield } from '@game/assets/faction/shield/Shield';
 import { shield as shieldSize } from '@game/data/sizes';
-import { FactionRender } from '@game/schema/faction';
 
 import { FactionSheetPagePreview, factionDraftForRenderer } from './FactionSheetPagePreview';
 import styles from './FactionSheetReview.module.css';

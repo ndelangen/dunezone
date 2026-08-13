@@ -1,3 +1,4 @@
+import type { FactionRender } from '@shared/factions/schema';
 /* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
 import { useMemo } from 'react';
 import type { FC } from 'react';
@@ -7,7 +8,6 @@ import { MarkdownContent } from '../../../components/block/MarkdownContent';
 import { StrokedUse } from '../../../components/block/StrokedUse';
 import { backgroundPresets } from '../../../data/backgrounds';
 import { card } from '../../../data/sizes';
-import type { FactionRender } from '../../../schema/faction';
 import styles from '../../card/Card.module.css';
 import { FrontDecals } from '../../card/Decals';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';

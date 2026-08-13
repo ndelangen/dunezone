@@ -1,4 +1,4 @@
-import type { FactionInput } from '@game/schema/faction';
+import type { FactionInput } from '@shared/factions/schema';
 
 /** Valid `FactionInput` sample for Scene and similar stories. */
 export default {

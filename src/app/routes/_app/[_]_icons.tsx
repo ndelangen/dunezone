@@ -10,6 +10,7 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
+import { BACKGROUND, DECAL, GENERIC, ICON, LOGO, TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { createFileRoute } from '@tanstack/react-router';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
@@ -18,16 +19,6 @@ import { Surface } from '@ui/surface';
 import { icons, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-import {
-  BACKGROUND,
-  DECAL,
-  GENERIC,
-  ICON,
-  LOGO,
-  TROOP,
-  TROOP_MODIFIER,
-} from '@game/data/generated';
 
 const BATCH_SIZE = 60;
 

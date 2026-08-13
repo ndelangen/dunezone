@@ -1,9 +1,9 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { PLANET } from '@shared/assetIds';
 import { describe, expect, it } from 'vitest';
 
-import { PLANET } from './generated';
 import { CURATED_PLANET_IMAGES } from './planetCatalogue';
 
 describe('curated planet image catalogue', () => {

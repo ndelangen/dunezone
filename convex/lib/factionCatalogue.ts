@@ -1,5 +1,5 @@
-import { CanonicalFactionStoredSchema } from '../../src/game/schema/faction';
-import type { FactionInput } from '../../src/game/schema/faction';
+import { CanonicalFactionStoredSchema } from '../../src/shared/factions/schema';
+import type { FactionInput } from '../../src/shared/factions/schema';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 

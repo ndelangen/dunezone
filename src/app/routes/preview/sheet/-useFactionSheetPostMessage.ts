@@ -1,7 +1,7 @@
+import { FactionInputSchema } from '@shared/factions/schema';
 import { useLayoutEffect, useState } from 'react';
 
 import type { Faction } from '@db/factions';
-import { FactionInputSchema } from '@game/schema/faction';
 
 /** V1 postMessage from sheet iframe → parent: listener is ready, send current faction. */
 type FactionSheetRequestMessageV1 = {
