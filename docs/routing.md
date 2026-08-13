@@ -27,11 +27,12 @@ chrome: `auth/oauth.tsx` (a non-visual hand-off) and `preview/sheet/$factionSlug
 document-rendering target).
 
 **Every terminal visual route must render `PageLayout`** from
-[`@ui/layout/PageLayout`](../src/app/ui/layout/PageLayout.tsx), supplying its
-`header`, optional `toolbar`, and content together. Nested parent routes stay outlet-only. This is
+[`@ui/layout/PageLayout`](../src/app/ui/layout/PageLayout.tsx), supplying the slots that page needs —
+`content`, usually a `header` (omit it for a compact page), and an optional `toolbar`. Nested parent
+routes stay outlet-only. This is
 enforced — [`PageLayout.architecture.test.ts`](../src/app/ui/layout/PageLayout.architecture.test.ts)
-scans the route files and fails on a terminal route that omits it. The reasoning is DD-014 in
-[`technical/ui-design-decisions.md`](technical/ui-design-decisions.md).
+scans the route files and fails on a terminal route that omits it. The reasoning is
+[*Terminal routes mount PageLayout*](technical/ui-design-decisions.md#terminal-routes-mount-pagelayout).
 
 ## File-Based Routing
 
@@ -68,7 +69,7 @@ function Component() {
 ```
 
 The loader-then-subscribe handoff is covered in [State Management](./state-management.md); the
-one-query-per-route rule is DD-013.
+one-query-per-route rule is [*One Convex query per route*](technical/ui-design-decisions.md#one-convex-query-per-route).
 
 **Example**: [`src/app/routes/_app/index.tsx`](../src/app/routes/_app/index.tsx)
 

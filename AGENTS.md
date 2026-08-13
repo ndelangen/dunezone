@@ -98,8 +98,9 @@ Outside the kit:
   classification — nothing outside the folder imports them — but unlike other organs they **do carry
   stories**, filed under a `Shell` root, because the chrome's states are worth looking at and cannot
   be reached from any page's story. It is not a category and never will be: the six are decided by
-  what a caller hands a component, and the shell is decided by position. See DD-018 in
-  `docs/technical/ui-design-decisions.md` for why the header is neither a Surface nor a Layout.
+  what a caller hands a component, and the shell is decided by position. See *The shell is chrome* in
+  [`docs/technical/ui-design-decisions.md`](docs/technical/ui-design-decisions.md#the-shell-is-chrome-decided-by-position)
+  for why the header is neither a Surface nor a Layout.
 - **Widgets** (`src/app/widgets/<name>`) — an assembly too domain-specific to be kit and too
   shared to be one page's JSX. Prefab: built outside the page only because two or more routes
   install the identical thing.
@@ -118,8 +119,9 @@ Outside the kit:
   A Picker is a domain control whose whole job is to let the user choose from a list it loads
   itself — the factions you can load, the users you can assign — and it loads them **lazily and
   read-only**, so a page that renders a "pick a user" control never queries every user up front
-  just in case the control is opened. That laziness is the entire justification (DD-013 subscription
-  discipline: hold no subscription you are not using); a Picker that fetched eagerly, or fetched page
+  just in case the control is opened. That laziness is the entire justification (the *one Convex query
+  per route* subscription discipline: hold no subscription you are not using); a Picker that fetched
+  eagerly, or fetched page
   data, or *mutated*, would just be a widget breaking the rule.
   - **The contract.** A Picker fetches only what presenting its own options needs, through reads that
     are torn down when it leaves the screen; it never mutates and never reads the page's data; the
@@ -185,8 +187,8 @@ Rules between categories:
   takes **named compound slots** (`<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…`),
   never fewer than two, and is responsive **by container query, not media query** — so it lays out by
   the room it is given. `PageLayout` is the one exemption from the container-query rule: it is the
-  shell's page frame, viewport-scoped in concert with `AppHeader` (see DD-003 and DD-018).
-  `containerQueries.test.ts` guards it.
+  shell's page frame, viewport-scoped in concert with `AppHeader` (see *Layouts own spacing* and *The
+  shell is chrome* in `docs/technical/ui-design-decisions.md`). `containerQueries.test.ts` guards it.
 - **Knowledge points one way.** Content knows the theme. Blocks know Content. Lists know their
   item shape. Layouts and Surfaces know nothing about their contents. No component fetches, and none
   navigates on its own behalf.
@@ -208,6 +210,8 @@ The tells:
 - A string prop becoming a heading → Block, or a Surface naming itself.
 - Two components answering the same question → one dies.
 - The JSDoc cannot say "callers own X; this owns Y" in one sentence → not a component.
+- A wrapper that only renames or lightly forwards a Mantine component → not a component. Use Mantine
+  directly, and extract only when there is a concern to own.
 
 Glyphs (`icon`) and controls (`action`) stay `ReactNode` everywhere — "data" means *the words are
 data*. Every component in `src/app/ui` has stories; Mantine components used by
