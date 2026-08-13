@@ -7,8 +7,14 @@ const rendererDirectory = new URL('.', import.meta.url);
 /**
  * Any spelling that resolves a module: `import x from`, `export … from`, a bare side-effect
  * `import`, and `import(...)`, in either quote style.
+ *
+ * Two ways to reach the app: the aliases (`@ui`/`@app`/`@db`), and a relative climb `../app/…`
+ * (`@ui` and `@db` both resolve under `src/app`, so a relative reach into either also passes
+ * through an `app/` segment). Catching only the aliases would leave the relative spelling as a
+ * silent hole — no oxlint override guards `src/game`, so this test is the only fence.
  */
-const FORBIDDEN_MODULE_REACH = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"]@(?:ui|app|db)\//;
+const FORBIDDEN_MODULE_REACH =
+  /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](?:@(?:ui|app|db)\/|(?:\.\.\/)+app\/)/;
 
 describe('renderer isolation', () => {
   it('keeps the renderer independent from application UI frameworks', () => {
