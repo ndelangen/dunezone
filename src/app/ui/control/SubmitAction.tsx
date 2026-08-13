@@ -17,8 +17,9 @@ export interface SubmitActionProps {
  * Commits a form.
  *
  * Callers own when it may fire and what it says; this owns the fact that a commit looks the same
- * everywhere — the confirm colour that marks a positive action (the action-semantics rule), and the swap to a progress
- * label that also latches the button so an impatient second click cannot submit twice.
+ * everywhere — the confirm colour that marks a positive action (the action-semantics rule), and the
+ * swap to a progress label that also latches the button so an impatient second click cannot submit
+ * twice.
  *
  * Distinct from `CallToAction`, which starts a journey by navigating and therefore needs a
  * `renderRoot`; this one submits the form it sits in and needs no route at all.
