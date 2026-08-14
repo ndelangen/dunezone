@@ -3,6 +3,8 @@ import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
+import { formatRelativeDate } from '@ui/content/dates';
+import { ProfileLink } from '@ui/content/ProfileLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -11,7 +13,9 @@ import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
+import { SectionedSurface } from '@ui/surface/SectionedSurface';
 import { Toolbar } from '@ui/surface/Toolbar';
+import clsx from 'clsx';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -25,10 +29,10 @@ import {
   UsersRound,
 } from 'lucide-react';
 
+import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, useCurrentProfile, useProfileBySlug } from '@db/profiles';
 
 import styles from '../ProfileDetail.module.css';
-import { FaqAnswersGiven, FaqQuestionsAsked } from './-faqActivity';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   loader: async ({ params }) => {
@@ -37,6 +41,140 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   },
   component: ProfileDetailPage,
 });
+
+type FaqQuestionAsked = ProfilePageData['faqAsked'][number];
+type FaqAnswerGiven = ProfilePageData['faqAnswers'][number];
+
+function truncate(text: string, max = 200): string {
+  const t = text.trim();
+  if (t.length <= max) {
+    return t;
+  }
+  return `${t.slice(0, max).trim()}…`;
+}
+
+function AskerChip({
+  profile,
+  viewedProfileId,
+}: {
+  profile: NonNullable<FaqAnswerGiven['asker_profile']>;
+  viewedProfileId: string;
+}) {
+  if (profile.id === viewedProfileId) {
+    return <span className={styles.selfNote}>Your question</span>;
+  }
+
+  return (
+    <ProfileLink
+      slug={profile.slug}
+      username={profile.username}
+      avatar_url={profile.avatar_url}
+      className={styles.askerLink}
+    >
+      Question by {profile.username ?? 'Unknown'}
+    </ProfileLink>
+  );
+}
+
+/**
+ * Lists the questions a person has asked, each under the ruleset it belongs to.
+ *
+ * The page owns the collection and what to say when it is empty. This owns the rhythm: one row per
+ * question, the ruleset-and-date context strip above it, and the link to the question itself.
+ */
+function FaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] }) {
+  return (
+    <SectionedSurface>
+      {items.map((item) => (
+        <SectionedSurface.Row key={item._id}>
+          <div className={styles.contextStrip}>
+            <Link
+              to="/rulesets/$rulesetSlug"
+              params={{ rulesetSlug: item.ruleset.slug }}
+              className={styles.rulesetLink}
+            >
+              {item.ruleset.name}
+            </Link>
+            <span aria-hidden>·</span>
+            <time dateTime={item.created_at}>{formatRelativeDate(item.created_at)}</time>
+          </div>
+          <Link
+            to="/rulesets/$rulesetSlug/faq/$questionSlug"
+            params={{
+              rulesetSlug: item.ruleset.slug,
+              questionSlug: item.slug,
+            }}
+          >
+            <span className={styles.question}>{item.question}</span>
+          </Link>
+        </SectionedSurface.Row>
+      ))}
+    </SectionedSurface>
+  );
+}
+
+/**
+ * Lists the answers a person has given, each under the question it answers.
+ *
+ * The page owns the collection, the empty case, and which profile is being viewed — that last one
+ * decides whether an asker reads as a name or as "Your question". This owns the rhythm and the
+ * picked-answer marker.
+ */
+function FaqAnswersGiven({
+  items,
+  viewedProfileId,
+}: {
+  items: FaqAnswerGiven[];
+  viewedProfileId: string;
+}) {
+  return (
+    <SectionedSurface>
+      {items.map((row) => {
+        const isPicked = row.faq_item.accepted_answer_id === row._id;
+
+        return (
+          <SectionedSurface.Row key={row._id}>
+            <div className={styles.contextStrip}>
+              <Link
+                to="/rulesets/$rulesetSlug"
+                params={{ rulesetSlug: row.ruleset.slug }}
+                className={styles.rulesetLink}
+              >
+                {row.ruleset.name}
+              </Link>
+              <span aria-hidden>·</span>
+              {row.asker_profile ? (
+                <AskerChip profile={row.asker_profile} viewedProfileId={viewedProfileId} />
+              ) : (
+                <span>Unknown asker</span>
+              )}
+              <span aria-hidden>·</span>
+              <time dateTime={row.created_at}>{formatRelativeDate(row.created_at)}</time>
+            </div>
+
+            <p className={styles.parentQuestion}>{row.faq_item.question}</p>
+
+            <Link
+              to="/rulesets/$rulesetSlug/faq/$questionSlug"
+              params={{
+                rulesetSlug: row.ruleset.slug,
+                questionSlug: row.faq_item.slug,
+              }}
+            >
+              <p className={styles.answerPreview}>{truncate(row.answer)}</p>
+            </Link>
+
+            {isPicked ? (
+              <div className={styles.answerFooter}>
+                <span className={clsx(styles.badge, styles.badgeAnswered)}>Picked answer</span>
+              </div>
+            ) : null}
+          </SectionedSurface.Row>
+        );
+      })}
+    </SectionedSurface>
+  );
+}
 
 function ProfileDetailPage() {
   const { profileSlug } = Route.useParams();
