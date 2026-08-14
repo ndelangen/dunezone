@@ -25,7 +25,7 @@ function reducedByOs(): boolean {
   );
 }
 
-export function motionAllowed(): boolean {
+function motionAllowed(): boolean {
   const override = readOverride();
   return override === 'on' || (override !== 'off' && !reducedByOs());
 }
