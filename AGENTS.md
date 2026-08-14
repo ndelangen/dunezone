@@ -51,9 +51,8 @@ report "the user picked X," not go and do X. Two rules follow. What passes decid
 category: kind is judged at the membrane, and the insides are composition. And there is no traffic
 *around* it: a fetch brings data in that the caller never handed over, a navigation sends an effect
 out that the caller never receives — both route around the membrane, which is why both are banned.
-The Picker is the one
-documented fetch exception, and that is why a Picker is domain, never kit, whatever its membrane
-resembles.
+The Picker is the one documented fetch exception, and that is why a Picker is domain, never kit,
+whatever its membrane resembles.
 _Avoid_: interface, API — one-way words that say how to call the thing, but not what flows back
 out, or what may never cross at all.
 
@@ -152,8 +151,8 @@ Outside the kit:
   **carries stories**, filed under a `Shell` root, because those states are worth looking at and
   cannot be reached from any page's story. An outside importer or a story alone ends organ-hood,
   which is why only `SiteNavigation` qualifies as one here. The shell is not a category and never
-  will be: the six are decided at the membrane, and the shell is decided by position. See *The
-  shell is chrome* in
+  will be: the six are decided at the membrane, and the shell is decided by position. See
+  *The shell is chrome* in
   [`docs/technical/ui-design-decisions.md`](docs/technical/ui-design-decisions.md#the-shell-is-chrome-decided-by-position)
   for why the header is neither a Surface nor a Layout.
 - **Widgets** (`src/app/widgets/<name>`) — an assembly too domain-specific to be kit and too
