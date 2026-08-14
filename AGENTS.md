@@ -315,7 +315,7 @@ the ban possible, with zero exceptions. The shared side of the ban is written `*
 `../../game` spelling a file inside `src` uses), not `**/src/game/**` (the outside spelling) — the
 same vacuous-pattern trap as the app ban.
 
-`src/game` also has its own inward fence, `src/game/rendererIsolation.test.ts`, which forbids
+`src/game` also has its own inward guard, `src/game/rendererIsolation.test.ts`, which forbids
 Mantine, Radix, and any reach into the app — by alias or by relative climb. It is a test rather than
 a lint override because it also bans framework packages a `no-restricted-imports` group would not
 naturally express.
