@@ -21,13 +21,33 @@
     height 0.2s ease-out;
 }
 
-.band::before {
-  content: "";
+/* The band artwork, bottom to top: inlined blurred frame, poster photograph, looping video.
+   All negative z-index so `SiteNavigation` paints above; tree order settles who covers whom. */
+.bandPlaceholder,
+.bandPoster,
+.bandVideo {
   position: absolute;
   inset: 0;
-  background: url("/web/head-large.jpg") no-repeat top center;
-  background-size: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
   z-index: -1;
+}
+
+/* The scale tucks the blur's washed-out edges under the band's overflow clip. */
+.bandPlaceholder {
+  filter: blur(24px);
+  transform: scale(1.1);
+}
+
+.bandVideo {
+  opacity: 0;
+  transition: opacity 0.6s ease-out;
+}
+
+.bandVideo[data-ready] {
+  opacity: 1;
 }
 
 .frame:has([data-page-layout-compact="true"]) .band {
@@ -44,9 +64,10 @@
     height: 319px;
   }
 
-  .band::before {
-    background-size: auto 319px;
-    background-position: left top;
+  .bandPlaceholder,
+  .bandPoster,
+  .bandVideo {
+    object-position: left center;
   }
 
   .frame:has([data-page-layout-compact="true"]) .band {

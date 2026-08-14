@@ -13,6 +13,7 @@ import {
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { HeroTitle } from '@ui/content/HeroTitle';
 import { AtlasLayout } from '@ui/layout/AtlasLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
@@ -155,7 +156,7 @@ function FuturePlansPage() {
         <SimpleGrid className={styles.hero} cols={{ base: 1, md: 2 }} spacing="xl">
           <Stack gap="xs">
             <Eyebrow tone="inverse">Our ambitions</Eyebrow>
-            <Title order={1}>A map of what Dune Zone could become</Title>
+            <HeroTitle>A map of what Dune Zone could become</HeroTitle>
           </Stack>
           <Text size="lg">
             These are promises, not release dates. Explore the territory, then tell us where we

@@ -7,6 +7,7 @@ import '@mantine/core/styles.layer.css';
 import '../src/app/styles/fonts.css';
 import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
+import { setMotionOverride } from '../src/app/shell/motion';
 import { appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
 
@@ -14,9 +15,30 @@ import * as sizes from '../src/game/data/sizes';
    deterministic, per-story return values from these network-incapable mocks. */
 sb.mock(import('convex/react'));
 sb.mock(import('convex/browser'));
+sb.mock(import('@convex-dev/auth/react'));
 
 export default definePreview({
   addons: [addonDocs()],
+  globalTypes: {
+    motion: {
+      description: "Ambient motion: the chrome's band video and turning dice",
+      toolbar: {
+        title: 'Motion',
+        icon: 'play',
+        items: [
+          { value: 'auto', title: 'Motion: follow this browser' },
+          { value: 'on', title: 'Motion: on' },
+          { value: 'reduce', title: 'Motion: reduced' },
+        ],
+        dynamicTitle: true,
+      },
+    },
+  },
+  /* The toolbar drives the real `motion` cookie override rather than a module mock, so stories
+     exercise the same code path visitors do; `auto` clears it back to the browser's own hint. */
+  beforeEach: ({ globals }) => {
+    setMotionOverride(globals.motion === 'on' ? 'on' : globals.motion === 'reduce' ? 'off' : null);
+  },
   parameters: {
     layout: 'centered',
     viewport: {
@@ -148,6 +170,7 @@ export default definePreview({
     },
   ],
   initialGlobals: {
+    motion: 'auto',
     backgrounds: {
       value: '#333333',
       grid: true,

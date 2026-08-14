@@ -9,11 +9,13 @@ enforced and where its canonical statement lives.
 
 ### A component renders what it is given
 
-It renders its inputs; it does not go and get things. The moment a component fetches, navigates, or
-reaches into the shell, it stops being reusable and a screen's behaviour scatters across the tree.
-What matters is the capability, not where the file sits: a ban keyed on import *aliases* once waved
-through `FaqList` calling `useNavigate` while flagging harmless compile-time `import type`s — so the
-rule bans the behaviour, not the location.
+It renders its inputs; it does not go and get things. All of a component's traffic crosses its
+membrane, in both directions: a fetch brings data in that the caller never handed over, and a
+navigation sends an effect out that the caller never receives — both route around the membrane,
+and either way the component stops being reusable and a screen's behaviour scatters across the
+tree. What matters is the capability, not where the file sits: a ban keyed on import *aliases* once
+waved through `FaqList` calling `useNavigate` while flagging harmless compile-time `import type`s —
+so the rule bans the behaviour, not the location.
 
 *Enforced by [`.oxlintrc.json`](../../.oxlintrc.json) for `src/app/ui/**` — no Convex client, no
 value import from a data module (`import type` stays legal), no router navigation
@@ -60,9 +62,9 @@ JSDoc must be able to say "callers own X; this owns Y" in one sentence.*
 
 Once Mantine became the shared layer, recurring concerns — the pane treatment, titled regions,
 heading levels — were re-spelled at every call site and drifted. The kit fixes that: six domain-free
-categories under `src/app/ui` — Content, Controls, Lists, Layout, Surfaces, Blocks — each decided by
-what a caller hands the component. The category is the folder and the Storybook root; feature folders
-keep only organs.
+categories under `src/app/ui` — Content, Controls, Lists, Layout, Surfaces, Blocks — each decided
+at the membrane, by what a caller hands the component. The category is the folder and the Storybook
+root; feature folders keep only organs.
 
 *Top-level slots enforced by `check:app-layout`; category placement is convention. Canonical in
 [`AGENTS.md`](../../AGENTS.md#component-taxonomy).*
@@ -71,10 +73,11 @@ keep only organs.
 
 `AppRoot`, `AppHeader`, and `AppFooter` belong to no kit category. The header is full-bleed artwork
 that content sits *beside* in a shared grid row — where a Surface is something content sits *on*, and
-a Layout is transparent while the header paints. So the shell is decided by *position*, not by what a
-caller hands it: it lives in `src/app/shell/**`, nothing outside imports it, and it carries stories
-under the `Shell` root. Its band height is negotiated with the page in CSS — the page joins the grid
-through `display: contents` and declares its state via `data-page-layout-*`, which
+a Layout is transparent while the header paints. So the shell is decided by *position*, not at the
+membrane: it lives in `src/app/shell/**`, reached only through its doorway (`routes/_app.tsx` mounts
+`ApplicationChrome` and `AppNotFound`), and it carries stories under the `Shell` root. Its band
+height is negotiated with the page in CSS — the page joins the grid through `display: contents` and
+declares its state via `data-page-layout-*`, which
 `AppHeader.module.css` reads back with `:has()` — which is why the band and the page frame stay in
 one place, and why `PageLayout` is the container-query exemption below.
 

@@ -40,6 +40,17 @@ export const DefaultHeaderMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
 });
 
+/**
+ * A reduced-motion visit, pinned through the Motion toolbar global: the band keeps the sharp
+ * poster, and the video element never mounts — so the loop is never even downloaded.
+ */
+export const ReducedMotion = meta.story({
+  globals: { viewport: { value: 'appDesktop' }, motion: 'reduce' },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('video')).toBeNull();
+  },
+});
+
 export const CompactHeader = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
   args: { children: shellPageOptionLabels[1] },

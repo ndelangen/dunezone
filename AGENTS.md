@@ -31,10 +31,60 @@ Convex agent skills for common tasks can be installed by running
 - The checked-in `Fresh default branch` Codex local environment runs this preflight automatically
   when a new worktree is created, then installs the frozen dependency graph.
 
+## Language
+
+The technical vocabulary for this codebase's structure — the words for *how the code is built*.
+Product vocabulary (Groups, factions, the catalogue) lives in [`CONTEXT.md`](CONTEXT.md). A term
+earns an entry here when it carries an obligation you can check; say the words in prose and
+reviews, because a term nobody uses stops retrieving its concept.
+
+**Kit**:
+The six-category component vocabulary under `src/app/ui`, reached through `@ui/*`. Domain-free,
+story-covered apart from its organs, and never extracted into a package.
+_Avoid_: design system, component library — they promise an independence the kit does not have.
+
+**Membrane**:
+The surface where a component meets its caller — a bi-directional contract, selectively permeable
+both ways: data, slots and values flow in; chosen values and intents flow out through callbacks
+(`onChange`, `onPick`). In either direction what crosses is data, never effects — a component may
+report "the user picked X," not go and do X. Two rules follow. What passes decides the component's
+category: kind is judged at the membrane, and the insides are composition. And there is no traffic
+*around* it: a fetch brings data in that the caller never handed over, a navigation sends an effect
+out that the caller never receives — both route around the membrane, which is why both are banned.
+The Picker is the one documented fetch exception, and that is why a Picker is domain, never kit,
+whatever its membrane resembles.
+_Avoid_: interface, API — one-way words that say how to call the thing, but not what flows back
+out, or what may never cross at all.
+
+**Organ**:
+A file whose only importers are its own feature's or category's machinery. Two obligations, no
+exceptions: nothing outside may import it, and it carries no story. A file that gains an outside
+importer or a story is no longer an organ — it is vocabulary that needs a proper home.
+_Avoid_: internal, private, helper — visibility without the obligations.
+
+**Doorway**:
+The one sanctioned import path to something otherwise off-limits. `src/app/db` is the Convex
+doorway; `ApplicationChrome` and `AppNotFound` are the shell's. Reach the thing through its doorway
+or not at all.
+_Avoid_: wrapper, gateway.
+
+**Seam**:
+A joint where one implementation can be swapped for another, and therefore where tests attach —
+[`src/app/db/core/live.ts`](src/app/db/core/live.ts) is the app–Convex seam, and the suites in
+[ADR-0002](docs/adr/0002-confidence-stack.md), an Architecture Decision Record, are seam suites.
+Not a synonym for membrane: a membrane classifies a component by what crosses it; a seam exists to
+be swapped.
+
+**Chrome**:
+The persistent frame `_app` pages sit in (`src/app/shell`); bare renderer routes and the OAuth
+callback go without. Classified by *position* rather than at the membrane — so it is not a kit
+category — and its stories and doorway audience are what keep it from being a set of organs.
+
 ## Component taxonomy
 
-Every component is exactly one of these. The category is the folder; the folder is the Storybook
-root. Both stay flat — one level, no nesting. What a caller hands a component decides its category.
+Every kit component is exactly one of these. The category is the folder; the folder is the Storybook
+root. Both stay flat — one level, no nesting. What crosses a component's membrane — what a caller
+hands it — decides its category.
 
 | Category | Folder | Caller hands it | It owns |
 |---|---|---|---|
@@ -94,11 +144,15 @@ Outside the kit:
     was really vocabulary, the route when it was page composition, `src/app/print/` for the
     document-rendering glue, and `src/app/shell/` for the chrome.
 - **The application shell** (`src/app/shell`) — the chrome every page sits in: `AppRoot`
-  (the frame and the document-level effects), `AppHeader` (the artwork band), `AppFooter`. Organs by
-  classification — nothing outside the folder imports them — but unlike other organs they **do carry
-  stories**, filed under a `Shell` root, because the chrome's states are worth looking at and cannot
-  be reached from any page's story. It is not a category and never will be: the six are decided by
-  what a caller hands a component, and the shell is decided by position. See *The shell is chrome* in
+  (the frame and the document-level effects), `AppHeader` (the artwork band), `AppFooter`, and the
+  organs behind them (`SiteNavigation`). The shell is chrome, not a set of organs: it has a
+  doorway — `routes/_app.tsx` mounts `ApplicationChrome` and `AppNotFound`, and nothing else
+  outside the folder imports from it — and its chrome (`AppRoot`, `AppHeader`, `AppFooter`)
+  **carries stories**, filed under a `Shell` root, because those states are worth looking at and
+  cannot be reached from any page's story. An outside importer or a story alone ends organ-hood,
+  which is why only `SiteNavigation` qualifies as one here. The shell is not a category and never
+  will be: the six are decided at the membrane, and the shell is decided by position. See
+  *The shell is chrome* in
   [`docs/technical/ui-design-decisions.md`](docs/technical/ui-design-decisions.md#the-shell-is-chrome-decided-by-position)
   for why the header is neither a Surface nor a Layout.
 - **Widgets** (`src/app/widgets/<name>`) — an assembly too domain-specific to be kit and too
@@ -169,7 +223,8 @@ without it the router scans the file and warns.
 Not everything in a component folder is a component. Types, the theme, and story fixtures are
 support modules. **Organs exist at every level, not only inside widgets**: a file whose only
 importers are its own feature's or category's machinery is an organ — "organ" *is* its
-classification, it needs no story, and nothing outside may import it. The kit has organs of its
+classification, it carries no story, and nothing outside may import it; gaining either an outside
+importer or a story ends the classification. The kit has organs of its
 own (`BlockHeading`, the depth context); a feature may keep a one-route form as an organ of its
 page.
 
@@ -260,7 +315,7 @@ the ban possible, with zero exceptions. The shared side of the ban is written `*
 `../../game` spelling a file inside `src` uses), not `**/src/game/**` (the outside spelling) — the
 same vacuous-pattern trap as the app ban.
 
-`src/game` also has its own inward fence, `src/game/rendererIsolation.test.ts`, which forbids
+`src/game` also has its own inward guard, `src/game/rendererIsolation.test.ts`, which forbids
 Mantine, Radix, and any reach into the app — by alias or by relative climb. It is a test rather than
 a lint override because it also bans framework packages a `no-restricted-imports` group would not
 naturally express.

@@ -4,6 +4,9 @@ Dune Zone is a community catalogue for Dune board-game factions, rulesets, and t
 
 ## Language
 
+The product vocabulary. The technical vocabulary — kit, membrane, organ, doorway, seam, chrome —
+lives in [`AGENTS.md`](AGENTS.md#language).
+
 **Group**:
 A collaboration boundary shared by factions, rulesets, and future community assets. Active members may maintain associated content and manage membership intake, while the Group owner alone may rename the Group or remove active members.
 

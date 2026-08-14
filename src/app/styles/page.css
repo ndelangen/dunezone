@@ -32,6 +32,18 @@ html::after {
   mix-blend-mode: overlay;
 }
 
+/* The dice hold still for reduced-motion visitors. Before the shell stamps `data-motion` the OS
+   hint decides; once stamped, the site-local override (see shell/motion.ts) wins either way. */
+html[data-motion="reduce"]::after {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"])::after {
+    animation: none;
+  }
+}
+
 @media (max-width: 900px) {
   html::after {
     bottom: -45%;

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { AppFooter } from './AppFooter';
 import { AppHeader } from './AppHeader';
 import styles from './AppRoot.module.css';
+import { useMotionAllowed } from './motion';
 
 const SCROLL_VAR = '--scroll-pct';
 
@@ -60,6 +61,17 @@ export function AppRoot({ children, pathname }: AppRootProps) {
       root.style.removeProperty(SCROLL_VAR);
     };
   }, []);
+
+  const motion = useMotionAllowed();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.motion = motion ? 'ok' : 'reduce';
+
+    return () => {
+      delete root.dataset.motion;
+    };
+  }, [motion]);
 
   useEffect(() => {
     const root = document.documentElement;
