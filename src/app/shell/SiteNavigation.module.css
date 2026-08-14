@@ -102,17 +102,24 @@
   padding: 0.35rem 0.15rem;
 }
 
-.ghostButton {
+/* Deliberately a link, visually: the control continues the row it belongs to. */
+.moreButton {
   flex: none;
-  background: rgba(0, 0, 0, 0.35);
+  background: none;
+  border: none;
   color: inherit;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 4px;
-  padding: 0.25rem 0.6rem;
+  padding: 0.35rem 0.15rem;
   cursor: pointer;
   font: inherit;
   font-size: 0.9rem;
+  letter-spacing: 0.02em;
   white-space: nowrap;
+  opacity: 0.85;
+  transition: opacity 0.15s ease-out;
+}
+
+.moreButton:hover {
+  opacity: 1;
 }
 
 .account {
