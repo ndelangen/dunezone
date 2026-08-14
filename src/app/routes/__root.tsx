@@ -5,6 +5,9 @@ import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
 
 import { convex } from '@db/core';
 
+// PROTOTYPE — wipe me. Dark-palette options for wayfinder #393.
+import { PrototypeDarkModeSwitcher } from '../shell/PrototypeDarkModeSwitcher';
+
 import '@fontsource/caladea/latin-400.css';
 import '@fontsource/caladea/latin-400-italic.css';
 import '@fontsource/caladea/latin-700.css';
@@ -74,6 +77,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <ConvexAuthProvider client={convex}>
           {children}
+          <PrototypeDarkModeSwitcher />
           {/* <TanStackDevtools
             config={{
               position: 'bottom-right',
