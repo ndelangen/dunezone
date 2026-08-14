@@ -90,6 +90,63 @@
   outline-offset: 4px;
 }
 
+.motionToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 1.4rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.motionInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.motionTrack {
+  position: relative;
+  flex: 0 0 auto;
+  width: 2.1rem;
+  height: 1.15rem;
+  border: 1px solid rgba(248, 175, 64, 0.42);
+  border-radius: 999px;
+  background: rgba(17, 11, 8, 0.6);
+  transition: background var(--transition-fast);
+}
+
+.motionTrack::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0.15rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: rgba(255, 249, 239, 0.7);
+  transform: translateY(-50%);
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.motionInput:checked + .motionTrack {
+  background: var(--color-link);
+}
+
+.motionInput:checked + .motionTrack::after {
+  background: #fff9ef;
+  transform: translate(0.9rem, -50%);
+}
+
+.motionInput:focus-visible + .motionTrack {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
 @media (max-width: 700px) {
   .waypoints nav {
     grid-template-columns: 1fr;

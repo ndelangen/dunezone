@@ -1,0 +1,17 @@
+.root {
+  margin: 0;
+  color: white;
+  font-family: "C_Desdemona", sans-serif;
+  font-size: clamp(2.8rem, 6.7vw, 5.8rem);
+  line-height: 0.94;
+  letter-spacing: -0.01em;
+  text-shadow: 0 3px 18px rgb(0 0 0 / 92%);
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+@media (max-width: 43.75em) {
+  .root {
+    font-size: clamp(2.4rem, 12vw, 4.5rem);
+  }
+}

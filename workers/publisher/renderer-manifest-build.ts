@@ -115,7 +115,9 @@ export function isRendererManifestAsset(relativePath: string): boolean {
     !normalizedPath.startsWith('web/') &&
     !normalizedPath.startsWith('vector/') &&
     // OBJ pieces live outside the renderer identity (#309): committed bytes, CI-diff guarded.
-    !normalizedPath.startsWith('obj/')
+    !normalizedPath.startsWith('obj/') &&
+    // The band video is app chrome; capture never sees it, so it must not reprice sheets.
+    !normalizedPath.startsWith('video/')
   );
 }
 

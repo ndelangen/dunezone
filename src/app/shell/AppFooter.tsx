@@ -1,6 +1,7 @@
 import { BookOpen, GitFork, ShieldCheck } from 'lucide-react';
 
 import styles from './AppFooter.module.css';
+import { setMotionOverride, useMotionAllowed } from './motion';
 
 const footerLinks = [
   {
@@ -23,8 +24,14 @@ const footerLinks = [
   },
 ] as const;
 
-/** Public waypoints to the project's component catalogue, source, and policies. */
+/**
+ * Public waypoints to the project's component catalogue, source, and policies — and the switch that
+ * overrides the OS's reduced-motion hint for this site (see `motion.ts`). The switch is a bare
+ * checkbox because the chrome sits outside `ApplicationChrome`'s Mantine provider.
+ */
 export function AppFooter() {
+  const motion = useMotionAllowed();
+
   return (
     <div className={styles.waypoints}>
       <p className={styles.eyebrow}>Continue exploring</p>
@@ -41,6 +48,19 @@ export function AppFooter() {
           </a>
         ))}
       </nav>
+      <label aria-label="Ambient motion" className={styles.motionToggle}>
+        <input
+          checked={motion}
+          className={styles.motionInput}
+          onChange={(event) => setMotionOverride(event.currentTarget.checked ? 'on' : 'off')}
+          type="checkbox"
+        />
+        <span aria-hidden className={styles.motionTrack} />
+        <span className={styles.linkCopy}>
+          <strong>Ambient motion</strong>
+          <small>The masthead video and the turning dice</small>
+        </span>
+      </label>
     </div>
   );
 }
