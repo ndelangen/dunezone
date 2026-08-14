@@ -9,7 +9,7 @@ import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
 
-import styles from './FaqActivity.module.css';
+import styles from './-faqActivity.module.css';
 
 function truncate(text: string, max = 200): string {
   const t = text.trim();

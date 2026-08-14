@@ -7,7 +7,6 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
-import { FaqAnswersGiven, FaqQuestionsAsked } from '@ui/list/FaqActivity';
 import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
@@ -29,6 +28,7 @@ import {
 import { loadProfileBySlug, useCurrentProfile, useProfileBySlug } from '@db/profiles';
 
 import styles from '../ProfileDetail.module.css';
+import { FaqAnswersGiven, FaqQuestionsAsked } from './-faqActivity';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   loader: async ({ params }) => {
