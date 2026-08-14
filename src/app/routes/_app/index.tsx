@@ -19,6 +19,7 @@ import { Section } from '@ui/block/Section';
 import { AnimatedLeaderToken } from '@ui/content/AnimatedLeaderToken';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { HeroTitle } from '@ui/content/HeroTitle';
 import { CallToAction } from '@ui/control/CallToAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -62,9 +63,7 @@ function IndexPage() {
       <PageLayout.Header>
         <Stack className={styles.hero} align="center" justify="center" gap="sm">
           <Eyebrow tone="inverse">A game of conquest, diplomacy &amp; betrayal</Eyebrow>
-          <Title order={1} className={styles.heroTitle}>
-            Make Dune your own
-          </Title>
+          <HeroTitle>Make Dune your own</HeroTitle>
           <Text className={styles.heroDeck}>
             Discover what people are playing today—or make the thing they play tomorrow.
           </Text>

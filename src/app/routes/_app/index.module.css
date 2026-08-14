@@ -18,14 +18,6 @@
   background: radial-gradient(ellipse, rgb(20 10 4 / 68%), transparent 74%);
 }
 
-.heroTitle {
-  color: white;
-  font-size: clamp(2.8rem, 6.7vw, 5.8rem);
-  line-height: 0.94;
-  letter-spacing: -0.055em;
-  text-wrap: balance;
-}
-
 .heroDeck {
   max-width: 39rem;
   color: #fff4df;
@@ -92,10 +84,6 @@
 
   .hero {
     padding: 0.75rem;
-  }
-
-  .heroTitle {
-    font-size: clamp(2.4rem, 12vw, 4.5rem);
   }
 
   .storyTitle {
