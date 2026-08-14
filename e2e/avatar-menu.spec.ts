@@ -9,15 +9,21 @@ test.use({ storageState: '.playwright/user-a-avatar-menu.json' });
  * reach — its Convex mocks are signed-out by design — so the contract lives here.
  */
 test('the avatar menu offers the profile routes and signs out', async ({ page }) => {
+  /* The seed derives username and slug from the email's local part (convex/e2e.ts). */
+  const username = (process.env.PLAYWRIGHT_USER_A_EMAIL ?? 'e2e-user-a@example.com').split('@')[0];
+
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Primary navigation' });
-  const avatar = nav.getByRole('button');
+  const avatar = nav.getByRole('button', { name: username });
   await expect(avatar).toBeVisible();
 
   await avatar.click();
-  await expect(page.getByRole('link', { name: 'Edit profile' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Edit profile' })).toHaveAttribute(
+    'href',
+    new RegExp(`/profiles/${username}/edit/?$`)
+  );
   await page.getByRole('link', { name: 'Your profile' }).click();
-  await expect(page).toHaveURL(/\/profiles\/[^/]+\/?$/);
+  await expect(page).toHaveURL(new RegExp(`/profiles/${username}/?$`));
   await expect(page.getByRole('link', { name: 'Your profile' })).not.toBeVisible();
 
   await avatar.click();
