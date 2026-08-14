@@ -47,34 +47,54 @@ const LINK_PRESETS: Record<string, string[]> = {
 
 const VARIANTS = ['A', 'B', 'C'] as const;
 type Variant = (typeof VARIANTS)[number];
-const VARIANT_NAMES: Record<Variant, string> = {
-  A: 'Priority-plus overflow',
-  B: 'Scrollable strip',
-  C: 'Collapse threshold',
+
+/*
+ * Wayfinder #384: the pattern is decided (priority-plus, #383) — the open question is the row's
+ * visual treatment over the video band. The pill now cycles treatments; B/C remain reachable via
+ * `?variant=` for reference but have no UI.
+ */
+const TREATMENTS = ['scrim', 'blur', 'shadow', 'darken'] as const;
+type Treatment = (typeof TREATMENTS)[number];
+const TREATMENT_NAMES: Record<Treatment, string> = {
+  scrim: 'Gradient scrim',
+  blur: 'Backdrop-blur bar',
+  shadow: 'Text shadow only',
+  darken: 'Artwork veil',
+};
+const TREATMENT_CLASS: Record<Treatment, string> = {
+  scrim: 'treatScrim',
+  blur: 'treatBlur',
+  shadow: 'treatShadow',
+  darken: 'treatDarken',
 };
 
 function readParam(name: string, fallback: string): string {
   return new URLSearchParams(window.location.search).get(name) ?? fallback;
 }
 
-function writeParams(variant: string, links: string) {
+function writeParams(variant: string, links: string, treatment: string) {
   const url = new URL(window.location.href);
   url.searchParams.set('nav-proto', '');
   url.searchParams.set('variant', variant);
   url.searchParams.set('navlinks', links);
+  url.searchParams.set('treatment', treatment);
   window.history.replaceState(null, '', url);
 }
 
 export function SiteNavigationPrototype() {
-  const [variant, setVariant] = useState<Variant>(() => {
+  const [variant] = useState<Variant>(() => {
     const v = readParam('variant', 'A').toUpperCase();
     return (VARIANTS as readonly string[]).includes(v) ? (v as Variant) : 'A';
   });
   const [preset, setPreset] = useState(() =>
     readParam('navlinks', '5') in LINK_PRESETS ? readParam('navlinks', '5') : '5'
   );
+  const [treatment, setTreatment] = useState<Treatment>(() => {
+    const t = readParam('treatment', 'scrim').toLowerCase();
+    return (TREATMENTS as readonly string[]).includes(t) ? (t as Treatment) : 'scrim';
+  });
 
-  useEffect(() => writeParams(variant, preset), [variant, preset]);
+  useEffect(() => writeParams(variant, preset, treatment), [variant, preset, treatment]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -82,22 +102,22 @@ export function SiteNavigationPrototype() {
       if (target.closest('input, textarea, [contenteditable]')) {
         return;
       }
-      const i = VARIANTS.indexOf(variant);
+      const i = TREATMENTS.indexOf(treatment);
       if (e.key === 'ArrowLeft') {
-        setVariant(VARIANTS[(i + VARIANTS.length - 1) % VARIANTS.length]);
+        setTreatment(TREATMENTS[(i + TREATMENTS.length - 1) % TREATMENTS.length]);
       }
       if (e.key === 'ArrowRight') {
-        setVariant(VARIANTS[(i + 1) % VARIANTS.length]);
+        setTreatment(TREATMENTS[(i + 1) % TREATMENTS.length]);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [variant]);
+  }, [treatment]);
 
   const links = LINK_PRESETS[preset];
 
   return (
-    <>
+    <div className={styles[TREATMENT_CLASS[treatment]]}>
       {variant === 'A' && <PriorityPlusNav links={links} />}
       {variant === 'B' && <ScrollStripNav links={links} />}
       {variant === 'C' && <CollapseThresholdNav links={links} />}
@@ -105,19 +125,21 @@ export function SiteNavigationPrototype() {
         <button
           type="button"
           onClick={() =>
-            setVariant(
-              VARIANTS[(VARIANTS.indexOf(variant) + VARIANTS.length - 1) % VARIANTS.length]
+            setTreatment(
+              TREATMENTS[
+                (TREATMENTS.indexOf(treatment) + TREATMENTS.length - 1) % TREATMENTS.length
+              ]
             )
           }
         >
           ←
         </button>
-        <span className={styles.switcherLabel}>
-          {variant} — {VARIANT_NAMES[variant]}
-        </span>
+        <span className={styles.switcherLabel}>{TREATMENT_NAMES[treatment]}</span>
         <button
           type="button"
-          onClick={() => setVariant(VARIANTS[(VARIANTS.indexOf(variant) + 1) % VARIANTS.length])}
+          onClick={() =>
+            setTreatment(TREATMENTS[(TREATMENTS.indexOf(treatment) + 1) % TREATMENTS.length])
+          }
         >
           →
         </button>
@@ -132,7 +154,7 @@ export function SiteNavigationPrototype() {
           {preset} links
         </button>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -234,8 +256,8 @@ function PriorityPlusNav({ links }: { links: string[] }) {
               </a>
             ))}
           </div>
-          {links.slice(0, visibleCount).map((l) => (
-            <a key={l} href="#">
+          {links.slice(0, visibleCount).map((l, i) => (
+            <a key={l} href="#" className={i === 1 ? styles.activeDemo : undefined}>
               {l}
             </a>
           ))}
