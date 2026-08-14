@@ -38,8 +38,11 @@ export const AllLinksFit = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // Positive first: once the measured row shows its last link, the absence check is meaningful.
+    await waitFor(async () => {
+      await expect(canvas.getByRole('link', { name: 'Assets' })).toBeVisible();
+    });
     await expect(canvas.queryByRole('button', { name: /More/ })).toBeNull();
-    await expect(canvas.getByRole('link', { name: 'Assets' })).toBeVisible();
   },
 });
 

@@ -23,11 +23,14 @@ const PRIMARY_LINKS: readonly NavLinkItem[] = [
   { label: 'Assets', to: '/assets' },
 ];
 
-/* Must match the CSS: `gap` on `.linkRow` (1rem) and the widest the More control gets. The
-   reserve doubles as slack for the one width the measure row cannot know — the active link's
-   600 weight. */
-const ROW_GAP_PX = 16;
+/* Room reserved for the More control before deciding which links fit. It cannot be measured —
+   the control only exists once something overflows — so this over-reserves slightly, which also
+   covers the one width the measure row cannot know: the active link's 600 weight. */
 const MORE_RESERVE_PX = 90;
+
+/* Mirrors `.popover`'s max-width; the clamp keeps that widest panel inside the viewport. */
+const PANEL_MAX_WIDTH_PX = 360;
+const VIEWPORT_MARGIN_PX = 8;
 
 export interface SiteNavigationProps {
   /** The destinations to offer. Defaults to the product's primary set. */
@@ -114,7 +117,7 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
                 <img src={profile.data.avatar_url} alt="" className={styles.avatarImage} />
               ) : (
                 <span className={styles.avatarInitials}>
-                  {profile.data.username?.slice(0, 2).toUpperCase()}
+                  {profile.data.username?.slice(0, 2).toUpperCase() ?? '??'}
                 </span>
               )}
             </button>
@@ -176,12 +179,14 @@ function useVisibleLinkCount(
     }
 
     const compute = () => {
+      // Read the gap the row actually renders with, so the math can never drift from the CSS.
+      const gap = Number.parseFloat(getComputedStyle(measure).gap) || 0;
       const widths = Array.from(measure.children).map(
-        (child) => (child as HTMLElement).offsetWidth + ROW_GAP_PX
+        (child) => (child as HTMLElement).offsetWidth + gap
       );
       const total = widths.reduce((sum, width) => sum + width, 0);
       // A fitting row renders one fewer gap than the per-item sum counts.
-      if (total - ROW_GAP_PX <= group.clientWidth) {
+      if (total - gap <= group.clientWidth) {
         setVisibleCount(widths.length);
         return;
       }
@@ -231,7 +236,10 @@ function NavPopover({
     const rect = anchor.getBoundingClientRect();
     return {
       top: rect.bottom + 8,
-      left: Math.max(8, Math.min(rect.left, window.innerWidth - 368)),
+      left: Math.max(
+        VIEWPORT_MARGIN_PX,
+        Math.min(rect.left, window.innerWidth - PANEL_MAX_WIDTH_PX - VIEWPORT_MARGIN_PX)
+      ),
     };
   });
 
