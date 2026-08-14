@@ -40,7 +40,7 @@ reviews, because a term nobody uses stops retrieving its concept.
 
 **Kit**:
 The six-category component vocabulary under `src/app/ui`, reached through `@ui/*`. Domain-free,
-story-covered, and never extracted into a package.
+story-covered apart from its organs, and never extracted into a package.
 _Avoid_: design system, component library — they promise an independence the kit does not have.
 
 **Membrane**:
@@ -71,18 +71,19 @@ _Avoid_: wrapper, gateway.
 
 **Seam**:
 A joint where one implementation can be swapped for another, and therefore where tests attach —
-[`src/app/db/core/live.ts`](src/app/db/core/live.ts) is the app–Convex seam, and
-[ADR-0002](docs/adr/0002-confidence-stack.md)'s suites are seam suites. Not a synonym for membrane:
-a membrane classifies a component by what crosses it; a seam exists to be swapped.
+[`src/app/db/core/live.ts`](src/app/db/core/live.ts) is the app–Convex seam, and the suites in
+[ADR-0002](docs/adr/0002-confidence-stack.md), an Architecture Decision Record, are seam suites.
+Not a synonym for membrane: a membrane classifies a component by what crosses it; a seam exists to
+be swapped.
 
 **Chrome**:
-The persistent frame `_app` pages sit in (`src/app/shell`); bare renderer and auth routes go
-without. Classified by *position* rather than at the membrane — so it is not a kit category — and
-its stories and doorway audience are what keep it from being a set of organs.
+The persistent frame `_app` pages sit in (`src/app/shell`); bare renderer routes and the OAuth
+callback go without. Classified by *position* rather than at the membrane — so it is not a kit
+category — and its stories and doorway audience are what keep it from being a set of organs.
 
 ## Component taxonomy
 
-Every component is exactly one of these. The category is the folder; the folder is the Storybook
+Every kit component is exactly one of these. The category is the folder; the folder is the Storybook
 root. Both stay flat — one level, no nesting. What crosses a component's membrane — what a caller
 hands it — decides its category.
 
