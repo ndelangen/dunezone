@@ -305,7 +305,7 @@ function HomepagePending() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <Title order={1}>Make Dune your own</Title>
+        <HeroTitle>Make Dune your own</HeroTitle>
       </PageLayout.Header>
       <PageLayout.Content>
         <Surface>
@@ -324,7 +324,7 @@ function HomepageError({ error }: ErrorComponentProps) {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <Title order={1}>Make Dune your own</Title>
+        <HeroTitle>Make Dune your own</HeroTitle>
       </PageLayout.Header>
       <PageLayout.Content>
         <Alert color="red" title="The homepage could not be loaded" role="alert">

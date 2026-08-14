@@ -47,7 +47,7 @@ export function AppHeader({ children }: AppHeaderProps) {
       return;
     }
     const video = videoRef.current;
-    if (video && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+    if (video && !video.paused && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
       setVideoReady(true);
     }
   }, [motionOk]);
@@ -69,6 +69,7 @@ export function AppHeader({ children }: AppHeaderProps) {
             loop
             playsInline
             aria-hidden
+            tabIndex={-1}
           />
         )}
         <SiteNavigation />
