@@ -16,8 +16,8 @@ vi.mock('@db/profiles', () => ({
   useCurrentProfile: () => ({ data: null }),
 }));
 
-vi.mock('@ui/content/ProfileLink', () => ({
-  ProfileLink: () => null,
+vi.mock('@convex-dev/auth/react', () => ({
+  useAuthActions: () => ({ signIn: async () => {}, signOut: async () => {} }),
 }));
 
 class ResizeObserverStub {

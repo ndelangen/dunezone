@@ -15,6 +15,7 @@ import * as sizes from '../src/game/data/sizes';
    deterministic, per-story return values from these network-incapable mocks. */
 sb.mock(import('convex/react'));
 sb.mock(import('convex/browser'));
+sb.mock(import('@convex-dev/auth/react'));
 
 export default definePreview({
   addons: [addonDocs()],
