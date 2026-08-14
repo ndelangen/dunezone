@@ -21,18 +21,11 @@
     height 0.2s ease-out;
 }
 
-.band::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: url("/web/head-large.jpg") no-repeat top center;
-  background-size: cover;
-  z-index: -1;
-}
-
-/* PROTOTYPE — blur-up placeholder under the video: the inlined tiny frame, blurred up to size.
-   The scale hides the blur's washed-out edges under the band's overflow clip. */
-.videoPoster {
+/* The band artwork, bottom to top: inlined blurred frame, poster photograph, looping video.
+   All negative z-index so `SiteNavigation` paints above; tree order settles who covers whom. */
+.bandPlaceholder,
+.bandPoster,
+.bandVideo {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -40,25 +33,20 @@
   object-fit: cover;
   object-position: center;
   z-index: -1;
+}
+
+/* The scale tucks the blur's washed-out edges under the band's overflow clip. */
+.bandPlaceholder {
   filter: blur(24px);
   transform: scale(1.1);
 }
 
-/* PROTOTYPE — video layer; paints over the placeholder (same z-index, later in tree order) and
-   fades in once it is actually playing */
-.video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  z-index: -1;
+.bandVideo {
   opacity: 0;
   transition: opacity 0.6s ease-out;
 }
 
-.video[data-ready] {
+.bandVideo[data-ready] {
   opacity: 1;
 }
 
@@ -76,13 +64,9 @@
     height: 319px;
   }
 
-  .band::before {
-    background-size: auto 319px;
-    background-position: left top;
-  }
-
-  .video,
-  .videoPoster {
+  .bandPlaceholder,
+  .bandPoster,
+  .bandVideo {
     object-position: left center;
   }
 
