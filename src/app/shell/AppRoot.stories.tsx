@@ -61,10 +61,10 @@ export const HeaderlessPageMobile = meta.story({
 
 /**
  * Scrolls the preview to the bottom on open so the backdrop travels without being touched, then
- * checks the shell actually drove it: `--scroll-pct` reaching the bottom of its range is what
- * moves `background-position`. The variable is written from a requestAnimationFrame handler, so
- * under load the last update can land a hair short of 100 — wait for it to settle and accept
- * anything at the bottom of the range rather than exactly 100.
+ * checks the shell actually drove it: `--scroll-pct` reaching the bottom of its range is what moves
+ * `background-position`. The variable is written from a requestAnimationFrame handler, so under
+ * load the last update can land a hair short of 100 — wait (with generous headroom for a loaded
+ * suite) for it to settle into [99.5, 100] rather than demand exactly 100.
  */
 async function playBackgroundPan({ canvasElement }: { canvasElement: HTMLElement }) {
   const view = canvasElement.ownerDocument.defaultView;
@@ -81,10 +81,11 @@ async function playBackgroundPan({ canvasElement }: { canvasElement: HTMLElement
     () => {
       const pct = Number.parseFloat(root.style.getPropertyValue('--scroll-pct'));
       expect(pct).toBeGreaterThanOrEqual(99.5);
+      expect(pct).toBeLessThanOrEqual(100);
+      expect(readPosition()).not.toBe(atTop);
     },
-    { timeout: 5000 },
+    { timeout: 5000 }
   );
-  await expect(readPosition()).not.toBe(atTop);
 }
 
 export const ScrollingBackground = meta.story({
