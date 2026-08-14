@@ -68,9 +68,11 @@
   width: auto;
 }
 
+/* Baseline, not center: the row's items are text, and baseline alignment keeps their labels
+   level automatically — whatever borders, padding, or glyph metrics their boxes pick up. */
 .linkGroup {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 1rem;
   flex: 1;
   min-width: 0;
@@ -79,7 +81,7 @@
 .linkRow {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 1rem;
   flex: 0 1 auto;
   min-width: 0;
