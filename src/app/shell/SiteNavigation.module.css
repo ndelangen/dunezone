@@ -68,9 +68,11 @@
   width: auto;
 }
 
+/* Baseline, not center: the row's items are text, and baseline alignment keeps their labels
+   level automatically — whatever borders, padding, or glyph metrics their boxes pick up. */
 .linkGroup {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 1rem;
   flex: 1;
   min-width: 0;
@@ -79,7 +81,7 @@
 .linkRow {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 1rem;
   flex: 0 1 auto;
   min-width: 0;
@@ -102,17 +104,28 @@
   padding: 0.35rem 0.15rem;
 }
 
-.ghostButton {
+/* Deliberately a link, visually: the control continues the row it belongs to. The extra
+   horizontal padding widens the tap target; the matching negative margin hands that space
+   back to the layout, so the row's visual spacing doesn't change. */
+.moreButton {
   flex: none;
-  background: rgba(0, 0, 0, 0.35);
+  background: none;
+  border: none;
   color: inherit;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 4px;
-  padding: 0.25rem 0.6rem;
+  padding: 0.35rem 0.5rem;
+  margin: 0 -0.35rem;
   cursor: pointer;
   font: inherit;
   font-size: 0.9rem;
+  letter-spacing: 0.02em;
   white-space: nowrap;
+  opacity: 0.85;
+  transition: opacity 0.15s ease-out;
+}
+
+.moreButton:hover,
+.moreButton:focus-visible {
+  opacity: 1;
 }
 
 .account {

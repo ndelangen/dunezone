@@ -81,7 +81,7 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
         {overflow.length > 0 && (
           <button
             type="button"
-            className={styles.ghostButton}
+            className={styles.moreButton}
             aria-expanded={moreAnchor !== null}
             onClick={(e) => setMoreAnchor(moreAnchor ? null : e.currentTarget)}
           >
