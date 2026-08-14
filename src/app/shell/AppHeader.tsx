@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import styles from './AppHeader.module.css';
 import { useMotionAllowed } from './motion';
 import { SiteNavigation } from './SiteNavigation';
+import { SiteNavigationPrototype } from './SiteNavigation.prototype';
 
 /*
  * The band video's first frame at 48px, inlined so the band paints before any network response.
@@ -40,6 +41,14 @@ export function AppHeader({ children }: AppHeaderProps) {
   const [videoReady, setVideoReady] = useState(false);
   const motionOk = useMotionAllowed();
 
+  /*
+   * PROTOTYPE GATE — THROWAWAY (wayfinder #383): `?nav-proto` in dev swaps in the variants.
+   * Captured once on mount so in-app navigation (which drops the param) doesn't kick us out.
+   */
+  const [navProto] = useState(
+    () => import.meta.env.DEV && new URLSearchParams(window.location.search).has('nav-proto')
+  );
+
   // The video may already be playing (or fully buffered) before this render attaches `onPlaying`.
   useEffect(() => {
     if (!motionOk) {
@@ -72,7 +81,7 @@ export function AppHeader({ children }: AppHeaderProps) {
             tabIndex={-1}
           />
         )}
-        <SiteNavigation />
+        {navProto ? <SiteNavigationPrototype /> : <SiteNavigation />}
       </header>
       {children}
     </div>
