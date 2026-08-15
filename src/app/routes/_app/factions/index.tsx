@@ -282,6 +282,7 @@ function CatalogueToolbar({
             {/* PROTOTYPE (wayfinder #403) — search > filter > sort; sorting stays separate */}
             <PrototypeCatalogueControls
               catalogue={complexityPrototype}
+              className={styles.rulesetField}
               rulesetFilter={{
                 options: rulesetOptions,
                 value: search.ruleset ?? 'all',
