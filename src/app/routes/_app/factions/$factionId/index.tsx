@@ -47,6 +47,12 @@ import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 
+/* PROTOTYPE (wayfinder #403) — remove with ../-complexity-prototype.tsx */
+import {
+  PrototypeComplexityHeader,
+  PrototypeComplexitySidebar,
+  PrototypeSwitcher,
+} from '../-complexity-prototype';
 import styles from '../FactionDetail.module.css';
 
 export const Route = createFileRoute('/_app/factions/$factionId/')({
@@ -172,6 +178,8 @@ function FactionDetailPage() {
               </Text>
               {owner ? <ProfileLink {...owner} /> : <Text size="sm">Unknown</Text>}
             </Group>
+            {/* PROTOTYPE (wayfinder #403) */}
+            <PrototypeComplexityHeader data={data} />
           </Stack>
         </Group>
       </PageLayout.Header>
@@ -373,6 +381,8 @@ function FactionDetailPage() {
             miw={0}
             style={{ flex: '0 0 auto' }}
           >
+            {/* PROTOTYPE (wayfinder #403) */}
+            <PrototypeComplexitySidebar data={data} />
             <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
               <div className={styles.loreHeroToken}>
                 <LeaderToken
@@ -607,6 +617,8 @@ function FactionDetailPage() {
             </Card>
           </Stack>
         </Flex>
+        {/* PROTOTYPE (wayfinder #403) */}
+        <PrototypeSwitcher />
       </PageLayout.Content>
     </PageLayout>
   );
