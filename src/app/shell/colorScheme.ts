@@ -29,8 +29,9 @@ function readPreference(): SchemePreference {
 }
 
 function systemScheme(): ResolvedScheme {
-  // An environment without the media-query API (jsdom) cannot voice the hint; light it is.
-  return typeof window.matchMedia === 'function' &&
+  // An environment without the media-query API (SSR, jsdom) cannot voice the hint; light it is.
+  return typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-color-scheme: dark)').matches
     ? 'dark'
     : 'light';
