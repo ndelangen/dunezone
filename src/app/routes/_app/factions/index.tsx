@@ -14,7 +14,7 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { Link, createFileRoute } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
@@ -26,7 +26,15 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowDownAZ, ChevronsUpDown, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import {
+  ArrowDownAZ,
+  ChevronsDown,
+  ChevronsUpDown,
+  Filter,
+  Plus,
+  Search,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
@@ -256,7 +264,7 @@ function CatalogueRefine({
           .length;
 
   return (
-    <Popover position="bottom-start" width={320}>
+    <Popover position="bottom" width={320}>
       <Popover.Target>
         <InputBase
           component="button"
@@ -265,20 +273,19 @@ function CatalogueRefine({
           variant="unstyled"
           className={className}
           leftSection={<Filter size={15} aria-hidden />}
-          rightSection={<ChevronsUpDown size={15} aria-hidden opacity={0.6} />}
+          rightSection={<ChevronsDown size={15} aria-hidden opacity={0.6} />}
           aria-label="Refine factions by ruleset and complexity"
         >
           Refine{activeCount > 0 ? ` (${activeCount})` : ''}
         </InputBase>
       </Popover.Target>
-      <Popover.Dropdown style={{ padding: 0, border: 0, boxShadow: 'none' }} bg="transparent">
+      <Popover.Dropdown style={{ padding: 0, border: 0, boxShadow: 'none' }}>
         <Surface padding="md">
           <Stack gap="md">
             <Stack gap="xs">
               <Text size="xs" fw={700} tt="uppercase" c="dimmed">
                 Ruleset
               </Text>
-              {/* Honest toggle buttons: no radio semantics without radio keyboard wiring. */}
               <Group gap={6} role="group" aria-label="Filter factions by ruleset">
                 {rulesetOptions.map((option) => {
                   const selected = (search.ruleset ?? 'all') === option.value;
