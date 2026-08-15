@@ -18,7 +18,6 @@ import { Eyebrow } from '@ui/content/Eyebrow';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
@@ -30,6 +29,13 @@ import type { FactionCataloguePageData, FactionRulesetSummary } from '@db/factio
 
 import { parseFactionCatalogueSearch, useFactionCatalogueSession } from './-catalogue';
 import type { FactionCatalogueSearch } from './-catalogue';
+/* PROTOTYPE (wayfinder #403) — remove with -complexity-prototype.tsx */
+import {
+  PrototypeCatalogueControls,
+  PrototypeCatalogueList,
+  PrototypeSwitcher,
+  usePrototypeCatalogue,
+} from './-complexity-prototype';
 import styles from './FactionCatalogue.module.css';
 
 export const Route = createFileRoute('/_app/factions/')({
@@ -46,6 +52,8 @@ function FactionsPage() {
   const catalogue = useFactionCataloguePage({ initialData: loaderData });
   const data = catalogue.data;
   const session = useFactionCatalogueSession(data);
+  /* PROTOTYPE (wayfinder #403) */
+  const complexityPrototype = usePrototypeCatalogue(session.visibleFactions);
 
   if (!data) {
     return <FactionCataloguePending />;
@@ -74,10 +82,14 @@ function FactionsPage() {
       <PageLayout.Content>
         {hasFactions ? (
           session.visibleFactions.length > 0 ? (
-            <FactionList
-              factions={session.visibleFactions}
-              selectedRulesetSlug={session.search.ruleset}
-            />
+            /* PROTOTYPE (wayfinder #403) — replaces <FactionList> while variants are evaluated */
+            <>
+              <PrototypeCatalogueControls catalogue={complexityPrototype} />
+              <PrototypeCatalogueList
+                catalogue={complexityPrototype}
+                selectedRulesetSlug={session.search.ruleset}
+              />
+            </>
           ) : (
             <FilteredEmptyState onReset={session.reset} />
           )
@@ -89,6 +101,8 @@ function FactionsPage() {
             </Text>
           </Surface>
         )}
+        {/* PROTOTYPE (wayfinder #403) */}
+        <PrototypeSwitcher />
       </PageLayout.Content>
     </PageLayout>
   );
