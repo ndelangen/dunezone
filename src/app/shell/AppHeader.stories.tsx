@@ -35,7 +35,7 @@ export const DefaultHeader = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
 });
 
-/** Below 900px the band swaps aspect ratio for a fixed height and the artwork anchors left. */
+/** Below 900px the band drops to a fixed height and the artwork anchors left. */
 export const DefaultHeaderMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
 });
@@ -72,9 +72,42 @@ export const HeaderlessPageMobile = meta.story({
 });
 
 /**
+ * Left responsive on purpose — drag the preview to any width: the compact strip must hold its fixed
+ * 51px while the artwork modes track the frame's width. The play function proves the static half of
+ * that contract by walking the canvas through the widths the shell can hand the frame and measuring
+ * the band at each one.
+ */
+export const HeaderlessPageResponsive = meta.story({
+  args: { children: shellPageOptionLabels[2] },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'No pinned viewport: resize the preview and the compact strip stays 51px tall at every width. Flip the `children` control to watch the artwork modes scale with width instead.',
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const band = canvasElement.querySelector('header');
+    if (band == null) {
+      throw new Error('The masthead band never rendered, so its height cannot be measured.');
+    }
+
+    /* The band sizes against its container, so pinching the canvas stands in for every viewport
+       the shell can meet — no window resize needed. */
+    for (const width of [1160, 1000, 860, 390]) {
+      canvasElement.style.width = `${width}px`;
+      await expect(Math.round(band.getBoundingClientRect().width)).toBe(width);
+      await expect(Math.round(band.getBoundingClientRect().height)).toBe(51);
+    }
+    canvasElement.style.removeProperty('width');
+  },
+});
+
+/**
  * Plays the resize on open by stepping the `children` arg through every route state, then proves it
- * animated rather than jumped: the aspect ratio the page asks for is a CSS transition on an element
- * that survives the swap, so a static frame can never show it.
+ * animated rather than jumped: the height the page asks for is a CSS transition on an element that
+ * survives the swap, so a static frame can never show it.
  */
 export const Resizing = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
