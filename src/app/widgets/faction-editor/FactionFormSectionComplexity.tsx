@@ -94,7 +94,9 @@ export function FactionFormSectionComplexity({
                   <Text size="xs" c="dimmed">
                     {active
                       ? `Rules-text estimate: ${calc10}/10. Your rating is saved with the faction.`
-                      : 'Automatic — following your rules text. Nothing is stored; the rating tracks your edits.'}
+                      : retainedManualRating == null
+                        ? `Automatic estimate: ${calc10}/10. Nothing is stored; the rating tracks your edits.`
+                        : `Automatic estimate: ${calc10}/10. The disabled slider keeps your last manual ${complexityOutOfTen(retainedManualRating)}/10 rating for when you switch back.`}
                   </Text>
 
                   {deviates ? (

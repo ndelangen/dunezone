@@ -54,8 +54,8 @@ function words(text: string | undefined): number {
       /* A markdown link renders only its text — the URL never reaches the sheet. */
       .replace(/\]\([^)]*\)/g, '] ')
       /* Block markers and thematic breaks occupy source bytes but render no words. */
-      .replace(/^\s*(?:[-+*]|\d+[.)])\s+/gm, '')
-      .replace(/^\s*(?:[-*_]\s*){3,}$/gm, ' ')
+      .replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, '')
+      .replace(/^[ \t]*(?:[-*_][ \t]*){3,}$/gm, ' ')
       .replace(/[*_~`#>[\]()]/g, ' ')
       .split(/\s+/)
       .filter(Boolean).length

@@ -93,7 +93,7 @@ function FactionComplexitySummary({ score }: { score: number }) {
     <Surface padding="md">
       <Group justify="space-between" wrap="nowrap" gap="xs">
         <Group gap="xs" wrap="nowrap">
-          <ComplexityGlyph score={score} size={17} />
+          <ComplexityGlyph score={score} size={17} decorative />
           <Text size="sm" fw={600}>
             Complexity
           </Text>
