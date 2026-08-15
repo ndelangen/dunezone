@@ -95,6 +95,17 @@ function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
   return params;
 }
 
+/**
+ * Param order must not count as a difference: the router treats an order-only navigate as a
+ * structural no-op, so an order-sensitive mismatch would re-fire the canonicalizing effect
+ * forever (deep links write params in any order).
+ */
+function orderIndependentSearchString(params: URLSearchParams) {
+  return new URLSearchParams(
+    [...params.entries()].sort(([left], [right]) => left.localeCompare(right))
+  ).toString();
+}
+
 export function projectFactionCatalogue(
   factions: FactionCatalogueEntry[],
   search: FactionCatalogueSearch,
@@ -154,8 +165,8 @@ export function useFactionCatalogueSession(
       return;
     }
     const canonical = normalizeFactionCatalogueSearch(search, data.rulesets);
-    const expected = factionCatalogueSearchParams(canonical).toString();
-    const current = new URLSearchParams(rawSearch).toString();
+    const expected = orderIndependentSearchString(factionCatalogueSearchParams(canonical));
+    const current = orderIndependentSearchString(new URLSearchParams(rawSearch));
     if (current !== expected) {
       void navigate({ to: '.', search: canonical, replace: true });
     }
