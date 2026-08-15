@@ -1,8 +1,11 @@
+diff --git a/node_modules/@storybook/tanstack-react/.bun-tag-901b2ec1dde78d81 b/.bun-tag-901b2ec1dde78d81
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/dist/export-mocks/react-router.js b/dist/export-mocks/react-router.js
-index 2e732a878fb0ff61096f14527ca4b6ad8dae89e4..2a799cc7950f9037e48b3d2f67fde96639ba5ef9 100644
+index 2e732a878fb0ff61096f14527ca4b6ad8dae89e4..0a3cd3f1188ef2afec6608071838d788d58c3bce 100644
 --- a/dist/export-mocks/react-router.js
 +++ b/dist/export-mocks/react-router.js
-@@ -36,17 +36,51 @@ var useNavigate = fn(_useNavigate).mockName("@tanstack/react-router::useNavigate
+@@ -36,19 +36,56 @@ var useNavigate = fn(_useNavigate).mockName("@tanstack/react-router::useNavigate
  }, [to, href]), null), Link = ({
    to,
    children,
@@ -49,12 +52,17 @@ index 2e732a878fb0ff61096f14527ca4b6ad8dae89e4..2a799cc7950f9037e48b3d2f67fde966
 +      style,
 +      "data-status": isActive ? "active" : void 0,
 +      "aria-current": isActive ? "page" : props["aria-current"],
++      // Mirrors the real Link: the caller's handler runs first and can cancel
++      // navigation via preventDefault; otherwise the mock swallows the click.
        onClick: (e) => {
--        e.preventDefault(), onNavigate({ to, from: location.href });
++        if (onClick?.(e), e.defaultPrevented) return;
+         e.preventDefault(), onNavigate({ to, from: location.href });
 -      },
 -      ...props
-+        e.preventDefault(), onNavigate({ to, from: location.href }), onClick?.(e);
 +      }
      },
-     children
+-    children
++    typeof children == "function" ? children({ isActive, isTransitioning: false }) : children
    );
+ };
+ function createFileRoute(path) {
