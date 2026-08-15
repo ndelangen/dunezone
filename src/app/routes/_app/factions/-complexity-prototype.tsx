@@ -72,7 +72,10 @@ const TIER_COPY: Record<
   master: { label: 'Master', blurb: 'A heavy read — for veterans of the sand.', color: 'red', icon: 'fate' },
 };
 
-/** Bare tier glyph — no disc — bottom-right on each catalogue tile, shadowed for contrast. */
+/**
+ * Bare tier glyph — no disc — sitting on the caption's dark gradient, as bright as the name.
+ * z-index outbids the card's caption layer (z 4) so the gradient never dims it.
+ */
 function TierIconBadge({ tier, detail }: { tier: ComplexityTier; detail?: string }) {
   return (
     <div
@@ -80,9 +83,7 @@ function TierIconBadge({ tier, detail }: { tier: ComplexityTier; detail?: string
         display: 'flex',
         alignItems: 'center',
         gap: 6,
-        color: '#fff',
-        filter:
-          'drop-shadow(0 1px 2px rgba(0,0,0,0.9)) drop-shadow(0 0 6px rgba(0,0,0,0.6))',
+        color: 'var(--mantine-color-white)',
       }}
       aria-label={`${TIER_COPY[tier].label} complexity`}
     >
@@ -91,6 +92,14 @@ function TierIconBadge({ tier, detail }: { tier: ComplexityTier; detail?: string
     </div>
   );
 }
+
+const TIER_BADGE_OVERLAY_STYLE: CSSProperties = {
+  position: 'absolute',
+  bottom: '4.5%',
+  right: '5%',
+  zIndex: 5,
+  pointerEvents: 'none',
+};
 
 export function prototypeTier(score: number): ComplexityTier {
   if (score < 0.25) {return 'novice';}
@@ -352,14 +361,23 @@ export function usePrototypeCatalogue(factions: FactionCatalogueEntry[]) {
   return { variant, tierFilter, setTierFilter, sort, setSort, scored, visible };
 }
 
+export type PrototypeRulesetFilter = {
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
+};
+
 /**
- * The richer refine control: one popover holding tier checkboxes and complexity sort. Lives inside
- * the toolbar's joined filter band, next to the ruleset and sort selects.
+ * The single refine control: one popover combining the ruleset filter, complexity-tier checkboxes,
+ * and complexity sort. Lives inside the toolbar's joined filter band; selecting a ruleset AND/OR
+ * tiers narrows the grid immediately.
  */
 export function PrototypeCatalogueControls({
   catalogue,
+  rulesetFilter,
 }: {
   catalogue: ReturnType<typeof usePrototypeCatalogue>;
+  rulesetFilter: PrototypeRulesetFilter;
 }) {
   const { tierFilter, setTierFilter, sort, setSort, scored, visible } = catalogue;
 
@@ -368,6 +386,12 @@ export function PrototypeCatalogueControls({
       current.includes(tier) ? current.filter((entry) => entry !== tier) : [...current, tier]
     );
   };
+
+  const rulesetActive = rulesetFilter.value !== 'all';
+  const activeCount = tierFilter.length + (rulesetActive ? 1 : 0);
+  const activeRulesetLabel = rulesetFilter.options.find(
+    (option) => option.value === rulesetFilter.value
+  )?.label;
 
   return (
     <Group gap="xs" align="center" wrap="nowrap">
@@ -379,13 +403,24 @@ export function PrototypeCatalogueControls({
             color="dune"
             leftSection={<SlidersHorizontal size={14} aria-hidden />}
           >
-            Refine{tierFilter.length > 0 ? ` (${tierFilter.length})` : ''}
+            Refine{activeCount > 0 ? ` (${activeCount})` : ''}
           </Button>
         </Popover.Target>
         <Popover.Dropdown>
           <Stack gap="md">
-            {tierFilter.length > 0 || sort !== 'none' ? (
+            {activeCount > 0 || sort !== 'none' ? (
               <Group gap="xs">
+                {rulesetActive && activeRulesetLabel ? (
+                  <Badge
+                    variant="light"
+                    color="gray"
+                    style={{ cursor: 'pointer' }}
+                    rightSection="×"
+                    onClick={() => rulesetFilter.onChange('all')}
+                  >
+                    {activeRulesetLabel}
+                  </Badge>
+                ) : null}
                 {tierFilter.map((tier) => (
                   <Badge
                     key={tier}
@@ -403,6 +438,19 @@ export function PrototypeCatalogueControls({
                 </Text>
               </Group>
             ) : null}
+            <Stack gap="xs">
+              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+                Ruleset
+              </Text>
+              <Select
+                size="xs"
+                value={rulesetFilter.value}
+                data={rulesetFilter.options}
+                onChange={(value) => rulesetFilter.onChange(value ?? 'all')}
+                aria-label="Filter factions by ruleset"
+                allowDeselect={false}
+              />
+            </Stack>
             <Stack gap="xs">
               <Text size="xs" fw={700} tt="uppercase" c="dimmed">
                 Complexity tier
@@ -482,7 +530,7 @@ export function PrototypeCatalogueList({
                   <div key={faction._id} style={{ position: 'relative' }}>
                     <FactionCard faction={faction} selectedRulesetSlug={selectedRulesetSlug} />
                     <div
-                      style={{ position: 'absolute', bottom: 10, right: 10, pointerEvents: 'none' }}
+                      style={TIER_BADGE_OVERLAY_STYLE}
                     >
                       <TierIconBadge tier={tier} />
                     </div>
@@ -503,7 +551,7 @@ export function PrototypeCatalogueList({
       {visible.map(({ faction, score, tier }) => (
         <div key={faction._id} style={{ position: 'relative' }}>
           <FactionCard faction={faction} selectedRulesetSlug={selectedRulesetSlug} />
-          <div style={{ position: 'absolute', bottom: 10, right: 10, pointerEvents: 'none' }}>
+          <div style={TIER_BADGE_OVERLAY_STYLE}>
             <TierIconBadge tier={tier} detail={variant === 'C' ? `${outOfTen(score)}/10` : undefined} />
           </div>
         </div>

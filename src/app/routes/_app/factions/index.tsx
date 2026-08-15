@@ -278,10 +278,17 @@ function CatalogueToolbar({
               aria-label="Search factions"
               leftSection={<Search size={16} aria-hidden />}
             />
-            {rulesetSelect(undefined, true)}
             {sortSelect(undefined, true)}
-            {/* PROTOTYPE (wayfinder #403) — the richer filtering control lives in this band */}
-            <PrototypeCatalogueControls catalogue={complexityPrototype} />
+            {/* PROTOTYPE (wayfinder #403) — one combined filter control: ruleset AND/OR tiers */}
+            <PrototypeCatalogueControls
+              catalogue={complexityPrototype}
+              rulesetFilter={{
+                options: rulesetOptions,
+                value: search.ruleset ?? 'all',
+                onChange: (value) =>
+                  onSearchChange({ ruleset: value === 'all' ? undefined : value }),
+              }}
+            />
             <IconAction
               label="Refine factions"
               className={styles.mobileRefineButton}
