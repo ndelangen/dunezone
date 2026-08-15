@@ -68,6 +68,10 @@
   white-space: nowrap;
 }
 
+.communityIconLink {
+  display: inline-flex;
+}
+
 .avatarLink {
   border-radius: 50%;
 }
