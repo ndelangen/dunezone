@@ -1,7 +1,7 @@
 /* Preserve the legacy shell around Mantine's layered baseline without overriding Mantine parts. */
 body:has([data-app-root]) {
   background-color: rgba(0, 0, 0, 0);
-  color: var(--color-text, #2e2927);
+  color: var(--color-text);
 }
 
 [data-app-root] {
