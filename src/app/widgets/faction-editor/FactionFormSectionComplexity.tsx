@@ -20,6 +20,25 @@ function Advisory({ children }: { children: string }) {
   );
 }
 
+function complexityModeDescription({
+  active,
+  calculated,
+  retainedManual,
+}: {
+  active: boolean;
+  calculated: number;
+  retainedManual: number | null;
+}) {
+  const calculated10 = complexityOutOfTen(calculated);
+  if (active) {
+    return `Rules-text estimate: ${calculated10}/10. Your rating is saved with the faction.`;
+  }
+  if (retainedManual == null) {
+    return `Automatic estimate: ${calculated10}/10. Nothing is stored; the rating tracks your edits.`;
+  }
+  return `Automatic estimate: ${calculated10}/10. The disabled slider keeps your last manual ${complexityOutOfTen(retainedManual)}/10 rating for when you switch back.`;
+}
+
 /**
  * The Complexity chapter: an override-switch over the `complexity` field. The slider is always
  * visible — disabled while the rating is automatic — and keeps its last manual value when the
@@ -92,11 +111,11 @@ export function FactionFormSectionComplexity({
                   />
 
                   <Text size="xs" c="dimmed">
-                    {active
-                      ? `Rules-text estimate: ${calc10}/10. Your rating is saved with the faction.`
-                      : retainedManualRating == null
-                        ? `Automatic estimate: ${calc10}/10. Nothing is stored; the rating tracks your edits.`
-                        : `Automatic estimate: ${calc10}/10. The disabled slider keeps your last manual ${complexityOutOfTen(retainedManualRating)}/10 rating for when you switch back.`}
+                    {complexityModeDescription({
+                      active,
+                      calculated,
+                      retainedManual: retainedManualRating,
+                    })}
                   </Text>
 
                   {deviates ? (
