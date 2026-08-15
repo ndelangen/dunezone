@@ -73,33 +73,6 @@
   outline-offset: 3px;
 }
 
-/* Hand-rolled tooltip: the chrome sits outside the Mantine provider (see AppFooter.tsx). */
-.waypointLink::after {
-  position: absolute;
-  bottom: calc(100% + 0.55rem);
-  left: 50%;
-  padding: 0.25rem 0.6rem;
-  border: 1px solid rgba(248, 175, 64, 0.42);
-  border-radius: 999px;
-  background: rgba(17, 11, 8, 0.92);
-  color: #fff9ef;
-  font-size: 0.68rem;
-  white-space: nowrap;
-  content: attr(data-tooltip);
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, 3px);
-  transition:
-    opacity var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.waypointLink:hover::after,
-.waypointLink:focus-visible::after {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
 .motionToggle {
   display: inline-flex;
   align-items: center;

@@ -1,3 +1,4 @@
+import { Tooltip } from '@mantine/core';
 import { ShieldCheck } from 'lucide-react';
 import { FaRedditAlien } from 'react-icons/fa6';
 import { SiBoardgamegeek, SiDiscord, SiGithub, SiStorybook } from 'react-icons/si';
@@ -26,8 +27,8 @@ const footerLinks = [
  * Public waypoints to the project's component catalogue, source, policies, and community homes —
  * and the switch that overrides the OS's reduced-motion hint for this site (see `motion.ts`). The
  * waypoints are icon-only circles; one `label` per entry fans out to the accessible name and the
- * CSS tooltip, so the two cannot come apart. The tooltip and the switch are hand-rolled because the
- * chrome sits outside `ApplicationChrome`'s Mantine provider.
+ * `Tooltip`, so the two cannot come apart. The switch stays a bare checkbox: it is bespoke footer
+ * chrome, styled with the band rather than the content theme.
  */
 export function AppFooter() {
   const motion = useMotionAllowed();
@@ -37,18 +38,18 @@ export function AppFooter() {
       <p className={styles.eyebrow}>Continue exploring</p>
       <nav aria-label="Footer">
         {footerLinks.map(({ href, icon: Icon, label }) => (
-          <a
-            aria-label={label}
-            className={styles.waypointLink}
-            data-tooltip={label}
-            href={href}
-            key={href}
-            {...(href.startsWith('https://')
-              ? { target: '_blank', rel: 'noopener noreferrer' }
-              : undefined)}
-          >
-            <Icon aria-hidden size={20} strokeWidth={1.8} />
-          </a>
+          <Tooltip key={href} label={label}>
+            <a
+              aria-label={label}
+              className={styles.waypointLink}
+              href={href}
+              {...(href.startsWith('https://')
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : undefined)}
+            >
+              <Icon aria-hidden size={20} strokeWidth={1.8} />
+            </a>
+          </Tooltip>
         ))}
       </nav>
       <label aria-label="Ambient motion" className={styles.motionToggle}>
