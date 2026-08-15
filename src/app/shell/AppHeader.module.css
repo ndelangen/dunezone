@@ -1,5 +1,6 @@
 .frame {
   position: relative;
+  container-type: inline-size;
   display: grid;
   grid-template-areas:
     "hero"
@@ -8,17 +9,20 @@
   gap: 40px;
 }
 
+/*
+ * The band's heights are lengths (artwork crop rows scaled to the frame's width via cqw) rather
+ * than aspect-ratios: the compact strip is a fixed 51px at every width, and a transition can only
+ * interpolate between two lengths, so every mode must state its height in the same currency.
+ */
 .band {
   grid-area: hero;
   position: relative;
   width: 100%;
-  aspect-ratio: 3064 / 1125;
+  height: calc(100cqw * (1125 / 3064));
   overflow: hidden;
   border-radius: 6px;
   box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.5);
-  transition:
-    aspect-ratio 0.2s ease-out,
-    height 0.2s ease-out;
+  transition: height 0.2s ease-out;
 }
 
 /* The band artwork, bottom to top: inlined blurred frame, poster photograph, looping video.
@@ -51,16 +55,15 @@
 }
 
 .frame:has([data-page-layout-compact="true"]) .band {
-  aspect-ratio: 3064 / 178;
+  height: 51px;
 }
 
 .frame:has([data-page-layout-header-size="compact"]) .band {
-  aspect-ratio: 3064 / 760;
+  height: calc(100cqw * (760 / 3064));
 }
 
 @media (max-width: 900px) {
   .band {
-    aspect-ratio: unset;
     height: 319px;
   }
 
@@ -68,10 +71,6 @@
   .bandPoster,
   .bandVideo {
     object-position: left center;
-  }
-
-  .frame:has([data-page-layout-compact="true"]) .band {
-    height: 51px;
   }
 
   .frame:has([data-page-layout-header-size="compact"]) .band {
