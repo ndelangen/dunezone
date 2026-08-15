@@ -11,6 +11,7 @@ import {
   TROOP,
   TROOP_MODIFIER,
 } from '../assetIds';
+import { normalizeStoredFactionComplexity } from './complexity';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
 const OFFSET = z.tuple([z.number(), z.number()]);
@@ -97,7 +98,12 @@ export const TTSColor = z.enum([
   'Pink',
 ]);
 
-const factionShape = {
+const FactionComplexitySchema = z.strictObject({
+  calculated: SCALE,
+  manual: SCALE.optional(),
+});
+
+const factionBaseShape = {
   name: z.string().refine((name) => name.trim().length > 0, {
     message: 'Faction name is required because it determines the faction URL',
   }),
@@ -134,12 +140,6 @@ const factionShape = {
     alliance: RULE.omit({ karama: true, title: true }).required(),
   }),
 
-  /**
-   * The author's manual complexity rating (0 = trivial, 1 = as hard as the sheet allows). Absent
-   * means automatic: surfaces derive the rating live from the rules text (see `complexity.ts`).
-   */
-  complexity: z.number().min(0).max(1).optional(),
-
   /** Extra game assets, used by TTS */
   extras: z
     .array(
@@ -152,15 +152,32 @@ const factionShape = {
     .optional(),
 };
 
+const factionShape = {
+  ...factionBaseShape,
+  /** Stored calculated rating plus the optional author-chosen override. */
+  complexity: FactionComplexitySchema,
+};
+
+const transitionalFactionShape = {
+  ...factionBaseShape,
+  /** Widened during the grouped-complexity migration: absent and scalar are legacy states. */
+  complexity: FactionComplexitySchema.or(SCALE).optional(),
+};
+
 /** Rejects unknown keys (e.g. `slug` must live on the Convex row, not in `data`). */
 export const FactionInputSchema = z.strictObject(factionShape);
+
+/** Widened authoring boundary for stale clients during the grouped-complexity rollout. */
+export const TransitionalFactionInputSchema = z
+  .strictObject(transitionalFactionShape)
+  .transform(normalizeStoredFactionComplexity);
 
 /**
  * Canonical storage is intentionally wider than current authoring semantics: historical rows with a
  * blank name must remain readable while the UI requires a name for all new canonical writes.
  */
 export const CanonicalFactionStoredSchema = z.strictObject({
-  ...factionShape,
+  ...transitionalFactionShape,
   name: z.string(),
 });
 
@@ -169,7 +186,9 @@ export const CanonicalFactionStoredSchema = z.strictObject({
  * break stale tabs; genuine breaks (missing or mistyped fields) still fail the client boundary (see
  * db/core/clientBoundary).
  */
-export const CanonicalFactionClientSchema = z.looseObject({ ...factionShape, name: z.string() });
+export const CanonicalFactionClientSchema = z
+  .looseObject({ ...transitionalFactionShape, name: z.string() })
+  .transform(normalizeStoredFactionComplexity);
 export const BackgroundClientSchema = z.looseObject(Background.shape);
 
 /** URL slug on the `factions` row — not a field on `FactionInput` / `factions.data`. */

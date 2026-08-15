@@ -1,3 +1,4 @@
+import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import { CanonicalFactionClientSchema, FactionInputSchema } from '@shared/factions/schema';
 import type { FactionInput } from '@shared/factions/schema';
 import { useQuery } from 'convex/react';
@@ -210,7 +211,7 @@ export function useCreateFaction() {
     ) =>
       mutation.mutate(
         {
-          data: FactionInputSchema.parse(variables.input),
+          data: FactionInputSchema.parse(recalculateFactionComplexity(variables.input)),
           group_id: variables.groupId ?? null,
         },
         {
@@ -219,7 +220,7 @@ export function useCreateFaction() {
         }
       ),
     mutateAsync: async ({ input, groupId }: { input: Faction; groupId?: string | null }) => {
-      const validatedData = FactionInputSchema.parse(input);
+      const validatedData = FactionInputSchema.parse(recalculateFactionComplexity(input));
       const entry = await mutation.mutateAsync({
         data: validatedData,
         group_id: groupId ?? null,
@@ -241,7 +242,7 @@ export function useUpdateFaction() {
       mutation.mutate(
         {
           id: variables.id,
-          data: FactionInputSchema.parse(variables.input),
+          data: FactionInputSchema.parse(recalculateFactionComplexity(variables.input)),
         },
         {
           onSuccess: (entry) => options?.onSuccess?.(toFactionEntry(entry)),
@@ -256,7 +257,7 @@ export function useUpdateFaction() {
       id: string;
       previousUrlSlug?: string;
     }) => {
-      const validatedData = FactionInputSchema.parse(input);
+      const validatedData = FactionInputSchema.parse(recalculateFactionComplexity(input));
       const entry = await mutation.mutateAsync({
         id,
         data: validatedData,

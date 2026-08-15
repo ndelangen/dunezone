@@ -9,6 +9,7 @@ import {
   Stack,
   Text,
 } from '@mantine/core';
+import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import { FactionCard } from '@ui/block/FactionCard';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
@@ -85,7 +86,12 @@ function ChapterIcon({
     return (
       <form.Subscribe
         selector={(state) =>
-          effectiveComplexity({ rules: state.values.rules, complexity: state.values.complexity })
+          effectiveComplexity(
+            recalculateFactionComplexity({
+              rules: state.values.rules,
+              complexity: state.values.complexity,
+            })
+          )
         }
       >
         {(score) => <ComplexityGlyph score={score} size={21} decorative />}
@@ -284,7 +290,7 @@ function ArtifactProof({
                     _id: 'complexity-proof',
                     slug: 'complexity-proof',
                     rulesets: [],
-                    data: faction,
+                    data: recalculateFactionComplexity(faction),
                   } as unknown as FactionCatalogueEntry
                 }
               />

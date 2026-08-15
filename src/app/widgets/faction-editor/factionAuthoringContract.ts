@@ -165,7 +165,7 @@ export function preserveFactionExtras(values: Faction, baseline: Faction): Facti
   return next;
 }
 
-type FactionAuthoringCoverageState = 'control' | 'preserved';
+type FactionAuthoringCoverageState = 'control' | 'derived' | 'preserved';
 
 type CoverageEntry = {
   state: FactionAuthoringCoverageState;
@@ -180,9 +180,8 @@ function coverage(paths: readonly string[], entry: CoverageEntry): Record<string
 /**
  * Leaf-path coverage for FactionInputSchema.
  *
- * `preserved` is the sole product-approved no-control exception. There is no temporary/planned
- * state: every newly admitted schema leaf must ship with a domain control or fail this contract
- * until an explicit exception is approved.
+ * A non-control leaf must identify its owner: `derived` values are generated at the save boundary;
+ * `preserved` values round-trip unchanged. There is no temporary/planned state.
  */
 export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> = {
   ...coverage(['name', 'logo', 'themeColor', 'colors[]'], {
@@ -271,7 +270,11 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
     ['rules.advantages[].title', 'rules.advantages[].text', 'rules.advantages[].karama'],
     { state: 'control', chapter: 'advantages' }
   ),
-  ...coverage(['complexity'], { state: 'control', chapter: 'complexity' }),
+  ...coverage(['complexity.manual'], { state: 'control', chapter: 'complexity' }),
+  ...coverage(['complexity.calculated'], {
+    state: 'derived',
+    owner: 'Shared faction-complexity calculation at the create and update boundary',
+  }),
   ...coverage(
     [
       'extras[].name',
