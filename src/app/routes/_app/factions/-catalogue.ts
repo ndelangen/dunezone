@@ -1,8 +1,7 @@
+import { complexityOutOfTen, effectiveComplexity } from '@shared/factions/complexity';
 import { getRouteApi, useLocation } from '@tanstack/react-router';
 import Fuse from 'fuse.js';
 import { useEffect, useState } from 'react';
-
-import { complexityOutOfTen, effectiveComplexity } from '@shared/factions/complexity';
 
 import type {
   FactionCatalogueEntry,
@@ -97,8 +96,8 @@ function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
 
 /**
  * Param order must not count as a difference: the router treats an order-only navigate as a
- * structural no-op, so an order-sensitive mismatch would re-fire the canonicalizing effect
- * forever (deep links write params in any order).
+ * structural no-op, so an order-sensitive mismatch would re-fire the canonicalizing effect forever
+ * (deep links write params in any order).
  */
 function orderIndependentSearchString(params: URLSearchParams) {
   return new URLSearchParams(

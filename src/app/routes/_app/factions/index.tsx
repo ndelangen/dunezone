@@ -310,7 +310,9 @@ function CatalogueRefine({
 
           <Group gap="xs" justify="space-between">
             <Text size="xs" c="dimmed">
-              {activeCount > 0 ? `${visibleCount} of ${totalCount} factions` : `${totalCount} factions`}
+              {activeCount > 0
+                ? `${visibleCount} of ${totalCount} factions`
+                : `${totalCount} factions`}
             </Text>
             {activeCount > 0 ? (
               <Button

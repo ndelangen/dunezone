@@ -85,9 +85,7 @@ export function calculateComplexity(rules: FactionRules): number {
   return Math.min(1, Math.max(0, adjusted));
 }
 
-/**
- * The rating surfaces actually show: the author's manual rating when set, else the calculation.
- */
+/** The rating surfaces actually show: the author's manual rating when set, else the calculation. */
 export function effectiveComplexity(data: Pick<FactionInput, 'rules' | 'complexity'>): number {
   return data.complexity ?? calculateComplexity(data.rules);
 }

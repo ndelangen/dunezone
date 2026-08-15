@@ -1,7 +1,4 @@
 import { Popover, Progress, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
-import { COMPLEXITY_TIER_PRESENTATION } from '@ui/content/ComplexityGlyph';
-import { TopicIcon } from '@ui/content/TopicIcon';
-
 import {
   COMPLEXITY_DEVIATION_THRESHOLD,
   COMPLEXITY_NEAR_CAPACITY,
@@ -10,6 +7,8 @@ import {
   complexityTier,
 } from '@shared/factions/complexity';
 import type { FactionInput } from '@shared/factions/schema';
+import { COMPLEXITY_TIER_PRESENTATION } from '@ui/content/ComplexityGlyph';
+import { TopicIcon } from '@ui/content/TopicIcon';
 
 import styles from './FactionComplexityIndicator.module.css';
 import type { FactionFormApi } from './factionFormTypes';
@@ -80,7 +79,9 @@ export function FactionComplexityIndicator({ form }: { form: FactionFormApi }) {
         return (
           <Popover position="bottom-end" shadow="md" width={300}>
             <Popover.Target>
-              <Tooltip label={`Complexity ${calc10}/10 · ${COMPLEXITY_TIER_PRESENTATION[tier].label}`}>
+              <Tooltip
+                label={`Complexity ${calc10}/10 · ${COMPLEXITY_TIER_PRESENTATION[tier].label}`}
+              >
                 <UnstyledButton
                   aria-label={`Faction complexity: ${calc10} out of 10`}
                   className={styles.trigger}

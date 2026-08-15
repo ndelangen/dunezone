@@ -9,6 +9,7 @@ import {
   Stack,
   Text,
 } from '@mantine/core';
+import { effectiveComplexity } from '@shared/factions/complexity';
 import { FactionCard } from '@ui/block/FactionCard';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -17,10 +18,7 @@ import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Globe2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
-import { effectiveComplexity } from '@shared/factions/complexity';
-
 import type { FactionCatalogueEntry } from '@db/factions';
-
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -86,7 +84,9 @@ function ChapterIcon({
     /* This tab's icon is live: the tier glyph of the current effective rating. */
     return (
       <form.Subscribe
-        selector={(state) => effectiveComplexity({ rules: state.values.rules, complexity: state.values.complexity })}
+        selector={(state) =>
+          effectiveComplexity({ rules: state.values.rules, complexity: state.values.complexity })
+        }
       >
         {(score) => <ComplexityGlyph score={score} size={21} />}
       </form.Subscribe>

@@ -14,11 +14,16 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core';
+import {
+  complexityOutOfTen,
+  complexityTier,
+  effectiveComplexity,
+} from '@shared/factions/complexity';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
-import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
+import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -40,12 +45,6 @@ import {
   UserPlus,
   UsersRound,
 } from 'lucide-react';
-
-import {
-  complexityOutOfTen,
-  complexityTier,
-  effectiveComplexity,
-} from '@shared/factions/complexity';
 
 import { loadFaction, useFaction } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';

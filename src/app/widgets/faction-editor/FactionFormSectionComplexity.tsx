@@ -1,8 +1,4 @@
 import { Badge, Group, Slider, Stack, Switch, Text } from '@mantine/core';
-import { COMPLEXITY_TIER_PRESENTATION } from '@ui/content/ComplexityGlyph';
-import { TopicIcon } from '@ui/content/TopicIcon';
-import { useState } from 'react';
-
 import {
   COMPLEXITY_DEVIATION_THRESHOLD,
   COMPLEXITY_NEAR_CAPACITY,
@@ -10,6 +6,9 @@ import {
   complexityOutOfTen,
 } from '@shared/factions/complexity';
 import type { FactionInput } from '@shared/factions/schema';
+import { COMPLEXITY_TIER_PRESENTATION } from '@ui/content/ComplexityGlyph';
+import { TopicIcon } from '@ui/content/TopicIcon';
+import { useState } from 'react';
 
 import type { FactionFormApi } from './factionFormTypes';
 
@@ -51,9 +50,7 @@ export function FactionFormSectionComplexity({ form }: { form: FactionFormApi })
             {(field) => {
               const manual = field.state.value;
               const active = manual != null;
-              const slider10 = active
-                ? complexityOutOfTen(manual)
-                : (retained ?? calc10);
+              const slider10 = active ? complexityOutOfTen(manual) : (retained ?? calc10);
               const deviates =
                 active && Math.abs(manual - calculated) >= COMPLEXITY_DEVIATION_THRESHOLD;
 

@@ -1,8 +1,7 @@
-import { TopicIcon } from '@ui/content/TopicIcon';
-import type { TopicIconTopic } from '@ui/content/TopicIcon';
-
 import { complexityOutOfTen, complexityTier } from '@shared/factions/complexity';
 import type { ComplexityTier } from '@shared/factions/complexity';
+import { TopicIcon } from '@ui/content/TopicIcon';
+import type { TopicIconTopic } from '@ui/content/TopicIcon';
 
 /** The one place a tier's presentation is defined; every surface reads it from here. */
 export const COMPLEXITY_TIER_PRESENTATION: Record<
@@ -42,10 +41,15 @@ export interface ComplexityGlyphProps {
 
 /**
  * The canonical indicator for a complexity rating: the tier's glyph in `currentColor`, optionally
- * with its x/10 value. Owns which tier a score presents as; callers own colour and placement — on
- * a faction card it inherits the caption's white, in a toolbar the toolbar's ink.
+ * with its x/10 value. Owns which tier a score presents as; callers own colour and placement — on a
+ * faction card it inherits the caption's white, in a toolbar the toolbar's ink.
  */
-export function ComplexityGlyph({ score, showValue = false, size = 22, className }: ComplexityGlyphProps) {
+export function ComplexityGlyph({
+  score,
+  showValue = false,
+  size = 22,
+  className,
+}: ComplexityGlyphProps) {
   const tier = complexityTier(score);
   return (
     <span

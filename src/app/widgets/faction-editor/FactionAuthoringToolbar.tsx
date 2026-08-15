@@ -95,51 +95,51 @@ export function FactionAuthoringToolbar({
       <Toolbar>
         <Toolbar.Left>
           <Group gap="sm" wrap="nowrap" className={styles.leading}>
-          <IconAction
-            label="Back"
-            variant="light"
-            color="gray"
-            size="lg"
-            onClick={onBack}
-            icon={<ArrowLeft size={17} aria-hidden />}
-          />
-          <Stack gap="sm" className={styles.status}>
-            <Group gap="xs" wrap="nowrap">
-              <Badge color={statusColor} variant="light">
-                {statusLabel}
-              </Badge>
-              {warningCount > 0 ? (
-                <Button
-                  type="button"
-                  variant="subtle"
-                  color="yellow"
-                  size="compact-xs"
-                  onClick={onReviewWarnings}
-                >
-                  {warningCount} {warningCount === 1 ? 'field may' : 'fields may'} be incomplete
-                </Button>
-              ) : null}
-              {assetPublishing?.lastPublishedAt != null ? (
-                <Text
-                  className={styles.statusDetails}
-                  component="time"
-                  dateTime={new Date(assetPublishing.lastPublishedAt).toISOString()}
-                  size="xs"
-                  c="dimmed"
-                >
-                  Last published {formatPublishedAt(assetPublishing.lastPublishedAt)}
+            <IconAction
+              label="Back"
+              variant="light"
+              color="gray"
+              size="lg"
+              onClick={onBack}
+              icon={<ArrowLeft size={17} aria-hidden />}
+            />
+            <Stack gap="sm" className={styles.status}>
+              <Group gap="xs" wrap="nowrap">
+                <Badge color={statusColor} variant="light">
+                  {statusLabel}
+                </Badge>
+                {warningCount > 0 ? (
+                  <Button
+                    type="button"
+                    variant="subtle"
+                    color="yellow"
+                    size="compact-xs"
+                    onClick={onReviewWarnings}
+                  >
+                    {warningCount} {warningCount === 1 ? 'field may' : 'fields may'} be incomplete
+                  </Button>
+                ) : null}
+                {assetPublishing?.lastPublishedAt != null ? (
+                  <Text
+                    className={styles.statusDetails}
+                    component="time"
+                    dateTime={new Date(assetPublishing.lastPublishedAt).toISOString()}
+                    size="xs"
+                    c="dimmed"
+                  >
+                    Last published {formatPublishedAt(assetPublishing.lastPublishedAt)}
+                  </Text>
+                ) : null}
+              </Group>
+              <div className={styles.statusDetails}>
+                <Text size="xs" c={saveState === 'error' ? 'red' : 'dimmed'} role="status">
+                  {isNameBlank
+                    ? 'Add a faction name before saving; it determines the faction URL.'
+                    : publishingCopy}
                 </Text>
-              ) : null}
-            </Group>
-            <div className={styles.statusDetails}>
-              <Text size="xs" c={saveState === 'error' ? 'red' : 'dimmed'} role="status">
-                {isNameBlank
-                  ? 'Add a faction name before saving; it determines the faction URL.'
-                  : publishingCopy}
-              </Text>
-              {context}
-            </div>
-          </Stack>
+                {context}
+              </div>
+            </Stack>
           </Group>
         </Toolbar.Left>
 
@@ -148,36 +148,36 @@ export function FactionAuthoringToolbar({
 
         <Toolbar.Right>
           <Group gap="xs" wrap="nowrap" className={styles.actions}>
-          <div className={styles.auxiliarySlot}>{auxiliaryActions}</div>
-          <IconAction
-            label="Reset unsaved edits"
-            variant="light"
-            color="gray"
-            size="lg"
-            disabled={!isDirty || saveState === 'saving'}
-            onClick={onReset}
-            icon={<RotateCcw size={17} aria-hidden />}
-          />
-          <Button
-            className={styles.reviewAction}
-            type="button"
-            variant="default"
-            leftSection={<Eye size={17} aria-hidden />}
-            onClick={(event) => onReview(event.currentTarget)}
-          >
-            Review faction sheet
-          </Button>
-          <div className={styles.destructiveSlot}>{destructiveActions}</div>
-          <Button
-            type="button"
-            color="confirm"
-            leftSection={<Save size={17} aria-hidden />}
-            disabled={isNameBlank || saveState === 'saving'}
-            loading={saveState === 'saving'}
-            onClick={onSave}
-          >
-            Save faction
-          </Button>
+            <div className={styles.auxiliarySlot}>{auxiliaryActions}</div>
+            <IconAction
+              label="Reset unsaved edits"
+              variant="light"
+              color="gray"
+              size="lg"
+              disabled={!isDirty || saveState === 'saving'}
+              onClick={onReset}
+              icon={<RotateCcw size={17} aria-hidden />}
+            />
+            <Button
+              className={styles.reviewAction}
+              type="button"
+              variant="default"
+              leftSection={<Eye size={17} aria-hidden />}
+              onClick={(event) => onReview(event.currentTarget)}
+            >
+              Review faction sheet
+            </Button>
+            <div className={styles.destructiveSlot}>{destructiveActions}</div>
+            <Button
+              type="button"
+              color="confirm"
+              leftSection={<Save size={17} aria-hidden />}
+              disabled={isNameBlank || saveState === 'saving'}
+              loading={saveState === 'saving'}
+              onClick={onSave}
+            >
+              Save faction
+            </Button>
           </Group>
         </Toolbar.Right>
       </Toolbar>

@@ -1,8 +1,7 @@
 import { Text, UnstyledButton } from '@mantine/core';
+import { effectiveComplexity } from '@shared/factions/complexity';
 import { Link } from '@tanstack/react-router';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
-
-import { effectiveComplexity } from '@shared/factions/complexity';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
