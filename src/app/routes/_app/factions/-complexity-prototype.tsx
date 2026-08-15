@@ -63,7 +63,7 @@ export function prototypeComplexity(data: FactionData): number {
 
 export type ComplexityTier = 'novice' | 'intermediate' | 'expert' | 'master';
 
-const TIER_COPY: Record<
+export const TIER_COPY: Record<
   ComplexityTier,
   { label: string; blurb: string; color: string; icon: TopicIconTopic }
 > = {
@@ -87,14 +87,22 @@ const TIER_COPY: Record<
  * Bare tier glyph — no disc — sitting on the caption's dark gradient, as bright as the name.
  * z-index outbids the card's caption layer (z 4) so the gradient never dims it.
  */
-function TierIconBadge({ tier, detail }: { tier: ComplexityTier; detail?: string }) {
+export function TierIconBadge({
+  tier,
+  detail,
+  color = 'var(--mantine-color-white)',
+}: {
+  tier: ComplexityTier;
+  detail?: string;
+  color?: string;
+}) {
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 6,
-        color: 'var(--mantine-color-white)',
+        color,
       }}
       aria-label={`${TIER_COPY[tier].label} complexity`}
     >
@@ -119,7 +127,7 @@ export function prototypeTier(score: number): ComplexityTier {
   return 'master';
 }
 
-const outOfTen = (score: number) => Math.round(score * 10);
+export const outOfTen = (score: number) => Math.round(score * 10);
 
 /** The manual `complexity` field doesn't exist on the schema yet — the prototype fakes the read. */
 function scoreOf(data: FactionData): number {

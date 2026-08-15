@@ -4,6 +4,8 @@ import { useRef } from 'react';
 
 import { factionEntry, representativeFaction } from './FactionAuthoringStoryFixtures';
 import { FactionAuthoringToolbar } from './FactionAuthoringToolbar';
+/* PROTOTYPE (wayfinder #404) — remove with FactionComplexityPrototype.tsx */
+import { PrototypeComplexityToolbarIndicator } from './FactionComplexityPrototype';
 import { FactionEditor } from './FactionEditor';
 import type { FactionAuthoringViewHandle } from './FactionEditor';
 import { useFactionAuthoring } from './useFactionAuthoring';
@@ -41,6 +43,10 @@ function FactionAuthoringFixture() {
             onReset: authoring.actions.reset,
             onBack: () => undefined,
           }}
+          auxiliaryActions={
+            /* PROTOTYPE (wayfinder #404) */
+            <PrototypeComplexityToolbarIndicator form={authoring.form} />
+          }
         />
         <FactionEditor
           ref={viewRef}

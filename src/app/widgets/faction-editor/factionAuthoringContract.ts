@@ -9,6 +9,8 @@ export const factionAuthoringChapters = [
   { id: 'forces', label: 'Forces' },
   { id: 'rules', label: 'Rules' },
   { id: 'advantages', label: 'Advantages' },
+  /* PROTOTYPE (wayfinder #404) — remove with FactionComplexityPrototype.tsx */
+  { id: 'complexity', label: 'Complexity' },
 ] as const;
 
 export type FactionAuthoringChapterId = (typeof factionAuthoringChapters)[number]['id'];

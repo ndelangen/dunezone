@@ -19,6 +19,13 @@
       "autoPort": false
     },
     {
+      "name": "storybook-6216",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bun run generate:vectors && bunx storybook dev -p 6216 --no-open"],
+      "port": 6216,
+      "autoPort": false
+    },
+    {
       "name": "app-hosted-3210",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
