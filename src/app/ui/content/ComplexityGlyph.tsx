@@ -81,15 +81,16 @@ export function ComplexityGlyph({
   className,
 }: ComplexityGlyphProps) {
   const tier = complexityTier(score);
+  const rounded = complexityOutOfTen(score);
   return (
     <span
       className={clsx(styles.root, className)}
       role={decorative ? undefined : 'img'}
-      aria-hidden={decorative || undefined}
+      aria-hidden={decorative}
       aria-label={
         decorative
           ? undefined
-          : `${COMPLEXITY_TIER_PRESENTATION[tier].label} complexity, ${complexityOutOfTen(score)} out of 10`
+          : `${COMPLEXITY_TIER_PRESENTATION[tier].label} complexity, ${rounded} out of 10`
       }
     >
       {progressRing ? (
@@ -127,7 +128,7 @@ export function ComplexityGlyph({
       ) : (
         <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION[tier].icon} size={size} />
       )}
-      {showValue ? <span className={styles.value}>{complexityOutOfTen(score)}/10</span> : null}
+      {showValue ? <span className={styles.value}>{rounded}/10</span> : null}
     </span>
   );
 }
