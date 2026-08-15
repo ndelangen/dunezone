@@ -33,6 +33,7 @@ import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import {
   PrototypeComplexityCardProof,
   PrototypeComplexityChapter,
+  PrototypeComplexityChapterIcon,
 } from './FactionComplexityPrototype';
 import { FactionFormSectionAdvantages } from './FactionFormSectionAdvantages';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
@@ -52,7 +53,7 @@ export interface FactionFormFieldsHandle {
 }
 
 const chapterIcons: Record<
-  Exclude<FactionAuthoringChapterId, 'identity' | 'worlds'>,
+  Exclude<FactionAuthoringChapterId, 'identity' | 'worlds' | 'complexity'>,
   Parameters<typeof TopicIcon>[0]['topic']
 > = {
   hero: 'hero',
@@ -61,8 +62,6 @@ const chapterIcons: Record<
   forces: 'troops',
   rules: 'rules',
   advantages: 'advantages',
-  /* PROTOTYPE (wayfinder #404) */
-  complexity: 'spice',
 };
 
 function ChapterIcon({
@@ -81,6 +80,10 @@ function ChapterIcon({
   }
   if (chapter === 'worlds') {
     return <Globe2 size={21} aria-hidden />;
+  }
+  /* PROTOTYPE (wayfinder #404) — the tab icon is the tier icon of the current effective rating. */
+  if (chapter === 'complexity') {
+    return <PrototypeComplexityChapterIcon form={form} />;
   }
   return <TopicIcon topic={chapterIcons[chapter]} size={21} />;
 }
