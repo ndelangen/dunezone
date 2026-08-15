@@ -28,7 +28,8 @@ import { TriptychLayout } from '@ui/layout/TriptychLayout';
 import { Bullets } from '@ui/list/Bullets';
 import { Surface } from '@ui/surface';
 import { ArrowRight, BookOpen, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
-import { SiBoardgamegeek, SiDiscord, SiReddit } from 'react-icons/si';
+import { FaRedditAlien } from 'react-icons/fa6';
+import { SiBoardgamegeek, SiDiscord } from 'react-icons/si';
 
 import { loadHomepage, useHomepage } from '@db/homepage';
 
@@ -43,7 +44,7 @@ const communityLinks = [
   {
     href: 'https://www.reddit.com/r/DuneBoardGame/',
     label: 'r/DuneBoardGame on Reddit',
-    Icon: SiReddit,
+    Icon: FaRedditAlien,
   },
   {
     href: 'https://boardgamegeek.com/boardgame/283355/dune/forums/69',
