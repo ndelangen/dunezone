@@ -12,7 +12,11 @@ export interface ApplicationChromeProps {
   pathname: string;
 }
 
-/** Application-only shell and Mantine provider, kept outside bare renderer routes. */
+/**
+ * Application-only shell and Mantine provider, kept outside bare renderer routes. The provider
+ * wraps the chrome too — the shell's markup stays plain CSS-module styling, but its components (the
+ * footer's tooltips) reuse the same Mantine primitives as page content.
+ */
 export function ApplicationChrome({ children, pathname }: ApplicationChromeProps) {
   useEffect(
     () => () => {
@@ -22,10 +26,8 @@ export function ApplicationChrome({ children, pathname }: ApplicationChromeProps
   );
 
   return (
-    <AppRoot pathname={pathname}>
-      <MantineProvider theme={appContentTheme} forceColorScheme="light">
-        {children}
-      </MantineProvider>
-    </AppRoot>
+    <MantineProvider theme={appContentTheme} forceColorScheme="light">
+      <AppRoot pathname={pathname}>{children}</AppRoot>
+    </MantineProvider>
   );
 }

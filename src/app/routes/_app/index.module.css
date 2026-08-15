@@ -68,6 +68,17 @@
   white-space: nowrap;
 }
 
+.communityIconLink {
+  display: inline-flex;
+  padding: 0.25rem;
+  border-radius: 50%;
+}
+
+.communityIconLink:focus-visible {
+  outline: 3px solid var(--mantine-color-dune-6);
+  outline-offset: 2px;
+}
+
 .avatarLink {
   border-radius: 50%;
 }
