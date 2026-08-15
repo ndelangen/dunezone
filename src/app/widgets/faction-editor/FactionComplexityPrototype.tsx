@@ -1,16 +1,20 @@
 /**
  * PROTOTYPE — THROWAWAY. Wayfinder ticket #404: how does the author set and read complexity in
- * the faction editor? Complexity is its own editor chapter (tab); a live indicator sits in the
- * authoring toolbar with a popover, reusing the same tier-glyph indicator as the catalogue. The
- * tab holds three variants of the auto ↔ manual model, switchable via the floating pill
- * (localStorage `prototype-404-variant`). Delete this file, the chapter entry in
- * `factionAuthoringContract.ts`, and the mounts once a variant wins. Calculation is the ticket-403
- * placeholder, shared for consistency.
+ * the faction editor? Decided model, prototyped here for final review:
+ *
+ * - Complexity is its own editor chapter (tab); the tab icon is the tier icon of the current
+ *   effective rating.
+ * - The toolbar carries a donut-ringed tier glyph that ALWAYS shows the rules-text estimate.
+ * - The chapter is an override-switch model: the slider is always visible, disabled while the
+ *   rating is automatic; toggling manual off keeps the slider's value but stores nothing (absent
+ *   field = auto in the db).
+ * - The artifact workbench shows the catalogue's faction card with the effective rating.
+ *
+ * Delete this file, the chapter entry in `factionAuthoringContract.ts`, and the mounts once the
+ * real field ships. Calculation is the ticket-403 placeholder, shared for consistency.
  */
 import {
   Badge,
-  Button,
-  Checkbox,
   Group,
   Popover,
   Progress,
@@ -21,15 +25,11 @@ import {
   Tooltip,
   UnstyledButton,
 } from '@mantine/core';
+import { FactionCard } from '@ui/block/FactionCard';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { useSyncExternalStore } from 'react';
-import type { CSSProperties } from 'react';
 
-import type { FactionData } from '@db/factions';
-
-import { FactionCard } from '@ui/block/FactionCard';
-
-import type { FactionCatalogueEntry } from '@db/factions';
+import type { FactionCatalogueEntry, FactionData } from '@db/factions';
 
 import {
   TIER_COPY,
@@ -45,47 +45,17 @@ import type { FactionFormApi } from './factionFormTypes';
 const DEVIATION_THRESHOLD = 3;
 
 /* ------------------------------------------------------------------------------------------------
- * Variant plumbing — same pattern as ticket 403, separate storage key.
+ * Manual rating store — shared between the chapter, the tab icon, and the card proof. The real
+ * field would live on the form; the prototype fakes it module-locally, in points (0–10). The value
+ * survives toggling manual off; only `active` decides whether it would be stored in the db.
  * --------------------------------------------------------------------------------------------- */
 
-const VARIANTS = ['A', 'B', 'C'] as const;
-type EditorVariant = (typeof VARIANTS)[number];
-const VARIANT_NAMES: Record<EditorVariant, string> = {
-  A: 'Override switch',
-  B: 'Ghost-marked slider',
-  C: 'Side-by-side',
-};
-const STORAGE_KEY = 'prototype-404-variant';
+type ManualRating = { value: number | null; active: boolean };
 
-function readVariant(): EditorVariant {
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  return (VARIANTS as readonly string[]).includes(raw ?? '') ? (raw as EditorVariant) : 'A';
-}
-
-const variantListeners = new Set<() => void>();
-function setVariant(variant: EditorVariant) {
-  window.localStorage.setItem(STORAGE_KEY, variant);
-  for (const listener of variantListeners) {
-    listener();
-  }
-}
-function subscribeVariant(listener: () => void) {
-  variantListeners.add(listener);
-  return () => variantListeners.delete(listener);
-}
-function useEditorVariant(): EditorVariant {
-  return useSyncExternalStore<EditorVariant>(subscribeVariant, readVariant, () => 'A');
-}
-
-/* ------------------------------------------------------------------------------------------------
- * Manual value store — shared between the Complexity tab and the toolbar indicator. The real
- * field would live on the form; the prototype fakes it module-locally, in points (0–10).
- * --------------------------------------------------------------------------------------------- */
-
-let manualValue: number | null = null;
+let manualRating: ManualRating = { value: null, active: false };
 const manualListeners = new Set<() => void>();
-function setManual(value: number | null) {
-  manualValue = value;
+function patchManual(patch: Partial<ManualRating>) {
+  manualRating = { ...manualRating, ...patch };
   for (const listener of manualListeners) {
     listener();
   }
@@ -94,8 +64,13 @@ function subscribeManual(listener: () => void) {
   manualListeners.add(listener);
   return () => manualListeners.delete(listener);
 }
-function useManualComplexity(): number | null {
-  return useSyncExternalStore(subscribeManual, () => manualValue, () => null);
+const SERVER_MANUAL: ManualRating = { value: null, active: false };
+function useManualRating(): ManualRating {
+  return useSyncExternalStore(
+    subscribeManual,
+    () => manualRating,
+    () => SERVER_MANUAL
+  );
 }
 
 /* ------------------------------------------------------------------------------------------------
@@ -104,6 +79,10 @@ function useManualComplexity(): number | null {
 
 function calc10Of(rules: FactionData['rules']): number {
   return outOfTen(prototypeComplexity({ rules } as FactionData));
+}
+
+function effective10(manual: ManualRating, calc10: number): number {
+  return manual.active && manual.value !== null ? manual.value : calc10;
 }
 
 function TierLabel({ score10 }: { score10: number }) {
@@ -155,7 +134,7 @@ const SLIDER_MARKS = [
 ];
 
 /* ------------------------------------------------------------------------------------------------
- * Toolbar indicator — the catalogue's tier-glyph indicator, live, with a summary popover.
+ * Toolbar indicator — always the rules-text estimate, never the author's manual rating.
  * --------------------------------------------------------------------------------------------- */
 
 /** Animated donut ring around the tier glyph: empty at 0, a full circle at 1. */
@@ -211,7 +190,7 @@ function DonutTierIcon({ tier, score }: { tier: ComplexityTier; score: number })
 
 /** Always shows the rules-text estimate — never the author's manual rating. */
 export function PrototypeComplexityToolbarIndicator({ form }: { form: FactionFormApi }) {
-  const manual = useManualComplexity();
+  const manual = useManualRating();
   return (
     <form.Subscribe selector={(state: { values: FactionData }) => state.values.rules}>
       {(rules) => {
@@ -242,12 +221,14 @@ export function PrototypeComplexityToolbarIndicator({ form }: { form: FactionFor
                 <TierLabel score10={calc10} />
                 <Progress value={calc10 * 10} size="sm" aria-hidden />
                 <Text size="xs" c="dimmed">
-                  {TIER_COPY[tier].blurb}
+                  {TIER_COPY[prototypeTier(calc10 / 10)].blurb}
                 </Text>
                 <Text size="xs" c="dimmed">
                   Estimated live from the rules text. Set your own rating in the Complexity tab.
                 </Text>
-                {manual !== null ? <DeviationAdvisory manual10={manual} calc10={calc10} /> : null}
+                {manual.active && manual.value !== null ? (
+                  <DeviationAdvisory manual10={manual.value} calc10={calc10} />
+                ) : null}
                 <CapacityHint calc10={calc10} />
               </Stack>
             </Popover.Dropdown>
@@ -258,14 +239,30 @@ export function PrototypeComplexityToolbarIndicator({ form }: { form: FactionFor
   );
 }
 
-/**
- * Artifact-workbench proof for the Complexity chapter: the catalogue's faction card, carrying the
- * effective rating (author's manual value when set, else the estimate) exactly as the catalogue
- * shows it. Inert — the proof is for looking at, not navigating.
- */
+/* ------------------------------------------------------------------------------------------------
+ * Chapter tab icon — the tier icon of the current effective rating.
+ * --------------------------------------------------------------------------------------------- */
+
+export function PrototypeComplexityChapterIcon({ form }: { form: FactionFormApi }) {
+  const manual = useManualRating();
+  return (
+    <form.Subscribe selector={(state: { values: FactionData }) => state.values.rules}>
+      {(rules) => {
+        const shown10 = effective10(manual, calc10Of(rules));
+        return <TopicIcon topic={TIER_COPY[prototypeTier(shown10 / 10)].icon} size={21} />;
+      }}
+    </form.Subscribe>
+  );
+}
+
+/* ------------------------------------------------------------------------------------------------
+ * Artifact-workbench proof — the catalogue's faction card with the effective rating.
+ * --------------------------------------------------------------------------------------------- */
+
+/** Inert — the proof is for looking at, not navigating. */
 export function PrototypeComplexityCardProof({ faction }: { faction: FactionData }) {
-  const manual = useManualComplexity();
-  const shown10 = manual ?? calc10Of(faction.rules);
+  const manual = useManualRating();
+  const shown10 = effective10(manual, calc10Of(faction.rules));
   const tier = prototypeTier(shown10 / 10);
   const entry = {
     _id: 'complexity-proof',
@@ -285,7 +282,7 @@ export function PrototypeComplexityCardProof({ faction }: { faction: FactionData
 }
 
 /* ------------------------------------------------------------------------------------------------
- * The Complexity chapter — three auto ↔ manual models
+ * The Complexity chapter — override-switch model.
  * --------------------------------------------------------------------------------------------- */
 
 export function PrototypeComplexityChapter({ form }: { form: FactionFormApi }) {
@@ -297,9 +294,10 @@ export function PrototypeComplexityChapter({ form }: { form: FactionFormApi }) {
 }
 
 function ChapterBody({ rules }: { rules: FactionData['rules'] }) {
-  const variant = useEditorVariant();
-  const manual = useManualComplexity();
+  const manual = useManualRating();
   const calc10 = calc10Of(rules);
+  /* Disabled slider keeps a previously chosen value; before any choice it tracks the estimate. */
+  const slider10 = manual.value ?? calc10;
 
   return (
     <Stack gap="sm" aria-label="Faction complexity (prototype)">
@@ -308,200 +306,47 @@ function ChapterBody({ rules }: { rules: FactionData['rules'] }) {
           How hard this faction is to play, shown in the catalogue and on the faction page. Leave it
           on auto to follow your rules text, or set it yourself — you know your table best.
         </Text>
-        {manual === null ? (
-          <Badge variant="light" color="gray" size="sm">
-            Auto
-          </Badge>
-        ) : (
-          <Badge variant="light" color="dune" size="sm">
-            Manual
-          </Badge>
-        )}
+        <Badge variant="light" color={manual.active ? 'dune' : 'gray'} size="sm">
+          {manual.active ? 'Manual' : 'Auto'}
+        </Badge>
       </Group>
 
-      {variant === 'A' ? (
-        <Stack gap="sm">
-          {manual === null ? (
-            <Group gap="md" wrap="nowrap" align="center">
-              <TierLabel score10={calc10} />
-              <Progress value={calc10 * 10} size="sm" style={{ flex: '1 1 auto' }} aria-hidden />
-            </Group>
-          ) : (
-            <Slider
-              min={0}
-              max={10}
-              step={1}
-              value={manual}
-              onChange={setManual}
-              label={(value) => `${value}/10`}
-              marks={SLIDER_MARKS}
-              mb="md"
-              aria-label="Manual complexity rating"
-            />
-          )}
-          <Switch
-            size="sm"
-            label="Set the rating manually"
-            checked={manual !== null}
-            onChange={(event) => setManual(event.currentTarget.checked ? calc10 : null)}
-          />
-          <Text size="xs" c="dimmed">
-            {manual === null
-              ? 'Estimated live from your rules text.'
-              : `Rules-text estimate: ${calc10}/10.`}
-          </Text>
-          {manual !== null ? <DeviationAdvisory manual10={manual} calc10={calc10} /> : null}
-          <CapacityHint calc10={calc10} />
-        </Stack>
-      ) : null}
+      <Slider
+        min={0}
+        max={10}
+        step={1}
+        value={slider10}
+        onChange={(value) => patchManual({ value })}
+        disabled={!manual.active}
+        label={(value) => `${value}/10`}
+        marks={SLIDER_MARKS}
+        mb="md"
+        aria-label="Manual complexity rating"
+      />
 
-      {variant === 'B' ? (
-        <Stack gap="sm">
-          <Slider
-            min={0}
-            max={10}
-            step={1}
-            value={manual ?? calc10}
-            onChange={setManual}
-            label={(value) => `${value}/10`}
-            marks={[
-              ...SLIDER_MARKS,
-              {
-                value: calc10,
-                label: (
-                  <Text size="xs" fw={700} c="dune.8">
-                    auto·{calc10}
-                  </Text>
-                ),
-              },
-            ]}
-            mb="lg"
-            aria-label="Complexity rating"
-          />
-          <Group gap="xs" justify="space-between">
-            <TierLabel score10={manual ?? calc10} />
-            {manual !== null ? (
-              <Button
-                size="compact-xs"
-                variant="subtle"
-                color="gray"
-                onClick={() => setManual(null)}
-              >
-                Revert to auto
-              </Button>
-            ) : (
-              <Text size="xs" c="dimmed">
-                Following your rules text — drag to take over.
-              </Text>
-            )}
-          </Group>
-          {manual !== null ? <DeviationAdvisory manual10={manual} calc10={calc10} /> : null}
-          <CapacityHint calc10={calc10} />
-        </Stack>
-      ) : null}
+      <Switch
+        size="sm"
+        label="Set the rating manually"
+        checked={manual.active}
+        onChange={(event) =>
+          patchManual(
+            event.currentTarget.checked
+              ? { active: true, value: manual.value ?? calc10 }
+              : { active: false }
+          )
+        }
+      />
 
-      {variant === 'C' ? (
-        <Stack gap="sm">
-          <Group gap="md" wrap="nowrap" align="center">
-            <Text size="xs" c="dimmed" w="7rem">
-              From rules text
-            </Text>
-            <Progress value={calc10 * 10} size="sm" style={{ flex: '1 1 auto' }} aria-hidden />
-            <TierLabel score10={calc10} />
-          </Group>
-          <Checkbox
-            size="sm"
-            label="Publish my own rating instead"
-            checked={manual !== null}
-            onChange={(event) => setManual(event.currentTarget.checked ? calc10 : null)}
-          />
-          {manual !== null ? (
-            <Group gap="md" wrap="nowrap" align="center">
-              <Text size="xs" c="dimmed" w="7rem">
-                Your rating
-              </Text>
-              <Slider
-                min={0}
-                max={10}
-                step={1}
-                value={manual}
-                onChange={setManual}
-                label={(value) => `${value}/10`}
-                style={{ flex: '1 1 auto' }}
-                aria-label="Manual complexity rating"
-              />
-              <TierLabel score10={manual} />
-            </Group>
-          ) : null}
-          {manual !== null ? <DeviationAdvisory manual10={manual} calc10={calc10} /> : null}
-          <CapacityHint calc10={calc10} />
-        </Stack>
-      ) : null}
+      <Text size="xs" c="dimmed">
+        {manual.active
+          ? `Rules-text estimate: ${calc10}/10. Your rating is saved with the faction.`
+          : 'Automatic — following your rules text. Nothing is stored; the rating tracks your edits.'}
+      </Text>
 
-      <PrototypeEditorSwitcher />
+      {manual.active && manual.value !== null ? (
+        <DeviationAdvisory manual10={manual.value} calc10={calc10} />
+      ) : null}
+      <CapacityHint calc10={calc10} />
     </Stack>
   );
 }
-
-/** Floating variant pill — rendered by the Complexity chapter, where flipping matters. */
-export function PrototypeEditorSwitcher() {
-  const variant = useEditorVariant();
-  if (import.meta.env.PROD) {
-    return null;
-  }
-  const cycle = (delta: number) => {
-    const index = (VARIANTS.indexOf(variant) + delta + VARIANTS.length) % VARIANTS.length;
-    setVariant(VARIANTS[index] as EditorVariant);
-  };
-  return (
-    <div style={PILL_STYLE}>
-      <button
-        type="button"
-        onClick={() => cycle(-1)}
-        style={PILL_BUTTON_STYLE}
-        aria-label="Previous variant"
-      >
-        ←
-      </button>
-      <span>
-        {variant} — {VARIANT_NAMES[variant]}
-      </span>
-      <button
-        type="button"
-        onClick={() => cycle(1)}
-        style={PILL_BUTTON_STYLE}
-        aria-label="Next variant"
-      >
-        →
-      </button>
-    </div>
-  );
-}
-
-const PILL_STYLE: CSSProperties = {
-  position: 'fixed',
-  bottom: 16,
-  left: '50%',
-  transform: 'translateX(-50%)',
-  zIndex: 1000,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 12,
-  padding: '8px 14px',
-  borderRadius: 999,
-  background: '#111',
-  color: '#fff',
-  boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-  fontSize: 13,
-  fontFamily: 'monospace',
-};
-
-const PILL_BUTTON_STYLE: CSSProperties = {
-  background: 'transparent',
-  color: 'inherit',
-  border: '1px solid #555',
-  borderRadius: 999,
-  width: 26,
-  height: 26,
-  cursor: 'pointer',
-};
