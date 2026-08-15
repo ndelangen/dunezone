@@ -1,11 +1,14 @@
 diff --git a/node_modules/@storybook/tanstack-react/.bun-tag-901b2ec1dde78d81 b/.bun-tag-901b2ec1dde78d81
 new file mode 100644
 index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/node_modules/@storybook/tanstack-react/.bun-tag-dd01d4d4cd88254e b/.bun-tag-dd01d4d4cd88254e
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/dist/export-mocks/react-router.js b/dist/export-mocks/react-router.js
-index 2e732a878fb0ff61096f14527ca4b6ad8dae89e4..0a3cd3f1188ef2afec6608071838d788d58c3bce 100644
+index 2e732a878fb0ff61096f14527ca4b6ad8dae89e4..9a800a9c6c519fdd98a124c8bf43924cc9111e85 100644
 --- a/dist/export-mocks/react-router.js
 +++ b/dist/export-mocks/react-router.js
-@@ -36,19 +36,56 @@ var useNavigate = fn(_useNavigate).mockName("@tanstack/react-router::useNavigate
+@@ -36,19 +36,60 @@ var useNavigate = fn(_useNavigate).mockName("@tanstack/react-router::useNavigate
  }, [to, href]), null), Link = ({
    to,
    children,
@@ -29,6 +32,10 @@ index 2e732a878fb0ff61096f14527ca4b6ad8dae89e4..0a3cd3f1188ef2afec6608071838d788
 +  reloadDocument,
 +  ignoreBlocker,
 +  hashScrollIntoView,
++  disabled,
++  unsafeRelative,
++  preloadIntentProximity,
++  _fromLocation,
    ...props
  }) => {
    let location = useLocation();
