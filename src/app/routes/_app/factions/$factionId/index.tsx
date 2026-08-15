@@ -18,6 +18,8 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
+import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
+import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -41,6 +43,7 @@ import {
 } from 'lucide-react';
 
 import { loadFaction, useFaction } from '@db/factions';
+import type { FactionData } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -77,6 +80,44 @@ function FactionDetailPending() {
         </Surface>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+/** This page's compact sidebar summary for the faction's effective complexity rating. */
+function FactionComplexitySummary({ score }: { score: number }) {
+  return (
+    <Surface padding="md">
+      <Group justify="space-between" wrap="nowrap" gap="xs">
+        <Group gap="xs" wrap="nowrap">
+          <ComplexityGlyph score={score} size={17} decorative />
+          <Text size="sm" fw={600}>
+            Complexity
+          </Text>
+        </Group>
+        <Text size="sm" c="dimmed">
+          {complexityOutOfTen(score)}/10 ·{' '}
+          {COMPLEXITY_TIER_PRESENTATION[complexityTier(score)].label}
+        </Text>
+      </Group>
+    </Surface>
+  );
+}
+
+function FactionSidebarOverview({ data }: { data: FactionData }) {
+  return (
+    <>
+      <FactionComplexitySummary score={effectiveComplexity(data)} />
+      <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
+        <div className={styles.loreHeroToken}>
+          <LeaderToken
+            {...data.hero}
+            strength={undefined}
+            background={data.background}
+            logo={data.logo}
+          />
+        </div>
+      </Section>
+    </>
   );
 }
 
@@ -145,7 +186,6 @@ function FactionDetailPage() {
   const planets = data.planet ?? [];
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
   const publishingStatus = assetPublishing.captureStatus ?? assetPublishing.status;
-
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -373,16 +413,7 @@ function FactionDetailPage() {
             miw={0}
             style={{ flex: '0 0 auto' }}
           >
-            <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
-              <div className={styles.loreHeroToken}>
-                <LeaderToken
-                  {...data.hero}
-                  strength={undefined}
-                  background={data.background}
-                  logo={data.logo}
-                />
-              </div>
-            </Section>
+            <FactionSidebarOverview data={data} />
 
             <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
               <Surface padding="lg">

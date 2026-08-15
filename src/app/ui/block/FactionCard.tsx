@@ -1,5 +1,7 @@
 import { Text, UnstyledButton } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
+import { effectiveComplexity } from '@ui/content/complexity';
+import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -14,8 +16,8 @@ import styles from './FactionCard.module.css';
  *
  * A Block — callers hand it the faction document and this owns which piece becomes what: the
  * background renders as full-bleed artwork, the hero leads the cast, the first three leaders fan
- * out beside it, the name captions the bottom. The artwork is game-asset content, not a pane
- * treatment; nothing here is a slot.
+ * out beside it, the name captions the bottom with the complexity glyph at its right. The artwork
+ * is game-asset content, not a pane treatment; nothing here is a slot.
  */
 export function FactionCard({
   faction,
@@ -53,14 +55,17 @@ export function FactionCard({
           </div>
         </div>
         <div className={styles.caption}>
-          <Text className={styles.name} fw={800} size="lg" lineClamp={2}>
-            {name}
-          </Text>
-          {rulesetLabel ? (
-            <Text className={styles.ruleset} size="xs" lineClamp={1}>
-              {rulesetLabel}
+          <div className={styles.captionText}>
+            <Text className={styles.name} fw={800} size="lg" lineClamp={2}>
+              {name}
             </Text>
-          ) : null}
+            {rulesetLabel ? (
+              <Text className={styles.ruleset} size="xs" lineClamp={1}>
+                {rulesetLabel}
+              </Text>
+            ) : null}
+          </div>
+          <ComplexityGlyph score={effectiveComplexity(faction.data)} showValue />
         </div>
       </BackgroundRenderer>
     </UnstyledButton>

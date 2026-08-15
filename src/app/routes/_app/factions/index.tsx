@@ -1,9 +1,13 @@
 import {
   Alert,
+  Badge,
   Button,
   Drawer,
   Group,
+  InputBase,
   Loader,
+  Popover,
+  RangeSlider,
   Select,
   Stack,
   Text,
@@ -13,6 +17,7 @@ import {
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
+import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { CallToAction } from '@ui/control/CallToAction';
@@ -21,15 +26,24 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowDownAZ, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ArrowDownAZ, ChevronsUpDown, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
-import type { FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
+import type {
+  FactionCatalogueEntry,
+  FactionCataloguePageData,
+  FactionRulesetSummary,
+} from '@db/factions';
 
-import { parseFactionCatalogueSearch, useFactionCatalogueSession } from './-catalogue';
-import type { FactionCatalogueSearch } from './-catalogue';
+import {
+  complexityRangeSearchValue,
+  parseComplexityRange,
+  parseFactionCatalogueSearch,
+  useFactionCatalogueSession,
+} from './-catalogue';
+import type { FactionCatalogueSearch, FactionComplexityRange } from './-catalogue';
 import styles from './FactionCatalogue.module.css';
 
 export const Route = createFileRoute('/_app/factions/')({
@@ -65,6 +79,7 @@ function FactionsPage() {
             onCommitQuery={session.query.commit}
             search={session.search}
             rulesets={data.rulesets}
+            factions={data.factions}
             visibleCount={session.visibleFactions.length}
             totalCount={data.factions.length}
             onSearchChange={session.changeSearch}
@@ -171,12 +186,172 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
   );
 }
 
+const COMPLEXITY_SLIDER_MARKS = complexityTierSliderMarks();
+
+/** One controlled range control shared by the desktop popover and mobile drawer. */
+function ComplexityRangeSlider({
+  value,
+  onCommit,
+}: {
+  value: string | undefined;
+  onCommit: (value: FactionComplexityRange) => void;
+}) {
+  const [draft, setDraft] = useState<FactionComplexityRange>(() => parseComplexityRange(value));
+
+  useEffect(() => {
+    setDraft(parseComplexityRange(value));
+  }, [value]);
+
+  return (
+    <RangeSlider
+      min={0}
+      max={10}
+      step={1}
+      minRange={0}
+      value={draft}
+      onChange={setDraft}
+      onChangeEnd={(next) => {
+        setDraft(next);
+        onCommit(next);
+      }}
+      label={(point) => `${point}/10`}
+      marks={COMPLEXITY_SLIDER_MARKS}
+      mb="md"
+      thumbFromLabel="Minimum complexity"
+      thumbToLabel="Maximum complexity"
+    />
+  );
+}
+
+/**
+ * The band's filter field: one popover holding the ruleset chips and the complexity range —
+ * everything that narrows the grid, while sorting stays its own field. The trigger reads exactly
+ * like the selects beside it.
+ */
+function CatalogueRefine({
+  search,
+  rulesetOptions,
+  factions,
+  visibleCount,
+  totalCount,
+  onSearchChange,
+  className,
+}: {
+  search: FactionCatalogueSearch;
+  rulesetOptions: { value: string; label: string }[];
+  factions: FactionCatalogueEntry[];
+  visibleCount: number;
+  totalCount: number;
+  onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
+  className?: string;
+}) {
+  const rulesetActive = search.ruleset != null;
+  const rangeActive = search.complexity != null;
+  const activeCount = (rulesetActive ? 1 : 0) + (rangeActive ? 1 : 0);
+
+  const rulesetCount = (slug: string) =>
+    slug === 'all'
+      ? factions.length
+      : factions.filter((faction) => faction.rulesets.some((ruleset) => ruleset.slug === slug))
+          .length;
+
+  return (
+    <Popover position="bottom-start" width={320}>
+      <Popover.Target>
+        <InputBase
+          component="button"
+          type="button"
+          pointer
+          variant="unstyled"
+          className={className}
+          leftSection={<Filter size={15} aria-hidden />}
+          rightSection={<ChevronsUpDown size={15} aria-hidden opacity={0.6} />}
+          aria-label="Refine factions by ruleset and complexity"
+        >
+          Refine{activeCount > 0 ? ` (${activeCount})` : ''}
+        </InputBase>
+      </Popover.Target>
+      <Popover.Dropdown style={{ padding: 0, border: 0, boxShadow: 'none' }} bg="transparent">
+        <Surface padding="md">
+          <Stack gap="md">
+            <Stack gap="xs">
+              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+                Ruleset
+              </Text>
+              {/* Honest toggle buttons: no radio semantics without radio keyboard wiring. */}
+              <Group gap={6} role="group" aria-label="Filter factions by ruleset">
+                {rulesetOptions.map((option) => {
+                  const selected = (search.ruleset ?? 'all') === option.value;
+                  return (
+                    <Badge
+                      key={option.value}
+                      component="button"
+                      type="button"
+                      aria-pressed={selected}
+                      variant={selected ? 'filled' : 'light'}
+                      color={selected ? 'dune' : 'gray'}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() =>
+                        onSearchChange({
+                          ruleset: option.value === 'all' ? undefined : option.value,
+                        })
+                      }
+                      rightSection={
+                        <Text size="xs" span opacity={0.75}>
+                          {rulesetCount(option.value)}
+                        </Text>
+                      }
+                    >
+                      {option.label}
+                    </Badge>
+                  );
+                })}
+              </Group>
+            </Stack>
+
+            <Stack gap="xs">
+              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+                Complexity range
+              </Text>
+              <ComplexityRangeSlider
+                value={search.complexity}
+                onCommit={(value) =>
+                  onSearchChange({ complexity: complexityRangeSearchValue(value) })
+                }
+              />
+            </Stack>
+
+            <Group gap="xs" justify="space-between">
+              <Text size="xs" c="dimmed">
+                {visibleCount === totalCount
+                  ? `${totalCount} factions`
+                  : `${visibleCount} of ${totalCount} factions`}
+              </Text>
+              {activeCount > 0 ? (
+                <Button
+                  size="compact-xs"
+                  variant="subtle"
+                  color="gray"
+                  onClick={() => onSearchChange({ ruleset: undefined, complexity: undefined })}
+                >
+                  Clear filters
+                </Button>
+              ) : null}
+            </Group>
+          </Stack>
+        </Surface>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
 function CatalogueToolbar({
   draftQuery,
   onDraftQueryChange,
   onCommitQuery,
   search,
   rulesets,
+  factions,
   visibleCount,
   totalCount,
   onSearchChange,
@@ -186,6 +361,7 @@ function CatalogueToolbar({
   onCommitQuery: () => void;
   search: FactionCatalogueSearch;
   rulesets: FactionRulesetSummary[];
+  factions: FactionCatalogueEntry[];
   visibleCount: number;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
@@ -206,10 +382,8 @@ function CatalogueToolbar({
     event.currentTarget.blur();
   };
 
-  const rulesetSelect = (label?: string, joined = false) => (
+  const rulesetSelect = (label?: string) => (
     <Select
-      className={joined ? styles.rulesetField : undefined}
-      variant={joined ? 'unstyled' : 'default'}
       label={label}
       value={search.ruleset ?? 'all'}
       data={rulesetOptions}
@@ -231,12 +405,25 @@ function CatalogueToolbar({
         { value: 'name', label: 'Alphabetical (A–Z)' },
         { value: 'created', label: 'Chronological (created)' },
         { value: 'updated', label: 'Chronological (updated)' },
+        { value: 'complexity-asc', label: 'Complexity (low → high)' },
+        { value: 'complexity-desc', label: 'Complexity (high → low)' },
       ]}
       allowDeselect={false}
       onChange={(value) => onSearchChange({ sort: value === 'name' ? undefined : value })}
       aria-label="Sort factions"
       leftSection={<ArrowDownAZ size={15} aria-hidden />}
     />
+  );
+  const complexitySlider = (
+    <Stack gap={4}>
+      <Text size="sm" fw={500}>
+        Complexity range
+      </Text>
+      <ComplexityRangeSlider
+        value={search.complexity}
+        onCommit={(value) => onSearchChange({ complexity: complexityRangeSearchValue(value) })}
+      />
+    </Stack>
   );
 
   return (
@@ -263,7 +450,15 @@ function CatalogueToolbar({
               aria-label="Search factions"
               leftSection={<Search size={16} aria-hidden />}
             />
-            {rulesetSelect(undefined, true)}
+            <CatalogueRefine
+              className={styles.rulesetField}
+              search={search}
+              rulesetOptions={rulesetOptions}
+              factions={factions}
+              visibleCount={visibleCount}
+              totalCount={totalCount}
+              onSearchChange={onSearchChange}
+            />
             {sortSelect(undefined, true)}
             <IconAction
               label="Refine factions"
@@ -292,11 +487,12 @@ function CatalogueToolbar({
         onClose={() => setOpened(false)}
         position="bottom"
         title="Refine factions"
-        size="22rem"
+        size="26rem"
         padding="lg"
       >
         <Stack gap="md" pb="md">
           {rulesetSelect('Ruleset')}
+          {complexitySlider}
           {sortSelect('Sort by')}
         </Stack>
       </Drawer>

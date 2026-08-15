@@ -2,7 +2,7 @@ import { Badge, Button, Group, Stack, Text } from '@mantine/core';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import type { FactionSaveState } from '@ui/content/assetPublishingStatus';
 import { IconAction } from '@ui/control/IconAction';
-import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Eye, RotateCcw, Save } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -73,12 +73,14 @@ export function FactionAuthoringToolbar({
   auxiliaryActions,
   context,
   destructiveActions,
+  centerIndicator,
 }: {
   status: FactionAuthoringStatus;
   actions: FactionAuthoringToolbarActions;
   auxiliaryActions?: ReactNode;
   context?: ReactNode;
   destructiveActions?: ReactNode;
+  centerIndicator?: ReactNode;
 }) {
   const { isDirty, isNameBlank, warningCount, saveState, assetPublishing } = status;
   const { onSave, onReviewWarnings, onReview, onReset, onBack } = actions;
@@ -89,89 +91,96 @@ export function FactionAuthoringToolbar({
   } = deriveToolbarStatus(saveState, isDirty, assetPublishing);
 
   return (
-    <Surface padding="sm" className={styles.toolbar}>
-      <Group justify="space-between" gap="sm" wrap="nowrap" className={styles.toolbarRow}>
-        <Group gap="sm" wrap="nowrap" className={styles.leading}>
-          <IconAction
-            label="Back"
-            variant="light"
-            color="gray"
-            size="lg"
-            onClick={onBack}
-            icon={<ArrowLeft size={17} aria-hidden />}
-          />
-          <Stack gap="sm" className={styles.status}>
-            <Group gap="xs" wrap="nowrap">
-              <Badge color={statusColor} variant="light">
-                {statusLabel}
-              </Badge>
-              {warningCount > 0 ? (
-                <Button
-                  type="button"
-                  variant="subtle"
-                  color="yellow"
-                  size="compact-xs"
-                  onClick={onReviewWarnings}
-                >
-                  {warningCount} {warningCount === 1 ? 'field may' : 'fields may'} be incomplete
-                </Button>
-              ) : null}
-              {assetPublishing?.lastPublishedAt != null ? (
-                <Text
-                  className={styles.statusDetails}
-                  component="time"
-                  dateTime={new Date(assetPublishing.lastPublishedAt).toISOString()}
-                  size="xs"
-                  c="dimmed"
-                >
-                  Last published {formatPublishedAt(assetPublishing.lastPublishedAt)}
+    <div className={styles.sticky}>
+      <Toolbar>
+        <Toolbar.Left>
+          <Group gap="sm" wrap="nowrap" className={styles.leading}>
+            <IconAction
+              label="Back"
+              variant="light"
+              color="gray"
+              size="lg"
+              onClick={onBack}
+              icon={<ArrowLeft size={17} aria-hidden />}
+            />
+            <Stack gap="sm" className={styles.status}>
+              <Group gap="xs" wrap="nowrap">
+                <Badge color={statusColor} variant="light">
+                  {statusLabel}
+                </Badge>
+                {warningCount > 0 ? (
+                  <Button
+                    type="button"
+                    variant="subtle"
+                    color="yellow"
+                    size="compact-xs"
+                    onClick={onReviewWarnings}
+                  >
+                    {warningCount} {warningCount === 1 ? 'field may' : 'fields may'} be incomplete
+                  </Button>
+                ) : null}
+                {assetPublishing?.lastPublishedAt != null ? (
+                  <Text
+                    className={styles.statusDetails}
+                    component="time"
+                    dateTime={new Date(assetPublishing.lastPublishedAt).toISOString()}
+                    size="xs"
+                    c="dimmed"
+                  >
+                    Last published {formatPublishedAt(assetPublishing.lastPublishedAt)}
+                  </Text>
+                ) : null}
+              </Group>
+              <div className={styles.statusDetails}>
+                <Text size="xs" c={saveState === 'error' ? 'red' : 'dimmed'} role="status">
+                  {isNameBlank
+                    ? 'Add a faction name before saving; it determines the faction URL.'
+                    : publishingCopy}
                 </Text>
-              ) : null}
-            </Group>
-            <div className={styles.statusDetails}>
-              <Text size="xs" c={saveState === 'error' ? 'red' : 'dimmed'} role="status">
-                {isNameBlank
-                  ? 'Add a faction name before saving; it determines the faction URL.'
-                  : publishingCopy}
-              </Text>
-              {context}
-            </div>
-          </Stack>
-        </Group>
+                {context}
+              </div>
+            </Stack>
+          </Group>
+        </Toolbar.Left>
 
-        <Group gap="xs" wrap="nowrap" className={styles.actions}>
-          <div className={styles.auxiliarySlot}>{auxiliaryActions}</div>
-          <IconAction
-            label="Reset unsaved edits"
-            variant="light"
-            color="gray"
-            size="lg"
-            disabled={!isDirty || saveState === 'saving'}
-            onClick={onReset}
-            icon={<RotateCcw size={17} aria-hidden />}
-          />
-          <Button
-            className={styles.reviewAction}
-            type="button"
-            variant="default"
-            leftSection={<Eye size={17} aria-hidden />}
-            onClick={(event) => onReview(event.currentTarget)}
-          >
-            Review faction sheet
-          </Button>
-          <div className={styles.destructiveSlot}>{destructiveActions}</div>
-          <Button
-            type="button"
-            color="confirm"
-            leftSection={<Save size={17} aria-hidden />}
-            disabled={isNameBlank || saveState === 'saving'}
-            loading={saveState === 'saving'}
-            onClick={onSave}
-          >
-            Save faction
-          </Button>
-        </Group>
-      </Group>
-    </Surface>
+        {/* PROTOTYPE (wayfinder #404): currently carries the complexity indicator */}
+        <Toolbar.Center>{centerIndicator}</Toolbar.Center>
+
+        <Toolbar.Right>
+          <Group gap="xs" wrap="nowrap" className={styles.actions}>
+            <div className={styles.auxiliarySlot}>{auxiliaryActions}</div>
+            <IconAction
+              label="Reset unsaved edits"
+              variant="light"
+              color="gray"
+              size="lg"
+              disabled={!isDirty || saveState === 'saving'}
+              onClick={onReset}
+              icon={<RotateCcw size={17} aria-hidden />}
+            />
+            <Button
+              className={styles.reviewAction}
+              type="button"
+              variant="default"
+              leftSection={<Eye size={17} aria-hidden />}
+              onClick={(event) => onReview(event.currentTarget)}
+            >
+              Review faction sheet
+            </Button>
+            <div className={styles.destructiveSlot}>{destructiveActions}</div>
+            <Button
+              type="button"
+              color="confirm"
+              leftSection={<Save size={17} aria-hidden />}
+              disabled={isNameBlank || saveState === 'saving'}
+              loading={saveState === 'saving'}
+              onClick={onSave}
+            >
+              Save faction
+            </Button>
+          </Group>
+        </Toolbar.Right>
+      </Toolbar>
+    </div>
   );
 }

@@ -4,7 +4,11 @@ import { describe, expect, test } from 'vitest';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 
-import { projectFactionCatalogue } from './-catalogue';
+import {
+  complexityRangeSearchValue,
+  parseComplexityRange,
+  projectFactionCatalogue,
+} from './-catalogue';
 
 function faction(
   id: string,
@@ -15,6 +19,7 @@ function faction(
     created?: string;
     updated?: string;
     rulesets?: FactionCatalogueEntry['rulesets'];
+    complexity?: number;
   } = {}
 ) {
   return {
@@ -30,6 +35,7 @@ function faction(
     data: {
       ...assetPublishingFaction,
       name,
+      ...(options.complexity == null ? {} : { complexity: options.complexity }),
       hero: { ...assetPublishingFaction.hero, name: options.hero ?? 'Lady Jessica' },
       leaders: (options.leaders ?? ['Duncan Idaho']).map((leader, index) => ({
         ...assetPublishingFaction.leaders[index],
@@ -66,6 +72,29 @@ describe('faction catalogue controls', () => {
     expect(
       projectFactionCatalogue(factions, { sort: 'created' }).map((entry) => entry.data.name)
     ).toEqual(['Newest', 'Alpha', 'Beta', 'Broken']);
+  });
+
+  test('filters and sorts by the effective complexity score', () => {
+    const factions = [
+      faction('1', 'Low', { complexity: 0.1 }),
+      faction('2', 'Middle', { complexity: 0.5 }),
+      faction('3', 'High', { complexity: 0.9 }),
+    ];
+
+    expect(
+      projectFactionCatalogue(factions, {
+        complexity: '5-10',
+        sort: 'complexity-desc',
+      }).map((entry) => entry.data.name)
+    ).toEqual(['High', 'Middle']);
+  });
+
+  test('round-trips canonical complexity ranges and rejects malformed ranges', () => {
+    expect(parseComplexityRange('3-8')).toEqual([3, 8]);
+    expect(complexityRangeSearchValue([3, 8])).toBe('3-8');
+    expect(parseComplexityRange('8-3')).toEqual([0, 10]);
+    expect(parseComplexityRange('3-11')).toEqual([0, 10]);
+    expect(complexityRangeSearchValue([0, 10])).toBeUndefined();
   });
 
   test('prioritizes the selected ruleset and summarizes the rest as +N', () => {

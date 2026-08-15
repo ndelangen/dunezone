@@ -134,6 +134,12 @@ const factionShape = {
     alliance: RULE.omit({ karama: true, title: true }).required(),
   }),
 
+  /**
+   * The author's manual complexity rating (0 = trivial, 1 = as hard as the sheet allows). Absent
+   * means automatic: surfaces derive the rating live from the rules text (see `complexity.ts`).
+   */
+  complexity: z.number().min(0).max(1).optional(),
+
   /** Extra game assets, used by TTS */
   extras: z
     .array(

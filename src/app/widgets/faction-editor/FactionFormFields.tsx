@@ -9,12 +9,16 @@ import {
   Stack,
   Text,
 } from '@mantine/core';
+import { FactionCard } from '@ui/block/FactionCard';
+import { effectiveComplexity } from '@ui/content/complexity';
+import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { Surface } from '@ui/surface';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Globe2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
+import type { FactionCatalogueEntry } from '@db/factions';
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -32,6 +36,7 @@ import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import { FactionFormSectionAdvantages } from './FactionFormSectionAdvantages';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
 import { FactionFormSectionBackground } from './FactionFormSectionBackground';
+import { FactionFormSectionComplexity } from './FactionFormSectionComplexity';
 import { FactionFormSectionHero } from './FactionFormSectionHero';
 import { FactionFormSectionIdentity } from './FactionFormSectionIdentity';
 import { FactionFormSectionLeaders } from './FactionFormSectionLeaders';
@@ -47,7 +52,7 @@ export interface FactionFormFieldsHandle {
 }
 
 const chapterIcons: Record<
-  Exclude<FactionAuthoringChapterId, 'identity' | 'worlds'>,
+  Exclude<FactionAuthoringChapterId, 'identity' | 'worlds' | 'complexity'>,
   Parameters<typeof TopicIcon>[0]['topic']
 > = {
   hero: 'hero',
@@ -74,6 +79,18 @@ function ChapterIcon({
   }
   if (chapter === 'worlds') {
     return <Globe2 size={21} aria-hidden />;
+  }
+  if (chapter === 'complexity') {
+    /* This tab's icon is live: the tier glyph of the current effective rating. */
+    return (
+      <form.Subscribe
+        selector={(state) =>
+          effectiveComplexity({ rules: state.values.rules, complexity: state.values.complexity })
+        }
+      >
+        {(score) => <ComplexityGlyph score={score} size={21} decorative />}
+      </form.Subscribe>
+    );
   }
   return <TopicIcon topic={chapterIcons[chapter]} size={21} />;
 }
@@ -254,6 +271,25 @@ function ArtifactProof({
           ) : (
             <PreviewEmpty>No faction advantages yet.</PreviewEmpty>
           );
+        } else if (activeChapter === 'complexity') {
+          title = 'Faction card';
+          usedOn = 'Faction catalogue';
+          /* The catalogue card carries the rating natively; `inert` keeps the proof's link out of
+             both pointer and keyboard reach — tabbing into it would navigate the editor away. */
+          artifact = (
+            <Box inert>
+              <FactionCard
+                faction={
+                  {
+                    _id: 'complexity-proof',
+                    slug: 'complexity-proof',
+                    rulesets: [],
+                    data: faction,
+                  } as unknown as FactionCatalogueEntry
+                }
+              />
+            </Box>
+          );
         }
 
         return (
@@ -352,6 +388,7 @@ export const FactionFormFields = forwardRef<
   }
 >(function FactionFormFields({ form, warnings, nameError }, ref) {
   const [activeChapter, setActiveChapter] = useState<FactionAuthoringChapterId>('identity');
+  const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState({
     leader: 0,
     decal: 0,
@@ -423,6 +460,13 @@ export const FactionFormFields = forwardRef<
           onSelectedIndexChange={(advantage) =>
             setSelectedItem((current) => ({ ...current, advantage }))
           }
+        />
+      ) : null}
+      {chapter === 'complexity' ? (
+        <FactionFormSectionComplexity
+          form={form}
+          retainedManualRating={retainedManualComplexity}
+          onRetainedManualRatingChange={setRetainedManualComplexity}
         />
       ) : null}
     </>

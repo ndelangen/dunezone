@@ -1,0 +1,30 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.value {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.progressRing {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+}
+
+.progressRingSvg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.progressRingFill {
+  stroke: var(--color-accent-strong);
+  transition: stroke-dashoffset 400ms ease;
+}

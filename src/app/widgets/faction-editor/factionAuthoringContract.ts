@@ -9,6 +9,7 @@ export const factionAuthoringChapters = [
   { id: 'forces', label: 'Forces' },
   { id: 'rules', label: 'Rules' },
   { id: 'advantages', label: 'Advantages' },
+  { id: 'complexity', label: 'Complexity' },
 ] as const;
 
 export type FactionAuthoringChapterId = (typeof factionAuthoringChapters)[number]['id'];
@@ -270,6 +271,7 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
     ['rules.advantages[].title', 'rules.advantages[].text', 'rules.advantages[].karama'],
     { state: 'control', chapter: 'advantages' }
   ),
+  ...coverage(['complexity'], { state: 'control', chapter: 'complexity' }),
   ...coverage(
     [
       'extras[].name',

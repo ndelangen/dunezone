@@ -1,5 +1,6 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
+import { expect, userEvent, within } from 'storybook/test';
 
 import type { Faction } from '@db/factions';
 
@@ -55,6 +56,33 @@ const meta = preview.meta({
 });
 
 export const RepresentativeFaction = meta.story({});
+
+export const RetainsManualComplexityAcrossChapters = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await userEvent.click(canvas.getByRole('tab', { name: /Complexity/ }));
+    const manualSwitch = canvas.getByRole('switch', { name: 'Set the rating manually' });
+    await userEvent.click(manualSwitch);
+
+    const slider = canvas.getByRole('slider', { name: 'Manual complexity rating' });
+    slider.focus();
+    await userEvent.keyboard(
+      '{Home}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}'
+    );
+    await expect(slider).toHaveAttribute('aria-valuenow', '7');
+
+    await userEvent.click(manualSwitch);
+    await userEvent.click(canvas.getByRole('tab', { name: /Identity/ }));
+    await userEvent.click(canvas.getByRole('tab', { name: /Complexity/ }));
+    await userEvent.click(canvas.getByRole('switch', { name: 'Set the rating manually' }));
+
+    await expect(canvas.getByRole('slider', { name: 'Manual complexity rating' })).toHaveAttribute(
+      'aria-valuenow',
+      '7'
+    );
+  },
+});
 
 const problematicFaction = incompleteFaction();
 problematicFaction.name = '';

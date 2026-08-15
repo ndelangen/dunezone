@@ -1,6 +1,10 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { expect, longSpecTimeoutMs, test } from './coverage';
+
+function factionCard(catalogue: Locator, factionName: string) {
+  return catalogue.getByRole('link').filter({ hasText: factionName });
+}
 
 async function createFaction(page: Page, name: string, factionLeaderName: string) {
   await page.goto('/factions/create');
@@ -111,6 +115,16 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.getByRole('button', { name: 'Review faction sheet' }).click();
     await expect(reviewScroller).toHaveJSProperty('scrollTop', retainedScrollTop);
     await page.getByRole('button', { name: 'Close faction sheet review' }).click();
+
+    await page.getByRole('tab', { name: /Complexity/ }).click();
+    await page.getByRole('switch', { name: 'Set the rating manually' }).click();
+    const manualComplexity = page.getByRole('slider', { name: 'Manual complexity rating' });
+    await manualComplexity.focus();
+    await manualComplexity.press('Home');
+    for (let point = 0; point < 7; point += 1) {
+      await manualComplexity.press('ArrowRight');
+    }
+    await expect(manualComplexity).toHaveAttribute('aria-valuenow', '7');
   });
 
   await test.step('saving the loaded draft mutates A and leaves B unchanged', async () => {
@@ -138,6 +152,12 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
     await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(
       importedLeaderName
+    );
+    await page.getByRole('tab', { name: /Complexity/ }).click();
+    await expect(page.getByRole('switch', { name: 'Set the rating manually' })).toBeChecked();
+    await expect(page.getByRole('slider', { name: 'Manual complexity rating' })).toHaveAttribute(
+      'aria-valuenow',
+      '7'
     );
 
     await page.goto(factionBEditUrl);
@@ -174,8 +194,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(page).toHaveURL(/\/factions\/?$/);
 
     const catalogue = page.getByRole('main');
-    const updatedFaction = catalogue.getByRole('link', { name: factionAName, exact: true });
-    const otherFaction = catalogue.getByRole('link', { name: factionBName, exact: true });
+    const updatedFaction = factionCard(catalogue, factionAName);
+    const otherFaction = factionCard(catalogue, factionBName);
     await expect(updatedFaction).toBeVisible({ timeout: 30_000 });
     await expect(otherFaction).toBeVisible();
 
@@ -192,8 +212,11 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.getByRole('option', { name: 'Chronological (updated)' }).click();
     await expect.poll(() => new URL(page.url()).searchParams.get('sort')).toBe('updated');
 
-    await page.getByRole('combobox', { name: 'Filter factions by ruleset' }).click();
-    await page.getByRole('option', { name: 'E2EBaselineRuleset' }).click();
+    await page.getByRole('button', { name: /^Refine/ }).click();
+    await page
+      .getByRole('group', { name: 'Filter factions by ruleset' })
+      .getByRole('button', { name: /^E2EBaselineRuleset/ })
+      .click();
     await expect(page.getByRole('heading', { name: 'No factions found' })).toBeVisible();
     await page.getByRole('button', { name: 'Reset filters & search' }).click();
 
@@ -207,12 +230,29 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
 
   await test.step('the updated target remains discoverable through the catalogue', async () => {
     await page.goto('/factions');
-    const updatedFaction = page
-      .getByRole('main')
-      .getByRole('link', { name: factionAName, exact: true });
+    const catalogue = page.getByRole('main');
+    const updatedFaction = factionCard(catalogue, factionAName);
+    const otherFaction = factionCard(catalogue, factionBName);
     await expect(updatedFaction).toBeVisible();
+    await expect(
+      updatedFaction.getByRole('img', { name: 'Expert complexity, 7 out of 10' })
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: /^Refine/ }).click();
+    const minimumComplexity = page.getByRole('slider', { name: 'Minimum complexity' });
+    await minimumComplexity.focus();
+    await minimumComplexity.press('Home');
+    for (let point = 0; point < 7; point += 1) {
+      await minimumComplexity.press('ArrowRight');
+    }
+    await expect.poll(() => new URL(page.url()).searchParams.get('complexity')).toBe('7-10');
+    await expect(updatedFaction).toBeVisible();
+    await expect(otherFaction).toBeHidden();
+
+    await page.keyboard.press('Escape');
     await updatedFaction.click();
     await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/?$`));
     await expect(page.getByRole('heading', { name: factionAName })).toBeVisible();
+    await expect(page.getByText('7/10 · Expert', { exact: true })).toBeVisible();
   });
 });

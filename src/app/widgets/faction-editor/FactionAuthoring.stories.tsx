@@ -4,6 +4,7 @@ import { useRef } from 'react';
 
 import { factionEntry, representativeFaction } from './FactionAuthoringStoryFixtures';
 import { FactionAuthoringToolbar } from './FactionAuthoringToolbar';
+import { FactionComplexityIndicator } from './FactionComplexityIndicator';
 import { FactionEditor } from './FactionEditor';
 import type { FactionAuthoringViewHandle } from './FactionEditor';
 import { useFactionAuthoring } from './useFactionAuthoring';
@@ -41,6 +42,7 @@ function FactionAuthoringFixture() {
             onReset: authoring.actions.reset,
             onBack: () => undefined,
           }}
+          centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
         />
         <FactionEditor
           ref={viewRef}
