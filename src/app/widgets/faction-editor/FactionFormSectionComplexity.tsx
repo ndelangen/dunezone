@@ -6,26 +6,16 @@ import {
   complexityOutOfTen,
 } from '@shared/factions/complexity';
 import type { FactionInput } from '@shared/factions/schema';
-import { COMPLEXITY_TIER_PRESENTATION } from '@ui/content/ComplexityGlyph';
-import { TopicIcon } from '@ui/content/TopicIcon';
+import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { useState } from 'react';
 
 import type { FactionFormApi } from './factionFormTypes';
 
-/** The x/10 slider positions where each tier's glyph marks the track. */
-const TIER_SLIDER_MARKS = [
-  { value: 1, label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.novice.icon} size={12} /> },
-  {
-    value: 4,
-    label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.intermediate.icon} size={12} />,
-  },
-  { value: 6, label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.expert.icon} size={12} /> },
-  { value: 9, label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.master.icon} size={12} /> },
-];
+const TIER_SLIDER_MARKS = complexityTierSliderMarks();
 
-function Advisory({ children, id }: { children: string; id: string }) {
+function Advisory({ children }: { children: string }) {
   return (
-    <Text id={id} c="yellow.9" size="xs" role="status">
+    <Text c="yellow.9" size="xs" role="status">
       {children} This is advisory and does not prevent saving.
     </Text>
   );
@@ -102,12 +92,12 @@ export function FactionFormSectionComplexity({ form }: { form: FactionFormApi })
                   </Text>
 
                   {deviates ? (
-                    <Advisory id="complexity-deviation-advisory">
+                    <Advisory>
                       {`Your rating (${complexityOutOfTen(manual)}/10) sits far from the rules-text estimate (${calc10}/10). That can be right — word count is only a rough signal, and you know your table best — but a large gap is worth a second look.`}
                     </Advisory>
                   ) : null}
                   {calculated >= COMPLEXITY_NEAR_CAPACITY ? (
-                    <Advisory id="complexity-capacity-advisory">
+                    <Advisory>
                       The rules text is approaching the printed sheet&rsquo;s capacity — consider
                       trimming so it stays readable at the table.
                     </Advisory>

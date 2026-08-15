@@ -4,6 +4,19 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 
 /** The one place a tier's presentation is defined; every surface reads it from here. */
+/** The x/10 slider positions where each tier's glyph marks the track — shared by every slider. */
+export function complexityTierSliderMarks(size = 12) {
+  return [
+    { value: 1, label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.novice.icon} size={size} /> },
+    {
+      value: 4,
+      label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.intermediate.icon} size={size} />,
+    },
+    { value: 6, label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.expert.icon} size={size} /> },
+    { value: 9, label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.master.icon} size={size} /> },
+  ];
+}
+
 export const COMPLEXITY_TIER_PRESENTATION: Record<
   ComplexityTier,
   { label: string; blurb: string; icon: TopicIconTopic }
@@ -35,6 +48,11 @@ export interface ComplexityGlyphProps {
   score: number;
   /** Renders the numeric `n/10` beside the glyph. */
   showValue?: boolean;
+  /**
+   * Hides the glyph from assistive technology. Use where the surrounding element already names
+   * itself (a chapter tab, a labelled row) so the rating doesn't churn its accessible name.
+   */
+  decorative?: boolean;
   size?: number;
   className?: string;
 }
@@ -47,6 +65,7 @@ export interface ComplexityGlyphProps {
 export function ComplexityGlyph({
   score,
   showValue = false,
+  decorative = false,
   size = 22,
   className,
 }: ComplexityGlyphProps) {
@@ -55,7 +74,13 @@ export function ComplexityGlyph({
     <span
       className={className}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-      aria-label={`${COMPLEXITY_TIER_PRESENTATION[tier].label} complexity, ${complexityOutOfTen(score)} out of 10`}
+      role={decorative ? undefined : 'img'}
+      aria-hidden={decorative || undefined}
+      aria-label={
+        decorative
+          ? undefined
+          : `${COMPLEXITY_TIER_PRESENTATION[tier].label} complexity, ${complexityOutOfTen(score)} out of 10`
+      }
     >
       <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION[tier].icon} size={size} />
       {showValue ? (

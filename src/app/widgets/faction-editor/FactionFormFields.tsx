@@ -88,7 +88,7 @@ function ChapterIcon({
           effectiveComplexity({ rules: state.values.rules, complexity: state.values.complexity })
         }
       >
-        {(score) => <ComplexityGlyph score={score} size={21} />}
+        {(score) => <ComplexityGlyph score={score} size={21} decorative />}
       </form.Subscribe>
     );
   }
@@ -274,9 +274,10 @@ function ArtifactProof({
         } else if (activeChapter === 'complexity') {
           title = 'Faction card';
           usedOn = 'Faction catalogue';
-          /* The catalogue card carries the rating natively; inert — a proof, not a link. */
+          /* The catalogue card carries the rating natively; `inert` keeps the proof's link out of
+             both pointer and keyboard reach — tabbing into it would navigate the editor away. */
           artifact = (
-            <Box style={{ pointerEvents: 'none' }}>
+            <Box inert>
               <FactionCard
                 faction={
                   {

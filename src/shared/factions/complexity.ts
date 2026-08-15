@@ -49,10 +49,14 @@ function words(text: string | undefined): number {
   if (!text) {
     return 0;
   }
-  return text
-    .replace(/[*_~`#>[\]()]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean).length;
+  return (
+    text
+      /* A markdown link renders only its text — the URL never reaches the sheet. */
+      .replace(/\]\([^)]*\)/g, '] ')
+      .replace(/[*_~`#>[\]()]/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean).length
+  );
 }
 
 /** Word count over exactly the text the faction sheet renders, markdown syntax stripped. */

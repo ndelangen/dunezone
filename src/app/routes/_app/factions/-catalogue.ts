@@ -136,6 +136,17 @@ export function projectFactionCatalogue(
         .map((result) => result.item)
     : complexityMatches;
 
+  if (search.sort === 'complexity-asc' || search.sort === 'complexity-desc') {
+    /* Score once per entry — the comparator would otherwise recount all rules text O(n log n). */
+    const direction = search.sort === 'complexity-asc' ? 1 : -1;
+    return matches
+      .map((faction) => ({ faction, score: effectiveComplexity(faction.data) }))
+      .sort(
+        (left, right) =>
+          (left.score - right.score) * direction || compareIdentity(left.faction, right.faction)
+      )
+      .map((entry) => entry.faction);
+  }
   return matches.sort((left, right) => compareFactions(left, right, search.sort));
 }
 
@@ -205,11 +216,6 @@ function compareFactions(
   }
   if (sort === 'updated') {
     return compareDateDescending(left, right, 'updated_at');
-  }
-  if (sort === 'complexity-asc' || sort === 'complexity-desc') {
-    const difference = effectiveComplexity(left.data) - effectiveComplexity(right.data);
-    const directed = sort === 'complexity-asc' ? difference : -difference;
-    return directed || compareIdentity(left, right);
   }
   return compareIdentity(left, right);
 }

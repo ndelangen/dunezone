@@ -17,10 +17,9 @@ import {
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
-import { COMPLEXITY_TIER_PRESENTATION } from '@ui/content/ComplexityGlyph';
+import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { TopicIcon } from '@ui/content/TopicIcon';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -187,16 +186,7 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
   );
 }
 
-/** The x/10 slider positions where each tier's glyph marks the track. */
-const COMPLEXITY_SLIDER_MARKS = [
-  { value: 1, label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.novice.icon} size={12} /> },
-  {
-    value: 4,
-    label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.intermediate.icon} size={12} />,
-  },
-  { value: 6, label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.expert.icon} size={12} /> },
-  { value: 9, label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.master.icon} size={12} /> },
-];
+const COMPLEXITY_SLIDER_MARKS = complexityTierSliderMarks();
 
 /**
  * The band's filter field: one popover holding the ruleset chips and the complexity range —
@@ -257,7 +247,8 @@ function CatalogueRefine({
             <Text size="xs" fw={700} tt="uppercase" c="dimmed">
               Ruleset
             </Text>
-            <Group gap={6} role="radiogroup" aria-label="Filter factions by ruleset">
+            {/* Honest toggle buttons: no radio semantics without radio keyboard wiring. */}
+            <Group gap={6} role="group" aria-label="Filter factions by ruleset">
               {rulesetOptions.map((option) => {
                 const selected = (search.ruleset ?? 'all') === option.value;
                 return (
@@ -265,8 +256,7 @@ function CatalogueRefine({
                     key={option.value}
                     component="button"
                     type="button"
-                    role="radio"
-                    aria-checked={selected}
+                    aria-pressed={selected}
                     variant={selected ? 'filled' : 'light'}
                     color={selected ? 'dune' : 'gray'}
                     style={{ cursor: 'pointer' }}
@@ -310,9 +300,9 @@ function CatalogueRefine({
 
           <Group gap="xs" justify="space-between">
             <Text size="xs" c="dimmed">
-              {activeCount > 0
-                ? `${visibleCount} of ${totalCount} factions`
-                : `${totalCount} factions`}
+              {visibleCount === totalCount
+                ? `${totalCount} factions`
+                : `${visibleCount} of ${totalCount} factions`}
             </Text>
             {activeCount > 0 ? (
               <Button
@@ -406,6 +396,8 @@ function CatalogueToolbar({
         Complexity range
       </Text>
       <RangeSlider
+        /* Remounts when the committed range changes, so the uncontrolled slider never goes stale. */
+        key={search.complexity ?? 'full-range'}
         min={0}
         max={10}
         step={1}
