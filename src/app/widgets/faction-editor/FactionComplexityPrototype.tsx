@@ -204,25 +204,23 @@ function DonutTierIcon({ tier, score }: { tier: ComplexityTier; score: number })
   );
 }
 
+/** Always shows the rules-text estimate — never the author's manual rating. */
 export function PrototypeComplexityToolbarIndicator({ form }: { form: FactionFormApi }) {
   const manual = useManualComplexity();
   return (
     <form.Subscribe selector={(state: { values: FactionData }) => state.values.rules}>
       {(rules) => {
         const calc10 = calc10Of(rules);
-        const shown10 = manual ?? calc10;
-        const tier = prototypeTier(shown10 / 10);
+        const tier = prototypeTier(calc10 / 10);
         return (
           <Popover position="bottom-end" shadow="md" width={300}>
             <Popover.Target>
-              <Tooltip
-                label={`Complexity ${shown10}/10 · ${TIER_COPY[tier].label}${manual === null ? ' (auto)' : ' (manual)'}`}
-              >
+              <Tooltip label={`Complexity ${calc10}/10 · ${TIER_COPY[tier].label}`}>
                 <UnstyledButton
-                  aria-label={`Faction complexity: ${shown10} out of 10`}
+                  aria-label={`Faction complexity: ${calc10} out of 10`}
                   style={{ display: 'inline-flex', alignItems: 'center' }}
                 >
-                  <DonutTierIcon tier={tier} score={shown10 / 10} />
+                  <DonutTierIcon tier={tier} score={calc10 / 10} />
                 </UnstyledButton>
               </Tooltip>
             </Popover.Target>
@@ -236,26 +234,14 @@ export function PrototypeComplexityToolbarIndicator({ form }: { form: FactionFor
               }}
             >
               <Stack gap="sm">
-                <Group gap="xs" justify="space-between" wrap="nowrap">
-                  <TierLabel score10={shown10} />
-                  <Badge variant="light" color={manual === null ? 'gray' : 'dune'} size="sm">
-                    {manual === null ? 'Auto' : 'Manual'}
-                  </Badge>
-                </Group>
-                <Progress value={shown10 * 10} size="sm" aria-hidden />
+                <TierLabel score10={calc10} />
+                <Progress value={calc10 * 10} size="sm" aria-hidden />
                 <Text size="xs" c="dimmed">
                   {TIER_COPY[tier].blurb}
                 </Text>
-                {manual === null ? (
-                  <Text size="xs" c="dimmed">
-                    Estimated live from the rules text. Set it yourself in the Complexity tab.
-                  </Text>
-                ) : (
-                  <Text size="xs" c="dimmed">
-                    Set manually — rules-text estimate is {calc10}/10. Adjust it in the Complexity
-                    tab.
-                  </Text>
-                )}
+                <Text size="xs" c="dimmed">
+                  Estimated live from the rules text. Set your own rating in the Complexity tab.
+                </Text>
                 {manual !== null ? <DeviationAdvisory manual10={manual} calc10={calc10} /> : null}
                 <CapacityHint calc10={calc10} />
               </Stack>
