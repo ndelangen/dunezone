@@ -10,3 +10,5 @@ const meta = preview.meta({
 export const Novice = meta.story({ args: { score: 0.1 } });
 
 export const MasterWithValue = meta.story({ args: { score: 0.9, showValue: true } });
+
+export const LiveProgress = meta.story({ args: { score: 0.6, progressRing: true, size: 16 } });

@@ -86,6 +86,26 @@ function FactionDetailPending() {
   );
 }
 
+/** This page's compact sidebar summary for the faction's effective complexity rating. */
+function FactionComplexitySummary({ score }: { score: number }) {
+  return (
+    <Surface padding="md">
+      <Group justify="space-between" wrap="nowrap" gap="xs">
+        <Group gap="xs" wrap="nowrap">
+          <ComplexityGlyph score={score} size={17} />
+          <Text size="sm" fw={600}>
+            Complexity
+          </Text>
+        </Group>
+        <Text size="sm" c="dimmed">
+          {complexityOutOfTen(score)}/10 ·{' '}
+          {COMPLEXITY_TIER_PRESENTATION[complexityTier(score)].label}
+        </Text>
+      </Group>
+    </Surface>
+  );
+}
+
 function FactionDetailError({ error }: ErrorComponentProps) {
   return (
     <PageLayout>
@@ -151,8 +171,6 @@ function FactionDetailPage() {
   const planets = data.planet ?? [];
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
   const publishingStatus = assetPublishing.captureStatus ?? assetPublishing.status;
-  const complexity = effectiveComplexity(data);
-
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -380,20 +398,7 @@ function FactionDetailPage() {
             miw={0}
             style={{ flex: '0 0 auto' }}
           >
-            <Surface padding="md">
-              <Group justify="space-between" wrap="nowrap" gap="xs">
-                <Group gap="xs" wrap="nowrap">
-                  <ComplexityGlyph score={complexity} size={17} />
-                  <Text size="sm" fw={600}>
-                    Complexity
-                  </Text>
-                </Group>
-                <Text size="sm" c="dimmed">
-                  {complexityOutOfTen(complexity)}/10 ·{' '}
-                  {COMPLEXITY_TIER_PRESENTATION[complexityTier(complexity)].label}
-                </Text>
-              </Group>
-            </Surface>
+            <FactionComplexitySummary score={effectiveComplexity(data)} />
             <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
               <div className={styles.loreHeroToken}>
                 <LeaderToken

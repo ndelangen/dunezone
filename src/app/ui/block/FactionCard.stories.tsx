@@ -35,7 +35,9 @@ const meta = preview.meta({
 export const Default = meta.story({
   play: async ({ canvasElement }) => {
     await expect(
-      within(canvasElement).getByRole('link', { name: 'Atreides Advanced Dune' })
+      within(canvasElement).getByRole('link', {
+        name: 'Atreides Advanced Dune Novice complexity, 2 out of 10',
+      })
     ).toBeVisible();
   },
 });

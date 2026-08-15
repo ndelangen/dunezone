@@ -11,17 +11,17 @@ type FactionRules = FactionInput['rules'];
  */
 
 /** Below this many words the score stays 0 — every faction needs some baseline text. */
-export const COMPLEXITY_GRACE_FLOOR_WORDS = 80;
+const COMPLEXITY_GRACE_FLOOR_WORDS = 80;
 
 /** At this many words the base score reaches 1.0 — roughly the printed sheet's capacity. */
 export const COMPLEXITY_CAPACITY_WORDS = 700;
 
 /** Advantages beyond this count each add {@link COMPLEXITY_MANY_ADVANTAGES_STEP} to the score. */
-export const COMPLEXITY_MANY_ADVANTAGES_THRESHOLD = 8;
-export const COMPLEXITY_MANY_ADVANTAGES_STEP = 0.03;
+const COMPLEXITY_MANY_ADVANTAGES_THRESHOLD = 8;
+const COMPLEXITY_MANY_ADVANTAGES_STEP = 0.03;
 
 /** A manual rating this far from the calculation earns the editor's deviation advisory. */
-export const COMPLEXITY_DEVIATION_THRESHOLD = 0.3;
+const COMPLEXITY_DEVIATION_THRESHOLD_POINTS = 3;
 
 /** A calculated score at or above this earns the editor's near-capacity advisory. */
 export const COMPLEXITY_NEAR_CAPACITY = 0.9;
@@ -53,6 +53,9 @@ function words(text: string | undefined): number {
     text
       /* A markdown link renders only its text — the URL never reaches the sheet. */
       .replace(/\]\([^)]*\)/g, '] ')
+      /* Block markers and thematic breaks occupy source bytes but render no words. */
+      .replace(/^\s*(?:[-+*]|\d+[.)])\s+/gm, '')
+      .replace(/^\s*(?:[-*_]\s*){3,}$/gm, ' ')
       .replace(/[*_~`#>[\]()]/g, ' ')
       .split(/\s+/)
       .filter(Boolean).length
@@ -60,7 +63,7 @@ function words(text: string | undefined): number {
 }
 
 /** Word count over exactly the text the faction sheet renders, markdown syntax stripped. */
-export function sheetWordCount(rules: FactionRules): number {
+function sheetWordCount(rules: FactionRules): number {
   return (
     words(rules.startText) +
     words(rules.revivalText) +
@@ -97,7 +100,7 @@ export function effectiveComplexity(data: Pick<FactionInput, 'rules' | 'complexi
 export type ComplexityTier = 'novice' | 'intermediate' | 'expert' | 'master';
 
 /** Band edges over the 0..1 score; a score at an edge belongs to the band above it. */
-export const COMPLEXITY_TIER_EDGES: { edge: number; tier: ComplexityTier }[] = [
+const COMPLEXITY_TIER_EDGES: { edge: number; tier: ComplexityTier }[] = [
   { edge: 0.25, tier: 'novice' },
   { edge: 0.5, tier: 'intermediate' },
   { edge: 0.75, tier: 'expert' },
@@ -111,4 +114,12 @@ export function complexityTier(score: number): ComplexityTier {
 /** The display form: 0..1 rounded onto the x/10 scale. */
 export function complexityOutOfTen(score: number): number {
   return Math.round(score * 10);
+}
+
+/** Whether the displayed manual and calculated ratings differ enough to warrant an advisory. */
+export function hasAdvisableComplexityDeviation(manual: number, calculated: number): boolean {
+  return (
+    Math.abs(complexityOutOfTen(manual) - complexityOutOfTen(calculated)) >=
+    COMPLEXITY_DEVIATION_THRESHOLD_POINTS
+  );
 }

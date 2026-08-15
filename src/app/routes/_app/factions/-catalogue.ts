@@ -16,7 +16,7 @@ export type FactionCatalogueSort = 'created' | 'updated' | 'complexity-asc' | 'c
 /** The complexity filter as it round-trips through the URL: `"min-max"` on the x/10 scale. */
 export type FactionComplexityRange = [number, number];
 
-export const FULL_COMPLEXITY_RANGE: FactionComplexityRange = [0, 10];
+const FULL_COMPLEXITY_RANGE: FactionComplexityRange = [0, 10];
 
 export type FactionCatalogueSearch = {
   q?: string;

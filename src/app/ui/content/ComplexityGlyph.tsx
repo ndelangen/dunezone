@@ -2,6 +2,14 @@ import { complexityOutOfTen, complexityTier } from '@shared/factions/complexity'
 import type { ComplexityTier } from '@shared/factions/complexity';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import clsx from 'clsx';
+
+import styles from './ComplexityGlyph.module.css';
+
+const PROGRESS_RING_SIZE = 34;
+const PROGRESS_RING_STROKE = 3;
+const PROGRESS_RING_RADIUS = (PROGRESS_RING_SIZE - PROGRESS_RING_STROKE) / 2;
+const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * PROGRESS_RING_RADIUS;
 
 /** The one place a tier's presentation is defined; every surface reads it from here. */
 /** The x/10 slider positions where each tier's glyph marks the track — shared by every slider. */
@@ -48,6 +56,8 @@ export interface ComplexityGlyphProps {
   score: number;
   /** Renders the numeric `n/10` beside the glyph. */
   showValue?: boolean;
+  /** Wraps the tier glyph in an animated ring filled to the score. */
+  progressRing?: boolean;
   /**
    * Hides the glyph from assistive technology. Use where the surrounding element already names
    * itself (a chapter tab, a labelled row) so the rating doesn't churn its accessible name.
@@ -65,6 +75,7 @@ export interface ComplexityGlyphProps {
 export function ComplexityGlyph({
   score,
   showValue = false,
+  progressRing = false,
   decorative = false,
   size = 22,
   className,
@@ -72,8 +83,7 @@ export function ComplexityGlyph({
   const tier = complexityTier(score);
   return (
     <span
-      className={className}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+      className={clsx(styles.root, className)}
       role={decorative ? undefined : 'img'}
       aria-hidden={decorative || undefined}
       aria-label={
@@ -82,10 +92,42 @@ export function ComplexityGlyph({
           : `${COMPLEXITY_TIER_PRESENTATION[tier].label} complexity, ${complexityOutOfTen(score)} out of 10`
       }
     >
-      <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION[tier].icon} size={size} />
-      {showValue ? (
-        <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{complexityOutOfTen(score)}/10</span>
-      ) : null}
+      {progressRing ? (
+        <span className={styles.progressRing}>
+          <svg
+            width={PROGRESS_RING_SIZE}
+            height={PROGRESS_RING_SIZE}
+            viewBox={`0 0 ${PROGRESS_RING_SIZE} ${PROGRESS_RING_SIZE}`}
+            aria-hidden
+            className={styles.progressRingSvg}
+          >
+            <circle
+              cx={PROGRESS_RING_SIZE / 2}
+              cy={PROGRESS_RING_SIZE / 2}
+              r={PROGRESS_RING_RADIUS}
+              fill="none"
+              stroke="currentColor"
+              strokeOpacity={0.18}
+              strokeWidth={PROGRESS_RING_STROKE}
+            />
+            <circle
+              className={styles.progressRingFill}
+              cx={PROGRESS_RING_SIZE / 2}
+              cy={PROGRESS_RING_SIZE / 2}
+              r={PROGRESS_RING_RADIUS}
+              fill="none"
+              strokeWidth={PROGRESS_RING_STROKE}
+              strokeLinecap="round"
+              strokeDasharray={PROGRESS_RING_CIRCUMFERENCE}
+              strokeDashoffset={PROGRESS_RING_CIRCUMFERENCE * (1 - Math.min(1, Math.max(0, score)))}
+            />
+          </svg>
+          <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION[tier].icon} size={size} />
+        </span>
+      ) : (
+        <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION[tier].icon} size={size} />
+      )}
+      {showValue ? <span className={styles.value}>{complexityOutOfTen(score)}/10</span> : null}
     </span>
   );
 }

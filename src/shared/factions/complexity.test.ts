@@ -6,6 +6,7 @@ import {
   complexityOutOfTen,
   complexityTier,
   effectiveComplexity,
+  hasAdvisableComplexityDeviation,
 } from './complexity';
 import type { FactionInput } from './schema';
 
@@ -49,6 +50,15 @@ describe('calculateComplexity', () => {
     expect(calculateComplexity(spread)).toBe(calculateComplexity(concentrated));
   });
 
+  it('does not count unordered, ordered, or thematic-break markdown markers as words', () => {
+    const markdown = rulesWith({
+      startText: '- one\n+ two\n1. three\n2) four\n---\n**five**',
+    });
+    const renderedWords = rulesWith({ startText: 'one two three four five' });
+
+    expect(calculateComplexity(markdown)).toBe(calculateComplexity(renderedWords));
+  });
+
   it('bumps the score for advantage counts past the threshold', () => {
     const text = wordsOf(390);
     const few = rulesWith({ startText: text });
@@ -83,5 +93,13 @@ describe('complexityOutOfTen', () => {
     expect(complexityOutOfTen(0)).toBe(0);
     expect(complexityOutOfTen(0.649)).toBe(6);
     expect(complexityOutOfTen(1)).toBe(10);
+  });
+});
+
+describe('hasAdvisableComplexityDeviation', () => {
+  it('fires at an exact three-point displayed gap in both directions', () => {
+    expect(hasAdvisableComplexityDeviation(0.7, 0.4)).toBe(true);
+    expect(hasAdvisableComplexityDeviation(0.4, 0.7)).toBe(true);
+    expect(hasAdvisableComplexityDeviation(0.6, 0.4)).toBe(false);
   });
 });

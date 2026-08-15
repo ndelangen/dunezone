@@ -388,6 +388,7 @@ export const FactionFormFields = forwardRef<
   }
 >(function FactionFormFields({ form, warnings, nameError }, ref) {
   const [activeChapter, setActiveChapter] = useState<FactionAuthoringChapterId>('identity');
+  const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState({
     leader: 0,
     decal: 0,
@@ -461,7 +462,13 @@ export const FactionFormFields = forwardRef<
           }
         />
       ) : null}
-      {chapter === 'complexity' ? <FactionFormSectionComplexity form={form} /> : null}
+      {chapter === 'complexity' ? (
+        <FactionFormSectionComplexity
+          form={form}
+          retainedManualRating={retainedManualComplexity}
+          onRetainedManualRatingChange={setRetainedManualComplexity}
+        />
+      ) : null}
     </>
   );
 

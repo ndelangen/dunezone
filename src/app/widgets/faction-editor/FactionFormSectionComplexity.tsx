@@ -1,13 +1,12 @@
 import { Badge, Group, Slider, Stack, Switch, Text } from '@mantine/core';
 import {
-  COMPLEXITY_DEVIATION_THRESHOLD,
   COMPLEXITY_NEAR_CAPACITY,
   calculateComplexity,
   complexityOutOfTen,
+  hasAdvisableComplexityDeviation,
 } from '@shared/factions/complexity';
 import type { FactionInput } from '@shared/factions/schema';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
-import { useState } from 'react';
 
 import type { FactionFormApi } from './factionFormTypes';
 
@@ -26,11 +25,16 @@ function Advisory({ children }: { children: string }) {
  * visible — disabled while the rating is automatic — and keeps its last manual value when the
  * switch turns off, though only an active manual rating is stored (absent field = automatic).
  */
-export function FactionFormSectionComplexity({ form }: { form: FactionFormApi }) {
-  /* The raw 0..1 rating the disabled slider holds onto after the author switches back to
-     automatic — unrounded, so toggling never silently changes a stored value like 0.65. */
-  const [retained, setRetained] = useState<number | null>(null);
-
+export function FactionFormSectionComplexity({
+  form,
+  retainedManualRating,
+  onRetainedManualRatingChange,
+}: {
+  form: FactionFormApi;
+  /** Raw 0..1 value retained outside this tab so changing chapters cannot discard it. */
+  retainedManualRating: number | null;
+  onRetainedManualRatingChange: (rating: number) => void;
+}) {
   return (
     <form.Subscribe selector={(state: { values: FactionInput }) => state.values.rules}>
       {(rules) => {
@@ -41,9 +45,10 @@ export function FactionFormSectionComplexity({ form }: { form: FactionFormApi })
             {(field) => {
               const manual = field.state.value;
               const active = manual != null;
-              const slider10 = complexityOutOfTen(active ? manual : (retained ?? calculated));
-              const deviates =
-                active && Math.abs(manual - calculated) >= COMPLEXITY_DEVIATION_THRESHOLD;
+              const slider10 = complexityOutOfTen(
+                active ? manual : (retainedManualRating ?? calculated)
+              );
+              const deviates = active && hasAdvisableComplexityDeviation(manual, calculated);
 
               return (
                 <Stack component="section" gap="sm" aria-label="Faction complexity">
@@ -69,7 +74,7 @@ export function FactionFormSectionComplexity({ form }: { form: FactionFormApi })
                     label={(value) => `${value}/10`}
                     marks={TIER_SLIDER_MARKS}
                     mb="md"
-                    aria-label="Manual complexity rating"
+                    thumbLabel="Manual complexity rating"
                   />
 
                   <Switch
@@ -78,10 +83,10 @@ export function FactionFormSectionComplexity({ form }: { form: FactionFormApi })
                     checked={active}
                     onChange={(event) => {
                       if (event.currentTarget.checked) {
-                        field.handleChange(retained ?? calculated);
+                        field.handleChange(retainedManualRating ?? calculated);
                         return;
                       }
-                      setRetained(manual ?? calculated);
+                      onRetainedManualRatingChange(manual ?? calculated);
                       field.handleChange(undefined);
                     }}
                   />

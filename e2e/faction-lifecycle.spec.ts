@@ -1,6 +1,10 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { expect, longSpecTimeoutMs, test } from './coverage';
+
+function factionCard(catalogue: Locator, factionName: string) {
+  return catalogue.getByRole('link').filter({ hasText: factionName });
+}
 
 async function createFaction(page: Page, name: string, factionLeaderName: string) {
   await page.goto('/factions/create');
@@ -174,8 +178,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(page).toHaveURL(/\/factions\/?$/);
 
     const catalogue = page.getByRole('main');
-    const updatedFaction = catalogue.getByRole('link', { name: factionAName, exact: true });
-    const otherFaction = catalogue.getByRole('link', { name: factionBName, exact: true });
+    const updatedFaction = factionCard(catalogue, factionAName);
+    const otherFaction = factionCard(catalogue, factionBName);
     await expect(updatedFaction).toBeVisible({ timeout: 30_000 });
     await expect(otherFaction).toBeVisible();
 
@@ -192,8 +196,11 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.getByRole('option', { name: 'Chronological (updated)' }).click();
     await expect.poll(() => new URL(page.url()).searchParams.get('sort')).toBe('updated');
 
-    await page.getByRole('combobox', { name: 'Filter factions by ruleset' }).click();
-    await page.getByRole('option', { name: 'E2EBaselineRuleset' }).click();
+    await page.getByRole('button', { name: /^Refine/ }).click();
+    await page
+      .getByRole('group', { name: 'Filter factions by ruleset' })
+      .getByRole('button', { name: /^E2EBaselineRuleset/ })
+      .click();
     await expect(page.getByRole('heading', { name: 'No factions found' })).toBeVisible();
     await page.getByRole('button', { name: 'Reset filters & search' }).click();
 
@@ -207,9 +214,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
 
   await test.step('the updated target remains discoverable through the catalogue', async () => {
     await page.goto('/factions');
-    const updatedFaction = page
-      .getByRole('main')
-      .getByRole('link', { name: factionAName, exact: true });
+    const updatedFaction = factionCard(page.getByRole('main'), factionAName);
     await expect(updatedFaction).toBeVisible();
     await updatedFaction.click();
     await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/?$`));

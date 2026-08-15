@@ -27,7 +27,7 @@ import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, ChevronsUpDown, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
@@ -188,6 +188,41 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
 
 const COMPLEXITY_SLIDER_MARKS = complexityTierSliderMarks();
 
+/** One controlled range control shared by the desktop popover and mobile drawer. */
+function ComplexityRangeSlider({
+  value,
+  onCommit,
+}: {
+  value: string | undefined;
+  onCommit: (value: FactionComplexityRange) => void;
+}) {
+  const [draft, setDraft] = useState<FactionComplexityRange>(() => parseComplexityRange(value));
+
+  useEffect(() => {
+    setDraft(parseComplexityRange(value));
+  }, [value]);
+
+  return (
+    <RangeSlider
+      min={0}
+      max={10}
+      step={1}
+      minRange={0}
+      value={draft}
+      onChange={setDraft}
+      onChangeEnd={(next) => {
+        setDraft(next);
+        onCommit(next);
+      }}
+      label={(point) => `${point}/10`}
+      marks={COMPLEXITY_SLIDER_MARKS}
+      mb="md"
+      thumbFromLabel="Minimum complexity"
+      thumbToLabel="Maximum complexity"
+    />
+  );
+}
+
 /**
  * The band's filter field: one popover holding the ruleset chips and the complexity range —
  * everything that narrows the grid, while sorting stays its own field. The trigger reads exactly
@@ -210,11 +245,6 @@ function CatalogueRefine({
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
   className?: string;
 }) {
-  const committedRange = parseComplexityRange(search.complexity);
-  /* The slider previews its narrowing while dragging; the URL only carries the settled range. */
-  const [draftRange, setDraftRange] = useState<FactionComplexityRange | null>(null);
-  const range = draftRange ?? committedRange;
-
   const rulesetActive = search.ruleset != null;
   const rangeActive = search.complexity != null;
   const activeCount = (rulesetActive ? 1 : 0) + (rangeActive ? 1 : 0);
@@ -226,7 +256,7 @@ function CatalogueRefine({
           .length;
 
   return (
-    <Popover position="bottom-start" shadow="md" width={320}>
+    <Popover position="bottom-start" width={320}>
       <Popover.Target>
         <InputBase
           component="button"
@@ -241,81 +271,75 @@ function CatalogueRefine({
           Refine{activeCount > 0 ? ` (${activeCount})` : ''}
         </InputBase>
       </Popover.Target>
-      <Popover.Dropdown className={styles.refinePane}>
-        <Stack gap="md">
-          <Stack gap="xs">
-            <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-              Ruleset
-            </Text>
-            {/* Honest toggle buttons: no radio semantics without radio keyboard wiring. */}
-            <Group gap={6} role="group" aria-label="Filter factions by ruleset">
-              {rulesetOptions.map((option) => {
-                const selected = (search.ruleset ?? 'all') === option.value;
-                return (
-                  <Badge
-                    key={option.value}
-                    component="button"
-                    type="button"
-                    aria-pressed={selected}
-                    variant={selected ? 'filled' : 'light'}
-                    color={selected ? 'dune' : 'gray'}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() =>
-                      onSearchChange({ ruleset: option.value === 'all' ? undefined : option.value })
-                    }
-                    rightSection={
-                      <Text size="xs" span opacity={0.75}>
-                        {rulesetCount(option.value)}
-                      </Text>
-                    }
-                  >
-                    {option.label}
-                  </Badge>
-                );
-              })}
+      <Popover.Dropdown style={{ padding: 0, border: 0, boxShadow: 'none' }} bg="transparent">
+        <Surface padding="md">
+          <Stack gap="md">
+            <Stack gap="xs">
+              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+                Ruleset
+              </Text>
+              {/* Honest toggle buttons: no radio semantics without radio keyboard wiring. */}
+              <Group gap={6} role="group" aria-label="Filter factions by ruleset">
+                {rulesetOptions.map((option) => {
+                  const selected = (search.ruleset ?? 'all') === option.value;
+                  return (
+                    <Badge
+                      key={option.value}
+                      component="button"
+                      type="button"
+                      aria-pressed={selected}
+                      variant={selected ? 'filled' : 'light'}
+                      color={selected ? 'dune' : 'gray'}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() =>
+                        onSearchChange({
+                          ruleset: option.value === 'all' ? undefined : option.value,
+                        })
+                      }
+                      rightSection={
+                        <Text size="xs" span opacity={0.75}>
+                          {rulesetCount(option.value)}
+                        </Text>
+                      }
+                    >
+                      {option.label}
+                    </Badge>
+                  );
+                })}
+              </Group>
+            </Stack>
+
+            <Stack gap="xs">
+              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+                Complexity range
+              </Text>
+              <ComplexityRangeSlider
+                value={search.complexity}
+                onCommit={(value) =>
+                  onSearchChange({ complexity: complexityRangeSearchValue(value) })
+                }
+              />
+            </Stack>
+
+            <Group gap="xs" justify="space-between">
+              <Text size="xs" c="dimmed">
+                {visibleCount === totalCount
+                  ? `${totalCount} factions`
+                  : `${visibleCount} of ${totalCount} factions`}
+              </Text>
+              {activeCount > 0 ? (
+                <Button
+                  size="compact-xs"
+                  variant="subtle"
+                  color="gray"
+                  onClick={() => onSearchChange({ ruleset: undefined, complexity: undefined })}
+                >
+                  Clear filters
+                </Button>
+              ) : null}
             </Group>
           </Stack>
-
-          <Stack gap="xs">
-            <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-              Complexity range
-            </Text>
-            <RangeSlider
-              min={0}
-              max={10}
-              step={1}
-              minRange={0}
-              value={range}
-              onChange={(value) => setDraftRange(value)}
-              onChangeEnd={(value) => {
-                setDraftRange(null);
-                onSearchChange({ complexity: complexityRangeSearchValue(value) });
-              }}
-              label={(value) => `${value}/10`}
-              marks={COMPLEXITY_SLIDER_MARKS}
-              mb="md"
-              aria-label="Filter by complexity range"
-            />
-          </Stack>
-
-          <Group gap="xs" justify="space-between">
-            <Text size="xs" c="dimmed">
-              {visibleCount === totalCount
-                ? `${totalCount} factions`
-                : `${visibleCount} of ${totalCount} factions`}
-            </Text>
-            {activeCount > 0 ? (
-              <Button
-                size="compact-xs"
-                variant="subtle"
-                color="gray"
-                onClick={() => onSearchChange({ ruleset: undefined, complexity: undefined })}
-              >
-                Clear filters
-              </Button>
-            ) : null}
-          </Group>
-        </Stack>
+        </Surface>
       </Popover.Dropdown>
     </Popover>
   );
@@ -395,19 +419,9 @@ function CatalogueToolbar({
       <Text size="sm" fw={500}>
         Complexity range
       </Text>
-      <RangeSlider
-        /* Remounts when the committed range changes, so the uncontrolled slider never goes stale. */
-        key={search.complexity ?? 'full-range'}
-        min={0}
-        max={10}
-        step={1}
-        minRange={0}
-        defaultValue={parseComplexityRange(search.complexity)}
-        onChangeEnd={(value) => onSearchChange({ complexity: complexityRangeSearchValue(value) })}
-        label={(value) => `${value}/10`}
-        marks={COMPLEXITY_SLIDER_MARKS}
-        mb="md"
-        aria-label="Filter by complexity range"
+      <ComplexityRangeSlider
+        value={search.complexity}
+        onCommit={(value) => onSearchChange({ complexity: complexityRangeSearchValue(value) })}
       />
     </Stack>
   );
