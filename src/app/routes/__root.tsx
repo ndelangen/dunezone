@@ -67,7 +67,9 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    /* The `_app` layout's pre-hydration script writes data-mantine-color-scheme onto <html>
+       before React attaches; the attribute is script-owned, not React-owned. */
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

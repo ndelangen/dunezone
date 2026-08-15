@@ -28,7 +28,7 @@ export function Eyebrow({ children, tone = 'muted', id }: EyebrowProps) {
       tt="uppercase"
       lts="0.14em"
       lh={1.4}
-      c={tone === 'accent' ? 'dune.8' : tone === 'inverse' ? 'dune.2' : 'dimmed'}
+      c={tone === 'accent' ? 'var(--color-link)' : tone === 'inverse' ? 'dune.2' : 'dimmed'}
     >
       {children}
     </Text>
