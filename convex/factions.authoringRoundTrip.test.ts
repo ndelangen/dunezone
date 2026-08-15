@@ -6,6 +6,7 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { PLANET, TROOP_MODIFIER } from '../src/shared/assetIds';
+import { recalculateFactionComplexity } from '../src/shared/factions/complexity';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { CanonicalFactionStoredSchema, FactionInputSchema } from '../src/shared/factions/schema';
 import type { FactionInput } from '../src/shared/factions/schema';
@@ -15,7 +16,7 @@ import schema from './schema';
 const modules = import.meta.glob('./**/*.ts');
 
 function representativeFullFieldFaction(): FactionInput {
-  return FactionInputSchema.parse({
+  const input = {
     ...structuredClone(assetPublishingFaction),
     name: 'Complete Authoring Proof',
     colors: [
@@ -162,10 +163,50 @@ function representativeFullFieldFaction(): FactionInput {
         ],
       },
     ],
-  });
+  };
+  return FactionInputSchema.parse(recalculateFactionComplexity(input));
 }
 
 describe('faction authoring full-field round trip', () => {
+  test('normalizes stale scalar writes while trusting grouped client calculations', async () => {
+    const t = convexTest(schema, modules);
+    aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileActivity');
+    aggregateTest.register(t, 'profileDiscovery');
+    const userId = await t.run(
+      async (ctx) => await ctx.db.insert('users', { name: 'Faction transition proof user' })
+    );
+    const asUser = t.withIdentity({ subject: userId });
+    const { complexity: _complexity, ...legacyData } = structuredClone(assetPublishingFaction);
+
+    const legacyCreated = await asUser.mutation(api.factions.create, {
+      data: { ...legacyData, name: 'Legacy Scalar Proof', complexity: 0.6 },
+      group_id: null,
+    });
+    expect(legacyCreated.data.complexity).toEqual({
+      calculated: assetPublishingFaction.complexity.calculated,
+      manual: 0.6,
+    });
+    const legacyUpdated = await asUser.mutation(api.factions.update, {
+      id: legacyCreated._id,
+      data: { ...legacyData, name: 'Legacy Scalar Proof Updated', complexity: 0.7 },
+    });
+    expect(legacyUpdated.data.complexity).toEqual({
+      calculated: assetPublishingFaction.complexity.calculated,
+      manual: 0.7,
+    });
+
+    const groupedCreated = await asUser.mutation(api.factions.create, {
+      data: {
+        ...legacyData,
+        name: 'Grouped Trust Proof',
+        complexity: { calculated: 0.123, manual: 0.4 },
+      },
+      group_id: null,
+    });
+    expect(groupedCreated.data.complexity).toEqual({ calculated: 0.123, manual: 0.4 });
+  });
+
   test('creates, schedules, reloads, edits, and shares every admitted field without loss', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');
@@ -274,7 +315,7 @@ describe('faction authoring full-field round trip', () => {
       ],
     });
 
-    const editedInput: FactionInput = {
+    const editedInput: FactionInput = recalculateFactionComplexity({
       ...structuredClone(createdInput),
       name: 'Complete Authoring Proof Revised',
       colors: [...createdInput.colors].reverse(),
@@ -286,7 +327,7 @@ describe('faction authoring full-field round trip', () => {
         ...structuredClone(createdInput.rules),
         advantages: [...createdInput.rules.advantages].reverse(),
       },
-    };
+    });
     const updatedRow = await asUser.mutation(api.factions.update, {
       id: createdRow._id,
       data: editedInput,

@@ -2,6 +2,11 @@ import { Migrations } from '@convex-dev/migrations';
 import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 
+import {
+  calculateComplexity,
+  recalculateFactionComplexity,
+} from '../src/shared/factions/complexity';
+import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -51,6 +56,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_decal_retune_v1: internal.migrations.faction_decal_retune_v1,
   groups_soft_delete_backfill_v1: internal.migrations.groups_soft_delete_backfill_v1,
   groups_soft_delete_verify_v1: internal.migrations.groups_soft_delete_verify_v1,
+  faction_complexity_grouped_v1: internal.migrations.faction_complexity_grouped_v1,
+  faction_complexity_grouped_verify_v1: internal.migrations.faction_complexity_grouped_verify_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -418,6 +425,42 @@ export const faction_decal_retune_v1 = migrations.define({
       return;
     }
     return { data: { ...data, decals } };
+  },
+});
+
+/** Backfills the grouped record with the current shared calculation and any legacy manual value. */
+export const faction_complexity_grouped_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const data = CanonicalFactionStoredSchema.parse(row.data);
+    const next = recalculateFactionComplexity(data);
+    if (
+      typeof data.complexity === 'object' &&
+      data.complexity.calculated === next.complexity.calculated &&
+      data.complexity.manual === next.complexity.manual
+    ) {
+      return;
+    }
+    return { data: next };
+  },
+});
+
+/** Successful completion proves every faction has an accurate grouped calculated value. */
+export const faction_complexity_grouped_verify_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const data = CanonicalFactionStoredSchema.parse(row.data);
+    if (typeof data.complexity !== 'object') {
+      throw new Error(`Faction ${row._id} still has legacy complexity storage`);
+    }
+    const expected = calculateComplexity(data.rules);
+    if (data.complexity.calculated !== expected) {
+      throw new Error(
+        `Faction ${row._id} has calculated complexity ${data.complexity.calculated}; expected ${expected}`
+      );
+    }
   },
 });
 
