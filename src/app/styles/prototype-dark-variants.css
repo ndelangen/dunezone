@@ -6,7 +6,7 @@
 
 /* Shared plumbing: swap the artwork, route Mantine onto our tokens. */
 html[data-proto-dark] {
-  background-image: url("/web/prototype-night-dunes.jpg");
+  background-image: url("/web/page-dark-large.jpg");
 
   --mantine-color-text: var(--color-text);
   --mantine-color-anchor: var(--color-link);
