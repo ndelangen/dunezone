@@ -30,7 +30,10 @@ import type {
 import styles from './FactionEditor.module.css';
 import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 /* PROTOTYPE (wayfinder #404) — remove with FactionComplexityPrototype.tsx */
-import { PrototypeComplexityChapter } from './FactionComplexityPrototype';
+import {
+  PrototypeComplexityCardProof,
+  PrototypeComplexityChapter,
+} from './FactionComplexityPrototype';
 import { FactionFormSectionAdvantages } from './FactionFormSectionAdvantages';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
 import { FactionFormSectionBackground } from './FactionFormSectionBackground';
@@ -258,6 +261,11 @@ function ArtifactProof({
           ) : (
             <PreviewEmpty>No faction advantages yet.</PreviewEmpty>
           );
+        } else if (activeChapter === 'complexity') {
+          /* PROTOTYPE (wayfinder #404) */
+          title = 'Faction card';
+          usedOn = 'Faction catalogue';
+          artifact = <PrototypeComplexityCardProof faction={faction} />;
         }
 
         return (
