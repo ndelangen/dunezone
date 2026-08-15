@@ -10,6 +10,7 @@
   box-shadow: var(--mantine-shadow-md);
   text-align: left;
   text-decoration: none;
+
   transition:
     transform 150ms ease,
     box-shadow 150ms ease;
@@ -17,7 +18,6 @@
 
 .card:hover {
   box-shadow: var(--mantine-shadow-xl);
-  transform: translateY(-3px);
 }
 
 .card:focus-visible {
@@ -78,10 +78,6 @@
   aspect-ratio: 1;
   filter: drop-shadow(0 12px 17px rgba(0, 0, 0, 0.38));
   transition: transform 160ms ease;
-}
-
-.card:hover .hero {
-  transform: translateY(-4px) scale(1.025);
 }
 
 .leaders {
