@@ -65,7 +65,7 @@ interface BulletsItemProps {
 function Item({ icon, title, detail, trailing, renderLink }: BulletsItemProps) {
   const content = (
     <Group wrap="nowrap" align={detail == null ? 'center' : 'flex-start'} gap="sm">
-      <ThemeIcon variant="light" radius="xl" size="lg" aria-hidden>
+      <ThemeIcon variant="light" color="var(--color-link)" radius="xl" size="lg" aria-hidden>
         {icon}
       </ThemeIcon>
       <Stack gap={1} miw={0} flex={1}>

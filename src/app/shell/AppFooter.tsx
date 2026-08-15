@@ -3,7 +3,7 @@ import { useId } from 'react';
 
 import styles from './AppFooter.module.css';
 import { setSchemePreference, useSchemePreference } from './colorScheme';
-import { setMotionOverride, useMotionAllowed } from './motion';
+import { setMotionOverride, useMotionPreference } from './motion';
 
 const footerLinks = [
   {
@@ -26,11 +26,50 @@ const footerLinks = [
   },
 ] as const;
 
-const schemeOptions = [
-  { value: 'system', label: 'System' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-] as const;
+/**
+ * One preference as a labelled three-segment radio group. Both footer preferences (motion, color
+ * scheme) share this single UI: System defers to the OS hint, the other two segments pin it.
+ */
+function PreferenceSegments<Value extends string>({
+  label,
+  note,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  note: string;
+  options: readonly { value: Value; label: string }[];
+  value: Value;
+  onChange: (next: Value) => void;
+}) {
+  /* Instance-scoped ids: autodocs renders several footers into one document, and a shared radio
+     name would fuse their groups into a single arrow-key ring. */
+  const groupId = useId();
+
+  return (
+    <div className={styles.preference} role="radiogroup" aria-labelledby={`${groupId}-label`}>
+      <span className={styles.segments}>
+        {options.map((option) => (
+          <label className={styles.segment} key={option.value}>
+            <input
+              checked={value === option.value}
+              className={styles.segmentInput}
+              name={`${groupId}-preference`}
+              onChange={() => onChange(option.value)}
+              type="radio"
+            />
+            <span className={styles.segmentLabel}>{option.label}</span>
+          </label>
+        ))}
+      </span>
+      <span className={styles.linkCopy}>
+        <strong id={`${groupId}-label`}>{label}</strong>
+        <small>{note}</small>
+      </span>
+    </div>
+  );
+}
 
 /**
  * Public waypoints to the project's component catalogue, source, and policies — and the controls
@@ -39,11 +78,8 @@ const schemeOptions = [
  * `ApplicationChrome`'s Mantine provider.
  */
 export function AppFooter() {
-  const motion = useMotionAllowed();
+  const motion = useMotionPreference();
   const scheme = useSchemePreference();
-  /* Instance-scoped ids: autodocs renders several footers into one document, and a shared radio
-     name would fuse their groups into a single arrow-key ring. */
-  const schemeGroupId = useId();
 
   return (
     <div className={styles.waypoints}>
@@ -61,43 +97,28 @@ export function AppFooter() {
           </a>
         ))}
       </nav>
-      <label aria-label="Ambient motion" className={styles.motionToggle}>
-        <input
-          checked={motion}
-          className={styles.motionInput}
-          onChange={(event) => setMotionOverride(event.currentTarget.checked ? 'on' : 'off')}
-          type="checkbox"
-        />
-        <span aria-hidden className={styles.motionTrack} />
-        <span className={styles.linkCopy}>
-          <strong>Ambient motion</strong>
-          <small>The masthead video and the turning dice</small>
-        </span>
-      </label>
-      <div
-        className={styles.schemeToggle}
-        role="radiogroup"
-        aria-labelledby={`${schemeGroupId}-label`}
-      >
-        <span className={styles.schemeSegments}>
-          {schemeOptions.map(({ value, label }) => (
-            <label className={styles.schemeSegment} key={value}>
-              <input
-                checked={scheme === value}
-                className={styles.schemeInput}
-                name={`${schemeGroupId}-scheme`}
-                onChange={() => setSchemePreference(value)}
-                type="radio"
-              />
-              <span className={styles.schemeLabel}>{label}</span>
-            </label>
-          ))}
-        </span>
-        <span className={styles.linkCopy}>
-          <strong id={`${schemeGroupId}-label`}>Color scheme</strong>
-          <small>Follow the system, or pin light or dark</small>
-        </span>
-      </div>
+      <PreferenceSegments
+        label="Ambient motion"
+        note="The masthead video and the turning dice"
+        options={[
+          { value: 'system', label: 'System' },
+          { value: 'on', label: 'On' },
+          { value: 'off', label: 'Off' },
+        ]}
+        value={motion}
+        onChange={(next) => setMotionOverride(next === 'system' ? null : next)}
+      />
+      <PreferenceSegments
+        label="Color scheme"
+        note="Follow the system, or pin light or dark"
+        options={[
+          { value: 'system', label: 'System' },
+          { value: 'light', label: 'Light' },
+          { value: 'dark', label: 'Dark' },
+        ]}
+        value={scheme}
+        onChange={setSchemePreference}
+      />
     </div>
   );
 }

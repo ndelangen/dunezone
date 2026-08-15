@@ -66,6 +66,7 @@
 
   --panel-bg: var(--glass-surface-1);
   --panel-border: #fee7c0;
+  --surface-hover-tint: white;
   --panel-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.166);
   --panel-radius: 6px;
   --input-bg: var(--glass-input);
@@ -152,6 +153,7 @@
   --glass-overlay: rgba(13, 22, 37, 0.96);
 
   --panel-border: #43536e;
+  --surface-hover-tint: #43536e;
   --input-border: rgba(150, 165, 195, 0.35);
   --input-border-strong: rgba(150, 165, 195, 0.5);
 }

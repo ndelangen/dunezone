@@ -45,8 +45,9 @@
   padding: clamp(1rem, 3vw, 2.25rem);
 }
 
+/* closest-side: the glow reaches full transparency inside the box, so no edge ever clips it. */
 .storyPreview {
-  background: radial-gradient(circle, rgb(249 219 157 / 56%), transparent 68%);
+  background: radial-gradient(circle closest-side, rgb(249 219 157 / 56%), transparent);
 }
 
 .discoveryLayout {

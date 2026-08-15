@@ -40,7 +40,7 @@
 
 .interactive:hover {
   transform: translateY(-2px);
-  background-color: color-mix(in srgb, var(--panel-bg) 60%, white);
+  background-color: color-mix(in srgb, var(--panel-bg) 60%, var(--surface-hover-tint));
   box-shadow: 0 4px 24px 0 rgb(0 0 0 / 30%);
 }
 

@@ -18,3 +18,9 @@ body:has([data-app-root]) {
 .mantine-Title-root {
   font-family: var(--mantine-font-family-headings);
 }
+
+/* Mantine inverts tooltips to light in the dark scheme; the glass aesthetic keeps them dark. */
+[data-mantine-color-scheme="dark"] .mantine-Tooltip-tooltip {
+  --tooltip-bg: var(--glass-overlay);
+  --tooltip-color: var(--color-text);
+}
