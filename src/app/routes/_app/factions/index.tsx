@@ -26,15 +26,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import {
-  ArrowDownAZ,
-  ChevronsDown,
-  ChevronsUpDown,
-  Filter,
-  Plus,
-  Search,
-  SlidersHorizontal,
-} from 'lucide-react';
+import { ArrowDownAZ, ChevronsDown, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
