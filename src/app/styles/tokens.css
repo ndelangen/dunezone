@@ -159,14 +159,14 @@
 }
 
 /*
- * Scheme-pinned paper. A subtree marked data-scheme-paper sits on the light artwork in both
- * schemes (the masthead band, per the surface-coverage decision), so the flipping tokens it
- * consumes are pointed back at their light values — which mirror the `:root` block above; keep
- * the pairs aligned when a light value changes.
+ * Scheme-pinned paper. A subtree marked data-scheme-paper sits on the light artwork band in both
+ * schemes (the masthead, per the surface-coverage decision), so it gets one scheme-independent
+ * treatment: the light glass surfaces, with amber signals and pale metas that stay legible on
+ * translucent glass over artwork.
  */
-:root[data-mantine-color-scheme="dark"] [data-scheme-paper] {
-  --color-muted: #735c47;
-  --color-link: #84220c;
+[data-scheme-paper] {
+  --color-muted: #c9b394;
+  --color-link: #f4b45c;
   --color-focus-ring: rgba(244, 207, 139, 0.42);
 
   --glass-surface-0: rgba(255, 255, 255, 0.1);
@@ -176,5 +176,8 @@
 
   --panel-border: #fee7c0;
   --surface-hover-tint: white;
-  --mantine-color-dimmed: var(--mantine-color-gray-6);
+  --mantine-color-dimmed: rgba(255, 249, 239, 0.7);
+
+  /* Inherited text resolves at body, outside this subtree, so the ink is set directly. */
+  color: var(--color-paper);
 }
