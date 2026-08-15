@@ -78,6 +78,11 @@
   content: "";
 }
 
+/* The connector joins neighbours within a row; a row's last entry has none to draw. */
+.waypointLink:nth-child(3n)::after {
+  display: none;
+}
+
 .waypointLink:hover .icon {
   background: var(--color-link);
   color: #fff9ef;
