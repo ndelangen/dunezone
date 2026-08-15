@@ -157,3 +157,24 @@
   --input-border: rgba(150, 165, 195, 0.35);
   --input-border-strong: rgba(150, 165, 195, 0.5);
 }
+
+/*
+ * Scheme-pinned paper. A subtree marked data-scheme-paper sits on the light artwork in both
+ * schemes (the masthead band, per the surface-coverage decision), so the flipping tokens it
+ * consumes are pointed back at their light values — which mirror the `:root` block above; keep
+ * the pairs aligned when a light value changes.
+ */
+:root[data-mantine-color-scheme="dark"] [data-scheme-paper] {
+  --color-muted: #735c47;
+  --color-link: #84220c;
+  --color-focus-ring: rgba(244, 207, 139, 0.42);
+
+  --glass-surface-0: rgba(255, 255, 255, 0.1);
+  --glass-surface-1: rgba(255, 255, 255, 0.12);
+  --glass-surface-2: rgba(255, 255, 255, 0.2);
+  --glass-overlay: rgba(255, 253, 248, 0.95);
+
+  --panel-border: #fee7c0;
+  --surface-hover-tint: white;
+  --mantine-color-dimmed: var(--mantine-color-gray-6);
+}
