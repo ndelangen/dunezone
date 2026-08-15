@@ -174,6 +174,10 @@
   --glass-surface-2: rgba(255, 255, 255, 0.2);
   --glass-overlay: rgba(255, 253, 248, 0.95);
 
+  /* Re-declared, not inherited: --panel-bg resolves its var() at :root, so the dark value would
+     arrive here already baked unless the alias is re-resolved inside this subtree. */
+  --panel-bg: var(--glass-surface-1);
+
   --panel-border: #fee7c0;
   --surface-hover-tint: white;
   --mantine-color-dimmed: rgba(255, 249, 239, 0.7);
