@@ -19,12 +19,16 @@ export type ResolvedScheme = 'light' | 'dark';
 
 const listeners = new Set<() => void>();
 
+/* When storage is blocked entirely, the last explicit choice lives here so the control still
+   works for the page view — without it, a blocked write would silently revert to System. */
+let storagelessPreference: SchemePreference = 'system';
+
 function readPreference(): SchemePreference {
   try {
     const stored = localStorage.getItem(COLOR_SCHEME_STORAGE_KEY);
     return stored === 'light' || stored === 'dark' ? stored : 'system';
   } catch {
-    return 'system';
+    return storagelessPreference;
   }
 }
 
@@ -49,6 +53,7 @@ function applyAttribute(): void {
 
 /** `system` clears the override, returning the site to the OS hint. */
 export function setSchemePreference(next: SchemePreference): void {
+  storagelessPreference = next;
   try {
     if (next === 'system') {
       localStorage.removeItem(COLOR_SCHEME_STORAGE_KEY);
@@ -56,7 +61,7 @@ export function setSchemePreference(next: SchemePreference): void {
       localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, next);
     }
   } catch {
-    // Storage may be unavailable (private mode); the attribute still flips for this page view.
+    // Storage may be unavailable (private mode); the fallback above keeps this page view right.
   }
   applyAttribute();
   for (const listener of listeners) {
