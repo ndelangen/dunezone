@@ -18,9 +18,11 @@ The patch rewrites the stub to consume the router-only prop set, apply
 support function-form `children`, and let a caller's `onClick` cancel the mock
 navigation — mirroring the real `Link`'s semantics.
 
-On upgrade: check whether upstream's `dist/export-mocks/react-router.js` still
-spreads `...props` onto the anchor. If fixed, drop the patch; if not, regenerate
-it (`bun patch @storybook/tanstack-react`, re-apply, `bun patch --commit`).
+Fixed upstream by <https://github.com/storybookjs/storybook/pull/35505>
+(merged to `next` 2026-08-12, ships with the 10.6 line — not cherry-picked to
+10.5.x). Drop this patch when upgrading to a release that contains it; until
+then, regenerate on any 10.5.x bump (`bun patch @storybook/tanstack-react`,
+re-apply, `bun patch --commit`).
 Verify either way by loading the `shell-appheader--default-header` story — the
 console must be free of unknown-prop warnings and `bun run storybook:test` must
 pass.
