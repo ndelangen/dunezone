@@ -47,6 +47,7 @@ import {
 } from 'lucide-react';
 
 import { loadFaction, useFaction } from '@db/factions';
+import type { FactionData } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -103,6 +104,24 @@ function FactionComplexitySummary({ score }: { score: number }) {
         </Text>
       </Group>
     </Surface>
+  );
+}
+
+function FactionLeaderSummary({ data }: { data: FactionData }) {
+  return (
+    <>
+      <FactionComplexitySummary score={effectiveComplexity(data)} />
+      <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
+        <div className={styles.loreHeroToken}>
+          <LeaderToken
+            {...data.hero}
+            strength={undefined}
+            background={data.background}
+            logo={data.logo}
+          />
+        </div>
+      </Section>
+    </>
   );
 }
 
@@ -398,17 +417,7 @@ function FactionDetailPage() {
             miw={0}
             style={{ flex: '0 0 auto' }}
           >
-            <FactionComplexitySummary score={effectiveComplexity(data)} />
-            <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
-              <div className={styles.loreHeroToken}>
-                <LeaderToken
-                  {...data.hero}
-                  strength={undefined}
-                  background={data.background}
-                  logo={data.logo}
-                />
-              </div>
-            </Section>
+            <FactionLeaderSummary data={data} />
 
             <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
               <Surface padding="lg">
