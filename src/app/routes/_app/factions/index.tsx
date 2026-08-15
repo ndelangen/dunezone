@@ -33,6 +33,7 @@ import type { FactionCatalogueSearch } from './-catalogue';
 import {
   PrototypeCatalogueControls,
   PrototypeCatalogueList,
+  PrototypeCatalogueSort,
   PrototypeSwitcher,
   usePrototypeCatalogue,
 } from './-complexity-prototype';
@@ -278,8 +279,7 @@ function CatalogueToolbar({
               aria-label="Search factions"
               leftSection={<Search size={16} aria-hidden />}
             />
-            {sortSelect(undefined, true)}
-            {/* PROTOTYPE (wayfinder #403) — one combined filter control: ruleset AND/OR tiers */}
+            {/* PROTOTYPE (wayfinder #403) — search > filter > sort; sorting stays separate */}
             <PrototypeCatalogueControls
               catalogue={complexityPrototype}
               rulesetFilter={{
@@ -287,6 +287,14 @@ function CatalogueToolbar({
                 value: search.ruleset ?? 'all',
                 onChange: (value) =>
                   onSearchChange({ ruleset: value === 'all' ? undefined : value }),
+              }}
+            />
+            <PrototypeCatalogueSort
+              catalogue={complexityPrototype}
+              className={styles.sortField}
+              sessionSort={{
+                value: search.sort ?? 'name',
+                onChange: (value) => onSearchChange({ sort: value === 'name' ? undefined : value }),
               }}
             />
             <IconAction
