@@ -1,4 +1,5 @@
 import { Tooltip } from '@mantine/core';
+import { Link } from '@tanstack/react-router';
 import { ShieldCheck } from 'lucide-react';
 import { FaRedditAlien } from 'react-icons/fa6';
 import { SiBoardgamegeek, SiDiscord, SiGithub, SiStorybook } from 'react-icons/si';
@@ -6,20 +7,26 @@ import { SiBoardgamegeek, SiDiscord, SiGithub, SiStorybook } from 'react-icons/s
 import styles from './AppFooter.module.css';
 import { setMotionOverride, useMotionAllowed } from './motion';
 
+/* `to` marks a routed page; `href` is a destination outside the router — the static Storybook
+   build, or an external site (opened in a new tab). */
 const footerLinks = [
   { href: '/__storybook/', icon: SiStorybook, label: 'Component library' },
   { href: 'https://github.com/ndelangen/dunezone', icon: SiGithub, label: 'Source code' },
-  { href: '/privacy', icon: ShieldCheck, label: 'Privacy policy' },
+  { to: '/privacy', icon: ShieldCheck, label: 'Privacy policy' },
   {
     href: 'https://discord.com/invite/dune-tabletop-624609341886169117',
     icon: SiDiscord,
-    label: 'Discord',
+    label: 'Dune Discord server',
   },
-  { href: 'https://www.reddit.com/r/DuneBoardGame/', icon: FaRedditAlien, label: 'Reddit' },
+  {
+    href: 'https://www.reddit.com/r/DuneBoardGame/',
+    icon: FaRedditAlien,
+    label: 'r/DuneBoardGame on Reddit',
+  },
   {
     href: 'https://boardgamegeek.com/boardgame/283355/dune/forums/69',
     icon: SiBoardgamegeek,
-    label: 'BoardGameGeek',
+    label: 'Dune forums on BoardGameGeek',
   },
 ] as const;
 
@@ -37,20 +44,31 @@ export function AppFooter() {
     <div className={styles.waypoints}>
       <p className={styles.eyebrow}>Continue exploring</p>
       <nav aria-label="Footer">
-        {footerLinks.map(({ href, icon: Icon, label }) => (
-          <Tooltip key={href} label={label}>
-            <a
-              aria-label={label}
-              className={styles.waypointLink}
-              href={href}
-              {...(href.startsWith('https://')
-                ? { target: '_blank', rel: 'noopener noreferrer' }
-                : undefined)}
-            >
-              <Icon aria-hidden size={20} strokeWidth={1.8} />
-            </a>
-          </Tooltip>
-        ))}
+        {footerLinks.map((entry) => {
+          const { icon: Icon, label } = entry;
+          const glyph = <Icon aria-hidden size={20} strokeWidth={1.8} />;
+
+          return (
+            <Tooltip key={label} label={label}>
+              {'to' in entry ? (
+                <Link aria-label={label} className={styles.waypointLink} to={entry.to}>
+                  {glyph}
+                </Link>
+              ) : (
+                <a
+                  aria-label={label}
+                  className={styles.waypointLink}
+                  href={entry.href}
+                  {...(entry.href.startsWith('https://')
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : undefined)}
+                >
+                  {glyph}
+                </a>
+              )}
+            </Tooltip>
+          );
+        })}
       </nav>
       <label aria-label="Ambient motion" className={styles.motionToggle}>
         <input

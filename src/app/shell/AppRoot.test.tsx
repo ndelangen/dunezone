@@ -16,7 +16,11 @@ function chrome(children: ReactNode) {
 }
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
+  Link: ({ children, to, ...rest }: { children: ReactNode; to: string }) => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
+  ),
 }));
 
 vi.mock('@db/profiles', () => ({
@@ -147,12 +151,12 @@ describe('AppRoot page header', () => {
       { href: '/privacy', label: 'Privacy policy' },
       {
         href: 'https://discord.com/invite/dune-tabletop-624609341886169117',
-        label: 'Discord',
+        label: 'Dune Discord server',
       },
-      { href: 'https://www.reddit.com/r/DuneBoardGame/', label: 'Reddit' },
+      { href: 'https://www.reddit.com/r/DuneBoardGame/', label: 'r/DuneBoardGame on Reddit' },
       {
         href: 'https://boardgamegeek.com/boardgame/283355/dune/forums/69',
-        label: 'BoardGameGeek',
+        label: 'Dune forums on BoardGameGeek',
       },
     ]);
 
