@@ -9,11 +9,17 @@ import {
   Stack,
   Text,
 } from '@mantine/core';
+import { FactionCard } from '@ui/block/FactionCard';
+import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { Surface } from '@ui/surface';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Globe2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
+
+import { effectiveComplexity } from '@shared/factions/complexity';
+
+import type { FactionCatalogueEntry } from '@db/factions';
 
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
@@ -29,15 +35,10 @@ import type {
 } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
 import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
-/* PROTOTYPE (wayfinder #404) — remove with FactionComplexityPrototype.tsx */
-import {
-  PrototypeComplexityCardProof,
-  PrototypeComplexityChapter,
-  PrototypeComplexityChapterIcon,
-} from './FactionComplexityPrototype';
 import { FactionFormSectionAdvantages } from './FactionFormSectionAdvantages';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
 import { FactionFormSectionBackground } from './FactionFormSectionBackground';
+import { FactionFormSectionComplexity } from './FactionFormSectionComplexity';
 import { FactionFormSectionHero } from './FactionFormSectionHero';
 import { FactionFormSectionIdentity } from './FactionFormSectionIdentity';
 import { FactionFormSectionLeaders } from './FactionFormSectionLeaders';
@@ -81,9 +82,15 @@ function ChapterIcon({
   if (chapter === 'worlds') {
     return <Globe2 size={21} aria-hidden />;
   }
-  /* PROTOTYPE (wayfinder #404) — the tab icon is the tier icon of the current effective rating. */
   if (chapter === 'complexity') {
-    return <PrototypeComplexityChapterIcon form={form} />;
+    /* This tab's icon is live: the tier glyph of the current effective rating. */
+    return (
+      <form.Subscribe
+        selector={(state) => effectiveComplexity({ rules: state.values.rules, complexity: state.values.complexity })}
+      >
+        {(score) => <ComplexityGlyph score={score} size={21} />}
+      </form.Subscribe>
+    );
   }
   return <TopicIcon topic={chapterIcons[chapter]} size={21} />;
 }
@@ -265,10 +272,23 @@ function ArtifactProof({
             <PreviewEmpty>No faction advantages yet.</PreviewEmpty>
           );
         } else if (activeChapter === 'complexity') {
-          /* PROTOTYPE (wayfinder #404) */
           title = 'Faction card';
           usedOn = 'Faction catalogue';
-          artifact = <PrototypeComplexityCardProof faction={faction} />;
+          /* The catalogue card carries the rating natively; inert — a proof, not a link. */
+          artifact = (
+            <Box style={{ pointerEvents: 'none' }}>
+              <FactionCard
+                faction={
+                  {
+                    _id: 'complexity-proof',
+                    slug: 'complexity-proof',
+                    rulesets: [],
+                    data: faction,
+                  } as unknown as FactionCatalogueEntry
+                }
+              />
+            </Box>
+          );
         }
 
         return (
@@ -440,8 +460,7 @@ export const FactionFormFields = forwardRef<
           }
         />
       ) : null}
-      {/* PROTOTYPE (wayfinder #404) */}
-      {chapter === 'complexity' ? <PrototypeComplexityChapter form={form} /> : null}
+      {chapter === 'complexity' ? <FactionFormSectionComplexity form={form} /> : null}
     </>
   );
 

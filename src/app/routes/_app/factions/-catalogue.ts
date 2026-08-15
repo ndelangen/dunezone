@@ -2,6 +2,8 @@ import { getRouteApi, useLocation } from '@tanstack/react-router';
 import Fuse from 'fuse.js';
 import { useEffect, useState } from 'react';
 
+import { complexityOutOfTen, effectiveComplexity } from '@shared/factions/complexity';
+
 import type {
   FactionCatalogueEntry,
   FactionCataloguePageData,
@@ -10,13 +12,38 @@ import type {
 
 const factionCatalogueRoute = getRouteApi('/_app/factions/');
 
-export type FactionCatalogueSort = 'created' | 'updated';
+export type FactionCatalogueSort = 'created' | 'updated' | 'complexity-asc' | 'complexity-desc';
+
+/** The complexity filter as it round-trips through the URL: `"min-max"` on the x/10 scale. */
+export type FactionComplexityRange = [number, number];
+
+export const FULL_COMPLEXITY_RANGE: FactionComplexityRange = [0, 10];
 
 export type FactionCatalogueSearch = {
   q?: string;
   ruleset?: string;
   sort?: FactionCatalogueSort;
+  /** Present only when narrower than the full range. */
+  complexity?: string;
 };
+
+export function parseComplexityRange(value: string | undefined): FactionComplexityRange {
+  const match = /^([0-9]|10)-([0-9]|10)$/.exec(value ?? '');
+  if (!match) {
+    return FULL_COMPLEXITY_RANGE;
+  }
+  const low = Number(match[1]);
+  const high = Number(match[2]);
+  return low <= high ? [low, high] : FULL_COMPLEXITY_RANGE;
+}
+
+export function complexityRangeSearchValue(range: FactionComplexityRange): string | undefined {
+  const [low, high] = range;
+  if (low <= 0 && high >= 10) {
+    return undefined;
+  }
+  return `${low}-${high}`;
+}
 
 export function parseFactionCatalogueSearch(
   params: Record<string, unknown>
@@ -24,11 +51,15 @@ export function parseFactionCatalogueSearch(
   const q = cleanSearchValue(params.q);
   const ruleset = cleanSearchValue(params.ruleset);
   const sort = isFactionCatalogueSort(params.sort) ? params.sort : undefined;
+  const complexity = complexityRangeSearchValue(
+    parseComplexityRange(cleanSearchValue(params.complexity))
+  );
 
   return {
     ...(q ? { q } : {}),
     ...(ruleset ? { ruleset } : {}),
     ...(sort ? { sort } : {}),
+    ...(complexity ? { complexity } : {}),
   };
 }
 
@@ -43,6 +74,7 @@ function normalizeFactionCatalogueSearch(
     ...(parsed.q ? { q: parsed.q } : {}),
     ...(validRuleset && parsed.ruleset ? { ruleset: parsed.ruleset } : {}),
     ...(parsed.sort ? { sort: parsed.sort } : {}),
+    ...(parsed.complexity ? { complexity: parsed.complexity } : {}),
   };
 }
 
@@ -56,6 +88,9 @@ function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
   }
   if (search.sort) {
     params.set('sort', search.sort);
+  }
+  if (search.complexity) {
+    params.set('complexity', search.complexity);
   }
   return params;
 }
@@ -72,21 +107,35 @@ export function projectFactionCatalogue(
       )
     : [...factions];
 
+  const [low, high] = parseComplexityRange(search.complexity);
+  const complexityMatches =
+    low <= 0 && high >= 10
+      ? rulesetMatches
+      : rulesetMatches.filter((faction) => {
+          const score = complexityOutOfTen(effectiveComplexity(faction.data));
+          return score >= low && score <= high;
+        });
+
   const matches = query
-    ? new Fuse(rulesetMatches, {
+    ? new Fuse(complexityMatches, {
         keys: ['data.name', 'data.hero.name', 'data.leaders.name'],
         ignoreLocation: true,
         threshold: 0.35,
       })
         .search(query)
         .map((result) => result.item)
-    : rulesetMatches;
+    : complexityMatches;
 
   return matches.sort((left, right) => compareFactions(left, right, search.sort));
 }
 
 function isFactionCatalogueSort(value: unknown): value is FactionCatalogueSort {
-  return value === 'created' || value === 'updated';
+  return (
+    value === 'created' ||
+    value === 'updated' ||
+    value === 'complexity-asc' ||
+    value === 'complexity-desc'
+  );
 }
 
 export function useFactionCatalogueSession(
@@ -131,7 +180,7 @@ export function useFactionCatalogueSession(
     changeSearch,
     reset: () => {
       setDraftQuery('');
-      changeSearch({ q: undefined, ruleset: undefined });
+      changeSearch({ q: undefined, ruleset: undefined, complexity: undefined });
     },
   };
 }
@@ -146,6 +195,11 @@ function compareFactions(
   }
   if (sort === 'updated') {
     return compareDateDescending(left, right, 'updated_at');
+  }
+  if (sort === 'complexity-asc' || sort === 'complexity-desc') {
+    const difference = effectiveComplexity(left.data) - effectiveComplexity(right.data);
+    const directed = sort === 'complexity-asc' ? difference : -difference;
+    return directed || compareIdentity(left, right);
   }
   return compareIdentity(left, right);
 }

@@ -8,6 +8,7 @@ import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import { defaultFaction } from '@app/widgets/faction-editor/defaultFaction';
 import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
+import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
@@ -92,6 +93,7 @@ function CreateFactionPage() {
             onReset: authoring.actions.reset,
             onBack: () => navigate({ to: '/factions' }),
           }}
+          centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
           auxiliaryActions={
             <FactionLoadPopover
               disabled={createFaction.isPending}

@@ -9,7 +9,6 @@ export const factionAuthoringChapters = [
   { id: 'forces', label: 'Forces' },
   { id: 'rules', label: 'Rules' },
   { id: 'advantages', label: 'Advantages' },
-  /* PROTOTYPE (wayfinder #404) — remove with FactionComplexityPrototype.tsx */
   { id: 'complexity', label: 'Complexity' },
 ] as const;
 
@@ -272,6 +271,7 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
     ['rules.advantages[].title', 'rules.advantages[].text', 'rules.advantages[].karama'],
     { state: 'control', chapter: 'advantages' }
   ),
+  ...coverage(['complexity'], { state: 'control', chapter: 'complexity' }),
   ...coverage(
     [
       'extras[].name',

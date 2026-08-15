@@ -44,6 +44,15 @@
   display: none;
 }
 
+.refinePane {
+  background:
+    linear-gradient(var(--panel-bg), var(--panel-bg)),
+    var(--mantine-color-body);
+  border: 2px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  box-shadow: var(--panel-shadow);
+}
+
 @media (max-width: 48em) {
   .catalogueHeader {
     gap: var(--mantine-spacing-sm);

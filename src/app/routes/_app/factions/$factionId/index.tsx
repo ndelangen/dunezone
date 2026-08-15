@@ -17,6 +17,7 @@ import {
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
+import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -40,6 +41,12 @@ import {
   UsersRound,
 } from 'lucide-react';
 
+import {
+  complexityOutOfTen,
+  complexityTier,
+  effectiveComplexity,
+} from '@shared/factions/complexity';
+
 import { loadFaction, useFaction } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -47,12 +54,6 @@ import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 
-/* PROTOTYPE (wayfinder #403) — remove with ../-complexity-prototype.tsx */
-import {
-  PrototypeComplexityHeader,
-  PrototypeComplexitySidebar,
-  PrototypeSwitcher,
-} from '../-complexity-prototype';
 import styles from '../FactionDetail.module.css';
 
 export const Route = createFileRoute('/_app/factions/$factionId/')({
@@ -178,8 +179,6 @@ function FactionDetailPage() {
               </Text>
               {owner ? <ProfileLink {...owner} /> : <Text size="sm">Unknown</Text>}
             </Group>
-            {/* PROTOTYPE (wayfinder #403) */}
-            <PrototypeComplexityHeader data={data} />
           </Stack>
         </Group>
       </PageLayout.Header>
@@ -381,8 +380,20 @@ function FactionDetailPage() {
             miw={0}
             style={{ flex: '0 0 auto' }}
           >
-            {/* PROTOTYPE (wayfinder #403) */}
-            <PrototypeComplexitySidebar data={data} />
+            <Surface padding="md">
+              <Group justify="space-between" wrap="nowrap" gap="xs">
+                <Group gap="xs" wrap="nowrap">
+                  <ComplexityGlyph score={effectiveComplexity(data)} size={17} />
+                  <Text size="sm" fw={600}>
+                    Complexity
+                  </Text>
+                </Group>
+                <Text size="sm" c="dimmed">
+                  {complexityOutOfTen(effectiveComplexity(data))}/10 ·{' '}
+                  {COMPLEXITY_TIER_PRESENTATION[complexityTier(effectiveComplexity(data))].label}
+                </Text>
+              </Group>
+            </Surface>
             <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
               <div className={styles.loreHeroToken}>
                 <LeaderToken
@@ -617,8 +628,6 @@ function FactionDetailPage() {
             </Card>
           </Stack>
         </Flex>
-        {/* PROTOTYPE (wayfinder #403) */}
-        <PrototypeSwitcher />
       </PageLayout.Content>
     </PageLayout>
   );

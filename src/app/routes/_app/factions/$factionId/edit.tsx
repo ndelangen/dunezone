@@ -9,8 +9,7 @@ import { useRef, useState } from 'react';
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
 import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
-/* PROTOTYPE (wayfinder #404) — remove with FactionComplexityPrototype.tsx */
-import { PrototypeComplexityToolbarIndicator } from '@app/widgets/faction-editor/FactionComplexityPrototype';
+import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPopover';
@@ -156,8 +155,7 @@ function FactionEditPage() {
                 params: { factionId },
               }),
           }}
-          /* PROTOTYPE (wayfinder #404) */
-          centerIndicator={<PrototypeComplexityToolbarIndicator form={authoring.form} />}
+          centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
           auxiliaryActions={
             <>
               <FactionLoadPopover

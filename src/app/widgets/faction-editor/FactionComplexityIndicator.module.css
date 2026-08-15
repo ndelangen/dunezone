@@ -1,0 +1,33 @@
+.trigger {
+  display: inline-flex;
+  align-items: center;
+}
+
+.donut {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+}
+
+.donutRing {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.donutFill {
+  stroke: var(--color-accent-strong);
+  transition: stroke-dashoffset 400ms ease;
+}
+
+.pane {
+  background:
+    linear-gradient(var(--panel-bg), var(--panel-bg)),
+    var(--mantine-color-body);
+  border: 2px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  box-shadow: var(--panel-shadow);
+}

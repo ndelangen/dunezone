@@ -19,24 +19,6 @@
       "autoPort": false
     },
     {
-      "name": "storybook-6216",
-      "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "bun run generate:vectors && bunx storybook dev -p 6216 --no-open"],
-      "port": 6216,
-      "autoPort": false
-    },
-    {
-      "name": "app-hosted-3210",
-      "runtimeExecutable": "bash",
-      "runtimeArgs": [
-        "-c",
-        "bun run generate:vectors && bun run migrations:dev-strict && bunx convex dev --start 'bun run app:dev'"
-      ],
-      "env": { "APP_DEV_PORT": "3210" },
-      "port": 3210,
-      "autoPort": false
-    },
-    {
       "name": "app-local",
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "bun run generate:vectors && bun run app:dev --local"],
