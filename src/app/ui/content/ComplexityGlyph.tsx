@@ -1,9 +1,9 @@
-import { complexityOutOfTen, complexityTier } from '@shared/factions/complexity';
-import type { ComplexityTier } from '@shared/factions/complexity';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import clsx from 'clsx';
 
+import { complexityOutOfTen, complexityTier } from './complexity';
+import type { ComplexityTier } from './complexity';
 import styles from './ComplexityGlyph.module.css';
 
 const PROGRESS_RING_SIZE = 34;

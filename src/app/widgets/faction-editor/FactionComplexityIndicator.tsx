@@ -1,12 +1,6 @@
 import { Popover, Progress, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
-import {
-  COMPLEXITY_NEAR_CAPACITY,
-  calculateComplexity,
-  complexityOutOfTen,
-  complexityTier,
-  hasAdvisableComplexityDeviation,
-} from '@shared/factions/complexity';
 import type { FactionInput } from '@shared/factions/schema';
+import { complexityEditorPresentation, complexityOutOfTen } from '@ui/content/complexity';
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { Surface } from '@ui/surface';
 
@@ -27,10 +21,13 @@ export function FactionComplexityIndicator({ form }: { form: FactionFormApi }) {
       })}
     >
       {({ rules, manual }) => {
-        const calculated = calculateComplexity(rules);
-        const calc10 = complexityOutOfTen(calculated);
-        const tier = complexityTier(calculated);
-        const deviates = manual != null && hasAdvisableComplexityDeviation(manual, calculated);
+        const {
+          calculated,
+          calculatedOutOfTen: calc10,
+          tier,
+          deviates,
+          nearCapacity,
+        } = complexityEditorPresentation(rules, manual);
 
         return (
           <Popover position="bottom-end" width={300}>
@@ -68,7 +65,7 @@ export function FactionComplexityIndicator({ form }: { form: FactionFormApi }) {
                       estimate. This is advisory and does not prevent saving.
                     </Text>
                   ) : null}
-                  {calculated >= COMPLEXITY_NEAR_CAPACITY ? (
+                  {nearCapacity ? (
                     <Text c="yellow.9" size="xs" role="status">
                       The rules text is approaching the printed sheet&rsquo;s capacity — consider
                       trimming. This is advisory and does not prevent saving.

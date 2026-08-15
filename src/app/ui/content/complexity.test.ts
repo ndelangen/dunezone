@@ -1,3 +1,4 @@
+import type { FactionInput } from '@shared/factions/schema';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -8,7 +9,6 @@ import {
   effectiveComplexity,
   hasAdvisableComplexityDeviation,
 } from './complexity';
-import type { FactionInput } from './schema';
 
 function rulesWith(overrides: Partial<FactionInput['rules']> = {}): FactionInput['rules'] {
   return {
@@ -57,6 +57,15 @@ describe('calculateComplexity', () => {
     const renderedWords = rulesWith({ startText: 'one two three four five' });
 
     expect(calculateComplexity(markdown)).toBe(calculateComplexity(renderedWords));
+  });
+
+  it('does not count fenced-code language metadata as rendered text', () => {
+    const renderedWords = wordsOf(81);
+    const markdown = rulesWith({ startText: `\`\`\`js\n${renderedWords}\n\`\`\`` });
+
+    expect(calculateComplexity(markdown)).toBe(
+      calculateComplexity(rulesWith({ startText: renderedWords }))
+    );
   });
 
   it('bumps the score for advantage counts past the threshold', () => {

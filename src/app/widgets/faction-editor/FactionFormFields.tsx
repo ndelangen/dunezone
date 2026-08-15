@@ -9,8 +9,8 @@ import {
   Stack,
   Text,
 } from '@mantine/core';
-import { effectiveComplexity } from '@shared/factions/complexity';
 import { FactionCard } from '@ui/block/FactionCard';
+import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { Surface } from '@ui/surface';

@@ -1,4 +1,4 @@
-import type { FactionInput } from './schema';
+import type { FactionInput } from '@shared/factions/schema';
 
 type FactionRules = FactionInput['rules'];
 
@@ -24,7 +24,7 @@ const COMPLEXITY_MANY_ADVANTAGES_STEP = 0.03;
 const COMPLEXITY_DEVIATION_THRESHOLD_POINTS = 3;
 
 /** A calculated score at or above this earns the editor's near-capacity advisory. */
-export const COMPLEXITY_NEAR_CAPACITY = 0.9;
+const COMPLEXITY_NEAR_CAPACITY = 0.9;
 
 /**
  * A tuning rule applied after the base curve; the sum is clamped to 0..1. Adding one is a single
@@ -53,6 +53,8 @@ function words(text: string | undefined): number {
     text
       /* A markdown link renders only its text — the URL never reaches the sheet. */
       .replace(/\]\([^)]*\)/g, '] ')
+      /* Fenced-code markers and their optional language metadata render no text. */
+      .replace(/^[ \t]*(?:`{3,}|~{3,})[^\r\n]*$/gm, ' ')
       /* Block markers and thematic breaks occupy source bytes but render no words. */
       .replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, '')
       .replace(/^[ \t]*(?:[-*_][ \t]*){3,}$/gm, ' ')
@@ -122,4 +124,16 @@ export function hasAdvisableComplexityDeviation(manual: number, calculated: numb
     Math.abs(complexityOutOfTen(manual) - complexityOutOfTen(calculated)) >=
     COMPLEXITY_DEVIATION_THRESHOLD_POINTS
   );
+}
+
+/** The shared editor projection behind the chapter and toolbar indicator. */
+export function complexityEditorPresentation(rules: FactionRules, manual: number | undefined) {
+  const calculated = calculateComplexity(rules);
+  return {
+    calculated,
+    calculatedOutOfTen: complexityOutOfTen(calculated),
+    tier: complexityTier(calculated),
+    deviates: manual != null && hasAdvisableComplexityDeviation(manual, calculated),
+    nearCapacity: calculated >= COMPLEXITY_NEAR_CAPACITY,
+  };
 }

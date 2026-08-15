@@ -1,11 +1,6 @@
 import { Badge, Group, Slider, Stack, Switch, Text } from '@mantine/core';
-import {
-  COMPLEXITY_NEAR_CAPACITY,
-  calculateComplexity,
-  complexityOutOfTen,
-  hasAdvisableComplexityDeviation,
-} from '@shared/factions/complexity';
 import type { FactionInput } from '@shared/factions/schema';
+import { complexityEditorPresentation, complexityOutOfTen } from '@ui/content/complexity';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 
 import type { FactionFormApi } from './factionFormTypes';
@@ -57,17 +52,20 @@ export function FactionFormSectionComplexity({
   return (
     <form.Subscribe selector={(state: { values: FactionInput }) => state.values.rules}>
       {(rules) => {
-        const calculated = calculateComplexity(rules);
-        const calc10 = complexityOutOfTen(calculated);
         return (
           <form.Field name="complexity">
             {(field) => {
               const manual = field.state.value;
+              const {
+                calculated,
+                calculatedOutOfTen: calc10,
+                deviates,
+                nearCapacity,
+              } = complexityEditorPresentation(rules, manual);
               const active = manual != null;
               const slider10 = complexityOutOfTen(
                 active ? manual : (retainedManualRating ?? calculated)
               );
-              const deviates = active && hasAdvisableComplexityDeviation(manual, calculated);
 
               return (
                 <Stack component="section" gap="sm" aria-label="Faction complexity">
@@ -118,12 +116,12 @@ export function FactionFormSectionComplexity({
                     })}
                   </Text>
 
-                  {deviates ? (
+                  {manual != null && deviates ? (
                     <Advisory>
                       {`Your rating (${complexityOutOfTen(manual)}/10) sits far from the rules-text estimate (${calc10}/10). That can be right — word count is only a rough signal, and you know your table best — but a large gap is worth a second look.`}
                     </Advisory>
                   ) : null}
-                  {calculated >= COMPLEXITY_NEAR_CAPACITY ? (
+                  {nearCapacity ? (
                     <Advisory>
                       The rules text is approaching the printed sheet&rsquo;s capacity — consider
                       trimming so it stays readable at the table.

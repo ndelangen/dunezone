@@ -14,15 +14,11 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core';
-import {
-  complexityOutOfTen,
-  complexityTier,
-  effectiveComplexity,
-} from '@shared/factions/complexity';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
+import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -107,7 +103,7 @@ function FactionComplexitySummary({ score }: { score: number }) {
   );
 }
 
-function FactionLeaderSummary({ data }: { data: FactionData }) {
+function FactionSidebarOverview({ data }: { data: FactionData }) {
   return (
     <>
       <FactionComplexitySummary score={effectiveComplexity(data)} />
@@ -417,7 +413,7 @@ function FactionDetailPage() {
             miw={0}
             style={{ flex: '0 0 auto' }}
           >
-            <FactionLeaderSummary data={data} />
+            <FactionSidebarOverview data={data} />
 
             <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
               <Surface padding="lg">

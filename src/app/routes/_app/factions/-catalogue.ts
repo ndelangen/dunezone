@@ -1,5 +1,5 @@
-import { complexityOutOfTen, effectiveComplexity } from '@shared/factions/complexity';
 import { getRouteApi, useLocation } from '@tanstack/react-router';
+import { complexityOutOfTen, effectiveComplexity } from '@ui/content/complexity';
 import Fuse from 'fuse.js';
 import { useEffect, useState } from 'react';
 

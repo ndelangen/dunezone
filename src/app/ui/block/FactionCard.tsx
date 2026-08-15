@@ -1,6 +1,6 @@
 import { Text, UnstyledButton } from '@mantine/core';
-import { effectiveComplexity } from '@shared/factions/complexity';
 import { Link } from '@tanstack/react-router';
+import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 
 import type { FactionCatalogueEntry } from '@db/factions';
