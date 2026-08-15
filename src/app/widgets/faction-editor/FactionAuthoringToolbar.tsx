@@ -73,12 +73,15 @@ export function FactionAuthoringToolbar({
   auxiliaryActions,
   context,
   destructiveActions,
+  centerIndicator,
 }: {
   status: FactionAuthoringStatus;
   actions: FactionAuthoringToolbarActions;
   auxiliaryActions?: ReactNode;
   context?: ReactNode;
   destructiveActions?: ReactNode;
+  /* PROTOTYPE (wayfinder #404) — remove with FactionComplexityPrototype.tsx */
+  centerIndicator?: ReactNode;
 }) {
   const { isDirty, isNameBlank, warningCount, saveState, assetPublishing } = status;
   const { onSave, onReviewWarnings, onReview, onReset, onBack } = actions;
@@ -90,6 +93,20 @@ export function FactionAuthoringToolbar({
 
   return (
     <Surface padding="sm" className={styles.toolbar}>
+      {/* PROTOTYPE (wayfinder #404) — centred complexity indicator overlay */}
+      {centerIndicator ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1,
+          }}
+        >
+          {centerIndicator}
+        </div>
+      ) : null}
       <Group justify="space-between" gap="sm" wrap="nowrap" className={styles.toolbarRow}>
         <Group gap="sm" wrap="nowrap" className={styles.leading}>
           <IconAction

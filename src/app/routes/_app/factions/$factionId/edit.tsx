@@ -156,10 +156,10 @@ function FactionEditPage() {
                 params: { factionId },
               }),
           }}
+          /* PROTOTYPE (wayfinder #404) */
+          centerIndicator={<PrototypeComplexityToolbarIndicator form={authoring.form} />}
           auxiliaryActions={
             <>
-              {/* PROTOTYPE (wayfinder #404) */}
-              <PrototypeComplexityToolbarIndicator form={authoring.form} />
               <FactionLoadPopover
                 disabled={updateFaction.isPending}
                 currentPublicSlug={faction.slug}
