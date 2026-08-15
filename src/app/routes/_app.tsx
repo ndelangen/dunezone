@@ -8,9 +8,9 @@ export const Route = createFileRoute('/_app')({
   head: () => ({
     scripts: [
       {
-        // Pre-hydration twin of shell/colorScheme.ts: sets the scheme attribute before first paint
-        // so a dark visitor never flashes light. Lives on this layout, not the root, so bare
-        // renderer routes (print capture, publisher, auth) stay light by construction.
+        /* Pre-hydration twin of shell/colorScheme.ts: sets the scheme attribute before first
+           paint so a dark visitor never flashes light. Lives on this layout, not the root, so
+           bare renderer routes (print capture, publisher, auth) stay light by construction. */
         children:
           `(function(){try{var p=localStorage.getItem('dunezone-color-scheme');` +
           `var d=p==='dark'||(p!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);` +
