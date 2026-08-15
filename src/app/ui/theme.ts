@@ -1,34 +1,29 @@
 import { createTheme } from '@mantine/core';
 import type { MantineColorsTuple } from '@mantine/core';
 
-/**
- * Application-content colors mirrored from the persistent shell tokens. Keep this map aligned with
- * styles/tokens.css when the shell palette changes.
+/*
+ * Color values live in styles/tokens.css — the single source of truth, with dark overrides under
+ * `:root[data-mantine-color-scheme='dark']`. Slots whose values flow to the DOM verbatim reference
+ * them via var() and flip with the scheme for free.
+ *
+ * The color tuples below are the exception: Mantine parses tuple hex to bake hover and light-variant
+ * derivations, so they stay literal. They are Mantine-internal ramps, not mirrors of tokens.css.
+ * `white`/`black` are scheme-invariant inks by Mantine's contract (filled-component text in both
+ * schemes) — they bind to the non-flipping --color-paper/--color-ink tokens, never to ones that
+ * flip. Never combine `autoContrast` or `color="white"/"black"/"bright"` with var()-valued slots:
+ * Mantine's luminance check reads every var() string as dark.
  */
-const appShellColors = {
-  text: '#2e2927',
-  muted: '#735c47',
-  link: '#84220c',
-  error: '#d34409',
-  accent: '#f8af40',
-  accentStrong: '#c78346',
-  focusRing: 'rgba(244, 207, 139, 0.42)',
-  surface: 'rgba(255, 255, 255, 0.12)',
-  surfaceRaised: 'rgba(255, 253, 248, 0.95)',
-  panelBorder: '#fee7c0',
-  panelShadow: '0 0 20px 0 rgba(0, 0, 0, 0.166)',
-} as const;
 
 const dune: MantineColorsTuple = [
   '#fff8ed',
-  appShellColors.panelBorder,
+  '#fee7c0',
   '#f8dca5',
   '#f4cf8b',
-  appShellColors.accent,
+  '#f8af40',
   '#e39a38',
-  appShellColors.accentStrong,
+  '#c78346',
   '#a75b2b',
-  appShellColors.link,
+  '#84220c',
   '#5d1708',
 ];
 
@@ -39,10 +34,10 @@ const warmGray: MantineColorsTuple = [
   '#ddd5c8',
   '#c4b9a8',
   '#a09280',
-  appShellColors.muted,
+  '#735c47',
   '#57483b',
   '#403631',
-  appShellColors.text,
+  '#2e2927',
 ];
 
 const confirm: MantineColorsTuple = [
@@ -71,12 +66,29 @@ const danger: MantineColorsTuple = [
   '#531f13',
 ];
 
+/*
+ * In dark mode Mantine derives text, body, borders, dimmed, and disabled from the `dark` tuple —
+ * not from our tokens — so the stock cool-gray ramp is replaced with the Twilight warm-navy ramp.
+ */
+const twilightNavy: MantineColorsTuple = [
+  '#ece7dc',
+  '#c6c9d4',
+  '#9aa2b4',
+  '#6b7690',
+  '#43536e',
+  '#2b3648',
+  '#1d2635',
+  '#141c2b',
+  '#0f1622',
+  '#0a0f1a',
+];
+
 const contentFontFamily = '"C_Candara", Candara, sans-serif';
 
 const glassSurface = {
-  backgroundColor: appShellColors.surface,
-  borderColor: appShellColors.panelBorder,
-  boxShadow: appShellColors.panelShadow,
+  backgroundColor: 'var(--glass-surface-1)',
+  borderColor: 'var(--panel-border)',
+  boxShadow: 'var(--panel-shadow)',
   backdropFilter: 'blur(8px)',
 };
 
@@ -86,11 +98,12 @@ export const appContentTheme = createTheme({
     fontFamily: contentFontFamily,
     fontWeight: '700',
   },
-  white: '#fffdf8',
-  black: appShellColors.text,
+  white: 'var(--color-paper)',
+  black: 'var(--color-ink)',
   colors: {
     dune,
     gray: warmGray,
+    dark: twilightNavy,
     confirm,
     red: danger,
   },
@@ -106,7 +119,7 @@ export const appContentTheme = createTheme({
   },
   shadows: {
     xs: '0 2px 8px rgba(38, 24, 11, 0.12)',
-    sm: appShellColors.panelShadow,
+    sm: 'var(--panel-shadow)',
     md: '0 8px 24px rgba(38, 24, 11, 0.22)',
     lg: '0 12px 36px rgba(38, 24, 11, 0.26)',
     xl: '0 18px 48px rgba(38, 24, 11, 0.3)',
@@ -121,7 +134,7 @@ export const appContentTheme = createTheme({
       styles: {
         dropdown: {
           ...glassSurface,
-          backgroundColor: appShellColors.surfaceRaised,
+          backgroundColor: 'var(--glass-overlay)',
         },
       },
     },

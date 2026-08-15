@@ -19,14 +19,6 @@
       "autoPort": false
     },
     {
-      "name": "app-hosted-alt-port",
-      "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "bun run generate:vectors && bun run app:dev"],
-      "env": { "APP_DEV_PORT": "3200" },
-      "port": 3200,
-      "autoPort": false
-    },
-    {
       "name": "app-local",
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "bun run generate:vectors && bun run app:dev --local"],

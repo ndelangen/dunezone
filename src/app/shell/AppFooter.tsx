@@ -1,6 +1,7 @@
 import { BookOpen, GitFork, ShieldCheck } from 'lucide-react';
 
 import styles from './AppFooter.module.css';
+import { setSchemePreference, useSchemePreference } from './colorScheme';
 import { setMotionOverride, useMotionAllowed } from './motion';
 
 const footerLinks = [
@@ -24,13 +25,21 @@ const footerLinks = [
   },
 ] as const;
 
+const schemeOptions = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+] as const;
+
 /**
- * Public waypoints to the project's component catalogue, source, and policies — and the switch that
- * overrides the OS's reduced-motion hint for this site (see `motion.ts`). The switch is a bare
- * checkbox because the chrome sits outside `ApplicationChrome`'s Mantine provider.
+ * Public waypoints to the project's component catalogue, source, and policies — and the controls
+ * that override the OS's appearance hints for this site: reduced motion (see `motion.ts`) and the
+ * color scheme (see `colorScheme.ts`). Both are bare inputs because the chrome sits outside
+ * `ApplicationChrome`'s Mantine provider.
  */
 export function AppFooter() {
   const motion = useMotionAllowed();
+  const scheme = useSchemePreference();
 
   return (
     <div className={styles.waypoints}>
@@ -61,6 +70,26 @@ export function AppFooter() {
           <small>The masthead video and the turning dice</small>
         </span>
       </label>
+      <div className={styles.schemeToggle} role="radiogroup" aria-label="Color scheme">
+        <span className={styles.schemeSegments}>
+          {schemeOptions.map(({ value, label }) => (
+            <label className={styles.schemeSegment} key={value}>
+              <input
+                checked={scheme === value}
+                className={styles.schemeInput}
+                name="color-scheme"
+                onChange={() => setSchemePreference(value)}
+                type="radio"
+              />
+              <span className={styles.schemeLabel}>{label}</span>
+            </label>
+          ))}
+        </span>
+        <span className={styles.linkCopy}>
+          <strong>Color scheme</strong>
+          <small>Follow the system, or pin light or dark</small>
+        </span>
+      </div>
     </div>
   );
 }
