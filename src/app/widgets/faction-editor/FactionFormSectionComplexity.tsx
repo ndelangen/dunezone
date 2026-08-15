@@ -27,7 +27,8 @@ function Advisory({ children }: { children: string }) {
  * switch turns off, though only an active manual rating is stored (absent field = automatic).
  */
 export function FactionFormSectionComplexity({ form }: { form: FactionFormApi }) {
-  /* The value the disabled slider holds onto after the author switches back to automatic. */
+  /* The raw 0..1 rating the disabled slider holds onto after the author switches back to
+     automatic — unrounded, so toggling never silently changes a stored value like 0.65. */
   const [retained, setRetained] = useState<number | null>(null);
 
   return (
@@ -40,7 +41,7 @@ export function FactionFormSectionComplexity({ form }: { form: FactionFormApi })
             {(field) => {
               const manual = field.state.value;
               const active = manual != null;
-              const slider10 = active ? complexityOutOfTen(manual) : (retained ?? calc10);
+              const slider10 = complexityOutOfTen(active ? manual : (retained ?? calculated));
               const deviates =
                 active && Math.abs(manual - calculated) >= COMPLEXITY_DEVIATION_THRESHOLD;
 
@@ -77,10 +78,10 @@ export function FactionFormSectionComplexity({ form }: { form: FactionFormApi })
                     checked={active}
                     onChange={(event) => {
                       if (event.currentTarget.checked) {
-                        field.handleChange((retained ?? calc10) / 10);
+                        field.handleChange(retained ?? calculated);
                         return;
                       }
-                      setRetained(complexityOutOfTen(manual ?? calculated));
+                      setRetained(manual ?? calculated);
                       field.handleChange(undefined);
                     }}
                   />

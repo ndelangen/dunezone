@@ -118,13 +118,21 @@ export function projectFactionCatalogue(
     : [...factions];
 
   const [low, high] = parseComplexityRange(search.complexity);
+  const rangeNarrows = low > 0 || high < 10;
+  const complexitySorted = search.sort === 'complexity-asc' || search.sort === 'complexity-desc';
+  /* Scored once per projection — filtering and sorting share it instead of recounting rules text. */
+  const scores =
+    rangeNarrows || complexitySorted
+      ? new Map(rulesetMatches.map((faction) => [faction, effectiveComplexity(faction.data)]))
+      : null;
+
   const complexityMatches =
-    low <= 0 && high >= 10
-      ? rulesetMatches
-      : rulesetMatches.filter((faction) => {
-          const score = complexityOutOfTen(effectiveComplexity(faction.data));
+    rangeNarrows && scores
+      ? rulesetMatches.filter((faction) => {
+          const score = complexityOutOfTen(scores.get(faction) ?? 0);
           return score >= low && score <= high;
-        });
+        })
+      : rulesetMatches;
 
   const matches = query
     ? new Fuse(complexityMatches, {
@@ -136,16 +144,13 @@ export function projectFactionCatalogue(
         .map((result) => result.item)
     : complexityMatches;
 
-  if (search.sort === 'complexity-asc' || search.sort === 'complexity-desc') {
-    /* Score once per entry — the comparator would otherwise recount all rules text O(n log n). */
+  if (complexitySorted && scores) {
     const direction = search.sort === 'complexity-asc' ? 1 : -1;
-    return matches
-      .map((faction) => ({ faction, score: effectiveComplexity(faction.data) }))
-      .sort(
-        (left, right) =>
-          (left.score - right.score) * direction || compareIdentity(left.faction, right.faction)
-      )
-      .map((entry) => entry.faction);
+    return matches.sort(
+      (left, right) =>
+        ((scores.get(left) ?? 0) - (scores.get(right) ?? 0)) * direction ||
+        compareIdentity(left, right)
+    );
   }
   return matches.sort((left, right) => compareFactions(left, right, search.sort));
 }

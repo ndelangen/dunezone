@@ -151,6 +151,7 @@ function FactionDetailPage() {
   const planets = data.planet ?? [];
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
   const publishingStatus = assetPublishing.captureStatus ?? assetPublishing.status;
+  const complexity = effectiveComplexity(data);
 
   return (
     <PageLayout>
@@ -382,14 +383,14 @@ function FactionDetailPage() {
             <Surface padding="md">
               <Group justify="space-between" wrap="nowrap" gap="xs">
                 <Group gap="xs" wrap="nowrap">
-                  <ComplexityGlyph score={effectiveComplexity(data)} size={17} />
+                  <ComplexityGlyph score={complexity} size={17} />
                   <Text size="sm" fw={600}>
                     Complexity
                   </Text>
                 </Group>
                 <Text size="sm" c="dimmed">
-                  {complexityOutOfTen(effectiveComplexity(data))}/10 ·{' '}
-                  {COMPLEXITY_TIER_PRESENTATION[complexityTier(effectiveComplexity(data))].label}
+                  {complexityOutOfTen(complexity)}/10 ·{' '}
+                  {COMPLEXITY_TIER_PRESENTATION[complexityTier(complexity)].label}
                 </Text>
               </Group>
             </Surface>
