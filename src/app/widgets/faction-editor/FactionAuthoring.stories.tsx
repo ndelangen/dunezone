@@ -43,7 +43,7 @@ function FactionAuthoringFixture() {
             onReset: authoring.actions.reset,
             onBack: () => undefined,
           }}
-          auxiliaryActions={
+          centerIndicator={
             /* PROTOTYPE (wayfinder #404) */
             <PrototypeComplexityToolbarIndicator form={authoring.form} />
           }
