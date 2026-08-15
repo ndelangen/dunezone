@@ -5,12 +5,25 @@
  * detail routes. Delete this file (and its mounts) once a variant wins; nothing here is production
  * code — the real calculation ships from the shared module decided on the map.
  */
-import { Badge, Button, Checkbox, Group, Popover, Select, Stack, Text, Title } from '@mantine/core';
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Group,
+  Popover,
+  RangeSlider,
+  Select,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+  UnstyledButton,
+} from '@mantine/core';
 import { FactionCard } from '@ui/block/FactionCard';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import factionListStyles from '@ui/list/FactionList.module.css';
-import { SlidersHorizontal } from 'lucide-react';
+import { ArrowDownAZ, SlidersHorizontal } from 'lucide-react';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { useState, useSyncExternalStore } from 'react';
@@ -207,7 +220,11 @@ const switcherButtonStyle: CSSProperties = {
 if (typeof window !== 'undefined' && !import.meta.env.PROD) {
   window.addEventListener('keydown', (event) => {
     const target = event.target as HTMLElement | null;
-    if (target && (target.closest('input, textarea, select, [contenteditable]') || target.isContentEditable)) {
+    if (
+      target &&
+      (target.closest('input, textarea, select, [contenteditable], [role="slider"]') ||
+        target.isContentEditable)
+    ) {
       return;
     }
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
@@ -343,6 +360,8 @@ const TIER_ORDER: ComplexityTier[] = ['novice', 'intermediate', 'expert', 'maste
 export function usePrototypeCatalogue(factions: FactionCatalogueEntry[]) {
   const variant = usePrototypeVariant();
   const [tierFilter, setTierFilter] = useState<ComplexityTier[]>([]);
+  /* Panel style 3 filters by score range (0–10) instead of discrete tiers. */
+  const [range, setRange] = useState<[number, number]>([0, 10]);
   const [sort, setSort] = useState<'none' | 'asc' | 'desc'>('none');
 
   const scored = factions.map((faction) => {
@@ -350,15 +369,32 @@ export function usePrototypeCatalogue(factions: FactionCatalogueEntry[]) {
     return { faction, score, tier: prototypeTier(score) };
   });
 
+  const rangeActive = range[0] > 0 || range[1] < 10;
   let visible = scored;
   if (tierFilter.length > 0) {
-    visible = scored.filter((entry) => tierFilter.includes(entry.tier));
+    visible = visible.filter((entry) => tierFilter.includes(entry.tier));
+  }
+  if (rangeActive) {
+    visible = visible.filter(
+      (entry) => outOfTen(entry.score) >= range[0] && outOfTen(entry.score) <= range[1]
+    );
   }
   if (sort !== 'none') {
     visible = [...visible].sort((a, b) => (sort === 'asc' ? a.score - b.score : b.score - a.score));
   }
 
-  return { variant, tierFilter, setTierFilter, sort, setSort, scored, visible };
+  return {
+    variant,
+    tierFilter,
+    setTierFilter,
+    range,
+    setRange,
+    rangeActive,
+    sort,
+    setSort,
+    scored,
+    visible,
+  };
 }
 
 export type PrototypeRulesetFilter = {
@@ -367,10 +403,34 @@ export type PrototypeRulesetFilter = {
   onChange: (value: string) => void;
 };
 
+/* Three filter-panel treatments to steer direction; flipped from inside the popover. */
+const PANEL_STYLES = ['1', '2', '3'] as const;
+type PanelStyle = (typeof PANEL_STYLES)[number];
+const PANEL_NAMES: Record<PanelStyle, string> = {
+  '1': 'Checklist',
+  '2': 'Tier tiles',
+  '3': 'Range slider',
+};
+const PANEL_STORAGE_KEY = 'prototype-403-panel';
+
 /**
- * The single refine control: one popover combining the ruleset filter, complexity-tier checkboxes,
- * and complexity sort. Lives inside the toolbar's joined filter band; selecting a ruleset AND/OR
- * tiers narrows the grid immediately.
+ * The popover pane, drawn with the app's panel tokens so it reads as part of the design. A warm
+ * opaque base sits under the glass tint: floating panes can't borrow blur from busy card artwork
+ * without going illegible.
+ */
+const PANEL_DROPDOWN_STYLE: CSSProperties = {
+  background:
+    'linear-gradient(var(--panel-bg), var(--panel-bg)), var(--mantine-color-body, #f4ead8)',
+  border: '2px solid var(--panel-border)',
+  borderRadius: 'var(--panel-radius)',
+  boxShadow: 'var(--panel-shadow)',
+  backdropFilter: 'blur(var(--glass-blur-md, 10px))',
+};
+
+/**
+ * The single filter control: one popover combining the ruleset filter and the complexity filter
+ * (sorting stays outside, in the band). Selecting a ruleset AND/OR a complexity narrows the grid
+ * immediately.
  */
 export function PrototypeCatalogueControls({
   catalogue,
@@ -379,121 +439,241 @@ export function PrototypeCatalogueControls({
   catalogue: ReturnType<typeof usePrototypeCatalogue>;
   rulesetFilter: PrototypeRulesetFilter;
 }) {
-  const { tierFilter, setTierFilter, sort, setSort, scored, visible } = catalogue;
+  const { tierFilter, setTierFilter, range, setRange, rangeActive, scored, visible } = catalogue;
+  const [panel, setPanel] = useState<PanelStyle>(() => {
+    const raw = window.localStorage.getItem(PANEL_STORAGE_KEY);
+    return (PANEL_STYLES as readonly string[]).includes(raw ?? '') ? (raw as PanelStyle) : '1';
+  });
+  const changePanel = (value: PanelStyle) => {
+    window.localStorage.setItem(PANEL_STORAGE_KEY, value);
+    setPanel(value);
+  };
 
   const toggleTier = (tier: ComplexityTier) => {
     setTierFilter((current) =>
       current.includes(tier) ? current.filter((entry) => entry !== tier) : [...current, tier]
     );
   };
+  const tierCount = (tier: ComplexityTier) =>
+    scored.filter((entry) => entry.tier === tier).length;
 
   const rulesetActive = rulesetFilter.value !== 'all';
-  const activeCount = tierFilter.length + (rulesetActive ? 1 : 0);
-  const activeRulesetLabel = rulesetFilter.options.find(
-    (option) => option.value === rulesetFilter.value
-  )?.label;
+  const activeCount = tierFilter.length + (rulesetActive ? 1 : 0) + (rangeActive ? 1 : 0);
+  const filtered = activeCount > 0;
+
+  const rulesetSection = (
+    <Stack gap="xs">
+      <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+        Ruleset
+      </Text>
+      <Select
+        size="xs"
+        value={rulesetFilter.value}
+        data={rulesetFilter.options}
+        onChange={(value) => rulesetFilter.onChange(value ?? 'all')}
+        aria-label="Filter factions by ruleset"
+        allowDeselect={false}
+      />
+    </Stack>
+  );
 
   return (
     <Group gap="xs" align="center" wrap="nowrap">
-      <Popover position="bottom-start" shadow="md" width={300}>
+      <Popover position="bottom-start" shadow="md" width={320}>
         <Popover.Target>
           <Button
             size="compact-sm"
-            variant="subtle"
+            variant={filtered ? 'light' : 'subtle'}
             color="dune"
             leftSection={<SlidersHorizontal size={14} aria-hidden />}
           >
-            Refine{activeCount > 0 ? ` (${activeCount})` : ''}
+            Refine{filtered ? ` (${activeCount})` : ''}
           </Button>
         </Popover.Target>
-        <Popover.Dropdown>
+        <Popover.Dropdown style={PANEL_DROPDOWN_STYLE}>
           <Stack gap="md">
-            {activeCount > 0 || sort !== 'none' ? (
-              <Group gap="xs">
-                {rulesetActive && activeRulesetLabel ? (
-                  <Badge
-                    variant="light"
-                    color="gray"
-                    style={{ cursor: 'pointer' }}
-                    rightSection="×"
-                    onClick={() => rulesetFilter.onChange('all')}
-                  >
-                    {activeRulesetLabel}
-                  </Badge>
-                ) : null}
-                {tierFilter.map((tier) => (
-                  <Badge
-                    key={tier}
-                    variant="light"
-                    color={TIER_COPY[tier].color}
-                    style={{ cursor: 'pointer' }}
-                    rightSection="×"
-                    onClick={() => toggleTier(tier)}
-                  >
-                    {TIER_COPY[tier].label}
-                  </Badge>
-                ))}
-                <Text size="xs" c="dimmed">
-                  {visible.length} of {scored.length} factions
-                </Text>
-              </Group>
-            ) : null}
-            <Stack gap="xs">
-              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-                Ruleset
-              </Text>
-              <Select
-                size="xs"
-                value={rulesetFilter.value}
-                data={rulesetFilter.options}
-                onChange={(value) => rulesetFilter.onChange(value ?? 'all')}
-                aria-label="Filter factions by ruleset"
-                allowDeselect={false}
-              />
-            </Stack>
-            <Stack gap="xs">
-              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-                Complexity tier
-              </Text>
-              {TIER_ORDER.map((tier) => (
-                <Checkbox
-                  key={tier}
-                  size="sm"
-                  checked={tierFilter.includes(tier)}
-                  onChange={() => toggleTier(tier)}
-                  label={
-                    <Group gap={6} wrap="nowrap">
-                      <TopicIcon topic={TIER_COPY[tier].icon} size={14} />
-                      <span>{TIER_COPY[tier].label}</span>
-                      <Text size="xs" c="dimmed" span>
-                        {scored.filter((entry) => entry.tier === tier).length}
-                      </Text>
-                    </Group>
-                  }
-                />
+            {/* prototype-only: flip between panel treatments */}
+            <Group
+              gap={6}
+              justify="center"
+              style={{ fontFamily: 'monospace', fontSize: 11, opacity: 0.75 }}
+            >
+              {PANEL_STYLES.map((style) => (
+                <button
+                  key={style}
+                  type="button"
+                  onClick={() => changePanel(style)}
+                  style={{
+                    ...switcherButtonStyle,
+                    width: 'auto',
+                    padding: '2px 8px',
+                    background: panel === style ? '#111' : 'transparent',
+                    color: panel === style ? '#fff' : 'inherit',
+                  }}
+                >
+                  {style} {PANEL_NAMES[style]}
+                </button>
               ))}
-            </Stack>
-            <Stack gap="xs">
-              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-                Sort
+            </Group>
+
+            {rulesetSection}
+
+            {panel === '1' ? (
+              <Stack gap="xs">
+                <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+                  Complexity
+                </Text>
+                {TIER_ORDER.map((tier) => (
+                  <Checkbox
+                    key={tier}
+                    size="sm"
+                    checked={tierFilter.includes(tier)}
+                    onChange={() => toggleTier(tier)}
+                    styles={{ labelWrapper: { flex: '1 1 auto' }, label: { display: 'block' } }}
+                    label={
+                      <Group gap={6} wrap="nowrap" justify="space-between">
+                        <Group gap={6} wrap="nowrap">
+                          <TopicIcon topic={TIER_COPY[tier].icon} size={14} />
+                          <span>{TIER_COPY[tier].label}</span>
+                        </Group>
+                        <Text size="xs" c="dimmed" span>
+                          {tierCount(tier)}
+                        </Text>
+                      </Group>
+                    }
+                  />
+                ))}
+              </Stack>
+            ) : null}
+
+            {panel === '2' ? (
+              <Stack gap="xs">
+                <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+                  Complexity
+                </Text>
+                <SimpleGrid cols={2} spacing="xs">
+                  {TIER_ORDER.map((tier) => {
+                    const selected = tierFilter.includes(tier);
+                    return (
+                      <UnstyledButton
+                        key={tier}
+                        onClick={() => toggleTier(tier)}
+                        aria-pressed={selected}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '10px 6px',
+                          borderRadius: 'var(--panel-radius, 8px)',
+                          border: selected
+                            ? '2px solid var(--color-accent-strong, #c47f17)'
+                            : '2px solid var(--panel-border, rgba(0,0,0,0.15))',
+                          background: selected ? 'var(--glass-surface-2, rgba(196,127,23,0.12))' : 'transparent',
+                        }}
+                      >
+                        <TopicIcon topic={TIER_COPY[tier].icon} size={22} />
+                        <Text size="xs" fw={700}>
+                          {TIER_COPY[tier].label}
+                        </Text>
+                        <Text size="xs" c="dimmed">
+                          {tierCount(tier)}
+                        </Text>
+                      </UnstyledButton>
+                    );
+                  })}
+                </SimpleGrid>
+              </Stack>
+            ) : null}
+
+            {panel === '3' ? (
+              <Stack gap="xs">
+                <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+                  Complexity range
+                </Text>
+                <RangeSlider
+                  min={0}
+                  max={10}
+                  step={1}
+                  minRange={0}
+                  value={range}
+                  onChange={setRange}
+                  label={(value) => `${value}/10`}
+                  marks={[
+                    { value: 1, label: <TopicIcon topic={TIER_COPY.novice.icon} size={12} /> },
+                    { value: 4, label: <TopicIcon topic={TIER_COPY.intermediate.icon} size={12} /> },
+                    { value: 6, label: <TopicIcon topic={TIER_COPY.expert.icon} size={12} /> },
+                    { value: 9, label: <TopicIcon topic={TIER_COPY.master.icon} size={12} /> },
+                  ]}
+                  mb="md"
+                  aria-label="Filter by complexity range"
+                />
+              </Stack>
+            ) : null}
+
+            <Group gap="xs" justify="space-between">
+              <Text size="xs" c="dimmed">
+                {filtered ? `${visible.length} of ${scored.length} factions` : `${scored.length} factions`}
               </Text>
-              <Select
-                size="xs"
-                value={sort}
-                onChange={(value) => setSort((value as 'none' | 'asc' | 'desc') ?? 'none')}
-                data={[
-                  { value: 'none', label: 'Default order' },
-                  { value: 'asc', label: 'Complexity: low → high' },
-                  { value: 'desc', label: 'Complexity: high → low' },
-                ]}
-                aria-label="Sort by complexity"
-                allowDeselect={false}
-              />
-            </Stack>
+              {filtered ? (
+                <Button
+                  size="compact-xs"
+                  variant="subtle"
+                  color="gray"
+                  onClick={() => {
+                    setTierFilter([]);
+                    setRange([0, 10]);
+                    rulesetFilter.onChange('all');
+                  }}
+                >
+                  Clear filters
+                </Button>
+              ) : null}
+            </Group>
           </Stack>
         </Popover.Dropdown>
       </Popover>
     </Group>
+  );
+}
+
+/** The band's sort select, complexity options included — sorting stays separate from filtering. */
+export function PrototypeCatalogueSort({
+  catalogue,
+  sessionSort,
+  className,
+}: {
+  catalogue: ReturnType<typeof usePrototypeCatalogue>;
+  sessionSort: { value: string; onChange: (value: string) => void };
+  className?: string;
+}) {
+  const { sort, setSort } = catalogue;
+  const value = sort === 'none' ? sessionSort.value : sort === 'asc' ? 'cx-asc' : 'cx-desc';
+
+  return (
+    <Select
+      className={className}
+      variant="unstyled"
+      value={value}
+      data={[
+        { value: 'name', label: 'Alphabetical (A–Z)' },
+        { value: 'created', label: 'Chronological (created)' },
+        { value: 'updated', label: 'Chronological (updated)' },
+        { value: 'cx-asc', label: 'Complexity (low → high)' },
+        { value: 'cx-desc', label: 'Complexity (high → low)' },
+      ]}
+      allowDeselect={false}
+      onChange={(next) => {
+        if (next === 'cx-asc' || next === 'cx-desc') {
+          setSort(next === 'cx-asc' ? 'asc' : 'desc');
+          return;
+        }
+        setSort('none');
+        sessionSort.onChange(next ?? 'name');
+      }}
+      aria-label="Sort factions"
+      leftSection={<ArrowDownAZ size={15} aria-hidden />}
+    />
   );
 }
 
