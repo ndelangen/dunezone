@@ -1,0 +1,60 @@
+diff --git a/dist/export-mocks/react-router.js b/dist/export-mocks/react-router.js
+index 2e732a878fb0ff61096f14527ca4b6ad8dae89e4..2a799cc7950f9037e48b3d2f67fde96639ba5ef9 100644
+--- a/dist/export-mocks/react-router.js
++++ b/dist/export-mocks/react-router.js
+@@ -36,17 +36,51 @@ var useNavigate = fn(_useNavigate).mockName("@tanstack/react-router::useNavigate
+ }, [to, href]), null), Link = ({
+   to,
+   children,
++  onClick,
++  // Router-only props: consumed here so they never reach the DOM element.
++  params,
++  search,
++  hash,
++  state,
++  from,
++  mask,
++  activeProps,
++  inactiveProps,
++  activeOptions,
++  preload,
++  preloadDelay,
++  replace,
++  resetScroll,
++  startTransition,
++  viewTransition,
++  reloadDocument,
++  ignoreBlocker,
++  hashScrollIntoView,
+   ...props
+ }) => {
+   let location = useLocation();
++  let href = String(to ?? "");
++  if (params)
++    href = href.replace(/\$([A-Za-z0-9_]+)/g, (match, key) => params[key] != null ? String(params[key]) : match);
++  let pathname = location.pathname ?? "";
++  let isActive = activeOptions?.exact ? pathname === href : pathname === href || pathname.startsWith(href.endsWith("/") ? href : href + "/");
++  let stateProps = isActive ? activeProps : inactiveProps;
++  let { className: stateClassName, style: stateStyle, ...restStateProps } = (typeof stateProps == "function" ? stateProps() : stateProps) ?? {};
++  let className = [props.className, stateClassName].filter(Boolean).join(" ") || void 0;
++  let style = props.style || stateStyle ? { ...props.style, ...stateStyle } : void 0;
+   return React.createElement(
+     "a",
+     {
+-      href: to,
++      ...props,
++      ...restStateProps,
++      href,
++      className,
++      style,
++      "data-status": isActive ? "active" : void 0,
++      "aria-current": isActive ? "page" : props["aria-current"],
+       onClick: (e) => {
+-        e.preventDefault(), onNavigate({ to, from: location.href });
+-      },
+-      ...props
++        e.preventDefault(), onNavigate({ to, from: location.href }), onClick?.(e);
++      }
+     },
+     children
+   );
