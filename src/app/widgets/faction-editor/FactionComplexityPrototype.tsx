@@ -18,6 +18,7 @@ import {
   Stack,
   Switch,
   Text,
+  Tooltip,
   UnstyledButton,
 } from '@mantine/core';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -28,11 +29,11 @@ import type { FactionData } from '@db/factions';
 
 import {
   TIER_COPY,
-  TierIconBadge,
   outOfTen,
   prototypeComplexity,
   prototypeTier,
 } from '../../routes/_app/factions/-complexity-prototype';
+import type { ComplexityTier } from '../../routes/_app/factions/-complexity-prototype';
 import type { FactionFormApi } from './factionFormTypes';
 
 /* Deviation advisory fires when |manual − calculated| reaches this many points (of 10). */
@@ -152,6 +153,57 @@ const SLIDER_MARKS = [
  * Toolbar indicator — the catalogue's tier-glyph indicator, live, with a summary popover.
  * --------------------------------------------------------------------------------------------- */
 
+/** Animated donut ring around the tier glyph: empty at 0, a full circle at 1. */
+function DonutTierIcon({ tier, score }: { tier: ComplexityTier; score: number }) {
+  const size = 34;
+  const stroke = 3;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  return (
+    <span
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: size,
+        height: size,
+      }}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        aria-hidden
+        style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}
+      >
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeOpacity={0.18}
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="var(--color-accent-strong, #c47f17)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - Math.min(1, Math.max(0, score)))}
+          style={{ transition: 'stroke-dashoffset 400ms ease' }}
+        />
+      </svg>
+      <TopicIcon topic={TIER_COPY[tier].icon} size={16} />
+    </span>
+  );
+}
+
 export function PrototypeComplexityToolbarIndicator({ form }: { form: FactionFormApi }) {
   const manual = useManualComplexity();
   return (
@@ -163,19 +215,16 @@ export function PrototypeComplexityToolbarIndicator({ form }: { form: FactionFor
         return (
           <Popover position="bottom-end" shadow="md" width={300}>
             <Popover.Target>
-              <UnstyledButton
-                aria-label={`Faction complexity: ${shown10} out of 10`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '6px 10px',
-                  borderRadius: 'var(--panel-radius)',
-                  border: '2px solid var(--panel-border)',
-                }}
+              <Tooltip
+                label={`Complexity ${shown10}/10 · ${TIER_COPY[tier].label}${manual === null ? ' (auto)' : ' (manual)'}`}
               >
-                {/* Same indicator as the catalogue cards, inheriting toolbar text colour. */}
-                <TierIconBadge tier={tier} detail={`${shown10}/10`} color="inherit" />
-              </UnstyledButton>
+                <UnstyledButton
+                  aria-label={`Faction complexity: ${shown10} out of 10`}
+                  style={{ display: 'inline-flex', alignItems: 'center' }}
+                >
+                  <DonutTierIcon tier={tier} score={shown10 / 10} />
+                </UnstyledButton>
+              </Tooltip>
             </Popover.Target>
             <Popover.Dropdown
               style={{
