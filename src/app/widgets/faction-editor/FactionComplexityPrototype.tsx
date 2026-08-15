@@ -27,8 +27,13 @@ import type { CSSProperties } from 'react';
 
 import type { FactionData } from '@db/factions';
 
+import { FactionCard } from '@ui/block/FactionCard';
+
+import type { FactionCatalogueEntry } from '@db/factions';
+
 import {
   TIER_COPY,
+  TierIconBadge,
   outOfTen,
   prototypeComplexity,
   prototypeTier,
@@ -250,6 +255,32 @@ export function PrototypeComplexityToolbarIndicator({ form }: { form: FactionFor
         );
       }}
     </form.Subscribe>
+  );
+}
+
+/**
+ * Artifact-workbench proof for the Complexity chapter: the catalogue's faction card, carrying the
+ * effective rating (author's manual value when set, else the estimate) exactly as the catalogue
+ * shows it. Inert — the proof is for looking at, not navigating.
+ */
+export function PrototypeComplexityCardProof({ faction }: { faction: FactionData }) {
+  const manual = useManualComplexity();
+  const shown10 = manual ?? calc10Of(faction.rules);
+  const tier = prototypeTier(shown10 / 10);
+  const entry = {
+    _id: 'complexity-proof',
+    slug: 'complexity-proof',
+    rulesets: [],
+    data: faction,
+  } as unknown as FactionCatalogueEntry;
+
+  return (
+    <div style={{ position: 'relative', pointerEvents: 'none' }}>
+      <FactionCard faction={entry} />
+      <div style={{ position: 'absolute', bottom: '4.5%', right: '5%', zIndex: 5 }}>
+        <TierIconBadge tier={tier} detail={`${shown10}/10`} />
+      </div>
+    </div>
   );
 }
 
