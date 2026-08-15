@@ -98,7 +98,7 @@ export const HeaderlessPageResponsive = meta.story({
     for (const width of [1160, 1000, 860, 390]) {
       canvasElement.style.width = `${width}px`;
       await expect(Math.round(band.getBoundingClientRect().width)).toBe(width);
-      await expect(Math.round(band.getBoundingClientRect().height)).toBe(51);
+      await expect(band.getBoundingClientRect().height).toBe(51);
     }
     canvasElement.style.removeProperty('width');
   },
