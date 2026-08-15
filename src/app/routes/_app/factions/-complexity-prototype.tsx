@@ -72,7 +72,7 @@ const TIER_COPY: Record<
   master: { label: 'Master', blurb: 'A heavy read — for veterans of the sand.', color: 'red', icon: 'fate' },
 };
 
-/** Tier icon in a translucent roundel — sits bottom-right on each catalogue tile. */
+/** Bare tier glyph — no disc — bottom-right on each catalogue tile, shadowed for contrast. */
 function TierIconBadge({ tier, detail }: { tier: ComplexityTier; detail?: string }) {
   return (
     <div
@@ -80,16 +80,14 @@ function TierIconBadge({ tier, detail }: { tier: ComplexityTier; detail?: string
         display: 'flex',
         alignItems: 'center',
         gap: 6,
-        padding: detail ? '4px 10px' : 6,
-        borderRadius: 999,
-        background: 'rgba(0,0,0,0.55)',
         color: '#fff',
-        backdropFilter: 'blur(4px)',
+        filter:
+          'drop-shadow(0 1px 2px rgba(0,0,0,0.9)) drop-shadow(0 0 6px rgba(0,0,0,0.6))',
       }}
       aria-label={`${TIER_COPY[tier].label} complexity`}
     >
-      <TopicIcon topic={TIER_COPY[tier].icon} size={15} />
-      {detail ? <span style={{ fontSize: 11, fontWeight: 700 }}>{detail}</span> : null}
+      <TopicIcon topic={TIER_COPY[tier].icon} size={22} />
+      {detail ? <span style={{ fontSize: 12, fontWeight: 700 }}>{detail}</span> : null}
     </div>
   );
 }
@@ -355,8 +353,8 @@ export function usePrototypeCatalogue(factions: FactionCatalogueEntry[]) {
 }
 
 /**
- * The richer refine control: one popover holding tier checkboxes and complexity sort. A sketch of
- * the "filtering dropdown overhaul" — production would fold this into the toolbar's joined band.
+ * The richer refine control: one popover holding tier checkboxes and complexity sort. Lives inside
+ * the toolbar's joined filter band, next to the ruleset and sort selects.
  */
 export function PrototypeCatalogueControls({
   catalogue,
@@ -372,12 +370,12 @@ export function PrototypeCatalogueControls({
   };
 
   return (
-    <Group mb="md" gap="sm" align="center" wrap="wrap">
+    <Group gap="xs" align="center" wrap="nowrap">
       <Popover position="bottom-start" shadow="md" width={300}>
         <Popover.Target>
           <Button
-            size="xs"
-            variant="light"
+            size="compact-sm"
+            variant="subtle"
             color="dune"
             leftSection={<SlidersHorizontal size={14} aria-hidden />}
           >
@@ -386,6 +384,25 @@ export function PrototypeCatalogueControls({
         </Popover.Target>
         <Popover.Dropdown>
           <Stack gap="md">
+            {tierFilter.length > 0 || sort !== 'none' ? (
+              <Group gap="xs">
+                {tierFilter.map((tier) => (
+                  <Badge
+                    key={tier}
+                    variant="light"
+                    color={TIER_COPY[tier].color}
+                    style={{ cursor: 'pointer' }}
+                    rightSection="×"
+                    onClick={() => toggleTier(tier)}
+                  >
+                    {TIER_COPY[tier].label}
+                  </Badge>
+                ))}
+                <Text size="xs" c="dimmed">
+                  {visible.length} of {scored.length} factions
+                </Text>
+              </Group>
+            ) : null}
             <Stack gap="xs">
               <Text size="xs" fw={700} tt="uppercase" c="dimmed">
                 Complexity tier
@@ -428,23 +445,6 @@ export function PrototypeCatalogueControls({
           </Stack>
         </Popover.Dropdown>
       </Popover>
-      {tierFilter.map((tier) => (
-        <Badge
-          key={tier}
-          variant="light"
-          color={TIER_COPY[tier].color}
-          style={{ cursor: 'pointer' }}
-          rightSection="×"
-          onClick={() => toggleTier(tier)}
-        >
-          {TIER_COPY[tier].label}
-        </Badge>
-      ))}
-      {tierFilter.length > 0 || sort !== 'none' ? (
-        <Text size="xs" c="dimmed">
-          {visible.length} of {scored.length} factions
-        </Text>
-      ) : null}
     </Group>
   );
 }

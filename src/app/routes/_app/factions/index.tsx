@@ -76,6 +76,7 @@ function FactionsPage() {
             visibleCount={session.visibleFactions.length}
             totalCount={data.factions.length}
             onSearchChange={session.changeSearch}
+            complexityPrototype={complexityPrototype}
           />
         ) : undefined}
       </PageLayout.Toolbar>
@@ -83,13 +84,10 @@ function FactionsPage() {
         {hasFactions ? (
           session.visibleFactions.length > 0 ? (
             /* PROTOTYPE (wayfinder #403) — replaces <FactionList> while variants are evaluated */
-            <>
-              <PrototypeCatalogueControls catalogue={complexityPrototype} />
-              <PrototypeCatalogueList
-                catalogue={complexityPrototype}
-                selectedRulesetSlug={session.search.ruleset}
-              />
-            </>
+            <PrototypeCatalogueList
+              catalogue={complexityPrototype}
+              selectedRulesetSlug={session.search.ruleset}
+            />
           ) : (
             <FilteredEmptyState onReset={session.reset} />
           )
@@ -194,6 +192,7 @@ function CatalogueToolbar({
   visibleCount,
   totalCount,
   onSearchChange,
+  complexityPrototype,
 }: {
   draftQuery: string;
   onDraftQueryChange: (value: string) => void;
@@ -203,6 +202,8 @@ function CatalogueToolbar({
   visibleCount: number;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
+  /* PROTOTYPE (wayfinder #403) */
+  complexityPrototype: ReturnType<typeof usePrototypeCatalogue>;
 }) {
   const [opened, setOpened] = useState(false);
   const rulesetOptions = useMemo(
@@ -279,6 +280,8 @@ function CatalogueToolbar({
             />
             {rulesetSelect(undefined, true)}
             {sortSelect(undefined, true)}
+            {/* PROTOTYPE (wayfinder #403) — the richer filtering control lives in this band */}
+            <PrototypeCatalogueControls catalogue={complexityPrototype} />
             <IconAction
               label="Refine factions"
               className={styles.mobileRefineButton}
