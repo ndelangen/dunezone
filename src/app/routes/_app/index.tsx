@@ -11,6 +11,7 @@ import {
   Stack,
   Text,
   Title,
+  Tooltip,
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -27,10 +28,30 @@ import { TriptychLayout } from '@ui/layout/TriptychLayout';
 import { Bullets } from '@ui/list/Bullets';
 import { Surface } from '@ui/surface';
 import { ArrowRight, BookOpen, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
+import { FaRedditAlien } from 'react-icons/fa6';
+import { SiBoardgamegeek, SiDiscord } from 'react-icons/si';
 
 import { loadHomepage, useHomepage } from '@db/homepage';
 
 import styles from './index.module.css';
+
+const communityLinks = [
+  {
+    href: 'https://discord.com/invite/dune-tabletop-624609341886169117',
+    label: 'Dune Discord server',
+    Icon: SiDiscord,
+  },
+  {
+    href: 'https://www.reddit.com/r/DuneBoardGame/',
+    label: 'r/DuneBoardGame on Reddit',
+    Icon: FaRedditAlien,
+  },
+  {
+    href: 'https://boardgamegeek.com/boardgame/283355/dune/forums/69',
+    label: 'Dune forums on BoardGameGeek',
+    Icon: SiBoardgamegeek,
+  },
+] as const;
 
 export const Route = createFileRoute('/_app/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
@@ -200,30 +221,21 @@ function IndexPage() {
                     Meet the community
                   </Button>
                 </Group>
-                <Group gap="xs">
-                  <Anchor
-                    href="https://discord.com/invite/dune-tabletop-624609341886169117"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Discord
-                  </Anchor>
-                  <Text c="dimmed">·</Text>
-                  <Anchor
-                    href="https://www.reddit.com/r/DuneBoardGame/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Reddit
-                  </Anchor>
-                  <Text c="dimmed">·</Text>
-                  <Anchor
-                    href="https://boardgamegeek.com/boardgame/283355/dune/forums/69"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    BoardGameGeek
-                  </Anchor>
+                <Group gap="md">
+                  {communityLinks.map(({ href, label, Icon }) => (
+                    <Tooltip key={href} label={label}>
+                      <Anchor
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={label}
+                        underline="never"
+                        className={styles.communityIconLink}
+                      >
+                        <Icon size={22} aria-hidden />
+                      </Anchor>
+                    </Tooltip>
+                  ))}
                 </Group>
               </Stack>
             </SimpleGrid>

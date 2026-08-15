@@ -7,21 +7,6 @@
   text-transform: uppercase;
 }
 
-.icon {
-  display: grid;
-  flex: 0 0 auto;
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 1px solid rgba(248, 175, 64, 0.42);
-  border-radius: 50%;
-  color: var(--color-accent);
-  place-items: center;
-  transition:
-    color var(--transition-fast),
-    background var(--transition-fast),
-    transform var(--transition-fast);
-}
-
 .linkCopy {
   display: grid;
   gap: 0.15rem;
@@ -53,41 +38,39 @@
 }
 
 .waypoints nav {
-  display: grid;
-  max-width: 42rem;
-  margin: 1rem auto 0;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  margin-top: 1rem;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .waypointLink {
   display: grid;
   position: relative;
-  gap: 0.7rem;
-  padding: 0.4rem 1rem;
-  color: inherit;
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid rgba(248, 175, 64, 0.42);
+  border-radius: 50%;
+  color: var(--color-accent);
   text-decoration: none;
-  justify-items: center;
+  place-items: center;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
 }
 
-.waypointLink:not(:last-child)::after {
-  position: absolute;
-  top: 1.55rem;
-  right: -25%;
-  width: 50%;
-  border-top: 1px dashed rgba(115, 92, 71, 0.28);
-  content: "";
-}
-
-.waypointLink:hover .icon {
+.waypointLink:hover {
   background: var(--color-link);
   color: #fff9ef;
   transform: translateY(-3px);
 }
 
 .waypointLink:focus-visible {
-  border-radius: 6px;
   outline: 2px solid var(--color-accent);
-  outline-offset: 4px;
+  outline-offset: 3px;
 }
 
 .preference {
@@ -154,21 +137,6 @@
 }
 
 @media (max-width: 700px) {
-  .waypoints nav {
-    grid-template-columns: 1fr;
-  }
-
-  .waypointLink {
-    grid-template-columns: auto 1fr;
-    text-align: left;
-    align-items: center;
-    justify-items: start;
-  }
-
-  .waypointLink::after {
-    display: none;
-  }
-
   .preference + .preference {
     margin-left: 0;
   }

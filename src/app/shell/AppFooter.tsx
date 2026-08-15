@@ -1,28 +1,34 @@
-import { BookOpen, GitFork, ShieldCheck } from 'lucide-react';
+import { Tooltip } from '@mantine/core';
+import { Link } from '@tanstack/react-router';
+import { ShieldCheck } from 'lucide-react';
 import { useId } from 'react';
+import { FaRedditAlien } from 'react-icons/fa6';
+import { SiBoardgamegeek, SiDiscord, SiGithub, SiStorybook } from 'react-icons/si';
 
 import styles from './AppFooter.module.css';
 import { setSchemePreference, useSchemePreference } from './colorScheme';
 import { setMotionOverride, useMotionPreference } from './motion';
 
+/* `to` marks a routed page; `href` is a destination outside the router — the static Storybook
+   build, or an external site (opened in a new tab). */
 const footerLinks = [
+  { href: '/__storybook/', icon: SiStorybook, label: 'Component library' },
+  { href: 'https://github.com/ndelangen/dunezone', icon: SiGithub, label: 'Source code' },
+  { to: '/privacy', icon: ShieldCheck, label: 'Privacy policy' },
   {
-    href: '/__storybook/',
-    icon: BookOpen,
-    label: 'Component library',
-    note: 'Explore the interface',
+    href: 'https://discord.com/invite/dune-tabletop-624609341886169117',
+    icon: SiDiscord,
+    label: 'Dune Discord server',
   },
   {
-    href: 'https://github.com/ndelangen/dunezone',
-    icon: GitFork,
-    label: 'Source code',
-    note: 'Built in the open',
+    href: 'https://www.reddit.com/r/DuneBoardGame/',
+    icon: FaRedditAlien,
+    label: 'r/DuneBoardGame on Reddit',
   },
   {
-    href: '/privacy',
-    icon: ShieldCheck,
-    label: 'Privacy policy',
-    note: 'How data is handled',
+    href: 'https://boardgamegeek.com/boardgame/283355/dune/forums/69',
+    icon: SiBoardgamegeek,
+    label: 'Dune forums on BoardGameGeek',
   },
 ] as const;
 
@@ -72,10 +78,12 @@ function PreferenceSegments<Value extends string>({
 }
 
 /**
- * Public waypoints to the project's component catalogue, source, and policies — and the controls
- * that override the OS's appearance hints for this site: reduced motion (see `motion.ts`) and the
- * color scheme (see `colorScheme.ts`). Both are bare inputs because the chrome sits outside
- * `ApplicationChrome`'s Mantine provider.
+ * Public waypoints to the project's component catalogue, source, policies, and community homes —
+ * and the controls that override the OS's appearance hints for this site: reduced motion (see
+ * `motion.ts`) and the color scheme (see `colorScheme.ts`). The waypoints are icon-only circles;
+ * one `label` per entry fans out to the accessible name and the `Tooltip`, so the two cannot come
+ * apart. The preference controls are bare inputs styled with the band rather than the content
+ * theme; both share the segmented radio treatment.
  */
 export function AppFooter() {
   const motion = useMotionPreference();
@@ -85,17 +93,31 @@ export function AppFooter() {
     <div className={styles.waypoints}>
       <p className={styles.eyebrow}>Continue exploring</p>
       <nav aria-label="Footer">
-        {footerLinks.map(({ href, icon: Icon, label, note }) => (
-          <a className={styles.waypointLink} href={href} key={href}>
-            <span className={styles.icon}>
-              <Icon aria-hidden size={20} strokeWidth={1.8} />
-            </span>
-            <span className={styles.linkCopy}>
-              <strong>{label}</strong>
-              <small>{note}</small>
-            </span>
-          </a>
-        ))}
+        {footerLinks.map((entry) => {
+          const { icon: Icon, label } = entry;
+          const glyph = <Icon aria-hidden size={20} strokeWidth={1.8} />;
+
+          return (
+            <Tooltip key={label} label={label}>
+              {'to' in entry ? (
+                <Link aria-label={label} className={styles.waypointLink} to={entry.to}>
+                  {glyph}
+                </Link>
+              ) : (
+                <a
+                  aria-label={label}
+                  className={styles.waypointLink}
+                  href={entry.href}
+                  {...(entry.href.startsWith('https://')
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : undefined)}
+                >
+                  {glyph}
+                </a>
+              )}
+            </Tooltip>
+          );
+        })}
       </nav>
       <PreferenceSegments
         label="Ambient motion"

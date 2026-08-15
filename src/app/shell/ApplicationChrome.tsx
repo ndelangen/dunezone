@@ -29,9 +29,11 @@ export interface ApplicationChromeProps {
 }
 
 /**
- * Application-only shell and Mantine provider, kept outside bare renderer routes. `colorScheme.ts`
- * owns the scheme; the provider only relays the resolved verdict, so Mantine and tokens.css agree
- * without a second writer.
+ * Application-only shell and Mantine provider, kept outside bare renderer routes. The provider
+ * wraps the chrome too — the shell's markup stays plain CSS-module styling, but its components (the
+ * footer's tooltips) reuse the same Mantine primitives as page content. `colorScheme.ts` owns the
+ * scheme; the provider only relays the resolved verdict, so Mantine and tokens.css agree without a
+ * second writer.
  */
 export function ApplicationChrome({ children, pathname }: ApplicationChromeProps) {
   const scheme = useResolvedScheme();
@@ -44,14 +46,12 @@ export function ApplicationChrome({ children, pathname }: ApplicationChromeProps
   );
 
   return (
-    <AppRoot pathname={pathname}>
-      <MantineProvider
-        theme={appContentTheme}
-        forceColorScheme={scheme}
-        colorSchemeManager={schemeBridge}
-      >
-        {children}
-      </MantineProvider>
-    </AppRoot>
+    <MantineProvider
+      theme={appContentTheme}
+      forceColorScheme={scheme}
+      colorSchemeManager={schemeBridge}
+    >
+      <AppRoot pathname={pathname}>{children}</AppRoot>
+    </MantineProvider>
   );
 }
