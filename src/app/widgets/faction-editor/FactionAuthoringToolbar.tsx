@@ -2,7 +2,7 @@ import { Badge, Button, Group, Stack, Text } from '@mantine/core';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import type { FactionSaveState } from '@ui/content/assetPublishingStatus';
 import { IconAction } from '@ui/control/IconAction';
-import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Eye, RotateCcw, Save } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -80,7 +80,6 @@ export function FactionAuthoringToolbar({
   auxiliaryActions?: ReactNode;
   context?: ReactNode;
   destructiveActions?: ReactNode;
-  /* PROTOTYPE (wayfinder #404) — remove with FactionComplexityPrototype.tsx */
   centerIndicator?: ReactNode;
 }) {
   const { isDirty, isNameBlank, warningCount, saveState, assetPublishing } = status;
@@ -92,23 +91,10 @@ export function FactionAuthoringToolbar({
   } = deriveToolbarStatus(saveState, isDirty, assetPublishing);
 
   return (
-    <Surface padding="sm" className={styles.toolbar}>
-      {/* PROTOTYPE (wayfinder #404) — centred complexity indicator overlay */}
-      {centerIndicator ? (
-        <div
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 1,
-          }}
-        >
-          {centerIndicator}
-        </div>
-      ) : null}
-      <Group justify="space-between" gap="sm" wrap="nowrap" className={styles.toolbarRow}>
-        <Group gap="sm" wrap="nowrap" className={styles.leading}>
+    <div className={styles.sticky}>
+      <Toolbar>
+        <Toolbar.Left>
+          <Group gap="sm" wrap="nowrap" className={styles.leading}>
           <IconAction
             label="Back"
             variant="light"
@@ -154,9 +140,14 @@ export function FactionAuthoringToolbar({
               {context}
             </div>
           </Stack>
-        </Group>
+          </Group>
+        </Toolbar.Left>
 
-        <Group gap="xs" wrap="nowrap" className={styles.actions}>
+        {/* PROTOTYPE (wayfinder #404): currently carries the complexity indicator */}
+        <Toolbar.Center>{centerIndicator}</Toolbar.Center>
+
+        <Toolbar.Right>
+          <Group gap="xs" wrap="nowrap" className={styles.actions}>
           <div className={styles.auxiliarySlot}>{auxiliaryActions}</div>
           <IconAction
             label="Reset unsaved edits"
@@ -187,8 +178,9 @@ export function FactionAuthoringToolbar({
           >
             Save faction
           </Button>
-        </Group>
-      </Group>
-    </Surface>
+          </Group>
+        </Toolbar.Right>
+      </Toolbar>
+    </div>
   );
 }
