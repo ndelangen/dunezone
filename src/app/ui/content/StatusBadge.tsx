@@ -28,10 +28,13 @@ export interface StatusBadgeProps {
  * an asset publication, and no page re-invents that ladder inline.
  */
 export function StatusBadge({ tone = 'neutral', live = false, children }: StatusBadgeProps) {
+  /* Neutral takes the default variant: the light variant of the warm `gray` tuple collapses into
+     the dark scheme's navy surfaces, while the stock tone tuples derive legible dark values. */
   return (
     <Badge
-      variant="light"
-      color={TONE_COLOR[tone]}
+      {...(tone === 'neutral'
+        ? { variant: 'default' as const }
+        : { variant: 'light' as const, color: TONE_COLOR[tone] })}
       {...(live ? { role: 'status', 'aria-live': 'polite' as const } : {})}
     >
       {children}

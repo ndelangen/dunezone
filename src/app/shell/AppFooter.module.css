@@ -73,16 +73,33 @@
   outline-offset: 3px;
 }
 
-.motionToggle {
+.preference {
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
   margin-top: 1.4rem;
-  cursor: pointer;
   text-align: left;
 }
 
-.motionInput {
+.preference + .preference {
+  margin-left: 2.2rem;
+}
+
+.segments {
+  display: inline-flex;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(248, 175, 64, 0.42);
+  border-radius: 999px;
+  background: rgba(17, 11, 8, 0.6);
+}
+
+.segment {
+  position: relative;
+  cursor: pointer;
+}
+
+.segmentInput {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -90,42 +107,37 @@
   opacity: 0;
 }
 
-.motionTrack {
-  position: relative;
-  flex: 0 0 auto;
-  width: 2.1rem;
-  height: 1.15rem;
-  border: 1px solid rgba(248, 175, 64, 0.42);
-  border-radius: 999px;
-  background: rgba(17, 11, 8, 0.6);
-  transition: background var(--transition-fast);
-}
-
-.motionTrack::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0.15rem;
-  width: 0.8rem;
-  height: 0.8rem;
-  border-radius: 50%;
-  background: rgba(255, 249, 239, 0.7);
-  transform: translateY(-50%);
+.segmentLabel {
+  display: inline-block;
+  padding: 0.18rem 0.6rem;
+  color: rgba(255, 249, 239, 0.7);
+  font-size: 0.68rem;
   transition:
-    transform var(--transition-fast),
-    background var(--transition-fast);
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
-.motionInput:checked + .motionTrack {
+.segmentInput:checked + .segmentLabel {
   background: var(--color-link);
+  color: #fff9ef;
 }
 
-.motionInput:checked + .motionTrack::after {
-  background: #fff9ef;
-  transform: translate(0.9rem, -50%);
-}
-
-.motionInput:focus-visible + .motionTrack {
+.segmentInput:focus-visible + .segmentLabel {
   outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
+  outline-offset: -2px;
+}
+
+/* The band's warm-black glass belongs to the light scheme; dark trades it for Twilight navy. */
+[data-mantine-color-scheme="dark"] .waypoints {
+  border-color: rgba(150, 165, 195, 0.25);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(67, 83, 110, 0.3), transparent 52%),
+    rgba(12, 20, 34, 0.82);
+  box-shadow: 0 -14px 38px rgba(4, 8, 16, 0.3);
+}
+
+@media (max-width: 700px) {
+  .preference + .preference {
+    margin-left: 0;
+  }
 }

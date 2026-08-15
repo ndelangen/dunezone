@@ -137,7 +137,7 @@ export function FaqList({
                           title={item.asker_profile.username ?? 'View asker profile'}
                         />
                       ) : null}
-                      <Text component="time" dateTime={item.created_at} size="xs" c="dark.4">
+                      <Text component="time" dateTime={item.created_at} size="xs" c="dimmed">
                         {formatRelativeDate(item.created_at)}
                       </Text>
                     </Group>

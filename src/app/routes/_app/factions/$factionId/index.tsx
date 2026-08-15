@@ -284,7 +284,7 @@ function FactionDetailPage() {
                             <Text fw={700} lh={1.2}>
                               {troop.name}
                             </Text>
-                            <Badge variant="filled" color="grey" size="lg">
+                            <Badge variant="default" size="lg">
                               ×{troop.count}
                             </Badge>
                           </Group>

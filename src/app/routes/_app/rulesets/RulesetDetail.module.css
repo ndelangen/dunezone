@@ -84,7 +84,10 @@
   height: 100%;
   min-height: 100%;
   padding-inline: var(--mantine-spacing-sm) var(--mantine-spacing-lg);
-  border-left: 1px solid var(--mantine-color-gray-3);
+  /* Transparent: the host TextInput owns the surface, so the embedded select never tints a
+     mismatched patch over it in either scheme. */
+  background: transparent;
+  border-left: 1px solid var(--mantine-color-default-border);
   border-radius: 0 var(--mantine-radius-md) var(--mantine-radius-md) 0;
   font-size: var(--mantine-font-size-xs);
   font-weight: 700;

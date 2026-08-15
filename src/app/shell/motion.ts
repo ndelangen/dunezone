@@ -58,3 +58,14 @@ function subscribe(listener: () => void): () => void {
 export function useMotionAllowed(): boolean {
   return useSyncExternalStore(subscribe, motionAllowed, () => false);
 }
+
+export type MotionPreference = 'system' | 'on' | 'off';
+
+/** The stored override, or `system` when the OS hint decides; `system` during server rendering. */
+export function useMotionPreference(): MotionPreference {
+  return useSyncExternalStore(
+    subscribe,
+    () => readOverride() ?? 'system',
+    () => 'system'
+  );
+}

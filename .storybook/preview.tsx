@@ -20,6 +20,18 @@ sb.mock(import('@convex-dev/auth/react'));
 export default definePreview({
   addons: [addonDocs()],
   globalTypes: {
+    colorScheme: {
+      description: 'Color scheme: the shell tokens and Mantine theme',
+      toolbar: {
+        title: 'Scheme',
+        icon: 'circlehollow',
+        items: [
+          { value: 'light', title: 'Scheme: light' },
+          { value: 'dark', title: 'Scheme: dark' },
+        ],
+        dynamicTitle: true,
+      },
+    },
     motion: {
       description: "Ambient motion: the chrome's band video and turning dice",
       toolbar: {
@@ -35,9 +47,16 @@ export default definePreview({
     },
   },
   /* The toolbar drives the real `motion` cookie override rather than a module mock, so stories
-     exercise the same code path visitors do; `auto` clears it back to the browser's own hint. */
+     exercise the same code path visitors do; `auto` clears it back to the browser's own hint. The
+     scheme global mirrors the app's attribute so tokens.css flips with the provider; a story can
+     force a scheme by setting `globals: { colorScheme: 'dark' }`. Visual tests stay on the light
+     default for determinism. */
   beforeEach: ({ globals }) => {
     setMotionOverride(globals.motion === 'on' ? 'on' : globals.motion === 'reduce' ? 'off' : null);
+    document.documentElement.setAttribute(
+      'data-mantine-color-scheme',
+      globals.colorScheme === 'dark' ? 'dark' : 'light'
+    );
   },
   parameters: {
     layout: 'centered',
@@ -160,7 +179,10 @@ export default definePreview({
          renderers that carry their own colour and must not inherit the app's palette. */
       if (!title.startsWith('Game Assets/')) {
         return (
-          <MantineProvider theme={appContentTheme} forceColorScheme="light">
+          <MantineProvider
+            theme={appContentTheme}
+            forceColorScheme={globals.colorScheme === 'dark' ? 'dark' : 'light'}
+          >
             {story}
           </MantineProvider>
         );
@@ -170,6 +192,7 @@ export default definePreview({
     },
   ],
   initialGlobals: {
+    colorScheme: 'light',
     motion: 'auto',
     backgrounds: {
       value: '#333333',

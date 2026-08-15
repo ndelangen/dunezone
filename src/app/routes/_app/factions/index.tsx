@@ -310,7 +310,7 @@ function FilteredEmptyState({ onReset }: { onReset: () => void }) {
       <Stack gap="sm" align="center">
         <Title order={2}>No factions found</Title>
         <Text c="dimmed">Try another search or reset the catalogue filters.</Text>
-        <Button variant="light" color="gray" onClick={onReset}>
+        <Button variant="default" onClick={onReset}>
           Reset filters &amp; search
         </Button>
       </Stack>

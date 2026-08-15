@@ -60,7 +60,13 @@ function PageLayoutBase({ children }: PropsWithChildren) {
       data-page-layout-compact={hasHeader ? undefined : 'true'}
       data-page-layout-header-size={hasHeader ? headerSize : undefined}
     >
-      {hasHeader && <div className={styles.headerContent}>{header}</div>}
+      {/* data-scheme-paper: header content always sits on the light artwork band, so it keeps
+          its light-scheme rendering in both schemes (see tokens.css). */}
+      {hasHeader && (
+        <div className={styles.headerContent} data-scheme-paper>
+          {header}
+        </div>
+      )}
       <main className={styles.content}>
         {toolbar}
         {content}

@@ -19,7 +19,7 @@ export interface ProposedContentProps {
 export function ProposedContent({ label, children }: ProposedContentProps) {
   return (
     <Stack gap="sm">
-      <Badge variant="light" color="gray" w="fit-content">
+      <Badge variant="default" w="fit-content">
         {label}
       </Badge>
       {children}

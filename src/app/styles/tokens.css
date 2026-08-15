@@ -1,4 +1,20 @@
+/*
+ * The single source of truth for shell colors. Light values live on bare `:root`, dark overrides
+ * under `:root[data-mantine-color-scheme='dark']` — the attribute Mantine maintains — so contexts
+ * without the app chrome (print capture, the publisher entry, bare renderer routes) degrade to
+ * light. `theme.ts` consumes these via var(); it holds no color values of its own besides the
+ * Mantine tuples, which are internal ramps, not mirrors.
+ */
 :root {
+  color-scheme: light;
+
+  /*
+   * Scheme-invariant inks: Mantine's `white`/`black` slots. Mantine uses these as filled-component
+   * ink in both schemes (~70 static-CSS sites), so they must never flip with the scheme.
+   */
+  --color-paper: #fffdf8;
+  --color-ink: #2e2927;
+
   --color-text: #2e2927;
   --color-muted: #735c47;
   --color-link: #84220c;
@@ -50,6 +66,7 @@
 
   --panel-bg: var(--glass-surface-1);
   --panel-border: #fee7c0;
+  --surface-hover-tint: white;
   --panel-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.166);
   --panel-radius: 6px;
   --input-bg: var(--glass-input);
@@ -84,4 +101,87 @@
 
   --transition-fast: 140ms ease;
   --transition-base: 200ms ease;
+}
+
+/* Dark: the Twilight palette — cool navy surfaces from the night-dunes artwork, warm amber kept
+ * for interactive elements. Structural tokens (spacing, radii, transitions) never flip. */
+:root[data-mantine-color-scheme="dark"] {
+  color-scheme: dark;
+
+  --color-text: #ece7dc;
+  --color-muted: #a9b0bd;
+  --color-link: #f4b45c;
+  --color-error: #ff8a5c;
+  --color-accent: #f8af40;
+  --color-accent-strong: #c78346;
+  --color-focus-ring: rgba(248, 175, 64, 0.4);
+
+  --button-neutral-bg: #2b3648;
+  --button-neutral-hover-bg: #344156;
+  --button-neutral-active-bg: #3e4d66;
+  --button-neutral-fg: #ece7dc;
+  --button-neutral-disabled-bg: #1f2836;
+  --button-neutral-disabled-fg: #71809a;
+
+  --button-add-bg: #d4a24f;
+  --button-add-hover-bg: #e0b160;
+  --button-add-active-bg: #ecc071;
+  --button-add-fg: #221807;
+  --button-add-disabled-bg: #5c4a26;
+  --button-add-disabled-fg: #a5926c;
+
+  --button-confirm-bg: #6f8e57;
+  --button-confirm-hover-bg: #7d9c64;
+  --button-confirm-active-bg: #8baa72;
+  --button-confirm-fg: #f2f7ec;
+  --button-confirm-disabled-bg: #37452b;
+  --button-confirm-disabled-fg: #81926f;
+
+  --button-danger-bg: #b5533b;
+  --button-danger-hover-bg: #c45f46;
+  --button-danger-active-bg: #d26d53;
+  --button-danger-fg: #fff1ec;
+  --button-danger-disabled-bg: #532e23;
+  --button-danger-disabled-fg: #a1786a;
+
+  --button-toggle-active-bg: #475877;
+
+  --glass-surface-0: rgba(12, 20, 34, 0.42);
+  --glass-surface-1: rgba(12, 20, 34, 0.55);
+  --glass-surface-2: rgba(17, 28, 46, 0.65);
+  --glass-input: rgba(15, 25, 42, 0.88);
+  --glass-overlay: rgba(13, 22, 37, 0.96);
+
+  --panel-border: #43536e;
+  --surface-hover-tint: #43536e;
+  --input-border: rgba(150, 165, 195, 0.35);
+  --input-border-strong: rgba(150, 165, 195, 0.5);
+}
+
+/*
+ * Scheme-pinned paper. A subtree marked data-scheme-paper sits on the light artwork band in both
+ * schemes (the masthead, per the surface-coverage decision), so it gets one scheme-independent
+ * treatment: the light glass surfaces, with amber signals and pale metas that stay legible on
+ * translucent glass over artwork.
+ */
+[data-scheme-paper] {
+  --color-muted: #c9b394;
+  --color-link: #f4b45c;
+  --color-focus-ring: rgba(244, 207, 139, 0.42);
+
+  --glass-surface-0: rgba(255, 255, 255, 0.1);
+  --glass-surface-1: rgba(255, 255, 255, 0.12);
+  --glass-surface-2: rgba(255, 255, 255, 0.2);
+  --glass-overlay: rgba(255, 253, 248, 0.95);
+
+  /* Re-declared, not inherited: --panel-bg resolves its var() at :root, so the dark value would
+     arrive here already baked unless the alias is re-resolved inside this subtree. */
+  --panel-bg: var(--glass-surface-1);
+
+  --panel-border: #fee7c0;
+  --surface-hover-tint: white;
+  --mantine-color-dimmed: rgba(255, 249, 239, 0.7);
+
+  /* Inherited text resolves at body, outside this subtree, so the ink is set directly. */
+  color: var(--color-paper);
 }
