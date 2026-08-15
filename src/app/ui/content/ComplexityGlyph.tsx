@@ -9,14 +9,26 @@ export const COMPLEXITY_TIER_PRESENTATION: Record<
   ComplexityTier,
   { label: string; blurb: string; icon: TopicIconTopic }
 > = {
-  novice: { label: 'Novice', blurb: 'Light rules — a fine first faction.', icon: 'spice' },
+  novice: {
+    label: 'Novice',
+    blurb: 'Light rules — a fine first faction.',
+    icon: 'complexityNovice',
+  },
   intermediate: {
     label: 'Intermediate',
     blurb: 'A comfortable read with a few twists.',
-    icon: 'rules',
+    icon: 'complexityIntermediate',
   },
-  expert: { label: 'Expert', blurb: 'Dense rules that reward table experience.', icon: 'advantages' },
-  master: { label: 'Master', blurb: 'A heavy read — for veterans of the sand.', icon: 'fate' },
+  expert: {
+    label: 'Expert',
+    blurb: 'Dense rules that reward table experience.',
+    icon: 'complexityExpert',
+  },
+  master: {
+    label: 'Master',
+    blurb: 'A heavy read — for veterans of the sand.',
+    icon: 'complexityMaster',
+  },
 };
 
 export interface ComplexityGlyphProps {
