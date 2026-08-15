@@ -1,4 +1,5 @@
 import { BookOpen, GitFork, ShieldCheck } from 'lucide-react';
+import { useId } from 'react';
 
 import styles from './AppFooter.module.css';
 import { setSchemePreference, useSchemePreference } from './colorScheme';
@@ -40,6 +41,9 @@ const schemeOptions = [
 export function AppFooter() {
   const motion = useMotionAllowed();
   const scheme = useSchemePreference();
+  /* Instance-scoped ids: autodocs renders several footers into one document, and a shared radio
+     name would fuse their groups into a single arrow-key ring. */
+  const schemeGroupId = useId();
 
   return (
     <div className={styles.waypoints}>
@@ -70,14 +74,18 @@ export function AppFooter() {
           <small>The masthead video and the turning dice</small>
         </span>
       </label>
-      <div className={styles.schemeToggle} role="radiogroup" aria-label="Color scheme">
+      <div
+        className={styles.schemeToggle}
+        role="radiogroup"
+        aria-labelledby={`${schemeGroupId}-label`}
+      >
         <span className={styles.schemeSegments}>
           {schemeOptions.map(({ value, label }) => (
             <label className={styles.schemeSegment} key={value}>
               <input
                 checked={scheme === value}
                 className={styles.schemeInput}
-                name="color-scheme"
+                name={`${schemeGroupId}-scheme`}
                 onChange={() => setSchemePreference(value)}
                 type="radio"
               />
@@ -86,7 +94,7 @@ export function AppFooter() {
           ))}
         </span>
         <span className={styles.linkCopy}>
-          <strong>Color scheme</strong>
+          <strong id={`${schemeGroupId}-label`}>Color scheme</strong>
           <small>Follow the system, or pin light or dark</small>
         </span>
       </div>

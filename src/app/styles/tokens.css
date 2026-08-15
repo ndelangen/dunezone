@@ -152,7 +152,6 @@
   --glass-overlay: rgba(13, 22, 37, 0.96);
 
   --panel-border: #43536e;
-  --input-bg: var(--glass-input);
   --input-border: rgba(150, 165, 195, 0.35);
   --input-border-strong: rgba(150, 165, 195, 0.5);
 }

@@ -1,4 +1,5 @@
 import { MantineProvider } from '@mantine/core';
+import type { MantineColorSchemeManager } from '@mantine/core';
 import { appContentTheme } from '@ui/theme';
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
@@ -6,7 +7,21 @@ import type { ReactNode } from 'react';
 import '@mantine/core/styles.layer.css';
 import '../styles/mantine-shell-compatibility.css';
 import { AppRoot } from './AppRoot';
-import { useResolvedScheme } from './colorScheme';
+import { resolvedScheme, useResolvedScheme } from './colorScheme';
+
+/*
+ * Mantine's default manager reads its own localStorage key in a mount layout-effect and rewrites
+ * the html attribute before first paint — a second writer that flashes dark visitors light. This
+ * bridge makes that effect read colorScheme.ts's verdict instead; everything else is a no-op
+ * because `forceColorScheme` already relays changes.
+ */
+const schemeBridge: MantineColorSchemeManager = {
+  get: () => resolvedScheme(),
+  set: () => {},
+  subscribe: () => {},
+  unsubscribe: () => {},
+  clear: () => {},
+};
 
 export interface ApplicationChromeProps {
   children: ReactNode;
@@ -30,7 +45,11 @@ export function ApplicationChrome({ children, pathname }: ApplicationChromeProps
 
   return (
     <AppRoot pathname={pathname}>
-      <MantineProvider theme={appContentTheme} forceColorScheme={scheme}>
+      <MantineProvider
+        theme={appContentTheme}
+        forceColorScheme={scheme}
+        colorSchemeManager={schemeBridge}
+      >
         {children}
       </MantineProvider>
     </AppRoot>

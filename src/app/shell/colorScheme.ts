@@ -12,7 +12,7 @@ import { useSyncExternalStore } from 'react';
  * (print capture, publisher, auth) never run either writer and stay light by construction.
  */
 
-export const COLOR_SCHEME_STORAGE_KEY = 'dunezone-color-scheme';
+const COLOR_SCHEME_STORAGE_KEY = 'dunezone-color-scheme';
 
 export type SchemePreference = 'light' | 'dark' | 'system';
 export type ResolvedScheme = 'light' | 'dark';
@@ -36,7 +36,8 @@ function systemScheme(): ResolvedScheme {
     : 'light';
 }
 
-function resolvedScheme(): ResolvedScheme {
+/** The current verdict, for the provider's manager bridge; components use the hooks below. */
+export function resolvedScheme(): ResolvedScheme {
   const preference = readPreference();
   return preference === 'system' ? systemScheme() : preference;
 }

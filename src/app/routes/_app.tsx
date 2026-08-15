@@ -12,9 +12,9 @@ export const Route = createFileRoute('/_app')({
            paint so a dark visitor never flashes light. Lives on this layout, not the root, so
            bare renderer routes (print capture, publisher, auth) stay light by construction. */
         children:
-          `(function(){try{var p=localStorage.getItem('dunezone-color-scheme');` +
+          `(function(){var p=null;try{p=localStorage.getItem('dunezone-color-scheme')}catch(e){}` +
           `var d=p==='dark'||(p!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);` +
-          `document.documentElement.setAttribute('data-mantine-color-scheme',d?'dark':'light')}catch(e){}})()`,
+          `document.documentElement.setAttribute('data-mantine-color-scheme',d?'dark':'light')})()`,
       },
     ],
   }),
