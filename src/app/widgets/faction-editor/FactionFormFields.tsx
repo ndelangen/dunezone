@@ -29,6 +29,8 @@ import type {
 } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
 import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
+/* PROTOTYPE (wayfinder #404) — remove with FactionComplexityPrototype.tsx */
+import { PrototypeComplexityChapter } from './FactionComplexityPrototype';
 import { FactionFormSectionAdvantages } from './FactionFormSectionAdvantages';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
 import { FactionFormSectionBackground } from './FactionFormSectionBackground';
@@ -56,6 +58,8 @@ const chapterIcons: Record<
   forces: 'troops',
   rules: 'rules',
   advantages: 'advantages',
+  /* PROTOTYPE (wayfinder #404) */
+  complexity: 'spice',
 };
 
 function ChapterIcon({
@@ -425,6 +429,8 @@ export const FactionFormFields = forwardRef<
           }
         />
       ) : null}
+      {/* PROTOTYPE (wayfinder #404) */}
+      {chapter === 'complexity' ? <PrototypeComplexityChapter form={form} /> : null}
     </>
   );
 
