@@ -256,7 +256,7 @@ function CatalogueRefine({
           .length;
 
   return (
-    <Popover position="bottom" width={320}>
+    <Popover position="bottom" width={320} closeOnEscape trapFocus>
       <Popover.Target>
         <InputBase
           component="button"
