@@ -25,6 +25,11 @@ async function migrationTest() {
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   migrationsTest.register(t);
+  const historicalAssetBase = withoutComplexity();
+  const historicalAssetData = {
+    ...historicalAssetBase,
+    background: { ...historicalAssetBase.background, image: '' },
+  };
   const ids = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Complexity migration owner' });
     await ctx.db.insert('profiles', {
@@ -35,14 +40,14 @@ async function migrationTest() {
       created_at: now,
       updated_at: now,
     });
-    const insert = async (slug: string, data: unknown) =>
+    const insert = async (slug: string, data: unknown, isDeleted = false) =>
       await ctx.db.insert('factions', {
         owner_id: ownerId,
         data,
         slug,
         created_at: now,
         updated_at: now,
-        is_deleted: false,
+        is_deleted: isDeleted,
         group_id: null,
       });
     return {
@@ -52,14 +57,15 @@ async function migrationTest() {
         ...withoutComplexity(),
         complexity: { calculated: 0.01, manual: 0.4 },
       }),
+      historicalAsset: await insert('complexity-historical-asset', historicalAssetData, true),
     };
   });
-  return { t, ids };
+  return { t, ids, historicalAssetData };
 }
 
 describe('faction grouped complexity migration', () => {
   test('backfills accurate calculated values and preserves legacy manual ratings', async () => {
-    const { t, ids } = await migrationTest();
+    const { t, ids, historicalAssetData } = await migrationTest();
     const calculated = calculateComplexity(assetPublishingFaction.rules);
 
     const legacyDetail = await t.query(api.factions.getBySlug, { slug: 'complexity-scalar' });
@@ -76,10 +82,15 @@ describe('faction grouped complexity migration', () => {
       absent: await ctx.db.get('factions', ids.absent),
       scalar: await ctx.db.get('factions', ids.scalar),
       staleGrouped: await ctx.db.get('factions', ids.staleGrouped),
+      historicalAsset: await ctx.db.get('factions', ids.historicalAsset),
     }));
     expect(rows.absent?.data.complexity).toEqual({ calculated });
     expect(rows.scalar?.data.complexity).toEqual({ calculated, manual: 0.7 });
     expect(rows.staleGrouped?.data.complexity).toEqual({ calculated, manual: 0.4 });
+    expect(rows.historicalAsset?.data.complexity).toEqual({ calculated });
+    const { complexity: _complexity, ...preservedHistoricalAssetData } =
+      rows.historicalAsset?.data ?? {};
+    expect(preservedHistoricalAssetData).toEqual(historicalAssetData);
   });
 
   test('verification rejects inaccurate grouped values', async () => {

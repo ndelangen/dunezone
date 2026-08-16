@@ -68,6 +68,16 @@ const migrations = new Migrations(components.migrations, {
   schema,
 });
 
+/**
+ * Complexity backfills only depend on rules and the transitional complexity value. Historical
+ * factions may contain unrelated asset ids that current authoring no longer accepts, so validating
+ * the entire document here would couple this migration to fields it must preserve untouched.
+ */
+const factionComplexityMigrationDataSchema = CanonicalFactionStoredSchema.pick({
+  rules: true,
+  complexity: true,
+}).passthrough();
+
 async function resolveUniqueGroupSlug(
   ctx: QueryCtx | MutationCtx,
   name: string,
@@ -433,16 +443,17 @@ export const faction_complexity_grouped_v1 = migrations.define({
   table: 'factions',
   batchSize: 50,
   migrateOne: async (_ctx, row) => {
-    const data = CanonicalFactionStoredSchema.parse(row.data);
-    const next = recalculateFactionComplexity(data);
+    const { rules, complexity } = factionComplexityMigrationDataSchema.parse(row.data);
+    const next = recalculateFactionComplexity({ rules, complexity });
     if (
-      typeof data.complexity === 'object' &&
-      data.complexity.calculated === next.complexity.calculated &&
-      data.complexity.manual === next.complexity.manual
+      complexity !== null &&
+      typeof complexity === 'object' &&
+      complexity.calculated === next.complexity.calculated &&
+      complexity.manual === next.complexity.manual
     ) {
       return;
     }
-    return { data: next };
+    return { data: { ...row.data, complexity: next.complexity } };
   },
 });
 
@@ -451,14 +462,14 @@ export const faction_complexity_grouped_verify_v1 = migrations.define({
   table: 'factions',
   batchSize: 50,
   migrateOne: async (_ctx, row) => {
-    const data = CanonicalFactionStoredSchema.parse(row.data);
-    if (typeof data.complexity !== 'object') {
+    const { rules, complexity } = factionComplexityMigrationDataSchema.parse(row.data);
+    if (complexity === null || typeof complexity !== 'object') {
       throw new Error(`Faction ${row._id} still has legacy complexity storage`);
     }
-    const expected = calculateComplexity(data.rules);
-    if (data.complexity.calculated !== expected) {
+    const expected = calculateComplexity(rules);
+    if (complexity.calculated !== expected) {
       throw new Error(
-        `Faction ${row._id} has calculated complexity ${data.complexity.calculated}; expected ${expected}`
+        `Faction ${row._id} has calculated complexity ${complexity.calculated}; expected ${expected}`
       );
     }
   },
