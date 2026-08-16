@@ -214,8 +214,8 @@ function ComplexityRangeSlider({
 }
 
 /**
- * The band's filter field: one popover holding the ruleset chips and the complexity range — everything that narrows the
- * grid, while sorting stays its own field. The trigger reads exactly like the selects beside it.
+ * The band's filter field: one popover holding the ruleset chips and the complexity range — everything that narrows the grid, while sorting stays its own field.
+ * The trigger reads exactly like the selects beside it.
  */
 function CatalogueRefine({
   search,

@@ -52,9 +52,8 @@ export const DifferentNoun = meta.story({
 });
 
 /**
- * The group page's exact wording, which the noun cannot derive: the trigger says what the reader is about to do, the
- * field says whose factions these are, and the commit says where they land. Asserted here because deriving all three
- * from `noun` silently rewrote this copy once, and only an end-to-end spec noticed.
+ * The group page's exact wording, which the noun cannot derive: the trigger says what the reader is about to do, the field says whose factions these are, and the commit says where they land.
+ * Asserted here because deriving all three from `noun` silently rewrote this copy once, and only an end-to-end spec noticed.
  */
 export const CallerSuppliedCopy = meta.story({
   args: {

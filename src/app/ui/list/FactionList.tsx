@@ -11,10 +11,10 @@ export type FactionListProps = {
 
 /**
  * Factions, as a grid of `FactionCard` tiles.
- *
- * A List — callers hand it the entries and this owns only the rhythm between them: the column count per breakpoint and
- * the gap. The tiles are self-framed, so this must sit in a `Section`, never on a `Card`'s pane. Callers own the empty
- * case.
+ * 
+ * A List — callers hand it the entries and this owns only the rhythm between them: the column count per breakpoint and the gap.
+ * The tiles are self-framed, so this must sit in a `Section`, never on a `Card`'s pane.
+ * Callers own the empty case.
  */
 export function FactionList({ factions, selectedRulesetSlug, className }: FactionListProps) {
   return (

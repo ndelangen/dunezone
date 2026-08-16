@@ -59,8 +59,8 @@ export interface ComplexityGlyphProps {
   /** Wraps the tier glyph in an animated ring filled to the score. */
   progressRing?: boolean;
   /**
-   * Hides the glyph from assistive technology. Use where the surrounding element already names itself (a chapter tab, a
-   * labelled row) so the rating doesn't churn its accessible name.
+   * Hides the glyph from assistive technology.
+   * Use where the surrounding element already names itself (a chapter tab, a labelled row) so the rating doesn't churn its accessible name.
    */
   decorative?: boolean;
   size?: number;
@@ -69,8 +69,7 @@ export interface ComplexityGlyphProps {
 
 /**
  * The canonical indicator for a complexity rating: the tier's glyph in `currentColor`, optionally with its x/10 value.
- * Owns which tier a score presents as; callers own colour and placement — on a faction card it inherits the caption's
- * white, in a toolbar the toolbar's ink.
+ * Owns which tier a score presents as; callers own colour and placement — on a faction card it inherits the caption's white, in a toolbar the toolbar's ink.
  */
 export function ComplexityGlyph({
   score,

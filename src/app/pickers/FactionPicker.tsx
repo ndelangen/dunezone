@@ -29,12 +29,10 @@ export interface FactionPickerProps {
 }
 
 /**
- * A Picker: the connected control that fetches the viewer's loadable factions, lets one be chosen, and hands the parsed
- * faction back through `onLoaded`. It fetches its own options (and the viewer context its own affordances need) —
- * read-only, never mutating — and its caller mounts it lazily so the subscription lives only while it is on screen.
- * Here that caller is `FactionLoadPopover`, which mounts this only while the popover is open, so the picker subscribes
- * the moment it appears (the container already gated the mount and opening the popover is the intent signal). An inline
- * caller with no such gate would instead defer the subscription to its own control's open; see the Pickers section in
+ * A Picker: the connected control that fetches the viewer's loadable factions, lets one be chosen, and hands the parsed faction back through `onLoaded`.
+ * It fetches its own options (and the viewer context its own affordances need) — read-only, never mutating — and its caller mounts it lazily so the subscription lives only while it is on screen.
+ * Here that caller is `FactionLoadPopover`, which mounts this only while the popover is open, so the picker subscribes the moment it appears (the container already gated the mount and opening the popover is the intent signal).
+ * An inline caller with no such gate would instead defer the subscription to its own control's open; see the Pickers section in
  * AGENTS.md.
  */
 export function FactionPicker({ currentPublicSlug, onLoaded, onCancel }: FactionPickerProps) {

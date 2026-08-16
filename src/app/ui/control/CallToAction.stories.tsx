@@ -32,8 +32,9 @@ export const SmallForward = meta.story({
 });
 
 /**
- * Pulses every five seconds. Watch for a moment — and note it stops entirely under `prefers-reduced-motion`. Reserve it
- * for a page whose whole purpose is this one action.
+ * Pulses every five seconds.
+ * Watch for a moment — and note it stops entirely under `prefers-reduced-motion`.
+ * Reserve it for a page whose whole purpose is this one action.
  */
 export const Attention = meta.story({
   args: { attention: true },

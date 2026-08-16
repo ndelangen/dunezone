@@ -8,15 +8,14 @@ import schema from '../convex/schema';
 
 /**
  * The unified provision pipeline (map #352, ticket #359).
- *
- * Every non-production environment is a derived value — rebuilt from (code, data source), never repaired. The pipeline
- * is five stages: backend → configure → code → data → users, parameterized per target:
- *
- * E2e docker backend, fixture data (users: Playwright logins) local docker backend, prod clone (users: A/B logins +
- * remap, via app-dev) dev cloud dev deployment, prod clone (users: replicated prod identities)
- *
- * Invariants: data flows prod → down only; CI invokes this same script; the e2e target must remain incapable of
- * touching prod — its commands never receive production credentials (see strippedProductionCredentials).
+ * 
+ * Every non-production environment is a derived value — rebuilt from (code, data source), never repaired.
+ * The pipeline is five stages: backend → configure → code → data → users, parameterized per target:
+ * 
+ * E2e docker backend, fixture data (users: Playwright logins) local docker backend, prod clone (users: A/B logins + remap, via app-dev) dev cloud dev deployment, prod clone (users: replicated prod identities)
+ * 
+ * Invariants: data flows prod → down only;
+ * CI invokes this same script; the e2e target must remain incapable of touching prod — its commands never receive production credentials (see strippedProductionCredentials).
  */
 
 export type ProvisionTarget = 'e2e' | 'local' | 'dev';
@@ -99,9 +98,9 @@ export function selfHostedEnvironment(base: NodeJS.ProcessEnv, deployment: SelfH
 }
 
 /**
- * Environment for commands against the long-lived cloud dev deployment. The deployment-scoped dev key pins every
- * command to that deployment; CONVEX_DEPLOYMENT stays unset because `convex deploy` would otherwise silently target
- * production (see ticket #353).
+ * Environment for commands against the long-lived cloud dev deployment.
+ * The deployment-scoped dev key pins every command to that deployment;
+ * CONVEX_DEPLOYMENT stays unset because `convex deploy` would otherwise silently target production (see ticket #353).
  */
 export function cloudDevEnvironment(base: NodeJS.ProcessEnv, deployment: CloudDevDeployment): NodeJS.ProcessEnv {
   return commandEnvironment(base, {
@@ -116,8 +115,8 @@ export function cloudDevEnvironment(base: NodeJS.ProcessEnv, deployment: CloudDe
 }
 
 /**
- * Environment for the read-only prod snapshot export. Prefers the dedicated CONVEX_PROD_DEPLOY_KEY, falls back to the
- * ambient CONVEX_DEPLOY_KEY (the repo's deploy secret is the prod key — #353), and otherwise relies on the logged-in
+ * Environment for the read-only prod snapshot export.
+ * Prefers the dedicated CONVEX_PROD_DEPLOY_KEY, falls back to the ambient CONVEX_DEPLOY_KEY (the repo's deploy secret is the prod key — #353), and otherwise relies on the logged-in
  * CLI plus `--prod`.
  */
 function productionExportEnvironment(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
@@ -210,8 +209,8 @@ export type AuthConfiguration = {
 };
 
 /**
- * Configure stage: local auth env vars + fresh JWT material for the disposable deployment. The cloud dev deployment
- * keeps its own env vars (they survive snapshot imports and are set once — ticket #354).
+ * Configure stage: local auth env vars + fresh JWT material for the disposable deployment.
+ * The cloud dev deployment keeps its own env vars (they survive snapshot imports and are set once — ticket #354).
  */
 export function configureLocalAuth(
   deployment: SelfHostedDeployment,
@@ -260,8 +259,7 @@ export function loadFixtureData(deployment: SelfHostedDeployment, env: NodeJS.Pr
 }
 
 /**
- * Data stage, clone flavor: point-in-time prod snapshot, atomically imported over the target, then the non-replicated
- * tables are cleared with the documented empty-import pattern.
+ * Data stage, clone flavor: point-in-time prod snapshot, atomically imported over the target, then the non-replicated tables are cleared with the documented empty-import pattern.
  */
 export function cloneProductionData(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
   const snapshotPath = exportProductionSnapshot(env, workDirectory);
@@ -269,9 +267,8 @@ export function cloneProductionData(deployment: TargetDeployment, env: NodeJS.Pr
 }
 
 /**
- * Rebuilding a long-lived deployment cannot simply push code and then import: a schema push is validated against the
- * data already there, and an import is validated against the schema already there, so a narrowing change breaks the
- * first order and a widening change breaks the second. Clearing first escapes both — empty tables satisfy every schema
+ * Rebuilding a long-lived deployment cannot simply push code and then import: a schema push is validated against the data already there, and an import is validated against the schema already there, so a narrowing change breaks the first order and a widening change breaks the second.
+ * Clearing first escapes both — empty tables satisfy every schema
  * — which is also what lets a deployment whose data went stale recover instead of deadlocking on its own failed push.
  */
 export function rebuildFromProduction(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
@@ -311,9 +308,8 @@ function clearAllTables(deployment: TargetDeployment, env: NodeJS.ProcessEnv, wo
 }
 
 /**
- * A clone that fails its contract is not a completed clone, so the assertion is part of the data stage rather than a
- * separate caller's responsibility. The query throws on violation, which exits `convex run` non-zero and fails whoever
- * invoked the pipeline.
+ * A clone that fails its contract is not a completed clone, so the assertion is part of the data stage rather than a separate caller's responsibility.
+ * The query throws on violation, which exits `convex run` non-zero and fails whoever invoked the pipeline.
  */
 function assertRebuildContract(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
   console.log('Verifying the rebuild contract...');
@@ -344,8 +340,7 @@ type RemapBatchResult = { isDone: boolean; continueCursor: string };
 const REMAP_BATCH_SIZE = 50;
 
 /**
- * Parses a `convex run` result: non-TTY output is pretty-printed JSON spanning multiple lines, so the whole output is
- * one JSON value.
+ * Parses a `convex run` result: non-TTY output is pretty-printed JSON spanning multiple lines, so the whole output is one JSON value.
  */
 export function parseConvexRunResult<Result>(output: string, functionName: string): Result {
   const trimmed = output.trim();
@@ -380,8 +375,7 @@ function drainRemapBatches(fetchBatch: (cursor: string | null) => RemapBatchResu
 }
 
 /**
- * Users stage, local flavor: after the two local accounts exist, hand the cloned factions and groups to reviewer A (B
- * stays a member) so the local review workflow keeps working on prod-shaped data (ticket #357).
+ * Users stage, local flavor: after the two local accounts exist, hand the cloned factions and groups to reviewer A (B stays a member) so the local review workflow keeps working on prod-shaped data (ticket #357).
  */
 export function remapOwnershipToLocalUsers(
   deployment: SelfHostedDeployment,

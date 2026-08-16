@@ -30,8 +30,7 @@ const INITIAL: FaqEditingState = {
 };
 
 /**
- * FAQ editing session: the draft-vs-current rules for editing a question and its answers (seed from current with the
- * default-tag fallback, trim, treat unchanged saves as a plain close, stay open on failure so the command error shows).
+ * FAQ editing session: the draft-vs-current rules for editing a question and its answers (seed from current with the default-tag fallback, trim, treat unchanged saves as a plain close, stay open on failure so the command error shows).
  * Framework-free, mirroring the faction authoring session; the route hosts it through a state sink.
  */
 export function createFaqEditingSession(ports: FaqEditingPorts) {

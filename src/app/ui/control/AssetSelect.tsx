@@ -33,8 +33,8 @@ export interface AssetSelectProps extends Omit<
 }
 
 /**
- * Searchable asset input for options that are easier to identify from a preview than text alone. Labels, descriptions
- * and validation messages belong to the consuming form layout.
+ * Searchable asset input for options that are easier to identify from a preview than text alone.
+ * Labels, descriptions and validation messages belong to the consuming form layout.
  */
 export function AssetSelect({
   'aria-describedby': ariaDescribedBy,

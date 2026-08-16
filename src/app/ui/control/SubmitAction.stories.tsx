@@ -16,8 +16,7 @@ const meta = preview.meta({
 export const Default = meta.story({});
 
 /**
- * In flight: the label becomes progress and the button latches, so an impatient second click cannot submit the same
- * form twice.
+ * In flight: the label becomes progress and the button latches, so an impatient second click cannot submit the same form twice.
  */
 export const Pending = meta.story({
   args: { pending: true },

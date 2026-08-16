@@ -16,8 +16,8 @@ type TroopTokenProps = z.infer<typeof FactionRender.troops>[0];
 
 /**
  * The star files carried baked colors until the vector train (#307): cream star over a black outline, red for the
- * `-red` variants. They are colorless now; `hue` recolors the star, and the old two looks remain the defaults so stored
- * factions render unchanged.
+ * `-red` variants.
+ * They are colorless now; `hue` recolors the star, and the old two looks remain the defaults so stored factions render unchanged.
  */
 function starHue(star: string, hue: string | undefined): string {
   if (hue) {

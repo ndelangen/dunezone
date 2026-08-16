@@ -3,14 +3,10 @@ import { appendFileSync } from 'node:fs';
 
 /**
  * Decides whether a merge needs the dev deployment's data rebuilt from production.
- *
- * Only changes that can invalidate or reshape dev's existing data qualify: the schema itself, and the migrations that
- * reshape data within a schema (cloud dev runs no migrations of its own — the rebuild replaced them, so a migration
- * that never reached dev's data is a stale-data bug).
- *
- * Every merge still pushes code to dev, which doubles as the safety net for a missed rebuild: Convex validates existing
- * data against the pushed schema, so data left stale by a skipped rebuild fails that push loudly on the very next
- * merge.
+ * 
+ * Only changes that can invalidate or reshape dev's existing data qualify: the schema itself, and the migrations that reshape data within a schema (cloud dev runs no migrations of its own — the rebuild replaced them, so a migration that never reached dev's data is a stale-data bug).
+ * 
+ * Every merge still pushes code to dev, which doubles as the safety net for a missed rebuild: Convex validates existing data against the pushed schema, so data left stale by a skipped rebuild fails that push loudly on the very next merge.
  */
 export function needsDataRebuild(changedFiles: readonly string[]): boolean {
   return changedFiles.some((file) => {

@@ -5,8 +5,8 @@ import schema from '../schema';
 import { factionBackgroundValidator, factionDataValidator } from './factionData';
 
 /**
- * Document validators derive from their authority, `convex/schema.ts` (ADR-0002); faction `data` derives from the
- * canonical faction Zod schema. Do not restate table shapes by hand here.
+ * Document validators derive from their authority, `convex/schema.ts` (ADR-0002); faction `data` derives from the canonical faction Zod schema.
+ * Do not restate table shapes by hand here.
  */
 function docValidator<Table extends keyof typeof schema.tables>(table: Table) {
   return schema.tables[table].validator.extend({

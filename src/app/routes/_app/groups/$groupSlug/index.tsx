@@ -33,8 +33,8 @@ import type { RulesetEntry } from '@db/rulesets';
 import styles from './index.module.css';
 
 /**
- * The structural minimum both owned-asset queries satisfy. Their validator-derived row types remain the authority for
- * the shape; this names only the part the picker reads.
+ * The structural minimum both owned-asset queries satisfy.
+ * Their validator-derived row types remain the authority for the shape; this names only the part the picker reads.
  */
 type AssetAssignOption = {
   id: string;
@@ -306,10 +306,8 @@ type AssignPickerProps = {
 };
 
 /**
- * Labels this viewer's own factions or rulesets for `AssignPopover`, and owns the one thing the kit control must not:
- * asking before a move. An asset already maintained by another group leaves that group when it is added here, which is
- * a consequence only this page knows about — so the confirmation lives here, and backing out resolves `false` to leave
- * the popover open.
+ * Labels this viewer's own factions or rulesets for `AssignPopover`, and owns the one thing the kit control must not: asking before a move.
+ * An asset already maintained by another group leaves that group when it is added here, which is a consequence only this page knows about — so the confirmation lives here, and backing out resolves `false` to leave the popover open.
  */
 function OwnedAssetPicker({
   noun,
@@ -369,9 +367,8 @@ function OwnedAssetPicker({
 }
 
 /**
- * Only mounted for active members (see call sites): the owned-factions query requires authentication, so it must not be
- * called for anonymous, pending, or non-member viewers. Subscribing to a second query beyond the page query deviates
- * from the one-query-per-route default; that was decided explicitly for this picker (issues #348/#182: keep
+ * Only mounted for active members (see call sites): the owned-factions query requires authentication, so it must not be called for anonymous, pending, or non-member viewers.
+ * Subscribing to a second query beyond the page query deviates from the one-query-per-route default; that was decided explicitly for this picker (issues #348/#182: keep
  * `detailBySlug` unchanged, expose the viewer-scoped owned lists as their own queries).
  */
 function FactionAssignPicker(props: AssignPickerProps) {
@@ -400,9 +397,9 @@ function RulesetAssignPicker(props: AssignPickerProps) {
 }
 
 /**
- * Dune-specific crest for the Factions section. These faction logo files ship without root width/height (see `Token`'s
- * `StrokedUse` pattern) — reference the `#root` fragment via `<use>` inside an own viewBox rather than a plain `<img
- * src>`, which renders as a broken 0x0 image.
+ * Dune-specific crest for the Factions section.
+ * These faction logo files ship without root width/height (see `Token`'s
+ * `StrokedUse` pattern) — reference the `#root` fragment via `<use>` inside an own viewBox rather than a plain `<img src>`, which renders as a broken 0x0 image.
  */
 function FremenIcon({ size = 18 }: { size?: number }) {
   return (

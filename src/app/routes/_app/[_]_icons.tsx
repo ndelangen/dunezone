@@ -76,14 +76,11 @@ const ENTRIES_BY_SOURCE: Record<CatalogSource, CatalogEntry[]> = {
 };
 
 /**
- * Grows `visibleCount` in `BATCH_SIZE` steps as a sentinel element at the bottom of the grid enters the viewport, and
- * resets it whenever `resetKey` changes (new search, tab, or category).
- *
+ * Grows `visibleCount` in `BATCH_SIZE` steps as a sentinel element at the bottom of the grid enters the viewport, and resets it whenever `resetKey` changes (new search, tab, or category).
+ * 
  * The sentinel is conditionally rendered (only while more entries remain), so a plain `useRef` + effect keyed on
- * `total` can miss it: if a reset's clamped visible count happens to already equal the new total, the sentinel skips
- * rendering on that exact commit, the effect observes nothing, and — because `total` doesn't change again on the next
- * render — never re-fires once the sentinel does appear. A callback ref sidesteps this: it (dis)connects the observer
- * exactly when the sentinel DOM node itself mounts or unmounts, independent of render timing.
+ * `total` can miss it: if a reset's clamped visible count happens to already equal the new total, the sentinel skips rendering on that exact commit, the effect observes nothing, and — because `total` doesn't change again on the next render — never re-fires once the sentinel does appear.
+ * A callback ref sidesteps this: it (dis)connects the observer exactly when the sentinel DOM node itself mounts or unmounts, independent of render timing.
  */
 function useInfiniteReveal(total: number, resetKey: string) {
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
@@ -129,11 +126,10 @@ function formatBytes(bytes: number): string {
 }
 
 /**
- * Byte size isn't in the generated manifest, so it's measured client-side, once, from the same static files `<use>`
- * already renders. Uses `HEAD` + `Content-Length` rather than downloading each body, so measuring all ~500 files costs
- * headers only, not the SVG payloads themselves. Fetches every uncached Dune SVG in parallel the first time the Dune
- * SVGs tab opens, and bumps `version` in batches so cards and sort fill in progressively rather than waiting on every
- * request to land.
+ * Byte size isn't in the generated manifest, so it's measured client-side, once, from the same static files `<use>` already renders.
+ * Uses `HEAD` + `Content-Length` rather than downloading each body, so measuring all ~500 files costs headers only, not the SVG payloads themselves.
+ * Fetches every uncached Dune SVG in parallel the first time the Dune
+ * SVGs tab opens, and bumps `version` in batches so cards and sort fill in progressively rather than waiting on every request to land.
  */
 function useDuneSvgSizes(enabled: boolean) {
   const [version, setVersion] = useState(0);

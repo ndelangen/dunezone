@@ -19,15 +19,14 @@ interface FaqListProps {
   searchQuery: string;
   selectedTag?: FaqTag;
   /**
-   * Opens a question, for the whole row rather than the link inside it. The caller navigates: this list renders the
-   * destination as a `Link` too, but where the reader ends up is the page's call.
+   * Opens a question, for the whole row rather than the link inside it.
+   * The caller navigates: this list renders the destination as a `Link` too, but where the reader ends up is the page's call.
    */
   onOpenQuestion: (questionSlug: string) => void;
 }
 
 /**
- * The questions a reader asked for: the chosen tag narrows the set, then the words rank what is left by fuzzy match on
- * the question itself.
+ * The questions a reader asked for: the chosen tag narrows the set, then the words rank what is left by fuzzy match on the question itself.
  */
 function matchingFaqItems(
   items: FaqItemWithDetails[],

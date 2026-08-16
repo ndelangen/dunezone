@@ -3,14 +3,10 @@ import svgpath from 'svgpath';
 import { VECTOR_PRECISION, VECTOR_ROOT_ID, VECTOR_VIEWBOX_SIZE } from './vectorRules';
 
 /**
- * Pure-math normalization of a cropped SVG source into the shared `0 0 100 100` space (#296): the source viewBox maps
- * to the square uniformly scaled and centered, and the transform is BAKED into every coordinate — path data, stroke
- * widths, dash arrays — rather than wrapped in a `<g>`, because fragment consumers (`<use href="…#arrakeen">`) clone
- * elements without ancestor transforms. The corpus is paths-only (verified in #306), so baking = svgpath over `d` plus
- * scaling the stroke-* attributes.
- *
- * DOM access is injected so the same code runs under linkedom (generator), jsdom, or a real browser (the authoring
- * tool, moving in-repo per #298).
+ * Pure-math normalization of a cropped SVG source into the shared `0 0 100 100` space (#296): the source viewBox maps to the square uniformly scaled and centered, and the transform is BAKED into every coordinate — path data, stroke widths, dash arrays — rather than wrapped in a `<g>`, because fragment consumers (`<use href="…#arrakeen">`) clone elements without ancestor transforms.
+ * The corpus is paths-only (verified in #306), so baking = svgpath over `d` plus scaling the stroke-* attributes.
+ * 
+ * DOM access is injected so the same code runs under linkedom (generator), jsdom, or a real browser (the authoring tool, moving in-repo per #298).
  */
 
 /** The minimal element surface the baking walk needs — satisfied structurally by any DOM. */
@@ -162,8 +158,8 @@ function parseLength(attribute: string, value: string): number {
 class VectorNormalizeError extends Error {}
 
 /**
- * Normalize one SVG source into the shared square space. The source's viewBox is the crop (the authoring tool's
- * responsibility); the art is uniformly scaled and centered into `0 0 100 100`.
+ * Normalize one SVG source into the shared square space.
+ * The source's viewBox is the crop (the authoring tool's responsibility); the art is uniformly scaled and centered into `0 0 100 100`.
  */
 export function normalizeSvg(source: string, dom: SvgDom): string {
   const root = dom.parse(source);

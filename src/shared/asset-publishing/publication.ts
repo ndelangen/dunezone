@@ -52,9 +52,8 @@ export const publicationRevisionRequestSchema = z.discriminatedUnion('operation'
 export type FactionSheetAssetData = z.infer<typeof factionSheetAssetDataSchema>;
 
 /**
- * Wire contract for the executor take-work exchange. The worker parses every response through these schemas; the Convex
- * mutation's id-branded validator stays the server-side authority, linked by a drift test in
- * convex/publicationJobs.test.ts.
+ * Wire contract for the executor take-work exchange.
+ * The worker parses every response through these schemas; the Convex mutation's id-branded validator stays the server-side authority, linked by a drift test in convex/publicationJobs.test.ts.
  */
 const assignedPublicationJobSchema = z.object({
   jobId: z.string(),

@@ -27,17 +27,14 @@ export interface SectionProps {
 }
 
 /**
- * A named part of a page: what it is called, optionally what kind of thing it is and what it is for, the one control
- * that belongs beside its name, and its content.
- *
- * Callers pass **words**, not components — this block owns which content component each word becomes, and how loudly
- * the heading speaks for how deep it sits. Written by hand it was four spellings across four pages, half of them
- * unnamed to a screen reader and each guessing its own heading level.
- *
+ * A named part of a page: what it is called, optionally what kind of thing it is and what it is for, the one control that belongs beside its name, and its content.
+ * 
+ * Callers pass **words**, not components — this block owns which content component each word becomes, and how loudly the heading speaks for how deep it sits.
+ * Written by hand it was four spellings across four pages, half of them unnamed to a screen reader and each guessing its own heading level.
+ * 
  * Glyphs and controls stay as nodes, because an icon and a router link are not text.
- *
- * Its content brings its own panes, so this is not a `Card` and must not be given one: a `Card` puts content on its
- * pane, and a section of a page holds cards.
+ * 
+ * Its content brings its own panes, so this is not a `Card` and must not be given one: a `Card` puts content on its pane, and a section of a page holds cards.
  */
 export function Section({ title, eyebrow, description, icon, action, id, className, children }: SectionProps) {
   const headingId = useId();

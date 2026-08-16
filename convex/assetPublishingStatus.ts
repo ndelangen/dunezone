@@ -14,8 +14,8 @@ export type PublicAssetPublishingStatusProjection = {
 type ProjectablePublicationAsset = Pick<Doc<'publication_assets'>, 'asset_id' | 'cache_token' | 'published_at'>;
 
 /**
- * Once an asset exists, replacement work never removes or downgrades its public link. Capture state is added separately
- * by the faction projection.
+ * Once an asset exists, replacement work never removes or downgrades its public link.
+ * Capture state is added separately by the faction projection.
  */
 export function projectPublicAssetPublishingStatus(
   asset: ProjectablePublicationAsset | null

@@ -1,16 +1,18 @@
 /**
- * Structural verification of generated image output (wayfinder #269): checks that public/image/** and public/web/** are
- * complete and well-formed relative to media/ and the rules table — WITHOUT re-encoding anything (encoder bytes are not
- * comparable across machines; identity is ingredient-hashed).
- *
+ * Structural verification of generated image output (wayfinder #269): checks that public/image/** and public/web/** are complete and well-formed relative to media/ and the rules table — WITHOUT re-encoding anything (encoder bytes are not comparable across machines; identity is ingredient-hashed).
+ * 
  * Bun run verify:images
- *
+ * 
  * Verifies:
- *
- * 1. Every media source has all declared size tiers + the safety-net file
- * 2. Tier files decode, have the declared format, and respect declared widths
- * 3. No orphan files in the generated tree (removals propagate)
- * 4. Every /image/ and /web/ URL referenced from src CSS resolves to a file
+ * 
+ * 1.
+ * Every media source has all declared size tiers + the safety-net file
+ * 2.
+ * Tier files decode, have the declared format, and respect declared widths
+ * 3.
+ * No orphan files in the generated tree (removals propagate)
+ * 4.
+ * Every /image/ and /web/ URL referenced from src CSS resolves to a file
  */
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';

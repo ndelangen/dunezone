@@ -50,8 +50,8 @@ async function allocateUniqueProfileSlug(ctx: MutationCtx, usernameForSlug: stri
 }
 
 /**
- * Ensures a `profiles` row exists for `userId`, using explicit sources (no `ctx.auth` identity). Backfills missing
- * username/avatar on an existing row when still null.
+ * Ensures a `profiles` row exists for `userId`, using explicit sources (no `ctx.auth` identity).
+ * Backfills missing username/avatar on an existing row when still null.
  */
 export async function ensureProfileForUser(
   ctx: MutationCtx,

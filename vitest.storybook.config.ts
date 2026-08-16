@@ -13,8 +13,7 @@ import { coverageExclude, coverageIncludeSrc } from './coverage-denominator';
 
 export default defineConfig({
   /**
-   * Mirrors .storybook/vite.config.ts — the addon does not load the custom builder viteConfigPath on its own; without
-   * the react plugin every story fails on CJS interop (react-dom flushSync).
+   * Mirrors .storybook/vite.config.ts — the addon does not load the custom builder viteConfigPath on its own; without the react plugin every story fails on CJS interop (react-dom flushSync).
    */
   define: {
     'import.meta.env.VITE_CONVEX_URL': JSON.stringify('storybook-disconnected'),

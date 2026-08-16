@@ -58,8 +58,7 @@ export function ownedForGroupAssignRowValidator<TableName extends OwnedTableName
 type OwnedForGroupAssignRow = OwnedRowWithGroup & { _id: Id<OwnedTableName>; slug: string };
 
 /**
- * Projects already-fetched owned rows into the group-detail "add my faction/ruleset to this group" picker shape,
- * resolving each row's current (live) group name.
+ * Projects already-fetched owned rows into the group-detail "add my faction/ruleset to this group" picker shape, resolving each row's current (live) group name.
  */
 export async function buildOwnedForGroupAssignRows<Row extends OwnedForGroupAssignRow>(
   ctx: QueryCtx,

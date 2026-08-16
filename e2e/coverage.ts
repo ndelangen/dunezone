@@ -17,8 +17,8 @@ import type { CoverageReportOptions } from 'monocart-coverage-reports';
 export const coverageEnabled = process.env.E2E_COVERAGE === '1';
 
 /**
- * V8 collection costs the long specs real headroom in CI: faction-lifecycle ran 78s of its 90s budget on a green
- * coverage run and over it on a slower runner. Coverage runs get 1.5x.
+ * V8 collection costs the long specs real headroom in CI: faction-lifecycle ran 78s of its 90s budget on a green coverage run and over it on a slower runner.
+ * Coverage runs get 1.5x.
  */
 export const longSpecTimeoutMs = coverageEnabled ? 135_000 : 90_000;
 
@@ -55,16 +55,15 @@ export const mcrOptions: CoverageReportOptions = {
 };
 
 /**
- * The animation project asserts per-frame samples and runs isolated; V8 precise coverage adds in-page overhead it
- * cannot afford.
+ * The animation project asserts per-frame samples and runs isolated;
+ * V8 precise coverage adds in-page overhead it cannot afford.
  */
 const shouldCollect = () => coverageEnabled && test.info().project.name !== 'animation';
 
 const startCollecting = (page: Page) => page.coverage.startJSCoverage({ resetOnNavigation: false });
 
 /**
- * Collection must happen while the page's CDP session is alive — after the context closes, the coverage is
- * unrecoverable.
+ * Collection must happen while the page's CDP session is alive — after the context closes, the coverage is unrecoverable.
  */
 async function collectInto(page: Page): Promise<void> {
   const entries = await page.coverage.stopJSCoverage();
@@ -73,8 +72,7 @@ async function collectInto(page: Page): Promise<void> {
 
 /**
  * Factory fixture: coverage-aware replacement for `browser.newContext()` + `context.newPage()` in multi-user specs.
- * Prefer closing via the returned `close`; any page still open when the test ends — including when it fails mid-test —
- * is collected and closed by the fixture teardown, so coverage is never silently dropped.
+ * Prefer closing via the returned `close`; any page still open when the test ends — including when it fails mid-test — is collected and closed by the fixture teardown, so coverage is never silently dropped.
  */
 type NewUserPage = (options: BrowserContextOptions) => Promise<{
   page: Page;

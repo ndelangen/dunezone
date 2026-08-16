@@ -61,8 +61,8 @@ export const getRulesetTotals = query({
 });
 
 /**
- * Bounded canonical projections used by the migration verification script. This remains internal: clients only receive
- * the clean numeric Statistics queries above.
+ * Bounded canonical projections used by the migration verification script.
+ * This remains internal: clients only receive the clean numeric Statistics queries above.
  */
 export const getCanonicalReconciliationPage = internalQuery({
   args: {

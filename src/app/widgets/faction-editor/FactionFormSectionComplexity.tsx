@@ -35,9 +35,8 @@ function complexityModeDescription({
 }
 
 /**
- * The Complexity chapter: an override-switch over `complexity.manual`. The slider is always visible — disabled while
- * the rating is automatic — and keeps its last manual value when the switch turns off, though only an active manual
- * rating is stored (absent field = automatic).
+ * The Complexity chapter: an override-switch over `complexity.manual`.
+ * The slider is always visible — disabled while the rating is automatic — and keeps its last manual value when the switch turns off, though only an active manual rating is stored (absent field = automatic).
  */
 export function FactionFormSectionComplexity({
   form,

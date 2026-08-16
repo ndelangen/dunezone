@@ -20,8 +20,7 @@ export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string): Prom
 }
 
 /**
- * Degradation rule: a linked faction whose stored data fails the canonical schema is still listed (identity chips are
- * optional), rendered with a null identity rather than hiding the link or failing the page.
+ * Degradation rule: a linked faction whose stored data fails the canonical schema is still listed (identity chips are optional), rendered with a null identity rather than hiding the link or failing the page.
  */
 function factionIdentityForClient(data: unknown) {
   const parsedFaction = CanonicalFactionStoredSchema.safeParse(data);
@@ -35,8 +34,7 @@ function factionIdentityForClient(data: unknown) {
 }
 
 /**
- * Name rule: a faction row whose data carries no readable name falls back to its durable id so the link stays
- * navigable; soft-deleted and dangling links are dropped.
+ * Name rule: a faction row whose data carries no readable name falls back to its durable id so the link stays navigable; soft-deleted and dangling links are dropped.
  */
 async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const links = await ctx.db
@@ -66,9 +64,8 @@ async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'
 }
 
 /**
- * Ruleset public-page read model behind `api.rulesets.getBySlug` and `api.rulesets.detailPageBySlug`. Owns slug
- * resolution, the soft-delete gate, the faction listing with its degradation rules, and viewer access; the wire
- * contracts are `rulesetPublicBundleValidator` / `rulesetDetailPageValidator`.
+ * Ruleset public-page read model behind `api.rulesets.getBySlug` and `api.rulesets.detailPageBySlug`.
+ * Owns slug resolution, the soft-delete gate, the faction listing with its degradation rules, and viewer access; the wire contracts are `rulesetPublicBundleValidator` / `rulesetDetailPageValidator`.
  */
 export async function loadRulesetPublicBundleBySlug(ctx: QueryCtx, slug: string) {
   const row = await loadPublicRulesetBySlug(ctx, slug);

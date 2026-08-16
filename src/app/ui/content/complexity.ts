@@ -7,9 +7,8 @@ type FactionRules = FactionInput['rules'];
 
 /**
  * How hard a faction is to play, as a 0..1 score derived from the amount of rules text the printed sheet must carry.
- * Calibrated against the live corpus (see wayfinder #405): the grace floor keeps near-empty drafts at 0, the capacity
- * anchor marks the word count at which text stops fitting the sheet, and adjustments capture complexity that word count
- * alone misses. The optional stored manual rating wins over the stored calculated rating on reader-facing surfaces.
+ * Calibrated against the live corpus (see wayfinder #405): the grace floor keeps near-empty drafts at 0, the capacity anchor marks the word count at which text stops fitting the sheet, and adjustments capture complexity that word count alone misses.
+ * The optional stored manual rating wins over the stored calculated rating on reader-facing surfaces.
  */
 
 /** A manual rating this far from the calculation earns the editor's deviation advisory. */

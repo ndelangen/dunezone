@@ -1,15 +1,12 @@
 /**
  * Media/vector/** → public/obj/** OBJ generator (wayfinder #294, ticket #309).
- *
- * Categories flagged `obj: true` in the rules become committed Wavefront .obj game pieces for TTS's later use. Sources
- * go through the SAME normalization as the SVG train (shared 100-box geometry), then the tool's spike-verified three.js
- * chain (src/shared/svgToObj.ts).
- *
+ * 
+ * Categories flagged `obj: true` in the rules become committed Wavefront .obj game pieces for TTS's later use.
+ * Sources go through the SAME normalization as the SVG train (shared 100-box geometry), then the tool's spike-verified three.js chain (src/shared/svgToObj.ts).
+ * 
  * Bun run generate:objs
- *
- * Unlike public/image and public/vector, the OBJ output is COMMITTED: the bytes sit outside the renderer identity,
- * three is exactly pinned, and CI regenerates-and-diffs to guard determinism (research #295 — byte-identical across
- * runtimes; the arc-command files are the macOS↔Linux sentinel).
+ * 
+ * Unlike public/image and public/vector, the OBJ output is COMMITTED: the bytes sit outside the renderer identity, three is exactly pinned, and CI regenerates-and-diffs to guard determinism (research #295 — byte-identical across runtimes; the arc-command files are the macOS↔Linux sentinel).
  */
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -30,8 +27,7 @@ const mediaRoot = path.join(repoRoot, 'media/vector');
 const objRoot = path.join(repoRoot, 'public/obj');
 
 /**
- * Sized for committed tabletop pieces: normals dropped (extruded tokens are flat-shaded and importers recompute),
- * curveSegments 6 and 3 decimals in the 100-box — 32 MB → ~4 MB for the fleet versus the tool's interactive defaults.
+ * Sized for committed tabletop pieces: normals dropped (extruded tokens are flat-shaded and importers recompute), curveSegments 6 and 3 decimals in the 100-box — 32 MB → ~4 MB for the fleet versus the tool's interactive defaults.
  */
 const PIECE_OPTIONS: ObjExportOptions = {
   depth: 10,

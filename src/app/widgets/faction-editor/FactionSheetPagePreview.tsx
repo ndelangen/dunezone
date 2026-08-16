@@ -8,8 +8,8 @@ import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import styles from './FactionSheetPagePreview.module.css';
 
 /**
- * The faction name is the editor's sole blocking field. Keep all other current draft values live while representing a
- * temporarily blank name invisibly.
+ * The faction name is the editor's sole blocking field.
+ * Keep all other current draft values live while representing a temporarily blank name invisibly.
  */
 export function factionDraftForRenderer(faction: Faction): Faction {
   if (faction.name.trim().length > 0) {

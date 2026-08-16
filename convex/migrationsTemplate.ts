@@ -7,9 +7,8 @@ import { slugify } from './lib/utils';
 
 /**
  * Template for bounded, resumable backfills.
- *
- * Copy this file into a real migration module (for example `convex/migrations.ts`) and replace table/field/function
- * names.
+ * 
+ * Copy this file into a real migration module (for example `convex/migrations.ts`) and replace table/field/function names.
  */
 
 export const startBackfill = internalMutation({

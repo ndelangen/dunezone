@@ -8,9 +8,8 @@ import { configDefaults, defineConfig } from 'vitest/config';
 import { coverageExclude, coverageInclude } from './coverage-denominator';
 
 /**
- * Codecov's bundle-report normalizer wildcards from the first `-` to the next `.`, so a dash or dot inside a base name
- * either collapses distinct files into one normalized name (lato-latin-300-normal -> lato-*) or leaves the hash
- * un-wildcarded (floating-ui.react-dom-<hash>). Keep the hash as the only dash-delimited segment.
+ * Codecov's bundle-report normalizer wildcards from the first `-` to the next `.`, so a dash or dot inside a base name either collapses distinct files into one normalized name (lato-latin-300-normal -> lato-*) or leaves the hash un-wildcarded (floating-ui.react-dom-<hash>).
+ * Keep the hash as the only dash-delimited segment.
  */
 const codecovSafeName = (name: string) => name.replace(/[-.]/g, '_');
 
@@ -30,7 +29,8 @@ const config = defineConfig({
   },
   environments: {
     /**
-     * Client-only: server chunk names never reach Codecov and TanStack Start owns the server entry layout. These mirror
+     * Client-only: server chunk names never reach Codecov and TanStack Start owns the server entry layout.
+     * These mirror
      * Vite's defaults (`<assetsDir>/[name]-[hash]...`) with the base name sanitized.
      */
     client: {
@@ -61,8 +61,8 @@ const config = defineConfig({
     tanstackStart({
       srcDirectory: './src/app',
       /**
-       * The Worker release assembly consumes `dist/client`. Prerender must run or there is no SPA shell; do not crawl
-       * the authenticated app.
+       * The Worker release assembly consumes `dist/client`.
+       * Prerender must run or there is no SPA shell; do not crawl the authenticated app.
        */
       prerender: {
         concurrency: Math.max(1, os.cpus().length),

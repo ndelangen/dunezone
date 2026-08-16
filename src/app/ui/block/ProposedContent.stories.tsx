@@ -18,8 +18,7 @@ const meta = preview.meta({
 });
 
 /**
- * The badge is the whole component: without it, prose describing a feature that does not exist reads as a statement
- * about the record on screen.
+ * The badge is the whole component: without it, prose describing a feature that does not exist reads as a statement about the record on screen.
  */
 export const Default = meta.story({});
 

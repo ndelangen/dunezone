@@ -201,8 +201,8 @@ async function cloudflareApiResult(url: string, apiToken: string): Promise<unkno
 }
 
 /**
- * The authoritative deploy gate: Cloudflare's control plane must report the version tagged with GITHUB_SHA as the
- * active deployment. Edge propagation is Cloudflare's promise and is deliberately not gated on (#330).
+ * The authoritative deploy gate: Cloudflare's control plane must report the version tagged with GITHUB_SHA as the active deployment.
+ * Edge propagation is Cloudflare's promise and is deliberately not gated on (#330).
  */
 async function assertActiveDeployment(githubSha: string, environment: NodeJS.ProcessEnv): Promise<void> {
   const accountId = requiredEnvironment(environment, 'CLOUDFLARE_ACCOUNT_ID');
@@ -244,8 +244,8 @@ async function assertActiveDeployment(githubSha: string, environment: NodeJS.Pro
 }
 
 /**
- * Thrown when an origin returns a healthy body for a different release. Only this error — as the FINAL poll outcome —
- * takes the advisory path; any later non-stale failure (5xx, timeout, bad body) must win and fail the deploy.
+ * Thrown when an origin returns a healthy body for a different release.
+ * Only this error — as the FINAL poll outcome — takes the advisory path; any later non-stale failure (5xx, timeout, bad body) must win and fail the deploy.
  */
 class StaleEdgeError extends Error {
   constructor(
@@ -257,8 +257,7 @@ class StaleEdgeError extends Error {
 }
 
 /**
- * Couples to the PREVIOUS release's health payload shape: if identity.gitSha moves, slow propagation on the deploy that
- * moves it hard-fails again (safe direction, but worth knowing when editing the health shape).
+ * Couples to the PREVIOUS release's health payload shape: if identity.gitSha moves, slow propagation on the deploy that moves it hard-fails again (safe direction, but worth knowing when editing the health shape).
  */
 function readObservedGitSha(healthValue: unknown): string | undefined {
   try {

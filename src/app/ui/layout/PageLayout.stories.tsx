@@ -5,8 +5,8 @@ import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 import { PageLayout } from './PageLayout';
 
 /**
- * Stands in for the shell's frame. `PageLayout` is `display: contents`, so its children join _this_ grid rather than
- * one of its own — which is why it renders as unstyled boxes anywhere else. In the application that frame is
+ * Stands in for the shell's frame. `PageLayout` is `display: contents`, so its children join _this_ grid rather than one of its own — which is why it renders as unstyled boxes anywhere else.
+ * In the application that frame is
  * `AppHeader`, and it is also what reads `data-page-layout-*` to size the artwork band; that negotiation belongs to
  * `Shell/AppHeader`'s stories, not here.
  */
@@ -83,8 +83,7 @@ export const CompactHeader = meta.story({
 });
 
 /**
- * Omitting the `Header` slot is what marks a page intentionally compact — it sets `data-page-layout-compact`, which the
- * real shell frame reads to collapse the band.
+ * Omitting the `Header` slot is what marks a page intentionally compact — it sets `data-page-layout-compact`, which the real shell frame reads to collapse the band.
  */
 export const NoHeader = meta.story({
   render: () => (
@@ -96,8 +95,7 @@ export const NoHeader = meta.story({
 });
 
 /**
- * The toolbar slot adds nothing around what it is given, so anything passed brings its own pane — `Toolbar` is a
- * surface and does.
+ * The toolbar slot adds nothing around what it is given, so anything passed brings its own pane — `Toolbar` is a surface and does.
  */
 export const WithToolbar = meta.story({
   render: () => (

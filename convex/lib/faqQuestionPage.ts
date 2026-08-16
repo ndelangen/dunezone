@@ -56,10 +56,9 @@ function authorChip(summary: Awaited<ReturnType<typeof profileSummary>>) {
 }
 
 /**
- * FAQ question-page read model. Owns the locator resolution, the per-role capability rules (the FAQ question owner
- * accepts/unaccepts/removes answers; an answer author alone edits their answer; each viewer may answer once), and the
- * accepted-first ordering behind `api.faq.questionPage` (see CONTEXT.md: FAQ question, FAQ answer). The wire contract
- * is `faqQuestionPageValidator`.
+ * FAQ question-page read model.
+ * Owns the locator resolution, the per-role capability rules (the FAQ question owner accepts/unaccepts/removes answers; an answer author alone edits their answer; each viewer may answer once), and the accepted-first ordering behind `api.faq.questionPage` (see CONTEXT.md: FAQ question, FAQ answer).
+ * The wire contract is `faqQuestionPageValidator`.
  */
 export async function loadFaqQuestionPage(ctx: QueryCtx, args: { rulesetSlug: string; questionSlug: string }) {
   const ruleset = await ctx.db

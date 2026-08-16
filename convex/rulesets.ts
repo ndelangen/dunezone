@@ -76,8 +76,7 @@ export const detailPageBySlug = query({
 });
 
 /**
- * Rulesets the viewer owns, with their current group's name resolved, for the group-detail "add my ruleset to this
- * group" picker.
+ * Rulesets the viewer owns, with their current group's name resolved, for the group-detail "add my ruleset to this group" picker.
  */
 export const listOwnedForGroupAssign = query({
   args: {},

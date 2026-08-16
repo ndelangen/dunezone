@@ -163,9 +163,9 @@ function coverage(paths: readonly string[], entry: CoverageEntry): Record<string
 
 /**
  * Leaf-path coverage for FactionInputSchema.
- *
- * A non-control leaf must identify its owner: `derived` values are generated at the save boundary; `preserved` values
- * round-trip unchanged. There is no temporary/planned state.
+ * 
+ * A non-control leaf must identify its owner: `derived` values are generated at the save boundary; `preserved` values round-trip unchanged.
+ * There is no temporary/planned state.
  */
 export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> = {
   ...coverage(['name', 'logo', 'themeColor', 'colors[]'], {

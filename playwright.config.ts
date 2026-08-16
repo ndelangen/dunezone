@@ -11,7 +11,8 @@ export default defineConfig({
   },
   fullyParallel: false,
   /**
-   * Spec files run in parallel workers; tests within a file stay ordered. Every spec file carries its own auth session
+   * Spec files run in parallel workers; tests within a file stay ordered.
+   * Every spec file carries its own auth session
    * (see global-setup), which is what makes cross-file parallelism safe under Convex Auth token rotation.
    */
   workers: process.env.CI ? 3 : 1,

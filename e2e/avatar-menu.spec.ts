@@ -4,9 +4,8 @@ import { expect, test } from './coverage';
 test.use({ storageState: '.playwright/user-a-avatar-menu.json' });
 
 /**
- * The signed-in account slot: the avatar opens a menu whose items lead to the user's own profile routes, and Sign out
- * returns the slot to Login. This is the one navigation state Storybook cannot reach — its Convex mocks are signed-out
- * by design — so the contract lives here.
+ * The signed-in account slot: the avatar opens a menu whose items lead to the user's own profile routes, and Sign out returns the slot to Login.
+ * This is the one navigation state Storybook cannot reach — its Convex mocks are signed-out by design — so the contract lives here.
  */
 test('the avatar menu offers the profile routes and signs out', async ({ page }) => {
   /* The seed derives username and slug from the email's local part (convex/e2e.ts). */

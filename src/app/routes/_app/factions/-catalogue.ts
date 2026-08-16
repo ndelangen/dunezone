@@ -87,8 +87,7 @@ function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
 }
 
 /**
- * Param order must not count as a difference: the router treats an order-only navigate as a structural no-op, so an
- * order-sensitive mismatch would re-fire the canonicalizing effect forever (deep links write params in any order).
+ * Param order must not count as a difference: the router treats an order-only navigate as a structural no-op, so an order-sensitive mismatch would re-fire the canonicalizing effect forever (deep links write params in any order).
  */
 function orderIndependentSearchString(params: URLSearchParams) {
   return new URLSearchParams([...params.entries()].sort(([left], [right]) => left.localeCompare(right))).toString();

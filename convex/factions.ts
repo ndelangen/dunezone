@@ -223,8 +223,7 @@ export const listByOwner = query({
 });
 
 /**
- * Factions the viewer owns, with their current group's name resolved, for the group-detail "add my faction to this
- * group" picker.
+ * Factions the viewer owns, with their current group's name resolved, for the group-detail "add my faction to this group" picker.
  */
 export const listOwnedForGroupAssign = query({
   args: {},

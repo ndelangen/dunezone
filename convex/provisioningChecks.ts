@@ -18,10 +18,9 @@ async function tablesHolding(ctx: QueryCtx, tables: readonly TableNames[], rows:
 
 /**
  * The contract a cloned deployment must satisfy once its data stage finished.
- *
- * Command exit codes cannot prove this: a snapshot can import successfully while being empty, and an empty `--replace`
- * import into a table that no longer exists silently creates it and reports success.
- *
+ * 
+ * Command exit codes cannot prove this: a snapshot can import successfully while being empty, and an empty `--replace` import into a table that no longer exists silently creates it and reports success.
+ * 
  * Runs against cloned deployments only (local Docker and the cloud dev deployment); production is never a clone target.
  */
 export const assertRebuildContract = internalQuery({

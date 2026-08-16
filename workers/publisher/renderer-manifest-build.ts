@@ -21,11 +21,10 @@ export const RENDERER_RUNTIME_CLOSURE_PATHS = [
 ] as const;
 
 /**
- * Generated images are identified by their INGREDIENTS, not their encoder output: media/ source bytes, the rules table,
- * the generator script, and the pinned sharp version. All of these live in git, so the digest is identical on every
- * machine — which keeps `publisher:release:verify` a local git-diff even though the served bytes are produced in CI
- * (wayfinder #269). Encoder output is deliberately never hashed: sharp makes no byte-stability promise across
- * platforms.
+ * Generated images are identified by their INGREDIENTS, not their encoder output: media/ source bytes, the rules table, the generator script, and the pinned sharp version.
+ * All of these live in git, so the digest is identical on every machine — which keeps `publisher:release:verify` a local git-diff even though the served bytes are produced in CI
+ * (wayfinder #269).
+ * Encoder output is deliberately never hashed: sharp makes no byte-stability promise across platforms.
  */
 const GENERATED_IMAGE_INGREDIENT_PATHS = ['src/shared/assetRules.ts', 'scripts/generate-images.ts'] as const;
 

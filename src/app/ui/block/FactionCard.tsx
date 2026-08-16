@@ -11,12 +11,11 @@ import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 import styles from './FactionCard.module.css';
 
 /**
- * A faction, as one tile: its artwork, its token, its leaders, its name. The whole tile is a link to the faction.
- *
- * A Block — callers hand it the faction document and this owns which piece becomes what: the background renders as
- * full-bleed artwork, the hero leads the cast, the first three leaders fan out beside it, the name captions the bottom
- * with the complexity glyph at its right. The artwork is game-asset content, not a pane treatment; nothing here is a
- * slot.
+ * A faction, as one tile: its artwork, its token, its leaders, its name.
+ * The whole tile is a link to the faction.
+ * 
+ * A Block — callers hand it the faction document and this owns which piece becomes what: the background renders as full-bleed artwork, the hero leads the cast, the first three leaders fan out beside it, the name captions the bottom with the complexity glyph at its right.
+ * The artwork is game-asset content, not a pane treatment; nothing here is a slot.
  */
 export function FactionCard({
   faction,

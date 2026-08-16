@@ -56,9 +56,8 @@ export const HeaderlessPageMobile = meta.story({
 });
 
 /**
- * Scrolls the preview to the bottom on open so the backdrop travels without being touched, then checks the shell
- * actually drove it: `--scroll-pct` reaching the bottom of its range is what moves `background-position`. The variable
- * is written from a requestAnimationFrame handler, so under load the last update can land a hair short of 100 — wait
+ * Scrolls the preview to the bottom on open so the backdrop travels without being touched, then checks the shell actually drove it: `--scroll-pct` reaching the bottom of its range is what moves `background-position`.
+ * The variable is written from a requestAnimationFrame handler, so under load the last update can land a hair short of 100 — wait
  * (with generous headroom for a loaded suite) for it to settle into [99.5, 100] rather than demand exactly 100.
  */
 async function playBackgroundPan({ canvasElement }: { canvasElement: HTMLElement }) {

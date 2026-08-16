@@ -46,8 +46,7 @@ const MAX_ERROR_MESSAGE_LENGTH = 512;
 const MAX_ERROR_STACK_LENGTH = 900;
 
 /**
- * Flattens Error.cause and AggregateError.errors without allowing publisher secrets or an unbounded exception graph
- * into telemetry.
+ * Flattens Error.cause and AggregateError.errors without allowing publisher secrets or an unbounded exception graph into telemetry.
  */
 export function publisherErrorDetails(error: unknown): PublisherErrorDetail[] {
   const details: PublisherErrorDetail[] = [];

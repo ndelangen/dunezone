@@ -77,8 +77,7 @@ type LoadedCollaborativeAccess = LoadedGroupAccess | LoadedFactionAccess | Loade
 type AnyCtx = QueryCtx | MutationCtx;
 
 /**
- * The one projection rule for group references: a reference that does not resolve to a live Group — soft-deleted or
- * missing entirely (historical hard deletions left dangling ids) — projects to null (ADR-0003).
+ * The one projection rule for group references: a reference that does not resolve to a live Group — soft-deleted or missing entirely (historical hard deletions left dangling ids) — projects to null (ADR-0003).
  */
 export function liveGroupOrNull(group: Doc<'groups'> | null): Doc<'groups'> | null {
   return group === null || group.is_deleted ? null : group;
