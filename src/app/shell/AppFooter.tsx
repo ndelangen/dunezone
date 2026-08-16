@@ -212,12 +212,7 @@ export function AppFooter() {
           return (
             <Tooltip key={label} label={label}>
               {'to' in entry ? (
-                <Link
-                  aria-label={label}
-                  className={styles.waypointLink}
-                  style={tinted}
-                  to={entry.to}
-                >
+                <Link aria-label={label} className={styles.waypointLink} style={tinted} to={entry.to}>
                   {glyph}
                 </Link>
               ) : (
