@@ -326,10 +326,14 @@ export async function requireFactionUpdate(
   return access;
 }
 
+/**
+ * Authorizes an edit to a ruleset's own content — its name, cover and description.
+ * Group assignment is deliberately not among them: it is a different capability with a different audience, so it goes through `requireGroupReassignment` from `rulesets.setGroup` instead, the same route factions already take.
+ */
 export async function requireRulesetUpdate(
   ctx: MutationCtx,
   rulesetId: Id<'rulesets'>,
-  proposedChange: { name: string; groupId?: Id<'groups'> | null }
+  proposedChange: { name: string }
 ) {
   await requireAuthenticatedViewerId(ctx);
   const access = await loadCollaborativeAccess(ctx, { kind: 'ruleset', id: rulesetId });
@@ -342,33 +346,33 @@ export async function requireRulesetUpdate(
   if (proposedChange.name !== access.subject.name && !access.viewerAccess.capabilities.rename) {
     throw new Error('Only the ruleset owner can rename this ruleset');
   }
-  if (proposedChange.groupId !== undefined && proposedChange.groupId !== access.subject.group_id) {
-    if (!access.viewerAccess.capabilities.changeGroup) {
-      throw new Error('Only the ruleset owner can change its group');
-    }
-    if (proposedChange.groupId !== null) {
-      await requireAssignableGroup(ctx, proposedChange.groupId);
-    }
-  }
   return access;
 }
 
 export function requireGroupReassignment(
   ctx: MutationCtx,
   subject: { kind: 'faction'; id: Id<'factions'> },
-  targetGroupId: Id<'groups'> | null
+  targetGroupId: Id<'groups'> | null,
+  message?: string
 ): Promise<LoadedFactionAccess>;
 export function requireGroupReassignment(
   ctx: MutationCtx,
   subject: { kind: 'ruleset'; id: Id<'rulesets'> },
-  targetGroupId: Id<'groups'> | null
+  targetGroupId: Id<'groups'> | null,
+  message?: string
 ): Promise<LoadedRulesetAccess>;
 export async function requireGroupReassignment(
   ctx: MutationCtx,
   subject: { kind: 'faction'; id: Id<'factions'> } | { kind: 'ruleset'; id: Id<'rulesets'> },
-  targetGroupId: Id<'groups'> | null
+  targetGroupId: Id<'groups'> | null,
+  message = 'Not authorized'
 ) {
   await requireAuthenticatedViewerId(ctx);
+  /*
+   * Both branches call the same function on purpose, and this is not redundant: `loadCollaborativeAccess` is
+   * overloaded per subject kind, so handing it the union resolves to no overload and collapses `access` to `never`.
+   * The test discriminates the union first so each call picks its own overload.
+   */
   const access =
     subject.kind === 'faction'
       ? await loadCollaborativeAccess(ctx, subject)
@@ -378,7 +382,7 @@ export async function requireGroupReassignment(
     throw new Error(`${label} with id ${subject.id} not found`);
   }
   if (!access.viewerAccess.capabilities.changeGroup) {
-    throw new Error('Not authorized');
+    throw new Error(message);
   }
   if (targetGroupId !== null) {
     await requireAssignableGroup(ctx, targetGroupId);

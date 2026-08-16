@@ -756,20 +756,12 @@ describe('collaborative access moderation commands', () => {
     ).rejects.toThrow('Cannot remove the group owner');
 
     await assetOwner.mutation(api.factions.setGroup, { id: ids.factionId, group_id: null });
-    await assetOwner.mutation(api.rulesets.update, {
-      id: ids.rulesetId,
-      name: 'CollaborativeRuleset',
-      group_id: null,
-    });
+    await assetOwner.mutation(api.rulesets.setGroup, { id: ids.rulesetId, group_id: null });
     await expect(
       assetOwner.mutation(api.factions.setGroup, { id: ids.factionId, group_id: ids.groupId })
     ).rejects.toThrow('Not authorized for group');
     await expect(
-      assetOwner.mutation(api.rulesets.update, {
-        id: ids.rulesetId,
-        name: 'CollaborativeRuleset',
-        group_id: ids.groupId,
-      })
+      assetOwner.mutation(api.rulesets.setGroup, { id: ids.rulesetId, group_id: ids.groupId })
     ).rejects.toThrow('Not authorized for group');
 
     const added = await member.mutation(api.members.addMember, {
@@ -783,11 +775,7 @@ describe('collaborative access moderation commands', () => {
       group_id: ids.groupId,
     });
     await expect(
-      assetOwner.mutation(api.rulesets.update, {
-        id: ids.rulesetId,
-        name: 'CollaborativeRuleset',
-        group_id: ids.groupId,
-      })
+      assetOwner.mutation(api.rulesets.setGroup, { id: ids.rulesetId, group_id: ids.groupId })
     ).resolves.toMatchObject({ group_id: ids.groupId });
   });
 
@@ -829,11 +817,7 @@ describe('collaborative access moderation commands', () => {
     const assetOwner = t.withIdentity({ subject: ids.assetOwnerId });
 
     await assetOwner.mutation(api.factions.setGroup, { id: ids.factionId, group_id: null });
-    await assetOwner.mutation(api.rulesets.update, {
-      id: ids.rulesetId,
-      name: 'CollaborativeRuleset',
-      group_id: null,
-    });
+    await assetOwner.mutation(api.rulesets.setGroup, { id: ids.rulesetId, group_id: null });
 
     for (const [groupId, expectedError] of [
       [targetGroupIds.pending, 'Not authorized for group'],
@@ -844,11 +828,7 @@ describe('collaborative access moderation commands', () => {
         assetOwner.mutation(api.factions.setGroup, { id: ids.factionId, group_id: groupId })
       ).rejects.toThrow(expectedError);
       await expect(
-        assetOwner.mutation(api.rulesets.update, {
-          id: ids.rulesetId,
-          name: 'CollaborativeRuleset',
-          group_id: groupId,
-        })
+        assetOwner.mutation(api.rulesets.setGroup, { id: ids.rulesetId, group_id: groupId })
       ).rejects.toThrow(expectedError);
 
       const factionPage = await assetOwner.query(api.factions.getBySlug, {
@@ -866,11 +846,7 @@ describe('collaborative access moderation commands', () => {
       })
     ).resolves.toMatchObject({ group_id: targetGroupIds.active });
     await expect(
-      assetOwner.mutation(api.rulesets.update, {
-        id: ids.rulesetId,
-        name: 'CollaborativeRuleset',
-        group_id: targetGroupIds.active,
-      })
+      assetOwner.mutation(api.rulesets.setGroup, { id: ids.rulesetId, group_id: targetGroupIds.active })
     ).resolves.toMatchObject({ group_id: targetGroupIds.active });
 
     const factionPage = await assetOwner.query(api.factions.getBySlug, {

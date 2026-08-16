@@ -6,6 +6,7 @@ import { query } from './_generated/server';
 import { mutation } from './functions';
 import {
   requireAssignableGroup,
+  requireGroupReassignment,
   requireRulesetMaintenance,
   requireRulesetSoftDelete,
   requireRulesetUpdate,
@@ -38,19 +39,12 @@ function rulesetInputFrom(args: { name: string; description?: string }) {
  * That is what lets `update` serve as a partial patcher without a caller that only moves the group blanking a description.
  * The shape is inferred rather than restated, so adding a field here cannot drift from the type that describes it.
  */
-function rulesetUpdatePatch(fields: {
-  name: string;
-  slug: string;
-  description?: string;
-  group_id?: Id<'groups'> | null;
-  image_cover?: string | null;
-}) {
+function rulesetUpdatePatch(fields: { name: string; slug: string; description?: string; image_cover?: string | null }) {
   return {
     name: fields.name,
     slug: fields.slug,
     updated_at: nowIso(),
     ...(fields.description === undefined ? {} : { description: fields.description }),
-    ...(fields.group_id === undefined ? {} : { group_id: fields.group_id }),
     ...(fields.image_cover === undefined ? {} : { image_cover: fields.image_cover }),
   };
 }
@@ -188,7 +182,6 @@ export const update = mutation({
     id: v.id('rulesets'),
     name: v.string(),
     description: v.optional(v.string()),
-    group_id: v.optional(v.union(v.id('groups'), v.null())),
     image_cover: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
@@ -198,10 +191,7 @@ export const update = mutation({
       throw new Error(msg || 'Invalid ruleset input');
     }
     const normalizedName = parsed.data.name;
-    const access = await requireRulesetUpdate(ctx, args.id, {
-      name: normalizedName,
-      groupId: args.group_id,
-    });
+    const access = await requireRulesetUpdate(ctx, args.id, { name: normalizedName });
     const ruleset = access.subject;
 
     const duplicate = await ctx.db
@@ -218,13 +208,42 @@ export const update = mutation({
         name: normalizedName,
         slug: await resolveUniqueRulesetSlug(ctx, normalizedName, args.id),
         description: parsed.data.description,
-        group_id: args.group_id,
         image_cover: args.image_cover,
       })
     );
     const updated = await ctx.db.get(ruleset._id);
     if (!updated) {
       throw new Error('Failed to update ruleset');
+    }
+    return updated;
+  },
+});
+
+/**
+ * Moves a ruleset between maintaining groups, or clears its assignment with `null`.
+ * Separate from `update` on purpose: assigning a group is the owner's `changeGroup` capability rather than the content edit any active member may make, and a caller here cannot express a name or a description at all — so moving a group can never overwrite either.
+ * `factions.setGroup` is the same shape.
+ */
+export const setGroup = mutation({
+  args: {
+    id: v.id('rulesets'),
+    group_id: v.union(v.id('groups'), v.null()),
+  },
+  handler: async (ctx, args) => {
+    const access = await requireGroupReassignment(
+      ctx,
+      { kind: 'ruleset', id: args.id },
+      args.group_id,
+      'Only the ruleset owner can change its group'
+    );
+
+    await ctx.db.patch(access.subject._id, {
+      group_id: args.group_id,
+      updated_at: nowIso(),
+    });
+    const updated = await ctx.db.get(access.subject._id);
+    if (!updated) {
+      throw new Error('Failed to update ruleset group');
     }
     return updated;
   },
