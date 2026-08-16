@@ -3,12 +3,25 @@
  */
 const BLOCK_TO_LINE_MESSAGE = 'Prefer normalized block comment formatting.';
 
-const sentenceBoundaryPattern = /([.!?;])\s+(?=[A-Z])/g;
-const lineSplitPattern = /\r\n/g;
+const RULE_NAME = 'prefer-block-comments';
+
+const COMMENT_TYPE = 'Block';
+const COMMENT_SENTINEL = '*';
+
+const COMMENT_OPEN_MARKER = '/**\n';
+const COMMENT_LINE_PREFIX = ' * ';
+const COMMENT_CLOSE_MARKER = ' */';
+
+const COMMENT_BODY_START_RE = /^\s*\**\s*/;
+const COMMENT_BODY_CONTINUATION_RE = /^\s*\*?\s*/;
+const COMMENT_END_RE = /\*\/?$/;
+const SENTENCE_BOUNDARY_RE = /([.!?;])\s+(?=[A-Z])/g;
+const WHITESPACE_RE = /\s/;
+const LOWERCASE_PREFIX_RE = /^[a-z]/;
 
 const preferBlockCommentsRule = {
   meta: {
-    name: 'prefer-block-comments',
+    name: RULE_NAME,
     fixable: 'code',
     messages: {
       preferLine: BLOCK_TO_LINE_MESSAGE,
@@ -22,14 +35,14 @@ const preferBlockCommentsRule = {
         const comments = sourceCode.ast?.comments ?? [];
 
         for (const comment of comments) {
-          if (comment.type !== 'Block' || !String(comment.value).startsWith('*')) {
+          if (comment.type !== COMMENT_TYPE || !String(comment.value).startsWith(COMMENT_SENTINEL)) {
             continue;
           }
 
           let prev = null;
           for (let cursor = comment.range[0] - 1; cursor >= 0; cursor -= 1) {
             const char = source[cursor];
-            if (!/\s/.test(char)) {
+            if (!WHITESPACE_RE.test(char)) {
               prev = char;
               break;
             }
@@ -38,7 +51,7 @@ const preferBlockCommentsRule = {
           let next = null;
           for (let cursor = comment.range[1]; cursor < source.length; cursor += 1) {
             const char = source[cursor];
-            if (!/\s/.test(char)) {
+            if (!WHITESPACE_RE.test(char)) {
               next = char;
               break;
             }
@@ -54,20 +67,18 @@ const preferBlockCommentsRule = {
 
           const commentStart = comment.range[0];
           const commentEnd = comment.range[1];
-          const fullComment = source.slice(commentStart, commentEnd);
-          const rawBody = fullComment
+          const rawBody = source
+            .slice(commentStart, commentEnd)
             .slice(3, -2)
-            .replace(lineSplitPattern, '\n')
+            .replace(/\r\n/g, '\n')
             .split('\n')
             .map((line, index) => {
-              if (index === 0) {
-                return line.replace(/^\s*\**\s*/, '').trimEnd();
-              }
-              return line.replace(/^\s*\*?\s*/, '').trimEnd();
+              const normalizedLine = index === 0 ? COMMENT_BODY_START_RE : COMMENT_BODY_CONTINUATION_RE;
+              return line.replace(normalizedLine, '').trimEnd();
             })
             .join('\n')
             .trim()
-            .replace(/\*\/?$/, '');
+            .replace(COMMENT_END_RE, '');
 
           let lineStart = commentStart;
           while (lineStart > 0 && source[lineStart - 1] !== '\n') {
@@ -80,7 +91,7 @@ const preferBlockCommentsRule = {
           }
 
           let prefixEnd = lineStart;
-          while (prefixEnd < lineEnd && (source[prefixEnd] === ' ' || source[prefixEnd] === '\t')) {
+          while (prefixEnd < lineEnd && /[ \t]/.test(source[prefixEnd])) {
             prefixEnd += 1;
           }
 
@@ -92,7 +103,7 @@ const preferBlockCommentsRule = {
           let mergedLine = '';
           for (const rawLine of rawBody.split('\n')) {
             const line = rawLine.trim();
-            const startsWithLowercase = /^[a-z]/.test(line);
+            const startsWithLowercase = LOWERCASE_PREFIX_RE.test(line);
 
             if (line === '') {
               if (mergedLine !== '') {
@@ -121,15 +132,18 @@ const preferBlockCommentsRule = {
             mergedLines.push(mergedLine);
           }
 
-          const sentences = mergedLines
-            .flatMap((line) => {
-              const normalized = line.replace(sentenceBoundaryPattern, '$1\n');
-              return normalized.split('\n').map((line) => line.trim());
-            });
+          const sentences = mergedLines.flatMap((line) =>
+            line
+              .replace(SENTENCE_BOUNDARY_RE, '$1\n')
+              .split('\n')
+              .map((sentence) => sentence.trim())
+          );
 
-          let replacementText = `${prefix}/**\n${prefix} */`;
+          let replacementText = `${prefix}${COMMENT_OPEN_MARKER}${prefix}${COMMENT_CLOSE_MARKER}`;
           if (sentences.length > 0) {
-            replacementText = `${prefix}/**\n${sentences.map((line) => `${prefix} * ${line}`).join('\n')}\n${prefix} */`;
+            replacementText = `${prefix}${COMMENT_OPEN_MARKER}${sentences
+              .map((line) => `${prefix}${COMMENT_LINE_PREFIX}${line}`)
+              .join('\n')}\n${prefix}${COMMENT_CLOSE_MARKER}`;
           }
 
           if (replacementText === source.slice(replacementRangeStart, commentEnd)) {
@@ -155,6 +169,6 @@ export default {
     name: 'local',
   },
   rules: {
-    'prefer-block-comments': preferBlockCommentsRule,
+    [RULE_NAME]: preferBlockCommentsRule,
   },
 };
