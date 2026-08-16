@@ -7,11 +7,20 @@ const rulesetNameSchema = alphanumericNameSchema('Ruleset name');
  * Free prose, so no upper bound — the FAQ's question and answer schemas set that precedent.
  * The floor is deliberate: a description shorter than this says nothing a reader could not get from the name.
  */
-const rulesetDescriptionSchema = z.string().trim().min(50, 'Ruleset description must be at least 50 characters');
+export const RULESET_DESCRIPTION_MIN_LENGTH = 50;
+
+export const rulesetDescriptionSchema = z
+  .string()
+  .trim()
+  .min(
+    RULESET_DESCRIPTION_MIN_LENGTH,
+    `Ruleset description must be at least ${RULESET_DESCRIPTION_MIN_LENGTH} characters`
+  );
 
 /**
- * `description` is optional here only for the widen phase of `rulesets_description_v1`: rows that predate the field carry an empty string, and no caller may be forced to invent 50 characters to change a ruleset's name.
- * It narrows to required once the backfill has run in production.
+ * `description` is optional here only for the widen phase of `rulesets_description_v1`, so that rows predating the field stay readable.
+ * There is no grace for those rows on the way out: every write goes through the floor, which means a ruleset still holding the backfilled empty string cannot be saved at all until someone writes a description.
+ * Both ruleset forms enforce that before submitting, and the field narrows to required once the backfill has run in production.
  */
 export const rulesetInputSchema = z.strictObject({
   name: rulesetNameSchema,

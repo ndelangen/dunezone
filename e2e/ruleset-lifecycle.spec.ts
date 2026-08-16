@@ -8,6 +8,10 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   const expectedSlug = uniqueName.toLowerCase();
   await page.goto('/rulesets/create');
   await page.getByRole('textbox', { name: 'Name' }).fill(uniqueName);
+  /* Creation requires a description of at least 50 characters, with no exemption, so the button stays disabled without one. */
+  await page
+    .getByRole('textbox', { name: 'Description' })
+    .fill('A lifecycle ruleset proving that creation and deletion behave for its owner.');
   await page.getByRole('button', { name: /^create$/i }).click();
   await expect(page).toHaveURL(new RegExp(`/rulesets/${expectedSlug}$`));
 

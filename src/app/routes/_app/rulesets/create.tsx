@@ -1,4 +1,5 @@
-import { Button, Group, NativeSelect, Stack, TextInput } from '@mantine/core';
+import { Button, Group, NativeSelect, Stack, Textarea, TextInput } from '@mantine/core';
+import { RULESET_DESCRIPTION_MIN_LENGTH, rulesetDescriptionSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -19,8 +20,14 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
   const navigate = useNavigate();
   const createRuleset = useCreateRuleset();
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [groupId, setGroupId] = useState<string | null>(null);
   const groups = useGroupsByCreator(ownerUserId);
+
+  const descriptionCheck = rulesetDescriptionSchema.safeParse(description);
+  /** Only complain about a description that has been started and left short; an empty one is covered by the requirement line. */
+  const descriptionError =
+    description.trim().length > 0 && !descriptionCheck.success ? descriptionCheck.error.issues[0]?.message : undefined;
 
   return (
     <Stack
@@ -29,11 +36,11 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
       onSubmit={(e) => {
         e.preventDefault();
         const nextName = name.trim();
-        if (!nextName) {
+        if (!nextName || !descriptionCheck.success) {
           return;
         }
         createRuleset.mutate(
-          { input: { name: nextName }, groupId: groupId ?? null },
+          { input: { name: nextName, description: descriptionCheck.data }, groupId: groupId ?? null },
           {
             onSuccess: (entry) => {
               navigate({
@@ -54,6 +61,17 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
         value={name}
         onChange={(event) => setName(event.target.value)}
       />
+      <Textarea
+        label="Description"
+        name="description"
+        description={`What this ruleset is for, and how it differs from the base game. At least ${RULESET_DESCRIPTION_MIN_LENGTH} characters — ${description.trim().length} so far.`}
+        error={descriptionError}
+        required
+        autosize
+        minRows={4}
+        value={description}
+        onChange={(event) => setDescription(event.target.value)}
+      />
       <NativeSelect
         label="Group"
         name="group"
@@ -69,7 +87,7 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
           variant="filled"
           color="confirm"
           type="submit"
-          disabled={createRuleset.isPending || name.trim().length === 0}
+          disabled={createRuleset.isPending || name.trim().length === 0 || !descriptionCheck.success}
         >
           <Plus size={16} aria-hidden />
           <span>{createRuleset.isPending ? 'Creating…' : 'Create'}</span>
