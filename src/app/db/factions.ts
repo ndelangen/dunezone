@@ -79,7 +79,7 @@ function toFactionCatalogueEntry(entry: FactionCatalogueRow): FactionCatalogueEn
   };
 }
 
-/** Normalize catalogue rows returned by either side of the background migration. */
+/** Parse catalogue rows at the client boundary. */
 export function factionCatalogueRowsToEntries(
   rows: FactionCatalogueRow[]
 ): FactionCatalogueEntry[] {

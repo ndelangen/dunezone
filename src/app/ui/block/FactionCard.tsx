@@ -64,7 +64,7 @@ export function FactionCard({
               </Text>
             ) : null}
           </div>
-          <ComplexityGlyph score={effectiveComplexity(faction.data)} />
+          <ComplexityGlyph score={effectiveComplexity(faction.data.complexity)} />
         </div>
       </BackgroundRenderer>
     </UnstyledButton>

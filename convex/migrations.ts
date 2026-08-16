@@ -2,11 +2,6 @@ import { Migrations } from '@convex-dev/migrations';
 import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 
-import {
-  calculateComplexity,
-  recalculateFactionComplexity,
-} from '../src/shared/factions/complexity';
-import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -67,16 +62,6 @@ const migrations = new Migrations(components.migrations, {
   migrationsLocationPrefix: 'migrations:',
   schema,
 });
-
-/**
- * Complexity backfills only depend on rules and the transitional complexity value. Historical
- * factions may contain unrelated asset ids that current authoring no longer accepts, so validating
- * the entire document here would couple this migration to fields it must preserve untouched.
- */
-const factionComplexityMigrationDataSchema = CanonicalFactionStoredSchema.pick({
-  rules: true,
-  complexity: true,
-}).passthrough();
 
 async function resolveUniqueGroupSlug(
   ctx: QueryCtx | MutationCtx,
@@ -438,41 +423,18 @@ export const faction_decal_retune_v1 = migrations.define({
   },
 });
 
-/** Backfills the grouped record with the current shared calculation and any legacy manual value. */
+/** Retains the completed grouped-complexity backfill identity after contract narrowing. */
 export const faction_complexity_grouped_v1 = migrations.define({
   table: 'factions',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const { rules, complexity } = factionComplexityMigrationDataSchema.parse(row.data);
-    const next = recalculateFactionComplexity({ rules, complexity });
-    if (
-      complexity !== null &&
-      typeof complexity === 'object' &&
-      complexity.calculated === next.complexity.calculated &&
-      complexity.manual === next.complexity.manual
-    ) {
-      return;
-    }
-    return { data: { ...row.data, complexity: next.complexity } };
-  },
+  migrateOne: async () => undefined,
 });
 
-/** Successful completion proves every faction has an accurate grouped calculated value. */
+/** Retains the completed grouped-complexity verification identity after contract narrowing. */
 export const faction_complexity_grouped_verify_v1 = migrations.define({
   table: 'factions',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const { rules, complexity } = factionComplexityMigrationDataSchema.parse(row.data);
-    if (complexity === null || typeof complexity !== 'object') {
-      throw new Error(`Faction ${row._id} still has legacy complexity storage`);
-    }
-    const expected = calculateComplexity(rules);
-    if (complexity.calculated !== expected) {
-      throw new Error(
-        `Faction ${row._id} has calculated complexity ${complexity.calculated}; expected ${expected}`
-      );
-    }
-  },
+  migrateOne: async () => undefined,
 });
 
 /** Retains the completed Group lifecycle backfill identity through the schema-narrowing release. */
