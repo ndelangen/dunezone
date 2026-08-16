@@ -25,6 +25,14 @@ async function getRulesetById(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
   return await ctx.db.get(id);
 }
 
+/**
+ * The authoring shape `rulesetInputSchema` parses, built from mutation args.
+ * An omitted `description` stays omitted rather than becoming `undefined`, because the schema is strict and the difference carries meaning: absent means "not part of this write", not "blank it".
+ */
+function rulesetInputFrom(args: { name: string; description?: string }) {
+  return args.description === undefined ? { name: args.name } : { name: args.name, description: args.description };
+}
+
 async function resolveUniqueRulesetSlug(ctx: QueryCtx | MutationCtx, name: string, excludeId?: Id<'rulesets'>) {
   const baseSlug = slugify(name) || 'ruleset';
   let slug = baseSlug;
@@ -106,12 +114,13 @@ export const listByFaction = query({
 export const create = mutation({
   args: {
     name: v.string(),
+    description: v.optional(v.string()),
     group_id: v.union(v.id('groups'), v.null()),
     image_cover: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
-    const parsed = rulesetInputSchema.safeParse({ name: args.name });
+    const parsed = rulesetInputSchema.safeParse(rulesetInputFrom(args));
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(' ');
       throw new Error(msg || 'Invalid ruleset input');
@@ -134,6 +143,8 @@ export const create = mutation({
     const slug = await resolveUniqueRulesetSlug(ctx, normalizedName);
     const _id = await ctx.db.insert('rulesets', {
       name: normalizedName,
+      /** Empty until the create form collects one; the backfilled value for every row that predates the field. */
+      description: parsed.data.description ?? '',
       slug,
       owner_id: userId,
       group_id: args.group_id,
@@ -154,11 +165,12 @@ export const update = mutation({
   args: {
     id: v.id('rulesets'),
     name: v.string(),
+    description: v.optional(v.string()),
     group_id: v.optional(v.union(v.id('groups'), v.null())),
     image_cover: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
-    const parsed = rulesetInputSchema.safeParse({ name: args.name });
+    const parsed = rulesetInputSchema.safeParse(rulesetInputFrom(args));
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(' ');
       throw new Error(msg || 'Invalid ruleset input');
@@ -182,6 +194,7 @@ export const update = mutation({
       name: string;
       slug: string;
       updated_at: string;
+      description?: string;
       group_id?: Id<'groups'> | null;
       image_cover?: string | null;
     } = {
@@ -189,6 +202,10 @@ export const update = mutation({
       slug: await resolveUniqueRulesetSlug(ctx, normalizedName, args.id),
       updated_at: nowIso(),
     };
+    /** Absent means "leave it alone", so a caller that only moves the group cannot blank a description. */
+    if (parsed.data.description !== undefined) {
+      patch.description = parsed.data.description;
+    }
     if (args.group_id !== undefined) {
       patch.group_id = args.group_id;
     }

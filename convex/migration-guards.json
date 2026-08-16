@@ -11,6 +11,11 @@
       "requires": []
     },
     {
+      "id": "rulesets_description_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
       "id": "faq_item_slug_v1",
       "phase": "widen",
       "requires": []
