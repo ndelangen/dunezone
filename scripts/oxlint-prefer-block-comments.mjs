@@ -199,7 +199,6 @@ const plugin = {
   },
   rules: {
     "prefer-block-comments": preferBlockCommentsRule,
-    "sentence-boundary-comments": preferBlockCommentsRule,
   },
 };
 
