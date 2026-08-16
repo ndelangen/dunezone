@@ -2,7 +2,6 @@ import type { FactionInput } from './schema';
 
 type FactionRules = FactionInput['rules'];
 export type FactionComplexity = FactionInput['complexity'];
-export type TransitionalFactionComplexity = FactionComplexity | number | undefined;
 
 /** Below this many words the score stays 0 — every faction needs some baseline text. */
 const COMPLEXITY_GRACE_FLOOR_WORDS = 80;
@@ -75,59 +74,17 @@ function complexityRecord(calculated: number, manual: number | undefined): Facti
   return manual === undefined ? { calculated } : { calculated, manual };
 }
 
-function isGroupedComplexity(
-  complexity: TransitionalFactionComplexity
-): complexity is FactionComplexity {
-  return complexity !== null && typeof complexity === 'object';
-}
-
-function manualComplexity(complexity: TransitionalFactionComplexity): number | undefined {
-  return typeof complexity === 'number'
-    ? complexity
-    : isGroupedComplexity(complexity)
-      ? complexity.manual
-      : undefined;
-}
-
-function withRecalculatedComplexity<
-  T extends { rules: FactionRules; complexity?: TransitionalFactionComplexity },
+/** Creates or refreshes the grouped value at an authoring boundary while retaining manual. */
+export function recalculateFactionComplexity<
+  T extends { rules: FactionRules; complexity?: FactionComplexity },
 >(data: T): T & { complexity: FactionComplexity } {
   return {
     ...data,
-    complexity: complexityRecord(
-      calculateComplexity(data.rules),
-      manualComplexity(data.complexity)
-    ),
+    complexity: complexityRecord(calculateComplexity(data.rules), data.complexity?.manual),
   };
 }
 
-/**
- * Normalizes either side of the migration for readers. A stored grouped calculation is
- * authoritative; only absent and legacy-scalar records calculate on read.
- */
-export function normalizeStoredFactionComplexity<
-  T extends { rules: FactionRules; complexity?: TransitionalFactionComplexity },
->(data: T): T & { complexity: FactionComplexity } {
-  if (isGroupedComplexity(data.complexity)) {
-    return { ...data, complexity: data.complexity };
-  }
-  return withRecalculatedComplexity(data);
-}
-
-/** Recalculates the stored value at an authoring or migration boundary while retaining manual. */
-export function recalculateFactionComplexity<
-  T extends { rules: FactionRules; complexity?: TransitionalFactionComplexity },
->(data: T): T & { complexity: FactionComplexity } {
-  return withRecalculatedComplexity(data);
-}
-
-/** Manual when present, otherwise stored calculated; legacy rows calculate only as a fallback. */
-export function effectiveComplexity(data: {
-  rules: FactionRules;
-  complexity?: TransitionalFactionComplexity;
-}): number {
-  if (isGroupedComplexity(data.complexity)) {
-    return data.complexity.manual ?? data.complexity.calculated;
-  }
-  return data.complexity ?? calculateComplexity(data.rules);
+/** Manual when present, otherwise the stored calculated rating. */
+export function effectiveComplexity(complexity: FactionComplexity): number {
+  return complexity.manual ?? complexity.calculated;
 }

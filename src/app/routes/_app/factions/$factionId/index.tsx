@@ -106,7 +106,7 @@ function FactionComplexitySummary({ score }: { score: number }) {
 function FactionSidebarOverview({ data }: { data: FactionData }) {
   return (
     <>
-      <FactionComplexitySummary score={effectiveComplexity(data)} />
+      <FactionComplexitySummary score={effectiveComplexity(data.complexity)} />
       <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
         <div className={styles.loreHeroToken}>
           <LeaderToken

@@ -168,7 +168,7 @@ function representativeFullFieldFaction(): FactionInput {
 }
 
 describe('faction authoring full-field round trip', () => {
-  test('normalizes stale scalar writes while trusting grouped client calculations', async () => {
+  test('rejects retired legacy writes while trusting grouped client calculations', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');
     aggregateTest.register(t, 'profileActivity');
@@ -179,22 +179,18 @@ describe('faction authoring full-field round trip', () => {
     const asUser = t.withIdentity({ subject: userId });
     const { complexity: _complexity, ...legacyData } = structuredClone(assetPublishingFaction);
 
-    const legacyCreated = await asUser.mutation(api.factions.create, {
-      data: { ...legacyData, name: 'Legacy Scalar Proof', complexity: 0.6 },
-      group_id: null,
-    });
-    expect(legacyCreated.data.complexity).toEqual({
-      calculated: assetPublishingFaction.complexity.calculated,
-      manual: 0.6,
-    });
-    const legacyUpdated = await asUser.mutation(api.factions.update, {
-      id: legacyCreated._id,
-      data: { ...legacyData, name: 'Legacy Scalar Proof Updated', complexity: 0.7 },
-    });
-    expect(legacyUpdated.data.complexity).toEqual({
-      calculated: assetPublishingFaction.complexity.calculated,
-      manual: 0.7,
-    });
+    await expect(
+      asUser.mutation(api.factions.create, {
+        data: { ...legacyData, name: 'Missing Complexity Proof' },
+        group_id: null,
+      })
+    ).rejects.toThrow(/complexity/i);
+    await expect(
+      asUser.mutation(api.factions.create, {
+        data: { ...legacyData, name: 'Legacy Scalar Proof', complexity: 0.6 },
+        group_id: null,
+      })
+    ).rejects.toThrow(/complexity/i);
 
     const groupedCreated = await asUser.mutation(api.factions.create, {
       data: {
@@ -205,6 +201,21 @@ describe('faction authoring full-field round trip', () => {
       group_id: null,
     });
     expect(groupedCreated.data.complexity).toEqual({ calculated: 0.123, manual: 0.4 });
+    await expect(
+      asUser.mutation(api.factions.update, {
+        id: groupedCreated._id,
+        data: { ...legacyData, name: 'Legacy Scalar Update Proof', complexity: 0.7 },
+      })
+    ).rejects.toThrow(/complexity/i);
+    const groupedUpdated = await asUser.mutation(api.factions.update, {
+      id: groupedCreated._id,
+      data: {
+        ...legacyData,
+        name: 'Grouped Trust Proof Updated',
+        complexity: { calculated: 0.456, manual: 0.5 },
+      },
+    });
+    expect(groupedUpdated.data.complexity).toEqual({ calculated: 0.456, manual: 0.5 });
   });
 
   test('creates, schedules, reloads, edits, and shares every admitted field without loss', async () => {

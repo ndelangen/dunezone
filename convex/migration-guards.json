@@ -145,6 +145,21 @@
       "id": "groups_soft_delete_narrow",
       "phase": "narrow",
       "requires": ["groups_soft_delete_backfill_v1", "groups_soft_delete_verify_v1"]
+    },
+    {
+      "id": "faction_complexity_grouped_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "faction_complexity_grouped_verify_v1",
+      "phase": "widen",
+      "requires": ["faction_complexity_grouped_v1"]
+    },
+    {
+      "id": "faction_complexity_grouped_narrow",
+      "phase": "narrow",
+      "requires": ["faction_complexity_grouped_v1", "faction_complexity_grouped_verify_v1"]
     }
   ]
 }

@@ -6,7 +6,6 @@ import {
   CanonicalFactionClientSchema,
   CanonicalFactionStoredSchema,
   FactionInputSchema,
-  TransitionalFactionInputSchema,
 } from './schema';
 
 describe('faction schema', () => {
@@ -33,7 +32,7 @@ describe('faction schema', () => {
     expect(CanonicalFactionStoredSchema.parse(historical).name).toBe('');
   });
 
-  it('requires grouped complexity for authored writes while accepting both legacy stored states', () => {
+  it('requires grouped complexity at authoring, storage, and client-read boundaries', () => {
     const { complexity: _complexity, ...withoutComplexity } =
       structuredClone(assetPublishingFaction);
 
@@ -41,34 +40,17 @@ describe('faction schema', () => {
     expect(FactionInputSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success).toBe(
       false
     );
-    expect(CanonicalFactionStoredSchema.safeParse(withoutComplexity).success).toBe(true);
+    expect(CanonicalFactionStoredSchema.safeParse(withoutComplexity).success).toBe(false);
     expect(
       CanonicalFactionStoredSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success
-    ).toBe(true);
+    ).toBe(false);
+    expect(CanonicalFactionClientSchema.safeParse(withoutComplexity).success).toBe(false);
     expect(
-      TransitionalFactionInputSchema.parse({ ...withoutComplexity, complexity: 0.4 }).complexity
-    ).toEqual({
-      calculated: assetPublishingFaction.complexity.calculated,
-      manual: 0.4,
-    });
+      CanonicalFactionClientSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success
+    ).toBe(false);
     expect(FactionInputSchema.safeParse(assetPublishingFaction).success).toBe(true);
-  });
-
-  it('normalizes legacy client reads but preserves an already stored calculated value', () => {
-    const { complexity: _complexity, ...withoutComplexity } =
-      structuredClone(assetPublishingFaction);
-    const scalar = CanonicalFactionClientSchema.parse({
-      ...withoutComplexity,
-      complexity: 0.4,
-    });
-    const grouped = CanonicalFactionClientSchema.parse({
-      ...withoutComplexity,
-      complexity: { calculated: 0.123 },
-    });
-
-    expect(scalar.complexity.manual).toBe(0.4);
-    expect(scalar.complexity.calculated).toBe(assetPublishingFaction.complexity.calculated);
-    expect(grouped.complexity).toEqual({ calculated: 0.123 });
+    expect(CanonicalFactionStoredSchema.safeParse(assetPublishingFaction).success).toBe(true);
+    expect(CanonicalFactionClientSchema.safeParse(assetPublishingFaction).success).toBe(true);
   });
 
   it.each([
