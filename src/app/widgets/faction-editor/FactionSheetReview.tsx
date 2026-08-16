@@ -2,15 +2,7 @@ import { ActionIcon, Alert, Button, Group, Stack, Text, Title } from '@mantine/c
 import { FactionRender } from '@shared/factions/schema';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { ChevronDown, Link2, X } from 'lucide-react';
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
@@ -74,8 +66,7 @@ function ReviewProofDesk({ faction }: { faction: Faction }) {
       pageOne instanceof HTMLElement &&
       pageTwo instanceof HTMLElement &&
       Math.abs(pageOne.offsetTop - pageTwo.offsetTop) < 2;
-    const reachedPageTwo =
-      pageTwo instanceof HTMLElement && scroller.scrollTop >= pageTwo.offsetTop - 48;
+    const reachedPageTwo = pageTwo instanceof HTMLElement && scroller.scrollTop >= pageTwo.offsetTop - 48;
     setShowScrollCue(hasOverflow && !pagesShareRow && !reachedPageTwo);
   }, []);
 
@@ -113,12 +104,7 @@ function ReviewProofDesk({ faction }: { faction: Faction }) {
       </Group>
 
       <div className={styles.sheetCanvasShell}>
-        <div
-          ref={scrollerRef}
-          className={styles.sheetScroller}
-          data-faction-review-scroller
-          onScroll={updateScrollCue}
-        >
+        <div ref={scrollerRef} className={styles.sheetScroller} data-faction-review-scroller onScroll={updateScrollCue}>
           <div className={styles.reviewArtifacts}>
             <ScaledFactionShield faction={faction} />
             <div className={styles.sheetSpread} data-faction-review-sheet-spread>
@@ -188,8 +174,7 @@ function ReviewHeading({
         icon={<Link2 size={18} aria-hidden />}
         title="Share the faction URL, not a screenshot"
       >
-        Save this draft first, then share its canonical faction URL so everyone reaches the
-        published version.
+        Save this draft first, then share its canonical faction URL so everyone reaches the published version.
       </Alert>
     </Stack>
   );

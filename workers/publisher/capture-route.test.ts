@@ -6,9 +6,7 @@ import type { CaptureEnv } from './capture-route';
 
 const jobId = 'publication-job-000000000000001';
 
-function env(
-  assetFetch = vi.fn(async (_request: Request) => new Response('<html>capture</html>'))
-): CaptureEnv {
+function env(assetFetch = vi.fn(async (_request: Request) => new Response('<html>capture</html>'))): CaptureEnv {
   return {
     ASSETS: { fetch: assetFetch },
     CONVEX_RENDER_URL: 'https://convex.invalid/asset-publishing/render',
@@ -54,9 +52,7 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(response?.headers.get('Referrer-Policy')).toBe('no-referrer');
     const assetRequest = assetFetch.mock.calls[0]?.[0];
     expect(assetRequest).toBeDefined();
-    expect(new URL(assetRequest?.url ?? 'https://invalid.invalid').pathname).toBe(
-      '/publisher-capture.html'
-    );
+    expect(new URL(assetRequest?.url ?? 'https://invalid.invalid').pathname).toBe('/publisher-capture.html');
     expect(assetRequest?.url).not.toContain(jobId);
     expect(upstream).toHaveBeenCalledOnce();
   });

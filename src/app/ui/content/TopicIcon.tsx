@@ -20,10 +20,7 @@ const TOPIC_ICON_DEFINITIONS = {
   karama: { kind: 'mask', src: '/vector/icon/karama.svg' },
   rulesets: { kind: 'component', component: BookOpen },
   fate: { kind: 'mask', src: '/vector/icon/fate.svg' },
-} as const satisfies Record<
-  string,
-  { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }
->;
+} as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;
 
 export type TopicIconTopic = keyof typeof TOPIC_ICON_DEFINITIONS;
 
@@ -36,8 +33,8 @@ export interface TopicIconProps {
 }
 
 /**
- * The canonical, decorative icon for a recurring application topic. The surrounding heading or
- * label owns the accessible name.
+ * The canonical, decorative icon for a recurring application topic.
+ * The surrounding heading or label owns the accessible name.
  */
 export function TopicIcon({ topic, size = 16, className }: TopicIconProps) {
   const definition = TOPIC_ICON_DEFINITIONS[topic];

@@ -5,9 +5,7 @@ import { Link } from '@tanstack/react-router';
 import { Spotlight } from './Spotlight';
 
 /* Any route works; a spotlight only needs somewhere to point. */
-const linkToFactions = (rootProps: Record<string, unknown>) => (
-  <Link {...rootProps} to="/factions" />
-);
+const linkToFactions = (rootProps: Record<string, unknown>) => <Link {...rootProps} to="/factions" />;
 
 const meta = preview.meta({
   title: 'Spotlight',

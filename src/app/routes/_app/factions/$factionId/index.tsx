@@ -31,16 +31,7 @@ import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import {
-  ArrowLeft,
-  Download,
-  Eye,
-  FileText,
-  MapPin,
-  Pencil,
-  UserPlus,
-  UsersRound,
-} from 'lucide-react';
+import { ArrowLeft, Download, Eye, FileText, MapPin, Pencil, UserPlus, UsersRound } from 'lucide-react';
 
 import { loadFaction, useFaction } from '@db/factions';
 import type { FactionData } from '@db/factions';
@@ -66,9 +57,7 @@ function FactionDetailPending() {
       <PageLayout.Header>
         <Stack align="center" gap="xs">
           <Title order={1}>Faction</Title>
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>
-            Back to factions
-          </Anchor>
+          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>Back to factions</Anchor>
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
@@ -95,8 +84,7 @@ function FactionComplexitySummary({ score }: { score: number }) {
           </Text>
         </Group>
         <Text size="sm" c="dimmed">
-          {complexityOutOfTen(score)}/10 ·{' '}
-          {COMPLEXITY_TIER_PRESENTATION[complexityTier(score)].label}
+          {complexityOutOfTen(score)}/10 · {COMPLEXITY_TIER_PRESENTATION[complexityTier(score)].label}
         </Text>
       </Group>
     </Surface>
@@ -109,12 +97,7 @@ function FactionSidebarOverview({ data }: { data: FactionData }) {
       <FactionComplexitySummary score={effectiveComplexity(data.complexity)} />
       <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
         <div className={styles.loreHeroToken}>
-          <LeaderToken
-            {...data.hero}
-            strength={undefined}
-            background={data.background}
-            logo={data.logo}
-          />
+          <LeaderToken {...data.hero} strength={undefined} background={data.background} logo={data.logo} />
         </div>
       </Section>
     </>
@@ -127,9 +110,7 @@ function FactionDetailError({ error }: ErrorComponentProps) {
       <PageLayout.Header>
         <Stack align="center" gap="xs">
           <Title order={1}>Faction</Title>
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>
-            Back to factions
-          </Anchor>
+          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>Back to factions</Anchor>
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
@@ -158,9 +139,7 @@ function FactionDetailPage() {
         <PageLayout.Header>
           <Stack align="center" gap="xs">
             <Title order={1}>Faction</Title>
-            <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>
-              Back to factions
-            </Anchor>
+            <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>Back to factions</Anchor>
           </Stack>
         </PageLayout.Header>
         <PageLayout.Content>
@@ -179,8 +158,7 @@ function FactionDetailPage() {
 
   const { edit: canEdit, requestMembership: canRequestMembership } = viewerAccess.capabilities;
   const assignedGroup = viewerAccess.assignedGroup;
-  const membershipStatus =
-    viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
+  const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
 
   const data = faction.data;
   const planets = data.planet ?? [];
@@ -195,11 +173,7 @@ function FactionDetailPage() {
           </div>
           <Stack gap={6} className={styles.pageHeadText}>
             <Group gap="xs" wrap="wrap">
-              <Anchor
-                size="sm"
-                fw={600}
-                renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
-              >
+              <Anchor size="sm" fw={600} renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>
                 Factions
               </Anchor>
             </Group>
@@ -277,11 +251,7 @@ function FactionDetailPage() {
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <Flex
-          direction={{ base: 'column-reverse', md: 'row' }}
-          gap="xl"
-          align={{ base: 'stretch', md: 'flex-start' }}
-        >
+        <Flex direction={{ base: 'column-reverse', md: 'row' }} gap="xl" align={{ base: 'stretch', md: 'flex-start' }}>
           <Box miw={0} style={{ flex: '1 1 auto' }}>
             <Stack gap="xl">
               <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">
@@ -395,10 +365,7 @@ function FactionDetailPage() {
                 <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
                   <Text size="sm">{data.rules.alliance.text}</Text>
                 </Card>
-                <Card
-                  icon={<TopicIcon topic="fate" size={20} />}
-                  title={data.rules.fate.title || 'Fate'}
-                >
+                <Card icon={<TopicIcon topic="fate" size={20} />} title={data.rules.fate.title || 'Fate'}>
                   <Text size="sm">{data.rules.fate.text}</Text>
                 </Card>
               </SimpleGrid>
@@ -504,11 +471,7 @@ function FactionDetailPage() {
                       <Anchor
                         fw={600}
                         renderRoot={(rootProps) => (
-                          <Link
-                            {...rootProps}
-                            to="/groups/$groupSlug"
-                            params={{ groupSlug: assignedGroup.slug }}
-                          />
+                          <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: assignedGroup.slug }} />
                         )}
                       >
                         {assignedGroup.name}
@@ -539,10 +502,8 @@ function FactionDetailPage() {
                   </Group>
                   {viewerAccess?.viewer.kind === 'anonymous' ? (
                     <Text size="sm">
-                      <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
-                        Log in
-                      </Anchor>{' '}
-                      to join.
+                      <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to
+                      join.
                     </Text>
                   ) : null}
                   {canRequestMembership ? (
@@ -551,9 +512,7 @@ function FactionDetailPage() {
                       variant="light"
                       leftSection={<UserPlus size={16} aria-hidden />}
                       loading={membershipWorkflow.request.isPending}
-                      onClick={() =>
-                        void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)
-                      }
+                      onClick={() => void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)}
                     >
                       Request membership
                     </Button>
@@ -595,11 +554,7 @@ function FactionDetailPage() {
             >
               <Stack gap="sm">
                 <Text size="sm" c="dimmed">
-                  {factionAssetPublishingCopy(
-                    assetPublishing.status,
-                    'idle',
-                    assetPublishing.captureStatus
-                  )}
+                  {factionAssetPublishingCopy(assetPublishing.status, 'idle', assetPublishing.captureStatus)}
                 </Text>
                 <Anchor
                   fw={600}
@@ -625,11 +580,7 @@ function FactionDetailPage() {
               ) : (
                 <Links>
                   {rulesets.map((ruleset) => (
-                    <Links.Item
-                      key={ruleset.id}
-                      to="/rulesets/$rulesetSlug"
-                      params={{ rulesetSlug: ruleset.slug }}
-                    >
+                    <Links.Item key={ruleset.id} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
                       {ruleset.name}
                     </Links.Item>
                   ))}

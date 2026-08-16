@@ -51,9 +51,7 @@ export const IntrinsicSizingStress = meta.story({
     <AsymmetricSplitLayout>
       <AsymmetricSplitLayout.Wide>
         <Stack gap="md">
-          <Text>
-            DuneZoneLayoutStressCaseWithAnUnbrokenFactionNameThatMustRespectItsAllocatedContainer
-          </Text>
+          <Text>DuneZoneLayoutStressCaseWithAnUnbrokenFactionNameThatMustRespectItsAllocatedContainer</Text>
           <Image alt="Intrinsic sizing test" mah={320} src="/web/tablet1.jpg" w={1400} />
         </Stack>
       </AsymmetricSplitLayout.Wide>

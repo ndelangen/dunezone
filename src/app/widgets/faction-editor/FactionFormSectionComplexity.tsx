@@ -35,9 +35,8 @@ function complexityModeDescription({
 }
 
 /**
- * The Complexity chapter: an override-switch over `complexity.manual`. The slider is always visible
- * — disabled while the rating is automatic — and keeps its last manual value when the switch turns
- * off, though only an active manual rating is stored (absent field = automatic).
+ * The Complexity chapter: an override-switch over `complexity.manual`.
+ * The slider is always visible — disabled while the rating is automatic — and keeps its last manual value when the switch turns off, though only an active manual rating is stored (absent field = automatic).
  */
 export function FactionFormSectionComplexity({
   form,
@@ -63,17 +62,14 @@ export function FactionFormSectionComplexity({
                 nearCapacity,
               } = complexityEditorPresentation(rules, manual);
               const active = manual != null;
-              const slider10 = complexityOutOfTen(
-                active ? manual : (retainedManualRating ?? calculated)
-              );
+              const slider10 = complexityOutOfTen(active ? manual : (retainedManualRating ?? calculated));
 
               return (
                 <Stack component="section" gap="sm" aria-label="Faction complexity">
                   <Group gap="xs" justify="space-between" wrap="nowrap">
                     <Text c="dimmed" size="sm">
-                      How hard this faction is to play, shown in the catalogue and on the faction
-                      page. Leave it on automatic to follow your rules text, or set it yourself —
-                      you know your table best.
+                      How hard this faction is to play, shown in the catalogue and on the faction page. Leave it on
+                      automatic to follow your rules text, or set it yourself — you know your table best.
                     </Text>
                     <Badge variant="light" color={active ? 'dune' : 'gray'} size="sm">
                       {active ? 'Manual' : 'Auto'}
@@ -123,8 +119,8 @@ export function FactionFormSectionComplexity({
                   ) : null}
                   {nearCapacity ? (
                     <Advisory>
-                      The rules text is approaching the printed sheet&rsquo;s capacity — consider
-                      trimming so it stays readable at the table.
+                      The rules text is approaching the printed sheet&rsquo;s capacity — consider trimming so it stays
+                      readable at the table.
                     </Advisory>
                   ) : null}
                 </Stack>

@@ -179,10 +179,7 @@ export default definePreview({
          renderers that carry their own colour and must not inherit the app's palette. */
       if (!title.startsWith('Game Assets/')) {
         return (
-          <MantineProvider
-            theme={appContentTheme}
-            forceColorScheme={globals.colorScheme === 'dark' ? 'dark' : 'light'}
-          >
+          <MantineProvider theme={appContentTheme} forceColorScheme={globals.colorScheme === 'dark' ? 'dark' : 'light'}>
             {story}
           </MantineProvider>
         );

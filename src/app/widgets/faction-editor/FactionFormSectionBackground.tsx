@@ -31,11 +31,7 @@ import {
 } from './factionBackgroundRandomizer';
 import styles from './FactionFormSectionBackground.module.css';
 import type { FactionFormApi } from './factionFormTypes';
-import {
-  clampInfluence,
-  influenceToSliderPosition,
-  sliderPositionToInfluence,
-} from './factionInfluenceScale';
+import { clampInfluence, influenceToSliderPosition, sliderPositionToInfluence } from './factionInfluenceScale';
 
 function RandomButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -73,11 +69,7 @@ function PatternCatalogue({
           icon={<X size={18} aria-hidden />}
         />
       </Group>
-      <Box
-        className={styles.patternScroller}
-        role="group"
-        aria-label="Background pattern catalogue"
-      >
+      <Box className={styles.patternScroller} role="group" aria-label="Background pattern catalogue">
         {BACKGROUND_PATTERN_CATALOGUE.map((option) => {
           const selected = option.image === value;
           return (
@@ -194,9 +186,7 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
                       step={0.5}
                       value={influenceToSliderPosition(exactValue)}
                       label={(position) => sliderPositionToInfluence(position).toFixed(2)}
-                      onChange={(position) =>
-                        field.handleChange(sliderPositionToInfluence(position))
-                      }
+                      onChange={(position) => field.handleChange(sliderPositionToInfluence(position))}
                     />
                     <Group justify="space-between">
                       <Text size="xs" c="dimmed">
@@ -223,8 +213,7 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
 export function FactionFormSectionBackground({ form }: { form: FactionFormApi }) {
   const resolve = useAssetResolver();
   const [libraryOpen, setLibraryOpen] = useState(false);
-  const setBackground = (background: Faction['background']) =>
-    form.setFieldValue('background', background);
+  const setBackground = (background: Faction['background']) => form.setFieldValue('background', background);
 
   return (
     <Stack component="section" gap="md" aria-label="Background builder">
@@ -245,9 +234,7 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
           <Box className={styles.pipelineTop}>
             <form.Subscribe selector={(state) => state.values.background}>
               {(background) => {
-                const selected = BACKGROUND_PATTERN_CATALOGUE.find(
-                  (option) => option.image === background.image
-                );
+                const selected = BACKGROUND_PATTERN_CATALOGUE.find((option) => option.image === background.image);
                 const treatment = backgroundTreatment(background);
                 return (
                   <Box className={styles.pipelineStage}>
@@ -257,9 +244,7 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
                       tool={
                         <RandomButton
                           label="Random"
-                          onClick={() =>
-                            setBackground(withRandomPattern(form.state.values.background))
-                          }
+                          onClick={() => setBackground(withRandomPattern(form.state.values.background))}
                         />
                       }
                       input={
@@ -301,9 +286,7 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
 
             <TreatmentControls
               form={form}
-              onRandom={() =>
-                setBackground(randomizeBackgroundTreatment(form.state.values.background))
-              }
+              onRandom={() => setBackground(randomizeBackgroundTreatment(form.state.values.background))}
             />
           </Box>
 
@@ -316,9 +299,7 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
               tool={
                 <RandomButton
                   label="Random"
-                  onClick={() =>
-                    setBackground(randomizeBackgroundColors(form.state.values.background))
-                  }
+                  onClick={() => setBackground(randomizeBackgroundColors(form.state.values.background))}
                 />
               }
               input={

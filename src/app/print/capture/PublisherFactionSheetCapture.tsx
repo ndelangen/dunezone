@@ -1,8 +1,5 @@
 import { CAPTURE_PROTOCOL } from '@shared/asset-publishing/capture-protocol';
-import {
-  publisherErrorMessage,
-  redactPublisherResource,
-} from '@shared/asset-publishing/publisher-diagnostics';
+import { publisherErrorMessage, redactPublisherResource } from '@shared/asset-publishing/publisher-diagnostics';
 import { assertRequiredPublisherFonts } from '@shared/asset-publishing/publisher-fonts';
 import { publisherCaptureSnapshotSchema } from '@shared/asset-publishing/publisher-snapshot';
 import type { FactionInput } from '@shared/factions/schema';
@@ -17,17 +14,11 @@ type CaptureState = 'loading' | 'ready' | 'error';
 
 function imageLabel(image: HTMLImageElement): string {
   const source = image.currentSrc || image.src;
-  return source
-    ? redactPublisherResource(source, document.baseURI)
-    : image.alt || '<unknown image>';
+  return source ? redactPublisherResource(source, document.baseURI) : image.alt || '<unknown image>';
 }
 
 function svgHref(element: SVGImageElement | SVGUseElement): string | undefined {
-  return (
-    element.getAttribute('href') ??
-    element.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ??
-    undefined
-  );
+  return element.getAttribute('href') ?? element.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ?? undefined;
 }
 
 function abortReason(signal: AbortSignal): unknown {
@@ -84,18 +75,13 @@ async function settleSvgImage(href: string, signal: AbortSignal): Promise<void> 
       throw abortReason(signal);
     }
     if (image.naturalWidth === 0 || image.naturalHeight === 0) {
-      throw new Error(
-        `SVG image has no decoded pixels: ${redactPublisherResource(href, document.baseURI)}`
-      );
+      throw new Error(`SVG image has no decoded pixels: ${redactPublisherResource(href, document.baseURI)}`);
     }
   } catch (error) {
     if (signal.aborted) {
       throw abortReason(signal);
     }
-    throw new Error(
-      `SVG image failed to decode: ${redactPublisherResource(href, document.baseURI)}`,
-      { cause: error }
-    );
+    throw new Error(`SVG image failed to decode: ${redactPublisherResource(href, document.baseURI)}`, { cause: error });
   } finally {
     signal.removeEventListener('abort', onAbort);
   }
@@ -131,13 +117,13 @@ async function settleExternalSvgUse(href: string, signal: AbortSignal): Promise<
 
 async function settleSvgResources(signal: AbortSignal): Promise<void> {
   const images = new Set(
-    Array.from(document.querySelectorAll<SVGImageElement>('svg image'), svgHref).filter(
-      (href): href is string => Boolean(href)
+    Array.from(document.querySelectorAll<SVGImageElement>('svg image'), svgHref).filter((href): href is string =>
+      Boolean(href)
     )
   );
   const uses = new Set(
-    Array.from(document.querySelectorAll<SVGUseElement>('svg use'), svgHref).filter(
-      (href): href is string => Boolean(href && !href.startsWith('#'))
+    Array.from(document.querySelectorAll<SVGUseElement>('svg use'), svgHref).filter((href): href is string =>
+      Boolean(href && !href.startsWith('#'))
     )
   );
   await Promise.all([
@@ -147,9 +133,7 @@ async function settleSvgResources(signal: AbortSignal): Promise<void> {
 }
 
 function afterPaint(): Promise<void> {
-  return new Promise((resolve) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-  );
+  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 }
 
 export function PublisherFactionSheetCapture() {
@@ -207,9 +191,7 @@ export function PublisherFactionSheetCapture() {
         await afterPaint();
         await document.fonts.ready;
         await assertRequiredPublisherFonts(document.fonts);
-        await Promise.all(
-          Array.from(document.images, (image) => settleImage(image, controller.signal))
-        );
+        await Promise.all(Array.from(document.images, (image) => settleImage(image, controller.signal)));
         await settleSvgResources(controller.signal);
         if (!disposed && !controller.signal.aborted) {
           setState('ready');

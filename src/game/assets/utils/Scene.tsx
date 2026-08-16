@@ -49,11 +49,7 @@ export function Scene(input: FactionInput) {
         {troops.map((troop, index) => (
           <div key={troop.image} className={styles.troop}>
             {Array.from({ length: input.troops[index].count }, (_, index) => (
-              <div
-                key={index}
-                className={styles.disc}
-                style={{ top: -(index * 5.9), left: (index % 3) / 10 }}
-              >
+              <div key={index} className={styles.disc} style={{ top: -(index * 5.9), left: (index % 3) / 10 }}>
                 <TroopToken {...troop} />
               </div>
             ))}
@@ -72,11 +68,7 @@ export function Scene(input: FactionInput) {
               height: '30px',
             }}
           >
-            <CustomToken
-              background={backgroundPresets.spiceToken}
-              image="/vector/icon/spice.svg"
-              circle={false}
-            />
+            <CustomToken background={backgroundPresets.spiceToken} image="/vector/icon/spice.svg" circle={false} />
           </div>
         ))}
       </div>

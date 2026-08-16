@@ -109,13 +109,7 @@ export function FactionAuthoringToolbar({
                   {statusLabel}
                 </Badge>
                 {warningCount > 0 ? (
-                  <Button
-                    type="button"
-                    variant="subtle"
-                    color="yellow"
-                    size="compact-xs"
-                    onClick={onReviewWarnings}
-                  >
+                  <Button type="button" variant="subtle" color="yellow" size="compact-xs" onClick={onReviewWarnings}>
                     {warningCount} {warningCount === 1 ? 'field may' : 'fields may'} be incomplete
                   </Button>
                 ) : null}
@@ -133,9 +127,7 @@ export function FactionAuthoringToolbar({
               </Group>
               <div className={styles.statusDetails}>
                 <Text size="xs" c={saveState === 'error' ? 'red' : 'dimmed'} role="status">
-                  {isNameBlank
-                    ? 'Add a faction name before saving; it determines the faction URL.'
-                    : publishingCopy}
+                  {isNameBlank ? 'Add a faction name before saving; it determines the faction URL.' : publishingCopy}
                 </Text>
                 {context}
               </div>

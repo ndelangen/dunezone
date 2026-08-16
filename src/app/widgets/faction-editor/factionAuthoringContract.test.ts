@@ -3,18 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defaultFaction } from './defaultFaction';
-import {
-  factionAuthoringCoverage,
-  factionAuthoringWarnings,
-  preserveFactionExtras,
-} from './factionAuthoringContract';
+import { factionAuthoringCoverage, factionAuthoringWarnings, preserveFactionExtras } from './factionAuthoringContract';
 
 function schemaLeafPaths(schema: z.ZodType, prefix = ''): string[] {
-  if (
-    schema instanceof z.ZodOptional ||
-    schema instanceof z.ZodNullable ||
-    schema instanceof z.ZodDefault
-  ) {
+  if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable || schema instanceof z.ZodDefault) {
     return schemaLeafPaths(schema.unwrap() as z.ZodType, prefix);
   }
   if (schema instanceof z.ZodObject) {
@@ -26,9 +18,7 @@ function schemaLeafPaths(schema: z.ZodType, prefix = ''): string[] {
     return schemaLeafPaths(schema.element as z.ZodType, `${prefix}[]`);
   }
   if (schema instanceof z.ZodTuple) {
-    return schema._def.items.flatMap((child, index) =>
-      schemaLeafPaths(child as z.ZodType, `${prefix}[${index}]`)
-    );
+    return schema._def.items.flatMap((child, index) => schemaLeafPaths(child as z.ZodType, `${prefix}[${index}]`));
   }
   if (schema instanceof z.ZodUnion) {
     return schema.options.flatMap((child) => schemaLeafPaths(child as z.ZodType, prefix));
@@ -140,9 +130,7 @@ describe('faction authoring contract', () => {
       ],
     };
 
-    const parsed = FactionInputSchema.parse(
-      preserveFactionExtras(structuredClone(faction), faction)
-    );
+    const parsed = FactionInputSchema.parse(preserveFactionExtras(structuredClone(faction), faction));
 
     expect(parsed.troops).toEqual(faction.troops);
     expect(parsed.troops[0].back).toEqual(faction.troops[0].back);
@@ -185,9 +173,7 @@ describe('faction authoring contract', () => {
       },
     ];
 
-    const parsed = FactionInputSchema.parse(
-      preserveFactionExtras(structuredClone(faction), faction)
-    );
+    const parsed = FactionInputSchema.parse(preserveFactionExtras(structuredClone(faction), faction));
 
     expect(parsed.hero).toEqual(faction.hero);
     expect(parsed.leaders).toEqual(faction.leaders);

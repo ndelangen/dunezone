@@ -1,16 +1,6 @@
 import { z } from 'zod';
 
-import {
-  ALL,
-  BACKGROUND,
-  GENERIC,
-  LEADERS,
-  LOGO,
-  PLANET,
-  TEXTURE,
-  TROOP,
-  TROOP_MODIFIER,
-} from '../assetIds';
+import { ALL, BACKGROUND, GENERIC, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
 const OFFSET = z.tuple([z.number(), z.number()]);
@@ -161,8 +151,7 @@ const factionShape = {
 export const FactionInputSchema = z.strictObject(factionShape);
 
 /**
- * Canonical storage is intentionally wider than current authoring semantics: historical rows with a
- * blank name must remain readable while the UI requires a name for all new canonical writes.
+ * Canonical storage is intentionally wider than current authoring semantics: historical rows with a blank name must remain readable while the UI requires a name for all new canonical writes.
  */
 export const CanonicalFactionStoredSchema = z.strictObject({
   ...factionShape,
@@ -170,9 +159,8 @@ export const CanonicalFactionStoredSchema = z.strictObject({
 });
 
 /**
- * Client read-path variants: tolerate unknown top-level fields so additive server changes never
- * break stale tabs; genuine breaks (missing or mistyped fields) still fail the client boundary (see
- * db/core/clientBoundary).
+ * Client read-path variants: tolerate unknown top-level fields so additive server changes never break stale tabs;
+ * genuine breaks (missing or mistyped fields) still fail the client boundary (see db/core/clientBoundary).
  */
 export const CanonicalFactionClientSchema = z.looseObject({
   ...factionShape,

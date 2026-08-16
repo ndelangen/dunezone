@@ -15,9 +15,7 @@ const productionEnvelope = {
 
 describe('protected publisher snapshot contract', () => {
   test('retains strict unknown-key and slug validation', () => {
-    expect(() =>
-      publisherCaptureSnapshotSchema.parse({ ...productionEnvelope, unexpected: true })
-    ).toThrow();
+    expect(() => publisherCaptureSnapshotSchema.parse({ ...productionEnvelope, unexpected: true })).toThrow();
     expect(() =>
       publisherCaptureSnapshotSchema.parse({
         ...productionEnvelope,

@@ -86,12 +86,7 @@ export const AsNavigation = meta.story({
             title={label}
             trailing={<ArrowRight size={16} aria-hidden />}
             renderLink={(content) => (
-              <Anchor
-                href="#"
-                onClick={(event) => event.preventDefault()}
-                c="inherit"
-                underline="never"
-              >
+              <Anchor href="#" onClick={(event) => event.preventDefault()} c="inherit" underline="never">
                 {content}
               </Anchor>
             )}

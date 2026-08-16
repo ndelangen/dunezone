@@ -7,9 +7,8 @@
 import { coverageConfigDefaults } from 'vitest/config';
 
 /**
- * Extension-scoped rather than bare globs: bare `src/**` pulled non-code files (local publisher
- * dist output, tsconfig.json) into the denominator. A new source extension (.js, .mts) must be
- * added here to be counted.
+ * Extension-scoped rather than bare globs: bare `src/**` pulled non-code files (local publisher dist output, tsconfig.json) into the denominator.
+ * A new source extension (.js, .mts) must be added here to be counted.
  */
 export const coverageIncludeSrc = 'src/**/*.{ts,tsx}';
 

@@ -133,12 +133,10 @@ describe('Group soft deletion lifecycle', () => {
     const owner = t.withIdentity({ subject: ids.ownerId });
     await owner.mutation(api.groups.softDelete, { id: ids.groupId });
 
-    await expect(
-      owner.mutation(api.groups.update, { id: ids.groupId, name: 'RenamedDesigners' })
-    ).rejects.toThrow('not found');
-    await expect(owner.mutation(api.groups.softDelete, { id: ids.groupId })).rejects.toThrow(
+    await expect(owner.mutation(api.groups.update, { id: ids.groupId, name: 'RenamedDesigners' })).rejects.toThrow(
       'not found'
     );
+    await expect(owner.mutation(api.groups.softDelete, { id: ids.groupId })).rejects.toThrow('not found');
     await expect(
       t.withIdentity({ subject: ids.outsiderId }).mutation(api.members.request, {
         group_id: ids.groupId,

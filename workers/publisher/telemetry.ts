@@ -12,10 +12,7 @@ export type PublisherBuildIdentity = {
   rendererManifestDigest: string;
 };
 
-export function publisherBuildIdentity(
-  metadata: WorkerVersionMetadata,
-  gitSha: string
-): PublisherBuildIdentity {
+export function publisherBuildIdentity(metadata: WorkerVersionMetadata, gitSha: string): PublisherBuildIdentity {
   return {
     gitSha,
     workerVersionId: metadata.id,
@@ -26,9 +23,7 @@ export function publisherBuildIdentity(
   };
 }
 
-export function boundedPublisherTelemetryEvent(
-  event: Record<string, unknown>
-): Record<string, unknown> {
+export function boundedPublisherTelemetryEvent(event: Record<string, unknown>): Record<string, unknown> {
   const sanitized = JSON.parse(serializePublisherLogEvent(event)) as Record<string, unknown>;
   if (new TextEncoder().encode(JSON.stringify(sanitized)).byteLength <= MAX_TELEMETRY_EVENT_BYTES) {
     return sanitized;

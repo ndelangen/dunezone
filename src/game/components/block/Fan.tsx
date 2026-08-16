@@ -9,9 +9,10 @@ interface Size {
   height: number;
 }
 
-const Relative: FC<
-  PropsWithChildren & DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>
-> = ({ children, ...props }) => (
+const Relative: FC<PropsWithChildren & DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>> = ({
+  children,
+  ...props
+}) => (
   <div className={styles.relative} {...props}>
     {children}
   </div>

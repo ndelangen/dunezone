@@ -81,18 +81,11 @@ function readLine(bytes: Uint8Array, from: number, end: number) {
   };
 }
 
-function assertObjectHeaderAt(
-  bytes: Uint8Array,
-  offset: number,
-  objectNumber: number,
-  generationNumber: number
-): void {
+function assertObjectHeaderAt(bytes: Uint8Array, offset: number, objectNumber: number, generationNumber: number): void {
   const header = decoder.decode(bytes.subarray(offset, Math.min(bytes.length, offset + 48)));
   const expected = new RegExp(`^${objectNumber}\\s+${generationNumber}\\s+obj\\b`);
   if (!expected.test(header)) {
-    throw new Error(
-      `Classic xref entry ${objectNumber} ${generationNumber} does not point to its exact object header`
-    );
+    throw new Error(`Classic xref entry ${objectNumber} ${generationNumber} does not point to its exact object header`);
   }
 }
 
@@ -146,11 +139,7 @@ function parseStrictClassicXref(bytes: Uint8Array, envelope: PdfEnvelope): Class
       const objectNumber = firstObject + index;
       const generationNumber = Number(entry[2]);
       const objectOffset = Number(entry[1]);
-      if (
-        !Number.isSafeInteger(objectNumber) ||
-        objectNumber < 0 ||
-        objectNumber >= MAX_CLASSIC_XREF_ENTRIES
-      ) {
+      if (!Number.isSafeInteger(objectNumber) || objectNumber < 0 || objectNumber >= MAX_CLASSIC_XREF_ENTRIES) {
         throw new Error('Classic xref contains an out-of-range object number');
       }
       if (entries.has(objectNumber)) {
@@ -214,14 +203,10 @@ function parseStrictClassicXref(bytes: Uint8Array, envelope: PdfEnvelope): Class
   return { entries, rootObjectNumber, rootGenerationNumber, size };
 }
 
-function sameDimensions(
-  left: { width: number; height: number },
-  right: { width: number; height: number }
-): boolean {
+function sameDimensions(left: { width: number; height: number }, right: { width: number; height: number }): boolean {
   const tolerancePoints = 0.01;
   return (
-    Math.abs(left.width - right.width) <= tolerancePoints &&
-    Math.abs(left.height - right.height) <= tolerancePoints
+    Math.abs(left.width - right.width) <= tolerancePoints && Math.abs(left.height - right.height) <= tolerancePoints
   );
 }
 
@@ -238,9 +223,7 @@ export async function inspectChromiumPdf(bytes: Uint8Array): Promise<PdfInspecti
       updateMetadata: false,
     });
   } catch (error) {
-    throw new Error(
-      `PDF parser rejected browser output: ${error instanceof Error ? error.message : String(error)}`
-    );
+    throw new Error(`PDF parser rejected browser output: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   const catalogRef = document.context.getObjectRef(document.catalog);
@@ -255,11 +238,7 @@ export async function inspectChromiumPdf(bytes: Uint8Array): Promise<PdfInspecti
   const parsedObjectNumbers = new Set<number>();
   for (const [ref] of document.context.enumerateIndirectObjects()) {
     const entry = xref.entries.get(ref.objectNumber);
-    if (
-      ref.objectNumber >= xref.size ||
-      !entry?.inUse ||
-      entry.generationNumber !== ref.generationNumber
-    ) {
+    if (ref.objectNumber >= xref.size || !entry?.inUse || entry.generationNumber !== ref.generationNumber) {
       throw new Error(`Parsed indirect object ${ref} has no exact in-use classic xref entry`);
     }
     parsedObjectNumbers.add(ref.objectNumber);

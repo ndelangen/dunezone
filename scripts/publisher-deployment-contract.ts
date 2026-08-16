@@ -27,10 +27,7 @@ function invariant(condition: unknown, message: string): asserts condition {
 }
 
 function object(value: unknown, name: string): JsonObject {
-  invariant(
-    value !== null && typeof value === 'object' && !Array.isArray(value),
-    `${name} must be an object`
-  );
+  invariant(value !== null && typeof value === 'object' && !Array.isArray(value), `${name} must be an object`);
   return value as JsonObject;
 }
 
@@ -50,10 +47,7 @@ function requiredEnvironment(environment: NodeJS.ProcessEnv, name: string): stri
 function absoluteHttpsUrl(value: string, name: string): URL {
   const url = new URL(value);
   invariant(url.protocol === 'https:', `${name} must use HTTPS`);
-  invariant(
-    !url.username && !url.password && !url.hash,
-    `${name} must not contain credentials or a fragment`
-  );
+  invariant(!url.username && !url.password && !url.hash, `${name} must not contain credentials or a fragment`);
   return url;
 }
 
@@ -61,10 +55,7 @@ export function readPublisherConfig(): JsonObject {
   return JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as JsonObject;
 }
 
-export function validatePublisherDeployContract(
-  config: JsonObject,
-  environment: NodeJS.ProcessEnv
-): void {
+export function validatePublisherDeployContract(config: JsonObject, environment: NodeJS.ProcessEnv): void {
   const githubSha = requiredEnvironment(environment, 'GITHUB_SHA');
   invariant(/^[0-9a-f]{40}$/.test(githubSha), 'GITHUB_SHA must be a full lowercase Git commit SHA');
   invariant(
@@ -76,10 +67,7 @@ export function validatePublisherDeployContract(
     'CLOUDFLARE_ACCOUNT_ID must be a 32-character account ID'
   );
   requiredEnvironment(environment, 'CLOUDFLARE_API_TOKEN');
-  const convexUrl = absoluteHttpsUrl(
-    requiredEnvironment(environment, 'VITE_CONVEX_URL'),
-    'VITE_CONVEX_URL'
-  );
+  const convexUrl = absoluteHttpsUrl(requiredEnvironment(environment, 'VITE_CONVEX_URL'), 'VITE_CONVEX_URL');
   invariant(
     convexUrl.href === `${PUBLISHER_PRODUCTION_CONVEX_URL}/`,
     'VITE_CONVEX_URL must be the exact production Convex deployment URL'
@@ -133,28 +121,17 @@ export function validatePublisherDeployContract(
     'scheduled Worker variables'
   );
   exactJson(config.triggers, { crons: [PUBLISHER_CRON] }, 'Cron configuration');
-  exactJson(
-    config.r2_buckets,
-    [{ binding: 'ASSET_BUCKET', bucket_name: PUBLISHER_BUCKET_NAME }],
-    'R2 binding'
-  );
+  exactJson(config.r2_buckets, [{ binding: 'ASSET_BUCKET', bucket_name: PUBLISHER_BUCKET_NAME }], 'R2 binding');
   invariant(!('queues' in config), 'Queue bindings are not used');
   exactJson(config.limits, { cpu_ms: 30_000 }, 'Worker CPU limit');
   exactJson(config.browser, { binding: 'BROWSER' }, 'Browser binding');
-  exactJson(
-    config.version_metadata,
-    { binding: 'CF_VERSION_METADATA' },
-    'Worker version metadata binding'
-  );
+  exactJson(config.version_metadata, { binding: 'CF_VERSION_METADATA' }, 'Worker version metadata binding');
   exactJson(config.secrets, { required: REQUIRED_SECRETS }, 'required Worker secret names');
 
   invariant(rendererManifest.schemaVersion === 2, 'Renderer manifest schema changed unexpectedly');
   invariant(
-    Object.keys(rendererManifest.components).sort().join(',') ===
-      'code,contract,sources,toolchain' &&
-      Object.values(rendererManifest.components).every((component) =>
-        /^[0-9a-f]{64}$/.test(component)
-      ),
+    Object.keys(rendererManifest.components).sort().join(',') === 'code,contract,sources,toolchain' &&
+      Object.values(rendererManifest.components).every((component) => /^[0-9a-f]{64}$/.test(component)),
     'Renderer identity components are invalid'
   );
   invariant(
@@ -179,10 +156,7 @@ export function validatePublisherHealth(
   cacheControl: string | null,
   expectedOrigin = PUBLISHER_ORIGIN
 ): void {
-  invariant(
-    /^[0-9a-f]{40}$/.test(expectedGitSha),
-    'Expected deployment SHA must be a full Git SHA'
-  );
+  invariant(/^[0-9a-f]{40}$/.test(expectedGitSha), 'Expected deployment SHA must be a full Git SHA');
   const health = object(healthValue, 'health response');
   const identity = object(health.identity, 'health identity');
   invariant(
@@ -191,10 +165,7 @@ export function validatePublisherHealth(
   );
   invariant(cacheControl === 'no-store', 'Health response must be non-cacheable');
   invariant(health.ok === true, 'Health response is not ok');
-  invariant(
-    health.maxItems === PUBLICATION_MAX_PICKUP,
-    'Publisher maxItems must match the Publication contract'
-  );
+  invariant(health.maxItems === PUBLICATION_MAX_PICKUP, 'Publisher maxItems must match the Publication contract');
   invariant(health.schedule === PUBLISHER_CRON, 'Publisher schedule must match configuration');
   invariant(
     health.rendererIdentity === rendererManifest.rendererIdentity &&
@@ -202,14 +173,8 @@ export function validatePublisherHealth(
       identity.rendererManifestDigest === rendererManifest.digest,
     'Worker health does not report the current Renderer identity'
   );
-  invariant(
-    identity.gitSha === expectedGitSha,
-    'Deployed Worker Git SHA does not match GITHUB_SHA'
-  );
-  invariant(
-    identity.workerVersionTag === expectedGitSha,
-    'Deployed Worker tag does not match GITHUB_SHA'
-  );
+  invariant(identity.gitSha === expectedGitSha, 'Deployed Worker Git SHA does not match GITHUB_SHA');
+  invariant(identity.workerVersionTag === expectedGitSha, 'Deployed Worker tag does not match GITHUB_SHA');
 }
 
 function jsonArray(value: unknown, name: string): unknown[] {
@@ -236,14 +201,10 @@ async function cloudflareApiResult(url: string, apiToken: string): Promise<unkno
 }
 
 /**
- * The authoritative deploy gate: Cloudflare's control plane must report the version tagged with
- * GITHUB_SHA as the active deployment. Edge propagation is Cloudflare's promise and is deliberately
- * not gated on (#330).
+ * The authoritative deploy gate: Cloudflare's control plane must report the version tagged with GITHUB_SHA as the active deployment.
+ * Edge propagation is Cloudflare's promise and is deliberately not gated on (#330).
  */
-async function assertActiveDeployment(
-  githubSha: string,
-  environment: NodeJS.ProcessEnv
-): Promise<void> {
+async function assertActiveDeployment(githubSha: string, environment: NodeJS.ProcessEnv): Promise<void> {
   const accountId = requiredEnvironment(environment, 'CLOUDFLARE_ACCOUNT_ID');
   const apiToken = requiredEnvironment(environment, 'CLOUDFLARE_API_TOKEN');
   const scriptApi = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${PUBLISHER_WORKER_NAME}`;
@@ -272,24 +233,20 @@ async function assertActiveDeployment(
   const versionItems = Array.isArray(versionsResult)
     ? versionsResult
     : jsonArray(object(versionsResult, 'versions result').items, 'version items');
-  const activeItem = versionItems
-    .map((item) => object(item, 'version item'))
-    .find((item) => item.id === versionId);
+  const activeItem = versionItems.map((item) => object(item, 'version item')).find((item) => item.id === versionId);
   invariant(activeItem, `Active version ${versionId} is missing from the versions list`);
   const tag = object(activeItem.annotations ?? {}, 'version annotations')['workers/tag'];
   invariant(
     tag === githubSha,
     `Active deployment tag ${String(tag ?? '(unset)')} does not match GITHUB_SHA ${githubSha} (version ${versionId})`
   );
-  console.log(
-    `Cloudflare reports version ${versionId} (tag ${githubSha}) as the active deployment.`
-  );
+  console.log(`Cloudflare reports version ${versionId} (tag ${githubSha}) as the active deployment.`);
 }
 
 /**
- * Thrown when an origin returns a healthy body for a different release. Only this error — as the
- * FINAL poll outcome — takes the advisory path; any later non-stale failure (5xx, timeout, bad
- * body) must win and fail the deploy.
+ * Thrown when an origin returns a healthy body for a different release.
+ * Only this error — as the FINAL poll outcome — takes the advisory path;
+ * any later non-stale failure (5xx, timeout, bad body) must win and fail the deploy.
  */
 class StaleEdgeError extends Error {
   constructor(
@@ -301,9 +258,7 @@ class StaleEdgeError extends Error {
 }
 
 /**
- * Couples to the PREVIOUS release's health payload shape: if identity.gitSha moves, slow
- * propagation on the deploy that moves it hard-fails again (safe direction, but worth knowing when
- * editing the health shape).
+ * Couples to the PREVIOUS release's health payload shape: if identity.gitSha moves, slow propagation on the deploy that moves it hard-fails again (safe direction, but worth knowing when editing the health shape).
  */
 function readObservedGitSha(healthValue: unknown): string | undefined {
   try {
@@ -321,10 +276,7 @@ function assertExactCheckout(githubSha: string): void {
   invariant(revision.stdout.trim() === githubSha, 'Checked-out revision does not match GITHUB_SHA');
   const status = spawnSync('git', ['status', '--porcelain'], { encoding: 'utf8' });
   invariant(status.status === 0, 'Unable to inspect the Git worktree');
-  invariant(
-    status.stdout.trim() === '',
-    'Tracked source changed after checkout; refusing to deploy'
-  );
+  invariant(status.stdout.trim() === '', 'Tracked source changed after checkout; refusing to deploy');
 }
 
 async function run(): Promise<void> {
@@ -354,13 +306,7 @@ async function run(): Promise<void> {
           if (observedSha !== undefined && observedSha !== githubSha) {
             throw new StaleEdgeError(observedSha, githubSha);
           }
-          validatePublisherHealth(
-            health,
-            githubSha,
-            response.url,
-            response.headers.get('Cache-Control'),
-            origin
-          );
+          validatePublisherHealth(health, githubSha, response.url, response.headers.get('Cache-Control'), origin);
           console.log(`Publisher health smoke passed for ${githubSha} at ${origin}.`);
           lastFailure = undefined;
           break;
@@ -395,19 +341,14 @@ async function run(): Promise<void> {
     });
     invariant(redirect.status === 308, `Storybook redirect returned HTTP ${redirect.status}`);
     invariant(
-      redirect.headers.get('Location') ===
-        `${APPLICATION_ORIGIN}/__storybook/?path=/story/${STORYBOOK_STORY_ID}`,
+      redirect.headers.get('Location') === `${APPLICATION_ORIGIN}/__storybook/?path=/story/${STORYBOOK_STORY_ID}`,
       'Storybook redirect did not preserve the manager query'
     );
 
-    const managerResponse = await fetch(
-      `${APPLICATION_ORIGIN}/__storybook/?path=/story/${STORYBOOK_STORY_ID}`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-    invariant(
-      managerResponse.status === 200,
-      `Storybook manager returned HTTP ${managerResponse.status}`
-    );
+    const managerResponse = await fetch(`${APPLICATION_ORIGIN}/__storybook/?path=/story/${STORYBOOK_STORY_ID}`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    invariant(managerResponse.status === 200, `Storybook manager returned HTTP ${managerResponse.status}`);
     const managerHtml = await managerResponse.text();
     invariant(
       managerHtml.includes('sb-manager/runtime.js') && managerHtml.includes('Dune Zone Storybook'),
@@ -417,10 +358,7 @@ async function run(): Promise<void> {
     const indexResponse = await fetch(`${APPLICATION_ORIGIN}/__storybook/index.json`, {
       signal: AbortSignal.timeout(5000),
     });
-    invariant(
-      indexResponse.status === 200,
-      `Storybook index returned HTTP ${indexResponse.status}`
-    );
+    invariant(indexResponse.status === 200, `Storybook index returned HTTP ${indexResponse.status}`);
     const index = object(await indexResponse.json(), 'Storybook index');
     const entries = object(index.entries, 'Storybook index entries');
     invariant(STORYBOOK_STORY_ID in entries, `Storybook index is missing ${STORYBOOK_STORY_ID}`);
@@ -445,9 +383,7 @@ async function run(): Promise<void> {
       !(await rootResponse.text()).includes('sb-manager/runtime.js'),
       'Application root was replaced by the Storybook manager'
     );
-    console.log(
-      `Storybook release smoke passed for ${STORYBOOK_STORY_ID} at ${APPLICATION_ORIGIN}/__storybook/.`
-    );
+    console.log(`Storybook release smoke passed for ${STORYBOOK_STORY_ID} at ${APPLICATION_ORIGIN}/__storybook/.`);
     return;
   }
   throw new Error('Expected command: preflight or smoke');

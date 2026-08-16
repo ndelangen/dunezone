@@ -60,14 +60,10 @@ function CreateFactionPage() {
           <Surface padding="xl">
             <Stack gap="sm">
               <Text>
-                <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
-                  Log in
-                </Anchor>{' '}
-                to create a faction.
+                <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to create a
+                faction.
               </Text>
-              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>
-                Back to factions
-              </Anchor>
+              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>Back to factions</Anchor>
             </Stack>
           </Surface>
         </PageLayout.Content>
@@ -95,10 +91,7 @@ function CreateFactionPage() {
           }}
           centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
           auxiliaryActions={
-            <FactionLoadPopover
-              disabled={createFaction.isPending}
-              onLoaded={authoring.actions.loadDraft}
-            />
+            <FactionLoadPopover disabled={createFaction.isPending} onLoaded={authoring.actions.loadDraft} />
           }
           context={
             <Text size="xs" c="dimmed">

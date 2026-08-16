@@ -3,12 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 
 import { defaultFaction } from './defaultFaction';
-import {
-  createTroopBackFromFront,
-  defaultAdvantage,
-  defaultPlanet,
-  defaultTroop,
-} from './factionFormDefaults';
+import { createTroopBackFromFront, defaultAdvantage, defaultPlanet, defaultTroop } from './factionFormDefaults';
 
 describe('faction chapter defaults', () => {
   it('creates a planet with exactly one curated illustration', () => {

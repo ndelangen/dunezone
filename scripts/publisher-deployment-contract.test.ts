@@ -37,9 +37,7 @@ function health() {
 
 describe('publisher CI deployment contract', () => {
   test('accepts the reviewed scheduled source-controlled configuration', () => {
-    expect(() =>
-      validatePublisherDeployContract(readPublisherConfig(), ciEnvironment())
-    ).not.toThrow();
+    expect(() => validatePublisherDeployContract(readPublisherConfig(), ciEnvironment())).not.toThrow();
   });
 
   test.each([
@@ -71,20 +69,11 @@ describe('publisher CI deployment contract', () => {
     ).toThrow(/exact production Convex deployment URL/);
   });
 
-  test.each([PUBLISHER_ORIGIN, APPLICATION_ORIGIN])(
-    'accepts current Renderer health at %s',
-    (origin) => {
-      expect(() =>
-        validatePublisherHealth(
-          health(),
-          'a'.repeat(40),
-          `${origin}/__asset-publisher/health`,
-          'no-store',
-          origin
-        )
-      ).not.toThrow();
-    }
-  );
+  test.each([PUBLISHER_ORIGIN, APPLICATION_ORIGIN])('accepts current Renderer health at %s', (origin) => {
+    expect(() =>
+      validatePublisherHealth(health(), 'a'.repeat(40), `${origin}/__asset-publisher/health`, 'no-store', origin)
+    ).not.toThrow();
+  });
 
   test.each([
     ['maxItems', 1],
@@ -94,12 +83,7 @@ describe('publisher CI deployment contract', () => {
     const response = health() as Record<string, unknown>;
     response[name] = value;
     expect(() =>
-      validatePublisherHealth(
-        response,
-        'a'.repeat(40),
-        `${PUBLISHER_ORIGIN}/__asset-publisher/health`,
-        'no-store'
-      )
+      validatePublisherHealth(response, 'a'.repeat(40), `${PUBLISHER_ORIGIN}/__asset-publisher/health`, 'no-store')
     ).toThrow();
   });
 
@@ -121,12 +105,7 @@ describe('publisher CI deployment contract', () => {
       )
     ).toThrow();
     expect(() =>
-      validatePublisherHealth(
-        health(),
-        'd'.repeat(40),
-        `${PUBLISHER_ORIGIN}/__asset-publisher/health`,
-        'no-store'
-      )
+      validatePublisherHealth(health(), 'd'.repeat(40), `${PUBLISHER_ORIGIN}/__asset-publisher/health`, 'no-store')
     ).toThrow();
   });
 });

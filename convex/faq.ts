@@ -66,10 +66,7 @@ async function assertAcceptedAnswerBelongsToItem(
   }
 }
 
-async function allocateNextFaqItemSlug(
-  ctx: MutationCtx,
-  rulesetId: Id<'rulesets'>
-): Promise<string> {
+async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets'>): Promise<string> {
   const counterKey = `faq_item_slug:${rulesetId}`;
   let counter = await ctx.db
     .query('counters')
@@ -318,10 +315,7 @@ export const deleteItemAnswerBatch = internalMutation({
   },
   handler: async (ctx, args): Promise<{ deleted: number; done: boolean }> => {
     const item = await ctx.db.get(args.faq_item_id);
-    const { deleted: deletedAnswerCount, shouldContinue } = await deleteFaqAnswerBatch(
-      ctx,
-      args.faq_item_id
-    );
+    const { deleted: deletedAnswerCount, shouldContinue } = await deleteFaqAnswerBatch(ctx, args.faq_item_id);
     const done = !shouldContinue;
     if (done && item) {
       await ctx.db.delete(item._id);
@@ -356,9 +350,7 @@ export const createAnswer = mutation({
 
     const existing = await ctx.db
       .query('faq_answers')
-      .withIndex('by_faq_item_answered_by', (q) =>
-        q.eq('faq_item_id', args.faq_item_id).eq('answered_by', userId)
-      )
+      .withIndex('by_faq_item_answered_by', (q) => q.eq('faq_item_id', args.faq_item_id).eq('answered_by', userId))
       .unique();
     if (existing) {
       throw new Error('You already answered this question');
@@ -378,10 +370,7 @@ export const createAnswer = mutation({
   },
 });
 
-async function editAnswerHandler(
-  ctx: MutationCtx,
-  args: { answerId: Id<'faq_answers'>; input: { answer: string } }
-) {
+async function editAnswerHandler(ctx: MutationCtx, args: { answerId: Id<'faq_answers'>; input: { answer: string } }) {
   const userId = await requireAuthUserId(ctx);
   const parsedAnswer = faqAnswerSchema.safeParse(args.input.answer);
   if (!parsedAnswer.success) {

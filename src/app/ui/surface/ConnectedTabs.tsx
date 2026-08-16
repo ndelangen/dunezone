@@ -114,14 +114,11 @@ export function buildConnectedTabsPath({
 }
 
 /**
- * Whether a fresh measurement says anything new. Observers fire on every frame of a resize, and
- * most of those frames land on the same rounded pixels — keeping the old object keeps the surface
- * from re-rendering for a measurement that did not move.
+ * Whether a fresh measurement says anything new.
+ * Observers fire on every frame of a resize, and most of those frames land on the same rounded pixels — keeping the old object keeps the surface from re-rendering for a measurement that did not move.
  */
 function isSameGeometry(current: ConnectedTabsGeometry | null, next: ConnectedTabsGeometry) {
-  return (
-    current?.width === next.width && current.height === next.height && current.path === next.path
-  );
+  return current?.width === next.width && current.height === next.height && current.path === next.path;
 }
 
 function useConnectedTabsGeometry({
@@ -158,9 +155,7 @@ function useConnectedTabsGeometry({
       const panelX = round(panelRect.left - rootRect.left);
       const tabTop = round(tabRect.top - rootRect.top);
       const tabBottom = round(tabRect.bottom - rootRect.top);
-      const configuredRadius = Number.parseFloat(
-        getComputedStyle(root).getPropertyValue('--connected-tabs-radius')
-      );
+      const configuredRadius = Number.parseFloat(getComputedStyle(root).getPropertyValue('--connected-tabs-radius'));
       const radius = Number.isFinite(configuredRadius) ? configuredRadius : 8;
       const path = buildConnectedTabsPath({
         width,
@@ -208,39 +203,16 @@ function ConnectedTabsSurface({ geometry }: { geometry: ConnectedTabsGeometry | 
     <div className={styles.surfaceLayer} aria-hidden>
       {geometry ? (
         <>
-          <svg
-            className={styles.definitions}
-            width="0"
-            height="0"
-            aria-hidden="true"
-            focusable="false"
-          >
+          <svg className={styles.definitions} width="0" height="0" aria-hidden="true" focusable="false">
             <defs>
               <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
                 <path d={geometry.path} />
               </clipPath>
-              <filter
-                id={shadowId}
-                x="-20%"
-                y="-20%"
-                width="140%"
-                height="140%"
-                colorInterpolationFilters="sRGB"
-              >
+              <filter id={shadowId} x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
                 <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="shadowBlur" />
-                <feComposite
-                  in="shadowBlur"
-                  in2="SourceAlpha"
-                  operator="out"
-                  result="outsideShadowAlpha"
-                />
+                <feComposite in="shadowBlur" in2="SourceAlpha" operator="out" result="outsideShadowAlpha" />
                 <feFlood floodColor="#000000" floodOpacity="0.165" result="shadowColor" />
-                <feComposite
-                  in="shadowColor"
-                  in2="outsideShadowAlpha"
-                  operator="in"
-                  result="shadow"
-                />
+                <feComposite in="shadowColor" in2="outsideShadowAlpha" operator="in" result="shadow" />
               </filter>
             </defs>
           </svg>
@@ -308,8 +280,7 @@ export function ConnectedTabs<Value extends string>({
   const geometry = useConnectedTabsGeometry({ value, rootRef, panelRef });
   const activeItem = items.find((item) => item.value === value);
   const hasMultipleEnabledItems = items.filter((item) => !item.disabled).length > 1;
-  const selectAdjacent = (direction: -1 | 1) =>
-    onValueChange(findAdjacentEnabledValue({ value, items, direction }));
+  const selectAdjacent = (direction: -1 | 1) => onValueChange(findAdjacentEnabledValue({ value, items, direction }));
 
   return (
     <div className={clsx(styles.host, className)} style={style}>
@@ -333,28 +304,19 @@ export function ConnectedTabs<Value extends string>({
             >
               <ChevronLeft size={18} aria-hidden />
             </button>
-            <Select.Root
-              value={value}
-              onValueChange={(nextValue) => onValueChange(nextValue as Value)}
-            >
+            <Select.Root value={value} onValueChange={(nextValue) => onValueChange(nextValue as Value)}>
               <Select.Trigger className={styles.mobileSelect} aria-label={ariaLabel}>
                 <span className={styles.mobileIconDisc} aria-hidden>
                   {activeItem.icon}
                 </span>
                 <Select.Value className={styles.mobileSelectValue}>{activeItem.label}</Select.Value>
-                {activeItem.indicator ? (
-                  <span className={styles.mobileIndicator}>{activeItem.indicator}</span>
-                ) : null}
+                {activeItem.indicator ? <span className={styles.mobileIndicator}>{activeItem.indicator}</span> : null}
                 <Select.Icon className={styles.mobileSelectIcon}>
                   <ChevronDown size={15} aria-hidden />
                 </Select.Icon>
               </Select.Trigger>
               <Select.Portal>
-                <Select.Content
-                  className={styles.mobileSelectContent}
-                  position="popper"
-                  sideOffset={4}
-                >
+                <Select.Content className={styles.mobileSelectContent} position="popper" sideOffset={4}>
                   <Select.Viewport className={styles.mobileSelectViewport}>
                     {items.map((item) => (
                       <Select.Item
@@ -367,9 +329,7 @@ export function ConnectedTabs<Value extends string>({
                           {item.icon}
                         </span>
                         <Select.ItemText>{item.label}</Select.ItemText>
-                        {item.indicator ? (
-                          <span className={styles.mobileIndicator}>{item.indicator}</span>
-                        ) : null}
+                        {item.indicator ? <span className={styles.mobileIndicator}>{item.indicator}</span> : null}
                       </Select.Item>
                     ))}
                   </Select.Viewport>

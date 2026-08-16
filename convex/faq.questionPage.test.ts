@@ -131,9 +131,7 @@ describe('FAQ question page projection (api.faq.questionPage)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedQuestionPage(t);
 
-    const page = await t
-      .withIdentity({ subject: seed.askerId })
-      .query(api.faq.questionPage, locator);
+    const page = await t.withIdentity({ subject: seed.askerId }).query(api.faq.questionPage, locator);
 
     expect(page.question.capabilities).toEqual({ editQuestion: true, deleteQuestion: true });
     const accepted = page.answers.find((answer) => answer.id === seed.acceptedAnswerId);
@@ -152,9 +150,7 @@ describe('FAQ question page projection (api.faq.questionPage)', () => {
     const t = convexTest(schema, modules);
     const seed = await seedQuestionPage(t);
 
-    const page = await t
-      .withIdentity({ subject: seed.answererId })
-      .query(api.faq.questionPage, locator);
+    const page = await t.withIdentity({ subject: seed.answererId }).query(api.faq.questionPage, locator);
 
     const own = page.answers.find((answer) => answer.id === seed.acceptedAnswerId);
     expect(own?.capabilities).toMatchObject({ editAnswer: true, deleteAnswer: true });
@@ -185,11 +181,11 @@ describe('FAQ question page projection (api.faq.questionPage)', () => {
     const t = convexTest(schema, modules);
     await seedQuestionPage(t);
 
-    await expect(
-      t.query(api.faq.questionPage, { rulesetSlug: 'advanced', questionSlug: '99' })
-    ).rejects.toThrow(/not found/);
-    await expect(
-      t.query(api.faq.questionPage, { rulesetSlug: 'missing', questionSlug: '1' })
-    ).rejects.toThrow(/not found/);
+    await expect(t.query(api.faq.questionPage, { rulesetSlug: 'advanced', questionSlug: '99' })).rejects.toThrow(
+      /not found/
+    );
+    await expect(t.query(api.faq.questionPage, { rulesetSlug: 'missing', questionSlug: '1' })).rejects.toThrow(
+      /not found/
+    );
   });
 });

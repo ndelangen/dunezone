@@ -43,8 +43,7 @@ const assetPublishingFactionInput = {
       {
         title: 'Bidding prescience',
         text: 'During each bidding round you may look at each Treachery Card as it comes up for bid.',
-        karama:
-          'You can no longer look at cards as they come up for bid until the end of the turn.',
+        karama: 'You can no longer look at cards as they come up for bid until the end of the turn.',
       },
       {
         title: 'Information broker',

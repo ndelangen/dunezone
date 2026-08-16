@@ -66,8 +66,6 @@ describe('rebuild contract', () => {
   test('rejects a clone the snapshot never landed in', async () => {
     const t = clonedDeployment();
 
-    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow(
-      'factions is empty'
-    );
+    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow('factions is empty');
   });
 });

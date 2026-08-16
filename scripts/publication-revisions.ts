@@ -3,15 +3,13 @@ import { spawnSync } from 'node:child_process';
 import { rendererRevisionsSchema } from '../src/shared/asset-publishing/publication';
 import { CHECKED_IN_RENDERER_REVISIONS } from '../src/shared/asset-publishing/renderer-revisions';
 
-const REVISIONS_URL =
-  'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/revisions';
+const REVISIONS_URL = 'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/revisions';
 
 function activationSecret(): string {
-  const result = spawnSync(
-    'bunx',
-    ['convex', 'env', 'get', 'ASSET_PUBLISHER_ACTIVATION_SECRET', '--prod'],
-    { encoding: 'utf8', env: process.env }
-  );
+  const result = spawnSync('bunx', ['convex', 'env', 'get', 'ASSET_PUBLISHER_ACTIVATION_SECRET', '--prod'], {
+    encoding: 'utf8',
+    env: process.env,
+  });
   if (result.status !== 0) {
     throw new Error('Unable to read the Publication activation secret from Convex');
   }

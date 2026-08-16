@@ -22,12 +22,7 @@
   left: 0;
   right: 0;
   height: 220%;
-  background: linear-gradient(
-    to bottom,
-    rgba(10, 8, 4, 0.75),
-    rgba(10, 8, 4, 0.35) 45%,
-    transparent
-  );
+  background: linear-gradient(to bottom, rgba(10, 8, 4, 0.75), rgba(10, 8, 4, 0.35) 45%, transparent);
   pointer-events: none;
   z-index: -1;
 }

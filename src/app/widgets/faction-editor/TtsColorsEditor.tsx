@@ -1,11 +1,4 @@
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -34,9 +27,7 @@ export function availableTtsColors(value: Faction['colors'], index: number): Tts
   return TTSColor.options.filter(
     (option) =>
       option === currentColor ||
-      !value.some(
-        (selectedColor, selectedIndex) => selectedIndex !== index && selectedColor === option
-      )
+      !value.some((selectedColor, selectedIndex) => selectedIndex !== index && selectedColor === option)
   ) as TtsColor[];
 }
 
@@ -48,11 +39,7 @@ export function removeLastTtsColor(value: Faction['colors']): Faction['colors'] 
   return value.slice(0, -1);
 }
 
-export function moveTtsColor(
-  value: Faction['colors'],
-  from: number,
-  to: number
-): Faction['colors'] {
+export function moveTtsColor(value: Faction['colors'], from: number, to: number): Faction['colors'] {
   if (from < 0 || to < 0 || from >= value.length || to >= value.length || from === to) {
     return value;
   }
@@ -70,10 +57,7 @@ function ColorDot({ color }: { color: TtsColor }) {
         flexShrink: 0,
         borderRadius: '50%',
         background: TTS_COLOR_SWATCHES[color],
-        border:
-          color === 'White'
-            ? '1px solid var(--mantine-color-gray-6)'
-            : '1px solid rgba(0, 0, 0, 0.18)',
+        border: color === 'White' ? '1px solid var(--mantine-color-gray-6)' : '1px solid rgba(0, 0, 0, 0.18)',
         boxShadow: color === 'White' ? 'inset 0 0 0 1px white' : undefined,
       }}
     />

@@ -5,9 +5,11 @@ import type { FactionTokenData } from '../../fixtures/factionTokens';
 import styles from './FactionSynopsis.module.css';
 import { Text } from './Text';
 
-export const FactionSynopsis: FC<
-  PropsWithChildren<{ flip?: boolean; token: FactionTokenData }>
-> = ({ flip, token, children }) => (
+export const FactionSynopsis: FC<PropsWithChildren<{ flip?: boolean; token: FactionTokenData }>> = ({
+  flip,
+  token,
+  children,
+}) => (
   <div className={`${styles.base} ${flip ? styles.flipped : styles.unflipped}`}>
     <div>
       <Text>{children}</Text>

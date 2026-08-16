@@ -38,9 +38,7 @@ describe('publisher lifecycle configuration', () => {
 
   test('rejects phase settings that exceed the four-minute work window', () => {
     expect(() =>
-      parsePublisherConfig(
-        env({ BROWSER_CAPTURE_TIMEOUT_MS: '225001', BROWSER_CLEANUP_GRACE_MS: '10000' })
-      )
+      parsePublisherConfig(env({ BROWSER_CAPTURE_TIMEOUT_MS: '225001', BROWSER_CLEANUP_GRACE_MS: '10000' }))
     ).toThrow(/absolute executor lifecycle deadline/);
   });
 
@@ -60,9 +58,9 @@ describe('publisher lifecycle configuration', () => {
     expect(() => parsePublisherConfig(env({ ASSET_PUBLISHER_CACHE_TOKEN_SECRET: '' }))).toThrow(
       /canonical 256-bit secret/
     );
-    expect(() =>
-      parsePublisherConfig(env({ ASSET_PUBLISHER_CACHE_TOKEN_SECRET: 'not-a-signing-secret' }))
-    ).toThrow(/canonical 256-bit secret/);
+    expect(() => parsePublisherConfig(env({ ASSET_PUBLISHER_CACHE_TOKEN_SECRET: 'not-a-signing-secret' }))).toThrow(
+      /canonical 256-bit secret/
+    );
   });
 
   test('keeps the structural PDF cap at 8,000,000 bytes', () => {

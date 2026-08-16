@@ -12,8 +12,7 @@ import { AssignPopover } from './AssignPopover';
 
 const groupOption = { value: 'group-1', label: 'Arrakeen Rules Council (arrakeen-rules-council)' };
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -82,9 +81,7 @@ describe('AssignPopover', () => {
     expect(controlsId).toBeTruthy();
     await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
     expect(document.getElementById(controlsId as string)).not.toBeNull();
-    const searchInput = document.querySelector<HTMLInputElement>(
-      'input[placeholder="Type group name…"]'
-    );
+    const searchInput = document.querySelector<HTMLInputElement>('input[placeholder="Type group name…"]');
     expect(searchInput).not.toBeNull();
     if (!searchInput) {
       return;
@@ -127,9 +124,7 @@ describe('AssignPopover', () => {
     await act(async () => trigger.click());
     await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
 
-    const searchInput = document.querySelector<HTMLInputElement>(
-      'input[placeholder="Type group name…"]'
-    );
+    const searchInput = document.querySelector<HTMLInputElement>('input[placeholder="Type group name…"]');
     expect(searchInput).not.toBeNull();
     if (!searchInput) {
       return;
@@ -143,8 +138,8 @@ describe('AssignPopover', () => {
     }
     await act(async () => option.click());
 
-    const assignButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
-      (button) => button.textContent?.includes('Assign selected group')
+    const assignButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+      button.textContent?.includes('Assign selected group')
     );
     expect(assignButton).toBeDefined();
     if (!assignButton) {
@@ -186,9 +181,7 @@ describe('AssignPopover', () => {
     await act(async () => trigger.click());
     await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
 
-    const searchInput = document.querySelector<HTMLInputElement>(
-      'input[placeholder="Type group name…"]'
-    );
+    const searchInput = document.querySelector<HTMLInputElement>('input[placeholder="Type group name…"]');
     expect(searchInput).not.toBeNull();
     if (!searchInput) {
       return;
@@ -201,8 +194,8 @@ describe('AssignPopover', () => {
     }
     await act(async () => option.click());
 
-    const assignButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
-      (button) => button.textContent?.includes('Assign selected group')
+    const assignButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+      button.textContent?.includes('Assign selected group')
     );
     expect(assignButton).toBeDefined();
     if (!assignButton) {

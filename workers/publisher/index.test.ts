@@ -53,13 +53,13 @@ describe('publisher Worker Publication flow', () => {
     const response = await publisherWorker.fetch(
       new Request('https://dune.zone/__storybook?path=/story/example'),
       currentEnv,
-      { waitUntil: vi.fn() } as unknown as ExecutionContext
+      {
+        waitUntil: vi.fn(),
+      } as unknown as ExecutionContext
     );
 
     expect(response.status).toBe(308);
-    expect(response.headers.get('Location')).toBe(
-      'https://dune.zone/__storybook/?path=/story/example'
-    );
+    expect(response.headers.get('Location')).toBe('https://dune.zone/__storybook/?path=/story/example');
     expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
   });
 
@@ -68,15 +68,15 @@ describe('publisher Worker Publication flow', () => {
     const response = await publisherWorker.fetch(
       new Request('https://dune.zone/__storybook/?path=/story/example'),
       currentEnv,
-      { waitUntil: vi.fn() } as unknown as ExecutionContext
+      {
+        waitUntil: vi.fn(),
+      } as unknown as ExecutionContext
     );
 
     expect(response.status).toBe(200);
     expect(currentEnv.ASSETS.fetch).toHaveBeenCalledOnce();
     const [assetRequest] = vi.mocked(currentEnv.ASSETS.fetch).mock.calls[0];
-    expect((assetRequest as Request).url).toBe(
-      'https://dune.zone/__storybook/index.html?path=/story/example'
-    );
+    expect((assetRequest as Request).url).toBe('https://dune.zone/__storybook/index.html?path=/story/example');
   });
 
   test('owns reserved namespaces without Static Assets fallthrough', async () => {
@@ -84,7 +84,9 @@ describe('publisher Worker Publication flow', () => {
     const response = await publisherWorker.fetch(
       new Request('https://assets.example.com/__asset-publisher/unknown'),
       currentEnv,
-      { waitUntil: vi.fn() } as unknown as ExecutionContext
+      {
+        waitUntil: vi.fn(),
+      } as unknown as ExecutionContext
     );
     expect(response.status).toBe(404);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
@@ -95,7 +97,9 @@ describe('publisher Worker Publication flow', () => {
     const response = await publisherWorker.fetch(
       new Request('https://publisher.example.com/__asset-publisher/health'),
       publisherEnv(),
-      { waitUntil: vi.fn() } as unknown as ExecutionContext
+      {
+        waitUntil: vi.fn(),
+      } as unknown as ExecutionContext
     );
     await expect(response.json()).resolves.toMatchObject({
       maxItems: 20,
@@ -127,10 +131,7 @@ describe('publisher Worker Publication flow', () => {
     );
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
-    await publisherWorker.scheduled(
-      { scheduledTime: NOW, cron: '*/5 * * * *', noRetry: vi.fn() },
-      publisherEnv()
-    );
+    await publisherWorker.scheduled({ scheduledTime: NOW, cron: '*/5 * * * *', noRetry: vi.fn() }, publisherEnv());
 
     expect(browserMocks.open).not.toHaveBeenCalled();
   });

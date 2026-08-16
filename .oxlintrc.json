@@ -178,16 +178,7 @@
           {
             "patterns": [
               {
-                "group": [
-                  "@app",
-                  "@app/**",
-                  "@ui",
-                  "@ui/**",
-                  "@db",
-                  "@db/**",
-                  "**/app",
-                  "**/app/**"
-                ],
+                "group": ["@app", "@app/**", "@ui", "@ui/**", "@db", "@db/**", "**/app", "**/app/**"],
                 "message": "src/shared is imported by both the browser app and the server deploy, so it must not import the browser app. If a shared file needs something from src/app, that thing is not shared — hoist it into src/shared or leave the code in the app."
               },
               {
@@ -330,9 +321,9 @@
   },
   "ignorePatterns": [
     "**/dist",
-    "**/supabase/.temp",
-    "**/routeTree.gen.ts",
+    "**/.temp",
     "**/*.gen.ts",
+    "**/*.generated.ts",
     "**/workers/publisher/worker-configuration.d.ts",
     "**/convex/_generated",
     "docs/research/**",

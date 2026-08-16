@@ -140,15 +140,11 @@ class CloudflareReadClient {
     if (!response.ok || body.success !== true) {
       const errors = Array.isArray(body.errors)
         ? body.errors
-            .map((entry) =>
-              entry && typeof entry === 'object' ? (entry as JsonRecord).message : null
-            )
+            .map((entry) => (entry && typeof entry === 'object' ? (entry as JsonRecord).message : null))
             .filter((message): message is string => typeof message === 'string')
             .join('; ')
         : '';
-      throw new Error(
-        `Cloudflare GET ${pathname} failed with HTTP ${response.status}${errors ? `: ${errors}` : ''}`
-      );
+      throw new Error(`Cloudflare GET ${pathname} failed with HTTP ${response.status}${errors ? `: ${errors}` : ''}`);
     }
     return {
       result: body.result,
@@ -173,16 +169,11 @@ function expectedBindings(wrangler: JsonRecord): string[] {
   const browser = record(wrangler.browser, 'Wrangler browser');
   bindings.push(`${string(browser.binding, 'Wrangler browser binding')}|browser|`);
   const versionMetadata = record(wrangler.version_metadata, 'Wrangler version metadata');
-  bindings.push(
-    `${string(versionMetadata.binding, 'Wrangler version metadata binding')}|version_metadata|`
-  );
+  bindings.push(`${string(versionMetadata.binding, 'Wrangler version metadata binding')}|version_metadata|`);
   for (const entry of array(wrangler.r2_buckets, 'Wrangler R2 bindings')) {
     const binding = record(entry, 'Wrangler R2 binding');
     bindings.push(
-      `${string(binding.binding, 'Wrangler R2 binding name')}|r2_bucket|${string(
-        binding.bucket_name,
-        'Wrangler R2 bucket name'
-      )}`
+      `${string(binding.binding, 'Wrangler R2 binding name')}|r2_bucket|${string(binding.bucket_name, 'Wrangler R2 bucket name')}`
     );
   }
   return bindings.sort();
@@ -261,22 +252,17 @@ export async function checkCloudflareLiveDrift(
   if (wrangler.name !== contract.publisherWorker) {
     throw new Error('Publisher Worker name differs between Wrangler and the live contract');
   }
-  const client = new CloudflareReadClient(
-    dependencies.accountId,
-    dependencies.apiToken,
-    dependencies.fetcher ?? fetch
-  );
+  const client = new CloudflareReadClient(dependencies.accountId, dependencies.apiToken, dependencies.fetcher ?? fetch);
   const failures: string[] = [];
 
   const encodedWorker = encodeURIComponent(contract.publisherWorker);
-  const [settingsResponse, secretsResponse, schedulesResponse, domainsResponse, queues] =
-    await Promise.all([
-      client.get(`/workers/scripts/${encodedWorker}/settings`),
-      client.get(`/workers/scripts/${encodedWorker}/secrets`),
-      client.get(`/workers/scripts/${encodedWorker}/schedules`),
-      client.get(`/workers/domains?service=${encodedWorker}`),
-      allQueues(client),
-    ]);
+  const [settingsResponse, secretsResponse, schedulesResponse, domainsResponse, queues] = await Promise.all([
+    client.get(`/workers/scripts/${encodedWorker}/settings`),
+    client.get(`/workers/scripts/${encodedWorker}/secrets`),
+    client.get(`/workers/scripts/${encodedWorker}/schedules`),
+    client.get(`/workers/domains?service=${encodedWorker}`),
+    allQueues(client),
+  ]);
 
   const settings = record(settingsResponse.result, 'Worker settings');
   const rawBindings = array(settings.bindings, 'Worker bindings');
@@ -299,9 +285,7 @@ export async function checkCloudflareLiveDrift(
 
   if (settings.compatibility_date !== wrangler.compatibility_date) {
     failures.push(
-      `Worker compatibility date drift: expected ${String(wrangler.compatibility_date)}, found ${String(
-        settings.compatibility_date
-      )}`
+      `Worker compatibility date drift: expected ${String(wrangler.compatibility_date)}, found ${String(settings.compatibility_date)}`
     );
   }
   compareExactSet(
@@ -322,10 +306,9 @@ export async function checkCloudflareLiveDrift(
     );
   }
 
-  const expectedSecrets = array(
-    record(wrangler.secrets, 'Wrangler secrets').required,
-    'Wrangler required secrets'
-  ).map((value) => string(value, 'Wrangler required secret'));
+  const expectedSecrets = array(record(wrangler.secrets, 'Wrangler secrets').required, 'Wrangler required secrets').map(
+    (value) => string(value, 'Wrangler required secret')
+  );
   const liveSecrets = array(secretsResponse.result, 'Worker secrets').map((value) =>
     string(record(value, 'Worker secret').name, 'Worker secret name')
   );
@@ -335,18 +318,14 @@ export async function checkCloudflareLiveDrift(
   const liveCrons = array(schedules.schedules, 'Worker schedules').map((value) =>
     string(record(value, 'Worker schedule').cron, 'Worker schedule cron')
   );
-  const expectedCrons = array(
-    record(wrangler.triggers, 'Wrangler triggers').crons,
-    'Wrangler Cron triggers'
-  ).map((value) => string(value, 'Wrangler Cron trigger'));
+  const expectedCrons = array(record(wrangler.triggers, 'Wrangler triggers').crons, 'Wrangler Cron triggers').map(
+    (value) => string(value, 'Wrangler Cron trigger')
+  );
   compareExactSet(failures, 'Worker Cron drift', expectedCrons, liveCrons);
 
   const liveDomains = array(domainsResponse.result, 'Worker Custom Domains').map((value) => {
     const domain = record(value, 'Worker Custom Domain');
-    return `${string(domain.hostname, 'Worker Custom Domain hostname')}|${string(
-      domain.service,
-      'Worker Custom Domain service'
-    )}`;
+    return `${string(domain.hostname, 'Worker Custom Domain hostname')}|${string(domain.service, 'Worker Custom Domain service')}`;
   });
   compareExactSet(
     failures,
@@ -400,21 +379,14 @@ export async function checkCloudflareLiveDrift(
     const managed = record(managedResponse.result, `R2 managed domain ${expected.name}`);
     if (managed.enabled !== expected.managedPublic) {
       failures.push(
-        `R2 bucket ${expected.name} r2.dev drift: expected enabled=${expected.managedPublic}, found ${String(
-          managed.enabled
-        )}`
+        `R2 bucket ${expected.name} r2.dev drift: expected enabled=${expected.managedPublic}, found ${String(managed.enabled)}`
       );
     }
     const custom = record(customResponse.result, `R2 custom domains ${expected.name}`);
     const domains = array(custom.domains, `R2 custom domains ${expected.name}`).map((value) =>
       string(record(value, 'R2 custom domain').domain, 'R2 custom domain name')
     );
-    compareExactSet(
-      failures,
-      `R2 bucket ${expected.name} custom-domain drift`,
-      expected.customDomains,
-      domains
-    );
+    compareExactSet(failures, `R2 bucket ${expected.name} custom-domain drift`, expected.customDomains, domains);
   }
 
   if (failures.length > 0) {

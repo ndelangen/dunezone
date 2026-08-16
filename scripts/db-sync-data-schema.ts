@@ -11,10 +11,7 @@ const schemaConfigSchema = z.strictObject({
 
 const glob = new Glob('src/data/*.ts');
 
-/**
- * Tables whose JSON Schema CHECK should use `type: string` instead of huge string `enum` lists (Zod
- * stays strict).
- */
+/** Tables whose JSON Schema CHECK should use `type: string` instead of huge string `enum` lists (Zod stays strict). */
 const RELAX_STRING_ENUMS = new Set(['factions']);
 
 type SchemaConfig = z.infer<typeof schemaConfigSchema>;
@@ -77,14 +74,7 @@ function relaxStringEnumsInJsonSchema(node: unknown): unknown {
   return out;
 }
 
-const STRING_RESTRICTION_KEYS = new Set([
-  'pattern',
-  'minLength',
-  'maxLength',
-  'format',
-  'const',
-  'enum',
-]);
+const STRING_RESTRICTION_KEYS = new Set(['pattern', 'minLength', 'maxLength', 'format', 'const', 'enum']);
 
 function sortKeysDeep(value: unknown): unknown {
   if (value === null || typeof value !== 'object') {
@@ -171,12 +161,7 @@ function simplifyRedundantCombinators(node: unknown): unknown {
     if (otherKeys.length === 0) {
       return simplified;
     }
-    if (
-      simplified !== null &&
-      typeof simplified === 'object' &&
-      !Array.isArray(simplified) &&
-      'anyOf' in simplified
-    ) {
+    if (simplified !== null && typeof simplified === 'object' && !Array.isArray(simplified) && 'anyOf' in simplified) {
       return { ...other, anyOf: (simplified as { anyOf: unknown[] }).anyOf };
     }
     return { ...other, ...(simplified as Record<string, unknown>) };
@@ -192,12 +177,7 @@ function simplifyRedundantCombinators(node: unknown): unknown {
     if (otherKeys.length === 0) {
       return simplified;
     }
-    if (
-      simplified !== null &&
-      typeof simplified === 'object' &&
-      !Array.isArray(simplified) &&
-      'oneOf' in simplified
-    ) {
+    if (simplified !== null && typeof simplified === 'object' && !Array.isArray(simplified) && 'oneOf' in simplified) {
       return { ...other, oneOf: (simplified as { oneOf: unknown[] }).oneOf };
     }
     return { ...other, ...(simplified as Record<string, unknown>) };
@@ -302,10 +282,8 @@ function extractSchemaFromMigration(
 }
 
 /**
- * Deep canonical form for schema equality: object keys sorted; array elements sorted by their own
- * canonical JSON string so `anyOf` / `oneOf` branch order does not matter (the old
- * `array.map(normalize).sort()` compared `[object Object]` and never reordered, so every run looked
- * like a schema change).
+ * Deep canonical form for schema equality: object keys sorted;
+ * array elements sorted by their own canonical JSON string so `anyOf` / `oneOf` branch order does not matter (the old `array.map(normalize).sort()` compared `[object Object]` and never reordered, so every run looked like a schema change).
  */
 function canonicalizeSchemaForComparison(node: unknown): unknown {
   if (node === null || typeof node !== 'object') {
@@ -337,11 +315,7 @@ function compareSchemas(schema1: object, schema2: object): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function generateMigrationSQL(
-  config: SchemaConfig,
-  jsonSchema: object,
-  includeExtension: boolean
-): string {
+function generateMigrationSQL(config: SchemaConfig, jsonSchema: object, includeExtension: boolean): string {
   const schemaJsonString = JSON.stringify(jsonSchema, null, 2);
   // Escape single quotes for the SQL string literal (' -> '')
   const escapedSchema = schemaJsonString.replace(/'/g, "''");
@@ -406,11 +380,7 @@ for (const config of mySchemas) {
   const latestMigration = await findLatestValidationMigration(constraintName, migrationsDir);
 
   if (latestMigration) {
-    const extractedRaw = extractSchemaFromMigration(
-      latestMigration.content,
-      constraintName,
-      columnName
-    );
+    const extractedRaw = extractSchemaFromMigration(latestMigration.content, constraintName, columnName);
 
     if (extractedRaw) {
       let extractedComparable = relaxStringEnumsInJsonSchema(extractedRaw) as object;

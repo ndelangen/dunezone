@@ -11,15 +11,11 @@ import {
 
 describe('production capture output validation', () => {
   test('accepts only the two-page A4 portrait contract', () => {
-    expect(() =>
-      assertCapturedPdfOutput({ pageCount: 2, pageWidthMm: 209.9, pageHeightMm: 297.04 })
-    ).not.toThrow();
-    expect(() =>
-      assertCapturedPdfOutput({ pageCount: 1, pageWidthMm: 210, pageHeightMm: 297 })
-    ).toThrow(/exactly two pages/);
-    expect(() =>
-      assertCapturedPdfOutput({ pageCount: 2, pageWidthMm: 211, pageHeightMm: 297 })
-    ).toThrow(/MediaBoxes/);
+    expect(() => assertCapturedPdfOutput({ pageCount: 2, pageWidthMm: 209.9, pageHeightMm: 297.04 })).not.toThrow();
+    expect(() => assertCapturedPdfOutput({ pageCount: 1, pageWidthMm: 210, pageHeightMm: 297 })).toThrow(
+      /exactly two pages/
+    );
+    expect(() => assertCapturedPdfOutput({ pageCount: 2, pageWidthMm: 211, pageHeightMm: 297 })).toThrow(/MediaBoxes/);
   });
 
   test('collects page exceptions, request failures, and HTTP error responses', () => {
@@ -97,24 +93,14 @@ describe('production capture output validation', () => {
     } as never);
     const serialized = JSON.stringify(diagnostics);
     expect(serialized).toContain('https://cdn.example.com/<redacted>');
-    for (const secret of [
-      'signed-user',
-      'SECRET_PASSWORD',
-      'SECRET_PATH',
-      'SECRET_QUERY',
-      'SECRET_FRAGMENT',
-    ]) {
+    for (const secret of ['signed-user', 'SECRET_PASSWORD', 'SECRET_PATH', 'SECRET_QUERY', 'SECRET_FRAGMENT']) {
       expect(serialized).not.toContain(secret);
     }
   });
 
   test('keeps the Publication job id in an HttpOnly host cookie rather than a URL or referrer', () => {
     const jobId = 'publication-job-000000000000001';
-    const cookies = publisherCaptureCookies(
-      'https://publisher.example.com',
-      jobId,
-      Date.now() + 30_000
-    );
+    const cookies = publisherCaptureCookies('https://publisher.example.com', jobId, Date.now() + 30_000);
     const jobCookie = cookies.find((cookie) => cookie.value === jobId);
     expect(jobCookie).toMatchObject({
       url: 'https://publisher.example.com',

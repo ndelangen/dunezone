@@ -21,16 +21,10 @@ export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
   return (
     <div className={styles.card}>
       <div className={styles.decal_bg_1} />
-      <BackgroundRenderer
-        className={`${styles.head} ${unique.head}`}
-        background={backgroundPresets.traitor}
-      />
+      <BackgroundRenderer className={`${styles.head} ${unique.head}`} background={backgroundPresets.traitor} />
       <div className={styles.head_shade} />
       <div className={styles.shape} />
-      <BackgroundRenderer
-        className={`${styles.type} ${unique.type}`}
-        background={backgroundPresets.stripedSpecial}
-      >
+      <BackgroundRenderer className={`${styles.type} ${unique.type}`} background={backgroundPresets.stripedSpecial}>
         <img src="/vector/icon/traitor.svg" className={styles.typeOverlay} />
         <img src="/vector/icon/traitor.svg" className={styles.typeShade} />
       </BackgroundRenderer>

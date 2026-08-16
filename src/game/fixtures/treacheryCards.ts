@@ -338,9 +338,7 @@ export const treacheryCardFixtures = {
     icon: [backgroundPresets.stripedDefense, '/vector/icon/shield.svg'],
     iconOffset: [0, 8],
     name: 'Shield!',
-    decals: [
-      { id: '/vector/decal/target.svg', muted: false, offset: [0, 0], outline: true, scale: 0.7 },
-    ],
+    decals: [{ id: '/vector/decal/target.svg', muted: false, offset: [0, 0], outline: true, scale: 0.7 }],
     text: 'Play as part of your Battle Plan.\n\nProtects your leader from a projectile weapon.\n\nReturn this card to the Supplies! cache after the Battle phase.',
     subName: 'Defense - Shield',
   }),

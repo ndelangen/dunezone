@@ -71,9 +71,7 @@ export function AssetSelect({
         const preview = getPreviewSrc(option.value);
         return (
           <Group gap="sm" wrap="nowrap">
-            {preview ? (
-              <Image src={preview} alt="" w={previewSize} h={previewSize} fit="contain" />
-            ) : null}
+            {preview ? <Image src={preview} alt="" w={previewSize} h={previewSize} fit="contain" /> : null}
             <Text size="sm" truncate>
               {option.label}
             </Text>

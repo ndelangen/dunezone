@@ -14,8 +14,8 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 /**
- * Live preview: apply faction JSON from parent via postMessage. Only accepts same-origin messages
- * (adjust if you embed cross-origin later).
+ * Live preview: apply faction JSON from parent via postMessage.
+ * Only accepts same-origin messages (adjust if you embed cross-origin later).
  */
 export function useFactionSheetPostMessage(enabled: boolean) {
   const [faction, setFaction] = useState<Faction | null>(null);

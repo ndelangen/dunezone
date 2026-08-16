@@ -32,10 +32,7 @@ function fixture() {
   writeFileSync(path.join(publisher, 'publisher-capture', 'entry-hash.js'), 'capture');
   writeFileSync(path.join(storybook, 'index.html'), '<html>Dune Zone Storybook</html>');
   writeFileSync(path.join(storybook, 'iframe.html'), '<html>preview</html>');
-  writeFileSync(
-    path.join(storybook, 'index.json'),
-    JSON.stringify({ entries: { example: { type: 'story' } } })
-  );
+  writeFileSync(path.join(storybook, 'index.json'), JSON.stringify({ entries: { example: { type: 'story' } } }));
   writeFileSync(path.join(storybook, 'assets', 'preview-hash.js'), 'preview');
   return { root, app, publisher, storybook };
 }
@@ -54,9 +51,7 @@ describe('publisher Static Assets assembly', () => {
     expect(report.assetCount).toBe(9);
     expect(report.storyCount).toBe(1);
     expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe('<html>spa shell</html>');
-    expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe(
-      '<html>spa shell</html>'
-    );
+    expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe('<html>spa shell</html>');
     expect(report.largestAsset.bytes).toBeGreaterThan(0);
   });
 
@@ -80,9 +75,9 @@ describe('publisher Static Assets assembly', () => {
       path.join(oversized.publisher, 'too-large.bin'),
       new Uint8Array(WORKERS_STATIC_ASSET_FILE_LIMIT_BYTES + 1)
     );
-    expect(() =>
-      assemblePublisherAssets(oversized.app, oversized.publisher, oversized.storybook)
-    ).toThrow('exceeds 25 MiB');
+    expect(() => assemblePublisherAssets(oversized.app, oversized.publisher, oversized.storybook)).toThrow(
+      'exceeds 25 MiB'
+    );
 
     const linked = fixture();
     symlinkSync(
@@ -94,14 +89,11 @@ describe('publisher Static Assets assembly', () => {
 
   test('fails closed for unsafe Storybook runtime references', () => {
     const current = fixture();
-    writeFileSync(
-      path.join(current.storybook, 'assets', 'preview-hash.js'),
-      'fetch("https://example.convex.cloud")'
-    );
+    writeFileSync(path.join(current.storybook, 'assets', 'preview-hash.js'), 'fetch("https://example.convex.cloud")');
 
-    expect(() =>
-      assemblePublisherAssets(current.app, current.publisher, current.storybook)
-    ).toThrow('forbidden runtime reference .convex.cloud');
+    expect(() => assemblePublisherAssets(current.app, current.publisher, current.storybook)).toThrow(
+      'forbidden runtime reference .convex.cloud'
+    );
   });
 
   test('fails closed when Storybook duplicates an application-owned root asset', () => {
@@ -111,8 +103,8 @@ describe('publisher Static Assets assembly', () => {
     writeFileSync(path.join(current.app, 'image', 'shared.png'), 'shared application asset');
     writeFileSync(path.join(current.storybook, 'image', 'shared.png'), 'shared application asset');
 
-    expect(() =>
-      assemblePublisherAssets(current.app, current.publisher, current.storybook)
-    ).toThrow('duplicates application-owned root asset image/shared.png');
+    expect(() => assemblePublisherAssets(current.app, current.publisher, current.storybook)).toThrow(
+      'duplicates application-owned root asset image/shared.png'
+    );
   });
 });

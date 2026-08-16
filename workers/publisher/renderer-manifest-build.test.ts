@@ -40,9 +40,7 @@ function sourceEntries(overrides: Partial<Record<string, string>> = {}): Rendere
   }));
 }
 
-function toolchainEntries(
-  overrides: Partial<Record<string, string>> = {}
-): RendererManifestEntry[] {
+function toolchainEntries(overrides: Partial<Record<string, string>> = {}): RendererManifestEntry[] {
   return [
     { path: 'src/shared/assetRules.ts', bytes: encoder.encode('rules') },
     { path: 'scripts/generate-images.ts', bytes: encoder.encode('generator') },
@@ -88,21 +86,14 @@ describe('current Renderer manifest digest', () => {
   });
 
   test('changes when a media source changes — ingredient hashing, not encoder output', () => {
-    const changed = digest(
-      codeEntries(),
-      sourceEntries({ 'media/image/texture/021.jpg': 'edited-texture' })
-    );
+    const changed = digest(codeEntries(), sourceEntries({ 'media/image/texture/021.jpg': 'edited-texture' }));
     expect(changed.digest).not.toBe(digest().digest);
     expect(changed.components.sources).not.toBe(digest().components.sources);
     expect(changed.components.code).toBe(digest().components.code);
   });
 
   test('changes when the toolchain changes (sharp bump, rules, generator)', () => {
-    const changed = digest(
-      codeEntries(),
-      sourceEntries(),
-      toolchainEntries({ 'toolchain/sharp-version': '0.36.0' })
-    );
+    const changed = digest(codeEntries(), sourceEntries(), toolchainEntries({ 'toolchain/sharp-version': '0.36.0' }));
     expect(changed.digest).not.toBe(digest().digest);
     expect(changed.components.toolchain).not.toBe(digest().components.toolchain);
   });
@@ -116,21 +107,18 @@ describe('current Renderer manifest digest', () => {
     expect(changed.components.contract).not.toBe(digest().components.contract);
   });
 
-  test.each(RENDERER_RUNTIME_CLOSURE_PATHS)(
-    'changes when renderer runtime closure input %s changes',
-    (changedPath) => {
-      const runtimeEntries = RENDERER_RUNTIME_CLOSURE_PATHS.map((relativePath) => ({
-        path: relativePath,
-        bytes: readFileSync(path.resolve(process.cwd(), relativePath)),
-      }));
-      const changedEntries = runtimeEntries.map((entry) =>
-        entry.path === changedPath
-          ? { ...entry, bytes: Buffer.concat([entry.bytes, Buffer.from('\n// changed')]) }
-          : entry
-      );
-      expect(digest(changedEntries).digest).not.toBe(digest(runtimeEntries).digest);
-    }
-  );
+  test.each(RENDERER_RUNTIME_CLOSURE_PATHS)('changes when renderer runtime closure input %s changes', (changedPath) => {
+    const runtimeEntries = RENDERER_RUNTIME_CLOSURE_PATHS.map((relativePath) => ({
+      path: relativePath,
+      bytes: readFileSync(path.resolve(process.cwd(), relativePath)),
+    }));
+    const changedEntries = runtimeEntries.map((entry) =>
+      entry.path === changedPath
+        ? { ...entry, bytes: Buffer.concat([entry.bytes, Buffer.from('\n// changed')]) }
+        : entry
+    );
+    expect(digest(changedEntries).digest).not.toBe(digest(runtimeEntries).digest);
+  });
 
   test('rejects ambiguous duplicate paths', () => {
     const duplicate = codeEntries();
@@ -178,9 +166,7 @@ describe('current Renderer manifest digest', () => {
     const rendererEntries = releaseEntries.filter((entry) => isRendererManifestAsset(entry.path));
     const changedApplicationEntries = releaseEntries
       .map((entry) =>
-        entry.path.startsWith('public/')
-          ? { ...entry, bytes: encoder.encode('different platform chunk') }
-          : entry
+        entry.path.startsWith('public/') ? { ...entry, bytes: encoder.encode('different platform chunk') } : entry
       )
       .filter((entry) => isRendererManifestAsset(entry.path));
 

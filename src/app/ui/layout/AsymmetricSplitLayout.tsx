@@ -13,10 +13,7 @@ function Narrow(_: PropsWithChildren): null {
 }
 
 /** A wide column beside a narrow one, responsive by container query. */
-function AsymmetricSplitLayoutBase({
-  className,
-  children,
-}: PropsWithChildren<{ className?: string }>) {
+function AsymmetricSplitLayoutBase({ className, children }: PropsWithChildren<{ className?: string }>) {
   let wide: ReactNode = null;
   let narrow: ReactNode = null;
 
@@ -43,9 +40,7 @@ function AsymmetricSplitLayoutBase({
   );
 }
 
-type AsymmetricSplitLayoutComponent = ((
-  props: PropsWithChildren<{ className?: string }>
-) => ReactNode) & {
+type AsymmetricSplitLayoutComponent = ((props: PropsWithChildren<{ className?: string }>) => ReactNode) & {
   Wide: typeof Wide;
   Narrow: typeof Narrow;
 };

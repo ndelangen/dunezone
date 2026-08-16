@@ -16,40 +16,22 @@ function EditorChapter({ index }: { index: number }) {
         Chapter {String(index).padStart(2, '0')}
       </Text>
       <Title order={2}>
-        {
-          ['Identity & Appearance', 'Leaders', 'Alliance', 'Forces & Worlds', 'Rules & Advantages'][
-            index - 1
-          ]
-        }
+        {['Identity & Appearance', 'Leaders', 'Alliance', 'Forces & Worlds', 'Rules & Advantages'][index - 1]}
       </Title>
       <Text c="dimmed" mt="sm">
-        Representative editor content preserves this plane&apos;s width and height while review is
-        open.
+        Representative editor content preserves this plane&apos;s width and height while review is open.
       </Text>
     </Paper>
   );
 }
 
-const longContentLabels = Array.from(
-  { length: 8 },
-  (_, index) => `Long authored collection ${index + 1}`
-);
+const longContentLabels = Array.from({ length: 8 }, (_, index) => `Long authored collection ${index + 1}`);
 
-function ReviewFixture({
-  faction,
-  longContent = false,
-}: {
-  faction: Faction;
-  longContent?: boolean;
-}) {
+function ReviewFixture({ faction, longContent = false }: { faction: Faction; longContent?: boolean }) {
   const reviewRef = useRef<FactionSheetReviewHandle>(null);
   return (
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
-      <Button
-        visibleFrom="sm"
-        mb="md"
-        onClick={(event) => reviewRef.current?.open(event.currentTarget)}
-      >
+      <Button visibleFrom="sm" mb="md" onClick={(event) => reviewRef.current?.open(event.currentTarget)}>
         Review faction sheet
       </Button>
       <FactionSheetReview ref={reviewRef} faction={faction}>
@@ -61,9 +43,7 @@ function ReviewFixture({
             ? longContentLabels.map((label) => (
                 <Paper key={label} withBorder radius="lg" p="xl" mih={260}>
                   <Title order={3}>{label}</Title>
-                  <Text c="dimmed">
-                    Extra content proves the review plane remains bounded by the editor document.
-                  </Text>
+                  <Text c="dimmed">Extra content proves the review plane remains bounded by the editor document.</Text>
                 </Paper>
               ))
             : null}

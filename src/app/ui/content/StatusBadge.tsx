@@ -23,9 +23,8 @@ export interface StatusBadgeProps {
 /**
  * States where a subject currently sits in a lifecycle.
  *
- * Callers own the mapping from their own status union to a tone; this component owns the mapping
- * from tone to colour, so "pending" is the same yellow whether it describes a membership request or
- * an asset publication, and no page re-invents that ladder inline.
+ * Callers own the mapping from their own status union to a tone;
+ * this component owns the mapping from tone to colour, so "pending" is the same yellow whether it describes a membership request or an asset publication, and no page re-invents that ladder inline.
  */
 export function StatusBadge({ tone = 'neutral', live = false, children }: StatusBadgeProps) {
   /* Neutral takes the default variant: the light variant of the warm `gray` tuple collapses into

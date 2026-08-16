@@ -1,17 +1,4 @@
-import {
-  Alert,
-  Anchor,
-  Avatar,
-  Badge,
-  Box,
-  Button,
-  Divider,
-  Group,
-  Skeleton,
-  Stack,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Alert, Anchor, Avatar, Badge, Box, Button, Divider, Group, Skeleton, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -46,8 +33,9 @@ import type { RulesetEntry } from '@db/rulesets';
 import styles from './index.module.css';
 
 /**
- * The structural minimum both owned-asset queries satisfy. Their validator-derived row types remain
- * the authority for the shape; this names only the part the picker reads.
+ * The structural minimum both owned-asset queries satisfy.
+ * Their validator-derived row types remain the authority for the shape;
+ * this names only the part the picker reads.
  */
 type AssetAssignOption = {
   id: string;
@@ -120,8 +108,7 @@ function GroupDetailPage() {
   const groupId = group._id;
   const viewerAccess = page.viewerAccess;
   const ownerProfile = page.owner;
-  const membershipStatus =
-    viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
+  const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const isOwner = viewerAccess.capabilities.rename;
   const isActiveMember = membershipStatus === 'active';
   const isAnonymous = viewerAccess.viewer.kind === 'anonymous';
@@ -133,9 +120,7 @@ function GroupDetailPage() {
   const pendingMembers = roster.filter((member) => member.status === 'pending');
 
   const membersModerationBusy =
-    membershipWorkflow.approve.isPending ||
-    membershipWorkflow.reject.isPending ||
-    membershipWorkflow.remove.isPending;
+    membershipWorkflow.approve.isPending || membershipWorkflow.reject.isPending || membershipWorkflow.remove.isPending;
   const membersModerationError =
     membershipWorkflow.approve.error?.message ??
     membershipWorkflow.reject.error?.message ??
@@ -219,9 +204,7 @@ function GroupDetailPage() {
                 isAnonymous={isAnonymous}
                 requestPending={membershipWorkflow.request.isPending}
                 requestError={membershipWorkflow.request.error?.message ?? null}
-                onRequestMembership={() =>
-                  void membershipWorkflow.request.run(groupId).catch(() => undefined)
-                }
+                onRequestMembership={() => void membershipWorkflow.request.run(groupId).catch(() => undefined)}
               />
             </Toolbar.Right>
           </Toolbar>
@@ -292,27 +275,16 @@ function GroupDetailPage() {
             <PendingRequestsPanel
               pendingMembers={pendingMembers}
               moderationBusy={membersModerationBusy}
-              onApprove={(membershipId) =>
-                void membershipWorkflow.approve.run(membershipId).catch(() => undefined)
-              }
-              onReject={(membershipId) =>
-                void membershipWorkflow.reject.run(membershipId).catch(() => undefined)
-              }
+              onApprove={(membershipId) => void membershipWorkflow.approve.run(membershipId).catch(() => undefined)}
+              onReject={(membershipId) => void membershipWorkflow.reject.run(membershipId).catch(() => undefined)}
             />
 
-            <Card
-              icon={<UsersRound size={18} aria-hidden />}
-              title={`Members (${activeMembers.length})`}
-            >
+            <Card icon={<UsersRound size={18} aria-hidden />} title={`Members (${activeMembers.length})`}>
               <MemberRoster
                 members={activeMembers}
                 moderationBusy={membersModerationBusy}
-                onApprove={(membershipId) =>
-                  void membershipWorkflow.approve.run(membershipId).catch(() => undefined)
-                }
-                onReject={(membershipId) =>
-                  void membershipWorkflow.reject.run(membershipId).catch(() => undefined)
-                }
+                onApprove={(membershipId) => void membershipWorkflow.approve.run(membershipId).catch(() => undefined)}
+                onReject={(membershipId) => void membershipWorkflow.reject.run(membershipId).catch(() => undefined)}
                 onRemove={handleRemoveMember}
               />
             </Card>
@@ -335,10 +307,8 @@ type AssignPickerProps = {
 };
 
 /**
- * Labels this viewer's own factions or rulesets for `AssignPopover`, and owns the one thing the kit
- * control must not: asking before a move. An asset already maintained by another group leaves that
- * group when it is added here, which is a consequence only this page knows about — so the
- * confirmation lives here, and backing out resolves `false` to leave the popover open.
+ * Labels this viewer's own factions or rulesets for `AssignPopover`, and owns the one thing the kit control must not: asking before a move.
+ * An asset already maintained by another group leaves that group when it is added here, which is a consequence only this page knows about — so the confirmation lives here, and backing out resolves `false` to leave the popover open.
  */
 function OwnedAssetPicker({
   noun,
@@ -373,14 +343,10 @@ function OwnedAssetPicker({
       loading={loading}
       options={assignable.map((item) => ({
         value: item.id,
-        label: item.groupName
-          ? `${item.name} — currently in ${item.groupName}`
-          : `${item.name} — unassigned`,
+        label: item.groupName ? `${item.name} — currently in ${item.groupName}` : `${item.name} — unassigned`,
       }))}
       emptyMessage={
-        items.length === 0
-          ? `You don't own any ${noun}s yet.`
-          : `All your ${noun}s are already in this group.`
+        items.length === 0 ? `You don't own any ${noun}s yet.` : `All your ${noun}s are already in this group.`
       }
       onAssign={async (value) => {
         const item = byId.get(value);
@@ -402,11 +368,10 @@ function OwnedAssetPicker({
 }
 
 /**
- * Only mounted for active members (see call sites): the owned-factions query requires
- * authentication, so it must not be called for anonymous, pending, or non-member viewers.
- * Subscribing to a second query beyond the page query deviates from the one-query-per-route
- * default; that was decided explicitly for this picker (issues #348/#182: keep `detailBySlug`
- * unchanged, expose the viewer-scoped owned lists as their own queries).
+ * Only mounted for active members (see call sites): the owned-factions query requires authentication, so it must not be called for anonymous, pending, or non-member viewers.
+ * Subscribing to a second query beyond the page query deviates from the one-query-per-route default;
+ * that was decided explicitly for this picker (issues #348/#182: keep
+ * `detailBySlug` unchanged, expose the viewer-scoped owned lists as their own queries).
  */
 function FactionAssignPicker(props: AssignPickerProps) {
   const ownedFactionsQuery = useFactionsOwnedForGroupAssign();
@@ -434,9 +399,9 @@ function RulesetAssignPicker(props: AssignPickerProps) {
 }
 
 /**
- * Dune-specific crest for the Factions section. These faction logo files ship without root
- * width/height (see `Token`'s `StrokedUse` pattern) — reference the `#root` fragment via `<use>`
- * inside an own viewBox rather than a plain `<img src>`, which renders as a broken 0x0 image.
+ * Dune-specific crest for the Factions section.
+ * These faction logo files ship without root width/height (see `Token`'s
+ * `StrokedUse` pattern) — reference the `#root` fragment via `<use>` inside an own viewBox rather than a plain `<img src>`, which renders as a broken 0x0 image.
  */
 function FremenIcon({ size = 18 }: { size?: number }) {
   return (
@@ -453,19 +418,9 @@ function FremenIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function OwnerLine({
-  ownerProfile,
-  createdBy,
-}: {
-  ownerProfile: GroupDetailPageData['owner'];
-  createdBy: string;
-}) {
+function OwnerLine({ ownerProfile, createdBy }: { ownerProfile: GroupDetailPageData['owner']; createdBy: string }) {
   return ownerProfile?.slug ? (
-    <ProfileLink
-      slug={ownerProfile.slug}
-      username={ownerProfile.username}
-      avatar_url={ownerProfile.avatar_url}
-    />
+    <ProfileLink slug={ownerProfile.slug} username={ownerProfile.username} avatar_url={ownerProfile.avatar_url} />
   ) : (
     <Text size="sm">{ownerProfile?.username ?? createdBy}</Text>
   );
@@ -510,10 +465,8 @@ function RequestMembershipButton({
     <Stack gap={4}>
       {isAnonymous && (
         <Text size="sm" c="dimmed">
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
-            Log in
-          </Anchor>{' '}
-          to request membership.
+          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to request
+          membership.
         </Text>
       )}
       {canRequestMembership && (
@@ -640,10 +593,7 @@ function MemberRoster({
   );
 }
 
-/**
- * Pending membership requests, pulled out of the plain roster into their own highlighted,
- * conditional panel.
- */
+/** Pending membership requests, pulled out of the plain roster into their own highlighted, conditional panel. */
 function PendingRequestsPanel({
   pendingMembers,
   moderationBusy,
@@ -709,11 +659,7 @@ function RulesetList({ rulesets }: { rulesets: RulesetEntry[] }) {
           key={ruleset._id}
           fw={600}
           renderRoot={(rootProps) => (
-            <Link
-              {...rootProps}
-              to="/rulesets/$rulesetSlug"
-              params={{ rulesetSlug: ruleset.slug }}
-            />
+            <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }} />
           )}
         >
           {ruleset.name}

@@ -1,7 +1,4 @@
-import {
-  FACTION_SHEET_ASSET_TYPE,
-  factionSheetAssetDataSchema,
-} from '../../src/shared/asset-publishing/publication';
+import { FACTION_SHEET_ASSET_TYPE, factionSheetAssetDataSchema } from '../../src/shared/asset-publishing/publication';
 import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/publication';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
@@ -20,22 +17,16 @@ export function factionSheetAssetData(
   });
 }
 
-export async function publicationJobsForAsset(
-  ctx: PublicationReadCtx,
-  assetType: string,
-  assetId: string
-) {
+export async function publicationJobsForAsset(ctx: PublicationReadCtx, assetType: string, assetId: string) {
   return await ctx.db
     .query('publication_jobs')
-    .withIndex('by_asset_type_and_asset_id', (q) =>
-      q.eq('asset_type', assetType).eq('asset_id', assetId)
-    )
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
     .take(4);
 }
 
 /**
- * Uniform save/scan enqueue behavior. Pending work is coalesced, failed work is replaced, and an
- * in-progress job may retain one pending successor.
+ * Uniform save/scan enqueue behavior.
+ * Pending work is coalesced, failed work is replaced, and an in-progress job may retain one pending successor.
  */
 export async function enqueuePublicationJob(
   ctx: MutationCtx,

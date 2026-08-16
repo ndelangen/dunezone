@@ -60,8 +60,8 @@ export const PartialOverflow = meta.story({
 });
 
 /**
- * The More panel, opened. It renders through a portal outside the canvas — the band hosting the nav
- * is `overflow: hidden`, so an in-place panel would clip at compact band heights.
+ * The More panel, opened.
+ * It renders through a portal outside the canvas — the band hosting the nav is `overflow: hidden`, so an in-place panel would clip at compact band heights.
  */
 export const OverflowPanelOpen = meta.story({
   globals: { viewport: { value: 'appDesktop' } },

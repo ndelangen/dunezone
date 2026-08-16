@@ -5,20 +5,12 @@ import type { Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { query } from './_generated/server';
 import { mutation } from './functions';
-import {
-  liveGroupOrNull,
-  loadGroupAccessBundle,
-  requireGroupCapability,
-} from './lib/collaborativeAccess';
+import { liveGroupOrNull, loadGroupAccessBundle, requireGroupCapability } from './lib/collaborativeAccess';
 import { groupDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import { nowIso, slugify } from './lib/utils';
 
-async function resolveUniqueGroupSlug(
-  ctx: QueryCtx | MutationCtx,
-  name: string,
-  excludeId?: Id<'groups'>
-) {
+async function resolveUniqueGroupSlug(ctx: QueryCtx | MutationCtx, name: string, excludeId?: Id<'groups'>) {
   const baseSlug = slugify(name) || 'group';
   let slug = baseSlug;
   let suffix = 1;

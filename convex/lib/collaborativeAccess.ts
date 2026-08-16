@@ -77,9 +77,7 @@ type LoadedCollaborativeAccess = LoadedGroupAccess | LoadedFactionAccess | Loade
 type AnyCtx = QueryCtx | MutationCtx;
 
 /**
- * The one projection rule for group references: a reference that does not resolve to a live Group —
- * soft-deleted or missing entirely (historical hard deletions left dangling ids) — projects to null
- * (ADR-0003).
+ * The one projection rule for group references: a reference that does not resolve to a live Group — soft-deleted or missing entirely (historical hard deletions left dangling ids) — projects to null (ADR-0003).
  */
 export function liveGroupOrNull(group: Doc<'groups'> | null): Doc<'groups'> | null {
   return group === null || group.is_deleted ? null : group;
@@ -93,11 +91,7 @@ async function requireAuthenticatedViewerId(ctx: AnyCtx) {
   return viewerId;
 }
 
-async function membershipFor(
-  ctx: AnyCtx,
-  groupId: Id<'groups'> | null,
-  viewerId: Id<'users'> | null
-) {
+async function membershipFor(ctx: AnyCtx, groupId: Id<'groups'> | null, viewerId: Id<'users'> | null) {
   if (!groupId || !viewerId) {
     return null;
   }
@@ -156,9 +150,7 @@ function factionAccessFromLoaded(
       resource: { available: !subject.is_deleted },
       group: {
         eligible: assignedGroup !== null,
-        summary: assignedGroup
-          ? { id: assignedGroup._id, name: assignedGroup.name, slug: assignedGroup.slug }
-          : null,
+        summary: assignedGroup ? { id: assignedGroup._id, name: assignedGroup.name, slug: assignedGroup.slug } : null,
       },
       viewer: viewerFacts(viewerId, subject.owner_id, viewerMembership),
     }) as Extract<CollaborativeAccess, { kind: 'faction' }>,
@@ -181,9 +173,7 @@ function rulesetAccessFromLoaded(
       resource: { available: !subject.is_deleted },
       group: {
         eligible: assignedGroup !== null,
-        summary: assignedGroup
-          ? { id: assignedGroup._id, name: assignedGroup.name, slug: assignedGroup.slug }
-          : null,
+        summary: assignedGroup ? { id: assignedGroup._id, name: assignedGroup.name, slug: assignedGroup.slug } : null,
       },
       viewer: viewerFacts(viewerId, subject.owner_id, viewerMembership),
     }) as Extract<CollaborativeAccess, { kind: 'ruleset' }>,
@@ -222,9 +212,7 @@ export async function loadCollaborativeAccess(
     if (!row) {
       throw new Error(`Faction with id ${subject.id} not found`);
     }
-    const assignedGroup = liveGroupOrNull(
-      row.group_id ? await ctx.db.get('groups', row.group_id) : null
-    );
+    const assignedGroup = liveGroupOrNull(row.group_id ? await ctx.db.get('groups', row.group_id) : null);
     const viewerMembership = await membershipFor(ctx, assignedGroup?._id ?? null, viewerId);
     return factionAccessFromLoaded(row, assignedGroup, viewerId, viewerMembership);
   }
@@ -238,10 +226,7 @@ export async function loadCollaborativeAccess(
   return rulesetAccessFromLoaded(row, assignedGroup, viewerId, viewerMembership);
 }
 
-export async function collaborativeAccessFor(
-  ctx: AnyCtx,
-  subject: CollaborativeSubject
-): Promise<CollaborativeAccess> {
+export async function collaborativeAccessFor(ctx: AnyCtx, subject: CollaborativeSubject): Promise<CollaborativeAccess> {
   if (subject.kind === 'group') {
     return (await loadCollaborativeAccess(ctx, subject)).viewerAccess;
   }
@@ -253,9 +238,7 @@ export async function collaborativeAccessFor(
 
 export async function loadRulesetAccessForLoadedSubject(ctx: AnyCtx, ruleset: Doc<'rulesets'>) {
   const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
-  const assignedGroup = liveGroupOrNull(
-    ruleset.group_id ? await ctx.db.get('groups', ruleset.group_id) : null
-  );
+  const assignedGroup = liveGroupOrNull(ruleset.group_id ? await ctx.db.get('groups', ruleset.group_id) : null);
   const viewerMembership = await membershipFor(ctx, assignedGroup?._id ?? null, viewerId);
   return rulesetAccessFromLoaded(ruleset, assignedGroup, viewerId, viewerMembership);
 }
@@ -548,9 +531,7 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
     }
     const profile = profileByUserId.get(membership.user_id);
     if (!profile) {
-      throw new Error(
-        `Invariant: every member must have a profile (missing for ${membership.user_id})`
-      );
+      throw new Error(`Invariant: every member must have a profile (missing for ${membership.user_id})`);
     }
     const pending = membership.status === 'pending';
     return [
@@ -597,9 +578,7 @@ export function evaluateCollaborativeAccess(facts: CollaborativeAccessFacts): Co
   const activeMember = authenticated && membership === 'active';
   const owner = facts.viewer.kind === 'authenticated' && facts.viewer.ownsSubject;
   const viewer: PublicViewer =
-    facts.viewer.kind === 'anonymous'
-      ? facts.viewer
-      : { kind: 'authenticated', membership: membership ?? 'none' };
+    facts.viewer.kind === 'anonymous' ? facts.viewer : { kind: 'authenticated', membership: membership ?? 'none' };
   const requestMembership = authenticated && membership === 'none' && facts.group.eligible;
 
   if (facts.kind === 'group') {
@@ -622,9 +601,7 @@ export function evaluateCollaborativeAccess(facts: CollaborativeAccessFacts): Co
     capabilities: {
       requestMembership: requestMembership && facts.resource.available,
       edit: facts.resource.available && (owner || (activeMember && facts.group.eligible)),
-      rename:
-        facts.resource.available &&
-        (owner || (facts.kind === 'faction' && activeMember && facts.group.eligible)),
+      rename: facts.resource.available && (owner || (facts.kind === 'faction' && activeMember && facts.group.eligible)),
       changeGroup: facts.resource.available && owner,
       delete: facts.resource.available && owner,
     },

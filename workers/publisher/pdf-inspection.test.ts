@@ -75,9 +75,7 @@ test('rejects a real PDF with a wrong in-range startxref offset', async () => {
   const corrupted = pdf.slice();
   corrupted.set(new TextEncoder().encode(wrongOffset), digitsOffset);
 
-  await expect(inspectChromiumPdf(corrupted)).rejects.toThrow(
-    'startxref does not point to a classic xref table'
-  );
+  await expect(inspectChromiumPdf(corrupted)).rejects.toThrow('startxref does not point to a classic xref table');
 });
 
 test('rejects repairable Pages/Page objects omitted from an otherwise-valid classic xref', async () => {
@@ -89,9 +87,7 @@ test('rejects repairable Pages/Page objects omitted from an otherwise-valid clas
   });
   expect(repaired.getPageCount()).toBe(2);
 
-  await expect(inspectChromiumPdf(pdf)).rejects.toThrow(
-    'Classic xref does not contain exactly trailer Size entries'
-  );
+  await expect(inspectChromiumPdf(pdf)).rejects.toThrow('Classic xref does not contain exactly trailer Size entries');
 });
 
 test('rejects duplicate or overlapping classic xref object coverage', async () => {
@@ -156,7 +152,5 @@ test('rejects a handcrafted reachable two-page pseudo-PDF with no xref table', a
     ].join('\n')
   );
 
-  await expect(inspectChromiumPdf(pseudoPdf)).rejects.toThrow(
-    'startxref does not point to a classic xref table'
-  );
+  await expect(inspectChromiumPdf(pseudoPdf)).rejects.toThrow('startxref does not point to a classic xref table');
 });

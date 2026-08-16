@@ -3,9 +3,7 @@ import { Link } from '@tanstack/react-router';
 
 import { CallToAction } from './CallToAction';
 
-const toFactionCreate = (rootProps: Record<string, unknown>) => (
-  <Link {...rootProps} to="/factions/create" />
-);
+const toFactionCreate = (rootProps: Record<string, unknown>) => <Link {...rootProps} to="/factions/create" />;
 
 const meta = preview.meta({
   component: CallToAction,
@@ -34,8 +32,9 @@ export const SmallForward = meta.story({
 });
 
 /**
- * Pulses every five seconds. Watch for a moment — and note it stops entirely under
- * `prefers-reduced-motion`. Reserve it for a page whose whole purpose is this one action.
+ * Pulses every five seconds.
+ * Watch for a moment — and note it stops entirely under `prefers-reduced-motion`.
+ * Reserve it for a page whose whole purpose is this one action.
  */
 export const Attention = meta.story({
   args: { attention: true },

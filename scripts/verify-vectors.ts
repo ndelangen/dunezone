@@ -1,18 +1,25 @@
 /**
- * Structural verification of generated vector output (wayfinder #296 guards, train ticket #306):
- * checks public/vector/** against media/vector/** and the rules — without re-optimizing anything.
+ * Structural verification of generated vector output (wayfinder #296 guards, train ticket #306): checks public/vector/** against media/vector/** and the rules — without re-optimizing anything.
  *
  * Bun run verify:vectors
  *
  * Guards (#296, plus the authoring stamp from #298):
  *
- * 1. Every generated file resolves `#root` and has `overflow="visible"` on its root
- * 2. Every generated file's viewBox is exactly `0 0 100 100`
- * 3. Paint-inheriting categories carry no baked paint
- * 4. Baked paint elsewhere only where the rules allow it (`-multicolor` naming for decals)
- * 5. The map's enumerated place-ids all survive optimization
- * 6. No orphans: every generated file traces to a media source, and every source generated
- * 7. Media sources carry the authoring stamp (hard failure; the in-repo tool emits it)
+ * 1.
+ * Every generated file resolves `#root` and has `overflow="visible"` on its root
+ * 2.
+ * Every generated file's viewBox is exactly `0 0 100 100`
+ * 3.
+ * Paint-inheriting categories carry no baked paint
+ * 4.
+ * Baked paint elsewhere only where the rules allow it (`-multicolor` naming for decals)
+ * 5.
+ * The map's enumerated place-ids all survive optimization
+ * 6.
+ * No orphans: every generated file traces to a media source, and every source generated
+ * 7.
+ * Media sources carry the authoring stamp (hard failure;
+ * the in-repo tool emits it)
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -52,9 +59,7 @@ function rootTagCarriesStamp(svg: string): boolean {
 }
 
 const sources = walk(mediaRoot).filter((file) => file.endsWith('.svg'));
-const sourceRelatives = new Set(
-  sources.map((file) => path.relative(mediaRoot, file).split(path.sep).join('/'))
-);
+const sourceRelatives = new Set(sources.map((file) => path.relative(mediaRoot, file).split(path.sep).join('/')));
 
 for (const relative of sourceRelatives) {
   const category = relative.split('/')[0] as VectorCategory;

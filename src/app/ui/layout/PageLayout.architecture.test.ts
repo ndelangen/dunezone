@@ -29,9 +29,7 @@ describe('PageLayout route contract', () => {
     }));
     const violations = routes
       .filter(({ source }) => source.includes('component:'))
-      .filter(
-        ({ source }) => !source.includes('<Outlet />') && !source.includes('component: Outlet')
-      )
+      .filter(({ source }) => !source.includes('<Outlet />') && !source.includes('component: Outlet'))
       .filter(({ source }) => !source.includes('<PageLayout'))
       .map(({ relativePath }) => relativePath);
 

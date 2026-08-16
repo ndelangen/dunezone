@@ -26,9 +26,10 @@ describe('stable Publication object writes', () => {
     );
     const bucket: AssetBucket = { put };
 
-    await expect(
-      putPublishedAsset(bucket, job, payloadHash, cacheToken, new Uint8Array([1, 2, 3]))
-    ).resolves.toEqual({ key: 'factions/faction/sheet.pdf', etag: 'new-etag' });
+    await expect(putPublishedAsset(bucket, job, payloadHash, cacheToken, new Uint8Array([1, 2, 3]))).resolves.toEqual({
+      key: 'factions/faction/sheet.pdf',
+      etag: 'new-etag',
+    });
     expect(put).toHaveBeenCalledWith('factions/faction/sheet.pdf', expect.any(Uint8Array), {
       httpMetadata: { contentType: 'application/pdf' },
       customMetadata: {
@@ -42,9 +43,9 @@ describe('stable Publication object writes', () => {
 
   test('does not read, version, or conditionally fence the stable object', async () => {
     const put = vi.fn(async (_key: string, _value: Uint8Array, _options: R2PutOptions) => null);
-    await expect(
-      putPublishedAsset({ put }, job, payloadHash, cacheToken, new Uint8Array([1]))
-    ).rejects.toThrow(/not written/);
+    await expect(putPublishedAsset({ put }, job, payloadHash, cacheToken, new Uint8Array([1]))).rejects.toThrow(
+      /not written/
+    );
     const options = put.mock.calls[0]?.[2];
     expect(options).not.toHaveProperty('onlyIf');
   });
@@ -52,8 +53,8 @@ describe('stable Publication object writes', () => {
   test('rejects invalid stable keys and output metadata', async () => {
     expect(() => factionSheetKey('../faction')).toThrow();
     const bucket: AssetBucket = { put: vi.fn() };
-    await expect(
-      putPublishedAsset(bucket, job, 'not-a-hash', cacheToken, new Uint8Array([1]))
-    ).rejects.toThrow(/Payload hash/);
+    await expect(putPublishedAsset(bucket, job, 'not-a-hash', cacheToken, new Uint8Array([1]))).rejects.toThrow(
+      /Payload hash/
+    );
   });
 });

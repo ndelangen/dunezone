@@ -3,10 +3,7 @@ import type { MutationCtx, QueryCtx } from '../types';
 import { profileSummary } from './profileSummary';
 
 /** FAQ list projection used by ruleset views. */
-export async function loadFaqItemsForRuleset(
-  ctx: QueryCtx | MutationCtx,
-  rulesetId: Id<'rulesets'>
-) {
+export async function loadFaqItemsForRuleset(ctx: QueryCtx | MutationCtx, rulesetId: Id<'rulesets'>) {
   const items = await ctx.db
     .query('faq_items')
     .withIndex('by_ruleset_created', (q) => q.eq('ruleset_id', rulesetId))

@@ -19,8 +19,7 @@ export const Group = meta.story({
 });
 
 /**
- * A profile's address is derived from the display name rather than equal to it, so the rule needs
- * one more clause than the sentence gives by default.
+ * A profile's address is derived from the display name rather than equal to it, so the rule needs one more clause than the sentence gives by default.
  */
 export const WithExtraRule = meta.story({
   args: {

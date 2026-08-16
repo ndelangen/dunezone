@@ -67,8 +67,7 @@ export function useFactionAuthoring({
         }
         form.reset(values, options);
       },
-      markLoadedDraftDirty: () =>
-        form.setFieldMeta('name', (meta) => ({ ...meta, isDirty: true, isTouched: true })),
+      markLoadedDraftDirty: () => form.setFieldMeta('name', (meta) => ({ ...meta, isDirty: true, isTouched: true })),
     },
     persistence: {
       save: (draft) => latestRef.current.persistence.save(draft),

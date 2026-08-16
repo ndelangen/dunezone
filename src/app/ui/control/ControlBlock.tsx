@@ -9,15 +9,7 @@ export interface ControlBlockProps {
   input: ReactNode;
 }
 
-function OverflowTooltipText({
-  id,
-  text,
-  variant,
-}: {
-  id: string;
-  text: string;
-  variant: 'title' | 'description';
-}) {
+function OverflowTooltipText({ id, text, variant }: { id: string; text: string; variant: 'title' | 'description' }) {
   const ref = useRef<HTMLParagraphElement>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
 
@@ -27,8 +19,7 @@ function OverflowTooltipText({
       return;
     }
 
-    const update = () =>
-      setIsOverflowing(text.length > 0 && element.scrollWidth > element.clientWidth);
+    const update = () => setIsOverflowing(text.length > 0 && element.scrollWidth > element.clientWidth);
     update();
 
     if (typeof ResizeObserver === 'undefined') {
@@ -40,14 +31,7 @@ function OverflowTooltipText({
   }, [text]);
 
   return (
-    <Tooltip
-      label={text}
-      disabled={!isOverflowing}
-      multiline
-      maw={360}
-      position="top-start"
-      withArrow
-    >
+    <Tooltip label={text} disabled={!isOverflowing} multiline maw={360} position="top-start" withArrow>
       <Text
         ref={ref}
         id={id}
@@ -64,9 +48,8 @@ function OverflowTooltipText({
 }
 
 /**
- * Frames a descriptive form control with single-line guidance, overflow help, optional tools, and
- * group semantics. Nested inputs and icon-only tools remain responsible for their own accessible
- * names.
+ * Frames a descriptive form control with single-line guidance, overflow help, optional tools, and group semantics.
+ * Nested inputs and icon-only tools remain responsible for their own accessible names.
  */
 export function ControlBlock({ title, description, tool, input }: ControlBlockProps) {
   const id = useId();

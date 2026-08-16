@@ -26,9 +26,7 @@ const job: AssignedPublicationJob = {
   expiresAt: NOW + 300_000,
 };
 
-function bucket(
-  put = vi.fn(async () => fakeR2Object({ etag: 'etag-one', size: 3, uploaded: new Date(NOW) }))
-) {
+function bucket(put = vi.fn(async () => fakeR2Object({ etag: 'etag-one', size: 3, uploaded: new Date(NOW) }))) {
   return { put } satisfies AssetBucket;
 }
 
@@ -38,9 +36,7 @@ function capturedPdf() {
 
 describe('single-Renderer Publication execution', () => {
   test('captures each assigned job, replaces its stable object, and completes it', async () => {
-    const put = vi.fn(async () =>
-      fakeR2Object({ etag: 'etag-one', size: 3, uploaded: new Date(NOW) })
-    );
+    const put = vi.fn(async () => fakeR2Object({ etag: 'etag-one', size: 3, uploaded: new Date(NOW) }));
     const complete = vi.fn(async () => 'completed' as const);
     const close = vi.fn(async () => undefined);
 

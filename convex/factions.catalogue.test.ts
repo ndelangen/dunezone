@@ -84,10 +84,7 @@ describe('faction catalogue page', () => {
 
     const catalogue = await t.query(api.factions.cataloguePage, {});
 
-    expect(catalogue.factions.map((faction) => faction.data.name).sort()).toEqual([
-      'New arrival',
-      'Recently updated',
-    ]);
+    expect(catalogue.factions.map((faction) => faction.data.name).sort()).toEqual(['New arrival', 'Recently updated']);
     expect(catalogue.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced', 'Empty']);
     expect(catalogue.factions[0]?.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced']);
     expect(catalogue.spotlights.newArrival?.data.name).toBe('New arrival');

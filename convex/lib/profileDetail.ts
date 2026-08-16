@@ -6,11 +6,10 @@ import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './faqProfileActi
 const PROFILE_DETAIL_LIMIT = 500;
 
 /**
- * Profile-detail read model. Owns the joins, visibility rules (active memberships only,
- * soft-deleted factions excluded, faction rulesets limited to active ones), and ordering (FAQ
- * activity newest first, faction rulesets by name, Groups in membership order) behind
- * `api.profiles.getBySlug`. The runtime wire contract is `profileDetailPageValidator`; the precise
- * TS projection (parsed faction data included) is inferred from this loader.
+ * Profile-detail read model.
+ * Owns the joins, visibility rules (active memberships only, soft-deleted factions excluded, faction rulesets limited to active ones), and ordering (FAQ activity newest first, faction rulesets by name, Groups in membership order) behind `api.profiles.getBySlug`.
+ * The runtime wire contract is `profileDetailPageValidator`;
+ * the precise TS projection (parsed faction data included) is inferred from this loader.
  */
 export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
   const profile = await ctx.db
@@ -25,9 +24,7 @@ export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
     .query('group_members')
     .withIndex('by_user_status', (q) => q.eq('user_id', profile.user_id).eq('status', 'active'))
     .take(PROFILE_DETAIL_LIMIT);
-  const groupsWithNulls = await Promise.all(
-    memberships.map((membership) => ctx.db.get('groups', membership.group_id))
-  );
+  const groupsWithNulls = await Promise.all(memberships.map((membership) => ctx.db.get('groups', membership.group_id)));
   const groups = groupsWithNulls.flatMap((group) => {
     const live = liveGroupOrNull(group);
     return live ? [live] : [];

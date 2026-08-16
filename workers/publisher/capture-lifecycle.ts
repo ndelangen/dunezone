@@ -1,15 +1,10 @@
-import {
-  CAPTURE_PROTOCOL,
-  isCapturePayloadHash,
-} from '../../src/shared/asset-publishing/capture-protocol';
+import { CAPTURE_PROTOCOL, isCapturePayloadHash } from '../../src/shared/asset-publishing/capture-protocol';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
 const { pdf: PDF_CONTRACT } = PUBLISHER_RENDERER_CONTRACT;
 
 /**
- * Structural page surface shared by @cloudflare/playwright (production driver) and playwright
- * (Chromium regression), so both runtimes execute the same lifecycle implementation instead of
- * reimplementing marker waits and physical-bounds checks.
+ * Structural page surface shared by @cloudflare/playwright (production driver) and playwright (Chromium regression), so both runtimes execute the same lifecycle implementation instead of reimplementing marker waits and physical-bounds checks.
  */
 type CaptureLocator = {
   waitFor(options?: { state?: 'attached'; timeout?: number }): Promise<unknown>;
@@ -17,18 +12,12 @@ type CaptureLocator = {
   textContent(options?: { timeout?: number }): Promise<string | null>;
   count(): Promise<number>;
   nth(index: number): CaptureLocator;
-  boundingBox(options?: {
-    timeout?: number;
-  }): Promise<{ x: number; y: number; width: number; height: number } | null>;
+  boundingBox(options?: { timeout?: number }): Promise<{ x: number; y: number; width: number; height: number } | null>;
 };
 
 export type CapturePage = {
   locator(selector: string): CaptureLocator;
-  waitForFunction<Arg>(
-    fn: (arg: Arg) => unknown,
-    arg: Arg,
-    options?: { timeout?: number }
-  ): Promise<unknown>;
+  waitForFunction<Arg>(fn: (arg: Arg) => unknown, arg: Arg, options?: { timeout?: number }): Promise<unknown>;
   evaluate<Result>(fn: () => Result): Promise<Result>;
   emulateMedia(options: { media: 'print' }): Promise<unknown>;
 };
@@ -53,10 +42,7 @@ export async function waitForCaptureMarkerSettled(
           querySelector(selector: string): { getAttribute(name: string): string | null } | null;
         };
       };
-      return (
-        browserGlobal.document.querySelector(probe.selector)?.getAttribute(probe.attribute) !==
-        probe.loading
-      );
+      return browserGlobal.document.querySelector(probe.selector)?.getAttribute(probe.attribute) !== probe.loading;
     },
     {
       selector: CAPTURE_PROTOCOL.marker.selector,
@@ -84,9 +70,8 @@ export function assertReadyCaptureMarker(result: CaptureMarkerResult): string {
 }
 
 /**
- * The physical page contract: zero body margins and every sheet page exactly at its print position
- * and size. Shared verbatim by the production driver and the Chromium regression so the two cannot
- * drift apart.
+ * The physical page contract: zero body margins and every sheet page exactly at its print position and size.
+ * Shared verbatim by the production driver and the Chromium regression so the two cannot drift apart.
  */
 export async function assertCapturePhysicalBounds(
   page: CapturePage,

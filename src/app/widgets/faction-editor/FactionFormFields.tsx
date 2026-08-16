@@ -1,14 +1,4 @@
-import {
-  Alert,
-  Badge,
-  Box,
-  Button,
-  Group,
-  Image,
-  SegmentedControl,
-  Stack,
-  Text,
-} from '@mantine/core';
+import { Alert, Badge, Box, Button, Group, Image, SegmentedControl, Stack, Text } from '@mantine/core';
 import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import { FactionCard } from '@ui/block/FactionCard';
 import { effectiveComplexity } from '@ui/content/complexity';
@@ -28,10 +18,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 
 import { factionAuthoringChapters } from './factionAuthoringContract';
-import type {
-  FactionAuthoringChapterId,
-  FactionAuthoringWarning,
-} from './factionAuthoringContract';
+import type { FactionAuthoringChapterId, FactionAuthoringWarning } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
 import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import { FactionFormSectionAdvantages } from './FactionFormSectionAdvantages';
@@ -64,13 +51,7 @@ const chapterIcons: Record<
   advantages: 'advantages',
 };
 
-function ChapterIcon({
-  chapter,
-  form,
-}: {
-  chapter: FactionAuthoringChapterId;
-  form: FactionFormApi;
-}) {
+function ChapterIcon({ chapter, form }: { chapter: FactionAuthoringChapterId; form: FactionFormApi }) {
   if (chapter === 'identity') {
     return (
       <form.Subscribe selector={(state) => state.values.logo}>
@@ -131,16 +112,12 @@ function ArtifactProof({
   return (
     <form.Subscribe selector={(state) => state.values}>
       {(faction) => {
-        const selectedLeader =
-          faction.leaders[Math.min(selectedItem.leader, faction.leaders.length - 1)];
-        const selectedTroop =
-          faction.troops[Math.min(selectedItem.troop, faction.troops.length - 1)];
+        const selectedLeader = faction.leaders[Math.min(selectedItem.leader, faction.leaders.length - 1)];
+        const selectedTroop = faction.troops[Math.min(selectedItem.troop, faction.troops.length - 1)];
         const worlds = faction.planet ?? [];
         const selectedWorld = worlds[Math.min(selectedItem.world, worlds.length - 1)];
         const selectedAdvantage =
-          faction.rules.advantages[
-            Math.min(selectedItem.advantage, faction.rules.advantages.length - 1)
-          ];
+          faction.rules.advantages[Math.min(selectedItem.advantage, faction.rules.advantages.length - 1)];
 
         let title = 'Background composite';
         let usedOn = 'Faction sheet · faction token · leader tokens · troops · alliance card';
@@ -299,19 +276,11 @@ function ArtifactProof({
         }
 
         return (
-          <Surface
-            padding="md"
-            as="section"
-            className={styles.artifactDesk}
-            aria-label={`${title} live preview`}
-          >
+          <Surface padding="md" as="section" className={styles.artifactDesk} aria-label={`${title} live preview`}>
             {activeChapter === 'identity' ? (
               <Box className={styles.identityProof}>
                 {artifact}
-                <Box
-                  className={styles.sheetColorReference}
-                  style={{ backgroundColor: faction.themeColor }}
-                >
+                <Box className={styles.sheetColorReference} style={{ backgroundColor: faction.themeColor }}>
                   <Text size="xs" fw={800} tt="uppercase">
                     Sheet color
                   </Text>
@@ -402,8 +371,7 @@ export const FactionFormFields = forwardRef<
     troop: 0,
     advantage: 0,
   });
-  const forChapter = (chapter: FactionAuthoringChapterId) =>
-    warnings.filter((warning) => warning.chapter === chapter);
+  const forChapter = (chapter: FactionAuthoringChapterId) => warnings.filter((warning) => warning.chapter === chapter);
 
   const focusWarning = (warning: FactionAuthoringWarning) => {
     setActiveChapter(warning.chapter);
@@ -438,9 +406,7 @@ export const FactionFormFields = forwardRef<
           form={form}
           showPreview={false}
           selectedDecalIndex={selectedItem.decal}
-          onSelectedDecalIndexChange={(decal) =>
-            setSelectedItem((current) => ({ ...current, decal }))
-          }
+          onSelectedDecalIndexChange={(decal) => setSelectedItem((current) => ({ ...current, decal }))}
         />
       ) : null}
       {chapter === 'worlds' ? (
@@ -463,9 +429,7 @@ export const FactionFormFields = forwardRef<
         <FactionFormSectionAdvantages
           form={form}
           selectedIndex={selectedItem.advantage}
-          onSelectedIndexChange={(advantage) =>
-            setSelectedItem((current) => ({ ...current, advantage }))
-          }
+          onSelectedIndexChange={(advantage) => setSelectedItem((current) => ({ ...current, advantage }))}
         />
       ) : null}
       {chapter === 'complexity' ? (

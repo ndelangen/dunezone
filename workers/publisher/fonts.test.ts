@@ -17,9 +17,7 @@ function fontSet(missing?: (typeof requiredPublisherFontFaces)[number]): Publish
         shorthand.startsWith(missing.style);
       const required = requiredPublisherFontFaces.find(
         (face) =>
-          shorthand.includes(`"${face.family}"`) &&
-          shorthand.includes(face.weight) &&
-          shorthand.startsWith(face.style)
+          shorthand.includes(`"${face.family}"`) && shorthand.includes(face.weight) && shorthand.startsWith(face.style)
       );
       return isMissing || !required
         ? []
@@ -48,20 +46,16 @@ function fontSet(missing?: (typeof requiredPublisherFontFaces)[number]): Publish
 describe('publisher self-hosted font readiness', () => {
   test('requires every sheet family, weight, and style to be loaded', async () => {
     await expect(assertRequiredPublisherFonts(fontSet())).resolves.toBeUndefined();
-    await expect(
-      assertRequiredPublisherFonts(fontSet(requiredPublisherFontFaces[3]))
-    ).rejects.toThrow(/Caladea 700 italic/);
+    await expect(assertRequiredPublisherFonts(fontSet(requiredPublisherFontFaces[3]))).rejects.toThrow(
+      /Caladea 700 italic/
+    );
   });
 
   test('rejects Chromium-style substitution even when check reports true', async () => {
     const substituted = fontSet();
-    substituted.load = async () => [
-      { family: 'C_Advokat_Modern', weight: '400', style: 'normal', status: 'loaded' },
-    ];
+    substituted.load = async () => [{ family: 'C_Advokat_Modern', weight: '400', style: 'normal', status: 'loaded' }];
     await expect(
-      assertPublisherFontFaces(substituted, [
-        { family: 'C_Advokat_Modern', weight: '400', style: 'italic' },
-      ])
+      assertPublisherFontFaces(substituted, [{ family: 'C_Advokat_Modern', weight: '400', style: 'italic' }])
     ).rejects.toThrow(/exactly/);
   });
 });

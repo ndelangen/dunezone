@@ -12,8 +12,7 @@ describe('scheduled production deployment shape', () => {
     expect(config.triggers).toEqual({ crons: ['*/5 * * * *'] });
     expect(config.vars).toMatchObject({
       CAPTURE_BASE_URL: 'https://faction-sheet-asset-publisher.ndelangen.workers.dev',
-      CONVEX_EXECUTOR_BASE_URL:
-        'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor',
+      CONVEX_EXECUTOR_BASE_URL: 'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor',
       GIT_SHA: 'development',
       WORK_WINDOW_MS: '240000',
     });
@@ -59,9 +58,7 @@ describe('scheduled production deployment shape', () => {
       BROWSER_CLEANUP_GRACE_MS: '15000',
     });
     expect(JSON.stringify(config.vars)).not.toContain('EXECUTOR_MAX_ITEMS');
-    expect(JSON.stringify(config.vars)).not.toMatch(
-      /R2_(?:STORAGE|ESTIMATED|INVENTORY|UNACCOUNTED)/
-    );
+    expect(JSON.stringify(config.vars)).not.toMatch(/R2_(?:STORAGE|ESTIMATED|INVENTORY|UNACCOUNTED)/);
   });
 
   test('keeps assets first except for the reviewed Worker-owned entry paths', () => {

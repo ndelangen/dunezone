@@ -38,11 +38,7 @@ function RulesetsPage() {
                 padding="sm"
                 className={styles.card}
                 renderRoot={({ className, children }) => (
-                  <Link
-                    to="/rulesets/$rulesetSlug"
-                    params={{ rulesetSlug: r.slug }}
-                    className={className}
-                  >
+                  <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug: r.slug }} className={className}>
                     {children}
                   </Link>
                 )}

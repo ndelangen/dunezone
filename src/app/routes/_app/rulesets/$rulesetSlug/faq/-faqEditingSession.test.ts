@@ -2,10 +2,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { createFaqEditingSession } from './-faqEditingSession';
 
-function harness(overrides?: {
-  editQuestion?: () => Promise<void>;
-  editAnswer?: () => Promise<void>;
-}) {
+function harness(overrides?: { editQuestion?: () => Promise<void>; editAnswer?: () => Promise<void> }) {
   const editQuestion = vi.fn(overrides?.editQuestion ?? (async () => {}));
   const editAnswer = vi.fn(overrides?.editAnswer ?? (async () => {}));
   const session = createFaqEditingSession({

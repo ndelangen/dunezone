@@ -10,8 +10,7 @@ export interface BulletsProps {
   /** `Bullets.Item` elements. */
   children: ReactNode;
   /**
-   * `none` for a divided nav whose items carry their own padding, `md` for a plain list, `xl` for a
-   * grid of capabilities.
+   * `none` for a divided nav whose items carry their own padding, `md` for a plain list, `xl` for a grid of capabilities.
    */
   gap?: keyof typeof GAP;
   /** Lay the items out in columns rather than one stack. Accepts Mantine's responsive form. */
@@ -21,12 +20,10 @@ export interface BulletsProps {
 /**
  * A list whose items lead with an icon.
  *
- * Callers own the items and how many columns they occupy. This component owns that they are a list
- * — real `ul`/`li` semantics, and one decision about the space between items instead of a `Stack`
- * or `SimpleGrid` chosen afresh at each call site.
+ * Callers own the items and how many columns they occupy.
+ * This component owns that they are a list — real `ul`/`li` semantics, and one decision about the space between items instead of a `Stack` or `SimpleGrid` chosen afresh at each call site.
  *
- * The item is deliberately not exported on its own: a single icon-led row outside a list has no
- * meaning, and when it was standalone every caller had to supply its own container.
+ * The item is deliberately not exported on its own: a single icon-led row outside a list has no meaning, and when it was standalone every caller had to supply its own container.
  */
 export function Bullets({ children, gap = 'md', columns }: BulletsProps) {
   if (columns) {
@@ -59,8 +56,7 @@ interface BulletsItemProps {
 /**
  * One item of a `Bullets`.
  *
- * Owns the medallion treatment and the alignment rule — centred when the row is a single line, top
- * aligned once a detail line makes it two.
+ * Owns the medallion treatment and the alignment rule — centred when the row is a single line, top aligned once a detail line makes it two.
  */
 function Item({ icon, title, detail, trailing, renderLink }: BulletsItemProps) {
   const content = (
@@ -83,9 +79,7 @@ function Item({ icon, title, detail, trailing, renderLink }: BulletsItemProps) {
   );
 
   return (
-    <li className={clsx(styles.item, renderLink && styles.linked)}>
-      {renderLink ? renderLink(content) : content}
-    </li>
+    <li className={clsx(styles.item, renderLink && styles.linked)}>{renderLink ? renderLink(content) : content}</li>
   );
 }
 

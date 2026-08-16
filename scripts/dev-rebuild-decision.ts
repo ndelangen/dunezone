@@ -4,13 +4,9 @@ import { appendFileSync } from 'node:fs';
 /**
  * Decides whether a merge needs the dev deployment's data rebuilt from production.
  *
- * Only changes that can invalidate or reshape dev's existing data qualify: the schema itself, and
- * the migrations that reshape data within a schema (cloud dev runs no migrations of its own — the
- * rebuild replaced them, so a migration that never reached dev's data is a stale-data bug).
+ * Only changes that can invalidate or reshape dev's existing data qualify: the schema itself, and the migrations that reshape data within a schema (cloud dev runs no migrations of its own — the rebuild replaced them, so a migration that never reached dev's data is a stale-data bug).
  *
- * Every merge still pushes code to dev, which doubles as the safety net for a missed rebuild:
- * Convex validates existing data against the pushed schema, so data left stale by a skipped rebuild
- * fails that push loudly on the very next merge.
+ * Every merge still pushes code to dev, which doubles as the safety net for a missed rebuild: Convex validates existing data against the pushed schema, so data left stale by a skipped rebuild fails that push loudly on the very next merge.
  */
 export function needsDataRebuild(changedFiles: readonly string[]): boolean {
   return changedFiles.some((file) => {
@@ -18,9 +14,7 @@ export function needsDataRebuild(changedFiles: readonly string[]): boolean {
       return false;
     }
     return (
-      file === 'convex/schema.ts' ||
-      file === 'convex/migration-guards.json' ||
-      /^convex\/migrations.*\.ts$/.test(file)
+      file === 'convex/schema.ts' || file === 'convex/migration-guards.json' || /^convex\/migrations.*\.ts$/.test(file)
     );
   });
 }
@@ -75,11 +69,7 @@ if (import.meta.main) {
     process.env.DEV_REBUILD_HEAD?.trim() || 'HEAD',
     process.env.DEV_REBUILD_FORCE === 'true'
   );
-  console.log(
-    decision.rebuild
-      ? `Rebuilding dev data: ${decision.reason}.`
-      : `Keeping dev data: ${decision.reason}.`
-  );
+  console.log(decision.rebuild ? `Rebuilding dev data: ${decision.reason}.` : `Keeping dev data: ${decision.reason}.`);
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(process.env.GITHUB_OUTPUT, `rebuild=${decision.rebuild}\n`);
   }

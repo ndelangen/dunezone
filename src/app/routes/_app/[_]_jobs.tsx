@@ -48,8 +48,7 @@ function PublicationJobsPage() {
           <BriefcaseBusiness size={32} strokeWidth={1.6} aria-hidden />
           <Title order={1}>Publication jobs</Title>
           <Text ta="center" maw={680}>
-            Inspect the durable work queue and control whether the next scheduled run may pick up
-            pending work.
+            Inspect the durable work queue and control whether the next scheduled run may pick up pending work.
           </Text>
         </Stack>
       </PageLayout.Header>
@@ -74,8 +73,8 @@ function PublicationJobsPage() {
                   <div>
                     <Text fw={700}>Publisher pickup</Text>
                     <Text size="sm" c="dimmed" maw={620}>
-                      Turning this off only prevents the next cron run from picking up pending jobs.
-                      It does not interrupt work already in progress.
+                      Turning this off only prevents the next cron run from picking up pending jobs. It does not
+                      interrupt work already in progress.
                     </Text>
                   </div>
                   <Switch
@@ -83,9 +82,7 @@ function PublicationJobsPage() {
                     checked={result.settings?.publicationPickupEnabled ?? false}
                     disabled={result.settings === null || pickupMutation.isPending}
                     label={result.settings?.publicationPickupEnabled ? 'Enabled' : 'Disabled'}
-                    onChange={(event) =>
-                      pickupMutation.mutate({ enabled: event.currentTarget.checked })
-                    }
+                    onChange={(event) => pickupMutation.mutate({ enabled: event.currentTarget.checked })}
                   />
                 </Group>
 
@@ -105,13 +102,11 @@ function PublicationJobsPage() {
                     </Text>
                     <Group gap="xs" mt={4}>
                       {result.settings
-                        ? Object.entries(result.settings.rendererRevisions).map(
-                            ([type, revision]) => (
-                              <Badge variant="light" key={type}>
-                                {formatAssetType(type)} · {revision}
-                              </Badge>
-                            )
-                          )
+                        ? Object.entries(result.settings.rendererRevisions).map(([type, revision]) => (
+                            <Badge variant="light" key={type}>
+                              {formatAssetType(type)} · {revision}
+                            </Badge>
+                          ))
                         : 'Not initialized'}
                     </Group>
                   </div>
@@ -184,12 +179,7 @@ function PublicationJobsPage() {
                           <Table.Td>{job.attemptCounter}</Table.Td>
                           <Table.Td>{formatDate(job.expiresAt)}</Table.Td>
                           <Table.Td>
-                            <Text
-                              size="sm"
-                              c={job.error ? 'red' : 'dimmed'}
-                              maw={280}
-                              lineClamp={3}
-                            >
+                            <Text size="sm" c={job.error ? 'red' : 'dimmed'} maw={280} lineClamp={3}>
                               {job.error ?? '—'}
                             </Text>
                           </Table.Td>
@@ -231,15 +221,7 @@ function PublicationJobsPage() {
   );
 }
 
-function Count({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: 'yellow' | 'blue' | 'red';
-}) {
+function Count({ label, value, color }: { label: string; value: number; color: 'yellow' | 'blue' | 'red' }) {
   return (
     <div>
       <Text size="xs" c="dimmed" tt="uppercase" fw={700}>

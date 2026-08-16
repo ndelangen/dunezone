@@ -11,8 +11,6 @@ const checkOnly = process.argv.includes('--check-only');
 const report = checkOnly
   ? inspectPublisherAssets(publisherDirectory)
   : assemblePublisherAssets(appDirectory, publisherDirectory, storybookDirectory);
-const rendererManifest = checkOnly
-  ? undefined
-  : writeRendererManifest(repositoryRoot, publisherDirectory);
+const rendererManifest = checkOnly ? undefined : writeRendererManifest(repositoryRoot, publisherDirectory);
 
 console.log(JSON.stringify({ ok: true, ...report, rendererManifest }));

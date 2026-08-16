@@ -22,8 +22,7 @@ const COMPLEXITY_ADJUSTMENTS: ComplexityAdjustment[] = [
   {
     id: 'many-advantages',
     apply: (rules) =>
-      Math.max(0, rules.advantages.length - COMPLEXITY_MANY_ADVANTAGES_THRESHOLD) *
-      COMPLEXITY_MANY_ADVANTAGES_STEP,
+      Math.max(0, rules.advantages.length - COMPLEXITY_MANY_ADVANTAGES_THRESHOLD) * COMPLEXITY_MANY_ADVANTAGES_STEP,
   },
 ];
 
@@ -48,10 +47,7 @@ function sheetWordCount(rules: FactionRules): number {
     words(rules.alliance.text) +
     words(rules.fate.title) +
     words(rules.fate.text) +
-    rules.advantages.reduce(
-      (sum, rule) => sum + words(rule.title) + words(rule.text) + words(rule.karama),
-      0
-    )
+    rules.advantages.reduce((sum, rule) => sum + words(rule.title) + words(rule.text) + words(rule.karama), 0)
   );
 }
 
@@ -63,8 +59,7 @@ export function calculateComplexity(rules: FactionRules): number {
       ? 0
       : Math.min(
           1,
-          (total - COMPLEXITY_GRACE_FLOOR_WORDS) /
-            (COMPLEXITY_CAPACITY_WORDS - COMPLEXITY_GRACE_FLOOR_WORDS)
+          (total - COMPLEXITY_GRACE_FLOOR_WORDS) / (COMPLEXITY_CAPACITY_WORDS - COMPLEXITY_GRACE_FLOOR_WORDS)
         );
   const adjusted = COMPLEXITY_ADJUSTMENTS.reduce((sum, rule) => sum + rule.apply(rules), base);
   return Math.min(1, Math.max(0, adjusted));
@@ -75,9 +70,9 @@ function complexityRecord(calculated: number, manual: number | undefined): Facti
 }
 
 /** Creates or refreshes the grouped value at an authoring boundary while retaining manual. */
-export function recalculateFactionComplexity<
-  T extends { rules: FactionRules; complexity?: FactionComplexity },
->(data: T): T & { complexity: FactionComplexity } {
+export function recalculateFactionComplexity<T extends { rules: FactionRules; complexity?: FactionComplexity }>(
+  data: T
+): T & { complexity: FactionComplexity } {
   return {
     ...data,
     complexity: complexityRecord(calculateComplexity(data.rules), data.complexity?.manual),

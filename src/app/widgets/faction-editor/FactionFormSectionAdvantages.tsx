@@ -118,8 +118,7 @@ export function FactionFormSectionAdvantages({
           Faction advantages
         </Text>
         <Text c="dimmed" size="sm">
-          Advantages appear in this order in faction rules output. Titles and Karama interactions
-          are optional.
+          Advantages appear in this order in faction rules output. Titles and Karama interactions are optional.
         </Text>
       </Stack>
 
@@ -127,10 +126,7 @@ export function FactionFormSectionAdvantages({
         {(field) => {
           const sortablePrefix = 'advantages-';
           const count = field.state.value.length;
-          const safeSelectedIndex = Math.min(
-            Math.max(currentSelectedIndex, 0),
-            Math.max(count - 1, 0)
-          );
+          const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
           return (
             <Stack gap="md">
               <Group justify="flex-end">
@@ -174,9 +170,7 @@ export function FactionFormSectionAdvantages({
                       label: advantage.title?.trim() || `Advantage ${index + 1}`,
                       description: advantage.text.trim() || 'No rule text',
                     }))}
-                    onMove={(from, to) =>
-                      field.handleChange(arrayMove(field.state.value, from, to))
-                    }
+                    onMove={(from, to) => field.handleChange(arrayMove(field.state.value, from, to))}
                   />
                   <AdvantageCard form={form} index={safeSelectedIndex} />
                 </>

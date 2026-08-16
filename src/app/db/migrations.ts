@@ -7,20 +7,13 @@ import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { api } from '../../../convex/_generated/api';
 
 export type AdminMigrationDashboardData = FunctionReturnType<typeof api.migrations.adminDashboard>;
-export async function loadAdminMigrationDashboard(
-  ids?: string[]
-): Promise<AdminMigrationDashboardData> {
+export async function loadAdminMigrationDashboard(ids?: string[]): Promise<AdminMigrationDashboardData> {
   return await db.query(api.migrations.adminDashboard, { ids });
 }
 
-export function useAdminMigrationDashboard(options?: {
-  initialData?: AdminMigrationDashboardData;
-  ids?: string[];
-}) {
+export function useAdminMigrationDashboard(options?: { initialData?: AdminMigrationDashboardData; ids?: string[] }) {
   const args = options?.ids ? { ids: options.ids } : {};
-  const liveData = useQuery(api.migrations.adminDashboard, args) as
-    | AdminMigrationDashboardData
-    | undefined;
+  const liveData = useQuery(api.migrations.adminDashboard, args) as AdminMigrationDashboardData | undefined;
   const result = toLiveQueryResult(liveData, true, () => options?.initialData);
   return result;
 }

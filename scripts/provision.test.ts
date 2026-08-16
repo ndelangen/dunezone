@@ -41,15 +41,14 @@ describe('provision pipeline', () => {
       stagesExplicit: false,
     });
     expect(() => parseProvisionArgs(['prod'])).toThrow('Usage: provision');
-    expect(() => parseProvisionArgs(['dev', '--stage', 'backend'])).toThrow(
-      'Invalid stage for target dev'
-    );
+    expect(() => parseProvisionArgs(['dev', '--stage', 'backend'])).toThrow('Invalid stage for target dev');
   });
 
   test('parses pretty-printed multi-line convex run results', () => {
-    expect(
-      parseConvexRunResult('{\n  "isDone": true,\n  "continueCursor": "c1"\n}\n', 'f')
-    ).toEqual({ isDone: true, continueCursor: 'c1' });
+    expect(parseConvexRunResult('{\n  "isDone": true,\n  "continueCursor": "c1"\n}\n', 'f')).toEqual({
+      isDone: true,
+      continueCursor: 'c1',
+    });
     expect(() => parseConvexRunResult('', 'provisioning:x')).toThrow('produced no output');
     expect(() => parseConvexRunResult('not json', 'provisioning:x')).toThrow('unparseable output');
   });

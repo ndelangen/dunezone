@@ -4,11 +4,7 @@ import { describe, expect, test } from 'vitest';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 
-import {
-  complexityRangeSearchValue,
-  parseComplexityRange,
-  projectFactionCatalogue,
-} from './-catalogue';
+import { complexityRangeSearchValue, parseComplexityRange, projectFactionCatalogue } from './-catalogue';
 
 function faction(
   id: string,
@@ -53,9 +49,7 @@ describe('faction catalogue controls', () => {
       faction('2', 'Fremen', { leaders: ['Chani'] }),
     ];
 
-    expect(
-      projectFactionCatalogue(factions, {}, 'Atredes').map((entry) => entry.data.name)
-    ).toEqual(['Atreides']);
+    expect(projectFactionCatalogue(factions, {}, 'Atredes').map((entry) => entry.data.name)).toEqual(['Atreides']);
     expect(projectFactionCatalogue(factions, {}, 'Leto')).toHaveLength(1);
     expect(projectFactionCatalogue(factions, {}, 'Chani')).toHaveLength(1);
     expect(projectFactionCatalogue(factions, { ruleset: 'classic' }, 'Chani')).toEqual([]);
@@ -69,9 +63,12 @@ describe('faction catalogue controls', () => {
       faction('4', 'Newest', { created: '2026-07-21T00:00:00.000Z' }),
     ];
 
-    expect(
-      projectFactionCatalogue(factions, { sort: 'created' }).map((entry) => entry.data.name)
-    ).toEqual(['Newest', 'Alpha', 'Beta', 'Broken']);
+    expect(projectFactionCatalogue(factions, { sort: 'created' }).map((entry) => entry.data.name)).toEqual([
+      'Newest',
+      'Alpha',
+      'Beta',
+      'Broken',
+    ]);
   });
 
   test('filters and sorts by the effective complexity score', () => {

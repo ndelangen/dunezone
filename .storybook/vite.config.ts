@@ -7,8 +7,8 @@ export default defineConfig({
   },
   define: {
     /**
-     * Never copy a developer or production deployment URL into the public catalogue. The global
-     * manual mock ignores this inert value when app database modules load.
+     * Never copy a developer or production deployment URL into the public catalogue.
+     * The global manual mock ignores this inert value when app database modules load.
      */
     'import.meta.env.VITE_CONVEX_URL': JSON.stringify('storybook-disconnected'),
   },

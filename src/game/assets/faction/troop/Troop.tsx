@@ -15,9 +15,10 @@ const iconLocation = { x: 50 - iconSize.width / 2, y: 50 - iconSize.height / 2 }
 type TroopTokenProps = z.infer<typeof FactionRender.troops>[0];
 
 /**
- * The star files carried baked colors until the vector train (#307): cream star over a black
- * outline, red for the `-red` variants. They are colorless now; `hue` recolors the star, and the
- * old two looks remain the defaults so stored factions render unchanged.
+ * The star files carried baked colors until the vector train (#307): cream star over a black outline, red for the
+ * `-red` variants.
+ * They are colorless now;
+ * `hue` recolors the star, and the old two looks remain the defaults so stored factions render unchanged.
  */
 function starHue(star: string, hue: string | undefined): string {
   if (hue) {
@@ -37,13 +38,7 @@ export const TroopToken: FC<TroopTokenProps> = ({ background, image, star, hue, 
     <svg className={styles.content} viewBox="0 0 100 100" aria-label="Troop Token">
       <defs>
         <mask id={stripedMask} maskUnits="userSpaceOnUse">
-          <StrokedUse
-            xlinkHref={`${image}#root`}
-            {...iconLocation}
-            {...iconSize}
-            fill="white"
-            stroke="white"
-          />
+          <StrokedUse xlinkHref={`${image}#root`} {...iconLocation} {...iconSize} fill="white" stroke="white" />
           {striped && (
             <>
               <rect fill="black" height="5" width="100" y="27" />

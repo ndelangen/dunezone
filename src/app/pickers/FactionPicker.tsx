@@ -1,15 +1,4 @@
-import {
-  Alert,
-  Anchor,
-  Button,
-  Center,
-  Group,
-  Loader,
-  Select,
-  Stack,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Alert, Anchor, Button, Center, Group, Loader, Select, Stack, Text, Title } from '@mantine/core';
 import { FactionInputSchema } from '@shared/factions/schema';
 import { Link } from '@tanstack/react-router';
 import { Surface } from '@ui/surface';
@@ -40,14 +29,12 @@ export interface FactionPickerProps {
 }
 
 /**
- * A Picker: the connected control that fetches the viewer's loadable factions, lets one be chosen,
- * and hands the parsed faction back through `onLoaded`. It fetches its own options (and the viewer
- * context its own affordances need) — read-only, never mutating — and its caller mounts it lazily
- * so the subscription lives only while it is on screen. Here that caller is `FactionLoadPopover`,
- * which mounts this only while the popover is open, so the picker subscribes the moment it appears
- * (the container already gated the mount and opening the popover is the intent signal). An inline
- * caller with no such gate would instead defer the subscription to its own control's open; see the
- * Pickers section in AGENTS.md.
+ * A Picker: the connected control that fetches the viewer's loadable factions, lets one be chosen, and hands the parsed faction back through `onLoaded`.
+ * It fetches its own options (and the viewer context its own affordances need) — read-only, never mutating — and its caller mounts it lazily so the subscription lives only while it is on screen.
+ * Here that caller is `FactionLoadPopover`, which mounts this only while the popover is open, so the picker subscribes the moment it appears (the container already gated the mount and opening the popover is the intent signal).
+ * An inline caller with no such gate would instead defer the subscription to its own control's open;
+ * see the Pickers section in
+ * AGENTS.md.
  */
 export function FactionPicker({ currentPublicSlug, onLoaded, onCancel }: FactionPickerProps) {
   const picker = useFactionLoadPicker();
@@ -144,9 +131,7 @@ export function FactionPicker({ currentPublicSlug, onLoaded, onCancel }: Faction
                 return false;
               }
               const row = rowsById.get(String(option.value));
-              return (row ? factionLoadOptionSearchText(row) : option.label)
-                .toLocaleLowerCase()
-                .includes(query);
+              return (row ? factionLoadOptionSearchText(row) : option.label).toLocaleLowerCase().includes(query);
             });
           }}
           renderOption={({ option }) => {
@@ -190,9 +175,7 @@ export function FactionPicker({ currentPublicSlug, onLoaded, onCancel }: Faction
               background={selectedRow.data.background}
               ownerLabel={factionLoadOwnerLabel(selectedRow)}
               groupLabel={selectedRow.groupLabel}
-              isMember={
-                selectedRow.groupId ? memberGroupSet.has(String(selectedRow.groupId)) : false
-              }
+              isMember={selectedRow.groupId ? memberGroupSet.has(String(selectedRow.groupId)) : false}
             />
             <Text size="xs" c="orange.9">
               Loading replaces every local unsaved change. Saving is still a separate action.
@@ -215,11 +198,7 @@ export function FactionPicker({ currentPublicSlug, onLoaded, onCancel }: Faction
           <Anchor
             size="xs"
             renderRoot={(rootProps) => (
-              <Link
-                {...rootProps}
-                to="/profiles/$profileSlug"
-                params={{ profileSlug: currentProfileSlug }}
-              />
+              <Link {...rootProps} to="/profiles/$profileSlug" params={{ profileSlug: currentProfileSlug }} />
             )}
           >
             Manage them on your profile

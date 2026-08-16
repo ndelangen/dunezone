@@ -1,20 +1,14 @@
 import { calculateComplexity } from '@shared/factions/complexity';
 import type { FactionInput } from '@shared/factions/schema';
 
-export {
-  COMPLEXITY_CAPACITY_WORDS,
-  calculateComplexity,
-  effectiveComplexity,
-} from '@shared/factions/complexity';
+export { COMPLEXITY_CAPACITY_WORDS, calculateComplexity, effectiveComplexity } from '@shared/factions/complexity';
 
 type FactionRules = FactionInput['rules'];
 
 /**
- * How hard a faction is to play, as a 0..1 score derived from the amount of rules text the printed
- * sheet must carry. Calibrated against the live corpus (see wayfinder #405): the grace floor keeps
- * near-empty drafts at 0, the capacity anchor marks the word count at which text stops fitting the
- * sheet, and adjustments capture complexity that word count alone misses. The optional stored
- * manual rating wins over the stored calculated rating on reader-facing surfaces.
+ * How hard a faction is to play, as a 0..1 score derived from the amount of rules text the printed sheet must carry.
+ * Calibrated against the live corpus (see wayfinder #405): the grace floor keeps near-empty drafts at 0, the capacity anchor marks the word count at which text stops fitting the sheet, and adjustments capture complexity that word count alone misses.
+ * The optional stored manual rating wins over the stored calculated rating on reader-facing surfaces.
  */
 
 /** A manual rating this far from the calculation earns the editor's deviation advisory. */
@@ -44,10 +38,7 @@ export function complexityOutOfTen(score: number): number {
 
 /** Whether the displayed manual and calculated ratings differ enough to warrant an advisory. */
 export function hasAdvisableComplexityDeviation(manual: number, calculated: number): boolean {
-  return (
-    Math.abs(complexityOutOfTen(manual) - complexityOutOfTen(calculated)) >=
-    COMPLEXITY_DEVIATION_THRESHOLD_POINTS
-  );
+  return Math.abs(complexityOutOfTen(manual) - complexityOutOfTen(calculated)) >= COMPLEXITY_DEVIATION_THRESHOLD_POINTS;
 }
 
 /** The shared editor projection behind the chapter and toolbar indicator. */

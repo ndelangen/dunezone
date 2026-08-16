@@ -216,17 +216,11 @@ export function FactionFormSectionLeaders({
           const sortablePrefix = 'leaders-';
           const count = field.state.value.length;
           const canAdd = canAddSupportingLeader(count);
-          const safeSelectedIndex = Math.min(
-            Math.max(currentSelectedIndex, 0),
-            Math.max(count - 1, 0)
-          );
+          const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
           return (
             <Stack gap="md">
               <Group justify="flex-end" gap={4} wrap="nowrap">
-                <Badge
-                  variant="light"
-                  color={count === CONVENTIONAL_SUPPORTING_LEADER_COUNT ? 'dune' : 'gray'}
-                >
+                <Badge variant="light" color={count === CONVENTIONAL_SUPPORTING_LEADER_COUNT ? 'dune' : 'gray'}>
                   {count} / {SUPPORTING_LEADER_LIMIT}
                 </Badge>
                 <ListLengthActions
@@ -276,20 +270,11 @@ export function FactionFormSectionLeaders({
                     items={field.state.value.map((leader, index) => ({
                       id: `${sortablePrefix}${index}`,
                       label: leader.name.trim() || 'Unnamed leader',
-                      description:
-                        leader.strength === undefined
-                          ? 'No strength'
-                          : `Strength ${leader.strength}`,
+                      description: leader.strength === undefined ? 'No strength' : `Strength ${leader.strength}`,
                     }))}
-                    onMove={(from, to) =>
-                      field.handleChange(arrayMove(field.state.value, from, to))
-                    }
+                    onMove={(from, to) => field.handleChange(arrayMove(field.state.value, from, to))}
                   />
-                  <SupportingLeaderCard
-                    form={form}
-                    index={safeSelectedIndex}
-                    showPreview={showPreview}
-                  />
+                  <SupportingLeaderCard form={form} index={safeSelectedIndex} showPreview={showPreview} />
                 </>
               ) : null}
             </Stack>

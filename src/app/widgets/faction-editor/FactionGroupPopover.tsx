@@ -10,11 +10,7 @@ export interface FactionGroupPopoverProps {
 }
 
 /** Labels the editor's groups for `AssignPopover`, which knows nothing about groups itself. */
-export function FactionGroupPopover({
-  onAssignGroup,
-  disabled,
-  assignableGroups,
-}: FactionGroupPopoverProps) {
+export function FactionGroupPopover({ onAssignGroup, disabled, assignableGroups }: FactionGroupPopoverProps) {
   return (
     <AssignPopover
       noun="group"

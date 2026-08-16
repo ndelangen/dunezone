@@ -21,9 +21,7 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
   const [coverUrl, setCoverUrl] = useState(initial.image_cover ?? '');
 
   const mutationError =
-    updateRuleset.isError && updateRuleset.error instanceof Error
-      ? updateRuleset.error.message
-      : null;
+    updateRuleset.isError && updateRuleset.error instanceof Error ? updateRuleset.error.message : null;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -86,9 +84,7 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
         autoComplete="off"
       />
 
-      {mutationError ? (
-        <FormError title="Ruleset could not be saved">{mutationError}</FormError>
-      ) : null}
+      {mutationError ? <FormError title="Ruleset could not be saved">{mutationError}</FormError> : null}
 
       <Group justify="flex-end">
         <SubmitAction pending={updateRuleset.isPending} disabled={name.trim().length === 0}>
@@ -113,8 +109,7 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/edit')({
 function RulesetEditPage() {
   const { rulesetSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
-  const detailSeed =
-    !loaderData.notFound && loaderData.detailPage ? loaderData.detailPage : undefined;
+  const detailSeed = !loaderData.notFound && loaderData.detailPage ? loaderData.detailPage : undefined;
   const pageQuery = useRulesetDetailPage(rulesetSlug, { initialData: detailSeed });
   const page = pageQuery.data;
 
@@ -229,10 +224,8 @@ function RulesetEditPage() {
         <PageLayout.Content>
           <Surface padding="xl">
             <Text>
-              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
-                Log in
-              </Anchor>{' '}
-              to edit this ruleset.
+              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to edit this
+              ruleset.
             </Text>
           </Surface>
         </PageLayout.Content>

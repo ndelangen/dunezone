@@ -2,7 +2,8 @@
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "useTabs": false,
   "tabWidth": 2,
-  "printWidth": 100,
+  "printWidth": 120,
+  "jsdoc": false,
   "singleQuote": true,
   "jsxSingleQuote": false,
   "quoteProps": "as-needed",
@@ -11,9 +12,6 @@
   "arrowParens": "always",
   "bracketSameLine": false,
   "bracketSpacing": true,
-  "jsdoc": {
-    "keepUnparsableExampleIndent": true
-  },
   "sortImports": {
     "newlinesBetween": false,
     "customGroups": [
@@ -62,13 +60,14 @@
   ],
   "ignorePatterns": [
     "**/dist",
-    "**/supabase/.temp",
-    "**/routeTree.gen.ts",
+    "**/.temp",
     "**/*.gen.ts",
+    "**/*.generated.ts",
     "**/workers/publisher/worker-configuration.d.ts",
     "**/convex/_generated",
+    "docs/research/**",
+    "tools/**",
     "**/*.md",
-    "**/*.svg",
-    "tools/**"
+    "**/*.svg"
   ]
 }

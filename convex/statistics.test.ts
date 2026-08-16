@@ -110,12 +110,14 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
     questions: 2,
     answers: 2,
   });
-  await expect(
-    t.query(api.statistics.getRulesetTotals, { rulesetId: ids.activeRulesetId })
-  ).resolves.toEqual({ questions: 1, answers: 1 });
-  await expect(
-    t.query(api.statistics.getRulesetTotals, { rulesetId: ids.deletedRulesetId })
-  ).resolves.toEqual({ questions: 1, answers: 1 });
+  await expect(t.query(api.statistics.getRulesetTotals, { rulesetId: ids.activeRulesetId })).resolves.toEqual({
+    questions: 1,
+    answers: 1,
+  });
+  await expect(t.query(api.statistics.getRulesetTotals, { rulesetId: ids.deletedRulesetId })).resolves.toEqual({
+    questions: 1,
+    answers: 1,
+  });
 
   await t.run(async (rawCtx) => {
     const ctx = applicationTriggers.wrapDB(rawCtx);
@@ -132,9 +134,10 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
     questions: 1,
     answers: 1,
   });
-  await expect(
-    t.query(api.statistics.getRulesetTotals, { rulesetId: ids.activeRulesetId })
-  ).resolves.toEqual({ questions: 0, answers: 0 });
+  await expect(t.query(api.statistics.getRulesetTotals, { rulesetId: ids.activeRulesetId })).resolves.toEqual({
+    questions: 0,
+    answers: 0,
+  });
 });
 
 test('backfills Statistics resumably and rebuilds after later writes bypass triggers', async () => {
@@ -204,9 +207,10 @@ test('backfills Statistics resumably and rebuilds after later writes bypass trig
     questions: 1,
     answers: 1,
   });
-  await expect(
-    t.query(api.statistics.getRulesetTotals, { rulesetId: ids.rulesetId })
-  ).resolves.toEqual({ questions: 1, answers: 1 });
+  await expect(t.query(api.statistics.getRulesetTotals, { rulesetId: ids.rulesetId })).resolves.toEqual({
+    questions: 1,
+    answers: 1,
+  });
 
   await t.run(async (ctx) => {
     await ctx.db.delete(ids.answerId);
@@ -228,7 +232,8 @@ test('backfills Statistics resumably and rebuilds after later writes bypass trig
     questions: 0,
     answers: 0,
   });
-  await expect(
-    t.query(api.statistics.getRulesetTotals, { rulesetId: ids.rulesetId })
-  ).resolves.toEqual({ questions: 0, answers: 0 });
+  await expect(t.query(api.statistics.getRulesetTotals, { rulesetId: ids.rulesetId })).resolves.toEqual({
+    questions: 0,
+    answers: 0,
+  });
 });

@@ -5,13 +5,11 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 /**
- * SVG string → Wavefront OBJ text, ported verbatim-in-spirit from the authoring tool's
- * `src/lib/obj/svgToObj.ts` (moving in-repo per the tool↔repo decision, #298). Headless determinism
- * is spike-verified (#295): byte-identical across Bun/Node × jsdom/linkedom — the caller must
- * register a `DOMParser` global before use (SVGLoader parses via it).
+ * SVG string → Wavefront OBJ text, ported verbatim-in-spirit from the authoring tool's `src/lib/obj/svgToObj.ts`
+ * (moving in-repo per the tool↔repo decision, #298).
+ * Headless determinism is spike-verified (#295): byte-identical across Bun/Node × jsdom/linkedom — the caller must register a `DOMParser` global before use (SVGLoader parses via it).
  *
- * Pipeline: SVGLoader paths → shapes → ExtrudeGeometry (flat extrusion) → Y-up correction → lay
- * flat on the XZ ground plane → OBJExporter, then precision trim.
+ * Pipeline: SVGLoader paths → shapes → ExtrudeGeometry (flat extrusion) → Y-up correction → lay flat on the XZ ground plane → OBJExporter, then precision trim.
  */
 
 export type ObjExportOptions = {
@@ -72,12 +70,7 @@ function flipFaceWinding(geometry: BufferGeometry): void {
       const bx = attribute.getX(index + 1);
       const by = attribute.getY(index + 1);
       const bz = attribute.getZ(index + 1);
-      attribute.setXYZ(
-        index + 1,
-        attribute.getX(index + 2),
-        attribute.getY(index + 2),
-        attribute.getZ(index + 2)
-      );
+      attribute.setXYZ(index + 1, attribute.getX(index + 2), attribute.getY(index + 2), attribute.getZ(index + 2));
       attribute.setXYZ(index + 2, bx, by, bz);
     }
   }

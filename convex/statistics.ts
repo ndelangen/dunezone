@@ -45,13 +45,7 @@ const rebuildSourceValidator = v.union(
 
 type RebuildSource = 'profiles' | 'factions' | 'rulesets' | 'faq_items' | 'faq_answers';
 
-const REBUILD_SOURCES: RebuildSource[] = [
-  'profiles',
-  'factions',
-  'rulesets',
-  'faq_items',
-  'faq_answers',
-];
+const REBUILD_SOURCES: RebuildSource[] = ['profiles', 'factions', 'rulesets', 'faq_items', 'faq_answers'];
 const REBUILD_BATCH_SIZE = 64;
 
 export const getGlobalTotals = query({
@@ -67,8 +61,8 @@ export const getRulesetTotals = query({
 });
 
 /**
- * Bounded canonical projections used by the migration verification script. This remains internal:
- * clients only receive the clean numeric Statistics queries above.
+ * Bounded canonical projections used by the migration verification script.
+ * This remains internal: clients only receive the clean numeric Statistics queries above.
  */
 export const getCanonicalReconciliationPage = internalQuery({
   args: {

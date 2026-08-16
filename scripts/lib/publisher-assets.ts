@@ -81,9 +81,7 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
 
   const oversized = files.find((file) => file.bytes > WORKERS_STATIC_ASSET_FILE_LIMIT_BYTES);
   if (oversized) {
-    throw new Error(
-      `Publisher Static Asset exceeds 25 MiB: ${oversized.path} (${oversized.bytes} bytes)`
-    );
+    throw new Error(`Publisher Static Asset exceeds 25 MiB: ${oversized.path} (${oversized.bytes} bytes)`);
   }
 
   const paths = new Set(files.map((file) => file.path));
@@ -120,31 +118,22 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
     throw new Error('Publisher Static Assets are missing the Storybook preview bundle');
   }
 
-  const storyIndex = JSON.parse(
-    readFileSync(path.join(directory, '__storybook/index.json'), 'utf8')
-  ) as { entries?: Record<string, { type?: string }> };
-  const storyCount = Object.values(storyIndex.entries ?? {}).filter(
-    (entry) => entry.type === 'story'
-  ).length;
+  const storyIndex = JSON.parse(readFileSync(path.join(directory, '__storybook/index.json'), 'utf8')) as {
+    entries?: Record<string, { type?: string }>;
+  };
+  const storyCount = Object.values(storyIndex.entries ?? {}).filter((entry) => entry.type === 'story').length;
   if (storyCount === 0) {
     throw new Error('Publisher Storybook index contains no stories');
   }
 
   for (const file of files) {
-    if (
-      !file.path.startsWith('__storybook/') ||
-      !STORYBOOK_TEXT_EXTENSIONS.has(path.extname(file.path))
-    ) {
+    if (!file.path.startsWith('__storybook/') || !STORYBOOK_TEXT_EXTENSIONS.has(path.extname(file.path))) {
       continue;
     }
     const content = readFileSync(path.join(directory, file.path), 'utf8');
-    const forbidden = STORYBOOK_FORBIDDEN_RUNTIME_REFERENCES.find((value) =>
-      content.includes(value)
-    );
+    const forbidden = STORYBOOK_FORBIDDEN_RUNTIME_REFERENCES.find((value) => content.includes(value));
     if (forbidden) {
-      throw new Error(
-        `Published Storybook asset ${file.path} contains forbidden runtime reference ${forbidden}`
-      );
+      throw new Error(`Published Storybook asset ${file.path} contains forbidden runtime reference ${forbidden}`);
     }
   }
   const shell = readFileSync(path.join(directory, '_shell.html'));
@@ -153,9 +142,7 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
     throw new Error('Worker index.html must be an exact copy of the TanStack SPA shell');
   }
 
-  const largestAsset = files.reduce((largest, file) =>
-    file.bytes > largest.bytes ? file : largest
-  );
+  const largestAsset = files.reduce((largest, file) => (file.bytes > largest.bytes ? file : largest));
   return {
     assetCount: files.length,
     storyCount,

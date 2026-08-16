@@ -36,16 +36,10 @@ function isReservedWorkerPath(pathname: string): boolean {
 }
 
 function reservedNotFound(): Response {
-  return Response.json(
-    { error: 'Not found' },
-    { status: 404, headers: { 'Cache-Control': 'no-store' } }
-  );
+  return Response.json({ error: 'Not found' }, { status: 404, headers: { 'Cache-Control': 'no-store' } });
 }
 
-function handleStorybookEntry(
-  request: Request,
-  env: Env
-): Response | Promise<Response> | undefined {
+function handleStorybookEntry(request: Request, env: Env): Response | Promise<Response> | undefined {
   const url = new URL(request.url);
   if (url.pathname === '/__storybook') {
     url.pathname = '/__storybook/';

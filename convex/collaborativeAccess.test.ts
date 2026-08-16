@@ -136,9 +136,7 @@ describe('collaborative access public projections', () => {
 
     const queryAs = async (userId?: typeof outsiderId) =>
       userId
-        ? await t
-            .withIdentity({ subject: userId })
-            .query(api.groups.detailBySlug, { slug: 'dune-designers' })
+        ? await t.withIdentity({ subject: userId }).query(api.groups.detailBySlug, { slug: 'dune-designers' })
         : await t.query(api.groups.detailBySlug, { slug: 'dune-designers' });
 
     expect((await queryAs()).viewerAccess.viewer).toEqual({ kind: 'anonymous' });
@@ -222,9 +220,7 @@ describe('collaborative access public projections', () => {
       viewer: { kind: 'authenticated', membership: 'active' },
       capabilities: { edit: true, rename: false, changeGroup: false, delete: false },
     });
-    expect(factionPage.assignableGroups).toEqual([
-      { id: ids.groupId, name: 'Dune Designers', slug: 'dune-designers' },
-    ]);
+    expect(factionPage.assignableGroups).toEqual([{ id: ids.groupId, name: 'Dune Designers', slug: 'dune-designers' }]);
     expect(rulesetPage?.assignableGroups).toEqual(factionPage.assignableGroups);
     expect(factionPage.rulesets).toEqual([
       { id: ids.rulesetId, name: 'Collaborative Ruleset', slug: 'collaborative-ruleset' },
@@ -274,9 +270,7 @@ describe('collaborative access public projections', () => {
     const rulesetPage = await assetOwner.query(api.rulesets.detailPageBySlug, {
       slug: 'collaborative-ruleset',
     });
-    const expectedGroups = [
-      { id: assignmentTargets.activeGroupId, name: 'Active target', slug: 'active-target' },
-    ];
+    const expectedGroups = [{ id: assignmentTargets.activeGroupId, name: 'Active target', slug: 'active-target' }];
 
     expect(factionPage.assignableGroups).toEqual(expectedGroups);
     expect(rulesetPage?.assignableGroups).toEqual(expectedGroups);
@@ -422,9 +416,7 @@ describe('collaborative access public projections', () => {
 
     const profilePage = await t.query(api.profiles.getBySlug, { slug: 'active-member' });
 
-    expect(profilePage.groupSummaries).toEqual([
-      { id: ids.groupId, name: 'Dune Designers', slug: 'dune-designers' },
-    ]);
+    expect(profilePage.groupSummaries).toEqual([{ id: ids.groupId, name: 'Dune Designers', slug: 'dune-designers' }]);
   });
 
   test('profile Group summaries safely omit active memberships whose Group is missing', async () => {
@@ -496,12 +488,8 @@ describe('collaborative access public projections', () => {
     });
 
     const active = t.withIdentity({ subject: ids.activeId });
-    await expect(
-      active.query(api.factions.getBySlug, { slug: 'collaborative-faction' })
-    ).rejects.toThrow();
-    await expect(
-      active.query(api.groups.detailBySlug, { slug: 'dune-designers' })
-    ).rejects.toThrow();
+    await expect(active.query(api.factions.getBySlug, { slug: 'collaborative-faction' })).rejects.toThrow();
+    await expect(active.query(api.groups.detailBySlug, { slug: 'dune-designers' })).rejects.toThrow();
   });
 
   test('trusted membership authority is independent of capped presentation collections', async () => {
@@ -607,18 +595,10 @@ describe('collaborative access moderation commands', () => {
     const { t, ids } = await groupAccessFixture();
     const assetOwner = t.withIdentity({ subject: ids.assetOwnerId });
 
-    await expect(assetOwner.mutation(api.factions.softDelete, { id: ids.factionId })).resolves.toBe(
-      null
-    );
-    await expect(assetOwner.mutation(api.factions.softDelete, { id: ids.factionId })).resolves.toBe(
-      null
-    );
-    await expect(assetOwner.mutation(api.rulesets.softDelete, { id: ids.rulesetId })).resolves.toBe(
-      null
-    );
-    await expect(assetOwner.mutation(api.rulesets.softDelete, { id: ids.rulesetId })).resolves.toBe(
-      null
-    );
+    await expect(assetOwner.mutation(api.factions.softDelete, { id: ids.factionId })).resolves.toBe(null);
+    await expect(assetOwner.mutation(api.factions.softDelete, { id: ids.factionId })).resolves.toBe(null);
+    await expect(assetOwner.mutation(api.rulesets.softDelete, { id: ids.rulesetId })).resolves.toBe(null);
+    await expect(assetOwner.mutation(api.rulesets.softDelete, { id: ids.rulesetId })).resolves.toBe(null);
     await expect(
       assetOwner.query(api.rulesets.detailPageBySlug, { slug: 'collaborative-ruleset' })
     ).resolves.toBeNull();
@@ -630,27 +610,19 @@ describe('collaborative access moderation commands', () => {
     const active = t.withIdentity({ subject: ids.activeId });
     const removed = t.withIdentity({ subject: ids.removedId });
 
-    await expect(
-      pending.mutation(api.members.request, { group_id: ids.groupId })
-    ).resolves.toMatchObject({
+    await expect(pending.mutation(api.members.request, { group_id: ids.groupId })).resolves.toMatchObject({
       _id: ids.membershipIds.pending,
       status: 'pending',
     });
-    await expect(
-      active.mutation(api.members.request, { group_id: ids.groupId })
-    ).resolves.toMatchObject({
+    await expect(active.mutation(api.members.request, { group_id: ids.groupId })).resolves.toMatchObject({
       _id: ids.membershipIds.active,
       status: 'active',
     });
-    await expect(
-      removed.mutation(api.members.request, { group_id: ids.groupId })
-    ).resolves.toMatchObject({
+    await expect(removed.mutation(api.members.request, { group_id: ids.groupId })).resolves.toMatchObject({
       _id: ids.membershipIds.removed,
       status: 'pending',
     });
-    await expect(
-      removed.mutation(api.members.request, { group_id: ids.groupId })
-    ).resolves.toMatchObject({
+    await expect(removed.mutation(api.members.request, { group_id: ids.groupId })).resolves.toMatchObject({
       _id: ids.membershipIds.removed,
       status: 'pending',
     });
@@ -667,12 +639,14 @@ describe('collaborative access moderation commands', () => {
     const pageAfterApproval = await owner.query(api.groups.detailBySlug, {
       slug: 'dune-designers',
     });
-    expect(
-      pageAfterApproval.roster.find((entry) => entry.membershipId === ids.membershipIds.pending)
-    ).toMatchObject({ status: 'active', capabilities: { remove: true } });
-    await expect(
-      t.run((ctx) => ctx.db.get('group_members', ids.membershipIds.pending))
-    ).resolves.toMatchObject({ status: 'active', approved_by: ids.ownerId });
+    expect(pageAfterApproval.roster.find((entry) => entry.membershipId === ids.membershipIds.pending)).toMatchObject({
+      status: 'active',
+      capabilities: { remove: true },
+    });
+    await expect(t.run((ctx) => ctx.db.get('group_members', ids.membershipIds.pending))).resolves.toMatchObject({
+      status: 'active',
+      approved_by: ids.ownerId,
+    });
 
     const rejectedId = await t.run(async (ctx) => {
       const userId = await ctx.db.insert('users', { name: 'Second requester' });
@@ -700,9 +674,7 @@ describe('collaborative access moderation commands', () => {
     const pageAfterRejection = await owner.query(api.groups.detailBySlug, {
       slug: 'dune-designers',
     });
-    expect(pageAfterRejection.roster.some((entry) => entry.membershipId === rejectedId)).toBe(
-      false
-    );
+    expect(pageAfterRejection.roster.some((entry) => entry.membershipId === rejectedId)).toBe(false);
 
     const removed = await owner.mutation(api.members.removeMember, {
       membershipId: ids.membershipIds.active,
@@ -711,9 +683,7 @@ describe('collaborative access moderation commands', () => {
     const pageAfterRemoval = await owner.query(api.groups.detailBySlug, {
       slug: 'dune-designers',
     });
-    expect(
-      pageAfterRemoval.roster.some((entry) => entry.membershipId === ids.membershipIds.active)
-    ).toBe(false);
+    expect(pageAfterRemoval.roster.some((entry) => entry.membershipId === ids.membershipIds.active)).toBe(false);
 
     await expect(
       t.withIdentity({ subject: ids.removedId }).mutation(api.members.rejectRequest, {
@@ -737,24 +707,24 @@ describe('collaborative access moderation commands', () => {
       return membershipId;
     });
 
-    await expect(
-      t.mutation(api.members.approveRequest, { membershipId: ids.membershipIds.pending })
-    ).rejects.toThrow('Not authenticated');
-    await expect(
-      t.mutation(api.members.approveRequest, { membershipId: missingMembershipId })
-    ).rejects.toThrow('Not authenticated');
-    await expect(
-      t.mutation(api.members.rejectRequest, { membershipId: ids.membershipIds.pending })
-    ).rejects.toThrow('Not authenticated');
-    await expect(
-      t.mutation(api.members.rejectRequest, { membershipId: missingMembershipId })
-    ).rejects.toThrow('Not authenticated');
-    await expect(
-      t.mutation(api.members.removeMember, { membershipId: ids.membershipIds.active })
-    ).rejects.toThrow('Not authenticated');
-    await expect(
-      t.mutation(api.members.removeMember, { membershipId: missingMembershipId })
-    ).rejects.toThrow('Not authenticated');
+    await expect(t.mutation(api.members.approveRequest, { membershipId: ids.membershipIds.pending })).rejects.toThrow(
+      'Not authenticated'
+    );
+    await expect(t.mutation(api.members.approveRequest, { membershipId: missingMembershipId })).rejects.toThrow(
+      'Not authenticated'
+    );
+    await expect(t.mutation(api.members.rejectRequest, { membershipId: ids.membershipIds.pending })).rejects.toThrow(
+      'Not authenticated'
+    );
+    await expect(t.mutation(api.members.rejectRequest, { membershipId: missingMembershipId })).rejects.toThrow(
+      'Not authenticated'
+    );
+    await expect(t.mutation(api.members.removeMember, { membershipId: ids.membershipIds.active })).rejects.toThrow(
+      'Not authenticated'
+    );
+    await expect(t.mutation(api.members.removeMember, { membershipId: missingMembershipId })).rejects.toThrow(
+      'Not authenticated'
+    );
   });
 
   test('faction command guards preserve collaborator rename but owner-only reassignment and delete', async () => {
@@ -767,12 +737,10 @@ describe('collaborative access moderation commands', () => {
     });
     expect(updated).toMatchObject({ slug: 'member-renamed-faction' });
 
-    await expect(
-      member.mutation(api.factions.setGroup, { id: ids.factionId, group_id: null })
-    ).rejects.toThrow('Not authorized');
-    await expect(member.mutation(api.factions.softDelete, { id: ids.factionId })).rejects.toThrow(
+    await expect(member.mutation(api.factions.setGroup, { id: ids.factionId, group_id: null })).rejects.toThrow(
       'Not authorized'
     );
+    await expect(member.mutation(api.factions.softDelete, { id: ids.factionId })).rejects.toThrow('Not authorized');
   });
 
   test('add, owner-removal denial, and reassignment target eligibility are authoritative', async () => {
@@ -811,7 +779,9 @@ describe('collaborative access moderation commands', () => {
     expect(added).toMatchObject({ status: 'active' });
     await expect(
       assetOwner.mutation(api.factions.setGroup, { id: ids.factionId, group_id: ids.groupId })
-    ).resolves.toMatchObject({ group_id: ids.groupId });
+    ).resolves.toMatchObject({
+      group_id: ids.groupId,
+    });
     await expect(
       assetOwner.mutation(api.rulesets.update, {
         id: ids.rulesetId,

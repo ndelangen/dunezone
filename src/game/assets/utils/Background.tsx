@@ -47,14 +47,7 @@ export const Background: FC<z.infer<typeof BackGroundType>> = ({
     >
       <defs>
         <pattern id={textureId} width="100" height="100" patternUnits="userSpaceOnUse">
-          <image
-            xlinkHref={resolvedImage}
-            x="-1"
-            y="-1"
-            width="102"
-            height="102"
-            filter={treatment.patternFilter}
-          />
+          <image xlinkHref={resolvedImage} x="-1" y="-1" width="102" height="102" filter={treatment.patternFilter} />
         </pattern>
         <mask id={textureMaskId}>
           <rect x="0" y="0" width="100" height="100" fill={`url(#${textureId})`} />

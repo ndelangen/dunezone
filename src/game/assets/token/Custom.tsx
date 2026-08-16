@@ -84,12 +84,7 @@ export const CustomToken: FC<
         {top && (
           <g filter="drop-shadow(0 0 5px rgb(0 0 0 / 1))">
             <text className={styles.h1}>
-              <textPath
-                startOffset="50%"
-                dominantBaseline="middle"
-                textAnchor="middle"
-                xlinkHref="#top-text"
-              >
+              <textPath startOffset="50%" dominantBaseline="middle" textAnchor="middle" xlinkHref="#top-text">
                 {top}
               </textPath>
             </text>
@@ -98,22 +93,12 @@ export const CustomToken: FC<
         {bottom && (
           <g filter="drop-shadow(0 0 5px rgb(0 0 0 / 1))">
             <text className={styles.h2}>
-              <textPath
-                startOffset="50%"
-                dominantBaseline="middle"
-                textAnchor="middle"
-                xlinkHref="#bottom-text-1"
-              >
+              <textPath startOffset="50%" dominantBaseline="middle" textAnchor="middle" xlinkHref="#bottom-text-1">
                 {bottom.split('\n')[0]}
               </textPath>
             </text>
             <text className={styles.h2}>
-              <textPath
-                startOffset="50%"
-                dominantBaseline="middle"
-                textAnchor="middle"
-                xlinkHref="#bottom-text-2"
-              >
+              <textPath startOffset="50%" dominantBaseline="middle" textAnchor="middle" xlinkHref="#bottom-text-2">
                 {bottom.split('\n')[1]}
               </textPath>
             </text>

@@ -25,9 +25,7 @@ describe('faction save and publishing feedback', () => {
     expect(factionAssetPublishingCopy('current', 'idle', 'in_progress')).toBe(
       'A new faction sheet capture is in progress. The current PDF remains available.'
     );
-    expect(factionAssetPublishingCopy(null, 'idle', 'scheduled')).toBe(
-      'A new faction sheet capture is scheduled.'
-    );
+    expect(factionAssetPublishingCopy(null, 'idle', 'scheduled')).toBe('A new faction sheet capture is scheduled.');
     expect(factionAssetPublishingCopy('current', 'saved', 'scheduled')).toBe(
       'Saved. A new faction sheet capture is scheduled. The current PDF remains available.'
     );

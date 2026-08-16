@@ -5,11 +5,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
-import {
-  loadAdminMigrationDashboard,
-  useAdminMigrationDashboard,
-  useSyncMigrationRuns,
-} from '@db/migrations';
+import { loadAdminMigrationDashboard, useAdminMigrationDashboard, useSyncMigrationRuns } from '@db/migrations';
 import { useCurrentProfile } from '@db/profiles';
 
 export const Route = createFileRoute('/_app/admin/migrations')({

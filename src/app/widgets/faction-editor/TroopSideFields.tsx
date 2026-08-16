@@ -5,11 +5,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 
 import type { Faction } from '@db/factions';
 
-import {
-  assetOptionToPreviewSrc,
-  troopOptionToLabel,
-  troopStarOptionToLabel,
-} from './factionFormAssetUtils';
+import { assetOptionToPreviewSrc, troopOptionToLabel, troopStarOptionToLabel } from './factionFormAssetUtils';
 import type { FactionFormApi } from './factionFormTypes';
 
 const troopImageOptions = TROOP.options.map((value) => ({
@@ -35,17 +31,11 @@ export function TroopSideFields({
   const idBase = isBack ? `troop-${troopIndex}-back` : `troop-${troopIndex}`;
   const i = troopIndex;
   const nameField = isBack ? (`troops[${i}].back.name` as const) : (`troops[${i}].name` as const);
-  const imageField = isBack
-    ? (`troops[${i}].back.image` as const)
-    : (`troops[${i}].image` as const);
-  const descField = isBack
-    ? (`troops[${i}].back.description` as const)
-    : (`troops[${i}].description` as const);
+  const imageField = isBack ? (`troops[${i}].back.image` as const) : (`troops[${i}].image` as const);
+  const descField = isBack ? (`troops[${i}].back.description` as const) : (`troops[${i}].description` as const);
   const starField = isBack ? (`troops[${i}].back.star` as const) : (`troops[${i}].star` as const);
   const hueField = isBack ? (`troops[${i}].back.hue` as const) : (`troops[${i}].hue` as const);
-  const stripedField = isBack
-    ? (`troops[${i}].back.striped` as const)
-    : (`troops[${i}].striped` as const);
+  const stripedField = isBack ? (`troops[${i}].back.striped` as const) : (`troops[${i}].striped` as const);
 
   return (
     <Stack gap="md">
@@ -144,9 +134,7 @@ export function TroopSideFields({
                     getPreviewSrc={assetOptionToPreviewSrc}
                     value={field.state.value ?? null}
                     onChange={(value) =>
-                      field.handleChange(
-                        value ? (value as Faction['troops'][number]['star']) : undefined
-                      )
+                      field.handleChange(value ? (value as Faction['troops'][number]['star']) : undefined)
                     }
                   />
                 }
@@ -191,9 +179,7 @@ export function TroopSideFields({
                       aria-label={title}
                       checked={field.state.value === true}
                       onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.currentTarget.checked ? true : undefined)
-                      }
+                      onChange={(event) => field.handleChange(event.currentTarget.checked ? true : undefined)}
                     />
                   }
                 />

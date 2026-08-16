@@ -1,17 +1,13 @@
 /**
- * Generates every file under public/image/** and public/web/** (except the committed logo.svg) from
- * the sources in media/, per src/shared/assetRules.ts.
+ * Generates every file under public/image/** and public/web/** (except the committed logo.svg) from the sources in media/, per src/shared/assetRules.ts.
  *
  * Bun run generate:images
  *
- * Per source `media/image/texture/021.jpg` this emits: public/image/texture/021-small.jpg (+
- * -large, and -print where declared) public/image/texture/021.jpg (safety-net re-encode at the
- * canonical name — capped, same extension) plus one generated runtime map
- * (src/game/data/assetMap.generated.ts) carrying each key's available sizes and dominant color.
+ * Per source `media/image/texture/021.jpg` this emits: public/image/texture/021-small.jpg (+ -large, and -print where declared) public/image/texture/021.jpg (safety-net re-encode at the canonical name — capped, same extension) plus one generated runtime map (src/game/data/assetMap.generated.ts) carrying each key's available sizes and dominant color.
  *
- * CI is the canonical producer (deployed bytes); local runs feed dev/Storybook. Renderer identity
- * hashes this script + the rules + media bytes + the sharp version — never encoder output (see
- * workers/publisher/renderer-manifest-build.ts).
+ * CI is the canonical producer (deployed bytes);
+ * local runs feed dev/Storybook.
+ * Renderer identity hashes this script + the rules + media bytes + the sharp version — never encoder output (see workers/publisher/renderer-manifest-build.ts).
  */
 import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
@@ -57,9 +53,7 @@ async function generateOne(sourceAbsolute: string): Promise<MapEntry> {
   }
 
   const dominant = stats.dominant;
-  const color = `#${[dominant.r, dominant.g, dominant.b]
-    .map((channel) => channel.toString(16).padStart(2, '0'))
-    .join('')}`;
+  const color = `#${[dominant.r, dominant.g, dominant.b].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
 
   const outDirectory = path.join(publicRoot, path.dirname(relative));
   mkdirSync(outDirectory, { recursive: true });
@@ -91,21 +85,15 @@ async function generateOne(sourceAbsolute: string): Promise<MapEntry> {
     if (sizeWidth === undefined) {
       continue;
     }
-    await encode(
-      sizeWidth,
-      path.join(outDirectory, `${baseName}-${sizeName}.${extension}`),
-      rule.format
-    );
+    await encode(sizeWidth, path.join(outDirectory, `${baseName}-${sizeName}.${extension}`), rule.format);
     sizes.push(sizeName);
   }
 
   /**
-   * Safety net at the canonical name: same extension as the key so any unresolved reference
-   * (including the publisher capture, where a 404 is fatal) keeps rendering. Never upscaled, capped
-   * per rule.
+   * Safety net at the canonical name: same extension as the key so any unresolved reference (including the publisher capture, where a 404 is fatal) keeps rendering.
+   * Never upscaled, capped per rule.
    */
-  const safetyFormat =
-    canonicalExtension === 'png' ? 'png' : canonicalExtension === 'webp' ? 'webp' : 'jpeg';
+  const safetyFormat = canonicalExtension === 'png' ? 'png' : canonicalExtension === 'webp' ? 'webp' : 'jpeg';
   await encode(rule.safetyCapPx, path.join(outDirectory, path.basename(relative)), safetyFormat);
 
   return { key, sizes, color };
@@ -120,9 +108,7 @@ for (const entry of readdirSync(path.join(publicRoot, 'web'))) {
 }
 
 const sources = walk(mediaRoot).filter((file) => RASTER.test(file));
-const unknown = sources.filter(
-  (file) => !ruleForKey(`/${path.relative(mediaRoot, file).split(path.sep).join('/')}`)
-);
+const unknown = sources.filter((file) => !ruleForKey(`/${path.relative(mediaRoot, file).split(path.sep).join('/')}`));
 if (unknown.length > 0) {
   throw new Error(`No asset rule covers: ${unknown.slice(0, 5).join(', ')}`);
 }

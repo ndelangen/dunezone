@@ -16,8 +16,8 @@ function AuthLandingPage() {
       <PageLayout.Content>
         <p>The framework for next generation AI applications</p>
         <p>
-          Full-stack framework powered by TanStack Router for React and Solid. Build modern
-          applications with server functions, streaming, and type safety.
+          Full-stack framework powered by TanStack Router for React and Solid. Build modern applications with server
+          functions, streaming, and type safety.
         </p>
         <div>
           <Link to="/auth/login">Sign in</Link>

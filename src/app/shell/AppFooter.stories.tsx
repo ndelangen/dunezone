@@ -25,8 +25,8 @@ export const Mobile = meta.story({
 });
 
 /**
- * A reduced-motion visit, pinned through the Motion toolbar global: the ambient-motion switch sits
- * off. In the Default story the switch is live and actually writes the `motion` cookie.
+ * A reduced-motion visit, pinned through the Motion toolbar global: the ambient-motion switch sits off.
+ * In the Default story the switch is live and actually writes the `motion` cookie.
  */
 export const ReducedMotion = meta.story({
   globals: { viewport: { value: 'appDesktop' }, motion: 'reduce' },

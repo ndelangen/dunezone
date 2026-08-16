@@ -12,27 +12,18 @@ export interface SectionedSurfaceProps {
 /**
  * One pane divided into rows.
  *
- * Callers own what each row contains, and own what to show when the collection is empty — an empty
- * pane is not this component's story to tell.
+ * Callers own what each row contains, and own what to show when the collection is empty — an empty pane is not this component's story to tell.
  *
- * It is a surface rather than a bare list because the hairlines only read as divisions when
- * something encloses them; rules floating on the page background look like stray borders. It
- * composes `Surface` rather than restating the pane treatment, which is what the old hand-rolled
- * version did.
+ * It is a surface rather than a bare list because the hairlines only read as divisions when something encloses them;
+ * rules floating on the page background look like stray borders.
+ * It composes `Surface` rather than restating the pane treatment, which is what the old hand-rolled version did.
  *
- * Prefer this over stacking several `Surface`s: dividing one pane is how a collection stays a
- * single object, and surfaces never nest.
+ * Prefer this over stacking several `Surface`s: dividing one pane is how a collection stays a single object, and surfaces never nest.
  */
 export function SectionedSurface({ children }: SectionedSurfaceProps) {
   return (
     <Surface className={styles.surface}>
-      <Table
-        withRowBorders
-        highlightOnHover
-        horizontalSpacing="md"
-        verticalSpacing="md"
-        className={styles.list}
-      >
+      <Table withRowBorders highlightOnHover horizontalSpacing="md" verticalSpacing="md" className={styles.list}>
         <Table.Tbody>{children}</Table.Tbody>
       </Table>
     </Surface>
@@ -41,8 +32,8 @@ export function SectionedSurface({ children }: SectionedSurfaceProps) {
 
 interface SectionedSurfaceRowProps {
   /**
-   * The entry, as one slot. The row does not arrange what is inside it — a caller wanting a heading
-   * over a right-aligned meta line composes that itself.
+   * The entry, as one slot.
+   * The row does not arrange what is inside it — a caller wanting a heading over a right-aligned meta line composes that itself.
    */
   children: ReactNode;
   /** Makes the whole row the target. Clicks on nested controls still reach those controls. */
@@ -52,17 +43,13 @@ interface SectionedSurfaceRowProps {
 }
 
 function isInteractiveTarget(target: EventTarget) {
-  return (
-    target instanceof Element &&
-    target.closest('a, button, input, select, textarea, [role="button"]') != null
-  );
+  return target instanceof Element && target.closest('a, button, input, select, textarea, [role="button"]') != null;
 }
 
 /**
  * One row of a `SectionedSurface`, optionally activatable as a whole.
  *
- * Whole-row activation is the fiddly part this owns: keyboard support, and not hijacking clicks
- * that were aimed at a link or button nested inside the row.
+ * Whole-row activation is the fiddly part this owns: keyboard support, and not hijacking clicks that were aimed at a link or button nested inside the row.
  */
 /** Everything that turns a plain row into the link — or nothing at all, when it is not one. */
 function activationProps(onActivate: (() => void) | undefined, ariaLabel: string | undefined) {

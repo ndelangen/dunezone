@@ -52,8 +52,7 @@ export const Mobile = meta.story({
 });
 
 /**
- * With a ruleset chosen, each tile marks its membership against that one rather than listing all of
- * them — the reason this takes a slug rather than deriving it.
+ * With a ruleset chosen, each tile marks its membership against that one rather than listing all of them — the reason this takes a slug rather than deriving it.
  */
 export const WithSelectedRuleset = meta.story({
   args: { selectedRulesetSlug: 'advanced' },
@@ -61,8 +60,7 @@ export const WithSelectedRuleset = meta.story({
 });
 
 /**
- * A single entry still lays out as a grid cell rather than stretching, which is what keeps a
- * one-result search looking like the same list.
+ * A single entry still lays out as a grid cell rather than stretching, which is what keeps a one-result search looking like the same list.
  */
 export const SingleEntry = meta.story({
   args: { factions: [factions[0]] },

@@ -8,9 +8,9 @@ import styles from './FactionComplexityIndicator.module.css';
 import type { FactionFormApi } from './factionFormTypes';
 
 /**
- * The authoring toolbar's live complexity indicator. It always presents the rules-text estimate —
- * never the author's manual rating — so it keeps moving as the rules are written; the popover
- * carries the summary and the advisories.
+ * The authoring toolbar's live complexity indicator.
+ * It always presents the rules-text estimate — never the author's manual rating — so it keeps moving as the rules are written;
+ * the popover carries the summary and the advisories.
  */
 export function FactionComplexityIndicator({ form }: { form: FactionFormApi }) {
   return (
@@ -32,13 +32,8 @@ export function FactionComplexityIndicator({ form }: { form: FactionFormApi }) {
         return (
           <Popover position="bottom-end" width={300}>
             <Popover.Target>
-              <Tooltip
-                label={`Complexity ${calc10}/10 · ${COMPLEXITY_TIER_PRESENTATION[tier].label}`}
-              >
-                <UnstyledButton
-                  aria-label={`Faction complexity: ${calc10} out of 10`}
-                  className={styles.trigger}
-                >
+              <Tooltip label={`Complexity ${calc10}/10 · ${COMPLEXITY_TIER_PRESENTATION[tier].label}`}>
+                <UnstyledButton aria-label={`Faction complexity: ${calc10} out of 10`} className={styles.trigger}>
                   <ComplexityGlyph score={calculated} size={16} progressRing decorative />
                 </UnstyledButton>
               </Tooltip>
@@ -61,14 +56,14 @@ export function FactionComplexityIndicator({ form }: { form: FactionFormApi }) {
                   </Text>
                   {deviates ? (
                     <Text c="yellow.9" size="xs" role="status">
-                      Your manual rating ({complexityOutOfTen(manual ?? 0)}/10) sits far from this
-                      estimate. This is advisory and does not prevent saving.
+                      Your manual rating ({complexityOutOfTen(manual ?? 0)}/10) sits far from this estimate. This is
+                      advisory and does not prevent saving.
                     </Text>
                   ) : null}
                   {nearCapacity ? (
                     <Text c="yellow.9" size="xs" role="status">
-                      The rules text is approaching the printed sheet&rsquo;s capacity — consider
-                      trimming. This is advisory and does not prevent saving.
+                      The rules text is approaching the printed sheet&rsquo;s capacity — consider trimming. This is
+                      advisory and does not prevent saving.
                     </Text>
                   ) : null}
                 </Stack>

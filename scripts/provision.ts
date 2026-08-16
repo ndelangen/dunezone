@@ -9,17 +9,14 @@ import schema from '../convex/schema';
 /**
  * The unified provision pipeline (map #352, ticket #359).
  *
- * Every non-production environment is a derived value — rebuilt from (code, data source), never
- * repaired. The pipeline is five stages: backend → configure → code → data → users, parameterized
- * per target:
+ * Every non-production environment is a derived value — rebuilt from (code, data source), never repaired.
+ * The pipeline is five stages: backend → configure → code → data → users, parameterized per target:
  *
- * E2e docker backend, fixture data (users: Playwright logins) local docker backend, prod clone
- * (users: A/B logins + remap, via app-dev) dev cloud dev deployment, prod clone (users: replicated
- * prod identities)
+ * E2e docker backend, fixture data (users: Playwright logins) local docker backend, prod clone (users: A/B logins + remap, via app-dev) dev cloud dev deployment, prod clone (users: replicated prod identities)
  *
- * Invariants: data flows prod → down only; CI invokes this same script; the e2e target must remain
- * incapable of touching prod — its commands never receive production credentials (see
- * strippedProductionCredentials).
+ * Invariants: data flows prod → down only;
+ * CI invokes this same script;
+ * the e2e target must remain incapable of touching prod — its commands never receive production credentials (see strippedProductionCredentials).
  */
 
 export type ProvisionTarget = 'e2e' | 'local' | 'dev';
@@ -73,10 +70,7 @@ export function parseEnvFile(contents: string): Record<string, string> {
   return values;
 }
 
-export function commandEnvironment(
-  base: NodeJS.ProcessEnv,
-  overrides: Record<string, string | undefined>
-) {
+export function commandEnvironment(base: NodeJS.ProcessEnv, overrides: Record<string, string | undefined>) {
   const result = { ...base };
   for (const [key, value] of Object.entries(overrides)) {
     if (value === undefined) {
@@ -93,10 +87,7 @@ function strippedProductionCredentials(): Record<string, undefined> {
 }
 
 /** Environment for commands against a self-hosted (docker) deployment. */
-export function selfHostedEnvironment(
-  base: NodeJS.ProcessEnv,
-  deployment: SelfHostedDeployment
-): NodeJS.ProcessEnv {
+export function selfHostedEnvironment(base: NodeJS.ProcessEnv, deployment: SelfHostedDeployment): NodeJS.ProcessEnv {
   return commandEnvironment(base, {
     CONVEX_DEPLOYMENT: '',
     CONVEX_URL: '',
@@ -108,14 +99,11 @@ export function selfHostedEnvironment(
 }
 
 /**
- * Environment for commands against the long-lived cloud dev deployment. The deployment-scoped dev
- * key pins every command to that deployment; CONVEX_DEPLOYMENT stays unset because `convex deploy`
- * would otherwise silently target production (see ticket #353).
+ * Environment for commands against the long-lived cloud dev deployment.
+ * The deployment-scoped dev key pins every command to that deployment;
+ * CONVEX_DEPLOYMENT stays unset because `convex deploy` would otherwise silently target production (see ticket #353).
  */
-export function cloudDevEnvironment(
-  base: NodeJS.ProcessEnv,
-  deployment: CloudDevDeployment
-): NodeJS.ProcessEnv {
+export function cloudDevEnvironment(base: NodeJS.ProcessEnv, deployment: CloudDevDeployment): NodeJS.ProcessEnv {
   return commandEnvironment(base, {
     CONVEX_DEPLOYMENT: undefined,
     CONVEX_URL: undefined,
@@ -128,9 +116,9 @@ export function cloudDevEnvironment(
 }
 
 /**
- * Environment for the read-only prod snapshot export. Prefers the dedicated CONVEX_PROD_DEPLOY_KEY,
- * falls back to the ambient CONVEX_DEPLOY_KEY (the repo's deploy secret is the prod key — #353),
- * and otherwise relies on the logged-in CLI plus `--prod`.
+ * Environment for the read-only prod snapshot export.
+ * Prefers the dedicated CONVEX_PROD_DEPLOY_KEY, falls back to the ambient CONVEX_DEPLOY_KEY (the repo's deploy secret is the prod key — #353), and otherwise relies on the logged-in
+ * CLI plus `--prod`.
  */
 function productionExportEnvironment(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return commandEnvironment(base, {
@@ -163,16 +151,9 @@ function compose(args: string[], env: NodeJS.ProcessEnv, quiet = false) {
   return run('docker', ['compose', '-f', composeFile, ...args], { env, quiet });
 }
 
-function targetConvex(
-  deployment: TargetDeployment,
-  args: string[],
-  env: NodeJS.ProcessEnv,
-  quiet = false
-) {
+function targetConvex(deployment: TargetDeployment, args: string[], env: NodeJS.ProcessEnv, quiet = false) {
   const convexEnv =
-    deployment.kind === 'self-hosted'
-      ? selfHostedEnvironment(env, deployment)
-      : cloudDevEnvironment(env, deployment);
+    deployment.kind === 'self-hosted' ? selfHostedEnvironment(env, deployment) : cloudDevEnvironment(env, deployment);
   return run('bunx', ['convex', ...args], { env: convexEnv, quiet });
 }
 
@@ -199,19 +180,14 @@ export type BackendOptions = {
 };
 
 /** Backend stage: reset and start the disposable docker backend. */
-export async function backendUp(
-  env: NodeJS.ProcessEnv,
-  options: BackendOptions
-): Promise<SelfHostedDeployment> {
+export async function backendUp(env: NodeJS.ProcessEnv, options: BackendOptions): Promise<SelfHostedDeployment> {
   compose(['down', '-v'], env, true);
   compose(['up', '-d'], env);
   await waitForBackendHealth(options.url);
 
   let adminKey = options.adminKey;
   if (!adminKey || adminKey === 'replace-me') {
-    adminKey = compose(['exec', '-T', 'backend', './generate_admin_key.sh'], env, true)
-      .trim()
-      .replaceAll('\r', '');
+    adminKey = compose(['exec', '-T', 'backend', './generate_admin_key.sh'], env, true).trim().replaceAll('\r', '');
   }
   if (!adminKey) {
     throw new Error('Failed to obtain a self-hosted admin key');
@@ -234,9 +210,8 @@ export type AuthConfiguration = {
 };
 
 /**
- * Configure stage: local auth env vars + fresh JWT material for the disposable deployment. The
- * cloud dev deployment keeps its own env vars (they survive snapshot imports and are set once —
- * ticket #354).
+ * Configure stage: local auth env vars + fresh JWT material for the disposable deployment.
+ * The cloud dev deployment keeps its own env vars (they survive snapshot imports and are set once — ticket #354).
  */
 export function configureLocalAuth(
   deployment: SelfHostedDeployment,
@@ -285,30 +260,19 @@ export function loadFixtureData(deployment: SelfHostedDeployment, env: NodeJS.Pr
 }
 
 /**
- * Data stage, clone flavor: point-in-time prod snapshot, atomically imported over the target, then
- * the non-replicated tables are cleared with the documented empty-import pattern.
+ * Data stage, clone flavor: point-in-time prod snapshot, atomically imported over the target, then the non-replicated tables are cleared with the documented empty-import pattern.
  */
-export function cloneProductionData(
-  deployment: TargetDeployment,
-  env: NodeJS.ProcessEnv,
-  workDirectory: string
-) {
+export function cloneProductionData(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
   const snapshotPath = exportProductionSnapshot(env, workDirectory);
   importSnapshot(deployment, env, snapshotPath, workDirectory);
 }
 
 /**
- * Rebuilding a long-lived deployment cannot simply push code and then import: a schema push is
- * validated against the data already there, and an import is validated against the schema already
- * there, so a narrowing change breaks the first order and a widening change breaks the second.
- * Clearing first escapes both — empty tables satisfy every schema — which is also what lets a
- * deployment whose data went stale recover instead of deadlocking on its own failed push.
+ * Rebuilding a long-lived deployment cannot simply push code and then import: a schema push is validated against the data already there, and an import is validated against the schema already there, so a narrowing change breaks the first order and a widening change breaks the second.
+ * Clearing first escapes both — empty tables satisfy every schema
+ * — which is also what lets a deployment whose data went stale recover instead of deadlocking on its own failed push.
  */
-export function rebuildFromProduction(
-  deployment: TargetDeployment,
-  env: NodeJS.ProcessEnv,
-  workDirectory: string
-) {
+export function rebuildFromProduction(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
   const snapshotPath = exportProductionSnapshot(env, workDirectory);
   clearAllTables(deployment, env, workDirectory);
   console.log('Pushing code to the target deployment...');
@@ -339,30 +303,21 @@ function importSnapshot(
 }
 
 /** Empties every table the schema declares so the next schema push cannot be rejected by data. */
-function clearAllTables(
-  deployment: TargetDeployment,
-  env: NodeJS.ProcessEnv,
-  workDirectory: string
-) {
+function clearAllTables(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
   console.log('Clearing the target deployment before pushing the new schema...');
   clearTables(deployment, env, workDirectory, Object.keys(schema.tables));
 }
 
 /**
- * A clone that fails its contract is not a completed clone, so the assertion is part of the data
- * stage rather than a separate caller's responsibility. The query throws on violation, which exits
- * `convex run` non-zero and fails whoever invoked the pipeline.
+ * A clone that fails its contract is not a completed clone, so the assertion is part of the data stage rather than a separate caller's responsibility.
+ * The query throws on violation, which exits `convex run` non-zero and fails whoever invoked the pipeline.
  */
 function assertRebuildContract(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
   console.log('Verifying the rebuild contract...');
   targetConvex(deployment, ['run', 'provisioningChecks:assertRebuildContract', '{}'], env);
 }
 
-function clearClonedTables(
-  deployment: TargetDeployment,
-  env: NodeJS.ProcessEnv,
-  workDirectory: string
-) {
+function clearClonedTables(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
   clearTables(deployment, env, workDirectory, CLEARED_AFTER_CLONE);
 }
 
@@ -386,8 +341,7 @@ type RemapBatchResult = { isDone: boolean; continueCursor: string };
 const REMAP_BATCH_SIZE = 50;
 
 /**
- * Parses a `convex run` result: non-TTY output is pretty-printed JSON spanning multiple lines, so
- * the whole output is one JSON value.
+ * Parses a `convex run` result: non-TTY output is pretty-printed JSON spanning multiple lines, so the whole output is one JSON value.
  */
 export function parseConvexRunResult<Result>(output: string, functionName: string): Result {
   const trimmed = output.trim();
@@ -401,10 +355,7 @@ export function parseConvexRunResult<Result>(output: string, functionName: strin
   }
 }
 
-/**
- * Runs an internal provisioning mutation through the CLI (admin-key authorized) and returns its
- * parsed result.
- */
+/** Runs an internal provisioning mutation through the CLI (admin-key authorized) and returns its parsed result. */
 function runProvisioningMutation<Result>(
   deployment: SelfHostedDeployment,
   env: NodeJS.ProcessEnv,
@@ -425,9 +376,7 @@ function drainRemapBatches(fetchBatch: (cursor: string | null) => RemapBatchResu
 }
 
 /**
- * Users stage, local flavor: after the two local accounts exist, hand the cloned factions and
- * groups to reviewer A (B stays a member) so the local review workflow keeps working on prod-shaped
- * data (ticket #357).
+ * Users stage, local flavor: after the two local accounts exist, hand the cloned factions and groups to reviewer A (B stays a member) so the local review workflow keeps working on prod-shaped data (ticket #357).
  */
 export function remapOwnershipToLocalUsers(
   deployment: SelfHostedDeployment,
@@ -504,11 +453,7 @@ export function parseProvisionArgs(argv: string[]): ProvisionArgs {
   };
 }
 
-function provisionCloudDev(
-  stages: ProvisionStage[],
-  env: NodeJS.ProcessEnv,
-  workDirectory: string
-) {
+function provisionCloudDev(stages: ProvisionStage[], env: NodeJS.ProcessEnv, workDirectory: string) {
   const deployKey = env.CONVEX_DEV_DEPLOY_KEY;
   if (!deployKey) {
     throw new Error('Set CONVEX_DEV_DEPLOY_KEY (a deployment-scoped dev deploy key)');

@@ -14,9 +14,7 @@ const input = (
   />
 );
 
-const tool = (
-  <ListLengthActions removeLabel="Remove color" addLabel="Add color" onRemove={fn()} onAdd={fn()} />
-);
+const tool = <ListLengthActions removeLabel="Remove color" addLabel="Add color" onRemove={fn()} onAdd={fn()} />;
 
 const meta = preview.meta({
   title: 'Control Block',
@@ -42,9 +40,9 @@ const meta = preview.meta({
 export const Default = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(
-      canvas.getByRole('group', { name: 'Tabletop Simulator colors' })
-    ).toHaveAccessibleDescription('Choose unique colors; drag to set their priority.');
+    await expect(canvas.getByRole('group', { name: 'Tabletop Simulator colors' })).toHaveAccessibleDescription(
+      'Choose unique colors; drag to set their priority.'
+    );
     await expect(canvas.getByRole('combobox', { name: 'Preferred player color' })).toBeVisible();
   },
 });

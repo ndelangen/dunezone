@@ -66,16 +66,10 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
         </foreignObject>
       </svg>
 
-      <BackgroundRenderer
-        className={`${styles.head} ${unique.head}`}
-        background={backgroundPresets.special}
-      />
+      <BackgroundRenderer className={`${styles.head} ${unique.head}`} background={backgroundPresets.special} />
       <div className={styles.head_shade} />
       <div className={styles.shape} />
-      <BackgroundRenderer
-        className={`${styles.type} ${unique.type}`}
-        background={backgroundPresets.stripedAlliance}
-      >
+      <BackgroundRenderer className={`${styles.type} ${unique.type}`} background={backgroundPresets.stripedAlliance}>
         <img src="/vector/icon/alliance.svg" className={unique.typeOverlay} />
         <img src="/vector/icon/alliance.svg" className={unique.typeShade} />
       </BackgroundRenderer>

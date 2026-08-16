@@ -14,13 +14,7 @@ const leaderImageOptions = LEADERS.options.map((value) => ({
   label: leaderOptionToLabel(value),
 }));
 
-export function FactionFormSectionHero({
-  form,
-  showPreview = true,
-}: {
-  form: FactionFormApi;
-  showPreview?: boolean;
-}) {
+export function FactionFormSectionHero({ form, showPreview = true }: { form: FactionFormApi; showPreview?: boolean }) {
   return (
     <Stack component="section" gap="md" aria-label="Faction leader">
       <Grid gap="xl" align="center">

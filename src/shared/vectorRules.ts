@@ -1,16 +1,15 @@
 /**
  * Per-category rules for the vector train (wayfinder #294, decided in #296/#297/#298): every
  * `media/vector/<category>/<name>.svg` source generates a normalized, optimized file at
- * `public/vector/<category>/<name>.svg`. Consumers keep referencing `/vector/<cat>/<name>.svg#root`
- * — the train changes bytes, never URLs.
+ * `public/vector/<category>/<name>.svg`.
+ * Consumers keep referencing `/vector/<cat>/<name>.svg#root` — the train changes bytes, never URLs.
  *
- * The one coordinate space: every generated file has viewBox `0 0 100 100`, art centered (`xMidYMid
- * meet` semantics), zero padding — the box is the art. `overflow="visible"` on the root is the
- * halo-clipping fix. Backgrounds' coordinates are genuinely rescaled in the path data because
- * fragment `<use href="…#arrakeen">` clones elements without ancestor transforms.
+ * The one coordinate space: every generated file has viewBox `0 0 100 100`, art centered (`xMidYMid meet` semantics), zero padding — the box is the art.
+ * `overflow="visible"` on the root is the halo-clipping fix.
+ * Backgrounds' coordinates are genuinely rescaled in the path data because fragment `<use href="…#arrakeen">` clones elements without ancestor transforms.
  *
- * Paint policy: `inherit` categories must carry NO baked paint (fill/stroke comes from the
- * consumer); `baked` requires the `-multicolor` name suffix within the decal category.
+ * Paint policy: `inherit` categories must carry NO baked paint (fill/stroke comes from the consumer);
+ * `baked` requires the `-multicolor` name suffix within the decal category.
  */
 
 export const VECTOR_VIEWBOX_SIZE = 100;
@@ -47,8 +46,8 @@ export type VectorCategory = keyof typeof VECTOR_CATEGORY_RULES;
 const MULTICOLOR_SUFFIX = '-multicolor';
 
 /**
- * The map's place-id API (`/vector/background/map.svg#<id>`), consumed by Spice.tsx and the rules
- * pages. The build fails if optimization drops any of these (#296 guard 5).
+ * The map's place-id API (`/vector/background/map.svg#<id>`), consumed by Spice.tsx and the rules pages.
+ * The build fails if optimization drops any of these (#296 guard 5).
  */
 export const MAP_PLACE_IDS = [
   'arrakeen',

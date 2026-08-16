@@ -76,9 +76,7 @@ function runCmd(command: string) {
   const stdout = proc.stdout.toString();
   const stderr = proc.stderr.toString();
   if (proc.exitCode !== 0) {
-    throw new Error(
-      [`Command failed: ${command}`, stdout.trim(), stderr.trim()].filter(Boolean).join('\n')
-    );
+    throw new Error([`Command failed: ${command}`, stdout.trim(), stderr.trim()].filter(Boolean).join('\n'));
   }
   return stdout.trim();
 }
