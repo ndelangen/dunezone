@@ -27,24 +27,17 @@ async function getRulesetById(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
 }
 
 /**
- * The authoring shape `rulesetInputSchema` parses, built from mutation args.
- * An omitted `description` stays omitted rather than becoming `undefined`, because the schema is strict and the difference carries meaning: absent means "not part of this write", not "blank it".
- */
-function rulesetInputFrom(args: { name: string; description?: string }) {
-  return args.description === undefined ? { name: args.name } : { name: args.name, description: args.description };
-}
-
-/**
- * The patch an update writes, with one rule for every optional field: absent from the caller means absent from the patch.
- * That is what lets `update` serve as a partial patcher without a caller that only moves the group blanking a description.
+ * The patch an update writes.
+ * `image_cover` keeps the absent-means-untouched rule, since clearing a cover is expressed as `null`;
+ * name and description are required of every write, so they are always part of the patch.
  * The shape is inferred rather than restated, so adding a field here cannot drift from the type that describes it.
  */
-function rulesetUpdatePatch(fields: { name: string; slug: string; description?: string; image_cover?: string | null }) {
+function rulesetUpdatePatch(fields: { name: string; slug: string; description: string; image_cover?: string | null }) {
   return {
     name: fields.name,
     slug: fields.slug,
+    description: fields.description,
     updated_at: nowIso(),
-    ...(fields.description === undefined ? {} : { description: fields.description }),
     ...(fields.image_cover === undefined ? {} : { image_cover: fields.image_cover }),
   };
 }
@@ -130,13 +123,13 @@ export const listByFaction = query({
 export const create = mutation({
   args: {
     name: v.string(),
-    description: v.optional(v.string()),
+    description: v.string(),
     group_id: v.union(v.id('groups'), v.null()),
     image_cover: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
-    const parsed = rulesetInputSchema.safeParse(rulesetInputFrom(args));
+    const parsed = rulesetInputSchema.safeParse({ name: args.name, description: args.description });
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(' ');
       throw new Error(msg || 'Invalid ruleset input');
@@ -159,8 +152,7 @@ export const create = mutation({
     const slug = await resolveUniqueRulesetSlug(ctx, normalizedName);
     const _id = await ctx.db.insert('rulesets', {
       name: normalizedName,
-      /** Empty until the create form collects one; the backfilled value for every row that predates the field. */
-      description: parsed.data.description ?? '',
+      description: parsed.data.description,
       slug,
       owner_id: userId,
       group_id: args.group_id,
@@ -181,11 +173,11 @@ export const update = mutation({
   args: {
     id: v.id('rulesets'),
     name: v.string(),
-    description: v.optional(v.string()),
+    description: v.string(),
     image_cover: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
-    const parsed = rulesetInputSchema.safeParse(rulesetInputFrom(args));
+    const parsed = rulesetInputSchema.safeParse({ name: args.name, description: args.description });
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(' ');
       throw new Error(msg || 'Invalid ruleset input');

@@ -101,11 +101,11 @@ export default defineSchema({
     name: v.string(),
     slug: v.string(),
     /**
-     * Widen phase of `rulesets_description_v1`: optional only until every row is backfilled, then narrowed to a required `v.string()`.
-     * Empty is the backfilled value for rows that predate the field and is tolerated on read;
+     * Narrowed by `rulesets_description_narrow` once every row carried a value.
+     * Empty is what the backfill gave rows that predate the field, and it stays readable;
      * anything written goes through `rulesetDescriptionSchema`, which demands 50 characters.
      */
-    description: v.optional(v.string()),
+    description: v.string(),
     created_at: v.string(),
     updated_at: v.string(),
     owner_id: v.id('users'),

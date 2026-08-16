@@ -98,6 +98,7 @@ async function seedRulesets(ctx: MutationCtx, seeded: Awaited<ReturnType<typeof 
 
   const unassignedRulesetId = await ctx.db.insert('rulesets', {
     name: 'UnassignedRuleset',
+    description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
     slug: 'unassigned-ruleset',
     created_at: now,
     updated_at: now,
@@ -108,6 +109,7 @@ async function seedRulesets(ctx: MutationCtx, seeded: Awaited<ReturnType<typeof 
   });
   await ctx.db.insert('rulesets', {
     name: 'DeletedRuleset',
+    description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
     slug: 'deleted-ruleset',
     created_at: now,
     updated_at: now,
@@ -118,6 +120,7 @@ async function seedRulesets(ctx: MutationCtx, seeded: Awaited<ReturnType<typeof 
   });
   await ctx.db.insert('rulesets', {
     name: 'SomeoneElsesRuleset',
+    description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
     slug: 'someone-elses-ruleset',
     created_at: now,
     updated_at: now,

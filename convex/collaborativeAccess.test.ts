@@ -91,6 +91,7 @@ async function groupAccessFixture() {
     });
     const rulesetId = await ctx.db.insert('rulesets', {
       name: 'Collaborative Ruleset',
+      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
       slug: 'collaborative-ruleset',
       created_at: now,
       updated_at: now,
