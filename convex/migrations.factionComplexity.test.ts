@@ -35,14 +35,14 @@ async function migrationTest() {
       created_at: now,
       updated_at: now,
     });
-    const insert = async (slug: string, data: unknown) =>
+    const insert = async (slug: string, data: unknown, isDeleted = false) =>
       await ctx.db.insert('factions', {
         owner_id: ownerId,
         data,
         slug,
         created_at: now,
         updated_at: now,
-        is_deleted: false,
+        is_deleted: isDeleted,
         group_id: null,
       });
     return {
@@ -52,6 +52,14 @@ async function migrationTest() {
         ...withoutComplexity(),
         complexity: { calculated: 0.01, manual: 0.4 },
       }),
+      historicalAsset: await insert(
+        'complexity-historical-asset',
+        {
+          ...withoutComplexity(),
+          background: { ...withoutComplexity().background, image: '' },
+        },
+        true
+      ),
     };
   });
   return { t, ids };
@@ -76,10 +84,13 @@ describe('faction grouped complexity migration', () => {
       absent: await ctx.db.get('factions', ids.absent),
       scalar: await ctx.db.get('factions', ids.scalar),
       staleGrouped: await ctx.db.get('factions', ids.staleGrouped),
+      historicalAsset: await ctx.db.get('factions', ids.historicalAsset),
     }));
     expect(rows.absent?.data.complexity).toEqual({ calculated });
     expect(rows.scalar?.data.complexity).toEqual({ calculated, manual: 0.7 });
     expect(rows.staleGrouped?.data.complexity).toEqual({ calculated, manual: 0.4 });
+    expect(rows.historicalAsset?.data.complexity).toEqual({ calculated });
+    expect(rows.historicalAsset?.data.background.image).toBe('');
   });
 
   test('verification rejects inaccurate grouped values', async () => {
