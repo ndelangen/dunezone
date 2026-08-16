@@ -296,10 +296,11 @@ describe('faction authoring full-field round trip', () => {
         },
       ],
     });
+    /* The ruleset page now carries whole catalogue-shaped factions, so the round trip is checked through `data`. */
     await expect(t.query(api.rulesets.getBySlug, { slug: 'canonical-transition-proof' })).resolves.toMatchObject({
       factions: [
         {
-          identity: {
+          data: {
             background: {
               invert: false,
             },

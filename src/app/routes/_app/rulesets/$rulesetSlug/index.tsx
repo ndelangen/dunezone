@@ -388,20 +388,14 @@ function RulesetDetailPage() {
               <Section id="factions" icon={<Layers3 size={20} aria-hidden />} title="Included factions">
                 {page.factions.length > 0 ? (
                   <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
-                    {page.factions.map((f) => (
+                    {page.factions.map((faction) => (
                       <Spotlight
-                        key={f.factionId}
-                        media={
-                          f.identity ? (
-                            <FactionToken logo={f.identity.logo} background={f.identity.background} />
-                          ) : (
-                            <TopicIcon topic="identity" size={24} />
-                          )
-                        }
-                        title={f.name}
+                        key={faction._id}
+                        media={<FactionToken logo={faction.data.logo} background={faction.data.background} />}
+                        title={faction.data.name}
                         meta="Details, components, and special rules"
                         renderRoot={(rootProps) => (
-                          <Link {...rootProps} to="/factions/$factionId" params={{ factionId: f.urlSlug }} />
+                          <Link {...rootProps} to="/factions/$factionId" params={{ factionId: faction.slug }} />
                         )}
                       />
                     ))}

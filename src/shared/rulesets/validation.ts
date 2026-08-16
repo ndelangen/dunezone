@@ -25,3 +25,6 @@ export const rulesetInputSchema = z.strictObject({
   name: rulesetNameSchema,
   description: rulesetDescriptionSchema,
 });
+
+/** The authored shape, derived from the schema so the two can never disagree. */
+export type RulesetInput = z.infer<typeof rulesetInputSchema>;

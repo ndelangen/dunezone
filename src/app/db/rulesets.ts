@@ -1,12 +1,12 @@
-import { BackgroundClientSchema } from '@shared/factions/schema';
-import type { FactionData } from '@shared/factions/schema';
 import { rulesetInputSchema } from '@shared/rulesets/validation';
+import type { RulesetInput } from '@shared/rulesets/validation';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
+import { factionCatalogueRowsToEntries } from '@db/factions';
+import type { FactionCatalogueEntry } from '@db/factions';
 import type { FaqAnswerEntry, FaqItemWithDetails } from '@db/faq';
-import { parseClientBoundary } from '@app/db/core/clientBoundary';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
@@ -14,43 +14,17 @@ import type { Doc } from '../../../convex/_generated/dataModel';
 import type { AssignedGroupSummary, CollaborativeAccess } from '../../../convex/lib/collaborativeAccess';
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
-/**
- * What a caller authors.
- * `description` is optional for the widen phase only — omitting it leaves an existing description untouched, and the
- * 50-character floor applies to anything supplied.
- */
-export type Ruleset = { name: string; description?: string };
+/** What a caller authors, derived from the schema that validates it — both fields required, the description above its floor. */
+export type Ruleset = RulesetInput;
 export type RulesetRow = Doc<'rulesets'>;
 export type RulesetEntry = Omit<RulesetRow, 'name'> & {
   name: Ruleset['name'];
   id: RulesetRow['_id'];
 };
-type RulesetFactionSummary = {
-  factionId: string;
-  name: string;
-  urlSlug: string;
-  identity: Pick<FactionData, 'logo' | 'background'> | null;
-};
-
-type RulesetFactionSummaryRaw = Omit<RulesetFactionSummary, 'identity'> & {
-  identity: { logo: FactionData['logo']; background: unknown } | null;
-};
-
-function normalizeRulesetFactionSummary(faction: RulesetFactionSummaryRaw): RulesetFactionSummary {
-  return {
-    ...faction,
-    identity: faction.identity
-      ? {
-          logo: faction.identity.logo,
-          background: parseClientBoundary(BackgroundClientSchema, faction.identity.background, 'Faction identity'),
-        }
-      : null,
-  };
-}
-
 export type RulesetPageData = {
   ruleset: RulesetEntry;
-  factions: RulesetFactionSummary[];
+  /** Catalogue-shaped, so the page renders its factions with the same vocabulary the catalogue uses. */
+  factions: FactionCatalogueEntry[];
   viewerAccess: Extract<CollaborativeAccess, { kind: 'ruleset' }>;
 };
 
@@ -63,7 +37,7 @@ export type RulesetDetailPageData = RulesetPageData & {
 function toRulesetPageData(raw: FunctionReturnType<typeof api.rulesets.getBySlug>): RulesetPageData {
   return {
     ruleset: toRulesetEntry(raw.ruleset),
-    factions: raw.factions.map(normalizeRulesetFactionSummary),
+    factions: factionCatalogueRowsToEntries(raw.factions),
     viewerAccess: raw.viewerAccess,
   };
 }
@@ -74,7 +48,7 @@ function normalizeRulesetDetailPage(
 ): RulesetDetailPageData {
   return {
     ruleset: toRulesetEntry(raw.ruleset),
-    factions: raw.factions.map(normalizeRulesetFactionSummary),
+    factions: factionCatalogueRowsToEntries(raw.factions),
     viewerAccess: raw.viewerAccess,
     owner: raw.owner,
     assignableGroups: raw.assignableGroups,
@@ -149,7 +123,7 @@ export function useRulesetDetailPage(slug: string, options?: { initialData?: Rul
 
 export function useCreateRuleset() {
   const mutation = useLiveMutation<
-    { name: string; description?: string; group_id: string | null; image_cover: string | null },
+    { name: string; description: string; group_id: string | null; image_cover: string | null },
     RulesetRow
   >(api.rulesets.create);
   return {
@@ -199,7 +173,7 @@ export function useCreateRuleset() {
 
 export function useUpdateRuleset() {
   const mutation = useLiveMutation<
-    { id: string; name: string; description?: string; image_cover?: string | null },
+    { id: string; name: string; description: string; image_cover?: string | null },
     RulesetRow
   >(api.rulesets.update);
   return {
