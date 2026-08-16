@@ -57,11 +57,7 @@ async function migrationTest() {
         ...withoutComplexity(),
         complexity: { calculated: 0.01, manual: 0.4 },
       }),
-      historicalAsset: await insert(
-        'complexity-historical-asset',
-        historicalAssetData,
-        true
-      ),
+      historicalAsset: await insert('complexity-historical-asset', historicalAssetData, true),
     };
   });
   return { t, ids, historicalAssetData };
