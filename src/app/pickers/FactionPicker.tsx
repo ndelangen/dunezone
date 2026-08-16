@@ -10,7 +10,7 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { CanonicalFactionStoredSchema } from '@shared/factions/schema';
+import { FactionInputSchema } from '@shared/factions/schema';
 import { Link } from '@tanstack/react-router';
 import { Surface } from '@ui/surface';
 import { useMemo, useState } from 'react';
@@ -93,7 +93,7 @@ export function FactionPicker({ currentPublicSlug, onLoaded, onCancel }: Faction
     if (!selectedRow) {
       return;
     }
-    const parsed = CanonicalFactionStoredSchema.safeParse(selectedRow.data);
+    const parsed = FactionInputSchema.safeParse(selectedRow.data);
     if (!parsed.success) {
       setError(formatZodIssues(parsed.error));
       return;

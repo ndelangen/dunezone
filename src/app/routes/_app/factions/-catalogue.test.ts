@@ -35,7 +35,7 @@ function faction(
     data: {
       ...assetPublishingFaction,
       name,
-      ...(options.complexity == null ? {} : { complexity: options.complexity }),
+      ...(options.complexity == null ? {} : { complexity: { calculated: options.complexity } }),
       hero: { ...assetPublishingFaction.hero, name: options.hero ?? 'Lady Jessica' },
       leaders: (options.leaders ?? ['Duncan Idaho']).map((leader, index) => ({
         ...assetPublishingFaction.leaders[index],

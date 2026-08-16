@@ -26,18 +26,18 @@ function complexityModeDescription({
 }) {
   const calculated10 = complexityOutOfTen(calculated);
   if (active) {
-    return `Rules-text estimate: ${calculated10}/10. Your rating is saved with the faction.`;
+    return `Rules-text estimate: ${calculated10}/10. Both it and your rating are saved with the faction.`;
   }
   if (retainedManual == null) {
-    return `Automatic estimate: ${calculated10}/10. Nothing is stored; the rating tracks your edits.`;
+    return `Automatic estimate: ${calculated10}/10. It is saved with the faction and tracks your edits.`;
   }
   return `Automatic estimate: ${calculated10}/10. The disabled slider keeps your last manual ${complexityOutOfTen(retainedManual)}/10 rating for when you switch back.`;
 }
 
 /**
- * The Complexity chapter: an override-switch over the `complexity` field. The slider is always
- * visible — disabled while the rating is automatic — and keeps its last manual value when the
- * switch turns off, though only an active manual rating is stored (absent field = automatic).
+ * The Complexity chapter: an override-switch over `complexity.manual`. The slider is always visible
+ * — disabled while the rating is automatic — and keeps its last manual value when the switch turns
+ * off, though only an active manual rating is stored (absent field = automatic).
  */
 export function FactionFormSectionComplexity({
   form,
@@ -53,7 +53,7 @@ export function FactionFormSectionComplexity({
     <form.Subscribe selector={(state: { values: FactionInput }) => state.values.rules}>
       {(rules) => {
         return (
-          <form.Field name="complexity">
+          <form.Field name="complexity.manual">
             {(field) => {
               const manual = field.state.value;
               const {

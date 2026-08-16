@@ -1,3 +1,4 @@
+import { recalculateFactionComplexity } from '../complexity';
 import { FactionInputSchema } from '../schema';
 import type { FactionInput } from '../schema';
 
@@ -72,9 +73,9 @@ const assetPublishingFactionInput = {
       text: 'Play your fate card before Ship and Move to obtain the Carryall Tech Token.',
     },
   },
-} satisfies FactionInput;
+} satisfies Omit<FactionInput, 'complexity'>;
 
 /** Stable, representative payload for asset-publishing integration and regression coverage. */
 export const assetPublishingFaction: FactionInput = FactionInputSchema.parse(
-  assetPublishingFactionInput
+  recalculateFactionComplexity(assetPublishingFactionInput)
 );

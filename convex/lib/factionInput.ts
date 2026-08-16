@@ -1,11 +1,19 @@
-import { CanonicalFactionStoredSchema, FactionInputSchema } from '../../src/shared/factions/schema';
+import { normalizeStoredFactionComplexity } from '../../src/shared/factions/complexity';
+import {
+  CanonicalFactionStoredSchema,
+  TransitionalFactionInputSchema,
+} from '../../src/shared/factions/schema';
+
+export function parseStoredFactionForRead(input: unknown) {
+  return normalizeStoredFactionComplexity(CanonicalFactionStoredSchema.parse(input));
+}
 
 export function parseFactionInput(
   input: unknown,
   { requireAuthoringSemantics = false }: { requireAuthoringSemantics?: boolean } = {}
 ) {
   const parsed = (
-    requireAuthoringSemantics ? FactionInputSchema : CanonicalFactionStoredSchema
+    requireAuthoringSemantics ? TransitionalFactionInputSchema : CanonicalFactionStoredSchema
   ).safeParse(input);
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0];

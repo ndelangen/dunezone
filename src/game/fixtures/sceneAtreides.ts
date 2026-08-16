@@ -67,4 +67,5 @@ export default {
       text: 'Fate',
     },
   },
+  complexity: { calculated: 0 },
 } satisfies FactionInput;

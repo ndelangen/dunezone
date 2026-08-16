@@ -1,6 +1,5 @@
 import { v } from 'convex/values';
 
-import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { factionSheetPublishingStatus } from './assetPublishingStatus';
@@ -20,7 +19,7 @@ import {
 } from './lib/collaborativeAccessValidators';
 import { loadFactionCatalogue, selectFactionCatalogueSpotlights } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { parseFactionInput } from './lib/factionInput';
+import { parseFactionInput, parseStoredFactionForRead } from './lib/factionInput';
 import {
   buildOwnedForGroupAssignRows,
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
@@ -46,7 +45,7 @@ async function assertFactionSlugAvailable(
 }
 
 function factionDataForClient(data: unknown) {
-  return CanonicalFactionStoredSchema.parse(data);
+  return parseStoredFactionForRead(data);
 }
 
 function factionRowForClient(row: Doc<'factions'>) {

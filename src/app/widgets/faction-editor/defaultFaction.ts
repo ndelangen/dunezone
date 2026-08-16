@@ -1,4 +1,5 @@
 import { LEADERS, LOGO, TROOP } from '@shared/assetIds';
+import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import { FactionInputSchema } from '@shared/factions/schema';
 
 import type { Faction } from '@db/factions';
@@ -49,7 +50,9 @@ const defaultFactionInput = {
       text: 'Fate rules text.',
     },
   },
-} satisfies Faction;
+} satisfies Omit<Faction, 'complexity'>;
 
 /** Valid starter document for the faction editor (create + reset). */
-export const defaultFaction: Faction = FactionInputSchema.parse(defaultFactionInput);
+export const defaultFaction: Faction = FactionInputSchema.parse(
+  recalculateFactionComplexity(defaultFactionInput)
+);
