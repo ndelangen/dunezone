@@ -93,10 +93,12 @@ export function computeRendererManifestDigest(
 }
 
 function filesBelow(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const candidate = path.join(directory, entry.name);
-    return entry.isDirectory() ? filesBelow(candidate) : [candidate];
-  });
+  return readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => !entry.name.startsWith('.'))
+    .flatMap((entry) => {
+      const candidate = path.join(directory, entry.name);
+      return entry.isDirectory() ? filesBelow(candidate) : [candidate];
+    });
 }
 
 export function isRendererManifestAsset(relativePath: string): boolean {
@@ -209,8 +211,7 @@ export function writeRendererManifest(
       `// sharp version), so this file is reproducible on any machine (wayfinder #269).\n` +
       `export const rendererManifest = {\n` +
       `  schemaVersion: 2,\n` +
-      `  rendererIdentity:\n` +
-      `    'faction-sheet/sha256:${digest}',\n` +
+      `  rendererIdentity: 'faction-sheet/sha256:${digest}',\n` +
       `  digest: '${digest}',\n` +
       `  components: {\n` +
       `    sources: '${components.sources}',\n` +
