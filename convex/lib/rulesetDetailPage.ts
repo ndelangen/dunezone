@@ -1,7 +1,7 @@
-import { CanonicalFactionStoredSchema } from '../../src/shared/factions/schema';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { loadAssetAccessBundle, loadRulesetAccessForLoadedSubject } from './collaborativeAccess';
+import { parseStoredFactionForRead } from './factionInput';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
 
@@ -20,22 +20,12 @@ export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string): Prom
 }
 
 /**
- * Degradation rule: a linked faction whose stored data fails the canonical schema is still listed (identity chips are optional), rendered with a null identity rather than hiding the link or failing the page.
- */
-function factionIdentityForClient(data: unknown) {
-  const parsedFaction = CanonicalFactionStoredSchema.safeParse(data);
-  if (!parsedFaction.success) {
-    return null;
-  }
-  return {
-    logo: parsedFaction.data.logo,
-    background: parsedFaction.data.background,
-  };
-}
-
-/**
- * Name rule: a faction row whose data carries no readable name falls back to its durable id so the link stays navigable;
- * soft-deleted and dangling links are dropped.
+ * The linked factions, in the same shape the catalogue puts on the wire, so a ruleset's page can render them with the same vocabulary.
+ * Stored data is parsed the way the catalogue parses it — an unreadable row throws rather than degrading, because the app already bets everywhere else that faction data parses.
+ * Soft-deleted and dangling links are dropped.
+ *
+ * `rulesets` is deliberately empty: these factions are already being read *inside* one ruleset, so captioning each card with a ruleset name would repeat the page's own subject back at the reader.
+ * Callers that need the full list have the catalogue for it.
  */
 async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const links = await ctx.db
@@ -48,19 +38,7 @@ async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'
     if (!faction || faction.is_deleted) {
       return [];
     }
-    const dataObj =
-      faction.data != null && typeof faction.data === 'object' && !Array.isArray(faction.data)
-        ? (faction.data as Record<string, unknown>)
-        : null;
-    const name = typeof dataObj?.name === 'string' ? dataObj.name : String(faction._id);
-    return [
-      {
-        factionId: faction._id,
-        name,
-        urlSlug: faction.slug,
-        identity: factionIdentityForClient(faction.data),
-      },
-    ];
+    return [{ ...faction, data: parseStoredFactionForRead(faction.data), rulesets: [] }];
   });
 }
 

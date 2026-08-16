@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
 
 import schema from '../schema';
-import { factionBackgroundValidator, factionDataValidator } from './factionData';
+import { factionDataValidator } from './factionData';
 
 /**
  * Document validators derive from their authority, `convex/schema.ts` (ADR-0002);
@@ -118,16 +118,14 @@ export const factionDetailPageValidator = v.object({
   rulesets: v.array(rulesetSummaryValidator),
 });
 
-const rulesetFactionSummaryValidator = v.object({
-  factionId: v.id('factions'),
-  name: v.string(),
-  urlSlug: v.string(),
-  identity: v.union(v.object({ logo: v.string(), background: factionBackgroundValidator }), v.null()),
+/** A faction with the rulesets it belongs to: what both the catalogue and a ruleset's own page put on the wire. */
+export const factionWithRulesetsValidator = factionValidator.extend({
+  rulesets: v.array(rulesetSummaryValidator),
 });
 
 export const rulesetPublicBundleValidator = v.object({
   ruleset: rulesetValidator,
-  factions: v.array(rulesetFactionSummaryValidator),
+  factions: v.array(factionWithRulesetsValidator),
   viewerAccess: rulesetViewerAccessValidator,
 });
 
@@ -155,10 +153,6 @@ const profileFaqAnswerValidator = faqAnswerValidator.extend({
   }),
   asker_profile: v.union(profileSummaryValidator, v.null()),
   ruleset: rulesetSummaryValidator,
-});
-
-export const factionWithRulesetsValidator = factionValidator.extend({
-  rulesets: v.array(rulesetSummaryValidator),
 });
 
 export const profileDetailPageValidator = v.object({

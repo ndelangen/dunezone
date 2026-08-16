@@ -166,14 +166,12 @@ export const CanonicalFactionClientSchema = z.looseObject({
   ...factionShape,
   name: z.string(),
 });
-export const BackgroundClientSchema = z.looseObject(Background.shape);
 
 /** URL slug on the `factions` row — not a field on `FactionInput` / `factions.data`. */
 export const FactionRowSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
+/** Also the Convex `factions.data` payload; a faction's public slug is on the row, never in here (`FactionEntry.slug`). */
 export type FactionInput = z.infer<typeof FactionInputSchema>;
-/** Convex `factions.data` payload; public slug is only on the faction row (`FactionEntry.slug`). */
-export type FactionData = FactionInput;
 
 export const FactionRender = {
   alliance: FactionInputSchema.transform((input) => ({
