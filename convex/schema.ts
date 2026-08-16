@@ -100,6 +100,12 @@ export default defineSchema({
   rulesets: defineTable({
     name: v.string(),
     slug: v.string(),
+    /**
+     * Widen phase of `rulesets_description_v1`: optional only until every row is backfilled, then narrowed to a required `v.string()`.
+     * Empty is the backfilled value for rows that predate the field and is tolerated on read;
+     * anything written goes through `rulesetDescriptionSchema`, which demands 50 characters.
+     */
+    description: v.optional(v.string()),
     created_at: v.string(),
     updated_at: v.string(),
     owner_id: v.id('users'),

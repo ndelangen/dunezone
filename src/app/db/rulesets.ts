@@ -14,7 +14,12 @@ import type { Doc } from '../../../convex/_generated/dataModel';
 import type { AssignedGroupSummary, CollaborativeAccess } from '../../../convex/lib/collaborativeAccess';
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
-export type Ruleset = { name: string };
+/**
+ * What a caller authors.
+ * `description` is optional for the widen phase only — omitting it leaves an existing description untouched, and the
+ * 50-character floor applies to anything supplied.
+ */
+export type Ruleset = { name: string; description?: string };
 export type RulesetRow = Doc<'rulesets'>;
 export type RulesetEntry = Omit<RulesetRow, 'name'> & {
   name: Ruleset['name'];
@@ -143,9 +148,10 @@ export function useRulesetDetailPage(slug: string, options?: { initialData?: Rul
 }
 
 export function useCreateRuleset() {
-  const mutation = useLiveMutation<{ name: string; group_id: string | null; image_cover: string | null }, RulesetRow>(
-    api.rulesets.create
-  );
+  const mutation = useLiveMutation<
+    { name: string; description?: string; group_id: string | null; image_cover: string | null },
+    RulesetRow
+  >(api.rulesets.create);
   return {
     ...mutation,
     mutate: (
@@ -157,7 +163,7 @@ export function useCreateRuleset() {
     ) =>
       mutation.mutate(
         {
-          name: rulesetInputSchema.parse({ name: variables.input.name }).name,
+          ...rulesetInputSchema.parse(variables.input),
           group_id: variables.groupId ?? null,
           image_cover: variables.imageCover ?? null,
         },
@@ -180,20 +186,20 @@ export function useCreateRuleset() {
       groupId?: string | null;
       imageCover?: string | null;
     }) => {
-      const validatedName = rulesetInputSchema.parse({ name: input.name }).name;
+      const validated = rulesetInputSchema.parse(input);
       const entry = await mutation.mutateAsync({
-        name: validatedName,
+        ...validated,
         group_id: groupId ?? null,
         image_cover: imageCover ?? null,
       });
-      return { ...entry, id: entry._id, name: validatedName };
+      return { ...entry, id: entry._id, name: validated.name };
     },
   };
 }
 
 export function useUpdateRuleset() {
   const mutation = useLiveMutation<
-    { id: string; name: string; group_id?: string | null; image_cover?: string | null },
+    { id: string; name: string; description?: string; group_id?: string | null; image_cover?: string | null },
     RulesetRow
   >(api.rulesets.update);
   return {
@@ -213,7 +219,7 @@ export function useUpdateRuleset() {
       mutation.mutate(
         {
           id: variables.id,
-          name: rulesetInputSchema.parse({ name: variables.input.name }).name,
+          ...rulesetInputSchema.parse(variables.input),
           group_id: variables.groupId,
           image_cover: variables.imageCover,
         },
@@ -238,14 +244,14 @@ export function useUpdateRuleset() {
       groupId?: string | null;
       imageCover?: string | null;
     }) => {
-      const validatedName = rulesetInputSchema.parse({ name: input.name }).name;
+      const validated = rulesetInputSchema.parse(input);
       const entry = await mutation.mutateAsync({
         id,
-        name: validatedName,
+        ...validated,
         group_id: groupId,
         image_cover: imageCover,
       });
-      return { ...entry, id: entry._id, name: validatedName };
+      return { ...entry, id: entry._id, name: validated.name };
     },
   };
 }
