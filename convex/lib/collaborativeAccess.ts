@@ -368,6 +368,11 @@ export async function requireGroupReassignment(
   message = 'Not authorized'
 ) {
   await requireAuthenticatedViewerId(ctx);
+  /*
+   * Both branches call the same function on purpose, and this is not redundant: `loadCollaborativeAccess` is
+   * overloaded per subject kind, so handing it the union resolves to no overload and collapses `access` to `never`.
+   * The test discriminates the union first so each call picks its own overload.
+   */
   const access =
     subject.kind === 'faction'
       ? await loadCollaborativeAccess(ctx, subject)
