@@ -1,0 +1,52 @@
+.root {
+  container: columns-with-rail-layout / inline-size;
+  min-width: 0;
+}
+
+/* One reading column until there is room for more: primary, then secondary, then the rail. */
+.layout {
+  display: grid;
+  grid-template-areas:
+    "primary"
+    "secondary"
+    "rail";
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mantine-spacing-xl);
+  align-items: start;
+}
+
+.layout > * {
+  min-width: 0;
+}
+
+.primary {
+  grid-area: primary;
+}
+
+.secondary {
+  grid-area: secondary;
+}
+
+.rail {
+  grid-area: rail;
+}
+
+/*
+ * The middle stage: the rail rises beside the secondary column while the primary keeps its own width down the left.
+ * The rail leads, because it is the summary the two columns beneath it elaborate.
+ */
+@container columns-with-rail-layout (min-width: 48rem) {
+  .layout {
+    grid-template-areas:
+      "primary rail"
+      "primary secondary";
+    grid-template-columns: minmax(0, 3fr) minmax(18rem, 2fr);
+  }
+}
+
+@container columns-with-rail-layout (min-width: 62rem) {
+  .layout {
+    grid-template-areas: "primary secondary rail";
+    grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(14rem, 3fr);
+  }
+}
