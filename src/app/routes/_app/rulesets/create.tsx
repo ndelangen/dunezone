@@ -1,5 +1,8 @@
-import { Button, Group, NativeSelect, Stack, TextInput } from '@mantine/core';
+import { Button, Group, NativeSelect, Stack, Textarea, TextInput } from '@mantine/core';
+import { rulesetDescriptionSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
+import { rulesetDescriptionHint } from '@ui/content/rulesetDescriptionHint';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -19,8 +22,14 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
   const navigate = useNavigate();
   const createRuleset = useCreateRuleset();
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [groupId, setGroupId] = useState<string | null>(null);
   const groups = useGroupsByCreator(ownerUserId);
+
+  const descriptionCheck = rulesetDescriptionSchema.safeParse(description);
+  /** Only complain about a description that has been started and left short; an empty one is covered by the requirement line. */
+  const descriptionError =
+    description.trim().length > 0 && !descriptionCheck.success ? descriptionCheck.error.issues[0]?.message : undefined;
 
   return (
     <Stack
@@ -29,11 +38,11 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
       onSubmit={(e) => {
         e.preventDefault();
         const nextName = name.trim();
-        if (!nextName) {
+        if (!nextName || !descriptionCheck.success) {
           return;
         }
         createRuleset.mutate(
-          { input: { name: nextName }, groupId: groupId ?? null },
+          { input: { name: nextName, description: descriptionCheck.data }, groupId: groupId ?? null },
           {
             onSuccess: (entry) => {
               navigate({
@@ -47,12 +56,22 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
     >
       <TextInput
         label="Name"
-        error={createRuleset.error?.message}
         name="name"
         required
         minLength={1}
         value={name}
         onChange={(event) => setName(event.target.value)}
+      />
+      <Textarea
+        label="Description"
+        name="description"
+        description={rulesetDescriptionHint(description)}
+        error={descriptionError}
+        required
+        autosize
+        minRows={4}
+        value={description}
+        onChange={(event) => setDescription(event.currentTarget.value)}
       />
       <NativeSelect
         label="Group"
@@ -64,12 +83,15 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
           ...(groups.data?.map((group) => ({ value: group.id, label: group.name })) ?? []),
         ]}
       />
+      {createRuleset.error ? (
+        <FormError title="Ruleset could not be created">{createRuleset.error.message}</FormError>
+      ) : null}
       <Group gap="xs" wrap="nowrap">
         <Button
           variant="filled"
           color="confirm"
           type="submit"
-          disabled={createRuleset.isPending || name.trim().length === 0}
+          disabled={createRuleset.isPending || name.trim().length === 0 || !descriptionCheck.success}
         >
           <Plus size={16} aria-hidden />
           <span>{createRuleset.isPending ? 'Creating…' : 'Create'}</span>
