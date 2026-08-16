@@ -63,7 +63,6 @@ describe('group collaboration permissions', () => {
       member.mutation(api.rulesets.update, {
         id: ruleset._id,
         name: ruleset.name,
-        group_id: ruleset.group_id,
         image_cover: 'https://example.com/collaborative-cover.jpg',
       })
     ).resolves.toMatchObject({
@@ -76,13 +75,9 @@ describe('group collaboration permissions', () => {
         name: 'MemberRename',
       })
     ).rejects.toThrow('Only the ruleset owner can rename this ruleset');
-    await expect(
-      member.mutation(api.rulesets.update, {
-        id: ruleset._id,
-        name: ruleset.name,
-        group_id: null,
-      })
-    ).rejects.toThrow('Only the ruleset owner can change its group');
+    await expect(member.mutation(api.rulesets.setGroup, { id: ruleset._id, group_id: null })).rejects.toThrow(
+      'Only the ruleset owner can change its group'
+    );
     await expect(member.mutation(api.rulesets.softDelete, { id: ruleset._id })).rejects.toThrow('Not authorized');
   });
 });

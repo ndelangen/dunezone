@@ -52,7 +52,7 @@ import {
 
 import { useGroupMembershipWorkflow } from '@db/members';
 import { useCurrentProfile } from '@db/profiles';
-import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useUpdateRuleset } from '@db/rulesets';
+import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useSetRulesetGroup } from '@db/rulesets';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from '../RulesetDetail.module.css';
@@ -128,8 +128,7 @@ function RulesetDetailPage() {
   const page = pageQuery.data;
   const profile = useCurrentProfile();
   const deleteRuleset = useDeleteRuleset();
-  const updateRuleset = useUpdateRuleset();
-  const assignRulesetGroup = useUpdateRuleset();
+  const setRulesetGroup = useSetRulesetGroup();
   const membershipWorkflow = useGroupMembershipWorkflow();
 
   if (loaderData.notFound || !page) {
@@ -164,7 +163,7 @@ function RulesetDetailPage() {
   const canRequestMembership = viewerAccess.capabilities.requestMembership;
   const answeredFaqCount = page.faqItems.filter((item) => item.accepted_answer_id != null).length;
   const mutationError =
-    deleteRuleset.error?.message ?? membershipWorkflow.request.error?.message ?? updateRuleset.error?.message;
+    deleteRuleset.error?.message ?? membershipWorkflow.request.error?.message ?? setRulesetGroup.error?.message;
   const canChangeGroup = viewerAccess.capabilities.changeGroup;
   const hasAssignment = r.group_id != null;
   const actionVisibility = {
@@ -294,18 +293,13 @@ function RulesetDetailPage() {
                     noun="group"
                     triggerLabel="Assign group"
                     icon={<UsersRound size={17} aria-hidden />}
-                    disabled={assignRulesetGroup.isPending}
+                    disabled={setRulesetGroup.isPending}
                     options={page.assignableGroups.map((group) => ({
                       value: group.id,
                       label: `${group.name} (${group.slug})`,
                     }))}
                     onAssign={async (nextGroupId) => {
-                      await assignRulesetGroup.mutateAsync({
-                        id: r._id,
-                        input: { name: r.name },
-                        groupId: nextGroupId,
-                        imageCover: r.image_cover ?? null,
-                      });
+                      await setRulesetGroup.mutateAsync({ id: r._id, groupId: nextGroupId });
                     }}
                     title="Assign Group"
                     descriptionLines={[
@@ -320,16 +314,9 @@ function RulesetDetailPage() {
                     color="red"
                     variant="light"
                     size="lg"
-                    disabled={updateRuleset.isPending}
+                    disabled={setRulesetGroup.isPending}
                     onClick={() =>
-                      void updateRuleset
-                        .mutateAsync({
-                          id: r._id,
-                          input: { name: r.name },
-                          groupId: null,
-                          imageCover: r.image_cover ?? null,
-                        })
-                        .catch(() => undefined)
+                      void setRulesetGroup.mutateAsync({ id: r._id, groupId: null }).catch(() => undefined)
                     }
                     icon={<UserRoundMinus size={17} aria-hidden />}
                   />

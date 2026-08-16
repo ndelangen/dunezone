@@ -199,7 +199,7 @@ export function useCreateRuleset() {
 
 export function useUpdateRuleset() {
   const mutation = useLiveMutation<
-    { id: string; name: string; description?: string; group_id?: string | null; image_cover?: string | null },
+    { id: string; name: string; description?: string; image_cover?: string | null },
     RulesetRow
   >(api.rulesets.update);
   return {
@@ -208,7 +208,6 @@ export function useUpdateRuleset() {
       variables: {
         input: Ruleset;
         id: string;
-        groupId?: string | null;
         imageCover?: string | null;
       },
       options?: {
@@ -220,7 +219,6 @@ export function useUpdateRuleset() {
         {
           id: variables.id,
           ...rulesetInputSchema.parse(variables.input),
-          group_id: variables.groupId,
           image_cover: variables.imageCover,
         },
         {
@@ -233,25 +231,37 @@ export function useUpdateRuleset() {
           onError: (error) => options?.onError?.(error),
         }
       ),
-    mutateAsync: async ({
-      input,
-      id,
-      groupId,
-      imageCover,
-    }: {
-      input: Ruleset;
-      id: string;
-      groupId?: string | null;
-      imageCover?: string | null;
-    }) => {
+    mutateAsync: async ({ input, id, imageCover }: { input: Ruleset; id: string; imageCover?: string | null }) => {
       const validated = rulesetInputSchema.parse(input);
       const entry = await mutation.mutateAsync({
         id,
         ...validated,
-        group_id: groupId,
         image_cover: imageCover,
       });
       return { ...entry, id: entry._id, name: validated.name };
+    },
+  };
+}
+
+/** Moves a ruleset between maintaining groups, or clears the assignment with `null`. The peer of `useSetFactionGroup`. */
+export function useSetRulesetGroup() {
+  const mutation = useLiveMutation<{ id: string; group_id: string | null }, RulesetRow>(api.rulesets.setGroup);
+  return {
+    ...mutation,
+    mutate: (
+      variables: { id: string; groupId: string | null },
+      options?: { onSuccess?: (entry: RulesetEntry) => void; onError?: (error: Error) => void }
+    ) =>
+      mutation.mutate(
+        { id: variables.id, group_id: variables.groupId },
+        {
+          onSuccess: (entry) => options?.onSuccess?.(toRulesetEntry(entry)),
+          onError: (error) => options?.onError?.(error),
+        }
+      ),
+    mutateAsync: async ({ id, groupId }: { id: string; groupId: string | null }) => {
+      const entry = await mutation.mutateAsync({ id, group_id: groupId });
+      return toRulesetEntry(entry);
     },
   };
 }

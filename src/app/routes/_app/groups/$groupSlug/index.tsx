@@ -27,7 +27,7 @@ import type { FactionEntry } from '@db/factions';
 import { loadGroupDetailBySlug, useDeleteGroup, useGroupDetailBySlug } from '@db/groups';
 import type { GroupDetailPageData, MembershipState } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
-import { useRulesetsOwnedForGroupAssign, useUpdateRuleset } from '@db/rulesets';
+import { useRulesetsOwnedForGroupAssign, useSetRulesetGroup } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 
 import styles from './index.module.css';
@@ -62,7 +62,7 @@ function GroupDetailPage() {
   const membershipWorkflow = useGroupMembershipWorkflow();
   const deleteGroup = useDeleteGroup();
   const setFactionGroup = useSetFactionGroup();
-  const updateRuleset = useUpdateRuleset();
+  const setRulesetGroup = useSetRulesetGroup();
 
   if (groupData.isError) {
     return (
@@ -148,11 +148,7 @@ function GroupDetailPage() {
   };
 
   const handleAssignRuleset = async (item: AssetAssignOption) => {
-    await updateRuleset.mutateAsync({
-      id: item.id,
-      input: { name: item.name },
-      groupId,
-    });
+    await setRulesetGroup.mutateAsync({ id: item.id, groupId });
   };
 
   return (
@@ -240,7 +236,7 @@ function GroupDetailPage() {
               action={
                 isActiveMember ? (
                   <RulesetAssignPicker
-                    disabled={updateRuleset.isPending}
+                    disabled={setRulesetGroup.isPending}
                     currentGroupId={groupId}
                     currentGroupName={group.name}
                     onAssign={handleAssignRuleset}
