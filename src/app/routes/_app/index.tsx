@@ -35,6 +35,11 @@ import { loadHomepage, useHomepage } from '@db/homepage';
 
 import styles from './index.module.css';
 
+/* Brand logos are drawn edge-to-edge in their viewBox where lucide insets its glyphs by ~2 of 24
+   units, so the same nominal size renders them noticeably heavier than the page's other icons.
+   This row is sized to sit level with a lucide icon at 22 rather than to that number itself. */
+const BRAND_GLYPH = 18;
+
 const communityLinks = [
   {
     href: 'https://discord.com/invite/dune-tabletop-624609341886169117',
@@ -221,7 +226,7 @@ function IndexPage() {
                         underline="never"
                         className={styles.communityIconLink}
                       >
-                        <Icon size={22} aria-hidden />
+                        <Icon size={BRAND_GLYPH} aria-hidden />
                       </Anchor>
                     </Tooltip>
                   ))}
