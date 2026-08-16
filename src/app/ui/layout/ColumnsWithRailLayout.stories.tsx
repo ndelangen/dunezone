@@ -17,35 +17,57 @@ const meta = preview.meta({
   },
 });
 
-const slots = (
-  <>
-    <ColumnsWithRailLayout.Primary>
-      <LayoutSlotPlaceholder name="primary" minHeight={420} />
-    </ColumnsWithRailLayout.Primary>
-    <ColumnsWithRailLayout.Secondary>
-      <LayoutSlotPlaceholder name="secondary" minHeight={320} />
-    </ColumnsWithRailLayout.Secondary>
-    <ColumnsWithRailLayout.Rail>
-      <LayoutSlotPlaceholder name="rail" minHeight={240} />
-    </ColumnsWithRailLayout.Rail>
-  </>
-);
-
 /** Widest: three columns, the rail last and narrowest. */
 export const ThreeColumns = meta.story({
-  render: () => <ColumnsWithRailLayout>{slots}</ColumnsWithRailLayout>,
+  render: () => (
+    <ColumnsWithRailLayout>
+      <ColumnsWithRailLayout.Primary>
+        <LayoutSlotPlaceholder name="primary" minHeight={420} />
+      </ColumnsWithRailLayout.Primary>
+      <ColumnsWithRailLayout.Secondary>
+        <LayoutSlotPlaceholder name="secondary" minHeight={320} />
+      </ColumnsWithRailLayout.Secondary>
+      <ColumnsWithRailLayout.Rail>
+        <LayoutSlotPlaceholder name="rail" minHeight={240} />
+      </ColumnsWithRailLayout.Rail>
+    </ColumnsWithRailLayout>
+  ),
   globals: { viewport: { value: 'appDesktop' } },
 });
 
 /** The middle stage: the primary column holds its width while the rail and secondary stack beside it. */
 export const RailBesidePrimary = meta.story({
-  render: () => <ColumnsWithRailLayout>{slots}</ColumnsWithRailLayout>,
+  render: () => (
+    <ColumnsWithRailLayout>
+      <ColumnsWithRailLayout.Primary>
+        <LayoutSlotPlaceholder name="primary" minHeight={420} />
+      </ColumnsWithRailLayout.Primary>
+      <ColumnsWithRailLayout.Secondary>
+        <LayoutSlotPlaceholder name="secondary" minHeight={320} />
+      </ColumnsWithRailLayout.Secondary>
+      <ColumnsWithRailLayout.Rail>
+        <LayoutSlotPlaceholder name="rail" minHeight={240} />
+      </ColumnsWithRailLayout.Rail>
+    </ColumnsWithRailLayout>
+  ),
   globals: { viewport: { value: 'appConstrained' } },
 });
 
 /** Narrowest: one reading column, primary first and the rail last. Driven by the container, not the viewport. */
 export const Stacked = meta.story({
-  render: () => <ColumnsWithRailLayout>{slots}</ColumnsWithRailLayout>,
+  render: () => (
+    <ColumnsWithRailLayout>
+      <ColumnsWithRailLayout.Primary>
+        <LayoutSlotPlaceholder name="primary" minHeight={420} />
+      </ColumnsWithRailLayout.Primary>
+      <ColumnsWithRailLayout.Secondary>
+        <LayoutSlotPlaceholder name="secondary" minHeight={320} />
+      </ColumnsWithRailLayout.Secondary>
+      <ColumnsWithRailLayout.Rail>
+        <LayoutSlotPlaceholder name="rail" minHeight={240} />
+      </ColumnsWithRailLayout.Rail>
+    </ColumnsWithRailLayout>
+  ),
   globals: { viewport: { value: 'appMobile' } },
 });
 

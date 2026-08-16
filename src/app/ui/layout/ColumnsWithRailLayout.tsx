@@ -27,6 +27,8 @@ function Rail(_: PropsWithChildren): null {
  *
  * Callers own what goes in each slot and the page width around it;
  * this owns only where the three regions sit.
+ *
+ * Pass the slots as direct children, the way every kit Layout expects them: `Children.forEach` walks arrays but not fragments, so grouping them inside a `<>…</>` yields three empty columns and no error at all.
  */
 function ColumnsWithRailLayoutBase({ className, children }: PropsWithChildren<{ className?: string }>) {
   let primary: ReactNode = null;
@@ -47,6 +49,7 @@ function ColumnsWithRailLayoutBase({ className, children }: PropsWithChildren<{ 
     }
     if (child.type === Rail) {
       rail = (child.props as PropsWithChildren).children;
+      return;
     }
   });
 
