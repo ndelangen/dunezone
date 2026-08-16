@@ -32,6 +32,7 @@ type MigrationRef = FunctionReference<'mutation', 'internal'>;
 const MIGRATION_IDS: Record<string, MigrationRef> = {
   groups_slug_v1: internal.migrations.groups_slug_v1,
   rulesets_slug_v1: internal.migrations.rulesets_slug_v1,
+  rulesets_description_v1: internal.migrations.rulesets_description_v1,
   faq_item_slug_v1: internal.migrations.faq_item_slug_v1,
   faq_item_tags_v1: internal.migrations.faq_item_tags_v1,
   profiles_from_users_v1: internal.migrations.profiles_from_users_v1,
@@ -163,6 +164,22 @@ export const rulesets_slug_v1 = migrations.define({
     }
     const slug = await resolveUniqueRulesetSlug(ctx, row.name, row._id);
     return { slug };
+  },
+});
+
+/**
+ * Backfills `description` so the field can narrow to a required `v.string()`.
+ * Empty is the deliberate value: a generated placeholder would be indistinguishable from prose someone wrote, and the
+ * 50-character floor in `rulesetDescriptionSchema` applies to what is written, never to what is inherited.
+ */
+export const rulesets_description_v1 = migrations.define({
+  table: 'rulesets',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    if (typeof (row as { description?: unknown }).description === 'string') {
+      return;
+    }
+    return { description: '' };
   },
 });
 
