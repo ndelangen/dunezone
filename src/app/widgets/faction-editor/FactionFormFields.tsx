@@ -90,7 +90,7 @@ function ChapterIcon({
             recalculateFactionComplexity({
               rules: state.values.rules,
               complexity: state.values.complexity,
-            })
+            }).complexity
           )
         }
       >

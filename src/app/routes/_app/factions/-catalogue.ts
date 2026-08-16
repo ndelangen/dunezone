@@ -123,7 +123,9 @@ export function projectFactionCatalogue(
   /* Scored once per projection — filtering and sorting share it instead of recounting rules text. */
   const scores =
     rangeNarrows || complexitySorted
-      ? new Map(rulesetMatches.map((faction) => [faction, effectiveComplexity(faction.data)]))
+      ? new Map(
+          rulesetMatches.map((faction) => [faction, effectiveComplexity(faction.data.complexity)])
+        )
       : null;
 
   const complexityMatches =
