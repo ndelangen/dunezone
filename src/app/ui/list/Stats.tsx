@@ -8,7 +8,8 @@ interface StatsItem {
   icon: ReactNode;
   value: ReactNode;
   /**
-   * The fact as a full phrase, e.g. `3 factions`.
+   * The fact as a full phrase, e.g.
+   * `3 factions`.
    * Shown outright in a column, and on hover and to assistive tech in a row — a bare glyph and number is not readable on its own.
    */
   label: string;
@@ -19,7 +20,8 @@ interface StatsItem {
 export interface StatsProps {
   items: StatsItem[];
   /**
-   * `row` packs the counts into a strip and defers the labels to hover and assistive tech; `column` gives every count its own labelled line.
+   * `row` packs the counts into a strip and defers the labels to hover and assistive tech;
+   * `column` gives every count its own labelled line.
    */
   orientation?: 'row' | 'column';
 }
@@ -43,7 +45,7 @@ function CompactStat({ icon, value, label }: StatsItem) {
 
 /**
  * Summarises one subject as a set of counted facts.
- * 
+ *
  * Callers own which facts matter and how to phrase them.
  * This component owns that the facts read as one group — shared icon treatment, shared number weight, shared spacing — and it owns the single decision that separates the two shapes: whether the labels are visible or deferred to hover.
  * Both shapes stay accessible either way, which is the part that kept getting dropped when each "At a glance" panel hand-rolled its own.

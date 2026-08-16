@@ -282,7 +282,8 @@ function extractSchemaFromMigration(
 }
 
 /**
- * Deep canonical form for schema equality: object keys sorted; array elements sorted by their own canonical JSON string so `anyOf` / `oneOf` branch order does not matter (the old `array.map(normalize).sort()` compared `[object Object]` and never reordered, so every run looked like a schema change).
+ * Deep canonical form for schema equality: object keys sorted;
+ * array elements sorted by their own canonical JSON string so `anyOf` / `oneOf` branch order does not matter (the old `array.map(normalize).sort()` compared `[object Object]` and never reordered, so every run looked like a schema change).
  */
 function canonicalizeSchemaForComparison(node: unknown): unknown {
   if (node === null || typeof node !== 'object') {

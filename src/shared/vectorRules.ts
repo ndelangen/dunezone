@@ -3,11 +3,13 @@
  * `media/vector/<category>/<name>.svg` source generates a normalized, optimized file at
  * `public/vector/<category>/<name>.svg`.
  * Consumers keep referencing `/vector/<cat>/<name>.svg#root` — the train changes bytes, never URLs.
- * 
- * The one coordinate space: every generated file has viewBox `0 0 100 100`, art centered (`xMidYMid meet` semantics), zero padding — the box is the art. `overflow="visible"` on the root is the halo-clipping fix.
+ *
+ * The one coordinate space: every generated file has viewBox `0 0 100 100`, art centered (`xMidYMid meet` semantics), zero padding — the box is the art.
+ * `overflow="visible"` on the root is the halo-clipping fix.
  * Backgrounds' coordinates are genuinely rescaled in the path data because fragment `<use href="…#arrakeen">` clones elements without ancestor transforms.
- * 
- * Paint policy: `inherit` categories must carry NO baked paint (fill/stroke comes from the consumer); `baked` requires the `-multicolor` name suffix within the decal category.
+ *
+ * Paint policy: `inherit` categories must carry NO baked paint (fill/stroke comes from the consumer);
+ * `baked` requires the `-multicolor` name suffix within the decal category.
  */
 
 export const VECTOR_VIEWBOX_SIZE = 100;

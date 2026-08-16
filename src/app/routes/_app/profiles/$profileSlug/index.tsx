@@ -78,7 +78,7 @@ function AskerChip({
 
 /**
  * Lists the questions a person has asked, each under the ruleset it belongs to.
- * 
+ *
  * The page owns the collection and what to say when it is empty.
  * This owns the rhythm: one row per question, the ruleset-and-date context strip above it, and the link to the question itself.
  */
@@ -115,7 +115,7 @@ function FaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] }) {
 
 /**
  * Lists the answers a person has given, each under the question it answers.
- * 
+ *
  * The page owns the collection, the empty case, and which profile is being viewed — that last one decides whether an asker reads as a name or as "Your question".
  * This owns the rhythm and the picked-answer marker.
  */

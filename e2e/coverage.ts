@@ -72,7 +72,8 @@ async function collectInto(page: Page): Promise<void> {
 
 /**
  * Factory fixture: coverage-aware replacement for `browser.newContext()` + `context.newPage()` in multi-user specs.
- * Prefer closing via the returned `close`; any page still open when the test ends — including when it fails mid-test — is collected and closed by the fixture teardown, so coverage is never silently dropped.
+ * Prefer closing via the returned `close`;
+ * any page still open when the test ends — including when it fails mid-test — is collected and closed by the fixture teardown, so coverage is never silently dropped.
  */
 type NewUserPage = (options: BrowserContextOptions) => Promise<{
   page: Page;

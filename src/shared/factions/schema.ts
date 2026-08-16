@@ -159,7 +159,8 @@ export const CanonicalFactionStoredSchema = z.strictObject({
 });
 
 /**
- * Client read-path variants: tolerate unknown top-level fields so additive server changes never break stale tabs; genuine breaks (missing or mistyped fields) still fail the client boundary (see db/core/clientBoundary).
+ * Client read-path variants: tolerate unknown top-level fields so additive server changes never break stale tabs;
+ * genuine breaks (missing or mistyped fields) still fail the client boundary (see db/core/clientBoundary).
  */
 export const CanonicalFactionClientSchema = z.looseObject({
   ...factionShape,

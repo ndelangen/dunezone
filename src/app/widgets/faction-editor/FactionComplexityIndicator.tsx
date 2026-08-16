@@ -9,7 +9,8 @@ import type { FactionFormApi } from './factionFormTypes';
 
 /**
  * The authoring toolbar's live complexity indicator.
- * It always presents the rules-text estimate — never the author's manual rating — so it keeps moving as the rules are written; the popover carries the summary and the advisories.
+ * It always presents the rules-text estimate — never the author's manual rating — so it keeps moving as the rules are written;
+ * the popover carries the summary and the advisories.
  */
 export function FactionComplexityIndicator({ form }: { form: FactionFormApi }) {
   return (

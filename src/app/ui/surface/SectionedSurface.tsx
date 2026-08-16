@@ -11,12 +11,13 @@ export interface SectionedSurfaceProps {
 
 /**
  * One pane divided into rows.
- * 
+ *
  * Callers own what each row contains, and own what to show when the collection is empty — an empty pane is not this component's story to tell.
- * 
- * It is a surface rather than a bare list because the hairlines only read as divisions when something encloses them; rules floating on the page background look like stray borders.
+ *
+ * It is a surface rather than a bare list because the hairlines only read as divisions when something encloses them;
+ * rules floating on the page background look like stray borders.
  * It composes `Surface` rather than restating the pane treatment, which is what the old hand-rolled version did.
- * 
+ *
  * Prefer this over stacking several `Surface`s: dividing one pane is how a collection stays a single object, and surfaces never nest.
  */
 export function SectionedSurface({ children }: SectionedSurfaceProps) {
@@ -47,7 +48,7 @@ function isInteractiveTarget(target: EventTarget) {
 
 /**
  * One row of a `SectionedSurface`, optionally activatable as a whole.
- * 
+ *
  * Whole-row activation is the fiddly part this owns: keyboard support, and not hijacking clicks that were aimed at a link or button nested inside the row.
  */
 /** Everything that turns a plain row into the link — or nothing at all, when it is not one. */

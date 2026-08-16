@@ -29,11 +29,12 @@ export interface SpotlightProps {
 
 /**
  * Singles one entity out of a collection and sends you to it.
- * 
+ *
  * Callers own the artwork, the reason and the destination.
  * This component owns what makes it one offer rather than a box of text: the whole surface is the target, the artwork identifies the subject before the words are read, the chevron says where it goes, and the title truncates rather than reflowing.
- * 
- * Distinct from `Card`, which names a region you are already in; a spotlight points somewhere else.
+ *
+ * Distinct from `Card`, which names a region you are already in;
+ * a spotlight points somewhere else.
  */
 export function Spotlight({ media, eyebrow, title, meta, renderRoot }: SpotlightProps) {
   return (

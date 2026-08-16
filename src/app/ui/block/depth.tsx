@@ -5,7 +5,7 @@ const SectionDepth = createContext(0);
 
 /**
  * How deep the current named part of a page sits inside other named parts.
- * 
+ *
  * A heading's loudness is a fact about where it is, not about what it says, and only the enclosing block knows that.
  * Reading it here is what lets a caller pass a title and nothing else.
  */

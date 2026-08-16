@@ -30,7 +30,8 @@ async function listActiveRulesetSummaries(ctx: QueryCtx): Promise<FactionRuleset
 
 /**
  * Faction catalogue read model: one call owns row selection, ruleset enrichment (active rulesets only, name-then-id order), and canonical faction parsing.
- * The catalogue path batches the link table in one bounded scan; the owner path uses per-faction indexed reads, which win for the handful of factions one owner has.
+ * The catalogue path batches the link table in one bounded scan;
+ * the owner path uses per-faction indexed reads, which win for the handful of factions one owner has.
  */
 export async function loadFactionCatalogue(
   ctx: QueryCtx,

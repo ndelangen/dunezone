@@ -62,7 +62,8 @@ const config = defineConfig({
       srcDirectory: './src/app',
       /**
        * The Worker release assembly consumes `dist/client`.
-       * Prerender must run or there is no SPA shell; do not crawl the authenticated app.
+       * Prerender must run or there is no SPA shell;
+       * do not crawl the authenticated app.
        */
       prerender: {
         concurrency: Math.max(1, os.cpus().length),

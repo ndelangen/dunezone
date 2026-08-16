@@ -1,9 +1,10 @@
 /**
  * One-shot retune data for the vector-train migration (wayfinder #307).
- * 
+ *
  * The train normalized every decal into the shared 0 0 100 100 square, and the card slot became square (439) — so each stored placement scale must multiply by clamp(originalRatio, 1, 763/439) to keep the rendered art pixel-identical
  * (offsets are untouched: both slots center the art).
- * Factors are frozen from the pre-normalization viewBoxes; 16 baked-paint decals also changed name and are mapped here.
+ * Factors are frozen from the pre-normalization viewBoxes;
+ * 16 baked-paint decals also changed name and are mapped here.
  */
 
 /** Old decal id → post-train id (the 16 `-multicolor` renames). */

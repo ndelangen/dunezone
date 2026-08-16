@@ -20,7 +20,8 @@ export interface AssignPopoverProps {
   options: AssignPopoverOption[];
   /**
    * Commits the pick.
-   * Rejecting shows the error's message inside the popover and leaves it open so the reader can try another choice; resolving closes it.
+   * Rejecting shows the error's message inside the popover and leaves it open so the reader can try another choice;
+   * resolving closes it.
    * Anything the commit should ask first — a confirmation, a consequence the reader must accept — belongs here, in the caller: resolve `false` when the reader backs out, and the popover stays open with the pick intact.
    */
   onAssign: (value: string) => Promise<boolean | void>;
@@ -135,7 +136,7 @@ function AssignPopoverPlaceholder({ children }: { children: string }) {
 
 /**
  * The pick and its commit: what is selected, whether a commit is in flight, and what went wrong.
- * 
+ *
  * Separate from the rendering because it is the only imperative part — the guard against a stale selection, the latch, and the two ways a commit can end without closing (a rejection, or a caller that resolved `false` because the reader backed out).
  */
 function useAssignCommit({
@@ -233,10 +234,10 @@ function AssignPopoverBody({
 
 /**
  * Picks one of a set and commits it, in a popover hung off an icon.
- * 
+ *
  * Callers own the choices and their labels, what committing means, and anything the reader must agree to first.
  * This owns the machine around that pick: the trigger, the dropdown that names itself for assistive tech, the searchable select, the in-flight latch, and the failure message shown in place rather than swallowed.
- * 
+ *
  * It replaced two components that asked the same question from opposite ends — one picked a group for an asset, one picked an asset for a group — and had drifted apart in their labels, their empty states, and whether a failure was announced at all.
  * Every label defaults from `noun`, so the two directions cannot drift apart by accident — a page overrides the words only where it means something different by them.
  */

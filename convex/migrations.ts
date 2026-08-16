@@ -372,8 +372,8 @@ export const profile_activity_answers_v1 = migrations.define({
 /**
  * Vector-train retune (wayfinder #307): the train normalized decals into the shared square and 16 baked-paint decals gained `-multicolor` names.
  * Stored placements (faction.data.decals) get the matching rename + scale multiplier so cards render pixel-identically.
- * Run-once semantics come from the migrations framework; factors live frozen in
- * ./lib/decalRetune.
+ * Run-once semantics come from the migrations framework;
+ * factors live frozen in `./lib/decalRetune`.
  */
 export const faction_decal_retune_v1 = migrations.define({
   table: 'factions',

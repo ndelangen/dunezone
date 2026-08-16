@@ -9,7 +9,8 @@ import styles from './CallToAction.module.css';
 export interface CallToActionProps {
   children: ReactNode;
   /**
-   * `start` prefixes a plus, for an action that brings something into existence; `forward` suffixes an arrow, for one that continues a journey already begun.
+   * `start` prefixes a plus, for an action that brings something into existence;
+   * `forward` suffixes an arrow, for one that continues a journey already begun.
    */
   direction?: 'start' | 'forward';
   size?: ButtonProps['size'];
@@ -23,7 +24,7 @@ export interface CallToActionProps {
 
 /**
  * The button that starts a page's primary journey.
- * 
+ *
  * Callers own the words and the destination.
  * This component owns what makes the invitation read as the same invitation everywhere it appears: the affirmative colour, the icon convention that distinguishes creating from continuing, icon sizing tied to button size, and the opt-in attention pulse (which respects `prefers-reduced-motion`).
  */

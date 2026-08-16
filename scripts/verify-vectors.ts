@@ -1,10 +1,10 @@
 /**
  * Structural verification of generated vector output (wayfinder #296 guards, train ticket #306): checks public/vector/** against media/vector/** and the rules — without re-optimizing anything.
- * 
+ *
  * Bun run verify:vectors
- * 
+ *
  * Guards (#296, plus the authoring stamp from #298):
- * 
+ *
  * 1.
  * Every generated file resolves `#root` and has `overflow="visible"` on its root
  * 2.
@@ -18,7 +18,8 @@
  * 6.
  * No orphans: every generated file traces to a media source, and every source generated
  * 7.
- * Media sources carry the authoring stamp (hard failure; the in-repo tool emits it)
+ * Media sources carry the authoring stamp (hard failure;
+ * the in-repo tool emits it)
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';

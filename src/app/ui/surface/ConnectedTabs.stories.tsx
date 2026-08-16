@@ -27,7 +27,8 @@ interface ConnectedTabsStoryArgs {
 
 /**
  * Neutral panel body.
- * The tabs' labels are the component's own API and stay real; what sits inside a panel is the caller's, so the story shows a placeholder rather than prose.
+ * The tabs' labels are the component's own API and stay real;
+ * what sits inside a panel is the caller's, so the story shows a placeholder rather than prose.
  */
 function Panel({
   value,

@@ -1,12 +1,14 @@
 /**
  * Fails when a CSS module defines a class nobody uses, or a component reaches for one that does not exist.
- * 
+ *
  * The orphan half is the one that earns its keep.
  * Inlining a component or swapping it for a kit one drops the
  * `className` and leaves the rule behind, and nothing else notices: the build is clean, the types are clean, the tests pass, and the page quietly loses a sticky panel or a placeholder.
  * That exact mistake shipped three times in one refactor (`.rulesetHeadCover`, `.rulesProof`, `.artifactDesk`) before anyone looked at the CSS.
- * 
- * Scoped to the application tree (which contains the interface kit at `src/app/ui`). `src/game` is print-faithful renderers whose stylesheets are kept in step with SVG templates by hand; they carry known orphans that are not safe to delete without comparing rendered output, so they sit outside this check rather than silently failing it.
+ *
+ * Scoped to the application tree (which contains the interface kit at `src/app/ui`).
+ * `src/game` is print-faithful renderers whose stylesheets are kept in step with SVG templates by hand;
+ * they carry known orphans that are not safe to delete without comparing rendered output, so they sit outside this check rather than silently failing it.
  * Widen the scope the day that stops being true.
  */
 

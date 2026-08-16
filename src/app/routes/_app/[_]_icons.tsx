@@ -77,7 +77,7 @@ const ENTRIES_BY_SOURCE: Record<CatalogSource, CatalogEntry[]> = {
 
 /**
  * Grows `visibleCount` in `BATCH_SIZE` steps as a sentinel element at the bottom of the grid enters the viewport, and resets it whenever `resetKey` changes (new search, tab, or category).
- * 
+ *
  * The sentinel is conditionally rendered (only while more entries remain), so a plain `useRef` + effect keyed on
  * `total` can miss it: if a reset's clamped visible count happens to already equal the new total, the sentinel skips rendering on that exact commit, the effect observes nothing, and — because `total` doesn't change again on the next render — never re-fires once the sentinel does appear.
  * A callback ref sidesteps this: it (dis)connects the observer exactly when the sentinel DOM node itself mounts or unmounts, independent of render timing.

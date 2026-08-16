@@ -1,6 +1,7 @@
 /**
  * How this application writes dates.
- * Content and Lists render them; routes reuse the same two functions so a timestamp reads the same wherever it appears.
+ * Content and Lists render them;
+ * routes reuse the same two functions so a timestamp reads the same wherever it appears.
  */
 
 /** Short relative or calendar label for ISO timestamps (FAQ lists, profiles). */

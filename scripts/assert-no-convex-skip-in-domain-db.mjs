@@ -2,7 +2,7 @@
 /**
  * Fails if Convex useQuery `"skip"` appears in a domain data module.
  * Prefer mounting a child component that calls useQuery with real args instead.
- * 
+ *
  * Scans `src/app/db`, where every domain module lives.
  * It used to hunt the whole app tree for files named `db.ts`, which was the only way to find them while each sat in a folder of its own.
  */

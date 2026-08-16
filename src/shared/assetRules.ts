@@ -1,7 +1,9 @@
 /**
  * The single source of truth for generated image variants — shared by the generator (scripts/generate-images.ts), the structural verifier, and the runtime resolver.
- * Decided on the wayfinder map (#250): formats are declared by usage intent, never sniffed from source pixels; sizes cover ~2× the largest rendered size per category;
- * JPEG tiers are progressive (the only shippable format with progressive rendering); print tiers are JPEG for PDF DCT passthrough eligibility.
+ * Decided on the wayfinder map (#250): formats are declared by usage intent, never sniffed from source pixels;
+ * sizes cover ~2× the largest rendered size per category;
+ * JPEG tiers are progressive (the only shippable format with progressive rendering);
+ * print tiers are JPEG for PDF DCT passthrough eligibility.
  */
 
 export type AssetFormat = 'jpeg' | 'webp' | 'png';

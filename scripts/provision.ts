@@ -8,14 +8,15 @@ import schema from '../convex/schema';
 
 /**
  * The unified provision pipeline (map #352, ticket #359).
- * 
+ *
  * Every non-production environment is a derived value — rebuilt from (code, data source), never repaired.
  * The pipeline is five stages: backend → configure → code → data → users, parameterized per target:
- * 
+ *
  * E2e docker backend, fixture data (users: Playwright logins) local docker backend, prod clone (users: A/B logins + remap, via app-dev) dev cloud dev deployment, prod clone (users: replicated prod identities)
- * 
+ *
  * Invariants: data flows prod → down only;
- * CI invokes this same script; the e2e target must remain incapable of touching prod — its commands never receive production credentials (see strippedProductionCredentials).
+ * CI invokes this same script;
+ * the e2e target must remain incapable of touching prod — its commands never receive production credentials (see strippedProductionCredentials).
  */
 
 export type ProvisionTarget = 'e2e' | 'local' | 'dev';

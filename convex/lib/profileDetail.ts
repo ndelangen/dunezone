@@ -8,7 +8,8 @@ const PROFILE_DETAIL_LIMIT = 500;
 /**
  * Profile-detail read model.
  * Owns the joins, visibility rules (active memberships only, soft-deleted factions excluded, faction rulesets limited to active ones), and ordering (FAQ activity newest first, faction rulesets by name, Groups in membership order) behind `api.profiles.getBySlug`.
- * The runtime wire contract is `profileDetailPageValidator`; the precise TS projection (parsed faction data included) is inferred from this loader.
+ * The runtime wire contract is `profileDetailPageValidator`;
+ * the precise TS projection (parsed faction data included) is inferred from this loader.
  */
 export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
   const profile = await ctx.db

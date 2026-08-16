@@ -5,7 +5,8 @@ import type { AssetSize } from '../../shared/assetRules';
 import { resolveAsset } from './resolveAsset';
 
 /**
- * Ambient render mode (#254): `display` everywhere by default; the print preview route and the publisher capture wrap their trees in `print` so the same components resolve print-grade variants without prop threading.
+ * Ambient render mode (#254): `display` everywhere by default;
+ * the print preview route and the publisher capture wrap their trees in `print` so the same components resolve print-grade variants without prop threading.
  */
 export type AssetRenderMode = 'display' | 'print';
 

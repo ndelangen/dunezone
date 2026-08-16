@@ -5,9 +5,11 @@ import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 import { PageLayout } from './PageLayout';
 
 /**
- * Stands in for the shell's frame. `PageLayout` is `display: contents`, so its children join _this_ grid rather than one of its own — which is why it renders as unstyled boxes anywhere else.
+ * Stands in for the shell's frame.
+ * `PageLayout` is `display: contents`, so its children join _this_ grid rather than one of its own — which is why it renders as unstyled boxes anywhere else.
  * In the application that frame is
- * `AppHeader`, and it is also what reads `data-page-layout-*` to size the artwork band; that negotiation belongs to
+ * `AppHeader`, and it is also what reads `data-page-layout-*` to size the artwork band;
+ * that negotiation belongs to
  * `Shell/AppHeader`'s stories, not here.
  */
 function ShellFrame({ children }: { children: React.ReactNode }) {

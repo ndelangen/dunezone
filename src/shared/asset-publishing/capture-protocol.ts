@@ -1,6 +1,7 @@
 /**
  * The one owner of the browser-capture handshake vocabulary (#201).
- * The capture route, the browser driver, the React capture document, and the Chromium regression all consume these values by import; none may hard-code a path, cookie name, marker selector, attribute, or state string locally.
+ * The capture route, the browser driver, the React capture document, and the Chromium regression all consume these values by import;
+ * none may hard-code a path, cookie name, marker selector, attribute, or state string locally.
  * Changing any value here is a cross-runtime protocol change: keep it backward-compatible during rollout or deploy all consumers atomically.
  */
 export const CAPTURE_PROTOCOL = {

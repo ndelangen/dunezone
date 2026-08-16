@@ -28,10 +28,11 @@ export interface BandResizeReport {
 
 /**
  * Steps a mounted `AppHeader` through every route state and reports how the band got there.
- * 
+ *
  * Sampling is the point: the height is a CSS transition, so the only evidence it animated is a frame that is neither where it started nor where it ended, measured on the very same element.
- * 
- * Only the interactive preview has a manager to accept the arg updates; under the test runner the emit is a no-op and the band simply holds its opening height.
+ *
+ * Only the interactive preview has a manager to accept the arg updates;
+ * under the test runner the emit is a no-op and the band simply holds its opening height.
  * So the findings are phrased as "no change was ever a jump" and "the element was never replaced" — both true whether the story moved through one state or all of them.
  */
 export async function playHeaderResize({

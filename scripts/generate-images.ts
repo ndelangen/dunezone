@@ -1,11 +1,12 @@
 /**
  * Generates every file under public/image/** and public/web/** (except the committed logo.svg) from the sources in media/, per src/shared/assetRules.ts.
- * 
+ *
  * Bun run generate:images
- * 
+ *
  * Per source `media/image/texture/021.jpg` this emits: public/image/texture/021-small.jpg (+ -large, and -print where declared) public/image/texture/021.jpg (safety-net re-encode at the canonical name — capped, same extension) plus one generated runtime map (src/game/data/assetMap.generated.ts) carrying each key's available sizes and dominant color.
- * 
- * CI is the canonical producer (deployed bytes); local runs feed dev/Storybook.
+ *
+ * CI is the canonical producer (deployed bytes);
+ * local runs feed dev/Storybook.
  * Renderer identity hashes this script + the rules + media bytes + the sharp version — never encoder output (see workers/publisher/renderer-manifest-build.ts).
  */
 import { mkdirSync, readdirSync, rmSync } from 'node:fs';

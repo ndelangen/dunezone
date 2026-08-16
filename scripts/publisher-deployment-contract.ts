@@ -245,7 +245,8 @@ async function assertActiveDeployment(githubSha: string, environment: NodeJS.Pro
 
 /**
  * Thrown when an origin returns a healthy body for a different release.
- * Only this error — as the FINAL poll outcome — takes the advisory path; any later non-stale failure (5xx, timeout, bad body) must win and fail the deploy.
+ * Only this error — as the FINAL poll outcome — takes the advisory path;
+ * any later non-stale failure (5xx, timeout, bad body) must win and fail the deploy.
  */
 class StaleEdgeError extends Error {
   constructor(

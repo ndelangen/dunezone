@@ -16,7 +16,7 @@ export type ProfileLinkProps = Pick<ProfileEntry, 'slug' | 'username' | 'avatar_
 
 /**
  * A person, as a link: their avatar and name, leading to their profile.
- * 
+ *
  * Content — callers hand it the profile fields and this owns how a person is cited anywhere in the app: the avatar (or its initials fallback) always present, the name beside it unless the context is too tight (`showUsername`), the whole thing one link.
  * It exists so every mention of a contributor looks and navigates identically.
  */

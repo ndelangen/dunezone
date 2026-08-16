@@ -2,7 +2,8 @@ import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
   /**
-   * The authoring tool is a self-contained workspace with its own conventions and test/typecheck gates; it is extraction-destined (see wayfinder #298).
+   * The authoring tool is a self-contained workspace with its own conventions and test/typecheck gates;
+   * it is extraction-destined (see wayfinder #298).
    */
   ignoreWorkspaces: ['tools/svg-authoring'],
   workspaces: {

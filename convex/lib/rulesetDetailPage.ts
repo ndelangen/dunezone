@@ -34,7 +34,8 @@ function factionIdentityForClient(data: unknown) {
 }
 
 /**
- * Name rule: a faction row whose data carries no readable name falls back to its durable id so the link stays navigable; soft-deleted and dangling links are dropped.
+ * Name rule: a faction row whose data carries no readable name falls back to its durable id so the link stays navigable;
+ * soft-deleted and dangling links are dropped.
  */
 async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const links = await ctx.db
@@ -65,7 +66,8 @@ async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'
 
 /**
  * Ruleset public-page read model behind `api.rulesets.getBySlug` and `api.rulesets.detailPageBySlug`.
- * Owns slug resolution, the soft-delete gate, the faction listing with its degradation rules, and viewer access; the wire contracts are `rulesetPublicBundleValidator` / `rulesetDetailPageValidator`.
+ * Owns slug resolution, the soft-delete gate, the faction listing with its degradation rules, and viewer access;
+ * the wire contracts are `rulesetPublicBundleValidator` / `rulesetDetailPageValidator`.
  */
 export async function loadRulesetPublicBundleBySlug(ctx: QueryCtx, slug: string) {
   const row = await loadPublicRulesetBySlug(ctx, slug);

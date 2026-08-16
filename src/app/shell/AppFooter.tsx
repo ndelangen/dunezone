@@ -80,9 +80,11 @@ function PreferenceSegments<Value extends string>({
 /**
  * Public waypoints to the project's component catalogue, source, policies, and community homes — and the controls that override the OS's appearance hints for this site: reduced motion (see `motion.ts`) and the color scheme (see
  * `colorScheme.ts`).
- * The waypoints are icon-only circles; one `label` per entry fans out to the accessible name and the
+ * The waypoints are icon-only circles;
+ * one `label` per entry fans out to the accessible name and the
  * `Tooltip`, so the two cannot come apart.
- * The preference controls are bare inputs styled with the band rather than the content theme; both share the segmented radio treatment.
+ * The preference controls are bare inputs styled with the band rather than the content theme;
+ * both share the segmented radio treatment.
  */
 export function AppFooter() {
   const motion = useMotionPreference();

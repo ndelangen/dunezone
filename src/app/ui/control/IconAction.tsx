@@ -31,11 +31,11 @@ export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'colo
 
 /**
  * A single action shown as a glyph, named for people who cannot see it.
- * 
+ *
  * Callers own the glyph, the intent, and the words.
  * This component owns the one thing that must never be forgotten: an icon-only control carries its name in three places at once — the hover text, the accessible name, and nothing on screen — so it takes one `label` and fans it out, rather than letting a call site set a tooltip and omit the
  * `aria-label`.
- * 
+ *
  * It replaces the hand-assembled `Tooltip` around `ActionIcon` that appeared ~50 times, where the pairing was a convention rather than a guarantee.
  */
 export function IconAction({
