@@ -446,6 +446,7 @@ export const faction_complexity_grouped_v1 = migrations.define({
     const { rules, complexity } = factionComplexityMigrationDataSchema.parse(row.data);
     const next = recalculateFactionComplexity({ rules, complexity });
     if (
+      complexity !== null &&
       typeof complexity === 'object' &&
       complexity.calculated === next.complexity.calculated &&
       complexity.manual === next.complexity.manual
@@ -462,7 +463,7 @@ export const faction_complexity_grouped_verify_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (_ctx, row) => {
     const { rules, complexity } = factionComplexityMigrationDataSchema.parse(row.data);
-    if (typeof complexity !== 'object') {
+    if (complexity === null || typeof complexity !== 'object') {
       throw new Error(`Faction ${row._id} still has legacy complexity storage`);
     }
     const expected = calculateComplexity(rules);

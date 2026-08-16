@@ -25,6 +25,11 @@ async function migrationTest() {
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
   migrationsTest.register(t);
+  const historicalAssetBase = withoutComplexity();
+  const historicalAssetData = {
+    ...historicalAssetBase,
+    background: { ...historicalAssetBase.background, image: '' },
+  };
   const ids = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Complexity migration owner' });
     await ctx.db.insert('profiles', {
@@ -54,20 +59,17 @@ async function migrationTest() {
       }),
       historicalAsset: await insert(
         'complexity-historical-asset',
-        {
-          ...withoutComplexity(),
-          background: { ...withoutComplexity().background, image: '' },
-        },
+        historicalAssetData,
         true
       ),
     };
   });
-  return { t, ids };
+  return { t, ids, historicalAssetData };
 }
 
 describe('faction grouped complexity migration', () => {
   test('backfills accurate calculated values and preserves legacy manual ratings', async () => {
-    const { t, ids } = await migrationTest();
+    const { t, ids, historicalAssetData } = await migrationTest();
     const calculated = calculateComplexity(assetPublishingFaction.rules);
 
     const legacyDetail = await t.query(api.factions.getBySlug, { slug: 'complexity-scalar' });
@@ -90,7 +92,9 @@ describe('faction grouped complexity migration', () => {
     expect(rows.scalar?.data.complexity).toEqual({ calculated, manual: 0.7 });
     expect(rows.staleGrouped?.data.complexity).toEqual({ calculated, manual: 0.4 });
     expect(rows.historicalAsset?.data.complexity).toEqual({ calculated });
-    expect(rows.historicalAsset?.data.background.image).toBe('');
+    const { complexity: _complexity, ...preservedHistoricalAssetData } =
+      rows.historicalAsset?.data ?? {};
+    expect(preservedHistoricalAssetData).toEqual(historicalAssetData);
   });
 
   test('verification rejects inaccurate grouped values', async () => {
