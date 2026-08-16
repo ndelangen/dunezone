@@ -51,24 +51,6 @@
   color: var(--color-text, var(--mantine-color-dark-8));
 }
 
-.detailGrid {
-  display: grid;
-  grid-template-areas: "primary community details";
-  grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(14rem, 3fr);
-  gap: var(--mantine-spacing-xl);
-  align-items: start;
-}
-
-.primaryColumn {
-  grid-area: primary;
-  min-width: 0;
-}
-
-.communityColumn {
-  grid-area: community;
-  min-width: 0;
-}
-
 .faqFilterWrapper {
   border-radius: var(--mantine-radius-md);
   box-shadow: var(--mantine-shadow-sm);
@@ -93,29 +75,7 @@
   font-weight: 700;
 }
 
-.detailsColumn {
-  grid-area: details;
-  min-width: 0;
-}
-
-@media (max-width: 62em) {
-  .detailGrid {
-    grid-template-areas:
-      "primary details"
-      "primary community";
-    grid-template-columns: minmax(0, 3fr) minmax(18rem, 2fr);
-  }
-}
-
 @media (max-width: 48em) {
-  .detailGrid {
-    grid-template-areas:
-      "primary"
-      "community"
-      "details";
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .pageHead {
     align-items: flex-start;
     gap: var(--mantine-spacing-md);
