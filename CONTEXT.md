@@ -40,6 +40,15 @@ _Avoid_: Featured faction
 **Faction card**:
 A reusable, identity-first summary of a faction shown in discovery grids, including the Faction catalogue and profile detail pages. It communicates faction identity and ruleset membership; stewardship and complete game content belong on the faction detail page.
 
+**Calculated complexity rating**:
+The required estimate of how hard a faction is to play, derived from its rules. It remains distinct from an author's judgment so the estimate can be inspected and retuned without erasing that judgment.
+
+**Manual complexity rating**:
+An optional author-chosen assessment of how hard a faction is to play. When present, it overrides the Calculated complexity rating on reader-facing surfaces without replacing it.
+
+**Effective complexity rating**:
+The rating presented to readers: the Manual complexity rating when one exists, otherwise the Calculated complexity rating. It is a selection between the two ratings, not an independently maintained rating.
+
 **Profile summary**:
 The public identity chip for a person referenced by content they are shown on — profile identity, URL slug, display name, and avatar. It is one shape everywhere a contributor appears on content (FAQ askers and answerers, Group owners and rosters, ruleset owners), distinct from the full profile.
 

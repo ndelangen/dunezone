@@ -1,3 +1,7 @@
+import {
+  normalizeStoredFactionComplexity,
+  recalculateFactionComplexity,
+} from '@shared/factions/complexity';
 import type { FactionInput } from '@shared/factions/schema';
 import { describe, expect, it } from 'vitest';
 
@@ -82,8 +86,36 @@ describe('calculateComplexity', () => {
 describe('effectiveComplexity', () => {
   it('prefers the manual rating and falls back to the calculation', () => {
     const rules = rulesWith({ startText: wordsOf(COMPLEXITY_CAPACITY_WORDS) });
+    expect(effectiveComplexity({ rules, complexity: { calculated: 0.8, manual: 0.2 } })).toBe(0.2);
+    expect(effectiveComplexity({ rules, complexity: { calculated: 0.8 } })).toBe(0.8);
     expect(effectiveComplexity({ rules, complexity: 0.2 })).toBe(0.2);
     expect(effectiveComplexity({ rules })).toBe(1);
+  });
+});
+
+describe('stored complexity records', () => {
+  it('uses stored grouped calculations on reads and only calculates legacy states', () => {
+    const rules = rulesWith({ startText: wordsOf(COMPLEXITY_CAPACITY_WORDS) });
+
+    expect(
+      normalizeStoredFactionComplexity({ rules, complexity: { calculated: 0.123 } }).complexity
+    ).toEqual({ calculated: 0.123 });
+    expect(normalizeStoredFactionComplexity({ rules, complexity: 0.4 }).complexity).toEqual({
+      calculated: 1,
+      manual: 0.4,
+    });
+    expect(normalizeStoredFactionComplexity({ rules }).complexity).toEqual({ calculated: 1 });
+  });
+
+  it('recalculates before writes while preserving only the manual rating', () => {
+    const rules = rulesWith({ startText: wordsOf(COMPLEXITY_CAPACITY_WORDS) });
+
+    expect(
+      recalculateFactionComplexity({
+        rules,
+        complexity: { calculated: 0.123, manual: 0.4 },
+      }).complexity
+    ).toEqual({ calculated: 1, manual: 0.4 });
   });
 });
 

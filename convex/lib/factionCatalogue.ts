@@ -1,7 +1,7 @@
-import { CanonicalFactionStoredSchema } from '../../src/shared/factions/schema';
 import type { FactionInput } from '../../src/shared/factions/schema';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import { parseStoredFactionForRead } from './factionInput';
 
 export type FactionRulesetSummary = {
   id: Id<'rulesets'>;
@@ -56,7 +56,7 @@ export async function loadFactionCatalogue(
 
   const factions = rows.map((row) => ({
     ...row,
-    data: CanonicalFactionStoredSchema.parse(row.data),
+    data: parseStoredFactionForRead(row.data),
     rulesets: (linksByFaction.get(row._id) ?? [])
       .map((rulesetId) => activeRulesetById.get(rulesetId))
       .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
@@ -108,7 +108,7 @@ export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
     if (!row) {
       return null;
     }
-    const faction = CanonicalFactionStoredSchema.parse(row.data);
+    const faction = parseStoredFactionForRead(row.data);
     return {
       slug: row.slug,
       created_at: row.created_at,

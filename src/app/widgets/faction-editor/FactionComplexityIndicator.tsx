@@ -17,7 +17,7 @@ export function FactionComplexityIndicator({ form }: { form: FactionFormApi }) {
     <form.Subscribe
       selector={(state: { values: FactionInput }) => ({
         rules: state.values.rules,
-        manual: state.values.complexity,
+        manual: state.values.complexity.manual,
       })}
     >
       {({ rules, manual }) => {
