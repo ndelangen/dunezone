@@ -1,6 +1,8 @@
 import { Button, Group, NativeSelect, Stack, Textarea, TextInput } from '@mantine/core';
-import { RULESET_DESCRIPTION_MIN_LENGTH, rulesetDescriptionSchema } from '@shared/rulesets/validation';
+import { rulesetDescriptionSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
+import { rulesetDescriptionHint } from '@ui/content/rulesetDescriptionHint';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -54,7 +56,6 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
     >
       <TextInput
         label="Name"
-        error={createRuleset.error?.message}
         name="name"
         required
         minLength={1}
@@ -64,13 +65,13 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
       <Textarea
         label="Description"
         name="description"
-        description={`What this ruleset is for, and how it differs from the base game. At least ${RULESET_DESCRIPTION_MIN_LENGTH} characters — ${description.trim().length} so far.`}
+        description={rulesetDescriptionHint(description)}
         error={descriptionError}
         required
         autosize
         minRows={4}
         value={description}
-        onChange={(event) => setDescription(event.target.value)}
+        onChange={(event) => setDescription(event.currentTarget.value)}
       />
       <NativeSelect
         label="Group"
@@ -82,6 +83,9 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
           ...(groups.data?.map((group) => ({ value: group.id, label: group.name })) ?? []),
         ]}
       />
+      {createRuleset.error ? (
+        <FormError title="Ruleset could not be created">{createRuleset.error.message}</FormError>
+      ) : null}
       <Group gap="xs" wrap="nowrap">
         <Button
           variant="filled"

@@ -1,7 +1,8 @@
 import { Anchor, Center, Group, Image, Stack, Text, Textarea, TextInput, Title } from '@mantine/core';
-import { RULESET_DESCRIPTION_MIN_LENGTH, rulesetDescriptionSchema } from '@shared/rulesets/validation';
+import { rulesetDescriptionSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { rulesetDescriptionHint } from '@ui/content/rulesetDescriptionHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
 import { SubmitAction } from '@ui/control/SubmitAction';
@@ -83,7 +84,7 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
         id="ruleset-settings-description"
         name="description"
         label="Description"
-        description={`What this ruleset is for, and how it differs from the base game. At least ${RULESET_DESCRIPTION_MIN_LENGTH} characters — ${description.trim().length} so far.`}
+        description={rulesetDescriptionHint(description)}
         error={descriptionError}
         required
         autosize
