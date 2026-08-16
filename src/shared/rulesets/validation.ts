@@ -18,11 +18,10 @@ export const rulesetDescriptionSchema = z
   );
 
 /**
- * `description` is optional here only for the widen phase of `rulesets_description_v1`, so that rows predating the field stay readable.
- * There is no grace for those rows on the way out: every write goes through the floor, which means a ruleset still holding the backfilled empty string cannot be saved at all until someone writes a description.
- * Both ruleset forms enforce that before submitting, and the field narrows to required once the backfill has run in production.
+ * Every ruleset write carries both fields.
+ * There is no grace for rows that predate the description: a ruleset still holding the backfilled empty string cannot be saved at all until someone writes one, and both ruleset forms enforce that before submitting.
  */
 export const rulesetInputSchema = z.strictObject({
   name: rulesetNameSchema,
-  description: rulesetDescriptionSchema.optional(),
+  description: rulesetDescriptionSchema,
 });

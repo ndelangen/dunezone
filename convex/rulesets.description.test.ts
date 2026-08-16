@@ -20,39 +20,22 @@ function rulesetTest() {
   return t;
 }
 
-async function ownedRuleset(description?: string) {
+async function ownedRuleset() {
   const t = rulesetTest();
   const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Ruleset owner' }));
   const owner = t.withIdentity({ subject: ownerId });
   const ruleset = await owner.mutation(api.rulesets.create, {
     name: 'DescriptionRuleset',
-    ...(description === undefined ? {} : { description }),
+    description: VALID_DESCRIPTION,
     group_id: null,
     image_cover: null,
   });
-  return { owner, ruleset };
+  return { t, owner, ruleset };
 }
 
 describe('ruleset descriptions', () => {
-  test('a ruleset created without one carries the backfill value', async () => {
-    const { ruleset } = await ownedRuleset();
-
-    expect(ruleset.description).toBe('');
-  });
-
-  test('an update that omits the description leaves the stored one intact', async () => {
-    const { owner, ruleset } = await ownedRuleset(VALID_DESCRIPTION);
-
-    const renamed = await owner.mutation(api.rulesets.update, {
-      id: ruleset._id,
-      name: 'RenamedRuleset',
-    });
-
-    expect(renamed.description).toBe(VALID_DESCRIPTION);
-  });
-
   test('a description below the floor is rejected', async () => {
-    const { owner, ruleset } = await ownedRuleset(VALID_DESCRIPTION);
+    const { owner, ruleset } = await ownedRuleset();
 
     await expect(
       owner.mutation(api.rulesets.update, {
@@ -61,5 +44,33 @@ describe('ruleset descriptions', () => {
         description: 'Too short.',
       })
     ).rejects.toThrow(/at least 50 characters/);
+  });
+
+  /*
+   * The tolerated case the narrowed schema still has to carry: rows that predate the field hold the empty string the
+   * backfill gave them, and must stay readable even though nothing may write one.
+   * No mutation can produce this state any more, so it is set up directly.
+   */
+  test('a row left holding the backfilled empty description is still readable', async () => {
+    const t = rulesetTest();
+    const rulesetId = await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert('users', { name: 'Ruleset owner' });
+      return await ctx.db.insert('rulesets', {
+        name: 'PredatesTheField',
+        description: '',
+        slug: 'predates-the-field',
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+        owner_id: ownerId,
+        group_id: null,
+        is_deleted: false,
+        image_cover: null,
+      });
+    });
+
+    await expect(t.query(api.rulesets.get, { id: rulesetId })).resolves.toMatchObject({
+      name: 'PredatesTheField',
+      description: '',
+    });
   });
 });

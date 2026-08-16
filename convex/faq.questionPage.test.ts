@@ -44,6 +44,7 @@ async function seedQuestionPage(t: ReturnType<typeof convexTest>): Promise<SeedR
 
     const rulesetId = await ctx.db.insert('rulesets', {
       name: 'Advanced',
+      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
       slug: 'advanced',
       created_at: at(1),
       updated_at: at(1),

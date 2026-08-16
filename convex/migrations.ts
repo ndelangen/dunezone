@@ -167,20 +167,11 @@ export const rulesets_slug_v1 = migrations.define({
   },
 });
 
-/**
- * Backfills `description` so the field can narrow to a required `v.string()`.
- * Empty is the deliberate value: a generated placeholder would be indistinguishable from prose someone wrote, and the
- * 50-character floor in `rulesetDescriptionSchema` applies to what is written, never to what is inherited.
- */
+/** Retains the completed `description` backfill identity; the narrowed schema now enforces what it filled in. */
 export const rulesets_description_v1 = migrations.define({
   table: 'rulesets',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    if (typeof (row as { description?: unknown }).description === 'string') {
-      return;
-    }
-    return { description: '' };
-  },
+  migrateOne: async () => undefined,
 });
 
 export const faq_item_slug_v1 = migrations.define({

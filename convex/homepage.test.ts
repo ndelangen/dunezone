@@ -34,6 +34,7 @@ describe('homepage page data', () => {
     });
     const ruleset = await asUser.mutation(api.rulesets.create, {
       name: 'HomepageRuleset',
+      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
       group_id: null,
       image_cover: null,
     });

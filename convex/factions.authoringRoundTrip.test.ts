@@ -254,6 +254,7 @@ describe('faction authoring full-field round trip', () => {
     await t.run(async (ctx) => {
       const id = await ctx.db.insert('rulesets', {
         name: 'Canonical transition proof',
+        description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
         slug: 'canonical-transition-proof',
         created_at: '2026-07-23T12:00:00.000Z',
         updated_at: '2026-07-23T12:00:00.000Z',
