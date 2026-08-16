@@ -3,6 +3,7 @@
   "useTabs": false,
   "tabWidth": 2,
   "printWidth": 120,
+  "jsdoc": false,
   "singleQuote": true,
   "jsxSingleQuote": false,
   "quoteProps": "as-needed",
@@ -11,9 +12,6 @@
   "arrowParens": "always",
   "bracketSameLine": false,
   "bracketSpacing": true,
-  "jsdoc": {
-    "keepUnparsableExampleIndent": true
-  },
   "sortImports": {
     "newlinesBetween": false,
     "customGroups": [
