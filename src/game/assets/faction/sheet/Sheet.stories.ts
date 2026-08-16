@@ -48,8 +48,7 @@ export const Default = meta.story({
         {
           title: 'BIDDING prescience',
           text: `During each bidding round you may look at each Treachery Card as it comes up for bid.`,
-          karama:
-            'You can no longer look at the cards as they are up for bid. This lasts until the end of the turn.',
+          karama: 'You can no longer look at the cards as they are up for bid. This lasts until the end of the turn.',
         },
         {
           title: 'Information broker',

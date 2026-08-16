@@ -1,16 +1,4 @@
-import {
-  Anchor,
-  Badge,
-  Box,
-  Button,
-  Grid,
-  Paper,
-  SimpleGrid,
-  Stack,
-  Text,
-  ThemeIcon,
-  Title,
-} from '@mantine/core';
+import { Anchor, Badge, Box, Button, Grid, Paper, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { HeroTitle } from '@ui/content/HeroTitle';
@@ -59,8 +47,7 @@ const FUTURE_PLANS: FuturePlan[] = [
     number: '01',
     title: 'Every rulebook, made for the web',
     shortTitle: 'Read the rules',
-    statement:
-      'Faithful editions of the published rulebooks, made easier to read, search, and compare at the table.',
+    statement: 'Faithful editions of the published rulebooks, made easier to read, search, and compare at the table.',
     icon: <BookOpen />,
     capabilities: [
       { icon: <BookOpen />, title: 'Faithful editions', detail: 'Preserve the books people know.' },
@@ -80,8 +67,7 @@ const FUTURE_PLANS: FuturePlan[] = [
     number: '02',
     title: 'Create the version you wish existed',
     shortTitle: 'Create and publish',
-    statement:
-      'Build a rulebook and its pieces together, then take the finished game wherever your group plays.',
+    statement: 'Build a rulebook and its pieces together, then take the finished game wherever your group plays.',
     icon: <PenTool />,
     capabilities: [
       {
@@ -126,8 +112,7 @@ const FUTURE_PLANS: FuturePlan[] = [
     number: '04',
     title: 'Give every faction its perfect table tool',
     shortTitle: 'Build better tools',
-    statement:
-      'Start with the best possible Atreides card tracker, then keep making the small tools players ask for.',
+    statement: 'Start with the best possible Atreides card tracker, then keep making the small tools players ask for.',
     icon: <Wrench />,
     capabilities: [
       {
@@ -159,8 +144,7 @@ function FuturePlansPage() {
             <HeroTitle>A map of what Dune Zone could become</HeroTitle>
           </Stack>
           <Text size="lg">
-            These are promises, not release dates. Explore the territory, then tell us where we
-            should go next.
+            These are promises, not release dates. Explore the territory, then tell us where we should go next.
           </Text>
         </SimpleGrid>
       </PageLayout.Header>
@@ -231,12 +215,7 @@ function FuturePlansPage() {
                 </Stack>
               ))}
 
-              <Paper
-                component="section"
-                className={styles.contribution}
-                radius="lg"
-                p={{ base: 'xl', md: 48 }}
-              >
+              <Paper component="section" className={styles.contribution} radius="lg" p={{ base: 'xl', md: 48 }}>
                 <SimpleGrid cols={{ base: 1, md: 3 }} spacing="xl" verticalSpacing="xl">
                   <ThemeIcon size={72} radius="50%" variant="light" color="dune" aria-hidden>
                     <Lightbulb />
@@ -245,8 +224,7 @@ function FuturePlansPage() {
                     <Eyebrow tone="accent">And more…</Eyebrow>
                     <Title order={2}>Put a new destination on the map</Title>
                     <Text c="dimmed">
-                      Open an idea for the community to discuss, or pick up an issue and help build
-                      the route there.
+                      Open an idea for the community to discuss, or pick up an issue and help build the route there.
                     </Text>
                   </Stack>
                   <Stack justify="center" gap="sm">

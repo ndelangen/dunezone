@@ -62,8 +62,7 @@ export function FactionSheetPage1(props: SheetProps) {
         ) : null}
       </div>
       <div className={styles.revival}>
-        <strong className={styles.head}>Revival:</strong>{' '}
-        <MarkdownContent>{props.rules.revivalText}</MarkdownContent>
+        <strong className={styles.head}>Revival:</strong> <MarkdownContent>{props.rules.revivalText}</MarkdownContent>
       </div>
       <div className={styles.rules}>
         <div className={styles.subtitle}>Advantages</div>

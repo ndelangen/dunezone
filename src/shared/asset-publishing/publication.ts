@@ -7,10 +7,7 @@ export const PUBLICATION_MAX_ATTEMPTS = 10;
 export const PUBLICATION_MAX_PICKUP = 20;
 export const PUBLICATION_JOB_EXPIRY_MS = 5 * 60 * 1000;
 
-export const rendererRevisionsSchema = z.record(
-  z.string().trim().min(1).max(128),
-  z.number().int().nonnegative()
-);
+export const rendererRevisionsSchema = z.record(z.string().trim().min(1).max(128), z.number().int().nonnegative());
 
 export const factionSheetAssetDataSchema = z.strictObject({
   factionId: z.string().min(1),
@@ -55,9 +52,9 @@ export const publicationRevisionRequestSchema = z.discriminatedUnion('operation'
 export type FactionSheetAssetData = z.infer<typeof factionSheetAssetDataSchema>;
 
 /**
- * Wire contract for the executor take-work exchange. The worker parses every response through these
- * schemas; the Convex mutation's id-branded validator stays the server-side authority, linked by a
- * drift test in convex/publicationJobs.test.ts.
+ * Wire contract for the executor take-work exchange. The worker parses every response through these schemas; the Convex
+ * mutation's id-branded validator stays the server-side authority, linked by a drift test in
+ * convex/publicationJobs.test.ts.
  */
 const assignedPublicationJobSchema = z.object({
   jobId: z.string(),

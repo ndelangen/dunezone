@@ -51,12 +51,7 @@ export function parsePublisherConfig(env: Env): PublisherConfig {
     1,
     workWindowMs
   );
-  const browserCleanupGraceMs = integer(
-    'BROWSER_CLEANUP_GRACE_MS',
-    env.BROWSER_CLEANUP_GRACE_MS,
-    1,
-    60_000
-  );
+  const browserCleanupGraceMs = integer('BROWSER_CLEANUP_GRACE_MS', env.BROWSER_CLEANUP_GRACE_MS, 1, 60_000);
   if (browserCaptureTimeoutMs + browserCleanupGraceMs + COMPLETION_MARGIN_MS > workWindowMs) {
     throw new Error(
       'Browser capture, cleanup, and completion margins must fit the absolute executor lifecycle deadline'
@@ -65,10 +60,7 @@ export function parsePublisherConfig(env: Env): PublisherConfig {
   absoluteHttpsUrl('CONVEX_RENDER_URL', env.CONVEX_RENDER_URL);
   return {
     captureBaseUrl: absoluteHttpsUrl('CAPTURE_BASE_URL', env.CAPTURE_BASE_URL),
-    convexExecutorBaseUrl: absoluteHttpsUrl(
-      'CONVEX_EXECUTOR_BASE_URL',
-      env.CONVEX_EXECUTOR_BASE_URL
-    ),
+    convexExecutorBaseUrl: absoluteHttpsUrl('CONVEX_EXECUTOR_BASE_URL', env.CONVEX_EXECUTOR_BASE_URL),
     workWindowMs,
     browserCaptureTimeoutMs,
     browserCleanupGraceMs,
@@ -83,10 +75,9 @@ export type PublicationWorkBudget = {
 };
 
 /**
- * The one timing contract for a publication work cycle: captures stop at the work deadline, the
- * final report must land before the completion deadline, and each executor round-trip is clamped by
- * the request margin. The validation in `parsePublisherConfig` guarantees these fit the executor's
- * absolute lifecycle window.
+ * The one timing contract for a publication work cycle: captures stop at the work deadline, the final report must land
+ * before the completion deadline, and each executor round-trip is clamped by the request margin. The validation in
+ * `parsePublisherConfig` guarantees these fit the executor's absolute lifecycle window.
  */
 export function publicationWorkBudget(
   config: Pick<PublisherConfig, 'workWindowMs' | 'browserCleanupGraceMs'>,

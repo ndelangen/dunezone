@@ -30,10 +30,9 @@ const INITIAL: FaqEditingState = {
 };
 
 /**
- * FAQ editing session: the draft-vs-current rules for editing a question and its answers (seed from
- * current with the default-tag fallback, trim, treat unchanged saves as a plain close, stay open on
- * failure so the command error shows). Framework-free, mirroring the faction authoring session; the
- * route hosts it through a state sink.
+ * FAQ editing session: the draft-vs-current rules for editing a question and its answers (seed from current with the
+ * default-tag fallback, trim, treat unchanged saves as a plain close, stay open on failure so the command error shows).
+ * Framework-free, mirroring the faction authoring session; the route hosts it through a state sink.
  */
 export function createFaqEditingSession(ports: FaqEditingPorts) {
   let state = INITIAL;
@@ -76,8 +75,7 @@ export function createFaqEditingSession(ports: FaqEditingPorts) {
       }
       const currentTags = tagsOf(item);
       const unchanged =
-        question === item.text &&
-        [...state.tagValues].sort().join('|') === [...currentTags].sort().join('|');
+        question === item.text && [...state.tagValues].sort().join('|') === [...currentTags].sort().join('|');
       if (unchanged) {
         set({ editingQuestion: false });
         return;

@@ -110,9 +110,7 @@ export const seedBaseline = mutation({
       return { seeded: false, reason: 'ownerEmail not provided' as const };
     }
 
-    const ownerUser = (await ctx.db.query('users').take(500)).find(
-      (user) => user.email === ownerEmail
-    );
+    const ownerUser = (await ctx.db.query('users').take(500)).find((user) => user.email === ownerEmail);
 
     if (!ownerUser) {
       return { seeded: false, reason: 'owner not found' as const };

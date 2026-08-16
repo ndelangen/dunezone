@@ -3,15 +3,14 @@ import svgpath from 'svgpath';
 import { VECTOR_PRECISION, VECTOR_ROOT_ID, VECTOR_VIEWBOX_SIZE } from './vectorRules';
 
 /**
- * Pure-math normalization of a cropped SVG source into the shared `0 0 100 100` space (#296): the
- * source viewBox maps to the square uniformly scaled and centered, and the transform is BAKED into
- * every coordinate — path data, stroke widths, dash arrays — rather than wrapped in a `<g>`,
- * because fragment consumers (`<use href="…#arrakeen">`) clone elements without ancestor
- * transforms. The corpus is paths-only (verified in #306), so baking = svgpath over `d` plus
+ * Pure-math normalization of a cropped SVG source into the shared `0 0 100 100` space (#296): the source viewBox maps
+ * to the square uniformly scaled and centered, and the transform is BAKED into every coordinate — path data, stroke
+ * widths, dash arrays — rather than wrapped in a `<g>`, because fragment consumers (`<use href="…#arrakeen">`) clone
+ * elements without ancestor transforms. The corpus is paths-only (verified in #306), so baking = svgpath over `d` plus
  * scaling the stroke-* attributes.
  *
- * DOM access is injected so the same code runs under linkedom (generator), jsdom, or a real browser
- * (the authoring tool, moving in-repo per #298).
+ * DOM access is injected so the same code runs under linkedom (generator), jsdom, or a real browser (the authoring
+ * tool, moving in-repo per #298).
  */
 
 /** The minimal element surface the baking walk needs — satisfied structurally by any DOM. */
@@ -74,14 +73,7 @@ function parseTransform(value: string | null): Matrix {
       case 'rotate': {
         const angle = ((args[0] ?? 0) * Math.PI) / 180;
         const [cx, cy] = [args[1] ?? 0, args[2] ?? 0];
-        const rotation: Matrix = [
-          Math.cos(angle),
-          Math.sin(angle),
-          -Math.sin(angle),
-          Math.cos(angle),
-          0,
-          0,
-        ];
+        const rotation: Matrix = [Math.cos(angle), Math.sin(angle), -Math.sin(angle), Math.cos(angle), 0, 0];
         next = multiply(multiply([1, 0, 0, 1, cx, cy], rotation), [1, 0, 0, 1, -cx, -cy]);
         break;
       }
@@ -102,17 +94,7 @@ function parseTransform(value: string | null): Matrix {
 const SCALED_LENGTH_ATTRIBUTES = ['stroke-width', 'stroke-dashoffset'] as const;
 
 /** Geometry that carries coordinates outside `d` — the corpus is paths-only (#306); refuse loud. */
-const UNBAKEABLE_TAGS = new Set([
-  'rect',
-  'circle',
-  'ellipse',
-  'line',
-  'polyline',
-  'polygon',
-  'text',
-  'image',
-  'use',
-]);
+const UNBAKEABLE_TAGS = new Set(['rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'text', 'image', 'use']);
 
 function bake(element: SvgElementLike, parent: Matrix): void {
   const own = parseTransform(element.getAttribute('transform'));
@@ -180,8 +162,8 @@ function parseLength(attribute: string, value: string): number {
 class VectorNormalizeError extends Error {}
 
 /**
- * Normalize one SVG source into the shared square space. The source's viewBox is the crop (the
- * authoring tool's responsibility); the art is uniformly scaled and centered into `0 0 100 100`.
+ * Normalize one SVG source into the shared square space. The source's viewBox is the crop (the authoring tool's
+ * responsibility); the art is uniformly scaled and centered into `0 0 100 100`.
  */
 export function normalizeSvg(source: string, dom: SvgDom): string {
   const root = dom.parse(source);

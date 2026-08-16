@@ -296,10 +296,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
 
     const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
 
-    expect(page.groupSummaries.map((group) => group.id)).toEqual([
-      seed.activeGroupId,
-      seed.laterGroupId,
-    ]);
+    expect(page.groupSummaries.map((group) => group.id)).toEqual([seed.activeGroupId, seed.laterGroupId]);
   });
 
   test('an active membership whose group no longer resolves is dropped from the summaries', async () => {
@@ -328,10 +325,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
 
     const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
 
-    expect(page.factions[0]?.rulesets.map((ruleset) => ruleset.name)).toEqual([
-      'Advanced',
-      'Basic',
-    ]);
+    expect(page.factions[0]?.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced', 'Basic']);
     expect(page.factions[0]?.rulesets.map((ruleset) => ruleset.id)).toEqual([
       seed.advancedRulesetId,
       seed.basicRulesetId,
@@ -370,10 +364,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
 
     const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
 
-    expect(page.faqAsked.map((item) => item._id)).toEqual([
-      seed.lateQuestionId,
-      seed.earlyQuestionId,
-    ]);
+    expect(page.faqAsked.map((item) => item._id)).toEqual([seed.lateQuestionId, seed.earlyQuestionId]);
     expect(page.faqAsked[0]?.ruleset).toEqual({
       id: seed.advancedRulesetId,
       name: 'Advanced',
@@ -387,10 +378,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
 
     const page = await t.query(api.profiles.getBySlug, { slug: 'central' });
 
-    expect(page.faqAnswers.map((answer) => answer._id)).toEqual([
-      seed.otherAnswerId,
-      seed.acceptedAnswerId,
-    ]);
+    expect(page.faqAnswers.map((answer) => answer._id)).toEqual([seed.otherAnswerId, seed.acceptedAnswerId]);
     const accepted = page.faqAnswers.find((answer) => answer._id === seed.acceptedAnswerId);
     expect(accepted?.faq_item).toMatchObject({
       slug: '3',

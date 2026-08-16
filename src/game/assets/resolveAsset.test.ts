@@ -10,15 +10,9 @@ describe('resolveAsset', () => {
   });
 
   test('resolves transparent categories to WebP and falls print back to large', () => {
-    expect(resolveAsset('/image/leader/official/alia.png', 'large')).toBe(
-      '/image/leader/official/alia-large.webp'
-    );
-    expect(resolveAsset('/image/leader/official/alia.png', 'print')).toBe(
-      '/image/leader/official/alia-large.webp'
-    );
-    expect(resolveAsset('/image/card/base-full.png', 'large')).toBe(
-      '/image/card/base-full-large.webp'
-    );
+    expect(resolveAsset('/image/leader/official/alia.png', 'large')).toBe('/image/leader/official/alia-large.webp');
+    expect(resolveAsset('/image/leader/official/alia.png', 'print')).toBe('/image/leader/official/alia-large.webp');
+    expect(resolveAsset('/image/card/base-full.png', 'large')).toBe('/image/card/base-full-large.webp');
   });
 
   test('keeps planets PNG', () => {

@@ -35,9 +35,7 @@ function bodyObject(
     etag: options.etag ?? 'etag-one',
     size: options.size ?? (options.range ? 10 : bytes.byteLength),
     uploaded: NOW,
-    customMetadata: options.token
-      ? { [PUBLISHER_CACHE_TOKEN_METADATA_KEY]: options.token }
-      : undefined,
+    customMetadata: options.token ? { [PUBLISHER_CACHE_TOKEN_METADATA_KEY]: options.token } : undefined,
   });
   return {
     ...base,
@@ -62,9 +60,7 @@ function metadataObject(options: { etag?: string; token?: string } = {}): R2Obje
     etag: options.etag ?? 'etag-one',
     size: 10,
     uploaded: NOW,
-    customMetadata: options.token
-      ? { [PUBLISHER_CACHE_TOKEN_METADATA_KEY]: options.token }
-      : undefined,
+    customMetadata: options.token ? { [PUBLISHER_CACHE_TOKEN_METADATA_KEY]: options.token } : undefined,
   });
 }
 
@@ -73,10 +69,7 @@ function cache() {
   const match = vi.fn(async (request: Request) => entries.get(request.url));
   const put = vi.fn(async (request: Request, response: Response) => {
     const bytes = await response.arrayBuffer();
-    entries.set(
-      request.url,
-      new Response(bytes, { status: response.status, headers: new Headers(response.headers) })
-    );
+    entries.set(request.url, new Response(bytes, { status: response.status, headers: new Headers(response.headers) }));
   });
   return { entries, match, put, value: { match, put } satisfies PublicAssetCache };
 }
@@ -104,12 +97,9 @@ describe('public faction-sheet delivery', () => {
     const head = vi.fn();
     const cacheState = cache();
 
-    const response = await handlePublicAssetRequest(
-      request(),
-      env({ get, head } as PublicAssetBucket),
-      context(),
-      { cache: cacheState.value }
-    );
+    const response = await handlePublicAssetRequest(request(), env({ get, head } as PublicAssetBucket), context(), {
+      cache: cacheState.value,
+    });
 
     expect(response?.status).toBe(404);
     expect(cacheState.match).not.toHaveBeenCalled();
@@ -200,9 +190,7 @@ describe('public asset delivery boundary', () => {
 
     expect(response?.status).toBe(200);
     expect(response?.headers.get('Content-Type')).toBe('application/pdf');
-    expect(response?.headers.get('Content-Disposition')).toBe(
-      'inline; filename="faction-sheet.pdf"'
-    );
+    expect(response?.headers.get('Content-Disposition')).toBe('inline; filename="faction-sheet.pdf"');
     expect(response?.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
     expect(response?.headers.get('Accept-Ranges')).toBe('bytes');
     expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD);
@@ -339,7 +327,9 @@ describe('public asset delivery boundary', () => {
       request(token),
       env({ head, get } as PublicAssetBucket),
       context(),
-      { cache: cache().value }
+      {
+        cache: cache().value,
+      }
     );
 
     expect(response?.status).toBe(404);
@@ -356,7 +346,9 @@ describe('public asset delivery boundary', () => {
       request(token),
       env({ head, get: vi.fn() } as PublicAssetBucket),
       context(),
-      { cache: cache().value }
+      {
+        cache: cache().value,
+      }
     );
 
     expect(response?.status).toBe(503);

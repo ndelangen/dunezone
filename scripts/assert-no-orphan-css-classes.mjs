@@ -1,18 +1,15 @@
 /**
- * Fails when a CSS module defines a class nobody uses, or a component reaches for one that does not
- * exist.
+ * Fails when a CSS module defines a class nobody uses, or a component reaches for one that does not exist.
  *
- * The orphan half is the one that earns its keep. Inlining a component or swapping it for a kit one
- * drops the `className` and leaves the rule behind, and nothing else notices: the build is clean,
- * the types are clean, the tests pass, and the page quietly loses a sticky panel or a placeholder.
- * That exact mistake shipped three times in one refactor (`.rulesetHeadCover`, `.rulesProof`,
- * `.artifactDesk`) before anyone looked at the CSS.
+ * The orphan half is the one that earns its keep. Inlining a component or swapping it for a kit one drops the
+ * `className` and leaves the rule behind, and nothing else notices: the build is clean, the types are clean, the tests
+ * pass, and the page quietly loses a sticky panel or a placeholder. That exact mistake shipped three times in one
+ * refactor (`.rulesetHeadCover`, `.rulesProof`, `.artifactDesk`) before anyone looked at the CSS.
  *
- * Scoped to the application tree (which contains the interface kit at `src/app/ui`). `src/game` is
- * print-faithful renderers whose stylesheets are kept in step with SVG templates by hand; they
- * carry known orphans that are not safe to delete without comparing rendered output, so they sit
- * outside this check rather than silently failing it. Widen the scope the day that stops being
- * true.
+ * Scoped to the application tree (which contains the interface kit at `src/app/ui`). `src/game` is print-faithful
+ * renderers whose stylesheets are kept in step with SVG templates by hand; they carry known orphans that are not safe
+ * to delete without comparing rendered output, so they sit outside this check rather than silently failing it. Widen
+ * the scope the day that stops being true.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
@@ -35,9 +32,9 @@ const cssFiles = filesUnder('src/app', ['.module.css']);
 const sourceFiles = filesUnder('src', ['.ts', '.tsx']);
 
 /**
- * Which source files import each stylesheet, and under what name. The binding is read from the
- * import rather than assumed to be `styles` — `FactionSheetView` calls its one `sheetPrint`, and
- * guessing the name reports every class in that file as dead.
+ * Which source files import each stylesheet, and under what name. The binding is read from the import rather than
+ * assumed to be `styles` — `FactionSheetView` calls its one `sheetPrint`, and guessing the name reports every class in
+ * that file as dead.
  */
 const importersOf = new Map();
 for (const source of sourceFiles) {
@@ -71,10 +68,7 @@ for (const cssFile of cssFiles) {
     if (/:global\([^)]*$/.test(preceding)) {
       continue;
     }
-    if (
-      /[\w)'"]$/.test(preceding.slice(-1)) &&
-      /^(css|jpe?g|png|svg|webp|woff2?|json|ts|tsx)$/.test(match[1])
-    ) {
+    if (/[\w)'"]$/.test(preceding.slice(-1)) && /^(css|jpe?g|png|svg|webp|woff2?|json|ts|tsx)$/.test(match[1])) {
       continue;
     }
     defined.add(match[1]);

@@ -7,8 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildConnectedTabsPath, ConnectedTabs } from './ConnectedTabs';
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const resizeObserverCallbacks: ResizeObserverCallback[] = [];
 
@@ -53,17 +52,7 @@ const items = [
   },
 ] as const;
 
-function rect({
-  left,
-  top,
-  width,
-  height,
-}: {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}): DOMRect {
+function rect({ left, top, width, height }: { left: number; top: number; width: number; height: number }): DOMRect {
   return {
     x: left,
     y: top,
@@ -79,14 +68,7 @@ function rect({
 
 function Fixture() {
   const [value, setValue] = useState('first');
-  return (
-    <ConnectedTabs
-      value={value}
-      onValueChange={setValue}
-      ariaLabel="Example sections"
-      items={items}
-    />
-  );
+  return <ConnectedTabs value={value} onValueChange={setValue} ariaLabel="Example sections" items={items} />;
 }
 
 function getTab(name: string) {
@@ -177,12 +159,7 @@ describe('ConnectedTabs', () => {
     const onValueChange = vi.fn();
     await act(async () =>
       root?.render(
-        <ConnectedTabs
-          value="first"
-          onValueChange={onValueChange}
-          ariaLabel="Example sections"
-          items={items}
-        />
+        <ConnectedTabs value="first" onValueChange={onValueChange} ariaLabel="Example sections" items={items} />
       )
     );
 
@@ -199,12 +176,7 @@ describe('ConnectedTabs', () => {
 
     await act(async () =>
       root?.render(
-        <ConnectedTabs
-          value="middle"
-          onValueChange={onValueChange}
-          ariaLabel="Example sections"
-          items={items}
-        />
+        <ConnectedTabs value="middle" onValueChange={onValueChange} ariaLabel="Example sections" items={items} />
       )
     );
 
@@ -249,9 +221,7 @@ describe('ConnectedTabs', () => {
     const middle = getTab('2Middle');
 
     first.focus();
-    await act(async () =>
-      first.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
-    );
+    await act(async () => first.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
 
     expect(document.activeElement).toBe(middle);
     expect(middle.getAttribute('data-state')).toBe('active');

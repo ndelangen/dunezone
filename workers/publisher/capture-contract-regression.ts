@@ -37,10 +37,7 @@ const server = Bun.serve({
     if (pathname === CAPTURE_PROTOCOL.paths.snapshot) {
       return Response.json(snapshot, { headers: { 'Cache-Control': 'no-store' } });
     }
-    const relative =
-      pathname === '/'
-        ? CAPTURE_PROTOCOL.paths.bundleDocument.slice(1)
-        : pathname.replace(/^\/+/, '');
+    const relative = pathname === '/' ? CAPTURE_PROTOCOL.paths.bundleDocument.slice(1) : pathname.replace(/^\/+/, '');
     if (relative.split('/').includes('..')) {
       return new Response('Not found', { status: 404 });
     }
@@ -76,10 +73,7 @@ async function checkCorruptSvgImage(browser: Browser): Promise<void> {
       await route.fulfill({ status: 200, contentType: 'image/webp', body: 'not a webp' });
     });
     const result = await openCapture(page);
-    invariant(
-      result.state === 'error',
-      `Corrupt SVG image was reported as ${result.state}: ${result.detail}`
-    );
+    invariant(result.state === 'error', `Corrupt SVG image was reported as ${result.state}: ${result.detail}`);
   } finally {
     await page.close();
   }
@@ -92,10 +86,7 @@ async function checkCorruptExternalUse(browser: Browser): Promise<void> {
       await route.fulfill({ status: 200, contentType: 'image/svg+xml', body: 'not an svg' });
     });
     const result = await openCapture(page);
-    invariant(
-      result.state === 'error',
-      `Corrupt external SVG use was reported as ${result.state}: ${result.detail}`
-    );
+    invariant(result.state === 'error', `Corrupt external SVG use was reported as ${result.state}: ${result.detail}`);
   } finally {
     await page.close();
   }
@@ -108,14 +99,12 @@ async function assertPageBounds(page: Page): Promise<void> {
     'Production-shaped capture must render omitted troop modifiers as bounded TroopToken components'
   );
   invariant(
-    (await page.locator('[data-faction-starting-spice]').textContent())?.trim() ===
-      'Starting spice: 10',
+    (await page.locator('[data-faction-starting-spice]').textContent())?.trim() === 'Starting spice: 10',
     'Production-shaped capture must render structured starting spice'
   );
   const troopSupplies = page.locator('[data-faction-troop-supply]');
   invariant(
-    (await troopSupplies.count()) === 1 &&
-      (await troopSupplies.first().textContent())?.trim() === '×20',
+    (await troopSupplies.count()) === 1 && (await troopSupplies.first().textContent())?.trim() === '×20',
     'Production-shaped capture must render one physical-supply count per troop type'
   );
 }
@@ -140,18 +129,9 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
 
   try {
     const result = await openCapture(page);
-    invariant(
-      result.state === 'ready',
-      `Production-shaped capture reported ${result.state}: ${result.detail}`
-    );
-    invariant(
-      result.payloadHash === payloadHash,
-      'Production-shaped capture did not expose the exact payload hash'
-    );
-    invariant(
-      errors.length === 0,
-      `Production-shaped capture emitted errors: ${errors.join(' | ')}`
-    );
+    invariant(result.state === 'ready', `Production-shaped capture reported ${result.state}: ${result.detail}`);
+    invariant(result.payloadHash === payloadHash, 'Production-shaped capture did not expose the exact payload hash');
+    invariant(errors.length === 0, `Production-shaped capture emitted errors: ${errors.join(' | ')}`);
     await assertPageBounds(page);
 
     const pdf = await page.pdf({
@@ -180,13 +160,9 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
      * untouched, output under the published ceiling.
      */
     const recompressed = await recompressCapturedPdf(new Uint8Array(pdf));
+    invariant(recompressed.swappedImages > 0, 'Recompression must downsample the fixture leader portraits');
     invariant(
-      recompressed.swappedImages > 0,
-      'Recompression must downsample the fixture leader portraits'
-    );
-    invariant(
-      recompressed.bytesAfter < recompressed.bytesBefore &&
-        recompressed.bytesAfter <= RECOMPRESSED_PDF_MAX_BYTES,
+      recompressed.bytesAfter < recompressed.bytesBefore && recompressed.bytesAfter <= RECOMPRESSED_PDF_MAX_BYTES,
       `Recompressed PDF is ${recompressed.bytesAfter} bytes`
     );
     const recompressedInspection = await inspectChromiumPdf(recompressed.bytes);

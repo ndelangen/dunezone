@@ -10,20 +10,14 @@ import {
   requireRulesetSoftDelete,
   requireRulesetUpdate,
 } from './lib/collaborativeAccess';
-import {
-  rulesetDetailPageValidator,
-  rulesetPublicBundleValidator,
-} from './lib/collaborativeAccessValidators';
+import { rulesetDetailPageValidator, rulesetPublicBundleValidator } from './lib/collaborativeAccessValidators';
 import {
   buildOwnedForGroupAssignRows,
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
-import {
-  loadRulesetDetailPageBySlug,
-  loadRulesetPublicBundleBySlug,
-} from './lib/rulesetDetailPage';
+import { loadRulesetDetailPageBySlug, loadRulesetPublicBundleBySlug } from './lib/rulesetDetailPage';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -31,11 +25,7 @@ async function getRulesetById(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
   return await ctx.db.get(id);
 }
 
-async function resolveUniqueRulesetSlug(
-  ctx: QueryCtx | MutationCtx,
-  name: string,
-  excludeId?: Id<'rulesets'>
-) {
+async function resolveUniqueRulesetSlug(ctx: QueryCtx | MutationCtx, name: string, excludeId?: Id<'rulesets'>) {
   const baseSlug = slugify(name) || 'ruleset';
   let slug = baseSlug;
   let suffix = 1;
@@ -86,8 +76,8 @@ export const detailPageBySlug = query({
 });
 
 /**
- * Rulesets the viewer owns, with their current group's name resolved, for the group-detail "add my
- * ruleset to this group" picker.
+ * Rulesets the viewer owns, with their current group's name resolved, for the group-detail "add my ruleset to this
+ * group" picker.
  */
 export const listOwnedForGroupAssign = query({
   args: {},
@@ -243,9 +233,7 @@ export const addFaction = mutation({
 
     const existing = await ctx.db
       .query('ruleset_factions')
-      .withIndex('by_ruleset_faction', (q) =>
-        q.eq('ruleset_id', args.ruleset_id).eq('faction_id', args.faction_id)
-      )
+      .withIndex('by_ruleset_faction', (q) => q.eq('ruleset_id', args.ruleset_id).eq('faction_id', args.faction_id))
       .unique();
     if (!existing) {
       await ctx.db.insert('ruleset_factions', {
@@ -267,9 +255,7 @@ export const removeFaction = mutation({
 
     const existing = await ctx.db
       .query('ruleset_factions')
-      .withIndex('by_ruleset_faction', (q) =>
-        q.eq('ruleset_id', args.ruleset_id).eq('faction_id', args.faction_id)
-      )
+      .withIndex('by_ruleset_faction', (q) => q.eq('ruleset_id', args.ruleset_id).eq('faction_id', args.faction_id))
       .unique();
     if (existing) {
       await ctx.db.delete(existing._id);

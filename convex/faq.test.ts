@@ -18,9 +18,7 @@ function faqTest(
         bytesWritten: number;
       }
 ) {
-  const t = transactionLimits
-    ? convexTest({ schema, modules, transactionLimits })
-    : convexTest(schema, modules);
+  const t = transactionLimits ? convexTest({ schema, modules, transactionLimits }) : convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
   aggregateTest.register(t, 'profileActivity');
   aggregateTest.register(t, 'profileDiscovery');
@@ -120,9 +118,7 @@ describe('FAQ lifecycle', () => {
       questionSlug: question.questionSlug,
     });
     expect(answererPage.viewer.answerQuestion).toBe(false);
-    expect(
-      answererPage.answers.find((answer) => answer.id === first._id)?.capabilities
-    ).toMatchObject({
+    expect(answererPage.answers.find((answer) => answer.id === first._id)?.capabilities).toMatchObject({
       editAnswer: true,
       deleteAnswer: true,
     });
@@ -288,18 +284,18 @@ describe('FAQ lifecycle', () => {
         input: { question: 'An unrelated user cannot rewrite it.', tags: ['rules'] },
       })
     ).rejects.toThrow('Not authorized');
-    await expect(
-      outsider.mutation(api.faq.deleteQuestion, { questionId: question.questionId })
-    ).rejects.toThrow('Not authorized');
-    await expect(outsider.mutation(api.faq.deleteAnswer, { id: answer._id })).rejects.toThrow(
+    await expect(outsider.mutation(api.faq.deleteQuestion, { questionId: question.questionId })).rejects.toThrow(
       'Not authorized'
     );
-    await expect(
-      questionOwner.mutation(api.faq.deleteAnswer, { id: answer._id })
-    ).resolves.toMatchObject({ id: answer._id });
+    await expect(outsider.mutation(api.faq.deleteAnswer, { id: answer._id })).rejects.toThrow('Not authorized');
+    await expect(questionOwner.mutation(api.faq.deleteAnswer, { id: answer._id })).resolves.toMatchObject({
+      id: answer._id,
+    });
     await expect(
       questionOwner.mutation(api.faq.deleteQuestion, { questionId: question.questionId })
-    ).resolves.toMatchObject({ id: question.questionId });
+    ).resolves.toMatchObject({
+      id: question.questionId,
+    });
   });
 
   test('accepts only an answer from the same question and supports unaccepting it', async () => {

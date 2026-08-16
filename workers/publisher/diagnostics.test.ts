@@ -13,13 +13,7 @@ const signedUrl =
 const networkPath =
   '//signed-user:SECRET_PASSWORD@cdn.example.com/private/SECRET_PATH/art.png?token=SECRET_QUERY#SECRET_FRAGMENT';
 const signedSuffix = '/SECRET_PATH?token=SECRET_QUERY#SECRET_FRAGMENT';
-const secrets = [
-  'signed-user',
-  'SECRET_PASSWORD',
-  'SECRET_PATH',
-  'SECRET_QUERY',
-  'SECRET_FRAGMENT',
-];
+const secrets = ['signed-user', 'SECRET_PASSWORD', 'SECRET_PATH', 'SECRET_QUERY', 'SECRET_FRAGMENT'];
 
 describe('publisher diagnostic redaction', () => {
   test('retains only the external origin and a redacted marker', () => {

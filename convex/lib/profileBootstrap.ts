@@ -30,10 +30,7 @@ export function profileSourcesFromUserDoc(user: Doc<'users'>): ProfileBootstrapS
   };
 }
 
-async function allocateUniqueProfileSlug(
-  ctx: MutationCtx,
-  usernameForSlug: string
-): Promise<string> {
+async function allocateUniqueProfileSlug(ctx: MutationCtx, usernameForSlug: string): Promise<string> {
   const baseSlug = slugify(usernameForSlug);
   if (baseSlug.length === 0) {
     throw new Error('Failed to generate slug from display name');
@@ -53,8 +50,8 @@ async function allocateUniqueProfileSlug(
 }
 
 /**
- * Ensures a `profiles` row exists for `userId`, using explicit sources (no `ctx.auth` identity).
- * Backfills missing username/avatar on an existing row when still null.
+ * Ensures a `profiles` row exists for `userId`, using explicit sources (no `ctx.auth` identity). Backfills missing
+ * username/avatar on an existing row when still null.
  */
 export async function ensureProfileForUser(
   ctx: MutationCtx,
@@ -74,11 +71,7 @@ export async function ensureProfileForUser(
     const fillAvatar = existing.avatar_url ?? imageUrl;
     const nextSlug = existing.slug;
 
-    if (
-      fillUsername !== existing.username ||
-      fillAvatar !== existing.avatar_url ||
-      nextSlug !== existing.slug
-    ) {
+    if (fillUsername !== existing.username || fillAvatar !== existing.avatar_url || nextSlug !== existing.slug) {
       await ctx.db.patch(existing._id, {
         user_id: userId,
         username: fillUsername ?? null,

@@ -260,9 +260,7 @@ describe('Publication pickup, recovery, and failure', () => {
     await t.mutation(internal.publicationAdmin.initialize, {
       rendererRevisions: { faction_sheet: 4 },
     });
-    const adminId = await t.run(
-      async (ctx) => await ctx.db.insert('users', { name: 'Admin', isAdmin: true })
-    );
+    const adminId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Admin', isAdmin: true }));
     const asAdmin = t.withIdentity({ subject: adminId });
     await asAdmin.mutation(api.publicationAdmin.setPickupEnabled, { enabled: true });
     const faction = await createFaction(asUser);
@@ -407,23 +405,19 @@ describe('Publication regeneration and administration', () => {
     await expect(t.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })).resolves.toEqual({
       access: 'unauthenticated',
     });
-    await expect(
-      asUser.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })
-    ).resolves.toEqual({ access: 'not_authorized' });
-    await expect(
-      asUser.mutation(api.publicationAdmin.setPickupEnabled, { enabled: true })
-    ).rejects.toThrow(/Not authorized/);
-
-    const adminId = await t.run(
-      async (ctx) => await ctx.db.insert('users', { name: 'Admin', isAdmin: true })
+    await expect(asUser.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })).resolves.toEqual({
+      access: 'not_authorized',
+    });
+    await expect(asUser.mutation(api.publicationAdmin.setPickupEnabled, { enabled: true })).rejects.toThrow(
+      /Not authorized/
     );
+
+    const adminId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Admin', isAdmin: true }));
     const asAdmin = t.withIdentity({ subject: adminId });
-    await expect(
-      asAdmin.mutation(api.publicationAdmin.setPickupEnabled, { enabled: true })
-    ).resolves.toMatchObject({ publicationPickupEnabled: true });
-    await expect(
-      asAdmin.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })
-    ).resolves.toMatchObject({
+    await expect(asAdmin.mutation(api.publicationAdmin.setPickupEnabled, { enabled: true })).resolves.toMatchObject({
+      publicationPickupEnabled: true,
+    });
+    await expect(asAdmin.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })).resolves.toMatchObject({
       access: 'admin',
       settings: {
         publicationPickupEnabled: true,

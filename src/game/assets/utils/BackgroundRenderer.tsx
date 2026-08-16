@@ -11,11 +11,7 @@ type BackgroundRendererProps = {
   children?: ReactNode;
 };
 
-export const BackgroundRenderer: FC<BackgroundRendererProps> = ({
-  background,
-  className,
-  children,
-}) => {
+export const BackgroundRenderer: FC<BackgroundRendererProps> = ({ background, className, children }) => {
   return (
     <div className={className}>
       <div className={styles.overlay}>

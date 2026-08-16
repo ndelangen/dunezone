@@ -1,8 +1,8 @@
 import type { z } from 'zod';
 
 /**
- * Incoming data no longer matches this bundle's compiled expectations — the stale-tab signal.
- * Rendered by the router's error component as a refresh prompt instead of a crash.
+ * Incoming data no longer matches this bundle's compiled expectations — the stale-tab signal. Rendered by the router's
+ * error component as a refresh prompt instead of a crash.
  */
 export class StaleClientDataError extends Error {
   constructor(context: string, options?: { cause?: unknown }) {

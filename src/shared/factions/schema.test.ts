@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { assetPublishingFaction } from './fixtures/assetPublishingFaction';
-import {
-  Background,
-  CanonicalFactionClientSchema,
-  CanonicalFactionStoredSchema,
-  FactionInputSchema,
-} from './schema';
+import { Background, CanonicalFactionClientSchema, CanonicalFactionStoredSchema, FactionInputSchema } from './schema';
 
 describe('faction schema', () => {
   it('rejects the retired legacy background shape', () => {
@@ -33,21 +28,14 @@ describe('faction schema', () => {
   });
 
   it('requires grouped complexity at authoring, storage, and client-read boundaries', () => {
-    const { complexity: _complexity, ...withoutComplexity } =
-      structuredClone(assetPublishingFaction);
+    const { complexity: _complexity, ...withoutComplexity } = structuredClone(assetPublishingFaction);
 
     expect(FactionInputSchema.safeParse(withoutComplexity).success).toBe(false);
-    expect(FactionInputSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success).toBe(
-      false
-    );
+    expect(FactionInputSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success).toBe(false);
     expect(CanonicalFactionStoredSchema.safeParse(withoutComplexity).success).toBe(false);
-    expect(
-      CanonicalFactionStoredSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success
-    ).toBe(false);
+    expect(CanonicalFactionStoredSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success).toBe(false);
     expect(CanonicalFactionClientSchema.safeParse(withoutComplexity).success).toBe(false);
-    expect(
-      CanonicalFactionClientSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success
-    ).toBe(false);
+    expect(CanonicalFactionClientSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success).toBe(false);
     expect(FactionInputSchema.safeParse(assetPublishingFaction).success).toBe(true);
     expect(CanonicalFactionStoredSchema.safeParse(assetPublishingFaction).success).toBe(true);
     expect(CanonicalFactionClientSchema.safeParse(assetPublishingFaction).success).toBe(true);

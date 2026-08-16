@@ -3,11 +3,7 @@ import { complexityOutOfTen, effectiveComplexity } from '@ui/content/complexity'
 import Fuse from 'fuse.js';
 import { useEffect, useState } from 'react';
 
-import type {
-  FactionCatalogueEntry,
-  FactionCataloguePageData,
-  FactionRulesetSummary,
-} from '@db/factions';
+import type { FactionCatalogueEntry, FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
 
 const factionCatalogueRoute = getRouteApi('/_app/factions/');
 
@@ -44,15 +40,11 @@ export function complexityRangeSearchValue(range: FactionComplexityRange): strin
   return `${low}-${high}`;
 }
 
-export function parseFactionCatalogueSearch(
-  params: Record<string, unknown>
-): FactionCatalogueSearch {
+export function parseFactionCatalogueSearch(params: Record<string, unknown>): FactionCatalogueSearch {
   const q = cleanSearchValue(params.q);
   const ruleset = cleanSearchValue(params.ruleset);
   const sort = isFactionCatalogueSort(params.sort) ? params.sort : undefined;
-  const complexity = complexityRangeSearchValue(
-    parseComplexityRange(cleanSearchValue(params.complexity))
-  );
+  const complexity = complexityRangeSearchValue(parseComplexityRange(cleanSearchValue(params.complexity)));
 
   return {
     ...(q ? { q } : {}),
@@ -95,14 +87,11 @@ function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
 }
 
 /**
- * Param order must not count as a difference: the router treats an order-only navigate as a
- * structural no-op, so an order-sensitive mismatch would re-fire the canonicalizing effect forever
- * (deep links write params in any order).
+ * Param order must not count as a difference: the router treats an order-only navigate as a structural no-op, so an
+ * order-sensitive mismatch would re-fire the canonicalizing effect forever (deep links write params in any order).
  */
 function orderIndependentSearchString(params: URLSearchParams) {
-  return new URLSearchParams(
-    [...params.entries()].sort(([left], [right]) => left.localeCompare(right))
-  ).toString();
+  return new URLSearchParams([...params.entries()].sort(([left], [right]) => left.localeCompare(right))).toString();
 }
 
 export function projectFactionCatalogue(
@@ -112,9 +101,7 @@ export function projectFactionCatalogue(
 ) {
   const query = draftQuery.trim();
   const rulesetMatches = search.ruleset
-    ? factions.filter((faction) =>
-        faction.rulesets.some((ruleset) => ruleset.slug === search.ruleset)
-      )
+    ? factions.filter((faction) => faction.rulesets.some((ruleset) => ruleset.slug === search.ruleset))
     : [...factions];
 
   const [low, high] = parseComplexityRange(search.complexity);
@@ -123,9 +110,7 @@ export function projectFactionCatalogue(
   /* Scored once per projection — filtering and sorting share it instead of recounting rules text. */
   const scores =
     rangeNarrows || complexitySorted
-      ? new Map(
-          rulesetMatches.map((faction) => [faction, effectiveComplexity(faction.data.complexity)])
-        )
+      ? new Map(rulesetMatches.map((faction) => [faction, effectiveComplexity(faction.data.complexity)]))
       : null;
 
   const complexityMatches =
@@ -149,26 +134,17 @@ export function projectFactionCatalogue(
   if (complexitySorted && scores) {
     const direction = search.sort === 'complexity-asc' ? 1 : -1;
     return matches.sort(
-      (left, right) =>
-        ((scores.get(left) ?? 0) - (scores.get(right) ?? 0)) * direction ||
-        compareIdentity(left, right)
+      (left, right) => ((scores.get(left) ?? 0) - (scores.get(right) ?? 0)) * direction || compareIdentity(left, right)
     );
   }
   return matches.sort((left, right) => compareFactions(left, right, search.sort));
 }
 
 function isFactionCatalogueSort(value: unknown): value is FactionCatalogueSort {
-  return (
-    value === 'created' ||
-    value === 'updated' ||
-    value === 'complexity-asc' ||
-    value === 'complexity-desc'
-  );
+  return value === 'created' || value === 'updated' || value === 'complexity-asc' || value === 'complexity-desc';
 }
 
-export function useFactionCatalogueSession(
-  data: Pick<FactionCataloguePageData, 'factions' | 'rulesets'> | undefined
-) {
+export function useFactionCatalogueSession(data: Pick<FactionCataloguePageData, 'factions' | 'rulesets'> | undefined) {
   const navigate = factionCatalogueRoute.useNavigate();
   const location = useLocation();
   const search = parseFactionCatalogueSearch(location.search ?? {});
@@ -247,10 +223,7 @@ function compareDateDescending(
 }
 
 function compareIdentity(left: FactionCatalogueEntry, right: FactionCatalogueEntry) {
-  return (
-    left.data.name.localeCompare(right.data.name) ||
-    String(left._id).localeCompare(String(right._id))
-  );
+  return left.data.name.localeCompare(right.data.name) || String(left._id).localeCompare(String(right._id));
 }
 
 function parseTimestamp(value: string) {

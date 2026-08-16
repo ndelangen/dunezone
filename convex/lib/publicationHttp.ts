@@ -35,30 +35,14 @@ function fromBase64Url(value: string): Uint8Array | null {
 async function hmacBytes(secret: Uint8Array, message: string): Promise<Uint8Array> {
   const secretCopy = new Uint8Array(secret.byteLength);
   secretCopy.set(secret);
-  const key = await crypto.subtle.importKey(
-    'raw',
-    secretCopy,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
+  const key = await crypto.subtle.importKey('raw', secretCopy, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(message)));
 }
 
-async function verifyHmacBytes(
-  secret: Uint8Array,
-  message: string,
-  signature: Uint8Array
-): Promise<boolean> {
+async function verifyHmacBytes(secret: Uint8Array, message: string, signature: Uint8Array): Promise<boolean> {
   const secretCopy = new Uint8Array(secret.byteLength);
   secretCopy.set(secret);
-  const key = await crypto.subtle.importKey(
-    'raw',
-    secretCopy,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify']
-  );
+  const key = await crypto.subtle.importKey('raw', secretCopy, { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
   const signatureCopy = new Uint8Array(signature.byteLength);
   signatureCopy.set(signature);
   return await crypto.subtle.verify('HMAC', key, signatureCopy, encoder.encode(message));
@@ -88,10 +72,7 @@ export function randomPublisherToken(byteLength = 24): string {
   return toBase64Url(crypto.getRandomValues(new Uint8Array(byteLength)));
 }
 
-export async function matchesBearerSecret(
-  request: Request,
-  expectedSecret: string | undefined
-): Promise<boolean> {
+export async function matchesBearerSecret(request: Request, expectedSecret: string | undefined): Promise<boolean> {
   if (!expectedSecret) {
     return false;
   }
@@ -187,11 +168,7 @@ export async function handleAuthenticatedJson<T>(
   }
 }
 
-export async function createCacheToken(
-  assetId: string,
-  assetType: 'faction_sheet',
-  secret: string
-): Promise<string> {
+export async function createCacheToken(assetId: string, assetType: 'faction_sheet', secret: string): Promise<string> {
   const secretBytes = cacheSigningSecretBytes(secret);
   if (!secretBytes) {
     throw new Error('Cache-token signing secret is invalid');

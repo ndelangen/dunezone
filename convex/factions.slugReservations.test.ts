@@ -23,10 +23,7 @@ async function authenticatedTest() {
   return { t, asUser: t.withIdentity({ subject: userId }) };
 }
 
-async function createFaction(
-  asUser: Awaited<ReturnType<typeof authenticatedTest>>['asUser'],
-  name: string
-) {
+async function createFaction(asUser: Awaited<ReturnType<typeof authenticatedTest>>['asUser'], name: string) {
   return await asUser.mutation(api.factions.create, {
     data: { ...assetPublishingFaction, name },
     group_id: null,
@@ -112,8 +109,8 @@ describe('faction slug reservations', () => {
     }));
     expect(repaired.active?.slug).toBe('migrated-faction');
     expect(repaired.deleted?.slug).toBe(`migrated-faction-archived-${deletedId}`);
-    await expect(
-      t.query(api.factions.getBySlug, { slug: 'migrated-faction' })
-    ).resolves.toMatchObject({ faction: { _id: activeId } });
+    await expect(t.query(api.factions.getBySlug, { slug: 'migrated-faction' })).resolves.toMatchObject({
+      faction: { _id: activeId },
+    });
   });
 });

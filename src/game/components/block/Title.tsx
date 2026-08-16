@@ -5,11 +5,7 @@ import styles from './Title.module.css';
 
 type Sizes = 'large' | 'medium' | 'small';
 
-export const Title: FC<PropsWithChildren<{ color: string; size?: Sizes }>> = ({
-  color,
-  size = 'large',
-  children,
-}) => (
+export const Title: FC<PropsWithChildren<{ color: string; size?: Sizes }>> = ({ color, size = 'large', children }) => (
   <div
     className={`${styles.title} ${styles[size]}`}
     style={{ color: isLight(color) ? 'black' : 'white', backgroundColor: color }}

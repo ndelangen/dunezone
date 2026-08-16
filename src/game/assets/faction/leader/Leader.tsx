@@ -55,14 +55,7 @@ export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, logo, nam
         </mask>
       </defs>
 
-      <image
-        height={230}
-        mask={`url(#${discMask})`}
-        width={230}
-        x={35}
-        xlinkHref={resolvedImage}
-        y={16.6}
-      />
+      <image height={230} mask={`url(#${discMask})`} width={230} x={35} xlinkHref={resolvedImage} y={16.6} />
       <circle
         cx="150"
         cy="131"

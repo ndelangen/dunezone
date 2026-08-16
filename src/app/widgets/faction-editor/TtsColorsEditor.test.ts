@@ -3,12 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Faction } from '@db/factions';
 
-import {
-  availableTtsColors,
-  moveTtsColor,
-  nextUnusedTtsColor,
-  removeLastTtsColor,
-} from './TtsColorsEditor';
+import { availableTtsColors, moveTtsColor, nextUnusedTtsColor, removeLastTtsColor } from './TtsColorsEditor';
 
 describe('TtsColorsEditor model', () => {
   it('excludes colors used by other rows while retaining a legacy duplicate current value', () => {

@@ -126,8 +126,7 @@ function backgroundsMatch(left: FactionBackground, right: FactionBackground): bo
 }
 
 function randomPatternImage(random: () => number = Math.random): FactionBackground['image'] {
-  const option =
-    BACKGROUND_PATTERN_CATALOGUE[randomIndex(BACKGROUND_PATTERN_CATALOGUE.length, random)];
+  const option = BACKGROUND_PATTERN_CATALOGUE[randomIndex(BACKGROUND_PATTERN_CATALOGUE.length, random)];
   if (!option) {
     throw new Error('The background pattern catalogue must contain at least one pattern');
   }
@@ -166,8 +165,7 @@ export function randomizeBackground(
     return candidate;
   }
 
-  const nextPattern =
-    BACKGROUND_PATTERN_CATALOGUE[(patternIndex + 1) % BACKGROUND_PATTERN_CATALOGUE.length];
+  const nextPattern = BACKGROUND_PATTERN_CATALOGUE[(patternIndex + 1) % BACKGROUND_PATTERN_CATALOGUE.length];
   if (nextPattern && nextPattern.image !== candidate.image) {
     return { ...candidate, image: nextPattern.image };
   }

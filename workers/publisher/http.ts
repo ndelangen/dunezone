@@ -14,8 +14,7 @@ export class PublisherHttpError extends Error {
 }
 
 function abortError(signal: AbortSignal): PublisherHttpError {
-  const detail =
-    signal.reason === undefined ? 'deadline exhausted' : publisherErrorMessage(signal.reason);
+  const detail = signal.reason === undefined ? 'deadline exhausted' : publisherErrorMessage(signal.reason);
   return new PublisherHttpError(`Publisher request aborted: ${detail}`, true);
 }
 
@@ -42,11 +41,7 @@ async function withAbort<T>(operation: Promise<T>, signal?: AbortSignal): Promis
   });
 }
 
-async function boundedBytes(
-  response: Response,
-  maximum: number,
-  signal?: AbortSignal
-): Promise<Uint8Array> {
+async function boundedBytes(response: Response, maximum: number, signal?: AbortSignal): Promise<Uint8Array> {
   const declared = response.headers.get('Content-Length');
   if (declared && /^\d+$/.test(declared) && Number(declared) > maximum) {
     throw new PublisherHttpError('Publisher response exceeded its size limit', false);
@@ -119,10 +114,7 @@ export async function runWithDeadline<T>(
 ): Promise<T> {
   const remaining = deadlineRemaining(deadlineAt, now);
   const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(new Error('absolute request deadline exhausted')),
-    remaining
-  );
+  const timeout = setTimeout(() => controller.abort(new Error('absolute request deadline exhausted')), remaining);
   try {
     return await withAbort(operation(controller.signal), controller.signal);
   } finally {
@@ -140,10 +132,7 @@ export async function postJson(
   const deadlineAt = options.deadlineAt ?? now() + DEFAULT_REQUEST_TIMEOUT_MS;
   const remaining = deadlineRemaining(deadlineAt, now);
   const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(new Error('absolute request deadline exhausted')),
-    remaining
-  );
+  const timeout = setTimeout(() => controller.abort(new Error('absolute request deadline exhausted')), remaining);
   let response: Response;
   try {
     response = await withAbort(

@@ -70,15 +70,10 @@ export function AnimatedLeaderToken() {
     return () => window.clearTimeout(timer);
   }, [currentIndex, leader.name.length, phase, reduceMotion, typedLength]);
 
-  const displayedName =
-    phase === 'hold' ? leader.name : phase === 'typing' ? leader.name.slice(0, typedLength) : '';
+  const displayedName = phase === 'hold' ? leader.name : phase === 'typing' ? leader.name.slice(0, typedLength) : '';
 
   return (
-    <div
-      className={styles.root}
-      role="img"
-      aria-label="An example leader token changing as it is edited"
-    >
+    <div className={styles.root} role="img" aria-label="An example leader token changing as it is edited">
       {previousIndex !== null ? (
         <div className={styles.previous}>
           <LeaderToken {...EDITS[previousIndex]} image={portrait} />

@@ -20,15 +20,7 @@ type AssetRequestDecision =
 type EntityTag = { weak: boolean; opaque: string };
 
 const SHORT_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
-const LONG_WEEKDAYS = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-] as const;
+const LONG_WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function entityTagCharacter(character: string): boolean {
@@ -221,9 +213,7 @@ function ifNoneMatchPasses(value: string, representation: AssetRepresentation): 
   }
   const current = currentEntityTag(representation.etag);
   return (
-    !representation.exists ||
-    current === null ||
-    !parsed.tags.some((candidate) => candidate.opaque === current.opaque)
+    !representation.exists || current === null || !parsed.tags.some((candidate) => candidate.opaque === current.opaque)
   );
 }
 
@@ -232,18 +222,10 @@ function ifRangePasses(value: string, representation: AssetRepresentation, now: 
     const parsed = parseEntityTagList(value);
     const candidate = parsed && !parsed.star && parsed.tags.length === 1 ? parsed.tags[0] : null;
     const current = currentEntityTag(representation.etag);
-    return Boolean(
-      candidate &&
-      current &&
-      !candidate.weak &&
-      !current.weak &&
-      candidate.opaque === current.opaque
-    );
+    return Boolean(candidate && current && !candidate.weak && !current.weak && candidate.opaque === current.opaque);
   }
   const validator = parseHttpDate(value, now);
-  const lastModified = representation.lastModified
-    ? parseHttpDate(representation.lastModified, now)
-    : null;
+  const lastModified = representation.lastModified ? parseHttpDate(representation.lastModified, now) : null;
   return validator !== null && lastModified !== null && validator === lastModified;
 }
 
@@ -289,9 +271,7 @@ function evaluateAssetRequest(
   if (ifMatch === null && representation.exists) {
     const ifUnmodifiedSince = request.headers.get('If-Unmodified-Since');
     const condition = ifUnmodifiedSince ? parseHttpDate(ifUnmodifiedSince, now) : null;
-    const lastModified = representation.lastModified
-      ? parseHttpDate(representation.lastModified, now)
-      : null;
+    const lastModified = representation.lastModified ? parseHttpDate(representation.lastModified, now) : null;
     if (condition !== null && lastModified !== null && lastModified > condition) {
       return { status: 412 };
     }
@@ -305,9 +285,7 @@ function evaluateAssetRequest(
   if (ifNoneMatch === null && representation.exists) {
     const ifModifiedSince = request.headers.get('If-Modified-Since');
     const condition = ifModifiedSince ? parseHttpDate(ifModifiedSince, now) : null;
-    const lastModified = representation.lastModified
-      ? parseHttpDate(representation.lastModified, now)
-      : null;
+    const lastModified = representation.lastModified ? parseHttpDate(representation.lastModified, now) : null;
     if (condition !== null && lastModified !== null && lastModified <= condition) {
       return { status: 304 };
     }
@@ -330,9 +308,7 @@ function evaluateAssetRequest(
   }
 
   const size =
-    Number.isSafeInteger(representation.size) && (representation.size ?? -1) >= 0
-      ? representation.size
-      : undefined;
+    Number.isSafeInteger(representation.size) && (representation.size ?? -1) >= 0 ? representation.size : undefined;
   const range = size === undefined ? null : resolvedRange(rangeValue, size);
   if (!range) {
     return { status: 416, size };
@@ -536,11 +512,7 @@ async function cachedAssetResponse(
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
   const currentSize = responseRepresentation(hit).size;
-  if (
-    representation.size === undefined ||
-    currentSize === undefined ||
-    currentSize !== representation.size
-  ) {
+  if (representation.size === undefined || currentSize === undefined || currentSize !== representation.size) {
     await cancelResponseBody(partial);
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
@@ -622,9 +594,7 @@ export async function handlePublicAssetRequest(
   if (token === null || token === undefined) {
     return errorResponse(404, 'Not Found');
   }
-  if (
-    !(await verifyCacheToken(token, factionId, ASSET_TYPE, env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET))
-  ) {
+  if (!(await verifyCacheToken(token, factionId, ASSET_TYPE, env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET))) {
     return errorResponse(404, 'Not Found');
   }
   const verifiedToken = token;

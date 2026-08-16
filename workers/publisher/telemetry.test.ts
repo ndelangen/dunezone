@@ -27,9 +27,7 @@ describe('bounded publisher telemetry', () => {
       diagnostic: `${secret}${'x'.repeat(100_000)}`,
     });
     const serialized = JSON.stringify(bounded);
-    expect(new TextEncoder().encode(serialized).byteLength).toBeLessThanOrEqual(
-      MAX_TELEMETRY_EVENT_BYTES
-    );
+    expect(new TextEncoder().encode(serialized).byteLength).toBeLessThanOrEqual(MAX_TELEMETRY_EVENT_BYTES);
     expect(bounded).toEqual({
       event: 'asset_publisher_cron',
       result: 'telemetry_truncated',
@@ -53,9 +51,7 @@ describe('bounded publisher telemetry', () => {
     });
     const serialized = JSON.stringify(bounded);
 
-    expect(new TextEncoder().encode(serialized).byteLength).toBeLessThanOrEqual(
-      MAX_TELEMETRY_EVENT_BYTES
-    );
+    expect(new TextEncoder().encode(serialized).byteLength).toBeLessThanOrEqual(MAX_TELEMETRY_EVENT_BYTES);
     expect(bounded.result).toBe('failed');
     expect(serialized).toContain('leaf ');
   });

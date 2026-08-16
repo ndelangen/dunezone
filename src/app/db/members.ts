@@ -36,25 +36,19 @@ function membershipCommand<TInput, TVariables, TResult>(
 }
 
 export function useGroupMembershipWorkflow() {
-  const requestMutation = useLiveMutation<{ group_id: string }, GroupMemberRow>(
-    api.members.request
+  const requestMutation = useLiveMutation<{ group_id: string }, GroupMemberRow>(api.members.request);
+  const approveMutation = useLiveMutation<{ membershipId: string }, MembershipCommandAcknowledgement>(
+    api.members.approveRequest
   );
-  const approveMutation = useLiveMutation<
-    { membershipId: string },
-    MembershipCommandAcknowledgement
-  >(api.members.approveRequest);
-  const rejectMutation = useLiveMutation<
-    { membershipId: string },
-    MembershipCommandAcknowledgement
-  >(api.members.rejectRequest);
-  const removeMutation = useLiveMutation<
-    { membershipId: string },
-    MembershipCommandAcknowledgement
-  >(api.members.removeMember);
-  const addMutation = useLiveMutation<
-    { groupId: string; userId: string },
-    MembershipCommandAcknowledgement
-  >(api.members.addMember);
+  const rejectMutation = useLiveMutation<{ membershipId: string }, MembershipCommandAcknowledgement>(
+    api.members.rejectRequest
+  );
+  const removeMutation = useLiveMutation<{ membershipId: string }, MembershipCommandAcknowledgement>(
+    api.members.removeMember
+  );
+  const addMutation = useLiveMutation<{ groupId: string; userId: string }, MembershipCommandAcknowledgement>(
+    api.members.addMember
+  );
 
   return {
     request: membershipCommand(requestMutation, (groupId: string) => ({ group_id: groupId })),

@@ -31,11 +31,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
-import type {
-  FactionCatalogueEntry,
-  FactionCataloguePageData,
-  FactionRulesetSummary,
-} from '@db/factions';
+import type { FactionCatalogueEntry, FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
 
 import {
   complexityRangeSearchValue,
@@ -89,10 +85,7 @@ function FactionsPage() {
       <PageLayout.Content>
         {hasFactions ? (
           session.visibleFactions.length > 0 ? (
-            <FactionList
-              factions={session.visibleFactions}
-              selectedRulesetSlug={session.search.ruleset}
-            />
+            <FactionList factions={session.visibleFactions} selectedRulesetSlug={session.search.ruleset} />
           ) : (
             <FilteredEmptyState onReset={session.reset} />
           )
@@ -156,10 +149,7 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
             Browse the living collection of community factions.
           </Text>
         </Stack>
-        <CallToAction
-          attention
-          renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
-        >
+        <CallToAction attention renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}>
           Create your own faction
         </CallToAction>
       </Group>
@@ -224,9 +214,8 @@ function ComplexityRangeSlider({
 }
 
 /**
- * The band's filter field: one popover holding the ruleset chips and the complexity range —
- * everything that narrows the grid, while sorting stays its own field. The trigger reads exactly
- * like the selects beside it.
+ * The band's filter field: one popover holding the ruleset chips and the complexity range — everything that narrows the
+ * grid, while sorting stays its own field. The trigger reads exactly like the selects beside it.
  */
 function CatalogueRefine({
   search,
@@ -252,8 +241,7 @@ function CatalogueRefine({
   const rulesetCount = (slug: string) =>
     slug === 'all'
       ? factions.length
-      : factions.filter((faction) => faction.rulesets.some((ruleset) => ruleset.slug === slug))
-          .length;
+      : factions.filter((faction) => faction.rulesets.some((ruleset) => ruleset.slug === slug)).length;
 
   return (
     <Popover position="bottom" width={320} closeOnEscape trapFocus>
@@ -314,17 +302,13 @@ function CatalogueRefine({
               </Text>
               <ComplexityRangeSlider
                 value={search.complexity}
-                onCommit={(value) =>
-                  onSearchChange({ complexity: complexityRangeSearchValue(value) })
-                }
+                onCommit={(value) => onSearchChange({ complexity: complexityRangeSearchValue(value) })}
               />
             </Stack>
 
             <Group gap="xs" justify="space-between">
               <Text size="xs" c="dimmed">
-                {visibleCount === totalCount
-                  ? `${totalCount} factions`
-                  : `${visibleCount} of ${totalCount} factions`}
+                {visibleCount === totalCount ? `${totalCount} factions` : `${visibleCount} of ${totalCount} factions`}
               </Text>
               {activeCount > 0 ? (
                 <Button
@@ -387,9 +371,7 @@ function CatalogueToolbar({
       value={search.ruleset ?? 'all'}
       data={rulesetOptions}
       allowDeselect={false}
-      onChange={(value) =>
-        onSearchChange({ ruleset: value === 'all' ? undefined : (value ?? undefined) })
-      }
+      onChange={(value) => onSearchChange({ ruleset: value === 'all' ? undefined : (value ?? undefined) })}
       aria-label="Filter factions by ruleset"
       leftSection={<Filter size={15} aria-hidden />}
     />
@@ -430,9 +412,7 @@ function CatalogueToolbar({
       <Toolbar>
         <Toolbar.Left>
           <Text size="sm" c="dimmed" className={styles.resultCount}>
-            {visibleCount === totalCount
-              ? `${totalCount} factions`
-              : `${visibleCount} of ${totalCount} factions`}
+            {visibleCount === totalCount ? `${totalCount} factions` : `${visibleCount} of ${totalCount} factions`}
           </Text>
         </Toolbar.Left>
         <Toolbar.Center>

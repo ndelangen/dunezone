@@ -101,9 +101,7 @@ beforeEach(() => {
 describe('FAQ question page interface', () => {
   test('binds domain commands to the loaded question and canonical operations', async () => {
     mocks.useQuery.mockReturnValue(serverPage);
-    const hook = renderHook(() =>
-      useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' })
-    );
+    const hook = renderHook(() => useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' }));
 
     await act(() =>
       hook.result.current.editQuestion.run({
@@ -148,9 +146,7 @@ describe('FAQ question page interface', () => {
     const deleteError = new Error('Delete failed');
     mocks.editQuestion.mockReturnValueOnce(pendingEdit.promise);
     mocks.deleteQuestion.mockRejectedValueOnce(deleteError);
-    const hook = renderHook(() =>
-      useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' })
-    );
+    const hook = renderHook(() => useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' }));
 
     let editPromise!: Promise<void>;
     act(() => {

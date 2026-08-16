@@ -4,11 +4,7 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import type { Faction } from '@db/factions';
 
-import {
-  factionEntry,
-  incompleteFaction,
-  representativeFaction,
-} from './FactionAuthoringStoryFixtures';
+import { factionEntry, incompleteFaction, representativeFaction } from './FactionAuthoringStoryFixtures';
 import { FactionEditor } from './FactionEditor';
 import { useFactionAuthoring } from './useFactionAuthoring';
 

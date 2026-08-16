@@ -85,11 +85,11 @@ function printHelp() {
 }
 
 function runMigrationGuards(env: NodeJS.ProcessEnv) {
-  const result = spawnSync(
-    process.execPath,
-    ['run', './scripts/migration-guards.ts', 'dev-strict', '300000', '2000'],
-    { cwd: rootDirectory, env, stdio: 'inherit' }
-  );
+  const result = spawnSync(process.execPath, ['run', './scripts/migration-guards.ts', 'dev-strict', '300000', '2000'], {
+    cwd: rootDirectory,
+    env,
+    stdio: 'inherit',
+  });
   if (result.status !== 0) {
     throw new Error('Local migration guards failed');
   }
@@ -105,9 +105,7 @@ async function runLocalDevelopment() {
   const values = {
     ...parseEnvFile(readFileSync(localEnvFile, 'utf8')),
     ...Object.fromEntries(
-      Object.entries(process.env).filter(
-        (entry): entry is [string, string] => entry[1] !== undefined
-      )
+      Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)
     ),
   };
   const port = process.env.APP_DEV_PORT ?? '3000';

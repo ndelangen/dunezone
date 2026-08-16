@@ -8,8 +8,8 @@ import type { ReactNode } from 'react';
 import pageStylesheet from '../styles/page.css?inline';
 
 /**
- * Applies `page.css` — the document background whose position tracks `--scroll-pct` — for as long
- * as this is mounted, and removes it on unmount so it cannot follow the viewer to the next story.
+ * Applies `page.css` — the document background whose position tracks `--scroll-pct` — for as long as this is mounted,
+ * and removes it on unmount so it cannot follow the viewer to the next story.
  */
 export function ShellPageBackdrop({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -27,9 +27,9 @@ export function ShellPageBackdrop({ children }: { children: ReactNode }) {
 }
 
 /**
- * Stands in for a route: a `PageLayout` holding labelled slot placeholders instead of page content,
- * so nothing here can be mistaken for the real product. Which slots are filled is the only variable
- * that matters to the shell — it is what sets the band's height.
+ * Stands in for a route: a `PageLayout` holding labelled slot placeholders instead of page content, so nothing here can
+ * be mistaken for the real product. Which slots are filled is the only variable that matters to the shell — it is what
+ * sets the band's height.
  */
 function ShellStoryPage({ headerSize }: { headerSize?: 'default' | 'compact' }) {
   return (
@@ -47,9 +47,9 @@ function ShellStoryPage({ headerSize }: { headerSize?: 'default' | 'compact' }) 
 }
 
 /**
- * The route states the band can be handed, keyed by the `PageLayout` props that produce them. Used
- * as an arg `mapping` so the Controls panel switches between them: the band stays mounted across
- * the switch, which is what makes the height change animate.
+ * The route states the band can be handed, keyed by the `PageLayout` props that produce them. Used as an arg `mapping`
+ * so the Controls panel switches between them: the band stays mounted across the switch, which is what makes the height
+ * change animate.
  */
 export const shellPageOptions = {
   'header + headerSize="default"': <ShellStoryPage headerSize="default" />,

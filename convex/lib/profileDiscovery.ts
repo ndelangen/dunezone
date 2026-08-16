@@ -98,10 +98,7 @@ export async function reconcileProfileDiscovery(ctx: MutationCtx, profile: Doc<'
   }
 }
 
-export async function loadNewestDiscoverableProfiles(
-  ctx: QueryCtx,
-  limit: number
-): Promise<DiscoverableProfile[]> {
+export async function loadNewestDiscoverableProfiles(ctx: QueryCtx, limit: number): Promise<DiscoverableProfile[]> {
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_DISCOVERY_LIMIT) {
     throw new Error(`Profile discovery limit must be between 1 and ${MAX_DISCOVERY_LIMIT}`);
   }

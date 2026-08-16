@@ -4,20 +4,12 @@ import { CSS } from '@dnd-kit/utilities';
 import type { CSSProperties } from 'react';
 
 /**
- * Editor-domain drag behavior without owning the surrounding Mantine presentation. Each collection
- * composes its own Paper, actions, and accessible handle directly.
+ * Editor-domain drag behavior without owning the surrounding Mantine presentation. Each collection composes its own
+ * Paper, actions, and accessible handle directly.
  */
 export function useFactionSortableItem(id: string) {
-  const {
-    attributes,
-    listeners,
-    setActivatorNodeRef,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-    isOver,
-  } = useSortable({ id });
+  const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging, isOver } =
+    useSortable({ id });
   const { active } = useDndContext();
   const shouldApplyMotion = active != null || isDragging;
 

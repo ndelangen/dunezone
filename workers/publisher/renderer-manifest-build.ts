@@ -21,16 +21,13 @@ export const RENDERER_RUNTIME_CLOSURE_PATHS = [
 ] as const;
 
 /**
- * Generated images are identified by their INGREDIENTS, not their encoder output: media/ source
- * bytes, the rules table, the generator script, and the pinned sharp version. All of these live in
- * git, so the digest is identical on every machine — which keeps `publisher:release:verify` a local
- * git-diff even though the served bytes are produced in CI (wayfinder #269). Encoder output is
- * deliberately never hashed: sharp makes no byte-stability promise across platforms.
+ * Generated images are identified by their INGREDIENTS, not their encoder output: media/ source bytes, the rules table,
+ * the generator script, and the pinned sharp version. All of these live in git, so the digest is identical on every
+ * machine — which keeps `publisher:release:verify` a local git-diff even though the served bytes are produced in CI
+ * (wayfinder #269). Encoder output is deliberately never hashed: sharp makes no byte-stability promise across
+ * platforms.
  */
-const GENERATED_IMAGE_INGREDIENT_PATHS = [
-  'src/shared/assetRules.ts',
-  'scripts/generate-images.ts',
-] as const;
+const GENERATED_IMAGE_INGREDIENT_PATHS = ['src/shared/assetRules.ts', 'scripts/generate-images.ts'] as const;
 
 /** Vector train ingredients (#306): rules + normalization + generator scripts. */
 const GENERATED_VECTOR_INGREDIENT_PATHS = [
@@ -129,8 +126,7 @@ function entriesFor(repositoryRoot: string, files: string[]): RendererManifestEn
 }
 
 /** Exact SemVer only: `1.2.3` with optional prerelease/build metadata. */
-const EXACT_SEMVER =
-  /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
 export function assertExactSharpVersion(version: string | undefined, name = 'sharp'): string {
   if (!version || !EXACT_SEMVER.test(version)) {
@@ -159,9 +155,7 @@ export function writeRendererManifest(
     ...filesBelow(publisherDirectory).filter((file) =>
       isRendererManifestAsset(path.relative(publisherDirectory, file))
     ),
-    ...RENDERER_RUNTIME_CLOSURE_PATHS.map((relativePath) =>
-      path.join(repositoryRoot, relativePath)
-    ),
+    ...RENDERER_RUNTIME_CLOSURE_PATHS.map((relativePath) => path.join(repositoryRoot, relativePath)),
   ];
   const sourceFiles = [
     ...filesBelow(path.join(repositoryRoot, 'media')),
@@ -170,8 +164,8 @@ export function writeRendererManifest(
   const toolchainEntries = [
     ...entriesFor(
       repositoryRoot,
-      [...GENERATED_IMAGE_INGREDIENT_PATHS, ...GENERATED_VECTOR_INGREDIENT_PATHS].map(
-        (relativePath) => path.join(repositoryRoot, relativePath)
+      [...GENERATED_IMAGE_INGREDIENT_PATHS, ...GENERATED_VECTOR_INGREDIENT_PATHS].map((relativePath) =>
+        path.join(repositoryRoot, relativePath)
       )
     ),
     ...pinnedToolchainVersions(repositoryRoot).map(({ name, version }) => ({

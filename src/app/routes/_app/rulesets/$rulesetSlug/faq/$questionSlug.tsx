@@ -62,10 +62,7 @@ function FaqDetailPage() {
       <p>
         {item ? (
           <>
-            <Link
-              to="/rulesets/$rulesetSlug"
-              params={{ rulesetSlug: page?.ruleset.slug ?? rulesetSlug }}
-            >
+            <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page?.ruleset.slug ?? rulesetSlug }}>
               Back to ruleset
             </Link>
             {' · '}
@@ -136,8 +133,7 @@ function FaqDetailPage() {
   const startEditQuestion = () => editingSession.startEditQuestion(item);
   const saveQuestion = () => void editingSession.saveQuestion(item);
   const startEditAnswer = (a: (typeof answers)[0]) => editingSession.startEditAnswer(a);
-  const saveAnswer = (answerId: string) =>
-    void editingSession.saveAnswer(answers.find((x) => x.id === answerId));
+  const saveAnswer = (answerId: string) => void editingSession.saveAnswer(answers.find((x) => x.id === answerId));
 
   const handleDeleteAnswer = (answerId: string) => {
     if (!window.confirm('Delete this answer?')) {
@@ -249,9 +245,7 @@ function FaqDetailPage() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   const formEl = e.target as HTMLFormElement;
-                  const answer = (
-                    formEl.elements.namedItem('answer') as HTMLTextAreaElement
-                  ).value.trim();
+                  const answer = (formEl.elements.namedItem('answer') as HTMLTextAreaElement).value.trim();
                   if (!answer) {
                     return;
                   }
@@ -285,9 +279,7 @@ function FaqDetailPage() {
             )}
 
             {hasUserAnswered && !showAddAnswerForm && (
-              <p className={styles.hintBlock}>
-                You&apos;ve answered. You can edit your answer below.
-              </p>
+              <p className={styles.hintBlock}>You&apos;ve answered. You can edit your answer below.</p>
             )}
 
             {answers.length > 0 ? (
@@ -358,9 +350,7 @@ function FaqDetailPage() {
                                 color="confirm"
                                 size="lg"
                                 onClick={() =>
-                                  void faq.setAcceptedAnswer
-                                    .run({ answerId: a.id })
-                                    .catch(() => undefined)
+                                  void faq.setAcceptedAnswer.run({ answerId: a.id }).catch(() => undefined)
                                 }
                                 disabled={faq.setAcceptedAnswer.isPending}
                                 icon={<Check size={16} aria-hidden />}
@@ -373,9 +363,7 @@ function FaqDetailPage() {
                                 color="dune"
                                 size="lg"
                                 onClick={() =>
-                                  void faq.setAcceptedAnswer
-                                    .run({ answerId: null })
-                                    .catch(() => undefined)
+                                  void faq.setAcceptedAnswer.run({ answerId: null }).catch(() => undefined)
                                 }
                                 disabled={faq.setAcceptedAnswer.isPending}
                                 icon={<X size={16} aria-hidden />}

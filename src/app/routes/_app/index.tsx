@@ -114,14 +114,12 @@ function IndexPage() {
                       A game where every player breaks the rules differently
                     </Title>
                     <Text c="dimmed" size="lg" mt="md" className={styles.storyCopy}>
-                      Dune turns conquest into conversation. Your strongest weapon may be an
-                      alliance, a threat, a promise—or knowing exactly when to betray one.
+                      Dune turns conquest into conversation. Your strongest weapon may be an alliance, a threat, a
+                      promise—or knowing exactly when to betray one.
                     </Text>
                   </Box>
                   <Group>
-                    <Button renderRoot={(props) => <Link {...props} to="/rulesets" />}>
-                      Discover Dune
-                    </Button>
+                    <Button renderRoot={(props) => <Link {...props} to="/rulesets" />}>Discover Dune</Button>
                     <Button
                       component="a"
                       href="https://treachery.online/"
@@ -147,9 +145,8 @@ function IndexPage() {
                   </Badge>
                   <Title order={2}>Your idea belongs at the table</Title>
                   <Text c="dimmed">
-                    Remix a familiar edition, learn from community homebrew, or invent a faction
-                    nobody has seen before. Watch every piece take shape, then preview, print, and
-                    share it with friends.
+                    Remix a familiar edition, learn from community homebrew, or invent a faction nobody has seen before.
+                    Watch every piece take shape, then preview, print, and share it with friends.
                   </Text>
                   <Group mt="sm">
                     <CallToAction
@@ -158,11 +155,7 @@ function IndexPage() {
                     >
                       Start creating
                     </CallToAction>
-                    <Button
-                      variant="subtle"
-                      color="confirm"
-                      renderRoot={(props) => <Link {...props} to="/factions" />}
-                    >
+                    <Button variant="subtle" color="confirm" renderRoot={(props) => <Link {...props} to="/factions" />}>
                       Browse homebrew
                     </Button>
                   </Group>
@@ -177,8 +170,7 @@ function IndexPage() {
                 <Eyebrow tone="accent">Built by people around the table</Eyebrow>
                 <Title order={2}>A living game needs a living community</Title>
                 <Text c="dimmed">
-                  Find the people making factions, answering edge cases, and bringing new players
-                  into the fold.
+                  Find the people making factions, answering edge cases, and bringing new players into the fold.
                 </Text>
               </Stack>
               <Stack gap="md">
@@ -214,10 +206,7 @@ function IndexPage() {
                       New makers will appear here.
                     </Text>
                   )}
-                  <Button
-                    variant="subtle"
-                    renderRoot={(props) => <Link {...props} to="/profiles" />}
-                  >
+                  <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/profiles" />}>
                     Meet the community
                   </Button>
                 </Group>
@@ -280,12 +269,7 @@ function IndexPage() {
                 eyebrow="Planned"
                 title="What we’ll make next"
                 action={
-                  <Anchor
-                    component={Link}
-                    to="/future-plans"
-                    fw={700}
-                    className={styles.headingLink}
-                  >
+                  <Anchor component={Link} to="/future-plans" fw={700} className={styles.headingLink}>
                     Future plans <ArrowRight size={15} aria-hidden />
                   </Anchor>
                 }
@@ -295,10 +279,7 @@ function IndexPage() {
                     <Bullets.Item icon={<BookOpen size={20} />} title="Web-native rulebooks" />
                     <Bullets.Item icon={<Printer size={20} />} title="PDF and TTS output" />
                     <Bullets.Item icon={<Trophy size={20} />} title="Results and leaderboards" />
-                    <Bullets.Item
-                      icon={<MessageCircle size={20} />}
-                      title="An Atreides card tracker"
-                    />
+                    <Bullets.Item icon={<MessageCircle size={20} />} title="An Atreides card tracker" />
                   </Bullets>
                   <Anchor component={Link} to="/future-plans" fw={700}>
                     What should we make after that?
@@ -348,7 +329,5 @@ function HomepageError({ error }: ErrorComponentProps) {
 }
 
 function compactNumber(value: number) {
-  return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(
-    value
-  );
+  return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
 }

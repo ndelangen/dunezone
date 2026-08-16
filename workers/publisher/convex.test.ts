@@ -49,9 +49,7 @@ describe('Convex Publication work parsing', () => {
       recovered: 0,
       items,
     });
-    expect(() =>
-      parseTakeWork(response(Array.from({ length: 21 }, (_, index) => assignedJob(index))))
-    ).toThrow();
+    expect(() => parseTakeWork(response(Array.from({ length: 21 }, (_, index) => assignedJob(index))))).toThrow();
     expect(() => parseTakeWork(response([{ ...assignedJob(), assetType: 'unknown' }]))).toThrow();
   });
 });
@@ -110,9 +108,7 @@ describe('Convex Publication client', () => {
       executorToken: 'executor-secret',
       fetcher: (async () => Response.json({ ok: true, status: 'unexpected' })) as typeof fetch,
     });
-    await expect(
-      client.complete('job-1', `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`)
-    ).rejects.toThrow();
+    await expect(client.complete('job-1', `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`)).rejects.toThrow();
     await expect(client.fail('job-1', 'broken')).rejects.toThrow();
   });
 });

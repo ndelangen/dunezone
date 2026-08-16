@@ -1,15 +1,4 @@
-import {
-  Chip,
-  Group,
-  Paper,
-  SegmentedControl,
-  SimpleGrid,
-  Stack,
-  Tabs,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Chip, Group, Paper, SegmentedControl, SimpleGrid, Stack, Tabs, Text, TextInput, Title } from '@mantine/core';
 import { BACKGROUND, DECAL, GENERIC, ICON, LOGO, TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { createFileRoute } from '@tanstack/react-router';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
@@ -56,14 +45,12 @@ const TOPIC_ENTRIES: CatalogEntry[] = TOPIC_ICON_TOPICS.map((name) => ({
   searchText: name.toLowerCase(),
 }));
 
-const LUCIDE_ENTRIES: CatalogEntry[] = (Object.entries(icons) as Array<[string, LucideIcon]>).map(
-  ([name, icon]) => ({
-    source: 'lucide',
-    name,
-    icon,
-    searchText: name.toLowerCase(),
-  })
-);
+const LUCIDE_ENTRIES: CatalogEntry[] = (Object.entries(icons) as Array<[string, LucideIcon]>).map(([name, icon]) => ({
+  source: 'lucide',
+  name,
+  icon,
+  searchText: name.toLowerCase(),
+}));
 
 const DUNE_ENTRIES: CatalogEntry[] = DUNE_GROUPS.flatMap(({ name: group, paths }) =>
   paths.map((path) => {
@@ -89,15 +76,14 @@ const ENTRIES_BY_SOURCE: Record<CatalogSource, CatalogEntry[]> = {
 };
 
 /**
- * Grows `visibleCount` in `BATCH_SIZE` steps as a sentinel element at the bottom of the grid enters
- * the viewport, and resets it whenever `resetKey` changes (new search, tab, or category).
+ * Grows `visibleCount` in `BATCH_SIZE` steps as a sentinel element at the bottom of the grid enters the viewport, and
+ * resets it whenever `resetKey` changes (new search, tab, or category).
  *
- * The sentinel is conditionally rendered (only while more entries remain), so a plain `useRef` +
- * effect keyed on `total` can miss it: if a reset's clamped visible count happens to already equal
- * the new total, the sentinel skips rendering on that exact commit, the effect observes nothing,
- * and — because `total` doesn't change again on the next render — never re-fires once the sentinel
- * does appear. A callback ref sidesteps this: it (dis)connects the observer exactly when the
- * sentinel DOM node itself mounts or unmounts, independent of render timing.
+ * The sentinel is conditionally rendered (only while more entries remain), so a plain `useRef` + effect keyed on
+ * `total` can miss it: if a reset's clamped visible count happens to already equal the new total, the sentinel skips
+ * rendering on that exact commit, the effect observes nothing, and — because `total` doesn't change again on the next
+ * render — never re-fires once the sentinel does appear. A callback ref sidesteps this: it (dis)connects the observer
+ * exactly when the sentinel DOM node itself mounts or unmounts, independent of render timing.
  */
 function useInfiniteReveal(total: number, resetKey: string) {
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
@@ -143,11 +129,11 @@ function formatBytes(bytes: number): string {
 }
 
 /**
- * Byte size isn't in the generated manifest, so it's measured client-side, once, from the same
- * static files `<use>` already renders. Uses `HEAD` + `Content-Length` rather than downloading each
- * body, so measuring all ~500 files costs headers only, not the SVG payloads themselves. Fetches
- * every uncached Dune SVG in parallel the first time the Dune SVGs tab opens, and bumps `version`
- * in batches so cards and sort fill in progressively rather than waiting on every request to land.
+ * Byte size isn't in the generated manifest, so it's measured client-side, once, from the same static files `<use>`
+ * already renders. Uses `HEAD` + `Content-Length` rather than downloading each body, so measuring all ~500 files costs
+ * headers only, not the SVG payloads themselves. Fetches every uncached Dune SVG in parallel the first time the Dune
+ * SVGs tab opens, and bumps `version` in batches so cards and sort fill in progressively rather than waiting on every
+ * request to land.
  */
 function useDuneSvgSizes(enabled: boolean) {
   const [version, setVersion] = useState(0);
@@ -171,8 +157,7 @@ function useDuneSvgSizes(enabled: boolean) {
     startedRef.current = true;
 
     const missing = DUNE_ENTRIES.filter(
-      (entry): entry is DuneCatalogEntry =>
-        entry.source === 'dune' && !svgByteSizeCache.has(entry.path)
+      (entry): entry is DuneCatalogEntry => entry.source === 'dune' && !svgByteSizeCache.has(entry.path)
     );
     let completed = 0;
 
@@ -262,8 +247,7 @@ function IconsPage() {
         <Stack align="center" gap="xs">
           <Title order={1}>Icon catalog</Title>
           <Text ta="center" maw={680}>
-            Browse the canonical application topics, Lucide library, and Dune SVG assets available
-            in this project.
+            Browse the canonical application topics, Lucide library, and Dune SVG assets available in this project.
           </Text>
         </Stack>
       </PageLayout.Header>
@@ -366,9 +350,7 @@ function IconsPage() {
             </Surface>
           )}
 
-          {visibleCount < sortedEntries.length ? (
-            <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />
-          ) : null}
+          {visibleCount < sortedEntries.length ? <div ref={sentinelRef} style={{ height: 1 }} aria-hidden /> : null}
         </Stack>
       </PageLayout.Content>
     </PageLayout>

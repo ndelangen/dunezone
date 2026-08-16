@@ -13,16 +13,11 @@ export interface FactionLoadPopoverProps {
 }
 
 /**
- * The toolbar affordance that opens `FactionPicker`. It owns nothing but the open state and the
- * trigger: the picker is mounted only while the popover is open, so its subscription lives only
- * that long. This shell fetches nothing itself — it hands the picker its exclusion slug and a
- * callback, and closes on load or cancel.
+ * The toolbar affordance that opens `FactionPicker`. It owns nothing but the open state and the trigger: the picker is
+ * mounted only while the popover is open, so its subscription lives only that long. This shell fetches nothing itself —
+ * it hands the picker its exclusion slug and a callback, and closes on load or cancel.
  */
-export function FactionLoadPopover({
-  disabled,
-  currentPublicSlug,
-  onLoaded,
-}: FactionLoadPopoverProps) {
+export function FactionLoadPopover({ disabled, currentPublicSlug, onLoaded }: FactionLoadPopoverProps) {
   const [opened, setOpened] = useState(false);
 
   return (

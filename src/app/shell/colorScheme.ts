@@ -75,10 +75,7 @@ function subscribe(listener: () => void): () => void {
     listener();
   };
   listeners.add(listener);
-  const hint =
-    typeof window.matchMedia === 'function'
-      ? window.matchMedia('(prefers-color-scheme: dark)')
-      : null;
+  const hint = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
   hint?.addEventListener('change', relay);
   // Another tab changing the preference reaches this one through the storage event.
   window.addEventListener('storage', relay);

@@ -2,20 +2,12 @@ import { parseTakeWorkResponse } from '../../src/shared/asset-publishing/publica
 import type { TakeWorkResult } from '../../src/shared/asset-publishing/publication';
 import { publisherErrorMessage } from '../../src/shared/asset-publishing/publisher-diagnostics';
 
-export type {
-  AssignedPublicationJob,
-  TakeWorkResult,
-} from '../../src/shared/asset-publishing/publication';
+export type { AssignedPublicationJob, TakeWorkResult } from '../../src/shared/asset-publishing/publication';
 
 type RecordValue = Record<string, unknown>;
 
 function okRecord(value: unknown): RecordValue {
-  if (
-    typeof value !== 'object' ||
-    value === null ||
-    Array.isArray(value) ||
-    (value as RecordValue).ok !== true
-  ) {
+  if (typeof value !== 'object' || value === null || Array.isArray(value) || (value as RecordValue).ok !== true) {
     throw new Error('Convex Publication response is invalid');
   }
   return value as RecordValue;
@@ -37,36 +29,20 @@ export class ConvexPublisherClient {
   ) {}
 
   async takeWork(deadlineAt?: number): Promise<TakeWorkResult> {
-    return parseTakeWorkResponse(
-      await this.postExecutor('take-work', { schemaVersion: 1 }, deadlineAt)
-    );
+    return parseTakeWorkResponse(await this.postExecutor('take-work', { schemaVersion: 1 }, deadlineAt));
   }
 
-  async complete(
-    jobId: string,
-    cacheToken: string,
-    deadlineAt?: number
-  ): Promise<'completed' | 'missing'> {
-    const body = okRecord(
-      await this.postExecutor('complete-job', { schemaVersion: 1, jobId, cacheToken }, deadlineAt)
-    );
+  async complete(jobId: string, cacheToken: string, deadlineAt?: number): Promise<'completed' | 'missing'> {
+    const body = okRecord(await this.postExecutor('complete-job', { schemaVersion: 1, jobId, cacheToken }, deadlineAt));
     if (body.status !== 'completed' && body.status !== 'missing') {
       throw new Error('Convex complete-job response is invalid');
     }
     return body.status;
   }
 
-  async fail(
-    jobId: string,
-    error: unknown,
-    deadlineAt?: number
-  ): Promise<'pending' | 'error' | 'missing'> {
+  async fail(jobId: string, error: unknown, deadlineAt?: number): Promise<'pending' | 'error' | 'missing'> {
     const body = okRecord(
-      await this.postExecutor(
-        'fail-job',
-        { schemaVersion: 1, jobId, error: truncatedError(error) },
-        deadlineAt
-      )
+      await this.postExecutor('fail-job', { schemaVersion: 1, jobId, error: truncatedError(error) }, deadlineAt)
     );
     if (body.status !== 'pending' && body.status !== 'error' && body.status !== 'missing') {
       throw new Error('Convex fail-job response is invalid');
@@ -74,16 +50,11 @@ export class ConvexPublisherClient {
     return body.status;
   }
 
-  private async postExecutor(
-    operation: string,
-    body: unknown,
-    deadlineAt?: number
-  ): Promise<unknown> {
-    return await postJson(
-      `${this.options.executorBaseUrl}/${operation}`,
-      this.options.executorToken,
-      body,
-      { deadlineAt, fetcher: this.options.fetcher, now: this.options.now }
-    );
+  private async postExecutor(operation: string, body: unknown, deadlineAt?: number): Promise<unknown> {
+    return await postJson(`${this.options.executorBaseUrl}/${operation}`, this.options.executorToken, body, {
+      deadlineAt,
+      fetcher: this.options.fetcher,
+      now: this.options.now,
+    });
   }
 }

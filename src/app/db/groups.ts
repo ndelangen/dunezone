@@ -20,8 +20,8 @@ import type {
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
 /**
- * The app reaches Convex only through this layer, so the shapes it needs are re-exported here
- * rather than imported from `convex/` a second time.
+ * The app reaches Convex only through this layer, so the shapes it needs are re-exported here rather than imported from
+ * `convex/` a second time.
  */
 export type { AssignedGroupSummary, MembershipState };
 
@@ -61,17 +61,10 @@ function normalizeGroupDetailFromConvex(raw: GroupDetailPageRaw): GroupDetailPag
   };
 }
 
-export function useGroupDetailBySlug(
-  slug: string,
-  options?: { initialData?: GroupDetailPageData }
-) {
+export function useGroupDetailBySlug(slug: string, options?: { initialData?: GroupDetailPageData }) {
   const liveData = useQuery(api.groups.detailBySlug, { slug });
   const normalizedLive = liveData ? normalizeGroupDetailFromConvex(liveData) : undefined;
-  const result = toLiveQueryResult<GroupDetailPageData | undefined>(
-    normalizedLive,
-    true,
-    () => options?.initialData
-  );
+  const result = toLiveQueryResult<GroupDetailPageData | undefined>(normalizedLive, true, () => options?.initialData);
   return result;
 }
 
@@ -81,19 +74,13 @@ export function useGroupEditBySlug(slug: string, options?: { initialData?: Group
   const editData = normalizedLive
     ? { group: normalizedLive.group, viewerAccess: normalizedLive.viewerAccess }
     : undefined;
-  const result = toLiveQueryResult<GroupEditPageData | undefined>(
-    editData,
-    true,
-    () => options?.initialData
-  );
+  const result = toLiveQueryResult<GroupEditPageData | undefined>(editData, true, () => options?.initialData);
   return result;
 }
 
 /** Call only when `createdBy` is a real user id (e.g. mount a child after profile is known). */
 export function useGroupsByCreator(createdBy: string) {
-  const liveData = useQuery(api.groups.listByCreator, { created_by: createdBy } as never) as
-    | GroupRow[]
-    | undefined;
+  const liveData = useQuery(api.groups.listByCreator, { created_by: createdBy } as never) as GroupRow[] | undefined;
   const result = toLiveQueryResult(liveData, true);
   return {
     ...result,

@@ -35,9 +35,7 @@ test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, new
   });
 
   await test.step('the answer and its acceptance appear on the answerer profile', async () => {
-    const userASlug = (process.env.PLAYWRIGHT_USER_A_EMAIL ?? 'e2e-user-a@example.com').split(
-      '@'
-    )[0]!;
+    const userASlug = (process.env.PLAYWRIGHT_USER_A_EMAIL ?? 'e2e-user-a@example.com').split('@')[0]!;
     const hrefs = await page
       .locator('main a[href^="/profiles/"]')
       .evaluateAll((els) => els.map((el) => el.getAttribute('href') ?? ''));

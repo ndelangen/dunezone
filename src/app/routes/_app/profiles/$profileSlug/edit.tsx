@@ -20,8 +20,7 @@ function ProfileSettings({ initial }: { initial: ProfileEntry }) {
   const [username, setUsername] = useState(initial.username ?? '');
   const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url ?? '');
 
-  const mutationError =
-    update.isError && update.error instanceof Error ? update.error.message : null;
+  const mutationError = update.isError && update.error instanceof Error ? update.error.message : null;
 
   /* `profileSlugBaseFromName` throws when the name has no slug-able characters, and this field is
      controlled — so an empty or punctuation-only value would take the render down with it. There is
@@ -95,9 +94,7 @@ function ProfileSettings({ initial }: { initial: ProfileEntry }) {
         autoComplete="off"
       />
 
-      {mutationError ? (
-        <FormError title="Profile could not be saved">{mutationError}</FormError>
-      ) : null}
+      {mutationError ? <FormError title="Profile could not be saved">{mutationError}</FormError> : null}
       <Group gap="xs" wrap="nowrap">
         <SubmitAction pending={update.isPending}>Save profile</SubmitAction>
       </Group>

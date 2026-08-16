@@ -52,12 +52,7 @@ import {
 
 import { useGroupMembershipWorkflow } from '@db/members';
 import { useCurrentProfile } from '@db/profiles';
-import {
-  loadRulesetDetailPage,
-  useDeleteRuleset,
-  useRulesetDetailPage,
-  useUpdateRuleset,
-} from '@db/rulesets';
+import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useUpdateRuleset } from '@db/rulesets';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from '../RulesetDetail.module.css';
@@ -69,9 +64,7 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
     const tag = params?.tag;
     return {
       ...(typeof q === 'string' ? { q } : {}),
-      ...(typeof tag === 'string' && FAQ_TAG_VALUES.includes(tag as FaqTag)
-        ? { tag: tag as FaqTag }
-        : {}),
+      ...(typeof tag === 'string' && FAQ_TAG_VALUES.includes(tag as FaqTag) ? { tag: tag as FaqTag } : {}),
     };
   },
   loader: async ({ params }) => {
@@ -92,9 +85,7 @@ function RulesetDetailPending() {
       <PageLayout.Header>
         <Stack align="center" gap="xs">
           <Title order={1}>Ruleset</Title>
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
-            Back to rulesets
-          </Anchor>
+          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>Back to rulesets</Anchor>
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
@@ -115,9 +106,7 @@ function RulesetDetailError({ error }: ErrorComponentProps) {
       <PageLayout.Header>
         <Stack align="center" gap="xs">
           <Title order={1}>Ruleset</Title>
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
-            Back to rulesets
-          </Anchor>
+          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>Back to rulesets</Anchor>
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
@@ -149,9 +138,7 @@ function RulesetDetailPage() {
         <PageLayout.Header>
           <Stack align="center" gap="xs">
             <Title order={1}>Ruleset</Title>
-            <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
-              Back to rulesets
-            </Anchor>
+            <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>Back to rulesets</Anchor>
           </Stack>
         </PageLayout.Header>
         <PageLayout.Content>
@@ -173,14 +160,11 @@ function RulesetDetailPage() {
 
   const r = page.ruleset;
   const assignedGroup = viewerAccess.assignedGroup;
-  const membershipStatus =
-    viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
+  const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const canRequestMembership = viewerAccess.capabilities.requestMembership;
   const answeredFaqCount = page.faqItems.filter((item) => item.accepted_answer_id != null).length;
   const mutationError =
-    deleteRuleset.error?.message ??
-    membershipWorkflow.request.error?.message ??
-    updateRuleset.error?.message;
+    deleteRuleset.error?.message ?? membershipWorkflow.request.error?.message ?? updateRuleset.error?.message;
   const canChangeGroup = viewerAccess.capabilities.changeGroup;
   const hasAssignment = r.group_id != null;
   const actionVisibility = {
@@ -238,11 +222,7 @@ function RulesetDetailPage() {
             </span>
           </Surface>
           <Stack gap={6} className={styles.pageHeadText}>
-            <Anchor
-              size="sm"
-              fw={600}
-              renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
-            >
+            <Anchor size="sm" fw={600} renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
               Rulesets
             </Anchor>
             <Title order={1} className={styles.rulesetTitle}>
@@ -253,11 +233,7 @@ function RulesetDetailPage() {
                 Maintained by
               </Text>
               {page.owner ? (
-                <ProfileLink
-                  slug={page.owner.slug}
-                  username={page.owner.username}
-                  avatar_url={page.owner.avatar_url}
-                />
+                <ProfileLink slug={page.owner.slug} username={page.owner.username} avatar_url={page.owner.avatar_url} />
               ) : (
                 <Text size="sm">Unknown</Text>
               )}
@@ -284,11 +260,7 @@ function RulesetDetailPage() {
                   color="dune"
                   size="lg"
                   renderRoot={(rootProps) => (
-                    <Link
-                      {...rootProps}
-                      to="/rulesets/$rulesetSlug/edit"
-                      params={{ rulesetSlug: r.slug }}
-                    />
+                    <Link {...rootProps} to="/rulesets/$rulesetSlug/edit" params={{ rulesetSlug: r.slug }} />
                   )}
                   icon={<Pencil size={17} aria-hidden />}
                 />
@@ -387,20 +359,16 @@ function RulesetDetailPage() {
               </Alert>
             ) : null}
 
-            <Section
-              id="overview"
-              icon={<BookOpen size={20} aria-hidden />}
-              title="About this ruleset"
-            >
+            <Section id="overview" icon={<BookOpen size={20} aria-hidden />} title="About this ruleset">
               <Surface padding="lg">
                 <ProposedContent label="Planned content · new fields required">
                   <Text>
-                    A concise introduction explaining the ruleset&apos;s purpose, intended audience,
-                    and how it differs from the base game.
+                    A concise introduction explaining the ruleset&apos;s purpose, intended audience, and how it differs
+                    from the base game.
                   </Text>
                   <Text c="dimmed">
-                    Compatibility should identify the base edition or parent ruleset, required
-                    expansions, and whether this ruleset can be mixed with other variants.
+                    Compatibility should identify the base edition or parent ruleset, required expansions, and whether
+                    this ruleset can be mixed with other variants.
                   </Text>
                 </ProposedContent>
               </Surface>
@@ -414,22 +382,10 @@ function RulesetDetailPage() {
             >
               <Stack gap="md">
                 {[
-                  [
-                    'Setup changes',
-                    'Changes to preparation, starting resources, map state, and player count.',
-                  ],
-                  [
-                    'Core rule changes',
-                    'The rules that override or extend the base game during normal play.',
-                  ],
-                  [
-                    'Victory and end game',
-                    'Changed victory conditions, turn limits, tie breakers, or scoring.',
-                  ],
-                  [
-                    'Optional variants',
-                    'Clearly optional modules that groups may enable independently.',
-                  ],
+                  ['Setup changes', 'Changes to preparation, starting resources, map state, and player count.'],
+                  ['Core rule changes', 'The rules that override or extend the base game during normal play.'],
+                  ['Victory and end game', 'Changed victory conditions, turn limits, tie breakers, or scoring.'],
+                  ['Optional variants', 'Clearly optional modules that groups may enable independently.'],
                 ].map(([title, description]) => (
                   <Card key={title} title={title}>
                     <Text size="sm" c="dimmed">
@@ -440,11 +396,7 @@ function RulesetDetailPage() {
               </Stack>
             </Section>
 
-            <Section
-              id="factions"
-              icon={<Layers3 size={20} aria-hidden />}
-              title="Included factions"
-            >
+            <Section id="factions" icon={<Layers3 size={20} aria-hidden />} title="Included factions">
               {page.factions.length > 0 ? (
                 <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
                   {page.factions.map((f) => (
@@ -460,11 +412,7 @@ function RulesetDetailPage() {
                       title={f.name}
                       meta="Details, components, and special rules"
                       renderRoot={(rootProps) => (
-                        <Link
-                          {...rootProps}
-                          to="/factions/$factionId"
-                          params={{ factionId: f.urlSlug }}
-                        />
+                        <Link {...rootProps} to="/factions/$factionId" params={{ factionId: f.urlSlug }} />
                       )}
                     />
                   ))}
@@ -537,13 +485,7 @@ function RulesetDetailPage() {
             />
           </Section>
 
-          <Stack
-            gap="md"
-            component="aside"
-            aria-label="Ruleset details"
-            miw={0}
-            className={styles.detailsColumn}
-          >
+          <Stack gap="md" component="aside" aria-label="Ruleset details" miw={0} className={styles.detailsColumn}>
             <Card icon={<ListTree size={20} aria-hidden />} title="At a glance">
               <Stats
                 items={[
@@ -602,11 +544,7 @@ function RulesetDetailPage() {
                         <Anchor
                           fw={600}
                           renderRoot={(rootProps) => (
-                            <Link
-                              {...rootProps}
-                              to="/groups/$groupSlug"
-                              params={{ groupSlug: assignedGroup.slug }}
-                            />
+                            <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: assignedGroup.slug }} />
                           )}
                         >
                           {assignedGroup.name}
@@ -641,11 +579,7 @@ function RulesetDetailPage() {
                         variant="light"
                         leftSection={<UserPlus size={16} aria-hidden />}
                         loading={membershipWorkflow.request.isPending}
-                        onClick={() =>
-                          void membershipWorkflow.request
-                            .run(assignedGroup.id)
-                            .catch(() => undefined)
-                        }
+                        onClick={() => void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)}
                       >
                         Request membership
                       </Button>

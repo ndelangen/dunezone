@@ -28,9 +28,7 @@ function normalizeProfilePage(result: ProfileDetailResult) {
     faqAsked: result.faqAsked,
     faqAnswers: result.faqAnswers,
     factions: factionCatalogueRowsToEntries(result.factions),
-    acceptedAnswerCount: result.faqAnswers.filter(
-      (answer) => answer.faq_item.accepted_answer_id === answer._id
-    ).length,
+    acceptedAnswerCount: result.faqAnswers.filter((answer) => answer.faq_item.accepted_answer_id === answer._id).length,
   };
 }
 
@@ -98,9 +96,7 @@ export function useCurrentProfile() {
 }
 
 export function useUpdateCurrentProfile() {
-  const mutate = useLiveMutation<{ username: string; avatar_url: string }, ProfileRow>(
-    api.profiles.updateCurrent
-  );
+  const mutate = useLiveMutation<{ username: string; avatar_url: string }, ProfileRow>(api.profiles.updateCurrent);
   const parseProfileInput = (input: ProfileUserEditInput) => {
     const parsed = profileUserEditFormSchema.safeParse(input);
     if (!parsed.success) {
@@ -134,10 +130,7 @@ export function useUpdateCurrentProfile() {
           }
         );
       } catch (error) {
-        options?.onError?.(
-          error instanceof Error ? error : new Error('Invalid profile input'),
-          variables
-        );
+        options?.onError?.(error instanceof Error ? error : new Error('Invalid profile input'), variables);
       }
     },
     mutateAsync: async (variables: { input: ProfileUserEditInput }) => {

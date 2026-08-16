@@ -83,8 +83,6 @@ describe('group collaboration permissions', () => {
         group_id: null,
       })
     ).rejects.toThrow('Only the ruleset owner can change its group');
-    await expect(member.mutation(api.rulesets.softDelete, { id: ruleset._id })).rejects.toThrow(
-      'Not authorized'
-    );
+    await expect(member.mutation(api.rulesets.softDelete, { id: ruleset._id })).rejects.toThrow('Not authorized');
   });
 });

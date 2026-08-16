@@ -9,20 +9,17 @@ import { Surface } from './Surface';
 
 export interface SpotlightProps {
   /**
-   * Required. Circular artwork identifying the subject — a faction token, an avatar, a cover.
-   * Without it this is just a surface with text in it, and the whole point is that a spotlight is
-   * recognisable at a glance as _a specific thing you can go to_.
+   * Required. Circular artwork identifying the subject — a faction token, an avatar, a cover. Without it this is just a
+   * surface with text in it, and the whole point is that a spotlight is recognisable at a glance as _a specific thing
+   * you can go to_.
    */
   media: ReactNode;
-  /**
-   * Why this one was singled out, e.g. `New arrival`. Omit when every peer is here for the same
-   * reason.
-   */
+  /** Why this one was singled out, e.g. `New arrival`. Omit when every peer is here for the same reason. */
   eyebrow?: string;
   title: ReactNode;
   /**
-   * Required. One line of supporting fact — a date, a summary. A title on its own gives the reader
-   * nothing to choose on, which is the job a spotlight exists to do.
+   * Required. One line of supporting fact — a date, a summary. A title on its own gives the reader nothing to choose
+   * on, which is the job a spotlight exists to do.
    */
   meta: ReactNode;
   /** Turns the whole surface into the link. Same shape as Mantine's `renderRoot`. */
@@ -32,10 +29,9 @@ export interface SpotlightProps {
 /**
  * Singles one entity out of a collection and sends you to it.
  *
- * Callers own the artwork, the reason and the destination. This component owns what makes it one
- * offer rather than a box of text: the whole surface is the target, the artwork identifies the
- * subject before the words are read, the chevron says where it goes, and the title truncates rather
- * than reflowing.
+ * Callers own the artwork, the reason and the destination. This component owns what makes it one offer rather than a
+ * box of text: the whole surface is the target, the artwork identifies the subject before the words are read, the
+ * chevron says where it goes, and the title truncates rather than reflowing.
  *
  * Distinct from `Card`, which names a region you are already in; a spotlight points somewhere else.
  */

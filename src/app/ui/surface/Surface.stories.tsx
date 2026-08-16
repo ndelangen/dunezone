@@ -12,8 +12,8 @@ const meta = preview.meta({
 });
 
 /**
- * The bare pane. Note the grid showing through: the infill is translucent and blurred, which is
- * what lets the desert artwork read behind it in the app.
+ * The bare pane. Note the grid showing through: the infill is translucent and blurred, which is what lets the desert
+ * artwork read behind it in the app.
  */
 export const Default = meta.story({});
 

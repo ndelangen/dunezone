@@ -45,15 +45,9 @@ function snapshotDeadline(request: Request): number {
   return Number.isSafeInteger(parsed) ? Math.min(maximum, parsed) : maximum;
 }
 
-type PublicationJobValidation =
-  | { status: 'valid'; body: unknown }
-  | { status: 'invalid' }
-  | { status: 'unavailable' };
+type PublicationJobValidation = { status: 'valid'; body: unknown } | { status: 'invalid' } | { status: 'unavailable' };
 
-async function validatePublicationJob(
-  request: Request,
-  env: CaptureEnv
-): Promise<PublicationJobValidation> {
+async function validatePublicationJob(request: Request, env: CaptureEnv): Promise<PublicationJobValidation> {
   const jobId = publicationJobId(request);
   if (!jobId) {
     return { status: 'invalid' };
@@ -132,10 +126,7 @@ async function exactSnapshot(request: Request, env: CaptureEnv): Promise<Respons
   return noStoreJson(validation.body, 200);
 }
 
-export async function handleCaptureRoute(
-  request: Request,
-  env: CaptureEnv
-): Promise<Response | undefined> {
+export async function handleCaptureRoute(request: Request, env: CaptureEnv): Promise<Response | undefined> {
   const pathname = new URL(request.url).pathname;
   if (pathname === CAPTURE_PROTOCOL.paths.document) {
     return await captureDocument(request, env);

@@ -68,16 +68,13 @@ export default async function globalSetup(config: FullConfig) {
   const userBEmail = process.env.PLAYWRIGHT_USER_B_EMAIL;
   const userPassword = process.env.PLAYWRIGHT_USER_PASSWORD;
   if (!userAEmail || !userBEmail || !userPassword) {
-    throw new Error(
-      'PLAYWRIGHT_USER_A_EMAIL, PLAYWRIGHT_USER_B_EMAIL and PLAYWRIGHT_USER_PASSWORD are required'
-    );
+    throw new Error('PLAYWRIGHT_USER_A_EMAIL, PLAYWRIGHT_USER_B_EMAIL and PLAYWRIGHT_USER_PASSWORD are required');
   }
 
   await mkdir('.playwright', { recursive: true });
   /**
-   * Each spec file gets its own session: Convex Auth rotates refresh tokens, so two parallel
-   * workers sharing a storage state would invalidate each other's session mid-run. Logins are
-   * independent, so they run concurrently.
+   * Each spec file gets its own session: Convex Auth rotates refresh tokens, so two parallel workers sharing a storage
+   * state would invalidate each other's session mid-run. Logins are independent, so they run concurrently.
    */
   const sessions: Credentials[] = [
     { email: userAEmail, password: userPassword, storageStatePath: '.playwright/user-a.json' },

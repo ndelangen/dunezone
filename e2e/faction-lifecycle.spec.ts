@@ -63,9 +63,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.getByRole('button', { name: 'Reset unsaved edits' }).click();
     await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
-    await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(
-      factionALeaderName
-    );
+    await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(factionALeaderName);
   });
 
   await test.step('warning focus, name blocking, review, and artifact proof use the loaded draft', async () => {
@@ -82,9 +80,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     const factionName = page.getByRole('textbox', { name: 'Faction name' });
     await factionName.fill('');
     await expect(page.getByRole('button', { name: 'Save faction' })).toBeDisabled();
-    await expect(
-      page.getByText('Add a faction name before saving; it determines the faction URL.')
-    ).toBeVisible();
+    await expect(page.getByText('Add a faction name before saving; it determines the faction URL.')).toBeVisible();
     await factionName.fill(factionAName);
 
     await page
@@ -100,9 +96,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(page.getByRole('heading', { name: 'Review faction artifacts' })).toBeVisible();
     const reviewScroller = page.locator('[data-faction-review-scroller]');
     await expect
-      .poll(async () =>
-        reviewScroller.evaluate((element) => element.scrollHeight > element.clientHeight)
-      )
+      .poll(async () => reviewScroller.evaluate((element) => element.scrollHeight > element.clientHeight))
       .toBe(true);
     await reviewScroller.evaluate((element) => {
       element.scrollTop = 173;
@@ -137,9 +131,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
      * snap back to the values it loaded the page with.
      */
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
-    await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(
-      importedLeaderName
-    );
+    await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(importedLeaderName);
     await page.getByRole('tab', { name: 'Identity & Appearance', exact: true }).click();
 
     const savedFactionName = page.getByRole('textbox', { name: 'Faction name' });
@@ -150,15 +142,10 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.reload();
     await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
-    await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(
-      importedLeaderName
-    );
+    await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(importedLeaderName);
     await page.getByRole('tab', { name: /Complexity/ }).click();
     await expect(page.getByRole('switch', { name: 'Set the rating manually' })).toBeChecked();
-    await expect(page.getByRole('slider', { name: 'Manual complexity rating' })).toHaveAttribute(
-      'aria-valuenow',
-      '7'
-    );
+    await expect(page.getByRole('slider', { name: 'Manual complexity rating' })).toHaveAttribute('aria-valuenow', '7');
 
     await page.goto(factionBEditUrl);
     await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionBName);
@@ -170,9 +157,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(factionAEditUrl);
 
-    await expect(
-      page.getByRole('button', { name: 'Review faction sheet', includeHidden: true })
-    ).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Review faction sheet', includeHidden: true })).toBeHidden();
     await expect(
       page.getByRole('region', {
         name: 'Background composite live preview',
@@ -183,9 +168,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
       'Identity & Appearance'
     );
     await page.getByRole('button', { name: 'Next section' }).click();
-    await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(
-      importedLeaderName
-    );
+    await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(importedLeaderName);
   });
 
   await test.step('catalogue state stays responsive, canonical, and in one history entry', async () => {
@@ -235,9 +218,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     const updatedFaction = factionCard(catalogue, factionAName);
     const otherFaction = factionCard(catalogue, factionBName);
     await expect(updatedFaction).toBeVisible();
-    await expect(
-      updatedFaction.getByRole('img', { name: 'Expert complexity, 7 out of 10' })
-    ).toBeVisible();
+    await expect(updatedFaction.getByRole('img', { name: 'Expert complexity, 7 out of 10' })).toBeVisible();
 
     await page.getByRole('button', { name: /^Refine/ }).click();
     const minimumComplexity = page.getByRole('slider', { name: 'Minimum complexity' });

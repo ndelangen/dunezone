@@ -92,9 +92,7 @@ describe('homepage page data', () => {
     migrationsTest.register(t);
     await t.run(async (ctx) => {
       const users = await Promise.all(
-        Array.from({ length: 6 }, (_, index) =>
-          ctx.db.insert('users', { name: `Homepage member ${index}` })
-        )
+        Array.from({ length: 6 }, (_, index) => ctx.db.insert('users', { name: `Homepage member ${index}` }))
       );
       const rows = [
         ['first', '2026-07-01T00:00:00.000Z', 'https://example.com/first.png'],

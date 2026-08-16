@@ -1,9 +1,8 @@
 /**
- * The single source of truth for generated image variants — shared by the generator
- * (scripts/generate-images.ts), the structural verifier, and the runtime resolver. Decided on the
- * wayfinder map (#250): formats are declared by usage intent, never sniffed from source pixels;
- * sizes cover ~2× the largest rendered size per category; JPEG tiers are progressive (the only
- * shippable format with progressive rendering); print tiers are JPEG for PDF DCT passthrough
+ * The single source of truth for generated image variants — shared by the generator (scripts/generate-images.ts), the
+ * structural verifier, and the runtime resolver. Decided on the wayfinder map (#250): formats are declared by usage
+ * intent, never sniffed from source pixels; sizes cover ~2× the largest rendered size per category; JPEG tiers are
+ * progressive (the only shippable format with progressive rendering); print tiers are JPEG for PDF DCT passthrough
  * eligibility.
  */
 
@@ -16,9 +15,8 @@ export type CategoryRule = {
   /** Encode single-channel grayscale (textures are always black & white). */
   grayscale?: boolean;
   /**
-   * Usage intent: does this category's UI slot require an alpha channel? The generator fails loudly
-   * when an opaque category receives a genuinely transparent source — a human decides, nothing is
-   * silently flattened.
+   * Usage intent: does this category's UI slot require an alpha channel? The generator fails loudly when an opaque
+   * category receives a genuinely transparent source — a human decides, nothing is silently flattened.
    */
   transparent: boolean;
   /** Tier widths in px; `null` means native size (never upscale). */

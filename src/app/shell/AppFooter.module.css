@@ -27,9 +27,7 @@
   padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 2rem;
   border: 1px solid rgba(248, 175, 64, 0.18);
   border-radius: 8px 8px 0 0;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(199, 131, 70, 0.2), transparent 52%),
-    rgba(35, 27, 23, 0.82);
+  background: radial-gradient(circle at 50% 0%, rgba(199, 131, 70, 0.2), transparent 52%), rgba(35, 27, 23, 0.82);
   box-shadow: 0 -14px 38px rgba(17, 11, 8, 0.16);
   color: #fff9ef;
   font-family: inherit;
@@ -130,9 +128,7 @@
 /* The band's warm-black glass belongs to the light scheme; dark trades it for Twilight navy. */
 [data-mantine-color-scheme="dark"] .waypoints {
   border-color: rgba(150, 165, 195, 0.25);
-  background:
-    radial-gradient(circle at 50% 0%, rgba(67, 83, 110, 0.3), transparent 52%),
-    rgba(12, 20, 34, 0.82);
+  background: radial-gradient(circle at 50% 0%, rgba(67, 83, 110, 0.3), transparent 52%), rgba(12, 20, 34, 0.82);
   box-shadow: 0 -14px 38px rgba(4, 8, 16, 0.3);
 }
 

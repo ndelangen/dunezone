@@ -26,9 +26,7 @@ beforeEach(() => {
     mutation.mockResolvedValue({ membershipId: 'membership-1', status: 'active' });
   }
   const mutations = [mocks.request, mocks.approve, mocks.reject, mocks.remove, mocks.add];
-  mocks.useMutation.mockImplementation(
-    () => mutations[(mocks.useMutation.mock.calls.length - 1) % mutations.length]
-  );
+  mocks.useMutation.mockImplementation(() => mutations[(mocks.useMutation.mock.calls.length - 1) % mutations.length]);
 });
 
 describe('Group membership workflow', () => {
@@ -36,13 +34,7 @@ describe('Group membership workflow', () => {
     const hook = renderHook(() => useGroupMembershipWorkflow());
 
     for (const command of Object.values(hook.result.current)) {
-      expect(Object.keys(command).sort()).toEqual([
-        'error',
-        'isError',
-        'isPending',
-        'reset',
-        'run',
-      ]);
+      expect(Object.keys(command).sort()).toEqual(['error', 'isError', 'isPending', 'reset', 'run']);
     }
 
     await act(() => hook.result.current.request.run('group-1'));
@@ -64,9 +56,7 @@ describe('Group membership workflow', () => {
     const hook = renderHook(() => useGroupMembershipWorkflow());
 
     await act(async () => {
-      await expect(hook.result.current.approve.run('membership-1')).rejects.toThrow(
-        'Approve failed'
-      );
+      await expect(hook.result.current.approve.run('membership-1')).rejects.toThrow('Approve failed');
     });
     expect(hook.result.current.approve.error?.message).toBe('Approve failed');
 

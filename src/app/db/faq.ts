@@ -43,9 +43,7 @@ export type FaqVoidCommand = CommandState & {
   run: () => Promise<void>;
 };
 
-function commandState<TVariables, TResult>(
-  mutation: LiveMutationResult<TVariables, TResult>
-): CommandState {
+function commandState<TVariables, TResult>(mutation: LiveMutationResult<TVariables, TResult>): CommandState {
   return {
     isPending: mutation.isPending,
     isError: mutation.isError,
@@ -82,10 +80,7 @@ export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<
   return await db.query(api.faq.questionPage, locator);
 }
 
-export function useFaqQuestionPage(
-  locator: FaqQuestionLocator,
-  options?: { initialPage?: FaqQuestionPage }
-) {
+export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPage }) {
   const livePage = useQuery(api.faq.questionPage, locator);
   const query = toLiveQueryResult(livePage, true, () => options?.initialPage);
   const questionId = query.data?.question.id;
@@ -94,16 +89,11 @@ export function useFaqQuestionPage(
     { questionId: string; input: { question: string; tags: FaqTag[] } },
     unknown
   >(api.faq.editQuestion);
-  const deleteQuestionMutation = useLiveMutation<{ questionId: string }, unknown>(
-    api.faq.deleteQuestion
+  const deleteQuestionMutation = useLiveMutation<{ questionId: string }, unknown>(api.faq.deleteQuestion);
+  const createAnswerMutation = useLiveMutation<{ faq_item_id: string; answer: string }, unknown>(api.faq.createAnswer);
+  const editAnswerMutation = useLiveMutation<{ answerId: string; input: { answer: string } }, unknown>(
+    api.faq.editAnswer
   );
-  const createAnswerMutation = useLiveMutation<{ faq_item_id: string; answer: string }, unknown>(
-    api.faq.createAnswer
-  );
-  const editAnswerMutation = useLiveMutation<
-    { answerId: string; input: { answer: string } },
-    unknown
-  >(api.faq.editAnswer);
   const deleteAnswerMutation = useLiveMutation<{ id: string }, unknown>(api.faq.deleteAnswer);
   const setAcceptedAnswerMutation = useLiveMutation<
     { faq_item_id: string; accepted_answer_id: string | null },

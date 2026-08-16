@@ -115,9 +115,7 @@ function TroopCard({
                           onBlur={field.handleBlur}
                           onChange={(value) =>
                             field.handleChange(
-                              typeof value === 'number' && Number.isInteger(value) && value > 0
-                                ? value
-                                : 1
+                              typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 1
                             )
                           }
                         />
@@ -138,9 +136,7 @@ function TroopCard({
                           placeholder="e.g. Meridian Prime"
                           value={field.state.value ?? ''}
                           onBlur={field.handleBlur}
-                          onChange={(event) =>
-                            field.handleChange(event.currentTarget.value || undefined)
-                          }
+                          onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
                         />
                       }
                     />
@@ -222,9 +218,7 @@ export function FactionFormSectionTroops({
   const [internalSelectedIndex, setInternalSelectedIndex] = useState(0);
   const currentSelectedIndex = selectedIndex ?? internalSelectedIndex;
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
-  const [troopSideTabByIndex, setTroopSideTabByIndex] = useState<Record<number, 'front' | 'back'>>(
-    {}
-  );
+  const [troopSideTabByIndex, setTroopSideTabByIndex] = useState<Record<number, 'front' | 'back'>>({});
 
   return (
     <Stack component="section" gap="md" aria-label="Troop inventory">
@@ -232,10 +226,7 @@ export function FactionFormSectionTroops({
         {(field) => {
           const sortablePrefix = 'troops-';
           const count = field.state.value.length;
-          const safeSelectedIndex = Math.min(
-            Math.max(currentSelectedIndex, 0),
-            Math.max(count - 1, 0)
-          );
+          const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
           return (
             <Stack gap="md">
               <Group justify="flex-end">
@@ -282,12 +273,8 @@ export function FactionFormSectionTroops({
                     onMove={(from, to) => {
                       field.handleChange(arrayMove(field.state.value, from, to));
                       setTroopSideTabByIndex((previous) => {
-                        const tabs = field.state.value.map(
-                          (_, index) => previous[index] ?? 'front'
-                        );
-                        return Object.fromEntries(
-                          arrayMove(tabs, from, to).map((tab, index) => [index, tab])
-                        );
+                        const tabs = field.state.value.map((_, index) => previous[index] ?? 'front');
+                        return Object.fromEntries(arrayMove(tabs, from, to).map((tab, index) => [index, tab]));
                       });
                     }}
                   />

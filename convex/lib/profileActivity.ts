@@ -22,15 +22,11 @@ const profileActivity = new DirectAggregate<{
 }>(components.profileActivity);
 
 function membershipItem(membership: Doc<'group_members'>): ActivityItem | null {
-  return membership.status === 'active'
-    ? { namespace: 'groups', key: [membership.user_id], id: membership._id }
-    : null;
+  return membership.status === 'active' ? { namespace: 'groups', key: [membership.user_id], id: membership._id } : null;
 }
 
 function factionItem(faction: Doc<'factions'>): ActivityItem | null {
-  return faction.is_deleted
-    ? null
-    : { namespace: 'factions', key: [faction.owner_id], id: faction._id };
+  return faction.is_deleted ? null : { namespace: 'factions', key: [faction.owner_id], id: faction._id };
 }
 
 function questionItem(question: Doc<'faq_items'>): ActivityItem {
@@ -42,16 +38,10 @@ function answerItem(answer: Doc<'faq_answers'>): ActivityItem {
 }
 
 function sameItem(left: ActivityItem | null, right: ActivityItem | null): boolean {
-  return (
-    left?.namespace === right?.namespace && left?.key[0] === right?.key[0] && left?.id === right?.id
-  );
+  return left?.namespace === right?.namespace && left?.key[0] === right?.key[0] && left?.id === right?.id;
 }
 
-async function applyTransition(
-  ctx: MutationCtx,
-  oldItem: ActivityItem | null,
-  newItem: ActivityItem | null
-) {
+async function applyTransition(ctx: MutationCtx, oldItem: ActivityItem | null, newItem: ActivityItem | null) {
   if (sameItem(oldItem, newItem)) {
     if (newItem) {
       await profileActivity.insertIfDoesNotExist(ctx, newItem);
@@ -138,10 +128,7 @@ export async function clearProfileActivity(ctx: MutationCtx) {
   await profileActivity.clearAll(ctx);
 }
 
-export async function reconcileMembershipActivity(
-  ctx: MutationCtx,
-  membership: Doc<'group_members'>
-) {
+export async function reconcileMembershipActivity(ctx: MutationCtx, membership: Doc<'group_members'>) {
   const item = { namespace: 'groups' as const, key: [membership.user_id] as [string] };
   if (membership.status === 'active') {
     await profileActivity.insertIfDoesNotExist(ctx, { ...item, id: membership._id });

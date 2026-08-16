@@ -16,8 +16,7 @@ export function usePublicationJobsPage(args: {
 }
 
 export function useSetPublicationPickupEnabled() {
-  return useLiveMutation<
-    { enabled: boolean },
-    { publicationPickupEnabled: boolean; updatedAt: number }
-  >(api.publicationAdmin.setPickupEnabled);
+  return useLiveMutation<{ enabled: boolean }, { publicationPickupEnabled: boolean; updatedAt: number }>(
+    api.publicationAdmin.setPickupEnabled
+  );
 }

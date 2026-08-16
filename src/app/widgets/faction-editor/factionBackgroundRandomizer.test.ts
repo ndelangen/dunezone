@@ -4,11 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Faction } from '@db/factions';
 
 import { BACKGROUND_PATTERN_CATALOGUE } from './backgroundPatternCatalogue';
-import {
-  backgroundRecipeCount,
-  randomizeBackground,
-  withRandomPattern,
-} from './factionBackgroundRandomizer';
+import { backgroundRecipeCount, randomizeBackground, withRandomPattern } from './factionBackgroundRandomizer';
 
 const original: Faction['background'] = {
   image: '/image/texture/021.jpg',
@@ -47,11 +43,7 @@ describe('background studio random actions', () => {
 
   it('never returns the exact current catalogue combination', () => {
     for (let recipeIndex = 0; recipeIndex < backgroundRecipeCount; recipeIndex += 1) {
-      for (
-        let patternIndex = 0;
-        patternIndex < BACKGROUND_PATTERN_CATALOGUE.length;
-        patternIndex += 1
-      ) {
+      for (let patternIndex = 0; patternIndex < BACKGROUND_PATTERN_CATALOGUE.length; patternIndex += 1) {
         const sampledValues = [
           (recipeIndex + 0.5) / backgroundRecipeCount,
           (patternIndex + 0.5) / BACKGROUND_PATTERN_CATALOGUE.length,
@@ -65,9 +57,7 @@ describe('background studio random actions', () => {
 
         expect(next).not.toEqual(current);
         expect(Background.safeParse(next).success).toBe(true);
-        expect(BACKGROUND_PATTERN_CATALOGUE.some((option) => option.image === next.image)).toBe(
-          true
-        );
+        expect(BACKGROUND_PATTERN_CATALOGUE.some((option) => option.image === next.image)).toBe(true);
       }
     }
   });

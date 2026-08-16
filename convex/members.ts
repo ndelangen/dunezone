@@ -4,10 +4,7 @@ import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
 import { requireGroupCapability, requireMembershipRequest } from './lib/collaborativeAccess';
-import {
-  groupMemberValidator,
-  membershipCommandAcknowledgementValidator,
-} from './lib/collaborativeAccessValidators';
+import { groupMemberValidator, membershipCommandAcknowledgementValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import { nowIso } from './lib/utils';
 
@@ -60,10 +57,7 @@ async function rejectRequestHandler(ctx: MutationCtx, membershipId: Id<'group_me
   return await rejectMembership(ctx, membership);
 }
 
-async function rejectMembership(
-  ctx: MutationCtx,
-  membership: Awaited<ReturnType<typeof requireMembership>>
-) {
+async function rejectMembership(ctx: MutationCtx, membership: Awaited<ReturnType<typeof requireMembership>>) {
   if (membership.status !== 'pending') {
     throw new Error('Membership is not pending approval');
   }
@@ -101,10 +95,7 @@ async function removeMembership(
   return await requireMembership(ctx, membership._id);
 }
 
-async function addMemberHandler(
-  ctx: MutationCtx,
-  args: { groupId: Id<'groups'>; userId: Id<'users'> }
-) {
+async function addMemberHandler(ctx: MutationCtx, args: { groupId: Id<'groups'>; userId: Id<'users'> }) {
   const actorId = await requireAuthUserId(ctx);
   await requireGroupCapability(ctx, args.groupId, 'addMember');
 
@@ -171,22 +162,19 @@ export const request = mutation({
 export const approveRequest = mutation({
   args: { membershipId: v.id('group_members') },
   returns: membershipCommandAcknowledgementValidator,
-  handler: async (ctx, args) =>
-    commandAcknowledgement(await approveRequestHandler(ctx, args.membershipId)),
+  handler: async (ctx, args) => commandAcknowledgement(await approveRequestHandler(ctx, args.membershipId)),
 });
 
 export const rejectRequest = mutation({
   args: { membershipId: v.id('group_members') },
   returns: membershipCommandAcknowledgementValidator,
-  handler: async (ctx, args) =>
-    commandAcknowledgement(await rejectRequestHandler(ctx, args.membershipId)),
+  handler: async (ctx, args) => commandAcknowledgement(await rejectRequestHandler(ctx, args.membershipId)),
 });
 
 export const removeMember = mutation({
   args: { membershipId: v.id('group_members') },
   returns: membershipCommandAcknowledgementValidator,
-  handler: async (ctx, args) =>
-    commandAcknowledgement(await removeMemberHandler(ctx, args.membershipId)),
+  handler: async (ctx, args) => commandAcknowledgement(await removeMemberHandler(ctx, args.membershipId)),
 });
 
 export const addMember = mutation({

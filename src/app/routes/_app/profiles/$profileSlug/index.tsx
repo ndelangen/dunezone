@@ -79,8 +79,8 @@ function AskerChip({
 /**
  * Lists the questions a person has asked, each under the ruleset it belongs to.
  *
- * The page owns the collection and what to say when it is empty. This owns the rhythm: one row per
- * question, the ruleset-and-date context strip above it, and the link to the question itself.
+ * The page owns the collection and what to say when it is empty. This owns the rhythm: one row per question, the
+ * ruleset-and-date context strip above it, and the link to the question itself.
  */
 function FaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] }) {
   return (
@@ -116,17 +116,10 @@ function FaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] }) {
 /**
  * Lists the answers a person has given, each under the question it answers.
  *
- * The page owns the collection, the empty case, and which profile is being viewed — that last one
- * decides whether an asker reads as a name or as "Your question". This owns the rhythm and the
- * picked-answer marker.
+ * The page owns the collection, the empty case, and which profile is being viewed — that last one decides whether an
+ * asker reads as a name or as "Your question". This owns the rhythm and the picked-answer marker.
  */
-function FaqAnswersGiven({
-  items,
-  viewedProfileId,
-}: {
-  items: FaqAnswerGiven[];
-  viewedProfileId: string;
-}) {
+function FaqAnswersGiven({ items, viewedProfileId }: { items: FaqAnswerGiven[]; viewedProfileId: string }) {
   return (
     <SectionedSurface>
       {items.map((row) => {
@@ -273,11 +266,7 @@ function ProfileDetailPage() {
       <PageLayout.Header size="compact">
         <div className={styles.identityRow}>
           {page.profile.avatar_url ? (
-            <img
-              src={page.profile.avatar_url}
-              alt={page.profile.username ?? 'Avatar'}
-              className={styles.avatar}
-            />
+            <img src={page.profile.avatar_url} alt={page.profile.username ?? 'Avatar'} className={styles.avatar} />
           ) : (
             <span className={styles.avatarPlaceholder}>{initials}</span>
           )}
@@ -285,8 +274,7 @@ function ProfileDetailPage() {
             <h1 className={styles.displayName}>{page.profile.username ?? 'Unknown'}</h1>
             {isSelf && <p className={styles.selfHint}>This is you!</p>}
             <p className={styles.profileSummary}>
-              <strong>Proposed bio:</strong> A short introduction describing this contributor's
-              interests and work.
+              <strong>Proposed bio:</strong> A short introduction describing this contributor's interests and work.
             </p>
           </Stack>
         </div>
@@ -317,10 +305,7 @@ function ProfileDetailPage() {
               </Surface>
             </Section>
 
-            <Section
-              icon={<MessageCircleReply size={20} aria-hidden />}
-              title="Answers contributed"
-            >
+            <Section icon={<MessageCircleReply size={20} aria-hidden />} title="Answers contributed">
               {page.faqAnswers.length > 0 ? (
                 <FaqAnswersGiven items={page.faqAnswers} viewedProfileId={page.profile._id} />
               ) : (
@@ -417,11 +402,7 @@ function ProfileDetailPage() {
                 ) : (
                   <Links>
                     {page.groupSummaries.map((group) => (
-                      <Links.Item
-                        key={group.id}
-                        to="/groups/$groupSlug"
-                        params={{ groupSlug: group.slug }}
-                      >
+                      <Links.Item key={group.id} to="/groups/$groupSlug" params={{ groupSlug: group.slug }}>
                         {group.name}
                       </Links.Item>
                     ))}

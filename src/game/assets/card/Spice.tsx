@@ -15,44 +15,24 @@ const edgeColor = '#000';
 const foreGroundColor = '#F8F6E2';
 const highLightColor = '#9E5F00';
 
-export const SpiceCard: FC<z.infer<typeof Spice>> = ({
-  name,
-  subName,
-  icon,
-  text,
-  amount,
-  highlights,
-  overlays,
-}) => {
+export const SpiceCard: FC<z.infer<typeof Spice>> = ({ name, subName, icon, text, amount, highlights, overlays }) => {
   const resolveOverlay = useAssetResolver();
   const prefix = useCountId();
   const decalsFilter = `${prefix}decals-filter`;
 
   return (
     <div className={styles.card}>
-      <BackgroundRenderer
-        className={`${styles.head} ${unique.head}`}
-        background={backgroundPresets.spice}
-      />
+      <BackgroundRenderer className={`${styles.head} ${unique.head}`} background={backgroundPresets.spice} />
       <div className={styles.head_shade} />
       <div className={`${styles.shape} ${unique.shape}`} />
-      <BackgroundRenderer
-        className={`${styles.type} ${unique.type}`}
-        background={backgroundPresets.stripedSpice}
-      >
+      <BackgroundRenderer className={`${styles.type} ${unique.type}`} background={backgroundPresets.stripedSpice}>
         <img src={`/vector/icon/${icon}.svg`} className={unique.typeOverlay} />
         <img src={`/vector/icon/${icon}.svg`} className={unique.typeShade} />
       </BackgroundRenderer>
       <div className={styles.title}>{name}</div>
       <div className={styles.subtitle}>{subName}</div>
 
-      <svg
-        className={unique.map}
-        viewBox="0 0 100 100"
-        xmlSpace="preserve"
-        fillRule="evenodd"
-        clipRule="evenodd"
-      >
+      <svg className={unique.map} viewBox="0 0 100 100" xmlSpace="preserve" fillRule="evenodd" clipRule="evenodd">
         <use xlinkHref="/vector/background/map.svg#root" />
       </svg>
 

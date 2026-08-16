@@ -14,10 +14,8 @@ export function incompleteClassicXrefPdf(): Uint8Array {
   const catalogOffset = byteLength(source);
   source += '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n';
   source += '2 0 obj\n<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>\nendobj\n';
-  source +=
-    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 425.19685 552.75591] >>\nendobj\n';
-  source +=
-    '4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 425.19685 552.75591] >>\nendobj\n';
+  source += '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 425.19685 552.75591] >>\nendobj\n';
+  source += '4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 425.19685 552.75591] >>\nendobj\n';
   const classicXrefOffset = byteLength(source);
   source += 'xref\n';
   source += '0 2\n';

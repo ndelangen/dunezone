@@ -8,9 +8,7 @@ export function parseFactionInput(
   input: unknown,
   { requireAuthoringSemantics = false }: { requireAuthoringSemantics?: boolean } = {}
 ) {
-  const parsed = (
-    requireAuthoringSemantics ? FactionInputSchema : CanonicalFactionStoredSchema
-  ).safeParse(input);
+  const parsed = (requireAuthoringSemantics ? FactionInputSchema : CanonicalFactionStoredSchema).safeParse(input);
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0];
     const issuePath = firstIssue?.path.join('.') ?? 'data';

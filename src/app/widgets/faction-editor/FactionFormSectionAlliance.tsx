@@ -1,16 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import {
-  Alert,
-  Box,
-  Grid,
-  Group,
-  NumberInput,
-  Slider,
-  Stack,
-  Switch,
-  Text,
-  Textarea,
-} from '@mantine/core';
+import { Alert, Box, Grid, Group, NumberInput, Slider, Stack, Switch, Text, Textarea } from '@mantine/core';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -21,11 +10,7 @@ import type { Faction } from '@db/factions';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
-import {
-  assetOptionToPreviewSrc,
-  decalAssetOptions,
-  decalAssetOptionToLabel,
-} from './factionFormAssetUtils';
+import { assetOptionToPreviewSrc, decalAssetOptions, decalAssetOptionToLabel } from './factionFormAssetUtils';
 import { defaultDecal } from './factionFormDefaults';
 import styles from './FactionFormSectionAlliance.module.css';
 import type { FactionFormApi } from './factionFormTypes';
@@ -222,12 +207,7 @@ function AllianceCardPreview({ form }: { form: FactionFormApi }) {
       })}
     >
       {(preview) => (
-        <Stack
-          align="center"
-          gap="sm"
-          pos="sticky"
-          top="calc(var(--app-shell-header-offset, 0px) + 6rem)"
-        >
+        <Stack align="center" gap="sm" pos="sticky" top="calc(var(--app-shell-header-offset, 0px) + 6rem)">
           <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
             Used on: Alliance card
           </Text>
@@ -307,8 +287,8 @@ export function FactionFormSectionAlliance({
             <Stack gap="xs">
               <Text fw={700}>Alliance decals</Text>
               <Text c="dimmed" size="sm">
-                Layer zero or more decals in order. Drag with a pointer or focus a handle and use
-                the keyboard to reorder.
+                Layer zero or more decals in order. Drag with a pointer or focus a handle and use the keyboard to
+                reorder.
               </Text>
             </Stack>
 
@@ -316,10 +296,7 @@ export function FactionFormSectionAlliance({
               {(field) => {
                 const sortablePrefix = 'decals-';
                 const count = field.state.value.length;
-                const safeSelectedIndex = Math.min(
-                  Math.max(currentSelectedDecalIndex, 0),
-                  Math.max(count - 1, 0)
-                );
+                const safeSelectedIndex = Math.min(Math.max(currentSelectedDecalIndex, 0), Math.max(count - 1, 0));
                 return (
                   <Stack gap="md">
                     <Group justify="flex-end">
@@ -347,8 +324,7 @@ export function FactionFormSectionAlliance({
 
                     {count === 0 ? (
                       <Alert color="gray" variant="light" title="No alliance decals">
-                        Decals are optional. The alliance card remains valid without decorative
-                        artwork.
+                        Decals are optional. The alliance card remains valid without decorative artwork.
                       </Alert>
                     ) : null}
 
@@ -364,9 +340,7 @@ export function FactionFormSectionAlliance({
                             label: decalAssetOptionToLabel(decal.id),
                             description: `Layer ${index + 1}`,
                           }))}
-                          onMove={(from, to) =>
-                            field.handleChange(arrayMove(field.state.value, from, to))
-                          }
+                          onMove={(from, to) => field.handleChange(arrayMove(field.state.value, from, to))}
                         />
                         <DecalCard form={form} index={safeSelectedIndex} />
                       </>

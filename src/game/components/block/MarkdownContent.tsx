@@ -7,7 +7,5 @@ export const MarkdownContent: FC<
 > = ({ forceBlock, forceInline, value = '', children }) => {
   const v = `${value}${onlyText(children)}`.replace(/^(\w+.+)(\n)(^\w+.+)/gim, '$1  \n$3\n');
 
-  return (
-    <Markdown options={{ disableParsingRawHTML: true, forceBlock, forceInline }}>{v}</Markdown>
-  );
+  return <Markdown options={{ disableParsingRawHTML: true, forceBlock, forceInline }}>{v}</Markdown>;
 };

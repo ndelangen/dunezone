@@ -8,13 +8,7 @@ import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { useCountId } from '../utils/useCountId';
 import styles from './Back.module.css';
 
-export const CardBack: FC<z.infer<typeof CardBackType>> = ({
-  image,
-  background,
-  name,
-  imageOffset,
-  imageScale,
-}) => {
+export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, name, imageOffset, imageScale }) => {
   const prefix = useCountId();
 
   const gradient = `${prefix}gradient`;
@@ -123,21 +117,9 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             {name}
           </text>
         </g>
-        <rect
-          fill={`url(#${gradient})`}
-          y={card.height - 300}
-          {...card}
-          height={100}
-          mask={`url(#${textMask})`}
-        />
+        <rect fill={`url(#${gradient})`} y={card.height - 300} {...card} height={100} mask={`url(#${textMask})`} />
         <g style={{ mixBlendMode: 'overlay' }}>
-          <rect
-            fill="black"
-            y={card.height - 300}
-            {...card}
-            height={100}
-            mask={`url(#${textShadeMask})`}
-          />
+          <rect fill="black" y={card.height - 300} {...card} height={100} mask={`url(#${textShadeMask})`} />
         </g>
       </svg>
     </div>

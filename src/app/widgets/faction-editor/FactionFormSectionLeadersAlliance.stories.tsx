@@ -57,8 +57,7 @@ function withLeadersAndDecals(leaderCount: number, decalCount: number): Faction 
     scale: 0.42 + index * 0.12,
     offset: [index * 48 - 24, index * -36],
   }));
-  faction.rules.alliance.text =
-    '**Share prescience.** Your ally may use one of your revealed advantages.';
+  faction.rules.alliance.text = '**Share prescience.** Your ally may use one of your revealed advantages.';
   return faction;
 }
 

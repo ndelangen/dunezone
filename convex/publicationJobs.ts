@@ -63,9 +63,7 @@ export const takeWork = internalMutation({
 
     const expired = await ctx.db
       .query('publication_jobs')
-      .withIndex('by_status_and_expires_at', (q) =>
-        q.eq('status', 'in_progress').lte('expires_at', now)
-      )
+      .withIndex('by_status_and_expires_at', (q) => q.eq('status', 'in_progress').lte('expires_at', now))
       .take(PUBLICATION_MAX_PICKUP);
     for (const job of expired) {
       await recordFailure(ctx, job, 'Capture expired before completion', now);
@@ -167,9 +165,7 @@ export const completeJob = internalMutation({
 
     const existing = await ctx.db
       .query('publication_assets')
-      .withIndex('by_asset_type_and_asset_id', (q) =>
-        q.eq('asset_type', job.asset_type).eq('asset_id', job.asset_id)
-      )
+      .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', job.asset_type).eq('asset_id', job.asset_id))
       .take(2);
     if (existing.length > 1) {
       throw new Error('Publication invariant violated: duplicate assets');

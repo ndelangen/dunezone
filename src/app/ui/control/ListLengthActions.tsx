@@ -13,8 +13,8 @@ export interface ListLengthActionsProps {
 /**
  * Changes an ordered collection only at its end.
  *
- * Callers own the collection count and mutation details; this component owns the repeated
- * standalone action treatment and accessible add/remove semantics.
+ * Callers own the collection count and mutation details; this component owns the repeated standalone action treatment
+ * and accessible add/remove semantics.
  */
 export function ListLengthActions({
   addLabel,

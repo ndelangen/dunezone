@@ -29,10 +29,9 @@ async function listActiveRulesetSummaries(ctx: QueryCtx): Promise<FactionRuleset
 }
 
 /**
- * Faction catalogue read model: one call owns row selection, ruleset enrichment (active rulesets
- * only, name-then-id order), and canonical faction parsing. The catalogue path batches the link
- * table in one bounded scan; the owner path uses per-faction indexed reads, which win for the
- * handful of factions one owner has.
+ * Faction catalogue read model: one call owns row selection, ruleset enrichment (active rulesets only, name-then-id
+ * order), and canonical faction parsing. The catalogue path batches the link table in one bounded scan; the owner path
+ * uses per-faction indexed reads, which win for the handful of factions one owner has.
  */
 export async function loadFactionCatalogue(
   ctx: QueryCtx,
@@ -49,9 +48,7 @@ export async function loadFactionCatalogue(
         .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
         .take(FACTION_LIMIT);
   const rulesets = await listActiveRulesetSummaries(ctx);
-  const linksByFaction = ownerId
-    ? await factionLinksByIndexedReads(ctx, rows)
-    : await factionLinksByScan(ctx);
+  const linksByFaction = ownerId ? await factionLinksByIndexedReads(ctx, rows) : await factionLinksByScan(ctx);
   const activeRulesetById = new Map(rulesets.map((ruleset) => [ruleset.id, ruleset]));
 
   const factions = rows.map((row) => ({
@@ -126,9 +123,9 @@ export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
   };
 }
 
-export function selectFactionCatalogueSpotlights<
-  T extends Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>,
->(factions: T[]) {
+export function selectFactionCatalogueSpotlights<T extends Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>>(
+  factions: T[]
+) {
   const newArrival = [...factions]
     .filter((faction) => parseTimestamp(faction.created_at) != null)
     .sort((left, right) => compareByDate(left, right, 'created_at'))[0];
@@ -173,10 +170,7 @@ function compareByDate(
   return rightTimestamp - leftTimestamp || compareFactionIdentity(left, right);
 }
 
-function compareFactionIdentity(
-  left: Pick<Doc<'factions'>, '_id'>,
-  right: Pick<Doc<'factions'>, '_id'>
-) {
+function compareFactionIdentity(left: Pick<Doc<'factions'>, '_id'>, right: Pick<Doc<'factions'>, '_id'>) {
   return String(left._id).localeCompare(String(right._id));
 }
 

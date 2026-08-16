@@ -19,44 +19,31 @@ interface FaqListProps {
   searchQuery: string;
   selectedTag?: FaqTag;
   /**
-   * Opens a question, for the whole row rather than the link inside it. The caller navigates: this
-   * list renders the destination as a `Link` too, but where the reader ends up is the page's call.
+   * Opens a question, for the whole row rather than the link inside it. The caller navigates: this list renders the
+   * destination as a `Link` too, but where the reader ends up is the page's call.
    */
   onOpenQuestion: (questionSlug: string) => void;
 }
 
 /**
- * The questions a reader asked for: the chosen tag narrows the set, then the words rank what is
- * left by fuzzy match on the question itself.
+ * The questions a reader asked for: the chosen tag narrows the set, then the words rank what is left by fuzzy match on
+ * the question itself.
  */
 function matchingFaqItems(
   items: FaqItemWithDetails[],
   searchQuery: string,
   selectedTag?: FaqTag
 ): FaqItemWithDetails[] {
-  const tagged = selectedTag
-    ? items.filter((item) => (item.tags ?? []).includes(selectedTag))
-    : items;
+  const tagged = selectedTag ? items.filter((item) => (item.tags ?? []).includes(selectedTag)) : items;
   const query = searchQuery.trim();
   if (!query) {
     return tagged;
   }
-  return new Fuse(tagged, { keys: ['question'], threshold: 0.4 })
-    .search(query)
-    .map((result) => result.item);
+  return new Fuse(tagged, { keys: ['question'], threshold: 0.4 }).search(query).map((result) => result.item);
 }
 
-export function FaqList({
-  items,
-  rulesetSlug,
-  searchQuery,
-  selectedTag,
-  onOpenQuestion,
-}: FaqListProps) {
-  const filtered = useMemo(
-    () => matchingFaqItems(items, searchQuery, selectedTag),
-    [items, searchQuery, selectedTag]
-  );
+export function FaqList({ items, rulesetSlug, searchQuery, selectedTag, onOpenQuestion }: FaqListProps) {
+  const filtered = useMemo(() => matchingFaqItems(items, searchQuery, selectedTag), [items, searchQuery, selectedTag]);
 
   if (items.length === 0) {
     return (

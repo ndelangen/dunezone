@@ -8,8 +8,8 @@ import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import styles from './FactionSheetPagePreview.module.css';
 
 /**
- * The faction name is the editor's sole blocking field. Keep all other current draft values live
- * while representing a temporarily blank name invisibly.
+ * The faction name is the editor's sole blocking field. Keep all other current draft values live while representing a
+ * temporarily blank name invisibly.
  */
 export function factionDraftForRenderer(faction: Faction): Faction {
   if (faction.name.trim().length > 0) {
@@ -37,9 +37,7 @@ function alignIframePage(iframe: HTMLIFrameElement | null, pageNumber: 1 | 2) {
   if (!document) {
     return;
   }
-  const target = document.querySelector<HTMLElement>(
-    `[${CAPTURE_PROTOCOL.pageMarker.attribute}="${pageNumber}"]`
-  );
+  const target = document.querySelector<HTMLElement>(`[${CAPTURE_PROTOCOL.pageMarker.attribute}="${pageNumber}"]`);
   if (!target) {
     return;
   }
@@ -48,13 +46,7 @@ function alignIframePage(iframe: HTMLIFrameElement | null, pageNumber: 1 | 2) {
   document.body.scrollTop = top;
 }
 
-export function FactionSheetPagePreview({
-  faction,
-  pageNumber,
-}: {
-  faction: Faction;
-  pageNumber: 1 | 2;
-}) {
+export function FactionSheetPagePreview({ faction, pageNumber }: { faction: Faction; pageNumber: 1 | 2 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const renderFaction = useMemo(() => factionDraftForRenderer(faction), [faction]);

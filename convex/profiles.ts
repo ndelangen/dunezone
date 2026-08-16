@@ -11,10 +11,7 @@ import { requireAuthUserId } from './lib/policy';
 import { loadProfileActivityCounts } from './lib/profileActivity';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { loadProfileDetailBySlug } from './lib/profileDetail';
-import {
-  discoverableProfileValidator,
-  loadNewestDiscoverableProfiles,
-} from './lib/profileDiscovery';
+import { discoverableProfileValidator, loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
 import { nowIso, slugify } from './lib/utils';
 
 async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
@@ -22,9 +19,7 @@ async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
   const authUserId = await getAuthUserId(ctx);
   const authUser = authUserId ? await ctx.db.get(authUserId) : null;
   const identityName =
-    typeof identity?.name === 'string' && identity.name.trim().length > 0
-      ? identity.name.trim()
-      : null;
+    typeof identity?.name === 'string' && identity.name.trim().length > 0 ? identity.name.trim() : null;
   const identityPictureUrl =
     typeof (identity as { pictureUrl?: unknown } | null)?.pictureUrl === 'string' &&
     ((identity as { pictureUrl?: string } | null)?.pictureUrl?.length ?? 0) > 0
@@ -42,8 +37,7 @@ async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
       : null;
 
   const displayName = identityName ?? authUserName ?? null;
-  const imageUrl =
-    identityPictureUrl ?? (authUserImage && authUserImage.length > 0 ? authUserImage : null);
+  const imageUrl = identityPictureUrl ?? (authUserImage && authUserImage.length > 0 ? authUserImage : null);
 
   return await ensureProfileForUser(ctx, userId, {
     displayName,

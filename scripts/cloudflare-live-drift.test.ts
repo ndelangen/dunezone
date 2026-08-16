@@ -88,9 +88,7 @@ function liveFetcher(
       return envelope([
         { name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' },
         { name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' },
-        ...(options.extraSecret
-          ? [{ name: 'ASSET_PUBLISHER_POLL_SECRET', type: 'secret_text' }]
-          : []),
+        ...(options.extraSecret ? [{ name: 'ASSET_PUBLISHER_POLL_SECRET', type: 'secret_text' }] : []),
       ]);
     }
     if (url.pathname.endsWith(`/workers/scripts/${WORKER}/schedules`)) {
@@ -123,9 +121,7 @@ function liveFetcher(
       const suffix = bucketMatch[2];
       if (suffix === '/domains/managed') {
         return envelope({
-          enabled:
-            bucket === 'tanstack-start-faction-sheet-assets' &&
-            options.publisherBucketPublic === true,
+          enabled: bucket === 'tanstack-start-faction-sheet-assets' && options.publisherBucketPublic === true,
         });
       }
       if (suffix === '/domains/custom') {
@@ -142,10 +138,7 @@ function liveFetcher(
 
 describe('Cloudflare live drift check', () => {
   test('keeps the PR workflow on trusted base code with a dedicated read credential', () => {
-    const workflow = readFileSync(
-      path.resolve(process.cwd(), '.github/workflows/cloudflare-live-drift.yml'),
-      'utf8'
-    );
+    const workflow = readFileSync(path.resolve(process.cwd(), '.github/workflows/cloudflare-live-drift.yml'), 'utf8');
     expect(workflow).toContain('pull_request_target:');
     expect(workflow).toContain('branches: [main]');
     expect(workflow).toContain('types: [opened, synchronize, reopened, ready_for_review, edited]');
@@ -155,9 +148,7 @@ describe('Cloudflare live drift check', () => {
     expect(workflow).toContain(`ref: $${'{'}{ github.sha }}`);
     expect(workflow).not.toContain('github.event.pull_request.base.sha');
     expect(workflow).toContain('persist-credentials: false');
-    expect(workflow).toContain(
-      `CLOUDFLARE_API_TOKEN: $${'{'}{ secrets.CLOUDFLARE_READ_API_TOKEN }}`
-    );
+    expect(workflow).toContain(`CLOUDFLARE_API_TOKEN: $${'{'}{ secrets.CLOUDFLARE_READ_API_TOKEN }}`);
     expect(workflow).not.toContain('github.event.pull_request.head.sha');
     expect(workflow).not.toContain('secrets.CLOUDFLARE_API_TOKEN');
   });
@@ -182,12 +173,9 @@ describe('Cloudflare live drift check', () => {
     expect(live.requests).toHaveLength(8);
     expect(new Set(live.requests.map((request) => request.method))).toEqual(new Set(['GET']));
     expect(
-      live.requests.find((request) => request.url.pathname.endsWith('/workers/domains'))?.url
-        .searchParams
+      live.requests.find((request) => request.url.pathname.endsWith('/workers/domains'))?.url.searchParams
     ).toEqual(new URLSearchParams({ service: WORKER }));
-    expect(
-      live.requests.every((request) => request.authorization === 'Bearer read-only-token')
-    ).toBe(true);
+    expect(live.requests.every((request) => request.authorization === 'Bearer read-only-token')).toBe(true);
   });
 
   test('reports extra secrets and restored Queue consumers together', async () => {

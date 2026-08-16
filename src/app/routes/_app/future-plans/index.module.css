@@ -52,9 +52,7 @@
 
 .contribution {
   margin: 2rem 0 1rem;
-  background:
-    radial-gradient(circle at 95% 10%, rgb(211 146 46 / 20%), transparent 36%),
-    var(--mantine-color-body);
+  background: radial-gradient(circle at 95% 10%, rgb(211 146 46 / 20%), transparent 36%), var(--mantine-color-body);
   border: 1px solid rgb(123 52 25 / 20%);
 }
 

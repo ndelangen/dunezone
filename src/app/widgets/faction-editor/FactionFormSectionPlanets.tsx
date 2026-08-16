@@ -49,14 +49,14 @@ function PlanetImageLibrary({
         Planet illustration
       </Text>
       <Text size="xs" c="dimmed">
-        Choose exactly one of the curated illustrations. This selection is stored now so a future
-        planet game asset can use it.
+        Choose exactly one of the curated illustrations. This selection is stored now so a future planet game asset can
+        use it.
       </Text>
 
       {!isCurated ? (
         <Alert color="yellow" variant="light" title="Existing external illustration preserved">
-          This faction uses an older external image. It will remain unchanged until you select a
-          curated illustration below.
+          This faction uses an older external image. It will remain unchanged until you select a curated illustration
+          below.
         </Alert>
       ) : null}
 
@@ -81,24 +81,14 @@ function PlanetImageLibrary({
                 radius="md"
                 p={4}
                 style={{
-                  backgroundColor: selected
-                    ? 'var(--mantine-color-dune-0)'
-                    : 'var(--mantine-color-white)',
-                  borderColor: selected
-                    ? 'var(--mantine-color-dune-7)'
-                    : 'var(--mantine-color-gray-3)',
+                  backgroundColor: selected ? 'var(--mantine-color-dune-0)' : 'var(--mantine-color-white)',
+                  borderColor: selected ? 'var(--mantine-color-dune-7)' : 'var(--mantine-color-gray-3)',
                   boxShadow: selected ? '0 0 0 2px var(--mantine-color-dune-3)' : undefined,
                 }}
               >
                 <AspectRatio ratio={1}>
                   <Box pos="relative">
-                    <Image
-                      src={resolve(option.image, 'small')}
-                      alt=""
-                      fit="contain"
-                      w="100%"
-                      h="100%"
-                    />
+                    <Image src={resolve(option.image, 'small')} alt="" fit="contain" w="100%" h="100%" />
                     {selected ? (
                       <ActionIcon
                         component="span"
@@ -230,10 +220,7 @@ export function FactionFormSectionPlanets({
           const planets = field.state.value ?? [];
           const count = planets.length;
           const sortablePrefix = 'planets-';
-          const safeSelectedIndex = Math.min(
-            Math.max(currentSelectedIndex, 0),
-            Math.max(planets.length - 1, 0)
-          );
+          const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(planets.length - 1, 0));
           return (
             <Stack gap="md">
               <Group justify="flex-end">
@@ -260,8 +247,7 @@ export function FactionFormSectionPlanets({
 
               {count === 0 ? (
                 <Alert color="gray" variant="light" title="No faction worlds">
-                  Worlds are optional. Add one when a planet is part of this faction&apos;s
-                  identity.
+                  Worlds are optional. Add one when a planet is part of this faction&apos;s identity.
                 </Alert>
               ) : null}
 

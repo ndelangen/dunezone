@@ -19,10 +19,7 @@ function readOverride(): 'on' | 'off' | null {
 
 function reducedByOs(): boolean {
   // An environment without the media-query API (jsdom) cannot voice the hint; motion is welcome.
-  return (
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 function motionAllowed(): boolean {
@@ -42,10 +39,7 @@ export function setMotionOverride(next: 'on' | 'off' | null): void {
 
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
-  const hint =
-    typeof window.matchMedia === 'function'
-      ? window.matchMedia('(prefers-reduced-motion: reduce)')
-      : null;
+  const hint = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
   hint?.addEventListener('change', listener);
 
   return () => {

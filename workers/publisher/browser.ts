@@ -44,8 +44,7 @@ export function assertCapturedPdfOutput(inspection: {
     throw new TargetRenderError('Captured PDF must contain exactly two pages');
   }
   if (
-    Math.abs(inspection.pageWidthMm - PDF_CONTRACT.pageWidthMm) >
-      PDF_CONTRACT.pageSizeToleranceMm ||
+    Math.abs(inspection.pageWidthMm - PDF_CONTRACT.pageWidthMm) > PDF_CONTRACT.pageSizeToleranceMm ||
     Math.abs(inspection.pageHeightMm - PDF_CONTRACT.pageHeightMm) > PDF_CONTRACT.pageSizeToleranceMm
   ) {
     throw new TargetRenderError(
@@ -70,20 +69,14 @@ function remaining(deadline: number): number {
   return value;
 }
 
-function failureLabel(request: {
-  method(): string;
-  url(): string;
-  failure(): { errorText: string } | null;
-}): string {
+function failureLabel(request: { method(): string; url(): string; failure(): { errorText: string } | null }): string {
   return `${request.method()} ${redactPublisherResource(request.url())}: ${sanitizePublisherDiagnostic(
     request.failure()?.errorText ?? 'unknown failure'
   )}`;
 }
 
 function responseFailureLabel(response: PlaywrightResponse): string {
-  return `${response.request().method()} ${redactPublisherResource(
-    response.url()
-  )}: HTTP ${response.status()}`;
+  return `${response.request().method()} ${redactPublisherResource(response.url())}: HTTP ${response.status()}`;
 }
 
 export function registerCaptureDiagnostics(page: Page): CaptureDiagnostics {
@@ -93,9 +86,7 @@ export function registerCaptureDiagnostics(page: Page): CaptureDiagnostics {
       diagnostics.dropped += 1;
       return;
     }
-    diagnostics.issues.push(
-      `${kind}: ${sanitizePublisherDiagnostic(value)}`.slice(0, MAX_CAPTURE_ISSUE_LENGTH)
-    );
+    diagnostics.issues.push(`${kind}: ${sanitizePublisherDiagnostic(value)}`.slice(0, MAX_CAPTURE_ISSUE_LENGTH));
   };
   page.on('console', (message: ConsoleMessage) => {
     if (message.type() === 'error') {
@@ -171,9 +162,7 @@ export class PublisherBrowserSession {
         timezoneId: 'UTC',
         viewport: { width: VIEWPORT_CONTRACT.width, height: VIEWPORT_CONTRACT.height },
       });
-      await context.addCookies(
-        publisherCaptureCookies(this.captureBaseUrl, jobId, lifecycleDeadlineAt)
-      );
+      await context.addCookies(publisherCaptureCookies(this.captureBaseUrl, jobId, lifecycleDeadlineAt));
       const page = await context.newPage();
       const diagnostics = registerCaptureDiagnostics(page);
       phase = 'load';

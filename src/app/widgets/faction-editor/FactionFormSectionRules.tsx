@@ -94,9 +94,7 @@ function SetupFields({ form }: { form: FactionFormApi }) {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(value) =>
-                    field.handleChange(
-                      typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 1
-                    )
+                    field.handleChange(typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 1)
                   }
                 />
               }
@@ -116,8 +114,7 @@ function FateFields({ form }: { form: FactionFormApi }) {
           Fate
         </Text>
         <Text c="dimmed" size="sm">
-          Author the faction&apos;s Fate rule. The heading is optional; the rule text remains
-          editable independently.
+          Author the faction&apos;s Fate rule. The heading is optional; the rule text remains editable independently.
         </Text>
       </Stack>
       <Stack gap="md">
@@ -153,9 +150,7 @@ function FateFields({ form }: { form: FactionFormApi }) {
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.currentTarget.value)}
                 />
-                {isBlank(field.state.value) ? (
-                  <Advisory id={warningId}>Fate text is empty.</Advisory>
-                ) : null}
+                {isBlank(field.state.value) ? <Advisory id={warningId}>Fate text is empty.</Advisory> : null}
               </Stack>
             );
           }}

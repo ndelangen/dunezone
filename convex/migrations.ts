@@ -63,11 +63,7 @@ const migrations = new Migrations(components.migrations, {
   schema,
 });
 
-async function resolveUniqueGroupSlug(
-  ctx: QueryCtx | MutationCtx,
-  name: string,
-  groupId?: Id<'groups'>
-) {
+async function resolveUniqueGroupSlug(ctx: QueryCtx | MutationCtx, name: string, groupId?: Id<'groups'>) {
   const baseSlug = slugify(name) || 'group';
   let candidate = baseSlug;
   let suffix = 1;
@@ -84,11 +80,7 @@ async function resolveUniqueGroupSlug(
   }
 }
 
-async function resolveUniqueRulesetSlug(
-  ctx: QueryCtx | MutationCtx,
-  name: string,
-  rulesetId?: Id<'rulesets'>
-) {
+async function resolveUniqueRulesetSlug(ctx: QueryCtx | MutationCtx, name: string, rulesetId?: Id<'rulesets'>) {
   const baseSlug = slugify(name) || 'ruleset';
   let candidate = baseSlug;
   let suffix = 1;
@@ -118,10 +110,7 @@ function missingSlug(value: unknown): boolean {
   return typeof value !== 'string' || value.trim().length === 0;
 }
 
-async function allocateNextFaqItemSlug(
-  ctx: MutationCtx,
-  rulesetId: Id<'rulesets'>
-): Promise<string> {
+async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets'>): Promise<string> {
   const counterKey = `faq_item_slug:${rulesetId}`;
   let counter = await ctx.db
     .query('counters')
@@ -235,8 +224,8 @@ async function archivedFactionSlug(ctx: MutationCtx, slug: string, factionId: Id
 }
 
 /**
- * Repairs historical slug reuse while preserving the active faction's public URL. Future writes
- * reserve slugs globally, including those on soft-deleted rows.
+ * Repairs historical slug reuse while preserving the active faction's public URL. Future writes reserve slugs globally,
+ * including those on soft-deleted rows.
  */
 export const faction_slug_reservations_v1 = migrations.define({
   table: 'factions',
@@ -381,10 +370,10 @@ export const profile_activity_answers_v1 = migrations.define({
 });
 
 /**
- * Vector-train retune (wayfinder #307): the train normalized decals into the shared square and 16
- * baked-paint decals gained `-multicolor` names. Stored placements (faction.data.decals) get the
- * matching rename + scale multiplier so cards render pixel-identically. Run-once semantics come
- * from the migrations framework; factors live frozen in ./lib/decalRetune.
+ * Vector-train retune (wayfinder #307): the train normalized decals into the shared square and 16 baked-paint decals
+ * gained `-multicolor` names. Stored placements (faction.data.decals) get the matching rename + scale multiplier so
+ * cards render pixel-identically. Run-once semantics come from the migrations framework; factors live frozen in
+ * ./lib/decalRetune.
  */
 export const faction_decal_retune_v1 = migrations.define({
   table: 'factions',
@@ -455,9 +444,9 @@ const AUDIT_SCAN_LIMIT = 4096;
 const AUDIT_ID_SAMPLE_LIMIT = 50;
 
 /**
- * Read-only evidence for the historical hard-delete audit (wayfinder #191, ADR-0003): counts group
- * references that no longer resolve to a Group row. Repairs nothing — dangling references stay in
- * place and the read layer projects them to null.
+ * Read-only evidence for the historical hard-delete audit (wayfinder #191, ADR-0003): counts group references that no
+ * longer resolve to a Group row. Repairs nothing — dangling references stay in place and the read layer projects them
+ * to null.
  */
 export const groupsLifecycleAudit = internalQuery({
   args: {},
@@ -469,8 +458,8 @@ export const groupsLifecycleAudit = internalQuery({
     const memberships = await ctx.db.query('group_members').take(AUDIT_SCAN_LIMIT);
 
     /**
-     * Every distinct referenced Group is resolved by primary key, so a reference is judged against
-     * the actual row — never against a truncated Group scan window.
+     * Every distinct referenced Group is resolved by primary key, so a reference is judged against the actual row —
+     * never against a truncated Group scan window.
      */
     const referencedIds = new Set<Id<'groups'>>();
     for (const row of [...factions, ...rulesets, ...memberships]) {
@@ -484,9 +473,7 @@ export const groupsLifecycleAudit = internalQuery({
     }
 
     function danglingReport(rows: { _id: string; group_id: Id<'groups'> | null }[]) {
-      const dangling = rows.filter(
-        (row) => row.group_id !== null && resolvesToRow.get(row.group_id) === false
-      );
+      const dangling = rows.filter((row) => row.group_id !== null && resolvesToRow.get(row.group_id) === false);
       return {
         scanned: rows.length,
         truncated: rows.length === AUDIT_SCAN_LIMIT,

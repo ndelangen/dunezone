@@ -56,15 +56,12 @@ function authorChip(summary: Awaited<ReturnType<typeof profileSummary>>) {
 }
 
 /**
- * FAQ question-page read model. Owns the locator resolution, the per-role capability rules (the FAQ
- * question owner accepts/unaccepts/removes answers; an answer author alone edits their answer; each
- * viewer may answer once), and the accepted-first ordering behind `api.faq.questionPage` (see
- * CONTEXT.md: FAQ question, FAQ answer). The wire contract is `faqQuestionPageValidator`.
+ * FAQ question-page read model. Owns the locator resolution, the per-role capability rules (the FAQ question owner
+ * accepts/unaccepts/removes answers; an answer author alone edits their answer; each viewer may answer once), and the
+ * accepted-first ordering behind `api.faq.questionPage` (see CONTEXT.md: FAQ question, FAQ answer). The wire contract
+ * is `faqQuestionPageValidator`.
  */
-export async function loadFaqQuestionPage(
-  ctx: QueryCtx,
-  args: { rulesetSlug: string; questionSlug: string }
-) {
+export async function loadFaqQuestionPage(ctx: QueryCtx, args: { rulesetSlug: string; questionSlug: string }) {
   const ruleset = await ctx.db
     .query('rulesets')
     .withIndex('by_slug', (q) => q.eq('slug', args.rulesetSlug))
@@ -74,14 +71,10 @@ export async function loadFaqQuestionPage(
   }
   const item = await ctx.db
     .query('faq_items')
-    .withIndex('by_ruleset_slug', (q) =>
-      q.eq('ruleset_id', ruleset._id).eq('slug', args.questionSlug)
-    )
+    .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', args.questionSlug))
     .unique();
   if (!item) {
-    throw new Error(
-      `FAQ item with slug ${args.questionSlug} not found in ruleset ${args.rulesetSlug}`
-    );
+    throw new Error(`FAQ item with slug ${args.questionSlug} not found in ruleset ${args.rulesetSlug}`);
   }
   const answers = await ctx.db
     .query('faq_answers')
@@ -93,15 +86,11 @@ export async function loadFaqQuestionPage(
   const viewerAnswered = viewerId
     ? (await ctx.db
         .query('faq_answers')
-        .withIndex('by_faq_item_answered_by', (q) =>
-          q.eq('faq_item_id', item._id).eq('answered_by', viewerId)
-        )
+        .withIndex('by_faq_item_answered_by', (q) => q.eq('faq_item_id', item._id).eq('answered_by', viewerId))
         .unique()) !== null
     : false;
   const asker = await profileSummary(ctx, item.asked_by);
-  const answerers = await Promise.all(
-    answers.map((answer) => profileSummary(ctx, answer.answered_by))
-  );
+  const answerers = await Promise.all(answers.map((answer) => profileSummary(ctx, answer.answered_by)));
   const projectedAnswers = answers.map((answer, index) => {
     const answerOwner = viewerId === answer.answered_by;
     const accepted = item.accepted_answer_id === answer._id;

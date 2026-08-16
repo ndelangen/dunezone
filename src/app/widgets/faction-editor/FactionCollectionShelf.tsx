@@ -1,17 +1,6 @@
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
-import {
-  rectSortingStrategy,
-  SortableContext,
-  sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable';
+import { rectSortingStrategy, SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Box, Text, UnstyledButton } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { GripVertical } from 'lucide-react';
@@ -40,12 +29,7 @@ function ShelfItem({
   const sortable = useFactionSortableItem(item.id);
 
   return (
-    <Box
-      ref={sortable.setNodeRef}
-      className={styles.item}
-      data-selected={selected}
-      style={sortable.style}
-    >
+    <Box ref={sortable.setNodeRef} className={styles.item} data-selected={selected} style={sortable.style}>
       <IconAction
         label={`Drag to reorder ${item.label}`}
         tooltip={`Reorder ${item.label}`}

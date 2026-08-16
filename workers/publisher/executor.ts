@@ -94,9 +94,7 @@ export async function executeItemList(
         try {
           const recompressed = await recompressCapturedPdf(captured.bytes);
           if (recompressed.bytesAfter > RECOMPRESSED_PDF_MAX_BYTES) {
-            throw new TargetRenderError(
-              `Recompressed PDF must be at most ${RECOMPRESSED_PDF_MAX_BYTES} bytes`
-            );
+            throw new TargetRenderError(`Recompressed PDF must be at most ${RECOMPRESSED_PDF_MAX_BYTES} bytes`);
           }
           publishedBytes = recompressed.bytes;
           result.recompressedImages += recompressed.swappedImages;
@@ -114,23 +112,9 @@ export async function executeItemList(
           );
         }
 
-        const cacheToken = await signCacheToken(
-          item.assetId,
-          item.assetType,
-          dependencies.cacheTokenSecret
-        );
-        await putPublishedAsset(
-          dependencies.bucket,
-          item,
-          captured.payloadHash,
-          cacheToken,
-          publishedBytes
-        );
-        const completion = await dependencies.client.complete(
-          item.jobId,
-          cacheToken,
-          budget.requestDeadline()
-        );
+        const cacheToken = await signCacheToken(item.assetId, item.assetType, dependencies.cacheTokenSecret);
+        await putPublishedAsset(dependencies.bucket, item, captured.payloadHash, cacheToken, publishedBytes);
+        const completion = await dependencies.client.complete(item.jobId, cacheToken, budget.requestDeadline());
         if (completion === 'completed') {
           result.completed += 1;
         } else {

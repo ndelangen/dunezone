@@ -5,13 +5,7 @@ import { components } from '../_generated/api';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 
-export const STATISTICS_METRICS = [
-  'users',
-  'factions',
-  'rulesets',
-  'questions',
-  'answers',
-] as const;
+export const STATISTICS_METRICS = ['users', 'factions', 'rulesets', 'questions', 'answers'] as const;
 
 export type StatisticsMetric = (typeof STATISTICS_METRICS)[number];
 
@@ -56,9 +50,7 @@ function questionItem(question: Doc<'faq_items'>): StatisticsItem {
 async function answerItem(ctx: MutationCtx, answer: Doc<'faq_answers'>): Promise<StatisticsItem> {
   const question = await ctx.db.get(answer.faq_item_id);
   if (!question) {
-    throw new Error(
-      `Cannot index FAQ answer ${answer._id}: question ${answer.faq_item_id} does not exist`
-    );
+    throw new Error(`Cannot index FAQ answer ${answer._id}: question ${answer.faq_item_id} does not exist`);
   }
   return {
     namespace: 'answers',
@@ -68,16 +60,10 @@ async function answerItem(ctx: MutationCtx, answer: Doc<'faq_answers'>): Promise
 }
 
 function sameItem(left: StatisticsItem | null, right: StatisticsItem | null): boolean {
-  return (
-    left?.namespace === right?.namespace && left?.key[0] === right?.key[0] && left?.id === right?.id
-  );
+  return left?.namespace === right?.namespace && left?.key[0] === right?.key[0] && left?.id === right?.id;
 }
 
-async function applyTransition(
-  ctx: MutationCtx,
-  oldItem: StatisticsItem | null,
-  newItem: StatisticsItem | null
-) {
+async function applyTransition(ctx: MutationCtx, oldItem: StatisticsItem | null, newItem: StatisticsItem | null) {
   if (sameItem(oldItem, newItem)) {
     if (newItem) {
       await statistics.insertIfDoesNotExist(ctx, newItem);

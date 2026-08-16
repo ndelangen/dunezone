@@ -26,8 +26,8 @@ interface ConnectedTabsStoryArgs {
 }
 
 /**
- * Neutral panel body. The tabs' labels are the component's own API and stay real; what sits inside
- * a panel is the caller's, so the story shows a placeholder rather than prose.
+ * Neutral panel body. The tabs' labels are the component's own API and stay real; what sits inside a panel is the
+ * caller's, so the story shows a placeholder rather than prose.
  */
 function Panel({
   value,
@@ -44,10 +44,7 @@ function Panel({
     <Box data-testid={`panel-body-${value}`}>
       {showPanelTitle ? <SurfaceFiller height={28} width={180} /> : null}
       <Box mt={showPanelTitle ? 'sm' : 0}>
-        <SurfaceFiller
-          height={contentHeight}
-          className={animateDimensions ? storyStyles.animatedContent : undefined}
-        />
+        <SurfaceFiller height={contentHeight} className={animateDimensions ? storyStyles.animatedContent : undefined} />
       </Box>
     </Box>
   );
@@ -207,8 +204,7 @@ export const ContentDrivenHeight = meta.story({
   parameters: {
     docs: {
       description: {
-        story:
-          'The surface grows beyond the tab rail when its selected panel contains taller content.',
+        story: 'The surface grows beyond the tab rail when its selected panel contains taller content.',
       },
     },
   },
@@ -253,9 +249,7 @@ export const MobileViewport = meta.story({
     const tabList = canvasElement.querySelector<HTMLElement>('[role="tablist"]');
     const root = tabList?.parentElement;
     const panel = canvasElement.querySelector<HTMLElement>('[role="tabpanel"]');
-    const mobilePicker = canvasElement.querySelector<HTMLElement>(
-      '[data-connected-tabs-mobile-picker]'
-    );
+    const mobilePicker = canvasElement.querySelector<HTMLElement>('[data-connected-tabs-mobile-picker]');
     const canvas = within(canvasElement);
 
     await waitFor(() => {
@@ -287,10 +281,7 @@ export const KeyboardAndPointerActivation = meta.story({
     const overview = canvas.getByRole('tab', { name: 'Overview' });
     overview.focus();
     await userEvent.keyboard('{ArrowDown}');
-    await expect(canvas.getByRole('tab', { name: 'People' })).toHaveAttribute(
-      'data-state',
-      'active'
-    );
+    await expect(canvas.getByRole('tab', { name: 'People' })).toHaveAttribute('data-state', 'active');
     await userEvent.click(canvas.getByRole('tab', { name: 'Settings' }));
     await expect(canvas.getByTestId('panel-body-settings')).toBeVisible();
   },

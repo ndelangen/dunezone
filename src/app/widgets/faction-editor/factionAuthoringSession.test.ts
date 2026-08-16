@@ -19,8 +19,7 @@ function makeHarness(overrides?: { save?: (draft: unknown) => Promise<FactionEnt
 
   const baseline = structuredClone(assetPublishingFaction);
   const save =
-    overrides?.save ??
-    (async (draft: unknown) => ({ data: draft, slug: 'saved' }) as unknown as FactionEntry);
+    overrides?.save ?? (async (draft: unknown) => ({ data: draft, slug: 'saved' }) as unknown as FactionEntry);
 
   const session = createFactionAuthoringSession({
     initialData: baseline,

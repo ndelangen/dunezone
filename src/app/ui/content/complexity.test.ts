@@ -31,12 +31,8 @@ describe('calculateComplexity', () => {
   });
 
   it('reaches 1 at the capacity anchor and clamps beyond it', () => {
-    expect(calculateComplexity(rulesWith({ startText: wordsOf(COMPLEXITY_CAPACITY_WORDS) }))).toBe(
-      1
-    );
-    expect(
-      calculateComplexity(rulesWith({ startText: wordsOf(COMPLEXITY_CAPACITY_WORDS * 2) }))
-    ).toBe(1);
+    expect(calculateComplexity(rulesWith({ startText: wordsOf(COMPLEXITY_CAPACITY_WORDS) }))).toBe(1);
+    expect(calculateComplexity(rulesWith({ startText: wordsOf(COMPLEXITY_CAPACITY_WORDS * 2) }))).toBe(1);
   });
 
   it('counts every sheet-rendered field and strips markdown syntax', () => {
@@ -64,9 +60,7 @@ describe('calculateComplexity', () => {
     const renderedWords = wordsOf(81);
     const markdown = rulesWith({ startText: `\`\`\`js\n${renderedWords}\n\`\`\`` });
 
-    expect(calculateComplexity(markdown)).toBe(
-      calculateComplexity(rulesWith({ startText: renderedWords }))
-    );
+    expect(calculateComplexity(markdown)).toBe(calculateComplexity(rulesWith({ startText: renderedWords })));
   });
 
   it('bumps the score for advantage counts past the threshold', () => {

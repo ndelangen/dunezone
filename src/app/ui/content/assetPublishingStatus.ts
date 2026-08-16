@@ -30,7 +30,5 @@ export function factionAssetPublishingCopy(
   if (saveState !== 'saved') {
     return publishingCopy;
   }
-  return captureStatus
-    ? `Saved. ${publishingCopy}`
-    : `Saved. Publication scheduled. ${publishingCopy}`;
+  return captureStatus ? `Saved. ${publishingCopy}` : `Saved. Publication scheduled. ${publishingCopy}`;
 }

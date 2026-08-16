@@ -12,8 +12,7 @@ function defaultLeader(): Faction['leaders'][number] {
 }
 
 function nextStrengthChar(value: Faction['leaders'][number]['strength']): string {
-  const raw =
-    value === undefined || value === null ? '' : typeof value === 'number' ? String(value) : value;
+  const raw = value === undefined || value === null ? '' : typeof value === 'number' ? String(value) : value;
   const ch = raw.trim().slice(-1);
   if (ch.length === 0) {
     return '1';
@@ -34,9 +33,7 @@ function nextStrengthChar(value: Faction['leaders'][number]['strength']): string
   return '1';
 }
 
-function nextLeaderImage(
-  image: Faction['leaders'][number]['image']
-): Faction['leaders'][number]['image'] {
+function nextLeaderImage(image: Faction['leaders'][number]['image']): Faction['leaders'][number]['image'] {
   const total = LEADERS.options.length;
   if (total === 0) {
     return LEADERS.options[0] as Faction['leaders'][number]['image'];
@@ -48,9 +45,7 @@ function nextLeaderImage(
   return LEADERS.options[(idx + 1) % total];
 }
 
-export function nextLeaderFromLast(
-  last: Faction['leaders'][number] | undefined
-): Faction['leaders'][number] {
+export function nextLeaderFromLast(last: Faction['leaders'][number] | undefined): Faction['leaders'][number] {
   if (last == null) {
     return defaultLeader();
   }

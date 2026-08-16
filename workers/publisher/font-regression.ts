@@ -47,9 +47,7 @@ function browserFontSet(page: Page): PublisherFontFaceSet {
   };
 }
 
-const cssFile = readdirSync(path.join(publisherDist, 'publisher-capture')).find((file) =>
-  file.endsWith('.css')
-);
+const cssFile = readdirSync(path.join(publisherDist, 'publisher-capture')).find((file) => file.endsWith('.css'));
 invariant(cssFile, 'Publisher capture CSS is missing; run publisher:assets first');
 
 /*
@@ -113,9 +111,7 @@ try {
 
   let substitutionRejected = false;
   try {
-    await assertPublisherFontFaces(fonts, [
-      { family: 'StyleSubstitution', weight: '400', style: 'normal' },
-    ]);
+    await assertPublisherFontFaces(fonts, [{ family: 'StyleSubstitution', weight: '400', style: 'normal' }]);
   } catch {
     substitutionRejected = true;
   }
@@ -123,9 +119,7 @@ try {
 
   let brokenRejected = false;
   try {
-    await assertPublisherFontFaces(fonts, [
-      { family: 'BrokenRequired', weight: '400', style: 'normal' },
-    ]);
+    await assertPublisherFontFaces(fonts, [{ family: 'BrokenRequired', weight: '400', style: 'normal' }]);
   } catch {
     brokenRejected = true;
   }

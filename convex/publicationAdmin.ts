@@ -8,11 +8,7 @@ import { internalMutation, mutation } from './functions';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
 
-const publicationStatus = v.union(
-  v.literal('pending'),
-  v.literal('in_progress'),
-  v.literal('error')
-);
+const publicationStatus = v.union(v.literal('pending'), v.literal('in_progress'), v.literal('error'));
 
 const settingsResult = v.object({
   publicationPickupEnabled: v.boolean(),
@@ -78,9 +74,7 @@ export const activateRevisions = internalMutation({
     for (const [assetType, storedRevision] of Object.entries(settings.renderer_revisions)) {
       const checkedInRevision = rendererRevisions[assetType];
       if (checkedInRevision === undefined || checkedInRevision < storedRevision) {
-        throw new Error(
-          `Checked-in Renderer revision for ${assetType} is behind the stored revision`
-        );
+        throw new Error(`Checked-in Renderer revision for ${assetType} is behind the stored revision`);
       }
     }
 

@@ -41,10 +41,7 @@ async function seedUsersAndGroups(ctx: MutationCtx) {
   return { ownerId, otherId, targetGroupId, otherGroupId, deletedGroupId };
 }
 
-async function seedFactions(
-  ctx: MutationCtx,
-  seeded: Awaited<ReturnType<typeof seedUsersAndGroups>>
-) {
+async function seedFactions(ctx: MutationCtx, seeded: Awaited<ReturnType<typeof seedUsersAndGroups>>) {
   const { ownerId, otherId, otherGroupId, deletedGroupId } = seeded;
 
   const unassignedFactionId = await ctx.db.insert('factions', {
@@ -96,10 +93,7 @@ async function seedFactions(
   return { unassignedFactionId, elsewhereFactionId, danglingGroupFactionId };
 }
 
-async function seedRulesets(
-  ctx: MutationCtx,
-  seeded: Awaited<ReturnType<typeof seedUsersAndGroups>>
-) {
+async function seedRulesets(ctx: MutationCtx, seeded: Awaited<ReturnType<typeof seedUsersAndGroups>>) {
   const { ownerId, otherId } = seeded;
 
   const unassignedRulesetId = await ctx.db.insert('rulesets', {
@@ -183,9 +177,7 @@ describe('factions.listOwnedForGroupAssign', () => {
 
   test('requires authentication', async () => {
     const { t } = await fixture();
-    await expect(t.query(api.factions.listOwnedForGroupAssign, {})).rejects.toThrow(
-      /Not authenticated/
-    );
+    await expect(t.query(api.factions.listOwnedForGroupAssign, {})).rejects.toThrow(/Not authenticated/);
   });
 });
 
@@ -206,8 +198,6 @@ describe('rulesets.listOwnedForGroupAssign', () => {
 
   test('requires authentication', async () => {
     const { t } = await fixture();
-    await expect(t.query(api.rulesets.listOwnedForGroupAssign, {})).rejects.toThrow(
-      /Not authenticated/
-    );
+    await expect(t.query(api.rulesets.listOwnedForGroupAssign, {})).rejects.toThrow(/Not authenticated/);
   });
 });

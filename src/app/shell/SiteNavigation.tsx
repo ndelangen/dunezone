@@ -40,14 +40,13 @@ export interface SiteNavigationProps {
 /**
  * Product navigation, including its profile-aware account slot.
  *
- * The row is priority-plus: links that fit stay visible, the rest collapse behind a More control,
- * re-measured through a `ResizeObserver` against a hidden copy of the full list — so the row is
- * correct for any link count, any label length, at any width, without a breakpoint. At phone widths
- * it collapses down to the More control.
+ * The row is priority-plus: links that fit stay visible, the rest collapse behind a More control, re-measured through a
+ * `ResizeObserver` against a hidden copy of the full list — so the row is correct for any link count, any label length,
+ * at any width, without a breakpoint. At phone widths it collapses down to the More control.
  *
- * Both popovers (More, and the signed-in account menu) render through a portal: the band that hosts
- * this nav is `overflow: hidden` for its rounded corners, so anything positioned inside it clips at
- * the band's lower edge — at compact band heights that swallows the panel entirely.
+ * Both popovers (More, and the signed-in account menu) render through a portal: the band that hosts this nav is
+ * `overflow: hidden` for its rounded corners, so anything positioned inside it clips at the band's lower edge — at
+ * compact band heights that swallows the panel entirely.
  */
 export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
   const profile = useCurrentProfile();
@@ -160,9 +159,9 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
 }
 
 /**
- * How many leading links fit the group's width. The hidden measure row renders every label with the
- * row's own text styles, so each label's true width is read rather than estimated; when the full
- * list fits nothing is reserved, otherwise the More control's reserve is subtracted first.
+ * How many leading links fit the group's width. The hidden measure row renders every label with the row's own text
+ * styles, so each label's true width is read rather than estimated; when the full list fits nothing is reserved,
+ * otherwise the More control's reserve is subtracted first.
  */
 function useVisibleLinkCount(
   groupRef: RefObject<HTMLDivElement | null>,
@@ -181,9 +180,7 @@ function useVisibleLinkCount(
     const compute = () => {
       // Read the gap the row actually renders with, so the math can never drift from the CSS.
       const gap = Number.parseFloat(getComputedStyle(measure).gap) || 0;
-      const widths = Array.from(measure.children).map(
-        (child) => (child as HTMLElement).offsetWidth + gap
-      );
+      const widths = Array.from(measure.children).map((child) => (child as HTMLElement).offsetWidth + gap);
       const total = widths.reduce((sum, width) => sum + width, 0);
       // A fitting row renders one fewer gap than the per-item sum counts.
       if (total - gap <= group.clientWidth) {
@@ -216,19 +213,10 @@ function useVisibleLinkCount(
 }
 
 /**
- * A small panel under its anchor, portaled to `document.body` to escape the band's `overflow:
- * hidden`. Position is taken once on open; any reflow (scroll, resize) closes it rather than
- * tracking the anchor.
+ * A small panel under its anchor, portaled to `document.body` to escape the band's `overflow: hidden`. Position is
+ * taken once on open; any reflow (scroll, resize) closes it rather than tracking the anchor.
  */
-function NavPopover({
-  anchor,
-  onClose,
-  children,
-}: {
-  anchor: HTMLElement;
-  onClose: () => void;
-  children: ReactNode;
-}) {
+function NavPopover({ anchor, onClose, children }: { anchor: HTMLElement; onClose: () => void; children: ReactNode }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -251,8 +239,7 @@ function NavPopover({
   useEffect(() => {
     const close = () => onCloseRef.current();
     const isInside = (target: EventTarget | null) =>
-      target instanceof Node &&
-      (anchor.contains(target) || panelRef.current?.contains(target) === true);
+      target instanceof Node && (anchor.contains(target) || panelRef.current?.contains(target) === true);
     const onPointerDown = (event: PointerEvent) => {
       if (!isInside(event.target)) {
         close();

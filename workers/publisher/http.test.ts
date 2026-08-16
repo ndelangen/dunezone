@@ -21,13 +21,7 @@ describe('bounded Convex HTTP client', () => {
     );
     expect(error).toBeInstanceOf(PublisherHttpError);
     expect((error as Error).message).toContain('https://cdn.example.com/<redacted>');
-    for (const secret of [
-      'signed-user',
-      'SECRET_PASSWORD',
-      'SECRET_PATH',
-      'SECRET_QUERY',
-      'SECRET_FRAGMENT',
-    ]) {
+    for (const secret of ['signed-user', 'SECRET_PASSWORD', 'SECRET_PATH', 'SECRET_QUERY', 'SECRET_FRAGMENT']) {
       expect((error as Error).message).not.toContain(secret);
     }
   });
@@ -53,17 +47,14 @@ describe('bounded Convex HTTP client', () => {
     [503, true],
     [429, true],
     [400, false],
-  ] as const)(
-    'classifies HTTP %s before parsing its diagnostic body',
-    async (status, transient) => {
-      const fetcher: typeof fetch = async () => new Response('<html>not JSON</html>', { status });
-      const error = await postJson('https://convex.example.com', 'token', {}, { fetcher }).catch(
-        (caught: unknown) => caught
-      );
-      expect(error).toBeInstanceOf(PublisherHttpError);
-      expect((error as PublisherHttpError).transient).toBe(transient);
-    }
-  );
+  ] as const)('classifies HTTP %s before parsing its diagnostic body', async (status, transient) => {
+    const fetcher: typeof fetch = async () => new Response('<html>not JSON</html>', { status });
+    const error = await postJson('https://convex.example.com', 'token', {}, { fetcher }).catch(
+      (caught: unknown) => caught
+    );
+    expect(error).toBeInstanceOf(PublisherHttpError);
+    expect((error as PublisherHttpError).transient).toBe(transient);
+  });
 
   test('rejects a successful response above the actual streamed-byte limit', async () => {
     const response = new Response(JSON.stringify({ value: 'x'.repeat(100) }));

@@ -34,9 +34,7 @@ function decodeEnvFromBase64(targetKey: string, base64Key: string) {
   try {
     process.env[targetKey] = decodeBase64Ascii(encoded);
   } catch (error) {
-    throw new Error(
-      `Failed to decode ${base64Key}: ${error instanceof Error ? error.message : 'unknown error'}`
-    );
+    throw new Error(`Failed to decode ${base64Key}: ${error instanceof Error ? error.message : 'unknown error'}`);
   }
 }
 

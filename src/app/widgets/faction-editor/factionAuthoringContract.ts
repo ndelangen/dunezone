@@ -55,20 +55,13 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
   });
 
   if (isBlank(faction.rules.alliance.text)) {
-    warnings.push(
-      warning('rules.alliance.text', 'alliance', 'Alliance ability is empty', 'rules-alliance')
-    );
+    warnings.push(warning('rules.alliance.text', 'alliance', 'Alliance ability is empty', 'rules-alliance'));
   }
 
   faction.troops.forEach((troop, index) => {
     if (isBlank(troop.name)) {
       warnings.push(
-        warning(
-          `troops[${index}].name`,
-          'forces',
-          `Troop ${index + 1} has no name`,
-          `troop-${index}-name`
-        )
+        warning(`troops[${index}].name`, 'forces', `Troop ${index + 1} has no name`, `troop-${index}-name`)
       );
     }
     if (isBlank(troop.description)) {
@@ -105,12 +98,7 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
   faction.planet?.forEach((planet, index) => {
     if (isBlank(planet.name)) {
       warnings.push(
-        warning(
-          `planet[${index}].name`,
-          'worlds',
-          `Planet ${index + 1} has no name`,
-          `planet-${index}-name`
-        )
+        warning(`planet[${index}].name`, 'worlds', `Planet ${index + 1} has no name`, `planet-${index}-name`)
       );
     }
     if (isBlank(planet.description)) {
@@ -126,14 +114,10 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
   });
 
   if (isBlank(faction.rules.startText)) {
-    warnings.push(
-      warning('rules.startText', 'rules', 'Starting instructions are empty', 'rules-start')
-    );
+    warnings.push(warning('rules.startText', 'rules', 'Starting instructions are empty', 'rules-start'));
   }
   if (isBlank(faction.rules.revivalText)) {
-    warnings.push(
-      warning('rules.revivalText', 'rules', 'Revival instructions are empty', 'rules-revival')
-    );
+    warnings.push(warning('rules.revivalText', 'rules', 'Revival instructions are empty', 'rules-revival'));
   }
   if (isBlank(faction.rules.fate.text)) {
     warnings.push(warning('rules.fate.text', 'rules', 'Fate text is empty', 'rules-fate-text'));
@@ -180,8 +164,8 @@ function coverage(paths: readonly string[], entry: CoverageEntry): Record<string
 /**
  * Leaf-path coverage for FactionInputSchema.
  *
- * A non-control leaf must identify its owner: `derived` values are generated at the save boundary;
- * `preserved` values round-trip unchanged. There is no temporary/planned state.
+ * A non-control leaf must identify its owner: `derived` values are generated at the save boundary; `preserved` values
+ * round-trip unchanged. There is no temporary/planned state.
  */
 export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> = {
   ...coverage(['name', 'logo', 'themeColor', 'colors[]'], {
@@ -256,35 +240,21 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
     state: 'control',
     chapter: 'worlds',
   }),
-  ...coverage(
-    [
-      'rules.startText',
-      'rules.revivalText',
-      'rules.spiceCount',
-      'rules.fate.title',
-      'rules.fate.text',
-    ],
-    { state: 'control', chapter: 'rules' }
-  ),
-  ...coverage(
-    ['rules.advantages[].title', 'rules.advantages[].text', 'rules.advantages[].karama'],
-    { state: 'control', chapter: 'advantages' }
-  ),
+  ...coverage(['rules.startText', 'rules.revivalText', 'rules.spiceCount', 'rules.fate.title', 'rules.fate.text'], {
+    state: 'control',
+    chapter: 'rules',
+  }),
+  ...coverage(['rules.advantages[].title', 'rules.advantages[].text', 'rules.advantages[].karama'], {
+    state: 'control',
+    chapter: 'advantages',
+  }),
   ...coverage(['complexity.manual'], { state: 'control', chapter: 'complexity' }),
   ...coverage(['complexity.calculated'], {
     state: 'derived',
     owner: 'Shared faction-complexity calculation at the create and update boundary',
   }),
-  ...coverage(
-    [
-      'extras[].name',
-      'extras[].description',
-      'extras[].items[].url',
-      'extras[].items[].description',
-    ],
-    {
-      state: 'preserved',
-      owner: 'Intentional extras exception in the faction authoring contract',
-    }
-  ),
+  ...coverage(['extras[].name', 'extras[].description', 'extras[].items[].url', 'extras[].items[].description'], {
+    state: 'preserved',
+    owner: 'Intentional extras exception in the faction authoring contract',
+  }),
 };

@@ -30,11 +30,7 @@ import { enqueueFactionSheetPublication } from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
-async function assertFactionSlugAvailable(
-  ctx: MutationCtx,
-  slug: string,
-  factionId?: Id<'factions'>
-) {
+async function assertFactionSlugAvailable(ctx: MutationCtx, slug: string, factionId?: Id<'factions'>) {
   const existing = await ctx.db
     .query('factions')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
@@ -62,9 +58,7 @@ async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
     .take(500);
   const rulesets = await Promise.all(links.map((link) => ctx.db.get('rulesets', link.ruleset_id)));
   return rulesets.flatMap((ruleset) =>
-    ruleset && !ruleset.is_deleted
-      ? [{ id: ruleset._id, name: ruleset.name, slug: ruleset.slug }]
-      : []
+    ruleset && !ruleset.is_deleted ? [{ id: ruleset._id, name: ruleset.name, slug: ruleset.slug }] : []
   );
 }
 
@@ -229,8 +223,8 @@ export const listByOwner = query({
 });
 
 /**
- * Factions the viewer owns, with their current group's name resolved, for the group-detail "add my
- * faction to this group" picker.
+ * Factions the viewer owns, with their current group's name resolved, for the group-detail "add my faction to this
+ * group" picker.
  */
 export const listOwnedForGroupAssign = query({
   args: {},
@@ -241,11 +235,7 @@ export const listOwnedForGroupAssign = query({
       .query('factions')
       .withIndex('by_owner_deleted', (q) => q.eq('owner_id', userId).eq('is_deleted', false))
       .take(OWNED_FOR_GROUP_ASSIGN_LIMIT);
-    return await buildOwnedForGroupAssignRows(
-      ctx,
-      rows,
-      (row) => factionDataForClient(row.data).name
-    );
+    return await buildOwnedForGroupAssignRows(ctx, rows, (row) => factionDataForClient(row.data).name);
   },
 });
 
@@ -331,11 +321,7 @@ export const setGroup = mutation({
     group_id: v.union(v.id('groups'), v.null()),
   },
   handler: async (ctx, args) => {
-    const access = await requireGroupReassignment(
-      ctx,
-      { kind: 'faction', id: args.id },
-      args.group_id
-    );
+    const access = await requireGroupReassignment(ctx, { kind: 'faction', id: args.id }, args.group_id);
 
     await ctx.db.patch(args.id, {
       group_id: args.group_id,

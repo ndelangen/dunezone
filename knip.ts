@@ -2,8 +2,8 @@ import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
   /**
-   * The authoring tool is a self-contained workspace with its own conventions and test/typecheck
-   * gates; it is extraction-destined (see wayfinder #298).
+   * The authoring tool is a self-contained workspace with its own conventions and test/typecheck gates; it is
+   * extraction-destined (see wayfinder #298).
    */
   ignoreWorkspaces: ['tools/svg-authoring'],
   workspaces: {
@@ -22,22 +22,17 @@ const config: KnipConfig = {
         'scripts/*.{ts,mjs}',
       ],
       /**
-       * Non-default vite config locations (custom `config` overrides the plugin default, so the
-       * root config must be listed too). The .storybook one is referenced by string from
-       * .storybook/main.ts (viteConfigPath).
+       * Non-default vite config locations (custom `config` overrides the plugin default, so the root config must be
+       * listed too). The .storybook one is referenced by string from .storybook/main.ts (viteConfigPath).
        */
       vite: {
         config: ['vite.config.ts', 'workers/publisher/vite.config.ts', '.storybook/vite.config.ts'],
       },
       /**
-       * Dev-toggle devtools: imported only from commented-out code in src/app/routes/__root.tsx and
-       * vite.config.ts, kept for flipping on during debugging.
+       * Dev-toggle devtools: imported only from commented-out code in src/app/routes/__root.tsx and vite.config.ts,
+       * kept for flipping on during debugging.
        */
-      ignoreDependencies: [
-        '@tanstack/react-devtools',
-        '@tanstack/react-router-devtools',
-        '@tanstack/devtools-vite',
-      ],
+      ignoreDependencies: ['@tanstack/react-devtools', '@tanstack/react-router-devtools', '@tanstack/devtools-vite'],
       ignore: [
         // Research spikes, intentionally not wired into the app.
         'docs/**',

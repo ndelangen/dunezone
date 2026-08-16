@@ -44,9 +44,7 @@ function layerPreview(value: ColorLayer): string {
   if (typeof value === 'string') {
     return value;
   }
-  const stops = value.stops
-    .map(([color, position]) => `${color} ${Math.round(position * 100)}%`)
-    .join(', ');
+  const stops = value.stops.map(([color, position]) => `${color} ${Math.round(position * 100)}%`).join(', ');
   if (value.type === 'linear') {
     return `linear-gradient(${value.angle}deg, ${stops})`;
   }
@@ -155,13 +153,7 @@ export function FactionBackgroundColorLayer({
           />
 
           {typeof value === 'string' ? (
-            <ColorInput
-              label={`${label} color`}
-              value={value}
-              format="hex"
-              swatchesPerRow={6}
-              onChange={onChange}
-            />
+            <ColorInput label={`${label} color`} value={value} format="hex" swatchesPerRow={6} onChange={onChange} />
           ) : (
             <GradientFields value={value} onChange={onChange} label={label} />
           )}
@@ -200,10 +192,7 @@ function GradientFields({
               onChange={(next) =>
                 onChange({
                   ...value,
-                  angle:
-                    typeof next === 'number' && Number.isInteger(next)
-                      ? Math.min(360, Math.max(0, next))
-                      : 0,
+                  angle: typeof next === 'number' && Number.isInteger(next) ? Math.min(360, Math.max(0, next)) : 0,
                 })
               }
             />

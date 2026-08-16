@@ -12,11 +12,7 @@ import type { Id } from './_generated/dataModel';
 import { httpAction } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
 import { auth } from './auth';
-import {
-  handleAuthenticatedJson,
-  InvalidPublicationRequestError,
-  publicationJson,
-} from './lib/publicationHttp';
+import { handleAuthenticatedJson, InvalidPublicationRequestError, publicationJson } from './lib/publicationHttp';
 
 const http = httpRouter();
 
@@ -45,10 +41,9 @@ function activationSecret() {
 }
 
 async function normalizeJobId(ctx: ActionCtx, jobId: string) {
-  const normalized: Id<'publication_jobs'> | null = await ctx.runQuery(
-    internal.publicationJobs.normalizeJobId,
-    { jobId }
-  );
+  const normalized: Id<'publication_jobs'> | null = await ctx.runQuery(internal.publicationJobs.normalizeJobId, {
+    jobId,
+  });
   if (!normalized) {
     throw new InvalidPublicationRequestError('Invalid Publication job id');
   }
@@ -152,12 +147,8 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const authorization = request.headers.get('Authorization') ?? '';
     const rawJobId = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-    const jobId = rawJobId
-      ? await ctx.runQuery(internal.publicationJobs.normalizeJobId, { jobId: rawJobId })
-      : null;
-    const job = jobId
-      ? await ctx.runQuery(internal.publicationJobs.readJobForRender, { jobId })
-      : null;
+    const jobId = rawJobId ? await ctx.runQuery(internal.publicationJobs.normalizeJobId, { jobId: rawJobId }) : null;
+    const job = jobId ? await ctx.runQuery(internal.publicationJobs.readJobForRender, { jobId }) : null;
     return job
       ? publicationJson(
           publisherCaptureSnapshotSchema.parse({

@@ -34,15 +34,13 @@ function FactionEditPage() {
   const factionQuery = useFaction(factionId, {
     initialData: loaderData,
   });
-  const { faction, viewerAccess, assignableGroups, assetPublishing } =
-    factionQuery.data ?? loaderData;
+  const { faction, viewerAccess, assignableGroups, assetPublishing } = factionQuery.data ?? loaderData;
   const authoringFaction = faction ?? loaderData.faction;
   const authoring = useFactionAuthoring({
     sessionKey: authoringFaction._id,
     initialData: authoringFaction.data,
     persistence: {
-      save: async (draft) =>
-        await updateFaction.mutateAsync({ input: draft, id: authoringFaction._id }),
+      save: async (draft) => await updateFaction.mutateAsync({ input: draft, id: authoringFaction._id }),
       isPending: updateFaction.isPending,
       error: updateFaction.error,
       hasSaved: updateFaction.data !== undefined,
@@ -62,9 +60,7 @@ function FactionEditPage() {
     <Stack align="center" gap={4}>
       <Anchor
         size="sm"
-        renderRoot={(rootProps) => (
-          <Link {...rootProps} to="/factions/$factionId" params={{ factionId }} />
-        )}
+        renderRoot={(rootProps) => <Link {...rootProps} to="/factions/$factionId" params={{ factionId }} />}
       >
         View faction
       </Anchor>
@@ -81,15 +77,11 @@ function FactionEditPage() {
           <Surface padding="xl">
             <Stack gap="sm">
               <Text>
-                <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>
-                  Log in
-                </Anchor>{' '}
-                to edit factions.
+                <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to edit
+                factions.
               </Text>
               <Anchor
-                renderRoot={(rootProps) => (
-                  <Link {...rootProps} to="/factions/$factionId" params={{ factionId }} />
-                )}
+                renderRoot={(rootProps) => <Link {...rootProps} to="/factions/$factionId" params={{ factionId }} />}
               >
                 Back to faction
               </Anchor>
@@ -182,9 +174,7 @@ function FactionEditPage() {
                   color="red"
                   size="lg"
                   disabled={setFactionGroup.isPending}
-                  onClick={() =>
-                    void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })
-                  }
+                  onClick={() => void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })}
                   icon={<UserRoundMinus size={17} aria-hidden />}
                 />
               ) : null}

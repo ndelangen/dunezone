@@ -19,18 +19,7 @@ function representativeFullFieldFaction(): FactionInput {
   const input = {
     ...structuredClone(assetPublishingFaction),
     name: 'Complete Authoring Proof',
-    colors: [
-      'White',
-      'Brown',
-      'Red',
-      'Orange',
-      'Yellow',
-      'Green',
-      'Teal',
-      'Blue',
-      'Purple',
-      'Pink',
-    ],
+    colors: ['White', 'Brown', 'Red', 'Orange', 'Yellow', 'Green', 'Teal', 'Blue', 'Purple', 'Pink'],
     background: {
       image: '/image/texture/021.jpg',
       invert: false,
@@ -173,9 +162,7 @@ describe('faction authoring full-field round trip', () => {
     aggregateTest.register(t, 'statistics');
     aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
-    const userId = await t.run(
-      async (ctx) => await ctx.db.insert('users', { name: 'Faction transition proof user' })
-    );
+    const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction transition proof user' }));
     const asUser = t.withIdentity({ subject: userId });
     const { complexity: _complexity, ...legacyData } = structuredClone(assetPublishingFaction);
 
@@ -223,9 +210,7 @@ describe('faction authoring full-field round trip', () => {
     aggregateTest.register(t, 'statistics');
     aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
-    const userId = await t.run(
-      async (ctx) => await ctx.db.insert('users', { name: 'Faction authoring proof user' })
-    );
+    const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction authoring proof user' }));
     await t.run(
       async (ctx) =>
         await ctx.db.insert('profiles', {
@@ -287,9 +272,7 @@ describe('faction authoring full-field round trip', () => {
     const canonicalCreatePage = await t.query(api.factions.getBySlug, {
       slug: createdRow.slug,
     });
-    expect(CanonicalFactionStoredSchema.parse(canonicalCreatePage.faction.data)).toEqual(
-      createdInput
-    );
+    expect(CanonicalFactionStoredSchema.parse(canonicalCreatePage.faction.data)).toEqual(createdInput);
     await expect(asUser.query(api.factions.listForLoadPicker, {})).resolves.toMatchObject({
       rows: [
         {
@@ -312,9 +295,7 @@ describe('faction authoring full-field round trip', () => {
         },
       ],
     });
-    await expect(
-      t.query(api.rulesets.getBySlug, { slug: 'canonical-transition-proof' })
-    ).resolves.toMatchObject({
+    await expect(t.query(api.rulesets.getBySlug, { slug: 'canonical-transition-proof' })).resolves.toMatchObject({
       factions: [
         {
           identity: {
@@ -358,12 +339,8 @@ describe('faction authoring full-field round trip', () => {
     expect(reloaded.planet).toEqual(editedInput.planet);
     expect(reloaded.rules.advantages).toEqual(editedInput.rules.advantages);
 
-    await expect(
-      t.query(api.factions.getBySlug, { slug: 'complete-authoring-proof' })
-    ).rejects.toThrow('not found');
-    await expect(
-      t.run(async (ctx) => await ctx.db.get('publication_jobs', createdJob._id))
-    ).resolves.toMatchObject({
+    await expect(t.query(api.factions.getBySlug, { slug: 'complete-authoring-proof' })).rejects.toThrow('not found');
+    await expect(t.run(async (ctx) => await ctx.db.get('publication_jobs', createdJob._id))).resolves.toMatchObject({
       status: 'pending',
       attempt_counter: 0,
       asset_data: {

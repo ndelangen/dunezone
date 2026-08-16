@@ -15,9 +15,7 @@ export type FactionSessionPersistencePort = {
   reset: () => void;
 };
 
-function formatZodIssues(error: {
-  issues: readonly { path: PropertyKey[]; message: string }[];
-}): string {
+function formatZodIssues(error: { issues: readonly { path: PropertyKey[]; message: string }[] }): string {
   return error.issues
     .map((issue) => {
       const path = issue.path.map((segment) => String(segment)).join('.') || '(root)';
@@ -27,10 +25,9 @@ function formatZodIssues(error: {
 }
 
 /**
- * Faction authoring session: a framework-free machine owning the baselines (saved canonical vs.
- * loaded draft source), extras preservation, canonical validation, save lifecycle, and source
- * switching. React hosts only the rendering-bound form; the session drives it through
- * `FactionFormPort`. Testable in plain vitest with fake ports (ADR-0002).
+ * Faction authoring session: a framework-free machine owning the baselines (saved canonical vs. loaded draft source),
+ * extras preservation, canonical validation, save lifecycle, and source switching. React hosts only the rendering-bound
+ * form; the session drives it through `FactionFormPort`. Testable in plain vitest with fake ports (ADR-0002).
  */
 export function createFactionAuthoringSession({
   initialData,

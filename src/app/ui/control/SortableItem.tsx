@@ -18,16 +18,8 @@ export function SortableItem({
   className?: string;
   children: (args: SortableHandleProps) => ReactNode;
 }) {
-  const {
-    attributes,
-    listeners,
-    setActivatorNodeRef,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-    isOver,
-  } = useSortable({ id });
+  const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging, isOver } =
+    useSortable({ id });
   const { active } = useDndContext();
   const shouldApplyMotion = active != null || isDragging;
 

@@ -53,6 +53,4 @@ const defaultFactionInput = {
 } satisfies Omit<Faction, 'complexity'>;
 
 /** Valid starter document for the faction editor (create + reset). */
-export const defaultFaction: Faction = FactionInputSchema.parse(
-  recalculateFactionComplexity(defaultFactionInput)
-);
+export const defaultFaction: Faction = FactionInputSchema.parse(recalculateFactionComplexity(defaultFactionInput));

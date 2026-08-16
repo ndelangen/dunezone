@@ -11,9 +11,7 @@ export function factionLoadOptionSearchText(row: FactionLoadPickerRow): string {
   return [row.id, row.data.name, row.slug, row.groupLabel, row.ownerUsername ?? ''].join(' ');
 }
 
-export function factionLoadOwnerLabel(
-  row: Pick<FactionLoadPickerRow, 'ownerUsername' | 'ownerId'>
-): string {
+export function factionLoadOwnerLabel(row: Pick<FactionLoadPickerRow, 'ownerUsername' | 'ownerId'>): string {
   const u = row.ownerUsername?.trim();
   if (u) {
     return u;

@@ -15,20 +15,13 @@ import type {
   PublicAssetPublishingStatus,
   PublicAssetPublishingStatusProjection,
 } from '../../../convex/assetPublishingStatus';
-import type {
-  AssignedGroupSummary,
-  CollaborativeAccess,
-} from '../../../convex/lib/collaborativeAccess';
+import type { AssignedGroupSummary, CollaborativeAccess } from '../../../convex/lib/collaborativeAccess';
 
 /**
- * The app reaches Convex only through this layer, so the shapes it needs are re-exported here
- * rather than imported from `convex/` a second time.
+ * The app reaches Convex only through this layer, so the shapes it needs are re-exported here rather than imported from
+ * `convex/` a second time.
  */
-export type {
-  PublicAssetCaptureStatus,
-  PublicAssetPublishingStatus,
-  PublicAssetPublishingStatusProjection,
-};
+export type { PublicAssetCaptureStatus, PublicAssetPublishingStatus, PublicAssetPublishingStatusProjection };
 
 export type Faction = FactionInput;
 export type FactionData = FactionInput;
@@ -80,9 +73,7 @@ function toFactionCatalogueEntry(entry: FactionCatalogueRow): FactionCatalogueEn
 }
 
 /** Parse catalogue rows at the client boundary. */
-export function factionCatalogueRowsToEntries(
-  rows: FactionCatalogueRow[]
-): FactionCatalogueEntry[] {
+export function factionCatalogueRowsToEntries(rows: FactionCatalogueRow[]): FactionCatalogueEntry[] {
   return rows.map(toFactionCatalogueEntry);
 }
 
@@ -98,12 +89,8 @@ function toFactionCataloguePageData(raw: {
     factions: factionCatalogueRowsToEntries(raw.factions),
     rulesets: raw.rulesets,
     spotlights: {
-      newArrival: raw.spotlights.newArrival
-        ? toFactionCatalogueEntry(raw.spotlights.newArrival)
-        : null,
-      freshlyUpdated: raw.spotlights.freshlyUpdated
-        ? toFactionCatalogueEntry(raw.spotlights.freshlyUpdated)
-        : null,
+      newArrival: raw.spotlights.newArrival ? toFactionCatalogueEntry(raw.spotlights.newArrival) : null,
+      freshlyUpdated: raw.spotlights.freshlyUpdated ? toFactionCatalogueEntry(raw.spotlights.freshlyUpdated) : null,
     },
   };
 }
@@ -122,9 +109,7 @@ export type FactionDetailPageData = {
   rulesets: FactionRulesetSummary[];
 };
 
-function toFactionDetailPageData(
-  raw: FunctionReturnType<typeof api.factions.getBySlug>
-): FactionDetailPageData {
+function toFactionDetailPageData(raw: FunctionReturnType<typeof api.factions.getBySlug>): FactionDetailPageData {
   return {
     faction: {
       ...raw.faction,
@@ -165,10 +150,7 @@ export function useFactionCataloguePage(options?: { initialData?: FactionCatalog
   return toLiveQueryResult(normalized, true, () => options?.initialData);
 }
 
-/**
- * Normalized row from `api.factions.listForLoadPicker` (group label + owner username resolved
- * server-side).
- */
+/** Normalized row from `api.factions.listForLoadPicker` (group label + owner username resolved server-side). */
 export type FactionLoadPickerRow = {
   id: FactionRow['_id'];
   slug: FactionRow['slug'];
@@ -199,9 +181,7 @@ export function useFactionLoadPicker(options?: { initialData?: FactionLoadPicker
 }
 
 export function useCreateFaction() {
-  const mutation = useLiveMutation<{ data: Faction; group_id: string | null }, FactionRow>(
-    api.factions.create
-  );
+  const mutation = useLiveMutation<{ data: Faction; group_id: string | null }, FactionRow>(api.factions.create);
 
   return {
     ...mutation,
@@ -249,14 +229,7 @@ export function useUpdateFaction() {
           onError: (error) => options?.onError?.(error),
         }
       ),
-    mutateAsync: async ({
-      input,
-      id,
-    }: {
-      input: Faction;
-      id: string;
-      previousUrlSlug?: string;
-    }) => {
+    mutateAsync: async ({ input, id }: { input: Faction; id: string; previousUrlSlug?: string }) => {
       const validatedData = FactionInputSchema.parse(recalculateFactionComplexity(input));
       const entry = await mutation.mutateAsync({
         id,
@@ -282,15 +255,12 @@ export function useDeleteFaction() {
           onError: (error) => options?.onError?.(error),
         }
       ),
-    mutateAsync: async ({ id }: { id: string; urlSlug?: string }) =>
-      await mutation.mutateAsync({ id }),
+    mutateAsync: async ({ id }: { id: string; urlSlug?: string }) => await mutation.mutateAsync({ id }),
   };
 }
 
 export function useSetFactionGroup() {
-  const mutation = useLiveMutation<{ id: string; group_id: string | null }, FactionRow>(
-    api.factions.setGroup
-  );
+  const mutation = useLiveMutation<{ id: string; group_id: string | null }, FactionRow>(api.factions.setGroup);
   return {
     ...mutation,
     mutate: (

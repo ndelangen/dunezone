@@ -178,16 +178,7 @@
           {
             "patterns": [
               {
-                "group": [
-                  "@app",
-                  "@app/**",
-                  "@ui",
-                  "@ui/**",
-                  "@db",
-                  "@db/**",
-                  "**/app",
-                  "**/app/**"
-                ],
+                "group": ["@app", "@app/**", "@ui", "@ui/**", "@db", "@db/**", "**/app", "**/app/**"],
                 "message": "src/shared is imported by both the browser app and the server deploy, so it must not import the browser app. If a shared file needs something from src/app, that thing is not shared — hoist it into src/shared or leave the code in the app."
               },
               {
@@ -279,6 +270,7 @@
   "rules": {
     "curly": ["error", "all"],
     "local/prefer-block-comments": "error",
+    "local/sentence-boundary-comments": "error",
     "eqeqeq": ["error", "smart"],
     "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
     "jsdoc/check-tag-names": [

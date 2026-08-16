@@ -68,12 +68,7 @@ async function ensureActiveMembership(
   });
 }
 
-async function prepareLocalProfile(
-  ctx: MutationCtx,
-  user: Doc<'users'>,
-  label: string,
-  slug: string
-) {
+async function prepareLocalProfile(ctx: MutationCtx, user: Doc<'users'>, label: string, slug: string) {
   const profile = await ensureProfileForUser(ctx, user._id, {
     displayName: label,
     imageUrl: null,

@@ -11,10 +11,7 @@ import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
-import type {
-  AssignedGroupSummary,
-  CollaborativeAccess,
-} from '../../../convex/lib/collaborativeAccess';
+import type { AssignedGroupSummary, CollaborativeAccess } from '../../../convex/lib/collaborativeAccess';
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
 export type Ruleset = { name: string };
@@ -40,11 +37,7 @@ function normalizeRulesetFactionSummary(faction: RulesetFactionSummaryRaw): Rule
     identity: faction.identity
       ? {
           logo: faction.identity.logo,
-          background: parseClientBoundary(
-            BackgroundClientSchema,
-            faction.identity.background,
-            'Faction identity'
-          ),
+          background: parseClientBoundary(BackgroundClientSchema, faction.identity.background, 'Faction identity'),
         }
       : null,
   };
@@ -62,9 +55,7 @@ export type RulesetDetailPageData = RulesetPageData & {
   faqItems: FaqItemWithDetails[];
 };
 
-function toRulesetPageData(
-  raw: FunctionReturnType<typeof api.rulesets.getBySlug>
-): RulesetPageData {
+function toRulesetPageData(raw: FunctionReturnType<typeof api.rulesets.getBySlug>): RulesetPageData {
   return {
     ruleset: toRulesetEntry(raw.ruleset),
     factions: raw.factions.map(normalizeRulesetFactionSummary),
@@ -141,28 +132,20 @@ export function useRulesetBySlug(slug: string, options?: { initialData?: Ruleset
   return result;
 }
 
-export function useRulesetDetailPage(
-  slug: string,
-  options?: { initialData?: RulesetDetailPageData }
-) {
+export function useRulesetDetailPage(slug: string, options?: { initialData?: RulesetDetailPageData }) {
   const liveData = useQuery(api.rulesets.detailPageBySlug, {
     slug,
   });
   const normalized: RulesetDetailPageData | null | undefined =
-    liveData === undefined
-      ? undefined
-      : liveData === null
-        ? null
-        : normalizeRulesetDetailPage(liveData);
+    liveData === undefined ? undefined : liveData === null ? null : normalizeRulesetDetailPage(liveData);
   const result = toLiveQueryResult(normalized, true, () => options?.initialData);
   return result;
 }
 
 export function useCreateRuleset() {
-  const mutation = useLiveMutation<
-    { name: string; group_id: string | null; image_cover: string | null },
-    RulesetRow
-  >(api.rulesets.create);
+  const mutation = useLiveMutation<{ name: string; group_id: string | null; image_cover: string | null }, RulesetRow>(
+    api.rulesets.create
+  );
   return {
     ...mutation,
     mutate: (

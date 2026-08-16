@@ -23,8 +23,7 @@ function GroupSettings({ initial }: { initial: GroupEntry }) {
   const [name, setName] = useState(initial.name);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const mutationError =
-    updateGroup.isError && updateGroup.error instanceof Error ? updateGroup.error.message : null;
+  const mutationError = updateGroup.isError && updateGroup.error instanceof Error ? updateGroup.error.message : null;
   const failure = submitError ?? mutationError;
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -32,9 +31,7 @@ function GroupSettings({ initial }: { initial: GroupEntry }) {
     setSubmitError(null);
     const parsed = groupInputSchema.safeParse({ name: name.trim() });
     if (!parsed.success) {
-      setSubmitError(
-        parsed.error.issues.map((issue) => issue.message).join(' ') || 'Invalid group name'
-      );
+      setSubmitError(parsed.error.issues.map((issue) => issue.message).join(' ') || 'Invalid group name');
       return;
     }
     const previousSlug = initial.slug;

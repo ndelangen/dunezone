@@ -2,9 +2,7 @@ import { expect, test } from './coverage';
 
 test.use({ storageState: '.playwright/user-a-header.json' });
 
-test('the persistent page hero contracts when navigating to a headerless route', async ({
-  page,
-}) => {
+test('the persistent page hero contracts when navigating to a headerless route', async ({ page }) => {
   await page.goto('/privacy');
   const hero = page.getByRole('banner');
   await expect(hero).toBeVisible();
@@ -44,9 +42,7 @@ test('the persistent page hero contracts when navigating to a headerless route',
 
   const initialHeight = initialBox?.height ?? 0;
   const finalHeight = finalBox?.height ?? 0;
-  const intermediateHeights = heightSamples.filter(
-    (height) => height < initialHeight - 2 && height > finalHeight + 2
-  );
+  const intermediateHeights = heightSamples.filter((height) => height < initialHeight - 2 && height > finalHeight + 2);
 
   expect(finalHeight).toBeLessThan(initialHeight / 2);
   expect(new Set(intermediateHeights.map((height) => Math.round(height))).size).toBeGreaterThan(2);

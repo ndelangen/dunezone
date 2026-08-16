@@ -34,11 +34,7 @@ function runConvex(functionName: string, args: unknown, useProd: boolean): unkno
   const result = Bun.spawnSync({ cmd: command, stdout: 'pipe', stderr: 'pipe' });
   if (result.exitCode !== 0) {
     throw new Error(
-      [
-        `Command failed: ${command.join(' ')}`,
-        result.stdout.toString().trim(),
-        result.stderr.toString().trim(),
-      ]
+      [`Command failed: ${command.join(' ')}`, result.stdout.toString().trim(), result.stderr.toString().trim()]
         .filter(Boolean)
         .join('\n')
     );
@@ -107,9 +103,7 @@ async function verify(useProd: boolean) {
   const statistics = globalTotalsSchema.parse(runConvex('statistics:getGlobalTotals', {}, useProd));
   const rulesets = [];
   for (const [rulesetId, expected] of perRuleset) {
-    const actual = rulesetTotalsSchema.parse(
-      runConvex('statistics:getRulesetTotals', { rulesetId }, useProd)
-    );
+    const actual = rulesetTotalsSchema.parse(runConvex('statistics:getRulesetTotals', { rulesetId }, useProd));
     rulesets.push({
       rulesetId,
       canonical: expected,
@@ -119,9 +113,7 @@ async function verify(useProd: boolean) {
   }
 
   const orphaned = sources.flatMap((source) =>
-    (pages.get(source) ?? [])
-      .filter((item) => !item.parentExists)
-      .map((item) => ({ source, id: item.id }))
+    (pages.get(source) ?? []).filter((item) => !item.parentExists).map((item) => ({ source, id: item.id }))
   );
   const validatedCanonical = globalTotalsSchema.parse(canonical);
   const globalMatches =
@@ -130,8 +122,7 @@ async function verify(useProd: boolean) {
     validatedCanonical.rulesets === statistics.rulesets &&
     validatedCanonical.questions === statistics.questions &&
     validatedCanonical.answers === statistics.answers;
-  const matches =
-    globalMatches && rulesets.every((ruleset) => ruleset.matches) && orphaned.length === 0;
+  const matches = globalMatches && rulesets.every((ruleset) => ruleset.matches) && orphaned.length === 0;
 
   const report = {
     environment: useProd ? 'production' : 'development',

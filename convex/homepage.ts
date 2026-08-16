@@ -3,10 +3,7 @@ import { v } from 'convex/values';
 import { query } from './_generated/server';
 import { loadFactionCatalogueSpotlightPreviews } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import {
-  discoverableProfileValidator,
-  loadNewestDiscoverableProfiles,
-} from './lib/profileDiscovery';
+import { discoverableProfileValidator, loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
 import { loadGlobalStatisticsTotals } from './lib/statistics';
 
 const spotlightValidator = v.object({

@@ -1,6 +1,6 @@
 /**
- * Structural verification of generated vector output (wayfinder #296 guards, train ticket #306):
- * checks public/vector/** against media/vector/** and the rules — without re-optimizing anything.
+ * Structural verification of generated vector output (wayfinder #296 guards, train ticket #306): checks
+ * public/vector/** against media/vector/** and the rules — without re-optimizing anything.
  *
  * Bun run verify:vectors
  *
@@ -52,9 +52,7 @@ function rootTagCarriesStamp(svg: string): boolean {
 }
 
 const sources = walk(mediaRoot).filter((file) => file.endsWith('.svg'));
-const sourceRelatives = new Set(
-  sources.map((file) => path.relative(mediaRoot, file).split(path.sep).join('/'))
-);
+const sourceRelatives = new Set(sources.map((file) => path.relative(mediaRoot, file).split(path.sep).join('/')));
 
 for (const relative of sourceRelatives) {
   const category = relative.split('/')[0] as VectorCategory;

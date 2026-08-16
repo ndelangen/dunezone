@@ -76,12 +76,8 @@ function FaqCreatePage() {
             onSubmit={(e) => {
               e.preventDefault();
               const formEl = e.target as HTMLFormElement;
-              const question = (
-                formEl.elements.namedItem('question') as HTMLInputElement
-              ).value.trim();
-              const answer = (
-                formEl.elements.namedItem('answer') as HTMLTextAreaElement
-              ).value.trim();
+              const question = (formEl.elements.namedItem('question') as HTMLInputElement).value.trim();
+              const answer = (formEl.elements.namedItem('answer') as HTMLTextAreaElement).value.trim();
               const selectedTags = Array.from(
                 formEl.querySelectorAll<HTMLInputElement>('input[name="tags"]:checked')
               ).map((input) => input.value as FaqTag);
@@ -127,29 +123,17 @@ function FaqCreatePage() {
                 <legend className={styles.visuallyHidden}>FAQ tags</legend>
                 {FAQ_TAG_VALUES.map((tag) => (
                   <label key={tag} className={styles.tagOption}>
-                    <input
-                      type="checkbox"
-                      name="tags"
-                      value={tag}
-                      defaultChecked={tag === 'other'}
-                    />
+                    <input type="checkbox" name="tags" value={tag} defaultChecked={tag === 'other'} />
                     <span>{FAQ_TAG_LABELS[tag]}</span>
                   </label>
                 ))}
               </Stack>
             </Input.Wrapper>
             <Group gap="xs" wrap="nowrap">
-              <Button
-                variant="filled"
-                color="confirm"
-                type="submit"
-                disabled={askQuestion.isPending}
-              >
+              <Button variant="filled" color="confirm" type="submit" disabled={askQuestion.isPending}>
                 {askQuestion.isPending ? 'Asking…' : 'Ask'}
               </Button>
-              {askQuestion.isError && (
-                <span className={styles.error}>{askQuestion.error?.message}</span>
-              )}
+              {askQuestion.isError && <span className={styles.error}>{askQuestion.error?.message}</span>}
             </Group>
           </Stack>
         </Surface>

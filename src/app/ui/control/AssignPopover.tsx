@@ -12,17 +12,17 @@ interface AssignPopoverOption {
 
 export interface AssignPopoverProps {
   /**
-   * What is being picked, singular and lowercase — `group`, `faction`. Every label in the popover
-   * is derived from it, so a caller supplies one word instead of eight strings.
+   * What is being picked, singular and lowercase — `group`, `faction`. Every label in the popover is derived from it,
+   * so a caller supplies one word instead of eight strings.
    */
   noun: string;
   /** The choices, already labelled: how a thing reads is the caller's knowledge, not this one's. */
   options: AssignPopoverOption[];
   /**
-   * Commits the pick. Rejecting shows the error's message inside the popover and leaves it open so
-   * the reader can try another choice; resolving closes it. Anything the commit should ask first —
-   * a confirmation, a consequence the reader must accept — belongs here, in the caller: resolve
-   * `false` when the reader backs out, and the popover stays open with the pick intact.
+   * Commits the pick. Rejecting shows the error's message inside the popover and leaves it open so the reader can try
+   * another choice; resolving closes it. Anything the commit should ask first — a confirmation, a consequence the
+   * reader must accept — belongs here, in the caller: resolve `false` when the reader backs out, and the popover stays
+   * open with the pick intact.
    */
   onAssign: (value: string) => Promise<boolean | void>;
   disabled: boolean;
@@ -33,9 +33,8 @@ export interface AssignPopoverProps {
   /** Names the dropdown. Defaults to `Assign <noun>`. */
   title?: string;
   /**
-   * The trigger's accessible name, when it differs from the dropdown's title — the trigger says
-   * what the reader is about to do ("Add a faction you own"), the dropdown says where they now
-   * are.
+   * The trigger's accessible name, when it differs from the dropdown's title — the trigger says what the reader is
+   * about to do ("Add a faction you own"), the dropdown says where they now are.
    */
   triggerLabel?: string;
   /** Overrides `Search <noun>s` on the field, where the product says it differently. */
@@ -139,9 +138,9 @@ function AssignPopoverPlaceholder({ children }: { children: string }) {
 /**
  * The pick and its commit: what is selected, whether a commit is in flight, and what went wrong.
  *
- * Separate from the rendering because it is the only imperative part — the guard against a stale
- * selection, the latch, and the two ways a commit can end without closing (a rejection, or a caller
- * that resolved `false` because the reader backed out).
+ * Separate from the rendering because it is the only imperative part — the guard against a stale selection, the latch,
+ * and the two ways a commit can end without closing (a rejection, or a caller that resolved `false` because the reader
+ * backed out).
  */
 function useAssignCommit({
   noun,
@@ -205,11 +204,7 @@ function AssignPopoverBody({
 
   return (
     <Stack gap="md">
-      <AssignPopoverHeading
-        labelId={labelId}
-        title={title ?? `Assign ${noun}`}
-        descriptionLines={descriptionLines}
-      />
+      <AssignPopoverHeading labelId={labelId} title={title ?? `Assign ${noun}`} descriptionLines={descriptionLines} />
 
       {error ? (
         <Alert color="red" title={`Could not assign this ${noun}`} role="alert">
@@ -220,9 +215,7 @@ function AssignPopoverBody({
       {loading ? <AssignPopoverPlaceholder>{`Loading ${noun}s…`}</AssignPopoverPlaceholder> : null}
 
       {isEmpty ? (
-        <AssignPopoverPlaceholder>
-          {emptyMessage ?? `No ${noun}s are available yet.`}
-        </AssignPopoverPlaceholder>
+        <AssignPopoverPlaceholder>{emptyMessage ?? `No ${noun}s are available yet.`}</AssignPopoverPlaceholder>
       ) : null}
 
       {hasOptions ? (
@@ -245,16 +238,14 @@ function AssignPopoverBody({
 /**
  * Picks one of a set and commits it, in a popover hung off an icon.
  *
- * Callers own the choices and their labels, what committing means, and anything the reader must
- * agree to first. This owns the machine around that pick: the trigger, the dropdown that names
- * itself for assistive tech, the searchable select, the in-flight latch, and the failure message
- * shown in place rather than swallowed.
+ * Callers own the choices and their labels, what committing means, and anything the reader must agree to first. This
+ * owns the machine around that pick: the trigger, the dropdown that names itself for assistive tech, the searchable
+ * select, the in-flight latch, and the failure message shown in place rather than swallowed.
  *
- * It replaced two components that asked the same question from opposite ends — one picked a group
- * for an asset, one picked an asset for a group — and had drifted apart in their labels, their
- * empty states, and whether a failure was announced at all. Every label defaults from `noun`, so
- * the two directions cannot drift apart by accident — a page overrides the words only where it
- * means something different by them.
+ * It replaced two components that asked the same question from opposite ends — one picked a group for an asset, one
+ * picked an asset for a group — and had drifted apart in their labels, their empty states, and whether a failure was
+ * announced at all. Every label defaults from `noun`, so the two directions cannot drift apart by accident — a page
+ * overrides the words only where it means something different by them.
  */
 export function AssignPopover({ icon, size = 'lg', ...body }: AssignPopoverProps) {
   const [opened, setOpened] = useState(false);
@@ -283,9 +274,7 @@ export function AssignPopover({ icon, size = 'lg', ...body }: AssignPopoverProps
       </Popover.Target>
       <Popover.Dropdown aria-labelledby={labelId}>
         {/* Remounted per opening, so a cancelled pick never reappears the next time. */}
-        {opened ? (
-          <AssignPopoverBody {...body} labelId={labelId} onAssigned={() => setOpened(false)} />
-        ) : null}
+        {opened ? <AssignPopoverBody {...body} labelId={labelId} onAssigned={() => setOpened(false)} /> : null}
       </Popover.Dropdown>
     </Popover>
   );
