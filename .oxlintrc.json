@@ -321,9 +321,9 @@
   },
   "ignorePatterns": [
     "**/dist",
-    "**/supabase/.temp",
-    "**/routeTree.gen.ts",
+    "**/.temp",
     "**/*.gen.ts",
+    "**/*.generated.ts",
     "**/workers/publisher/worker-configuration.d.ts",
     "**/convex/_generated",
     "docs/research/**",
