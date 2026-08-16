@@ -33,6 +33,28 @@ function rulesetInputFrom(args: { name: string; description?: string }) {
   return args.description === undefined ? { name: args.name } : { name: args.name, description: args.description };
 }
 
+/**
+ * The patch an update writes, with one rule for every optional field: absent from the caller means absent from the patch.
+ * That is what lets `update` serve as a partial patcher without a caller that only moves the group blanking a description.
+ * The shape is inferred rather than restated, so adding a field here cannot drift from the type that describes it.
+ */
+function rulesetUpdatePatch(fields: {
+  name: string;
+  slug: string;
+  description?: string;
+  group_id?: Id<'groups'> | null;
+  image_cover?: string | null;
+}) {
+  return {
+    name: fields.name,
+    slug: fields.slug,
+    updated_at: nowIso(),
+    ...(fields.description === undefined ? {} : { description: fields.description }),
+    ...(fields.group_id === undefined ? {} : { group_id: fields.group_id }),
+    ...(fields.image_cover === undefined ? {} : { image_cover: fields.image_cover }),
+  };
+}
+
 async function resolveUniqueRulesetSlug(ctx: QueryCtx | MutationCtx, name: string, excludeId?: Id<'rulesets'>) {
   const baseSlug = slugify(name) || 'ruleset';
   let slug = baseSlug;
@@ -190,30 +212,16 @@ export const update = mutation({
       throw new Error('Ruleset name already exists');
     }
 
-    const patch: {
-      name: string;
-      slug: string;
-      updated_at: string;
-      description?: string;
-      group_id?: Id<'groups'> | null;
-      image_cover?: string | null;
-    } = {
-      name: normalizedName,
-      slug: await resolveUniqueRulesetSlug(ctx, normalizedName, args.id),
-      updated_at: nowIso(),
-    };
-    /** Absent means "leave it alone", so a caller that only moves the group cannot blank a description. */
-    if (parsed.data.description !== undefined) {
-      patch.description = parsed.data.description;
-    }
-    if (args.group_id !== undefined) {
-      patch.group_id = args.group_id;
-    }
-    if (args.image_cover !== undefined) {
-      patch.image_cover = args.image_cover;
-    }
-
-    await ctx.db.patch(ruleset._id, patch);
+    await ctx.db.patch(
+      ruleset._id,
+      rulesetUpdatePatch({
+        name: normalizedName,
+        slug: await resolveUniqueRulesetSlug(ctx, normalizedName, args.id),
+        description: parsed.data.description,
+        group_id: args.group_id,
+        image_cover: args.image_cover,
+      })
+    );
     const updated = await ctx.db.get(ruleset._id);
     if (!updated) {
       throw new Error('Failed to update ruleset');
