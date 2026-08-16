@@ -49,21 +49,13 @@
   flex: 0 0 auto;
   width: 2.5rem;
   height: 2.5rem;
-  border: 1px solid rgba(248, 175, 64, 0.42);
+  /* `color` arrives per entry as that destination's brand colour, so the ring is mixed down from
+     it rather than named again — the two can never drift apart. The 42% keeps the ring at the
+     weight it had when the whole row was one accent, so only the hue changes. */
+  border: 1px solid color-mix(in srgb, currentColor 42%, transparent);
   border-radius: 50%;
-  color: var(--color-accent);
   text-decoration: none;
   place-items: center;
-  transition:
-    color var(--transition-fast),
-    background var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.waypointLink:hover {
-  background: var(--color-link);
-  color: #fff9ef;
-  transform: translateY(-3px);
 }
 
 .waypointLink:focus-visible {
