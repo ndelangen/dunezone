@@ -22,8 +22,9 @@ function Rail(_: PropsWithChildren): null {
  * Distinct from `TriptychLayout`, which centres its slots vertically around a middle panel holding artwork.
  * Here every slot is text a reader works down, so they align to the top and the rail keeps a floor width rather than a share of the room.
  *
- * It gives up its columns in two stages instead of one: first secondary and the rail stack beside the primary, which keeps its width, and only then does everything fall into a single column.
- * That middle stage exists because collapsing three columns straight into one buries the rail below everything else, and it puts secondary directly beside the primary — a discussion beside the prose it discusses — leaving the rail as the list you scan afterwards.
+ * It gives up its columns in two stages instead of one: first the two reading columns merge into one while the rail keeps a column of its own, and only then does everything fall into a single column.
+ * That middle stage exists because collapsing three columns straight into one buries the rail below everything else.
+ * Merging primary into secondary keeps the order a reader wants — the prose, then the discussion of it — and leaves the rail where it already was, alongside.
  *
  * Callers own what goes in each slot and the page width around it;
  * this owns only where the three regions sit.
