@@ -16,6 +16,8 @@ export interface FactionLoadPopoverProps {
  * The toolbar affordance that opens `FactionPicker`.
  * It owns nothing but the open state and the trigger: the picker is mounted only while the popover is open, so its subscription lives only that long.
  * This shell fetches nothing itself — it hands the picker its exclusion slug and a callback, and closes on load or cancel.
+ *
+ * The editor wants a draft, not a row, so this is where the picked faction's identifiers are dropped: the picker reports *which* faction was chosen, and loading one into a draft only needs its data.
  */
 export function FactionLoadPopover({ disabled, currentPublicSlug, onLoaded }: FactionLoadPopoverProps) {
   const [opened, setOpened] = useState(false);
@@ -47,8 +49,8 @@ export function FactionLoadPopover({ disabled, currentPublicSlug, onLoaded }: Fa
           <FactionPicker
             currentPublicSlug={currentPublicSlug}
             onCancel={() => setOpened(false)}
-            onLoaded={(loaded) => {
-              onLoaded(loaded);
+            onPick={(picked) => {
+              onLoaded(picked.data);
               setOpened(false);
             }}
           />
