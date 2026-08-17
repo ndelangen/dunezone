@@ -106,12 +106,49 @@
 }
 
 /* PROTOTYPE (#434) — throwaway styles for the header variants. */
-.protoHeadA,
 .protoHeadB {
   width: min(100%, 60rem);
   min-width: 0;
   margin: 0 auto;
   padding-inline: var(--mantine-spacing-sm);
+}
+
+/* Grid, not a nowrap row: the rail takes its own line when there is no room, instead of crushing the title. */
+.protoHeadA {
+  display: grid;
+  grid-template-areas: "cover text rail";
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--mantine-spacing-lg);
+  align-items: center;
+  width: min(100%, 60rem);
+  margin: 0 auto;
+  padding-inline: var(--mantine-spacing-sm);
+}
+
+.protoHeadACover {
+  grid-area: cover;
+}
+
+.protoHeadAText {
+  grid-area: text;
+  min-width: 0;
+}
+
+/* The rail is a wide-screen affordance: narrow keeps the band at three rows and shows the counts as a strip in line. */
+@media (max-width: 48em) {
+  .protoHeadA {
+    grid-template-areas: "cover text";
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--mantine-spacing-md);
+  }
+
+  .protoStatRail {
+    display: none;
+  }
+
+  .protoStatStripInline {
+    display: block;
+  }
 }
 
 .protoHeadC {
@@ -122,10 +159,12 @@
 }
 
 .protoStatRail {
-  flex: 0 0 auto;
+  grid-area: rail;
   min-width: 9rem;
-  padding-left: var(--mantine-spacing-md);
-  border-left: 1px solid color-mix(in srgb, var(--mantine-color-dune-3) 60%, transparent);
+}
+
+.protoStatStripInline {
+  display: none;
 }
 
 .protoCoverChip {

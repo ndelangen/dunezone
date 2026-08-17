@@ -133,12 +133,21 @@ function OwnerLine({ owner }: { owner: ProfileSummary | null }) {
   );
 }
 
-/** A — the stats keep their labelled column, pushed to the right of the band as a rail. */
+/**
+ * A — the stats keep their labelled column, pushed to the right of the band as a rail.
+ *
+ * Two fixes over the first draft, both about the band's context rather than the arrangement:
+ * the rail sits on its own `Surface`, because `Stats`' column labels are `c="dimmed"` for a Card's dark ground and
+ * vanish over the dune artwork — and the band is a grid that drops the rail onto its own row when narrow, since a
+ * `nowrap` row squeezed the title into one letter per line at 375px.
+ */
 export function HeaderVariantA(props: HeaderPrototypeProps) {
   return (
-    <Group wrap="nowrap" align="center" gap="lg" className={styles.protoHeadA}>
-      <Cover imageCover={props.imageCover} name={props.name} size="full" />
-      <Stack gap={6} miw={0} style={{ flex: 1 }}>
+    <Box className={styles.protoHeadA}>
+      <Box className={styles.protoHeadACover}>
+        <Cover imageCover={props.imageCover} name={props.name} size="full" />
+      </Box>
+      <Stack gap={6} miw={0} className={styles.protoHeadAText}>
         <Breadcrumb />
         <Title order={1} className={styles.rulesetTitle}>
           {props.name}
@@ -152,12 +161,19 @@ export function HeaderVariantA(props: HeaderPrototypeProps) {
           <UsersRound size={15} aria-hidden />
           <GroupLink assignedGroup={props.assignedGroup} />
           <MembershipChip membership={props.membership} />
+          {/*
+            Narrow only: the counts join the line they would otherwise sit above. A compact band holds three rows, and
+            the labelled rail needs a fourth — so below the breakpoint the rail gives way to the strip in place.
+          */}
+          <Box className={styles.protoStatStripInline}>
+            <Stats items={statItems(props)} orientation="row" />
+          </Box>
         </Group>
       </Stack>
-      <Box className={styles.protoStatRail}>
+      <Surface padding="sm" className={styles.protoStatRail}>
         <Stats items={statItems(props)} orientation="column" />
-      </Box>
-    </Group>
+      </Surface>
+    </Box>
   );
 }
 
