@@ -54,18 +54,26 @@ import {
 import { useGroupMembershipWorkflow } from '@db/members';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useSetRulesetGroup } from '@db/rulesets';
+/* PROTOTYPE (#434) — remove with the variants. */
+import { HEADER_VARIANTS, HeaderPrototype, HeaderPrototypeSwitcher } from './-headerPrototype';
+import type { HeaderVariant } from './-headerPrototype';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from '../RulesetDetail.module.css';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  validateSearch: (params: Record<string, unknown>): { q?: string; tag?: FaqTag } => {
+  validateSearch: (params: Record<string, unknown>): { q?: string; tag?: FaqTag; variant?: HeaderVariant } => {
     const q = params?.q;
     const tag = params?.tag;
+    /* PROTOTYPE (#434) — remove with the variants. */
+    const variant = params?.variant;
     return {
       ...(typeof q === 'string' ? { q } : {}),
       ...(typeof tag === 'string' && FAQ_TAG_VALUES.includes(tag as FaqTag) ? { tag: tag as FaqTag } : {}),
+      ...(typeof variant === 'string' && HEADER_VARIANTS.includes(variant as HeaderVariant)
+        ? { variant: variant as HeaderVariant }
+        : {}),
     };
   },
   loader: async ({ params }) => {
@@ -207,6 +215,20 @@ function RulesetDetailPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
+        {/* PROTOTYPE (#434) — `?variant=A|B|C` swaps in a merged-header variant; no variant renders today's band. */}
+        {search.variant ? (
+          <HeaderPrototype
+            variant={search.variant}
+            name={r.name}
+            imageCover={r.image_cover ?? null}
+            owner={page.owner}
+            assignedGroup={assignedGroup}
+            membership={membershipStatus}
+            factionCount={page.factions.length}
+            questionCount={page.faqItems.length}
+            answeredCount={answeredFaqCount}
+          />
+        ) : (
         <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
           <Surface className={styles.rulesetHeadCover}>
             {r.image_cover ? (
@@ -240,6 +262,7 @@ function RulesetDetailPage() {
             </Group>
           </Stack>
         </Group>
+        )}
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
@@ -585,6 +608,11 @@ function RulesetDetailPage() {
             </Stack>
           </ColumnsWithRailLayout.Rail>
         </ColumnsWithRailLayout>
+        {/* PROTOTYPE (#434) — remove with the variants. */}
+        <HeaderPrototypeSwitcher
+          current={search.variant ?? 'A'}
+          onSelect={(next) => navigate({ to: '.', search: (prev) => ({ ...prev, variant: next }), replace: true })}
+        />
       </PageLayout.Content>
     </PageLayout>
   );
