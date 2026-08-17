@@ -1,5 +1,7 @@
 import preview from '@sb/preview';
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
+import { IconAction } from '@ui/control/IconAction';
+import { EllipsisVertical } from 'lucide-react';
 import { expect, within } from 'storybook/test';
 
 import type { FactionCatalogueEntry } from '@db/factions';
@@ -87,4 +89,28 @@ export const ContentStress = meta.story({
       </div>
     ),
   ],
+});
+
+/** With an adornment: a control that acts on the faction where it is listed, top-left because the other corners are taken. */
+export const WithAction = meta.story({
+  args: {
+    action: (
+      <IconAction
+        label="Faction actions"
+        variant="light"
+        color="gray"
+        size="sm"
+        icon={<EllipsisVertical size={15} aria-hidden />}
+      />
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const link = canvas.getByRole('link');
+    const actionButton = canvas.getByRole('button', { name: 'Faction actions' });
+
+    await expect(actionButton).toBeVisible();
+    /* The whole point of the adornment being a sibling: clicking it cannot navigate, because it is not inside the link. */
+    await expect(link.contains(actionButton)).toBe(false);
+  },
 });
