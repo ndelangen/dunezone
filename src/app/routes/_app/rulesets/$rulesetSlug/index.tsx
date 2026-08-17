@@ -1,7 +1,7 @@
 import { Alert, Anchor, Avatar, Group, Menu, Popover, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { ProposedContent } from '@ui/block/ProposedContent';
