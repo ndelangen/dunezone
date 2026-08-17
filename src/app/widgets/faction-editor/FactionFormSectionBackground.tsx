@@ -22,7 +22,7 @@ import { backgroundTreatment } from '@game/assets/utils/Background';
 
 import { assetColorStyle } from './assetColor';
 import { BACKGROUND_PATTERN_CATALOGUE } from './backgroundPatternCatalogue';
-import { FactionBackgroundColorLayer } from './FactionBackgroundColorLayer';
+import { FactionBackgroundColorsPrototype } from './FactionBackgroundColorsPrototype';
 import {
   randomizeBackground,
   randomizeBackgroundColors,
@@ -303,28 +303,9 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
                 />
               }
               input={
-                <Box className={styles.colorLayers}>
-                  <form.Field name="background.colors[0]">
-                    {(field) => (
-                      <FactionBackgroundColorLayer
-                        label="Base"
-                        description="The uninterrupted color beneath the pattern."
-                        value={field.state.value}
-                        onChange={field.handleChange}
-                      />
-                    )}
-                  </form.Field>
-                  <form.Field name="background.colors[1]">
-                    {(field) => (
-                      <FactionBackgroundColorLayer
-                        label="Pattern"
-                        description="The color or gradient revealed by the treated pattern."
-                        value={field.state.value}
-                        onChange={field.handleChange}
-                      />
-                    )}
-                  </form.Field>
-                </Box>
+                // PROTOTYPE mount (wayfinder #460): renders the production popover
+                // cards unless ?variant= selects an inline-expansion candidate.
+                <FactionBackgroundColorsPrototype form={form} />
               }
             />
           </Box>
