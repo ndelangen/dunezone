@@ -603,7 +603,7 @@ function RulesetDetailPage() {
           </ColumnsWithRailLayout.Secondary>
 
           <ColumnsWithRailLayout.Rail>
-            <Section id="factions" icon={<Layers3 size={20} aria-hidden />} title="Included factions">
+            <Section id="factions" icon={<Layers3 size={20} aria-hidden />} title="Factions">
               {page.factions.length > 0 ? (
                 <Stack gap="md">
                   {page.factions.map((faction) => (

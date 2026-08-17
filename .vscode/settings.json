@@ -1,14 +1,44 @@
 {
   "files.watcherExclude": {
-    "**/routeTree.gen.ts": true
+    "**/routeTree.gen.ts": true,
+    "**/.claude/worktrees/**": true,
+    "**/dist/**": true,
+    "**/storybook-static/**": true,
+    "**/coverage/**": true,
+    "**/test-results/**": true,
+    "**/playwright-report/**": true,
+    "**/.wrangler/**": true,
+    "**/.tanstack/**": true,
+    "**/.cache/**": true,
+    "**/public/image/**": true,
+    "**/public/web/**": true,
+    "**/public/vector/**": true,
+    "**/public/obj/**": true
   },
   "search.exclude": {
-    "**/routeTree.gen.ts": true
+    "**/routeTree.gen.ts": true,
+    "**/*.generated.ts": true,
+    "**/convex/_generated/**": true,
+    "workers/publisher/worker-configuration.d.ts": true,
+    "**/.claude/worktrees/**": true,
+    "**/dist/**": true,
+    "**/storybook-static/**": true,
+    "**/coverage/**": true,
+    "**/test-results/**": true,
+    "**/playwright-report/**": true,
+    "**/public/image/**": true,
+    "**/public/web/**": true,
+    "**/public/vector/**": true,
+    "**/public/obj/**": true
   },
   "files.readonlyInclude": {
-    "**/routeTree.gen.ts": true
+    "**/routeTree.gen.ts": true,
+    "**/*.generated.ts": true,
+    "**/convex/_generated/**": true,
+    "workers/publisher/worker-configuration.d.ts": true
   },
-  "typescript.tsdk": "node_modules/typescript/lib",
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true,
   "editor.defaultFormatter": "oxc.oxc-vscode",
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
@@ -32,7 +62,23 @@
   "[jsonc]": {
     "editor.defaultFormatter": "oxc.oxc-vscode"
   },
+  "[css]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[less]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
   "[svg]": {
     "editor.defaultFormatter": "jock.svg"
-  }
+  },
+  "sort-imports.on-save": false
 }

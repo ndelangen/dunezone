@@ -22,7 +22,7 @@ const meta = preview.meta({
   component: Section,
   parameters: { layout: 'padded' },
   args: {
-    title: 'Included factions',
+    title: 'Factions',
     icon: <Layers3 size={20} aria-hidden />,
     children: twoPanes,
   },
