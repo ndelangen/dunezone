@@ -15,9 +15,10 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 import type { Faction } from '@db/factions';
+import { GradientDef } from '@game/assets/utils/Background';
 
 type ColorLayer = Faction['background']['colors'][number];
 type LinearLayer = Extract<ColorLayer, { type: 'linear' }>;
@@ -40,15 +41,25 @@ function asOptionalNumber(value: string | number): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
-function layerPreview(value: ColorLayer): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  const stops = value.stops.map(([color, position]) => `${color} ${Math.round(position * 100)}%`).join(', ');
-  if (value.type === 'linear') {
-    return `linear-gradient(${value.angle}deg, ${stops})`;
-  }
-  return `radial-gradient(circle at ${value.x ?? 50}% ${value.y ?? 50}%, ${stops})`;
+// Same square viewBox + slice crop as the sheet renderer, so the swatch shows
+// the sheet's gradient geometry rather than a CSS reinterpretation of it.
+function LayerSwatch({ value }: { value: ColorLayer }) {
+  const id = `swatch-${useId().replace(/:/g, '')}`;
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden
+      style={{ display: 'block', width: '100%', height: '100%' }}
+    >
+      {typeof value === 'string' ? null : (
+        <defs>
+          <GradientDef id={id} gradient={value} />
+        </defs>
+      )}
+      <rect width="100" height="100" fill={typeof value === 'string' ? value : `url(#${id})`} />
+    </svg>
+  );
 }
 
 export function FactionBackgroundColorLayer({
@@ -122,11 +133,13 @@ export function FactionBackgroundColorLayer({
                 w={76}
                 h={42}
                 style={{
-                  background: layerPreview(value),
                   border: '1px solid var(--mantine-color-gray-4)',
                   borderRadius: 'var(--mantine-radius-sm)',
+                  overflow: 'hidden',
                 }}
-              />
+              >
+                <LayerSwatch value={value} />
+              </Box>
             </Group>
           </Surface>
         </UnstyledButton>
