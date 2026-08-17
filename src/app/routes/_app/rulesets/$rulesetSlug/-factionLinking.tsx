@@ -1,4 +1,5 @@
-import { Menu, Popover } from '@mantine/core';
+import { Popover } from '@mantine/core';
+import { ActionMenu } from '@ui/control/ActionMenu';
 import { IconAction } from '@ui/control/IconAction';
 import { EllipsisVertical, Link2, Link2Off } from 'lucide-react';
 import { useState } from 'react';
@@ -74,7 +75,8 @@ export function AddFactionPopover({
 
 /**
  * The menu in a faction card's action slot, on the ruleset page.
- * One item today, and a menu rather than a bare button because the card is a link: a menu target is unambiguously not part of the navigation, and further per-faction actions land here rather than crowding the tile.
+ * One choice today;
+ * `ActionMenu` owns how a menu looks and what a destructive choice reads like, so this only decides what the choices are.
  * No confirmation — the toolbar's picker puts the faction straight back.
  */
 export function FactionCardMenu({
@@ -89,22 +91,19 @@ export function FactionCardMenu({
   onRemove: () => void;
 }) {
   return (
-    <Menu position="bottom-end" shadow="md" withinPortal>
-      <Menu.Target>
-        <IconAction
-          label={`Actions for ${factionName}`}
-          variant="light"
-          color="gray"
-          size="sm"
-          disabled={disabled}
-          icon={<EllipsisVertical size={15} aria-hidden />}
-        />
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Item color="red" leftSection={<Link2Off size={15} aria-hidden />} onClick={onRemove}>
-          Remove from {rulesetName}
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
+    <ActionMenu
+      label={`Actions for ${factionName}`}
+      icon={<EllipsisVertical size={15} aria-hidden />}
+      disabled={disabled}
+      items={[
+        {
+          key: 'remove',
+          label: `Remove from ${rulesetName}`,
+          icon: <Link2Off size={15} aria-hidden />,
+          tone: 'danger',
+          onSelect: onRemove,
+        },
+      ]}
+    />
   );
 }
