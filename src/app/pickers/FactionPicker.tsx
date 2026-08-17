@@ -31,9 +31,29 @@ interface PickedFaction {
   data: Faction;
 }
 
+/**
+ * Everything the picker says, supplied by the caller.
+ * No defaults on purpose: the first caller loads a faction into a draft and the second adds one to a ruleset, and a default phrased for either would read as a mistake in the other.
+ */
+interface FactionPickerCopy {
+  title: string;
+  intro: string;
+  /** Heading on the alert when the chosen faction cannot be used. */
+  errorTitle: string;
+  /** Shown in place of the field when there is nothing left to choose. */
+  emptyMessage: string;
+  /** Heading over the chosen faction, where the caller asks for confirmation. */
+  confirmTitle: string;
+  /** A consequence the reader must see before committing. Omitted when there is nothing to warn about. */
+  confirmNote?: string;
+  confirmLabel: string;
+  confirmColor: string;
+}
+
 export interface FactionPickerProps {
-  /** When provided, excludes the row with this faction URL slug from the picker. */
-  currentPublicSlug?: string;
+  /** Faction URL slugs to leave out — the one being edited, or every one already linked. */
+  excludeSlugs?: string[];
+  copy: FactionPickerCopy;
   onPick: (picked: PickedFaction) => void;
   onCancel: () => void;
 }
@@ -46,7 +66,7 @@ export interface FactionPickerProps {
  * see the Pickers section in
  * AGENTS.md.
  */
-export function FactionPicker({ currentPublicSlug, onPick, onCancel }: FactionPickerProps) {
+export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionPickerProps) {
   const picker = useFactionLoadPicker();
 
   const [selectedId, setSelectedId] = useState('');
@@ -69,10 +89,10 @@ export function FactionPicker({ currentPublicSlug, onPick, onCancel }: FactionPi
   );
 
   const factionLoadOptions = useMemo(() => {
-    return (picker.data?.rows ?? [])
-      .filter((row) => !currentPublicSlug || row.slug !== currentPublicSlug)
-      .map((row) => row.id);
-  }, [picker.data?.rows, currentPublicSlug]);
+    /* Built inside the memo that uses it: callers pass a fresh array each render, so memoizing the set separately never hits. */
+    const excluded = new Set(excludeSlugs ?? []);
+    return (picker.data?.rows ?? []).filter((row) => !excluded.has(row.slug)).map((row) => row.id);
+  }, [picker.data?.rows, excludeSlugs]);
   const factionLoadSelectOptions = useMemo(
     () =>
       factionLoadOptions.map((id) => {
@@ -103,14 +123,14 @@ export function FactionPicker({ currentPublicSlug, onPick, onCancel }: FactionPi
     <Stack gap="md">
       <Stack gap="md">
         <Title order={3} size="h4">
-          Load existing faction
+          {copy.title}
         </Title>
         <Text size="sm" c="dimmed">
-          Choose a faction first. You can review the choice before replacing this unsaved draft.
+          {copy.intro}
         </Text>
       </Stack>
       {error && (
-        <Alert color="red" title="Faction could not be loaded" role="alert">
+        <Alert color="red" title={copy.errorTitle} role="alert">
           {error}
         </Alert>
       )}
@@ -120,7 +140,7 @@ export function FactionPicker({ currentPublicSlug, onPick, onCancel }: FactionPi
         </Center>
       ) : factionLoadOptions.length === 0 ? (
         <Text size="sm" c="dimmed">
-          No different faction is available to load right now.
+          {copy.emptyMessage}
         </Text>
       ) : (
         <Select
@@ -176,7 +196,7 @@ export function FactionPicker({ currentPublicSlug, onPick, onCancel }: FactionPi
         <Surface padding="sm">
           <Stack gap="sm">
             <Text size="sm" fw={700}>
-              Replace this unsaved draft?
+              {copy.confirmTitle}
             </Text>
             <FactionLoadOptionRow
               name={selectedRow.data.name}
@@ -187,15 +207,17 @@ export function FactionPicker({ currentPublicSlug, onPick, onCancel }: FactionPi
               groupLabel={selectedRow.groupLabel}
               isMember={selectedRow.groupId ? memberGroupSet.has(String(selectedRow.groupId)) : false}
             />
-            <Text size="xs" c="orange.9">
-              Loading replaces every local unsaved change. Saving is still a separate action.
-            </Text>
+            {copy.confirmNote ? (
+              <Text size="xs" c="orange.9">
+                {copy.confirmNote}
+              </Text>
+            ) : null}
             <Group justify="flex-end" gap="xs">
               <Button type="button" variant="default" size="compact-sm" onClick={onCancel}>
                 Cancel
               </Button>
-              <Button type="button" color="orange" size="compact-sm" onClick={handleLoad}>
-                Load faction
+              <Button type="button" color={copy.confirmColor} size="compact-sm" onClick={handleLoad}>
+                {copy.confirmLabel}
               </Button>
             </Group>
           </Stack>

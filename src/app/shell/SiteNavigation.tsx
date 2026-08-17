@@ -1,4 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
+import { Menu } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { LinkProps } from '@tanstack/react-router';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -54,9 +55,10 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
   const measureRef = useRef<HTMLDivElement>(null);
   const visibleCount = useVisibleLinkCount(groupRef, measureRef, links);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
   const overflow = links.slice(visibleCount);
+  /* Captured so the menu's `renderRoot` callbacks keep the narrowing that a property access would lose inside them. */
+  const account = profile.data;
 
   return (
     <nav className={styles.root} aria-label="Primary navigation">
@@ -102,50 +104,41 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
         )}
       </div>
       <div className={styles.account}>
-        {profile.data ? (
+        {account ? (
           <>
-            <button
-              type="button"
-              className={styles.avatarButton}
-              aria-label={profile.data.username ?? 'Account'}
-              aria-expanded={menuAnchor !== null}
-              onClick={(e) => setMenuAnchor(menuAnchor ? null : e.currentTarget)}
-            >
-              {profile.data.avatar_url ? (
-                <img src={profile.data.avatar_url} alt="" className={styles.avatarImage} />
-              ) : (
-                <span className={styles.avatarInitials}>
-                  {profile.data.username?.slice(0, 2).toUpperCase() ?? '??'}
-                </span>
-              )}
-            </button>
-            {menuAnchor && (
-              <NavPopover anchor={menuAnchor} onClose={() => setMenuAnchor(null)}>
-                <Link
-                  to="/profiles/$profileSlug"
-                  params={{ profileSlug: profile.data.slug }}
-                  onClick={() => setMenuAnchor(null)}
+            {/*
+              Mantine's `Menu`, whose dropdown takes the app's pane treatment from the theme — the same one a `Popover`
+              gets, and the same menu the faction cards use. It owns opening, focus, dismissal and the target's aria
+              state, so this holds no anchor of its own and no item has to close it by hand.
+            */}
+            <Menu position="bottom-end" shadow="md" withinPortal>
+              <Menu.Target>
+                <button type="button" className={styles.avatarButton} aria-label={account.username ?? 'Account'}>
+                  {account.avatar_url ? (
+                    <img src={account.avatar_url} alt="" className={styles.avatarImage} />
+                  ) : (
+                    <span className={styles.avatarInitials}>{account.username?.slice(0, 2).toUpperCase() ?? '??'}</span>
+                  )}
+                </button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item
+                  renderRoot={(rootProps) => (
+                    <Link {...rootProps} to="/profiles/$profileSlug" params={{ profileSlug: account.slug }} />
+                  )}
                 >
                   Your profile
-                </Link>
-                <Link
-                  to="/profiles/$profileSlug/edit"
-                  params={{ profileSlug: profile.data.slug }}
-                  onClick={() => setMenuAnchor(null)}
+                </Menu.Item>
+                <Menu.Item
+                  renderRoot={(rootProps) => (
+                    <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug: account.slug }} />
+                  )}
                 >
                   Edit profile
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuAnchor(null);
-                    void signOut();
-                  }}
-                >
-                  Sign out
-                </button>
-              </NavPopover>
-            )}
+                </Menu.Item>
+                <Menu.Item onClick={() => void signOut()}>Sign out</Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
           </>
         ) : (
           <Link to="/auth/login" activeProps={{ className: styles.activeLink }}>

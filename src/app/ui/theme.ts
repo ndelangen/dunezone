@@ -138,5 +138,14 @@ export const appContentTheme = createTheme({
         },
       },
     },
+    /* A menu's dropdown is the same pane as a popover's; without this it renders unthemed beside one. */
+    Menu: {
+      styles: {
+        dropdown: {
+          ...glassSurface,
+          backgroundColor: 'var(--glass-overlay)',
+        },
+      },
+    },
   },
 });

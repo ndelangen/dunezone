@@ -240,6 +240,38 @@ export function useSetRulesetGroup() {
   };
 }
 
+type RulesetFactionLink = { rulesetId: string; factionId: string };
+
+/**
+ * The two link mutations differ only in which function they call, so they share one wrapper.
+ * It exists to keep callers in this module's camelCase vocabulary — every other hook here maps to the Convex snake_case at this boundary rather than leaking it into the routes.
+ */
+function useRulesetFactionLinkMutation(reference: typeof api.rulesets.addFaction) {
+  const mutation = useLiveMutation<{ ruleset_id: string; faction_id: string }, unknown>(reference);
+  const toArgs = ({ rulesetId, factionId }: RulesetFactionLink) => ({
+    ruleset_id: rulesetId,
+    faction_id: factionId,
+  });
+  return {
+    ...mutation,
+    mutate: (variables: RulesetFactionLink, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) =>
+      mutation.mutate(toArgs(variables), { onSuccess: () => options?.onSuccess?.(), onError: options?.onError }),
+    mutateAsync: async (variables: RulesetFactionLink) => await mutation.mutateAsync(toArgs(variables)),
+  };
+}
+
+/**
+ * Links a faction to a ruleset, and unlinks it.
+ * Both are gated server-side on the ruleset's `edit` capability — its owner, or an active member of its maintaining group — so the page shows the affordances on the same condition.
+ */
+export function useAddRulesetFaction() {
+  return useRulesetFactionLinkMutation(api.rulesets.addFaction);
+}
+
+export function useRemoveRulesetFaction() {
+  return useRulesetFactionLinkMutation(api.rulesets.removeFaction);
+}
+
 export function useDeleteRuleset() {
   const mutation = useLiveMutation<{ id: string }, void>(api.rulesets.softDelete);
   return {

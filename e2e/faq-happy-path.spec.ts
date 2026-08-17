@@ -1,3 +1,4 @@
+import { userA } from './accounts';
 import { expect, longSpecTimeoutMs, test } from './coverage';
 
 test.use({ storageState: '.playwright/user-a-faq.json' });
@@ -35,11 +36,10 @@ test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, new
   });
 
   await test.step('the answer and its acceptance appear on the answerer profile', async () => {
-    const userASlug = (process.env.PLAYWRIGHT_USER_A_EMAIL ?? 'e2e-user-a@example.com').split('@')[0]!;
     const hrefs = await page
       .locator('main a[href^="/profiles/"]')
       .evaluateAll((els) => els.map((el) => el.getAttribute('href') ?? ''));
-    const answererHref = hrefs.find((href) => href && !href.endsWith(`/${userASlug}`));
+    const answererHref = hrefs.find((href) => href && !href.endsWith(`/${userA.slug}`));
     expect(answererHref).toBeTruthy();
     await page.goto(answererHref!);
     await expect(page.getByText(questionText)).toBeVisible();

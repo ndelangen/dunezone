@@ -1,4 +1,4 @@
-import { Alert, Anchor, Avatar, Group, Select, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Anchor, Avatar, Group, Menu, Popover, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
@@ -23,8 +23,11 @@ import {
   BookOpen,
   CheckCircle2,
   CircleHelp,
+  EllipsisVertical,
   FileText,
   Layers3,
+  Link2,
+  Link2Off,
   MessageCircleQuestionMark,
   Pencil,
   Search,
@@ -32,11 +35,126 @@ import {
   UserRoundMinus,
   UsersRound,
 } from 'lucide-react';
+import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
-import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useSetRulesetGroup } from '@db/rulesets';
+import {
+  loadRulesetDetailPage,
+  useAddRulesetFaction,
+  useDeleteRuleset,
+  useRemoveRulesetFaction,
+  useRulesetDetailPage,
+  useSetRulesetGroup,
+} from '@db/rulesets';
+import { FactionPicker } from '@app/pickers/FactionPicker';
 
 import styles from '../RulesetDetail.module.css';
+
+/**
+ * The toolbar affordance that adds a faction to this ruleset.
+ * It owns the open state and nothing else: the picker is mounted only while the popover is open, so its subscription lives exactly that long, which is the contract `AGENTS.md` sets for a Picker's container.
+ * The commit is the caller's — this reports the chosen faction's id and closes.
+ */
+function AddFactionPopover({
+  disabled,
+  linkedSlugs,
+  rulesetName,
+  onAdd,
+}: {
+  disabled: boolean;
+  /** Every faction already in this ruleset, so the picker cannot offer a duplicate. */
+  linkedSlugs: string[];
+  rulesetName: string;
+  onAdd: (factionId: string) => void;
+}) {
+  const [opened, setOpened] = useState(false);
+
+  return (
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-end"
+      width={440}
+      shadow="md"
+      withArrow
+      trapFocus
+      returnFocus
+    >
+      <Popover.Target>
+        <IconAction
+          label="Add a faction"
+          variant="filled"
+          color="dune"
+          size="lg"
+          disabled={disabled}
+          onClick={() => setOpened((current) => !current)}
+          icon={<Link2 size={17} aria-hidden />}
+        />
+      </Popover.Target>
+      <Popover.Dropdown>
+        {opened ? (
+          <FactionPicker
+            excludeSlugs={linkedSlugs}
+            copy={{
+              title: 'Add a faction',
+              intro: `Choose a faction to add to ${rulesetName}. Factions already in it are not listed.`,
+              errorTitle: 'Faction could not be added',
+              emptyMessage: 'Every faction is already in this ruleset.',
+              confirmTitle: `Add this faction to ${rulesetName}?`,
+              /* No warning: nothing is overwritten, and the card's own menu takes it straight back out. */
+              confirmLabel: 'Add faction',
+              confirmColor: 'confirm',
+            }}
+            onCancel={() => setOpened(false)}
+            onPick={(picked) => {
+              onAdd(picked.id);
+              setOpened(false);
+            }}
+          />
+        ) : null}
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
+/**
+ * The menu in a faction card's action slot, on the ruleset page.
+ * Mantine's `Menu` directly: the theme gives its dropdown the same pane a `Popover` gets, and `color="red"` is how a destructive choice reads, so a wrapper here would only forward props — see the Mantine-component stories in
+ * `src/app/ui/control`.
+ * A menu rather than a bare button because the card is a link: a menu target is unambiguously not part of the navigation, and further per-faction actions land here rather than crowding the tile.
+ * No confirmation — the toolbar's picker puts the faction straight back.
+ */
+function FactionCardMenu({
+  factionName,
+  rulesetName,
+  disabled,
+  onRemove,
+}: {
+  factionName: string;
+  rulesetName: string;
+  disabled: boolean;
+  onRemove: () => void;
+}) {
+  return (
+    <Menu position="bottom-end" shadow="md" withinPortal>
+      <Menu.Target>
+        <IconAction
+          label={`Actions for ${factionName}`}
+          variant="light"
+          color="gray"
+          size="sm"
+          disabled={disabled}
+          icon={<EllipsisVertical size={15} aria-hidden />}
+        />
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item color="red" leftSection={<Link2Off size={15} aria-hidden />} onClick={onRemove}>
+          Remove from {rulesetName}
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
@@ -110,6 +228,8 @@ function RulesetDetailPage() {
   const profile = useCurrentProfile();
   const deleteRuleset = useDeleteRuleset();
   const setRulesetGroup = useSetRulesetGroup();
+  const addFaction = useAddRulesetFaction();
+  const removeFaction = useRemoveRulesetFaction();
 
   if (loaderData.notFound || !page) {
     return (
@@ -141,7 +261,11 @@ function RulesetDetailPage() {
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const answeredFaqCount = page.faqItems.filter((item) => item.accepted_answer_id != null).length;
-  const mutationError = deleteRuleset.error?.message ?? setRulesetGroup.error?.message;
+  const mutationError =
+    deleteRuleset.error?.message ??
+    setRulesetGroup.error?.message ??
+    addFaction.error?.message ??
+    removeFaction.error?.message;
   /**
    * Standing beside the maintaining group, and only when the viewer has a standing worth naming.
    * "Not a member" is the default state of every reader, so saying it would be noise;
@@ -328,6 +452,14 @@ function RulesetDetailPage() {
                     icon={<MessageCircleQuestionMark size={17} aria-hidden />}
                   />
                 ) : null}
+                {viewerAccess.capabilities.edit ? (
+                  <AddFactionPopover
+                    disabled={addFaction.isPending}
+                    linkedSlugs={page.factions.map((faction) => faction.slug)}
+                    rulesetName={r.name}
+                    onAdd={(factionId) => addFaction.mutate({ rulesetId: r._id, factionId })}
+                  />
+                ) : null}
                 {actionVisibility.assignGroup ? (
                   <AssignPopover
                     noun="group"
@@ -475,7 +607,20 @@ function RulesetDetailPage() {
               {page.factions.length > 0 ? (
                 <Stack gap="md">
                   {page.factions.map((faction) => (
-                    <FactionCard key={faction._id} faction={faction} />
+                    <FactionCard
+                      key={faction._id}
+                      faction={faction}
+                      action={
+                        viewerAccess.capabilities.edit ? (
+                          <FactionCardMenu
+                            factionName={faction.data.name}
+                            rulesetName={r.name}
+                            disabled={removeFaction.isPending}
+                            onRemove={() => removeFaction.mutate({ rulesetId: r._id, factionId: faction._id })}
+                          />
+                        ) : null
+                      }
+                    />
                   ))}
                 </Stack>
               ) : (
