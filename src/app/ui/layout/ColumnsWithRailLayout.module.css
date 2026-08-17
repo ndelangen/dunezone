@@ -41,13 +41,14 @@
     grid-template-areas:
       "primary rail"
       "secondary rail";
-    grid-template-columns: minmax(0, 3fr) minmax(14rem, 2fr);
+    grid-template-columns: minmax(0, 3fr) minmax(10rem, 1fr);
+    grid-template-rows: auto 1fr;
   }
 }
 
 @container columns-with-rail-layout (min-width: 62rem) {
   .layout {
     grid-template-areas: "primary secondary rail";
-    grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(14rem, 3fr);
+    grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(10rem, 2fr);
   }
 }
