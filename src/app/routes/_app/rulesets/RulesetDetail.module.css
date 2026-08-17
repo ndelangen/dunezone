@@ -3,47 +3,15 @@
   min-width: 0;
   margin: 0 auto;
   padding-inline: var(--mantine-spacing-sm);
-}
-
-.rulesetHeadCover {
-  position: relative;
-  width: 5.5rem;
-  height: 5.5rem;
-  flex: 0 0 5.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  color: var(--mantine-color-dune-8);
-  background: color-mix(in srgb, var(--mantine-color-dune-1) 72%, transparent);
-  filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.28));
-}
-
-.coverImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.rulesetHeadGlyph {
-  position: absolute;
-  inset: 50% auto auto 50%;
-  display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
-  place-items: center;
-  color: var(--mantine-color-dune-8);
-  border: 1px solid color-mix(in srgb, var(--mantine-color-dune-3) 76%, transparent);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--mantine-color-white) 78%, transparent);
-  box-shadow: var(--mantine-shadow-xs);
-  transform: translate(-50%, -50%);
-  backdrop-filter: blur(4px);
-}
-
-.pageHeadText {
-  min-width: 0;
   color: var(--color-text, var(--mantine-color-dark-8));
+}
+
+/*
+ * A description is authored in a textarea, so the author's own line breaks are the only structure it carries.
+ * `pre-line` keeps them while still collapsing runs of spaces and wrapping normally.
+ */
+.description {
+  white-space: pre-line;
 }
 
 .rulesetTitle {
@@ -75,18 +43,8 @@
   font-weight: 700;
 }
 
+/* The band's own gaps come from the header's `Stack`; only the title size and the edge padding change with width. */
 @media (max-width: 48em) {
-  .pageHead {
-    align-items: flex-start;
-    gap: var(--mantine-spacing-md);
-  }
-
-  .rulesetHeadCover {
-    width: 4.75rem;
-    height: 4.75rem;
-    flex-basis: 4.75rem;
-  }
-
   .rulesetTitle {
     font-size: 1.35rem;
   }
@@ -95,12 +53,5 @@
 @media (max-width: 30em) {
   .pageHead {
     padding-inline: 0;
-    gap: var(--mantine-spacing-sm);
-  }
-
-  .rulesetHeadCover {
-    width: 3.75rem;
-    height: 3.75rem;
-    flex-basis: 3.75rem;
   }
 }
