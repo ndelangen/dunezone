@@ -16,16 +16,27 @@ test('the avatar menu offers the profile routes and signs out', async ({ page })
   const avatar = nav.getByRole('button', { name: username });
   await expect(avatar).toBeVisible();
 
-  await avatar.click();
-  await expect(page.getByRole('link', { name: 'Edit profile' })).toHaveAttribute(
-    'href',
-    new RegExp(`/profiles/${username}/edit/?$`)
-  );
-  await page.getByRole('link', { name: 'Your profile' }).click();
-  await expect(page).toHaveURL(new RegExp(`/profiles/${username}/?$`));
-  await expect(page.getByRole('link', { name: 'Your profile' })).not.toBeVisible();
+  /*
+    The dropdown is portalled, so it is addressed by its own `menu` role rather than through the nav. Role and
+    accessible name are the whole contract here: an item's markup is the menu's business, and asserting that one
+    happens to be an anchor and another a button is what made this test break on a change it should not have noticed.
+  */
+  const menu = page.getByRole('menu');
+  const choose = async (name: string) => {
+    await avatar.click();
+    await expect(menu).toBeVisible();
+    await menu.getByRole('menuitem', { name }).click();
+  };
 
-  await avatar.click();
-  await page.getByRole('button', { name: 'Sign out' }).click();
+  /* Each route item is followed rather than read off an `href`: arriving is the promise, the attribute is one way of keeping it. */
+  await choose('Edit profile');
+  await expect(page).toHaveURL(new RegExp(`/profiles/${username}/edit/?$`));
+
+  await choose('Your profile');
+  await expect(page).toHaveURL(new RegExp(`/profiles/${username}/?$`));
+  /* Picking an item dismisses the menu — Mantine's job, but the nav leans on it, since no item closes it by hand. */
+  await expect(menu).not.toBeVisible();
+
+  await choose('Sign out');
   await expect(nav.getByRole('link', { name: 'Login' })).toBeVisible();
 });
