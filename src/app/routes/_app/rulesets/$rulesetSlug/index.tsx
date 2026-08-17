@@ -216,56 +216,59 @@ function RulesetDetailPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <Stack gap={4} className={styles.pageHead}>
-          <Anchor size="sm" fw={600} renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
-            Rulesets
-          </Anchor>
-          {/* The cover is the ruleset's identity, so it rides with the name; at 32px the row stays one text line tall. */}
-          <Group gap="sm" wrap="nowrap" align="center">
-            <Avatar src={r.image_cover} alt={`Cover for ${r.name}`} name={r.name} radius="md" size={32} color="dune" />
+        {/*
+          The identity pattern the faction and profile detail pages already use: the media sits in its own column, so
+          the breadcrumb, the title and the meta line all share one left edge instead of the title starting indented.
+        */}
+        <Group wrap="nowrap" align="center" gap="md" className={styles.pageHead}>
+          <Avatar src={r.image_cover} alt={`Cover for ${r.name}`} name={r.name} radius="md" size={48} color="dune" />
+          <Stack gap={4} className={styles.pageHeadText}>
+            <Anchor size="sm" fw={600} renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
+              Rulesets
+            </Anchor>
             <Title order={1} className={styles.rulesetTitle}>
               {r.name}
             </Title>
-          </Group>
-          {/*
+            {/*
             One line carrying everything the old "At a glance" and "Stewardship" cards said.
             The sizes are level on purpose: this row centres its children, and a 12px label among 14-16px text reads as
             misaligned even when every box is perfectly centred.
           */}
-          <Group gap="sm" wrap="wrap" align="center">
-            <Text size="sm" c="dimmed">
-              Maintained by
-            </Text>
-            {page.owner ? (
-              <ProfileLink slug={page.owner.slug} username={page.owner.username} avatar_url={page.owner.avatar_url} />
-            ) : (
-              <Text size="sm">Unknown</Text>
-            )}
-            {assignedGroup ? (
-              <Group gap={6} wrap="nowrap" align="center">
-                {/* A glyph, not an avatar: the `groups` table carries no image, and this only has to say "a group". */}
-                <UsersRound size={15} aria-hidden />
-                <Anchor
-                  size="sm"
-                  fw={600}
-                  /* White, not the accent: this line sits on artwork, where the accent loses against the sand. */
-                  c="white"
-                  renderRoot={(rootProps) => (
-                    <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: assignedGroup.slug }} />
-                  )}
-                >
-                  {assignedGroup.name}
-                </Anchor>
-              </Group>
-            ) : (
+            <Group gap="sm" wrap="wrap" align="center">
               <Text size="sm" c="dimmed">
-                No maintaining group
+                Maintained by
               </Text>
-            )}
-            {membershipBadge ? <StatusBadge tone={membershipBadge.tone}>{membershipBadge.label}</StatusBadge> : null}
-            <Stats items={headerStats} orientation="row" />
-          </Group>
-        </Stack>
+              {page.owner ? (
+                <ProfileLink slug={page.owner.slug} username={page.owner.username} avatar_url={page.owner.avatar_url} />
+              ) : (
+                <Text size="sm">Unknown</Text>
+              )}
+              {assignedGroup ? (
+                <Group gap={6} wrap="nowrap" align="center">
+                  {/* A glyph, not an avatar: the `groups` table carries no image, and this only has to say "a group". */}
+                  <UsersRound size={15} aria-hidden />
+                  <Anchor
+                    size="sm"
+                    fw={600}
+                    /* White, not the accent: this line sits on artwork, where the accent loses against the sand. */
+                    c="white"
+                    renderRoot={(rootProps) => (
+                      <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: assignedGroup.slug }} />
+                    )}
+                  >
+                    {assignedGroup.name}
+                  </Anchor>
+                </Group>
+              ) : (
+                <Text size="sm" c="dimmed">
+                  No maintaining group
+                </Text>
+              )}
+              {membershipBadge ? <StatusBadge tone={membershipBadge.tone}>{membershipBadge.label}</StatusBadge> : null}
+              <Stats items={headerStats} orientation="row" />
+            </Group>
+          </Stack>
+        </Group>
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
