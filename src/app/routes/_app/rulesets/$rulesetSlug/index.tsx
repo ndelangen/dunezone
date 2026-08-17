@@ -1,29 +1,14 @@
-import {
-  Alert,
-  Anchor,
-  Box,
-  Button,
-  Divider,
-  Group,
-  Image,
-  Select,
-  SimpleGrid,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Alert, Anchor, Avatar, Group, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { FactionCard } from '@ui/block/FactionCard';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
-import { Eyebrow } from '@ui/content/Eyebrow';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { IconAction } from '@ui/control/IconAction';
 import { ColumnsWithRailLayout } from '@ui/layout/ColumnsWithRailLayout';
@@ -32,7 +17,6 @@ import { FaqList } from '@ui/list/FaqList';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
-import { Spotlight } from '@ui/surface/Spotlight';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
@@ -41,20 +25,16 @@ import {
   CircleHelp,
   FileText,
   Layers3,
-  ListTree,
   MessageCircleQuestionMark,
   Pencil,
   Search,
   Trash2,
-  UserPlus,
   UserRoundMinus,
   UsersRound,
 } from 'lucide-react';
 
-import { useGroupMembershipWorkflow } from '@db/members';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useSetRulesetGroup } from '@db/rulesets';
-import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from '../RulesetDetail.module.css';
 
@@ -130,7 +110,6 @@ function RulesetDetailPage() {
   const profile = useCurrentProfile();
   const deleteRuleset = useDeleteRuleset();
   const setRulesetGroup = useSetRulesetGroup();
-  const membershipWorkflow = useGroupMembershipWorkflow();
 
   if (loaderData.notFound || !page) {
     return (
@@ -161,10 +140,40 @@ function RulesetDetailPage() {
   const r = page.ruleset;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
-  const canRequestMembership = viewerAccess.capabilities.requestMembership;
   const answeredFaqCount = page.faqItems.filter((item) => item.accepted_answer_id != null).length;
-  const mutationError =
-    deleteRuleset.error?.message ?? membershipWorkflow.request.error?.message ?? setRulesetGroup.error?.message;
+  const mutationError = deleteRuleset.error?.message ?? setRulesetGroup.error?.message;
+  /**
+   * Standing beside the maintaining group, and only when the viewer has a standing worth naming.
+   * "Not a member" is the default state of every reader, so saying it would be noise;
+   * acting on it belongs to the group's own page.
+   */
+  const membershipBadge =
+    membershipStatus === 'active'
+      ? ({ tone: 'positive', label: 'Member' } as const)
+      : membershipStatus === 'pending'
+        ? ({ tone: 'pending', label: 'Pending' } as const)
+        : null;
+  /** The three counts the header carries. There is no version field, so no version stat. */
+  const headerStats = [
+    {
+      key: 'factions',
+      icon: <Layers3 size={17} aria-hidden />,
+      value: page.factions.length,
+      label: `${page.factions.length} ${page.factions.length === 1 ? 'faction' : 'factions'}`,
+    },
+    {
+      key: 'questions',
+      icon: <CircleHelp size={17} aria-hidden />,
+      value: page.faqItems.length,
+      label: `${page.faqItems.length} ${page.faqItems.length === 1 ? 'question' : 'questions'}`,
+    },
+    {
+      key: 'answered',
+      icon: <CheckCircle2 size={17} aria-hidden />,
+      value: answeredFaqCount,
+      label: `${answeredFaqCount} answered ${answeredFaqCount === 1 ? 'question' : 'questions'}`,
+    },
+  ];
   const canChangeGroup = viewerAccess.capabilities.changeGroup;
   const hasAssignment = r.group_id != null;
   const actionVisibility = {
@@ -207,39 +216,56 @@ function RulesetDetailPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
-          <Surface className={styles.rulesetHeadCover}>
-            {r.image_cover ? (
-              <Image
-                src={r.image_cover}
-                fallbackSrc="/image/background/card-large.jpg"
-                alt={`Cover for ${r.name}`}
-                className={styles.coverImage}
-              />
-            ) : null}
-            <span className={styles.rulesetHeadGlyph}>
-              <TopicIcon topic="rulesets" size={28} />
-            </span>
-          </Surface>
-          <Stack gap={6} className={styles.pageHeadText}>
-            <Anchor size="sm" fw={600} renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
-              Rulesets
-            </Anchor>
+        <Stack gap={4} className={styles.pageHead}>
+          <Anchor size="sm" fw={600} renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
+            Rulesets
+          </Anchor>
+          {/* The cover is the ruleset's identity, so it rides with the name; at 32px the row stays one text line tall. */}
+          <Group gap="sm" wrap="nowrap" align="center">
+            <Avatar src={r.image_cover} alt={`Cover for ${r.name}`} name={r.name} radius="md" size={32} color="dune" />
             <Title order={1} className={styles.rulesetTitle}>
               {r.name}
             </Title>
-            <Group gap="xs" wrap="wrap">
+          </Group>
+          {/*
+            One line carrying everything the old "At a glance" and "Stewardship" cards said.
+            The sizes are level on purpose: this row centres its children, and a 12px label among 14-16px text reads as
+            misaligned even when every box is perfectly centred.
+          */}
+          <Group gap="sm" wrap="wrap" align="center">
+            <Text size="sm" c="dimmed">
+              Maintained by
+            </Text>
+            {page.owner ? (
+              <ProfileLink slug={page.owner.slug} username={page.owner.username} avatar_url={page.owner.avatar_url} />
+            ) : (
+              <Text size="sm">Unknown</Text>
+            )}
+            {assignedGroup ? (
+              <Group gap={6} wrap="nowrap" align="center">
+                {/* A glyph, not an avatar: the `groups` table carries no image, and this only has to say "a group". */}
+                <UsersRound size={15} aria-hidden />
+                <Anchor
+                  size="sm"
+                  fw={600}
+                  /* White, not the accent: this line sits on artwork, where the accent loses against the sand. */
+                  c="white"
+                  renderRoot={(rootProps) => (
+                    <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: assignedGroup.slug }} />
+                  )}
+                >
+                  {assignedGroup.name}
+                </Anchor>
+              </Group>
+            ) : (
               <Text size="sm" c="dimmed">
-                Maintained by
+                No maintaining group
               </Text>
-              {page.owner ? (
-                <ProfileLink slug={page.owner.slug} username={page.owner.username} avatar_url={page.owner.avatar_url} />
-              ) : (
-                <Text size="sm">Unknown</Text>
-              )}
-            </Group>
-          </Stack>
-        </Group>
+            )}
+            {membershipBadge ? <StatusBadge tone={membershipBadge.tone}>{membershipBadge.label}</StatusBadge> : null}
+            <Stats items={headerStats} orientation="row" />
+          </Group>
+        </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
@@ -348,66 +374,27 @@ function RulesetDetailPage() {
                 </Alert>
               ) : null}
 
-              <Section id="overview" icon={<BookOpen size={20} aria-hidden />} title="About this ruleset">
-                <Surface padding="lg">
-                  <ProposedContent label="Planned content · new fields required">
-                    <Text>
-                      A concise introduction explaining the ruleset&apos;s purpose, intended audience, and how it
-                      differs from the base game.
-                    </Text>
-                    <Text c="dimmed">
-                      Compatibility should identify the base edition or parent ruleset, required expansions, and whether
-                      this ruleset can be mixed with other variants.
-                    </Text>
-                  </ProposedContent>
-                </Surface>
-              </Section>
-
-              <Section
-                id="rules"
-                icon={<TopicIcon topic="rules" size={20} />}
-                title="Rules and variants"
-                description="Proposed structured rule sections would make the ruleset useful before the FAQ has accumulated questions."
-              >
-                <Stack gap="md">
-                  {[
-                    ['Setup changes', 'Changes to preparation, starting resources, map state, and player count.'],
-                    ['Core rule changes', 'The rules that override or extend the base game during normal play.'],
-                    ['Victory and end game', 'Changed victory conditions, turn limits, tie breakers, or scoring.'],
-                    ['Optional variants', 'Clearly optional modules that groups may enable independently.'],
-                  ].map(([title, description]) => (
-                    <Card key={title} title={title}>
-                      <Text size="sm" c="dimmed">
-                        {description}
-                      </Text>
-                    </Card>
-                  ))}
-                </Stack>
-              </Section>
-
-              <Section id="factions" icon={<Layers3 size={20} aria-hidden />} title="Included factions">
-                {page.factions.length > 0 ? (
-                  <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
-                    {page.factions.map((faction) => (
-                      <Spotlight
-                        key={faction._id}
-                        media={<FactionToken logo={faction.data.logo} background={faction.data.background} />}
-                        title={faction.data.name}
-                        meta="Details, components, and special rules"
-                        renderRoot={(rootProps) => (
-                          <Link {...rootProps} to="/factions/$factionId" params={{ factionId: faction.slug }} />
-                        )}
-                      />
-                    ))}
-                  </SimpleGrid>
-                ) : (
+              {/*
+                Nothing at all when the description is empty, which is every ruleset that predates the field.
+                An empty pane saying nothing is worse than the space it would occupy;
+                the owner is prompted by the settings form, not by a placeholder here.
+              */}
+              {r.description ? (
+                <Section id="overview" icon={<BookOpen size={20} aria-hidden />} title="About this ruleset">
                   <Surface padding="lg">
-                    <Text size="sm" c="dimmed">
-                      No factions have been added to this ruleset yet.
-                    </Text>
+                    {/* Authored in a textarea, so its own line breaks are the only structure it has. */}
+                    <Text className={styles.description}>{r.description}</Text>
                   </Surface>
-                )}
-              </Section>
+                </Section>
+              ) : null}
+
+              <Card icon={<FileText size={20} aria-hidden />} title="Resources">
+                <ProposedContent label="Proposed content">
+                  <Text size="sm" c="dimmed">
+                    Printable rules, release notes, and a version history could live here.
+                  </Text>
+                </ProposedContent>
+              </Card>
             </Stack>
           </ColumnsWithRailLayout.Primary>
 
@@ -471,118 +458,21 @@ function RulesetDetailPage() {
           </ColumnsWithRailLayout.Secondary>
 
           <ColumnsWithRailLayout.Rail>
-            <Stack gap="md" component="aside" aria-label="Ruleset details" miw={0}>
-              <Card icon={<ListTree size={20} aria-hidden />} title="At a glance">
-                <Stats
-                  items={[
-                    {
-                      key: 'factions',
-                      icon: <Layers3 size={17} aria-hidden />,
-                      value: page.factions.length,
-                      label: `${page.factions.length} ${page.factions.length === 1 ? 'faction' : 'factions'}`,
-                    },
-                    {
-                      key: 'questions',
-                      icon: <CircleHelp size={17} aria-hidden />,
-                      value: page.faqItems.length,
-                      label: `${page.faqItems.length} ${page.faqItems.length === 1 ? 'question' : 'questions'}`,
-                    },
-                    {
-                      key: 'answered',
-                      icon: <CheckCircle2 size={17} aria-hidden />,
-                      value: answeredFaqCount,
-                      label: `${answeredFaqCount} answered ${answeredFaqCount === 1 ? 'question' : 'questions'}`,
-                    },
-                    {
-                      key: 'version',
-                      icon: <FileText size={17} aria-hidden />,
-                      value: '—',
-                      label: 'Version not specified',
-                    },
-                  ]}
-                />
-              </Card>
-
-              <Card icon={<UsersRound size={20} aria-hidden />} title="Stewardship">
-                <Stack gap="sm">
-                  <Box>
-                    <Eyebrow>Owner</Eyebrow>
-                    {page.owner ? (
-                      <ProfileLink
-                        slug={page.owner.slug}
-                        username={page.owner.username}
-                        avatar_url={page.owner.avatar_url}
-                      />
-                    ) : (
-                      <Text size="sm">Unknown</Text>
-                    )}
-                  </Box>
-                  <Divider />
-                  {!assignedGroup ? (
-                    <Text size="sm" c="dimmed">
-                      No maintaining group.
-                    </Text>
-                  ) : (
-                    <Stack gap="sm">
-                      <Box>
-                        <Eyebrow>Maintaining group</Eyebrow>
-                        {assignedGroup.slug ? (
-                          <Anchor
-                            fw={600}
-                            renderRoot={(rootProps) => (
-                              <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: assignedGroup.slug }} />
-                            )}
-                          >
-                            {assignedGroup.name}
-                          </Anchor>
-                        ) : (
-                          <Text fw={600}>{assignedGroup.name}</Text>
-                        )}
-                      </Box>
-                      <Group justify="space-between" gap="xs">
-                        <Text size="sm" c="dimmed">
-                          Your membership
-                        </Text>
-                        <StatusBadge
-                          tone={
-                            membershipStatus === 'active'
-                              ? 'positive'
-                              : membershipStatus === 'pending'
-                                ? 'pending'
-                                : 'neutral'
-                          }
-                        >
-                          {membershipStatus === 'active'
-                            ? 'Active'
-                            : membershipStatus === 'pending'
-                              ? 'Pending'
-                              : 'Not a member'}
-                        </StatusBadge>
-                      </Group>
-                      {canRequestMembership ? (
-                        <Button
-                          type="button"
-                          variant="light"
-                          leftSection={<UserPlus size={16} aria-hidden />}
-                          loading={membershipWorkflow.request.isPending}
-                          onClick={() => void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)}
-                        >
-                          Request membership
-                        </Button>
-                      ) : null}
-                    </Stack>
-                  )}
+            <Section id="factions" icon={<Layers3 size={20} aria-hidden />} title="Included factions">
+              {page.factions.length > 0 ? (
+                <Stack gap="md">
+                  {page.factions.map((faction) => (
+                    <FactionCard key={faction._id} faction={faction} />
+                  ))}
                 </Stack>
-              </Card>
-
-              <Card icon={<FileText size={20} aria-hidden />} title="Resources">
-                <ProposedContent label="Proposed content">
+              ) : (
+                <Surface padding="lg">
                   <Text size="sm" c="dimmed">
-                    Printable rules, release notes, and a version history could live here.
+                    No factions have been added to this ruleset yet.
                   </Text>
-                </ProposedContent>
-              </Card>
-            </Stack>
+                </Surface>
+              )}
+            </Section>
           </ColumnsWithRailLayout.Rail>
         </ColumnsWithRailLayout>
       </PageLayout.Content>
