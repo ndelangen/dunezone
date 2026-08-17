@@ -32,14 +32,15 @@
 }
 
 /*
- * The middle stage: the rail rises beside the secondary column while the primary keeps its own width down the left.
- * The rail leads, because it is the summary the two columns beneath it elaborate.
+ * The middle stage: the primary keeps its own width down the left while the other two stack beside it.
+ * Secondary leads and the rail drops below it, because secondary is the column that reads *with* the primary — a
+ * discussion beside the prose it discusses — while a rail is a list you scan once you have finished reading.
  */
 @container columns-with-rail-layout (min-width: 48rem) {
   .layout {
     grid-template-areas:
-      "primary rail"
-      "primary secondary";
+      "primary secondary"
+      "primary rail";
     grid-template-columns: minmax(0, 3fr) minmax(18rem, 2fr);
   }
 }

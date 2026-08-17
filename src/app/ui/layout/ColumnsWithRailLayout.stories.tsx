@@ -11,7 +11,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'Places two reading columns beside a narrow rail, top-aligned, and gives the columns up in two stages as its own container narrows: first the rail rises beside the secondary column, then everything stacks. Its parent owns page width and outer spacing.',
+          'Places two reading columns beside a narrow rail, top-aligned, and gives the columns up in two stages as its own container narrows: first secondary and the rail stack beside the primary, then everything falls into one column. Its parent owns page width and outer spacing.',
       },
     },
   },
@@ -35,8 +35,8 @@ export const ThreeColumns = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
 });
 
-/** The middle stage: the primary column holds its width while the rail and secondary stack beside it. */
-export const RailBesidePrimary = meta.story({
+/** The middle stage: the primary holds its width, secondary sits beside it, and the rail drops below secondary. */
+export const SecondaryBesidePrimary = meta.story({
   render: () => (
     <ColumnsWithRailLayout>
       <ColumnsWithRailLayout.Primary>
