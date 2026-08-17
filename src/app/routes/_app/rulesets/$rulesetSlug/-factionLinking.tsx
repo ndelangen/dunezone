@@ -1,5 +1,4 @@
-import { Popover } from '@mantine/core';
-import { ActionMenu } from '@ui/control/ActionMenu';
+import { Menu, Popover } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { EllipsisVertical, Link2, Link2Off } from 'lucide-react';
 import { useState } from 'react';
@@ -75,8 +74,9 @@ export function AddFactionPopover({
 
 /**
  * The menu in a faction card's action slot, on the ruleset page.
- * One choice today;
- * `ActionMenu` owns how a menu looks and what a destructive choice reads like, so this only decides what the choices are.
+ * Mantine's `Menu` directly: the theme gives its dropdown the same pane a `Popover` gets, and `color="red"` is how a destructive choice reads, so a wrapper here would only forward props — see the Mantine-component stories in
+ * `src/app/ui/control`.
+ * A menu rather than a bare button because the card is a link: a menu target is unambiguously not part of the navigation, and further per-faction actions land here rather than crowding the tile.
  * No confirmation — the toolbar's picker puts the faction straight back.
  */
 export function FactionCardMenu({
@@ -91,19 +91,22 @@ export function FactionCardMenu({
   onRemove: () => void;
 }) {
   return (
-    <ActionMenu
-      label={`Actions for ${factionName}`}
-      icon={<EllipsisVertical size={15} aria-hidden />}
-      disabled={disabled}
-      items={[
-        {
-          key: 'remove',
-          label: `Remove from ${rulesetName}`,
-          icon: <Link2Off size={15} aria-hidden />,
-          tone: 'danger',
-          onSelect: onRemove,
-        },
-      ]}
-    />
+    <Menu position="bottom-end" shadow="md" withinPortal>
+      <Menu.Target>
+        <IconAction
+          label={`Actions for ${factionName}`}
+          variant="light"
+          color="gray"
+          size="sm"
+          disabled={disabled}
+          icon={<EllipsisVertical size={15} aria-hidden />}
+        />
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item color="red" leftSection={<Link2Off size={15} aria-hidden />} onClick={onRemove}>
+          Remove from {rulesetName}
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
   );
 }
