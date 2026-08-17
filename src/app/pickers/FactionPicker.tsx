@@ -88,10 +88,11 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
     [picker.data?.memberGroupIds]
   );
 
-  const excluded = useMemo(() => new Set(excludeSlugs ?? []), [excludeSlugs]);
   const factionLoadOptions = useMemo(() => {
+    /* Built inside the memo that uses it: callers pass a fresh array each render, so memoizing the set separately never hits. */
+    const excluded = new Set(excludeSlugs ?? []);
     return (picker.data?.rows ?? []).filter((row) => !excluded.has(row.slug)).map((row) => row.id);
-  }, [picker.data?.rows, excluded]);
+  }, [picker.data?.rows, excludeSlugs]);
   const factionLoadSelectOptions = useMemo(
     () =>
       factionLoadOptions.map((id) => {

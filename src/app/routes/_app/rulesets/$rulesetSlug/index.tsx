@@ -347,7 +347,7 @@ function RulesetDetailPage() {
                     disabled={addFaction.isPending}
                     linkedSlugs={page.factions.map((faction) => faction.slug)}
                     rulesetName={r.name}
-                    onAdd={(factionId) => addFaction.mutate({ ruleset_id: r._id, faction_id: factionId })}
+                    onAdd={(factionId) => addFaction.mutate({ rulesetId: r._id, factionId })}
                   />
                 ) : null}
                 {actionVisibility.assignGroup ? (
@@ -506,7 +506,7 @@ function RulesetDetailPage() {
                             factionName={faction.data.name}
                             rulesetName={r.name}
                             disabled={removeFaction.isPending}
-                            onRemove={() => removeFaction.mutate({ ruleset_id: r._id, faction_id: faction._id })}
+                            onRemove={() => removeFaction.mutate({ rulesetId: r._id, factionId: faction._id })}
                           />
                         ) : null
                       }
