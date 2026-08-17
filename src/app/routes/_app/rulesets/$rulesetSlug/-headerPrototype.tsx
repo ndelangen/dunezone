@@ -11,7 +11,6 @@
  */
 import { Anchor, Avatar, Box, Divider, Group, Image, Stack, Text, Title } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
-import { Eyebrow } from '@ui/content/Eyebrow';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -230,7 +229,13 @@ export function HeaderVariantC(props: HeaderPrototypeProps) {
         </Title>
       </Group>
       <Group gap="sm" wrap="wrap" align="center">
-        <Eyebrow>Maintained by</Eyebrow>
+        {/*
+          Not `Eyebrow`: that is a card label at 12px uppercase, and on an inline row its optical height sits ~2px
+          above the 14-16px text beside it. Measured baselines spread 2.4px before this; plain dimmed text closes it.
+        */}
+        <Text size="sm" c="dimmed">
+          Maintained by
+        </Text>
         <OwnerLine owner={props.owner} />
         <Divider orientation="vertical" />
         {/*
