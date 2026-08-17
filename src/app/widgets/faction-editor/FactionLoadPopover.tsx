@@ -47,7 +47,17 @@ export function FactionLoadPopover({ disabled, currentPublicSlug, onLoaded }: Fa
       <Popover.Dropdown>
         {opened ? (
           <FactionPicker
-            currentPublicSlug={currentPublicSlug}
+            excludeSlugs={currentPublicSlug ? [currentPublicSlug] : []}
+            copy={{
+              title: 'Load existing faction',
+              intro: 'Choose a faction first. You can review the choice before replacing this unsaved draft.',
+              errorTitle: 'Faction could not be loaded',
+              emptyMessage: 'No different faction is available to load right now.',
+              confirmTitle: 'Replace this unsaved draft?',
+              confirmNote: 'Loading replaces every local unsaved change. Saving is still a separate action.',
+              confirmLabel: 'Load faction',
+              confirmColor: 'orange',
+            }}
             onCancel={() => setOpened(false)}
             onPick={(picked) => {
               onLoaded(picked.data);

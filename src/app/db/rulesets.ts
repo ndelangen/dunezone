@@ -240,6 +240,18 @@ export function useSetRulesetGroup() {
   };
 }
 
+/**
+ * Links a faction to a ruleset, and unlinks it.
+ * Both are gated server-side on the ruleset's `edit` capability — its owner, or an active member of its maintaining group — so the page shows the affordances on the same condition.
+ */
+export function useAddRulesetFaction() {
+  return useLiveMutation<{ ruleset_id: string; faction_id: string }, unknown>(api.rulesets.addFaction);
+}
+
+export function useRemoveRulesetFaction() {
+  return useLiveMutation<{ ruleset_id: string; faction_id: string }, unknown>(api.rulesets.removeFaction);
+}
+
 export function useDeleteRuleset() {
   const mutation = useLiveMutation<{ id: string }, void>(api.rulesets.softDelete);
   return {

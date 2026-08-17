@@ -34,9 +34,17 @@ import {
 } from 'lucide-react';
 
 import { useCurrentProfile } from '@db/profiles';
-import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useSetRulesetGroup } from '@db/rulesets';
+import {
+  loadRulesetDetailPage,
+  useAddRulesetFaction,
+  useDeleteRuleset,
+  useRemoveRulesetFaction,
+  useRulesetDetailPage,
+  useSetRulesetGroup,
+} from '@db/rulesets';
 
 import styles from '../RulesetDetail.module.css';
+import { AddFactionPopover, FactionCardMenu } from './-factionLinking';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
@@ -110,6 +118,8 @@ function RulesetDetailPage() {
   const profile = useCurrentProfile();
   const deleteRuleset = useDeleteRuleset();
   const setRulesetGroup = useSetRulesetGroup();
+  const addFaction = useAddRulesetFaction();
+  const removeFaction = useRemoveRulesetFaction();
 
   if (loaderData.notFound || !page) {
     return (
@@ -141,7 +151,11 @@ function RulesetDetailPage() {
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const answeredFaqCount = page.faqItems.filter((item) => item.accepted_answer_id != null).length;
-  const mutationError = deleteRuleset.error?.message ?? setRulesetGroup.error?.message;
+  const mutationError =
+    deleteRuleset.error?.message ??
+    setRulesetGroup.error?.message ??
+    addFaction.error?.message ??
+    removeFaction.error?.message;
   /**
    * Standing beside the maintaining group, and only when the viewer has a standing worth naming.
    * "Not a member" is the default state of every reader, so saying it would be noise;
@@ -328,6 +342,14 @@ function RulesetDetailPage() {
                     icon={<MessageCircleQuestionMark size={17} aria-hidden />}
                   />
                 ) : null}
+                {viewerAccess.capabilities.edit ? (
+                  <AddFactionPopover
+                    disabled={addFaction.isPending}
+                    linkedSlugs={page.factions.map((faction) => faction.slug)}
+                    rulesetName={r.name}
+                    onAdd={(factionId) => addFaction.mutate({ ruleset_id: r._id, faction_id: factionId })}
+                  />
+                ) : null}
                 {actionVisibility.assignGroup ? (
                   <AssignPopover
                     noun="group"
@@ -475,7 +497,20 @@ function RulesetDetailPage() {
               {page.factions.length > 0 ? (
                 <Stack gap="md">
                   {page.factions.map((faction) => (
-                    <FactionCard key={faction._id} faction={faction} />
+                    <FactionCard
+                      key={faction._id}
+                      faction={faction}
+                      action={
+                        viewerAccess.capabilities.edit ? (
+                          <FactionCardMenu
+                            factionName={faction.data.name}
+                            rulesetName={r.name}
+                            disabled={removeFaction.isPending}
+                            onRemove={() => removeFaction.mutate({ ruleset_id: r._id, faction_id: faction._id })}
+                          />
+                        ) : null
+                      }
+                    />
                   ))}
                 </Stack>
               ) : (
