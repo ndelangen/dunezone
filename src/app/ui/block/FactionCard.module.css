@@ -1,3 +1,19 @@
+.root {
+  position: relative;
+  min-width: 0;
+}
+
+/*
+ * Above the caption's z-index so the control is never overlapped, and top-left because the token, hero, leaders and
+ * name already hold the other corners.
+ */
+.action {
+  position: absolute;
+  top: 3%;
+  left: 3%;
+  z-index: 5;
+}
+
 .card {
   position: relative;
   display: block;
