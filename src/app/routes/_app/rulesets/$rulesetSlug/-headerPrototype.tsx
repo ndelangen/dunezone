@@ -9,7 +9,7 @@
  *
  * The winner gets rewritten properly into the route; the losers and the switcher go to the prototype branch.
  */
-import { Anchor, Box, Divider, Group, Image, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Avatar, Box, Divider, Group, Image, Stack, Text, Title } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -117,6 +117,15 @@ function Cover({ imageCover, name, size }: { imageCover: string | null; name: st
   );
 }
 
+/**
+ * The ruleset's own cover as an avatar — no topic glyph over it.
+ * Rounded square rather than a circle, since a cover is artwork and a circular crop eats its corners;
+ * `Avatar` still supplies the fallback when a ruleset has no cover.
+ */
+function CoverAvatar({ imageCover, name }: { imageCover: string | null; name: string }) {
+  return <Avatar src={imageCover} alt={`Cover for ${name}`} radius="md" size={32} name={name} color="dune" />;
+}
+
 function Breadcrumb() {
   return (
     <Anchor size="sm" fw={600} renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
@@ -209,14 +218,15 @@ export function HeaderVariantB(props: HeaderPrototypeProps) {
 /** C — the cover drops to a chip, the title leads, and everything else is one dense meta line. */
 export function HeaderVariantC(props: HeaderPrototypeProps) {
   return (
-    <Stack gap={6} className={styles.protoHeadC}>
+    <Stack gap={4} className={styles.protoHeadC}>
+      <Breadcrumb />
+      {/* The avatar rides with the name, not the breadcrumb: it is the ruleset's identity, and row one stays text-height. */}
       <Group gap="sm" wrap="nowrap" align="center">
-        <Cover imageCover={props.imageCover} name={props.name} size="chip" />
-        <Breadcrumb />
+        <CoverAvatar imageCover={props.imageCover} name={props.name} />
+        <Title order={1} className={styles.rulesetTitle}>
+          {props.name}
+        </Title>
       </Group>
-      <Title order={1} className={styles.rulesetTitle}>
-        {props.name}
-      </Title>
       <Group gap="sm" wrap="wrap" align="center">
         <Eyebrow>Maintained by</Eyebrow>
         <OwnerLine owner={props.owner} />
