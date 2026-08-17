@@ -97,6 +97,8 @@ function GroupLink({ assignedGroup }: { assignedGroup: AssignedGroupSummary | nu
     <Anchor
       size="sm"
       fw={600}
+      /* White, not the dune accent: this line sits on artwork, so the accent loses against the sand while the owner's name beside it reads white. */
+      c="white"
       renderRoot={(rootProps) => <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: assignedGroup.slug }} />}
     >
       {assignedGroup.name}
