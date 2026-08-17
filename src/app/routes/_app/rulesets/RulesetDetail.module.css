@@ -12,6 +12,19 @@
 }
 
 /*
+ * A fixed square per breakpoint, sized to the three lines of text beside it — the same approach and the same steps as
+ * the faction detail page's symbol rule.
+ * Deliberately not computed from the text: `align-self: stretch` with an `aspect-ratio` is circular, since the square's
+ * width would come from the row height while the row height comes from its tallest item, and the media grows without
+ * bound. Matching by design is what the pattern already does.
+ */
+.pageHeadMedia {
+  flex: 0 0 6rem;
+  width: 6rem;
+  height: 6rem;
+}
+
+/*
  * A description is authored in a textarea, so the author's own line breaks are the only structure it carries.
  * `pre-line` keeps them while still collapsing runs of spaces and wrapping normally.
  */
@@ -50,6 +63,12 @@
 
 /* The band's own gaps come from the header's `Stack`; only the title size and the edge padding change with width. */
 @media (max-width: 48em) {
+  .pageHeadMedia {
+    flex-basis: 4.75rem;
+    width: 4.75rem;
+    height: 4.75rem;
+  }
+
   .rulesetTitle {
     font-size: 1.35rem;
   }
@@ -58,5 +77,11 @@
 @media (max-width: 30em) {
   .pageHead {
     padding-inline: 0;
+  }
+
+  .pageHeadMedia {
+    flex-basis: 3.75rem;
+    width: 3.75rem;
+    height: 3.75rem;
   }
 }

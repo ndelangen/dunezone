@@ -221,7 +221,17 @@ function RulesetDetailPage() {
           the breadcrumb, the title and the meta line all share one left edge instead of the title starting indented.
         */}
         <Group wrap="nowrap" align="center" gap="md" className={styles.pageHead}>
-          <Avatar src={r.image_cover} alt={`Cover for ${r.name}`} name={r.name} radius="md" size={48} color="dune" />
+          {/* The media matches the text block's height rather than a fixed size, so the band reads as one unit. */}
+          <div className={styles.pageHeadMedia}>
+            <Avatar
+              src={r.image_cover}
+              alt={`Cover for ${r.name}`}
+              name={r.name}
+              radius="md"
+              size="100%"
+              color="dune"
+            />
+          </div>
           <Stack gap={4} className={styles.pageHeadText}>
             <Anchor size="sm" fw={600} renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
               Rulesets
