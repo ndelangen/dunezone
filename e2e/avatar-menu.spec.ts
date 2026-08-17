@@ -1,3 +1,4 @@
+import { userA } from './accounts';
 import { expect, test } from './coverage';
 
 /* Own storage state because the last step signs out, which would invalidate a shared session. */
@@ -8,12 +9,10 @@ test.use({ storageState: '.playwright/user-a-avatar-menu.json' });
  * This is the one navigation state Storybook cannot reach — its Convex mocks are signed-out by design — so the contract lives here.
  */
 test('the avatar menu offers the profile routes and signs out', async ({ page }) => {
-  /* The seed derives username and slug from the email's local part (convex/e2e.ts). */
-  const username = (process.env.PLAYWRIGHT_USER_A_EMAIL ?? 'e2e-user-a@example.com').split('@')[0];
-
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Primary navigation' });
-  const avatar = nav.getByRole('button', { name: username });
+  /* The avatar is labelled with the username, while the routes it offers are keyed by the slug. */
+  const avatar = nav.getByRole('button', { name: userA.username });
   await expect(avatar).toBeVisible();
 
   /*
@@ -28,12 +27,15 @@ test('the avatar menu offers the profile routes and signs out', async ({ page })
     await menu.getByRole('menuitem', { name }).click();
   };
 
-  /* Each route item is followed rather than read off an `href`: arriving is the promise, the attribute is one way of keeping it. */
+  /*
+    Each route item is followed rather than read off an `href`: arriving is the promise, the attribute is one way of
+    keeping it. The slug needs no regex escaping — `slugify` emits only lowercase letters, digits and hyphens.
+  */
   await choose('Edit profile');
-  await expect(page).toHaveURL(new RegExp(`/profiles/${username}/edit/?$`));
+  await expect(page).toHaveURL(new RegExp(`/profiles/${userA.slug}/edit/?$`));
 
   await choose('Your profile');
-  await expect(page).toHaveURL(new RegExp(`/profiles/${username}/?$`));
+  await expect(page).toHaveURL(new RegExp(`/profiles/${userA.slug}/?$`));
   /* Picking an item dismisses the menu — Mantine's job, but the nav leans on it, since no item closes it by hand. */
   await expect(menu).not.toBeVisible();
 
