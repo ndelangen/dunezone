@@ -237,7 +237,6 @@ export function HeaderVariantC(props: HeaderPrototypeProps) {
           Maintained by
         </Text>
         <OwnerLine owner={props.owner} />
-        <Divider orientation="vertical" />
         {/*
           A group glyph rather than a group avatar: `UsersRound` is what the Stewardship card, the assign popover and
           the group page already use, and the `groups` table has no image of its own to show.
@@ -247,7 +246,6 @@ export function HeaderVariantC(props: HeaderPrototypeProps) {
           <GroupLink assignedGroup={props.assignedGroup} />
         </Group>
         <MembershipChip membership={props.membership} />
-        <Divider orientation="vertical" />
         <Stats items={statItems(props)} orientation="row" />
       </Group>
     </Stack>
