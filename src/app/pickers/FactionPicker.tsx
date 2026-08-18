@@ -162,7 +162,16 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
               label="Search factions"
               placeholder="Type name, owner, group, or token…"
               value={search}
+              // Safari and password-manager extensions ignore autoComplete="off"
+              // alone; the search type, neutral name, and vendor opt-outs keep
+              // credential autofill prompts off this field.
+              type="search"
+              name="faction-search"
               autoComplete="off"
+              data-1p-ignore
+              data-lpignore="true"
+              data-bwignore
+              data-form-type="other"
               onChange={(event) => {
                 setSearch(event.currentTarget.value);
                 combobox.selectFirstOption();
