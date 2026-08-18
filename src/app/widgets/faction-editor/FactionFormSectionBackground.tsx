@@ -41,16 +41,14 @@ import { clampInfluence, influenceToSliderPosition, sliderPositionToInfluence } 
 
 function RandomButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <Button
-      type="button"
+    <IconAction
+      label={label}
       variant="light"
       color="dune"
-      size="compact-sm"
-      leftSection={<Shuffle size={14} aria-hidden />}
+      size="sm"
       onClick={onClick}
-    >
-      {label}
-    </Button>
+      icon={<Shuffle size={15} aria-hidden />}
+    />
   );
 }
 
@@ -129,7 +127,7 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
       <ControlBlock
         title="02 · Treatment"
         description="Tune how the selected pattern is blended into the faction background."
-        tool={<RandomButton label="Random" onClick={onRandom} />}
+        tool={<RandomButton label="Random treatment" onClick={onRandom} />}
         input={
           <Stack gap="lg">
             <form.Field name="background.invert">
@@ -558,7 +556,7 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
                       description="Choose the texture used to build the faction background."
                       tool={
                         <RandomButton
-                          label="Random"
+                          label="Random pattern"
                           onClick={() => setBackground(withRandomPattern(form.state.values.background))}
                         />
                       }
@@ -613,7 +611,7 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
               description="Choose the uninterrupted base color and the color revealed by the treated pattern."
               tool={
                 <RandomButton
-                  label="Random"
+                  label="Random colors"
                   onClick={() => setBackground(randomizeBackgroundColors(form.state.values.background))}
                 />
               }

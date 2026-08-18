@@ -8,17 +8,15 @@
   min-width: 0;
   overflow: hidden;
 
-  /* The same tokens real inputs consume, so the row carries genuine
-     input chrome in both schemes instead of a hardcoded light imitation. */
-  background: var(--input-bg, var(--mantine-color-white));
-  border: 1px solid var(--input-border, var(--mantine-color-gray-4));
+  /* Mantine's own input variables, so the row is chrome-identical to the
+     standard themed fields beside it (reference: the theme ColorInput). */
+  background: var(--mantine-color-default);
+  border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-sm);
-  box-shadow: var(--mantine-shadow-xs);
 }
 
 .unifiedRow:focus-within {
-  border-color: var(--input-border-strong, var(--mantine-color-dune-7));
-  outline: 1px solid var(--color-focus-ring, var(--mantine-color-dune-7));
+  border-color: var(--mantine-primary-color-filled);
 }
 
 .unifiedSelect {

@@ -92,7 +92,7 @@ function TtsColorRow({
       <Select
         className={styles.unifiedSelect}
         aria-label={`TTS color ${index + 1}`}
-        size="xs"
+        size="sm"
         variant="unstyled"
         value={color}
         allowDeselect={false}
