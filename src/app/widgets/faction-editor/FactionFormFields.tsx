@@ -190,16 +190,29 @@ function ArtifactProof({
             <PreviewEmpty>Add a troop type to complete the alliance-card proof.</PreviewEmpty>
           );
         } else if (activeChapter === 'worlds') {
-          title = 'Selected world';
+          title = 'Faction worlds';
           artifact = selectedWorld ? (
-            <Box className={styles.planetProof}>
-              <Image
-                key={selectedWorld.image}
-                src={resolve(selectedWorld.image)}
-                alt={selectedWorld.name}
-                fit="contain"
-              />
-            </Box>
+            /* Like the leaders roster, but unclipped and unshadowed: these are
+               arbitrary transparent PNGs, not pane-shaped pieces. */
+            <>
+              <Box className={styles.planetProof}>
+                <Image
+                  key={selectedWorld.image}
+                  src={resolve(selectedWorld.image)}
+                  alt={selectedWorld.name}
+                  fit="contain"
+                />
+              </Box>
+              {worlds.length > 1 ? (
+                <Box className={styles.planetGrid}>
+                  {worlds.map((world, index) =>
+                    world === selectedWorld ? null : (
+                      <Image key={index} src={resolve(world.image)} alt={world.name} fit="contain" />
+                    )
+                  )}
+                </Box>
+              ) : null}
+            </>
           ) : (
             <PreviewEmpty>No faction worlds yet.</PreviewEmpty>
           );
