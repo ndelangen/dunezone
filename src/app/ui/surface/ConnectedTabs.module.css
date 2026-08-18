@@ -152,9 +152,9 @@
 
 /* The icon files are black glyphs; under the dark scheme every disc needs the
    same light treatment the active disc already uses. */
-:global([data-mantine-color-scheme="dark"]) .iconDisc img,
-:global([data-mantine-color-scheme="dark"]) .mobileIconDisc img,
-:global([data-mantine-color-scheme="dark"]) .mobileItemIcon img {
+html[data-mantine-color-scheme="dark"] .iconDisc img,
+html[data-mantine-color-scheme="dark"] .mobileIconDisc img,
+html[data-mantine-color-scheme="dark"] .mobileItemIcon img {
   filter: brightness(0) invert(1);
   opacity: 0.9;
 }

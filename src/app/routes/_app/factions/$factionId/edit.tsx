@@ -34,9 +34,12 @@ const VALIDATION_HEADER_ID = 'faction-validation-header';
 function useValidationHeaderOpen(count: number, settleTick: number): boolean {
   const [open, setOpen] = useState(count > 0);
   const countRef = useRef(count);
-  countRef.current = count;
 
+  /* The ref syncs inside the committed effect — a render-phase write could survive from a
+     discarded render and let a later settle close the header while warnings still show.
+     Declared before the settle effect so a commit changing both runs the sync first. */
   useEffect(() => {
+    countRef.current = count;
     if (count > 0) {
       setOpen(true);
     }

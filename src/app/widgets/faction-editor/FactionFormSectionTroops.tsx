@@ -40,8 +40,9 @@ function PlanetReferenceSelect({
 }) {
   const matched = value != null && names.includes(value);
 
-  /* The ruled auto-pick: an empty or no-longer-matching reference visibly adopts
-     the first planet as a draft change; a matching value is never rewritten. */
+  /* The ruled auto-pick (wayfinder #483): an empty or no-longer-matching reference visibly
+     adopts the first planet the moment this field renders — deliberately a mount-time draft
+     change, not an interaction-gated one; a matching value is never rewritten. */
   useEffect(() => {
     if (names.length > 0 && !matched) {
       onChange(names[0]);

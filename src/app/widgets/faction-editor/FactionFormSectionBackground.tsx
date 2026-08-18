@@ -358,7 +358,9 @@ function GradientLayerFields({
               onChange={(next) =>
                 onChange({
                   ...value,
-                  angle: typeof next === 'number' && Number.isInteger(next) ? Math.min(360, Math.max(0, next)) : 0,
+                  /* An emptied NumberInput reports '' mid-edit; keep the stored angle instead of snapping to 0. */
+                  angle:
+                    typeof next === 'number' && Number.isInteger(next) ? Math.min(360, Math.max(0, next)) : value.angle,
                 })
               }
             />
