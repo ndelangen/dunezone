@@ -104,6 +104,24 @@ concert with `AppHeader`, genuinely viewport-scoped rather than a container.
 by name); the rest convention. Canonical in [`AGENTS.md`](../../AGENTS.md). Layouts today:
 `PageLayout`, `TriptychLayout`, `AtlasLayout`, `AsymmetricSplitLayout`.*
 
+### Floating UI is small and single-layer
+
+Popovers clip, misposition, and outgrow their anchors when they carry real editors, and a dropdown
+opened inside a popover stacks pane on pane. So floating UI (popovers, menus, dropdowns) appears only
+where reflow is undesirable — a toolbar action, a pick-one list — and it stays small: few controls,
+no modes, no sub-editors. Anything with modes, a collection to manage, or sub-controls of its own
+expands inline and accepts the reflow. One floating layer at a time: a floating pane never opens
+another floating pane inside itself; its innards render inline (a search field with an inline
+options list, not a nested dropdown). Dropdowns portal to the document — never
+`withinPortal: false`, which ties positioning to whatever containment the anchor sits in.
+
+*Exemption:* display-only, hover-transient UI — a tooltip, a hover preview — may appear over a
+floating pane; it is glanceable, not operable.
+
+*Convention — the faction editor carries the shapes: the Base/Pattern color editors expand inline
+below their trigger cards, and [`FactionPicker`](../../src/app/pickers/FactionPicker.tsx) renders its
+option list inline inside one popover (Combobox without dropdown).*
+
 ### Terminal routes mount PageLayout
 
 A parent-owned `staticData.PageHead` bridge once split one screen into detached header and body
