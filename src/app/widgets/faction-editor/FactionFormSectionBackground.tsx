@@ -132,7 +132,7 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
           <Stack gap="lg">
             <form.Field name="background.definition">
               {(field) => (
-                <Stack gap="md">
+                <Stack gap="xs">
                   <Group justify="space-between">
                     <Text component="label" htmlFor="bg-definition" fw={600} size="sm">
                       Definition
@@ -147,13 +147,19 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
                     step={0.01}
                     value={field.state.value}
                     label={(current) => current.toFixed(2)}
-                    marks={[
-                      { value: 0, label: 'Soft' },
-                      { value: 1, label: 'Extreme' },
-                    ]}
-                    mb="lg"
+                    marks={[{ value: 0 }, { value: 1 }]}
                     onChange={field.handleChange}
                   />
+                  {/* Captions are a flex row, not transform-shifted mark labels:
+                      the row can neither overflow the column nor misalign. */}
+                  <Group justify="space-between">
+                    <Text size="xs" c="dimmed">
+                      Soft
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      Extreme
+                    </Text>
+                  </Group>
                 </Stack>
               )}
             </form.Field>
@@ -161,7 +167,7 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
               {(field) => {
                 const exactValue = clampInfluence(field.state.value);
                 return (
-                  <Stack gap="md">
+                  <Stack gap="xs">
                     <Group justify="space-between" align="baseline" wrap="nowrap">
                       <Text component="label" htmlFor="bg-influence" fw={600} size="sm">
                         Influence
@@ -178,14 +184,20 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
                       step={0.5}
                       value={influenceToSliderPosition(exactValue)}
                       label={(position) => sliderPositionToInfluence(position).toFixed(2)}
-                      marks={[
-                        { value: 0, label: 'Whisper' },
-                        { value: 50, label: 'Strong' },
-                        { value: 100, label: 'Dominant' },
-                      ]}
-                      mb="lg"
+                      marks={[{ value: 0 }, { value: 50 }, { value: 100 }]}
                       onChange={(position) => field.handleChange(sliderPositionToInfluence(position))}
                     />
+                    <Group justify="space-between">
+                      <Text size="xs" c="dimmed">
+                        Whisper
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Strong
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Dominant
+                      </Text>
+                    </Group>
                   </Stack>
                 );
               }}
@@ -558,8 +570,8 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
                               }}
                             />
                           </Box>
-                          <Group justify="space-between" gap="xs" wrap="nowrap">
-                            <Text fw={700} size="sm" truncate>
+                          <Group gap="sm" wrap="nowrap" align="center">
+                            <Text fw={700} size="sm" truncate style={{ flex: 1, minWidth: 0 }}>
                               {selected?.label ?? 'Existing pattern'}
                             </Text>
                             {/* Invert lives with the pattern it flips, not in the sliders column. */}
