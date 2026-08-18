@@ -1,13 +1,14 @@
-import { Anchor, Button, Group, Stack, Text, Title } from '@mantine/core';
+import { Alert, Anchor, Box, Button, Collapse, Group, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Trash2, UserRoundMinus } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
+import type { FactionAuthoringWarning } from '@app/widgets/faction-editor/factionAuthoringContract';
 import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
@@ -21,6 +22,62 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   component: FactionEditPage,
 });
 
+const VALIDATION_HEADER_ID = 'faction-validation-header';
+
+/* The band that replaced the masthead: it exists only while validation warnings exist.
+   Asymmetric settle — new warnings open it immediately, but an empty list only closes it
+   on a settle signal (field blur or chapter switch), never mid-keystroke, so the layout
+   never jumps above the sticky toolbar while typing. */
+function ValidationHeader({
+  warnings,
+  settleTick,
+  onFocusWarning,
+}: {
+  warnings: FactionAuthoringWarning[];
+  settleTick: number;
+  onFocusWarning: (warning: FactionAuthoringWarning) => void;
+}) {
+  const [open, setOpen] = useState(warnings.length > 0);
+  const countRef = useRef(warnings.length);
+  countRef.current = warnings.length;
+
+  useEffect(() => {
+    if (warnings.length > 0) {
+      setOpen(true);
+    }
+  }, [warnings.length]);
+
+  useEffect(() => {
+    if (countRef.current === 0) {
+      setOpen(false);
+    }
+  }, [settleTick]);
+
+  return (
+    <Collapse expanded={open}>
+      <Box pb="md" id={VALIDATION_HEADER_ID}>
+        <Alert color="yellow" variant="light" title="These fields may be incomplete">
+          <Group gap="xs">
+            {warnings.map((warning) => (
+              <Button
+                key={warning.path}
+                type="button"
+                variant="subtle"
+                color="yellow"
+                size="compact-xs"
+                px={0}
+                onClick={() => onFocusWarning(warning)}
+              >
+                {warning.label}
+              </Button>
+            ))}
+          </Group>
+        </Alert>
+      </Box>
+    </Collapse>
+  );
+}
+
 function FactionEditPage() {
   const { factionId } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -30,6 +87,7 @@ function FactionEditPage() {
   const deleteFaction = useDeleteFaction();
   const setFactionGroup = useSetFactionGroup();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [settleTick, setSettleTick] = useState(0);
 
   const factionQuery = useFaction(factionId, {
     initialData: loaderData,
@@ -126,8 +184,12 @@ function FactionEditPage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">{header}</PageLayout.Header>
       <PageLayout.Toolbar>
+        <ValidationHeader
+          warnings={authoring.editing.warnings}
+          settleTick={settleTick}
+          onFocusWarning={(warning) => viewRef.current?.focusWarning(warning)}
+        />
         <FactionAuthoringToolbar
           status={{
             isDirty: authoring.editing.isDirty,
@@ -138,7 +200,10 @@ function FactionEditPage() {
           }}
           actions={{
             onSave: authoring.actions.submit,
-            onReviewWarnings: () => viewRef.current?.focusFirstWarning(),
+            /* The toolbar count is the persistent indicator; clicking it returns
+               to the expanded validation header at the top of the page. */
+            onReviewWarnings: () =>
+              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReview: (trigger) => viewRef.current?.openReview(trigger),
             onReset: authoring.actions.reset,
             onBack: () =>
@@ -240,6 +305,7 @@ function FactionEditPage() {
           errors={authoring.persistence.errors}
           isNameBlank={authoring.editing.isNameBlank}
           warnings={authoring.editing.warnings}
+          onSettle={() => setSettleTick((tick) => tick + 1)}
         />
       </PageLayout.Content>
     </PageLayout>

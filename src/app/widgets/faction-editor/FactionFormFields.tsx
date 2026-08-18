@@ -1,4 +1,4 @@
-import { Alert, Badge, Box, Button, Group, Image, Stack, Text } from '@mantine/core';
+import { Badge, Box, Image, Stack, Text } from '@mantine/core';
 import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import { FactionCard } from '@ui/block/FactionCard';
 import { effectiveComplexity } from '@ui/content/complexity';
@@ -353,45 +353,16 @@ function ArtifactProof({
   );
 }
 
-function ChapterWarnings({
-  warnings,
-  onFocus,
-}: {
-  warnings: FactionAuthoringWarning[];
-  onFocus: (warning: FactionAuthoringWarning) => void;
-}) {
-  if (warnings.length === 0) {
-    return null;
-  }
-  return (
-    <Alert color="yellow" variant="light" title="These fields may be incomplete">
-      <Group gap="xs">
-        {warnings.map((warning) => (
-          <Button
-            key={warning.path}
-            type="button"
-            variant="subtle"
-            color="yellow"
-            size="compact-xs"
-            px={0}
-            onClick={() => onFocus(warning)}
-          >
-            {warning.label}
-          </Button>
-        ))}
-      </Group>
-    </Alert>
-  );
-}
-
 export const FactionFormFields = forwardRef<
   FactionFormFieldsHandle,
   {
     form: FactionFormApi;
     warnings: FactionAuthoringWarning[];
     nameError?: string;
+    /** Fires on field blur and chapter switch so the route's validation header can settle closed. */
+    onSettle?: () => void;
   }
->(function FactionFormFields({ form, warnings, nameError }, ref) {
+>(function FactionFormFields({ form, warnings, nameError, onSettle }, ref) {
   const [activeChapter, setActiveChapter] = useState<FactionAuthoringChapterId>('identity');
   const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState({
@@ -484,21 +455,19 @@ export const FactionFormFields = forwardRef<
             {chapterWarnings.length}
           </Badge>
         ) : undefined,
-      panel: (
-        <Stack gap="lg">
-          <ChapterWarnings warnings={chapterWarnings} onFocus={focusWarning} />
-          {chapterEditor(chapter.id)}
-        </Stack>
-      ),
+      panel: <Stack gap="lg">{chapterEditor(chapter.id)}</Stack>,
     };
   });
 
   return (
-    <div className={styles.workbench}>
+    <div className={styles.workbench} onBlur={() => onSettle?.()}>
       <ConnectedTabs
         className={styles.connectedTabs}
         value={activeChapter}
-        onValueChange={setActiveChapter}
+        onValueChange={(chapter) => {
+          setActiveChapter(chapter);
+          onSettle?.();
+        }}
         items={connectedTabItems}
         ariaLabel="Faction editor sections"
       />
