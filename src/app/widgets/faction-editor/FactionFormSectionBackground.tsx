@@ -44,7 +44,7 @@ function RandomButton({ label, onClick }: { label: string; onClick: () => void }
     <IconAction
       label={label}
       variant="light"
-      color="dune"
+      color="gray"
       size="sm"
       onClick={onClick}
       icon={<Shuffle size={15} aria-hidden />}
