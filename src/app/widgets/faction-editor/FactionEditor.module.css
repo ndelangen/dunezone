@@ -92,6 +92,20 @@
   padding: var(--mantine-spacing-md) 0;
 }
 
+/* TroopToken's root fills its parent, so the proof and each grid cell must supply the square. */
+.troopProof {
+  aspect-ratio: 1;
+}
+
+.troopProof > div {
+  width: 100%;
+  height: 100%;
+}
+
+.troopGrid > div {
+  aspect-ratio: 1;
+}
+
 /* Same treatment as the identity token: round crop, rail width, Surface lift. */
 .leaderProof {
   aspect-ratio: 1;
@@ -106,8 +120,9 @@
   height: 100%;
 }
 
-/* The rest of the worlds ride below the focused one — bare images, no pane. */
-.planetGrid {
+/* The rest of the worlds or troops ride below the focused one — bare pieces, no pane. */
+.planetGrid,
+.troopGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--mantine-spacing-sm);

@@ -229,17 +229,37 @@ function ArtifactProof({
             <PreviewEmpty>No faction worlds yet.</PreviewEmpty>
           );
         } else if (activeChapter === 'forces') {
-          title = 'Selected troop token';
+          title = 'Troop tokens';
           artifact = selectedTroop ? (
-            <Box className={styles.troopProof}>
-              <TroopToken
-                background={faction.background}
-                image={selectedTroop.image}
-                star={selectedTroop.star}
-                hue={selectedTroop.hue}
-                striped={selectedTroop.striped}
-              />
-            </Box>
+            /* The whole roster, leaders-fashion: focused troop on top, the rest below.
+               Tokens are finished round pieces, so they ride bare like the worlds rail. */
+            <>
+              <Box className={styles.troopProof}>
+                <TroopToken
+                  background={faction.background}
+                  image={selectedTroop.image}
+                  star={selectedTroop.star}
+                  hue={selectedTroop.hue}
+                  striped={selectedTroop.striped}
+                />
+              </Box>
+              {faction.troops.length > 1 ? (
+                <Box className={styles.troopGrid}>
+                  {faction.troops.map((troop, index) =>
+                    troop === selectedTroop ? null : (
+                      <TroopToken
+                        key={index}
+                        background={faction.background}
+                        image={troop.image}
+                        star={troop.star}
+                        hue={troop.hue}
+                        striped={troop.striped}
+                      />
+                    )
+                  )}
+                </Box>
+              ) : null}
+            </>
           ) : (
             <PreviewEmpty>No troop types yet.</PreviewEmpty>
           );
