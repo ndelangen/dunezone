@@ -1,5 +1,6 @@
 import { Group, Image, Select, Text } from '@mantine/core';
 import type { SelectProps } from '@mantine/core';
+import clsx from 'clsx';
 
 import styles from './AssetSelect.module.css';
 
@@ -30,6 +31,11 @@ export interface AssetSelectProps extends Omit<
 > {
   data: readonly AssetSelectOption[];
   getPreviewSrc: (value: string) => string | null | undefined;
+  /**
+   * The previews are monochrome glyph artwork (shape in the alpha channel), so the dark scheme inverts them.
+   * Leave off for full-color previews such as portraits, which a filter would destroy.
+   */
+  glyphPreviews?: boolean;
   previewSize?: number;
   value: string | null;
 }
@@ -44,6 +50,7 @@ export function AssetSelect({
   comboboxProps,
   data,
   getPreviewSrc,
+  glyphPreviews = false,
   previewSize = 28,
   value,
   ...props
@@ -71,7 +78,7 @@ export function AssetSelect({
             w={previewSize}
             h={previewSize}
             fit="contain"
-            className={styles.previewImg}
+            className={clsx(styles.previewImg, glyphPreviews && styles.glyph)}
           />
         ) : undefined
       }
@@ -81,7 +88,14 @@ export function AssetSelect({
         return (
           <Group gap="sm" wrap="nowrap">
             {preview ? (
-              <Image src={preview} alt="" w={previewSize} h={previewSize} fit="contain" className={styles.previewImg} />
+              <Image
+                src={preview}
+                alt=""
+                w={previewSize}
+                h={previewSize}
+                fit="contain"
+                className={clsx(styles.previewImg, glyphPreviews && styles.glyph)}
+              />
             ) : null}
             <Text size="sm" truncate>
               {option.label}

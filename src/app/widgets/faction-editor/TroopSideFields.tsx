@@ -79,6 +79,7 @@ export function TroopSideFields({
                     allowDeselect={false}
                     data={troopImageOptions}
                     getPreviewSrc={assetOptionToPreviewSrc}
+                    glyphPreviews
                     value={field.state.value ?? null}
                     onChange={(value) => {
                       if (value) {
@@ -132,6 +133,7 @@ export function TroopSideFields({
                     clearable
                     data={troopStarOptions}
                     getPreviewSrc={assetOptionToPreviewSrc}
+                    glyphPreviews
                     value={field.state.value ?? null}
                     onChange={(value) =>
                       field.handleChange(value ? (value as Faction['troops'][number]['star']) : undefined)

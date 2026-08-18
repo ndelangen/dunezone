@@ -7,7 +7,7 @@
 
 /* Asset glyphs are authored as monochrome dark artwork; under the dark scheme
    they get the same invert treatment as other black glyphs (no backdrop). */
-:global([data-mantine-color-scheme="dark"]) .previewImg {
+:global([data-mantine-color-scheme="dark"]) .glyph {
   filter: brightness(0) invert(1);
   opacity: 0.9;
 }

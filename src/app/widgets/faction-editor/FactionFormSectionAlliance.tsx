@@ -49,6 +49,7 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
                   limit={30}
                   data={decalOptions}
                   getPreviewSrc={assetOptionToPreviewSrc}
+                  glyphPreviews
                   value={field.state.value}
                   onChange={(value) => {
                     if (value) {
