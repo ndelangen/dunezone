@@ -626,16 +626,10 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
         <Text c="dimmed" size="xs">
           Used on: faction sheet · faction token · leader tokens · troops · alliance card
         </Text>
-        <Button
-          type="button"
-          variant="filled"
-          color="dune"
-          size="compact-sm"
-          leftSection={<Shuffle size={14} aria-hidden />}
+        <RandomButton
+          label="Random all"
           onClick={() => setBackground(randomizeBackground(form.state.values.background))}
-        >
-          Random all
-        </Button>
+        />
       </Group>
     </Stack>
   );
