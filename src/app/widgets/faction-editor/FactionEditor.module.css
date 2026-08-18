@@ -38,6 +38,9 @@
 .identityProof {
   overflow: hidden;
   border-radius: var(--mantine-radius-md);
+
+  /* The pane is gone, but the artifacts keep a Surface's lift off the page. */
+  box-shadow: var(--panel-shadow);
 }
 
 .sheetColorReference {
@@ -64,16 +67,17 @@
   border-radius: 0;
 }
 
-.squareProof > div:first-child:not(.tokenProof) {
+.squareProof > div:first-child {
   position: absolute;
   inset: 0;
 }
 
 .tokenProof {
-  position: relative;
-  z-index: 1;
   aspect-ratio: 1;
-  width: 72%;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: var(--panel-shadow);
 }
 
 .tokenProof > div {

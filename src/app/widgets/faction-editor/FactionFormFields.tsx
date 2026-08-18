@@ -275,10 +275,8 @@ function ArtifactProof({
                     </Text>
                   </Box>
                 </Box>
-                <Box className={styles.squareProof}>
-                  <Box className={styles.tokenProof} data-faction-token-proof>
-                    <Token background={faction.background} logo={faction.logo} />
-                  </Box>
+                <Box className={styles.tokenProof} data-faction-token-proof>
+                  <Token background={faction.background} logo={faction.logo} />
                 </Box>
               </>
             ) : (
