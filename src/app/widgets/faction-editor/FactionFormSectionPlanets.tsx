@@ -1,4 +1,4 @@
-import { Alert, Divider, Group, SimpleGrid, Stack, TextInput, Textarea } from '@mantine/core';
+import { Alert, Divider, Group, Input, SimpleGrid, Stack, TextInput, Textarea } from '@mantine/core';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { useState } from 'react';
@@ -16,67 +16,65 @@ function PlanetFields({ form, index, onFocus }: { form: FactionFormApi; index: n
   const resolve = useAssetResolver();
 
   return (
-    <Stack gap="sm">
-      <form.Field name={`planet[${index}].image`}>
-        {(field) => {
-          const isCurated = CURATED_PLANET_IMAGES.some((option) => option.image === field.state.value);
-          return (
-            <>
-              {!isCurated ? (
-                <Alert color="yellow" variant="light" title="Existing external illustration preserved">
-                  This world uses an older external image. It remains unchanged until you select a curated illustration.
-                </Alert>
-              ) : null}
-              <AssetSelect
-                id={`planet-${index}-illustration`}
-                aria-label={`Illustration for world ${index + 1}`}
-                allowDeselect={false}
-                data={CURATED_PLANET_IMAGES.map((option) => ({ value: option.image, label: option.label }))}
-                getPreviewSrc={(image) => resolve(image as PlanetEntry['image'], 'small')}
-                value={isCurated ? (field.state.value ?? null) : null}
-                onFocus={onFocus}
-                onChange={(image) => {
-                  if (image) {
-                    field.handleChange(image as PlanetEntry['image']);
-                  }
-                }}
-              />
-            </>
-          );
-        }}
-      </form.Field>
+    <form.Field name={`planet[${index}].image`}>
+      {(imageField) => {
+        const isCurated = CURATED_PLANET_IMAGES.some((option) => option.image === imageField.state.value);
+        return (
+          <Stack gap="sm">
+            {!isCurated ? (
+              <Alert color="yellow" variant="light" title="Existing external illustration preserved">
+                This world uses an older external image. It remains unchanged until you select a curated illustration.
+              </Alert>
+            ) : null}
 
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
-        <form.Field name={`planet[${index}].name`}>
-          {(field) => (
-            <TextInput
-              id={`planet-${index}-name`}
-              aria-label={`Name of world ${index + 1}`}
-              placeholder="Name"
-              value={field.state.value}
-              onFocus={onFocus}
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.currentTarget.value)}
-            />
-          )}
-        </form.Field>
-        <form.Field name={`planet[${index}].description`}>
-          {(field) => (
-            <Textarea
-              id={`planet-${index}-description`}
-              aria-label={`Description of world ${index + 1}`}
-              placeholder="Description"
-              autosize
-              minRows={2}
-              value={field.state.value}
-              onFocus={onFocus}
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.currentTarget.value)}
-            />
-          )}
-        </form.Field>
-      </SimpleGrid>
-    </Stack>
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
+              <form.Field name={`planet[${index}].name`}>
+                {(field) => (
+                  <TextInput
+                    id={`planet-${index}-name`}
+                    label="Name"
+                    value={field.state.value}
+                    onFocus={onFocus}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  />
+                )}
+              </form.Field>
+              <Input.Wrapper id={`planet-${index}-illustration`} label="Illustration">
+                <AssetSelect
+                  id={`planet-${index}-illustration`}
+                  allowDeselect={false}
+                  data={CURATED_PLANET_IMAGES.map((option) => ({ value: option.image, label: option.label }))}
+                  getPreviewSrc={(image) => resolve(image as PlanetEntry['image'], 'small')}
+                  value={isCurated ? (imageField.state.value ?? null) : null}
+                  onFocus={onFocus}
+                  onChange={(image) => {
+                    if (image) {
+                      imageField.handleChange(image as PlanetEntry['image']);
+                    }
+                  }}
+                />
+              </Input.Wrapper>
+            </SimpleGrid>
+
+            <form.Field name={`planet[${index}].description`}>
+              {(field) => (
+                <Textarea
+                  id={`planet-${index}-description`}
+                  label="Description"
+                  autosize
+                  minRows={2}
+                  value={field.state.value}
+                  onFocus={onFocus}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.currentTarget.value)}
+                />
+              )}
+            </form.Field>
+          </Stack>
+        );
+      }}
+    </form.Field>
   );
 }
 
