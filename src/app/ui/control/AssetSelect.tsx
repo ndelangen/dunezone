@@ -1,4 +1,4 @@
-import { Group, Image, Select, Text } from '@mantine/core';
+import { Group, HoverCard, Image, Select, Text } from '@mantine/core';
 import type { SelectProps } from '@mantine/core';
 import clsx from 'clsx';
 
@@ -88,14 +88,36 @@ export function AssetSelect({
         return (
           <Group gap="sm" wrap="nowrap">
             {preview ? (
-              <Image
-                src={preview}
-                alt=""
-                w={previewSize}
-                h={previewSize}
-                fit="contain"
-                className={clsx(styles.previewImg, glyphPreviews && styles.glyph)}
-              />
+              /* Display-only hover preview: tooltip-class UI, exempt from the
+                 one-floating-layer rule (see "Floating UI is small and single-layer"). */
+              <HoverCard
+                position="right"
+                shadow="md"
+                openDelay={150}
+                withinPortal
+                transitionProps={{ transition: 'pop', duration: 150 }}
+              >
+                <HoverCard.Target>
+                  <Image
+                    src={preview}
+                    alt=""
+                    w={previewSize}
+                    h={previewSize}
+                    fit="contain"
+                    className={clsx(styles.previewImg, glyphPreviews && styles.glyph)}
+                  />
+                </HoverCard.Target>
+                <HoverCard.Dropdown p="xs">
+                  <Image
+                    src={preview}
+                    alt=""
+                    w={144}
+                    h={144}
+                    fit="contain"
+                    className={clsx(glyphPreviews && styles.glyph)}
+                  />
+                </HoverCard.Dropdown>
+              </HoverCard>
             ) : null}
             <Text size="sm" truncate>
               {option.label}
