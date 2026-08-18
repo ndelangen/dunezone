@@ -264,6 +264,9 @@ function ArtifactProof({
           <Box component="section" className={styles.artifactDesk} aria-label={`${title} live preview`}>
             {activeChapter === 'identity' ? (
               <>
+                <Box className={styles.tokenProof} data-faction-token-proof>
+                  <Token background={faction.background} logo={faction.logo} />
+                </Box>
                 <Box className={styles.identityProof}>
                   {artifact}
                   <Box className={styles.sheetColorReference} style={{ backgroundColor: faction.themeColor }}>
@@ -274,9 +277,6 @@ function ArtifactProof({
                       {faction.themeColor}
                     </Text>
                   </Box>
-                </Box>
-                <Box className={styles.tokenProof} data-faction-token-proof>
-                  <Token background={faction.background} logo={faction.logo} />
                 </Box>
               </>
             ) : (
