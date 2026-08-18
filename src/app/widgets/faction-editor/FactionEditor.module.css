@@ -30,15 +30,12 @@
 .artifactDesk {
   position: sticky;
   top: calc(var(--app-shell-header-offset, 0px) + 5.5rem);
-  overflow: hidden;
-  background-image:
-    linear-gradient(rgb(145 107 52 / 7%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(145 107 52 / 7%) 1px, transparent 1px);
-  background-size: 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-md);
 }
 
 .identityProof {
-  margin-top: var(--mantine-spacing-md);
   overflow: hidden;
   border-radius: var(--mantine-radius-md);
 }
@@ -59,7 +56,6 @@
   overflow: hidden;
   place-items: center;
   width: 100%;
-  margin-top: var(--mantine-spacing-md);
   border-radius: var(--mantine-radius-md);
 }
 
@@ -124,16 +120,6 @@
   min-height: 15rem;
   place-items: center;
   padding: var(--mantine-spacing-xl);
-}
-
-.proofSwitch {
-  margin-top: var(--mantine-spacing-sm);
-}
-
-.artifactMeta {
-  margin-top: var(--mantine-spacing-md);
-  padding-top: var(--mantine-spacing-md);
-  border-top: 1px solid var(--mantine-color-dune-2);
 }
 
 @media (max-width: 74em) {

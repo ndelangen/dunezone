@@ -1,10 +1,9 @@
-import { Alert, Badge, Box, Button, Group, Image, SegmentedControl, Stack, Text } from '@mantine/core';
+import { Alert, Badge, Box, Button, Group, Image, Stack, Text } from '@mantine/core';
 import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import { FactionCard } from '@ui/block/FactionCard';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { Surface } from '@ui/surface';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Globe2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
@@ -107,7 +106,6 @@ function ArtifactProof({
   };
 }) {
   const resolve = useAssetResolver();
-  const [identityProof, setIdentityProof] = useState<'background' | 'token'>('background');
 
   return (
     <form.Subscribe selector={(state) => state.values}>
@@ -120,22 +118,14 @@ function ArtifactProof({
           faction.rules.advantages[Math.min(selectedItem.advantage, faction.rules.advantages.length - 1)];
 
         let title = 'Background composite';
-        let usedOn = 'Faction sheet · faction token · leader tokens · troops · alliance card';
         let artifact: React.ReactNode = (
           <Box className={styles.squareProof}>
-            {identityProof === 'background' ? (
-              <BackgroundRenderer background={faction.background} />
-            ) : (
-              <Box className={styles.tokenProof} data-faction-token-proof>
-                <Token background={faction.background} logo={faction.logo} />
-              </Box>
-            )}
+            <BackgroundRenderer background={faction.background} />
           </Box>
         );
 
         if (activeChapter === 'hero') {
           title = 'Faction leader token';
-          usedOn = 'Faction shield';
           artifact = (
             <Box className={styles.leaderProof}>
               <LeaderToken
@@ -149,7 +139,6 @@ function ArtifactProof({
           );
         } else if (activeChapter === 'leaders') {
           title = 'Supporting leader token';
-          usedOn = 'Leader tokens';
           artifact = selectedLeader ? (
             <Box className={styles.leaderProof}>
               <LeaderToken
@@ -165,7 +154,6 @@ function ArtifactProof({
           );
         } else if (activeChapter === 'alliance') {
           title = 'Alliance card';
-          usedOn = 'Alliance card';
           artifact = selectedTroop ? (
             <Box className={styles.cardProof}>
               <Box className={styles.cardCanvas}>
@@ -184,7 +172,6 @@ function ArtifactProof({
           );
         } else if (activeChapter === 'worlds') {
           title = 'Selected world';
-          usedOn = 'Future planet asset';
           artifact = selectedWorld ? (
             <Box className={styles.planetProof}>
               <Image
@@ -199,7 +186,6 @@ function ArtifactProof({
           );
         } else if (activeChapter === 'forces') {
           title = 'Selected troop token';
-          usedOn = 'Troop supply · faction sheet';
           artifact = selectedTroop ? (
             <Box className={styles.troopProof}>
               <TroopToken
@@ -215,7 +201,6 @@ function ArtifactProof({
           );
         } else if (activeChapter === 'rules') {
           title = 'Faction-sheet excerpt';
-          usedOn = 'Faction sheet';
           artifact = (
             /* Paper, not a pane: this is an excerpt of the printed faction sheet, and it renders
                inside the workbench surface below — surfaces never nest. */
@@ -236,7 +221,6 @@ function ArtifactProof({
           );
         } else if (activeChapter === 'advantages') {
           title = 'Advantage excerpt';
-          usedOn = 'Faction sheet';
           artifact = selectedAdvantage ? (
             <Box className={styles.rulesProof} p="lg">
               <Text ff="serif" fw={800} tt="uppercase">
@@ -256,7 +240,6 @@ function ArtifactProof({
           );
         } else if (activeChapter === 'complexity') {
           title = 'Faction card';
-          usedOn = 'Faction catalogue';
           /* The catalogue card carries the rating natively; `inert` keeps the proof's link out of
              both pointer and keyboard reach — tabbing into it would navigate the editor away. */
           artifact = (
@@ -276,47 +259,32 @@ function ArtifactProof({
         }
 
         return (
-          <Surface padding="md" as="section" className={styles.artifactDesk} aria-label={`${title} live preview`}>
+          /* Deliberately unboxed: the artifacts float on the page, stacked
+             with the desk's gap — no pane, toggle, or caption around them. */
+          <Box component="section" className={styles.artifactDesk} aria-label={`${title} live preview`}>
             {activeChapter === 'identity' ? (
-              <Box className={styles.identityProof}>
-                {artifact}
-                <Box className={styles.sheetColorReference} style={{ backgroundColor: faction.themeColor }}>
-                  <Text size="xs" fw={800} tt="uppercase">
-                    Sheet color
-                  </Text>
-                  <Text size="xs" ff="monospace">
-                    {faction.themeColor}
-                  </Text>
+              <>
+                <Box className={styles.identityProof}>
+                  {artifact}
+                  <Box className={styles.sheetColorReference} style={{ backgroundColor: faction.themeColor }}>
+                    <Text size="xs" fw={800} tt="uppercase">
+                      Sheet color
+                    </Text>
+                    <Text size="xs" ff="monospace">
+                      {faction.themeColor}
+                    </Text>
+                  </Box>
                 </Box>
-              </Box>
+                <Box className={styles.squareProof}>
+                  <Box className={styles.tokenProof} data-faction-token-proof>
+                    <Token background={faction.background} logo={faction.logo} />
+                  </Box>
+                </Box>
+              </>
             ) : (
               artifact
             )}
-
-            {activeChapter === 'identity' ? (
-              <SegmentedControl
-                className={styles.proofSwitch}
-                fullWidth
-                value={identityProof}
-                onChange={(value) => setIdentityProof(value === 'token' ? 'token' : 'background')}
-                data={[
-                  { value: 'background', label: 'Background' },
-                  { value: 'token', label: 'Faction token' },
-                ]}
-                aria-label="Choose identity artifact proof"
-              />
-            ) : null}
-
-            <Box className={styles.artifactMeta}>
-              <Text size="xs" fw={800} tt="uppercase" c="dune.8" lts="0.12em">
-                Artifact workbench
-              </Text>
-              <Text fw={700}>{title}</Text>
-              <Text c="dimmed" size="xs">
-                Used on: {usedOn}.
-              </Text>
-            </Box>
-          </Surface>
+          </Box>
         );
       }}
     </form.Subscribe>
