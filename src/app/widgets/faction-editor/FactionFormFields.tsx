@@ -39,22 +39,34 @@ export interface FactionFormFieldsHandle {
 }
 
 const chapterIcons: Record<
-  Exclude<FactionAuthoringChapterId, 'identity' | 'worlds' | 'complexity'>,
+  Exclude<FactionAuthoringChapterId, 'identity' | 'forces' | 'worlds' | 'complexity'>,
   Parameters<typeof TopicIcon>[0]['topic']
 > = {
   hero: 'hero',
   leaders: 'leaders',
   alliance: 'alliance',
-  forces: 'troops',
   rules: 'rules',
   advantages: 'advantages',
 };
+
+/* The tab glyph when the faction has no troops yet. */
+const FALLBACK_TROOP_SYMBOL = '/vector/troop/atreides.svg';
 
 function ChapterIcon({ chapter, form }: { chapter: FactionAuthoringChapterId; form: FactionFormApi }) {
   if (chapter === 'identity') {
     return (
       <form.Subscribe selector={(state) => state.values.logo}>
         {(logo) => <Image src={assetOptionToPreviewSrc(logo)} alt="" w={22} h={22} fit="contain" />}
+      </form.Subscribe>
+    );
+  }
+  if (chapter === 'forces') {
+    /* Live like the identity tab: the first troop's symbol is the chapter's face. */
+    return (
+      <form.Subscribe selector={(state) => state.values.troops[0]?.image}>
+        {(image) => (
+          <Image src={assetOptionToPreviewSrc(image ?? FALLBACK_TROOP_SYMBOL)} alt="" w={22} h={22} fit="contain" />
+        )}
       </form.Subscribe>
     );
   }
