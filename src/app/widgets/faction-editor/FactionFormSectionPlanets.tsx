@@ -17,7 +17,6 @@ import {
 } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { Surface } from '@ui/surface';
 import { Check } from 'lucide-react';
 import { useState } from 'react';
 
@@ -125,65 +124,59 @@ function PlanetCard({ form, index }: { form: FactionFormApi; index: number }) {
   }
 
   return (
-    <Surface padding="md">
-      <Stack gap="md">
-        <Box>
-          <Text fw={700}>Planet {index + 1}</Text>
-          <Text size="xs" c="dimmed">
-            {planet.name.trim() || 'Unnamed world'}
-          </Text>
-        </Box>
+    <Stack gap="md">
+      <Box>
+        <Text fw={700}>Planet {index + 1}</Text>
+        <Text size="xs" c="dimmed">
+          {planet.name.trim() || 'Unnamed world'}
+        </Text>
+      </Box>
 
-        <form.Field name={`planet[${index}].image`}>
+      <form.Field name={`planet[${index}].image`}>
+        {(field) => (
+          <PlanetImageLibrary index={index} value={field.state.value} onChange={(image) => field.handleChange(image)} />
+        )}
+      </form.Field>
+
+      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+        <form.Field name={`planet[${index}].name`}>
           {(field) => (
-            <PlanetImageLibrary
-              index={index}
-              value={field.state.value}
-              onChange={(image) => field.handleChange(image)}
+            <ControlBlock
+              title="Planet name"
+              description="The authored name of this faction world."
+              input={
+                <TextInput
+                  id={`planet-${index}-name`}
+                  aria-label="Planet name"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.currentTarget.value)}
+                />
+              }
             />
           )}
         </form.Field>
-
-        <SimpleGrid cols={{ base: 1, sm: 2 }}>
-          <form.Field name={`planet[${index}].name`}>
-            {(field) => (
-              <ControlBlock
-                title="Planet name"
-                description="The authored name of this faction world."
-                input={
-                  <TextInput
-                    id={`planet-${index}-name`}
-                    aria-label="Planet name"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.currentTarget.value)}
-                  />
-                }
-              />
-            )}
-          </form.Field>
-          <form.Field name={`planet[${index}].description`}>
-            {(field) => (
-              <ControlBlock
-                title="Planet description"
-                description="Stored with the world for future artifact use."
-                input={
-                  <Textarea
-                    id={`planet-${index}-description`}
-                    aria-label="Planet description"
-                    autosize
-                    minRows={2}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.currentTarget.value)}
-                  />
-                }
-              />
-            )}
-          </form.Field>
-        </SimpleGrid>
-      </Stack>
-    </Surface>
+        <form.Field name={`planet[${index}].description`}>
+          {(field) => (
+            <ControlBlock
+              title="Planet description"
+              description="Stored with the world for future artifact use."
+              input={
+                <Textarea
+                  id={`planet-${index}-description`}
+                  aria-label="Planet description"
+                  autosize
+                  minRows={2}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.currentTarget.value)}
+                />
+              }
+            />
+          )}
+        </form.Field>
+      </SimpleGrid>
+    </Stack>
   );
 }
 
