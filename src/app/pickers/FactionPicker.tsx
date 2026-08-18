@@ -4,6 +4,7 @@ import {
   Button,
   Center,
   Combobox,
+  Divider,
   Group,
   Loader,
   ScrollArea,
@@ -15,7 +16,6 @@ import {
 } from '@mantine/core';
 import { FactionInputSchema } from '@shared/factions/schema';
 import { Link } from '@tanstack/react-router';
-import { Surface } from '@ui/surface';
 import { useMemo, useState } from 'react';
 
 import { useFactionLoadPicker } from '@db/factions';
@@ -203,7 +203,10 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
       )}
 
       {selectedRow ? (
-        <Surface padding="sm">
+        /* The popover dropdown is already a painted pane; the confirm region
+           separates with a divider rather than nesting a second surface. */
+        <>
+          <Divider />
           <Stack gap="sm">
             <Text size="sm" fw={700}>
               {copy.confirmTitle}
@@ -231,7 +234,7 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
               </Button>
             </Group>
           </Stack>
-        </Surface>
+        </>
       ) : null}
 
       {currentProfileSlug ? (

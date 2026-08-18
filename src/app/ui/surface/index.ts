@@ -1,1 +1,1 @@
-export { Surface } from './Surface';
+export { PaintedSurfaceBoundary, Surface } from './Surface';

@@ -13,6 +13,14 @@ import styles from './Surface.module.css';
  */
 const InsideSurface = createContext(false);
 
+/**
+ * Declares that its children already sit on a painted pane, for components that paint their pane by other means than `Surface` (ConnectedTabs' SVG glass).
+ * The nesting guard then treats those children exactly as if they were inside a `Surface`, so a stray inner pane still warns in development.
+ */
+export function PaintedSurfaceBoundary({ children }: { children: ReactNode }) {
+  return <InsideSurface.Provider value>{children}</InsideSurface.Provider>;
+}
+
 export interface SurfaceProps {
   children: ReactNode;
   /**
