@@ -220,7 +220,7 @@ export function FactionFormSectionLeaders({
           return (
             <Stack gap="md">
               <Group justify="flex-end" gap={4} wrap="nowrap">
-                <Badge variant="light" color={count === CONVENTIONAL_SUPPORTING_LEADER_COUNT ? 'dune' : 'gray'}>
+                <Badge variant="light" color="gray">
                   {count} / {SUPPORTING_LEADER_LIMIT}
                 </Badge>
                 <ListLengthActions

@@ -138,17 +138,36 @@ function ArtifactProof({
             </Box>
           );
         } else if (activeChapter === 'leaders') {
-          title = 'Supporting leader token';
+          title = 'Supporting leader tokens';
           artifact = selectedLeader ? (
-            <Box className={styles.leaderProof}>
-              <LeaderToken
-                background={faction.background}
-                image={selectedLeader.image}
-                logo={faction.logo}
-                name={selectedLeader.name}
-                strength={selectedLeader.strength}
-              />
-            </Box>
+            <>
+              <Box className={styles.leaderProof}>
+                <LeaderToken
+                  background={faction.background}
+                  image={selectedLeader.image}
+                  logo={faction.logo}
+                  name={selectedLeader.name}
+                  strength={selectedLeader.strength}
+                />
+              </Box>
+              {faction.leaders.length > 1 ? (
+                <Box className={styles.leaderGrid}>
+                  {faction.leaders.map((leader, index) =>
+                    leader === selectedLeader ? null : (
+                      <Box key={index} className={styles.leaderThumb}>
+                        <LeaderToken
+                          background={faction.background}
+                          image={leader.image}
+                          logo={faction.logo}
+                          name={leader.name}
+                          strength={leader.strength}
+                        />
+                      </Box>
+                    )
+                  )}
+                </Box>
+              ) : null}
+            </>
           ) : (
             <PreviewEmpty>No supporting leaders yet.</PreviewEmpty>
           );
