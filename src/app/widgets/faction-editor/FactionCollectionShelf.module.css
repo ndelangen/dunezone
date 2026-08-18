@@ -10,8 +10,8 @@
   align-items: stretch;
   min-width: 0;
   overflow: hidden;
-  background: var(--mantine-color-white);
-  border: 1px solid var(--mantine-color-dune-2);
+  background: var(--glass-input, var(--mantine-color-white));
+  border: 1px solid var(--panel-border, var(--mantine-color-dune-2));
   border-radius: var(--mantine-radius-md);
 }
 

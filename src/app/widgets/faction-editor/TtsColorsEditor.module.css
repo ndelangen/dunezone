@@ -7,15 +7,18 @@
   display: flex;
   min-width: 0;
   overflow: hidden;
-  background: var(--mantine-color-white);
-  border: 1px solid var(--mantine-color-gray-4);
+
+  /* The same tokens real inputs consume, so the row carries genuine
+     input chrome in both schemes instead of a hardcoded light imitation. */
+  background: var(--input-bg, var(--mantine-color-white));
+  border: 1px solid var(--input-border, var(--mantine-color-gray-4));
   border-radius: var(--mantine-radius-sm);
   box-shadow: var(--mantine-shadow-xs);
 }
 
 .unifiedRow:focus-within {
-  border-color: var(--mantine-color-dune-7);
-  outline: 1px solid var(--mantine-color-dune-7);
+  border-color: var(--input-border-strong, var(--mantine-color-dune-7));
+  outline: 1px solid var(--color-focus-ring, var(--mantine-color-dune-7));
 }
 
 .unifiedSelect {
