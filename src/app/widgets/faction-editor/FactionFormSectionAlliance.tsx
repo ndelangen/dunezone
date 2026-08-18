@@ -19,6 +19,11 @@ const decalOptions = decalAssetOptions.map((value) => ({
   label: decalAssetOptionToLabel(value),
 }));
 
+/* The offset is unbounded card-space pixels from the card center (card 900 wide, art band 940
+   tall). The sliders span half of each dimension — center to edge — while the paired number
+   inputs stay unclamped so legacy values beyond the range remain editable. */
+const DECAL_OFFSET_RANGE = [450, 470] as const;
+
 function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
   const decal = form.state.values.decals[index];
   if (!decal) {
@@ -27,13 +32,6 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
 
   return (
     <Stack gap="md">
-      <Box>
-        <Text fw={700}>Alliance decal {index + 1}</Text>
-        <Text size="xs" c="dimmed">
-          {decalAssetOptionToLabel(decal.id)}
-        </Text>
-      </Box>
-
       <form.Field name={`decals[${index}].id`}>
         {(field) => (
           <ControlBlock
@@ -145,10 +143,11 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
               <ControlBlock
                 title="Horizontal offset"
                 description="Move left with a negative value or right with a positive value."
-                input={
+                tool={
                   <NumberInput
                     id={`decal-${index}-offset-x`}
                     aria-label="Horizontal offset"
+                    w={96}
                     step={1}
                     value={field.state.value}
                     onBlur={field.handleBlur}
@@ -157,6 +156,16 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
                         field.handleChange(value);
                       }
                     }}
+                  />
+                }
+                input={
+                  <Slider
+                    aria-label={`Horizontal offset slider for alliance decal ${index + 1}`}
+                    min={-DECAL_OFFSET_RANGE[0]}
+                    max={DECAL_OFFSET_RANGE[0]}
+                    step={1}
+                    value={field.state.value}
+                    onChange={field.handleChange}
                   />
                 }
               />
@@ -169,10 +178,11 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
               <ControlBlock
                 title="Vertical offset"
                 description="Move up with a negative value or down with a positive value."
-                input={
+                tool={
                   <NumberInput
                     id={`decal-${index}-offset-y`}
                     aria-label="Vertical offset"
+                    w={96}
                     step={1}
                     value={field.state.value}
                     onBlur={field.handleBlur}
@@ -181,6 +191,16 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
                         field.handleChange(value);
                       }
                     }}
+                  />
+                }
+                input={
+                  <Slider
+                    aria-label={`Vertical offset slider for alliance decal ${index + 1}`}
+                    min={-DECAL_OFFSET_RANGE[1]}
+                    max={DECAL_OFFSET_RANGE[1]}
+                    step={1}
+                    value={field.state.value}
+                    onChange={field.handleChange}
                   />
                 }
               />
@@ -238,16 +258,7 @@ export function FactionFormSectionAlliance({
   const currentSelectedDecalIndex = selectedDecalIndex ?? internalSelectedDecalIndex;
   const selectDecalIndex = onSelectedDecalIndexChange ?? setInternalSelectedDecalIndex;
   return (
-    <Stack component="section" gap="md" aria-labelledby="alliance-card-heading">
-      <Stack gap="xs">
-        <Text id="alliance-card-heading" fw={700} size="lg">
-          Alliance card
-        </Text>
-        <Text c="dimmed" size="sm">
-          Author the alliance ability and compose its ordered artwork in one place.
-        </Text>
-      </Stack>
-
+    <Stack component="section" gap="md" aria-label="Alliance card">
       <Grid gap="xl" align="start">
         <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
           <Stack gap="lg">
@@ -281,14 +292,6 @@ export function FactionFormSectionAlliance({
                 );
               }}
             </form.Field>
-
-            <Stack gap="xs">
-              <Text fw={700}>Alliance decals</Text>
-              <Text c="dimmed" size="sm">
-                Layer zero or more decals in order. Drag with a pointer or focus a handle and use the keyboard to
-                reorder.
-              </Text>
-            </Stack>
 
             <form.Field name="decals" mode="array">
               {(field) => {
