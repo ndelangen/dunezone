@@ -232,6 +232,9 @@ Rules between categories:
 
 - **Only Surfaces paint.** Everything else is transparent; Content marks nothing but its own text.
 - **Surfaces never nest.**
+- **Floating UI is small and single-layer.** Popovers/menus only where reflow is undesirable; few
+  controls, no sub-editors; a floating pane never opens another floating pane (display-only
+  tooltips/hover previews exempt); dropdowns portal to the document. Complex editors expand inline.
 - **Only Blocks — and a Surface naming itself — render headings.** Loudness comes from depth,
   never from a prop.
 - **Receivers vs producers.** Layouts and Surfaces *receive* built content through slots. Blocks,

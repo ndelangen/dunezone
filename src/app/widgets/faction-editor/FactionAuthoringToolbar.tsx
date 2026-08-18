@@ -150,15 +150,15 @@ export function FactionAuthoringToolbar({
               onClick={onReset}
               icon={<RotateCcw size={17} aria-hidden />}
             />
-            <Button
+            <IconAction
               className={styles.reviewAction}
-              type="button"
-              variant="default"
-              leftSection={<Eye size={17} aria-hidden />}
+              label="Review faction sheet"
+              variant="light"
+              color="gray"
+              size="lg"
               onClick={(event) => onReview(event.currentTarget)}
-            >
-              Review faction sheet
-            </Button>
+              icon={<Eye size={17} aria-hidden />}
+            />
             <div className={styles.destructiveSlot}>{destructiveActions}</div>
             <Button
               type="button"

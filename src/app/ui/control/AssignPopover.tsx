@@ -107,6 +107,10 @@ function AssignPopoverPicker({
         clearable
         placeholder={`Type ${noun} name…`}
         nothingFoundMessage={`No matching ${noun}s`}
+        /* Inside a Popover the dropdown must NOT portal: a portalled option renders outside
+           the popover's DOM, so picking one reads as click-outside and closes the pane before
+           the commit button can be pressed. The always-portal rule covers dropdowns clipped
+           by overflow containers; a popover interior is the documented exception. */
         comboboxProps={{ withinPortal: false }}
         disabled={disabled || isAssigning}
       />

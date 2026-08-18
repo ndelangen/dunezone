@@ -11,6 +11,10 @@
 
 .shape {
   background: url("/image/card/base-decal-large.webp");
+
+  /* The source asset ships at 640x898 (same aspect as the 900x1263 card);
+     without an explicit size it tiles into a collage of frames. */
+  background-size: 100% 100%;
   position: absolute;
   top: 0;
   left: 0;
@@ -33,6 +37,7 @@
   width: 100%;
   height: 100%;
   background: url("/image/card/head-shade-large.webp");
+  background-size: 100% 100%;
   mix-blend-mode: soft-light;
   opacity: 0.8;
 }

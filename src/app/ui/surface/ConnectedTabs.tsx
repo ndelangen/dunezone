@@ -6,6 +6,7 @@ import { useId, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import styles from './ConnectedTabs.module.css';
+import { PaintedSurfaceBoundary } from './Surface';
 
 export interface ConnectedTabsItem<Value extends string> {
   value: Value;
@@ -367,7 +368,9 @@ export function ConnectedTabs<Value extends string>({
         <div ref={panelRef} className={clsx(styles.panelShell, panelClassName)}>
           {items.map((item) => (
             <Tabs.Content className={styles.panel} key={item.value} value={item.value}>
-              {item.panel}
+              {/* The SVG glass paints this panel as a pane, so the nesting guard
+                  must see panel content as already inside a surface. */}
+              <PaintedSurfaceBoundary>{item.panel}</PaintedSurfaceBoundary>
             </Tabs.Content>
           ))}
         </div>

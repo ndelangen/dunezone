@@ -82,7 +82,7 @@ export const TroopToken: FC<TroopTokenProps> = ({ background, image, star, hue, 
     <BackgroundRenderer background={background} className={styles.disc}>
       {svgContent}
       {star && (
-        <div className={styles.content}>
+        <div className={`${styles.content} ${styles.star}`}>
           <svg viewBox="0 0 100 100" role="img" aria-label="star">
             <use xlinkHref={`${star}#star`} fill={starHue(star, hue)} />
             <use xlinkHref={`${star}#outline`} fill="black" />

@@ -92,14 +92,13 @@ function TtsColorRow({
       <Select
         className={styles.unifiedSelect}
         aria-label={`TTS color ${index + 1}`}
-        size="xs"
+        size="sm"
         variant="unstyled"
         value={color}
         allowDeselect={false}
         data={options}
         leftSection={<ColorDot color={color} />}
         renderOption={({ option }) => <TtsColorOption color={option.value as TtsColor} />}
-        comboboxProps={{ withinPortal: false }}
         onChange={(value) => {
           if (value) {
             onChange(value as TtsColor);

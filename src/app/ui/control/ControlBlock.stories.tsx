@@ -40,10 +40,16 @@ const meta = preview.meta({
 export const Default = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
     await expect(canvas.getByRole('group', { name: 'Tabletop Simulator colors' })).toHaveAccessibleDescription(
       'Choose unique colors; drag to set their priority.'
     );
     await expect(canvas.getByRole('combobox', { name: 'Preferred player color' })).toBeVisible();
+
+    await userEvent.hover(canvas.getByRole('img', { name: 'Help' }));
+    await waitFor(() =>
+      expect(page.getByRole('tooltip')).toHaveTextContent('Choose unique colors; drag to set their priority.')
+    );
   },
 });
 
@@ -53,14 +59,24 @@ export const WithoutTool = meta.story({
   },
 });
 
-const longTitle = 'Tabletop Simulator colors ordered by player priority and availability';
-const longDescription =
-  'Choose unique colors for every player position, then drag the rows to set their preferred priority.';
+export const WithoutDescription = meta.story({
+  args: {
+    description: undefined,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByRole('img', { name: 'Help' })).not.toBeInTheDocument();
+    await expect(canvas.getByRole('group', { name: 'Tabletop Simulator colors' })).not.toHaveAttribute(
+      'aria-describedby'
+    );
+  },
+});
 
-export const TruncatedText = meta.story({
+const longTitle = 'Tabletop Simulator colors ordered by player priority and availability';
+
+export const TruncatedTitle = meta.story({
   args: {
     title: longTitle,
-    description: longDescription,
   },
   render: (args) => (
     <Box w={280}>
@@ -71,16 +87,10 @@ export const TruncatedText = meta.story({
     const canvas = within(canvasElement);
     const page = within(canvasElement.ownerDocument.body);
     const title = canvas.getByText(longTitle);
-    const description = canvas.getByText(longDescription);
 
     await expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
-    await expect(description.scrollWidth).toBeGreaterThan(description.clientWidth);
 
     await userEvent.hover(title);
     await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(longTitle));
-
-    await userEvent.unhover(title);
-    await userEvent.hover(description);
-    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(longDescription));
   },
 });

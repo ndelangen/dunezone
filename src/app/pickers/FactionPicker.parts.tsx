@@ -3,10 +3,6 @@ import { Box, Group, Stack, Text } from '@mantine/core';
 import type { FactionData, FactionLoadPickerRow } from '@db/factions';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
-export function factionLoadOptionLabel(row: FactionLoadPickerRow): string {
-  return `${row.data.name} (${row.slug})`;
-}
-
 export function factionLoadOptionSearchText(row: FactionLoadPickerRow): string {
   return [row.id, row.data.name, row.slug, row.groupLabel, row.ownerUsername ?? ''].join(' ');
 }

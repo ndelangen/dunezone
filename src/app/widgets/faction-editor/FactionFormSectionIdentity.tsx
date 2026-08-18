@@ -73,6 +73,7 @@ export function FactionFormSectionIdentity({
                   allowDeselect={false}
                   data={logoSelectOptions}
                   getPreviewSrc={assetOptionToPreviewSrc}
+                  glyphPreviews
                   value={field.state.value}
                   onChange={(value) => {
                     if (value) {

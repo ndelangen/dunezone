@@ -53,7 +53,6 @@ export function FactionFormSectionHero({ form, showPreview = true }: { form: Fac
               {(field) => (
                 <ControlBlock
                   title="Faction leader portrait"
-                  description="Choose the portrait rendered for this hero."
                   input={
                     <AssetSelect
                       id="hero-image"

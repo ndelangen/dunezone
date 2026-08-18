@@ -21,6 +21,37 @@ export function backgroundTreatment({
   };
 }
 
+/**
+ * The single source of gradient geometry.
+ * Editor swatches render through this def too, so a preview can never disagree with the sheet renderer.
+ */
+export const GradientDef: FC<{ id: string; gradient: z.infer<typeof GRADIENT> }> = ({ id, gradient }) => {
+  if (gradient.type === 'linear') {
+    const { angle, stops } = gradient;
+
+    const radians = (angle * Math.PI) / 180;
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+
+    return (
+      <linearGradient id={id} x1={0.5 - cos / 2} y1={0.5 + sin / 2} x2={0.5 + cos / 2} y2={0.5 - sin / 2}>
+        {stops.map(([stopColor, stopScale], j) => (
+          <stop key={j} offset={`${stopScale * 100}%`} stopColor={stopColor} />
+        ))}
+      </linearGradient>
+    );
+  }
+
+  const { x = 50, y = 50, r = 80, stops } = gradient;
+  return (
+    <radialGradient id={id} cx={`${x}%`} cy={`${y}%`} r={`${r}%`}>
+      {stops.map(([stopColor, stopScale], j) => (
+        <stop key={j} offset={`${stopScale * 100}%`} stopColor={stopColor} />
+      ))}
+    </radialGradient>
+  );
+};
+
 export const Background: FC<z.infer<typeof BackGroundType>> = ({
   colors,
   image,
@@ -57,39 +88,7 @@ export const Background: FC<z.infer<typeof BackGroundType>> = ({
             return null;
           }
 
-          const data = GRADIENT.parse(color);
-          if (data.type === 'linear') {
-            const { angle, stops } = data;
-
-            const radians = (angle * Math.PI) / 180;
-            const cos = Math.cos(radians);
-            const sin = Math.sin(radians);
-
-            const x1 = 0.5 - cos / 2;
-            const y1 = 0.5 + sin / 2;
-            const x2 = 0.5 + cos / 2;
-            const y2 = 0.5 - sin / 2;
-            return (
-              <linearGradient key={i} id={gradientId(i)} x1={x1} y1={y1} x2={x2} y2={y2}>
-                {stops.map(([stopColor, stopScale], j) => (
-                  <stop key={j} offset={`${stopScale * 100}%`} stopColor={stopColor} />
-                ))}
-              </linearGradient>
-            );
-          }
-
-          if (data.type === 'radial') {
-            const { x = 50, y = 50, r = 80, stops } = data;
-            return (
-              <radialGradient key={i} id={gradientId(i)} cx={`${x}%`} cy={`${y}%`} r={`${r}%`}>
-                {stops.map(([stopColor, stopScale], j) => (
-                  <stop key={j} offset={`${stopScale * 100}%`} stopColor={stopColor} />
-                ))}
-              </radialGradient>
-            );
-          }
-
-          return null;
+          return <GradientDef key={i} id={gradientId(i)} gradient={GRADIENT.parse(color)} />;
         })}
       </defs>
 

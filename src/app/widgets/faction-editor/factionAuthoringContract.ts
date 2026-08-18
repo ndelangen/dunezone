@@ -4,9 +4,13 @@ export const factionAuthoringChapters = [
   { id: 'identity', label: 'Identity & Appearance' },
   { id: 'hero', label: 'Faction leader' },
   { id: 'leaders', label: 'Leaders' },
-  { id: 'alliance', label: 'Alliance' },
-  { id: 'worlds', label: 'Worlds' },
+  /* Two ordering dependencies: Planets precedes Forces because a troop's planet
+     reference selects among the planets, and Forces precedes Alliance because
+     the alliance card's proof needs at least one troop type. The internal
+     chapter id stays `worlds`; only the label says Planets. */
+  { id: 'worlds', label: 'Planets' },
   { id: 'forces', label: 'Forces' },
+  { id: 'alliance', label: 'Alliance' },
   { id: 'rules', label: 'Rules' },
   { id: 'advantages', label: 'Advantages' },
   { id: 'complexity', label: 'Complexity' },
@@ -19,6 +23,10 @@ export type FactionAuthoringWarning = {
   chapter: FactionAuthoringChapterId;
   label: string;
   targetId: string;
+  /** The entity the gap belongs to; the validation header renders one chip per source. */
+  source: string;
+  /** What the source is missing, e.g. "name" or "back description". */
+  missing: string;
 };
 
 function isBlank(value: string | undefined): boolean {
@@ -28,10 +36,11 @@ function isBlank(value: string | undefined): boolean {
 function warning(
   path: string,
   chapter: FactionAuthoringChapterId,
-  label: string,
+  source: string,
+  missing: string,
   targetId: string
 ): FactionAuthoringWarning {
-  return { path, chapter, label, targetId };
+  return { path, chapter, label: `${source}: missing ${missing}`, targetId, source, missing };
 }
 
 /** Schema-valid blanks that are probably accidental, but never prevent an explicit save. */
@@ -39,49 +48,31 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
   const warnings: FactionAuthoringWarning[] = [];
 
   if (isBlank(faction.hero.name)) {
-    warnings.push(warning('hero.name', 'hero', 'Faction leader has no name', 'hero-name'));
+    warnings.push(warning('hero.name', 'hero', 'Faction leader', 'name', 'hero-name'));
   }
   faction.leaders.forEach((leader, index) => {
     if (isBlank(leader.name)) {
       warnings.push(
-        warning(
-          `leaders[${index}].name`,
-          'leaders',
-          `Supporting leader ${index + 1} has no name`,
-          `leader-${index}-name`
-        )
+        warning(`leaders[${index}].name`, 'leaders', `Leader ${index + 1}`, 'name', `leader-${index}-name`)
       );
     }
   });
 
   if (isBlank(faction.rules.alliance.text)) {
-    warnings.push(warning('rules.alliance.text', 'alliance', 'Alliance ability is empty', 'rules-alliance'));
+    warnings.push(warning('rules.alliance.text', 'alliance', 'Alliance', 'ability text', 'rules-alliance'));
   }
 
   faction.troops.forEach((troop, index) => {
+    const source = `Troop ${index + 1}`;
     if (isBlank(troop.name)) {
-      warnings.push(
-        warning(`troops[${index}].name`, 'forces', `Troop ${index + 1} has no name`, `troop-${index}-name`)
-      );
+      warnings.push(warning(`troops[${index}].name`, 'forces', source, 'name', `troop-${index}-name`));
     }
     if (isBlank(troop.description)) {
-      warnings.push(
-        warning(
-          `troops[${index}].description`,
-          'forces',
-          `Troop ${index + 1} has no description`,
-          `troop-${index}-desc`
-        )
-      );
+      warnings.push(warning(`troops[${index}].description`, 'forces', source, 'description', `troop-${index}-desc`));
     }
     if (troop.back && isBlank(troop.back.name)) {
       warnings.push(
-        warning(
-          `troops[${index}].back.name`,
-          'forces',
-          `Troop ${index + 1} back has no name`,
-          `troop-${index}-back-name`
-        )
+        warning(`troops[${index}].back.name`, 'forces', source, 'back-side name', `troop-${index}-back-name`)
       );
     }
     if (troop.back && isBlank(troop.back.description)) {
@@ -89,38 +80,33 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
         warning(
           `troops[${index}].back.description`,
           'forces',
-          `Troop ${index + 1} back has no description`,
+          source,
+          'back-side description',
           `troop-${index}-back-desc`
         )
       );
     }
   });
   faction.planet?.forEach((planet, index) => {
+    const source = `Planet ${index + 1}`;
     if (isBlank(planet.name)) {
-      warnings.push(
-        warning(`planet[${index}].name`, 'worlds', `Planet ${index + 1} has no name`, `planet-${index}-name`)
-      );
+      warnings.push(warning(`planet[${index}].name`, 'worlds', source, 'name', `planet-${index}-name`));
     }
     if (isBlank(planet.description)) {
       warnings.push(
-        warning(
-          `planet[${index}].description`,
-          'worlds',
-          `Planet ${index + 1} has no description`,
-          `planet-${index}-description`
-        )
+        warning(`planet[${index}].description`, 'worlds', source, 'description', `planet-${index}-description`)
       );
     }
   });
 
   if (isBlank(faction.rules.startText)) {
-    warnings.push(warning('rules.startText', 'rules', 'Starting instructions are empty', 'rules-start'));
+    warnings.push(warning('rules.startText', 'rules', 'Rules', 'starting instructions', 'rules-start'));
   }
   if (isBlank(faction.rules.revivalText)) {
-    warnings.push(warning('rules.revivalText', 'rules', 'Revival instructions are empty', 'rules-revival'));
+    warnings.push(warning('rules.revivalText', 'rules', 'Rules', 'revival instructions', 'rules-revival'));
   }
   if (isBlank(faction.rules.fate.text)) {
-    warnings.push(warning('rules.fate.text', 'rules', 'Fate text is empty', 'rules-fate-text'));
+    warnings.push(warning('rules.fate.text', 'rules', 'Rules', 'fate text', 'rules-fate-text'));
   }
   faction.rules.advantages.forEach((advantage, index) => {
     if (isBlank(advantage.text)) {
@@ -128,7 +114,8 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
         warning(
           `rules.advantages[${index}].text`,
           'advantages',
-          `Advantage ${index + 1} has no text`,
+          `Advantage ${index + 1}`,
+          'rule text',
           `adv-${index}-text`
         )
       );

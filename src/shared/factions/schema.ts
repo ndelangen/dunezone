@@ -5,6 +5,9 @@ import { ALL, BACKGROUND, GENERIC, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
+/* Decal scale outgrew the 0-1 range: the vector-train retune multiplied stored
+   placements by factors up to 1.738, so saved values above 1 are legitimate. */
+const DECAL_SCALE = z.number().min(0).max(3);
 const URL = z.url();
 const HEXCOLOR = z.string().regex(/^#[0-9a-f]{6}$/i);
 
@@ -24,7 +27,7 @@ export const Decal = z.strictObject({
   id: ALL,
   muted: z.boolean(),
   outline: z.boolean(),
-  scale: SCALE,
+  scale: DECAL_SCALE,
   offset: OFFSET,
 });
 

@@ -7,15 +7,16 @@
   display: flex;
   min-width: 0;
   overflow: hidden;
-  background: var(--mantine-color-white);
-  border: 1px solid var(--mantine-color-gray-4);
+
+  /* Mantine's own input variables, so the row is chrome-identical to the
+     standard themed fields beside it (reference: the theme ColorInput). */
+  background: var(--mantine-color-default);
+  border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-sm);
-  box-shadow: var(--mantine-shadow-xs);
 }
 
 .unifiedRow:focus-within {
-  border-color: var(--mantine-color-dune-7);
-  outline: 1px solid var(--mantine-color-dune-7);
+  border-color: var(--mantine-primary-color-filled);
 }
 
 .unifiedSelect {

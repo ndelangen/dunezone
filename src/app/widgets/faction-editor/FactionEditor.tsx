@@ -16,15 +16,18 @@ export interface FactionEditorProps {
   errors: string[];
   isNameBlank: boolean;
   warnings: FactionAuthoringWarning[];
+  /** Fires on field blur and chapter switch — the moments the validation header may settle closed. */
+  onSettle?: () => void;
 }
 
 export interface FactionAuthoringViewHandle {
   focusFirstWarning: () => void;
+  focusWarning: (warning: FactionAuthoringWarning) => void;
   openReview: (trigger?: HTMLElement | null) => void;
 }
 
 export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEditorProps>(
-  ({ form, errors, isNameBlank, warnings }, ref) => {
+  ({ form, errors, isNameBlank, warnings, onSettle }, ref) => {
     const reviewRef = useRef<FactionSheetReviewHandle>(null);
     const fieldsRef = useRef<FactionFormFieldsHandle>(null);
 
@@ -36,6 +39,7 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
         }
         fieldsRef.current?.focusWarning(firstWarning);
       },
+      focusWarning: (warning) => fieldsRef.current?.focusWarning(warning),
       openReview: (trigger) => reviewRef.current?.open(trigger),
     }));
 
@@ -57,6 +61,7 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
                   ref={fieldsRef}
                   form={form}
                   warnings={warnings}
+                  onSettle={onSettle}
                   nameError={
                     isNameBlank
                       ? 'A faction name is required before saving because it determines the faction URL.'

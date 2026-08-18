@@ -2,6 +2,7 @@ import { Box, ColorInput, SimpleGrid, Stack, Switch, TextInput, Textarea } from 
 import { TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { useEffect } from 'react';
 
 import type { Faction } from '@db/factions';
 
@@ -13,10 +14,62 @@ const troopImageOptions = TROOP.options.map((value) => ({
   label: troopOptionToLabel(value),
 }));
 
-const troopStarOptions = TROOP_MODIFIER.options.map((value) => ({
+/* The -red variants predate the star color field and are redundant with it: the editor
+   offers only the base stars, while the schema and renderer keep accepting stored -red
+   values so unedited factions render unchanged. */
+const troopStarOptions = TROOP_MODIFIER.options
+  .filter((value) => !value.includes('-red'))
+  .map((value) => ({
+    value,
+    label: troopStarOptionToLabel(value),
+  }));
+
+/* The exact red the renderer paints for a -red star with no hue set (see starHue in Troop.tsx). */
+const LEGACY_RED_STAR_HUE = '#ff0000';
+
+type StarValue = Faction['troops'][number]['star'];
+
+/* Normalizes a stored legacy -red star the moment its field renders (the planet auto-pick
+   pattern — deliberate, ruled on wayfinder #488): a visible draft change to the modern shape —
+   base star plus the renderer's red in the hue field — never a silent rewrite of anything the
+   color field already overrides. Rendering the field is the touch; no interaction is awaited. */
+function StarModifierSelect({
+  id,
+  title,
   value,
-  label: troopStarOptionToLabel(value),
-}));
+  hue,
+  onChange,
+  onNormalize,
+}: {
+  id: string;
+  title: string;
+  value: StarValue;
+  hue: string | undefined;
+  onChange: (value: StarValue) => void;
+  onNormalize: (base: NonNullable<StarValue>, hue: string | undefined) => void;
+}) {
+  const legacyRed = value != null && value.includes('-red');
+
+  useEffect(() => {
+    if (legacyRed && value != null) {
+      onNormalize(value.replace('-red', '') as NonNullable<StarValue>, hue ?? LEGACY_RED_STAR_HUE);
+    }
+  }, [legacyRed, value, hue, onNormalize]);
+
+  return (
+    <AssetSelect
+      id={id}
+      aria-label={title}
+      placeholder="No star modifier"
+      clearable
+      data={troopStarOptions}
+      getPreviewSrc={assetOptionToPreviewSrc}
+      glyphPreviews
+      value={legacyRed ? null : (value ?? null)}
+      onChange={(next) => onChange(next ? (next as NonNullable<StarValue>) : undefined)}
+    />
+  );
+}
 
 export function TroopSideFields({
   form,
@@ -71,7 +124,6 @@ export function TroopSideFields({
             return (
               <ControlBlock
                 title={title}
-                description="Select the symbol rendered inside the troop token."
                 input={
                   <AssetSelect
                     id={`${idBase}-img`}
@@ -79,6 +131,7 @@ export function TroopSideFields({
                     allowDeselect={false}
                     data={troopImageOptions}
                     getPreviewSrc={assetOptionToPreviewSrc}
+                    glyphPreviews
                     value={field.state.value ?? null}
                     onChange={(value) => {
                       if (value) {
@@ -123,19 +176,23 @@ export function TroopSideFields({
             return (
               <ControlBlock
                 title={title}
-                description="Optional marker rendered on the troop token."
                 input={
-                  <AssetSelect
+                  <StarModifierSelect
                     id={`${idBase}-star`}
-                    aria-label={title}
-                    placeholder="No star modifier"
-                    clearable
-                    data={troopStarOptions}
-                    getPreviewSrc={assetOptionToPreviewSrc}
-                    value={field.state.value ?? null}
-                    onChange={(value) =>
-                      field.handleChange(value ? (value as Faction['troops'][number]['star']) : undefined)
+                    title={title}
+                    value={field.state.value}
+                    hue={
+                      form.state.values.troops[i]
+                        ? isBack
+                          ? form.state.values.troops[i].back?.hue
+                          : form.state.values.troops[i].hue
+                        : undefined
                     }
+                    onChange={field.handleChange}
+                    onNormalize={(base, hue) => {
+                      field.handleChange(base);
+                      form.setFieldValue(hueField, hue);
+                    }}
                   />
                 }
               />
@@ -149,7 +206,7 @@ export function TroopSideFields({
             return (
               <ControlBlock
                 title={title}
-                description="Optional color for the star modifier; cream (red for -red stars) when unset."
+                description="Optional color for the star modifier; cream when unset."
                 input={
                   <ColorInput
                     id={`${idBase}-hue`}

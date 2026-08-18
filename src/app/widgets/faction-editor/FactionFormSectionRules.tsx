@@ -56,7 +56,6 @@ function SetupFields({ form }: { form: FactionFormApi }) {
                 <Stack gap="md">
                   <ControlBlock
                     title="Revival instructions"
-                    description="Explains this faction's revival rule in the faction rules output."
                     input={
                       <Textarea
                         id="rules-revival"

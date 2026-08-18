@@ -4,7 +4,6 @@ import { LEADERS } from '@shared/assetIds';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { Surface } from '@ui/surface';
 import { useLayoutEffect, useState } from 'react';
 
 import type { Faction } from '@db/factions';
@@ -42,140 +41,137 @@ function SupportingLeaderCard({
   }
 
   return (
-    <Surface padding="md">
-      <Stack gap="md">
-        <Grid gap="xl" align="center">
-          <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
-            <Stack gap="md">
-              <form.Field name={`leaders[${index}].name`}>
-                {(field) => {
-                  const value = field.state.value ?? '';
-                  const blank = value.trim().length === 0;
-                  const warningId = `leader-${index}-name-warning`;
-                  return (
-                    <Stack gap="md">
-                      <ControlBlock
-                        title="Leader name"
-                        description="Printed around this leader token."
-                        input={
-                          <TextInput
-                            id={`leader-${index}-name`}
-                            aria-label="Leader name"
-                            value={value}
-                            aria-describedby={blank ? warningId : undefined}
-                            onBlur={field.handleBlur}
-                            onChange={(event) => field.handleChange(event.currentTarget.value)}
-                          />
-                        }
-                      />
-                      {blank ? (
-                        <Text id={warningId} c="yellow.9" size="xs" role="status">
-                          This leader has no name. This is advisory and does not prevent saving.
-                        </Text>
-                      ) : null}
-                    </Stack>
-                  );
-                }}
-              </form.Field>
-
-              <Grid>
-                <Grid.Col span={{ base: 12, xs: 4 }}>
-                  <form.Field name={`leaders[${index}].strength`}>
-                    {(field) => (
-                      <ControlBlock
-                        title="Strength"
-                        description="A whole number or one character. Leave blank to omit."
-                        input={
-                          <TextInput
-                            id={`leader-${index}-str`}
-                            aria-label="Strength"
-                            inputMode="text"
-                            autoComplete="off"
-                            value={
-                              field.state.value === undefined || field.state.value === null
-                                ? ''
-                                : String(field.state.value)
-                            }
-                            onBlur={field.handleBlur}
-                            onChange={(event) => {
-                              const raw = event.currentTarget.value;
-                              if (raw === '') {
-                                field.handleChange(undefined);
-                              } else if (/^-?\d+$/u.test(raw)) {
-                                field.handleChange(Number.parseInt(raw, 10));
-                              } else if (raw.length === 1) {
-                                field.handleChange(raw);
-                              }
-                            }}
-                          />
-                        }
-                      />
-                    )}
-                  </form.Field>
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, xs: 8 }}>
-                  <form.Field name={`leaders[${index}].image`}>
-                    {(field) => (
-                      <ControlBlock
-                        title="Leader portrait"
-                        description="Choose the portrait rendered on this token."
-                        input={
-                          <AssetSelect
-                            id={`leader-${index}-img`}
-                            aria-label="Leader portrait"
-                            allowDeselect={false}
-                            limit={24}
-                            data={leaderImageOptions}
-                            getPreviewSrc={assetOptionToPreviewSrc}
-                            value={field.state.value}
-                            onChange={(value) => {
-                              if (value) {
-                                field.handleChange(value as Faction['leaders'][number]['image']);
-                              }
-                            }}
-                          />
-                        }
-                      />
-                    )}
-                  </form.Field>
-                </Grid.Col>
-              </Grid>
-            </Stack>
-          </Grid.Col>
-
-          {showPreview ? (
-            <Grid.Col span={4} visibleFrom="sm">
-              <form.Subscribe
-                selector={(state) => ({
-                  background: state.values.background,
-                  leader: state.values.leaders[index],
-                  logo: state.values.logo,
-                })}
-              >
-                {({ background, leader: currentLeader, logo }) =>
-                  currentLeader ? (
-                    <Stack align="center" gap="sm">
-                      <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
-                        Used as: leader token
-                      </Text>
-                      <Box w={132} aria-label={`Token preview for supporting leader ${index + 1}`}>
-                        <LeaderToken
-                          background={background}
-                          image={currentLeader.image}
-                          logo={logo}
-                          name={currentLeader.name}
-                          strength={currentLeader.strength}
+    <Stack gap="md">
+      <Grid gap="xl" align="center">
+        <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
+          <Stack gap="md">
+            <form.Field name={`leaders[${index}].name`}>
+              {(field) => {
+                const value = field.state.value ?? '';
+                const blank = value.trim().length === 0;
+                const warningId = `leader-${index}-name-warning`;
+                return (
+                  <Stack gap="md">
+                    <ControlBlock
+                      title="Leader name"
+                      description="Printed around this leader token."
+                      input={
+                        <TextInput
+                          id={`leader-${index}-name`}
+                          aria-label="Leader name"
+                          value={value}
+                          aria-describedby={blank ? warningId : undefined}
+                          onBlur={field.handleBlur}
+                          onChange={(event) => field.handleChange(event.currentTarget.value)}
                         />
-                      </Box>
-                    </Stack>
-                  ) : null
-                }
-              </form.Subscribe>
-            </Grid.Col>
-          ) : null}
-        </Grid>
-      </Stack>
-    </Surface>
+                      }
+                    />
+                    {blank ? (
+                      <Text id={warningId} c="yellow.9" size="xs" role="status">
+                        This leader has no name. This is advisory and does not prevent saving.
+                      </Text>
+                    ) : null}
+                  </Stack>
+                );
+              }}
+            </form.Field>
+
+            <Grid>
+              <Grid.Col span={{ base: 12, xs: 4 }}>
+                <form.Field name={`leaders[${index}].strength`}>
+                  {(field) => (
+                    <ControlBlock
+                      title="Strength"
+                      description="A whole number or one character. Leave blank to omit."
+                      input={
+                        <TextInput
+                          id={`leader-${index}-str`}
+                          aria-label="Strength"
+                          inputMode="text"
+                          autoComplete="off"
+                          value={
+                            field.state.value === undefined || field.state.value === null
+                              ? ''
+                              : String(field.state.value)
+                          }
+                          onBlur={field.handleBlur}
+                          onChange={(event) => {
+                            const raw = event.currentTarget.value;
+                            if (raw === '') {
+                              field.handleChange(undefined);
+                            } else if (/^-?\d+$/u.test(raw)) {
+                              field.handleChange(Number.parseInt(raw, 10));
+                            } else if (raw.length === 1) {
+                              field.handleChange(raw);
+                            }
+                          }}
+                        />
+                      }
+                    />
+                  )}
+                </form.Field>
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, xs: 8 }}>
+                <form.Field name={`leaders[${index}].image`}>
+                  {(field) => (
+                    <ControlBlock
+                      title="Leader portrait"
+                      input={
+                        <AssetSelect
+                          id={`leader-${index}-img`}
+                          aria-label="Leader portrait"
+                          allowDeselect={false}
+                          limit={24}
+                          data={leaderImageOptions}
+                          getPreviewSrc={assetOptionToPreviewSrc}
+                          value={field.state.value}
+                          onChange={(value) => {
+                            if (value) {
+                              field.handleChange(value as Faction['leaders'][number]['image']);
+                            }
+                          }}
+                        />
+                      }
+                    />
+                  )}
+                </form.Field>
+              </Grid.Col>
+            </Grid>
+          </Stack>
+        </Grid.Col>
+
+        {showPreview ? (
+          <Grid.Col span={4} visibleFrom="sm">
+            <form.Subscribe
+              selector={(state) => ({
+                background: state.values.background,
+                leader: state.values.leaders[index],
+                logo: state.values.logo,
+              })}
+            >
+              {({ background, leader: currentLeader, logo }) =>
+                currentLeader ? (
+                  <Stack align="center" gap="sm">
+                    <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
+                      Used as: leader token
+                    </Text>
+                    <Box w={132} aria-label={`Token preview for supporting leader ${index + 1}`}>
+                      <LeaderToken
+                        background={background}
+                        image={currentLeader.image}
+                        logo={logo}
+                        name={currentLeader.name}
+                        strength={currentLeader.strength}
+                      />
+                    </Box>
+                  </Stack>
+                ) : null
+              }
+            </form.Subscribe>
+          </Grid.Col>
+        ) : null}
+      </Grid>
+    </Stack>
   );
 }
 
@@ -220,7 +216,7 @@ export function FactionFormSectionLeaders({
           return (
             <Stack gap="md">
               <Group justify="flex-end" gap={4} wrap="nowrap">
-                <Badge variant="light" color={count === CONVENTIONAL_SUPPORTING_LEADER_COUNT ? 'dune' : 'gray'}>
+                <Badge variant="light" color="gray">
                   {count} / {SUPPORTING_LEADER_LIMIT}
                 </Badge>
                 <ListLengthActions

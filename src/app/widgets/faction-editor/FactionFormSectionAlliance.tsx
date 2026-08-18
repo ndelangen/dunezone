@@ -3,7 +3,6 @@ import { Alert, Box, Grid, Group, NumberInput, Slider, Stack, Switch, Text, Text
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { Surface } from '@ui/surface';
 import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
@@ -20,6 +19,11 @@ const decalOptions = decalAssetOptions.map((value) => ({
   label: decalAssetOptionToLabel(value),
 }));
 
+/* The offset is unbounded card-space pixels from the card center (card 900 wide, art band 940
+   tall). The sliders span half of each dimension — center to edge — while the paired number
+   inputs stay unclamped so legacy values beyond the range remain editable. */
+const DECAL_OFFSET_RANGE = [450, 470] as const;
+
 function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
   const decal = form.state.values.decals[index];
   if (!decal) {
@@ -27,170 +31,184 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
   }
 
   return (
-    <Surface padding="md">
-      <Stack gap="md">
-        <Box>
-          <Text fw={700}>Alliance decal {index + 1}</Text>
-          <Text size="xs" c="dimmed">
-            {decalAssetOptionToLabel(decal.id)}
-          </Text>
-        </Box>
-
-        <form.Field name={`decals[${index}].id`}>
-          {(field) => (
-            <ControlBlock
-              title="Decal asset"
-              description="Artwork layered onto the alliance card in collection order."
-              input={
-                <AssetSelect
-                  id={`decal-${index}-id`}
-                  aria-label="Decal asset"
-                  allowDeselect={false}
-                  limit={30}
-                  data={decalOptions}
-                  getPreviewSrc={assetOptionToPreviewSrc}
-                  value={field.state.value}
-                  onChange={(value) => {
-                    if (value) {
-                      field.handleChange(value as Faction['decals'][number]['id']);
-                    }
-                  }}
-                />
-              }
-            />
-          )}
-        </form.Field>
-
-        <Grid>
-          <Grid.Col span={{ base: 12, xs: 6 }}>
-            <form.Field name={`decals[${index}].muted`}>
-              {(field) => (
-                <ControlBlock
-                  title="Muted treatment"
-                  description="Uses the artwork as a subtle cutout layer."
-                  input={
-                    <Switch
-                      id={`decal-${index}-muted`}
-                      aria-label="Muted treatment"
-                      checked={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.currentTarget.checked)}
-                    />
+    <Stack gap="md">
+      <form.Field name={`decals[${index}].id`}>
+        {(field) => (
+          <ControlBlock
+            title="Decal asset"
+            description="Artwork layered onto the alliance card in collection order."
+            input={
+              <AssetSelect
+                id={`decal-${index}-id`}
+                aria-label="Decal asset"
+                allowDeselect={false}
+                limit={30}
+                data={decalOptions}
+                getPreviewSrc={assetOptionToPreviewSrc}
+                glyphPreviews
+                value={field.state.value}
+                onChange={(value) => {
+                  if (value) {
+                    field.handleChange(value as Faction['decals'][number]['id']);
                   }
-                />
-              )}
-            </form.Field>
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, xs: 6 }}>
-            <form.Field name={`decals[${index}].outline`}>
-              {(field) => (
-                <ControlBlock
-                  title="Outline artwork"
-                  description="Adds a light border around an unmuted decal."
-                  input={
-                    <Switch
-                      id={`decal-${index}-outline`}
-                      aria-label="Outline artwork"
-                      checked={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.currentTarget.checked)}
-                    />
-                  }
-                />
-              )}
-            </form.Field>
-          </Grid.Col>
-        </Grid>
+                }}
+              />
+            }
+          />
+        )}
+      </form.Field>
 
-        <form.Field name={`decals[${index}].scale`}>
-          {(field) => (
-            <ControlBlock
-              title="Scale"
-              description="Resize the decal from 0 (hidden) to 1 (full reference size)."
-              tool={
-                <NumberInput
-                  aria-label={`Scale for alliance decal ${index + 1}`}
-                  w={96}
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  decimalScale={2}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(value) => {
-                    if (typeof value === 'number') {
-                      field.handleChange(value);
-                    }
-                  }}
-                />
-              }
-              input={
-                <Slider
-                  aria-label={`Scale slider for alliance decal ${index + 1}`}
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={field.state.value}
-                  label={(value) => value.toFixed(2)}
-                  onChange={field.handleChange}
-                />
-              }
-            />
-          )}
-        </form.Field>
+      <Grid>
+        <Grid.Col span={{ base: 12, xs: 6 }}>
+          <form.Field name={`decals[${index}].muted`}>
+            {(field) => (
+              <ControlBlock
+                title="Muted treatment"
+                description="Uses the artwork as a subtle cutout layer."
+                input={
+                  <Switch
+                    id={`decal-${index}-muted`}
+                    aria-label="Muted treatment"
+                    checked={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.currentTarget.checked)}
+                  />
+                }
+              />
+            )}
+          </form.Field>
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, xs: 6 }}>
+          <form.Field name={`decals[${index}].outline`}>
+            {(field) => (
+              <ControlBlock
+                title="Outline artwork"
+                description="Adds a light border around an unmuted decal."
+                input={
+                  <Switch
+                    id={`decal-${index}-outline`}
+                    aria-label="Outline artwork"
+                    checked={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.currentTarget.checked)}
+                  />
+                }
+              />
+            )}
+          </form.Field>
+        </Grid.Col>
+      </Grid>
 
-        <Grid>
-          <Grid.Col span={{ base: 12, xs: 6 }}>
-            <form.Field name={`decals[${index}].offset[0]`}>
-              {(field) => (
-                <ControlBlock
-                  title="Horizontal offset"
-                  description="Move left with a negative value or right with a positive value."
-                  input={
-                    <NumberInput
-                      id={`decal-${index}-offset-x`}
-                      aria-label="Horizontal offset"
-                      step={1}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(value) => {
-                        if (typeof value === 'number') {
-                          field.handleChange(value);
-                        }
-                      }}
-                    />
+      <form.Field name={`decals[${index}].scale`}>
+        {(field) => (
+          <ControlBlock
+            title="Scale"
+            description="Resize the decal from 0 (hidden) to 3; 1 is the full reference size."
+            tool={
+              <NumberInput
+                aria-label={`Scale for alliance decal ${index + 1}`}
+                w={96}
+                min={0}
+                max={3}
+                step={0.01}
+                decimalScale={2}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(value) => {
+                  if (typeof value === 'number') {
+                    field.handleChange(value);
                   }
-                />
-              )}
-            </form.Field>
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, xs: 6 }}>
-            <form.Field name={`decals[${index}].offset[1]`}>
-              {(field) => (
-                <ControlBlock
-                  title="Vertical offset"
-                  description="Move up with a negative value or down with a positive value."
-                  input={
-                    <NumberInput
-                      id={`decal-${index}-offset-y`}
-                      aria-label="Vertical offset"
-                      step={1}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(value) => {
-                        if (typeof value === 'number') {
-                          field.handleChange(value);
-                        }
-                      }}
-                    />
-                  }
-                />
-              )}
-            </form.Field>
-          </Grid.Col>
-        </Grid>
-      </Stack>
-    </Surface>
+                }}
+              />
+            }
+            input={
+              <Slider
+                aria-label={`Scale slider for alliance decal ${index + 1}`}
+                min={0}
+                max={3}
+                step={0.01}
+                value={field.state.value}
+                label={(value) => value.toFixed(2)}
+                onChange={field.handleChange}
+              />
+            }
+          />
+        )}
+      </form.Field>
+
+      <Grid>
+        <Grid.Col span={{ base: 12, xs: 6 }}>
+          <form.Field name={`decals[${index}].offset[0]`}>
+            {(field) => (
+              <ControlBlock
+                title="Horizontal offset"
+                description="Move left with a negative value or right with a positive value."
+                tool={
+                  <NumberInput
+                    id={`decal-${index}-offset-x`}
+                    aria-label="Horizontal offset"
+                    w={96}
+                    step={1}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(value) => {
+                      if (typeof value === 'number') {
+                        field.handleChange(value);
+                      }
+                    }}
+                  />
+                }
+                input={
+                  <Slider
+                    aria-label={`Horizontal offset slider for alliance decal ${index + 1}`}
+                    min={-DECAL_OFFSET_RANGE[0]}
+                    max={DECAL_OFFSET_RANGE[0]}
+                    step={1}
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                }
+              />
+            )}
+          </form.Field>
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, xs: 6 }}>
+          <form.Field name={`decals[${index}].offset[1]`}>
+            {(field) => (
+              <ControlBlock
+                title="Vertical offset"
+                description="Move up with a negative value or down with a positive value."
+                tool={
+                  <NumberInput
+                    id={`decal-${index}-offset-y`}
+                    aria-label="Vertical offset"
+                    w={96}
+                    step={1}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(value) => {
+                      if (typeof value === 'number') {
+                        field.handleChange(value);
+                      }
+                    }}
+                  />
+                }
+                input={
+                  <Slider
+                    aria-label={`Vertical offset slider for alliance decal ${index + 1}`}
+                    min={-DECAL_OFFSET_RANGE[1]}
+                    max={DECAL_OFFSET_RANGE[1]}
+                    step={1}
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                }
+              />
+            )}
+          </form.Field>
+        </Grid.Col>
+      </Grid>
+    </Stack>
   );
 }
 
@@ -240,16 +258,7 @@ export function FactionFormSectionAlliance({
   const currentSelectedDecalIndex = selectedDecalIndex ?? internalSelectedDecalIndex;
   const selectDecalIndex = onSelectedDecalIndexChange ?? setInternalSelectedDecalIndex;
   return (
-    <Stack component="section" gap="md" aria-labelledby="alliance-card-heading">
-      <Stack gap="xs">
-        <Text id="alliance-card-heading" fw={700} size="lg">
-          Alliance card
-        </Text>
-        <Text c="dimmed" size="sm">
-          Author the alliance ability and compose its ordered artwork in one place.
-        </Text>
-      </Stack>
-
+    <Stack component="section" gap="md" aria-label="Alliance card">
       <Grid gap="xl" align="start">
         <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
           <Stack gap="lg">
@@ -283,14 +292,6 @@ export function FactionFormSectionAlliance({
                 );
               }}
             </form.Field>
-
-            <Stack gap="xs">
-              <Text fw={700}>Alliance decals</Text>
-              <Text c="dimmed" size="sm">
-                Layer zero or more decals in order. Drag with a pointer or focus a handle and use the keyboard to
-                reorder.
-              </Text>
-            </Stack>
 
             <form.Field name="decals" mode="array">
               {(field) => {

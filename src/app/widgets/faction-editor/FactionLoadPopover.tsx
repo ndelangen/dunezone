@@ -1,6 +1,6 @@
 import { Popover } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
-import { Copy } from 'lucide-react';
+import { Import } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
@@ -41,7 +41,7 @@ export function FactionLoadPopover({ disabled, currentPublicSlug, onLoaded }: Fa
           size="lg"
           disabled={disabled}
           onClick={() => setOpened((current) => !current)}
-          icon={<Copy size={17} aria-hidden />}
+          icon={<Import size={17} aria-hidden />}
         />
       </Popover.Target>
       <Popover.Dropdown>

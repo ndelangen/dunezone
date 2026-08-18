@@ -29,6 +29,12 @@
   object-fit: cover;
 }
 
+/* BackgroundRenderer lifts only its first child above the background (`.overlay + *`), which
+   left the star under the troop vector. Joining that layer lets tree order decide: star on top. */
+.star {
+  z-index: 1;
+}
+
 .image {
   mix-blend-mode: lighten;
   filter: invert(0.9);

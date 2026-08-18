@@ -1,15 +1,14 @@
-import { Alert, Badge, Box, Button, Group, Image, SegmentedControl, Stack, Text } from '@mantine/core';
+import { Badge, Box, Image, Stack, Text } from '@mantine/core';
 import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import { FactionCard } from '@ui/block/FactionCard';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { Surface } from '@ui/surface';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Globe2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
-import type { FactionCatalogueEntry } from '@db/factions';
+import type { Faction, FactionCatalogueEntry } from '@db/factions';
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -40,22 +39,34 @@ export interface FactionFormFieldsHandle {
 }
 
 const chapterIcons: Record<
-  Exclude<FactionAuthoringChapterId, 'identity' | 'worlds' | 'complexity'>,
+  Exclude<FactionAuthoringChapterId, 'identity' | 'forces' | 'worlds' | 'complexity'>,
   Parameters<typeof TopicIcon>[0]['topic']
 > = {
   hero: 'hero',
   leaders: 'leaders',
   alliance: 'alliance',
-  forces: 'troops',
   rules: 'rules',
   advantages: 'advantages',
 };
+
+/* The tab glyph when the faction has no troops yet. */
+const FALLBACK_TROOP_SYMBOL = '/vector/troop/atreides.svg';
 
 function ChapterIcon({ chapter, form }: { chapter: FactionAuthoringChapterId; form: FactionFormApi }) {
   if (chapter === 'identity') {
     return (
       <form.Subscribe selector={(state) => state.values.logo}>
         {(logo) => <Image src={assetOptionToPreviewSrc(logo)} alt="" w={22} h={22} fit="contain" />}
+      </form.Subscribe>
+    );
+  }
+  if (chapter === 'forces') {
+    /* Live like the identity tab: the first troop's symbol is the chapter's face. */
+    return (
+      <form.Subscribe selector={(state) => state.values.troops[0]?.image}>
+        {(image) => (
+          <Image src={assetOptionToPreviewSrc(image ?? FALLBACK_TROOP_SYMBOL)} alt="" w={22} h={22} fit="contain" />
+        )}
       </form.Subscribe>
     );
   }
@@ -82,6 +93,56 @@ function ChapterIcon({ chapter, form }: { chapter: FactionAuthoringChapterId; fo
   return <TopicIcon topic={chapterIcons[chapter]} size={21} />;
 }
 
+/* A two-sided troop turns inside the rail's round crop; one-sided troops render a single face. */
+function TroopFlipToken({
+  background,
+  troop,
+  side,
+}: {
+  background: Faction['background'];
+  troop: Faction['troops'][number];
+  side: 'front' | 'back';
+}) {
+  const back = troop.back;
+  if (!back) {
+    return (
+      <div className={styles.tokenCrop}>
+        <TroopToken
+          background={background}
+          image={troop.image}
+          star={troop.star}
+          hue={troop.hue}
+          striped={troop.striped}
+        />
+      </div>
+    );
+  }
+  return (
+    <div className={styles.flipScene}>
+      <div className={styles.flipCard} data-flipped={side === 'back' || undefined}>
+        <div className={styles.flipFace}>
+          <TroopToken
+            background={background}
+            image={troop.image}
+            star={troop.star}
+            hue={troop.hue}
+            striped={troop.striped}
+          />
+        </div>
+        <div className={`${styles.flipFace} ${styles.flipBack}`}>
+          <TroopToken
+            background={background}
+            image={back.image}
+            star={back.star}
+            hue={back.hue}
+            striped={back.striped}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PreviewEmpty({ children }: { children: string }) {
   return (
     <Box className={styles.previewEmpty}>
@@ -96,6 +157,7 @@ function ArtifactProof({
   activeChapter,
   form,
   selectedItem,
+  troopSide,
 }: {
   activeChapter: FactionAuthoringChapterId;
   form: FactionFormApi;
@@ -105,9 +167,9 @@ function ArtifactProof({
     troop: number;
     advantage: number;
   };
+  troopSide: Record<number, 'front' | 'back'>;
 }) {
   const resolve = useAssetResolver();
-  const [identityProof, setIdentityProof] = useState<'background' | 'token'>('background');
 
   return (
     <form.Subscribe selector={(state) => state.values}>
@@ -120,22 +182,14 @@ function ArtifactProof({
           faction.rules.advantages[Math.min(selectedItem.advantage, faction.rules.advantages.length - 1)];
 
         let title = 'Background composite';
-        let usedOn = 'Faction sheet · faction token · leader tokens · troops · alliance card';
         let artifact: React.ReactNode = (
           <Box className={styles.squareProof}>
-            {identityProof === 'background' ? (
-              <BackgroundRenderer background={faction.background} />
-            ) : (
-              <Box className={styles.tokenProof} data-faction-token-proof>
-                <Token background={faction.background} logo={faction.logo} />
-              </Box>
-            )}
+            <BackgroundRenderer background={faction.background} />
           </Box>
         );
 
         if (activeChapter === 'hero') {
           title = 'Faction leader token';
-          usedOn = 'Faction shield';
           artifact = (
             <Box className={styles.leaderProof}>
               <LeaderToken
@@ -148,24 +202,41 @@ function ArtifactProof({
             </Box>
           );
         } else if (activeChapter === 'leaders') {
-          title = 'Supporting leader token';
-          usedOn = 'Leader tokens';
+          title = 'Supporting leader tokens';
           artifact = selectedLeader ? (
-            <Box className={styles.leaderProof}>
-              <LeaderToken
-                background={faction.background}
-                image={selectedLeader.image}
-                logo={faction.logo}
-                name={selectedLeader.name}
-                strength={selectedLeader.strength}
-              />
-            </Box>
+            <>
+              <Box className={styles.leaderProof}>
+                <LeaderToken
+                  background={faction.background}
+                  image={selectedLeader.image}
+                  logo={faction.logo}
+                  name={selectedLeader.name}
+                  strength={selectedLeader.strength}
+                />
+              </Box>
+              {faction.leaders.length > 1 ? (
+                <Box className={styles.leaderGrid}>
+                  {faction.leaders.map((leader, index) =>
+                    leader === selectedLeader ? null : (
+                      <Box key={index} className={styles.leaderThumb}>
+                        <LeaderToken
+                          background={faction.background}
+                          image={leader.image}
+                          logo={faction.logo}
+                          name={leader.name}
+                          strength={leader.strength}
+                        />
+                      </Box>
+                    )
+                  )}
+                </Box>
+              ) : null}
+            </>
           ) : (
             <PreviewEmpty>No supporting leaders yet.</PreviewEmpty>
           );
         } else if (activeChapter === 'alliance') {
           title = 'Alliance card';
-          usedOn = 'Alliance card';
           artifact = selectedTroop ? (
             <Box className={styles.cardProof}>
               <Box className={styles.cardCanvas}>
@@ -183,39 +254,66 @@ function ArtifactProof({
             <PreviewEmpty>Add a troop type to complete the alliance-card proof.</PreviewEmpty>
           );
         } else if (activeChapter === 'worlds') {
-          title = 'Selected world';
-          usedOn = 'Future planet asset';
+          title = 'Faction planets';
           artifact = selectedWorld ? (
-            <Box className={styles.planetProof}>
-              <Image
-                key={selectedWorld.image}
-                src={resolve(selectedWorld.image)}
-                alt={selectedWorld.name}
-                fit="contain"
-              />
-            </Box>
+            /* Like the leaders roster, but unclipped and unshadowed: these are
+               arbitrary transparent PNGs, not pane-shaped pieces. */
+            <>
+              <Box className={styles.planetProof}>
+                <Image
+                  key={selectedWorld.image}
+                  src={resolve(selectedWorld.image)}
+                  alt={selectedWorld.name}
+                  fit="contain"
+                />
+              </Box>
+              {worlds.length > 1 ? (
+                <Box className={styles.planetGrid}>
+                  {worlds.map((world, index) =>
+                    world === selectedWorld ? null : (
+                      <Image key={index} src={resolve(world.image)} alt={world.name} fit="contain" />
+                    )
+                  )}
+                </Box>
+              ) : null}
+            </>
           ) : (
-            <PreviewEmpty>No faction worlds yet.</PreviewEmpty>
+            <PreviewEmpty>No planets yet.</PreviewEmpty>
           );
         } else if (activeChapter === 'forces') {
-          title = 'Selected troop token';
-          usedOn = 'Troop supply · faction sheet';
+          const selectedTroopIndex = Math.min(selectedItem.troop, faction.troops.length - 1);
+          title = 'Troop tokens';
           artifact = selectedTroop ? (
-            <Box className={styles.troopProof}>
-              <TroopToken
-                background={faction.background}
-                image={selectedTroop.image}
-                star={selectedTroop.star}
-                hue={selectedTroop.hue}
-                striped={selectedTroop.striped}
-              />
-            </Box>
+            /* The whole roster, leaders-fashion: focused troop on top, the rest below.
+               Each token shows the side currently chosen in its editor tabs. */
+            <>
+              <Box className={styles.troopProof}>
+                <TroopFlipToken
+                  background={faction.background}
+                  troop={selectedTroop}
+                  side={troopSide[selectedTroopIndex] ?? 'front'}
+                />
+              </Box>
+              {faction.troops.length > 1 ? (
+                <Box className={styles.troopGrid}>
+                  {faction.troops.map((troop, index) =>
+                    troop === selectedTroop ? null : (
+                      <TroopFlipToken
+                        key={index}
+                        background={faction.background}
+                        troop={troop}
+                        side={troopSide[index] ?? 'front'}
+                      />
+                    )
+                  )}
+                </Box>
+              ) : null}
+            </>
           ) : (
             <PreviewEmpty>No troop types yet.</PreviewEmpty>
           );
         } else if (activeChapter === 'rules') {
           title = 'Faction-sheet excerpt';
-          usedOn = 'Faction sheet';
           artifact = (
             /* Paper, not a pane: this is an excerpt of the printed faction sheet, and it renders
                inside the workbench surface below — surfaces never nest. */
@@ -236,7 +334,6 @@ function ArtifactProof({
           );
         } else if (activeChapter === 'advantages') {
           title = 'Advantage excerpt';
-          usedOn = 'Faction sheet';
           artifact = selectedAdvantage ? (
             <Box className={styles.rulesProof} p="lg">
               <Text ff="serif" fw={800} tt="uppercase">
@@ -256,7 +353,6 @@ function ArtifactProof({
           );
         } else if (activeChapter === 'complexity') {
           title = 'Faction card';
-          usedOn = 'Faction catalogue';
           /* The catalogue card carries the rating natively; `inert` keeps the proof's link out of
              both pointer and keyboard reach — tabbing into it would navigate the editor away. */
           artifact = (
@@ -276,81 +372,33 @@ function ArtifactProof({
         }
 
         return (
-          <Surface padding="md" as="section" className={styles.artifactDesk} aria-label={`${title} live preview`}>
+          /* Deliberately unboxed: the artifacts float on the page, stacked
+             with the desk's gap — no pane, toggle, or caption around them. */
+          <Box component="section" className={styles.artifactDesk} aria-label={`${title} live preview`}>
             {activeChapter === 'identity' ? (
-              <Box className={styles.identityProof}>
-                {artifact}
-                <Box className={styles.sheetColorReference} style={{ backgroundColor: faction.themeColor }}>
-                  <Text size="xs" fw={800} tt="uppercase">
-                    Sheet color
-                  </Text>
-                  <Text size="xs" ff="monospace">
-                    {faction.themeColor}
-                  </Text>
+              <>
+                <Box className={styles.tokenProof} data-faction-token-proof>
+                  <Token background={faction.background} logo={faction.logo} />
                 </Box>
-              </Box>
+                <Box className={styles.identityProof}>
+                  {artifact}
+                  <Box className={styles.sheetColorReference} style={{ backgroundColor: faction.themeColor }}>
+                    <Text size="xs" fw={800} tt="uppercase">
+                      Sheet color
+                    </Text>
+                    <Text size="xs" ff="monospace">
+                      {faction.themeColor}
+                    </Text>
+                  </Box>
+                </Box>
+              </>
             ) : (
               artifact
             )}
-
-            {activeChapter === 'identity' ? (
-              <SegmentedControl
-                className={styles.proofSwitch}
-                fullWidth
-                value={identityProof}
-                onChange={(value) => setIdentityProof(value === 'token' ? 'token' : 'background')}
-                data={[
-                  { value: 'background', label: 'Background' },
-                  { value: 'token', label: 'Faction token' },
-                ]}
-                aria-label="Choose identity artifact proof"
-              />
-            ) : null}
-
-            <Box className={styles.artifactMeta}>
-              <Text size="xs" fw={800} tt="uppercase" c="dune.8" lts="0.12em">
-                Artifact workbench
-              </Text>
-              <Text fw={700}>{title}</Text>
-              <Text c="dimmed" size="xs">
-                Used on: {usedOn}.
-              </Text>
-            </Box>
-          </Surface>
+          </Box>
         );
       }}
     </form.Subscribe>
-  );
-}
-
-function ChapterWarnings({
-  warnings,
-  onFocus,
-}: {
-  warnings: FactionAuthoringWarning[];
-  onFocus: (warning: FactionAuthoringWarning) => void;
-}) {
-  if (warnings.length === 0) {
-    return null;
-  }
-  return (
-    <Alert color="yellow" variant="light" title="These fields may be incomplete">
-      <Group gap="xs">
-        {warnings.map((warning) => (
-          <Button
-            key={warning.path}
-            type="button"
-            variant="subtle"
-            color="yellow"
-            size="compact-xs"
-            px={0}
-            onClick={() => onFocus(warning)}
-          >
-            {warning.label}
-          </Button>
-        ))}
-      </Group>
-    </Alert>
   );
 }
 
@@ -360,8 +408,10 @@ export const FactionFormFields = forwardRef<
     form: FactionFormApi;
     warnings: FactionAuthoringWarning[];
     nameError?: string;
+    /** Fires on field blur and chapter switch so the route's validation header can settle closed. */
+    onSettle?: () => void;
   }
->(function FactionFormFields({ form, warnings, nameError }, ref) {
+>(function FactionFormFields({ form, warnings, nameError, onSettle }, ref) {
   const [activeChapter, setActiveChapter] = useState<FactionAuthoringChapterId>('identity');
   const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState({
@@ -371,6 +421,7 @@ export const FactionFormFields = forwardRef<
     troop: 0,
     advantage: 0,
   });
+  const [troopSideByIndex, setTroopSideByIndex] = useState<Record<number, 'front' | 'back'>>({});
   const forChapter = (chapter: FactionAuthoringChapterId) => warnings.filter((warning) => warning.chapter === chapter);
 
   const focusWarning = (warning: FactionAuthoringWarning) => {
@@ -422,6 +473,8 @@ export const FactionFormFields = forwardRef<
           showPreview={false}
           selectedIndex={selectedItem.troop}
           onSelectedIndexChange={(troop) => setSelectedItem((current) => ({ ...current, troop }))}
+          sideByIndex={troopSideByIndex}
+          onSideByIndexChange={setTroopSideByIndex}
         />
       ) : null}
       {chapter === 'rules' ? <FactionFormSectionRules form={form} /> : null}
@@ -454,26 +507,29 @@ export const FactionFormFields = forwardRef<
             {chapterWarnings.length}
           </Badge>
         ) : undefined,
-      panel: (
-        <Stack gap="lg">
-          <ChapterWarnings warnings={chapterWarnings} onFocus={focusWarning} />
-          {chapterEditor(chapter.id)}
-        </Stack>
-      ),
+      panel: <Stack gap="lg">{chapterEditor(chapter.id)}</Stack>,
     };
   });
 
   return (
-    <div className={styles.workbench}>
+    <div className={styles.workbench} onBlur={() => onSettle?.()}>
       <ConnectedTabs
         className={styles.connectedTabs}
         value={activeChapter}
-        onValueChange={setActiveChapter}
+        onValueChange={(chapter) => {
+          setActiveChapter(chapter);
+          onSettle?.();
+        }}
         items={connectedTabItems}
         ariaLabel="Faction editor sections"
       />
       <Box className={styles.artifactColumn}>
-        <ArtifactProof activeChapter={activeChapter} form={form} selectedItem={selectedItem} />
+        <ArtifactProof
+          activeChapter={activeChapter}
+          form={form}
+          selectedItem={selectedItem}
+          troopSide={troopSideByIndex}
+        />
       </Box>
     </div>
   );

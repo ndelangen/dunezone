@@ -1,13 +1,14 @@
-import { Anchor, Button, Group, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Button, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Trash2, UserRoundMinus } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { TriangleAlert, Trash2, UserRoundMinus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
+import type { FactionAuthoringWarning } from '@app/widgets/faction-editor/factionAuthoringContract';
 import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
@@ -16,10 +17,87 @@ import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPop
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 
+import styles from './edit.module.css';
+
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   loader: async ({ params }) => await loadFaction(params.factionId),
   component: FactionEditPage,
 });
+
+const VALIDATION_HEADER_ID = 'faction-validation-header';
+
+/* The masthead's replacement exists only while validation warnings exist.
+   Asymmetric settle — new warnings open it immediately, but an empty list only closes it
+   on a settle signal (field blur or chapter switch), never mid-keystroke, so the layout
+   never jumps above the sticky toolbar while typing. The open state gates the
+   PageLayout.Header slot itself; the shell's band already animates its height change. */
+function useValidationHeaderOpen(count: number, settleTick: number): boolean {
+  const [open, setOpen] = useState(count > 0);
+  const countRef = useRef(count);
+
+  /* The ref syncs inside the committed effect — a render-phase write could survive from a
+     discarded render and let a later settle close the header while warnings still show.
+     Declared before the settle effect so a commit changing both runs the sync first. */
+  useEffect(() => {
+    countRef.current = count;
+    if (count > 0) {
+      setOpen(true);
+    }
+  }, [count]);
+
+  useEffect(() => {
+    if (countRef.current === 0) {
+      setOpen(false);
+    }
+  }, [settleTick]);
+
+  return open;
+}
+
+function formatMissingList(missing: string[]): string {
+  if (missing.length <= 1) {
+    return missing[0] ?? '';
+  }
+  return `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`;
+}
+
+/* A lower-third caption strip on the artwork band: one chip per source, each a focus jump. */
+function ValidationHeader({
+  warnings,
+  onFocusWarning,
+}: {
+  warnings: FactionAuthoringWarning[];
+  onFocusWarning: (warning: FactionAuthoringWarning) => void;
+}) {
+  const groups = new Map<string, FactionAuthoringWarning[]>();
+  warnings.forEach((warning) => {
+    const group = groups.get(warning.source);
+    if (group) {
+      group.push(warning);
+    } else {
+      groups.set(warning.source, [warning]);
+    }
+  });
+
+  return (
+    <div className={styles.strip} id={VALIDATION_HEADER_ID}>
+      <span className={styles.title}>
+        <TriangleAlert size={15} aria-hidden />
+        Incomplete fields
+      </span>
+      {[...groups.entries()].map(([source, sourceWarnings]) => (
+        <UnstyledButton
+          key={source}
+          className={styles.chip}
+          onClick={() => onFocusWarning(sourceWarnings[0] as FactionAuthoringWarning)}
+        >
+          <span className={styles.chipSource}>{source}</span>: missing{' '}
+          {formatMissingList(sourceWarnings.map((warning) => warning.missing))}
+        </UnstyledButton>
+      ))}
+    </div>
+  );
+}
 
 function FactionEditPage() {
   const { factionId } = Route.useParams();
@@ -30,6 +108,7 @@ function FactionEditPage() {
   const deleteFaction = useDeleteFaction();
   const setFactionGroup = useSetFactionGroup();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [settleTick, setSettleTick] = useState(0);
 
   const factionQuery = useFaction(factionId, {
     initialData: loaderData,
@@ -56,6 +135,7 @@ function FactionEditPage() {
       }
     },
   });
+  const validationHeaderOpen = useValidationHeaderOpen(authoring.editing.warnings.length, settleTick);
   const header = (
     <Stack align="center" gap={4}>
       <Anchor
@@ -126,7 +206,14 @@ function FactionEditPage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">{header}</PageLayout.Header>
+      {validationHeaderOpen ? (
+        <PageLayout.Header size="compact">
+          <ValidationHeader
+            warnings={authoring.editing.warnings}
+            onFocusWarning={(warning) => viewRef.current?.focusWarning(warning)}
+          />
+        </PageLayout.Header>
+      ) : null}
       <PageLayout.Toolbar>
         <FactionAuthoringToolbar
           status={{
@@ -138,7 +225,10 @@ function FactionEditPage() {
           }}
           actions={{
             onSave: authoring.actions.submit,
-            onReviewWarnings: () => viewRef.current?.focusFirstWarning(),
+            /* The toolbar count is the persistent indicator; clicking it returns
+               to the expanded validation header at the top of the page. */
+            onReviewWarnings: () =>
+              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReview: (trigger) => viewRef.current?.openReview(trigger),
             onReset: authoring.actions.reset,
             onBack: () =>
@@ -240,6 +330,7 @@ function FactionEditPage() {
           errors={authoring.persistence.errors}
           isNameBlank={authoring.editing.isNameBlank}
           warnings={authoring.editing.warnings}
+          onSettle={() => setSettleTick((tick) => tick + 1)}
         />
       </PageLayout.Content>
     </PageLayout>

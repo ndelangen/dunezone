@@ -1,19 +1,28 @@
-import { Alert, Anchor, Button, Center, Group, Loader, Select, Stack, Text, Title } from '@mantine/core';
+import {
+  Alert,
+  Anchor,
+  Button,
+  Center,
+  Combobox,
+  Divider,
+  Group,
+  Loader,
+  ScrollArea,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+  useCombobox,
+} from '@mantine/core';
 import { FactionInputSchema } from '@shared/factions/schema';
 import { Link } from '@tanstack/react-router';
-import { Surface } from '@ui/surface';
 import { useMemo, useState } from 'react';
 
 import { useFactionLoadPicker } from '@db/factions';
 import type { Faction, FactionLoadPickerRow } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 
-import {
-  FactionLoadOptionRow,
-  factionLoadOptionLabel,
-  factionLoadOptionSearchText,
-  factionLoadOwnerLabel,
-} from './FactionPicker.parts';
+import { FactionLoadOptionRow, factionLoadOptionSearchText, factionLoadOwnerLabel } from './FactionPicker.parts';
 
 function formatZodIssues(err: { issues: readonly { path: PropertyKey[]; message: string }[] }) {
   return err.issues
@@ -68,7 +77,9 @@ export interface FactionPickerProps {
  */
 export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionPickerProps) {
   const picker = useFactionLoadPicker();
+  const combobox = useCombobox();
 
+  const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -88,22 +99,16 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
     [picker.data?.memberGroupIds]
   );
 
-  const factionLoadOptions = useMemo(() => {
+  const availableRows = useMemo(() => {
     /* Built inside the memo that uses it: callers pass a fresh array each render, so memoizing the set separately never hits. */
     const excluded = new Set(excludeSlugs ?? []);
-    return (picker.data?.rows ?? []).filter((row) => !excluded.has(row.slug)).map((row) => row.id);
+    return (picker.data?.rows ?? []).filter((row) => !excluded.has(row.slug));
   }, [picker.data?.rows, excludeSlugs]);
-  const factionLoadSelectOptions = useMemo(
-    () =>
-      factionLoadOptions.map((id) => {
-        const row = rowsById.get(id);
-        return {
-          value: id,
-          label: row ? factionLoadOptionLabel(row) : id,
-        };
-      }),
-    [factionLoadOptions, rowsById]
-  );
+
+  const query = search.trim().toLocaleLowerCase();
+  const filteredRows = query
+    ? availableRows.filter((row) => factionLoadOptionSearchText(row).toLocaleLowerCase().includes(query))
+    : availableRows;
 
   const selectedRow = selectedId ? rowsById.get(selectedId) : undefined;
   const handleLoad = () => {
@@ -138,62 +143,70 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
         <Center py="md">
           <Loader size="sm" aria-label="Loading factions" />
         </Center>
-      ) : factionLoadOptions.length === 0 ? (
+      ) : availableRows.length === 0 ? (
         <Text size="sm" c="dimmed">
           {copy.emptyMessage}
         </Text>
       ) : (
-        <Select
-          label="Search factions"
-          value={selectedId || null}
-          onChange={(value) => {
-            setSelectedId(value ?? '');
+        /* One floating layer only: the options render inline in the pane
+           (Combobox without dropdown), never as a second popover. */
+        <Combobox
+          store={combobox}
+          onOptionSubmit={(id) => {
+            setSelectedId(id);
             setError(null);
           }}
-          data={factionLoadSelectOptions}
-          filter={({ options, search }) => {
-            const query = search.trim().toLocaleLowerCase();
-            if (!query) {
-              return options;
-            }
-            return options.filter((option) => {
-              if ('group' in option) {
-                return false;
-              }
-              const row = rowsById.get(String(option.value));
-              return (row ? factionLoadOptionSearchText(row) : option.label).toLocaleLowerCase().includes(query);
-            });
-          }}
-          renderOption={({ option }) => {
-            const row = rowsById.get(String(option.value));
-            if (!row) {
-              return option.label;
-            }
-            const isMember = row.groupId ? memberGroupSet.has(String(row.groupId)) : false;
-            return (
-              <FactionLoadOptionRow
-                name={row.data.name}
-                slug={row.slug}
-                logo={row.data.logo}
-                background={row.data.background}
-                ownerLabel={factionLoadOwnerLabel(row)}
-                groupLabel={row.groupLabel}
-                isMember={isMember}
-              />
-            );
-          }}
-          searchable
-          clearable
-          withCheckIcon={false}
-          placeholder="Type name, owner, group, or token…"
-          nothingFoundMessage="No matching factions"
-          maxDropdownHeight={300}
-          comboboxProps={{ withinPortal: false }}
-        />
+        >
+          <Combobox.EventsTarget>
+            <TextInput
+              label="Search factions"
+              placeholder="Type name, owner, group, or token…"
+              value={search}
+              // Safari and password-manager extensions ignore autoComplete="off"
+              // alone; the search type, neutral name, and vendor opt-outs keep
+              // credential autofill prompts off this field.
+              type="search"
+              name="faction-search"
+              autoComplete="off"
+              data-1p-ignore
+              data-lpignore="true"
+              data-bwignore
+              data-form-type="other"
+              onChange={(event) => {
+                setSearch(event.currentTarget.value);
+                combobox.selectFirstOption();
+              }}
+            />
+          </Combobox.EventsTarget>
+          <ScrollArea.Autosize mah={260} type="auto">
+            <Combobox.Options>
+              {filteredRows.length === 0 ? (
+                <Combobox.Empty>No matching factions</Combobox.Empty>
+              ) : (
+                filteredRows.map((row) => (
+                  <Combobox.Option value={row.id} key={row.id} active={row.id === selectedId}>
+                    <FactionLoadOptionRow
+                      name={row.data.name}
+                      slug={row.slug}
+                      logo={row.data.logo}
+                      background={row.data.background}
+                      ownerLabel={factionLoadOwnerLabel(row)}
+                      groupLabel={row.groupLabel}
+                      isMember={row.groupId ? memberGroupSet.has(String(row.groupId)) : false}
+                    />
+                  </Combobox.Option>
+                ))
+              )}
+            </Combobox.Options>
+          </ScrollArea.Autosize>
+        </Combobox>
       )}
 
       {selectedRow ? (
-        <Surface padding="sm">
+        /* The popover dropdown is already a painted pane; the confirm region
+           separates with a divider rather than nesting a second surface. */
+        <>
+          <Divider />
           <Stack gap="sm">
             <Text size="sm" fw={700}>
               {copy.confirmTitle}
@@ -221,7 +234,7 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
               </Button>
             </Group>
           </Stack>
-        </Surface>
+        </>
       ) : null}
 
       {currentProfileSlug ? (

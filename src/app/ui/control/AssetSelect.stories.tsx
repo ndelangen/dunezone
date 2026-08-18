@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, screen, within } from 'storybook/test';
 
 import { AssetSelect } from './AssetSelect';
 
@@ -54,10 +54,10 @@ export const DropdownOpen = meta.story({
   args: {
     dropdownOpened: true,
   },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByRole('option', { name: 'Dune emblem' })).toBeVisible();
-    await expect(canvas.getByRole('option', { name: 'Text-only option' })).toBeVisible();
+  play: async () => {
+    // The dropdown is portalled to the document body, outside the story canvas.
+    await expect(await screen.findByRole('option', { name: 'Dune emblem' })).toBeVisible();
+    await expect(await screen.findByRole('option', { name: 'Text-only option' })).toBeVisible();
   },
 });
 
