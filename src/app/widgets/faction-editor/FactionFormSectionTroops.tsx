@@ -52,6 +52,11 @@ function TroopCard({
         <Box>
           <Group gap="xs">
             <Text fw={700}>Troop {index + 1}</Text>
+            {index === 0 ? (
+              <Badge variant="light" color="gray">
+                Artwork used on the alliance card
+              </Badge>
+            ) : null}
             {hasBack ? (
               <Badge variant="light" color="dune">
                 Two-sided

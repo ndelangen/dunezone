@@ -4,9 +4,11 @@ export const factionAuthoringChapters = [
   { id: 'identity', label: 'Identity & Appearance' },
   { id: 'hero', label: 'Faction leader' },
   { id: 'leaders', label: 'Leaders' },
+  /* Forces precedes Alliance: the alliance card's proof needs at least one
+     troop type, so troops must have been offered first. */
+  { id: 'forces', label: 'Forces' },
   { id: 'alliance', label: 'Alliance' },
   { id: 'worlds', label: 'Worlds' },
-  { id: 'forces', label: 'Forces' },
   { id: 'rules', label: 'Rules' },
   { id: 'advantages', label: 'Advantages' },
   { id: 'complexity', label: 'Complexity' },
