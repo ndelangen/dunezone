@@ -18,6 +18,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { Rotate3d } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 
@@ -266,16 +267,23 @@ export function FactionFormSectionTroops({
   showPreview = true,
   selectedIndex,
   onSelectedIndexChange,
+  sideByIndex,
+  onSideByIndexChange,
 }: {
   form: FactionFormApi;
   showPreview?: boolean;
   selectedIndex?: number;
   onSelectedIndexChange?: (index: number) => void;
+  /** Lifted alongside selection so the rail can flip each troop token to the side being edited. */
+  sideByIndex?: Record<number, 'front' | 'back'>;
+  onSideByIndexChange?: Dispatch<SetStateAction<Record<number, 'front' | 'back'>>>;
 }) {
   const [internalSelectedIndex, setInternalSelectedIndex] = useState(0);
   const currentSelectedIndex = selectedIndex ?? internalSelectedIndex;
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
-  const [troopSideTabByIndex, setTroopSideTabByIndex] = useState<Record<number, 'front' | 'back'>>({});
+  const [internalSideByIndex, setInternalSideByIndex] = useState<Record<number, 'front' | 'back'>>({});
+  const troopSideTabByIndex = sideByIndex ?? internalSideByIndex;
+  const setTroopSideTabByIndex = onSideByIndexChange ?? setInternalSideByIndex;
 
   return (
     <Stack component="section" gap="md" aria-label="Troop inventory">

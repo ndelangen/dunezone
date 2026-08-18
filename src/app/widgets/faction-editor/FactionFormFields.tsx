@@ -8,7 +8,7 @@ import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Globe2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
-import type { FactionCatalogueEntry } from '@db/factions';
+import type { Faction, FactionCatalogueEntry } from '@db/factions';
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -93,6 +93,56 @@ function ChapterIcon({ chapter, form }: { chapter: FactionAuthoringChapterId; fo
   return <TopicIcon topic={chapterIcons[chapter]} size={21} />;
 }
 
+/* A two-sided troop turns inside the rail's round crop; one-sided troops render a single face. */
+function TroopFlipToken({
+  background,
+  troop,
+  side,
+}: {
+  background: Faction['background'];
+  troop: Faction['troops'][number];
+  side: 'front' | 'back';
+}) {
+  const back = troop.back;
+  if (!back) {
+    return (
+      <div className={styles.tokenCrop}>
+        <TroopToken
+          background={background}
+          image={troop.image}
+          star={troop.star}
+          hue={troop.hue}
+          striped={troop.striped}
+        />
+      </div>
+    );
+  }
+  return (
+    <div className={styles.flipScene}>
+      <div className={styles.flipCard} data-flipped={side === 'back' || undefined}>
+        <div className={styles.flipFace}>
+          <TroopToken
+            background={background}
+            image={troop.image}
+            star={troop.star}
+            hue={troop.hue}
+            striped={troop.striped}
+          />
+        </div>
+        <div className={`${styles.flipFace} ${styles.flipBack}`}>
+          <TroopToken
+            background={background}
+            image={back.image}
+            star={back.star}
+            hue={back.hue}
+            striped={back.striped}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PreviewEmpty({ children }: { children: string }) {
   return (
     <Box className={styles.previewEmpty}>
@@ -107,6 +157,7 @@ function ArtifactProof({
   activeChapter,
   form,
   selectedItem,
+  troopSide,
 }: {
   activeChapter: FactionAuthoringChapterId;
   form: FactionFormApi;
@@ -116,6 +167,7 @@ function ArtifactProof({
     troop: number;
     advantage: number;
   };
+  troopSide: Record<number, 'front' | 'back'>;
 }) {
   const resolve = useAssetResolver();
 
@@ -229,31 +281,28 @@ function ArtifactProof({
             <PreviewEmpty>No planets yet.</PreviewEmpty>
           );
         } else if (activeChapter === 'forces') {
+          const selectedTroopIndex = Math.min(selectedItem.troop, faction.troops.length - 1);
           title = 'Troop tokens';
           artifact = selectedTroop ? (
             /* The whole roster, leaders-fashion: focused troop on top, the rest below.
-               Tokens are finished round pieces, so they ride bare like the worlds rail. */
+               Each token shows the side currently chosen in its editor tabs. */
             <>
               <Box className={styles.troopProof}>
-                <TroopToken
+                <TroopFlipToken
                   background={faction.background}
-                  image={selectedTroop.image}
-                  star={selectedTroop.star}
-                  hue={selectedTroop.hue}
-                  striped={selectedTroop.striped}
+                  troop={selectedTroop}
+                  side={troopSide[selectedTroopIndex] ?? 'front'}
                 />
               </Box>
               {faction.troops.length > 1 ? (
                 <Box className={styles.troopGrid}>
                   {faction.troops.map((troop, index) =>
                     troop === selectedTroop ? null : (
-                      <TroopToken
+                      <TroopFlipToken
                         key={index}
                         background={faction.background}
-                        image={troop.image}
-                        star={troop.star}
-                        hue={troop.hue}
-                        striped={troop.striped}
+                        troop={troop}
+                        side={troopSide[index] ?? 'front'}
                       />
                     )
                   )}
@@ -372,6 +421,7 @@ export const FactionFormFields = forwardRef<
     troop: 0,
     advantage: 0,
   });
+  const [troopSideByIndex, setTroopSideByIndex] = useState<Record<number, 'front' | 'back'>>({});
   const forChapter = (chapter: FactionAuthoringChapterId) => warnings.filter((warning) => warning.chapter === chapter);
 
   const focusWarning = (warning: FactionAuthoringWarning) => {
@@ -423,6 +473,8 @@ export const FactionFormFields = forwardRef<
           showPreview={false}
           selectedIndex={selectedItem.troop}
           onSelectedIndexChange={(troop) => setSelectedItem((current) => ({ ...current, troop }))}
+          sideByIndex={troopSideByIndex}
+          onSideByIndexChange={setTroopSideByIndex}
         />
       ) : null}
       {chapter === 'rules' ? <FactionFormSectionRules form={form} /> : null}
@@ -472,7 +524,12 @@ export const FactionFormFields = forwardRef<
         ariaLabel="Faction editor sections"
       />
       <Box className={styles.artifactColumn}>
-        <ArtifactProof activeChapter={activeChapter} form={form} selectedItem={selectedItem} />
+        <ArtifactProof
+          activeChapter={activeChapter}
+          form={form}
+          selectedItem={selectedItem}
+          troopSide={troopSideByIndex}
+        />
       </Box>
     </div>
   );

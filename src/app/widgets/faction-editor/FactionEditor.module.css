@@ -91,14 +91,12 @@
   padding: var(--mantine-spacing-md) 0;
 }
 
-/* TroopToken's root fills its parent, so the proof and each grid cell supply the square —
-   with the leader roster's treatment: round crop and Surface lift. */
+/* TroopToken's root fills its parent, so the proof and each grid cell supply the square.
+   The round crop and Surface lift live on the token faces (.tokenCrop / .flipFace), not here —
+   the whole disc must rotate during a flip, mask included, or it reads as a plane behind a hole. */
 .troopProof {
   aspect-ratio: 1;
   width: 100%;
-  overflow: hidden;
-  border-radius: 50%;
-  box-shadow: var(--panel-shadow);
 }
 
 .troopProof > div {
@@ -108,9 +106,6 @@
 
 .troopGrid > div {
   aspect-ratio: 1;
-  overflow: hidden;
-  border-radius: 50%;
-  box-shadow: var(--panel-shadow);
 }
 
 /* Same treatment as the identity token: round crop, rail width, Surface lift. */
@@ -213,5 +208,61 @@
 
   .artifactColumn {
     display: none;
+  }
+}
+
+/* Two-sided troops flip in the rail like a physical piece: each face is its own round,
+   shadowed disc, so the mask turns with the art and shows edge-on mid-flip. */
+.flipScene {
+  width: 100%;
+  height: 100%;
+  perspective: 600px;
+}
+
+.flipCard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 500ms ease;
+}
+
+.flipCard[data-flipped] {
+  transform: rotateY(180deg);
+}
+
+.flipFace {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: var(--panel-shadow);
+  backface-visibility: hidden;
+}
+
+.flipBack {
+  transform: rotateY(180deg);
+}
+
+/* One-sided tokens wear the same disc treatment without a flip apparatus. */
+.tokenCrop {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: var(--panel-shadow);
+}
+
+/* The turn obeys the site's Ambient motion verdict, like the dice: the shell stamps
+   `data-motion` from the footer toggle with the OS hint as its System default, so an
+   explicit "On" animates even for reduced-motion visitors. Before the stamp, the OS
+   hint decides alone. */
+html[data-motion="reduce"] .flipCard {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"]) .flipCard {
+    transition: none;
   }
 }
