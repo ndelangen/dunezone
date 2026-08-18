@@ -1,9 +1,9 @@
-import { Anchor, Button, Group, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Button, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Trash2, UserRoundMinus } from 'lucide-react';
+import { TriangleAlert, Trash2, UserRoundMinus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
@@ -16,6 +16,8 @@ import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/Fac
 import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPopover';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
+
+import styles from './edit.module.css';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   loader: async ({ params }) => await loadFaction(params.factionId),
@@ -49,7 +51,14 @@ function useValidationHeaderOpen(count: number, settleTick: number): boolean {
   return open;
 }
 
-/* Renders on the light artwork band (data-scheme-paper), centered like the masthead was. */
+function formatMissingList(missing: string[]): string {
+  if (missing.length <= 1) {
+    return missing[0] ?? '';
+  }
+  return `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`;
+}
+
+/* A lower-third caption strip on the artwork band: one chip per source, each a focus jump. */
 function ValidationHeader({
   warnings,
   onFocusWarning,
@@ -57,26 +66,33 @@ function ValidationHeader({
   warnings: FactionAuthoringWarning[];
   onFocusWarning: (warning: FactionAuthoringWarning) => void;
 }) {
+  const groups = new Map<string, FactionAuthoringWarning[]>();
+  warnings.forEach((warning) => {
+    const group = groups.get(warning.source);
+    if (group) {
+      group.push(warning);
+    } else {
+      groups.set(warning.source, [warning]);
+    }
+  });
+
   return (
-    <Stack align="center" gap={4} id={VALIDATION_HEADER_ID}>
-      <Title order={2} size="h4">
-        These fields may be incomplete
-      </Title>
-      <Group gap="xs" justify="center">
-        {warnings.map((warning) => (
-          <Button
-            key={warning.path}
-            type="button"
-            variant="light"
-            color="orange"
-            size="compact-xs"
-            onClick={() => onFocusWarning(warning)}
-          >
-            {warning.label}
-          </Button>
-        ))}
-      </Group>
-    </Stack>
+    <div className={styles.strip} id={VALIDATION_HEADER_ID}>
+      <span className={styles.title}>
+        <TriangleAlert size={15} aria-hidden />
+        Incomplete fields
+      </span>
+      {[...groups.entries()].map(([source, sourceWarnings]) => (
+        <UnstyledButton
+          key={source}
+          className={styles.chip}
+          onClick={() => onFocusWarning(sourceWarnings[0] as FactionAuthoringWarning)}
+        >
+          <span className={styles.chipSource}>{source}</span>: missing{' '}
+          {formatMissingList(sourceWarnings.map((warning) => warning.missing))}
+        </UnstyledButton>
+      ))}
+    </div>
   );
 }
 
