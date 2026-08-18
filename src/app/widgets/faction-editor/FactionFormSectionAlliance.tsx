@@ -103,13 +103,13 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
         {(field) => (
           <ControlBlock
             title="Scale"
-            description="Resize the decal from 0 (hidden) to 1 (full reference size)."
+            description="Resize the decal from 0 (hidden) to 3; 1 is the full reference size."
             tool={
               <NumberInput
                 aria-label={`Scale for alliance decal ${index + 1}`}
                 w={96}
                 min={0}
-                max={1}
+                max={3}
                 step={0.01}
                 decimalScale={2}
                 value={field.state.value}
@@ -125,7 +125,7 @@ function DecalCard({ form, index }: { form: FactionFormApi; index: number }) {
               <Slider
                 aria-label={`Scale slider for alliance decal ${index + 1}`}
                 min={0}
-                max={1}
+                max={3}
                 step={0.01}
                 value={field.state.value}
                 label={(value) => value.toFixed(2)}
