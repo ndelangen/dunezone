@@ -4,7 +4,9 @@ import { Copy } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
-import { FactionPicker } from '@app/pickers/FactionPicker';
+// PROTOTYPE mount (wayfinder #461): renders the production FactionPicker
+// unless ?variant=flat selects the inline-listbox candidate.
+import { FactionPickerPrototypeSlot as FactionPicker } from '@app/pickers/FactionPickerFlatPrototype';
 
 export interface FactionLoadPopoverProps {
   disabled: boolean;
