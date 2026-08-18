@@ -384,7 +384,14 @@ function GradientLayerFields({
               onChange={(next) =>
                 onChange({
                   ...value,
-                  [property]: typeof next === 'number' && Number.isFinite(next) ? next : undefined,
+                  /* '' is the clearing affordance (back to the renderer default); any other
+                     unparseable draft ('.', '-') keeps the stored value instead of clearing it. */
+                  [property]:
+                    typeof next === 'number' && Number.isFinite(next)
+                      ? next
+                      : next === ''
+                        ? undefined
+                        : value[property],
                 })
               }
             />
