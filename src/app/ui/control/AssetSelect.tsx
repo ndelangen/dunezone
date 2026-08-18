@@ -1,6 +1,7 @@
-import { Group, HoverCard, Image, Select, Text } from '@mantine/core';
+import { Group, Image, Popover, Select, Text } from '@mantine/core';
 import type { SelectProps } from '@mantine/core';
 import clsx from 'clsx';
+import { useState } from 'react';
 
 import styles from './AssetSelect.module.css';
 
@@ -56,8 +57,10 @@ export function AssetSelect({
   ...props
 }: AssetSelectProps) {
   const selectedPreview = value ? getPreviewSrc(value) : null;
+  const [hovered, setHovered] = useState<string | null>(null);
+  const hoveredPreview = hovered ? getPreviewSrc(hovered) : null;
 
-  return (
+  const select = (
     <Select
       searchable
       {...props}
@@ -86,38 +89,16 @@ export function AssetSelect({
       renderOption={({ option }) => {
         const preview = getPreviewSrc(option.value);
         return (
-          <Group gap="sm" wrap="nowrap">
+          <Group gap="sm" wrap="nowrap" onMouseEnter={() => setHovered(option.value)}>
             {preview ? (
-              /* Display-only hover preview: tooltip-class UI, exempt from the
-                 one-floating-layer rule (see "Floating UI is small and single-layer"). */
-              <HoverCard
-                position="right"
-                shadow="md"
-                openDelay={150}
-                withinPortal
-                transitionProps={{ transition: 'pop', duration: 150 }}
-              >
-                <HoverCard.Target>
-                  <Image
-                    src={preview}
-                    alt=""
-                    w={previewSize}
-                    h={previewSize}
-                    fit="contain"
-                    className={clsx(styles.previewImg, glyphPreviews && styles.glyph)}
-                  />
-                </HoverCard.Target>
-                <HoverCard.Dropdown p="xs">
-                  <Image
-                    src={preview}
-                    alt=""
-                    w={144}
-                    h={144}
-                    fit="contain"
-                    className={clsx(glyphPreviews && styles.glyph)}
-                  />
-                </HoverCard.Dropdown>
-              </HoverCard>
+              <Image
+                src={preview}
+                alt=""
+                w={previewSize}
+                h={previewSize}
+                fit="contain"
+                className={clsx(styles.previewImg, glyphPreviews && styles.glyph)}
+              />
             ) : null}
             <Text size="sm" truncate>
               {option.label}
@@ -125,7 +106,40 @@ export function AssetSelect({
           </Group>
         );
       }}
+      onDropdownClose={() => {
+        setHovered(null);
+        props.onDropdownClose?.();
+      }}
       comboboxProps={comboboxProps}
     />
+  );
+
+  return (
+    /* One persistent preview panel to the input's left, swapping its artwork as
+       rows are hovered — rather than a card per row appearing and disappearing.
+       Display-only and hover-transient: a deliberate, human-ruled exception to
+       the one-floating-layer rule (see "Floating UI is small and single-layer"). */
+    <Popover
+      opened={hoveredPreview != null}
+      position="left-start"
+      withinPortal
+      shadow="md"
+      offset={8}
+      transitionProps={{ transition: 'pop', duration: 150 }}
+    >
+      <Popover.Target>{select}</Popover.Target>
+      <Popover.Dropdown p="xs" style={{ pointerEvents: 'none' }}>
+        {hoveredPreview ? (
+          <Image
+            src={hoveredPreview}
+            alt=""
+            w={144}
+            h={144}
+            fit="contain"
+            className={clsx(glyphPreviews && styles.glyph)}
+          />
+        ) : null}
+      </Popover.Dropdown>
+    </Popover>
   );
 }
