@@ -78,7 +78,7 @@ export function AssetSelect({
           </Group>
         );
       }}
-      comboboxProps={{ withinPortal: false, ...comboboxProps }}
+      comboboxProps={comboboxProps}
     />
   );
 }

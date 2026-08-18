@@ -107,7 +107,6 @@ function AssignPopoverPicker({
         clearable
         placeholder={`Type ${noun} name…`}
         nothingFoundMessage={`No matching ${noun}s`}
-        comboboxProps={{ withinPortal: false }}
         disabled={disabled || isAssigning}
       />
       <Group justify="flex-end">

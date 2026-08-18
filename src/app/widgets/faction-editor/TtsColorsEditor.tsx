@@ -99,7 +99,6 @@ function TtsColorRow({
         data={options}
         leftSection={<ColorDot color={color} />}
         renderOption={({ option }) => <TtsColorOption color={option.value as TtsColor} />}
-        comboboxProps={{ withinPortal: false }}
         onChange={(value) => {
           if (value) {
             onChange(value as TtsColor);
