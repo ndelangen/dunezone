@@ -130,16 +130,6 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
         tool={<RandomButton label="Random treatment" onClick={onRandom} />}
         input={
           <Stack gap="lg">
-            <form.Field name="background.invert">
-              {(field) => (
-                <Switch
-                  label="Invert"
-                  checked={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.checked)}
-                />
-              )}
-            </form.Field>
             <form.Field name="background.definition">
               {(field) => (
                 <Stack gap="md">
@@ -156,16 +146,14 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
                     max={1}
                     step={0.01}
                     value={field.state.value}
+                    label={(current) => current.toFixed(2)}
+                    marks={[
+                      { value: 0, label: 'Soft' },
+                      { value: 1, label: 'Extreme' },
+                    ]}
+                    mb="lg"
                     onChange={field.handleChange}
                   />
-                  <Group justify="space-between">
-                    <Text size="xs" c="dimmed">
-                      Soft
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                      Extreme
-                    </Text>
-                  </Group>
                 </Stack>
               )}
             </form.Field>
@@ -190,19 +178,14 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
                       step={0.5}
                       value={influenceToSliderPosition(exactValue)}
                       label={(position) => sliderPositionToInfluence(position).toFixed(2)}
+                      marks={[
+                        { value: 0, label: 'Whisper' },
+                        { value: 50, label: 'Strong' },
+                        { value: 100, label: 'Dominant' },
+                      ]}
+                      mb="lg"
                       onChange={(position) => field.handleChange(sliderPositionToInfluence(position))}
                     />
-                    <Group justify="space-between">
-                      <Text size="xs" c="dimmed">
-                        Whisper
-                      </Text>
-                      <Text size="xs" c="dimmed">
-                        Strong
-                      </Text>
-                      <Text size="xs" c="dimmed">
-                        Dominant
-                      </Text>
-                    </Group>
                   </Stack>
                 );
               }}
@@ -579,6 +562,18 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
                             <Text fw={700} size="sm" truncate>
                               {selected?.label ?? 'Existing pattern'}
                             </Text>
+                            {/* Invert lives with the pattern it flips, not in the sliders column. */}
+                            <form.Field name="background.invert">
+                              {(field) => (
+                                <Switch
+                                  size="sm"
+                                  label="Invert"
+                                  checked={field.state.value}
+                                  onBlur={field.handleBlur}
+                                  onChange={(event) => field.handleChange(event.currentTarget.checked)}
+                                />
+                              )}
+                            </form.Field>
                             <Button
                               type="button"
                               variant="subtle"
