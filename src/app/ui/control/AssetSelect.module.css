@@ -1,5 +1,8 @@
 .previewImg {
   flex-shrink: 0;
+
+  /* Breathing room inside the slot; border-box, so the drawn glyph shrinks. */
+  padding: 3px;
 }
 
 /* Asset glyphs are authored as monochrome dark artwork; under the dark scheme
