@@ -4,11 +4,13 @@ export const factionAuthoringChapters = [
   { id: 'identity', label: 'Identity & Appearance' },
   { id: 'hero', label: 'Faction leader' },
   { id: 'leaders', label: 'Leaders' },
-  /* Forces precedes Alliance: the alliance card's proof needs at least one
-     troop type, so troops must have been offered first. */
+  /* Two ordering dependencies: Planets precedes Forces because a troop's planet
+     reference selects among the planets, and Forces precedes Alliance because
+     the alliance card's proof needs at least one troop type. The internal
+     chapter id stays `worlds`; only the label says Planets. */
+  { id: 'worlds', label: 'Planets' },
   { id: 'forces', label: 'Forces' },
   { id: 'alliance', label: 'Alliance' },
-  { id: 'worlds', label: 'Worlds' },
   { id: 'rules', label: 'Rules' },
   { id: 'advantages', label: 'Advantages' },
   { id: 'complexity', label: 'Complexity' },

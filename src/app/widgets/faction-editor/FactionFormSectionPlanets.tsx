@@ -23,7 +23,7 @@ function PlanetFields({ form, index, onFocus }: { form: FactionFormApi; index: n
           <Stack gap="sm">
             {!isCurated ? (
               <Alert color="yellow" variant="light" title="Existing external illustration preserved">
-                This world uses an older external image. It remains unchanged until you select a curated illustration.
+                This planet uses an older external image. It remains unchanged until you select a curated illustration.
               </Alert>
             ) : null}
 
@@ -36,7 +36,18 @@ function PlanetFields({ form, index, onFocus }: { form: FactionFormApi; index: n
                     value={field.state.value}
                     onFocus={onFocus}
                     onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.currentTarget.value)}
+                    onChange={(event) => {
+                      const next = event.currentTarget.value;
+                      const previous = field.state.value;
+                      field.handleChange(next);
+                      /* Rename sync: this editor is the only writer of planet names, so
+                         troop references follow the rename keystroke for keystroke. */
+                      form.state.values.troops.forEach((troop, troopIndex) => {
+                        if (troop.planet != null && troop.planet === previous) {
+                          form.setFieldValue(`troops[${troopIndex}].planet`, next);
+                        }
+                      });
+                    }}
                   />
                 )}
               </form.Field>
@@ -92,7 +103,7 @@ export function FactionFormSectionPlanets({
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
 
   return (
-    <Stack component="section" gap="md" aria-label="Faction worlds">
+    <Stack component="section" gap="md" aria-label="Faction planets">
       <form.Field name="planet">
         {(field) => {
           const planets = field.state.value ?? [];
@@ -101,8 +112,8 @@ export function FactionFormSectionPlanets({
             <Stack gap="md">
               <Group justify="flex-end">
                 <ListLengthActions
-                  removeLabel="Remove last faction world"
-                  addLabel="Add faction world"
+                  removeLabel="Remove last planet"
+                  addLabel="Add planet"
                   removeDisabled={count === 0}
                   onRemove={() => {
                     const lastIndex = count - 1;
@@ -112,7 +123,21 @@ export function FactionFormSectionPlanets({
                     if (currentSelectedIndex >= lastIndex) {
                       selectIndex(Math.max(0, lastIndex - 1));
                     }
-                    field.handleChange(planets.slice(0, -1));
+                    const removedName = planets[lastIndex]?.name;
+                    const remaining = planets.slice(0, -1);
+                    field.handleChange(remaining);
+                    /* Delete sync: references to the removed planet re-pick the first
+                       remaining planet; with none left every reference clears, which
+                       empties and disables the Forces select. */
+                    const fallback = remaining.map((planet) => planet.name).find((name) => name.trim().length > 0);
+                    form.state.values.troops.forEach((troop, troopIndex) => {
+                      if (troop.planet == null) {
+                        return;
+                      }
+                      if (troop.planet === removedName || remaining.length === 0) {
+                        form.setFieldValue(`troops[${troopIndex}].planet`, fallback);
+                      }
+                    });
                   }}
                   onAdd={() => {
                     field.handleChange([...planets, defaultPlanet()]);
@@ -122,15 +147,15 @@ export function FactionFormSectionPlanets({
               </Group>
 
               {count === 0 ? (
-                <Alert color="gray" variant="light" title="No faction worlds">
-                  Worlds are optional. Add one when a planet is part of this faction&apos;s identity.
+                <Alert color="gray" variant="light" title="No planets">
+                  Planets are optional. Add one when a planet is part of this faction&apos;s identity.
                 </Alert>
               ) : null}
 
               {planets.map((_, index) => (
                 <Stack key={index} gap="md">
                   {index > 0 ? <Divider /> : null}
-                  {/* Focusing any of a world's fields makes it the preview rail's focused world. */}
+                  {/* Focusing any of a planet's fields makes it the preview rail's focused planet. */}
                   <PlanetFields form={form} index={index} onFocus={() => selectIndex(index)} />
                 </Stack>
               ))}

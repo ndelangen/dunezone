@@ -8,15 +8,16 @@ import {
   Group,
   NumberInput,
   SegmentedControl,
+  Select,
   SimpleGrid,
   Stack,
   Text,
-  TextInput,
+  Tooltip,
 } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { Rotate3d } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 
@@ -24,6 +25,53 @@ import { FactionCollectionShelf } from './FactionCollectionShelf';
 import { createTroopBackFromFront, defaultTroop } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
 import { TroopSideFields } from './TroopSideFields';
+
+function PlanetReferenceSelect({
+  id,
+  names,
+  value,
+  onChange,
+}: {
+  id: string;
+  names: string[];
+  value: string | undefined;
+  onChange: (value: string | undefined) => void;
+}) {
+  const matched = value != null && names.includes(value);
+
+  /* The ruled auto-pick: an empty or no-longer-matching reference visibly adopts
+     the first planet as a draft change; a matching value is never rewritten. */
+  useEffect(() => {
+    if (names.length > 0 && !matched) {
+      onChange(names[0]);
+    }
+  }, [names, matched, onChange]);
+
+  if (names.length === 0) {
+    return (
+      <Tooltip label="Add a planet first">
+        <Box>
+          <Select id={id} aria-label="Planet reference" data={[]} value={null} disabled placeholder="No planets" />
+        </Box>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Select
+      id={id}
+      aria-label="Planet reference"
+      allowDeselect={false}
+      data={names}
+      value={matched ? value : names[0]}
+      onChange={(next) => {
+        if (next) {
+          onChange(next);
+        }
+      }}
+    />
+  );
+}
 
 function TroopCard({
   form,
@@ -127,24 +175,31 @@ function TroopCard({
                 )}
               </form.Field>
 
-              <form.Field name={`troops[${index}].planet`}>
-                {(field) => (
-                  <ControlBlock
-                    title="Planet reference (optional)"
-                    description="Data-only association; it has no current rendered consumer."
-                    input={
-                      <TextInput
-                        id={`troop-${index}-planet`}
-                        aria-label="Planet reference (optional)"
-                        placeholder="e.g. Meridian Prime"
-                        value={field.state.value ?? ''}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
-                      />
-                    }
-                  />
-                )}
-              </form.Field>
+              <form.Subscribe selector={(state) => state.values.planet}>
+                {(planets) => {
+                  const names = [
+                    ...new Set((planets ?? []).map((planet) => planet.name).filter((name) => name.trim().length > 0)),
+                  ];
+                  return (
+                    <form.Field name={`troops[${index}].planet`}>
+                      {(field) => (
+                        <ControlBlock
+                          title="Planet reference"
+                          description="Data-only association; it has no current rendered consumer."
+                          input={
+                            <PlanetReferenceSelect
+                              id={`troop-${index}-planet`}
+                              names={names}
+                              value={field.state.value}
+                              onChange={field.handleChange}
+                            />
+                          }
+                        />
+                      )}
+                    </form.Field>
+                  );
+                }}
+              </form.Subscribe>
             </SimpleGrid>
           </Stack>
         </Grid.Col>

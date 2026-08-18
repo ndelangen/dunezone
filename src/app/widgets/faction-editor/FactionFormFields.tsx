@@ -202,7 +202,7 @@ function ArtifactProof({
             <PreviewEmpty>Add a troop type to complete the alliance-card proof.</PreviewEmpty>
           );
         } else if (activeChapter === 'worlds') {
-          title = 'Faction worlds';
+          title = 'Faction planets';
           artifact = selectedWorld ? (
             /* Like the leaders roster, but unclipped and unshadowed: these are
                arbitrary transparent PNGs, not pane-shaped pieces. */
@@ -226,7 +226,7 @@ function ArtifactProof({
               ) : null}
             </>
           ) : (
-            <PreviewEmpty>No faction worlds yet.</PreviewEmpty>
+            <PreviewEmpty>No planets yet.</PreviewEmpty>
           );
         } else if (activeChapter === 'forces') {
           title = 'Troop tokens';
