@@ -1,4 +1,4 @@
-import { Alert, Anchor, Box, Button, Collapse, Group, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Button, Group, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -24,28 +24,21 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
 
 const VALIDATION_HEADER_ID = 'faction-validation-header';
 
-/* The band that replaced the masthead: it exists only while validation warnings exist.
+/* The masthead's replacement exists only while validation warnings exist.
    Asymmetric settle — new warnings open it immediately, but an empty list only closes it
    on a settle signal (field blur or chapter switch), never mid-keystroke, so the layout
-   never jumps above the sticky toolbar while typing. */
-function ValidationHeader({
-  warnings,
-  settleTick,
-  onFocusWarning,
-}: {
-  warnings: FactionAuthoringWarning[];
-  settleTick: number;
-  onFocusWarning: (warning: FactionAuthoringWarning) => void;
-}) {
-  const [open, setOpen] = useState(warnings.length > 0);
-  const countRef = useRef(warnings.length);
-  countRef.current = warnings.length;
+   never jumps above the sticky toolbar while typing. The open state gates the
+   PageLayout.Header slot itself; the shell's band already animates its height change. */
+function useValidationHeaderOpen(count: number, settleTick: number): boolean {
+  const [open, setOpen] = useState(count > 0);
+  const countRef = useRef(count);
+  countRef.current = count;
 
   useEffect(() => {
-    if (warnings.length > 0) {
+    if (count > 0) {
       setOpen(true);
     }
-  }, [warnings.length]);
+  }, [count]);
 
   useEffect(() => {
     if (countRef.current === 0) {
@@ -53,28 +46,37 @@ function ValidationHeader({
     }
   }, [settleTick]);
 
+  return open;
+}
+
+/* Renders on the light artwork band (data-scheme-paper), centered like the masthead was. */
+function ValidationHeader({
+  warnings,
+  onFocusWarning,
+}: {
+  warnings: FactionAuthoringWarning[];
+  onFocusWarning: (warning: FactionAuthoringWarning) => void;
+}) {
   return (
-    <Collapse expanded={open}>
-      <Box pb="md" id={VALIDATION_HEADER_ID}>
-        <Alert color="yellow" variant="light" title="These fields may be incomplete">
-          <Group gap="xs">
-            {warnings.map((warning) => (
-              <Button
-                key={warning.path}
-                type="button"
-                variant="subtle"
-                color="yellow"
-                size="compact-xs"
-                px={0}
-                onClick={() => onFocusWarning(warning)}
-              >
-                {warning.label}
-              </Button>
-            ))}
-          </Group>
-        </Alert>
-      </Box>
-    </Collapse>
+    <Stack align="center" gap={4} id={VALIDATION_HEADER_ID}>
+      <Title order={2} size="h4">
+        These fields may be incomplete
+      </Title>
+      <Group gap="xs" justify="center">
+        {warnings.map((warning) => (
+          <Button
+            key={warning.path}
+            type="button"
+            variant="light"
+            color="orange"
+            size="compact-xs"
+            onClick={() => onFocusWarning(warning)}
+          >
+            {warning.label}
+          </Button>
+        ))}
+      </Group>
+    </Stack>
   );
 }
 
@@ -114,6 +116,7 @@ function FactionEditPage() {
       }
     },
   });
+  const validationHeaderOpen = useValidationHeaderOpen(authoring.editing.warnings.length, settleTick);
   const header = (
     <Stack align="center" gap={4}>
       <Anchor
@@ -184,12 +187,15 @@ function FactionEditPage() {
 
   return (
     <PageLayout>
+      {validationHeaderOpen ? (
+        <PageLayout.Header size="compact">
+          <ValidationHeader
+            warnings={authoring.editing.warnings}
+            onFocusWarning={(warning) => viewRef.current?.focusWarning(warning)}
+          />
+        </PageLayout.Header>
+      ) : null}
       <PageLayout.Toolbar>
-        <ValidationHeader
-          warnings={authoring.editing.warnings}
-          settleTick={settleTick}
-          onFocusWarning={(warning) => viewRef.current?.focusWarning(warning)}
-        />
         <FactionAuthoringToolbar
           status={{
             isDirty: authoring.editing.isDirty,
