@@ -1,23 +1,8 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import {
-  ActionIcon,
-  Alert,
-  AspectRatio,
-  Badge,
-  Box,
-  Group,
-  Image,
-  Paper,
-  SimpleGrid,
-  Stack,
-  Text,
-  TextInput,
-  Textarea,
-  UnstyledButton,
-} from '@mantine/core';
+import { Alert, Badge, Box, Group, SimpleGrid, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { Check } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
@@ -59,60 +44,19 @@ function PlanetImageLibrary({
         </Alert>
       ) : null}
 
-      <SimpleGrid
-        cols={{ base: 3, xs: 4, sm: 5, md: 7 }}
-        spacing="xs"
-        role="group"
+      <AssetSelect
+        id={`planet-${index}-illustration`}
         aria-label={`Curated illustration for planet ${index + 1}`}
-      >
-        {CURATED_PLANET_IMAGES.map((option, optionIndex) => {
-          const selected = option.image === value;
-          return (
-            <UnstyledButton
-              key={option.id}
-              type="button"
-              aria-label={`Use ${option.label}`}
-              aria-pressed={selected}
-              onClick={() => onChange(option.image)}
-            >
-              <Paper
-                withBorder
-                radius="md"
-                p={4}
-                style={{
-                  backgroundColor: selected ? 'var(--mantine-color-dune-0)' : 'var(--mantine-color-white)',
-                  borderColor: selected ? 'var(--mantine-color-dune-7)' : 'var(--mantine-color-gray-3)',
-                  boxShadow: selected ? '0 0 0 2px var(--mantine-color-dune-3)' : undefined,
-                }}
-              >
-                <AspectRatio ratio={1}>
-                  <Box pos="relative">
-                    <Image src={resolve(option.image, 'small')} alt="" fit="contain" w="100%" h="100%" />
-                    {selected ? (
-                      <ActionIcon
-                        component="span"
-                        color="dune"
-                        variant="filled"
-                        size="sm"
-                        radius="xl"
-                        pos="absolute"
-                        top={4}
-                        right={4}
-                        aria-hidden
-                      >
-                        <Check size={13} />
-                      </ActionIcon>
-                    ) : null}
-                  </Box>
-                </AspectRatio>
-                <Text size="xs" ta="center" mt={4} fw={selected ? 700 : 500}>
-                  {String(optionIndex + 1).padStart(2, '0')}
-                </Text>
-              </Paper>
-            </UnstyledButton>
-          );
-        })}
-      </SimpleGrid>
+        allowDeselect={false}
+        data={CURATED_PLANET_IMAGES.map((option) => ({ value: option.image, label: option.label }))}
+        getPreviewSrc={(image) => resolve(image as PlanetEntry['image'], 'small')}
+        value={isCurated ? (value ?? null) : null}
+        onChange={(image) => {
+          if (image) {
+            onChange(image as PlanetEntry['image']);
+          }
+        }}
+      />
     </Stack>
   );
 }
