@@ -113,7 +113,10 @@ no modes, no sub-editors. Anything with modes, a collection to manage, or sub-co
 expands inline and accepts the reflow. One floating layer at a time: a floating pane never opens
 another floating pane inside itself; its innards render inline (a search field with an inline
 options list, not a nested dropdown). Dropdowns portal to the document — never
-`withinPortal: false`, which ties positioning to whatever containment the anchor sits in.
+`withinPortal: false`, which ties positioning to whatever containment the anchor sits in — with one
+exception: a select that must live inside a popover keeps `withinPortal: false`, because a portalled
+option renders outside the popover's DOM and picking it reads as click-outside, closing the pane
+mid-selection (see `AssignPopover`).
 
 *Exemption:* display-only, hover-transient UI — a tooltip, a hover preview — may appear over a
 floating pane; it is glanceable, not operable.

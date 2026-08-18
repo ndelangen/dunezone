@@ -13,13 +13,15 @@ async function createFaction(page: Page, name: string, factionLeaderName: string
   await page.getByRole('textbox', { name: 'Faction leader name' }).fill(factionLeaderName);
   await page.getByRole('button', { name: 'Save faction' }).click();
   await expect(page).toHaveURL(new RegExp(`/factions/${name.toLowerCase()}/edit$`));
-  await expect(page.getByRole('heading', { name: `Edit ${name}` })).toBeVisible();
+  /* The edit page has no masthead heading anymore (wayfinder #485); the loaded draft is the landmark. */
+  await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(name);
   return page.url();
 }
 
 async function loadFactionDraft(page: Page, factionName: string) {
   await page.getByRole('button', { name: 'Load existing faction' }).click();
-  const search = page.getByRole('combobox', { name: 'Search factions' });
+  /* The flat picker's search input is a searchbox over an always-visible option list (wayfinder #466). */
+  const search = page.getByRole('searchbox', { name: 'Search factions' });
   await search.fill(factionName);
   await page.getByRole('option').filter({ hasText: factionName }).click();
   await page.getByRole('button', { name: 'Load faction' }).click();
@@ -47,7 +49,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.getByRole('textbox', { name: 'Faction leader name' }).fill(factionALeaderName);
     await page.getByRole('button', { name: 'Save faction' }).click();
     await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/edit$`));
-    await expect(page.getByRole('heading', { name: `Edit ${factionAName}` })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
     factionAEditUrl = page.url();
 
     expect(factionBEditUrl).not.toBe(factionAEditUrl);
@@ -70,8 +72,10 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await loadFactionDraft(page, factionBName);
 
     await page.getByRole('tab', { name: 'Identity & Appearance', exact: true }).click();
-    const warningAction = page.getByRole('button', { name: '1 field may be incomplete' });
-    await warningAction.click();
+    /* The toolbar count returns the reader to the validation header (wayfinder #485);
+       the header's per-source chip is what jumps to and focuses the field. */
+    await page.getByRole('button', { name: '1 field may be incomplete' }).click();
+    await page.getByRole('button', { name: 'Faction leader: missing name' }).click();
     const factionLeaderName = page.getByRole('textbox', { name: 'Faction leader name' });
     await expect(factionLeaderName).toBeFocused();
     await factionLeaderName.fill(importedLeaderName);
@@ -83,10 +87,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(page.getByText('Add a faction name before saving; it determines the faction URL.')).toBeVisible();
     await factionName.fill(factionAName);
 
-    await page
-      .getByRole('radiogroup', { name: 'Choose identity artifact proof' })
-      .getByText('Faction token', { exact: true })
-      .click();
+    /* No toggle anymore: the token proof always rides the identity rail (wayfinder #473). */
     const token = page.locator('[data-faction-token-proof] > *').first();
     const tokenBounds = await token.boundingBox();
     expect(tokenBounds).not.toBeNull();
