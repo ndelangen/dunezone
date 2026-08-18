@@ -1,23 +1,7 @@
-import { Box, Group, Image, Select, Text } from '@mantine/core';
+import { Group, Image, Select, Text } from '@mantine/core';
 import type { SelectProps } from '@mantine/core';
 
-// Asset glyphs are authored as dark artwork; the scheme-invariant paper chip
-// keeps them legible on dark-scheme fields without recoloring the asset.
-function PreviewChip({ src, size }: { src: string; size: number }) {
-  return (
-    <Box
-      p={2}
-      style={{
-        background: 'var(--color-paper, #fffdf8)',
-        borderRadius: 'var(--mantine-radius-sm)',
-        lineHeight: 0,
-        flexShrink: 0,
-      }}
-    >
-      <Image src={src} alt="" w={size} h={size} fit="contain" />
-    </Box>
-  );
-}
+import styles from './AssetSelect.module.css';
 
 interface AssetSelectOption {
   value: string;
@@ -79,13 +63,26 @@ export function AssetSelect({
       }}
       data={[...data]}
       value={value}
-      leftSection={selectedPreview ? <PreviewChip src={selectedPreview} size={previewSize - 4} /> : undefined}
+      leftSection={
+        selectedPreview ? (
+          <Image
+            src={selectedPreview}
+            alt=""
+            w={previewSize}
+            h={previewSize}
+            fit="contain"
+            className={styles.previewImg}
+          />
+        ) : undefined
+      }
       leftSectionPointerEvents="none"
       renderOption={({ option }) => {
         const preview = getPreviewSrc(option.value);
         return (
           <Group gap="sm" wrap="nowrap">
-            {preview ? <PreviewChip src={preview} size={previewSize - 4} /> : null}
+            {preview ? (
+              <Image src={preview} alt="" w={previewSize} h={previewSize} fit="contain" className={styles.previewImg} />
+            ) : null}
             <Text size="sm" truncate>
               {option.label}
             </Text>
