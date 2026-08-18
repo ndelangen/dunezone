@@ -71,7 +71,6 @@ export function TroopSideFields({
             return (
               <ControlBlock
                 title={title}
-                description="Select the symbol rendered inside the troop token."
                 input={
                   <AssetSelect
                     id={`${idBase}-img`}
@@ -124,7 +123,6 @@ export function TroopSideFields({
             return (
               <ControlBlock
                 title={title}
-                description="Optional marker rendered on the troop token."
                 input={
                   <AssetSelect
                     id={`${idBase}-star`}

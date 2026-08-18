@@ -1,0 +1,8 @@
+/* The (?) affordance: hover, focus, or touch reveals the control's constraint note. */
+.help {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  color: var(--mantine-color-dimmed);
+  cursor: help;
+}

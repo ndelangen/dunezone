@@ -116,7 +116,6 @@ function SupportingLeaderCard({
                   {(field) => (
                     <ControlBlock
                       title="Leader portrait"
-                      description="Choose the portrait rendered on this token."
                       input={
                         <AssetSelect
                           id={`leader-${index}-img`}

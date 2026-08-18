@@ -51,7 +51,6 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
               <Stack gap="md">
                 <ControlBlock
                   title="Advantage rule"
-                  description="The primary rules text for this faction advantage."
                   input={
                     <Textarea
                       id={`adv-${index}-text`}

@@ -126,7 +126,6 @@ function TreatmentControls({ form, onRandom }: { form: FactionFormApi; onRandom:
     <Box className={styles.pipelineStage}>
       <ControlBlock
         title="02 · Treatment"
-        description="Tune how the selected pattern is blended into the faction background."
         tool={<RandomButton label="Random treatment" onClick={onRandom} />}
         input={
           <Stack gap="lg">
@@ -548,7 +547,6 @@ export function FactionFormSectionBackground({ form }: { form: FactionFormApi })
                   <Box className={styles.pipelineStage}>
                     <ControlBlock
                       title="01 · Pattern"
-                      description="Choose the texture used to build the faction background."
                       tool={
                         <RandomButton
                           label="Random pattern"
