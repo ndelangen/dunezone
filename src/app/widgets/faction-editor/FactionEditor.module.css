@@ -85,16 +85,20 @@
   height: 100%;
 }
 
-.troopProof,
 .planetProof {
   width: min(100%, 17rem);
   margin: 0 auto;
   padding: var(--mantine-spacing-md) 0;
 }
 
-/* TroopToken's root fills its parent, so the proof and each grid cell must supply the square. */
+/* TroopToken's root fills its parent, so the proof and each grid cell supply the square —
+   with the leader roster's treatment: round crop and Surface lift. */
 .troopProof {
   aspect-ratio: 1;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: var(--panel-shadow);
 }
 
 .troopProof > div {
@@ -104,6 +108,9 @@
 
 .troopGrid > div {
   aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: var(--panel-shadow);
 }
 
 /* Same treatment as the identity token: round crop, rail width, Surface lift. */
