@@ -1,1 +1,1 @@
-export { Surface } from './Surface';
+export { DetachedSurfaceBoundary, Surface } from './Surface';

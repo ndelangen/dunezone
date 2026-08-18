@@ -21,6 +21,15 @@ export function PaintedSurfaceBoundary({ children }: { children: ReactNode }) {
   return <InsideSurface.Provider value>{children}</InsideSurface.Provider>;
 }
 
+/**
+ * Resets the nesting guard for content that portals out of the page — a popover or menu pane whose skin IS a `Surface`.
+ * React context crosses portals, so without this a floating pane opened from inside a surface warns even though nothing visually nests: the portal detaches it from the pane it was opened over.
+ * Wrap the portalled content, never in-flow content.
+ */
+export function DetachedSurfaceBoundary({ children }: { children: ReactNode }) {
+  return <InsideSurface.Provider value={false}>{children}</InsideSurface.Provider>;
+}
+
 export interface SurfaceProps {
   children: ReactNode;
   /**

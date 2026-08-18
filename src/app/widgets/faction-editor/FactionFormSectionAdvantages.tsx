@@ -2,7 +2,6 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { Alert, Box, Group, Stack, Text, TextInput, Textarea } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { Surface } from '@ui/surface';
 import { useState } from 'react';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
@@ -17,84 +16,82 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
   const warningId = `adv-${index}-text-warning`;
 
   return (
-    <Surface padding="md">
-      <Stack gap="md">
-        <Box>
-          <Text fw={700}>Advantage {index + 1}</Text>
-          <Text c="dimmed" size="xs">
-            {advantage.title?.trim() || 'Untitled advantage'}
-          </Text>
-        </Box>
+    <Stack gap="md">
+      <Box>
+        <Text fw={700}>Advantage {index + 1}</Text>
+        <Text c="dimmed" size="xs">
+          {advantage.title?.trim() || 'Untitled advantage'}
+        </Text>
+      </Box>
 
-        <form.Field name={`rules.advantages[${index}].title`}>
-          {(field) => (
-            <ControlBlock
-              title="Title (optional)"
-              description="Leave blank when the rule text is sufficient on its own."
-              input={
-                <TextInput
-                  id={`adv-${index}-title`}
-                  aria-label="Title (optional)"
-                  value={field.state.value ?? ''}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
-                />
-              }
-            />
-          )}
-        </form.Field>
+      <form.Field name={`rules.advantages[${index}].title`}>
+        {(field) => (
+          <ControlBlock
+            title="Title (optional)"
+            description="Leave blank when the rule text is sufficient on its own."
+            input={
+              <TextInput
+                id={`adv-${index}-title`}
+                aria-label="Title (optional)"
+                value={field.state.value ?? ''}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+              />
+            }
+          />
+        )}
+      </form.Field>
 
-        <form.Field name={`rules.advantages[${index}].text`}>
-          {(field) => {
-            const textIsBlank = field.state.value.trim().length === 0;
-            return (
-              <Stack gap="md">
-                <ControlBlock
-                  title="Advantage rule"
-                  input={
-                    <Textarea
-                      id={`adv-${index}-text`}
-                      aria-label="Advantage rule"
-                      autosize
-                      minRows={3}
-                      value={field.state.value}
-                      aria-describedby={textIsBlank ? warningId : undefined}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.currentTarget.value)}
-                    />
-                  }
-                />
-                {textIsBlank ? (
-                  <Text id={warningId} c="yellow.9" size="xs" role="status">
-                    Advantage text is empty. This is advisory and does not prevent saving.
-                  </Text>
-                ) : null}
-              </Stack>
-            );
-          }}
-        </form.Field>
+      <form.Field name={`rules.advantages[${index}].text`}>
+        {(field) => {
+          const textIsBlank = field.state.value.trim().length === 0;
+          return (
+            <Stack gap="md">
+              <ControlBlock
+                title="Advantage rule"
+                input={
+                  <Textarea
+                    id={`adv-${index}-text`}
+                    aria-label="Advantage rule"
+                    autosize
+                    minRows={3}
+                    value={field.state.value}
+                    aria-describedby={textIsBlank ? warningId : undefined}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  />
+                }
+              />
+              {textIsBlank ? (
+                <Text id={warningId} c="yellow.9" size="xs" role="status">
+                  Advantage text is empty. This is advisory and does not prevent saving.
+                </Text>
+              ) : null}
+            </Stack>
+          );
+        }}
+      </form.Field>
 
-        <form.Field name={`rules.advantages[${index}].karama`}>
-          {(field) => (
-            <ControlBlock
-              title="Karama interaction (optional)"
-              description="Describe the Karama effect only when this advantage has one."
-              input={
-                <Textarea
-                  id={`adv-${index}-karama`}
-                  aria-label="Karama interaction (optional)"
-                  autosize
-                  minRows={2}
-                  value={field.state.value ?? ''}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
-                />
-              }
-            />
-          )}
-        </form.Field>
-      </Stack>
-    </Surface>
+      <form.Field name={`rules.advantages[${index}].karama`}>
+        {(field) => (
+          <ControlBlock
+            title="Karama interaction (optional)"
+            description="Describe the Karama effect only when this advantage has one."
+            input={
+              <Textarea
+                id={`adv-${index}-karama`}
+                aria-label="Karama interaction (optional)"
+                autosize
+                minRows={2}
+                value={field.state.value ?? ''}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+              />
+            }
+          />
+        )}
+      </form.Field>
+    </Stack>
   );
 }
 
