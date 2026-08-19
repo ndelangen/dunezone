@@ -12,25 +12,32 @@ export type AssetTypeStatus = 'live' | 'planned';
 
 type AssetTypeDefinition = {
   category: AssetCategory;
-  /** plural, as the landing's pile labels read */
+  /** the full plural name — footnotes, aria labels */
   label: string;
+  /** what a pile wears inside an already-labelled group row */
+  shortLabel: string;
   status: AssetTypeStatus;
 };
 
 export const ASSET_TYPES = {
-  'card-treachery': { category: 'cards', label: 'Treachery cards', status: 'live' },
-  'card-spice': { category: 'cards', label: 'Spice cards', status: 'planned' },
-  'card-custom': { category: 'cards', label: 'Custom cards', status: 'planned' },
-  'card-leaderability': { category: 'cards', label: 'Leader ability cards', status: 'planned' },
-  'card-storm': { category: 'cards', label: 'Storm cards', status: 'planned' },
-  'card-stronghold': { category: 'cards', label: 'Stronghold cards', status: 'planned' },
-  'card-nexus': { category: 'cards', label: 'Nexus cards', status: 'planned' },
-  deck: { category: 'decks', label: 'Decks', status: 'live' },
-  'token-round': { category: 'tokens', label: 'Round tokens', status: 'live' },
-  'token-gear': { category: 'tokens', label: 'Gear tokens', status: 'live' },
-  'token-square': { category: 'tokens', label: 'Square tokens', status: 'live' },
-  'token-rectangle': { category: 'tokens', label: 'Rectangle tokens', status: 'planned' },
-  board: { category: 'boards', label: 'Boards', status: 'planned' },
+  'card-treachery': { category: 'cards', label: 'Treachery cards', shortLabel: 'Treachery', status: 'live' },
+  'card-spice': { category: 'cards', label: 'Spice cards', shortLabel: 'Spice', status: 'planned' },
+  'card-custom': { category: 'cards', label: 'Custom cards', shortLabel: 'Custom', status: 'planned' },
+  'card-leaderability': {
+    category: 'cards',
+    label: 'Leader ability cards',
+    shortLabel: 'Leader ability',
+    status: 'planned',
+  },
+  'card-storm': { category: 'cards', label: 'Storm cards', shortLabel: 'Storm', status: 'planned' },
+  'card-stronghold': { category: 'cards', label: 'Stronghold cards', shortLabel: 'Stronghold', status: 'planned' },
+  'card-nexus': { category: 'cards', label: 'Nexus cards', shortLabel: 'Nexus', status: 'planned' },
+  deck: { category: 'decks', label: 'Decks', shortLabel: 'Decks', status: 'live' },
+  'token-round': { category: 'tokens', label: 'Round tokens', shortLabel: 'Round', status: 'live' },
+  'token-gear': { category: 'tokens', label: 'Gear tokens', shortLabel: 'Gear', status: 'live' },
+  'token-square': { category: 'tokens', label: 'Square tokens', shortLabel: 'Square', status: 'live' },
+  'token-rectangle': { category: 'tokens', label: 'Rectangle tokens', shortLabel: 'Rectangle', status: 'planned' },
+  board: { category: 'boards', label: 'Boards', shortLabel: 'Boards', status: 'planned' },
 } as const satisfies Record<string, AssetTypeDefinition>;
 
 export type AssetType = keyof typeof ASSET_TYPES;

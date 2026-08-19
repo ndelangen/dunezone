@@ -156,7 +156,7 @@ function emptyOutlineShape(type: AssetType): { width: number; height: number; bo
   }
 }
 
-function EmptyPileOutline({ type, label, planned }: { type: AssetType; label: string; planned: boolean }) {
+function EmptyPileOutline({ type, planned }: { type: AssetType; planned: boolean }) {
   return (
     <div
       style={{
@@ -168,7 +168,7 @@ function EmptyPileOutline({ type, label, planned }: { type: AssetType; label: st
       }}
     >
       <Text size="xs" c="dimmed" ta="center" px={6}>
-        {planned ? `reserved for ${label.toLowerCase()}` : 'none yet'}
+        {planned ? 'reserved' : 'none yet'}
       </Text>
     </div>
   );
@@ -180,7 +180,7 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
   const isCardish = type.startsWith('card-') || type === 'deck';
   const art =
     planned || entries.length === 0 ? (
-      <EmptyPileOutline type={type} label={definition.label} planned={planned} />
+      <EmptyPileOutline type={type} planned={planned} />
     ) : type === 'deck' ? (
       <DeckPile entries={entries} width={110} />
     ) : isCardish ? (
@@ -194,7 +194,7 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
       {art}
       <Group gap={6}>
         <Text fw={700} c={planned ? 'dimmed' : undefined}>
-          {definition.label}
+          {definition.shortLabel}
         </Text>
         {planned ? (
           <Badge size="xs" variant="outline" color="gray">
