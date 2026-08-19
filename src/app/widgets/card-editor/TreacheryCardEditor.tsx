@@ -1,27 +1,18 @@
-import {
-  Button,
-  Checkbox,
-  Group,
-  NumberInput,
-  SegmentedControl,
-  Slider,
-  Stack,
-  Text,
-  Textarea,
-  TextInput,
-} from '@mantine/core';
+import { Alert, Group, NumberInput, SegmentedControl, Slider, Stack, Text, Textarea, TextInput } from '@mantine/core';
 import { AssetSelect } from '@ui/control/AssetSelect';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Brush, Layers, Plus, ScrollText, Trash2, Type } from 'lucide-react';
+import { Brush, ScrollText, Type } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { BackgroundComposer } from '@app/widgets/background-composer/BackgroundComposer';
+import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
 import {
   assetOptionToPreviewSrc,
   decalAssetOptions,
-  decalAssetOptionToLabel,
   iconAssetOptions,
   iconAssetOptionToLabel,
 } from '@app/widgets/faction-editor/factionFormAssetUtils';
@@ -30,8 +21,9 @@ import { backgroundPresets } from '@game/data/backgrounds';
 import type { Treachery } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
+import styles from './TreacheryCardEditor.module.css';
+
 const iconOptions = iconAssetOptions.map((value) => ({ value, label: iconAssetOptionToLabel(value) }));
-const decalOptions = decalAssetOptions.map((value) => ({ value, label: decalAssetOptionToLabel(value) }));
 
 /* ------------------------------ draft model ------------------------------ */
 /* The draft IS the stored shape: the same Treachery zod validates on save (server-side
@@ -71,9 +63,13 @@ function sameBackground(a: TreacheryDraft['head'], b: TreacheryDraft['head']): b
   );
 }
 
-function kindOf(draft: TreacheryDraft): string | null {
-  return CARD_KINDS.find((kind) => sameBackground(kind.head, draft.head))?.key ?? null;
-}
+const HEAD_PRESETS = CARD_KINDS.map(({ key, label, head }) => ({ key, label, background: head }));
+const ICON_BACKDROP_PRESETS = CARD_KINDS.map(({ key, label, striped }) => ({ key, label, background: striped }));
+
+/* Center-to-edge slider span: the treachery card is 900 × 1263 in card space. */
+const DECAL_OFFSET_RANGE = [450, 630] as const;
+
+const DEFAULT_TAB_VECTOR = '/vector/icon/projectile.svg';
 
 /* ------------------------------ rail proof ------------------------------ */
 
@@ -125,198 +121,233 @@ type Patch = (update: Partial<TreacheryDraft>) => void;
 
 function IdentityFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
   return (
-    <Stack gap="sm">
-      <TextInput
-        label="Name"
-        description="Names the card and determines its URL"
-        value={draft.name}
-        onChange={(event) => patch({ name: event.currentTarget.value })}
+    <Stack gap="md">
+      <ControlBlock
+        title="Name"
+        description="Names the card and determines its URL."
+        input={
+          <TextInput
+            aria-label="Name"
+            value={draft.name}
+            onChange={(event) => patch({ name: event.currentTarget.value })}
+          />
+        }
       />
-      <TextInput
-        label="Type line"
-        description="Shown under the name, e.g. “Weapon - Projectile”"
-        value={draft.subName}
-        onChange={(event) => patch({ subName: event.currentTarget.value })}
+      <ControlBlock
+        title="Type line"
+        description="Shown under the name, e.g. “Weapon - Projectile”."
+        input={
+          <TextInput
+            aria-label="Type line"
+            value={draft.subName}
+            onChange={(event) => patch({ subName: event.currentTarget.value })}
+          />
+        }
       />
     </Stack>
   );
 }
 
-function FrameFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
-  const presetKind = kindOf(draft);
-  /* "Custom" stays selected while the head still equals a preset — the choice itself opens the composer. */
-  const [customChosen, setCustomChosen] = useState(presetKind === null);
-  const kind = customChosen || presetKind === null ? 'custom' : presetKind;
+/* A background chosen from named presets, with the composer behind a Custom option.
+   "Custom" stays selected while the value still equals a preset — the choice itself opens the composer. */
+function BackgroundPresetControl({
+  title,
+  description,
+  usedOn,
+  presets,
+  value,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  usedOn: string;
+  presets: readonly { key: string; label: string; background: TreacheryDraft['head'] }[];
+  value: TreacheryDraft['head'];
+  onChange: (background: TreacheryDraft['head'], presetKey: string | null) => void;
+}) {
+  const presetKey = presets.find((preset) => sameBackground(preset.background, value))?.key ?? null;
+  const [customChosen, setCustomChosen] = useState(presetKey === null);
+  const selected = customChosen || presetKey === null ? 'custom' : presetKey;
   return (
-    <Stack gap="sm">
-      <div>
-        <Text size="sm" fw={500} mb={4}>
-          Card kind
-        </Text>
-        <SegmentedControl
-          fullWidth
-          value={kind}
-          onChange={(value) => {
-            if (value === 'custom') {
-              setCustomChosen(true);
-              return;
-            }
-            const nextKind = CARD_KINDS.find((candidate) => candidate.key === value);
-            if (nextKind) {
-              setCustomChosen(false);
-              patch({ head: nextKind.head, icon: [nextKind.striped, draft.icon[1]] });
-            }
-          }}
-          data={[
-            ...CARD_KINDS.map((option) => ({ value: option.key, label: option.label })),
-            { value: 'custom', label: 'Custom' },
-          ]}
-        />
-      </div>
-      {kind === 'custom' ? (
-        <BackgroundComposer value={draft.head} onChange={(head) => patch({ head })} usedOn="this card's head" />
-      ) : null}
-      <AssetSelect
-        aria-label="Corner icon"
-        allowDeselect={false}
-        limit={30}
-        data={iconOptions}
-        getPreviewSrc={assetOptionToPreviewSrc}
-        glyphPreviews
-        value={draft.icon[1]}
-        onChange={(value) => {
-          if (value) {
-            patch({ icon: [draft.icon[0], value as TreacheryDraft['icon'][1]] });
-          }
+    <ControlBlock
+      title={title}
+      description={description}
+      input={
+        <Stack gap="sm">
+          <SegmentedControl
+            fullWidth
+            value={selected}
+            onChange={(next) => {
+              if (next === 'custom') {
+                setCustomChosen(true);
+                return;
+              }
+              const preset = presets.find((candidate) => candidate.key === next);
+              if (preset) {
+                setCustomChosen(false);
+                onChange(preset.background, preset.key);
+              }
+            }}
+            data={[
+              ...presets.map((preset) => ({ value: preset.key, label: preset.label })),
+              { value: 'custom', label: 'Custom' },
+            ]}
+          />
+          {selected === 'custom' ? (
+            <BackgroundComposer value={value} onChange={(background) => onChange(background, null)} usedOn={usedOn} />
+          ) : null}
+        </Stack>
+      }
+    />
+  );
+}
+
+function FrameFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
+  return (
+    <Stack gap="md">
+      <BackgroundPresetControl
+        title="Card kind"
+        description="The title band's background. Picking a kind also resets the icon backdrop to that kind's stripes."
+        usedOn="this card's head"
+        presets={HEAD_PRESETS}
+        value={draft.head}
+        onChange={(head, presetKey) => {
+          const kind = CARD_KINDS.find((candidate) => candidate.key === presetKey);
+          patch(kind ? { head, icon: [kind.striped, draft.icon[1]] } : { head });
         }}
       />
-      <div>
-        <Text size="sm" fw={500} mb={4}>
-          Icon scale
-        </Text>
-        <Slider
-          min={0.5}
-          max={2}
-          step={0.05}
-          value={draft.iconScale ?? 1}
-          onChange={(value) => patch({ iconScale: value })}
-          label={(value) => value.toFixed(2)}
-        />
-      </div>
+      <BackgroundPresetControl
+        title="Icon backdrop"
+        description="The background behind the top-right corner icon, independent of the title band."
+        usedOn="the corner icon disc"
+        presets={ICON_BACKDROP_PRESETS}
+        value={draft.icon[0]}
+        onChange={(backdrop) => patch({ icon: [backdrop, draft.icon[1]] })}
+      />
+      <ControlBlock
+        title="Corner icon"
+        description="The vector in the top-right disc; it doubles as this chapter's tab icon."
+        input={
+          <AssetSelect
+            aria-label="Corner icon"
+            allowDeselect={false}
+            limit={30}
+            data={iconOptions}
+            getPreviewSrc={assetOptionToPreviewSrc}
+            glyphPreviews
+            value={draft.icon[1]}
+            onChange={(value) => {
+              if (value) {
+                patch({ icon: [draft.icon[0], value as TreacheryDraft['icon'][1]] });
+              }
+            }}
+          />
+        }
+      />
+      <ControlBlock
+        title="Icon scale"
+        description="Resize the corner icon within its disc; 1 is the reference size."
+        tool={
+          <NumberInput
+            aria-label="Icon scale"
+            w={96}
+            min={0.5}
+            max={2}
+            step={0.05}
+            decimalScale={2}
+            value={draft.iconScale ?? 1}
+            onChange={(value) => {
+              if (typeof value === 'number') {
+                patch({ iconScale: value });
+              }
+            }}
+          />
+        }
+        input={
+          <Slider
+            aria-label="Icon scale slider"
+            min={0.5}
+            max={2}
+            step={0.05}
+            value={draft.iconScale ?? 1}
+            onChange={(value) => patch({ iconScale: value })}
+            label={(value) => value.toFixed(2)}
+          />
+        }
+      />
     </Stack>
   );
 }
 
 function ArtworkFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
-  const setDecal = (index: number, update: Partial<TreacheryDraft['decals'][number]>) => {
-    patch({ decals: draft.decals.map((decal, i) => (i === index ? { ...decal, ...update } : decal)) });
-  };
+  const decals = draft.decals;
   return (
     <Stack gap="md">
-      {draft.decals.map((decal, index) => (
+      <Group justify="space-between" align="center">
+        <Text fw={700} size="sm">
+          Decals
+        </Text>
+        <ListLengthActions
+          addLabel="Add decal"
+          removeLabel="Remove last decal"
+          removeDisabled={decals.length === 0}
+          onAdd={() =>
+            patch({
+              decals: [
+                ...decals,
+                {
+                  id: (decalAssetOptions[0] ?? '') as TreacheryDraft['decals'][number]['id'],
+                  muted: false,
+                  outline: true,
+                  scale: 1,
+                  offset: [0, 0],
+                },
+              ],
+            })
+          }
+          onRemove={() => patch({ decals: decals.slice(0, -1) })}
+        />
+      </Group>
+      {decals.length === 0 ? (
+        <Alert color="gray" variant="light" title="No decals">
+          Decals are optional. The card remains valid without decorative artwork.
+        </Alert>
+      ) : null}
+      {decals.map((decal, index) => (
         <Stack
           key={index}
-          gap={6}
+          gap="sm"
           style={{ borderLeft: '2px solid var(--mantine-color-default-border)', paddingLeft: 10 }}
         >
-          <Group justify="space-between">
-            <Text size="sm" fw={600}>
-              Decal {index + 1}
-            </Text>
-            <Button
-              size="compact-xs"
-              variant="subtle"
-              color="red"
-              leftSection={<Trash2 size={13} aria-hidden />}
-              onClick={() => patch({ decals: draft.decals.filter((_, i) => i !== index) })}
-            >
-              Remove
-            </Button>
-          </Group>
-          <AssetSelect
-            aria-label={`Decal ${index + 1} artwork`}
-            allowDeselect={false}
-            limit={30}
-            data={decalOptions}
-            getPreviewSrc={assetOptionToPreviewSrc}
-            glyphPreviews
-            value={decal.id}
-            onChange={(value) => {
-              if (value) {
-                setDecal(index, { id: value as TreacheryDraft['decals'][number]['id'] });
-              }
-            }}
+          <Text size="sm" fw={600}>
+            Decal {index + 1}
+          </Text>
+          <DecalControls
+            value={decal}
+            onChange={(next) => patch({ decals: decals.map((current, i) => (i === index ? next : current)) })}
+            label={`decal ${index + 1}`}
+            offsetRange={DECAL_OFFSET_RANGE}
           />
-          <Slider
-            min={0.4}
-            max={2.2}
-            step={0.05}
-            value={decal.scale}
-            onChange={(value) => setDecal(index, { scale: value })}
-            label={(value) => `scale ${value.toFixed(2)}`}
-          />
-          <Group gap="md">
-            <Checkbox
-              label="Outline"
-              checked={decal.outline}
-              onChange={(event) => setDecal(index, { outline: event.currentTarget.checked })}
-            />
-            <Checkbox
-              label="Muted"
-              checked={decal.muted}
-              onChange={(event) => setDecal(index, { muted: event.currentTarget.checked })}
-            />
-            <NumberInput
-              size="xs"
-              w={70}
-              label="X"
-              value={decal.offset[0]}
-              onChange={(value) => setDecal(index, { offset: [Number(value) || 0, decal.offset[1]] })}
-            />
-            <NumberInput
-              size="xs"
-              w={70}
-              label="Y"
-              value={decal.offset[1]}
-              onChange={(value) => setDecal(index, { offset: [decal.offset[0], Number(value) || 0] })}
-            />
-          </Group>
         </Stack>
       ))}
-      <Button
-        variant="light"
-        size="xs"
-        leftSection={<Plus size={14} aria-hidden />}
-        onClick={() =>
-          patch({
-            decals: [
-              ...draft.decals,
-              {
-                id: (decalAssetOptions[0] ?? '') as TreacheryDraft['decals'][number]['id'],
-                muted: false,
-                outline: true,
-                scale: 1,
-                offset: [0, 0],
-              },
-            ],
-          })
-        }
-      >
-        Add decal
-      </Button>
     </Stack>
   );
 }
 
 function RulesTextField({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
   return (
-    <Textarea
-      label="Rules text"
-      description="Line breaks become paragraphs on the card"
-      autosize
-      minRows={4}
-      value={draft.text}
-      onChange={(event) => patch({ text: event.currentTarget.value })}
+    <ControlBlock
+      title="Rules text"
+      description="Line breaks become paragraphs on the card."
+      input={
+        <Textarea
+          aria-label="Rules text"
+          autosize
+          minRows={4}
+          value={draft.text}
+          onChange={(event) => patch({ text: event.currentTarget.value })}
+        />
+      }
     />
   );
 }
@@ -342,6 +373,12 @@ export function treacheryDraftWarnings(draft: TreacheryDraft): TreacheryDraftWar
 }
 
 /* ------------------------------ workbench ------------------------------ */
+
+/** The Frame tab wears the card's own corner icon, so the chapter list reflects the data. */
+function ChapterGlyph({ vector }: { vector: string }) {
+  const src = assetOptionToPreviewSrc(vector) ?? assetOptionToPreviewSrc(DEFAULT_TAB_VECTOR);
+  return src ? <img src={src} alt="" width={21} height={21} className={styles.glyph} /> : null;
+}
 
 const panel = (children: ReactNode) => (
   <Stack gap="md" p="lg">
@@ -393,7 +430,7 @@ export function TreacheryCardEditor({
           {
             value: 'frame',
             label: 'Frame',
-            icon: <Layers size={21} aria-hidden />,
+            icon: <ChapterGlyph vector={draft.icon[1]} />,
             panel: panel(<FrameFields draft={draft} patch={patch} />),
           },
           {
