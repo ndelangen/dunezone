@@ -81,7 +81,7 @@ How subtly or strongly the pattern color participates in a faction's composed ba
 The choice to reverse which light and dark regions of a selected pattern reveal the pattern color.
 
 **Asset type**:
-The flat discriminator naming exactly what a community asset is — a treachery card, a round token, a treachery deck. There is no nested category-plus-subtype structure; each Asset type carries its own content schema and its own Renderer.
+The flat discriminator naming exactly what a community asset is — a treachery card, a round token, a deck. There is no nested category-plus-subtype structure; each Asset type carries its own content schema and its own Renderer. Decks are a single Asset type: a deck may hold any cards, deliberately unconstrained by the model.
 
 **Asset category**:
 The browse grouping of Asset types — cards, decks, tokens, boards — used for discovery and URLs. It is always derived from the Asset type, never maintained independently. Asset slugs are unique within an Asset category, not globally.
@@ -90,7 +90,7 @@ The browse grouping of Asset types — cards, decks, tokens, boards — used for
 The shared back face of a deck, defined only as part of that deck — never as a standalone asset. Publishing a deck publishes its Cardback; the member cards' faces are published by the card assets themselves.
 
 **Ruleset deck slot**:
-A named position on a ruleset holding exactly one deck — initially a treachery slot and a spice slot — alongside a custom-decks slot holding any number of decks. A deck may occupy slots in many rulesets, and a deck's detail page shows the rulesets that link to it.
+A named position on a ruleset holding at most one deck — initially a treachery slot and a spice slot — alongside a custom-decks slot holding any number of decks. Slot names are curatorial labels, not constraints: any deck may fill any slot, and a slot may sit empty. A deck may occupy slots in many rulesets; its detail page shows the rulesets that link to it, while the links themselves are managed only from the ruleset's edit surface.
 
 **Renderer**:
 The currently deployed implementation that produces one asset type. Exactly one Renderer is available at a time.
