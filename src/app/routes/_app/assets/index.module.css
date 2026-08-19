@@ -1,0 +1,77 @@
+/*
+ * The ledger rows measure the pane, not the window: a row is inset from the viewport by the page
+ * gutter, the pane border and the cell padding, and the page frame caps its width besides. So the
+ * reflow is a container query.
+ */
+.pileGroup {
+  min-width: 0;
+  container: assets-pile-group / inline-size;
+}
+
+/* The label sits beside its piles while the row is wide enough to seat two of them next to it. */
+.pileGroupLayout {
+  display: grid;
+  grid-template-areas: "label piles";
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: var(--mantine-spacing-xl);
+  align-items: center;
+}
+
+.pileGroupLayout > * {
+  min-width: 0;
+}
+
+.pileGroupLabel {
+  grid-area: label;
+}
+
+/*
+ * Fixed slots with an assured gap, auto-filled: the track count follows the row (5, then 4, then
+ * 3, as it narrows), space-evenly spreads the leftover, and every group row computes the same
+ * tracks, keeping columns aligned. The max-width keeps a sixth column from ever fitting.
+ */
+.pileGrid {
+  --pile-gap: var(--space-6);
+
+  display: grid;
+  grid-area: piles;
+  grid-template-columns: repeat(auto-fill, minmax(0, var(--pile-slot)));
+  gap: var(--pile-gap);
+  align-items: end;
+  justify-content: space-evenly;
+  max-width: calc(var(--pile-slot) * 6 + var(--pile-gap) * 5 - 1px);
+}
+
+/* Art draws at the width its track actually has, so a flexed slot cannot be overflowed. */
+.pileArt {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/*
+ * Below two slots plus the label column, auto-fill would seat a single pile. The label moves above
+ * instead, which hands the grid back the label column and the gap either side of it — enough for
+ * two abreast, stated outright rather than left to auto-fill, which cannot be given a floor.
+ *
+ * 34rem is derived from those widths: a 150px label, a 2rem gap and two 150px slots either side of
+ * their own 1.5rem gap need 506px, so the label steps aside before the row gets that narrow.
+ * Re-derive it if the slot width changes — a container query condition cannot read `--pile-slot`.
+ */
+@container assets-pile-group (max-width: 34rem) {
+  .pileGroupLayout {
+    grid-template-areas:
+      "label"
+      "piles";
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mantine-spacing-md);
+  }
+
+  .pileGrid {
+    --pile-gap: var(--space-4);
+
+    grid-template-columns: repeat(2, minmax(0, var(--pile-slot)));
+    max-width: calc(var(--pile-slot) * 2 + var(--pile-gap));
+    margin-inline: auto;
+  }
+}

@@ -5,11 +5,14 @@ import { Link, createFileRoute } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
+import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 
 import { loadAssetCataloguePage, useAssetCataloguePage } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
 
 import { AssetFace, CARD_ASPECT } from './-assetFaces';
+import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/assets/')({
   loader: loadAssetCataloguePage,
@@ -21,10 +24,30 @@ const JITTER_ROT = [2.5, -1.8, 0.8, -2.6, 3.2];
 const JITTER_TOP = [5, -4, 2, 6, -3];
 const JITTER_LEFT = [3, -4, 2, -3, 4];
 
-/** the one slot width every pile, placeholder, and grid track agrees on */
+/** the slot width a pile is drawn at when the row has room for it in full */
 const PILE_SLOT = 150;
 /** horizontal shift per extra card in a fan */
 const FAN_OVERLAP = 26;
+
+/* Handed to the stylesheet so the grid tracks and the art cannot drift apart. */
+const pileGroupStyle = { '--pile-slot': `${PILE_SLOT}px` } as CSSProperties;
+
+/**
+ * The width the pile's art actually has: grid tracks flex below their slot ceiling on narrow rows (see index.module.css), so a fixed pixel width would overflow its own track.
+ */
+function useSlotWidth() {
+  const [node, setNode] = useState<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    if (!node) {
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => setWidth(entry?.contentRect.width ?? 0));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [node]);
+  return { ref: setNode, width };
+}
 
 /** the ledger's three rows: each names the Asset types whose piles it holds */
 const PILE_GROUPS: { label: string; types: AssetType[] }[] = [
@@ -74,11 +97,11 @@ function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
 }
 
 /** a small overlapping fan of real faces — card-type piles; cards share out the slot width */
-function MiniFan({ entries }: { entries: AssetListEntry[] }) {
-  const cardWidth = PILE_SLOT - (entries.length - 1) * FAN_OVERLAP;
+function MiniFan({ entries, slot }: { entries: AssetListEntry[]; slot: number }) {
+  const cardWidth = slot - (entries.length - 1) * FAN_OVERLAP;
   const mid = (entries.length - 1) / 2;
   return (
-    <div style={{ position: 'relative', width: PILE_SLOT, height: cardWidth * CARD_ASPECT + 16 }}>
+    <div style={{ position: 'relative', width: slot, height: cardWidth * CARD_ASPECT + 16 }}>
       {entries.map((entry, i) => (
         <div
           key={entry.id}
@@ -98,11 +121,11 @@ function MiniFan({ entries }: { entries: AssetListEntry[] }) {
 }
 
 /** a squared-up pile — decks; the newest deck's cardback on top */
-function DeckPile({ entries }: { entries: AssetListEntry[] }) {
+function DeckPile({ entries, slot }: { entries: AssetListEntry[]; slot: number }) {
   const top = entries[0] as AssetListEntry;
-  const cardWidth = PILE_SLOT - 6;
+  const cardWidth = slot - 6;
   return (
-    <div style={{ position: 'relative', width: PILE_SLOT, height: cardWidth * CARD_ASPECT + 10 }}>
+    <div style={{ position: 'relative', width: slot, height: cardWidth * CARD_ASPECT + 10 }}>
       {[2, 1, 0].map((n) => (
         <div key={n} style={{ position: 'absolute', top: n * 4, left: n * 2 }}>
           <AssetFace type={top.type} data={top.data} name={top.name} width={cardWidth} />
@@ -193,20 +216,24 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
   const definition = ASSET_TYPES[type];
   const planned = definition.status === 'planned';
   const isCardish = type.startsWith('card-') || type === 'deck';
+  const slot = useSlotWidth();
+  const drawnAt = Math.min(PILE_SLOT, slot.width);
   const art =
     planned || entries.length === 0 ? (
       <EmptyPileOutline type={type} planned={planned} />
-    ) : type === 'deck' ? (
-      <DeckPile entries={entries} />
+    ) : drawnAt === 0 ? null : type === 'deck' ? (
+      <DeckPile entries={entries} slot={drawnAt} />
     ) : isCardish ? (
-      <MiniFan entries={entries.slice(0, 4)} />
+      <MiniFan entries={entries.slice(0, 4)} slot={drawnAt} />
     ) : (
-      <TokenStack entries={entries} width={type === 'token-rectangle' ? PILE_SLOT - 26 : 96} />
+      <TokenStack entries={entries} width={type === 'token-rectangle' ? drawnAt - 26 : 96} />
     );
 
   const body = (
     <Stack gap={8} align="center">
-      {art}
+      <div ref={slot.ref} className={styles.pileArt}>
+        {art}
+      </div>
       <Group gap={6}>
         <Text fw={700} c={planned ? 'dimmed' : undefined}>
           {definition.shortLabel}
@@ -266,34 +293,21 @@ function AssetsLandingPage() {
               const allPlanned = group.types.every((type) => ASSET_TYPES[type].status === 'planned');
               return (
                 <SectionedSurface.Row key={group.label}>
-                  <Group gap="xl" align="center" wrap="nowrap">
-                    <Stack gap={2} style={{ width: 150, flexShrink: 0 }}>
-                      <Eyebrow>{group.label}</Eyebrow>
-                      <Text size="sm" c="dimmed">
-                        {allPlanned ? 'planned' : `${total} asset${total === 1 ? '' : 's'}`}
-                      </Text>
-                    </Stack>
-                    {/* Fixed slots with an assured gap, auto-filled: the track count follows the
-                        container (5 → 4 → 3 → 2 as it narrows), space-evenly spreads the leftover,
-                        and every group row computes the same tracks, keeping columns aligned.
-                        The max-width keeps a sixth column from ever fitting on wide screens. */}
-                    <div
-                      style={{
-                        flex: 1,
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(auto-fill, minmax(0, ${PILE_SLOT}px))`,
-                        justifyContent: 'space-evenly',
-                        columnGap: 24,
-                        rowGap: 24,
-                        alignItems: 'end',
-                        maxWidth: PILE_SLOT * 6 + 24 * 5 - 1,
-                      }}
-                    >
-                      {group.types.map((type) => (
-                        <TypePile key={type} type={type} entries={byType.get(type) ?? []} />
-                      ))}
+                  <div className={styles.pileGroup} style={pileGroupStyle}>
+                    <div className={styles.pileGroupLayout}>
+                      <Stack gap={2} className={styles.pileGroupLabel}>
+                        <Eyebrow>{group.label}</Eyebrow>
+                        <Text size="sm" c="dimmed">
+                          {allPlanned ? 'planned' : `${total} asset${total === 1 ? '' : 's'}`}
+                        </Text>
+                      </Stack>
+                      <div className={styles.pileGrid}>
+                        {group.types.map((type) => (
+                          <TypePile key={type} type={type} entries={byType.get(type) ?? []} />
+                        ))}
+                      </div>
                     </div>
-                  </Group>
+                  </div>
                 </SectionedSurface.Row>
               );
             })}
