@@ -157,6 +157,25 @@ export function tokenShapeOfType(type: string): TokenShape | null {
 }
 
 /**
+ * The height-over-width of a type's face, so a caller can size the box it draws into.
+ *
+ * Every surface that scales a face needs this, and before it existed each one hard-coded the card's ratio — which left a round token floating in a card-shaped hole a third taller than the token.
+ * Cards and decks draw 900x1263;
+ * tokens are square but for the rectangle, which matches the frame it is clipped into.
+ */
+export function assetCanvasAspect(type: string): number {
+  const shape = tokenShapeOfType(type);
+  switch (true) {
+    case shape === 'rectangle':
+      return 0.62;
+    case shape !== null:
+      return 1;
+    default:
+      return CARD_ASPECT;
+  }
+}
+
+/**
  * Renders one asset's face at the given width, framed and clipped per its type.
  * Unknown types and unrenderable data come back as the neutral face, never a crash.
  */

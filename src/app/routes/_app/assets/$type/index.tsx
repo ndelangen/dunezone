@@ -42,8 +42,8 @@ import { useState } from 'react';
 import { loadAssetsByTypes, useAssetsByTypes } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
 
-import { AssetFace, CARD_ASPECT } from '../-assetFaces';
-import { deckCountLabel, deckLabel, decksOf, mockEntries } from '../-mockCatalogue';
+import { AssetFace, assetCanvasAspect } from '../-assetFaces';
+import { deckCountLabel, deckLabel, decksOf, mockEntriesFor } from '../-mockCatalogue';
 import styles from './index.module.css';
 
 type Variant = 'a' | 'b' | 'c';
@@ -75,6 +75,19 @@ const SORTS = [
   { value: 'decks', label: 'Most used' },
 ];
 
+/*
+ * "Create a …" needs a singular noun, and `shortLabel` is not one for every type: it is an adjective for tokens ("Round", "Gear"), so "Create a round" is not a sentence.
+ * The plural `label` is the only field that is a noun phrase for all thirteen types, so singularise that.
+ */
+const createLabel = (label: string | undefined) =>
+  label ? `Create a ${label.replace(/s$/, '').toLowerCase()}` : 'Create an asset';
+
+/** The result count names what is being counted, so a token page does not report "2 cards". */
+const countLabel = (count: number, label: string | undefined) => {
+  const plural = (label ?? 'assets').toLowerCase();
+  return `${count} ${count === 1 ? plural.replace(/s$/, '') : plural}`;
+};
+
 function sortEntries(entries: AssetListEntry[], sort: string | undefined) {
   const list = [...entries];
   switch (sort) {
@@ -104,7 +117,7 @@ function UniformGrid({ entries }: { entries: AssetListEntry[] }) {
           {/* An anchor, not a button: this navigates, so it has to be middle-clickable and copyable. The Edit control is a sibling, never a child — an anchor may not contain a control. */}
           <Link className={styles.tileOpen} to="/assets/$type/$slug" params={{ type: entry.type, slug: entry.slug }}>
             <div className={styles.tileArt}>
-              <CanvasScale canvasWidth={900} canvasHeight={900 * CARD_ASPECT}>
+              <CanvasScale canvasWidth={900} canvasHeight={900 * assetCanvasAspect(entry.type)}>
                 <EntryFace entry={entry} width={900} />
               </CanvasScale>
             </div>
@@ -145,7 +158,7 @@ function ContactSheet({ entries }: { entries: AssetListEntry[] }) {
           to="/assets/$type/$slug"
           params={{ type: entry.type, slug: entry.slug }}
         >
-          <CanvasScale canvasWidth={900} canvasHeight={900 * CARD_ASPECT}>
+          <CanvasScale canvasWidth={900} canvasHeight={900 * assetCanvasAspect(entry.type)}>
             <EntryFace entry={entry} width={900} />
           </CanvasScale>
           <div className={styles.contactCaption}>
@@ -252,7 +265,7 @@ function GroupedLedger({ entries }: { entries: AssetListEntry[] }) {
               <div className={styles.ledgerStrip}>
                 {group.slice(0, 4).map((entry) => (
                   <div key={entry.id} className={styles.ledgerThumb}>
-                    <CanvasScale canvasWidth={900} canvasHeight={900 * CARD_ASPECT}>
+                    <CanvasScale canvasWidth={900} canvasHeight={900 * assetCanvasAspect(entry.type)}>
                       <EntryFace entry={entry} width={900} />
                     </CanvasScale>
                   </div>
@@ -313,7 +326,7 @@ function TypeBrowsePrototype() {
   const [draft, setDraft] = useState(q ?? '');
 
   const real = live.data ?? loaderData;
-  const all = type === 'card-treachery' ? [...mockEntries(), ...real] : real;
+  const all = [...mockEntriesFor(type), ...real];
   const filtered = all
     .filter((entry) => (owner ? (entry.owner?.username ?? 'unknown') === owner : true))
     .filter((entry) => (orphans ? decksOf(entry).length === 0 : true))
@@ -348,7 +361,7 @@ function TypeBrowsePrototype() {
               attention
               renderRoot={(rootProps) => <Link {...rootProps} to="/assets/card-treachery/create" />}
             >
-              Create a {definition?.shortLabel.toLowerCase() ?? 'asset'}
+              {createLabel(definition?.label)}
             </CallToAction>
           </Group>
         </Stack>
@@ -358,7 +371,9 @@ function TypeBrowsePrototype() {
         <Toolbar>
           <Toolbar.Left>
             <Text size="sm" c="dimmed">
-              {entries.length === all.length ? `${all.length} cards` : `${entries.length} of ${all.length} cards`}
+              {entries.length === all.length
+                ? countLabel(all.length, definition?.label)
+                : `${entries.length} of ${countLabel(all.length, definition?.label)}`}
             </Text>
           </Toolbar.Left>
           <Toolbar.Center>
@@ -387,7 +402,7 @@ function TypeBrowsePrototype() {
           </Toolbar.Center>
           <Toolbar.Right>
             <IconAction
-              label={`Create a ${definition?.shortLabel.toLowerCase() ?? 'asset'}`}
+              label={createLabel(definition?.label)}
               variant="filled"
               color="confirm"
               size="lg"

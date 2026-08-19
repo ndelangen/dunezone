@@ -35,8 +35,8 @@ import type { ReactNode } from 'react';
 import { loadAssetsByTypes, useAssetsByTypes } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
 
-import { AssetFace, CARD_ASPECT } from '../../-assetFaces';
-import { decksOf, mockEntries } from '../../-mockCatalogue';
+import { AssetFace, assetCanvasAspect } from '../../-assetFaces';
+import { decksOf, mockEntriesFor } from '../../-mockCatalogue';
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/assets/$type/$slug/')({
@@ -104,7 +104,6 @@ function AssetDetailError({ error }: ErrorComponentProps) {
  * A lookup rather than a switch, so a new type is one entry and the page never learns about it.
  */
 function AssetDetailBody({ entry }: { entry: AssetListEntry }) {
-  const definition = ASSET_TYPES[entry.type as keyof typeof ASSET_TYPES];
   if (entry.type === 'deck') {
     return (
       <Section
@@ -125,8 +124,7 @@ function AssetDetailBody({ entry }: { entry: AssetListEntry }) {
     <Section title="About" icon={<BookOpen size={20} aria-hidden />}>
       <ProposedContent label="Proposed content">
         <Text size="sm" c="dimmed">
-          A {definition?.shortLabel.toLowerCase() ?? 'asset'} is its face. Notes, a revision history, and the rulesets
-          that ship it could live here.
+          Nothing lives beside the face yet. Notes, a revision history, and the rulesets that ship it could go here.
         </Text>
       </ProposedContent>
     </Section>
@@ -138,7 +136,7 @@ function AssetDetailPage() {
   const loaderData = Route.useLoaderData();
   const live = useAssetsByTypes([type], { initialData: loaderData });
   const real = live.data ?? loaderData;
-  const pool = type === 'card-treachery' ? [...mockEntries(), ...real] : real;
+  const pool = [...mockEntriesFor(type), ...real];
   const entry = pool.find((candidate) => candidate.slug === slug);
   const definition = ASSET_TYPES[type as keyof typeof ASSET_TYPES];
 
@@ -166,7 +164,7 @@ function AssetDetailPage() {
         {/* The identity pattern the faction and ruleset detail pages use: the media sits in its own column, so the breadcrumb, the title and the meta line share one left edge. */}
         <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
           <div className={styles.pageHeadMedia} role="img" aria-label={`${entry.name} face`}>
-            <CanvasScale canvasWidth={900} canvasHeight={900 * CARD_ASPECT}>
+            <CanvasScale canvasWidth={900} canvasHeight={900 * assetCanvasAspect(entry.type)}>
               <AssetFace type={entry.type} data={entry.data} name={entry.name} width={900} />
             </CanvasScale>
           </div>
@@ -227,7 +225,7 @@ function AssetDetailPage() {
         <ColumnsWithRailLayout>
           <ColumnsWithRailLayout.Primary>
             <div className={styles.faceStage}>
-              <CanvasScale canvasWidth={900} canvasHeight={900 * CARD_ASPECT}>
+              <CanvasScale canvasWidth={900} canvasHeight={900 * assetCanvasAspect(entry.type)}>
                 <AssetFace type={entry.type} data={entry.data} name={entry.name} width={900} />
               </CanvasScale>
             </div>

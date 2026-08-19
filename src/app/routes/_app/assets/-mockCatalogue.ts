@@ -79,6 +79,46 @@ export const mockEntries = (): AssetListEntry[] =>
     } as AssetListEntry;
   });
 
+/*
+ * A few tokens, so "every type gets a detail page" is demonstrable rather than asserted.
+ * No token can be created through the API yet — `parseAssetDataForWrite` handles only `card-treachery` — so without these the token routes would only ever show the not-found body.
+ */
+const MOCK_TOKENS = [
+  ['token-round', 'Spice Blow', '/vector/icon/karama.svg', 'weapon'],
+  ['token-round', 'Sandworm', '/vector/icon/projectile.svg', 'special'],
+  ['token-gear', 'Storm Marker', '/vector/icon/poison.svg', 'defense'],
+  ['token-square', 'Battle Wheel', '/vector/icon/projectile.svg', 'worthless'],
+] as const;
+
+const mockTokens = (): AssetListEntry[] =>
+  MOCK_TOKENS.map(([type, name, image, kind], i) => ({
+    id: `mock-token-${i}` as AssetListEntry['id'],
+    type,
+    slug: name.toLowerCase().replace(/\s+/g, '-'),
+    name,
+    created_at: `2026-08-${String(4 + i).padStart(2, '0')}T10:00:00.000Z`,
+    updated_at: `2026-08-${String(4 + i).padStart(2, '0')}T10:00:00.000Z`,
+    owner: {
+      id: `owner-${i % MOCK_OWNERS.length}` as never,
+      slug: MOCK_OWNERS[i % MOCK_OWNERS.length] as string,
+      username: MOCK_OWNERS[i % MOCK_OWNERS.length] as string,
+      avatar_url: null,
+    },
+    data: { front: { background: (HEADS[kind] ?? HEADS.weapon!).head, image } },
+  })) as AssetListEntry[];
+
+/** The seed for one type: the cards, the tokens, or nothing. */
+export const mockEntriesFor = (type: string): AssetListEntry[] => {
+  switch (true) {
+    case type === 'card-treachery':
+      return mockEntries();
+    case type.startsWith('token-'):
+      return mockTokens().filter((entry) => entry.type === type);
+    default:
+      return [];
+  }
+};
+
 /* ------------------------------ deck membership ------------------------------ */
 
 export type DeckRef = { id: string; slug: string; name: string };
