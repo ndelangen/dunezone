@@ -1,6 +1,6 @@
-import { Group, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Group, Stack, Text, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetCategory, liveTypesInCategory, typesInCategory } from '@shared/assets/types';
-import { createFileRoute, notFound } from '@tanstack/react-router';
+import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -76,6 +76,17 @@ function AssetCategoryPage() {
                     {ASSET_TYPES[entry.type as keyof typeof ASSET_TYPES]?.label ?? entry.type}
                     {entry.owner?.username ? ` · by ${entry.owner.username}` : ''}
                   </Text>
+                  {/* Only types with a landed editor get the affordance; the asset detail page will take over this role. */}
+                  {entry.type === 'card-treachery' ? (
+                    <Anchor
+                      size="xs"
+                      renderRoot={(rootProps) => (
+                        <Link {...rootProps} to="/assets/cards/$slug/edit" params={{ slug: entry.slug }} />
+                      )}
+                    >
+                      Edit
+                    </Anchor>
+                  ) : null}
                 </Stack>
               ))}
             </Group>

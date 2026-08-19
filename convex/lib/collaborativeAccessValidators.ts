@@ -72,8 +72,9 @@ const groupViewerAccessValidator = v.object({
   }),
 });
 
-const factionViewerAccessValidator = assetViewerAccessValidator('faction');
-const rulesetViewerAccessValidator = assetViewerAccessValidator('ruleset');
+const factionViewerAccessValidator = groupAssociatedViewerAccessValidator('faction');
+const rulesetViewerAccessValidator = groupAssociatedViewerAccessValidator('ruleset');
+const assetViewerAccessValidator = groupAssociatedViewerAccessValidator('asset');
 
 const rosterEntryValidator = v.object({
   membershipId: v.id('group_members'),
@@ -87,7 +88,8 @@ const rosterEntryValidator = v.object({
   }),
 });
 
-function assetViewerAccessValidator<Kind extends 'faction' | 'ruleset'>(kind: Kind) {
+/** One capability surface for every Group-associated asset kind (see CONTEXT.md): factions, rulesets, and community Assets. */
+function groupAssociatedViewerAccessValidator<Kind extends 'faction' | 'ruleset' | 'asset'>(kind: Kind) {
   return v.object({
     kind: v.literal(kind),
     assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),

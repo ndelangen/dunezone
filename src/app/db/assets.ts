@@ -32,3 +32,18 @@ export function useAssetsByTypes(types: string[], options?: { initialData?: Asse
 export function useCreateAsset() {
   return useLiveMutation<{ type: string; data: unknown }, { id: string; slug: string }>(api.assets.create);
 }
+
+export type AssetForEditData = FunctionReturnType<typeof api.assets.getForEdit>;
+
+export async function loadAssetForEdit(category: string, slug: string): Promise<AssetForEditData> {
+  return await db.query(api.assets.getForEdit, { category, slug });
+}
+
+export function useAssetForEdit(category: string, slug: string, options?: { initialData?: AssetForEditData }) {
+  const liveData = useQuery(api.assets.getForEdit, { category, slug });
+  return toLiveQueryResult(liveData, true, () => options?.initialData);
+}
+
+export function useUpdateAsset() {
+  return useLiveMutation<{ id: AssetListEntry['id']; data: unknown }, { id: string; slug: string }>(api.assets.update);
+}

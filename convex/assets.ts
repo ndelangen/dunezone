@@ -4,6 +4,8 @@ import type { Doc } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import { assertKnownAssetType, categoryOfType, parseAssetDataForWrite } from './lib/assetInput';
+import { loadAssetAccessForLoadedSubject, requireAssetUpdate } from './lib/collaborativeAccess';
+import { assetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { nowIso, slugify } from './lib/utils';
@@ -98,6 +100,33 @@ export const listByTypes = query({
   },
 });
 
+/** The edit page's bundle: the asset by category-scoped slug, plus what the viewer may do with it. */
+export const getForEdit = query({
+  args: { category: v.string(), slug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      asset: assetListEntryValidator,
+      viewerAccess: assetViewerAccessValidator,
+    })
+  ),
+  handler: async (ctx, args) => {
+    const holders = await ctx.db
+      .query('assets')
+      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
+      .take(50);
+    const row = holders.find((candidate) => categoryOfType(candidate.type) === args.category && !candidate.is_deleted);
+    if (!row) {
+      return null;
+    }
+    const access = await loadAssetAccessForLoadedSubject(ctx, row);
+    return {
+      asset: await toListEntry(ctx, row),
+      viewerAccess: access.viewerAccess,
+    };
+  },
+});
+
 /**
  * Slugs are unique per Asset category (see CONTEXT.md), and a slug once used stays reserved even by soft-deleted assets — the group/faction convention.
  */
@@ -136,5 +165,28 @@ export const create = mutation({
       group_id: null,
     });
     return { id, slug };
+  },
+});
+
+export const update = mutation({
+  args: { id: v.id('assets'), data: v.any() },
+  returns: v.object({ id: v.id('assets'), slug: v.string() }),
+  handler: async (ctx, args) => {
+    const row = await ctx.db.get('assets', args.id);
+    if (!row || row.is_deleted) {
+      throw new Error(`Asset with id ${args.id} not found`);
+    }
+    /* The type is immutable: the stored row decides which schema the incoming data must satisfy. */
+    const parsed = parseAssetDataForWrite(row.type, args.data);
+    await requireAssetUpdate(ctx, args.id, parsed.name);
+    const slug = slugify(parsed.name);
+    if (!slug) {
+      throw new Error('An asset name is required; it determines the asset URL');
+    }
+    if (slug !== row.slug) {
+      await assertAssetSlugAvailable(ctx, row.type, slug);
+    }
+    await ctx.db.patch(args.id, { data: parsed.data, slug, updated_at: nowIso() });
+    return { id: args.id, slug };
   },
 });

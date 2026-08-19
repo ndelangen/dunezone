@@ -4,6 +4,7 @@ import type { Infer } from 'convex/values';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import type {
+  assetViewerAccessValidator,
   assignedGroupSummaryValidator,
   factionViewerAccessValidator,
   groupViewerAccessValidator,
@@ -20,7 +21,8 @@ export type AssignedGroupSummary = Infer<typeof assignedGroupSummaryValidator>;
 export type CollaborativeAccess =
   | Infer<typeof groupViewerAccessValidator>
   | Infer<typeof factionViewerAccessValidator>
-  | Infer<typeof rulesetViewerAccessValidator>;
+  | Infer<typeof rulesetViewerAccessValidator>
+  | Infer<typeof assetViewerAccessValidator>;
 
 export type StoredMembershipState = MembershipState | 'removed';
 
@@ -35,7 +37,7 @@ export type GroupAccessFacts = {
 };
 
 export type AssetAccessFacts = {
-  kind: 'faction' | 'ruleset';
+  kind: 'faction' | 'ruleset' | 'asset';
   resource: { available: boolean };
   group: { eligible: boolean; summary: AssignedGroupSummary | null };
   viewer: ViewerFacts;
@@ -46,7 +48,8 @@ export type CollaborativeAccessFacts = GroupAccessFacts | AssetAccessFacts;
 type CollaborativeSubject =
   | { kind: 'group'; id: Id<'groups'> }
   | { kind: 'faction'; id: Id<'factions'> }
-  | { kind: 'ruleset'; id: Id<'rulesets'> };
+  | { kind: 'ruleset'; id: Id<'rulesets'> }
+  | { kind: 'asset'; id: Id<'assets'> };
 
 type LoadedGroupAccess = {
   subject: Doc<'groups'>;
@@ -72,7 +75,15 @@ type LoadedRulesetAccess = {
   viewerId: Id<'users'> | null;
 };
 
-type LoadedCollaborativeAccess = LoadedGroupAccess | LoadedFactionAccess | LoadedRulesetAccess;
+type LoadedAssetAccess = {
+  subject: Doc<'assets'>;
+  assignedGroup: Doc<'groups'> | null;
+  viewerMembership: Doc<'group_members'> | null;
+  viewerAccess: Extract<CollaborativeAccess, { kind: 'asset' }>;
+  viewerId: Id<'users'> | null;
+};
+
+type LoadedCollaborativeAccess = LoadedGroupAccess | LoadedFactionAccess | LoadedRulesetAccess | LoadedAssetAccess;
 
 type AnyCtx = QueryCtx | MutationCtx;
 
@@ -180,6 +191,29 @@ function rulesetAccessFromLoaded(
   };
 }
 
+function assetAccessFromLoaded(
+  subject: Doc<'assets'>,
+  assignedGroup: Doc<'groups'> | null,
+  viewerId: Id<'users'> | null,
+  viewerMembership: Doc<'group_members'> | null
+): LoadedAssetAccess {
+  return {
+    subject,
+    assignedGroup,
+    viewerMembership,
+    viewerId,
+    viewerAccess: evaluateCollaborativeAccess({
+      kind: 'asset',
+      resource: { available: !subject.is_deleted },
+      group: {
+        eligible: assignedGroup !== null,
+        summary: assignedGroup ? { id: assignedGroup._id, name: assignedGroup.name, slug: assignedGroup.slug } : null,
+      },
+      viewer: viewerFacts(viewerId, subject.owner_id, viewerMembership),
+    }) as Extract<CollaborativeAccess, { kind: 'asset' }>,
+  };
+}
+
 export function loadCollaborativeAccess(
   ctx: AnyCtx,
   subject: Extract<CollaborativeSubject, { kind: 'group' }>
@@ -192,6 +226,10 @@ export function loadCollaborativeAccess(
   ctx: AnyCtx,
   subject: Extract<CollaborativeSubject, { kind: 'ruleset' }>
 ): Promise<LoadedRulesetAccess>;
+export function loadCollaborativeAccess(
+  ctx: AnyCtx,
+  subject: Extract<CollaborativeSubject, { kind: 'asset' }>
+): Promise<LoadedAssetAccess>;
 export async function loadCollaborativeAccess(
   ctx: AnyCtx,
   subject: CollaborativeSubject
@@ -217,6 +255,16 @@ export async function loadCollaborativeAccess(
     return factionAccessFromLoaded(row, assignedGroup, viewerId, viewerMembership);
   }
 
+  if (subject.kind === 'asset') {
+    const row = await ctx.db.get('assets', subject.id);
+    if (!row) {
+      throw new Error(`Asset with id ${subject.id} not found`);
+    }
+    const assignedGroup = liveGroupOrNull(row.group_id ? await ctx.db.get('groups', row.group_id) : null);
+    const viewerMembership = await membershipFor(ctx, assignedGroup?._id ?? null, viewerId);
+    return assetAccessFromLoaded(row, assignedGroup, viewerId, viewerMembership);
+  }
+
   const row = await ctx.db.get('rulesets', subject.id);
   if (!row) {
     throw new Error(`Ruleset with id ${subject.id} not found`);
@@ -233,7 +281,17 @@ export async function collaborativeAccessFor(ctx: AnyCtx, subject: Collaborative
   if (subject.kind === 'faction') {
     return (await loadCollaborativeAccess(ctx, subject)).viewerAccess;
   }
+  if (subject.kind === 'ruleset') {
+    return (await loadCollaborativeAccess(ctx, subject)).viewerAccess;
+  }
   return (await loadCollaborativeAccess(ctx, subject)).viewerAccess;
+}
+
+export async function loadAssetAccessForLoadedSubject(ctx: AnyCtx, asset: Doc<'assets'>) {
+  const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
+  const assignedGroup = liveGroupOrNull(asset.group_id ? await ctx.db.get('groups', asset.group_id) : null);
+  const viewerMembership = await membershipFor(ctx, assignedGroup?._id ?? null, viewerId);
+  return assetAccessFromLoaded(asset, assignedGroup, viewerId, viewerMembership);
 }
 
 export async function loadRulesetAccessForLoadedSubject(ctx: AnyCtx, ruleset: Doc<'rulesets'>) {
@@ -321,6 +379,25 @@ export async function requireFactionUpdate(
     throw new Error('Not authorized');
   }
   if (proposedData.name !== access.subject.data.name && !access.viewerAccess.capabilities.rename) {
+    throw new Error('Not authorized');
+  }
+  return access;
+}
+
+/**
+ * Authorizes an edit to a community Asset's content, the faction convention: `edit` gates the save, `rename` gates a name change (renames re-slug, so they move the asset's URL).
+ */
+export async function requireAssetUpdate(ctx: MutationCtx, assetId: Id<'assets'>, proposedName: string) {
+  await requireAuthenticatedViewerId(ctx);
+  const access = await loadCollaborativeAccess(ctx, { kind: 'asset', id: assetId });
+  if (access.subject.is_deleted) {
+    throw new Error(`Asset with id ${assetId} not found`);
+  }
+  if (!access.viewerAccess.capabilities.edit) {
+    throw new Error('Not authorized');
+  }
+  const currentName = (access.subject.data as { name?: unknown } | null | undefined)?.name;
+  if (proposedName !== currentName && !access.viewerAccess.capabilities.rename) {
     throw new Error('Not authorized');
   }
   return access;
@@ -605,7 +682,8 @@ export function evaluateCollaborativeAccess(facts: CollaborativeAccessFacts): Co
     capabilities: {
       requestMembership: requestMembership && facts.resource.available,
       edit: facts.resource.available && (owner || (activeMember && facts.group.eligible)),
-      rename: facts.resource.available && (owner || (facts.kind === 'faction' && activeMember && facts.group.eligible)),
+      /* Factions and community Assets rename collaboratively (decision on the assets map: Asset access reuses Group-associated-asset semantics); rulesets reserve renames for their owner. */
+      rename: facts.resource.available && (owner || (facts.kind !== 'ruleset' && activeMember && facts.group.eligible)),
       changeGroup: facts.resource.available && owner,
       delete: facts.resource.available && owner,
     },
