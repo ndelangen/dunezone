@@ -167,9 +167,15 @@ function EmptyPileOutline({ type, planned }: { type: AssetType; planned: boolean
         opacity: 0.7,
       }}
     >
-      <Text size="xs" c="dimmed" ta="center" px={6}>
-        {planned ? 'reserved' : 'none yet'}
-      </Text>
+      {planned ? (
+        <Badge size="xs" variant="outline" color="gray">
+          Planned
+        </Badge>
+      ) : (
+        <Text size="xs" c="dimmed" ta="center" px={6}>
+          none yet
+        </Text>
+      )}
     </div>
   );
 }
@@ -196,13 +202,7 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
         <Text fw={700} c={planned ? 'dimmed' : undefined}>
           {definition.shortLabel}
         </Text>
-        {planned ? (
-          <Badge size="xs" variant="outline" color="gray">
-            Planned
-          </Badge>
-        ) : (
-          <Text c="dimmed">{entries.length}</Text>
-        )}
+        {planned ? null : <Text c="dimmed">{entries.length}</Text>}
       </Group>
     </Stack>
   );
