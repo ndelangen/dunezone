@@ -1,5 +1,5 @@
 import { Badge, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
-import { ASSET_TYPES, categoryOfType } from '@shared/assets/types';
+import { ASSET_TYPES } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
@@ -219,11 +219,10 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
   if (planned) {
     return body;
   }
-  const category = categoryOfType(type) ?? 'cards';
   return (
     <UnstyledButton
       renderRoot={(rootProps) => (
-        <Link {...rootProps} to="/assets/$category" params={{ category }} aria-label={`Browse ${definition.label}`} />
+        <Link {...rootProps} to="/assets/$type" params={{ type }} aria-label={`Browse ${definition.label}`} />
       )}
     >
       {body}

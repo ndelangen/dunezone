@@ -55,9 +55,9 @@ describe('asset update', () => {
       .mutation(api.assets.update, { id: created.id, data: cardData('Hunter-Seeker') });
     expect(renamed.slug).toBe('hunter-seeker');
 
-    const page = await t.query(api.assets.getForEdit, { category: 'cards', slug: 'hunter-seeker' });
+    const page = await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'hunter-seeker' });
     expect(page?.asset.name).toBe('Hunter-Seeker');
-    expect(await t.query(api.assets.getForEdit, { category: 'cards', slug: 'lasgun' })).toBeNull();
+    expect(await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' })).toBeNull();
   });
 
   test('a viewer without edit capability cannot update, and anonymous viewers get read-only access facts', async () => {
@@ -68,7 +68,7 @@ describe('asset update', () => {
       t.withIdentity({ subject: outsiderId }).mutation(api.assets.update, { id: created.id, data: cardData('Stolen') })
     ).rejects.toThrow('Not authorized');
 
-    const page = await t.query(api.assets.getForEdit, { category: 'cards', slug: 'lasgun' });
+    const page = await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.viewerAccess.viewer.kind).toBe('anonymous');
     expect(page?.viewerAccess.capabilities.edit).toBe(false);
   });

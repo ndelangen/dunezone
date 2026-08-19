@@ -18,7 +18,7 @@ import {
 } from '@app/widgets/card-editor/TreacheryCardEditor';
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
 
-export const Route = createFileRoute('/_app/assets/cards/create')({
+export const Route = createFileRoute('/_app/assets/card-treachery/create')({
   component: CreateTreacheryCardPage,
 });
 
@@ -68,7 +68,7 @@ function CreateTreacheryCardPage() {
     createAsset.mutate(
       { type: 'card-treachery', data: draft },
       {
-        onSuccess: () => void navigate({ to: '/assets/$category', params: { category: 'cards' } }),
+        onSuccess: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
       }
     );
   };

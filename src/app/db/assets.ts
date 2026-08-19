@@ -35,12 +35,12 @@ export function useCreateAsset() {
 
 export type AssetForEditData = FunctionReturnType<typeof api.assets.getForEdit>;
 
-export async function loadAssetForEdit(category: string, slug: string): Promise<AssetForEditData> {
-  return await db.query(api.assets.getForEdit, { category, slug });
+export async function loadAssetForEdit(type: string, slug: string): Promise<AssetForEditData> {
+  return await db.query(api.assets.getForEdit, { type, slug });
 }
 
-export function useAssetForEdit(category: string, slug: string, options?: { initialData?: AssetForEditData }) {
-  const liveData = useQuery(api.assets.getForEdit, { category, slug });
+export function useAssetForEdit(type: string, slug: string, options?: { initialData?: AssetForEditData }) {
+  const liveData = useQuery(api.assets.getForEdit, { type, slug });
   return toLiveQueryResult(liveData, true, () => options?.initialData);
 }
 

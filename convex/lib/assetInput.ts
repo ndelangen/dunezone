@@ -1,6 +1,5 @@
 import { Treachery } from '../../src/shared/assets/schema';
 import { ASSET_TYPES } from '../../src/shared/assets/types';
-import { categoryOfType } from '../../src/shared/assets/types';
 
 /**
  * Per-type write validation: every asset save passes its `data` through the same Zod the renderer draws from, so nothing unrenderable is ever stored.
@@ -23,5 +22,3 @@ export function assertKnownAssetType(type: string): void {
     throw new Error(`Unknown asset type ${type}`);
   }
 }
-
-export { categoryOfType };

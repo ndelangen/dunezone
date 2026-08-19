@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
-import { assertKnownAssetType, categoryOfType, parseAssetDataForWrite } from './lib/assetInput';
+import { assertKnownAssetType, parseAssetDataForWrite } from './lib/assetInput';
 import { loadAssetAccessForLoadedSubject, requireAssetUpdate } from './lib/collaborativeAccess';
 import { assetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
@@ -100,9 +100,9 @@ export const listByTypes = query({
   },
 });
 
-/** The edit page's bundle: the asset by category-scoped slug, plus what the viewer may do with it. */
+/** The edit page's bundle: the asset by type-scoped slug, plus what the viewer may do with it. */
 export const getForEdit = query({
-  args: { category: v.string(), slug: v.string() },
+  args: { type: v.string(), slug: v.string() },
   returns: v.union(
     v.null(),
     v.object({
@@ -115,7 +115,7 @@ export const getForEdit = query({
       .query('assets')
       .withIndex('by_slug', (q) => q.eq('slug', args.slug))
       .take(50);
-    const row = holders.find((candidate) => categoryOfType(candidate.type) === args.category && !candidate.is_deleted);
+    const row = holders.find((candidate) => candidate.type === args.type && !candidate.is_deleted);
     if (!row) {
       return null;
     }
@@ -128,16 +128,15 @@ export const getForEdit = query({
 });
 
 /**
- * Slugs are unique per Asset category (see CONTEXT.md), and a slug once used stays reserved even by soft-deleted assets — the group/faction convention.
+ * Slugs are unique per Asset type (see CONTEXT.md) — the slug's job is URL identity and URLs are `/assets/{type}/{slug}` — and a slug once used stays reserved even by soft-deleted assets, the group/faction convention.
  */
 async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {
-  const category = categoryOfType(type);
   const holders = await ctx.db
     .query('assets')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .take(50);
-  if (holders.some((row) => categoryOfType(row.type) === category)) {
-    throw new Error(`Asset slug ${slug} is reserved in its category`);
+  if (holders.some((row) => row.type === type)) {
+    throw new Error(`Asset slug ${slug} is reserved for this asset type`);
   }
 }
 

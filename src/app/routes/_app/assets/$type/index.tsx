@@ -1,5 +1,5 @@
 import { Anchor, Group, Stack, Text, Title } from '@mantine/core';
-import { ASSET_TYPES, isAssetCategory, liveTypesInCategory, typesInCategory } from '@shared/assets/types';
+import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -9,54 +9,46 @@ import { loadAssetsByTypes, useAssetsByTypes } from '@app/db/assets';
 
 import { AssetFace } from '../-assetFaces';
 
-export const Route = createFileRoute('/_app/assets/$category/')({
+export const Route = createFileRoute('/_app/assets/$type/')({
   loader: async ({ params }) => {
-    if (!isAssetCategory(params.category)) {
+    if (!isAssetType(params.type)) {
       throw notFound();
     }
-    return await loadAssetsByTypes(liveTypesInCategory(params.category));
+    return await loadAssetsByTypes([params.type]);
   },
-  component: AssetCategoryPage,
+  component: AssetTypePage,
 });
 
-const CATEGORY_TITLES = {
-  cards: 'Cards',
-  decks: 'Decks',
-  tokens: 'Tokens',
-  boards: 'Boards',
-} as const;
-
-function AssetCategoryPage() {
-  const { category } = Route.useParams();
+function AssetTypePage() {
+  const { type } = Route.useParams();
   const loaderData = Route.useLoaderData();
-  const validCategory = isAssetCategory(category) ? category : 'cards';
-  const liveTypes = liveTypesInCategory(validCategory);
-  const assets = useAssetsByTypes(liveTypes, { initialData: loaderData });
+  const validType = isAssetType(type) ? type : 'card-treachery';
+  const definition = ASSET_TYPES[validType];
+  const assets = useAssetsByTypes([validType], { initialData: loaderData });
   const entries = assets.data ?? loaderData;
-  const plannedTypes = typesInCategory(validCategory).filter((type) => ASSET_TYPES[type].status === 'planned');
 
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
         <Stack gap={2} align="center">
           <Eyebrow tone="inverse">Community assets</Eyebrow>
-          <Title order={1}>{CATEGORY_TITLES[validCategory]}</Title>
+          <Title order={1}>{definition.label}</Title>
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
         <Surface padding="xl">
-          {liveTypes.length === 0 ? (
+          {definition.status === 'planned' ? (
             <Stack gap="xs" align="center">
               <Title order={2}>Planned</Title>
               <Text c="dimmed" ta="center">
-                {CATEGORY_TITLES[validCategory]} are on the roadmap — this category cannot hold assets yet.
+                {definition.label} are on the roadmap — this type cannot hold assets yet.
               </Text>
             </Stack>
           ) : entries.length === 0 ? (
             <Stack gap="xs" align="center">
               <Title order={2}>Nothing here yet</Title>
               <Text c="dimmed" ta="center">
-                No {CATEGORY_TITLES[validCategory].toLowerCase()} have been created so far.
+                No {definition.label.toLowerCase()} have been created so far.
               </Text>
             </Stack>
           ) : (
@@ -73,15 +65,14 @@ function AssetCategoryPage() {
                     {entry.name}
                   </Text>
                   <Text size="xs" c="dimmed">
-                    {ASSET_TYPES[entry.type as keyof typeof ASSET_TYPES]?.label ?? entry.type}
-                    {entry.owner?.username ? ` · by ${entry.owner.username}` : ''}
+                    {entry.owner?.username ? `by ${entry.owner.username}` : ''}
                   </Text>
                   {/* Only types with a landed editor get the affordance; the asset detail page will take over this role. */}
                   {entry.type === 'card-treachery' ? (
                     <Anchor
                       size="xs"
                       renderRoot={(rootProps) => (
-                        <Link {...rootProps} to="/assets/cards/$slug/edit" params={{ slug: entry.slug }} />
+                        <Link {...rootProps} to="/assets/card-treachery/$slug/edit" params={{ slug: entry.slug }} />
                       )}
                     >
                       Edit
@@ -91,11 +82,6 @@ function AssetCategoryPage() {
               ))}
             </Group>
           )}
-          {plannedTypes.length > 0 && liveTypes.length > 0 ? (
-            <Text size="xs" c="dimmed" ta="center" mt="lg">
-              Planned here: {plannedTypes.map((type) => ASSET_TYPES[type].label).join(', ')}.
-            </Text>
-          ) : null}
         </Surface>
       </PageLayout.Content>
     </PageLayout>

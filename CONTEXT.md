@@ -81,10 +81,10 @@ How subtly or strongly the pattern color participates in a faction's composed ba
 The choice to reverse which light and dark regions of a selected pattern reveal the pattern color.
 
 **Asset type**:
-The flat discriminator naming exactly what a community asset is — a treachery card, a round token, a deck. There is no nested category-plus-subtype structure; each Asset type carries its own content schema and its own Renderer. Decks are a single Asset type: a deck may hold any cards, deliberately unconstrained by the model.
+The flat discriminator naming exactly what a community asset is — a treachery card, a round token, a deck. There is no nested category-plus-subtype structure; each Asset type carries its own content schema, its own Renderer, its own editor, and its own route family — URLs use the discriminator verbatim (`/assets/card-treachery/{slug}`), and Asset slugs are unique within an Asset type, not globally. Decks are a single Asset type: a deck may hold any cards, deliberately unconstrained by the model.
 
 **Asset category**:
-The browse grouping of Asset types — cards, decks, tokens, boards — used for discovery and URLs. It is always derived from the Asset type, never maintained independently. Asset slugs are unique within an Asset category, not globally.
+The presentational grouping of Asset types — cards, decks, tokens, boards — used to arrange the assets landing page. It is always derived from the Asset type, never maintained independently, and it appears nowhere in URLs or uniqueness rules: routes and slugs are per Asset type.
 
 **Token backside**:
 The reverse face every token has. It is either authored as part of the token itself, or it is another existing token serving as the back — a reference, never a copy. A token with a referenced backside publishes only its own front face; the back resolves to the referenced token's publication.

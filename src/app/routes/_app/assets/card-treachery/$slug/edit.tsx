@@ -14,8 +14,8 @@ import { TreacheryCardEditor, treacheryDraftWarnings } from '@app/widgets/card-e
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { Treachery } from '@game/data/objects';
 
-export const Route = createFileRoute('/_app/assets/cards/$slug/edit')({
-  loader: async ({ params }) => await loadAssetForEdit('cards', params.slug),
+export const Route = createFileRoute('/_app/assets/card-treachery/$slug/edit')({
+  loader: async ({ params }) => await loadAssetForEdit('card-treachery', params.slug),
   component: EditTreacheryCardPage,
 });
 
@@ -34,9 +34,9 @@ function MessagePage({ title, children }: { title: string; children: React.React
           <Stack gap="sm">
             {children}
             <Anchor
-              renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$category" params={{ category: 'cards' }} />}
+              renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type: 'card-treachery' }} />}
             >
-              Back to cards
+              Back to treachery cards
             </Anchor>
           </Stack>
         </Surface>
@@ -48,7 +48,7 @@ function MessagePage({ title, children }: { title: string; children: React.React
 function EditTreacheryCardPage() {
   const { slug } = Route.useParams();
   const loaderData = Route.useLoaderData();
-  const query = useAssetForEdit('cards', slug, { initialData: loaderData });
+  const query = useAssetForEdit('card-treachery', slug, { initialData: loaderData });
   const data = query.data ?? loaderData;
 
   if (data === null) {
@@ -128,7 +128,7 @@ function CardEditSession({
           setBaseline(saved);
           /* Renames re-slug: follow the card to its new URL so a reload keeps editing it. */
           if (nextSlug !== asset.slug) {
-            void navigate({ to: '/assets/cards/$slug/edit', params: { slug: nextSlug }, replace: true });
+            void navigate({ to: '/assets/card-treachery/$slug/edit', params: { slug: nextSlug }, replace: true });
           }
         },
       }
@@ -164,7 +164,7 @@ function CardEditSession({
             onReviewWarnings: () =>
               document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReset: () => setDraft(baseline),
-            onBack: () => void navigate({ to: '/assets/$category', params: { category: 'cards' } }),
+            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
           }}
         />
       </PageLayout.Toolbar>
