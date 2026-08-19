@@ -104,7 +104,7 @@ function CardEditSession({
   const updateAsset = useUpdateAsset();
   const [draft, setDraft] = useState<TreacheryDraft>(initialDraft);
   const [baseline, setBaseline] = useState<TreacheryDraft>(initialDraft);
-  const [chapter, setChapter] = useState<TreacheryChapter>('identity');
+  const [chapter, setChapter] = useState<TreacheryChapter>('head');
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const warnings = treacheryDraftWarnings(draft);

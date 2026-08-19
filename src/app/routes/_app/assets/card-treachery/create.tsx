@@ -29,7 +29,7 @@ function CreateTreacheryCardPage() {
   const profile = useCurrentProfile();
   const createAsset = useCreateAsset();
   const [draft, setDraft] = useState<TreacheryDraft>(INITIAL_TREACHERY_DRAFT);
-  const [chapter, setChapter] = useState<TreacheryChapter>('identity');
+  const [chapter, setChapter] = useState<TreacheryChapter>('head');
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const warnings = treacheryDraftWarnings(draft);

@@ -31,7 +31,8 @@ const iconOptions = iconAssetOptions.map((value) => ({ value, label: iconAssetOp
 
 export type TreacheryDraft = z.infer<typeof Treachery>;
 
-const CARD_KINDS = [
+/* The four stock treachery looks: a head Background paired with its striped icon Background. */
+const CARD_PRESETS = [
   { key: 'weapon', label: 'Weapon', head: backgroundPresets.weapon, striped: backgroundPresets.stripedWeapon },
   { key: 'defense', label: 'Defense', head: backgroundPresets.defense, striped: backgroundPresets.stripedDefense },
   { key: 'special', label: 'Special', head: backgroundPresets.special, striped: backgroundPresets.stripedSpecial },
@@ -63,8 +64,8 @@ function sameBackground(a: TreacheryDraft['head'], b: TreacheryDraft['head']): b
   );
 }
 
-const HEAD_PRESETS = CARD_KINDS.map(({ key, label, head }) => ({ key, label, background: head }));
-const ICON_BACKDROP_PRESETS = CARD_KINDS.map(({ key, label, striped }) => ({ key, label, background: striped }));
+const HEAD_PRESETS = CARD_PRESETS.map(({ key, label, head }) => ({ key, label, background: head }));
+const ICON_BACKGROUND_PRESETS = CARD_PRESETS.map(({ key, label, striped }) => ({ key, label, background: striped }));
 
 /* Center-to-edge slider span: the treachery card is 900 × 1263 in card space. */
 const DECAL_OFFSET_RANGE = [450, 630] as const;
@@ -119,7 +120,8 @@ function FillCard({ draft }: { draft: TreacheryDraft }) {
 
 type Patch = (update: Partial<TreacheryDraft>) => void;
 
-function IdentityFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
+/* The card's head: its name, type, and the Background behind them. */
+function HeadFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
   return (
     <Stack gap="md">
       <ControlBlock
@@ -134,15 +136,26 @@ function IdentityFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch 
         }
       />
       <ControlBlock
-        title="Type line"
+        title="Type"
         description="Shown under the name, e.g. “Weapon - Projectile”."
         input={
           <TextInput
-            aria-label="Type line"
+            aria-label="Type"
             value={draft.subName}
             onChange={(event) => patch({ subName: event.currentTarget.value })}
           />
         }
+      />
+      <BackgroundPresetControl
+        title="Head background"
+        description="The background behind the card's name. Picking a preset also resets the icon background to its matching stripes."
+        usedOn="this card's head"
+        presets={HEAD_PRESETS}
+        value={draft.head}
+        onChange={(head, presetKey) => {
+          const preset = CARD_PRESETS.find((candidate) => candidate.key === presetKey);
+          patch(preset ? { head, icon: [preset.striped, draft.icon[1]] } : { head });
+        }}
       />
     </Stack>
   );
@@ -202,34 +215,16 @@ function BackgroundPresetControl({
   );
 }
 
-function FrameFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
+/* The card's icon: the vector in the top-right disc, its Background, and its scale. */
+function IconFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
   return (
     <Stack gap="md">
-      <BackgroundPresetControl
-        title="Card kind"
-        description="The title band's background. Picking a kind also resets the icon backdrop to that kind's stripes."
-        usedOn="this card's head"
-        presets={HEAD_PRESETS}
-        value={draft.head}
-        onChange={(head, presetKey) => {
-          const kind = CARD_KINDS.find((candidate) => candidate.key === presetKey);
-          patch(kind ? { head, icon: [kind.striped, draft.icon[1]] } : { head });
-        }}
-      />
-      <BackgroundPresetControl
-        title="Icon backdrop"
-        description="The background behind the top-right corner icon, independent of the title band."
-        usedOn="the corner icon disc"
-        presets={ICON_BACKDROP_PRESETS}
-        value={draft.icon[0]}
-        onChange={(backdrop) => patch({ icon: [backdrop, draft.icon[1]] })}
-      />
       <ControlBlock
-        title="Corner icon"
+        title="Icon"
         description="The vector in the top-right disc; it doubles as this chapter's tab icon."
         input={
           <AssetSelect
-            aria-label="Corner icon"
+            aria-label="Icon"
             allowDeselect={false}
             limit={30}
             data={iconOptions}
@@ -244,9 +239,17 @@ function FrameFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) 
           />
         }
       />
+      <BackgroundPresetControl
+        title="Icon background"
+        description="The background behind the icon, independent of the head background."
+        usedOn="this card's icon"
+        presets={ICON_BACKGROUND_PRESETS}
+        value={draft.icon[0]}
+        onChange={(background) => patch({ icon: [background, draft.icon[1]] })}
+      />
       <ControlBlock
         title="Icon scale"
-        description="Resize the corner icon within its disc; 1 is the reference size."
+        description="Resize the icon within its disc; 1 is the reference size."
         tool={
           <NumberInput
             aria-label="Icon scale"
@@ -279,7 +282,7 @@ function FrameFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) 
   );
 }
 
-function ArtworkFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
+function DecalFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
   const decals = draft.decals;
   return (
     <Stack gap="md">
@@ -310,7 +313,7 @@ function ArtworkFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }
       </Group>
       {decals.length === 0 ? (
         <Alert color="gray" variant="light" title="No decals">
-          Decals are optional. The card remains valid without decorative artwork.
+          Decals are optional. The card remains valid without them.
         </Alert>
       ) : null}
       {decals.map((decal, index) => (
@@ -334,14 +337,15 @@ function ArtworkFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }
   );
 }
 
-function RulesTextField({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
+/* The card's body: the text under the art band. */
+function BodyField({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
   return (
     <ControlBlock
-      title="Rules text"
+      title="Body"
       description="Line breaks become paragraphs on the card."
       input={
         <Textarea
-          aria-label="Rules text"
+          aria-label="Body"
           autosize
           minRows={4}
           value={draft.text}
@@ -354,27 +358,27 @@ function RulesTextField({ draft, patch }: { draft: TreacheryDraft; patch: Patch 
 
 /* ----------------------------- validation ----------------------------- */
 
-export type TreacheryChapter = 'identity' | 'frame' | 'artwork' | 'rules';
+export type TreacheryChapter = 'head' | 'icon' | 'decals' | 'body';
 
 export type TreacheryDraftWarning = { source: string; missing: string; chapter: TreacheryChapter };
 
 export function treacheryDraftWarnings(draft: TreacheryDraft): TreacheryDraftWarning[] {
   const warnings: TreacheryDraftWarning[] = [];
   if (!draft.name.trim()) {
-    warnings.push({ source: 'Identity', missing: 'a name', chapter: 'identity' });
+    warnings.push({ source: 'Head', missing: 'a name', chapter: 'head' });
   }
   if (!draft.subName.trim()) {
-    warnings.push({ source: 'Identity', missing: 'a type line', chapter: 'identity' });
+    warnings.push({ source: 'Head', missing: 'a type', chapter: 'head' });
   }
   if (!draft.text.trim()) {
-    warnings.push({ source: 'Rules', missing: 'rules text', chapter: 'rules' });
+    warnings.push({ source: 'Body', missing: 'body text', chapter: 'body' });
   }
   return warnings;
 }
 
 /* ------------------------------ workbench ------------------------------ */
 
-/** The Frame tab wears the card's own corner icon, so the chapter list reflects the data. */
+/** The Icon tab wears the card's own icon, so the chapter list reflects the data. */
 function ChapterGlyph({ vector }: { vector: string }) {
   const src = assetOptionToPreviewSrc(vector) ?? assetOptionToPreviewSrc(DEFAULT_TAB_VECTOR);
   return src ? <img src={src} alt="" width={21} height={21} className={styles.glyph} /> : null;
@@ -419,28 +423,28 @@ export function TreacheryCardEditor({
         ariaLabel="Card chapters"
         items={[
           {
-            value: 'identity',
-            label: 'Identity',
+            value: 'head',
+            label: 'Head',
             icon: <Type size={21} aria-hidden />,
-            panel: panel(<IdentityFields draft={draft} patch={patch} />),
+            panel: panel(<HeadFields draft={draft} patch={patch} />),
           },
           {
-            value: 'frame',
-            label: 'Frame',
+            value: 'icon',
+            label: 'Icon',
             icon: <ChapterGlyph vector={draft.icon[1]} />,
-            panel: panel(<FrameFields draft={draft} patch={patch} />),
+            panel: panel(<IconFields draft={draft} patch={patch} />),
           },
           {
-            value: 'artwork',
-            label: 'Artwork',
+            value: 'decals',
+            label: 'Decals',
             icon: <Brush size={21} aria-hidden />,
-            panel: panel(<ArtworkFields draft={draft} patch={patch} />),
+            panel: panel(<DecalFields draft={draft} patch={patch} />),
           },
           {
-            value: 'rules',
-            label: 'Rules',
+            value: 'body',
+            label: 'Body',
             icon: <ScrollText size={21} aria-hidden />,
-            panel: panel(<RulesTextField draft={draft} patch={patch} />),
+            panel: panel(<BodyField draft={draft} patch={patch} />),
           },
         ]}
       />

@@ -39,7 +39,7 @@ export function DecalControls({
     <Stack gap="md">
       <ControlBlock
         title="Decal asset"
-        description="Artwork layered onto the card in collection order."
+        description="Layered onto the card in collection order."
         input={
           <AssetSelect
             aria-label={`Asset for ${label}`}
@@ -62,7 +62,7 @@ export function DecalControls({
         <Grid.Col span={{ base: 12, xs: 6 }}>
           <ControlBlock
             title="Muted treatment"
-            description="Uses the artwork as a subtle cutout layer."
+            description="Uses the decal as a subtle cutout layer."
             input={
               <Switch
                 aria-label={`Muted treatment for ${label}`}
@@ -74,11 +74,11 @@ export function DecalControls({
         </Grid.Col>
         <Grid.Col span={{ base: 12, xs: 6 }}>
           <ControlBlock
-            title="Outline artwork"
+            title="Outline"
             description="Adds a light border around an unmuted decal."
             input={
               <Switch
-                aria-label={`Outline artwork for ${label}`}
+                aria-label={`Outline for ${label}`}
                 checked={value.outline}
                 onChange={(event) => onChange({ ...value, outline: event.currentTarget.checked })}
               />
