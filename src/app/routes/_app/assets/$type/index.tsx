@@ -23,8 +23,11 @@
  *
  * The catalogue is seeded with mock treachery cards — only one real asset exists, and density is the whole question.
  * Real entries are appended when present.
+ *
+ * Deck membership is seeded too, and is likewise fiction: `asset_relations` exists in the schema with a `by_to_kind` index bought for exactly this lookup, and nothing reads or writes it.
+ * The treatment splits by cardinality — a count on the browse surfaces, the names up close — because a 9.5rem tile cannot carry a deck name without truncating it, and a truncated deck name tells you less than no deck name.
  */
-import { Badge, Group, Modal, Select, Stack, Text, TextInput, Title, UnstyledButton } from '@mantine/core';
+import { Badge, Group, List, Modal, Select, Stack, Text, TextInput, Title, UnstyledButton } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
@@ -49,11 +52,16 @@ type Variant = 'a' | 'b' | 'c';
 type UpClose = 'overlay' | 'rail';
 
 export const Route = createFileRoute('/_app/assets/$type/')({
-  validateSearch: (search: Record<string, unknown>): { v?: Variant; u?: UpClose; q?: string; sort?: string } => ({
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { v?: Variant; u?: UpClose; q?: string; sort?: string; owner?: string; orphans?: boolean } => ({
     v: search.v === 'b' || search.v === 'c' ? search.v : 'a',
     u: search.u === 'rail' ? 'rail' : 'overlay',
     q: typeof search.q === 'string' && search.q ? search.q : undefined,
     sort: typeof search.sort === 'string' && search.sort ? search.sort : undefined,
+    /* Facets belong in the URL: "show me the cards in no deck" is only worth having if it can be sent to someone. */
+    owner: typeof search.owner === 'string' && search.owner ? search.owner : undefined,
+    orphans: search.orphans === true || search.orphans === 'true' ? true : undefined,
   }),
   loader: async ({ params }) => {
     if (!isAssetType(params.type)) {
@@ -123,10 +131,75 @@ const mockEntries = (): AssetListEntry[] =>
     } as AssetListEntry;
   });
 
+/*
+ * Mock deck membership.
+ *
+ * Stands in for a card-to-decks read that does not exist yet: `asset_relations` (convex/schema.ts:103) is schema-only — the table and its `by_to_kind` index were declared for exactly this question and nothing queries them.
+ * Keyed by card slug rather than pushed onto the seeded entries, because `AssetListEntry` carries no relation field and faking one would make the cast above a lie.
+ * A slug-keyed lookup is also the shape a real companion query would return.
+ */
+type DeckRef = { id: string; slug: string; name: string };
+
+const MOCK_DECKS: Record<string, string> = {
+  'base-treachery': 'Base Treachery',
+  'ixian-tleilaxu': 'Ixian & Tleilaxu',
+  'choam-richese': 'CHOAM & Richese',
+  'tourney-standard': 'Tourney Standard 2026',
+  'duel-draft': 'Duel Draft',
+  'spice-harvest-mix': 'Spice Harvest Mix',
+  'stilgars-house-mix': "Stilgar's House Mix",
+};
+
+/** Card slug to deck slugs. Lopsided on purpose: four cards in nothing, most in one or two, Karama in six to stress every layout. */
+const MOCK_MEMBERSHIP: Record<string, string[]> = {
+  lasgun: ['base-treachery', 'tourney-standard'],
+  shield: ['base-treachery', 'tourney-standard', 'duel-draft'],
+  crysknife: ['base-treachery'],
+  'maula-pistol': ['base-treachery'],
+  'slip-tip': [],
+  stunner: ['base-treachery', 'duel-draft'],
+  chaumas: ['base-treachery'],
+  snooper: ['base-treachery', 'tourney-standard'],
+  chaumurky: ['base-treachery'],
+  'gom-jabbar': [],
+  'shield-snooper': ['ixian-tleilaxu'],
+  karama: ['base-treachery', 'tourney-standard', 'duel-draft', 'ixian-tleilaxu', 'choam-richese', 'spice-harvest-mix'],
+  truthtrance: ['base-treachery', 'tourney-standard'],
+  'family-atomics': ['base-treachery'],
+  'weather-control': ['base-treachery', 'choam-richese'],
+  baliset: [],
+  kulon: ['stilgars-house-mix'],
+  'trip-to-gamont': [],
+};
+
+const decksOf = (entry: AssetListEntry): DeckRef[] =>
+  (MOCK_MEMBERSHIP[entry.slug] ?? []).map((slug) => ({
+    id: `deck-${slug}`,
+    slug,
+    name: MOCK_DECKS[slug] ?? slug,
+  }));
+
+/** The tile treatment: a count, or nothing at all — a grid of tiles each announcing zero is noise. */
+const deckCountLabel = (decks: DeckRef[]) =>
+  decks.length === 0 ? null : `${decks.length} ${decks.length === 1 ? 'deck' : 'decks'}`;
+
+/** The ledger treatment: names, because the row is full-width and can afford them. */
+const deckLabel = (decks: DeckRef[]) => {
+  switch (true) {
+    case decks.length === 0:
+      return null;
+    case decks.length <= 2:
+      return decks.map((deck) => deck.name).join(', ');
+    default:
+      return `${decks[0]!.name}, ${decks[1]!.name} +${decks.length - 2}`;
+  }
+};
+
 const SORTS = [
   { value: 'newest', label: 'Newest first' },
   { value: 'name', label: 'Name A–Z' },
   { value: 'owner', label: 'Owner' },
+  { value: 'decks', label: 'Most used' },
 ];
 
 function sortEntries(entries: AssetListEntry[], sort: string | undefined) {
@@ -136,6 +209,8 @@ function sortEntries(entries: AssetListEntry[], sort: string | undefined) {
       return list.sort((a, b) => a.name.localeCompare(b.name));
     case 'owner':
       return list.sort((a, b) => (a.owner?.username ?? '').localeCompare(b.owner?.username ?? ''));
+    case 'decks':
+      return list.sort((a, b) => decksOf(b).length - decksOf(a).length || a.name.localeCompare(b.name));
     default:
       return list.sort((a, b) => b.created_at.localeCompare(a.created_at));
   }
@@ -164,8 +239,10 @@ function UniformGrid({ entries, onOpen }: { entries: AssetListEntry[]; onOpen: (
             </Text>
           </UnstyledButton>
           <Group gap={6} justify="space-between" wrap="nowrap">
+            {/* The count takes the created date's slot: the date is already reachable through the sort field, and at this width the line only fits one fact past the owner. */}
             <Text size="xs" c="dimmed" truncate>
-              {entry.owner?.username ?? 'unknown'} · {entry.created_at.slice(5, 10)}
+              {entry.owner?.username ?? 'unknown'}
+              {deckCountLabel(decksOf(entry)) ? ` · ${deckCountLabel(decksOf(entry))}` : ''}
             </Text>
             <span className={styles.tileActions}>
               <IconAction
@@ -198,6 +275,7 @@ function ContactSheet({ entries, onOpen }: { entries: AssetListEntry[]; onOpen: 
             </Text>
             <Text size="xs" c="#ddd" truncate>
               {entry.owner?.username ?? 'unknown'}
+              {deckCountLabel(decksOf(entry)) ? ` · ${deckCountLabel(decksOf(entry))}` : ''}
             </Text>
           </div>
         </UnstyledButton>
@@ -210,40 +288,67 @@ function FacetRail({
   entries,
   owner,
   onOwner,
+  orphans,
+  onOrphans,
 }: {
   entries: AssetListEntry[];
-  owner: string | null;
-  onOwner: (value: string | null) => void;
+  owner: string | undefined;
+  onOwner: (value: string | undefined) => void;
+  orphans: boolean;
+  onOrphans: (value: boolean) => void;
 }) {
   const counts = new Map<string, number>();
   entries.forEach((entry) => {
     const key = entry.owner?.username ?? 'unknown';
     counts.set(key, (counts.get(key) ?? 0) + 1);
   });
+  const orphanCount = entries.filter((entry) => decksOf(entry).length === 0).length;
   return (
-    <Stack gap="xs">
-      <Eyebrow>Owner</Eyebrow>
-      <div className={styles.facetRail}>
-        <UnstyledButton className={styles.facet} aria-pressed={owner === null} onClick={() => onOwner(null)}>
-          <Text size="sm">Everyone</Text>
-          <Text size="sm" c="dimmed">
-            {entries.length}
-          </Text>
-        </UnstyledButton>
-        {[...counts.entries()].map(([key, count]) => (
+    <Stack gap="lg">
+      <Stack gap="xs">
+        <Eyebrow>Owner</Eyebrow>
+        <div className={styles.facetRail}>
           <UnstyledButton
-            key={key}
             className={styles.facet}
-            aria-pressed={owner === key}
-            onClick={() => onOwner(owner === key ? null : key)}
+            aria-pressed={owner === undefined}
+            onClick={() => onOwner(undefined)}
           >
-            <Text size="sm">{key}</Text>
+            <Text size="sm">Everyone</Text>
             <Text size="sm" c="dimmed">
-              {count}
+              {entries.length}
             </Text>
           </UnstyledButton>
-        ))}
-      </div>
+          {[...counts.entries()].map(([key, count]) => (
+            <UnstyledButton
+              key={key}
+              className={styles.facet}
+              aria-pressed={owner === key}
+              onClick={() => onOwner(owner === key ? undefined : key)}
+            >
+              <Text size="sm">{key}</Text>
+              <Text size="sm" c="dimmed">
+                {count}
+              </Text>
+            </UnstyledButton>
+          ))}
+        </div>
+      </Stack>
+      {/*
+       * One membership facet, not a rail of every deck.
+       * Owners are bounded by who is active; decks are community-authored and unbounded, and "which cards are in deck X" is the deck detail page's own view (#515), not a filter here.
+       * "In no deck" is the question the catalogue genuinely cannot answer any other way.
+       */}
+      <Stack gap="xs">
+        <Eyebrow>Use</Eyebrow>
+        <div className={styles.facetRail}>
+          <UnstyledButton className={styles.facet} aria-pressed={orphans} onClick={() => onOrphans(!orphans)}>
+            <Text size="sm">In no deck</Text>
+            <Text size="sm" c="dimmed">
+              {orphanCount}
+            </Text>
+          </UnstyledButton>
+        </div>
+      </Stack>
     </Stack>
   );
 }
@@ -277,10 +382,18 @@ function GroupedLedger({ entries, onOpen }: { entries: AssetListEntry[]; onOpen:
             </Stack>
             <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
               {group.map((entry) => (
-                <Group key={entry.id} justify="space-between" wrap="nowrap">
-                  <Text size="sm" truncate>
-                    {entry.name}
-                  </Text>
+                <Group key={entry.id} justify="space-between" wrap="nowrap" align="flex-start">
+                  {/* The one variation with room for deck names rather than a bare count. */}
+                  <Stack gap={0} style={{ minWidth: 0 }}>
+                    <Text size="sm" truncate>
+                      {entry.name}
+                    </Text>
+                    {deckLabel(decksOf(entry)) ? (
+                      <Text size="xs" c="dimmed" truncate>
+                        {deckLabel(decksOf(entry))}
+                      </Text>
+                    ) : null}
+                  </Stack>
                   <Group gap={4} wrap="nowrap">
                     <Text size="xs" c="dimmed">
                       {entry.created_at.slice(0, 10)}
@@ -313,6 +426,7 @@ function GroupedLedger({ entries, onOpen }: { entries: AssetListEntry[]; onOpen:
 
 /* --- the up-close view --- */
 function UpCloseBody({ entry }: { entry: AssetListEntry }) {
+  const decks = decksOf(entry);
   return (
     <Stack gap="sm">
       <div className={styles.upCloseArt}>
@@ -331,6 +445,24 @@ function UpCloseBody({ entry }: { entry: AssetListEntry }) {
           <IconAction label="Edit" variant="light" color="gray" size="lg" icon={<Pencil size={16} aria-hidden />} />
         </Group>
       </Group>
+      {/*
+       * The names live here and only here — the browse surfaces carry a count, this carries the answer to "which".
+       * Deck names would be `Links` to /assets/deck/{slug}, but that route is #515's question and does not exist, so they render as plain rows rather than stubbing a route the map has not decided.
+       */}
+      <Stack gap={4}>
+        <Eyebrow>Decks</Eyebrow>
+        {decks.length === 0 ? (
+          <Text size="sm" c="dimmed">
+            Not in any deck yet.
+          </Text>
+        ) : (
+          <List size="sm" spacing={2} m={0} pl="md">
+            {decks.map((deck) => (
+              <List.Item key={deck.id}>{deck.name}</List.Item>
+            ))}
+          </List>
+        )}
+      </Stack>
       <Badge variant="light" color="gray">
         Download appears here once the publisher makes images
       </Badge>
@@ -342,19 +474,19 @@ function UpCloseBody({ entry }: { entry: AssetListEntry }) {
 
 function TypeBrowsePrototype() {
   const { type } = Route.useParams();
-  const { v = 'a', u = 'overlay', q, sort } = Route.useSearch();
+  const { v = 'a', u = 'overlay', q, sort, owner, orphans } = Route.useSearch();
   const navigate = useNavigate();
   const loaderData = Route.useLoaderData();
   const live = useAssetsByTypes([type], { initialData: loaderData });
   const definition = ASSET_TYPES[type as keyof typeof ASSET_TYPES];
   const [open, setOpen] = useState<AssetListEntry | null>(null);
-  const [owner, setOwner] = useState<string | null>(null);
   const [draft, setDraft] = useState(q ?? '');
 
   const real = live.data ?? loaderData;
   const all = type === 'card-treachery' ? [...mockEntries(), ...real] : real;
   const filtered = all
     .filter((entry) => (owner ? (entry.owner?.username ?? 'unknown') === owner : true))
+    .filter((entry) => (orphans ? decksOf(entry).length === 0 : true))
     .filter((entry) => (q ? entry.name.toLowerCase().includes(q.toLowerCase()) : true));
   const entries = sortEntries(filtered, sort);
 
@@ -485,7 +617,13 @@ function TypeBrowsePrototype() {
               {v === 'b' ? (
                 <div className={styles.facetColumn}>
                   <Surface padding="md">
-                    <FacetRail entries={all} owner={owner} onOwner={setOwner} />
+                    <FacetRail
+                      entries={all}
+                      owner={owner}
+                      onOwner={(value) => setSearch({ owner: value })}
+                      orphans={orphans === true}
+                      onOrphans={(value) => setSearch({ orphans: value || undefined })}
+                    />
                   </Surface>
                 </div>
               ) : null}
