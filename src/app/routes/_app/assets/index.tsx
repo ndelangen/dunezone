@@ -264,11 +264,21 @@ function AssetsLandingPage() {
                         {allPlanned ? 'planned' : `${total} asset${total === 1 ? '' : 's'}`}
                       </Text>
                     </Stack>
-                    <Group gap={40} align="flex-end" style={{ flex: 1 }} justify="flex-start">
+                    {/* five fixed columns filling the panel, so piles align across wrapped rows */}
+                    <div
+                      style={{
+                        flex: 1,
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+                        gap: '24px 8px',
+                        alignItems: 'end',
+                        justifyItems: 'center',
+                      }}
+                    >
                       {group.types.map((type) => (
                         <TypePile key={type} type={type} entries={byType.get(type) ?? []} />
                       ))}
-                    </Group>
+                    </div>
                   </Group>
                 </SectionedSurface.Row>
               );
