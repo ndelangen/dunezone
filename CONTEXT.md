@@ -90,7 +90,10 @@ The browse grouping of Asset types — cards, decks, tokens, boards — used for
 The reverse face every token has. It is either authored as part of the token itself, or it is another existing token serving as the back — a reference, never a copy. A token with a referenced backside publishes only its own front face; the back resolves to the referenced token's publication.
 
 **Cardback**:
-The shared back face of a deck, defined only as part of that deck — never as a standalone asset. Publishing a deck publishes its Cardback; the member cards' faces are published by the card assets themselves.
+The shared back face of a deck — never a standalone asset. Every deck wears exactly one: chosen from the stock cardbacks the product defines, or authored as part of the deck. Publishing a deck publishes its Cardback image either way; the member cards' faces are published by the card assets themselves.
+
+**Stock cardback**:
+One of the product-defined Cardback compositions a deck may wear instead of authoring its own. Choosing one changes only where the render payload comes from — the deck still publishes its own Cardback image.
 
 **Ruleset deck slot**:
 A named position on a ruleset holding at most one deck — initially a treachery slot and a spice slot — alongside a custom-decks slot holding any number of decks. Slot names are curatorial labels, not constraints: any deck may fill any slot, and a slot may sit empty. A deck may occupy slots in many rulesets; its detail page shows the rulesets that link to it, while the links themselves are managed only from the ruleset's edit surface.
