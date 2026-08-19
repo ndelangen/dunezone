@@ -1,0 +1,29 @@
+/* PROTOTYPE (#512/#515). The identity band follows the faction and ruleset detail pages. */
+
+.pageHead {
+  width: min(100%, 64rem);
+  min-width: 0;
+}
+
+/* The media column: the asset's own face, small, beside the title. */
+.pageHeadMedia {
+  flex-shrink: 0;
+  width: 4.5rem;
+  border-radius: var(--mantine-radius-sm);
+  overflow: hidden;
+}
+
+.pageHeadText {
+  min-width: 0;
+}
+
+/* The band renders data-scheme-paper, so the title takes the band's own text colour, not the page scheme's — the same chain the faction and ruleset titles use. */
+.assetTitle {
+  overflow-wrap: anywhere;
+  color: var(--color-text, var(--mantine-color-dark-8));
+}
+
+/* The face at reading size: large enough that the rules text is legible, short of becoming a poster. */
+.faceStage {
+  width: min(100%, 22rem);
+}

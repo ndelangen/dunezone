@@ -12,22 +12,20 @@
  * ?v=c  Grouped ledger — records, not a wall: grouped rows with a thumbnail strip and entries listed beside it.
  * You navigate structure.
  *
- * And the up-close view (#515 lives here) switchable against the same grid:
- * ?u=overlay  addressable and focused   ?u=rail  contextual and comparative
+ * Clicking an entry navigates to the Asset detail page at `/assets/{type}/{slug}`.
+ * The modal and the sticky rail this file used to offer are gone: Norbert rejected the modal (2026-08-20), and the rail was the same component in a different place rather than a second answer to a second question.
+ * That means every entry is an anchor, not a button — a navigation target has to be middle-clickable and copyable.
  *
- * Already decided, not re-litigated: the create affordance lives in the PageHeader and the toolbar
- * (#512 comment);
- * clicking a card/token entry means the up-close view and Edit stays on this page
- * (#515 reframe);
+ * Already decided, not re-litigated: the create affordance lives in the PageHeader and the toolbar (#512 comment);
  * the honest empty and Planned states stay.
  *
  * The catalogue is seeded with mock treachery cards — only one real asset exists, and density is the whole question.
- * Real entries are appended when present.
+ * Real entries are appended when present, and the detail page reads the same seed so a tile and the page it leads to describe the same card.
  *
  * Deck membership is seeded too, and is likewise fiction: `asset_relations` exists in the schema with a `by_to_kind` index bought for exactly this lookup, and nothing reads or writes it.
- * The treatment splits by cardinality — a count on the browse surfaces, the names up close — because a 9.5rem tile cannot carry a deck name without truncating it, and a truncated deck name tells you less than no deck name.
+ * The treatment splits by cardinality — a count here, the names on the detail page — because a 9.5rem tile cannot carry a deck name without truncating it, and a truncated deck name tells you less than no deck name.
  */
-import { Badge, Group, List, Modal, Select, Stack, Text, TextInput, Title, UnstyledButton } from '@mantine/core';
+import { Anchor, Group, Select, Stack, Text, TextInput, Title, UnstyledButton } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
@@ -38,25 +36,23 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { Pencil, Plus, Search } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import { loadAssetsByTypes, useAssetsByTypes } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
-import { backgroundPresets } from '@game/data/backgrounds';
 
 import { AssetFace, CARD_ASPECT } from '../-assetFaces';
+import { deckCountLabel, deckLabel, decksOf, mockEntries } from '../-mockCatalogue';
 import styles from './index.module.css';
 
 type Variant = 'a' | 'b' | 'c';
-type UpClose = 'overlay' | 'rail';
 
 export const Route = createFileRoute('/_app/assets/$type/')({
   validateSearch: (
     search: Record<string, unknown>
-  ): { v?: Variant; u?: UpClose; q?: string; sort?: string; owner?: string; orphans?: boolean } => ({
+  ): { v?: Variant; q?: string; sort?: string; owner?: string; orphans?: boolean } => ({
     v: search.v === 'b' || search.v === 'c' ? search.v : 'a',
-    u: search.u === 'rail' ? 'rail' : 'overlay',
     q: typeof search.q === 'string' && search.q ? search.q : undefined,
     sort: typeof search.sort === 'string' && search.sort ? search.sort : undefined,
     /* Facets belong in the URL: "show me the cards in no deck" is only worth having if it can be sent to someone. */
@@ -71,129 +67,6 @@ export const Route = createFileRoute('/_app/assets/$type/')({
   },
   component: TypeBrowsePrototype,
 });
-
-/* ------------------------------ mock catalogue ------------------------------ */
-
-const MOCK_NAMES = [
-  ['Lasgun', 'Weapon - Projectile', 'weapon'],
-  ['Shield', 'Defense - Projectile', 'defense'],
-  ['Crysknife', 'Weapon - Projectile', 'weapon'],
-  ['Maula Pistol', 'Weapon - Projectile', 'weapon'],
-  ['Slip Tip', 'Weapon - Poison', 'weapon'],
-  ['Stunner', 'Weapon - Poison', 'weapon'],
-  ['Chaumas', 'Weapon - Poison', 'weapon'],
-  ['Snooper', 'Defense - Poison', 'defense'],
-  ['Chaumurky', 'Weapon - Poison', 'weapon'],
-  ['Gom Jabbar', 'Weapon - Poison', 'weapon'],
-  ['Shield Snooper', 'Defense - Both', 'defense'],
-  ['Karama', 'Special', 'special'],
-  ['Truthtrance', 'Special', 'special'],
-  ['Family Atomics', 'Special', 'special'],
-  ['Weather Control', 'Special', 'special'],
-  ['Baliset', 'Worthless', 'worthless'],
-  ['Kulon', 'Worthless', 'worthless'],
-  ['Trip to Gamont', 'Worthless', 'worthless'],
-] as const;
-
-const MOCK_OWNERS = ['stilgar', 'gurney', 'irulan', 'Central'];
-const HEADS: Record<string, { head: object; striped: object }> = {
-  weapon: { head: backgroundPresets.weapon, striped: backgroundPresets.stripedWeapon },
-  defense: { head: backgroundPresets.defense, striped: backgroundPresets.stripedDefense },
-  special: { head: backgroundPresets.special, striped: backgroundPresets.stripedSpecial },
-  worthless: { head: backgroundPresets.worthless, striped: backgroundPresets.stripedWorthless },
-};
-const ICONS = ['/vector/icon/projectile.svg', '/vector/icon/poison.svg', '/vector/icon/karama.svg'];
-
-const mockEntries = (): AssetListEntry[] =>
-  MOCK_NAMES.map(([name, subName, kind], i) => {
-    const preset = HEADS[kind] ?? HEADS.weapon!;
-    return {
-      id: `mock-${i}` as AssetListEntry['id'],
-      type: 'card-treachery',
-      slug: name.toLowerCase().replace(/\s+/g, '-'),
-      name,
-      created_at: `2026-08-${String(2 + (i % 17)).padStart(2, '0')}T10:00:00.000Z`,
-      updated_at: `2026-08-${String(2 + (i % 17)).padStart(2, '0')}T10:00:00.000Z`,
-      owner: {
-        id: `owner-${i % MOCK_OWNERS.length}` as never,
-        slug: MOCK_OWNERS[i % MOCK_OWNERS.length] as string,
-        username: MOCK_OWNERS[i % MOCK_OWNERS.length] as string,
-        avatar_url: null,
-      },
-      data: {
-        name,
-        subName,
-        head: preset.head,
-        icon: [preset.striped, ICONS[i % ICONS.length]],
-        decals: [],
-        text: 'Prototype seed data — the catalogue needs bulk before density can be judged.',
-      },
-    } as AssetListEntry;
-  });
-
-/*
- * Mock deck membership.
- *
- * Stands in for a card-to-decks read that does not exist yet: `asset_relations` (convex/schema.ts:103) is schema-only — the table and its `by_to_kind` index were declared for exactly this question and nothing queries them.
- * Keyed by card slug rather than pushed onto the seeded entries, because `AssetListEntry` carries no relation field and faking one would make the cast above a lie.
- * A slug-keyed lookup is also the shape a real companion query would return.
- */
-type DeckRef = { id: string; slug: string; name: string };
-
-const MOCK_DECKS: Record<string, string> = {
-  'base-treachery': 'Base Treachery',
-  'ixian-tleilaxu': 'Ixian & Tleilaxu',
-  'choam-richese': 'CHOAM & Richese',
-  'tourney-standard': 'Tourney Standard 2026',
-  'duel-draft': 'Duel Draft',
-  'spice-harvest-mix': 'Spice Harvest Mix',
-  'stilgars-house-mix': "Stilgar's House Mix",
-};
-
-/** Card slug to deck slugs. Lopsided on purpose: four cards in nothing, most in one or two, Karama in six to stress every layout. */
-const MOCK_MEMBERSHIP: Record<string, string[]> = {
-  lasgun: ['base-treachery', 'tourney-standard'],
-  shield: ['base-treachery', 'tourney-standard', 'duel-draft'],
-  crysknife: ['base-treachery'],
-  'maula-pistol': ['base-treachery'],
-  'slip-tip': [],
-  stunner: ['base-treachery', 'duel-draft'],
-  chaumas: ['base-treachery'],
-  snooper: ['base-treachery', 'tourney-standard'],
-  chaumurky: ['base-treachery'],
-  'gom-jabbar': [],
-  'shield-snooper': ['ixian-tleilaxu'],
-  karama: ['base-treachery', 'tourney-standard', 'duel-draft', 'ixian-tleilaxu', 'choam-richese', 'spice-harvest-mix'],
-  truthtrance: ['base-treachery', 'tourney-standard'],
-  'family-atomics': ['base-treachery'],
-  'weather-control': ['base-treachery', 'choam-richese'],
-  baliset: [],
-  kulon: ['stilgars-house-mix'],
-  'trip-to-gamont': [],
-};
-
-const decksOf = (entry: AssetListEntry): DeckRef[] =>
-  (MOCK_MEMBERSHIP[entry.slug] ?? []).map((slug) => ({
-    id: `deck-${slug}`,
-    slug,
-    name: MOCK_DECKS[slug] ?? slug,
-  }));
-
-/** The tile treatment: a count, or nothing at all — a grid of tiles each announcing zero is noise. */
-const deckCountLabel = (decks: DeckRef[]) =>
-  decks.length === 0 ? null : `${decks.length} ${decks.length === 1 ? 'deck' : 'decks'}`;
-
-/** The ledger treatment: names, because the row is full-width and can afford them. */
-const deckLabel = (decks: DeckRef[]) => {
-  switch (true) {
-    case decks.length === 0:
-      return null;
-    case decks.length <= 2:
-      return decks.map((deck) => deck.name).join(', ');
-    default:
-      return `${decks[0]!.name}, ${decks[1]!.name} +${decks.length - 2}`;
-  }
-};
 
 const SORTS = [
   { value: 'newest', label: 'Newest first' },
@@ -223,12 +96,13 @@ function EntryFace({ entry, width }: { entry: AssetListEntry; width: number }) {
 }
 
 /* --- A: catalogue transposition --- */
-function UniformGrid({ entries, onOpen }: { entries: AssetListEntry[]; onOpen: (e: AssetListEntry) => void }) {
+function UniformGrid({ entries }: { entries: AssetListEntry[] }) {
   return (
     <div className={styles.uniformGrid}>
       {entries.map((entry) => (
         <div key={entry.id} className={styles.tile}>
-          <UnstyledButton className={styles.tileOpen} onClick={() => onOpen(entry)}>
+          {/* An anchor, not a button: this navigates, so it has to be middle-clickable and copyable. The Edit control is a sibling, never a child — an anchor may not contain a control. */}
+          <Link className={styles.tileOpen} to="/assets/$type/$slug" params={{ type: entry.type, slug: entry.slug }}>
             <div className={styles.tileArt}>
               <CanvasScale canvasWidth={900} canvasHeight={900 * CARD_ASPECT}>
                 <EntryFace entry={entry} width={900} />
@@ -237,7 +111,7 @@ function UniformGrid({ entries, onOpen }: { entries: AssetListEntry[]; onOpen: (
             <Text size="sm" fw={600} mt={6} truncate>
               {entry.name}
             </Text>
-          </UnstyledButton>
+          </Link>
           <Group gap={6} justify="space-between" wrap="nowrap">
             {/* The count takes the created date's slot: the date is already reachable through the sort field, and at this width the line only fits one fact past the owner. */}
             <Text size="xs" c="dimmed" truncate>
@@ -246,7 +120,7 @@ function UniformGrid({ entries, onOpen }: { entries: AssetListEntry[]; onOpen: (
             </Text>
             <span className={styles.tileActions}>
               <IconAction
-                label="Edit"
+                label={`Edit ${entry.name}`}
                 variant="subtle"
                 color="gray"
                 size="sm"
@@ -261,11 +135,16 @@ function UniformGrid({ entries, onOpen }: { entries: AssetListEntry[]; onOpen: (
 }
 
 /* --- B: contact sheet --- */
-function ContactSheet({ entries, onOpen }: { entries: AssetListEntry[]; onOpen: (e: AssetListEntry) => void }) {
+function ContactSheet({ entries }: { entries: AssetListEntry[] }) {
   return (
     <div className={styles.contactSheet}>
       {entries.map((entry) => (
-        <UnstyledButton key={entry.id} className={styles.contactItem} onClick={() => onOpen(entry)}>
+        <Link
+          key={entry.id}
+          className={styles.contactItem}
+          to="/assets/$type/$slug"
+          params={{ type: entry.type, slug: entry.slug }}
+        >
           <CanvasScale canvasWidth={900} canvasHeight={900 * CARD_ASPECT}>
             <EntryFace entry={entry} width={900} />
           </CanvasScale>
@@ -278,7 +157,7 @@ function ContactSheet({ entries, onOpen }: { entries: AssetListEntry[]; onOpen: 
               {deckCountLabel(decksOf(entry)) ? ` · ${deckCountLabel(decksOf(entry))}` : ''}
             </Text>
           </div>
-        </UnstyledButton>
+        </Link>
       ))}
     </div>
   );
@@ -354,7 +233,7 @@ function FacetRail({
 }
 
 /* --- C: grouped ledger --- */
-function GroupedLedger({ entries, onOpen }: { entries: AssetListEntry[]; onOpen: (e: AssetListEntry) => void }) {
+function GroupedLedger({ entries }: { entries: AssetListEntry[] }) {
   const groups = new Map<string, AssetListEntry[]>();
   entries.forEach((entry) => {
     const key = entry.owner?.username ?? 'unknown';
@@ -385,9 +264,15 @@ function GroupedLedger({ entries, onOpen }: { entries: AssetListEntry[]; onOpen:
                 <Group key={entry.id} justify="space-between" wrap="nowrap" align="flex-start">
                   {/* The one variation with room for deck names rather than a bare count. */}
                   <Stack gap={0} style={{ minWidth: 0 }}>
-                    <Text size="sm" truncate>
+                    <Anchor
+                      size="sm"
+                      truncate
+                      renderRoot={(rootProps) => (
+                        <Link {...rootProps} to="/assets/$type/$slug" params={{ type: entry.type, slug: entry.slug }} />
+                      )}
+                    >
                       {entry.name}
-                    </Text>
+                    </Anchor>
                     {deckLabel(decksOf(entry)) ? (
                       <Text size="xs" c="dimmed" truncate>
                         {deckLabel(decksOf(entry))}
@@ -399,15 +284,7 @@ function GroupedLedger({ entries, onOpen }: { entries: AssetListEntry[]; onOpen:
                       {entry.created_at.slice(0, 10)}
                     </Text>
                     <IconAction
-                      label="Up close"
-                      variant="subtle"
-                      color="gray"
-                      size="sm"
-                      icon={<Search size={14} aria-hidden />}
-                      onClick={() => onOpen(entry)}
-                    />
-                    <IconAction
-                      label="Edit"
+                      label={`Edit ${entry.name}`}
                       variant="subtle"
                       color="gray"
                       size="sm"
@@ -424,62 +301,15 @@ function GroupedLedger({ entries, onOpen }: { entries: AssetListEntry[]; onOpen:
   );
 }
 
-/* --- the up-close view --- */
-function UpCloseBody({ entry }: { entry: AssetListEntry }) {
-  const decks = decksOf(entry);
-  return (
-    <Stack gap="sm">
-      <div className={styles.upCloseArt}>
-        <CanvasScale canvasWidth={900} canvasHeight={900 * CARD_ASPECT}>
-          <EntryFace entry={entry} width={900} />
-        </CanvasScale>
-      </div>
-      <Group justify="space-between">
-        <Stack gap={0}>
-          <Text fw={700}>{entry.name}</Text>
-          <Text size="xs" c="dimmed">
-            by {entry.owner?.username ?? 'unknown'}
-          </Text>
-        </Stack>
-        <Group gap="xs">
-          <IconAction label="Edit" variant="light" color="gray" size="lg" icon={<Pencil size={16} aria-hidden />} />
-        </Group>
-      </Group>
-      {/*
-       * The names live here and only here — the browse surfaces carry a count, this carries the answer to "which".
-       * Deck names would be `Links` to /assets/deck/{slug}, but that route is #515's question and does not exist, so they render as plain rows rather than stubbing a route the map has not decided.
-       */}
-      <Stack gap={4}>
-        <Eyebrow>Decks</Eyebrow>
-        {decks.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            Not in any deck yet.
-          </Text>
-        ) : (
-          <List size="sm" spacing={2} m={0} pl="md">
-            {decks.map((deck) => (
-              <List.Item key={deck.id}>{deck.name}</List.Item>
-            ))}
-          </List>
-        )}
-      </Stack>
-      <Badge variant="light" color="gray">
-        Download appears here once the publisher makes images
-      </Badge>
-    </Stack>
-  );
-}
-
 /* --------------------------------- page --------------------------------- */
 
 function TypeBrowsePrototype() {
   const { type } = Route.useParams();
-  const { v = 'a', u = 'overlay', q, sort, owner, orphans } = Route.useSearch();
+  const { v = 'a', q, sort, owner, orphans } = Route.useSearch();
   const navigate = useNavigate();
   const loaderData = Route.useLoaderData();
   const live = useAssetsByTypes([type], { initialData: loaderData });
   const definition = ASSET_TYPES[type as keyof typeof ASSET_TYPES];
-  const [open, setOpen] = useState<AssetListEntry | null>(null);
   const [draft, setDraft] = useState(q ?? '');
 
   const real = live.data ?? loaderData;
@@ -490,18 +320,16 @@ function TypeBrowsePrototype() {
     .filter((entry) => (q ? entry.name.toLowerCase().includes(q.toLowerCase()) : true));
   const entries = sortEntries(filtered, sort);
 
-  const showRail = u === 'rail' && v !== 'c';
-
   const setSearch = (patch: Record<string, unknown>) =>
     void navigate({ to: '.', search: (prev) => ({ ...prev, ...patch }), replace: true });
 
   const grid =
     v === 'b' ? (
-      <ContactSheet entries={entries} onOpen={setOpen} />
+      <ContactSheet entries={entries} />
     ) : v === 'c' ? (
-      <GroupedLedger entries={entries} onOpen={setOpen} />
+      <GroupedLedger entries={entries} />
     ) : (
-      <UniformGrid entries={entries} onOpen={setOpen} />
+      <UniformGrid entries={entries} />
     );
 
   return (
@@ -590,17 +418,6 @@ function TypeBrowsePrototype() {
                   value={v}
                   onChange={(value) => setSearch({ v: value })}
                 />
-                <Select
-                  size="xs"
-                  aria-label="Up-close mechanism"
-                  allowDeselect={false}
-                  data={[
-                    { value: 'overlay', label: 'Up close: overlay' },
-                    { value: 'rail', label: 'Up close: rail' },
-                  ]}
-                  value={u}
-                  onChange={(value) => setSearch({ u: value })}
-                />
               </Group>
             </Group>
           </Surface>
@@ -613,7 +430,7 @@ function TypeBrowsePrototype() {
               </Stack>
             </Surface>
           ) : (
-            <div className={styles.browseRegion} data-facets={v === 'b'} data-rail={showRail}>
+            <div className={styles.browseRegion} data-facets={v === 'b'}>
               {v === 'b' ? (
                 <div className={styles.facetColumn}>
                   <Surface padding="md">
@@ -628,33 +445,9 @@ function TypeBrowsePrototype() {
                 </div>
               ) : null}
               <div className={styles.browseColumn}>{grid}</div>
-              {showRail ? (
-                <div className={styles.railCard}>
-                  <Surface padding="md">
-                    {open ? (
-                      <UpCloseBody entry={open} />
-                    ) : (
-                      <Text size="sm" c="dimmed">
-                        Pick a card to see it up close. The rail stays put while you scroll, so you can compare against
-                        its neighbours.
-                      </Text>
-                    )}
-                  </Surface>
-                </div>
-              ) : null}
             </div>
           )}
         </Stack>
-
-        <Modal
-          opened={u === 'overlay' && open !== null}
-          onClose={() => setOpen(null)}
-          title={open?.name}
-          size="lg"
-          centered
-        >
-          {open ? <UpCloseBody entry={open} /> : null}
-        </Modal>
       </PageLayout.Content>
     </PageLayout>
   );
