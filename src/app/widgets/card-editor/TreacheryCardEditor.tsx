@@ -380,11 +380,8 @@ function ChapterGlyph({ vector }: { vector: string }) {
   return src ? <img src={src} alt="" width={21} height={21} className={styles.glyph} /> : null;
 }
 
-const panel = (children: ReactNode) => (
-  <Stack gap="md" p="lg">
-    {children}
-  </Stack>
-);
+/* No padding here: ConnectedTabs' panel shell owns the panel inset (--connected-tabs-panel-padding). */
+const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
 
 /**
  * The treachery card workbench both the create and edit pages install identically: chaptered fields on the left, the full-width live card proof on the right.
