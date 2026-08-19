@@ -243,7 +243,8 @@ function AssetsLandingPage() {
         </PageLayout.Header>
       ) : null}
       <PageLayout.Content>
-        <Stack gap="md" style={{ width: 'min(100%, 64rem)', margin: '0 auto' }}>
+        {/* No width cap: the ledger spans the content column, so its edges align with the masthead band. */}
+        <Stack gap="md">
           <Stack gap={2} align="center">
             <Eyebrow>Community assets</Eyebrow>
             <Title order={1}>Assets</Title>
