@@ -25,7 +25,16 @@ const JITTER_LEFT = [3, -4, 2, -3, 4];
 const PILE_GROUPS: { label: string; types: AssetType[] }[] = [
   {
     label: 'Cards & decks',
-    types: ['card-treachery', 'card-spice', 'card-custom', 'card-leaderability', 'card-storm', 'deck'],
+    types: [
+      'card-treachery',
+      'card-spice',
+      'card-custom',
+      'card-leaderability',
+      'card-storm',
+      'card-stronghold',
+      'card-nexus',
+      'deck',
+    ],
   },
   { label: 'Tokens', types: ['token-round', 'token-gear', 'token-square', 'token-rectangle'] },
   { label: 'Boards', types: ['board'] },

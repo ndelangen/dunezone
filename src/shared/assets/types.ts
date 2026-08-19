@@ -23,6 +23,8 @@ export const ASSET_TYPES = {
   'card-custom': { category: 'cards', label: 'Custom cards', status: 'planned' },
   'card-leaderability': { category: 'cards', label: 'Leader ability cards', status: 'planned' },
   'card-storm': { category: 'cards', label: 'Storm cards', status: 'planned' },
+  'card-stronghold': { category: 'cards', label: 'Stronghold cards', status: 'planned' },
+  'card-nexus': { category: 'cards', label: 'Nexus cards', status: 'planned' },
   deck: { category: 'decks', label: 'Decks', status: 'live' },
   'token-round': { category: 'tokens', label: 'Round tokens', status: 'live' },
   'token-gear': { category: 'tokens', label: 'Gear tokens', status: 'live' },
