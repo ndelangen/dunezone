@@ -38,7 +38,7 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Brush, Images, Layers, Type } from 'lucide-react';
+import { Brush, Layers, Type } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -83,10 +83,19 @@ type TextElement = {
   opacity: number;
 };
 
+/**
+ * A decal with an opacity of its own.
+ * The shared `Decal` schema has no opacity — only the binary
+ * `muted` treatment — so the prototype carries it alongside rather than mutating a contract the faction and card editors both depend on.
+ * If this direction holds, the build adds an optional
+ * `opacity` to the shared schema and `DecalControls` grows the slider for every consumer.
+ */
+type PlacedDecal = DecalData & { opacity: number };
+
 type Face = {
   background: BackgroundData;
   ring: boolean;
-  decals: DecalData[];
+  decals: PlacedDecal[];
   texts: TextElement[];
 };
 
@@ -104,12 +113,13 @@ const emptyFace = (): Face => ({
   texts: [],
 });
 
-const newDecal = (): DecalData => ({
+const newDecal = (): PlacedDecal => ({
   id: (decalAssetOptions[0] ?? '') as DecalData['id'],
   muted: false,
   outline: false,
   scale: 1,
   offset: [0, 0],
+  opacity: 1,
 });
 
 const newText = (): TextElement => ({
@@ -132,13 +142,13 @@ const referenceFace = (): Face => ({
 
 /* ------------------------------ the face ------------------------------ */
 
-function DecalLayer({ decals }: { decals: DecalData[] }) {
+function DecalLayer({ decals }: { decals: PlacedDecal[] }) {
   return (
     <>
       {decals.map((decal, i) => {
         const w = 100 * decal.scale;
         return (
-          <g key={i} opacity={decal.muted ? 0.35 : 1}>
+          <g key={i} opacity={decal.opacity * (decal.muted ? 0.35 : 1)}>
             <StrokedUse
               xlinkHref={`${decal.id}#root`}
               x={FACE_W / 2 - w / 2 + decal.offset[0]}
@@ -306,11 +316,26 @@ function DecalsField({ face, patch }: { face: Face; patch: Patch }) {
           </Text>
           <DecalControls
             value={decal}
-            onChange={(next) => patch({ decals: face.decals.map((d, i) => (i === index ? next : d)) })}
+            onChange={(next) =>
+              patch({
+                decals: face.decals.map((d, i) => (i === index ? { ...next, opacity: d.opacity } : d)),
+              })
+            }
             label={`decal ${index + 1}`}
             /* The sliders reach a full face past centre in each direction; the number inputs
                beside them are unclamped, so nothing stops an element hanging off the edge. */
             offsetRange={[FACE_W, FACE_H]}
+          />
+          <PlacementControl
+            title="Opacity"
+            description="1 is fully opaque; multiplies with the muted treatment."
+            value={decal.opacity}
+            onChange={(value) =>
+              patch({ decals: face.decals.map((d, i) => (i === index ? { ...d, opacity: value } : d)) })
+            }
+            min={0}
+            max={1}
+            step={0.05}
           />
         </Stack>
       ))}
@@ -411,6 +436,39 @@ function TextsField({ face, patch }: { face: Face; patch: Patch }) {
   );
 }
 
+/** One face, three chapters — the surface, its decals, its text. Both faces get the same set. */
+function faceChapters(key: string, label: string, face: Face, patch: Patch) {
+  return [
+    {
+      value: key,
+      label,
+      icon: <Layers size={21} aria-hidden />,
+      panel: panel(
+        <Stack gap="lg">
+          <BackgroundField face={face} patch={patch} />
+          <ControlBlock
+            title="Edge ring"
+            description="A rounded inset rule. The reference token has none, so it is off by default."
+            input={<Switch checked={face.ring} onChange={(event) => patch({ ring: event.currentTarget.checked })} />}
+          />
+        </Stack>
+      ),
+    },
+    {
+      value: `${key}-decals`,
+      label: `${label} decals`,
+      icon: <Brush size={21} aria-hidden />,
+      panel: panel(<DecalsField face={face} patch={patch} />),
+    },
+    {
+      value: `${key}-text`,
+      label: `${label} text`,
+      icon: <Type size={21} aria-hidden />,
+      panel: panel(<TextsField face={face} patch={patch} />),
+    },
+  ];
+}
+
 function RectangleTokenPrototype() {
   const [name, setName] = useState('Kwisatz Haderach');
   const [face, setFace] = useState<Face>(referenceFace);
@@ -460,49 +518,9 @@ function RectangleTokenPrototype() {
         </Stack>
       ),
     },
-    {
-      value: 'front',
-      label: 'Front',
-      icon: <Layers size={21} aria-hidden />,
-      panel: panel(
-        <Stack gap="lg">
-          <BackgroundField face={face} patch={patch} />
-          <ControlBlock
-            title="Edge ring"
-            description="A rounded inset rule. The reference token has none, so it is off by default."
-            input={<Switch checked={face.ring} onChange={(event) => patch({ ring: event.currentTarget.checked })} />}
-          />
-        </Stack>
-      ),
-    },
-    {
-      value: 'decals',
-      label: 'Decals',
-      icon: <Brush size={21} aria-hidden />,
-      panel: panel(<DecalsField face={face} patch={patch} />),
-    },
-    {
-      value: 'text',
-      label: 'Text',
-      icon: <Type size={21} aria-hidden />,
-      panel: panel(<TextsField face={face} patch={patch} />),
-    },
-    ...(backMode === 'custom'
-      ? [
-          {
-            value: 'back',
-            label: 'Back',
-            icon: <Images size={21} aria-hidden />,
-            panel: panel(
-              <Stack gap="lg">
-                <BackgroundField face={backFace} patch={patchBack} />
-                <DecalsField face={backFace} patch={patchBack} />
-                <TextsField face={backFace} patch={patchBack} />
-              </Stack>
-            ),
-          },
-        ]
-      : []),
+    ...faceChapters('front', 'Front', face, patch),
+    /* The back is authored exactly like the front — same three chapters, same controls. */
+    ...(backMode === 'custom' ? faceChapters('back', 'Back', backFace, patchBack) : []),
   ];
 
   return (
