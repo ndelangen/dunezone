@@ -38,7 +38,7 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Brush, Layers, Type } from 'lucide-react';
+import { FlipHorizontal2, IdCard, RectangleHorizontal, Sticker, Type } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -436,13 +436,17 @@ function TextsField({ face, patch }: { face: Face; patch: Patch }) {
   );
 }
 
-/** One face, three chapters — the surface, its decals, its text. Both faces get the same set. */
-function faceChapters(key: string, label: string, face: Face, patch: Patch) {
+/**
+ * One face, three chapters — the surface, its decals, its text. Both faces get the same set, so
+ * the icons say which *kind* of work a chapter is; the face icon differs so front and back never
+ * read alike.
+ */
+function faceChapters(key: string, label: string, faceIcon: ReactNode, face: Face, patch: Patch) {
   return [
     {
       value: key,
       label,
-      icon: <Layers size={21} aria-hidden />,
+      icon: faceIcon,
       panel: panel(
         <Stack gap="lg">
           <BackgroundField face={face} patch={patch} />
@@ -457,7 +461,7 @@ function faceChapters(key: string, label: string, face: Face, patch: Patch) {
     {
       value: `${key}-decals`,
       label: `${label} decals`,
-      icon: <Brush size={21} aria-hidden />,
+      icon: <Sticker size={21} aria-hidden />,
       panel: panel(<DecalsField face={face} patch={patch} />),
     },
     {
@@ -482,7 +486,7 @@ function RectangleTokenPrototype() {
     {
       value: 'identity',
       label: 'Identity',
-      icon: <Type size={21} aria-hidden />,
+      icon: <IdCard size={21} aria-hidden />,
       panel: panel(
         <Stack gap="lg">
           <ControlBlock
@@ -518,9 +522,11 @@ function RectangleTokenPrototype() {
         </Stack>
       ),
     },
-    ...faceChapters('front', 'Front', face, patch),
+    ...faceChapters('front', 'Front', <RectangleHorizontal size={21} aria-hidden />, face, patch),
     /* The back is authored exactly like the front — same three chapters, same controls. */
-    ...(backMode === 'custom' ? faceChapters('back', 'Back', backFace, patchBack) : []),
+    ...(backMode === 'custom'
+      ? faceChapters('back', 'Back', <FlipHorizontal2 size={21} aria-hidden />, backFace, patchBack)
+      : []),
   ];
 
   return (
