@@ -15,7 +15,19 @@
  *
  * Variations (?v=): a = Token, stretched · b = Card, shrunk · c = Pictorial strip
  */
-import { Alert, Group, SegmentedControl, Select, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Divider,
+  Group,
+  SegmentedControl,
+  Select,
+  Slider,
+  Stack,
+  Switch,
+  Text,
+  Textarea,
+  TextInput,
+} from '@mantine/core';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -38,11 +50,11 @@ import type { BackgroundData } from '@game/data/backgrounds';
 
 import styles from './create.module.css';
 
-type Variant = 'a' | 'b' | 'c';
+type Variant = 'a' | 'b' | 'c' | 'd';
 
 export const Route = createFileRoute('/_app/assets/token-rectangle/create')({
   validateSearch: (search: Record<string, unknown>): { v: Variant } => ({
-    v: search.v === 'b' || search.v === 'c' ? search.v : 'a',
+    v: search.v === 'a' || search.v === 'b' || search.v === 'c' ? search.v : 'd',
   }),
   component: RectangleTokenPrototype,
 });
@@ -65,9 +77,20 @@ type Face = {
   ring: boolean;
   /** the odd-one-out: multiple decals, like a treachery card */
   decals: DecalData[];
+  /** variation d: text that is placed, not slotted — the reference token's "+2" */
+  texts: TextElement[];
   /** variation b only: the card-like head text */
   name: string;
   type: string;
+};
+
+/** A line (or two) of text the author positions anywhere on the face, like a decal. */
+type TextElement = {
+  content: string;
+  /** face units from centre */
+  offset: [number, number];
+  /** cap height in face units */
+  size: number;
 };
 
 const VECTORS = [
@@ -94,8 +117,29 @@ const emptyFace = (): Face => ({
   bottom2: '',
   ring: true,
   decals: [],
+  texts: [],
   name: 'Ixian Probe',
   type: 'Tech - Rectangle',
+});
+
+/* Seeded to the reference token Norbert supplied: an emblem left, a big modifier right, and the
+   name set under the emblem — three placed elements, none of them in a fixed slot. */
+const referenceFace = (): Face => ({
+  ...emptyFace(),
+  name: 'Kwisatz Haderach',
+  decals: [
+    {
+      id: (decalAssetOptions[0] ?? '') as DecalData['id'],
+      muted: false,
+      outline: false,
+      scale: 0.9,
+      offset: [-330, -110],
+    },
+  ],
+  texts: [
+    { content: 'KWISATZ\nHADERACH', offset: [-58, 34], size: 15 },
+    { content: '+2', offset: [72, 6], size: 76 },
+  ],
 });
 
 /** Decals draw in face units; scale 1 is a third of the face width. */
@@ -123,6 +167,31 @@ function DecalLayer({ decals }: { decals: DecalData[] }) {
   );
 }
 
+/** Placed text: centred on its own offset, each newline a further line down. */
+function TextLayer({ texts }: { texts: TextElement[] }) {
+  return (
+    <>
+      {texts.map((text, i) => {
+        const lines = text.content.split('\n');
+        return (
+          <g key={i} fill="#ffffff" textAnchor="middle" filter="drop-shadow(0 0 4px rgb(0 0 0 / 0.9))">
+            {lines.map((line, l) => (
+              <text
+                key={l}
+                x={FACE_W / 2 + text.offset[0]}
+                y={FACE_H / 2 + text.offset[1] + l * text.size * 1.05}
+                style={{ fontSize: text.size, fontWeight: 700 }}
+              >
+                {line}
+              </text>
+            ))}
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
 function RectangleFace({ face, variant }: { face: Face; variant: Variant }) {
   const symbolW = 90 * face.symbolScale;
   return (
@@ -143,6 +212,8 @@ function RectangleFace({ face, variant }: { face: Face; variant: Variant }) {
         ) : null}
 
         <DecalLayer decals={face.decals} />
+
+        {variant === 'd' ? <TextLayer texts={face.texts} /> : null}
 
         {face.ring && variant !== 'c' ? (
           <rect
@@ -261,10 +332,96 @@ function DecalsField({ face, patch }: { face: Face; patch: (f: Partial<Face>) =>
   );
 }
 
+/* Text gets exactly what decals get: a list you extend, and position plus size per element. */
+function TextsField({ face, patch }: { face: Face; patch: (f: Partial<Face>) => void }) {
+  const setText = (index: number, update: Partial<TextElement>) =>
+    patch({ texts: face.texts.map((t, i) => (i === index ? { ...t, ...update } : t)) });
+  return (
+    <Stack gap="md">
+      <Group justify="space-between" align="center">
+        <Text fw={700} size="sm">
+          Text elements
+        </Text>
+        <ListLengthActions
+          addLabel="Add text"
+          removeLabel="Remove last text"
+          removeDisabled={face.texts.length === 0}
+          onAdd={() => patch({ texts: [...face.texts, { content: 'TEXT', offset: [0, 0], size: 28 }] })}
+          onRemove={() => patch({ texts: face.texts.slice(0, -1) })}
+        />
+      </Group>
+      {face.texts.length === 0 ? (
+        <Alert color="gray" variant="light" title="No text">
+          The rectangle places its text rather than slotting it — add one and drag it anywhere.
+        </Alert>
+      ) : null}
+      {face.texts.map((text, index) => (
+        <Stack key={index} gap="sm">
+          {index > 0 ? <Divider /> : null}
+          <Text size="sm" fw={600}>
+            Text {index + 1}
+          </Text>
+          <ControlBlock
+            title="Content"
+            description="Each line break becomes another line, centred on the same point."
+            input={
+              <Textarea
+                autosize
+                minRows={1}
+                value={text.content}
+                onChange={(e) => setText(index, { content: e.currentTarget.value })}
+              />
+            }
+          />
+          <ControlBlock
+            title="Size"
+            description="Cap height in face units."
+            input={
+              <Slider
+                min={8}
+                max={110}
+                step={1}
+                value={text.size}
+                onChange={(value) => setText(index, { size: value })}
+              />
+            }
+          />
+          <Group grow>
+            <ControlBlock
+              title="Horizontal offset"
+              input={
+                <Slider
+                  min={-FACE_W / 2}
+                  max={FACE_W / 2}
+                  step={1}
+                  value={text.offset[0]}
+                  onChange={(value) => setText(index, { offset: [value, text.offset[1]] })}
+                />
+              }
+            />
+            <ControlBlock
+              title="Vertical offset"
+              input={
+                <Slider
+                  min={-FACE_H / 2}
+                  max={FACE_H / 2}
+                  step={1}
+                  value={text.offset[1]}
+                  onChange={(value) => setText(index, { offset: [text.offset[0], value] })}
+                />
+              }
+            />
+          </Group>
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
 function RectangleTokenPrototype() {
   const { v } = Route.useSearch();
   const navigate = useNavigate();
-  const [face, setFace] = useState<Face>(emptyFace);
+  const [face, setFace] = useState<Face>(referenceFace);
   const [backMode, setBackMode] = useState<'token' | 'custom'>('custom');
   const [backFace, setBackFace] = useState<Face>(emptyFace);
   const [chapter, setChapter] = useState('identity');
@@ -336,11 +493,23 @@ function RectangleTokenPrototype() {
           input={<Switch checked={face.ring} onChange={(e) => patch({ ring: e.currentTarget.checked })} />}
         />
       </Stack>
-    ) : (
+    ) : v === 'c' ? (
       <Stack gap="lg">
         <BackgroundField face={face} patch={patch} />
         <Text size="sm" c="dimmed">
           No symbol, no labels, no ring — the face is background plus decals and nothing else.
+        </Text>
+      </Stack>
+    ) : (
+      <Stack gap="lg">
+        <BackgroundField face={face} patch={patch} />
+        <ControlBlock
+          title="Edge ring"
+          description="A rounded inset rule; the reference token has none."
+          input={<Switch checked={face.ring} onChange={(e) => patch({ ring: e.currentTarget.checked })} />}
+        />
+        <Text size="sm" c="dimmed">
+          Everything else on this face is a placed element: add decals and text, and put them where you want them.
         </Text>
       </Stack>
     );
@@ -397,6 +566,16 @@ function RectangleTokenPrototype() {
       icon: <Brush size={21} aria-hidden />,
       panel: panel(<DecalsField face={face} patch={patch} />),
     },
+    ...(v === 'd'
+      ? [
+          {
+            value: 'text',
+            label: 'Text',
+            icon: <Type size={21} aria-hidden />,
+            panel: panel(<TextsField face={face} patch={patch} />),
+          },
+        ]
+      : []),
     ...(backMode === 'custom'
       ? [
           {
@@ -427,6 +606,7 @@ function RectangleTokenPrototype() {
                 value={v}
                 onChange={(value) => void navigate({ to: '.', search: { v: value as Variant } })}
                 data={[
+                  { value: 'd', label: 'D · Free composition' },
                   { value: 'a', label: 'A · Token, stretched' },
                   { value: 'b', label: 'B · Card, shrunk' },
                   { value: 'c', label: 'C · Pictorial strip' },
