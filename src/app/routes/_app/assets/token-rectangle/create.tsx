@@ -22,7 +22,6 @@ import {
   Divider,
   Group,
   NumberInput,
-  SegmentedControl,
   Select,
   Slider,
   Stack,
@@ -30,6 +29,7 @@ import {
   Text,
   Textarea,
   TextInput,
+  UnstyledButton,
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -130,6 +130,30 @@ const newText = (): TextElement => ({
   opacity: 1,
 });
 
+/** Stand-ins for "some other rectangle token in the catalogue", so the picker can show one. */
+const EXISTING_TOKENS: { value: string; label: string; face: Face }[] = [
+  {
+    value: 'heighliner',
+    label: 'Heighliner (gurney)',
+    face: {
+      background: backgroundPresets.defense,
+      ring: false,
+      decals: [{ ...newDecal(), scale: 0.8 }],
+      texts: [{ content: 'HEIGHLINER', offset: [0, 58], size: 16, font: 'C_Copperplate_Gothic', opacity: 1 }],
+    },
+  },
+  {
+    value: 'karama',
+    label: 'Karama (irulan)',
+    face: {
+      background: backgroundPresets.worthless,
+      ring: true,
+      decals: [],
+      texts: [{ content: 'KARAMA', offset: [0, 10], size: 34, font: 'C_Busorama', opacity: 1 }],
+    },
+  },
+];
+
 /* Seeded to the reference token: an emblem left, the name under it, a large modifier right. */
 const referenceFace = (): Face => ({
   ...emptyFace(),
@@ -217,6 +241,41 @@ function RectangleFace({ face }: { face: Face }) {
 }
 
 /* ------------------------------ the editor ------------------------------ */
+
+/**
+ * A choice shown rather than named — the BackgroundPresetPicker idea generalised to any preview.
+ * Every option paints the outcome it selects, so the control cannot misdescribe what you will get.
+ * Local to the prototype;
+ * if the direction holds this becomes a kit Control and the background picker is rewritten as one caller of it.
+ */
+function TilePicker({
+  options,
+  selected,
+  onSelect,
+}: {
+  options: { value: string; label: string; preview: ReactNode }[];
+  selected: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <div className={styles.tileRow}>
+      {options.map((option) => (
+        <UnstyledButton
+          key={option.value}
+          type="button"
+          className={styles.tile}
+          aria-pressed={selected === option.value}
+          onClick={() => onSelect(option.value)}
+        >
+          <div className={styles.tileArt}>{option.preview}</div>
+          <Text size="xs" fw={selected === option.value ? 700 : 500} ta="center" mt={4} truncate>
+            {option.label}
+          </Text>
+        </UnstyledButton>
+      ))}
+    </div>
+  );
+}
 
 const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
 
@@ -387,6 +446,7 @@ function TextsField({ face, patch }: { face: Face; patch: Patch }) {
           <ControlBlock
             title="Font"
             description="The faces the project ships."
+            /* Each option is set in the face it names, so the list shows the choice it offers. */
             input={
               <Select
                 aria-label={`Font for text ${index + 1}`}
@@ -394,6 +454,10 @@ function TextsField({ face, patch }: { face: Face; patch: Patch }) {
                 value={text.font}
                 allowDeselect={false}
                 onChange={(value) => value && setText(index, { font: value })}
+                renderOption={({ option }) => (
+                  <span style={{ fontFamily: `"${option.value}", sans-serif`, fontSize: 18 }}>{option.label}</span>
+                )}
+                styles={{ input: { fontFamily: `"${text.font}", sans-serif` } }}
               />
             }
           />
@@ -477,6 +541,7 @@ function RectangleTokenPrototype() {
   const [name, setName] = useState('Kwisatz Haderach');
   const [face, setFace] = useState<Face>(referenceFace);
   const [backMode, setBackMode] = useState<'token' | 'custom'>('custom');
+  const [backToken, setBackToken] = useState(EXISTING_TOKENS[0]?.value ?? '');
   const [backFace, setBackFace] = useState<Face>(emptyFace);
   const [chapter, setChapter] = useState('identity');
   const patch: Patch = (update) => setFace((prev) => ({ ...prev, ...update }));
@@ -494,31 +559,33 @@ function RectangleTokenPrototype() {
             description="Names the token and determines its URL."
             input={<TextInput value={name} onChange={(event) => setName(event.currentTarget.value)} />}
           />
+          {/* Shown, not named: the custom tile paints the back you are authoring, and each token
+              tile paints that token's own face. The choice states its own consequence. */}
           <ControlBlock
             title="Backside"
             description="Every token has one: authored here, or an existing token used as the back."
             input={
-              <SegmentedControl
-                fullWidth
-                value={backMode}
-                onChange={(value) => setBackMode(value as 'token' | 'custom')}
-                data={[
-                  { value: 'custom', label: 'Custom back' },
-                  { value: 'token', label: 'Existing token' },
+              <TilePicker
+                selected={backMode === 'custom' ? 'custom' : backToken}
+                onSelect={(value) => {
+                  if (value === 'custom') {
+                    setBackMode('custom');
+                    return;
+                  }
+                  setBackMode('token');
+                  setBackToken(value);
+                }}
+                options={[
+                  { value: 'custom', label: 'Custom back', preview: <RectangleFace face={backFace} /> },
+                  ...EXISTING_TOKENS.map((token) => ({
+                    value: token.value,
+                    label: token.label,
+                    preview: <RectangleFace face={token.face} />,
+                  })),
                 ]}
               />
             }
           />
-          {backMode === 'token' ? (
-            <Select
-              label="Back token"
-              data={[
-                { value: 'heighliner', label: 'Heighliner (by gurney)' },
-                { value: 'karama', label: 'Karama (by irulan)' },
-              ]}
-              defaultValue="heighliner"
-            />
-          ) : null}
         </Stack>
       ),
     },

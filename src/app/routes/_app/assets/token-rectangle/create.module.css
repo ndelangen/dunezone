@@ -14,3 +14,37 @@
   width: 100%;
   height: 100%;
 }
+
+/* A choice shown rather than named: every option renders the outcome it selects. The shape is
+   BackgroundPresetPicker's, generalised here to any preview. */
+.tileRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: var(--mantine-spacing-sm);
+}
+
+.tile {
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+}
+
+.tileArt {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 110 / 68;
+  border: 2px solid transparent;
+  border-radius: var(--mantine-radius-md);
+}
+
+.tile[aria-pressed="true"] .tileArt {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.tile:hover .tileArt,
+.tile:focus-visible .tileArt {
+  border-color: var(--mantine-color-dimmed);
+}
+
+.tile[aria-pressed="true"]:hover .tileArt {
+  border-color: var(--mantine-primary-color-filled);
+}
