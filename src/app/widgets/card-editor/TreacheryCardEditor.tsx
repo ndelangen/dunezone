@@ -1,4 +1,15 @@
-import { Alert, Group, NumberInput, SegmentedControl, Slider, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Grid,
+  Group,
+  NumberInput,
+  SegmentedControl,
+  Slider,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+} from '@mantine/core';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -69,6 +80,9 @@ const ICON_BACKGROUND_PRESETS = CARD_PRESETS.map(({ key, label, striped }) => ({
 
 /* Center-to-edge slider span: the treachery card is 900 × 1263 in card space. */
 const DECAL_OFFSET_RANGE = [450, 630] as const;
+
+/* The icon disc is 125 card-space pixels; half a disc of nudge per axis, number inputs unclamped. */
+const ICON_OFFSET_RANGE = 60;
 
 const DEFAULT_TAB_VECTOR = '/vector/icon/projectile.svg';
 
@@ -278,6 +292,66 @@ function IconFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
           />
         }
       />
+      <Grid>
+        <Grid.Col span={{ base: 12, xs: 6 }}>
+          <ControlBlock
+            title="Horizontal offset"
+            description="Move the icon left with a negative value or right with a positive value."
+            tool={
+              <NumberInput
+                aria-label="Horizontal icon offset"
+                w={96}
+                step={1}
+                value={draft.iconOffset?.[0] ?? 0}
+                onChange={(value) => {
+                  if (typeof value === 'number') {
+                    patch({ iconOffset: [value, draft.iconOffset?.[1] ?? 0] });
+                  }
+                }}
+              />
+            }
+            input={
+              <Slider
+                aria-label="Horizontal icon offset slider"
+                min={-ICON_OFFSET_RANGE}
+                max={ICON_OFFSET_RANGE}
+                step={1}
+                value={draft.iconOffset?.[0] ?? 0}
+                onChange={(value) => patch({ iconOffset: [value, draft.iconOffset?.[1] ?? 0] })}
+              />
+            }
+          />
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, xs: 6 }}>
+          <ControlBlock
+            title="Vertical offset"
+            description="Move the icon up with a negative value or down with a positive value."
+            tool={
+              <NumberInput
+                aria-label="Vertical icon offset"
+                w={96}
+                step={1}
+                value={draft.iconOffset?.[1] ?? 0}
+                onChange={(value) => {
+                  if (typeof value === 'number') {
+                    patch({ iconOffset: [draft.iconOffset?.[0] ?? 0, value] });
+                  }
+                }}
+              />
+            }
+            input={
+              <Slider
+                aria-label="Vertical icon offset slider"
+                min={-ICON_OFFSET_RANGE}
+                max={ICON_OFFSET_RANGE}
+                step={1}
+                value={draft.iconOffset?.[1] ?? 0}
+                onChange={(value) => patch({ iconOffset: [draft.iconOffset?.[0] ?? 0, value] })}
+              />
+            }
+          />
+        </Grid.Col>
+      </Grid>
     </Stack>
   );
 }
