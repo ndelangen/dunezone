@@ -1,4 +1,5 @@
 import { Table } from '@mantine/core';
+import { Children, isValidElement } from 'react';
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 
 import styles from './SectionedSurface.module.css';
@@ -21,9 +22,21 @@ export interface SectionedSurfaceProps {
  * Prefer this over stacking several `Surface`s: dividing one pane is how a collection stays a single object, and surfaces never nest.
  */
 export function SectionedSurface({ children }: SectionedSurfaceProps) {
+  /* Hover highlight promises a click. Rows that are not activatable must not glow, so the
+     highlight follows whether any row carries `onActivate` — a purely informational pane
+     stays still under the pointer. */
+  const anyRowActivates = Children.toArray(children).some(
+    (child) => isValidElement<SectionedSurfaceRowProps>(child) && child.type === Row && child.props.onActivate != null
+  );
   return (
     <Surface className={styles.surface}>
-      <Table withRowBorders highlightOnHover horizontalSpacing="md" verticalSpacing="md" className={styles.list}>
+      <Table
+        withRowBorders
+        highlightOnHover={anyRowActivates}
+        horizontalSpacing="md"
+        verticalSpacing="md"
+        className={styles.list}
+      >
         <Table.Tbody>{children}</Table.Tbody>
       </Table>
     </Surface>

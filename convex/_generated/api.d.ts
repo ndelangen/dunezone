@@ -9,6 +9,7 @@
  */
 
 import type * as assetPublishingStatus from "../assetPublishingStatus.js";
+import type * as assets from "../assets.js";
 import type * as auth from "../auth.js";
 import type * as e2e from "../e2e.js";
 import type * as factions from "../factions.js";
@@ -63,6 +64,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   assetPublishingStatus: typeof assetPublishingStatus;
+  assets: typeof assets;
   auth: typeof auth;
   e2e: typeof e2e;
   factions: typeof factions;
