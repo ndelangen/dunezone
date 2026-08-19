@@ -1,0 +1,210 @@
+/* PROTOTYPE (#512). The joined-filter treatment is lifted from the faction catalogue stylesheet. */
+
+.catalogueHeader {
+  width: min(100%, 64rem);
+  min-width: 0;
+}
+
+/* Three controls fused into one field. The width belongs here because it is a fact about the
+   field, not about the toolbar. */
+.joinedFilters {
+  display: flex;
+  align-items: stretch;
+  width: min(100%, 34rem);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-xs);
+}
+
+.joinedFilters > * + * {
+  border-left: 1px solid var(--mantine-color-default-border);
+}
+
+.searchSegment {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sortSegment {
+  flex: 0 0 10rem;
+}
+
+/* Side by side the search box is down to ~110px on a phone; stack the segments instead. */
+@media (max-width: 30em) {
+  .joinedFilters {
+    flex-wrap: wrap;
+  }
+
+  .searchSegment,
+  .sortSegment {
+    flex: 1 1 100%;
+  }
+
+  .joinedFilters > * + * {
+    border-top: 1px solid var(--mantine-color-default-border);
+    border-left: none;
+  }
+}
+
+/* --- A: uniform slots, caption beneath --- */
+.uniformGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(0, 9.5rem));
+  gap: var(--space-6);
+  justify-content: space-evenly;
+}
+
+.tile {
+  min-width: 0;
+}
+
+.tileOpen {
+  display: block;
+  width: 100%;
+  text-align: start;
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+}
+
+.tileArt {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-sm);
+  border: 2px solid transparent;
+}
+
+.tile:hover .tileArt,
+.tileOpen:focus-visible .tileArt {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.tileActions {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.tile:hover .tileActions,
+.tile:focus-within .tileActions {
+  opacity: 1;
+}
+
+/* --- B: contact sheet — artwork edge to edge, identity from the picture --- */
+.contactSheet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.contactItem {
+  position: relative;
+  flex: 0 0 auto;
+  width: 11rem;
+  border-radius: var(--mantine-radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.contactCaption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 1.6rem 0.5rem 0.4rem;
+  background: linear-gradient(to top, rgb(0 0 0 / 82%), transparent);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.contactItem:hover .contactCaption,
+.contactItem:focus-within .contactCaption {
+  opacity: 1;
+}
+
+.facetRail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.facet {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+}
+
+.facet[aria-pressed="true"] {
+  background: var(--mantine-color-default-hover);
+}
+
+/* --- C: grouped ledger — the face becomes an identifier --- */
+.ledgerStrip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.ledgerThumb {
+  min-width: 0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+/* --- the browse region: the grid, plus whichever rails the variation asks for --- */
+.browseRegion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.browseRegion[data-facets="true"] {
+  grid-template-columns: 12rem minmax(0, 1fr);
+}
+
+.browseRegion[data-rail="true"] {
+  grid-template-columns: minmax(0, 1fr) 20rem;
+}
+
+.browseRegion[data-facets="true"][data-rail="true"] {
+  grid-template-columns: 12rem minmax(0, 1fr) 20rem;
+}
+
+@media (max-width: 60em) {
+  .browseRegion,
+  .browseRegion[data-facets="true"],
+  .browseRegion[data-rail="true"],
+  .browseRegion[data-facets="true"][data-rail="true"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.browseColumn {
+  min-width: 0;
+}
+
+.facetColumn {
+  position: sticky;
+  top: 6rem;
+  min-width: 0;
+}
+
+/* Bound the face so the name, owner and Edit stay on screen with it. */
+.upCloseArt {
+  width: min(100%, 19rem);
+  margin-inline: auto;
+}
+
+/* --- the up-close rail --- */
+.railCard {
+  position: sticky;
+  top: 6rem;
+  min-width: 0;
+}
