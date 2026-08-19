@@ -1,0 +1,16 @@
+/* PROTOTYPE (#508). The face fills the CanvasScale canvas; BackgroundRenderer's overlay is
+   absolute, so the face must establish the positioning context. */
+.face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* The background overlay is absolutely positioned, so a static sibling paints beneath it. */
+.face > svg {
+  display: block;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}

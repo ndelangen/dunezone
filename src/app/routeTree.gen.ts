@@ -33,6 +33,7 @@ import { Route as AppRulesetsCreateRouteImport } from './routes/_app/rulesets/cr
 import { Route as PreviewSheetFactionSlugRouteImport } from './routes/preview/sheet/$factionSlug'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
 import { Route as AppAssetsCardTreacheryCreateRouteImport } from './routes/_app/assets/card-treachery/create'
+import { Route as AppAssetsTokenRectangleCreateRouteImport } from './routes/_app/assets/token-rectangle/create'
 import { Route as AppFactionsFactionIdIndexRouteImport } from './routes/_app/factions/$factionId/index'
 import { Route as AppFactionsFactionIdEditRouteImport } from './routes/_app/factions/$factionId/edit'
 import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/groups/$groupSlug/index'
@@ -165,6 +166,12 @@ const AppAssetsCardTreacheryCreateRoute =
     path: '/assets/card-treachery/create',
     getParentRoute: () => AppRoute,
   } as any)
+const AppAssetsTokenRectangleCreateRoute =
+  AppAssetsTokenRectangleCreateRouteImport.update({
+    id: '/assets/token-rectangle/create',
+    path: '/assets/token-rectangle/create',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppFactionsFactionIdIndexRoute =
   AppFactionsFactionIdIndexRouteImport.update({
     id: '/factions/$factionId/',
@@ -253,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/profiles/': typeof AppProfilesIndexRoute
   '/rulesets/': typeof AppRulesetsIndexRoute
   '/assets/card-treachery/create': typeof AppAssetsCardTreacheryCreateRoute
+  '/assets/token-rectangle/create': typeof AppAssetsTokenRectangleCreateRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
@@ -287,6 +295,7 @@ export interface FileRoutesByTo {
   '/profiles': typeof AppProfilesIndexRoute
   '/rulesets': typeof AppRulesetsIndexRoute
   '/assets/card-treachery/create': typeof AppAssetsCardTreacheryCreateRoute
+  '/assets/token-rectangle/create': typeof AppAssetsTokenRectangleCreateRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
@@ -325,6 +334,7 @@ export interface FileRoutesById {
   '/_app/profiles/': typeof AppProfilesIndexRoute
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
   '/_app/assets/card-treachery/create': typeof AppAssetsCardTreacheryCreateRoute
+  '/_app/assets/token-rectangle/create': typeof AppAssetsTokenRectangleCreateRoute
   '/_app/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/_app/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/profiles/'
     | '/rulesets/'
     | '/assets/card-treachery/create'
+    | '/assets/token-rectangle/create'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/profiles/$profileSlug/edit'
@@ -397,6 +408,7 @@ export interface FileRouteTypes {
     | '/profiles'
     | '/rulesets'
     | '/assets/card-treachery/create'
+    | '/assets/token-rectangle/create'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/profiles/$profileSlug/edit'
@@ -434,6 +446,7 @@ export interface FileRouteTypes {
     | '/_app/profiles/'
     | '/_app/rulesets/'
     | '/_app/assets/card-treachery/create'
+    | '/_app/assets/token-rectangle/create'
     | '/_app/factions/$factionId/edit'
     | '/_app/groups/$groupSlug/edit'
     | '/_app/profiles/$profileSlug/edit'
@@ -624,6 +637,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssetsCardTreacheryCreateRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/assets/token-rectangle/create': {
+      id: '/_app/assets/token-rectangle/create'
+      path: '/assets/token-rectangle/create'
+      fullPath: '/assets/token-rectangle/create'
+      preLoaderRoute: typeof AppAssetsTokenRectangleCreateRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/factions/$factionId/': {
       id: '/_app/factions/$factionId/'
       path: '/factions/$factionId'
@@ -759,6 +779,7 @@ interface AppRouteChildren {
   AppProfilesIndexRoute: typeof AppProfilesIndexRoute
   AppRulesetsIndexRoute: typeof AppRulesetsIndexRoute
   AppAssetsCardTreacheryCreateRoute: typeof AppAssetsCardTreacheryCreateRoute
+  AppAssetsTokenRectangleCreateRoute: typeof AppAssetsTokenRectangleCreateRoute
   AppFactionsFactionIdEditRoute: typeof AppFactionsFactionIdEditRoute
   AppProfilesProfileSlugEditRoute: typeof AppProfilesProfileSlugEditRoute
   AppAssetsTypeIndexRoute: typeof AppAssetsTypeIndexRoute
@@ -788,6 +809,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfilesIndexRoute: AppProfilesIndexRoute,
   AppRulesetsIndexRoute: AppRulesetsIndexRoute,
   AppAssetsCardTreacheryCreateRoute: AppAssetsCardTreacheryCreateRoute,
+  AppAssetsTokenRectangleCreateRoute: AppAssetsTokenRectangleCreateRoute,
   AppFactionsFactionIdEditRoute: AppFactionsFactionIdEditRoute,
   AppProfilesProfileSlugEditRoute: AppProfilesProfileSlugEditRoute,
   AppAssetsTypeIndexRoute: AppAssetsTypeIndexRoute,
