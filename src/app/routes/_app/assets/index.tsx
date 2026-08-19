@@ -273,17 +273,20 @@ function AssetsLandingPage() {
                         {allPlanned ? 'planned' : `${total} asset${total === 1 ? '' : 's'}`}
                       </Text>
                     </Stack>
-                    {/* Five fixed slots, distributed with space-evenly: the free space forms
-                        equal gutters everywhere — between slots and at both edges — and the
-                        identical tracks repeat in every group row, keeping columns aligned. */}
+                    {/* Fixed slots with an assured gap, auto-filled: the track count follows the
+                        container (5 → 4 → 3 → 2 as it narrows), space-evenly spreads the leftover,
+                        and every group row computes the same tracks, keeping columns aligned.
+                        The max-width keeps a sixth column from ever fitting on wide screens. */}
                     <div
                       style={{
                         flex: 1,
                         display: 'grid',
-                        gridTemplateColumns: `repeat(5, minmax(0, ${PILE_SLOT}px))`,
+                        gridTemplateColumns: `repeat(auto-fill, minmax(0, ${PILE_SLOT}px))`,
                         justifyContent: 'space-evenly',
+                        columnGap: 24,
                         rowGap: 24,
                         alignItems: 'end',
+                        maxWidth: PILE_SLOT * 6 + 24 * 5 - 1,
                       }}
                     >
                       {group.types.map((type) => (
