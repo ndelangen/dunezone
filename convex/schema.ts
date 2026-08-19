@@ -175,6 +175,22 @@ export default defineSchema({
   })
     .index('by_migration_id', ['migration_id'])
     .index('by_state', ['state']),
+  /**
+   * Ruleset deck slots: the named slots hold at most one deck each and `custom` holds any number — single-deck semantics are mutation-level rules, not schema.
+   * Slot names are curatorial labels;
+   * the mutations demand only that the asset is a deck.
+   * An empty slot is the absence of a row.
+   * Soft-deleted decks stay referenced and are filtered at query time, so the slot presents empty.
+   * `by_asset` feeds the deck detail page's "used by these rulesets" view.
+   */
+  ruleset_deck_slots: defineTable({
+    ruleset_id: v.id('rulesets'),
+    asset_id: v.id('assets'),
+    slot: v.union(v.literal('treachery'), v.literal('spice'), v.literal('custom')),
+  })
+    .index('by_ruleset', ['ruleset_id'])
+    .index('by_asset', ['asset_id'])
+    .index('by_ruleset_slot', ['ruleset_id', 'slot']),
   ruleset_factions: defineTable({
     ruleset_id: v.id('rulesets'),
     faction_id: v.id('factions'),
