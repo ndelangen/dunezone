@@ -154,20 +154,10 @@
   aspect-ratio: 1;
 }
 
+/* Sizing and clipping come from CanvasScale; this class only decorates the frame. */
 .cardProof {
-  width: 15rem;
-  height: 21.05rem;
-  margin: 0 auto;
-  overflow: hidden;
   border-radius: var(--mantine-radius-md);
   box-shadow: var(--panel-shadow);
-}
-
-.cardCanvas {
-  width: 900px;
-  height: 1263px;
-  transform: scale(0.2666667);
-  transform-origin: top left;
 }
 
 .rulesProof {

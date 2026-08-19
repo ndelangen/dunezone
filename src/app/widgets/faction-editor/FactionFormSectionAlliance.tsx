@@ -1,14 +1,12 @@
-import { arrayMove } from '@dnd-kit/sortable';
-import { Alert, Box, Grid, Group, Stack, Text, Textarea } from '@mantine/core';
+import { Alert, Divider, Grid, Group, Stack, Text, Textarea } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { useState } from 'react';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
+import { card as CARD_SIZE } from '@game/data/sizes';
 
-import { FactionCollectionShelf } from './FactionCollectionShelf';
-import { decalAssetOptionToLabel } from './factionFormAssetUtils';
 import { defaultDecal } from './factionFormDefaults';
 import styles from './FactionFormSectionAlliance.module.css';
 import type { FactionFormApi } from './factionFormTypes';
@@ -52,16 +50,14 @@ function AllianceCardPreview({ form }: { form: FactionFormApi }) {
       })}
     >
       {(preview) => (
-        <Stack align="center" gap="sm" pos="sticky" top="calc(var(--app-shell-header-offset, 0px) + 6rem)">
+        <Stack align="stretch" gap="sm" pos="sticky" top="calc(var(--app-shell-header-offset, 0px) + 6rem)">
           <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
             Used on: Alliance card
           </Text>
-          <Box className={styles.cardFrame} aria-label="Alliance card preview">
-            <Box className={styles.cardCanvas}>
-              <AllianceCard {...preview} />
-            </Box>
-          </Box>
-          <Text size="xs" c="dimmed" ta="center" maw={240}>
+          <CanvasScale canvasWidth={CARD_SIZE.width} canvasHeight={CARD_SIZE.height} frameClassName={styles.cardFrame}>
+            <AllianceCard {...preview} />
+          </CanvasScale>
+          <Text size="xs" c="dimmed" ta="center">
             The preview updates from the ability and every decal control.
           </Text>
         </Stack>
@@ -73,17 +69,10 @@ function AllianceCardPreview({ form }: { form: FactionFormApi }) {
 export function FactionFormSectionAlliance({
   form,
   showPreview = true,
-  selectedDecalIndex,
-  onSelectedDecalIndexChange,
 }: {
   form: FactionFormApi;
   showPreview?: boolean;
-  selectedDecalIndex?: number;
-  onSelectedDecalIndexChange?: (index: number) => void;
 }) {
-  const [internalSelectedDecalIndex, setInternalSelectedDecalIndex] = useState(0);
-  const currentSelectedDecalIndex = selectedDecalIndex ?? internalSelectedDecalIndex;
-  const selectDecalIndex = onSelectedDecalIndexChange ?? setInternalSelectedDecalIndex;
   return (
     <Stack component="section" gap="md" aria-label="Alliance card">
       <Grid gap="xl" align="start">
@@ -122,57 +111,41 @@ export function FactionFormSectionAlliance({
 
             <form.Field name="decals" mode="array">
               {(field) => {
-                const sortablePrefix = 'decals-';
                 const count = field.state.value.length;
-                const safeSelectedIndex = Math.min(Math.max(currentSelectedDecalIndex, 0), Math.max(count - 1, 0));
                 return (
                   <Stack gap="md">
-                    <Group justify="flex-end">
+                    <Group justify="space-between" align="center">
+                      <Text fw={700} size="sm">
+                        Decals
+                      </Text>
                       <ListLengthActions
                         removeLabel="Remove last alliance decal"
                         addLabel="Add alliance decal"
                         removeDisabled={count === 0}
                         onRemove={() => {
-                          const lastIndex = count - 1;
-                          if (lastIndex < 0) {
-                            return;
+                          if (count > 0) {
+                            field.removeValue(count - 1);
                           }
-                          if (currentSelectedDecalIndex >= lastIndex) {
-                            selectDecalIndex(Math.max(0, lastIndex - 1));
-                          }
-                          field.removeValue(lastIndex);
                         }}
-                        onAdd={() => {
-                          const newIndex = count;
-                          field.pushValue(defaultDecal());
-                          selectDecalIndex(newIndex);
-                        }}
+                        onAdd={() => field.pushValue(defaultDecal())}
                       />
                     </Group>
 
                     {count === 0 ? (
                       <Alert color="gray" variant="light" title="No alliance decals">
-                        Decals are optional. The alliance card remains valid without decorative artwork.
+                        Decals are optional. The alliance card remains valid without them.
                       </Alert>
                     ) : null}
 
-                    {count > 0 ? (
-                      <>
-                        <FactionCollectionShelf
-                          label="Ordered alliance decals"
-                          sortablePrefix={sortablePrefix}
-                          selectedIndex={safeSelectedIndex}
-                          onSelectedIndexChange={selectDecalIndex}
-                          items={field.state.value.map((decal, index) => ({
-                            id: `${sortablePrefix}${index}`,
-                            label: decalAssetOptionToLabel(decal.id),
-                            description: `Layer ${index + 1}`,
-                          }))}
-                          onMove={(from, to) => field.handleChange(arrayMove(field.state.value, from, to))}
-                        />
-                        <DecalCard form={form} index={safeSelectedIndex} />
-                      </>
-                    ) : null}
+                    {field.state.value.map((_, index) => (
+                      <Stack key={index} gap="sm">
+                        {index > 0 ? <Divider /> : null}
+                        <Text size="sm" fw={600}>
+                          Decal {index + 1}
+                        </Text>
+                        <DecalCard form={form} index={index} />
+                      </Stack>
+                    ))}
                   </Stack>
                 );
               }}

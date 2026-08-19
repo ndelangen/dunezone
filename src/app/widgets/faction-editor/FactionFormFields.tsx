@@ -4,6 +4,7 @@ import { FactionCard } from '@ui/block/FactionCard';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Globe2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
@@ -15,6 +16,7 @@ import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
+import { card as CARD_SIZE } from '@game/data/sizes';
 
 import { factionAuthoringChapters } from './factionAuthoringContract';
 import type { FactionAuthoringChapterId, FactionAuthoringWarning } from './factionAuthoringContract';
@@ -238,18 +240,20 @@ function ArtifactProof({
         } else if (activeChapter === 'alliance') {
           title = 'Alliance card';
           artifact = selectedTroop ? (
-            <Box className={styles.cardProof}>
-              <Box className={styles.cardCanvas}>
-                <AllianceCard
-                  background={faction.background}
-                  decals={faction.decals}
-                  logo={faction.logo}
-                  text={faction.rules.alliance.text}
-                  title={faction.name}
-                  troop={selectedTroop.image}
-                />
-              </Box>
-            </Box>
+            <CanvasScale
+              canvasWidth={CARD_SIZE.width}
+              canvasHeight={CARD_SIZE.height}
+              frameClassName={styles.cardProof}
+            >
+              <AllianceCard
+                background={faction.background}
+                decals={faction.decals}
+                logo={faction.logo}
+                text={faction.rules.alliance.text}
+                title={faction.name}
+                troop={selectedTroop.image}
+              />
+            </CanvasScale>
           ) : (
             <PreviewEmpty>Add a troop type to complete the alliance-card proof.</PreviewEmpty>
           );
@@ -416,7 +420,6 @@ export const FactionFormFields = forwardRef<
   const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState({
     leader: 0,
-    decal: 0,
     world: 0,
     troop: 0,
     advantage: 0,
@@ -452,14 +455,7 @@ export const FactionFormFields = forwardRef<
           onSelectedIndexChange={(leader) => setSelectedItem((current) => ({ ...current, leader }))}
         />
       ) : null}
-      {chapter === 'alliance' ? (
-        <FactionFormSectionAlliance
-          form={form}
-          showPreview={false}
-          selectedDecalIndex={selectedItem.decal}
-          onSelectedDecalIndexChange={(decal) => setSelectedItem((current) => ({ ...current, decal }))}
-        />
-      ) : null}
+      {chapter === 'alliance' ? <FactionFormSectionAlliance form={form} showPreview={false} /> : null}
       {chapter === 'worlds' ? (
         <FactionFormSectionPlanets
           form={form}

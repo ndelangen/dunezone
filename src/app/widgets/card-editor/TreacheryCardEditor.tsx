@@ -14,9 +14,10 @@ import {
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Brush, ScrollText, Type } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -90,44 +91,10 @@ const DEFAULT_TAB_VECTOR = '/vector/icon/projectile.svg';
 /* ------------------------------ rail proof ------------------------------ */
 
 function FillCard({ draft }: { draft: TreacheryDraft }) {
-  const [width, setWidth] = useState(0);
-  const [node, setNode] = useState<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!node) {
-      return;
-    }
-    const observer = new ResizeObserver(([entry]) => setWidth(entry?.contentRect.width ?? 0));
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [node]);
-  const scale = width / CARD_SIZE.width;
   return (
-    <div ref={setNode} style={{ width: '100%' }}>
-      {width > 0 && (
-        <div
-          style={{
-            width,
-            height: width * (CARD_SIZE.height / CARD_SIZE.width),
-            position: 'relative',
-            borderRadius: width / 18,
-            overflow: 'hidden',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.45)',
-          }}
-        >
-          <div
-            style={{
-              transform: `scale(${scale})`,
-              transformOrigin: 'top left',
-              width: CARD_SIZE.width,
-              height: CARD_SIZE.height,
-              pointerEvents: 'none',
-            }}
-          >
-            <TreacheryCard {...draft} />
-          </div>
-        </div>
-      )}
-    </div>
+    <CanvasScale canvasWidth={CARD_SIZE.width} canvasHeight={CARD_SIZE.height} frameClassName={styles.proofFrame}>
+      <TreacheryCard {...draft} />
+    </CanvasScale>
   );
 }
 
