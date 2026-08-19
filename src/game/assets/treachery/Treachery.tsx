@@ -20,12 +20,14 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
   subName,
   iconOffset,
   iconScale,
+  iconInvert,
 }) => {
   const cid = useCountId();
   const prefix = useMemo(() => `${cid}_`, [cid]);
 
   const iconMarginLeft = iconOffset?.[0] || 0;
   const iconMarginTop = iconOffset?.[1] || 0;
+  const iconFilter = iconInvert ? 'invert(1)' : undefined;
 
   return (
     <div className={styles.card}>
@@ -51,6 +53,7 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
             marginTop: iconMarginTop * 2,
             width: (iconScale || 1) * 85,
             height: (iconScale || 1) * 85,
+            filter: iconFilter,
           }}
         />
         <img
@@ -64,6 +67,7 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
             height: (iconScale || 1) * 85,
             top: (125 - 85 * (iconScale || 1)) / 2,
             left: (125 - 85 * (iconScale || 1)) / 2,
+            filter: iconFilter,
           }}
         />
       </BackgroundRenderer>

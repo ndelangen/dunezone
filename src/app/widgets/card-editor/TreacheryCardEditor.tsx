@@ -1,4 +1,16 @@
-import { Alert, Divider, Grid, Group, NumberInput, Slider, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Divider,
+  Grid,
+  Group,
+  NumberInput,
+  Slider,
+  Stack,
+  Switch,
+  Text,
+  Textarea,
+  TextInput,
+} from '@mantine/core';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -204,6 +216,17 @@ function IconFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
                 patch({ icon: [draft.icon[0], value as TreacheryDraft['icon'][1]] });
               }
             }}
+          />
+        }
+      />
+      <ControlBlock
+        title="Invert"
+        description="Flips the icon from dark to light artwork."
+        input={
+          <Switch
+            aria-label="Invert icon"
+            checked={draft.iconInvert ?? false}
+            onChange={(event) => patch({ iconInvert: event.currentTarget.checked })}
           />
         }
       />
