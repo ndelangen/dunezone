@@ -138,8 +138,10 @@ function TokenStack({ entries, width }: { entries: AssetListEntry[]; width: numb
   );
 }
 
-/** every outline wears the physical shape of the thing it reserves */
-function emptyOutlineShape(type: AssetType): { width: number; height: number; borderRadius: number | string } {
+/** every outline wears the physical shape of the thing it reserves; width-filling shapes stretch to their grid slot */
+function emptyOutlineShape(
+  type: AssetType
+): { width: number | string; borderRadius: number | string } & ({ height: number } | { aspectRatio: string }) {
   switch (type) {
     case 'token-round':
     case 'token-gear':
@@ -147,12 +149,12 @@ function emptyOutlineShape(type: AssetType): { width: number; height: number; bo
     case 'token-square':
       return { width: 96, height: 96, borderRadius: 8 };
     case 'token-rectangle':
-      return { width: 110, height: 68, borderRadius: 8 };
+      return { width: '100%', aspectRatio: '110 / 68', borderRadius: 8 };
     case 'board':
-      return { width: 150, height: 100, borderRadius: 8 };
+      return { width: '100%', aspectRatio: '3 / 2', borderRadius: 8 };
     default:
       /* cards and decks: the card's own proportions */
-      return { width: 110, height: Math.round(110 * CARD_ASPECT), borderRadius: 6 };
+      return { width: '100%', aspectRatio: `1 / ${CARD_ASPECT}`, borderRadius: 6 };
   }
 }
 
@@ -265,20 +267,17 @@ function AssetsLandingPage() {
                         {allPlanned ? 'planned' : `${total} asset${total === 1 ? '' : 's'}`}
                       </Text>
                     </Stack>
-                    {/* Five equal tracks keep columns aligned across all group rows. The
-                        horizontal padding makes the edge insets equal the inter-column
-                        gaps: with centered ~110px piles, inset = (track − 110)/2 and
-                        gap = track − 110, so padding of (width − 550)/12 closes the
-                        difference. */}
+                    {/* Five fixed slots, distributed with space-evenly: the free space forms
+                        equal gutters everywhere — between slots and at both edges — and the
+                        identical tracks repeat in every group row, keeping columns aligned. */}
                     <div
                       style={{
                         flex: 1,
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-                        paddingInline: 'calc((100% - 550px) / 12)',
+                        gridTemplateColumns: 'repeat(5, minmax(0, 150px))',
+                        justifyContent: 'space-evenly',
                         rowGap: 24,
                         alignItems: 'end',
-                        justifyItems: 'center',
                       }}
                     >
                       {group.types.map((type) => (
