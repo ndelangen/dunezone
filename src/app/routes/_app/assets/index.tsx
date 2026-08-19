@@ -264,13 +264,18 @@ function AssetsLandingPage() {
                         {allPlanned ? 'planned' : `${total} asset${total === 1 ? '' : 's'}`}
                       </Text>
                     </Stack>
-                    {/* five fixed columns filling the panel, so piles align across wrapped rows */}
+                    {/* Five equal tracks keep columns aligned across all group rows. The
+                        horizontal padding makes the edge insets equal the inter-column
+                        gaps: with centered ~110px piles, inset = (track − 110)/2 and
+                        gap = track − 110, so padding of (width − 550)/12 closes the
+                        difference. */}
                     <div
                       style={{
                         flex: 1,
                         display: 'grid',
                         gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-                        gap: '24px 8px',
+                        paddingInline: 'calc((100% - 550px) / 12)',
+                        rowGap: 24,
                         alignItems: 'end',
                         justifyItems: 'center',
                       }}
