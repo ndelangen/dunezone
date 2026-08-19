@@ -1,0 +1,44 @@
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+  gap: var(--mantine-spacing-sm);
+}
+
+.option {
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+}
+
+.art,
+.customArt {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
+  border: 2px solid transparent;
+  border-radius: var(--mantine-radius-md);
+}
+
+.option[aria-pressed="true"] .art,
+.option[aria-pressed="true"] .customArt {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.option:hover .art,
+.option:hover .customArt,
+.option:focus-visible .art,
+.option:focus-visible .customArt {
+  border-color: var(--mantine-color-dimmed);
+}
+
+.option[aria-pressed="true"]:hover .art,
+.option[aria-pressed="true"]:hover .customArt {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+/* The Custom tile before it holds a value: a reserved spot, the dashed convention. */
+.customArt {
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--mantine-color-dimmed);
+  color: var(--mantine-color-dimmed);
+}

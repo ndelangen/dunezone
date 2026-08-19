@@ -1,16 +1,4 @@
-import {
-  Alert,
-  Divider,
-  Grid,
-  Group,
-  NumberInput,
-  SegmentedControl,
-  Slider,
-  Stack,
-  Text,
-  Textarea,
-  TextInput,
-} from '@mantine/core';
+import { Alert, Divider, Grid, Group, NumberInput, Slider, Stack, Text, Textarea, TextInput } from '@mantine/core';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -22,12 +10,12 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { BackgroundComposer } from '@app/widgets/background-composer/BackgroundComposer';
+import { BackgroundPresetPicker } from '@app/widgets/background-composer/BackgroundPresetPicker';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
 import {
   assetOptionToPreviewSrc,
   decalAssetOptions,
-  iconAssetOptions,
-  iconAssetOptionToLabel,
+  decalAssetOptionToLabel,
 } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { backgroundPresets } from '@game/data/backgrounds';
@@ -36,7 +24,8 @@ import { card as CARD_SIZE } from '@game/data/sizes';
 
 import styles from './TreacheryCardEditor.module.css';
 
-const iconOptions = iconAssetOptions.map((value) => ({ value, label: iconAssetOptionToLabel(value) }));
+/* The icon draws from the same full vector pool the decals do — the schema's ALL union, not just the icon set. */
+const iconOptions = decalAssetOptions.map((value) => ({ value, label: decalAssetOptionToLabel(value) }));
 
 /* ------------------------------ draft model ------------------------------ */
 /* The draft IS the stored shape: the same Treachery zod validates on save (server-side
@@ -169,10 +158,11 @@ function BackgroundPresetControl({
       description={description}
       input={
         <Stack gap="sm">
-          <SegmentedControl
-            fullWidth
-            value={selected}
-            onChange={(next) => {
+          <BackgroundPresetPicker
+            presets={presets}
+            selected={selected}
+            customBackground={value}
+            onSelect={(next) => {
               if (next === 'custom') {
                 setCustomChosen(true);
                 return;
@@ -183,10 +173,6 @@ function BackgroundPresetControl({
                 onChange(preset.background, preset.key);
               }
             }}
-            data={[
-              ...presets.map((preset) => ({ value: preset.key, label: preset.label })),
-              { value: 'custom', label: 'Custom' },
-            ]}
           />
           {selected === 'custom' ? (
             <BackgroundComposer value={value} onChange={(background) => onChange(background, null)} usedOn={usedOn} />
