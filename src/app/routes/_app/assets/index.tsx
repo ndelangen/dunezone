@@ -23,7 +23,7 @@ const JITTER_LEFT = [3, -4, 2, -3, 4];
 
 /** the ledger's three rows: each names the Asset types whose piles it holds */
 const PILE_GROUPS: { label: string; types: AssetType[] }[] = [
-  { label: 'Cards & decks', types: ['card-treachery', 'card-spice', 'card-custom', 'deck'] },
+  { label: 'Cards & decks', types: ['card-treachery', 'card-spice', 'card-custom', 'card-leaderability', 'deck'] },
   { label: 'Tokens', types: ['token-round', 'token-gear', 'token-square', 'token-rectangle'] },
   { label: 'Boards', types: ['board'] },
 ];
