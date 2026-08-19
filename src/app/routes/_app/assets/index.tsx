@@ -138,14 +138,30 @@ function TokenStack({ entries, width }: { entries: AssetListEntry[]; width: numb
   );
 }
 
-function EmptyPileOutline({ label, planned }: { label: string; planned: boolean }) {
+/** every outline wears the physical shape of the thing it reserves */
+function emptyOutlineShape(type: AssetType): { width: number; height: number; borderRadius: number | string } {
+  switch (type) {
+    case 'token-round':
+    case 'token-gear':
+      return { width: 96, height: 96, borderRadius: '50%' };
+    case 'token-square':
+      return { width: 96, height: 96, borderRadius: 8 };
+    case 'token-rectangle':
+      return { width: 110, height: 68, borderRadius: 8 };
+    case 'board':
+      return { width: 150, height: 100, borderRadius: 8 };
+    default:
+      /* cards and decks: the card's own proportions */
+      return { width: 110, height: Math.round(110 * CARD_ASPECT), borderRadius: 6 };
+  }
+}
+
+function EmptyPileOutline({ type, label, planned }: { type: AssetType; label: string; planned: boolean }) {
   return (
     <div
       style={{
-        width: planned ? 150 : 110,
-        height: planned ? 100 : 150,
+        ...emptyOutlineShape(type),
         border: '2px dashed var(--mantine-color-dimmed)',
-        borderRadius: 8,
         display: 'grid',
         placeItems: 'center',
         opacity: 0.7,
@@ -164,7 +180,7 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
   const isCardish = type.startsWith('card-') || type === 'deck';
   const art =
     planned || entries.length === 0 ? (
-      <EmptyPileOutline label={definition.label} planned={planned} />
+      <EmptyPileOutline type={type} label={definition.label} planned={planned} />
     ) : type === 'deck' ? (
       <DeckPile entries={entries} width={110} />
     ) : isCardish ? (
