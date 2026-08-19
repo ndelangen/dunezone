@@ -12,6 +12,15 @@
   align-items: stretch;
 }
 
+/* A phone spends a fifth of its width on the two gutters, so the inset tightens where the room
+   is scarcest. Overriding the token rather than the padding keeps the full-bleed lanes that read
+   it (FactionDetail, RulesetDetail) aligned for free. */
+@media (max-width: 30em) {
+  .container {
+    --app-shell-inline-gutter: var(--space-3);
+  }
+}
+
 .main {
   flex: 1;
   padding: 40px 0;

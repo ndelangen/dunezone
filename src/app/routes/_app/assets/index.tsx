@@ -217,7 +217,8 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
   const planned = definition.status === 'planned';
   const isCardish = type.startsWith('card-') || type === 'deck';
   const slot = useSlotWidth();
-  const drawnAt = Math.min(PILE_SLOT, slot.width);
+  /* The track is the ceiling, so the art fills whatever width it was given. */
+  const drawnAt = slot.width;
   const art =
     planned || entries.length === 0 ? (
       <EmptyPileOutline type={type} planned={planned} />

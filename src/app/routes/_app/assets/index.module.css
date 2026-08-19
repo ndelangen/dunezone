@@ -67,11 +67,15 @@
     gap: var(--mantine-spacing-md);
   }
 
+  /* A stacked row is on a narrow screen, where width is the scarce thing: the pair takes what the
+     row has rather than holding the desktop slot and centring the remainder. The ceiling only
+     stops the piles ballooning on the widest rows that still stack. */
   .pileGrid {
     --pile-gap: var(--space-4);
+    --pile-slot-stacked: 200px;
 
-    grid-template-columns: repeat(2, minmax(0, var(--pile-slot)));
-    max-width: calc(var(--pile-slot) * 2 + var(--pile-gap));
+    grid-template-columns: repeat(2, minmax(0, var(--pile-slot-stacked)));
+    max-width: calc(var(--pile-slot-stacked) * 2 + var(--pile-gap));
     margin-inline: auto;
   }
 }
