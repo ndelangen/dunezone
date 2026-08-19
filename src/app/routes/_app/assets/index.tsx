@@ -21,6 +21,11 @@ const JITTER_ROT = [2.5, -1.8, 0.8, -2.6, 3.2];
 const JITTER_TOP = [5, -4, 2, 6, -3];
 const JITTER_LEFT = [3, -4, 2, -3, 4];
 
+/** the one slot width every pile, placeholder, and grid track agrees on */
+const PILE_SLOT = 150;
+/** horizontal shift per extra card in a fan */
+const FAN_OVERLAP = 26;
+
 /** the ledger's three rows: each names the Asset types whose piles it holds */
 const PILE_GROUPS: { label: string; types: AssetType[] }[] = [
   {
@@ -68,23 +73,24 @@ function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
   );
 }
 
-/** a small overlapping fan of real faces — card-type piles */
-function MiniFan({ entries, width }: { entries: AssetListEntry[]; width: number }) {
+/** a small overlapping fan of real faces — card-type piles; cards share out the slot width */
+function MiniFan({ entries }: { entries: AssetListEntry[] }) {
+  const cardWidth = PILE_SLOT - (entries.length - 1) * FAN_OVERLAP;
   const mid = (entries.length - 1) / 2;
   return (
-    <div style={{ position: 'relative', width: width + entries.length * 26, height: width * 1.4 + 16 }}>
+    <div style={{ position: 'relative', width: PILE_SLOT, height: cardWidth * CARD_ASPECT + 16 }}>
       {entries.map((entry, i) => (
         <div
           key={entry.id}
           style={{
             position: 'absolute',
-            left: i * 26,
+            left: i * FAN_OVERLAP,
             top: 8 + Math.abs(i - mid) * 4,
             transform: `rotate(${(i - mid) * 6 + (JITTER_ROT[i % JITTER_ROT.length] ?? 0)}deg)`,
             transformOrigin: '50% 120%',
           }}
         >
-          <AssetFace type={entry.type} data={entry.data} name={entry.name} width={width} />
+          <AssetFace type={entry.type} data={entry.data} name={entry.name} width={cardWidth} />
         </div>
       ))}
     </div>
@@ -92,13 +98,14 @@ function MiniFan({ entries, width }: { entries: AssetListEntry[]; width: number 
 }
 
 /** a squared-up pile — decks; the newest deck's cardback on top */
-function DeckPile({ entries, width }: { entries: AssetListEntry[]; width: number }) {
+function DeckPile({ entries }: { entries: AssetListEntry[] }) {
   const top = entries[0] as AssetListEntry;
+  const cardWidth = PILE_SLOT - 6;
   return (
-    <div style={{ position: 'relative', width: width + 6, height: width * CARD_ASPECT + 10 }}>
+    <div style={{ position: 'relative', width: PILE_SLOT, height: cardWidth * CARD_ASPECT + 10 }}>
       {[2, 1, 0].map((n) => (
         <div key={n} style={{ position: 'absolute', top: n * 4, left: n * 2 }}>
-          <AssetFace type={top.type} data={top.data} name={top.name} width={width} />
+          <AssetFace type={top.type} data={top.data} name={top.name} width={cardWidth} />
         </div>
       ))}
     </div>
@@ -190,11 +197,11 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
     planned || entries.length === 0 ? (
       <EmptyPileOutline type={type} planned={planned} />
     ) : type === 'deck' ? (
-      <DeckPile entries={entries} width={110} />
+      <DeckPile entries={entries} />
     ) : isCardish ? (
-      <MiniFan entries={entries.slice(0, 4)} width={104} />
+      <MiniFan entries={entries.slice(0, 4)} />
     ) : (
-      <TokenStack entries={entries} width={type === 'token-rectangle' ? 104 : 84} />
+      <TokenStack entries={entries} width={type === 'token-rectangle' ? PILE_SLOT - 26 : 96} />
     );
 
   const body = (
@@ -274,7 +281,7 @@ function AssetsLandingPage() {
                       style={{
                         flex: 1,
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(5, minmax(0, 150px))',
+                        gridTemplateColumns: `repeat(5, minmax(0, ${PILE_SLOT}px))`,
                         justifyContent: 'space-evenly',
                         rowGap: 24,
                         alignItems: 'end',
