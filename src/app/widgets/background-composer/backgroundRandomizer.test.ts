@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Faction } from '@db/factions';
 
 import { BACKGROUND_PATTERN_CATALOGUE } from './backgroundPatternCatalogue';
-import { backgroundRecipeCount, randomizeBackground, withRandomPattern } from './factionBackgroundRandomizer';
+import { backgroundRecipeCount, randomizeBackground, withRandomPattern } from './backgroundRandomizer';
 
 const original: Faction['background'] = {
   image: '/image/texture/021.jpg',

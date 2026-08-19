@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import { BackgroundComposer } from '@app/widgets/background-composer/BackgroundComposer';
 import {
   assetOptionToPreviewSrc,
   decalAssetOptions,
@@ -59,8 +60,19 @@ export const INITIAL_TREACHERY_DRAFT: TreacheryDraft = {
   text: '',
 };
 
-function kindOf(draft: TreacheryDraft): string {
-  return CARD_KINDS.find((kind) => kind.head === draft.head)?.key ?? 'weapon';
+/* Field-by-field, not identity or JSON: a head that round-tripped through the database is a clone of its preset with Zod's key order. */
+function sameBackground(a: TreacheryDraft['head'], b: TreacheryDraft['head']): boolean {
+  return (
+    a.image === b.image &&
+    a.invert === b.invert &&
+    a.definition === b.definition &&
+    a.influence === b.influence &&
+    JSON.stringify(a.colors) === JSON.stringify(b.colors)
+  );
+}
+
+function kindOf(draft: TreacheryDraft): string | null {
+  return CARD_KINDS.find((kind) => sameBackground(kind.head, draft.head))?.key ?? null;
 }
 
 /* ------------------------------ rail proof ------------------------------ */
@@ -131,6 +143,10 @@ function IdentityFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch 
 }
 
 function FrameFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
+  const presetKind = kindOf(draft);
+  /* "Custom" stays selected while the head still equals a preset — the choice itself opens the composer. */
+  const [customChosen, setCustomChosen] = useState(presetKind === null);
+  const kind = customChosen || presetKind === null ? 'custom' : presetKind;
   return (
     <Stack gap="sm">
       <div>
@@ -139,16 +155,27 @@ function FrameFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) 
         </Text>
         <SegmentedControl
           fullWidth
-          value={kindOf(draft)}
+          value={kind}
           onChange={(value) => {
-            const kind = CARD_KINDS.find((candidate) => candidate.key === value);
-            if (kind) {
-              patch({ head: kind.head, icon: [kind.striped, draft.icon[1]] });
+            if (value === 'custom') {
+              setCustomChosen(true);
+              return;
+            }
+            const nextKind = CARD_KINDS.find((candidate) => candidate.key === value);
+            if (nextKind) {
+              setCustomChosen(false);
+              patch({ head: nextKind.head, icon: [nextKind.striped, draft.icon[1]] });
             }
           }}
-          data={CARD_KINDS.map((kind) => ({ value: kind.key, label: kind.label }))}
+          data={[
+            ...CARD_KINDS.map((option) => ({ value: option.key, label: option.label })),
+            { value: 'custom', label: 'Custom' },
+          ]}
         />
       </div>
+      {kind === 'custom' ? (
+        <BackgroundComposer value={draft.head} onChange={(head) => patch({ head })} usedOn="this card's head" />
+      ) : null}
       <AssetSelect
         aria-label="Corner icon"
         allowDeselect={false}
