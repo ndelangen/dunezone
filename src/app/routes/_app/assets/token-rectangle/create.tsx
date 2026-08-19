@@ -437,9 +437,9 @@ function TextsField({ face, patch }: { face: Face; patch: Patch }) {
 }
 
 /**
- * One face, three chapters — the surface, its decals, its text. Both faces get the same set, so
- * the icons say which *kind* of work a chapter is; the face icon differs so front and back never
- * read alike.
+ * One face, three chapters — the surface, its decals, its text.
+ * Both faces get the same set, so the icons say which *kind* of work a chapter is;
+ * the face icon differs so front and back never read alike.
  */
 function faceChapters(key: string, label: string, faceIcon: ReactNode, face: Face, patch: Patch) {
   return [
