@@ -1,5 +1,5 @@
 import { useForm, useStore } from '@tanstack/react-form';
-import type { FactionSaveState } from '@ui/content/assetPublishingStatus';
+import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Faction, FactionEntry } from '@db/factions';
@@ -96,7 +96,7 @@ export function useFactionAuthoring({
   const reset = useCallback(() => session.reset(), [session]);
   const submit = useCallback(async () => await form.handleSubmit(), [form]);
 
-  const saveState: FactionSaveState = persistence.isPending
+  const saveState: AuthoringSaveState = persistence.isPending
     ? 'saving'
     : persistence.error
       ? 'error'

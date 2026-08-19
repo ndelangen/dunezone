@@ -1,14 +1,11 @@
 import { Badge, Button, Group, Stack, Text } from '@mantine/core';
-import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
-import type { FactionSaveState } from '@ui/content/assetPublishingStatus';
+import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { IconAction } from '@ui/control/IconAction';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Eye, RotateCcw, Save } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import type { PublicAssetPublishingStatusProjection } from '@db/factions';
-
-import styles from './FactionAuthoringToolbar.module.css';
+import styles from './AuthoringToolbar.module.css';
 
 function formatPublishedAt(timestamp: number): string {
   return new Intl.DateTimeFormat('en', {
@@ -17,78 +14,75 @@ function formatPublishedAt(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
-type ToolbarStatusPresentation = {
-  label: string;
-  color: string;
-  publishingCopy: string;
-};
-
-function deriveToolbarStatus(
-  saveState: FactionSaveState,
-  isDirty: boolean,
-  assetPublishing: PublicAssetPublishingStatusProjection | undefined
-): ToolbarStatusPresentation {
-  const publishingCopy = assetPublishing
-    ? factionAssetPublishingCopy(assetPublishing.status, saveState, assetPublishing.captureStatus)
-    : saveState === 'error'
-      ? 'Changes were not saved.'
-      : saveState === 'saved'
-        ? 'Saved. Publication scheduled.'
-        : 'Saving this faction schedules its public assets.';
-
-  if (saveState === 'saving') {
-    return { label: 'Saving', color: 'blue', publishingCopy };
+function statusPresentation(saveState: AuthoringSaveState, isDirty: boolean): { label: string; color: string } {
+  switch (true) {
+    case saveState === 'saving':
+      return { label: 'Saving', color: 'blue' };
+    case saveState === 'error':
+      return { label: 'Save failed', color: 'red' };
+    case isDirty:
+      return { label: 'Unsaved changes', color: 'orange' };
+    case saveState === 'saved':
+      return { label: 'Saved', color: 'green' };
+    default:
+      return { label: 'No unsaved changes', color: 'gray' };
   }
-  if (saveState === 'error') {
-    return { label: 'Save failed', color: 'red', publishingCopy };
-  }
-  if (isDirty) {
-    return { label: 'Unsaved changes', color: 'orange', publishingCopy };
-  }
-  if (saveState === 'saved') {
-    return { label: 'Saved', color: 'green', publishingCopy };
-  }
-  return { label: 'No unsaved changes', color: 'gray', publishingCopy };
 }
 
-export interface FactionAuthoringStatus {
+export interface AuthoringStatus {
   isDirty: boolean;
   isNameBlank: boolean;
   warningCount: number;
-  saveState: FactionSaveState;
-  assetPublishing?: PublicAssetPublishingStatusProjection;
+  saveState: AuthoringSaveState;
+  lastPublishedAt?: number | null;
 }
 
-export interface FactionAuthoringToolbarActions {
+/** The words only the page knows: what it saves, why a blank name blocks it, where the save leads. */
+export interface AuthoringCopy {
+  /** The save button's label, e.g. "Save faction". */
+  saveLabel: string;
+  /** Shown while the name is blank; explain that the name determines the URL. */
+  nameBlankMessage: string;
+  /** The one-line state of the save/publication cycle, derived by the page per saveState. */
+  statusMessage: string;
+}
+
+export interface AuthoringToolbarActions {
   onSave: () => void;
+  /** The toolbar count is the persistent indicator; this returns the reader to the expanded validation header. */
   onReviewWarnings: () => void;
-  onReview: (trigger: HTMLButtonElement) => void;
   onReset: () => void;
   onBack: () => void;
 }
 
-export function FactionAuthoringToolbar({
+/**
+ * The edit-page toolbar every authoring surface installs identically: back, save-cycle badge, warning-count jump, reset, and the confirm-green save — with slots for whatever one editor adds around them.
+ * The page owns all data and wording;
+ * the toolbar owns the arrangement.
+ */
+export function AuthoringToolbar({
   status,
+  copy,
   actions,
+  review,
   auxiliaryActions,
   context,
   destructiveActions,
   centerIndicator,
 }: {
-  status: FactionAuthoringStatus;
-  actions: FactionAuthoringToolbarActions;
+  status: AuthoringStatus;
+  copy: AuthoringCopy;
+  actions: AuthoringToolbarActions;
+  /** An optional artifact-review action (the eye); absent editors simply have no review. */
+  review?: { label: string; onOpen: (trigger: HTMLButtonElement) => void };
   auxiliaryActions?: ReactNode;
   context?: ReactNode;
   destructiveActions?: ReactNode;
   centerIndicator?: ReactNode;
 }) {
-  const { isDirty, isNameBlank, warningCount, saveState, assetPublishing } = status;
-  const { onSave, onReviewWarnings, onReview, onReset, onBack } = actions;
-  const {
-    label: statusLabel,
-    color: statusColor,
-    publishingCopy,
-  } = deriveToolbarStatus(saveState, isDirty, assetPublishing);
+  const { isDirty, isNameBlank, warningCount, saveState, lastPublishedAt } = status;
+  const { onSave, onReviewWarnings, onReset, onBack } = actions;
+  const { label: statusLabel, color: statusColor } = statusPresentation(saveState, isDirty);
 
   return (
     <div className={styles.sticky}>
@@ -113,21 +107,21 @@ export function FactionAuthoringToolbar({
                     {warningCount} {warningCount === 1 ? 'field may' : 'fields may'} be incomplete
                   </Button>
                 ) : null}
-                {assetPublishing?.lastPublishedAt != null ? (
+                {lastPublishedAt != null ? (
                   <Text
                     className={styles.statusDetails}
                     component="time"
-                    dateTime={new Date(assetPublishing.lastPublishedAt).toISOString()}
+                    dateTime={new Date(lastPublishedAt).toISOString()}
                     size="xs"
                     c="dimmed"
                   >
-                    Last published {formatPublishedAt(assetPublishing.lastPublishedAt)}
+                    Last published {formatPublishedAt(lastPublishedAt)}
                   </Text>
                 ) : null}
               </Group>
               <div className={styles.statusDetails}>
                 <Text size="xs" c={saveState === 'error' ? 'red' : 'dimmed'} role="status">
-                  {isNameBlank ? 'Add a faction name before saving; it determines the faction URL.' : publishingCopy}
+                  {isNameBlank ? copy.nameBlankMessage : copy.statusMessage}
                 </Text>
                 {context}
               </div>
@@ -135,7 +129,6 @@ export function FactionAuthoringToolbar({
           </Group>
         </Toolbar.Left>
 
-        {/* PROTOTYPE (wayfinder #404): currently carries the complexity indicator */}
         <Toolbar.Center>{centerIndicator}</Toolbar.Center>
 
         <Toolbar.Right>
@@ -150,15 +143,17 @@ export function FactionAuthoringToolbar({
               onClick={onReset}
               icon={<RotateCcw size={17} aria-hidden />}
             />
-            <IconAction
-              className={styles.reviewAction}
-              label="Review faction sheet"
-              variant="light"
-              color="gray"
-              size="lg"
-              onClick={(event) => onReview(event.currentTarget)}
-              icon={<Eye size={17} aria-hidden />}
-            />
+            {review ? (
+              <IconAction
+                className={styles.reviewAction}
+                label={review.label}
+                variant="light"
+                color="gray"
+                size="lg"
+                onClick={(event) => review.onOpen(event.currentTarget)}
+                icon={<Eye size={17} aria-hidden />}
+              />
+            ) : null}
             <div className={styles.destructiveSlot}>{destructiveActions}</div>
             <Button
               type="button"
@@ -168,7 +163,7 @@ export function FactionAuthoringToolbar({
               loading={saveState === 'saving'}
               onClick={onSave}
             >
-              Save faction
+              {copy.saveLabel}
             </Button>
           </Group>
         </Toolbar.Right>

@@ -1,7 +1,6 @@
 import {
   Alert,
   Anchor,
-  Badge,
   Button,
   Checkbox,
   Group,
@@ -12,23 +11,24 @@ import {
   Text,
   Textarea,
   TextInput,
-  UnstyledButton,
 } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { AssetSelect } from '@ui/control/AssetSelect';
-import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Brush, Layers, Plus, RotateCcw, Save, ScrollText, Trash2, TriangleAlert, Type } from 'lucide-react';
+import { Brush, Layers, Plus, ScrollText, Trash2, Type } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
+import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import {
   assetOptionToPreviewSrc,
   decalAssetOptions,
@@ -332,28 +332,6 @@ function draftWarnings(draft: TreacheryDraft): DraftWarning[] {
   return warnings;
 }
 
-function ValidationStrip({ warnings, onFocus }: { warnings: DraftWarning[]; onFocus: (w: DraftWarning) => void }) {
-  return (
-    <Group gap="sm" justify="center">
-      <Group gap={6}>
-        <TriangleAlert size={15} aria-hidden />
-        <Text size="sm" fw={700}>
-          Incomplete fields
-        </Text>
-      </Group>
-      {warnings.map((warning) => (
-        <UnstyledButton
-          key={`${warning.source}-${warning.missing}`}
-          onClick={() => onFocus(warning)}
-          style={{ borderRadius: 999, padding: '2px 10px', background: 'rgba(255,255,255,0.12)', fontSize: 13 }}
-        >
-          <strong>{warning.source}</strong>: missing {warning.missing}
-        </UnstyledButton>
-      ))}
-    </Group>
-  );
-}
-
 /* --------------------------------- page --------------------------------- */
 
 const panel = (children: ReactNode) => (
@@ -368,10 +346,20 @@ function CreateTreacheryCardPage() {
   const createAsset = useCreateAsset();
   const [draft, setDraft] = useState<TreacheryDraft>(INITIAL_DRAFT);
   const [chapter, setChapter] = useState<Chapter>('identity');
+  const [settleTick, setSettleTick] = useState(0);
   const patch: Patch = (update) => setDraft((prev) => ({ ...prev, ...update }));
   const warnings = draftWarnings(draft);
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_DRAFT);
   const isNameBlank = !draft.name.trim();
+  const saveState: AuthoringSaveState = createAsset.isPending
+    ? 'saving'
+    : createAsset.error
+      ? 'error'
+      : createAsset.data !== undefined
+        ? 'saved'
+        : 'idle';
+  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
+  const settle = () => setSettleTick((tick) => tick + 1);
 
   if (profile.data === null) {
     return (
@@ -404,78 +392,34 @@ function CreateTreacheryCardPage() {
 
   return (
     <PageLayout>
-      {warnings.length > 0 ? (
+      {validationHeaderOpen ? (
         <PageLayout.Header size="compact">
-          <div id={VALIDATION_STRIP_ID}>
-            <ValidationStrip warnings={warnings} onFocus={(warning) => setChapter(warning.chapter)} />
-          </div>
+          <ValidationHeader
+            id={VALIDATION_STRIP_ID}
+            warnings={warnings}
+            onFocusWarning={(warning) => setChapter(warning.chapter)}
+          />
         </PageLayout.Header>
       ) : null}
       <PageLayout.Toolbar>
-        <Toolbar>
-          <Toolbar.Left>
-            <Group gap="sm" wrap="nowrap">
-              <IconAction
-                label="Back"
-                variant="light"
-                color="gray"
-                size="lg"
-                onClick={() => void navigate({ to: '/assets' })}
-                icon={<ArrowLeft size={17} aria-hidden />}
-              />
-              <Stack gap={2}>
-                <Group gap="xs" wrap="nowrap">
-                  <Badge color={isDirty ? 'orange' : 'gray'} variant="light">
-                    {isDirty ? 'Unsaved changes' : 'No unsaved changes'}
-                  </Badge>
-                  {warnings.length > 0 ? (
-                    <Button
-                      type="button"
-                      variant="subtle"
-                      color="yellow"
-                      size="compact-xs"
-                      onClick={() =>
-                        document
-                          .getElementById(VALIDATION_STRIP_ID)
-                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      }
-                    >
-                      {warnings.length} {warnings.length === 1 ? 'field may' : 'fields may'} be incomplete
-                    </Button>
-                  ) : null}
-                </Group>
-                <Text size="xs" c="dimmed" role="status">
-                  {isNameBlank
-                    ? 'Add a card name before saving; it determines the card URL.'
-                    : 'New treachery card — publication follows once the image pipeline supports cards.'}
-                </Text>
-              </Stack>
-            </Group>
-          </Toolbar.Left>
-          <Toolbar.Right>
-            <Group gap="xs" wrap="nowrap">
-              <IconAction
-                label="Reset unsaved edits"
-                variant="light"
-                color="gray"
-                size="lg"
-                disabled={!isDirty || createAsset.isPending}
-                onClick={() => setDraft(INITIAL_DRAFT)}
-                icon={<RotateCcw size={17} aria-hidden />}
-              />
-              <Button
-                type="button"
-                color="confirm"
-                leftSection={<Save size={17} aria-hidden />}
-                disabled={isNameBlank}
-                loading={createAsset.isPending}
-                onClick={save}
-              >
-                Save card
-              </Button>
-            </Group>
-          </Toolbar.Right>
-        </Toolbar>
+        <AuthoringToolbar
+          status={{ isDirty, isNameBlank, warningCount: warnings.length, saveState }}
+          copy={{
+            saveLabel: 'Save card',
+            nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
+            statusMessage:
+              saveState === 'error'
+                ? 'The card was not saved.'
+                : 'New treachery card — publication follows once the image pipeline supports cards.',
+          }}
+          actions={{
+            onSave: save,
+            onReviewWarnings: () =>
+              document.getElementById(VALIDATION_STRIP_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+            onReset: () => setDraft(INITIAL_DRAFT),
+            onBack: () => void navigate({ to: '/assets' }),
+          }}
+        />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="sm" style={{ width: '100%', maxWidth: '78rem', margin: '0 auto' }}>
@@ -490,10 +434,16 @@ function CreateTreacheryCardPage() {
               gridTemplateColumns: 'minmax(0, 1fr) minmax(17rem, 21rem)',
               alignItems: 'start',
             }}
+            /* Field blur and chapter switches are the settle signals that let an emptied
+               warning list close the header — never mid-keystroke. */
+            onBlurCapture={settle}
           >
             <ConnectedTabs<Chapter>
               value={chapter}
-              onValueChange={setChapter}
+              onValueChange={(next) => {
+                setChapter(next);
+                settle();
+              }}
               ariaLabel="Card chapters"
               items={[
                 {
