@@ -15,36 +15,21 @@
   height: 100%;
 }
 
-/* A choice shown rather than named: every option renders the outcome it selects. The shape is
-   BackgroundPresetPicker's, generalised here to any preview. */
-.tileRow {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
-  gap: var(--mantine-spacing-sm);
-}
-
-.tile {
-  border-radius: var(--mantine-radius-sm);
-  cursor: pointer;
-}
-
-.tileArt {
-  position: relative;
+/* The backside is a pick-one over the whole token catalogue, so it is a select, not a tile row —
+   but each row still shows the face it selects. Tiles are for a handful of options; a dropdown is
+   for a list that grows. */
+.thumb {
+  flex-shrink: 0;
   overflow: hidden;
+  width: 4rem;
   aspect-ratio: 110 / 68;
-  border: 2px solid transparent;
-  border-radius: var(--mantine-radius-md);
+  border-radius: var(--mantine-radius-sm);
 }
 
-.tile[aria-pressed="true"] .tileArt {
-  border-color: var(--mantine-primary-color-filled);
-}
-
-.tile:hover .tileArt,
-.tile:focus-visible .tileArt {
-  border-color: var(--mantine-color-dimmed);
-}
-
-.tile[aria-pressed="true"]:hover .tileArt {
-  border-color: var(--mantine-primary-color-filled);
+.thumbSmall {
+  flex-shrink: 0;
+  overflow: hidden;
+  width: 2.25rem;
+  aspect-ratio: 110 / 68;
+  border-radius: var(--mantine-radius-sm);
 }

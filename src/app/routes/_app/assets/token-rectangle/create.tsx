@@ -29,7 +29,6 @@ import {
   Text,
   Textarea,
   TextInput,
-  UnstyledButton,
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -243,37 +242,50 @@ function RectangleFace({ face }: { face: Face }) {
 /* ------------------------------ the editor ------------------------------ */
 
 /**
- * A choice shown rather than named — the BackgroundPresetPicker idea generalised to any preview.
- * Every option paints the outcome it selects, so the control cannot misdescribe what you will get.
- * Local to the prototype;
- * if the direction holds this becomes a kit Control and the background picker is rewritten as one caller of it.
+ * The backside picks from the whole token catalogue, so it is a select rather than a tile row.
+ * Tiles suit a handful of fixed options (the background presets);
+ * a dropdown suits a list that grows.
+ * It still shows rather than names: every row draws the face it would select.
+ *
+ * In the build these previews are the tokens' own published front images — an `<img>` per row rather than a live render, which is the shape `AssetSelect` already has.
  */
-function TilePicker({
-  options,
-  selected,
-  onSelect,
+function BacksideSelect({
+  value,
+  onChange,
+  customBack,
 }: {
-  options: { value: string; label: string; preview: ReactNode }[];
-  selected: string;
-  onSelect: (value: string) => void;
+  value: string;
+  onChange: (value: string) => void;
+  customBack: Face;
 }) {
+  const faceFor = (key: string) =>
+    key === 'custom' ? customBack : (EXISTING_TOKENS.find((token) => token.value === key)?.face ?? customBack);
   return (
-    <div className={styles.tileRow}>
-      {options.map((option) => (
-        <UnstyledButton
-          key={option.value}
-          type="button"
-          className={styles.tile}
-          aria-pressed={selected === option.value}
-          onClick={() => onSelect(option.value)}
-        >
-          <div className={styles.tileArt}>{option.preview}</div>
-          <Text size="xs" fw={selected === option.value ? 700 : 500} ta="center" mt={4} truncate>
-            {option.label}
-          </Text>
-        </UnstyledButton>
-      ))}
-    </div>
+    <Select
+      aria-label="Backside"
+      searchable
+      allowDeselect={false}
+      data={[
+        { value: 'custom', label: 'Custom back' },
+        ...EXISTING_TOKENS.map((token) => ({ value: token.value, label: token.label })),
+      ]}
+      value={value}
+      onChange={(next) => next && onChange(next)}
+      leftSection={
+        <div className={styles.thumbSmall}>
+          <RectangleFace face={faceFor(value)} />
+        </div>
+      }
+      leftSectionWidth={46}
+      renderOption={({ option }) => (
+        <Group gap="sm" wrap="nowrap">
+          <div className={styles.thumb}>
+            <RectangleFace face={faceFor(option.value)} />
+          </div>
+          <Text size="sm">{option.label}</Text>
+        </Group>
+      )}
+    />
   );
 }
 
@@ -559,15 +571,14 @@ function RectangleTokenPrototype() {
             description="Names the token and determines its URL."
             input={<TextInput value={name} onChange={(event) => setName(event.currentTarget.value)} />}
           />
-          {/* Shown, not named: the custom tile paints the back you are authoring, and each token
-              tile paints that token's own face. The choice states its own consequence. */}
           <ControlBlock
             title="Backside"
             description="Every token has one: authored here, or an existing token used as the back."
             input={
-              <TilePicker
-                selected={backMode === 'custom' ? 'custom' : backToken}
-                onSelect={(value) => {
+              <BacksideSelect
+                value={backMode === 'custom' ? 'custom' : backToken}
+                customBack={backFace}
+                onChange={(value) => {
                   if (value === 'custom') {
                     setBackMode('custom');
                     return;
@@ -575,14 +586,6 @@ function RectangleTokenPrototype() {
                   setBackMode('token');
                   setBackToken(value);
                 }}
-                options={[
-                  { value: 'custom', label: 'Custom back', preview: <RectangleFace face={backFace} /> },
-                  ...EXISTING_TOKENS.map((token) => ({
-                    value: token.value,
-                    label: token.label,
-                    preview: <RectangleFace face={token.face} />,
-                  })),
-                ]}
               />
             }
           />
