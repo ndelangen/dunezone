@@ -1,5 +1,6 @@
 import {
   Alert,
+  Divider,
   Grid,
   Group,
   NumberInput,
@@ -391,11 +392,8 @@ function DecalFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) 
         </Alert>
       ) : null}
       {decals.map((decal, index) => (
-        <Stack
-          key={index}
-          gap="sm"
-          style={{ borderLeft: '2px solid var(--mantine-color-default-border)', paddingLeft: 10 }}
-        >
+        <Stack key={index} gap="sm">
+          {index > 0 ? <Divider /> : null}
           <Text size="sm" fw={600}>
             Decal {index + 1}
           </Text>
