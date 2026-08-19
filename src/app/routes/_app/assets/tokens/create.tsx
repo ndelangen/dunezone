@@ -16,6 +16,7 @@ import {
   Select,
   Slider,
   Stack,
+  Switch,
   Text,
   TextInput,
   UnstyledButton,
@@ -48,6 +49,8 @@ type TokenFace = {
   bottom2: string;
   /** 1 is the renderer's reference symbol size */
   symbolScale: number;
+  /** the thin edge ring — on by default */
+  ring: boolean;
 };
 
 /** every token HAS a backside — the only choice is where it comes from */
@@ -71,17 +74,17 @@ const IMAGE_OPTIONS = ['ambassador', 'heighliners', 'projectile', 'poison', 'kar
 
 /** stand-ins for "some other round token in the catalogue" */
 const EXISTING_TOKENS: Record<string, { label: string; face: TokenFace }> = {
-  heighliner: { label: 'Heighliner (by gurney)', face: { background: 'techBlue', image: '/vector/icon/heighliners.svg', top: '', bottom1: '', bottom2: '', symbolScale: 1 } },
-  fedaykin: { label: 'Fedaykin (by stilgar)', face: { background: 'fremen', image: '/vector/logo/fremen.svg', top: '', bottom1: '', bottom2: '', symbolScale: 1 } },
-  karama: { label: 'Karama (by irulan)', face: { background: 'techYellow', image: '/vector/icon/karama.svg', top: '', bottom1: '', bottom2: '', symbolScale: 1 } },
+  heighliner: { label: 'Heighliner (by gurney)', face: { background: 'techBlue', image: '/vector/icon/heighliners.svg', top: '', bottom1: '', bottom2: '', symbolScale: 1, ring: true } },
+  fedaykin: { label: 'Fedaykin (by stilgar)', face: { background: 'fremen', image: '/vector/logo/fremen.svg', top: '', bottom1: '', bottom2: '', symbolScale: 1, ring: true } },
+  karama: { label: 'Karama (by irulan)', face: { background: 'techYellow', image: '/vector/icon/karama.svg', top: '', bottom1: '', bottom2: '', symbolScale: 1, ring: true } },
 };
 
 const INITIAL_DRAFT: TokenDraft = {
   name: 'Ornithopter',
-  front: { background: 'techRed', image: '/vector/icon/ambassador.svg', top: 'ORNITHOPTER', bottom1: 'MOVE', bottom2: '+3 SPACES', symbolScale: 1 },
+  front: { background: 'techRed', image: '/vector/icon/ambassador.svg', top: 'ORNITHOPTER', bottom1: 'MOVE', bottom2: '+3 SPACES', symbolScale: 1, ring: true },
   backMode: 'custom',
   backTokenRef: null,
-  backFace: { background: 'techRed', image: '/vector/icon/ambassador.svg', top: '', bottom1: 'REVERSE', bottom2: '', symbolScale: 1 },
+  backFace: { background: 'techRed', image: '/vector/icon/ambassador.svg', top: '', bottom1: 'REVERSE', bottom2: '', symbolScale: 1, ring: true },
 };
 
 const presetOf = (key: string) => backgroundPresets[key as keyof typeof backgroundPresets];
@@ -111,7 +114,7 @@ function TokenProof({ face, width, style }: { face: TokenFace; width: number; st
         <CustomToken
           background={presetOf(face.background)}
           image={face.image}
-          circle
+          circle={face.ring}
           size={{ width: 100 * face.symbolScale, height: 100 * face.symbolScale }}
           top={face.top || undefined}
           bottom={[face.bottom1, face.bottom2].some(Boolean) ? `${face.bottom1}\n${face.bottom2}` : undefined}
@@ -182,7 +185,7 @@ function IdentityFields({ draft, patch }: { draft: TokenDraft; patch: Patch }) {
               backMode,
               backFace:
                 backMode === 'custom'
-                  ? { background: 'techBlue', image: '/vector/icon/heighliners.svg', top: '', bottom1: '', bottom2: '', symbolScale: 1 }
+                  ? { background: 'techBlue', image: '/vector/icon/heighliners.svg', top: '', bottom1: '', bottom2: '', symbolScale: 1, ring: true }
                   : null,
               backTokenRef: backMode === 'token' ? (Object.keys(EXISTING_TOKENS)[0] ?? null) : null,
             });
@@ -225,6 +228,12 @@ function FaceFields({ face, onChange }: { face: TokenFace; onChange: (face: Toke
         data={IMAGE_OPTIONS}
         value={face.image}
         onChange={(value) => value && onChange({ ...face, image: value })}
+      />
+      <Switch
+        label="Edge ring"
+        description="The thin ring along the token's edge — on by default"
+        checked={face.ring}
+        onChange={(e) => onChange({ ...face, ring: e.currentTarget.checked })}
       />
       <div>
         <Text size="sm" fw={500} mb={4}>
