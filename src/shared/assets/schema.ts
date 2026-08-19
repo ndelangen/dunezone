@@ -93,6 +93,8 @@ export const Treachery = z.strictObject({
   iconScale: SCALE.optional(),
   /** Flips the icon vector from dark to light artwork. */
   iconInvert: z.boolean().optional(),
+  /** Fades the icon vector; 1 (the default) is fully opaque. */
+  iconOpacity: SCALE.optional(),
   decals: z.array(Decal),
   text: z.string(),
 });

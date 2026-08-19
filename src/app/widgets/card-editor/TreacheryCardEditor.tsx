@@ -219,17 +219,38 @@ function IconFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
           />
         }
       />
-      <ControlBlock
-        title="Invert"
-        description="Flips the icon from dark to light artwork."
-        input={
-          <Switch
-            aria-label="Invert icon"
-            checked={draft.iconInvert ?? false}
-            onChange={(event) => patch({ iconInvert: event.currentTarget.checked })}
+      <Grid>
+        <Grid.Col span={{ base: 12, xs: 6 }}>
+          <ControlBlock
+            title="Invert"
+            description="Flips the icon from dark to light artwork."
+            input={
+              <Switch
+                aria-label="Invert icon"
+                checked={draft.iconInvert ?? false}
+                onChange={(event) => patch({ iconInvert: event.currentTarget.checked })}
+              />
+            }
           />
-        }
-      />
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, xs: 6 }}>
+          <ControlBlock
+            title="Opacity"
+            description="Fades the icon; 1 is fully opaque."
+            input={
+              <Slider
+                aria-label="Icon opacity"
+                min={0}
+                max={1}
+                step={0.05}
+                value={draft.iconOpacity ?? 1}
+                onChange={(value) => patch({ iconOpacity: value })}
+                label={(value) => value.toFixed(2)}
+              />
+            }
+          />
+        </Grid.Col>
+      </Grid>
       <BackgroundPresetControl
         title="Icon background"
         description="The background behind the icon, independent of the head background."

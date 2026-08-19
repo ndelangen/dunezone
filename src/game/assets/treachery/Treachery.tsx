@@ -21,6 +21,7 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
   iconOffset,
   iconScale,
   iconInvert,
+  iconOpacity,
 }) => {
   const cid = useCountId();
   const prefix = useMemo(() => `${cid}_`, [cid]);
@@ -28,6 +29,7 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
   const iconMarginLeft = iconOffset?.[0] || 0;
   const iconMarginTop = iconOffset?.[1] || 0;
   const iconFilter = iconInvert ? 'invert(1)' : undefined;
+  const iconAlpha = iconOpacity ?? 1;
 
   return (
     <div className={styles.card}>
@@ -54,6 +56,7 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
             width: (iconScale || 1) * 85,
             height: (iconScale || 1) * 85,
             filter: iconFilter,
+            opacity: iconAlpha,
           }}
         />
         <img
@@ -68,6 +71,8 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
             top: (125 - 85 * (iconScale || 1)) / 2,
             left: (125 - 85 * (iconScale || 1)) / 2,
             filter: iconFilter,
+            /* The shade pass bakes in 0.5; the authored opacity scales both passes together. */
+            opacity: 0.5 * iconAlpha,
           }}
         />
       </BackgroundRenderer>
