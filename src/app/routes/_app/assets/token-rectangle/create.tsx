@@ -252,39 +252,44 @@ function RectangleFace({ face }: { face: Face }) {
 function BacksideSelect({
   value,
   onChange,
-  customBack,
+  disabled,
 }: {
   value: string;
   onChange: (value: string) => void;
-  customBack: Face;
+  disabled: boolean;
 }) {
-  const faceFor = (key: string) =>
-    key === 'custom' ? customBack : (EXISTING_TOKENS.find((token) => token.value === key)?.face ?? customBack);
+  const faceFor = (key: string) => EXISTING_TOKENS.find((token) => token.value === key)?.face;
+  const selectedFace = faceFor(value);
   return (
     <Select
-      aria-label="Backside"
+      aria-label="Back token"
       searchable
       allowDeselect={false}
-      data={[
-        { value: 'custom', label: 'Custom back' },
-        ...EXISTING_TOKENS.map((token) => ({ value: token.value, label: token.label })),
-      ]}
+      disabled={disabled}
+      data={EXISTING_TOKENS.map((token) => ({ value: token.value, label: token.label }))}
       value={value}
       onChange={(next) => next && onChange(next)}
       leftSection={
-        <div className={styles.thumbSmall}>
-          <RectangleFace face={faceFor(value)} />
-        </div>
+        selectedFace ? (
+          <div className={styles.thumbSmall}>
+            <RectangleFace face={selectedFace} />
+          </div>
+        ) : null
       }
       leftSectionWidth={46}
-      renderOption={({ option }) => (
-        <Group gap="sm" wrap="nowrap">
-          <div className={styles.thumb}>
-            <RectangleFace face={faceFor(option.value)} />
-          </div>
-          <Text size="sm">{option.label}</Text>
-        </Group>
-      )}
+      renderOption={({ option }) => {
+        const face = faceFor(option.value);
+        return (
+          <Group gap="sm" wrap="nowrap">
+            {face ? (
+              <div className={styles.thumb}>
+                <RectangleFace face={face} />
+              </div>
+            ) : null}
+            <Text size="sm">{option.label}</Text>
+          </Group>
+        );
+      }}
     />
   );
 }
@@ -558,6 +563,7 @@ function RectangleTokenPrototype() {
   const [chapter, setChapter] = useState('identity');
   const patch: Patch = (update) => setFace((prev) => ({ ...prev, ...update }));
   const patchBack: Patch = (update) => setBackFace((prev) => ({ ...prev, ...update }));
+  const referencedBack = EXISTING_TOKENS.find((token) => token.value === backToken);
 
   const items = [
     {
@@ -571,23 +577,19 @@ function RectangleTokenPrototype() {
             description="Names the token and determines its URL."
             input={<TextInput value={name} onChange={(event) => setName(event.currentTarget.value)} />}
           />
+          {/* The toggle owns the mode, the picker owns which token — so neither is overloaded into
+              the other. Custom on: the three Back chapters appear and the picker rests. */}
           <ControlBlock
             title="Backside"
             description="Every token has one: authored here, or an existing token used as the back."
-            input={
-              <BacksideSelect
-                value={backMode === 'custom' ? 'custom' : backToken}
-                customBack={backFace}
-                onChange={(value) => {
-                  if (value === 'custom') {
-                    setBackMode('custom');
-                    return;
-                  }
-                  setBackMode('token');
-                  setBackToken(value);
-                }}
+            tool={
+              <Switch
+                label="Custom"
+                checked={backMode === 'custom'}
+                onChange={(event) => setBackMode(event.currentTarget.checked ? 'custom' : 'token')}
               />
             }
+            input={<BacksideSelect value={backToken} onChange={setBackToken} disabled={backMode === 'custom'} />}
           />
         </Stack>
       ),
@@ -630,9 +632,19 @@ function RectangleTokenPrototype() {
                     </CanvasScale>
                   </>
                 ) : (
-                  <Alert color="gray" variant="light" title="Referenced back">
-                    The back is another token; this token publishes only its front.
-                  </Alert>
+                  <>
+                    <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
+                      Back · referenced
+                    </Text>
+                    {referencedBack ? (
+                      <CanvasScale canvasWidth={FACE_W} canvasHeight={FACE_H}>
+                        <RectangleFace face={referencedBack.face} />
+                      </CanvasScale>
+                    ) : null}
+                    <Text size="xs" c="dimmed" ta="center">
+                      {referencedBack?.label ?? 'No token chosen'} — this token publishes only its front.
+                    </Text>
+                  </>
                 )}
               </Stack>
             </div>
