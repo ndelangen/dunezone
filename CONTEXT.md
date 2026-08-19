@@ -86,6 +86,9 @@ The flat discriminator naming exactly what a community asset is — a treachery 
 **Asset category**:
 The browse grouping of Asset types — cards, decks, tokens, boards — used for discovery and URLs. It is always derived from the Asset type, never maintained independently. Asset slugs are unique within an Asset category, not globally.
 
+**Token backside**:
+The reverse face every token has. It is either authored as part of the token itself, or it is another existing token serving as the back — a reference, never a copy. A token with a referenced backside publishes only its own front face; the back resolves to the referenced token's publication.
+
 **Cardback**:
 The shared back face of a deck, defined only as part of that deck — never as a standalone asset. Publishing a deck publishes its Cardback; the member cards' faces are published by the card assets themselves.
 
