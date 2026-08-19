@@ -32,6 +32,7 @@ import { Route as AppRulesetsRulesetSlugRouteImport } from './routes/_app/rulese
 import { Route as AppRulesetsCreateRouteImport } from './routes/_app/rulesets/create'
 import { Route as PreviewSheetFactionSlugRouteImport } from './routes/preview/sheet/$factionSlug'
 import { Route as AppAssetsCategoryIndexRouteImport } from './routes/_app/assets/$category/index'
+import { Route as AppAssetsCardsCreateRouteImport } from './routes/_app/assets/cards/create'
 import { Route as AppFactionsFactionIdIndexRouteImport } from './routes/_app/factions/$factionId/index'
 import { Route as AppFactionsFactionIdEditRouteImport } from './routes/_app/factions/$factionId/edit'
 import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/groups/$groupSlug/index'
@@ -157,6 +158,11 @@ const AppAssetsCategoryIndexRoute = AppAssetsCategoryIndexRouteImport.update({
   path: '/assets/$category/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAssetsCardsCreateRoute = AppAssetsCardsCreateRouteImport.update({
+  id: '/assets/cards/create',
+  path: '/assets/cards/create',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFactionsFactionIdIndexRoute =
   AppFactionsFactionIdIndexRouteImport.update({
     id: '/factions/$factionId/',
@@ -238,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/privacy/': typeof AppPrivacyIndexRoute
   '/profiles/': typeof AppProfilesIndexRoute
   '/rulesets/': typeof AppRulesetsIndexRoute
+  '/assets/cards/create': typeof AppAssetsCardsCreateRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
@@ -270,6 +277,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof AppPrivacyIndexRoute
   '/profiles': typeof AppProfilesIndexRoute
   '/rulesets': typeof AppRulesetsIndexRoute
+  '/assets/cards/create': typeof AppAssetsCardsCreateRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/_app/privacy/': typeof AppPrivacyIndexRoute
   '/_app/profiles/': typeof AppProfilesIndexRoute
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
+  '/_app/assets/cards/create': typeof AppAssetsCardsCreateRoute
   '/_app/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/_app/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
@@ -342,6 +351,7 @@ export interface FileRouteTypes {
     | '/privacy/'
     | '/profiles/'
     | '/rulesets/'
+    | '/assets/cards/create'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/profiles/$profileSlug/edit'
@@ -374,6 +384,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profiles'
     | '/rulesets'
+    | '/assets/cards/create'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/profiles/$profileSlug/edit'
@@ -409,6 +420,7 @@ export interface FileRouteTypes {
     | '/_app/privacy/'
     | '/_app/profiles/'
     | '/_app/rulesets/'
+    | '/_app/assets/cards/create'
     | '/_app/factions/$factionId/edit'
     | '/_app/groups/$groupSlug/edit'
     | '/_app/profiles/$profileSlug/edit'
@@ -591,6 +603,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssetsCategoryIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/assets/cards/create': {
+      id: '/_app/assets/cards/create'
+      path: '/assets/cards/create'
+      fullPath: '/assets/cards/create'
+      preLoaderRoute: typeof AppAssetsCardsCreateRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/factions/$factionId/': {
       id: '/_app/factions/$factionId/'
       path: '/factions/$factionId'
@@ -718,6 +737,7 @@ interface AppRouteChildren {
   AppPrivacyIndexRoute: typeof AppPrivacyIndexRoute
   AppProfilesIndexRoute: typeof AppProfilesIndexRoute
   AppRulesetsIndexRoute: typeof AppRulesetsIndexRoute
+  AppAssetsCardsCreateRoute: typeof AppAssetsCardsCreateRoute
   AppFactionsFactionIdEditRoute: typeof AppFactionsFactionIdEditRoute
   AppProfilesProfileSlugEditRoute: typeof AppProfilesProfileSlugEditRoute
   AppAssetsCategoryIndexRoute: typeof AppAssetsCategoryIndexRoute
@@ -745,6 +765,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPrivacyIndexRoute: AppPrivacyIndexRoute,
   AppProfilesIndexRoute: AppProfilesIndexRoute,
   AppRulesetsIndexRoute: AppRulesetsIndexRoute,
+  AppAssetsCardsCreateRoute: AppAssetsCardsCreateRoute,
   AppFactionsFactionIdEditRoute: AppFactionsFactionIdEditRoute,
   AppProfilesProfileSlugEditRoute: AppProfilesProfileSlugEditRoute,
   AppAssetsCategoryIndexRoute: AppAssetsCategoryIndexRoute,

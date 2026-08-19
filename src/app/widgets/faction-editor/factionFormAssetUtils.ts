@@ -77,6 +77,10 @@ export const decalAssetOptions = [
 ].sort((a, b) => a.localeCompare(b)) as readonly string[];
 
 export const logoOptionToLabel = createPathOptionLabeler(logoOptions);
+
+/** Corner icons for card editors — the ICON family, labelled like every other picker. */
+export const iconAssetOptions = ICON.options as readonly string[];
+export const iconAssetOptionToLabel = createPathOptionLabeler(iconAssetOptions);
 export const decalAssetOptionToLabel = createPathOptionLabeler(decalAssetOptions);
 export const leaderOptionToLabel = createPathOptionLabeler(LEADERS.options);
 export const troopOptionToLabel = createPathOptionLabeler(TROOP.options);

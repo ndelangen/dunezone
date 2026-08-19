@@ -2,8 +2,12 @@ import { v } from 'convex/values';
 
 import type { Doc } from './_generated/dataModel';
 import { query } from './_generated/server';
+import { mutation } from './functions';
+import { assertKnownAssetType, categoryOfType, parseAssetDataForWrite } from './lib/assetInput';
+import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
-import type { QueryCtx } from './types';
+import { nowIso, slugify } from './lib/utils';
+import type { MutationCtx, QueryCtx } from './types';
 
 /**
  * Listing entry for catalogue surfaces.
@@ -91,5 +95,46 @@ export const listByTypes = query({
     );
     const rows = perType.flat().sort((a, b) => b._creationTime - a._creationTime);
     return await Promise.all(rows.map((row) => toListEntry(ctx, row)));
+  },
+});
+
+/**
+ * Slugs are unique per Asset category (see CONTEXT.md), and a slug once used stays reserved even by soft-deleted assets — the group/faction convention.
+ */
+async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {
+  const category = categoryOfType(type);
+  const holders = await ctx.db
+    .query('assets')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .take(50);
+  if (holders.some((row) => categoryOfType(row.type) === category)) {
+    throw new Error(`Asset slug ${slug} is reserved in its category`);
+  }
+}
+
+export const create = mutation({
+  args: { type: v.string(), data: v.any() },
+  returns: v.object({ id: v.id('assets'), slug: v.string() }),
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx);
+    assertKnownAssetType(args.type);
+    const parsed = parseAssetDataForWrite(args.type, args.data);
+    const slug = slugify(parsed.name);
+    if (!slug) {
+      throw new Error('An asset name is required; it determines the asset URL');
+    }
+    await assertAssetSlugAvailable(ctx, args.type, slug);
+    const now = nowIso();
+    const id = await ctx.db.insert('assets', {
+      owner_id: userId,
+      type: args.type,
+      data: parsed.data,
+      slug,
+      created_at: now,
+      updated_at: now,
+      is_deleted: false,
+      group_id: null,
+    });
+    return { id, slug };
   },
 });

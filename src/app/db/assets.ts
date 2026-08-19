@@ -2,7 +2,7 @@ import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
-import { toLiveQueryResult } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 
@@ -27,4 +27,8 @@ export async function loadAssetsByTypes(types: string[]): Promise<AssetsByTypesD
 export function useAssetsByTypes(types: string[], options?: { initialData?: AssetsByTypesData }) {
   const liveData = useQuery(api.assets.listByTypes, { types });
   return toLiveQueryResult(liveData, true, () => options?.initialData);
+}
+
+export function useCreateAsset() {
+  return useLiveMutation<{ type: string; data: unknown }, { id: string; slug: string }>(api.assets.create);
 }
