@@ -532,7 +532,7 @@ const DECKS_PER_CARD_LIMIT = 100;
  * The reverse of `membersOf`, and the first read of `by_to_kind`, the index bought for this question when the table landed.
  *
  * This is a companion query rather than a field on `assetListEntryValidator`.
- * The landing page draws piles of all thirteen types and needs none of it, and deriving it inside `toListEntry` would put an index scan on every row of every catalogue read.
+ * The landing page draws a pile per type and needs none of it, and deriving it inside `toListEntry` would put an index scan on every row of every catalogue read.
  * Every requested id gets a key, so a card in no deck comes back as an empty array rather than a missing one, which is the predicate an "in no deck" facet reads.
  * `count` is the relation's own copies figure, already on the row being read, so one call answers both how many decks hold a card and how many copies each of them holds.
  * Soft-deleted decks stop being reported while their relation row survives, the rule `membersOf` applies from the other end.
