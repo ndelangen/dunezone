@@ -29,6 +29,14 @@ export default defineMain({
       titlePrefix: 'Widgets/Faction Editor',
     },
     {
+      directory: '../src/app/widgets/authoring',
+      titlePrefix: 'Widgets/Authoring',
+    },
+    {
+      directory: '../src/app/widgets/background-composer',
+      titlePrefix: 'Widgets/Background Composer',
+    },
+    {
       directory: '../src/app/ui/block',
       titlePrefix: 'Blocks',
     },

@@ -6,8 +6,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 
 import { loadAssetsByTypes, useAssetsByTypes } from '@app/db/assets';
-
-import { AssetFace } from '../-assetFaces';
+import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
 export const Route = createFileRoute('/_app/assets/$type/')({
   loader: async ({ params }) => {

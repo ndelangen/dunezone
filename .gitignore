@@ -31,3 +31,6 @@ docs/research/
 coverage/
 # generated OBJ pieces (built from media/vector by scripts/generate-objs.ts; CI is canonical)
 /public/obj/
+
+# TanStack dev-server scratch. One of these was committed by accident in 2026 and sat in the tree since.
+.tanstack/

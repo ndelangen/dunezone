@@ -10,8 +10,8 @@ import type { CSSProperties } from 'react';
 
 import { loadAssetCataloguePage, useAssetCataloguePage } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
+import { AssetFace, CARD_ASPECT } from '@app/widgets/asset-face/AssetFace';
 
-import { AssetFace, CARD_ASPECT } from './-assetFaces';
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/assets/')({

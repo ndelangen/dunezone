@@ -4,11 +4,11 @@
  * category is derived presentation-only grouping, so this registry is the client's contract for grouping, labels, and which types are live versus planned placeholders.
  */
 
-export const ASSET_CATEGORIES = ['cards', 'decks', 'tokens', 'boards'] as const;
+const ASSET_CATEGORIES = ['cards', 'decks', 'tokens', 'boards'] as const;
 
-export type AssetCategory = (typeof ASSET_CATEGORIES)[number];
+type AssetCategory = (typeof ASSET_CATEGORIES)[number];
 
-export type AssetTypeStatus = 'live' | 'planned';
+type AssetTypeStatus = 'live' | 'planned';
 
 type AssetTypeDefinition = {
   category: AssetCategory;

@@ -1,5 +1,8 @@
 /**
- * Defensive asset-face rendering for catalogue surfaces (landing piles, category browse).
+ * Defensive asset-face rendering, wherever an Asset has to be shown rather than named.
+ *
+ * It left `src/app/routes` the moment something outside the assets routes needed it.
+ * A picker row draws the same face as a browse tile, and a file only its own routes may import cannot serve both.
  *
  * Listing `data` arrives untyped — the per-type Zod schemas live with the editors — so each adapter safeParses just enough to hand the real game renderer its props, and anything unrenderable falls back to a neutral face rather than crashing a browse page.
  * The scale frames wrap the renderers' intrinsic sizes (cards draw at 900x1263, tokens fill).
@@ -30,7 +33,7 @@ const GEAR_CLIP = (() => {
   return `polygon(${points.join(', ')})`;
 })();
 
-export function CardFrame({ width, children, style }: { width: number; children: ReactNode; style?: CSSProperties }) {
+function CardFrame({ width, children, style }: { width: number; children: ReactNode; style?: CSSProperties }) {
   const scale = width / CARD_SIZE.width;
   return (
     <div
@@ -62,7 +65,7 @@ export function CardFrame({ width, children, style }: { width: number; children:
 
 type TokenShape = 'round' | 'gear' | 'square' | 'rectangle';
 
-export function TokenFrame({
+function TokenFrame({
   shape,
   width,
   children,
@@ -141,7 +144,7 @@ const tokenFaceSchema = z.object({
   }),
 });
 
-export function tokenShapeOfType(type: string): TokenShape | null {
+function tokenShapeOfType(type: string): TokenShape | null {
   switch (type) {
     case 'token-round':
       return 'round';
