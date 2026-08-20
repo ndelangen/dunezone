@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 import {
+  DECK_ASSET_TYPE,
+  deckCardbackAssetDataSchema,
   FACTION_SHEET_ASSET_TYPE,
   factionSheetAssetDataSchema,
   TREACHERY_CARD_ASSET_TYPE,
@@ -28,6 +30,12 @@ export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', 
     ok: z.literal(true),
     assetType: z.literal(TREACHERY_CARD_ASSET_TYPE),
     payload: treacheryCardAssetDataSchema,
+    payloadHash: payloadHashSchema,
+  }),
+  z.strictObject({
+    ok: z.literal(true),
+    assetType: z.literal(DECK_ASSET_TYPE),
+    payload: deckCardbackAssetDataSchema,
     payloadHash: payloadHashSchema,
   }),
 ]);

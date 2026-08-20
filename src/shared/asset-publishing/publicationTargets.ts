@@ -12,7 +12,7 @@
  */
 
 /** The wire vocabulary. Order is not meaningful; `matchPublishedPath` tries every entry. */
-export const PUBLICATION_ASSET_TYPES = ['faction_sheet', 'card-treachery'] as const;
+export const PUBLICATION_ASSET_TYPES = ['faction_sheet', 'card-treachery', 'deck'] as const;
 
 export type PublicationAssetType = (typeof PUBLICATION_ASSET_TYPES)[number];
 
@@ -62,6 +62,17 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     file: 'card.jpg',
     contentType: 'image/jpeg',
     downloadFilename: 'treachery-card.jpg',
+    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
+  },
+  /*
+   * A deck publishes its Cardback and nothing else (wayfinder #495), so the row is a card in every dimension that matters.
+   * `CardBack` is the card renderer at the card's own size, and the quality number was measured on that renderer's output.
+   */
+  deck: {
+    collection: 'decks',
+    file: 'cardback.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'deck-cardback.jpg',
     capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
   },
 };

@@ -5,6 +5,7 @@ import type { Browser, Page } from 'playwright';
 
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import { PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicationTargets';
+import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import {
@@ -38,6 +39,11 @@ const cardSnapshot = envelope('card-treachery', {
   assetId: 'k17publisherContractCard',
   slug: 'publisher-contract-card',
   card: publishingTreacheryCard,
+});
+const deckSnapshot = envelope('deck', {
+  assetId: 'k17publisherContractDeck',
+  slug: 'publisher-contract-deck',
+  cardback: publishingDeckCardback,
 });
 
 /**
@@ -203,15 +209,23 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
 }
 
 /**
- * The image half of the capture contract, in real Chromium against the real bundle.
+ * The image half of the capture contract, in real Chromium against the real bundle, for one Publication asset type.
  *
  * It proves the three things the driver relies on and unit tests cannot reach: that the page dispatches on the snapshot's asset type, that the frame lands at the document origin at exactly its declared size, and that a viewport-sized screenshot therefore comes back at exactly those pixels.
  * The JPEG encode is not here, because it belongs to the Images binding rather than to the browser.
+ *
+ * It takes the asset type rather than hard-coding one, so a new image type is a call below instead of a copy of this function.
+ * Every image type is worth its own pass even when two share a geometry, since what is being proved is that the page draws the right subject for the type it was handed.
  */
-async function checkPublisherCardImage(browser: Browser): Promise<void> {
-  const { capture } = PUBLICATION_TARGETS['card-treachery'];
-  invariant(capture.output === 'image', 'Treachery cards must publish as an image');
-  activeSnapshot = cardSnapshot;
+async function checkPublisherImageCapture(
+  browser: Browser,
+  assetType: 'card-treachery' | 'deck',
+  snapshot: ReturnType<typeof envelope>,
+  label: string
+): Promise<void> {
+  const { capture } = PUBLICATION_TARGETS[assetType];
+  invariant(capture.output === 'image', `${label} must publish as an image`);
+  activeSnapshot = snapshot;
   const page = await browser.newPage({
     viewport: { width: capture.widthPx, height: capture.heightPx },
     locale: 'en-US',
@@ -226,19 +240,19 @@ async function checkPublisherCardImage(browser: Browser): Promise<void> {
   page.on('pageerror', (error) => errors.push(`page: ${error.message}`));
   try {
     const result = await openCapture(page);
-    invariant(result.state === 'ready', `Card capture reported ${result.state}: ${result.detail}`);
-    invariant(result.payloadHash === cardSnapshot.payloadHash, 'Card capture did not expose the exact payload hash');
-    invariant(errors.length === 0, `Card capture emitted errors: ${errors.join(' | ')}`);
+    invariant(result.state === 'ready', `${label} capture reported ${result.state}: ${result.detail}`);
+    invariant(result.payloadHash === snapshot.payloadHash, `${label} capture did not expose the exact payload hash`);
+    invariant(errors.length === 0, `${label} capture emitted errors: ${errors.join(' | ')}`);
     await assertCaptureImageBounds(page, capture);
 
     const screenshot = new Uint8Array(await page.screenshot({ type: 'png', scale: 'css' }));
     const dimensions = pngDimensions(screenshot);
     invariant(
       dimensions.widthPx === capture.widthPx && dimensions.heightPx === capture.heightPx,
-      `Card capture produced a ${dimensions.widthPx}x${dimensions.heightPx} PNG`
+      `${label} capture produced a ${dimensions.widthPx}x${dimensions.heightPx} PNG`
     );
     console.log(
-      `Publisher card capture Chromium regression passed: ${dimensions.widthPx}x${dimensions.heightPx}, ${screenshot.byteLength} bytes`
+      `Publisher ${label} capture Chromium regression passed: ${dimensions.widthPx}x${dimensions.heightPx}, ${screenshot.byteLength} bytes`
     );
   } finally {
     activeSnapshot = factionSnapshot;
@@ -251,7 +265,8 @@ try {
   await checkCorruptSvgImage(browser);
   await checkCorruptExternalUse(browser);
   await checkPublisherPdf(browser);
-  await checkPublisherCardImage(browser);
+  await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
+  await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
 } finally {
   await browser.close();
   server.stop(true);

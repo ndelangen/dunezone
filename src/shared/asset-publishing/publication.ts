@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
-import { TreacheryAsset } from '../assets/schema';
+import { CardBack, TreacheryAsset } from '../assets/schema';
 import { FactionInputSchema, FactionRowSlugSchema } from '../factions/schema';
 import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 import type { PublicationAssetType } from './publicationTargets';
 
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
 export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
+export const DECK_ASSET_TYPE = 'deck' as const;
 export const PUBLICATION_MAX_ATTEMPTS = 10;
 export const PUBLICATION_MAX_PICKUP = 20;
 export const PUBLICATION_JOB_EXPIRY_MS = 5 * 60 * 1000;
@@ -30,12 +31,26 @@ export const treacheryCardAssetDataSchema = z.strictObject({
 });
 
 /**
+ * Everything the capture page needs to draw one deck's Cardback.
+ *
+ * It carries the `cardback` alone rather than the whole stored deck, because «Deck publication is its Cardback only» makes the Cardback the entire input to a deck's publication.
+ * A deck's `name` and `about` are not on the face, so keeping them out means a rename or an About edit cannot change the payload hash of a picture that did not change.
+ * The slug rides along for diagnostics only, the same as the card's.
+ */
+export const deckCardbackAssetDataSchema = z.strictObject({
+  assetId: z.string().min(1),
+  slug: z.string().min(1),
+  cardback: CardBack,
+});
+
+/**
  * The one place a Publication asset type is turned back into the shape its capture page expects.
  * Convex parses through it before serving a snapshot, and the capture page parses the same schemas on receipt, so a job whose stored `asset_data` no longer satisfies its type fails at the boundary rather than rendering something half-formed.
  */
 const PUBLICATION_ASSET_DATA_SCHEMAS = {
   [FACTION_SHEET_ASSET_TYPE]: factionSheetAssetDataSchema,
   [TREACHERY_CARD_ASSET_TYPE]: treacheryCardAssetDataSchema,
+  [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
 } as const satisfies Record<PublicationAssetType, z.ZodType>;
 
 export function parsePublicationAssetData(assetType: PublicationAssetType, data: unknown): unknown {

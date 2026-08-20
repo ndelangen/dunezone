@@ -1,6 +1,10 @@
 import { v } from 'convex/values';
 
-import { FACTION_SHEET_ASSET_TYPE, TREACHERY_CARD_ASSET_TYPE } from '../src/shared/asset-publishing/publication';
+import {
+  DECK_ASSET_TYPE,
+  FACTION_SHEET_ASSET_TYPE,
+  TREACHERY_CARD_ASSET_TYPE,
+} from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
 import { internalMutation } from './functions';
 import { enqueueAssetPublication, enqueueFactionSheetPublication } from './lib/publication';
@@ -33,7 +37,12 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
         continueCursor: page.continueCursor,
       };
     }
-    case TREACHERY_CARD_ASSET_TYPE: {
+    /*
+     * Both asset types scan identically, because the branch reads `assetType` rather than a literal and every publishable Asset lives in one table under its own type.
+     * A new publishable Asset type joins this list rather than copying the body.
+     */
+    case TREACHERY_CARD_ASSET_TYPE:
+    case DECK_ASSET_TYPE: {
       const page = await ctx.db
         .query('assets')
         .withIndex('by_type_deleted', (q) => q.eq('type', assetType).eq('is_deleted', false))

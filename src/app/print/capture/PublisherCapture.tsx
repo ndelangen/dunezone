@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 
 import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
+import { CardBack } from '@game/assets/card/Back';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 
 import { afterPaint, ASSET_SETTLE_TIMEOUT_MS, settleHtmlImages, settleSvgResources } from './captureSettle';
@@ -61,6 +62,17 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
           <CaptureFrame assetType={snapshot.assetType}>
             <AssetRenderModeProvider mode="print">
               <TreacheryCard {...snapshot.payload.card} />
+            </AssetRenderModeProvider>
+          </CaptureFrame>
+        ),
+      };
+    /* A deck's face is its Cardback, drawn by the card renderer at the card's own size, so the frame is the card's frame. */
+    case 'deck':
+      return {
+        node: (
+          <CaptureFrame assetType={snapshot.assetType}>
+            <AssetRenderModeProvider mode="print">
+              <CardBack {...snapshot.payload.cardback} />
             </AssetRenderModeProvider>
           </CaptureFrame>
         ),

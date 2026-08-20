@@ -357,7 +357,7 @@ describe('deck composition', () => {
 });
 
 describe('asset page bundle', () => {
-  test('a card reports the decks holding it and its publication; a deck reports neither', async () => {
+  test('a card reports the decks holding it, a deck reports none, and both report their publication', async () => {
     const t = convexTest(schema, modules);
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
@@ -372,9 +372,9 @@ describe('asset page bundle', () => {
     expect(card?.assetPublishing).toMatchObject({ status: null, captureStatus: 'scheduled', publicationHref: null });
 
     const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
-    /* Nothing may hold a deck, and a deck publishes its Cardback through a type that has no target row yet. */
+    /* Nothing may hold a deck. Its own Cardback publishes like any other image type since wayfinder #546. */
     expect(page?.inDecks).toEqual([]);
-    expect(page?.assetPublishing).toBeNull();
+    expect(page?.assetPublishing).toMatchObject({ status: null, captureStatus: 'scheduled', publicationHref: null });
   });
 
   test('a deck holding a soft-deleted card stops being reported by that card', async () => {
@@ -452,31 +452,37 @@ describe('asset publication', () => {
     expect(afterUpdate[0]?.asset_data).toMatchObject({ slug: 'hunter-seeker' });
   });
 
-  test('a type with no publication of its own saves without scheduling one', async () => {
+  test('saving a deck schedules its Cardback, and the payload is the Cardback alone', async () => {
     const t = convexTest(schema, modules);
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
-    const deck = await t.withIdentity({ subject: ownerId }).mutation(api.assets.create, {
-      type: 'deck',
-      data: {
-        name: 'House Treachery',
-        about: '',
-        cardback: {
-          name: 'Treachery',
-          background: {
-            image: '/image/texture/015.jpg',
-            colors: ['#4B4C0D', '#262B04'],
-            invert: true,
-            definition: 0,
-            influence: 0.5,
-          },
-          image: '/vector/icon/projectile.svg',
-          imageScale: 0.5,
-          imageOffset: [0, 0],
-        },
-      },
+    const deck = await t
+      .withIdentity({ subject: ownerId })
+      .mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
+
+    const jobs = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('publication_jobs')
+          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'deck').eq('asset_id', deck.id))
+          .collect()
+    );
+    expect(jobs).toHaveLength(1);
+    /* A deck publishes its Cardback and nothing else, so its name and its About must not reach the render payload. */
+    expect(jobs[0]?.asset_data).toEqual({
+      assetId: deck.id,
+      slug: 'house-treachery',
+      cardback: deckData('House Treachery').cardback,
     });
+  });
+
+  test('a type with no publication of its own saves without scheduling one', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
+    const token = await t
+      .withIdentity({ subject: ownerId })
+      .mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
 
     expect(await t.run(async (ctx) => await ctx.db.query('publication_jobs').collect())).toEqual([]);
-    expect(deck.slug).toBe('house-treachery');
+    expect(token.slug).toBe('axlotl');
   });
 });

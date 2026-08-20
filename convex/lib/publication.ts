@@ -1,4 +1,5 @@
 import {
+  DECK_ASSET_TYPE,
   FACTION_SHEET_ASSET_TYPE,
   factionSheetAssetDataSchema,
   parsePublicationAssetData,
@@ -6,6 +7,7 @@ import {
 } from '../../src/shared/asset-publishing/publication';
 import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/publication';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
+import { DeckAsset } from '../../src/shared/assets/schema';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 
@@ -98,9 +100,10 @@ export async function enqueueFactionSheetPublication(
  * A type with no branch here publishes nothing at all, which is deliberate rather than an omission: decks publish their Cardback and tokens publish per face, and both need a capture renderer before a job would have anything to draw.
  * Returning null keeps a save working for those types instead of failing it over work that has not landed.
  *
- * Known and accepted: `about` lives inside `data` and reaches no face, so an About-only edit schedules a capture that produces byte-identical output, and the fresh cache token cold-caches it (wayfinder #521).
+ * Known and accepted for cards: `about` lives inside `data` and reaches no face, so an About-only edit schedules a capture that produces byte-identical output, and the fresh cache token cold-caches it (wayfinder #521).
  * The fix, if that ever costs enough to matter, is to compare `data` minus `about` here rather than enqueueing unconditionally.
  * Not done now, because a treachery card has one publication and About edits are rare.
+ * Decks do not have the problem: their payload is the Cardback alone, so a rename or an About edit still enqueues but cannot change what the capture draws.
  */
 export async function enqueueAssetPublication(
   ctx: MutationCtx,
@@ -118,6 +121,17 @@ export async function enqueueAssetPublication(
         assetType: TREACHERY_CARD_ASSET_TYPE,
         assetId: asset._id,
         assetData: { assetId: asset._id, slug: asset.slug, card: asset.data },
+        now,
+      });
+    /*
+     * The Cardback is lifted out of the stored deck here rather than carried whole, so the payload is exactly the publication's input.
+     * `parseAssetDataForWrite` already validated this row on the way in, so the parse is a total function rather than a guard.
+     */
+    case DECK_ASSET_TYPE:
+      return await enqueuePublicationJob(ctx, {
+        assetType: DECK_ASSET_TYPE,
+        assetId: asset._id,
+        assetData: { assetId: asset._id, slug: asset.slug, cardback: DeckAsset.parse(asset.data).cardback },
         now,
       });
     default:
