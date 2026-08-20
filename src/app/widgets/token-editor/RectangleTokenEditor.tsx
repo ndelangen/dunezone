@@ -17,6 +17,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
+import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
@@ -481,46 +482,43 @@ export function RectangleTokenEditor({
   const activeChapter = items.some((item) => item.value === chapter) ? chapter : 'identity';
 
   return (
-    <div
-      style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(17rem, 21rem)', alignItems: 'start' }}
-      onBlurCapture={onSettle}
-    >
-      <ConnectedTabs<RectangleChapter>
-        value={activeChapter}
-        onValueChange={(next) => {
-          onChapterChange(next);
-          onSettle();
-        }}
-        ariaLabel="Enhance token chapters"
-        items={items}
-      />
-      <div style={{ minWidth: 0, paddingLeft: 'var(--mantine-spacing-md)' }}>
-        <div style={{ position: 'sticky', top: 96 }}>
-          {/* The face stacks take the full width, or a centred flex child shrinks to its content and `CanvasScale` has nothing to fill. */}
-          <Stack gap="md" align="center">
+    <WorkbenchLayout.Workbench onBlurCapture={onSettle}>
+      <WorkbenchLayout.Chapters>
+        <ConnectedTabs<RectangleChapter>
+          value={activeChapter}
+          onValueChange={(next) => {
+            onChapterChange(next);
+            onSettle();
+          }}
+          ariaLabel="Enhance token chapters"
+          items={items}
+        />
+      </WorkbenchLayout.Chapters>
+      <WorkbenchLayout.Rail>
+        {/* The face stacks take the full width, or a centred flex child shrinks to its content and `CanvasScale` has nothing to fill. */}
+        <Stack gap="md" align="center">
+          <Stack gap={4} align="center" w="100%">
+            <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}>
+              <RectangleProof face={draft.front} width={PROOF_CANVAS} />
+            </CanvasScale>
+            <Text size="xs" c="dimmed">
+              Front
+            </Text>
+          </Stack>
+          {draft.back.mode === 'custom' ? (
             <Stack gap={4} align="center" w="100%">
               <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}>
-                <RectangleProof face={draft.front} width={PROOF_CANVAS} />
+                <RectangleProof face={draft.back.face} width={PROOF_CANVAS} />
               </CanvasScale>
               <Text size="xs" c="dimmed">
-                Front
+                Back
               </Text>
             </Stack>
-            {draft.back.mode === 'custom' ? (
-              <Stack gap={4} align="center" w="100%">
-                <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}>
-                  <RectangleProof face={draft.back.face} width={PROOF_CANVAS} />
-                </CanvasScale>
-                <Text size="xs" c="dimmed">
-                  Back
-                </Text>
-              </Stack>
-            ) : (
-              backProof
-            )}
-          </Stack>
-        </div>
-      </div>
-    </div>
+          ) : (
+            backProof
+          )}
+        </Stack>
+      </WorkbenchLayout.Rail>
+    </WorkbenchLayout.Workbench>
   );
 }

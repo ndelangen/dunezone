@@ -4,6 +4,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
+import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -136,140 +137,137 @@ export function BundleEditor({
   const totalTokens = members.reduce((sum, member) => sum + member.count, 0);
 
   return (
-    <div
-      style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(17rem, 21rem)', alignItems: 'start' }}
-      onBlurCapture={onSettle}
-    >
-      <ConnectedTabs<BundleChapter>
-        value={chapter}
-        onValueChange={(next) => {
-          onChapterChange(next);
-          onSettle();
-        }}
-        ariaLabel="Bundle chapters"
-        items={[
-          {
-            value: 'identity',
-            label: 'Identity',
-            icon: <TopicIcon topic="identity" size={21} />,
-            panel: panel(
-              <>
-                <ControlBlock
-                  title="Name"
-                  description="Determines the bundle's URL."
-                  input={
-                    <TextInput
-                      aria-label="Name"
-                      value={draft.name}
-                      onChange={(event) => patch({ name: event.currentTarget.value })}
-                    />
-                  }
-                />
-                <ControlBlock
-                  title="Band"
-                  description="A bundle has no face of its own, so this is what tells it apart. Stock or authored; nothing about the choice is stored either way."
-                  input={
-                    <Select
-                      aria-label="Band"
-                      allowDeselect={false}
-                      data={[
-                        ...STOCK_BANDS.map((stock) => ({ value: stock.key, label: `${stock.label} band` })),
-                        { value: CUSTOM, label: 'Custom…' },
-                      ]}
-                      value={selected}
-                      onChange={(next) => {
-                        if (next === CUSTOM) {
-                          /* Custom keeps the current composition and simply reveals the fields below. */
-                          setCustomChosen(true);
-                          return;
-                        }
-                        const stock = STOCK_BANDS.find((candidate) => candidate.key === next);
-                        if (stock) {
-                          setCustomChosen(false);
-                          patch({ band: stock.band });
-                        }
-                      }}
-                    />
-                  }
-                />
-                {selected === CUSTOM ? <BandFields band={draft.band} onChange={(band) => patch({ band })} /> : null}
-              </>
-            ),
-          },
-          {
-            value: 'tokens',
-            label: 'Tokens',
-            icon: <TopicIcon topic="contents" size={21} />,
-            panel: panel(
-              <>
-                <ControlBlock
-                  title="Contents"
-                  description="Which tokens this bundle holds, and how many of each, from any community token whoever made it. Shapes may be mixed freely."
-                  tool={tokenPicker}
-                  input={
-                    members.length === 0 ? (
-                      <Text size="sm" c="dimmed">
-                        No tokens yet.
-                      </Text>
-                    ) : (
-                      <Stack gap="xs">
-                        {members.map((member) => (
-                          <Group key={member.token.id} gap="sm" wrap="nowrap" align="center">
-                            <AssetFace
-                              type={member.token.type}
-                              data={member.token.data}
-                              name={member.token.name}
-                              width={34}
-                            />
-                            <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
-                              {member.token.name}
-                            </Text>
-                            <NumberInput
-                              aria-label={`How many ${member.token.name}`}
-                              min={1}
-                              max={99}
-                              w={90}
-                              disabled={onCountChange === null}
-                              value={member.count}
-                              onChange={(value) => onCountChange?.(member.token.id, Number(value) || 1)}
-                            />
-                            <IconAction
-                              label={`Remove ${member.token.name}`}
-                              variant="light"
-                              color="red"
-                              size="lg"
-                              disabled={onCountChange === null}
-                              onClick={() => onCountChange?.(member.token.id, 0)}
-                              icon={<Trash2 size={17} aria-hidden />}
-                            />
-                          </Group>
-                        ))}
-                      </Stack>
-                    )
-                  }
-                />
-              </>
-            ),
-          },
-          aboutChapter(draft.about, (about) => patch({ about })),
-        ]}
-      />
-      <div style={{ minWidth: 0, paddingLeft: 'var(--mantine-spacing-md)' }}>
-        <div style={{ position: 'sticky', top: 96 }}>
-          <Stack gap="md" align="center">
-            <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('bundle')}>
-              <BundleContainer band={draft.band} name={draft.name} width={PROOF_CANVAS} />
-            </CanvasScale>
-            <Text size="xs" c="dimmed">
-              How this bundle is shown
-            </Text>
-            <Text size="sm">
-              {totalTokens} {totalTokens === 1 ? 'token' : 'tokens'} across {members.length}{' '}
-              {members.length === 1 ? 'kind' : 'kinds'}
-            </Text>
-          </Stack>
-        </div>
-      </div>
-    </div>
+    <WorkbenchLayout.Workbench onBlurCapture={onSettle}>
+      <WorkbenchLayout.Chapters>
+        <ConnectedTabs<BundleChapter>
+          value={chapter}
+          onValueChange={(next) => {
+            onChapterChange(next);
+            onSettle();
+          }}
+          ariaLabel="Bundle chapters"
+          items={[
+            {
+              value: 'identity',
+              label: 'Identity',
+              icon: <TopicIcon topic="identity" size={21} />,
+              panel: panel(
+                <>
+                  <ControlBlock
+                    title="Name"
+                    description="Determines the bundle's URL."
+                    input={
+                      <TextInput
+                        aria-label="Name"
+                        value={draft.name}
+                        onChange={(event) => patch({ name: event.currentTarget.value })}
+                      />
+                    }
+                  />
+                  <ControlBlock
+                    title="Band"
+                    description="A bundle has no face of its own, so this is what tells it apart. Stock or authored; nothing about the choice is stored either way."
+                    input={
+                      <Select
+                        aria-label="Band"
+                        allowDeselect={false}
+                        data={[
+                          ...STOCK_BANDS.map((stock) => ({ value: stock.key, label: `${stock.label} band` })),
+                          { value: CUSTOM, label: 'Custom…' },
+                        ]}
+                        value={selected}
+                        onChange={(next) => {
+                          if (next === CUSTOM) {
+                            /* Custom keeps the current composition and simply reveals the fields below. */
+                            setCustomChosen(true);
+                            return;
+                          }
+                          const stock = STOCK_BANDS.find((candidate) => candidate.key === next);
+                          if (stock) {
+                            setCustomChosen(false);
+                            patch({ band: stock.band });
+                          }
+                        }}
+                      />
+                    }
+                  />
+                  {selected === CUSTOM ? <BandFields band={draft.band} onChange={(band) => patch({ band })} /> : null}
+                </>
+              ),
+            },
+            {
+              value: 'tokens',
+              label: 'Tokens',
+              icon: <TopicIcon topic="contents" size={21} />,
+              panel: panel(
+                <>
+                  <ControlBlock
+                    title="Contents"
+                    description="Which tokens this bundle holds, and how many of each, from any community token whoever made it. Shapes may be mixed freely."
+                    tool={tokenPicker}
+                    input={
+                      members.length === 0 ? (
+                        <Text size="sm" c="dimmed">
+                          No tokens yet.
+                        </Text>
+                      ) : (
+                        <Stack gap="xs">
+                          {members.map((member) => (
+                            <Group key={member.token.id} gap="sm" wrap="nowrap" align="center">
+                              <AssetFace
+                                type={member.token.type}
+                                data={member.token.data}
+                                name={member.token.name}
+                                width={34}
+                              />
+                              <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
+                                {member.token.name}
+                              </Text>
+                              <NumberInput
+                                aria-label={`How many ${member.token.name}`}
+                                min={1}
+                                max={99}
+                                w={90}
+                                disabled={onCountChange === null}
+                                value={member.count}
+                                onChange={(value) => onCountChange?.(member.token.id, Number(value) || 1)}
+                              />
+                              <IconAction
+                                label={`Remove ${member.token.name}`}
+                                variant="light"
+                                color="red"
+                                size="lg"
+                                disabled={onCountChange === null}
+                                onClick={() => onCountChange?.(member.token.id, 0)}
+                                icon={<Trash2 size={17} aria-hidden />}
+                              />
+                            </Group>
+                          ))}
+                        </Stack>
+                      )
+                    }
+                  />
+                </>
+              ),
+            },
+            aboutChapter(draft.about, (about) => patch({ about })),
+          ]}
+        />
+      </WorkbenchLayout.Chapters>
+      <WorkbenchLayout.Rail>
+        <Stack gap="md" align="center">
+          <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('bundle')}>
+            <BundleContainer band={draft.band} name={draft.name} width={PROOF_CANVAS} />
+          </CanvasScale>
+          <Text size="xs" c="dimmed">
+            How this bundle is shown
+          </Text>
+          <Text size="sm">
+            {totalTokens} {totalTokens === 1 ? 'token' : 'tokens'} across {members.length}{' '}
+            {members.length === 1 ? 'kind' : 'kinds'}
+          </Text>
+        </Stack>
+      </WorkbenchLayout.Rail>
+    </WorkbenchLayout.Workbench>
   );
 }

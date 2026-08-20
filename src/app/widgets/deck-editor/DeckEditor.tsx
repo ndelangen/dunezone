@@ -5,6 +5,7 @@ import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
+import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -191,142 +192,139 @@ export function DeckEditor({
   const totalCards = members.reduce((sum, member) => sum + member.count, 0);
 
   return (
-    <div
-      style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(17rem, 21rem)', alignItems: 'start' }}
-      onBlurCapture={onSettle}
-    >
-      <ConnectedTabs<DeckChapter>
-        value={chapter}
-        onValueChange={(next) => {
-          onChapterChange(next);
-          onSettle();
-        }}
-        ariaLabel="Deck chapters"
-        items={[
-          {
-            value: 'identity',
-            label: 'Identity',
-            icon: <TopicIcon topic="identity" size={21} />,
-            panel: panel(
-              <>
-                <ControlBlock
-                  title="Name"
-                  description="Determines the deck's URL."
-                  input={
-                    <TextInput
-                      aria-label="Name"
-                      value={draft.name}
-                      onChange={(event) => patch({ name: event.currentTarget.value })}
-                    />
-                  }
-                />
-                <ControlBlock
-                  title="Card back"
-                  description="Every deck wears exactly one. The deck publishes its own image either way, so a stock back only supplies the artwork."
-                  input={
-                    <Select
-                      aria-label="Card back"
-                      allowDeselect={false}
-                      data={[
-                        ...STOCK_CARDBACKS.map((stock) => ({ value: stock.key, label: `${stock.label} card back` })),
-                        { value: CUSTOM, label: 'Custom…' },
-                      ]}
-                      value={selected}
-                      onChange={(next) => {
-                        if (next === CUSTOM) {
-                          /* Custom keeps the current composition and simply reveals the creator below. */
-                          setCustomChosen(true);
-                          return;
-                        }
-                        const stock = STOCK_CARDBACKS.find((candidate) => candidate.key === next);
-                        if (stock) {
-                          setCustomChosen(false);
-                          patch({ cardback: stock.cardback });
-                        }
-                      }}
-                    />
-                  }
-                />
-                {selected === CUSTOM ? (
-                  <CardbackFields cardback={draft.cardback} onChange={(cardback) => patch({ cardback })} />
-                ) : null}
-              </>
-            ),
-          },
-          {
-            value: 'cards',
-            label: 'Cards',
-            icon: <TopicIcon topic="contents" size={21} />,
-            panel: panel(
-              <>
-                <ControlBlock
-                  title="Composition"
-                  description="How many of each card this deck holds, from any community card whoever made it. Duplicates are a count, not repeated rows."
-                  tool={cardPicker}
-                  input={
-                    members.length === 0 ? (
-                      <Text size="sm" c="dimmed">
-                        No cards yet.
-                      </Text>
-                    ) : (
-                      <Stack gap="xs">
-                        {members.map((member) => (
-                          <Group key={member.card.id} gap="sm" wrap="nowrap" align="center">
-                            <AssetFace
-                              type={member.card.type}
-                              data={member.card.data}
-                              name={member.card.name}
-                              width={34}
-                            />
-                            <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
-                              {member.card.name}
-                            </Text>
-                            <NumberInput
-                              aria-label={`Copies of ${member.card.name}`}
-                              min={1}
-                              max={99}
-                              w={90}
-                              disabled={onCountChange === null}
-                              value={member.count}
-                              onChange={(value) => onCountChange?.(member.card.id, Number(value) || 1)}
-                            />
-                            <IconAction
-                              label={`Remove ${member.card.name}`}
-                              variant="light"
-                              color="red"
-                              size="lg"
-                              disabled={onCountChange === null}
-                              onClick={() => onCountChange?.(member.card.id, 0)}
-                              icon={<Trash2 size={17} aria-hidden />}
-                            />
-                          </Group>
-                        ))}
-                      </Stack>
-                    )
-                  }
-                />
-              </>
-            ),
-          },
-          aboutChapter(draft.about, (about) => patch({ about })),
-        ]}
-      />
-      <div style={{ minWidth: 0, paddingLeft: 'var(--mantine-spacing-md)' }}>
-        <div style={{ position: 'sticky', top: 96 }}>
-          <Stack gap="md" align="center">
-            <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('deck')}>
-              <CardbackProof cardback={draft.cardback} width={PROOF_CANVAS} />
-            </CanvasScale>
-            <Text size="xs" c="dimmed">
-              The deck's publication
-            </Text>
-            <Text size="sm">
-              {totalCards} {totalCards === 1 ? 'card' : 'cards'} across {members.length}{' '}
-              {members.length === 1 ? 'title' : 'titles'}
-            </Text>
-          </Stack>
-        </div>
-      </div>
-    </div>
+    <WorkbenchLayout.Workbench onBlurCapture={onSettle}>
+      <WorkbenchLayout.Chapters>
+        <ConnectedTabs<DeckChapter>
+          value={chapter}
+          onValueChange={(next) => {
+            onChapterChange(next);
+            onSettle();
+          }}
+          ariaLabel="Deck chapters"
+          items={[
+            {
+              value: 'identity',
+              label: 'Identity',
+              icon: <TopicIcon topic="identity" size={21} />,
+              panel: panel(
+                <>
+                  <ControlBlock
+                    title="Name"
+                    description="Determines the deck's URL."
+                    input={
+                      <TextInput
+                        aria-label="Name"
+                        value={draft.name}
+                        onChange={(event) => patch({ name: event.currentTarget.value })}
+                      />
+                    }
+                  />
+                  <ControlBlock
+                    title="Card back"
+                    description="Every deck wears exactly one. The deck publishes its own image either way, so a stock back only supplies the artwork."
+                    input={
+                      <Select
+                        aria-label="Card back"
+                        allowDeselect={false}
+                        data={[
+                          ...STOCK_CARDBACKS.map((stock) => ({ value: stock.key, label: `${stock.label} card back` })),
+                          { value: CUSTOM, label: 'Custom…' },
+                        ]}
+                        value={selected}
+                        onChange={(next) => {
+                          if (next === CUSTOM) {
+                            /* Custom keeps the current composition and simply reveals the creator below. */
+                            setCustomChosen(true);
+                            return;
+                          }
+                          const stock = STOCK_CARDBACKS.find((candidate) => candidate.key === next);
+                          if (stock) {
+                            setCustomChosen(false);
+                            patch({ cardback: stock.cardback });
+                          }
+                        }}
+                      />
+                    }
+                  />
+                  {selected === CUSTOM ? (
+                    <CardbackFields cardback={draft.cardback} onChange={(cardback) => patch({ cardback })} />
+                  ) : null}
+                </>
+              ),
+            },
+            {
+              value: 'cards',
+              label: 'Cards',
+              icon: <TopicIcon topic="contents" size={21} />,
+              panel: panel(
+                <>
+                  <ControlBlock
+                    title="Composition"
+                    description="How many of each card this deck holds, from any community card whoever made it. Duplicates are a count, not repeated rows."
+                    tool={cardPicker}
+                    input={
+                      members.length === 0 ? (
+                        <Text size="sm" c="dimmed">
+                          No cards yet.
+                        </Text>
+                      ) : (
+                        <Stack gap="xs">
+                          {members.map((member) => (
+                            <Group key={member.card.id} gap="sm" wrap="nowrap" align="center">
+                              <AssetFace
+                                type={member.card.type}
+                                data={member.card.data}
+                                name={member.card.name}
+                                width={34}
+                              />
+                              <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
+                                {member.card.name}
+                              </Text>
+                              <NumberInput
+                                aria-label={`Copies of ${member.card.name}`}
+                                min={1}
+                                max={99}
+                                w={90}
+                                disabled={onCountChange === null}
+                                value={member.count}
+                                onChange={(value) => onCountChange?.(member.card.id, Number(value) || 1)}
+                              />
+                              <IconAction
+                                label={`Remove ${member.card.name}`}
+                                variant="light"
+                                color="red"
+                                size="lg"
+                                disabled={onCountChange === null}
+                                onClick={() => onCountChange?.(member.card.id, 0)}
+                                icon={<Trash2 size={17} aria-hidden />}
+                              />
+                            </Group>
+                          ))}
+                        </Stack>
+                      )
+                    }
+                  />
+                </>
+              ),
+            },
+            aboutChapter(draft.about, (about) => patch({ about })),
+          ]}
+        />
+      </WorkbenchLayout.Chapters>
+      <WorkbenchLayout.Rail>
+        <Stack gap="md" align="center">
+          <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('deck')}>
+            <CardbackProof cardback={draft.cardback} width={PROOF_CANVAS} />
+          </CanvasScale>
+          <Text size="xs" c="dimmed">
+            The deck's publication
+          </Text>
+          <Text size="sm">
+            {totalCards} {totalCards === 1 ? 'card' : 'cards'} across {members.length}{' '}
+            {members.length === 1 ? 'title' : 'titles'}
+          </Text>
+        </Stack>
+      </WorkbenchLayout.Rail>
+    </WorkbenchLayout.Workbench>
   );
 }

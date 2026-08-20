@@ -16,6 +16,7 @@ import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
+import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { ScrollText, Stamp } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -409,54 +410,47 @@ export function TreacheryCardEditor({
   onSettle: () => void;
 }) {
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1fr) minmax(17rem, 21rem)',
-        alignItems: 'start',
-      }}
-      onBlurCapture={onSettle}
-    >
-      <ConnectedTabs<TreacheryChapter>
-        value={chapter}
-        onValueChange={(next) => {
-          onChapterChange(next);
-          onSettle();
-        }}
-        ariaLabel="Card chapters"
-        items={[
-          {
-            value: 'head',
-            label: 'Head',
-            icon: <TopicIcon topic="text" size={21} />,
-            panel: panel(<HeadFields draft={draft} patch={patch} />),
-          },
-          {
-            value: 'icon',
-            label: 'Symbol',
-            icon: <Stamp size={21} aria-hidden />,
-            panel: panel(<IconFields draft={draft} patch={patch} />),
-          },
-          {
-            value: 'decals',
-            label: 'Decals',
-            icon: <TopicIcon topic="decals" size={21} />,
-            panel: panel(<DecalFields draft={draft} patch={patch} />),
-          },
-          {
-            value: 'body',
-            label: 'Body',
-            icon: <ScrollText size={21} aria-hidden />,
-            panel: panel(<BodyField draft={draft} patch={patch} />),
-          },
-          aboutChapter(draft.about, (about) => patch({ about })),
-        ]}
-      />
-      <div style={{ minWidth: 0, paddingLeft: 'var(--mantine-spacing-md)' }}>
-        <div style={{ position: 'sticky', top: 96 }}>
-          <FillCard draft={draft} />
-        </div>
-      </div>
-    </div>
+    <WorkbenchLayout.Workbench onBlurCapture={onSettle}>
+      <WorkbenchLayout.Chapters>
+        <ConnectedTabs<TreacheryChapter>
+          value={chapter}
+          onValueChange={(next) => {
+            onChapterChange(next);
+            onSettle();
+          }}
+          ariaLabel="Card chapters"
+          items={[
+            {
+              value: 'head',
+              label: 'Head',
+              icon: <TopicIcon topic="text" size={21} />,
+              panel: panel(<HeadFields draft={draft} patch={patch} />),
+            },
+            {
+              value: 'icon',
+              label: 'Symbol',
+              icon: <Stamp size={21} aria-hidden />,
+              panel: panel(<IconFields draft={draft} patch={patch} />),
+            },
+            {
+              value: 'decals',
+              label: 'Decals',
+              icon: <TopicIcon topic="decals" size={21} />,
+              panel: panel(<DecalFields draft={draft} patch={patch} />),
+            },
+            {
+              value: 'body',
+              label: 'Body',
+              icon: <ScrollText size={21} aria-hidden />,
+              panel: panel(<BodyField draft={draft} patch={patch} />),
+            },
+            aboutChapter(draft.about, (about) => patch({ about })),
+          ]}
+        />
+      </WorkbenchLayout.Chapters>
+      <WorkbenchLayout.Rail>
+        <FillCard draft={draft} />
+      </WorkbenchLayout.Rail>
+    </WorkbenchLayout.Workbench>
   );
 }
