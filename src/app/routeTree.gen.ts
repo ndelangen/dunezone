@@ -14,6 +14,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
 import { Route as App_iconsRouteImport } from './routes/_app/[_]_icons'
 import { Route as App_jobsRouteImport } from './routes/_app/[_]_jobs'
+import { Route as AppFormattedTextPrototypeRouteImport } from './routes/_app/formatted-text-prototype'
 import { Route as AuthOauthRouteImport } from './routes/auth/oauth'
 import { Route as AppAdminMigrationsRouteImport } from './routes/_app/admin/migrations'
 import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
@@ -68,6 +69,12 @@ const App_jobsRoute = App_jobsRouteImport.update({
   path: '/__jobs',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFormattedTextPrototypeRoute =
+  AppFormattedTextPrototypeRouteImport.update({
+    id: '/formatted-text-prototype',
+    path: '/formatted-text-prototype',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AuthOauthRoute = AuthOauthRouteImport.update({
   id: '/auth/oauth',
   path: '/auth/oauth',
@@ -228,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/$': typeof AppSplatRoute
   '/__icons': typeof App_iconsRoute
   '/__jobs': typeof App_jobsRoute
+  '/formatted-text-prototype': typeof AppFormattedTextPrototypeRoute
   '/auth/oauth': typeof AuthOauthRoute
   '/admin/migrations': typeof AppAdminMigrationsRoute
   '/assets/create': typeof AppAssetsCreateRoute
@@ -262,6 +270,7 @@ export interface FileRoutesByTo {
   '/$': typeof AppSplatRoute
   '/__icons': typeof App_iconsRoute
   '/__jobs': typeof App_jobsRoute
+  '/formatted-text-prototype': typeof AppFormattedTextPrototypeRoute
   '/auth/oauth': typeof AuthOauthRoute
   '/': typeof AppIndexRoute
   '/admin/migrations': typeof AppAdminMigrationsRoute
@@ -297,6 +306,7 @@ export interface FileRoutesById {
   '/_app/$': typeof AppSplatRoute
   '/_app/__icons': typeof App_iconsRoute
   '/_app/__jobs': typeof App_jobsRoute
+  '/_app/formatted-text-prototype': typeof AppFormattedTextPrototypeRoute
   '/auth/oauth': typeof AuthOauthRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRoute
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/$'
     | '/__icons'
     | '/__jobs'
+    | '/formatted-text-prototype'
     | '/auth/oauth'
     | '/admin/migrations'
     | '/assets/create'
@@ -369,6 +380,7 @@ export interface FileRouteTypes {
     | '/$'
     | '/__icons'
     | '/__jobs'
+    | '/formatted-text-prototype'
     | '/auth/oauth'
     | '/'
     | '/admin/migrations'
@@ -403,6 +415,7 @@ export interface FileRouteTypes {
     | '/_app/$'
     | '/_app/__icons'
     | '/_app/__jobs'
+    | '/_app/formatted-text-prototype'
     | '/auth/oauth'
     | '/_app/'
     | '/_app/admin/migrations'
@@ -476,6 +489,13 @@ declare module '@tanstack/react-router' {
       path: '/__jobs'
       fullPath: '/__jobs'
       preLoaderRoute: typeof App_jobsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/formatted-text-prototype': {
+      id: '/_app/formatted-text-prototype'
+      path: '/formatted-text-prototype'
+      fullPath: '/formatted-text-prototype'
+      preLoaderRoute: typeof AppFormattedTextPrototypeRouteImport
       parentRoute: typeof AppRoute
     }
     '/auth/oauth': {
@@ -722,6 +742,7 @@ interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
   App_iconsRoute: typeof App_iconsRoute
   App_jobsRoute: typeof App_jobsRoute
+  AppFormattedTextPrototypeRoute: typeof AppFormattedTextPrototypeRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminMigrationsRoute: typeof AppAdminMigrationsRoute
   AppAssetsCreateRoute: typeof AppAssetsCreateRoute
@@ -750,6 +771,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
   App_iconsRoute: App_iconsRoute,
   App_jobsRoute: App_jobsRoute,
+  AppFormattedTextPrototypeRoute: AppFormattedTextPrototypeRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminMigrationsRoute: AppAdminMigrationsRoute,
   AppAssetsCreateRoute: AppAssetsCreateRoute,
