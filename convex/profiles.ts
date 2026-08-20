@@ -144,7 +144,7 @@ export const updateCurrent = mutation({
   args: {
     username: v.string(),
     avatar_url: v.union(v.string(), v.null()),
-    default_group_id: v.union(v.id('groups'), v.null()),
+    default_group_id: v.optional(v.union(v.id('groups'), v.null())),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
@@ -166,9 +166,11 @@ export const updateCurrent = mutation({
     const normalizedAvatarUrl = parsed.data.avatar_url;
     const requestedDefaultGroupId = args.default_group_id;
     const defaultGroupId =
-      requestedDefaultGroupId && (await canSetDefaultGroup(ctx, userId, requestedDefaultGroupId))
-        ? requestedDefaultGroupId
-        : null;
+      requestedDefaultGroupId === undefined
+        ? undefined
+        : requestedDefaultGroupId && (await canSetDefaultGroup(ctx, userId, requestedDefaultGroupId))
+          ? requestedDefaultGroupId
+          : null;
 
     const nextSlugBase = slugify(normalizedUsername);
     if (nextSlugBase.length === 0) {
@@ -191,7 +193,7 @@ export const updateCurrent = mutation({
     await ctx.db.patch(profile._id, {
       username: normalizedUsername,
       avatar_url: normalizedAvatarUrl,
-      default_group_id: defaultGroupId,
+      ...(defaultGroupId === undefined ? {} : { default_group_id: defaultGroupId }),
       slug: nextSlug,
       updated_at: nowIso(),
     });
@@ -202,7 +204,8 @@ export const updateCurrent = mutation({
     }
     return {
       profile: updated,
-      default_group_unavailable: requestedDefaultGroupId !== null && defaultGroupId === null,
+      default_group_unavailable:
+        requestedDefaultGroupId !== undefined && requestedDefaultGroupId !== null && defaultGroupId === null,
     };
   },
 });

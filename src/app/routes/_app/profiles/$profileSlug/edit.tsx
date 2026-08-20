@@ -20,6 +20,7 @@ function ProfileSettings({ initial }: { initial: CurrentProfileEntry }) {
   const [username, setUsername] = useState(initial.username ?? '');
   const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url ?? '');
   const [defaultGroupId, setDefaultGroupId] = useState<string | null>(initial.default_group_id);
+  const [defaultGroupChanged, setDefaultGroupChanged] = useState(false);
 
   useEffect(() => {
     if (defaultGroupId && !initial.default_group_options.some((group) => group.id === defaultGroupId)) {
@@ -45,7 +46,13 @@ function ProfileSettings({ initial }: { initial: CurrentProfileEntry }) {
     event.preventDefault();
     const previousSlug = initial.slug;
     update.mutate(
-      { input: { username, avatar_url: avatarUrl, default_group_id: defaultGroupId } },
+      {
+        input: {
+          username,
+          avatar_url: avatarUrl,
+          ...(defaultGroupChanged ? { default_group_id: defaultGroupId } : {}),
+        },
+      },
       {
         onSuccess: (entry, _variables, defaultGroupUnavailable) => {
           if (defaultGroupUnavailable) {
@@ -91,9 +98,12 @@ function ProfileSettings({ initial }: { initial: CurrentProfileEntry }) {
 
       <Select
         label="Default Group"
-        description="New rulesets, factions, and Assets use this Group when it is still available. You can change an item’s Group after its first save."
+        description="New rulesets and factions use this Group when it is still available. You can change an item’s Group after its first save."
         value={defaultGroupId ?? ''}
-        onChange={(value) => setDefaultGroupId(value || null)}
+        onChange={(value) => {
+          setDefaultGroupId(value || null);
+          setDefaultGroupChanged(true);
+        }}
         data={[
           { value: '', label: 'No default Group' },
           ...initial.default_group_options.map((group) => ({ value: group.id, label: group.name })),

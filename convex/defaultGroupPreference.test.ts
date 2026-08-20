@@ -148,6 +148,15 @@ describe('default Group preference', () => {
       default_group_options: [],
     });
     await expect(
+      member.mutation(api.profiles.updateCurrent, {
+        username: 'DefaultGroupMember',
+        avatar_url: 'https://example.com/avatar.png',
+      })
+    ).resolves.toMatchObject({
+      profile: { default_group_id: ids.groupId },
+      default_group_unavailable: false,
+    });
+    await expect(
       member.mutation(api.rulesets.create, {
         name: 'SoftDeletedDefaultRuleset',
         description: DESCRIPTION,

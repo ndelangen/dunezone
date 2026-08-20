@@ -99,7 +99,7 @@ export function useCurrentProfile() {
 
 export function useUpdateCurrentProfile() {
   const mutate = useLiveMutation<
-    { username: string; avatar_url: string; default_group_id: string | null },
+    { username: string; avatar_url: string; default_group_id?: string | null },
     ProfileUpdateResult
   >(api.profiles.updateCurrent);
   const parseProfileInput = (input: ProfileUserEditInput) => {
@@ -130,7 +130,7 @@ export function useUpdateCurrentProfile() {
           {
             username: parsed.username,
             avatar_url: parsed.avatar_url,
-            default_group_id: parsed.default_group_id ?? null,
+            ...(parsed.default_group_id === undefined ? {} : { default_group_id: parsed.default_group_id }),
           },
           {
             onSuccess: (result) => {
@@ -148,7 +148,7 @@ export function useUpdateCurrentProfile() {
       const entry = await mutate.mutateAsync({
         username: parsed.username,
         avatar_url: parsed.avatar_url,
-        default_group_id: parsed.default_group_id ?? null,
+        ...(parsed.default_group_id === undefined ? {} : { default_group_id: parsed.default_group_id }),
       });
       return entry.profile;
     },
