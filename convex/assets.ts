@@ -119,6 +119,8 @@ export const getForEdit = query({
       assignableGroups: v.array(assignedGroupSummaryValidator),
       /** The token serving as this one's backside, for the types that have one. Null covers both "custom back" and "none". */
       backToken: v.union(assetListEntryValidator, v.null()),
+      /** A deck's cards with their counts. Empty for every other type. */
+      deckCards: v.array(v.object({ card: assetListEntryValidator, count: v.number() })),
     })
   ),
   handler: async (ctx, args) => {
@@ -137,6 +139,7 @@ export const getForEdit = query({
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
       backToken: back ? await toListEntry(ctx, back) : null,
+      deckCards: row.type === 'deck' ? await deckCardsFor(ctx, row._id) : [],
     };
   },
 });
@@ -239,8 +242,9 @@ export const setGroup = mutation({
   },
 });
 
-/** The one relation kind this file writes today. Deck composition joins the same table under its own kind. */
+/** The relation kinds this file writes. Both live in one table, distinguished only by this string. */
 const TOKEN_BACK = 'token-back';
+const DECK_CARD = 'deck-card';
 
 /** Token Asset types, which are the only things that may sit on either end of a `token-back` relation. */
 const TOKEN_TYPES = new Set(['token-round', 'token-gear', 'token-square', 'token-rectangle']);
@@ -312,4 +316,80 @@ async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>) {
   }
   const back = await ctx.db.get('assets', relation.to_asset_id);
   return back && !back.is_deleted ? back : null;
+}
+
+/**
+ * Sets how many of a card a deck holds, or removes it at zero.
+ *
+ * One mutation covers add, change and remove, because "three copies" and "no copies" are the same statement about the same row.
+ * Count is the duplicate mechanism «Deck→card reference mechanism and deletion semantics» chose over repeated rows, and there is deliberately no ordering: a deck is shuffled in play.
+ */
+export const setDeckCardCount = mutation({
+  args: { deck_id: v.id('assets'), card_id: v.id('assets'), count: v.number() },
+  handler: async (ctx, args) => {
+    if (!Number.isInteger(args.count) || args.count < 0 || args.count > 99) {
+      throw new Error('A card count must be a whole number between 0 and 99');
+    }
+    const deck = await ctx.db.get('assets', args.deck_id);
+    if (!deck || deck.is_deleted) {
+      throw new Error(`Asset with id ${args.deck_id} not found`);
+    }
+    if (deck.type !== 'deck') {
+      throw new Error(`Asset type ${deck.type} holds no cards`);
+    }
+    await requireAssetUpdate(ctx, args.deck_id, nameOf(deck));
+
+    const card = await ctx.db.get('assets', args.card_id);
+    if (!card || card.is_deleted) {
+      throw new Error(`Asset with id ${args.card_id} not found`);
+    }
+    /* Decks hold cards and nothing else. A single table traded schema-level typing for exactly this check. */
+    if (!card.type.startsWith('card-')) {
+      throw new Error(`A deck holds cards, not ${card.type}`);
+    }
+
+    const existing = await ctx.db
+      .query('asset_relations')
+      .withIndex('by_from_to_kind', (q) =>
+        q.eq('from_asset_id', args.deck_id).eq('to_asset_id', args.card_id).eq('kind', DECK_CARD)
+      )
+      .unique();
+    if (args.count === 0) {
+      if (existing) {
+        await ctx.db.delete(existing._id);
+      }
+    } else if (existing) {
+      await ctx.db.patch(existing._id, { count: args.count });
+    } else {
+      await ctx.db.insert('asset_relations', {
+        from_asset_id: args.deck_id,
+        to_asset_id: args.card_id,
+        kind: DECK_CARD,
+        count: args.count,
+      });
+    }
+    await ctx.db.patch(args.deck_id, { updated_at: nowIso() });
+  },
+});
+
+/** Bounds a deck's composition read; a deck far below this is the ordinary case. */
+const DECK_CARD_LIMIT = 500;
+
+/**
+ * A deck's cards with their counts, soft-deleted members filtered out at read time.
+ * Editor-scoped: the bulk, many-decks-at-once read the detail and browse pages want is «Build the relation read paths for the asset detail page», which this deliberately does not pre-empt.
+ */
+async function deckCardsFor(ctx: QueryCtx, deckId: Id<'assets'>) {
+  const relations = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', deckId).eq('kind', DECK_CARD))
+    .take(DECK_CARD_LIMIT);
+  const entries = [];
+  for (const relation of relations) {
+    const card = await ctx.db.get('assets', relation.to_asset_id);
+    if (card && !card.is_deleted) {
+      entries.push({ card: await toListEntry(ctx, card), count: relation.count });
+    }
+  }
+  return entries;
 }

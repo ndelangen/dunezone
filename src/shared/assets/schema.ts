@@ -147,3 +147,15 @@ export const CardBack = z.strictObject({
   background: Background,
   name: z.string(),
 });
+
+/**
+ * A deck.
+ * Its members are `asset_relations` rows rather than data, so this carries identity and the one face a deck publishes.
+ *
+ * The cardback is the renderer's own `CardBack` contract rather than a restatement of it, so the stored shape and the thing that draws it cannot drift.
+ * Whether that composition came from a stock back or was authored is deliberately not stored: publication is uniform either way, so stock only supplies the render payload, and the editor recovers the choice by comparing values the same way a background preset is recovered.
+ */
+export const DeckAsset = z.strictObject({
+  name: z.string(),
+  cardback: CardBack,
+});

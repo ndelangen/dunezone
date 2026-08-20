@@ -4,6 +4,7 @@ import { createFileRoute, notFound } from '@tanstack/react-router';
 import { loadAssetForEdit } from '@app/db/assets';
 
 import { NoEditorYet } from '../../../-assetEditorStates';
+import { DeckEditPage } from './-deckEdit';
 import { TokenEditPage } from './-tokenEdit';
 import { TreacheryEditPage } from './-treacheryEdit';
 
@@ -32,6 +33,8 @@ function EditAssetPage() {
     case 'token-gear':
     case 'token-square':
       return <TokenEditPage type={type} slug={slug} loaderData={loaderData} />;
+    case 'deck':
+      return <DeckEditPage slug={slug} loaderData={loaderData} />;
     default:
       return <NoEditorYet type={type} />;
   }

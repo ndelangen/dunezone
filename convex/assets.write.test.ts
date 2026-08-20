@@ -278,3 +278,77 @@ describe('token backsides', () => {
     expect(relations).toHaveLength(1);
   });
 });
+
+const deckData = (name: string) => ({
+  name,
+  cardback: {
+    name: 'Treachery',
+    background: {
+      image: '/image/texture/015.jpg',
+      colors: ['#4B4C0D', '#262B04'],
+      invert: true,
+      definition: 0,
+      influence: 0.5,
+    },
+    image: '/vector/icon/projectile.svg',
+    imageScale: 0.55,
+    imageOffset: [0, 10],
+  },
+});
+
+describe('deck composition', () => {
+  test('a count is the duplicate mechanism: one row per card, zero removes it', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
+
+    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 3 });
+    let page = await t.query(api.assets.getForEdit, { type: 'deck', slug: 'house-treachery' });
+    expect(page?.deckCards).toEqual([expect.objectContaining({ count: 3 })]);
+
+    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 5 });
+    page = await t.query(api.assets.getForEdit, { type: 'deck', slug: 'house-treachery' });
+    expect(page?.deckCards).toHaveLength(1);
+    expect(page?.deckCards[0]?.count).toBe(5);
+
+    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 0 });
+    page = await t.query(api.assets.getForEdit, { type: 'deck', slug: 'house-treachery' });
+    expect(page?.deckCards).toEqual([]);
+    const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
+    expect(relations).toEqual([]);
+  });
+
+  test('a deck holds cards and nothing else, and counts are bounded', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
+    const token = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
+
+    await expect(
+      owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: token.id, count: 1 })
+    ).rejects.toThrow('holds cards, not token-round');
+    await expect(
+      owner.mutation(api.assets.setDeckCardCount, { deck_id: created.id, card_id: created.id, count: 1 })
+    ).rejects.toThrow('holds no cards');
+    await expect(
+      owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 1.5 })
+    ).rejects.toThrow('whole number');
+  });
+
+  test('a soft-deleted member leaves the composition without its relation being touched', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
+    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 2 });
+
+    await owner.mutation(api.assets.softDelete, { id: created.id });
+
+    const page = await t.query(api.assets.getForEdit, { type: 'deck', slug: 'house-treachery' });
+    expect(page?.deckCards).toEqual([]);
+    const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
+    expect(relations).toHaveLength(1);
+  });
+});

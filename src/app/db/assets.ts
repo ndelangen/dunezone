@@ -61,3 +61,9 @@ export function useSetTokenBack() {
     api.assets.setTokenBack
   );
 }
+
+export function useSetDeckCardCount() {
+  return useLiveMutation<{ deck_id: AssetListEntry['id']; card_id: AssetListEntry['id']; count: number }, void>(
+    api.assets.setDeckCardCount
+  );
+}

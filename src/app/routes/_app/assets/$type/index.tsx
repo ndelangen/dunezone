@@ -8,7 +8,7 @@ import { Surface } from '@ui/surface';
 import { loadAssetsByTypes, useAssetsByTypes } from '@app/db/assets';
 
 /* Mirrors the dispatch in `$type/create` and `$type/$slug/edit`; the detail page will take this over. */
-const TYPES_WITH_EDITORS = new Set(['card-treachery', 'token-round', 'token-gear', 'token-square']);
+const TYPES_WITH_EDITORS = new Set(['card-treachery', 'token-round', 'token-gear', 'token-square', 'deck']);
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
 export const Route = createFileRoute('/_app/assets/$type/')({

@@ -129,11 +129,11 @@ function NeutralFace({ name, width, aspect }: { name: string; width: number; asp
 /* The editors own the full schemas; listings ask only for what a face render needs. */
 const cardbackFaceSchema = z.object({
   cardback: z.looseObject({
-    label: z.string(),
+    name: z.string(),
     background: z.unknown(),
     image: z.string(),
     imageScale: z.number(),
-    imageOffsetY: z.number().optional(),
+    imageOffset: z.tuple([z.number(), z.number()]).optional(),
   }),
 });
 
@@ -183,12 +183,12 @@ export function AssetFace({ type, data, name, width }: { type: string; data: unk
       return (
         <CardFrame width={width}>
           <CardBack
-            name={cardback.label}
+            name={cardback.name}
             /* the stored composition is a Background and the image an asset path; the
                listing trusts storage and the renderer takes them as-is */
             background={cardback.background as never}
             image={cardback.image as never}
-            imageOffset={[0, cardback.imageOffsetY ?? 0]}
+            imageOffset={cardback.imageOffset ?? [0, 0]}
             imageScale={cardback.imageScale}
           />
         </CardFrame>
