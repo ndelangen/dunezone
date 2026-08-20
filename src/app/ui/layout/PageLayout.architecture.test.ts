@@ -17,7 +17,7 @@ function listRouteFiles(directory: string): string[] {
 }
 
 function mountsPageLayout(source: string): boolean {
-  return source.includes('<PageLayout');
+  return /<PageLayout[\s/>.]/.test(source);
 }
 
 /**
@@ -28,13 +28,18 @@ function mountsPageLayout(source: string): boolean {
  */
 function delegatesToPageLayout(path: string, source: string): boolean {
   const directory = dirname(path);
-  return [...source.matchAll(/from\s+'(\.[^']+)'/g)]
-    .flatMap((match) => {
-      const base = resolve(directory, match[1] ?? '');
-      return [`${base}.tsx`, `${base}/index.tsx`];
-    })
-    .filter((candidate) => existsSync(candidate))
-    .some((candidate) => mountsPageLayout(readFileSync(candidate, 'utf8')));
+  return (
+    [...source.matchAll(/import\s+\{([^}]+)\}\s+from\s+'(\.[^']+)'/g)]
+      .flatMap((match) => {
+        const names = (match[1] ?? '').split(',').map((name) => name.replace(/\s+as\s+\w+/, '').trim());
+        const base = resolve(directory, match[2] ?? '');
+        return [`${base}.tsx`, `${base}/index.tsx`].map((candidate) => ({ candidate, names }));
+      })
+      .filter(({ candidate }) => existsSync(candidate))
+      /* The delegate must be rendered, not merely imported: a route borrowing a button from a file that happens to mount the layout for someone else is not delegating its page to it. */
+      .filter(({ names }) => names.some((name) => new RegExp(`<${name}[\\s/>]`).test(source)))
+      .some(({ candidate }) => mountsPageLayout(readFileSync(candidate, 'utf8')))
+  );
 }
 
 describe('PageLayout route contract', () => {

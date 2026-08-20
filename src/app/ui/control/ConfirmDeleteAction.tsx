@@ -49,6 +49,16 @@ export function ConfirmDeleteAction({
   onConfirm,
 }: ConfirmDeleteActionProps) {
   const [confirming, setConfirming] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [sawPending, setSawPending] = useState(false);
+  /* Reset during render, the search box's pattern: when the caller's round trip ends, a failed delete gets its retry back. */
+  if (pending && !sawPending) {
+    setSawPending(true);
+  }
+  if (!pending && sawPending) {
+    setSawPending(false);
+    setSubmitted(false);
+  }
   const triggerRef = useRef<HTMLButtonElement>(null);
   const questionRef = useRef<HTMLDivElement>(null);
   /* Only a cancel should pull focus back to the glyph; the first render has nothing to return to. */
@@ -83,11 +93,38 @@ export function ConfirmDeleteAction({
   }
 
   return (
-    <Group ref={questionRef} gap={4} wrap="nowrap" role="group" aria-label={label} tabIndex={-1}>
+    <Group
+      ref={questionRef}
+      gap={4}
+      wrap="nowrap"
+      role="group"
+      aria-label={label}
+      tabIndex={-1}
+      /* Escape closes the asking the way it closes every popover here; the focus effect then hands focus back to the trigger. */
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          setConfirming(false);
+        }
+      }}
+    >
       <Text size="xs" c="red" fw={700}>
         {prompt}
       </Text>
-      <Button type="button" color="red" size="compact-xs" loading={pending} onClick={onConfirm}>
+      <Button
+        type="button"
+        color="red"
+        size="compact-xs"
+        loading={pending || submitted}
+        onClick={() => {
+          /*
+           * Latched locally before the callback: the caller's pending arrives a render later, and the gap is where a double click fires a destructive callback twice.
+           * Focus moves to the group in the same breath, because the loading button is about to disable and a disabled element drops keyboard focus to the document.
+           */
+          setSubmitted(true);
+          questionRef.current?.focus();
+          onConfirm();
+        }}
+      >
         {confirmLabel}
       </Button>
       {/* Cancel stays live during an in-flight delete on purpose: there is no abort channel to reach, and latching it would trap the reader here with no exit if the round trip stalls. It closes the asking, never the mutation. The caller's navigation or error alert reports the outcome. */}

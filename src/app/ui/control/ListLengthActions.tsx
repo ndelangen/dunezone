@@ -2,6 +2,8 @@ import { ActionIcon, Group, Tooltip } from '@mantine/core';
 import { Minus, Plus } from 'lucide-react';
 import type { Ref } from 'react';
 
+import { IconAction } from './IconAction';
+
 /**
  * The small green plus this app grows collections with, on its own.
  *
@@ -22,20 +24,16 @@ export function AddAction({
   ref?: Ref<HTMLButtonElement>;
 }) {
   return (
-    <Tooltip label={label}>
-      <ActionIcon
-        ref={ref}
-        type="button"
-        variant="light"
-        color="green"
-        size="sm"
-        aria-label={label}
-        disabled={disabled}
-        onClick={onClick}
-      >
-        <Plus size={15} aria-hidden />
-      </ActionIcon>
-    </Tooltip>
+    <IconAction
+      ref={ref}
+      label={label}
+      variant="light"
+      color="green"
+      size="sm"
+      disabled={disabled}
+      onClick={onClick}
+      icon={<Plus size={15} aria-hidden />}
+    />
   );
 }
 

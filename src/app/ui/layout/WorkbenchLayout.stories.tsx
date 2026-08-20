@@ -10,7 +10,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'The authoring workbench: a capped reading column, and a two-column region placing chapters beside a sticky artifact rail. The rail narrows in steps as its own container narrows; at the narrowest step the chapters column hands its width to the rail and ConnectedTabs collapses to its stepper, so the proof stays beside the fields at every width.',
+          'The authoring workbench: a capped reading column, and a two-column region placing chapters beside a sticky artifact rail. The rail narrows in steps as its own container narrows; below the stepper threshold the chapters column hands width to the rail and ConnectedTabs collapses to its stepper, and at the narrowest step the rail yields to a thumbnail, so the proof stays beside the fields at every width.',
       },
     },
   },

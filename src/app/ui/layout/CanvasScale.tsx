@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 
 /**
- * Fits a fixed-size canvas — a game renderer drawing in card-space pixels — to the container's width: the frame keeps the canvas aspect and clips it while the canvas renders at native size and scales down.
+ * Fits a fixed-size canvas — a game renderer drawing in card-space pixels — to the container's width: the frame keeps the canvas aspect and clips it while the canvas renders at native size and scales to fit, down in a rail and up in a wide mount, which stays crisp because the renderers are DOM and vector rather than raster.
  * Pure placement;
  * the caller decorates the frame (radius, shadow) through `frameClassName`.
  */

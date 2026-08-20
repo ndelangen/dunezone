@@ -29,6 +29,8 @@
 }
 
 .rail {
+  /* Stretched against the grid's start alignment, or the rail is only as tall as its desk and the desk's sticky range is zero: an inert sticky inherited from the faction stylesheet and found by review. */
+  align-self: stretch;
   min-width: 0;
   padding-left: var(--mantine-spacing-md);
 }
@@ -44,13 +46,13 @@
   gap: var(--mantine-spacing-md);
 }
 
-@container workbench (max-width: 70em) {
+@container workbench (max-width: 70rem) {
   .workbench {
     grid-template-columns: minmax(0, 1fr) minmax(14rem, 17rem);
   }
 }
 
-@container workbench (max-width: 58em) {
+@container workbench (max-width: 58rem) {
   .workbench {
     grid-template-columns: minmax(0, 1fr) minmax(13rem, 15rem);
   }
@@ -72,7 +74,7 @@
  *
  * The desk keeps following, since side by side survives and there is something to sit beside.
  */
-@container workbench (max-width: 44em) {
+@container workbench (max-width: 44rem) {
   .workbench {
     grid-template-columns: minmax(0, 1fr) minmax(9rem, 11rem);
   }
@@ -88,7 +90,7 @@
  * can read but not author in. Here it drops to a thumbnail: still a proof that shows a colour or a symbol
  * changing, which is what the side-by-side is for, while the fields get the room to be fields.
  */
-@container workbench (max-width: 30em) {
+@container workbench (max-width: 30rem) {
   .workbench {
     grid-template-columns: minmax(0, 1fr) minmax(5.5rem, 7rem);
   }

@@ -22,6 +22,10 @@
   }
 }
 
+.interactiveRow:hover {
+  background-color: var(--mantine-color-default-hover);
+}
+
 .interactiveRow {
   cursor: pointer;
 }
