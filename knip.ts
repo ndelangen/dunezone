@@ -41,12 +41,6 @@ const config: KnipConfig = {
          * wayfinder #509 or #523, the card catalogue in #510, or the deck slots in #511.
          */
         'src/app/pickers/AssetPicker*.tsx',
-        /*
-         * The assets work lands as a stack of four PRs (wayfinder #568), and this slice carries the model ahead of
-         * its consumers. The publishing fixtures feed the worker's capture-contract regression, which is the next
-         * slice; remove this line with it.
-         */
-        'src/shared/assets/fixtures/publishing*.ts',
       ],
     },
   },
