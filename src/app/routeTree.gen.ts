@@ -14,6 +14,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
 import { Route as App_iconsRouteImport } from './routes/_app/[_]_icons'
 import { Route as App_jobsRouteImport } from './routes/_app/[_]_jobs'
+import { Route as AppPrototypeBundleRouteImport } from './routes/_app/prototype-bundle'
 import { Route as AuthOauthRouteImport } from './routes/auth/oauth'
 import { Route as AppAdminMigrationsRouteImport } from './routes/_app/admin/migrations'
 import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
@@ -68,6 +69,11 @@ const App_iconsRoute = App_iconsRouteImport.update({
 const App_jobsRoute = App_jobsRouteImport.update({
   id: '/__jobs',
   path: '/__jobs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPrototypeBundleRoute = AppPrototypeBundleRouteImport.update({
+  id: '/prototype-bundle',
+  path: '/prototype-bundle',
   getParentRoute: () => AppRoute,
 } as any)
 const AuthOauthRoute = AuthOauthRouteImport.update({
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/$': typeof AppSplatRoute
   '/__icons': typeof App_iconsRoute
   '/__jobs': typeof App_jobsRoute
+  '/prototype-bundle': typeof AppPrototypeBundleRoute
   '/auth/oauth': typeof AuthOauthRoute
   '/admin/migrations': typeof AppAdminMigrationsRoute
   '/auth/error': typeof AppAuthErrorRoute
@@ -277,6 +284,7 @@ export interface FileRoutesByTo {
   '/$': typeof AppSplatRoute
   '/__icons': typeof App_iconsRoute
   '/__jobs': typeof App_jobsRoute
+  '/prototype-bundle': typeof AppPrototypeBundleRoute
   '/auth/oauth': typeof AuthOauthRoute
   '/': typeof AppIndexRoute
   '/admin/migrations': typeof AppAdminMigrationsRoute
@@ -314,6 +322,7 @@ export interface FileRoutesById {
   '/_app/$': typeof AppSplatRoute
   '/_app/__icons': typeof App_iconsRoute
   '/_app/__jobs': typeof App_jobsRoute
+  '/_app/prototype-bundle': typeof AppPrototypeBundleRoute
   '/auth/oauth': typeof AuthOauthRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRoute
@@ -354,6 +363,7 @@ export interface FileRouteTypes {
     | '/$'
     | '/__icons'
     | '/__jobs'
+    | '/prototype-bundle'
     | '/auth/oauth'
     | '/admin/migrations'
     | '/auth/error'
@@ -390,6 +400,7 @@ export interface FileRouteTypes {
     | '/$'
     | '/__icons'
     | '/__jobs'
+    | '/prototype-bundle'
     | '/auth/oauth'
     | '/'
     | '/admin/migrations'
@@ -426,6 +437,7 @@ export interface FileRouteTypes {
     | '/_app/$'
     | '/_app/__icons'
     | '/_app/__jobs'
+    | '/_app/prototype-bundle'
     | '/auth/oauth'
     | '/_app/'
     | '/_app/admin/migrations'
@@ -501,6 +513,13 @@ declare module '@tanstack/react-router' {
       path: '/__jobs'
       fullPath: '/__jobs'
       preLoaderRoute: typeof App_jobsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/prototype-bundle': {
+      id: '/_app/prototype-bundle'
+      path: '/prototype-bundle'
+      fullPath: '/prototype-bundle'
+      preLoaderRoute: typeof AppPrototypeBundleRouteImport
       parentRoute: typeof AppRoute
     }
     '/auth/oauth': {
@@ -761,6 +780,7 @@ interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
   App_iconsRoute: typeof App_iconsRoute
   App_jobsRoute: typeof App_jobsRoute
+  AppPrototypeBundleRoute: typeof AppPrototypeBundleRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminMigrationsRoute: typeof AppAdminMigrationsRoute
   AppAuthErrorRoute: typeof AppAuthErrorRoute
@@ -791,6 +811,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
   App_iconsRoute: App_iconsRoute,
   App_jobsRoute: App_jobsRoute,
+  AppPrototypeBundleRoute: AppPrototypeBundleRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminMigrationsRoute: AppAdminMigrationsRoute,
   AppAuthErrorRoute: AppAuthErrorRoute,
