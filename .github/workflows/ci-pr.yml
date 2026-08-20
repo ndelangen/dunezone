@@ -2,6 +2,8 @@ name: PR CI
 
 on:
   pull_request:
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   contents: read
@@ -13,9 +15,9 @@ concurrency:
 jobs:
   verify:
     uses: ./.github/workflows/reusable-verify.yml
-    # Fork PRs get no secrets; codecov-action falls back to tokenless and never fails the build.
+    # Fork PRs and merge-group code get no secrets; Codecov falls back to tokenless uploads.
     secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      CODECOV_TOKEN: ${{ github.event_name == 'pull_request' && secrets.CODECOV_TOKEN || '' }}
 
   # Single required check owning the definition of "green"; if: always() so a skipped verify can't pass (#290).
   ci_ok:
