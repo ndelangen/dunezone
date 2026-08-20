@@ -6,6 +6,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -171,7 +172,16 @@ export function DeckEditor({
   createCardAction: ReactNode;
 }) {
   const stockKey = stockKeyFor(draft.cardback);
-  const selected = stockKey ?? CUSTOM;
+  /*
+   * Whether Custom was picked, held here because it cannot be derived.
+   * `stockKey` answers "does this composition match a stock one", which is not the same question as
+   * "did the author ask to compose their own": a stock composition matches a stock key, so deriving
+   * `selected` from it alone made Custom unselectable. The control snapped back and the fields never
+   * mounted, so a stock deck or bundle could never become an authored one (#571).
+   * `BackgroundPresetControl` already holds the same flag for the same reason.
+   */
+  const [customChosen, setCustomChosen] = useState(stockKey === null);
+  const selected = customChosen || stockKey === null ? CUSTOM : stockKey;
   const totalCards = members.reduce((sum, member) => sum + member.count, 0);
 
   return (
@@ -217,11 +227,16 @@ export function DeckEditor({
                       ]}
                       value={selected}
                       onChange={(next) => {
+                        if (next === CUSTOM) {
+                          /* Custom keeps the current composition and simply reveals the creator below. */
+                          setCustomChosen(true);
+                          return;
+                        }
                         const stock = STOCK_CARDBACKS.find((candidate) => candidate.key === next);
                         if (stock) {
+                          setCustomChosen(false);
                           patch({ cardback: stock.cardback });
                         }
-                        /* Choosing Custom keeps the current composition and simply reveals the creator below. */
                       }}
                     />
                   }
