@@ -59,12 +59,16 @@ const INITIAL_FACE: TokenFaceDraft = {
   ring: true,
 };
 
-export const INITIAL_TOKEN_DRAFT: TokenDraft = {
-  name: '',
-  about: '',
-  front: INITIAL_FACE,
-  back: { mode: 'custom', face: INITIAL_FACE },
-};
+/**
+ * A fresh token, per shape.
+ *
+ * Only the edge ring varies, and only for tech tokens: a gear already reads as edged by its teeth, so a ring inside them is clutter rather than a rim (Norbert, 2026-08-20).
+ * A function rather than a constant because the default is a fact about the shape, and the shape is the Asset type, which only the page knows.
+ */
+export function initialTokenDraft(type: string): TokenDraft {
+  const face = { ...INITIAL_FACE, ring: type !== 'token-tech' };
+  return { name: '', about: '', front: face, back: { mode: 'custom', face } };
+}
 
 /**
  * The renderer takes one `bottom` string and splits it on a newline;

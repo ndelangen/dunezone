@@ -10,7 +10,7 @@ import { useCreateAsset } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
-import { INITIAL_TOKEN_DRAFT, TokenEditor, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
+import { initialTokenDraft, TokenEditor, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
 
 import { AssetEditorMessage } from '../../-assetEditorStates';
@@ -25,13 +25,14 @@ export function TokenCreatePage({ type }: { type: string }) {
   const navigate = useNavigate();
   const profile = useCurrentProfile();
   const createAsset = useCreateAsset();
-  const [draft, setDraft] = useState<TokenDraft>(INITIAL_TOKEN_DRAFT);
+  const initialDraft = initialTokenDraft(type);
+  const [draft, setDraft] = useState<TokenDraft>(initialDraft);
   const [chapter, setChapter] = useState<TokenChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);
   const label = isAssetType(type) ? ASSET_TYPES[type].shortLabel.toLowerCase() : 'token';
   const patch = (update: Partial<TokenDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const warnings = tokenDraftWarnings(draft, false);
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_TOKEN_DRAFT);
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(initialDraft);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
     ? 'saving'
@@ -79,7 +80,7 @@ export function TokenCreatePage({ type }: { type: string }) {
           }}
           actions={{
             onSave: save,
-            onReset: () => setDraft(INITIAL_TOKEN_DRAFT),
+            onReset: () => setDraft(initialDraft),
             onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
           }}
         />
