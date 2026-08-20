@@ -1,5 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
 
 import type { FullConfig } from '@playwright/test';
 import { chromium } from '@playwright/test';
@@ -141,10 +143,12 @@ export default async function globalSetup(config: FullConfig) {
     })
   );
 
+  const convexPackagePath = createRequire(import.meta.url).resolve('convex/package.json');
+  const convexCliPath = resolve(dirname(convexPackagePath), 'bin/main.js');
   execFileSync(
-    'npx',
+    process.execPath,
     [
-      'convex',
+      convexCliPath,
       'run',
       'e2e:seedBaseline',
       JSON.stringify({
