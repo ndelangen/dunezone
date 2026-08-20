@@ -24,6 +24,7 @@ function liveBindings() {
   return [
     { name: 'ASSET_BUCKET', type: 'r2_bucket', bucket_name: 'tanstack-start-faction-sheet-assets' },
     { name: 'BROWSER', type: 'browser' },
+    { name: 'IMAGES', type: 'images' },
     { name: 'ASSETS', type: 'assets' },
     { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
     { name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' },
@@ -168,7 +169,7 @@ describe('Cloudflare live drift check', () => {
     ).resolves.toEqual({
       worker: WORKER,
       domainCount: 1,
-      bindingCount: 12,
+      bindingCount: 13,
       secretCount: 2,
       cronCount: 1,
       queueCount: 1,

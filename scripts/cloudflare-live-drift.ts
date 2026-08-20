@@ -168,6 +168,8 @@ function expectedBindings(wrangler: JsonRecord): string[] {
   bindings.push(`${string(assets.binding, 'Wrangler assets binding')}|assets|`);
   const browser = record(wrangler.browser, 'Wrangler browser');
   bindings.push(`${string(browser.binding, 'Wrangler browser binding')}|browser|`);
+  const images = record(wrangler.images, 'Wrangler images');
+  bindings.push(`${string(images.binding, 'Wrangler images binding')}|images|`);
   const versionMetadata = record(wrangler.version_metadata, 'Wrangler version metadata');
   bindings.push(`${string(versionMetadata.binding, 'Wrangler version metadata binding')}|version_metadata|`);
   for (const entry of array(wrangler.r2_buckets, 'Wrangler R2 bindings')) {
