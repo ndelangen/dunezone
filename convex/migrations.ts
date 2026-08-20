@@ -553,7 +553,7 @@ export const groupsLifecycleAudit = internalQuery({
 });
 
 /** Proves the account lifecycle picker and direct-ownership indexes are queryable after activation. */
-export const accountLifecycleIndexAudit = query({
+export const accountLifecycleIndexAudit = internalQuery({
   args: {},
   handler: async (ctx) => {
     const [activeProfiles, groups, factions, rulesets] = await Promise.all([

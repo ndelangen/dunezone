@@ -149,7 +149,7 @@ describe('account lifecycle widen rollout', () => {
     });
 
     expect(userId).toBeTruthy();
-    await expect(t.query(api.migrations.accountLifecycleIndexAudit, {})).resolves.toEqual({
+    await expect(t.query(internal.migrations.accountLifecycleIndexAudit, {})).resolves.toEqual({
       ok: true,
       sampled: { activeProfiles: 1, groups: 1, factions: 1, rulesets: 1 },
     });
