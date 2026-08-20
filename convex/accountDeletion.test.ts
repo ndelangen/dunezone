@@ -129,8 +129,19 @@ describe('account deletion', () => {
     });
     const picker = await asSource.query(api.accountDeletion.listReplacementProfiles, {
       paginationOpts: { cursor: null, numItems: 20 },
+      search: '',
     });
     expect(picker.page.map((profile) => profile.userId)).toEqual([replacement.userId]);
+    const searchedPicker = await asSource.query(api.accountDeletion.listReplacementProfiles, {
+      paginationOpts: { cursor: null, numItems: 20 },
+      search: 'replace',
+    });
+    expect(searchedPicker.page.map((profile) => profile.userId)).toEqual([replacement.userId]);
+    const missingPicker = await asSource.query(api.accountDeletion.listReplacementProfiles, {
+      paginationOpts: { cursor: null, numItems: 20 },
+      search: 'unknown',
+    });
+    expect(missingPicker.page).toEqual([]);
     await expect(asSource.query(api.accountDeletion.page, { profileSlug: 'someone-else' })).resolves.toMatchObject({
       kind: 'denied',
       reason: 'wrong_profile',

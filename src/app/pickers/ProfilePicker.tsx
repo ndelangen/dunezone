@@ -23,18 +23,13 @@ export interface ProfilePickerProps {
 
 /** A lazy domain Picker: it reads only the active-profile projection and reports a selected profile. */
 export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
-  const picker = useReplacementProfiles();
   const combobox = useCombobox();
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<ReplacementProfile['userId'] | ''>('');
+  const picker = useReplacementProfiles(search.trim());
 
   const rowsById = useMemo(() => new Map(picker.data.map((profile) => [profile.userId, profile])), [picker.data]);
-  const query = search.trim().toLocaleLowerCase();
-  const rows = query
-    ? picker.data.filter((profile) =>
-        [profile.username, profile.slug].some((value) => value.toLocaleLowerCase().includes(query))
-      )
-    : picker.data;
+  const rows = picker.data;
   const selected = selectedUserId ? rowsById.get(selectedUserId) : undefined;
 
   return (

@@ -27,7 +27,13 @@ const profiles = [
 
 beforeEach(() => {
   mocks.loadMore.mockReset();
-  mocks.hook.mockReturnValue({ data: profiles, status: 'CanLoadMore', loadMore: mocks.loadMore });
+  mocks.hook.mockImplementation((search: string) => ({
+    data: search
+      ? profiles.filter((profile) => profile.slug.startsWith(search.toLocaleLowerCase().replaceAll(' ', '-')))
+      : profiles,
+    status: 'CanLoadMore',
+    loadMore: mocks.loadMore,
+  }));
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
@@ -56,6 +62,7 @@ describe('ProfilePicker', () => {
       </MantineProvider>
     );
     fireEvent.change(view.getByRole('searchbox', { name: 'Search profiles' }), { target: { value: 'chani' } });
+    expect(mocks.hook).toHaveBeenLastCalledWith('chani');
     expect(view.queryByText('Paul Atreides')).toBeNull();
     fireEvent.click(view.getByRole('option', { name: /Chani Kynes/ }));
     fireEvent.click(view.getByRole('button', { name: 'Use this profile' }));

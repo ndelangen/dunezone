@@ -10,7 +10,7 @@ import { accountStateOf, lifecycleUserId } from './lib/accountLifecycle';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
-import { nowIso } from './lib/utils';
+import { nowIso, slugify } from './lib/utils';
 
 const SNAPSHOT_BATCH_SIZE = 32;
 const APPLY_BATCH_SIZE = 16;
@@ -164,17 +164,23 @@ export const page = query({
 
 /** Lightweight, indexed replacement-owner projection. The picker mounts this query lazily. */
 export const listReplacementProfiles = query({
-  args: { paginationOpts: paginationOptsValidator },
+  args: { paginationOpts: paginationOptsValidator, search: v.string() },
   returns: paginationResultValidator(replacementProfileValidator),
   handler: async (ctx, args) => {
     const sourceUserId = await requireAuthUserId(ctx);
-    const result = await ctx.db
-      .query('profiles')
-      .withIndex('by_account_state_username', (q) => q.eq('account_state', 'active'))
-      .paginate(args.paginationOpts);
+    const searchSlug = slugify(args.search);
+    const result = searchSlug
+      ? await ctx.db
+          .query('profiles')
+          .withIndex('by_slug', (q) => q.gte('slug', searchSlug).lt('slug', `${searchSlug}\uffff`))
+          .paginate(args.paginationOpts)
+      : await ctx.db
+          .query('profiles')
+          .withIndex('by_account_state_username', (q) => q.eq('account_state', 'active'))
+          .paginate(args.paginationOpts);
     const page = [];
     for (const profile of result.page) {
-      if (profile.user_id === sourceUserId || !profile.username) {
+      if (profile.user_id === sourceUserId || profile.account_state !== 'active' || !profile.username) {
         continue;
       }
       const user = await ctx.db.get('users', profile.user_id);

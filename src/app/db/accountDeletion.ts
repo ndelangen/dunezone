@@ -11,8 +11,8 @@ export function useAccountDeletionPage(profileSlug: string) {
   return toLiveQueryResult(useQuery(api.accountDeletion.page, { profileSlug }), true);
 }
 
-export function useReplacementProfiles() {
-  const result = usePaginatedQuery(api.accountDeletion.listReplacementProfiles, {}, { initialNumItems: 24 });
+export function useReplacementProfiles(search: string) {
+  const result = usePaginatedQuery(api.accountDeletion.listReplacementProfiles, { search }, { initialNumItems: 24 });
   return {
     data: result.results,
     status: result.status,
