@@ -1,0 +1,95 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-md);
+  width: 100%;
+  max-width: 78rem;
+  margin: 0 auto;
+}
+
+.root[data-gap="sm"] {
+  gap: var(--mantine-spacing-sm);
+}
+
+.region {
+  container: workbench / inline-size;
+  min-width: 0;
+}
+
+.workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.chapters {
+  min-width: 0;
+}
+
+.rail {
+  min-width: 0;
+  padding-left: var(--mantine-spacing-md);
+}
+
+/* The desk the artifact sits on. Surface owns the pane itself; this is only what makes it a desk:
+   it follows you down a long chapter form, sitting below the chrome by the shell's own offset.
+   Children stretch to the rail's width, so a proof fills the rail rather than shrinking to content. */
+.desk {
+  position: sticky;
+  top: calc(var(--app-shell-header-offset, 0px) + 5.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-md);
+}
+
+@container workbench (max-width: 70em) {
+  .workbench {
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 17rem);
+  }
+}
+
+@container workbench (max-width: 58em) {
+  .workbench {
+    grid-template-columns: minmax(0, 1fr) minmax(13rem, 15rem);
+  }
+
+  .rail {
+    padding-left: 0.6rem;
+  }
+}
+
+/*
+ * The rail stays beside the chapters. It holds the artifact being drawn, and the whole shape of these pages is
+ * edit on one side and watch it change on the other, so hiding it made an author on a phone compose blind, and
+ * stacking it below made them scroll away from the artifact to reach the fields.
+ *
+ * The space is bought from the chapters instead. `ConnectedTabs` swaps its 11.5rem vertical tab rail for a
+ * stepper bar once its own column falls under 34rem, which inside a narrowed workbench happens on its own.
+ * Norbert, 2026-08-21: "keep the rail, and show the mobile connectedtabs to save space". That is the column to
+ * spend, because a chapter list is navigation a reader can page through and the proof is what they came to see.
+ *
+ * The desk keeps following, since side by side survives and there is something to sit beside.
+ */
+@container workbench (max-width: 44em) {
+  .workbench {
+    grid-template-columns: minmax(0, 1fr) minmax(9rem, 11rem);
+  }
+
+  .rail {
+    padding-left: 0.5rem;
+  }
+}
+
+/*
+ * On a phone the rail yields rather than leaves.
+ * At the step above, a 9 to 11rem rail took half of a 375px screen and left 175px of form, which is a column you
+ * can read but not author in. Here it drops to a thumbnail: still a proof that shows a colour or a symbol
+ * changing, which is what the side-by-side is for, while the fields get the room to be fields.
+ */
+@container workbench (max-width: 30em) {
+  .workbench {
+    grid-template-columns: minmax(0, 1fr) minmax(5.5rem, 7rem);
+  }
+}

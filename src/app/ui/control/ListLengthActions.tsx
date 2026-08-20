@@ -1,5 +1,43 @@
 import { ActionIcon, Group, Tooltip } from '@mantine/core';
 import { Minus, Plus } from 'lucide-react';
+import type { Ref } from 'react';
+
+/**
+ * The small green plus this app grows collections with, on its own.
+ *
+ * Extracted so the treatment is owned once.
+ * Nine widgets reach it through `ListLengthActions`, and a picker that opens rather than appends wants the same affordance without the minus beside it (Norbert, 2026-08-20).
+ * Takes a `ref` because a picker mounts it as a popover target.
+ * @public until the pages slice of the assets stack lands (wayfinder #568).
+ */
+export function AddAction({
+  label,
+  disabled = false,
+  onClick,
+  ref,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick?: () => void;
+  ref?: Ref<HTMLButtonElement>;
+}) {
+  return (
+    <Tooltip label={label}>
+      <ActionIcon
+        ref={ref}
+        type="button"
+        variant="light"
+        color="green"
+        size="sm"
+        aria-label={label}
+        disabled={disabled}
+        onClick={onClick}
+      >
+        <Plus size={15} aria-hidden />
+      </ActionIcon>
+    </Tooltip>
+  );
+}
 
 export interface ListLengthActionsProps {
   addLabel: string;
@@ -39,19 +77,7 @@ export function ListLengthActions({
           <Minus size={15} aria-hidden />
         </ActionIcon>
       </Tooltip>
-      <Tooltip label={addLabel}>
-        <ActionIcon
-          type="button"
-          variant="light"
-          color="green"
-          size="sm"
-          aria-label={addLabel}
-          disabled={addDisabled}
-          onClick={onAdd}
-        >
-          <Plus size={15} aria-hidden />
-        </ActionIcon>
-      </Tooltip>
+      <AddAction label={addLabel} disabled={addDisabled} onClick={onAdd} />
     </Group>
   );
 }
