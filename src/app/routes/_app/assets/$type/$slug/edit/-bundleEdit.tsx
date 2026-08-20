@@ -1,8 +1,9 @@
-import { Alert, Anchor, Button, Popover, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Popover, Stack, Text } from '@mantine/core';
 import { BundleAsset } from '@shared/assets/schema';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useState } from 'react';
 
@@ -210,9 +211,8 @@ function BundleEditSession({
             tokenPicker={
               <Popover opened={pickerOpen} onChange={setPickerOpen} width={360} position="bottom-start" withinPortal>
                 <Popover.Target>
-                  <Button variant="light" size="compact-sm" onClick={() => setPickerOpen((open) => !open)}>
-                    Add a token
-                  </Button>
+                  {/* The same small green plus nine other controls grow a collection with, so a picker reads as an add rather than as a banner. */}
+                  <AddAction label="Add a token" onClick={() => setPickerOpen((open) => !open)} />
                 </Popover.Target>
                 <Popover.Dropdown>
                   <AssetPicker

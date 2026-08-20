@@ -17,7 +17,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { RectangleHorizontal, Sticker, Type } from 'lucide-react';
+import { RectangleHorizontal, Type } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -405,7 +405,7 @@ export function RectangleTokenEditor({
     {
       value: `${key}-decals` as RectangleChapter,
       label: `${label} decals`,
-      icon: <Sticker size={21} aria-hidden />,
+      icon: <TopicIcon topic="decals" size={21} />,
       panel: panel(<DecalsFields face={face} patch={facePatch} />),
     },
     {

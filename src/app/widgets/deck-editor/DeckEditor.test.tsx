@@ -43,7 +43,6 @@ function Harness() {
         members={[]}
         onCountChange={null}
         cardPicker={null}
-        createCardAction={null}
       />
     </MantineProvider>
   );

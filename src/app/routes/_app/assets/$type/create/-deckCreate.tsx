@@ -109,7 +109,6 @@ export function DeckCreatePage() {
                 Cards can be added once the deck has been saved.
               </Text>
             }
-            createCardAction={null}
           />
         </Stack>
       </PageLayout.Content>

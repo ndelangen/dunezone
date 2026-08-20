@@ -157,7 +157,6 @@ export function DeckEditor({
   members,
   onCountChange,
   cardPicker,
-  createCardAction,
 }: {
   draft: DeckDraft;
   patch: (update: Partial<DeckDraft>) => void;
@@ -169,7 +168,6 @@ export function DeckEditor({
   /** Zero removes the card. Null while the deck has no id yet, which disables the steppers. */
   onCountChange: ((cardId: string, count: number) => void) | null;
   cardPicker: ReactNode;
-  createCardAction: ReactNode;
 }) {
   const stockKey = stockKeyFor(draft.cardback);
   /*
@@ -301,12 +299,7 @@ export function DeckEditor({
                 <ControlBlock
                   title="Add cards"
                   description="Every community card is available, whoever made it."
-                  input={
-                    <Stack gap="sm">
-                      {createCardAction}
-                      {cardPicker}
-                    </Stack>
-                  }
+                  input={cardPicker}
                 />
               </>
             ),

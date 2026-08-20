@@ -11,12 +11,13 @@ import {
   Textarea,
   TextInput,
 } from '@mantine/core';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Brush, Disc, ScrollText, Type } from 'lucide-react';
+import { Disc, ScrollText, Type } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -440,7 +441,7 @@ export function TreacheryCardEditor({
           {
             value: 'decals',
             label: 'Decals',
-            icon: <Brush size={21} aria-hidden />,
+            icon: <TopicIcon topic="decals" size={21} />,
             panel: panel(<DecalFields draft={draft} patch={patch} />),
           },
           {

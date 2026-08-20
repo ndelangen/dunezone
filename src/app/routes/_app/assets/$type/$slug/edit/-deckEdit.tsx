@@ -1,12 +1,13 @@
-import { Alert, Anchor, Button, Group, Popover, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Popover, Stack, Text } from '@mantine/core';
 import { DeckAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
+import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Plus } from 'lucide-react';
+import { FilePlus2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAssetPage, useDeleteAsset, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
@@ -165,7 +166,31 @@ function DeckEditSession({
             onReset: () => setDraft(baseline),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}
-          auxiliaryActions={groupActions.auxiliaryActions}
+          auxiliaryActions={
+            <>
+              {/*
+               * Making a card leaves this page, so it belongs with the page-level actions rather than inside the
+               * chapter it serves, and it stays disabled while there is anything to lose (Norbert, 2026-08-20).
+               * `FilePlus2` rather than a plain plus: every other toolbar's plus creates one of the things the page
+               * lists, and this one creates something else entirely.
+               */}
+              <IconAction
+                label="Create a new card"
+                tooltip={
+                  isDirty
+                    ? 'Save your deck first, since creating a card leaves this page'
+                    : 'Create a new card, then come back and add it'
+                }
+                variant="light"
+                color="gray"
+                size="lg"
+                disabled={isDirty}
+                onClick={() => void navigate({ to: '/assets/$type/create', params: { type: 'card-treachery' } })}
+                icon={<FilePlus2 size={17} aria-hidden />}
+              />
+              {groupActions.auxiliaryActions}
+            </>
+          }
           context={groupActions.context}
           destructiveActions={
             <ConfirmDeleteAction
@@ -205,33 +230,11 @@ function DeckEditSession({
             onCountChange={(cardId, count) =>
               setCount.mutate({ container_id: asset.id, member_id: cardId as typeof asset.id, count })
             }
-            createCardAction={
-              <Group gap="xs">
-                <IconAction
-                  label="Create a new card"
-                  tooltip={
-                    isDirty
-                      ? 'Save your deck first, since creating a card leaves this page'
-                      : 'Create a new card, then come back and add it'
-                  }
-                  variant="filled"
-                  color="confirm"
-                  size="lg"
-                  disabled={isDirty}
-                  onClick={() => void navigate({ to: '/assets/$type/create', params: { type: 'card-treachery' } })}
-                  icon={<Plus size={17} aria-hidden />}
-                />
-                <Text size="xs" c="dimmed">
-                  {isDirty ? 'Save first: creating a card leaves this page.' : 'Missing a card? Make one.'}
-                </Text>
-              </Group>
-            }
             cardPicker={
               <Popover opened={pickerOpen} onChange={setPickerOpen} width={360} position="bottom-start" withinPortal>
                 <Popover.Target>
-                  <Button variant="light" size="compact-sm" onClick={() => setPickerOpen((open) => !open)}>
-                    Add a card
-                  </Button>
+                  {/* The same small green plus nine other controls grow a collection with, so a picker reads as an add rather than as a banner. */}
+                  <AddAction label="Add a card" onClick={() => setPickerOpen((open) => !open)} />
                 </Popover.Target>
                 <Popover.Dropdown>
                   <AssetPicker
