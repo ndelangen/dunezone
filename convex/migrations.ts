@@ -552,6 +552,31 @@ export const groupsLifecycleAudit = internalQuery({
   },
 });
 
+/** Proves the account lifecycle picker and direct-ownership indexes are queryable after activation. */
+export const accountLifecycleIndexAudit = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const [activeProfiles, groups, factions, rulesets] = await Promise.all([
+      ctx.db
+        .query('profiles')
+        .withIndex('by_account_state_username', (q) => q.eq('account_state', 'active'))
+        .take(1),
+      ctx.db.query('groups').withIndex('by_created_by_deleted').take(1),
+      ctx.db.query('factions').withIndex('by_owner_deleted').take(1),
+      ctx.db.query('rulesets').withIndex('by_owner_deleted').take(1),
+    ]);
+    return {
+      ok: true,
+      sampled: {
+        activeProfiles: activeProfiles.length,
+        groups: groups.length,
+        factions: factions.length,
+        rulesets: rulesets.length,
+      },
+    };
+  },
+});
+
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([

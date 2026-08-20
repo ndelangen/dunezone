@@ -43,10 +43,7 @@ export default defineSchema({
   })
     .index('by_user_id', ['user_id'])
     .index('by_slug', ['slug'])
-    .index('by_account_state_username', {
-      fields: ['account_state', 'username'],
-      staged: true,
-    }),
+    .index('by_account_state_username', ['account_state', 'username']),
   groups: defineTable({
     name: v.string(),
     slug: v.string(),
@@ -57,10 +54,7 @@ export default defineSchema({
     .index('by_name', ['name'])
     .index('by_slug', ['slug'])
     .index('by_created_by', ['created_by'])
-    .index('by_created_by_deleted', {
-      fields: ['created_by', 'is_deleted'],
-      staged: true,
-    }),
+    .index('by_created_by_deleted', ['created_by', 'is_deleted']),
   group_members: defineTable({
     group_id: v.id('groups'),
     user_id: v.id('users'),

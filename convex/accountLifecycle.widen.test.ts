@@ -105,6 +105,56 @@ describe('account lifecycle widen rollout', () => {
     expect(DIRECT_OWNERSHIP_KINDS.map((entry) => entry.kind)).toEqual(['group', 'faction', 'ruleset']);
   });
 
+  test('activated lifecycle indexes cover profile selection and every ownership kind', async () => {
+    const t = setup();
+    const userId = await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert('users', { account_state: 'active' });
+      await ctx.db.insert('profiles', {
+        user_id: ownerId,
+        username: 'IndexOwner',
+        avatar_url: 'https://example.com/index-owner.png',
+        account_state: 'active',
+        slug: 'index-owner',
+        created_at: now,
+        updated_at: now,
+      });
+      await ctx.db.insert('groups', {
+        name: 'Index Group',
+        slug: 'index-group',
+        created_at: now,
+        created_by: ownerId,
+        is_deleted: false,
+      });
+      await ctx.db.insert('factions', {
+        owner_id: ownerId,
+        data: assetPublishingFaction,
+        slug: 'index-faction',
+        created_at: now,
+        updated_at: now,
+        is_deleted: false,
+        group_id: null,
+      });
+      await ctx.db.insert('rulesets', {
+        owner_id: ownerId,
+        name: 'Index Ruleset',
+        slug: 'index-ruleset',
+        description: '',
+        created_at: now,
+        updated_at: now,
+        is_deleted: false,
+        group_id: null,
+        image_cover: null,
+      });
+      return ownerId;
+    });
+
+    expect(userId).toBeTruthy();
+    await expect(t.query(internal.migrations.accountLifecycleIndexAudit, {})).resolves.toEqual({
+      ok: true,
+      sampled: { activeProfiles: 1, groups: 1, factions: 1, rulesets: 1 },
+    });
+  });
+
   test('inactive viewers are anonymous and inactive profiles stay out of public identity projections', async () => {
     const t = setup();
     const ids = await t.run(async (ctx) => {
