@@ -86,6 +86,42 @@ How subtly or strongly the pattern color participates in a faction's composed ba
 **Background inversion**:
 The choice to reverse which light and dark regions of a selected pattern reveal the pattern color.
 
+**Asset type**:
+The flat discriminator naming exactly what a community asset is — a treachery card, a disc token, a deck. There is no nested category-plus-subtype structure; each Asset type carries its own content schema, its own Renderer, its own editor, and its own route family — URLs use the discriminator verbatim (`/assets/card-treachery/{slug}`), and Asset slugs are unique within an Asset type, not globally. Decks are a single Asset type: a deck may hold any cards, deliberately unconstrained by the model.
+
+**Card anatomy**:
+A card is described with a fixed vocabulary: the **Head** (its name, its Type line, and the Background behind them), the **Icon** (the vector in the top-right disc, its own Background, and its scale), its **Decals**, and the **Body** (the text). "Kind", "corner", "artwork", and "rules" are not card-anatomy words.
+
+**Asset category**:
+The presentational grouping of Asset types — cards, decks, tokens, boards — used to arrange the assets landing page. It is always derived from the Asset type, never maintained independently, and it appears nowhere in URLs or uniqueness rules: routes and slugs are per Asset type.
+
+**About**:
+Entity-level prose explaining a thing, shown in an "About this X" section on its detail page and shown nowhere at all when it is empty. Plain text, never markdown. An Asset carries one inside `data`, with no length floor, because an Asset with nothing to explain is the normal case; a Ruleset carries one in a column still named `description`, with a 50-character floor, because a Ruleset without one is useless.
+
+_Not_: **description**, which names a label on a sub-component inside `factions.data`: a troop's, a planet's, an extras link's. The two live at different levels, and only one of them is prose a reader chooses to read.
+
+**Token backside**:
+The reverse face every token has. It is either authored as part of the token itself, or it is another existing token serving as the back — a reference, never a copy. A token with a referenced backside publishes only its own front face; the back resolves to the referenced token's publication.
+
+**Cardback**:
+The shared back face of a deck — never a standalone asset. Every deck wears exactly one: chosen from the stock cardbacks the product defines, or authored as part of the deck. Publishing a deck publishes its Cardback image either way; the member cards' faces are published by the card assets themselves.
+
+**Stock cardback**:
+One of the product-defined Cardback compositions a deck may wear instead of authoring its own. Choosing one changes only where the render payload comes from — the deck still publishes its own Cardback image.
+
+**Bundle**:
+An Asset type inside the tokens category that holds tokens of any shape, with a count for each. It is the one Asset type that publishes nothing at all: its members publish their own faces, and a bundle has no image of its own to publish. Membership lives in `asset_relations` rather than inside the bundle's `data`, so adding a token or changing a count writes a row at once rather than waiting for a save. A member's count is the same word, and the same meaning, as a deck's copies of a card; the vocabulary does not fork, so there is no bundle-specific counting word beside Troop count.
+
+**Band**:
+The authored part of a Bundle's face: a Background plus a label, drawn across the middle of a container the product supplies. A bundle is the one Asset type with no artwork of its own, so the Band is what tells two bundles apart. A blank label falls back to the bundle's name, which is a real choice rather than a gap.
+
+**Stock band**:
+One of the product-defined Band compositions a bundle may wear instead of authoring its own. Which one was chosen is not stored: the editor recovers it by comparing the stored composition field by field, the way a Stock cardback is recovered.
+
+**Ruleset asset slot**:
+A named position on a ruleset. Three slots hold at most one asset each, a treachery deck, a spice deck and a tech-token bundle, and two hold any number, one for custom decks and one for custom token bundles. Slot names are curatorial labels rather than constraints. Any asset of the kind a slot expects may fill it, that kind is enforced by the link mutations rather than by the schema, and a slot may sit empty. An asset may occupy slots in many rulesets; its detail page shows the rulesets that link to it, while the links themselves are managed only from the ruleset's edit surface.
+_Avoid_: Ruleset deck slot — the slots carry token bundles as well as decks.
+
 **Renderer**:
 The currently deployed implementation that produces one asset type. Exactly one Renderer is available at a time.
 

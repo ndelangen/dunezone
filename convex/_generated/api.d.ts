@@ -10,6 +10,7 @@
 
 import type * as accountDeletion from "../accountDeletion.js";
 import type * as assetPublishingStatus from "../assetPublishingStatus.js";
+import type * as assets from "../assets.js";
 import type * as auth from "../auth.js";
 import type * as e2e from "../e2e.js";
 import type * as factions from "../factions.js";
@@ -20,6 +21,7 @@ import type * as homepage from "../homepage.js";
 import type * as http from "../http.js";
 import type * as lib_accountLifecycle from "../lib/accountLifecycle.js";
 import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
+import type * as lib_assetInput from "../lib/assetInput.js";
 import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
 import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAccessValidators.js";
 import type * as lib_decalRetune from "../lib/decalRetune.js";
@@ -68,6 +70,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   accountDeletion: typeof accountDeletion;
   assetPublishingStatus: typeof assetPublishingStatus;
+  assets: typeof assets;
   auth: typeof auth;
   e2e: typeof e2e;
   factions: typeof factions;
@@ -78,6 +81,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/accountLifecycle": typeof lib_accountLifecycle;
   "lib/applicationTriggers": typeof lib_applicationTriggers;
+  "lib/assetInput": typeof lib_assetInput;
   "lib/collaborativeAccess": typeof lib_collaborativeAccess;
   "lib/collaborativeAccessValidators": typeof lib_collaborativeAccessValidators;
   "lib/decalRetune": typeof lib_decalRetune;

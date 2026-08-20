@@ -55,6 +55,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   groups_soft_delete_verify_v1: internal.migrations.groups_soft_delete_verify_v1,
   faction_complexity_grouped_v1: internal.migrations.faction_complexity_grouped_v1,
   faction_complexity_grouped_verify_v1: internal.migrations.faction_complexity_grouped_verify_v1,
+  assets_about_v1: internal.migrations.assets_about_v1,
+  assets_about_verify_v1: internal.migrations.assets_about_verify_v1,
   account_lifecycle_profiles_v1: internal.migrations.account_lifecycle_profiles_v1,
   account_lifecycle_verify_v1: internal.migrations.account_lifecycle_verify_v1,
 };
@@ -452,6 +454,52 @@ export const groups_soft_delete_verify_v1 = migrations.define({
   table: 'groups',
   batchSize: 50,
   migrateOne: async () => undefined,
+});
+
+/**
+ * Puts the About key on every Asset that predates it (wayfinder #521).
+ *
+ * `assets.data` is `v.any()`, so no Convex validator gates this and `migrations:narrow-check` cannot see it: this migration is the only thing that makes the key true, and `assets_about_verify_v1` is the only thing that proves it.
+ * Narrowing ahead of both is a silent break, because every strict read of a row without the key fails: `AssetFace` falls back to a neutral face across the landing, browse and picker surfaces, the edit organs route to the schema-drift dead end, and `readJobForRender` throws on a stale publication job.
+ *
+ * Empty, never generated prose.
+ * An asset with nothing to explain is the normal case.
+ */
+export const assets_about_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const data = (row as { data?: unknown }).data;
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+      return;
+    }
+    const record = data as Record<string, unknown>;
+    if (typeof record.about === 'string') {
+      return;
+    }
+    return { data: { ...record, about: '' } };
+  },
+});
+
+/**
+ * Proves the backfill left nothing behind, which is what makes narrowing the Zod schemas safe.
+ * A row whose `data` is not a plain object is outside both halves of the pair: the backfill skips it rather than fabricating content, so the proof tolerates it for the same reason, or one hand-written row would deadlock the pair with the widen offering no remediation.
+ * Such a row is the schema-drift dead end already, and every strict read treats it as one;
+ * About is not what is wrong with it.
+ */
+export const assets_about_verify_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const data = (row as { data?: unknown }).data;
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+      return;
+    }
+    const about = (data as Record<string, unknown>).about;
+    if (typeof about !== 'string') {
+      throw new Error(`Asset ${row._id} still has no About`);
+    }
+  },
 });
 
 /** Backfills the compatible account lifecycle projection and mirrors it to existing auth users. */

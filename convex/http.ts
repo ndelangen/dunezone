@@ -153,6 +153,7 @@ http.route({
       ? publicationJson(
           publisherCaptureSnapshotSchema.parse({
             ok: true,
+            assetType: job.assetType,
             payload: job.payload,
             payloadHash: job.payloadHash,
           })

@@ -82,6 +82,45 @@ export default defineSchema({
     .index('by_group_id', ['group_id'])
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted']),
+  /**
+   * Community assets — one table for every Asset category (cards, decks, tokens, boards).
+   * `type` is the flat Asset type discriminator (`card-treachery`, `deck`, `token-disc`, …);
+   * the browse category is always derived from it, never stored.
+   * `data` is validated by the per-type Zod schema at the seams, like factions.
+   * Slugs are unique per Asset category — enforced by the slug-reservation mutations, not the schema.
+   */
+  assets: defineTable({
+    owner_id: v.id('users'),
+    type: v.string(),
+    data: v.any(),
+    slug: v.string(),
+    created_at: v.string(),
+    updated_at: v.string(),
+    is_deleted: v.boolean(),
+    group_id: v.union(v.id('groups'), v.null()),
+  })
+    .index('by_slug', ['slug'])
+    .index('by_deleted', ['is_deleted'])
+    .index('by_type_deleted', ['type', 'is_deleted'])
+    .index('by_owner_deleted', ['owner_id', 'is_deleted'])
+    .index('by_group_deleted', ['group_id', 'is_deleted'])
+    .index('by_group_id', ['group_id']),
+  /**
+   * Asset↔asset references: deck→card memberships (`kind: 'deck-card'`, count = copies) and token→token backsides (`kind: 'token-back'`, count 1);
+   * future kinds join the same table.
+   * Which types may link (a deck's `to` must be a card) is a rule of the link mutations — the single-table decision traded schema-level reference typing for that.
+   * Soft-deleted targets stay referenced;
+   * queries filter them out (the faction precedent).
+   */
+  asset_relations: defineTable({
+    from_asset_id: v.id('assets'),
+    to_asset_id: v.id('assets'),
+    kind: v.string(),
+    count: v.number(),
+  })
+    .index('by_from_kind', ['from_asset_id', 'kind'])
+    .index('by_to_kind', ['to_asset_id', 'kind'])
+    .index('by_from_to_kind', ['from_asset_id', 'to_asset_id', 'kind']),
   publication_assets: defineTable({
     asset_type: v.string(),
     asset_id: v.string(),
@@ -148,6 +187,30 @@ export default defineSchema({
   })
     .index('by_migration_id', ['migration_id'])
     .index('by_state', ['state']),
+  /**
+   * Ruleset asset slots.
+   * The named slots hold at most one asset each while `custom` and `customTokens` hold any number, and that cardinality is a mutation-level rule rather than schema.
+   * Slot names are curatorial labels;
+   * the mutations demand only that the asset is of the kind the slot expects, a deck for the three deck slots and a bundle for the two token ones.
+   * Which kind a slot accepts is deliberately not a column, since a `kind` field would be a second source of truth able to disagree with `slot`.
+   * An empty slot is the absence of a row.
+   * Soft-deleted assets stay referenced and are filtered at query time, so the slot presents empty.
+   * `by_asset` feeds the deck detail page's "used by these rulesets" view.
+   */
+  ruleset_asset_slots: defineTable({
+    ruleset_id: v.id('rulesets'),
+    asset_id: v.id('assets'),
+    slot: v.union(
+      v.literal('treachery'),
+      v.literal('spice'),
+      v.literal('custom'),
+      v.literal('techToken'),
+      v.literal('customTokens')
+    ),
+  })
+    .index('by_ruleset', ['ruleset_id'])
+    .index('by_asset', ['asset_id'])
+    .index('by_ruleset_slot', ['ruleset_id', 'slot']),
   account_deletion_operations: defineTable({
     source_user_id: v.id('users'),
     source_profile_id: v.id('profiles'),

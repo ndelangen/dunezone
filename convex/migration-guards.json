@@ -172,6 +172,16 @@
       "requires": ["faction_complexity_grouped_v1", "faction_complexity_grouped_verify_v1"]
     },
     {
+      "id": "assets_about_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "assets_about_verify_v1",
+      "phase": "widen",
+      "requires": ["assets_about_v1"]
+    },
+    {
       "id": "account_lifecycle_profiles_v1",
       "phase": "widen",
       "requires": []
