@@ -105,7 +105,7 @@ describe('asset soft delete', () => {
   test('deletion is owner-only, even for a viewer who may edit', async () => {
     const t = convexTest(schema, modules);
     const { ownerId, outsiderId, created } = await seedCard(t);
-    /* A group member may edit and rename a community Asset, but never retire one — delete stays with the owner. */
+    /* A group member may edit and rename a community Asset, but never retire one. Delete stays with the owner. */
     await t.run(async (ctx) => {
       const now = '2026-01-01T00:00:00.000Z';
       const groupId = await ctx.db.insert('groups', {

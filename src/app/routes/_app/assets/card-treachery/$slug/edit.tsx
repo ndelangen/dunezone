@@ -118,7 +118,7 @@ function useCardDeletion(assetId: NonNullable<AssetForEditData>['asset']['id']) 
 }
 
 /**
- * A card whose stored data no longer satisfies the treachery schema — reachable whenever the schema tightens ahead of a backfill.
+ * A card whose stored data no longer satisfies the treachery schema, reachable whenever the schema tightens ahead of a backfill.
  * The editor cannot open it, but deletion never reads the data, so the owner keeps the one action that still applies rather than needing the database to be rid of it.
  */
 function DriftedCardPage({ asset, canDelete }: { asset: NonNullable<AssetForEditData>['asset']; canDelete: boolean }) {
@@ -130,7 +130,7 @@ function DriftedCardPage({ asset, canDelete }: { asset: NonNullable<AssetForEdit
       {canDelete ? (
         <>
           <Text size="sm" c="dimmed">
-            Deleting it is still open to you — the drifted data is what blocks the editor, not the delete.
+            Deleting it is still open to you. The drifted data blocks the editor, not the delete.
           </Text>
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">

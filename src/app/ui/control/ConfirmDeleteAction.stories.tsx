@@ -18,7 +18,7 @@ const meta = preview.meta({
 /** Collapsed: one red glyph among the other toolbar actions, carrying its name for people who cannot see it. */
 export const Default = meta.story({});
 
-/** Clicking the glyph replaces it in place with the question and its two answers — no dialog, no lost context. */
+/** Clicking the glyph replaces it in place with the question and its two answers. No dialog, no lost context. */
 export const Confirming = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -33,7 +33,7 @@ export const Confirming = meta.story({
   },
 });
 
-/** Confirming fires the caller's intent once — the component neither deletes anything nor closes itself. */
+/** Confirming fires the caller's intent once. The component neither deletes anything nor closes itself. */
 export const Confirmed = meta.story({
   play: async ({ args, canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

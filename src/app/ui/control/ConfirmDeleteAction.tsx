@@ -6,12 +6,12 @@ import { IconAction } from './IconAction';
 
 export interface ConfirmDeleteActionProps {
   /**
-   * What gets deleted, as a verb phrase — "Delete faction".
+   * What gets deleted, as a verb phrase, for example "Delete faction".
    * This is the trigger's accessible name and the name of the confirmation that replaces it.
    */
   label: string;
   /**
-   * The question, shown beside the confirm button — "Delete faction?".
+   * The question, shown beside the confirm button, for example "Delete faction?".
    * Required rather than derived from `label`: it is the only sentence in the two-step, and the one place a page can name a consequence the terse trigger cannot carry ("Delete card?
    * Its publications stay.").
    */
@@ -28,13 +28,18 @@ export interface ConfirmDeleteActionProps {
  * Deletes something, having asked first.
  *
  * Callers own what is deleted and the words for it;
- * this owns the two-step shape — a red glyph that expands in place into a question and a pair of answers, and collapses again on cancel.
+ * this owns the two-step shape.
+ * A red glyph expands in place into a question and a pair of answers, and collapses again on cancel.
  *
- * The asking is in place rather than in a dialog, deliberately: a toolbar action that opens one loses the row it belongs to, and `window.confirm` cannot be styled, tested, or dismissed by keyboard the way the rest of the app can (see docs/technical/ui-design-decisions.md, "Destructive confirmation asks in place").
+ * The asking is in place rather than in a dialog, deliberately.
+ * A toolbar action that opens one loses the row it belongs to, and `window.confirm` cannot be styled, tested, or dismissed by keyboard the way the rest of the app can.
+ * See docs/technical/ui-design-decisions.md, "Destructive confirmation asks in place".
  * The mid-confirm state lives here because it is furniture around committing the action, not something a caller ever needs to read.
  *
- * Swapping the trigger for the question would strand keyboard focus on an unmounted node, so the swap hands focus over in both directions — to the question on open, back to the glyph on cancel — the same contract `AssignPopover` gets from Mantine's `returnFocus`.
- * Focus lands on the group rather than the confirm button on purpose: a held Enter would otherwise repeat straight through onto "Delete".
+ * Swapping the trigger for the question would strand keyboard focus on an unmounted node, so the swap hands focus over in both directions.
+ * Focus goes to the question on open and back to the glyph on cancel, the same contract `AssignPopover` gets from Mantine's `returnFocus`.
+ * Focus lands on the group rather than the confirm button on purpose.
+ * A held Enter would otherwise repeat straight through onto "Delete".
  */
 export function ConfirmDeleteAction({
   label,
@@ -85,7 +90,7 @@ export function ConfirmDeleteAction({
       <Button type="button" color="red" size="compact-xs" loading={pending} onClick={onConfirm}>
         {confirmLabel}
       </Button>
-      {/* Cancel stays live during an in-flight delete on purpose: there is no abort channel to reach, and latching it would trap the reader here with no exit if the round trip stalls. It closes the asking, never the mutation — the caller's navigation or error alert is what reports the outcome. */}
+      {/* Cancel stays live during an in-flight delete on purpose: there is no abort channel to reach, and latching it would trap the reader here with no exit if the round trip stalls. It closes the asking, never the mutation. The caller's navigation or error alert reports the outcome. */}
       <Button type="button" variant="subtle" color="gray" size="compact-xs" onClick={() => setConfirming(false)}>
         Cancel
       </Button>
