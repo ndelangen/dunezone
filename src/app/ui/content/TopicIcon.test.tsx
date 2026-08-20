@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { TopicIcon } from './TopicIcon';
+import { TOPIC_ICON_TOPICS, TopicIcon } from './TopicIcon';
 import type { TopicIconTopic } from './TopicIcon';
 
 const MASK_TOPICS: Array<[TopicIconTopic, string]> = [
@@ -19,7 +19,18 @@ const MASK_TOPICS: Array<[TopicIconTopic, string]> = [
 
 const COMPONENT_TOPICS: TopicIconTopic[] = ['face', 'text', 'setup', 'rulesets'];
 
+/*
+ * Derived from the registry rather than written beside it, so a topic added there is tested here
+ * without anyone remembering to extend a list. The named cases above keep their sharper assertions.
+ */
+const ALL_TOPICS = TOPIC_ICON_TOPICS;
+
 describe('TopicIcon', () => {
+  it.each(ALL_TOPICS)('renders the %s topic at all', (topic) => {
+    const markup = renderToStaticMarkup(<TopicIcon topic={topic} />);
+    expect(markup.length).toBeGreaterThan(0);
+  });
+
   it.each(MASK_TOPICS)('renders the %s asset as a current-color mask', (topic, src) => {
     const markup = renderToStaticMarkup(<TopicIcon topic={topic} />);
 
