@@ -21,7 +21,7 @@ import { AssetPickerOptionRow, assetPickerSearchText } from './AssetPicker.parts
  * What crosses back out when an Asset is chosen.
  * The identifiers matter as much as the payload: `data` alone cannot say *which* Asset was picked, since id, type and slug live on the row rather than inside the blob.
  */
-export interface PickedAsset {
+interface PickedAsset {
   id: AssetListEntry['id'];
   type: string;
   slug: string;
@@ -34,7 +34,7 @@ export interface PickedAsset {
  * No defaults on purpose.
  * One caller is choosing a token's reverse face and another is filling a deck, and wording phrased for either reads as a mistake in the other.
  */
-export interface AssetPickerCopy {
+interface AssetPickerCopy {
   searchLabel: string;
   searchPlaceholder: string;
   /** Shown when nothing of these types exists yet, which is not the same as a search matching nothing. */
