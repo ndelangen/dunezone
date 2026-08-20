@@ -17,7 +17,7 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { DeckEditor, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
 import type { DeckChapter, DeckDraft } from '@app/widgets/deck-editor/DeckEditor';
 
-import { AssetEditorMessage } from '../../../-assetEditorStates';
+import { AssetEditorMessage, DriftedAssetPage } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'deck-validation-header';
 
@@ -61,9 +61,9 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
   const parsed = DeckAsset.safeParse(data.asset.data);
   if (!parsed.success) {
     return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="deck">
+      <DriftedAssetPage asset={data.asset} noun="deck" canDelete={data.viewerAccess.capabilities.delete}>
         <Text>This deck's stored data no longer matches the deck schema, so it cannot be edited here.</Text>
-      </AssetEditorMessage>
+      </DriftedAssetPage>
     );
   }
 

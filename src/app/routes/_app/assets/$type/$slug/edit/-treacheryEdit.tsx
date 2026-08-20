@@ -1,4 +1,4 @@
-import { Alert, Anchor, Group, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Stack, Text } from '@mantine/core';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { AssignPopover } from '@ui/control/AssignPopover';
@@ -8,7 +8,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 
-import { useAssetPage, useDeleteAsset, useSetAssetGroup, useUpdateAsset } from '@app/db/assets';
+import { useAssetPage, useSetAssetGroup, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
@@ -17,7 +17,7 @@ import { TreacheryCardEditor, treacheryDraftWarnings } from '@app/widgets/card-e
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { TreacheryAsset } from '@game/data/objects';
 
-import { AssetEditorMessage } from '../../../-assetEditorStates';
+import { AssetEditorMessage, DriftedAssetPage, useAssetDeletion } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'card-validation-header';
 
@@ -58,7 +58,11 @@ export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderDa
 
   const parsed = TreacheryAsset.safeParse(data.asset.data);
   if (!parsed.success) {
-    return <DriftedCardPage asset={data.asset} canDelete={data.viewerAccess.capabilities.delete} />;
+    return (
+      <DriftedAssetPage asset={data.asset} noun="card" canDelete={data.viewerAccess.capabilities.delete}>
+        <Text>This card's stored data no longer matches the treachery card schema, so it cannot be edited here.</Text>
+      </DriftedAssetPage>
+    );
   }
 
   return (
@@ -77,60 +81,6 @@ type CardEditAccess = {
   assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
 };
 
-/**
- * The card's delete, wired once for both surfaces that offer it: the editor toolbar, and the dead end a card with drifted data lands on.
- * Deleting is the caller's to trigger and the page's to navigate away from;
- * this only holds the mutation.
- */
-function useCardDeletion(assetId: NonNullable<AssetPageData>['asset']['id']) {
-  const navigate = useNavigate();
-  const deleteAsset = useDeleteAsset();
-  return {
-    pending: deleteAsset.isPending,
-    error: deleteAsset.error,
-    /* The card's own address is gone the moment it is retired, so leave for the type it belonged to. */
-    confirm: () =>
-      deleteAsset.mutate(
-        { id: assetId },
-        { onSuccess: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }) }
-      ),
-  };
-}
-
-/**
- * A card whose stored data no longer satisfies the treachery schema, reachable whenever the schema tightens ahead of a backfill.
- * The editor cannot open it, but deletion never reads the data, so the owner keeps the one action that still applies rather than needing the database to be rid of it.
- */
-function DriftedCardPage({ asset, canDelete }: { asset: NonNullable<AssetPageData>['asset']; canDelete: boolean }) {
-  const deletion = useCardDeletion(asset.id);
-
-  return (
-    <AssetEditorMessage type="card-treachery" title={`Edit ${asset.name}`}>
-      <Text>This card's stored data no longer matches the treachery card schema, so it cannot be edited here.</Text>
-      {canDelete ? (
-        <>
-          <Text size="sm" c="dimmed">
-            Deleting it is still open to you. The drifted data blocks the editor, not the delete.
-          </Text>
-          {deletion.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not delete">
-              {deletion.error.message}
-            </Alert>
-          ) : null}
-          <Group>
-            <ConfirmDeleteAction
-              label="Delete card"
-              prompt="Delete card?"
-              pending={deletion.pending}
-              onConfirm={deletion.confirm}
-            />
-          </Group>
-        </>
-      ) : null}
-    </AssetEditorMessage>
-  );
-}
-
 function CardEditSession({
   asset,
   initialDraft,
@@ -142,7 +92,7 @@ function CardEditSession({
 }) {
   const navigate = useNavigate();
   const updateAsset = useUpdateAsset();
-  const deletion = useCardDeletion(asset.id);
+  const deletion = useAssetDeletion(asset);
   const setAssetGroup = useSetAssetGroup();
   const { assignedGroup, capabilities } = access.viewerAccess;
   const [draft, setDraft] = useState<TreacheryDraft>(initialDraft);

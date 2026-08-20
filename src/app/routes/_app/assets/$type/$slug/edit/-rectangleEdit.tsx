@@ -19,7 +19,7 @@ import {
 } from '@app/widgets/token-editor/RectangleTokenEditor';
 import type { RectangleChapter, RectangleDraft } from '@app/widgets/token-editor/RectangleTokenEditor';
 
-import { AssetEditorMessage } from '../../../-assetEditorStates';
+import { AssetEditorMessage, DriftedAssetPage } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'rectangle-token-validation-header';
 
@@ -69,9 +69,9 @@ export function RectangleEditPage({
   const parsed = RectangleTokenAsset.safeParse(data.asset.data);
   if (!parsed.success) {
     return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type={type}>
+      <DriftedAssetPage asset={data.asset} noun="token" canDelete={data.viewerAccess.capabilities.delete}>
         <Text>This token's stored data no longer matches the token schema, so it cannot be edited here.</Text>
-      </AssetEditorMessage>
+      </DriftedAssetPage>
     );
   }
 
@@ -108,6 +108,8 @@ function RectangleEditSession({
   const [pickerOpen, setPickerOpen] = useState(false);
   const patch = (update: Partial<RectangleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const warnings = rectangleDraftWarnings(draft, backToken !== null);
+  /* The referenced token's data is another asset's, so it gets the same distrust as our own: a back that no longer parses shows a note, never a crash. */
+  const parsedBack = backToken ? RectangleTokenAsset.safeParse(backToken.data) : null;
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -231,7 +233,13 @@ function RectangleEditSession({
             backProof={
               backToken ? (
                 <Stack gap={4} align="center">
-                  <RectangleProof face={(backToken.data as { front: RectangleDraft['front'] }).front} width={260} />
+                  {parsedBack?.success ? (
+                    <RectangleProof face={parsedBack.data.front} width={260} />
+                  ) : (
+                    <Text size="xs" c="dimmed">
+                      Its stored data no longer parses, so its face cannot be shown here.
+                    </Text>
+                  )}
                   <Text size="xs" c="dimmed">
                     Back, from {backToken.name}
                   </Text>

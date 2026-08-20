@@ -16,7 +16,7 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
 
-import { AssetEditorMessage } from '../../../-assetEditorStates';
+import { AssetEditorMessage, DriftedAssetPage } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'token-validation-header';
 
@@ -58,9 +58,9 @@ export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: 
   const parsed = TokenAsset.safeParse(data.asset.data);
   if (!parsed.success) {
     return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type={type}>
+      <DriftedAssetPage asset={data.asset} noun="token" canDelete={data.viewerAccess.capabilities.delete}>
         <Text>This token's stored data no longer matches the token schema, so it cannot be edited here.</Text>
-      </AssetEditorMessage>
+      </DriftedAssetPage>
     );
   }
 
@@ -97,6 +97,8 @@ function TokenEditSession({
   const [pickerOpen, setPickerOpen] = useState(false);
   const patch = (update: Partial<TokenDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const warnings = tokenDraftWarnings(draft, backToken !== null);
+  /* The referenced token's data is another asset's, so it gets the same distrust as our own: a back that no longer parses shows a note, never a crash. */
+  const parsedBack = backToken ? TokenAsset.safeParse(backToken.data) : null;
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -221,11 +223,13 @@ function TokenEditSession({
             backProof={
               backToken ? (
                 <Stack gap={4} align="center">
-                  <TokenProof
-                    face={(backToken.data as { front: TokenDraft['front'] }).front}
-                    type={backToken.type}
-                    width={220}
-                  />
+                  {parsedBack?.success ? (
+                    <TokenProof face={parsedBack.data.front} type={backToken.type} width={220} />
+                  ) : (
+                    <Text size="xs" c="dimmed">
+                      Its stored data no longer parses, so its face cannot be shown here.
+                    </Text>
+                  )}
                   <Text size="xs" c="dimmed">
                     Back, from {backToken.name}
                   </Text>

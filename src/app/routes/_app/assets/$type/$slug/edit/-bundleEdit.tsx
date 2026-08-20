@@ -15,7 +15,7 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { bundleDraftWarnings, BundleEditor } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
 
-import { AssetEditorMessage } from '../../../-assetEditorStates';
+import { AssetEditorMessage, DriftedAssetPage } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'bundle-validation-header';
 
@@ -59,9 +59,9 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
   const parsed = BundleAsset.safeParse(data.asset.data);
   if (!parsed.success) {
     return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="bundle">
+      <DriftedAssetPage asset={data.asset} noun="bundle" canDelete={data.viewerAccess.capabilities.delete}>
         <Text>This bundle's stored data no longer matches the bundle schema, so it cannot be edited here.</Text>
-      </AssetEditorMessage>
+      </DriftedAssetPage>
     );
   }
 
