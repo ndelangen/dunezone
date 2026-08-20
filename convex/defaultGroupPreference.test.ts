@@ -6,6 +6,7 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { defaultGroupUnavailableRouteNoticeCode } from '../src/shared/routeNotices';
 import { api } from './_generated/api';
 import schema from './schema';
 
@@ -126,12 +127,12 @@ describe('default Group preference', () => {
         description: DESCRIPTION,
         image_cover: null,
       })
-    ).resolves.toMatchObject({ group_id: ids.groupId, default_group_unavailable: false });
+    ).resolves.toMatchObject({ group_id: ids.groupId, route_notice: null });
     await expect(
       member.mutation(api.factions.create, {
         data: { ...assetPublishingFaction, name: 'Default Group Faction' },
       })
-    ).resolves.toMatchObject({ group_id: ids.groupId, default_group_unavailable: false });
+    ).resolves.toMatchObject({ group_id: ids.groupId, route_notice: null });
   });
 
   test('keeps a soft-deleted preference stored, projects it as none, and saves new creations ungrouped', async () => {
@@ -152,12 +153,12 @@ describe('default Group preference', () => {
         description: DESCRIPTION,
         image_cover: null,
       })
-    ).resolves.toMatchObject({ group_id: null, default_group_unavailable: true });
+    ).resolves.toMatchObject({ group_id: null, route_notice: defaultGroupUnavailableRouteNoticeCode });
     await expect(
       member.mutation(api.factions.create, {
         data: { ...assetPublishingFaction, name: 'Soft Deleted Default Faction' },
       })
-    ).resolves.toMatchObject({ group_id: null, default_group_unavailable: true });
+    ).resolves.toMatchObject({ group_id: null, route_notice: defaultGroupUnavailableRouteNoticeCode });
     await expect(
       member.mutation(api.rulesets.create, {
         name: 'ExplicitDeletedGroupRuleset',
@@ -212,12 +213,12 @@ describe('default Group preference', () => {
         image_cover: null,
         group_id: ids.groupId,
       })
-    ).resolves.toMatchObject({ group_id: ids.groupId, default_group_unavailable: false });
+    ).resolves.toMatchObject({ group_id: ids.groupId, route_notice: null });
     await expect(
       member.mutation(api.factions.create, {
         data: { ...assetPublishingFaction, name: 'Legacy Explicit Faction' },
         group_id: ids.groupId,
       })
-    ).resolves.toMatchObject({ group_id: ids.groupId, default_group_unavailable: false });
+    ).resolves.toMatchObject({ group_id: ids.groupId, route_notice: null });
   });
 });

@@ -1,6 +1,8 @@
 import { Alert, Anchor, Avatar, Group, Menu, Popover, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
+import { isRouteNoticeCode } from '@shared/routeNotices';
+import type { RouteNoticeCode } from '@shared/routeNotices';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
@@ -47,6 +49,7 @@ import {
   useSetRulesetGroup,
 } from '@db/rulesets';
 import { FactionPicker } from '@app/pickers/FactionPicker';
+import { resolveRouteNotice } from '@app/routes/-routeNotices';
 
 import styles from '../RulesetDetail.module.css';
 
@@ -158,16 +161,14 @@ function FactionCardMenu({
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  validateSearch: (params: Record<string, unknown>): { q?: string; tag?: FaqTag; groupDefaultUnavailable?: true } => {
+  validateSearch: (params: Record<string, unknown>): { q?: string; tag?: FaqTag; notice?: RouteNoticeCode } => {
     const q = params?.q;
     const tag = params?.tag;
-    const groupDefaultUnavailable = params?.groupDefaultUnavailable;
+    const notice = params?.notice;
     return {
       ...(typeof q === 'string' ? { q } : {}),
       ...(typeof tag === 'string' && FAQ_TAG_VALUES.includes(tag as FaqTag) ? { tag: tag as FaqTag } : {}),
-      ...(groupDefaultUnavailable === true || groupDefaultUnavailable === 'true'
-        ? { groupDefaultUnavailable: true }
-        : {}),
+      ...(isRouteNoticeCode(notice) ? { notice } : {}),
     };
   },
   loader: async ({ params }) => {
@@ -234,6 +235,7 @@ function RulesetDetailPage() {
   const setRulesetGroup = useSetRulesetGroup();
   const addFaction = useAddRulesetFaction();
   const removeFaction = useRemoveRulesetFaction();
+  const routeNotice = resolveRouteNotice(search.notice);
 
   if (loaderData.notFound || !page) {
     return (
@@ -270,10 +272,10 @@ function RulesetDetailPage() {
     setRulesetGroup.error?.message ??
     addFaction.error?.message ??
     removeFaction.error?.message;
-  const dismissDefaultGroupWarning = () =>
+  const dismissRouteNotice = () =>
     navigate({
       to: '.',
-      search: (previous) => ({ ...previous, groupDefaultUnavailable: undefined }),
+      search: (previous) => ({ ...previous, notice: undefined }),
       replace: true,
     });
   /**
@@ -523,15 +525,15 @@ function RulesetDetailPage() {
         <ColumnsWithRailLayout>
           <ColumnsWithRailLayout.Primary>
             <Stack gap="xl">
-              {search.groupDefaultUnavailable ? (
+              {routeNotice ? (
                 <Alert
-                  color="yellow"
-                  title="Ruleset saved without its default Group"
+                  color={routeNotice.color}
+                  title={routeNotice.title}
                   role="alert"
                   withCloseButton
-                  onClose={dismissDefaultGroupWarning}
+                  onClose={dismissRouteNotice}
                 >
-                  The ruleset was saved, but the default Group was no longer available and was not set.
+                  {routeNotice.message}
                 </Alert>
               ) : null}
               {mutationError ? (

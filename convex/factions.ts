@@ -262,7 +262,7 @@ export const create = mutation({
     const groupAssignment =
       args.group_id === undefined
         ? await resolveDefaultGroupForCreation(ctx, userId)
-        : { group_id: args.group_id, default_group_unavailable: false };
+        : { group_id: args.group_id, route_notice: null };
     if (args.group_id) {
       await requireAssignableGroup(ctx, args.group_id);
     }
@@ -288,7 +288,7 @@ export const create = mutation({
       throw new Error('Failed to create faction');
     }
     await enqueueFactionSheetPublication(ctx, row);
-    return { ...factionRowForClient(row), default_group_unavailable: groupAssignment.default_group_unavailable };
+    return { ...factionRowForClient(row), route_notice: groupAssignment.route_notice };
   },
 });
 

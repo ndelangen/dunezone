@@ -45,7 +45,7 @@ function CreateRulesetForm() {
               navigate({
                 to: '/rulesets/$rulesetSlug',
                 params: { rulesetSlug: entry.slug },
-                search: entry.default_group_unavailable ? { groupDefaultUnavailable: true } : {},
+                search: entry.route_notice ? { notice: entry.route_notice } : {},
               });
             },
           }

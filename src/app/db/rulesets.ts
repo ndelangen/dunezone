@@ -137,7 +137,7 @@ export function useCreateRuleset() {
     mutate: (
       variables: { input: Ruleset; groupId?: string | null; imageCover?: string | null },
       options?: {
-        onSuccess?: (entry: RulesetEntry & { default_group_unavailable: boolean }) => void;
+        onSuccess?: (entry: ReturnType<typeof toCreatedRulesetEntry>) => void;
         onError?: (error: Error) => void;
       }
     ) =>

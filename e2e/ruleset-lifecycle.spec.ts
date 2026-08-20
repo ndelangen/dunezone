@@ -19,8 +19,10 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   const createdUrl = page.url();
   await expect(page.getByLabel('Edit ruleset')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(uniqueName).first()).toBeVisible({ timeout: 30_000 });
-  await page.goto(`${createdUrl}?groupDefaultUnavailable=true`);
-  await expect(page.getByRole('alert')).toContainText('Ruleset saved without its default Group');
+  await page.goto(`${createdUrl}?notice=default-group-unavailable`);
+  await expect(page.getByRole('alert')).toContainText('Saved without its default Group');
+  await page.goto(`${createdUrl}?notice=not-a-route-notice`);
+  await expect(page.getByRole('alert')).toHaveCount(0);
 
   const userB = await newUserPage({ storageState: '.playwright/user-b.json' });
   const userBPage = userB.page;

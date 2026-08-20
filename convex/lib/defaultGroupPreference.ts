@@ -1,3 +1,4 @@
+import { defaultGroupUnavailableRouteNoticeCode } from '../../src/shared/routeNotices';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import type { QueryCtx } from '../types';
@@ -60,14 +61,14 @@ export async function resolveDefaultGroupForCreation(ctx: MutationCtx, userId: I
     .unique();
   const groupId = profile?.default_group_id;
   if (!groupId) {
-    return { group_id: null, default_group_unavailable: false };
+    return { group_id: null, route_notice: null };
   }
   try {
     await requireAssignableGroup(ctx, groupId);
   } catch {
-    return { group_id: null, default_group_unavailable: true };
+    return { group_id: null, route_notice: defaultGroupUnavailableRouteNoticeCode };
   }
-  return { group_id: groupId, default_group_unavailable: false };
+  return { group_id: groupId, route_notice: null };
 }
 
 export async function clearDefaultGroupForRemovedMembership(

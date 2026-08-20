@@ -68,7 +68,7 @@ function toFactionEntry(entry: FactionRow): FactionEntry {
 function toCreatedFactionEntry(entry: FunctionReturnType<typeof api.factions.create>) {
   return {
     ...toFactionEntry(entry),
-    default_group_unavailable: entry.default_group_unavailable,
+    route_notice: entry.route_notice,
   };
 }
 

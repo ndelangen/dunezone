@@ -1,4 +1,6 @@
 import { Alert, Anchor, Button, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
+import { isRouteNoticeCode } from '@shared/routeNotices';
+import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -8,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
+import { resolveRouteNotice } from '@app/routes/-routeNotices';
 import type { FactionAuthoringWarning } from '@app/widgets/faction-editor/factionAuthoringContract';
 import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
@@ -20,9 +23,9 @@ import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAutho
 import styles from './edit.module.css';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
-  validateSearch: (params: Record<string, unknown>): { groupDefaultUnavailable?: true } => {
-    if (params?.groupDefaultUnavailable === true || params?.groupDefaultUnavailable === 'true') {
-      return { groupDefaultUnavailable: true };
+  validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
+    if (isRouteNoticeCode(params?.notice)) {
+      return { notice: params.notice };
     }
     return {};
   },
@@ -210,10 +213,11 @@ function FactionEditPage() {
   const assignedGroup = viewerAccess.assignedGroup;
   const canDelete = viewerAccess.capabilities.delete;
   const canAssignGroup = viewerAccess.capabilities.changeGroup;
-  const dismissDefaultGroupWarning = () =>
+  const routeNotice = resolveRouteNotice(search.notice);
+  const dismissRouteNotice = () =>
     navigate({
       to: '.',
-      search: (previous) => ({ ...previous, groupDefaultUnavailable: undefined }),
+      search: (previous) => ({ ...previous, notice: undefined }),
       replace: true,
     });
 
@@ -337,15 +341,15 @@ function FactionEditPage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="sm">
-          {search.groupDefaultUnavailable ? (
+          {routeNotice ? (
             <Alert
-              color="yellow"
-              title="Faction saved without its default Group"
+              color={routeNotice.color}
+              title={routeNotice.title}
               role="alert"
               withCloseButton
-              onClose={dismissDefaultGroupWarning}
+              onClose={dismissRouteNotice}
             >
-              The faction was saved, but the default Group was no longer available and was not set.
+              {routeNotice.message}
             </Alert>
           ) : null}
           <FactionEditor
