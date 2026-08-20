@@ -521,9 +521,7 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
     })
   );
   for (const profile of profiles) {
-    if (isActiveProfile(profile)) {
-      profileByUserId.set(profile.user_id, profile);
-    }
+    profileByUserId.set(profile.user_id, profile);
   }
 
   const actorIsActive =
@@ -537,6 +535,9 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
     }
     const profile = profileByUserId.get(membership.user_id);
     if (!profile) {
+      throw new Error(`Invariant: every member must have a profile (missing for ${membership.user_id})`);
+    }
+    if (!isActiveProfile(profile)) {
       return [];
     }
     const pending = membership.status === 'pending';
@@ -561,14 +562,15 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
   });
 
   const ownerProfile = profileByUserId.get(access.subject.created_by);
-  const owner = ownerProfile
-    ? {
-        id: ownerProfile._id,
-        slug: ownerProfile.slug,
-        username: ownerProfile.username,
-        avatar_url: ownerProfile.avatar_url,
-      }
-    : null;
+  const owner =
+    ownerProfile && isActiveProfile(ownerProfile)
+      ? {
+          id: ownerProfile._id,
+          slug: ownerProfile.slug,
+          username: ownerProfile.username,
+          avatar_url: ownerProfile.avatar_url,
+        }
+      : null;
 
   return { ...access, owner, roster };
 }

@@ -50,6 +50,34 @@ async function allocateUniqueProfileSlug(ctx: MutationCtx, usernameForSlug: stri
   return slug;
 }
 
+async function refreshExistingProfile(
+  ctx: MutationCtx,
+  existing: Doc<'profiles'>,
+  userId: Id<'users'>,
+  displayName: string | null,
+  imageUrl: string | null
+): Promise<Doc<'profiles'>> {
+  if (accountStateOf(existing) !== 'active') {
+    return existing;
+  }
+  const fillUsername = existing.username ?? displayName;
+  const fillAvatar = existing.avatar_url ?? imageUrl;
+  const needsRefresh =
+    fillUsername !== existing.username || fillAvatar !== existing.avatar_url || existing.account_state === undefined;
+  if (!needsRefresh) {
+    return existing;
+  }
+  await ctx.db.patch(existing._id, {
+    user_id: userId,
+    username: fillUsername ?? null,
+    avatar_url: fillAvatar ?? null,
+    account_state: 'active',
+    slug: existing.slug,
+    updated_at: nowIso(),
+  });
+  return (await ctx.db.get(existing._id)) ?? existing;
+}
+
 /**
  * Ensures a `profiles` row exists for `userId`, using explicit sources (no `ctx.auth` identity).
  * Backfills missing username/avatar on an existing row when still null.
@@ -73,40 +101,11 @@ export async function ensureProfileForUser(
   }
 
   if (accountStateOf(user) !== 'active') {
-    if (existing) {
-      return existing;
-    }
-    throw new Error('Inactive accounts cannot create profiles');
+    return existing ?? Promise.reject(new Error('Inactive accounts cannot create profiles'));
   }
 
   if (existing) {
-    if (accountStateOf(existing) !== 'active') {
-      return existing;
-    }
-    const fillUsername = existing.username ?? displayName;
-    const fillAvatar = existing.avatar_url ?? imageUrl;
-    const nextSlug = existing.slug;
-
-    if (
-      fillUsername !== existing.username ||
-      fillAvatar !== existing.avatar_url ||
-      nextSlug !== existing.slug ||
-      existing.account_state === undefined
-    ) {
-      await ctx.db.patch(existing._id, {
-        user_id: userId,
-        username: fillUsername ?? null,
-        avatar_url: fillAvatar ?? null,
-        account_state: 'active',
-        slug: nextSlug,
-        updated_at: nowIso(),
-      });
-      const refreshed = await ctx.db.get(existing._id);
-      if (refreshed) {
-        return refreshed;
-      }
-    }
-    return existing;
+    return await refreshExistingProfile(ctx, existing, userId, displayName, imageUrl);
   }
 
   const username = displayName ?? 'nameless';
