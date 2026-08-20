@@ -159,6 +159,7 @@ describe('AppRoot page header', () => {
         label: 'Dune forums on BoardGameGeek',
       },
     ]);
+    expect(container.querySelector('footer [role="radiogroup"]')).toBeNull();
 
     act(() => root.unmount());
   });

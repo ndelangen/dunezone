@@ -7,8 +7,6 @@ import { FaRedditAlien } from 'react-icons/fa6';
 import { SiBoardgamegeek } from 'react-icons/si';
 
 import styles from './AppFooter.module.css';
-import { setSchemePreference, useSchemePreference } from './colorScheme';
-import { setMotionOverride, useMotionPreference } from './motion';
 
 /* Traced from `storybookjs/brand` (MIT), whose icon is two-tone: a cover with the `S` and the
    bookmark painted over it in white. The cover becomes the glyph and the other two become holes,
@@ -141,63 +139,12 @@ const footerLinks = [
 ] as const;
 
 /**
- * One preference as a labelled three-segment radio group.
- * Both footer preferences (motion, color scheme) share this single UI: System defers to the OS hint, the other two segments pin it.
- */
-function PreferenceSegments<Value extends string>({
-  label,
-  note,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  note: string;
-  options: readonly { value: Value; label: string }[];
-  value: Value;
-  onChange: (next: Value) => void;
-}) {
-  /* Instance-scoped ids: autodocs renders several footers into one document, and a shared radio
-     name would fuse their groups into a single arrow-key ring. */
-  const groupId = useId();
-
-  return (
-    <div className={styles.preference} role="radiogroup" aria-labelledby={`${groupId}-label`}>
-      <span className={styles.segments}>
-        {options.map((option) => (
-          <label className={styles.segment} key={option.value}>
-            <input
-              checked={value === option.value}
-              className={styles.segmentInput}
-              name={`${groupId}-preference`}
-              onChange={() => onChange(option.value)}
-              type="radio"
-            />
-            <span className={styles.segmentLabel}>{option.label}</span>
-          </label>
-        ))}
-      </span>
-      <span className={styles.linkCopy}>
-        <strong id={`${groupId}-label`}>{label}</strong>
-        <small>{note}</small>
-      </span>
-    </div>
-  );
-}
-
-/**
- * Public waypoints to the project's component catalogue, source, policies, and community homes — and the controls that override the OS's appearance hints for this site: reduced motion (see `motion.ts`) and the color scheme (see
- * `colorScheme.ts`).
+ * Public waypoints to the project's component catalogue, source, policies, and community homes.
  * The waypoints are icon-only circles;
  * one `label` per entry fans out to the accessible name and the
  * `Tooltip`, so the two cannot come apart.
- * The preference controls are bare inputs styled with the band rather than the content theme;
- * both share the segmented radio treatment.
  */
 export function AppFooter() {
-  const motion = useMotionPreference();
-  const scheme = useSchemePreference();
-
   return (
     <div className={styles.waypoints}>
       <p className={styles.eyebrow}>Continue exploring</p>
@@ -232,28 +179,6 @@ export function AppFooter() {
           );
         })}
       </nav>
-      <PreferenceSegments
-        label="Ambient motion"
-        note="The masthead video and the turning dice"
-        options={[
-          { value: 'system', label: 'System' },
-          { value: 'on', label: 'On' },
-          { value: 'off', label: 'Off' },
-        ]}
-        value={motion}
-        onChange={(next) => setMotionOverride(next === 'system' ? null : next)}
-      />
-      <PreferenceSegments
-        label="Color scheme"
-        note="Follow the system, or pin light or dark"
-        options={[
-          { value: 'system', label: 'System' },
-          { value: 'light', label: 'Light' },
-          { value: 'dark', label: 'Dark' },
-        ]}
-        value={scheme}
-        onChange={setSchemePreference}
-      />
     </div>
   );
 }

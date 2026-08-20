@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
+import { useMotionAllowed } from '../styles/motion';
 import styles from './AppHeader.module.css';
-import { useMotionAllowed } from './motion';
 import { SiteNavigation } from './SiteNavigation';
 
 /*

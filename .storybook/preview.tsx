@@ -7,7 +7,7 @@ import '@mantine/core/styles.layer.css';
 import '../src/app/styles/fonts.css';
 import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
-import { setMotionOverride } from '../src/app/shell/motion';
+import { setMotionOverride } from '../src/app/styles/motion';
 import { appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
 

@@ -8,7 +8,7 @@ export const Route = createFileRoute('/_app')({
   head: () => ({
     scripts: [
       {
-        /* Pre-hydration twin of shell/colorScheme.ts: sets the scheme attribute before first
+        /* Pre-hydration twin of styles/colorScheme.ts: sets the scheme attribute before first
            paint so a dark visitor never flashes light. Lives on this layout, not the root, so
            bare renderer routes (print capture, publisher, auth) stay light by construction. */
         children:
