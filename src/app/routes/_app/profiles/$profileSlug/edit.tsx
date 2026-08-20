@@ -3,13 +3,14 @@ import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/prof
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { SubmitAction } from '@ui/control/SubmitAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CircleUserRound, Palette, Trash2, User, UsersRound } from 'lucide-react';
+import { ArrowLeft, CircleUserRound, Palette, Save, Trash2, User, UsersRound } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { useCurrentProfile, useUpdateCurrentProfile } from '@db/profiles';
@@ -107,26 +108,20 @@ function PreferenceSegments<Value extends string>({
   value: Value;
   onChange: (next: Value) => void;
 }) {
-  const labelId = useId();
-  const noteId = useId();
-
   return (
-    <Stack gap={4}>
-      <Text fw={650} id={labelId}>
-        {label}
-      </Text>
-      <Text c="dimmed" id={noteId} size="sm">
-        {note}
-      </Text>
-      <SegmentedControl
-        aria-labelledby={labelId}
-        aria-describedby={noteId}
-        data={[...options]}
-        value={value}
-        onChange={(next) => onChange(next as Value)}
-        fullWidth
-      />
-    </Stack>
+    <ControlBlock
+      title={label}
+      description={note}
+      input={
+        <SegmentedControl
+          aria-label={label}
+          data={[...options]}
+          value={value}
+          onChange={(next) => onChange(next as Value)}
+          fullWidth
+        />
+      }
+    />
   );
 }
 
@@ -237,10 +232,8 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
       panel: (
         <Stack gap="md">
           {panelError}
-          <TextInput
-            ref={usernameRef}
-            label="Display name"
-            required
+          <ControlBlock
+            title="Display name *"
             description={
               <>
                 Letters and numbers only, 5–30 characters, not all capitals.
@@ -256,25 +249,37 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
                 ) : null}
               </>
             }
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            autoComplete="nickname"
-            maxLength={30}
+            input={
+              <TextInput
+                ref={usernameRef}
+                aria-label="Display name"
+                required
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                autoComplete="nickname"
+                maxLength={30}
+              />
+            }
           />
-          <TextInput
-            ref={avatarUrlRef}
-            label="Avatar image URL"
-            required
+          <ControlBlock
+            title="Avatar image URL *"
             description={
               <>
                 Must be a full <code>https://</code> URL.
               </>
             }
-            type="url"
-            value={avatarUrl}
-            onChange={(event) => setAvatarUrl(event.target.value)}
-            placeholder="https://…"
-            autoComplete="off"
+            input={
+              <TextInput
+                ref={avatarUrlRef}
+                aria-label="Avatar image URL"
+                required
+                type="url"
+                value={avatarUrl}
+                onChange={(event) => setAvatarUrl(event.target.value)}
+                placeholder="https://…"
+                autoComplete="off"
+              />
+            }
           />
           <AvatarPreview avatarUrl={avatarUrl} username={username} />
         </Stack>
@@ -287,20 +292,25 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
       panel: (
         <Stack gap="md">
           {panelError}
-          <Select
-            ref={defaultGroupRef}
-            label="Default Group"
+          <ControlBlock
+            title="Default Group"
             description="New rulesets and factions use this Group when it is still available. You can change an item’s Group after its first save."
-            value={defaultGroupId ?? ''}
-            onChange={(value) => {
-              setDefaultGroupId(value || null);
-              setDefaultGroupChanged(true);
-            }}
-            data={[
-              { value: '', label: 'No default Group' },
-              ...initial.default_group_options.map((group) => ({ value: group.id, label: group.name })),
-            ]}
-            clearable
+            input={
+              <Select
+                ref={defaultGroupRef}
+                aria-label="Default Group"
+                value={defaultGroupId ?? ''}
+                onChange={(value) => {
+                  setDefaultGroupId(value || null);
+                  setDefaultGroupChanged(true);
+                }}
+                data={[
+                  { value: '', label: 'No default Group' },
+                  ...initial.default_group_options.map((group) => ({ value: group.id, label: group.name })),
+                ]}
+                clearable
+              />
+            }
           />
         </Stack>
       ),
@@ -386,7 +396,12 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
         />
       </Toolbar.Left>
       <Toolbar.Right>
-        <SubmitAction form={formId} pending={update.isPending} disabled={!isDirty} size="lg">
+        <SubmitAction
+          form={formId}
+          pending={update.isPending}
+          disabled={!isDirty}
+          icon={<Save size={17} aria-hidden />}
+        >
           Save profile
         </SubmitAction>
       </Toolbar.Right>

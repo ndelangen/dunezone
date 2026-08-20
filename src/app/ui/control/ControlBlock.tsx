@@ -8,7 +8,7 @@ import styles from './ControlBlock.module.css';
 export interface ControlBlockProps {
   title: string;
   /** Reserved for a constraint or consequence the control itself cannot show; surfaces behind the (?) help icon. */
-  description?: string;
+  description?: ReactNode;
   tool?: ReactNode;
   input: ReactNode;
 }
