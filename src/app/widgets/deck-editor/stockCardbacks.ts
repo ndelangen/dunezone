@@ -50,8 +50,10 @@ export const STOCK_CARDBACKS: { key: string; label: string; cardback: CardbackDa
 /**
  * Value equality, since a stock back is only "chosen" while the stored composition still matches it exactly.
  *
- * Field by field rather than `JSON.stringify`, because a cardback that round-tripped through the database is a clone of its stock original with Zod's key order rather than this file's.
- * The card editor's background comparison learned the same lesson.
+ * Scalars compare field by field;
+ * `colors` alone compares by stringify, because a colour element may be a gradient object and a round-tripped clone never satisfies reference equality.
+ * Stringifying the whole background would be unsafe, since Zod's key order differs from this file's, but `colors` is an array whose element order is the contract, so its stringify is stable.
+ * `sameBand` and the card editor's `sameBackground` follow the same split.
  */
 function sameCardback(a: CardbackData, b: CardbackData): boolean {
   return (
@@ -64,8 +66,7 @@ function sameCardback(a: CardbackData, b: CardbackData): boolean {
     a.background.invert === b.background.invert &&
     a.background.definition === b.background.definition &&
     a.background.influence === b.background.influence &&
-    a.background.colors[0] === b.background.colors[0] &&
-    a.background.colors[1] === b.background.colors[1]
+    JSON.stringify(a.background.colors) === JSON.stringify(b.background.colors)
   );
 }
 

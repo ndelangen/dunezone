@@ -20,9 +20,10 @@ export const STOCK_BANDS: { key: string; label: string; band: BundleBandData }[]
 ];
 
 /**
- * Field by field, never identity or `JSON.stringify`.
- * A band that round-tripped through the database is a clone of its preset carrying Zod's key order, so any comparison that depends on key order reports every stock band as custom.
- * The card and deck editors learned this the same way.
+ * Scalars field by field, `colors` alone by stringify.
+ * A band that round-tripped through the database is a clone of its preset carrying Zod's key order, so a whole-object stringify reports every stock band as custom;
+ * `colors` is an array whose element order is the contract, so its stringify is stable, and a colour element may be a gradient object that reference equality would never match.
+ * `sameCardback` and the card editor's `sameBackground` follow the same split.
  */
 function sameBand(left: BundleBandData, right: BundleBandData): boolean {
   return (
