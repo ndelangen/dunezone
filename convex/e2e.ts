@@ -23,9 +23,20 @@ async function deleteFromTable(ctx: MutationCtx, table: TableNames) {
 }
 
 async function clearAllAppData(ctx: MutationCtx) {
+  /*
+   * Children before parents, and genuinely all of it: a reset that skips a table produces the
+   * mystifying flake months later, state from one run surfacing in another. The publication pair and
+   * admin_settings had been missing since the faction-sheet era; the asset tables since they landed.
+   */
   const tables = [
     'account_deletion_items',
     'account_deletion_operations',
+    'asset_relations',
+    'ruleset_asset_slots',
+    'publication_jobs',
+    'publication_assets',
+    'assets',
+    'admin_settings',
     'ruleset_factions',
     'faq_answers',
     'faq_items',
