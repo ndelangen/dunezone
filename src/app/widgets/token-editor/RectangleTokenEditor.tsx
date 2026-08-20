@@ -391,7 +391,7 @@ export function RectangleTokenEditor({
   onChapterChange: (chapter: RectangleChapter) => void;
   onSettle: () => void;
   /** Chooses which existing rectangle serves as the back. Rendered in Identity only while the mode is `reference`. */
-  backPicker: ReactNode;
+  backPicker: (disabled: boolean) => ReactNode;
   /** The referenced token's front, drawn in the rail in place of an authored back. */
   backProof: ReactNode;
 }) {
@@ -448,8 +448,8 @@ export function RectangleTokenEditor({
             input={
               <Stack gap="sm">
                 <Switch
-                  aria-label="Author the backside"
-                  label="Author the backside here"
+                  aria-label="Custom"
+                  label="Custom"
                   checked={draft.back.mode === 'custom'}
                   onChange={(event) =>
                     patch({
@@ -459,7 +459,8 @@ export function RectangleTokenEditor({
                     })
                   }
                 />
-                {draft.back.mode === 'reference' ? backPicker : null}
+                {/* Always present, inert while the back is authored here: the alternative stays visible instead of the control disappearing under the toggle. */}
+                {backPicker(draft.back.mode === 'custom')}
               </Stack>
             }
           />

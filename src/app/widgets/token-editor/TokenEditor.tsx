@@ -1,11 +1,12 @@
-import { Group, SegmentedControl, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { Group, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
 import type { TokenAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { CanvasScale } from '@ui/layout/CanvasScale';
+import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Coins, FlipHorizontal2 } from 'lucide-react';
+import { Circle, Coins, FlipHorizontal2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -31,7 +32,12 @@ const PROOF_CANVAS = 900;
 /** The draft is the stored shape: the same Zod validates it server-side, so a UI-only field here would fail the save. */
 export type TokenDraft = z.infer<typeof TokenAsset>;
 export type TokenFaceDraft = TokenDraft['front'];
-export type TokenChapter = 'identity' | 'front' | 'back' | 'about';
+/**
+ * A token's chapters.
+ * Each face contributes two: composing its artwork, and the rim it is edged and lettered with.
+ * The back pair exists only while the backside is authored here.
+ */
+export type TokenChapter = 'identity' | 'front' | 'front-rim' | 'back' | 'back-rim' | 'about';
 
 /* The four stock token looks, drawn from the same named backgrounds a card head uses so the editors share a vocabulary. */
 const FACE_PRESETS = [
@@ -145,6 +151,19 @@ function FaceFields({ face, patch }: { face: TokenFaceDraft; patch: FacePatch })
           />
         }
       />
+    </>
+  );
+}
+
+/**
+ * The rim of one face: the ring just inside the edge, and the lines that curve along it.
+ *
+ * Its own chapter rather than the tail of the face, because the ring and the labels are one thing
+ * (the labels curve along the ring) and neither is part of composing the face's artwork (Norbert, 2026-08-20).
+ */
+function FaceRim({ face, patch }: { face: TokenFaceDraft; patch: FacePatch }) {
+  return (
+    <>
       <ControlBlock
         title="Edge ring"
         description="The thin ring just inside the edge."
@@ -191,7 +210,7 @@ export type TokenWarning = { source: string; missing: string; chapter: TokenChap
 export function tokenDraftWarnings(draft: TokenDraft, hasBackReference: boolean): TokenWarning[] {
   const warnings: TokenWarning[] = [];
   if (!draft.front.top.trim() && !draft.front.bottomFirst.trim() && !draft.front.bottomSecond.trim()) {
-    warnings.push({ source: 'Front', missing: 'any label', chapter: 'front' });
+    warnings.push({ source: 'Front rim', missing: 'any label', chapter: 'front-rim' });
   }
   if (draft.back.mode === 'reference' && !hasBackReference) {
     warnings.push({ source: 'Identity', missing: 'a back token', chapter: 'identity' });
@@ -226,8 +245,11 @@ export function TokenEditor({
   chapter: TokenChapter;
   onChapterChange: (chapter: TokenChapter) => void;
   onSettle: () => void;
-  /** Chooses which existing token serves as the back. Rendered in Identity only while the mode is `reference`. */
-  backPicker: ReactNode;
+  /**
+   * Chooses which existing token serves as the back, rendered in Identity and disabled while the back is authored here.
+   * A function of that disabled state rather than a node, so the rule lives here and the organ still renders a properly disabled control rather than an inert-looking one.
+   */
+  backPicker: (disabled: boolean) => ReactNode;
   /** The referenced token's front, drawn in the rail in place of an authored back. */
   backProof: ReactNode;
 }) {
@@ -262,24 +284,20 @@ export function TokenEditor({
             description="Every token has one. Author it here, or point at a token that already exists."
             input={
               <Stack gap="sm">
-                <SegmentedControl
-                  fullWidth
-                  aria-label="Backside"
-                  value={draft.back.mode}
-                  data={[
-                    { value: 'custom', label: 'Custom back' },
-                    { value: 'reference', label: 'Existing token' },
-                  ]}
-                  onChange={(value) =>
+                <Switch
+                  aria-label="Custom"
+                  label="Custom"
+                  checked={draft.back.mode === 'custom'}
+                  onChange={(event) =>
                     patch({
-                      back:
-                        value === 'custom'
-                          ? { mode: 'custom', face: draft.back.mode === 'custom' ? draft.back.face : INITIAL_FACE }
-                          : { mode: 'reference' },
+                      back: event.currentTarget.checked
+                        ? { mode: 'custom', face: draft.back.mode === 'custom' ? draft.back.face : INITIAL_FACE }
+                        : { mode: 'reference' },
                     })
                   }
                 />
-                {draft.back.mode === 'reference' ? backPicker : null}
+                {/* Always present, inert while the back is authored here: the alternative stays visible instead of the control disappearing under the toggle. */}
+                {backPicker(draft.back.mode === 'custom')}
               </Stack>
             }
           />
@@ -292,6 +310,12 @@ export function TokenEditor({
       icon: <Coins size={21} aria-hidden />,
       panel: panel(<FaceFields face={draft.front} patch={patchFace('front')} />),
     },
+    {
+      value: 'front-rim' as const,
+      label: 'Front rim',
+      icon: <Circle size={21} aria-hidden />,
+      panel: panel(<FaceRim face={draft.front} patch={patchFace('front')} />),
+    },
     ...(draft.back.mode === 'custom'
       ? [
           {
@@ -299,6 +323,12 @@ export function TokenEditor({
             label: 'Back',
             icon: <FlipHorizontal2 size={21} aria-hidden />,
             panel: panel(<FaceFields face={draft.back.face} patch={patchFace('back')} />),
+          },
+          {
+            value: 'back-rim' as const,
+            label: 'Back rim',
+            icon: <Circle size={21} aria-hidden />,
+            panel: panel(<FaceRim face={draft.back.face} patch={patchFace('back')} />),
           },
         ]
       : []),
@@ -309,46 +339,42 @@ export function TokenEditor({
   const activeChapter = items.some((item) => item.value === chapter) ? chapter : 'identity';
 
   return (
-    <div
-      style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(17rem, 21rem)', alignItems: 'start' }}
-      onBlurCapture={onSettle}
-    >
-      <ConnectedTabs<TokenChapter>
-        value={activeChapter}
-        onValueChange={(next) => {
-          onChapterChange(next);
-          onSettle();
-        }}
-        ariaLabel="Token chapters"
-        items={items}
-      />
-      <div style={{ minWidth: 0, paddingLeft: 'var(--mantine-spacing-md)' }}>
-        <div style={{ position: 'sticky', top: 96 }}>
-          {/* The face stacks take the full width, or a centred flex child shrinks to its content and `CanvasScale` has nothing to fill. */}
-          <Stack gap="md" align="center">
+    <WorkbenchLayout.Workbench onBlurCapture={onSettle}>
+      <WorkbenchLayout.Chapters>
+        <ConnectedTabs<TokenChapter>
+          value={activeChapter}
+          onValueChange={(next) => {
+            onChapterChange(next);
+            onSettle();
+          }}
+          ariaLabel="Token chapters"
+          items={items}
+        />
+      </WorkbenchLayout.Chapters>
+      <WorkbenchLayout.Rail>
+        <Stack gap="md" align="center">
+          <Stack gap={4} align="center" w="100%">
+            <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect(type)}>
+              <TokenProof face={draft.front} type={type} width={PROOF_CANVAS} />
+            </CanvasScale>
+            <Text size="xs" c="dimmed">
+              Front
+            </Text>
+          </Stack>
+          {draft.back.mode === 'custom' ? (
             <Stack gap={4} align="center" w="100%">
               <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect(type)}>
-                <TokenProof face={draft.front} type={type} width={PROOF_CANVAS} />
+                <TokenProof face={draft.back.face} type={type} width={PROOF_CANVAS} />
               </CanvasScale>
               <Text size="xs" c="dimmed">
-                Front
+                Back
               </Text>
             </Stack>
-            {draft.back.mode === 'custom' ? (
-              <Stack gap={4} align="center" w="100%">
-                <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect(type)}>
-                  <TokenProof face={draft.back.face} type={type} width={PROOF_CANVAS} />
-                </CanvasScale>
-                <Text size="xs" c="dimmed">
-                  Back
-                </Text>
-              </Stack>
-            ) : (
-              backProof
-            )}
-          </Stack>
-        </div>
-      </div>
-    </div>
+          ) : (
+            backProof
+          )}
+        </Stack>
+      </WorkbenchLayout.Rail>
+    </WorkbenchLayout.Workbench>
   );
 }

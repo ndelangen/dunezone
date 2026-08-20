@@ -101,11 +101,11 @@ export function RectangleCreatePage() {
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={() => setSettleTick((tick) => tick + 1)}
-            backPicker={
+            backPicker={() => (
               <Text size="xs" c="dimmed">
                 A token can point at an existing token only once it has been saved.
               </Text>
-            }
+            )}
             backProof={null}
           />
         </WorkbenchLayout>

@@ -194,13 +194,18 @@ function TokenEditSession({
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={() => setSettleTick((tick) => tick + 1)}
-            backPicker={
+            backPicker={(disabled) => (
               <Group gap="xs" wrap="nowrap">
                 <Text size="sm">{backToken ? backToken.name : 'No token chosen yet'}</Text>
                 {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
                 <Popover opened={pickerOpen} onChange={setPickerOpen} width={340} position="bottom-start" withinPortal>
                   <Popover.Target>
-                    <Button variant="light" size="compact-sm" onClick={() => setPickerOpen((open) => !open)}>
+                    <Button
+                      variant="light"
+                      size="compact-sm"
+                      disabled={disabled}
+                      onClick={() => setPickerOpen((open) => !open)}
+                    >
                       {backToken ? 'Change' : 'Choose'}
                     </Button>
                   </Popover.Target>
@@ -222,7 +227,7 @@ function TokenEditSession({
                   </Popover.Dropdown>
                 </Popover>
               </Group>
-            }
+            )}
             backProof={
               backToken ? (
                 <Stack gap={4} align="center">
