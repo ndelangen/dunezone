@@ -1,10 +1,10 @@
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { rendererRevisionsSchema } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
 import { internalQuery, query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
+import { optionalActiveUserId } from './lib/accountLifecycle';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
 
@@ -141,7 +141,7 @@ export const page = query({
     })
   ),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await optionalActiveUserId(ctx);
     if (!userId) {
       return { access: 'unauthenticated' as const };
     }

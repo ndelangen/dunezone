@@ -1,8 +1,8 @@
-import { getAuthUserId } from '@convex-dev/auth/server';
 import type { Infer } from 'convex/values';
 
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { isActiveProfile, optionalActiveUserId } from './accountLifecycle';
 import type {
   assignedGroupSummaryValidator,
   factionViewerAccessValidator,
@@ -84,7 +84,7 @@ export function liveGroupOrNull(group: Doc<'groups'> | null): Doc<'groups'> | nu
 }
 
 async function requireAuthenticatedViewerId(ctx: AnyCtx) {
-  const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
+  const viewerId = await optionalActiveUserId(ctx);
   if (!viewerId) {
     throw new Error('Not authenticated');
   }
@@ -196,7 +196,7 @@ export async function loadCollaborativeAccess(
   ctx: AnyCtx,
   subject: CollaborativeSubject
 ): Promise<LoadedCollaborativeAccess> {
-  const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
+  const viewerId = await optionalActiveUserId(ctx);
 
   if (subject.kind === 'group') {
     const row = liveGroupOrNull(await ctx.db.get('groups', subject.id));
@@ -237,7 +237,7 @@ export async function collaborativeAccessFor(ctx: AnyCtx, subject: Collaborative
 }
 
 export async function loadRulesetAccessForLoadedSubject(ctx: AnyCtx, ruleset: Doc<'rulesets'>) {
-  const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
+  const viewerId = await optionalActiveUserId(ctx);
   const assignedGroup = liveGroupOrNull(ruleset.group_id ? await ctx.db.get('groups', ruleset.group_id) : null);
   const viewerMembership = await membershipFor(ctx, assignedGroup?._id ?? null, viewerId);
   return rulesetAccessFromLoaded(ruleset, assignedGroup, viewerId, viewerMembership);
@@ -441,7 +441,7 @@ export async function loadAssetAccessBundle(
   ctx: QueryCtx,
   subject: { kind: 'faction'; row: Doc<'factions'> } | { kind: 'ruleset'; row: Doc<'rulesets'> }
 ): Promise<LoadedFactionAccessBundle | LoadedRulesetAccessBundle> {
-  const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
+  const viewerId = await optionalActiveUserId(ctx);
   const memberships = viewerId
     ? await ctx.db
         .query('group_members')
@@ -496,7 +496,7 @@ export type GroupRosterEntry = {
 };
 
 export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>) {
-  const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
+  const viewerId = await optionalActiveUserId(ctx);
   const members = await ctx.db
     .query('group_members')
     .withIndex('by_group', (q) => q.eq('group_id', group._id))
@@ -521,7 +521,9 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
     })
   );
   for (const profile of profiles) {
-    profileByUserId.set(profile.user_id, profile);
+    if (isActiveProfile(profile)) {
+      profileByUserId.set(profile.user_id, profile);
+    }
   }
 
   const actorIsActive =
@@ -535,7 +537,7 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
     }
     const profile = profileByUserId.get(membership.user_id);
     if (!profile) {
-      throw new Error(`Invariant: every member must have a profile (missing for ${membership.user_id})`);
+      return [];
     }
     const pending = membership.status === 'pending';
     return [

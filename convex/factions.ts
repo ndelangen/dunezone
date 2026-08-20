@@ -4,6 +4,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { factionSheetPublishingStatus } from './assetPublishingStatus';
 import { mutation } from './functions';
+import { isActiveProfile } from './lib/accountLifecycle';
 import {
   loadAssetAccessBundle,
   requireFactionSoftDelete,
@@ -87,7 +88,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
       ...row,
       data: factionDataForClient(row.data),
     },
-    owner: ownerProfile,
+    owner: isActiveProfile(ownerProfile) ? ownerProfile : null,
     assetPublishing: await factionSheetPublishingStatus(ctx, row._id),
     viewerAccess: access.viewerAccess,
     assignableGroups: access.assignableGroups,

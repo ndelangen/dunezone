@@ -1,5 +1,6 @@
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
+import { accountStateOf } from './accountLifecycle';
 import { nowIso, slugify } from './utils';
 
 export type ProfileBootstrapSources = {
@@ -66,16 +67,37 @@ export async function ensureProfileForUser(
     .withIndex('by_user_id', (q) => q.eq('user_id', userId))
     .unique();
 
+  const user = await ctx.db.get('users', userId);
+  if (!user) {
+    throw new Error(`Cannot create profile for missing user ${userId}`);
+  }
+
+  if (accountStateOf(user) !== 'active') {
+    if (existing) {
+      return existing;
+    }
+    throw new Error('Inactive accounts cannot create profiles');
+  }
+
   if (existing) {
+    if (accountStateOf(existing) !== 'active') {
+      return existing;
+    }
     const fillUsername = existing.username ?? displayName;
     const fillAvatar = existing.avatar_url ?? imageUrl;
     const nextSlug = existing.slug;
 
-    if (fillUsername !== existing.username || fillAvatar !== existing.avatar_url || nextSlug !== existing.slug) {
+    if (
+      fillUsername !== existing.username ||
+      fillAvatar !== existing.avatar_url ||
+      nextSlug !== existing.slug ||
+      existing.account_state === undefined
+    ) {
       await ctx.db.patch(existing._id, {
         user_id: userId,
         username: fillUsername ?? null,
         avatar_url: fillAvatar ?? null,
+        account_state: 'active',
         slug: nextSlug,
         updated_at: nowIso(),
       });
@@ -98,6 +120,7 @@ export async function ensureProfileForUser(
     user_id: userId,
     username: username ?? null,
     avatar_url: imageUrl ?? null,
+    account_state: 'active',
     slug,
     created_at: now,
     updated_at: now,

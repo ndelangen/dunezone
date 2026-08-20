@@ -1,4 +1,3 @@
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import { profileUserEditFormSchema } from '../src/shared/profiles/validation';
@@ -6,6 +5,7 @@ import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
+import { isActiveProfile, optionalActiveUserId } from './lib/accountLifecycle';
 import { profileDetailPageValidator, profileValidator } from './lib/collaborativeAccessValidators';
 import { canSetDefaultGroup, loadDefaultGroupPreferenceProjection } from './lib/defaultGroupPreference';
 import { requireAuthUserId } from './lib/policy';
@@ -17,8 +17,7 @@ import { nowIso, slugify } from './lib/utils';
 
 async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
   const identity = await ctx.auth.getUserIdentity();
-  const authUserId = await getAuthUserId(ctx);
-  const authUser = authUserId ? await ctx.db.get(authUserId) : null;
+  const authUser = await ctx.db.get(userId);
   const identityName =
     typeof identity?.name === 'string' && identity.name.trim().length > 0 ? identity.name.trim() : null;
   const identityPictureUrl =
@@ -49,15 +48,14 @@ async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
 export const currentUserId = query({
   args: {},
   handler: async (ctx) => {
-    const authUserId = await getAuthUserId(ctx);
-    return authUserId ?? null;
+    return await optionalActiveUserId(ctx);
   },
 });
 
 export const current = query({
   args: {},
   handler: async (ctx) => {
-    const authUserId = await getAuthUserId(ctx);
+    const authUserId = await optionalActiveUserId(ctx);
     if (!authUserId) {
       return null;
     }
@@ -65,7 +63,7 @@ export const current = query({
       .query('profiles')
       .withIndex('by_user_id', (q) => q.eq('user_id', authUserId))
       .unique();
-    if (!profile) {
+    if (!profile || !isActiveProfile(profile)) {
       return null;
     }
     return {
@@ -80,7 +78,7 @@ export const bootstrapCurrent = mutation({
   handler: async (ctx) => {
     const userId = await requireAuthUserId(ctx);
     const profile = await createProfileIfMissing(ctx, userId);
-    if (!profile) {
+    if (!profile || !isActiveProfile(profile)) {
       throw new Error('Failed to bootstrap profile');
     }
     return profile;
@@ -117,7 +115,7 @@ export const list = query({
   args: {},
   returns: v.array(profileListEntryValidator),
   handler: async (ctx) => {
-    const profiles = await ctx.db.query('profiles').take(500);
+    const profiles = (await ctx.db.query('profiles').take(500)).filter(isActiveProfile);
     const activity = await loadProfileActivityCounts(
       ctx,
       profiles.map((profile) => profile.user_id)

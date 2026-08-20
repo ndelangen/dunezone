@@ -1,7 +1,7 @@
-import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 
 import type { QueryCtx } from '../types';
+import { optionalActiveUserId } from './accountLifecycle';
 import { faqTagValidator } from './faqTags';
 import { profileSummary } from './profileSummary';
 
@@ -82,7 +82,7 @@ export async function loadFaqQuestionPage(ctx: QueryCtx, args: { rulesetSlug: st
     .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
     .take(QUESTION_PAGE_ANSWER_LIMIT);
 
-  const viewerId = await getAuthUserId(ctx);
+  const viewerId = await optionalActiveUserId(ctx);
   const questionOwner = viewerId === item.asked_by;
   const viewerAnswered = viewerId
     ? (await ctx.db
