@@ -1,17 +1,17 @@
 /**
- * PROTOTYPE — what a bundle looks like, wayfinder ticket #538. THROWAWAY.
+ * PROTOTYPE — what a bundle looks like, wayfinder ticket #538.
+ * THROWAWAY.
  *
- * A bundle is the first Asset type with no visual identifying feature of its own. A treachery card's face comes from
- * its own `data`; a deck looks like a deck because its author made a Cardback. A bundle's row carries a name and
- * nothing else, and its membership lives in `asset_relations`.
+ * A bundle is the first Asset type with no visual identifying feature of its own.
+ * A treachery card's face comes from its own `data`;
+ * a deck looks like a deck because its author made a Cardback.
+ * A bundle's row carries a name and nothing else, and its membership lives in `asset_relations`.
  *
- * Norbert ruled out showing all contents and asked for "some sort of container, with a few peeking out". These are the
- * three variants that phrase admits, each at the three sizes the same picture has to survive: a landing pile, a browse
- * tile, and the detail-page hero.
+ * Norbert ruled out showing all contents and asked for "some sort of container, with a few peeking out".
+ * These are the three variants that phrase admits, each at the three sizes the same picture has to survive: a landing pile, a browse tile, and the detail-page hero.
  *
  * Members are drawn with the real `AssetFace` and real stored token data, and the peeking geometry is lifted from
- * `TokenStack` on the landing page rather than invented, so what is being judged here is the container and nothing
- * else.
+ * `TokenStack` on the landing page rather than invented, so what is being judged here is the container and nothing else.
  */
 import { Group, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
@@ -119,8 +119,7 @@ function Peeking({ width, members }: { width: number; members: typeof MEMBERS })
 
 /**
  * The container front.
- * `band` is what a variant swaps: a flat product-defined strip, or an authored Background the way a Cardback is
- * authored.
+ * `band` is what a variant swaps: a flat product-defined strip, or an authored Background the way a Cardback is authored.
  */
 function Crate({ width, name, band }: { width: number; name: string; band: ReactNode }) {
   const height = width * 0.62;
