@@ -2,7 +2,7 @@
  * Codes safe to return from server mutations and carry through route search.
  * Presentation belongs to the browser route registry, never this shared contract.
  */
-export const routeNoticeCodes = ['default-group-unavailable'] as const;
+const routeNoticeCodes = ['default-group-unavailable'] as const;
 
 export type RouteNoticeCode = (typeof routeNoticeCodes)[number];
 

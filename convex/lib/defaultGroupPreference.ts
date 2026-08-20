@@ -71,6 +71,21 @@ export async function resolveDefaultGroupForCreation(ctx: MutationCtx, userId: I
   return { group_id: groupId, route_notice: null };
 }
 
+/** Every creation independently authorizes an explicit Group or rechecks the saved default. */
+export async function resolveGroupAssignmentForCreation(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  explicitGroupId: Id<'groups'> | null | undefined
+) {
+  if (explicitGroupId === undefined) {
+    return await resolveDefaultGroupForCreation(ctx, userId);
+  }
+  if (explicitGroupId) {
+    await requireAssignableGroup(ctx, explicitGroupId);
+  }
+  return { group_id: explicitGroupId, route_notice: null };
+}
+
 export async function clearDefaultGroupForRemovedMembership(
   ctx: MutationCtx,
   userId: Id<'users'>,

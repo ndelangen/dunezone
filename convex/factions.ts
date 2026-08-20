@@ -6,7 +6,6 @@ import { factionSheetPublishingStatus } from './assetPublishingStatus';
 import { mutation } from './functions';
 import {
   loadAssetAccessBundle,
-  requireAssignableGroup,
   requireFactionSoftDelete,
   requireFactionUpdate,
   requireGroupReassignment,
@@ -17,7 +16,7 @@ import {
   factionWithRulesetsValidator,
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
-import { resolveDefaultGroupForCreation } from './lib/defaultGroupPreference';
+import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import { loadFactionCatalogue, selectFactionCatalogueSpotlights } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import { parseFactionInput, parseStoredFactionForRead } from './lib/factionInput';
@@ -259,13 +258,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
-    const groupAssignment =
-      args.group_id === undefined
-        ? await resolveDefaultGroupForCreation(ctx, userId)
-        : { group_id: args.group_id, route_notice: null };
-    if (args.group_id) {
-      await requireAssignableGroup(ctx, args.group_id);
-    }
+    const groupAssignment = await resolveGroupAssignmentForCreation(ctx, userId, args.group_id);
 
     const data = parseFactionInput(args.data, {
       requireAuthoringSemantics: true,

@@ -5,14 +5,13 @@ import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import {
-  requireAssignableGroup,
   requireGroupReassignment,
   requireRulesetMaintenance,
   requireRulesetSoftDelete,
   requireRulesetUpdate,
 } from './lib/collaborativeAccess';
 import { rulesetDetailPageValidator, rulesetPublicBundleValidator } from './lib/collaborativeAccessValidators';
-import { resolveDefaultGroupForCreation } from './lib/defaultGroupPreference';
+import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import {
   buildOwnedForGroupAssignRows,
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
@@ -137,13 +136,7 @@ export const create = mutation({
     }
     const normalizedName = parsed.data.name;
 
-    const groupAssignment =
-      args.group_id === undefined
-        ? await resolveDefaultGroupForCreation(ctx, userId)
-        : { group_id: args.group_id, route_notice: null };
-    if (args.group_id) {
-      await requireAssignableGroup(ctx, args.group_id);
-    }
+    const groupAssignment = await resolveGroupAssignmentForCreation(ctx, userId, args.group_id);
 
     const duplicate = await ctx.db
       .query('rulesets')
