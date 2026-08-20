@@ -4,8 +4,13 @@ import type { Doc } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import { assertKnownAssetType, parseAssetDataForWrite } from './lib/assetInput';
-import { loadAssetAccessForLoadedSubject, requireAssetSoftDelete, requireAssetUpdate } from './lib/collaborativeAccess';
-import { assetViewerAccessValidator } from './lib/collaborativeAccessValidators';
+import {
+  loadAssetAccessBundle,
+  requireAssetSoftDelete,
+  requireAssetUpdate,
+  requireGroupReassignment,
+} from './lib/collaborativeAccess';
+import { assetViewerAccessValidator, assignedGroupSummaryValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { nowIso, slugify } from './lib/utils';
@@ -100,7 +105,10 @@ export const listByTypes = query({
   },
 });
 
-/** The edit page's bundle: the asset by type-scoped slug, plus what the viewer may do with it. */
+/**
+ * The edit page's bundle: the asset by type-scoped slug, what the viewer may do with it, and the Groups they could hand it to.
+ * `assignableGroups` rides along rather than taking a query of its own, the faction convention, because the toolbar needs it the moment the page renders.
+ */
 export const getForEdit = query({
   args: { type: v.string(), slug: v.string() },
   returns: v.union(
@@ -108,6 +116,7 @@ export const getForEdit = query({
     v.object({
       asset: assetListEntryValidator,
       viewerAccess: assetViewerAccessValidator,
+      assignableGroups: v.array(assignedGroupSummaryValidator),
     })
   ),
   handler: async (ctx, args) => {
@@ -119,10 +128,11 @@ export const getForEdit = query({
     if (!row) {
       return null;
     }
-    const access = await loadAssetAccessForLoadedSubject(ctx, row);
+    const access = await loadAssetAccessBundle(ctx, { kind: 'asset', row });
     return {
       asset: await toListEntry(ctx, row),
       viewerAccess: access.viewerAccess,
+      assignableGroups: access.assignableGroups,
     };
   },
 });
@@ -203,6 +213,23 @@ export const softDelete = mutation({
 
     await ctx.db.patch(access.subject._id, {
       is_deleted: true,
+      updated_at: nowIso(),
+    });
+  },
+});
+
+/**
+ * Hands an Asset to a Group, or takes it back.
+ * Owner-only through `changeGroup`, and the target Group must be one the viewer could add a member to, so nobody can park an asset in a Group they do not help run.
+ * This is what makes «Asset access reuses Group-associated-asset semantics» reachable: without it `group_id` stays null and collaborative editing never happens.
+ */
+export const setGroup = mutation({
+  args: { id: v.id('assets'), group_id: v.union(v.id('groups'), v.null()) },
+  handler: async (ctx, args) => {
+    const access = await requireGroupReassignment(ctx, { kind: 'asset', id: args.id }, args.group_id);
+
+    await ctx.db.patch(access.subject._id, {
+      group_id: args.group_id,
       updated_at: nowIso(),
     });
   },

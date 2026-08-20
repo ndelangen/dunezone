@@ -51,3 +51,7 @@ export function useUpdateAsset() {
 export function useDeleteAsset() {
   return useLiveMutation<{ id: AssetListEntry['id'] }, void>(api.assets.softDelete);
 }
+
+export function useSetAssetGroup() {
+  return useLiveMutation<{ id: AssetListEntry['id']; group_id: string | null }, void>(api.assets.setGroup);
+}

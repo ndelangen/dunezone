@@ -287,13 +287,6 @@ export async function collaborativeAccessFor(ctx: AnyCtx, subject: Collaborative
   return (await loadCollaborativeAccess(ctx, subject)).viewerAccess;
 }
 
-export async function loadAssetAccessForLoadedSubject(ctx: AnyCtx, asset: Doc<'assets'>) {
-  const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
-  const assignedGroup = liveGroupOrNull(asset.group_id ? await ctx.db.get('groups', asset.group_id) : null);
-  const viewerMembership = await membershipFor(ctx, assignedGroup?._id ?? null, viewerId);
-  return assetAccessFromLoaded(asset, assignedGroup, viewerId, viewerMembership);
-}
-
 export async function loadRulesetAccessForLoadedSubject(ctx: AnyCtx, ruleset: Doc<'rulesets'>) {
   const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
   const assignedGroup = liveGroupOrNull(ruleset.group_id ? await ctx.db.get('groups', ruleset.group_id) : null);
@@ -426,6 +419,9 @@ export async function requireRulesetUpdate(
   return access;
 }
 
+/** Names the subject in a not-found message, since the three kinds share one reassignment path. */
+const REASSIGNMENT_SUBJECT_LABEL = { faction: 'Faction', ruleset: 'Ruleset', asset: 'Asset' } as const;
+
 export function requireGroupReassignment(
   ctx: MutationCtx,
   subject: { kind: 'faction'; id: Id<'factions'> },
@@ -438,25 +434,41 @@ export function requireGroupReassignment(
   targetGroupId: Id<'groups'> | null,
   message?: string
 ): Promise<LoadedRulesetAccess>;
+export function requireGroupReassignment(
+  ctx: MutationCtx,
+  subject: { kind: 'asset'; id: Id<'assets'> },
+  targetGroupId: Id<'groups'> | null,
+  message?: string
+): Promise<LoadedAssetAccess>;
 export async function requireGroupReassignment(
   ctx: MutationCtx,
-  subject: { kind: 'faction'; id: Id<'factions'> } | { kind: 'ruleset'; id: Id<'rulesets'> },
+  subject:
+    | { kind: 'faction'; id: Id<'factions'> }
+    | { kind: 'ruleset'; id: Id<'rulesets'> }
+    | { kind: 'asset'; id: Id<'assets'> },
   targetGroupId: Id<'groups'> | null,
   message = 'Not authorized'
 ) {
   await requireAuthenticatedViewerId(ctx);
   /*
-   * Both branches call the same function on purpose, and this is not redundant: `loadCollaborativeAccess` is
-   * overloaded per subject kind, so handing it the union resolves to no overload and collapses `access` to `never`.
-   * The test discriminates the union first so each call picks its own overload.
+   * Every branch calls the same function on purpose, and this is not redundant.
+   * `loadCollaborativeAccess` is overloaded per subject kind, so handing it the union resolves to no overload and collapses `access` to `never`.
+   * Discriminating the union first lets each call pick its own overload.
    */
-  const access =
-    subject.kind === 'faction'
-      ? await loadCollaborativeAccess(ctx, subject)
-      : await loadCollaborativeAccess(ctx, subject);
+  let access: LoadedFactionAccess | LoadedRulesetAccess | LoadedAssetAccess;
+  switch (subject.kind) {
+    case 'faction':
+      access = await loadCollaborativeAccess(ctx, subject);
+      break;
+    case 'ruleset':
+      access = await loadCollaborativeAccess(ctx, subject);
+      break;
+    case 'asset':
+      access = await loadCollaborativeAccess(ctx, subject);
+      break;
+  }
   if (access.subject.is_deleted) {
-    const label = subject.kind === 'faction' ? 'Faction' : 'Ruleset';
-    throw new Error(`${label} with id ${subject.id} not found`);
+    throw new Error(`${REASSIGNMENT_SUBJECT_LABEL[subject.kind]} with id ${subject.id} not found`);
   }
   if (!access.viewerAccess.capabilities.changeGroup) {
     throw new Error(message);
@@ -515,6 +527,10 @@ type LoadedRulesetAccessBundle = LoadedRulesetAccess & {
   assignableGroups: AssignedGroupSummary[];
 };
 
+type LoadedAssetAccessBundle = LoadedAssetAccess & {
+  assignableGroups: AssignedGroupSummary[];
+};
+
 export function loadAssetAccessBundle(
   ctx: QueryCtx,
   subject: { kind: 'faction'; row: Doc<'factions'> }
@@ -523,10 +539,17 @@ export function loadAssetAccessBundle(
   ctx: QueryCtx,
   subject: { kind: 'ruleset'; row: Doc<'rulesets'> }
 ): Promise<LoadedRulesetAccessBundle>;
+export function loadAssetAccessBundle(
+  ctx: QueryCtx,
+  subject: { kind: 'asset'; row: Doc<'assets'> }
+): Promise<LoadedAssetAccessBundle>;
 export async function loadAssetAccessBundle(
   ctx: QueryCtx,
-  subject: { kind: 'faction'; row: Doc<'factions'> } | { kind: 'ruleset'; row: Doc<'rulesets'> }
-): Promise<LoadedFactionAccessBundle | LoadedRulesetAccessBundle> {
+  subject:
+    | { kind: 'faction'; row: Doc<'factions'> }
+    | { kind: 'ruleset'; row: Doc<'rulesets'> }
+    | { kind: 'asset'; row: Doc<'assets'> }
+): Promise<LoadedFactionAccessBundle | LoadedRulesetAccessBundle | LoadedAssetAccessBundle> {
   const viewerId = (await getAuthUserId(ctx)) as Id<'users'> | null;
   const memberships = viewerId
     ? await ctx.db
@@ -557,15 +580,14 @@ export async function loadAssetAccessBundle(
     return group ? [{ id: group._id, name: group.name, slug: group.slug }] : [];
   });
 
-  return subject.kind === 'faction'
-    ? {
-        ...factionAccessFromLoaded(subject.row, assignedGroup, viewerId, viewerMembership),
-        assignableGroups,
-      }
-    : {
-        ...rulesetAccessFromLoaded(subject.row, assignedGroup, viewerId, viewerMembership),
-        assignableGroups,
-      };
+  switch (subject.kind) {
+    case 'faction':
+      return { ...factionAccessFromLoaded(subject.row, assignedGroup, viewerId, viewerMembership), assignableGroups };
+    case 'ruleset':
+      return { ...rulesetAccessFromLoaded(subject.row, assignedGroup, viewerId, viewerMembership), assignableGroups };
+    case 'asset':
+      return { ...assetAccessFromLoaded(subject.row, assignedGroup, viewerId, viewerMembership), assignableGroups };
+  }
 }
 
 export type GroupRosterEntry = {

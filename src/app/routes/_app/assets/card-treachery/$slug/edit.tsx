@@ -1,12 +1,15 @@
 import { Alert, Anchor, Group, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { UserRoundMinus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 
-import { loadAssetForEdit, useAssetForEdit, useDeleteAsset, useUpdateAsset } from '@app/db/assets';
+import { loadAssetForEdit, useAssetForEdit, useDeleteAsset, useSetAssetGroup, useUpdateAsset } from '@app/db/assets';
 import type { AssetForEditData } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
@@ -92,10 +95,16 @@ function EditTreacheryCardPage() {
       key={data.asset.id}
       asset={data.asset}
       initialDraft={parsed.data}
-      canDelete={data.viewerAccess.capabilities.delete}
+      access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
     />
   );
 }
+
+/** What the editor toolbar needs to know about the viewer: what they may do, and which Groups they could hand the card to. */
+type CardEditAccess = {
+  viewerAccess: NonNullable<AssetForEditData>['viewerAccess'];
+  assignableGroups: NonNullable<AssetForEditData>['assignableGroups'];
+};
 
 /**
  * The card's delete, wired once for both surfaces that offer it: the editor toolbar, and the dead end a card with drifted data lands on.
@@ -154,15 +163,17 @@ function DriftedCardPage({ asset, canDelete }: { asset: NonNullable<AssetForEdit
 function CardEditSession({
   asset,
   initialDraft,
-  canDelete,
+  access,
 }: {
   asset: NonNullable<AssetForEditData>['asset'];
   initialDraft: TreacheryDraft;
-  canDelete: boolean;
+  access: CardEditAccess;
 }) {
   const navigate = useNavigate();
   const updateAsset = useUpdateAsset();
   const deletion = useCardDeletion(asset.id);
+  const setAssetGroup = useSetAssetGroup();
+  const { assignedGroup, capabilities } = access.viewerAccess;
   const [draft, setDraft] = useState<TreacheryDraft>(initialDraft);
   const [baseline, setBaseline] = useState<TreacheryDraft>(initialDraft);
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
@@ -227,8 +238,49 @@ function CardEditSession({
             onReset: () => setDraft(baseline),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
           }}
+          auxiliaryActions={
+            capabilities.changeGroup ? (
+              assignedGroup ? (
+                <IconAction
+                  label="Remove group"
+                  variant="light"
+                  color="red"
+                  size="lg"
+                  disabled={setAssetGroup.isPending}
+                  onClick={() => setAssetGroup.mutate({ id: asset.id, group_id: null })}
+                  icon={<UserRoundMinus size={17} aria-hidden />}
+                />
+              ) : (
+                <AssignPopover
+                  noun="group"
+                  triggerLabel="Assign group"
+                  icon={<UsersRound size={17} aria-hidden />}
+                  title="Assign Group"
+                  descriptionLines={[
+                    `Assign a group whose members can help maintain "${asset.name}".`,
+                    'You can create and join groups from your profile.',
+                  ]}
+                  disabled={setAssetGroup.isPending}
+                  options={access.assignableGroups.map((group) => ({
+                    value: group.id,
+                    label: `${group.name} (${group.slug})`,
+                  }))}
+                  onAssign={async (nextGroupId) => {
+                    await setAssetGroup.mutateAsync({ id: asset.id, group_id: nextGroupId });
+                  }}
+                />
+              )
+            ) : null
+          }
+          context={
+            assignedGroup ? (
+              <Text size="xs" c="dimmed">
+                Group access: <strong>{assignedGroup.name}</strong>
+              </Text>
+            ) : null
+          }
           destructiveActions={
-            canDelete ? (
+            capabilities.delete ? (
               <ConfirmDeleteAction
                 label="Delete card"
                 prompt="Delete card?"
@@ -249,6 +301,11 @@ function CardEditSession({
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">
               {deletion.error.message}
+            </Alert>
+          ) : null}
+          {setAssetGroup.error ? (
+            <Alert color="red" variant="light" role="alert" title="Could not change group">
+              {setAssetGroup.error.message}
             </Alert>
           ) : null}
           <TreacheryCardEditor

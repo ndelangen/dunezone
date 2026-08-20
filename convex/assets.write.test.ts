@@ -137,3 +137,64 @@ describe('asset soft delete', () => {
     ).rejects.toThrow('Not authorized');
   });
 });
+
+describe('asset group assignment', () => {
+  test('the owner hands a card to a group they help run, and the group member gains edit', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, outsiderId, created } = await seedCard(t);
+    const groupId = await t.run(async (ctx) => {
+      const now = '2026-01-01T00:00:00.000Z';
+      const id = await ctx.db.insert('groups', {
+        name: 'Arrakeen Rules Council',
+        slug: 'arrakeen-rules-council',
+        created_at: now,
+        created_by: ownerId,
+        is_deleted: false,
+      });
+      for (const userId of [ownerId, outsiderId]) {
+        await ctx.db.insert('group_members', {
+          group_id: id,
+          user_id: userId,
+          status: 'active',
+          requested_at: now,
+          approved_at: now,
+          approved_by: ownerId,
+        });
+      }
+      return id;
+    });
+
+    await t.withIdentity({ subject: ownerId }).mutation(api.assets.setGroup, { id: created.id, group_id: groupId });
+
+    const page = await t
+      .withIdentity({ subject: outsiderId })
+      .query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
+    expect(page?.viewerAccess.assignedGroup?.slug).toBe('arrakeen-rules-council');
+    expect(page?.viewerAccess.capabilities.edit).toBe(true);
+    /* Reassignment and deletion stay with the owner even once a group can edit. */
+    expect(page?.viewerAccess.capabilities.changeGroup).toBe(false);
+
+    await t.withIdentity({ subject: ownerId }).mutation(api.assets.setGroup, { id: created.id, group_id: null });
+    const cleared = await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
+    expect(cleared?.viewerAccess.assignedGroup).toBeNull();
+  });
+
+  test('a group the viewer cannot add members to is not a valid target', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, outsiderId, created } = await seedCard(t);
+    const strangersGroup = await t.run(
+      async (ctx) =>
+        await ctx.db.insert('groups', {
+          name: 'Someone else',
+          slug: 'someone-else',
+          created_at: '2026-01-01T00:00:00.000Z',
+          created_by: outsiderId,
+          is_deleted: false,
+        })
+    );
+
+    await expect(
+      t.withIdentity({ subject: ownerId }).mutation(api.assets.setGroup, { id: created.id, group_id: strangersGroup })
+    ).rejects.toThrow('Not authorized');
+  });
+});
