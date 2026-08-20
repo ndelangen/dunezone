@@ -139,7 +139,12 @@ function AssetFaces({ page }: { page: AssetPage }) {
   const { asset, backToken } = page;
   const isToken = asset.type.startsWith('token-');
   if (!isToken) {
-    return <ScaledFace type={asset.type} data={asset.data} name={asset.name} />;
+    /* Still a stage, uncaptioned: one face has nothing to distinguish, but it needs the same reading-size cap. */
+    return (
+      <FaceStage>
+        <ScaledFace type={asset.type} data={asset.data} name={asset.name} />
+      </FaceStage>
+    );
   }
 
   const back = (asset.data as { back?: { mode?: string } } | null)?.back;
