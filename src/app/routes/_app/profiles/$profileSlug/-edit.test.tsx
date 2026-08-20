@@ -141,13 +141,27 @@ describe('profile settings page', () => {
     expect(save.closest('form')).toBeNull();
     expect(document.getElementById(formId as string)?.tagName).toBe('FORM');
     expect(save.disabled).toBe(true);
+    expect(save.querySelector('svg')).not.toBeNull();
+
+    const displayNameControl = view.getByRole('group', { name: 'Display name *' });
+    expect(displayNameControl.getAttribute('aria-describedby')).toBeTruthy();
+    expect(displayNameControl.querySelector('[role="img"][aria-label="Help"]')).not.toBeNull();
 
     await chooseTab(view, 'Creation defaults');
     expect(view.getByRole('combobox', { name: 'Default Group' })).not.toBeNull();
+    expect(
+      view.getByRole('group', { name: 'Default Group' }).querySelector('[role="img"][aria-label="Help"]')
+    ).not.toBeNull();
 
     await chooseTab(view, 'Appearance');
     expect(view.getByRole('radiogroup', { name: 'Ambient motion' })).not.toBeNull();
     expect(view.getByRole('radiogroup', { name: 'Color scheme' })).not.toBeNull();
+    expect(
+      view.getByRole('group', { name: 'Ambient motion' }).querySelector('[role="img"][aria-label="Help"]')
+    ).not.toBeNull();
+    expect(
+      view.getByRole('group', { name: 'Color scheme' }).querySelector('[role="img"][aria-label="Help"]')
+    ).not.toBeNull();
     await chooseTab(view, 'Account');
     expect(view.getByRole('link', { name: 'Delete account' })).not.toBeNull();
   });

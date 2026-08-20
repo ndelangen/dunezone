@@ -1,5 +1,6 @@
 import { Button } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
+import type { ReactNode } from 'react';
 
 export interface SubmitActionProps {
   /** What saving means here — "Save group". A verb phrase, because it is a promise to act. */
@@ -12,6 +13,8 @@ export interface SubmitActionProps {
   pendingLabel?: string;
   /** Associates the action with a form elsewhere in the page, such as a PageLayout toolbar. */
   form?: string;
+  /** Optional glyph placed before the action label. */
+  icon?: ReactNode;
   size?: ButtonProps['size'];
 }
 
@@ -30,6 +33,7 @@ export function SubmitAction({
   disabled = false,
   pendingLabel = 'Saving…',
   form,
+  icon,
   size,
 }: SubmitActionProps) {
   return (
@@ -39,6 +43,7 @@ export function SubmitAction({
       variant="filled"
       color="confirm"
       size={size}
+      leftSection={icon}
       loading={pending}
       disabled={disabled || pending}
     >

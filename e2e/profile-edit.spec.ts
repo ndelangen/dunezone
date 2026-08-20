@@ -25,8 +25,14 @@ test('profile editing connects settings, previews avatars, and persists appearan
   await page.goto('/profiles/' + userA.slug + '/edit');
   const save = page.getByRole('button', { name: 'Save profile' });
   await expect(save).toBeDisabled();
+  await expect(save.locator('svg')).toBeVisible();
 
-  const avatarUrl = page.getByLabel('Avatar image URL');
+  const displayNameHelp = page.getByRole('group', { name: 'Display name *' }).getByRole('img', { name: 'Help' });
+  await displayNameHelp.hover();
+  await expect(page.getByRole('tooltip')).toContainText('Letters and numbers only');
+
+  const avatarUrl = page.getByRole('textbox', { name: 'Avatar image URL' });
+  await avatarUrl.focus();
   await avatarUrl.fill('');
   await expect(page.getByRole('status')).toContainText('Enter an avatar URL to see a preview.');
 
@@ -46,11 +52,17 @@ test('profile editing connects settings, previews avatars, and persists appearan
 
   await page.getByRole('tab', { name: 'Creation defaults' }).click();
   await expect(page.getByRole('combobox', { name: 'Default Group' })).toBeVisible();
+  const defaultGroupHelp = page.getByRole('group', { name: 'Default Group' }).getByRole('img', { name: 'Help' });
+  await defaultGroupHelp.hover();
+  await expect(page.getByRole('tooltip')).toContainText('New rulesets and factions use this Group');
 
   await page.getByRole('tab', { name: 'Account' }).click();
   await expect(page.getByRole('link', { name: 'Delete account' })).toBeVisible();
 
   await page.getByRole('tab', { name: 'Appearance' }).click();
+  const motionHelp = page.getByRole('group', { name: 'Ambient motion' }).getByRole('img', { name: 'Help' });
+  await motionHelp.hover();
+  await expect(page.getByRole('tooltip')).toContainText('The masthead video and the turning dice');
   await page.getByText('Dark', { exact: true }).click();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('dunezone-color-scheme'))).toBe('dark');
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
