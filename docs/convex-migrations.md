@@ -54,7 +54,7 @@ Rules:
 - `id`: unique migration or narrow guard identifier
 - `phase`:
   - `widen`: auto-started in deploy
-  - `narrow`: schema-narrow checkpoint gated on completed widen work
+  - `narrow`: schema-narrow checkpoint added with the later release that performs the narrowing
 - `requires`: widen migration ids that must be `success + isDone=true` before narrow is allowed
 
 ## Automated production flow
@@ -63,7 +63,7 @@ Rules:
    `bun run migrations:narrow-check` against the currently deployed migration entrypoints.
 2. Deploy widen- or narrow-compatible Convex code: `bun run convex:deploy`.
 3. Deploy workflow runs `bun run migrations:deploy`.
-4. That command starts the required widen migrations, polls readiness, and syncs status snapshots.
+4. That command starts every listed widen migration, polls all of them to readiness, and syncs status snapshots.
 5. Deploy fails if any narrow prerequisite or required migration is incomplete, failed, or times out.
 
 ## Strict local dev startup
