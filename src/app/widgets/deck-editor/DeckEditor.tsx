@@ -8,6 +8,7 @@ import { Layers, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import {
@@ -21,7 +22,7 @@ import { STOCK_CARDBACKS, stockKeyFor } from './stockCardbacks';
 import type { CardbackData } from './stockCardbacks';
 
 export type DeckDraft = z.infer<typeof DeckAsset>;
-export type DeckChapter = 'identity' | 'cards';
+export type DeckChapter = 'identity' | 'cards' | 'about';
 
 /** One member of a deck as the editor sees it: the card itself, and how many copies. */
 export type DeckMember = { card: { id: string; name: string; type: string; data: unknown }; count: number };
@@ -38,6 +39,7 @@ const BACK_PRESETS = [
 /* A deck without a back does not exist, so a fresh one starts on the first stock option rather than on nothing. */
 export const INITIAL_DECK_DRAFT: DeckDraft = {
   name: '',
+  about: '',
   cardback: STOCK_CARDBACKS[0]!.cardback,
 };
 
@@ -294,6 +296,7 @@ export function DeckEditor({
               </>
             ),
           },
+          aboutChapter(draft.about, (about) => patch({ about })),
         ]}
       />
       <div style={{ minWidth: 0, paddingLeft: 'var(--mantine-spacing-md)' }}>

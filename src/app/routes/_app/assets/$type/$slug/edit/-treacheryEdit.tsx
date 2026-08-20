@@ -15,7 +15,7 @@ import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHea
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { TreacheryCardEditor, treacheryDraftWarnings } from '@app/widgets/card-editor/TreacheryCardEditor';
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
-import { Treachery } from '@game/data/objects';
+import { TreacheryAsset } from '@game/data/objects';
 
 import { AssetEditorMessage } from '../../../-assetEditorStates';
 
@@ -56,7 +56,7 @@ export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderDa
     );
   }
 
-  const parsed = Treachery.safeParse(data.asset.data);
+  const parsed = TreacheryAsset.safeParse(data.asset.data);
   if (!parsed.success) {
     return <DriftedCardPage asset={data.asset} canDelete={data.viewerAccess.capabilities.delete} />;
   }
@@ -203,7 +203,7 @@ function CardEditSession({
               saveState === 'error'
                 ? 'The card was not saved.'
                 : saveState === 'saved'
-                  ? 'Saved. Publication follows once the image pipeline supports cards.'
+                  ? 'Saved. The card image is queued for publishing.'
                   : 'Changes stay local until you explicitly save them.',
           }}
           actions={{

@@ -1,4 +1,4 @@
-import { DeckAsset, TokenAsset, Treachery } from '../../src/shared/assets/schema';
+import { DeckAsset, TokenAsset, TreacheryAsset } from '../../src/shared/assets/schema';
 import { ASSET_TYPES } from '../../src/shared/assets/types';
 
 /**
@@ -9,7 +9,7 @@ import { ASSET_TYPES } from '../../src/shared/assets/types';
 export function parseAssetDataForWrite(type: string, data: unknown): { data: unknown; name: string } {
   switch (type) {
     case 'card-treachery': {
-      const parsed = Treachery.parse(data);
+      const parsed = TreacheryAsset.parse(data);
       return { data: parsed, name: parsed.name };
     }
     case 'deck': {

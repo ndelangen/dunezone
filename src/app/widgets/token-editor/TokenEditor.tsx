@@ -7,6 +7,7 @@ import { Coins, FlipHorizontal2, Signature } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { TokenFrame, tokenShapeOfType } from '@app/widgets/asset-face/AssetFace';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import {
@@ -20,7 +21,7 @@ import { backgroundPresets } from '@game/data/backgrounds';
 /** The draft is the stored shape: the same Zod validates it server-side, so a UI-only field here would fail the save. */
 export type TokenDraft = z.infer<typeof TokenAsset>;
 export type TokenFaceDraft = TokenDraft['front'];
-export type TokenChapter = 'identity' | 'front' | 'back';
+export type TokenChapter = 'identity' | 'front' | 'back' | 'about';
 
 /* The four stock token looks, drawn from the same named backgrounds a card head uses so the editors share a vocabulary. */
 const FACE_PRESETS = [
@@ -50,6 +51,7 @@ const INITIAL_FACE: TokenFaceDraft = {
 
 export const INITIAL_TOKEN_DRAFT: TokenDraft = {
   name: '',
+  about: '',
   front: INITIAL_FACE,
   back: { mode: 'custom', face: INITIAL_FACE },
 };
@@ -286,6 +288,7 @@ export function TokenEditor({
           },
         ]
       : []),
+    aboutChapter(draft.about, (about) => patch({ about })),
   ];
 
   /* Switching to a referenced back removes the Back tab, so a selection sitting on it has to fall back. */

@@ -80,7 +80,7 @@ export function TreacheryCreatePage() {
             statusMessage:
               saveState === 'error'
                 ? 'The card was not saved.'
-                : 'New treachery card — publication follows once the image pipeline supports cards.',
+                : 'New treachery card. Saving schedules its image for publishing.',
           }}
           actions={{
             onSave: save,

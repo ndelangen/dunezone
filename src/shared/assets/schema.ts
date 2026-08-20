@@ -7,8 +7,29 @@ const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
 const URL = z.string().url();
 
+/**
+ * Off-face prose explaining rule details the face cannot or should not carry.
+ * It never reaches a rendered card or token;
+ * that is the whole point of it (CONTEXT.md: About).
+ *
+ * No length floor, deliberately unlike `rulesetDescriptionSchema`, which demands 50 characters with no grace.
+ * A ruleset without an About is useless, so a floor there is a real floor.
+ * An asset without one is the normal case, since most treachery cards need no explanation, so a floor here would only lock every existing asset out of saving.
+ * Empty is legal forever.
+ * Do not "fix" this inconsistency: the two floors describe two different situations.
+ *
+ * The key is required rather than optional, backfilled by `assets_about_v1`.
+ * `assets.data` is `v.any()`, so no Convex validator gates this: the migration is the only thing that makes it true.
+ */
+const About = z.string().trim();
+
 export { Decal };
 
+/**
+ * The spice-card renderer's props.
+ * No `about`, and deliberately so: `card-spice` is a planned Asset type with no `parseAssetDataForWrite` branch, so nothing can store one.
+ * It gains the field when its editor does, at which point it also gains a stored superset the way `TreacheryAsset` did.
+ */
 export const Spice = z.strictObject({
   name: z.string(),
   subName: z.string(),
@@ -99,6 +120,18 @@ export const Treachery = z.strictObject({
   text: z.string(),
 });
 
+/**
+ * A stored treachery card, which is its rendered face plus what is *not* on the face.
+ *
+ * `Treachery` stays exactly the props `TreacheryCard` draws, so the renderer never declares a field it ignores and the
+ * 24 authored fixtures behind its stories stay untouched.
+ * This split is what `TokenAsset`/`TokenFace` and `DeckAsset`/`CardBack` already do;
+ * treachery was the odd one out.
+ */
+export const TreacheryAsset = Treachery.extend({
+  about: About,
+});
+
 export const FactionSide = z.strictObject({
   image: ALL,
   background: Background,
@@ -133,6 +166,7 @@ const TokenFace = FactionSide.extend({
  */
 export const TokenAsset = z.strictObject({
   name: z.string(),
+  about: About,
   front: TokenFace,
   back: z.discriminatedUnion('mode', [
     z.strictObject({ mode: z.literal('custom'), face: TokenFace }),
@@ -157,5 +191,6 @@ export const CardBack = z.strictObject({
  */
 export const DeckAsset = z.strictObject({
   name: z.string(),
+  about: About,
   cardback: CardBack,
 });

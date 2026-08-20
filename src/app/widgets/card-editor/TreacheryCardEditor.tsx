@@ -20,6 +20,7 @@ import { Brush, ScrollText, Type } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
 import {
@@ -29,7 +30,7 @@ import {
 } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { backgroundPresets } from '@game/data/backgrounds';
-import type { Treachery } from '@game/data/objects';
+import type { TreacheryAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
 import styles from './TreacheryCardEditor.module.css';
@@ -38,10 +39,11 @@ import styles from './TreacheryCardEditor.module.css';
 const iconOptions = decalAssetOptions.map((value) => ({ value, label: decalAssetOptionToLabel(value) }));
 
 /* ------------------------------ draft model ------------------------------ */
-/* The draft IS the stored shape: the same Treachery zod validates on save (server-side
-   in assets.create/update) and drives the renderer live. */
+/* The draft IS the stored shape: the same TreacheryAsset zod validates on save (server-side
+   in assets.create/update) and drives the renderer live. Wider than the renderer's own `Treachery` props by
+   exactly one field, About, which is the field that never reaches the face. */
 
-export type TreacheryDraft = z.infer<typeof Treachery>;
+export type TreacheryDraft = z.infer<typeof TreacheryAsset>;
 
 /* The four stock treachery looks: a head Background paired with its striped icon Background. */
 const CARD_PRESETS = [
@@ -58,6 +60,7 @@ const CARD_PRESETS = [
 
 export const INITIAL_TREACHERY_DRAFT: TreacheryDraft = {
   name: '',
+  about: '',
   subName: '',
   head: backgroundPresets.weapon,
   icon: [backgroundPresets.stripedWeapon, '/vector/icon/projectile.svg'],
@@ -365,7 +368,7 @@ function BodyField({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
 
 /* ----------------------------- validation ----------------------------- */
 
-export type TreacheryChapter = 'head' | 'icon' | 'decals' | 'body';
+export type TreacheryChapter = 'head' | 'icon' | 'decals' | 'body' | 'about';
 
 export type TreacheryDraftWarning = { source: string; missing: string; chapter: TreacheryChapter };
 
@@ -453,6 +456,7 @@ export function TreacheryCardEditor({
             icon: <ScrollText size={21} aria-hidden />,
             panel: panel(<BodyField draft={draft} patch={patch} />),
           },
+          aboutChapter(draft.about, (about) => patch({ about })),
         ]}
       />
       <div style={{ minWidth: 0, paddingLeft: 'var(--mantine-spacing-md)' }}>

@@ -97,6 +97,10 @@ export async function enqueueFactionSheetPublication(
  *
  * A type with no branch here publishes nothing at all, which is deliberate rather than an omission: decks publish their Cardback and tokens publish per face, and both need a capture renderer before a job would have anything to draw.
  * Returning null keeps a save working for those types instead of failing it over work that has not landed.
+ *
+ * Known and accepted: `about` lives inside `data` and reaches no face, so an About-only edit schedules a capture that produces byte-identical output, and the fresh cache token cold-caches it (wayfinder #521).
+ * The fix, if that ever costs enough to matter, is to compare `data` minus `about` here rather than enqueueing unconditionally.
+ * Not done now, because a treachery card has one publication and About edits are rare.
  */
 export async function enqueueAssetPublication(
   ctx: MutationCtx,

@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 
-import type { Treachery } from '../schema';
+import type { TreacheryAsset } from '../schema';
 
 /**
  * A production-shaped treachery card for the publisher capture regression.
@@ -8,8 +8,9 @@ import type { Treachery } from '../schema';
  * Its backgrounds and vectors are real paths rather than placeholders, because the point of the regression is that the capture page settles every image and SVG resource the renderer pulls before it declares itself ready.
  * The backgrounds are spelled out rather than imported from `@game/data/backgrounds`: `src/shared` is server-reachable and may not import the browser-only renderers.
  */
-export const publishingTreacheryCard: z.infer<typeof Treachery> = {
+export const publishingTreacheryCard: z.infer<typeof TreacheryAsset> = {
   name: 'Lasgun',
+  about: 'A lasgun-shield interaction destroys both players and everything in the territory.',
   subName: 'Weapon - Special',
   head: {
     image: '/image/texture/082.jpg',

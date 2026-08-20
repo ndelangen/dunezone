@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { CardBack } from '@game/assets/card/Back';
 import { CustomToken } from '@game/assets/token/Custom';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
-import { Treachery } from '@game/data/objects';
+import { TreacheryAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
 export const CARD_ASPECT = CARD_SIZE.height / CARD_SIZE.width;
@@ -165,7 +165,7 @@ export function tokenShapeOfType(type: string): TokenShape | null {
  */
 export function AssetFace({ type, data, name, width }: { type: string; data: unknown; name: string; width: number }) {
   if (type === 'card-treachery') {
-    const parsed = Treachery.safeParse(data);
+    const parsed = TreacheryAsset.safeParse(data);
     if (parsed.success) {
       return (
         <CardFrame width={width}>

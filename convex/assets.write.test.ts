@@ -11,6 +11,7 @@ const modules = import.meta.glob('./**/*.ts');
 
 const cardData = (name: string) => ({
   name,
+  about: '',
   subName: 'Weapon - Special',
   head: {
     image: '/image/texture/015.jpg',
@@ -217,6 +218,7 @@ const tokenFace = () => ({
 
 const tokenData = (name: string) => ({
   name,
+  about: '',
   front: tokenFace(),
   back: { mode: 'custom', face: tokenFace() },
 });
@@ -281,6 +283,7 @@ describe('token backsides', () => {
 
 const deckData = (name: string) => ({
   name,
+  about: '',
   cardback: {
     name: 'Treachery',
     background: {
@@ -353,6 +356,32 @@ describe('deck composition', () => {
   });
 });
 
+describe('asset about', () => {
+  test('About round-trips through a save, and whitespace never stores', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+
+    await t.withIdentity({ subject: ownerId }).mutation(api.assets.update, {
+      id: created.id,
+      data: { ...cardData('Lasgun'), about: '  A lasgun hitting a shield destroys the territory.\n  ' },
+    });
+
+    const page = await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
+    expect(page?.asset.data).toMatchObject({
+      about: 'A lasgun hitting a shield destroys the territory.',
+    });
+  });
+
+  test('an asset with nothing to explain saves with an empty About', async () => {
+    const t = convexTest(schema, modules);
+    const { created } = await seedCard(t);
+
+    const page = await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
+    expect(page?.asset.data).toMatchObject({ about: '' });
+    expect(created.slug).toBe('lasgun');
+  });
+});
+
 describe('asset publication', () => {
   test('saving a card schedules its publication, and a second save coalesces onto the same job', async () => {
     const t = convexTest(schema, modules);
@@ -394,6 +423,7 @@ describe('asset publication', () => {
       type: 'deck',
       data: {
         name: 'House Treachery',
+        about: '',
         cardback: {
           name: 'Treachery',
           background: {

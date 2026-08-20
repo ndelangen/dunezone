@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { Treachery } from '../assets/schema';
+import { TreacheryAsset } from '../assets/schema';
 import { FactionInputSchema, FactionRowSlugSchema } from '../factions/schema';
 import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 import type { PublicationAssetType } from './publicationTargets';
@@ -26,7 +26,7 @@ export const factionSheetAssetDataSchema = z.strictObject({
 export const treacheryCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
-  card: Treachery,
+  card: TreacheryAsset,
 });
 
 /**
