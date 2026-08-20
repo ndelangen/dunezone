@@ -17,12 +17,10 @@ import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Brush, ScrollText, Type } from 'lucide-react';
-import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
-import { BackgroundComposer } from '@app/widgets/background-composer/BackgroundComposer';
-import { BackgroundPresetPicker } from '@app/widgets/background-composer/BackgroundPresetPicker';
+import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
 import {
   assetOptionToPreviewSrc,
@@ -68,15 +66,6 @@ export const INITIAL_TREACHERY_DRAFT: TreacheryDraft = {
 };
 
 /* Field-by-field, not identity or JSON: a head that round-tripped through the database is a clone of its preset with Zod's key order. */
-function sameBackground(a: TreacheryDraft['head'], b: TreacheryDraft['head']): boolean {
-  return (
-    a.image === b.image &&
-    a.invert === b.invert &&
-    a.definition === b.definition &&
-    a.influence === b.influence &&
-    JSON.stringify(a.colors) === JSON.stringify(b.colors)
-  );
-}
 
 const HEAD_PRESETS = CARD_PRESETS.map(({ key, label, head }) => ({ key, label, background: head }));
 const ICON_BACKGROUND_PRESETS = CARD_PRESETS.map(({ key, label, striped }) => ({ key, label, background: striped }));
@@ -141,57 +130,6 @@ function HeadFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
         }}
       />
     </Stack>
-  );
-}
-
-/* A background chosen from named presets, with the composer behind a Custom option.
-   "Custom" stays selected while the value still equals a preset — the choice itself opens the composer. */
-function BackgroundPresetControl({
-  title,
-  description,
-  usedOn,
-  presets,
-  value,
-  onChange,
-}: {
-  title: string;
-  description: string;
-  usedOn: string;
-  presets: readonly { key: string; label: string; background: TreacheryDraft['head'] }[];
-  value: TreacheryDraft['head'];
-  onChange: (background: TreacheryDraft['head'], presetKey: string | null) => void;
-}) {
-  const presetKey = presets.find((preset) => sameBackground(preset.background, value))?.key ?? null;
-  const [customChosen, setCustomChosen] = useState(presetKey === null);
-  const selected = customChosen || presetKey === null ? 'custom' : presetKey;
-  return (
-    <ControlBlock
-      title={title}
-      description={description}
-      input={
-        <Stack gap="sm">
-          <BackgroundPresetPicker
-            presets={presets}
-            selected={selected}
-            customBackground={value}
-            onSelect={(next) => {
-              if (next === 'custom') {
-                setCustomChosen(true);
-                return;
-              }
-              const preset = presets.find((candidate) => candidate.key === next);
-              if (preset) {
-                setCustomChosen(false);
-                onChange(preset.background, preset.key);
-              }
-            }}
-          />
-          {selected === 'custom' ? (
-            <BackgroundComposer value={value} onChange={(background) => onChange(background, null)} usedOn={usedOn} />
-          ) : null}
-        </Stack>
-      }
-    />
   );
 }
 

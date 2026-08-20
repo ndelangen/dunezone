@@ -104,6 +104,42 @@ export const FactionSide = z.strictObject({
   background: Background,
 });
 
+/**
+ * One face of a tech token, in the vocabulary `CustomToken` already takes.
+ * It extends `FactionSide` rather than restating it, so the renderer's props and the stored shape cannot drift.
+ */
+const TokenFace = FactionSide.extend({
+  /** Multiplies the renderer's reference symbol size. */
+  symbolScale: z.number().min(0.5).max(2),
+  /** The curved label along the top edge. */
+  top: z.string(),
+  /**
+   * The two curved lines along the bottom edge, inner first.
+   * Stored as two fields and joined for the renderer, which takes one string split on a newline, because a newline inside a single field is a value no editor should have to defend against.
+   */
+  bottomFirst: z.string(),
+  bottomSecond: z.string(),
+  /** The thin edge ring, on by default. */
+  ring: z.boolean(),
+});
+
+/**
+ * A tech token of any shape.
+ * Shape is the Asset type rather than a field (see CONTEXT.md: Asset type), so all three shapes share this schema and differ only in how the caller clips the face.
+ *
+ * Every token has a back;
+ * only where it comes from varies.
+ * A referenced back is an `asset_relations` row rather than data, so this records the mode and, for a custom back, the face itself.
+ */
+export const TokenAsset = z.strictObject({
+  name: z.string(),
+  front: TokenFace,
+  back: z.discriminatedUnion('mode', [
+    z.strictObject({ mode: z.literal('custom'), face: TokenFace }),
+    z.strictObject({ mode: z.literal('reference') }),
+  ]),
+});
+
 export const CardBack = z.strictObject({
   image: ALL,
   imageOffset: OFFSET,

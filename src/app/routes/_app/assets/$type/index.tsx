@@ -6,6 +6,9 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 
 import { loadAssetsByTypes, useAssetsByTypes } from '@app/db/assets';
+
+/* Mirrors the dispatch in `$type/create` and `$type/$slug/edit`; the detail page will take this over. */
+const TYPES_WITH_EDITORS = new Set(['card-treachery', 'token-round', 'token-gear', 'token-square']);
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
 export const Route = createFileRoute('/_app/assets/$type/')({
@@ -67,7 +70,7 @@ function AssetTypePage() {
                     {entry.owner?.username ? `by ${entry.owner.username}` : ''}
                   </Text>
                   {/* Only types with a landed editor get the affordance; the asset detail page will take over this role. */}
-                  {entry.type === 'card-treachery' ? (
+                  {TYPES_WITH_EDITORS.has(entry.type) ? (
                     <Anchor
                       size="xs"
                       renderRoot={(rootProps) => (

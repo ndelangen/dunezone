@@ -198,3 +198,83 @@ describe('asset group assignment', () => {
     ).rejects.toThrow('Not authorized');
   });
 });
+
+const tokenFace = () => ({
+  image: '/vector/icon/projectile.svg',
+  background: {
+    image: '/image/texture/015.jpg',
+    colors: ['#4B4C0D', '#262B04'],
+    invert: true,
+    definition: 0,
+    influence: 0.5,
+  },
+  symbolScale: 1,
+  top: 'AXLOTL',
+  bottomFirst: 'TANKS',
+  bottomSecond: '',
+  ring: true,
+});
+
+const tokenData = (name: string) => ({
+  name,
+  front: tokenFace(),
+  back: { mode: 'custom', face: tokenFace() },
+});
+
+describe('token backsides', () => {
+  test('a token points at another token of its own shape, and only one at a time', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const front = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
+    const backA = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Sietch') });
+    const backB = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Spice') });
+
+    await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: backA.id });
+    let page = await t.query(api.assets.getForEdit, { type: 'token-round', slug: 'axlotl' });
+    expect(page?.backToken?.name).toBe('Sietch');
+
+    /* Re-pointing replaces rather than accumulates: the index is not unique, so the mutation clears first. */
+    await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: backB.id });
+    page = await t.query(api.assets.getForEdit, { type: 'token-round', slug: 'axlotl' });
+    expect(page?.backToken?.name).toBe('Spice');
+
+    await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: null });
+    page = await t.query(api.assets.getForEdit, { type: 'token-round', slug: 'axlotl' });
+    expect(page?.backToken).toBeNull();
+  });
+
+  test('the backside must be the same shape, and never the token itself', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const round = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
+    const square = await owner.mutation(api.assets.create, { type: 'token-square', data: tokenData('Shield') });
+
+    await expect(owner.mutation(api.assets.setTokenBack, { id: round.id, back_asset_id: square.id })).rejects.toThrow(
+      'must also be a token-round'
+    );
+    await expect(owner.mutation(api.assets.setTokenBack, { id: round.id, back_asset_id: round.id })).rejects.toThrow(
+      'cannot be its own backside'
+    );
+    await expect(owner.mutation(api.assets.setTokenBack, { id: created.id, back_asset_id: round.id })).rejects.toThrow(
+      'has no backside'
+    );
+  });
+
+  test('a soft-deleted backside stops resolving without touching the relation', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const front = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
+    const back = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Sietch') });
+    await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: back.id });
+
+    await owner.mutation(api.assets.softDelete, { id: back.id });
+
+    const page = await t.query(api.assets.getForEdit, { type: 'token-round', slug: 'axlotl' });
+    expect(page?.backToken).toBeNull();
+    const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
+    expect(relations).toHaveLength(1);
+  });
+});

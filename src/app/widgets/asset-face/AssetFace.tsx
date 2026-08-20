@@ -65,7 +65,7 @@ function CardFrame({ width, children, style }: { width: number; children: ReactN
 
 type TokenShape = 'round' | 'gear' | 'square' | 'rectangle';
 
-function TokenFrame({
+export function TokenFrame({
   shape,
   width,
   children,
@@ -144,7 +144,7 @@ const tokenFaceSchema = z.object({
   }),
 });
 
-function tokenShapeOfType(type: string): TokenShape | null {
+export function tokenShapeOfType(type: string): TokenShape | null {
   switch (type) {
     case 'token-round':
       return 'round';

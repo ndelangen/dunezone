@@ -55,3 +55,9 @@ export function useDeleteAsset() {
 export function useSetAssetGroup() {
   return useLiveMutation<{ id: AssetListEntry['id']; group_id: string | null }, void>(api.assets.setGroup);
 }
+
+export function useSetTokenBack() {
+  return useLiveMutation<{ id: AssetListEntry['id']; back_asset_id: AssetListEntry['id'] | null }, void>(
+    api.assets.setTokenBack
+  );
+}

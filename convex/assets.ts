@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 
-import type { Doc } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import { assertKnownAssetType, parseAssetDataForWrite } from './lib/assetInput';
@@ -117,6 +117,8 @@ export const getForEdit = query({
       asset: assetListEntryValidator,
       viewerAccess: assetViewerAccessValidator,
       assignableGroups: v.array(assignedGroupSummaryValidator),
+      /** The token serving as this one's backside, for the types that have one. Null covers both "custom back" and "none". */
+      backToken: v.union(assetListEntryValidator, v.null()),
     })
   ),
   handler: async (ctx, args) => {
@@ -129,10 +131,12 @@ export const getForEdit = query({
       return null;
     }
     const access = await loadAssetAccessBundle(ctx, { kind: 'asset', row });
+    const back = TOKEN_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id) : null;
     return {
       asset: await toListEntry(ctx, row),
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
+      backToken: back ? await toListEntry(ctx, back) : null,
     };
   },
 });
@@ -234,3 +238,78 @@ export const setGroup = mutation({
     });
   },
 });
+
+/** The one relation kind this file writes today. Deck composition joins the same table under its own kind. */
+const TOKEN_BACK = 'token-back';
+
+/** Token Asset types, which are the only things that may sit on either end of a `token-back` relation. */
+const TOKEN_TYPES = new Set(['token-round', 'token-gear', 'token-square', 'token-rectangle']);
+
+/**
+ * Points a token's backside at another token, or clears the reference.
+ *
+ * First writer of `asset_relations`, so it establishes the shape deck composition will follow: which types may link is a rule of this mutation rather than of the schema, exactly as «Deck→card reference mechanism and deletion semantics» decided when it chose one table over per-kind tables.
+ *
+ * `by_from_kind` is a plain index, not unique, so "at most one back per token" is enforced here by clearing what is there before inserting.
+ * Nothing in the table would stop a second row.
+ */
+export const setTokenBack = mutation({
+  args: { id: v.id('assets'), back_asset_id: v.union(v.id('assets'), v.null()) },
+  handler: async (ctx, args) => {
+    const row = await ctx.db.get('assets', args.id);
+    if (!row || row.is_deleted) {
+      throw new Error(`Asset with id ${args.id} not found`);
+    }
+    if (!TOKEN_TYPES.has(row.type)) {
+      throw new Error(`Asset type ${row.type} has no backside`);
+    }
+    await requireAssetUpdate(ctx, args.id, nameOf(row));
+
+    if (args.back_asset_id !== null) {
+      if (args.back_asset_id === args.id) {
+        throw new Error('A token cannot be its own backside');
+      }
+      const back = await ctx.db.get('assets', args.back_asset_id);
+      if (!back || back.is_deleted) {
+        throw new Error(`Asset with id ${args.back_asset_id} not found`);
+      }
+      /* Same shape only: the back is the reverse of this physical disc, so a different shape would render clipped. */
+      if (back.type !== row.type) {
+        throw new Error(`A ${row.type} backside must also be a ${row.type}`);
+      }
+    }
+
+    const existing = await ctx.db
+      .query('asset_relations')
+      .withIndex('by_from_kind', (q) => q.eq('from_asset_id', args.id).eq('kind', TOKEN_BACK))
+      .take(10);
+    for (const relation of existing) {
+      await ctx.db.delete(relation._id);
+    }
+    if (args.back_asset_id !== null) {
+      await ctx.db.insert('asset_relations', {
+        from_asset_id: args.id,
+        to_asset_id: args.back_asset_id,
+        kind: TOKEN_BACK,
+        count: 1,
+      });
+    }
+    await ctx.db.patch(args.id, { updated_at: nowIso() });
+  },
+});
+
+/**
+ * The token a given token uses as its backside, or null.
+ * Filters a soft-deleted target at read time rather than cascading on delete, the rule «Deck→card reference mechanism and deletion semantics» set for every kind in this table.
+ */
+async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>) {
+  const relation = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', assetId).eq('kind', TOKEN_BACK))
+    .first();
+  if (!relation) {
+    return null;
+  }
+  const back = await ctx.db.get('assets', relation.to_asset_id);
+  return back && !back.is_deleted ? back : null;
+}

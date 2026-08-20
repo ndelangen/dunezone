@@ -1,4 +1,4 @@
-import { Treachery } from '../../src/shared/assets/schema';
+import { TokenAsset, Treachery } from '../../src/shared/assets/schema';
 import { ASSET_TYPES } from '../../src/shared/assets/types';
 
 /**
@@ -10,6 +10,13 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
   switch (type) {
     case 'card-treachery': {
       const parsed = Treachery.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    /* The three shapes share one schema: shape is the Asset type, never a field, so only the clip differs downstream. */
+    case 'token-round':
+    case 'token-gear':
+    case 'token-square': {
+      const parsed = TokenAsset.parse(data);
       return { data: parsed, name: parsed.name };
     }
     default:

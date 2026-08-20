@@ -2,6 +2,7 @@ import { isAssetType } from '@shared/assets/types';
 import { createFileRoute, notFound } from '@tanstack/react-router';
 
 import { NoEditorYet } from '../../-assetEditorStates';
+import { TokenCreatePage } from './-tokenCreate';
 import { TreacheryCreatePage } from './-treacheryCreate';
 
 /**
@@ -27,6 +28,11 @@ function CreateAssetPage() {
   switch (type) {
     case 'card-treachery':
       return <TreacheryCreatePage />;
+    /* One editor for all three shapes: shape is the type, and only the proof's clip differs. */
+    case 'token-round':
+    case 'token-gear':
+    case 'token-square':
+      return <TokenCreatePage type={type} />;
     default:
       return <NoEditorYet type={type} />;
   }
