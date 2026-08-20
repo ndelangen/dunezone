@@ -1,9 +1,13 @@
 import { createCacheToken } from '../../convex/lib/publicationHttp';
+import { PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicationTargets';
+import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import { TargetRenderError } from './browser';
-import type { CapturedPdf, PublisherBrowserSession } from './browser';
+import type { CapturedArtifact, PublisherBrowserSession } from './browser';
 import { publicationWorkBudget } from './config';
 import type { PublisherConfig } from './config';
 import type { AssignedPublicationJob, ConvexPublisherClient } from './convex';
+import { assertPublishedJpeg } from './image-encode';
+import type { JpegEncoder } from './image-encode';
 import { recompressCapturedPdf, RECOMPRESSED_PDF_MAX_BYTES } from './pdf-recompress';
 import { putPublishedAsset } from './r2';
 import type { AssetBucket } from './r2';
@@ -16,6 +20,10 @@ export type ItemListDependencies = {
   client: PublisherClient;
   cacheTokenSecret: string;
   openBrowser: () => Promise<BrowserSession>;
+  /**
+   * Required rather than optional: an image type cannot publish without it, and a missing encoder should be a compile error rather than a job that fails ten times in production.
+   */
+  encodeJpeg: JpegEncoder;
   now?: () => number;
   signCacheToken?: typeof createCacheToken;
 };
@@ -32,11 +40,68 @@ export type ItemListExecution = {
   browserSessionId: string | null;
   recompressedImages: number;
   recompressionSavedBytes: number;
+  encodedImages: number;
 };
 
-function assertCapturedSize(captured: CapturedPdf, maximum: number): void {
-  if (captured.bytes.byteLength <= 0 || captured.bytes.byteLength > maximum) {
-    throw new TargetRenderError(`Captured PDF must be between 1 and ${maximum} bytes`);
+function assertPublishableSize(label: string, bytes: Uint8Array, maximum: number): void {
+  if (bytes.byteLength <= 0 || bytes.byteLength > maximum) {
+    throw new TargetRenderError(`${label} must be between 1 and ${maximum} bytes`);
+  }
+}
+
+/**
+ * The capture, turned into the bytes that go to R2.
+ *
+ * The two paths differ in how they treat failure, and deliberately.
+ * Recompression is an optimization on bytes that are already publishable, so a failure logs and publishes the capture untouched.
+ * Encoding is not optional: a PNG stored under a `.jpg` route is the wrong file, so a failure fails the job and the retry ladder takes it from there.
+ */
+async function publishableBytes(
+  captured: CapturedArtifact,
+  assetType: PublicationAssetType,
+  jobId: string,
+  config: PublisherConfig,
+  dependencies: ItemListDependencies,
+  result: ItemListExecution
+): Promise<Uint8Array> {
+  const { capture: plan } = PUBLICATION_TARGETS[assetType];
+  if (captured.output === 'png' && plan.output === 'image') {
+    const encoded = await dependencies.encodeJpeg(captured.bytes, plan.jpegQuality);
+    assertPublishedJpeg(encoded, plan);
+    assertPublishableSize('Encoded JPEG', encoded, plan.maxBytes);
+    result.encodedImages += 1;
+    return encoded;
+  }
+  if (captured.output !== 'pdf' || plan.output !== 'pdf') {
+    throw new TargetRenderError(`Capture produced ${captured.output} for ${assetType}, which publishes ${plan.output}`);
+  }
+  assertPublishableSize('Captured PDF', captured.bytes, config.pdfMaxBytes);
+
+  /*
+   * In-place recompression (#257): lossless-downsample the big RGB portrait rasters;
+   * everything else byte-untouched. A recompression failure never blocks publishing — the
+   * capture is stored as-is.
+   */
+  try {
+    const recompressed = await recompressCapturedPdf(captured.bytes);
+    if (recompressed.bytesAfter > RECOMPRESSED_PDF_MAX_BYTES) {
+      throw new TargetRenderError(`Recompressed PDF must be at most ${RECOMPRESSED_PDF_MAX_BYTES} bytes`);
+    }
+    result.recompressedImages += recompressed.swappedImages;
+    result.recompressionSavedBytes += recompressed.bytesBefore - recompressed.bytesAfter;
+    return recompressed.bytes;
+  } catch (error) {
+    if (error instanceof TargetRenderError) {
+      throw error;
+    }
+    console.warn(
+      JSON.stringify({
+        event: 'publisher.recompression_failed',
+        jobId,
+        message: error instanceof Error ? error.message : String(error),
+      })
+    );
+    return captured.bytes;
   }
 }
 
@@ -64,6 +129,7 @@ export async function executeItemList(
     browserSessionId: null,
     recompressedImages: 0,
     recompressionSavedBytes: 0,
+    encodedImages: 0,
   };
 
   let browser: BrowserSession | undefined;
@@ -80,37 +146,18 @@ export async function executeItemList(
       try {
         const captured = await browser.capture(
           item.jobId,
+          item.assetType,
           Math.min(config.browserCaptureTimeoutMs, budget.workDeadlineAt - now())
         );
-        assertCapturedSize(captured, config.pdfMaxBytes);
         result.rendered += 1;
-
-        /*
-         * In-place recompression (#257): lossless-downsample the big RGB portrait rasters;
-         * everything else byte-untouched. A recompression failure never blocks publishing — the
-         * capture is stored as-is.
-         */
-        let publishedBytes = captured.bytes;
-        try {
-          const recompressed = await recompressCapturedPdf(captured.bytes);
-          if (recompressed.bytesAfter > RECOMPRESSED_PDF_MAX_BYTES) {
-            throw new TargetRenderError(`Recompressed PDF must be at most ${RECOMPRESSED_PDF_MAX_BYTES} bytes`);
-          }
-          publishedBytes = recompressed.bytes;
-          result.recompressedImages += recompressed.swappedImages;
-          result.recompressionSavedBytes += recompressed.bytesBefore - recompressed.bytesAfter;
-        } catch (error) {
-          if (error instanceof TargetRenderError) {
-            throw error;
-          }
-          console.warn(
-            JSON.stringify({
-              event: 'publisher.recompression_failed',
-              jobId: item.jobId,
-              message: error instanceof Error ? error.message : String(error),
-            })
-          );
-        }
+        const publishedBytes = await publishableBytes(
+          captured,
+          item.assetType,
+          item.jobId,
+          config,
+          dependencies,
+          result
+        );
 
         const cacheToken = await signCacheToken(item.assetId, item.assetType, dependencies.cacheTokenSecret);
         await putPublishedAsset(dependencies.bucket, item, captured.payloadHash, cacheToken, publishedBytes);

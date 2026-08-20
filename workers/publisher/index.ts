@@ -5,6 +5,7 @@ import { EXECUTOR_REQUEST_MARGIN_MS, MAX_ASSIGNED_ITEMS, parsePublisherConfig } 
 import { ConvexPublisherClient } from './convex';
 import { handlePublicAssetRequest } from './delivery';
 import { executeItemList } from './executor';
+import { imagesJpegEncoder } from './image-encode';
 import { rendererManifest } from './renderer-manifest.generated';
 import { boundedPublisherTelemetryEvent, publisherBuildIdentity } from './telemetry';
 
@@ -109,6 +110,7 @@ const publisherWorker = {
         client: publisher,
         cacheTokenSecret: env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET,
         openBrowser: async () => await openPublisherBrowser(env.BROWSER, config.captureBaseUrl),
+        encodeJpeg: imagesJpegEncoder(env.IMAGES),
       });
       log({
         event: 'asset_publisher_cron',

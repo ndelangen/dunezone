@@ -1,4 +1,4 @@
-import { FACTION_SHEET_ASSET_TYPE } from './publication';
+import { FACTION_SHEET_ASSET_TYPE, TREACHERY_CARD_ASSET_TYPE } from './publication';
 
 /**
  * Increasing a number invalidates every eligible asset of that type.
@@ -7,4 +7,6 @@ import { FACTION_SHEET_ASSET_TYPE } from './publication';
 export const CHECKED_IN_RENDERER_REVISIONS = {
   // 8: vector train (wayfinder #294) — normalized spaces, unclipped halos, retuned decals.
   [FACTION_SHEET_ASSET_TYPE]: 8,
+  // 1: cards join the pipeline (wayfinder #516). Activating this is also the backfill for cards that predate it.
+  [TREACHERY_CARD_ASSET_TYPE]: 1,
 } as const;

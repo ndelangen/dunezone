@@ -1,5 +1,11 @@
-import { FACTION_SHEET_ASSET_TYPE, factionSheetAssetDataSchema } from '../../src/shared/asset-publishing/publication';
+import {
+  FACTION_SHEET_ASSET_TYPE,
+  factionSheetAssetDataSchema,
+  parsePublicationAssetData,
+  TREACHERY_CARD_ASSET_TYPE,
+} from '../../src/shared/asset-publishing/publication';
 import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/publication';
+import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 
@@ -31,13 +37,13 @@ export async function publicationJobsForAsset(ctx: PublicationReadCtx, assetType
 export async function enqueuePublicationJob(
   ctx: MutationCtx,
   input: {
-    assetType: typeof FACTION_SHEET_ASSET_TYPE;
+    assetType: PublicationAssetType;
     assetId: string;
-    assetData: FactionSheetAssetData;
+    assetData: unknown;
     now?: number;
   }
 ) {
-  const assetData = factionSheetAssetDataSchema.parse(input.assetData);
+  const assetData = parsePublicationAssetData(input.assetType, input.assetData);
   const now = input.now ?? Date.now();
   const jobs = await publicationJobsForAsset(ctx, input.assetType, input.assetId);
   const pending = jobs.find((job) => job.status === 'pending');
@@ -84,6 +90,35 @@ export async function enqueueFactionSheetPublication(
     assetData: factionSheetAssetData(faction._id, faction.slug, faction.data),
     now,
   });
+}
+
+/**
+ * Schedules an Asset's own publication, if its type has one yet.
+ *
+ * A type with no branch here publishes nothing at all, which is deliberate rather than an omission: decks publish their Cardback and tokens publish per face, and both need a capture renderer before a job would have anything to draw.
+ * Returning null keeps a save working for those types instead of failing it over work that has not landed.
+ */
+export async function enqueueAssetPublication(
+  ctx: MutationCtx,
+  asset: {
+    _id: Id<'assets'>;
+    type: string;
+    slug: string;
+    data: unknown;
+  },
+  now?: number
+) {
+  switch (asset.type) {
+    case TREACHERY_CARD_ASSET_TYPE:
+      return await enqueuePublicationJob(ctx, {
+        assetType: TREACHERY_CARD_ASSET_TYPE,
+        assetId: asset._id,
+        assetData: { assetId: asset._id, slug: asset.slug, card: asset.data },
+        now,
+      });
+    default:
+      return null;
+  }
 }
 
 export async function publicationSettings(ctx: PublicationReadCtx) {

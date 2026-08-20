@@ -352,3 +352,65 @@ describe('deck composition', () => {
     expect(relations).toHaveLength(1);
   });
 });
+
+describe('asset publication', () => {
+  test('saving a card schedules its publication, and a second save coalesces onto the same job', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+
+    const afterCreate = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('publication_jobs')
+          .withIndex('by_asset_type_and_asset_id', (q) =>
+            q.eq('asset_type', 'card-treachery').eq('asset_id', created.id)
+          )
+          .collect()
+    );
+    expect(afterCreate).toHaveLength(1);
+    expect(afterCreate[0]?.asset_data).toMatchObject({ assetId: created.id, slug: 'lasgun' });
+
+    await t
+      .withIdentity({ subject: ownerId })
+      .mutation(api.assets.update, { id: created.id, data: cardData('Hunter-Seeker') });
+
+    const afterUpdate = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('publication_jobs')
+          .withIndex('by_asset_type_and_asset_id', (q) =>
+            q.eq('asset_type', 'card-treachery').eq('asset_id', created.id)
+          )
+          .collect()
+    );
+    expect(afterUpdate).toHaveLength(1);
+    expect(afterUpdate[0]?.asset_data).toMatchObject({ slug: 'hunter-seeker' });
+  });
+
+  test('a type with no publication of its own saves without scheduling one', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
+    const deck = await t.withIdentity({ subject: ownerId }).mutation(api.assets.create, {
+      type: 'deck',
+      data: {
+        name: 'House Treachery',
+        cardback: {
+          name: 'Treachery',
+          background: {
+            image: '/image/texture/015.jpg',
+            colors: ['#4B4C0D', '#262B04'],
+            invert: true,
+            definition: 0,
+            influence: 0.5,
+          },
+          image: '/vector/icon/projectile.svg',
+          imageScale: 0.5,
+          imageOffset: [0, 0],
+        },
+      },
+    });
+
+    expect(await t.run(async (ctx) => await ctx.db.query('publication_jobs').collect())).toEqual([]);
+    expect(deck.slug).toBe('house-treachery');
+  });
+});

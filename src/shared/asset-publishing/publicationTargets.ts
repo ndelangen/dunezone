@@ -1,10 +1,10 @@
 /**
  * What each publishable asset type produces, and where it lives.
  *
- * One table with three readers.
- * The worker stores through it (`workers/publisher/r2.ts`) and serves through it (`workers/publisher/delivery.ts`), and
+ * One table with four readers.
+ * The browser driver captures through it (`workers/publisher/browser.ts`), the worker stores through it (`workers/publisher/r2.ts`) and serves through it (`workers/publisher/delivery.ts`), and
  * Convex builds the public URL from it (`convex/assetPublishingStatus.ts`).
- * Publishing a new kind of thing is a row here rather than four files whose string literals have to be kept in agreement by hand.
+ * Publishing a new kind of thing is a row here rather than five files whose string literals have to be kept in agreement by hand.
  *
  * The public path and the R2 key derive from the same two fields on purpose, since they differ only by the
  * `/published` prefix.
@@ -12,9 +12,30 @@
  */
 
 /** The wire vocabulary. Order is not meaningful; `matchPublishedPath` tries every entry. */
-export const PUBLICATION_ASSET_TYPES = ['faction_sheet'] as const;
+export const PUBLICATION_ASSET_TYPES = ['faction_sheet', 'card-treachery'] as const;
 
 export type PublicationAssetType = (typeof PUBLICATION_ASSET_TYPES)[number];
+
+/**
+ * How the browser driver turns a capture page into bytes.
+ *
+ * `pdf` keeps the paged geometry in `PUBLISHER_RENDERER_CONTRACT`, since page count and MediaBox millimetres are facts about PDF rather than about the asset.
+ * `image` carries its own geometry, because the viewport *is* the output: the capture frame draws at its renderer's intrinsic size and the screenshot is that viewport, so one CSS pixel is one image pixel and nothing resamples.
+ */
+export type PublicationCapture =
+  | { readonly output: 'pdf' }
+  | {
+      readonly output: 'image';
+      readonly widthPx: number;
+      readonly heightPx: number;
+      /**
+       * Passed to the Images binding, which exposes quality and nothing else.
+       * A visual call rather than a size target: JPEG turns fine grain into directional streaks long before it turns expensive.
+       */
+      readonly jpegQuality: number;
+      /** A ceiling on the encoded JPEG, sized to catch something pathological rather than to shape the output. */
+      readonly maxBytes: number;
+    };
 
 export type PublicationTarget = {
   /** First path segment under `/published/`, and the R2 prefix. Plural, since it names a collection. */
@@ -24,6 +45,7 @@ export type PublicationTarget = {
   contentType: string;
   /** What a browser calls the file when it saves it, which is not what R2 calls it. */
   downloadFilename: string;
+  capture: PublicationCapture;
 };
 
 export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget> = {
@@ -32,6 +54,15 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     file: 'sheet.pdf',
     contentType: 'application/pdf',
     downloadFilename: 'faction-sheet.pdf',
+    capture: { output: 'pdf' },
+  },
+  /* 900x1263 is the treachery renderer's own size, from `@game/data/sizes`. */
+  'card-treachery': {
+    collection: 'cards',
+    file: 'card.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'treachery-card.jpg',
+    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
   },
 };
 

@@ -2,12 +2,12 @@ import { v } from 'convex/values';
 import SHA256 from 'crypto-js/sha256';
 
 import {
-  FACTION_SHEET_ASSET_TYPE,
-  factionSheetAssetDataSchema,
+  parsePublicationAssetData,
   PUBLICATION_JOB_EXPIRY_MS,
   PUBLICATION_MAX_ATTEMPTS,
   PUBLICATION_MAX_PICKUP,
 } from '../src/shared/asset-publishing/publication';
+import { isPublicationAssetType, PUBLICATION_ASSET_TYPES } from '../src/shared/asset-publishing/publicationTargets';
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
@@ -120,10 +120,17 @@ export const normalizeJobId = internalQuery({
   handler: async (ctx, args) => ctx.db.normalizeId('publication_jobs', args.jobId),
 });
 
+/**
+ * The capture page's whole view of a job.
+ *
+ * The asset type comes off the job's own column rather than out of the payload, so what a snapshot claims to be and what the executor was assigned cannot disagree.
+ * The hash still covers the payload alone, which is what keeps a faction sheet's hash identical to what it was before assets joined the pipeline.
+ */
 export const readJobForRender = internalQuery({
   args: { jobId: v.id('publication_jobs') },
   returns: v.union(
     v.object({
+      assetType: v.union(...PUBLICATION_ASSET_TYPES.map((assetType) => v.literal(assetType))),
       payload: v.any(),
       payloadHash: v.string(),
     }),
@@ -134,11 +141,12 @@ export const readJobForRender = internalQuery({
     if (job?.status !== 'in_progress' || (job.expires_at ?? 0) <= Date.now()) {
       return null;
     }
-    if (job.asset_type !== FACTION_SHEET_ASSET_TYPE) {
+    if (!isPublicationAssetType(job.asset_type)) {
       return null;
     }
-    const payload = factionSheetAssetDataSchema.parse(job.asset_data);
+    const payload = parsePublicationAssetData(job.asset_type, job.asset_data);
     return {
+      assetType: job.asset_type,
       payload,
       payloadHash: SHA256(JSON.stringify(payload)).toString(),
     };

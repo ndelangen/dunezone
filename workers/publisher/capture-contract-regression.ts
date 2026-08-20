@@ -4,25 +4,49 @@ import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
 
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
+import { PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicationTargets';
+import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
-import { assertCapturePhysicalBounds, waitForCaptureMarkerSettled } from './capture-lifecycle';
+import {
+  assertCaptureImageBounds,
+  assertCapturePhysicalBounds,
+  waitForCaptureMarkerSettled,
+} from './capture-lifecycle';
+import { pngDimensions } from './image-inspection';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { RECOMPRESSED_PDF_MAX_BYTES, recompressCapturedPdf } from './pdf-recompress';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const publisherDist = path.join(repositoryRoot, 'workers/publisher/dist');
-const payload = {
+
+function envelope(assetType: string, payload: unknown) {
+  return {
+    ok: true,
+    assetType,
+    payload,
+    payloadHash: new Bun.CryptoHasher('sha256').update(JSON.stringify(payload)).digest('hex'),
+  };
+}
+
+const factionSnapshot = envelope('faction_sheet', {
   factionId: 'k17publisherContractFaction',
   slug: 'publisher-contract-faction',
   faction: assetPublishingFaction,
-};
-const payloadHash = new Bun.CryptoHasher('sha256').update(JSON.stringify(payload)).digest('hex');
-const snapshot = {
-  ok: true,
-  payload,
-  payloadHash,
-};
+});
+const cardSnapshot = envelope('card-treachery', {
+  assetId: 'k17publisherContractCard',
+  slug: 'publisher-contract-card',
+  card: publishingTreacheryCard,
+});
+
+/**
+ * Which snapshot the capture page will be handed next.
+ * The checks run one at a time against one server, so a module-level switch is enough to drive the page through every
+ * Publication asset type without standing up a server per type.
+ */
+let activeSnapshot: ReturnType<typeof envelope> = factionSnapshot;
+const payloadHash = factionSnapshot.payloadHash;
 
 function invariant(condition: unknown, message: string): asserts condition {
   if (!condition) {
@@ -35,7 +59,7 @@ const server = Bun.serve({
   async fetch(request) {
     const pathname = decodeURIComponent(new URL(request.url).pathname);
     if (pathname === CAPTURE_PROTOCOL.paths.snapshot) {
-      return Response.json(snapshot, { headers: { 'Cache-Control': 'no-store' } });
+      return Response.json(activeSnapshot, { headers: { 'Cache-Control': 'no-store' } });
     }
     const relative = pathname === '/' ? CAPTURE_PROTOCOL.paths.bundleDocument.slice(1) : pathname.replace(/^\/+/, '');
     if (relative.split('/').includes('..')) {
@@ -178,11 +202,56 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
   }
 }
 
+/**
+ * The image half of the capture contract, in real Chromium against the real bundle.
+ *
+ * It proves the three things the driver relies on and unit tests cannot reach: that the page dispatches on the snapshot's asset type, that the frame lands at the document origin at exactly its declared size, and that a viewport-sized screenshot therefore comes back at exactly those pixels.
+ * The JPEG encode is not here, because it belongs to the Images binding rather than to the browser.
+ */
+async function checkPublisherCardImage(browser: Browser): Promise<void> {
+  const { capture } = PUBLICATION_TARGETS['card-treachery'];
+  invariant(capture.output === 'image', 'Treachery cards must publish as an image');
+  activeSnapshot = cardSnapshot;
+  const page = await browser.newPage({
+    viewport: { width: capture.widthPx, height: capture.heightPx },
+    locale: 'en-US',
+    timezoneId: 'UTC',
+  });
+  const errors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      errors.push(`console: ${message.text()}`);
+    }
+  });
+  page.on('pageerror', (error) => errors.push(`page: ${error.message}`));
+  try {
+    const result = await openCapture(page);
+    invariant(result.state === 'ready', `Card capture reported ${result.state}: ${result.detail}`);
+    invariant(result.payloadHash === cardSnapshot.payloadHash, 'Card capture did not expose the exact payload hash');
+    invariant(errors.length === 0, `Card capture emitted errors: ${errors.join(' | ')}`);
+    await assertCaptureImageBounds(page, capture);
+
+    const screenshot = new Uint8Array(await page.screenshot({ type: 'png', scale: 'css' }));
+    const dimensions = pngDimensions(screenshot);
+    invariant(
+      dimensions.widthPx === capture.widthPx && dimensions.heightPx === capture.heightPx,
+      `Card capture produced a ${dimensions.widthPx}x${dimensions.heightPx} PNG`
+    );
+    console.log(
+      `Publisher card capture Chromium regression passed: ${dimensions.widthPx}x${dimensions.heightPx}, ${screenshot.byteLength} bytes`
+    );
+  } finally {
+    activeSnapshot = factionSnapshot;
+    await page.close();
+  }
+}
+
 const browser = await chromium.launch({ headless: true });
 try {
   await checkCorruptSvgImage(browser);
   await checkCorruptExternalUse(browser);
   await checkPublisherPdf(browser);
+  await checkPublisherCardImage(browser);
 } finally {
   await browser.close();
   server.stop(true);

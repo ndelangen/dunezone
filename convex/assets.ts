@@ -13,6 +13,7 @@ import {
 import { assetViewerAccessValidator, assignedGroupSummaryValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
+import { enqueueAssetPublication } from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -180,6 +181,7 @@ export const create = mutation({
       is_deleted: false,
       group_id: null,
     });
+    await enqueueAssetPublication(ctx, { _id: id, type: args.type, slug, data: parsed.data });
     return { id, slug };
   },
 });
@@ -203,6 +205,7 @@ export const update = mutation({
       await assertAssetSlugAvailable(ctx, row.type, slug);
     }
     await ctx.db.patch(args.id, { data: parsed.data, slug, updated_at: nowIso() });
+    await enqueueAssetPublication(ctx, { _id: args.id, type: row.type, slug, data: parsed.data });
     return { id: args.id, slug };
   },
 });

@@ -11,13 +11,22 @@ export type RendererManifestEntry = {
 
 export const RENDERER_RUNTIME_CLOSURE_PATHS = [
   'workers/publisher/browser.ts',
+  'workers/publisher/capture-lifecycle.ts',
   'workers/publisher/capture-route.ts',
   'workers/publisher/http.ts',
   'workers/publisher/index.ts',
   'workers/publisher/renderer-contract.ts',
   'workers/publisher/pdf-inspection.ts',
   'workers/publisher/pdf-recompress.ts',
+  'workers/publisher/image-encode.ts',
+  'workers/publisher/image-inspection.ts',
   'src/shared/asset-publishing/publisher-diagnostics.ts',
+  /*
+   * The capture bundle imports this too, so its bytes already reach `code` that way.
+   * Listed anyway: it decides capture geometry and JPEG quality, and a future capture page that stopped importing it
+   * would drop those numbers out of Renderer identity without anything noticing.
+   */
+  'src/shared/asset-publishing/publicationTargets.ts',
 ] as const;
 
 /**

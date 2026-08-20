@@ -1,9 +1,12 @@
 import { z } from 'zod';
 
+import { Treachery } from '../assets/schema';
 import { FactionInputSchema, FactionRowSlugSchema } from '../factions/schema';
 import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
+import type { PublicationAssetType } from './publicationTargets';
 
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
+export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
 export const PUBLICATION_MAX_ATTEMPTS = 10;
 export const PUBLICATION_MAX_PICKUP = 20;
 export const PUBLICATION_JOB_EXPIRY_MS = 5 * 60 * 1000;
@@ -15,6 +18,29 @@ export const factionSheetAssetDataSchema = z.strictObject({
   slug: FactionRowSlugSchema,
   faction: FactionInputSchema,
 });
+
+/**
+ * Everything the capture page needs to draw one treachery card, and nothing the renderer would ignore.
+ * The slug rides along for diagnostics only: the published URL keys on the id, so a rename never moves it.
+ */
+export const treacheryCardAssetDataSchema = z.strictObject({
+  assetId: z.string().min(1),
+  slug: z.string().min(1),
+  card: Treachery,
+});
+
+/**
+ * The one place a Publication asset type is turned back into the shape its capture page expects.
+ * Convex parses through it before serving a snapshot, and the capture page parses the same schemas on receipt, so a job whose stored `asset_data` no longer satisfies its type fails at the boundary rather than rendering something half-formed.
+ */
+const PUBLICATION_ASSET_DATA_SCHEMAS = {
+  [FACTION_SHEET_ASSET_TYPE]: factionSheetAssetDataSchema,
+  [TREACHERY_CARD_ASSET_TYPE]: treacheryCardAssetDataSchema,
+} as const satisfies Record<PublicationAssetType, z.ZodType>;
+
+export function parsePublicationAssetData(assetType: PublicationAssetType, data: unknown): unknown {
+  return PUBLICATION_ASSET_DATA_SCHEMAS[assetType].parse(data);
+}
 
 const publicationJobRequestSchema = z.strictObject({
   schemaVersion: z.literal(1),

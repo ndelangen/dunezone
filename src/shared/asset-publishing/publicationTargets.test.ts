@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import {
   matchPublishedPath,
   PUBLICATION_ASSET_TYPES,
+  PUBLICATION_TARGETS,
   publishedHref,
   publishedPath,
   publishedR2Key,
@@ -33,6 +34,14 @@ describe('publication targets', () => {
     expect(matchPublishedPath(`/published/cards/${factionId}/sheet.pdf`)).toBeNull();
     /* An id position may not carry a path of its own, or the key escapes its prefix. */
     expect(matchPublishedPath(`/published/factions/nested/${factionId}/sheet.pdf`)).toBeNull();
+  });
+
+  test('no two types share a location', () => {
+    /* `matchPublishedPath` matches on collection and file alone, so a duplicate pair would resolve to whichever row came first. */
+    const locations = PUBLICATION_ASSET_TYPES.map(
+      (assetType) => `${PUBLICATION_TARGETS[assetType].collection}/${PUBLICATION_TARGETS[assetType].file}`
+    );
+    expect(new Set(locations).size).toBe(locations.length);
   });
 
   test('a key that would escape its prefix is refused', () => {

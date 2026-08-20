@@ -1,7 +1,7 @@
 /* Neutralize the app's page decoration while a sheet document is on screen. Keyed on the
    `data-faction-sheet` attribute, which both document surfaces set on `html`: the preview route
    (`routes/preview/sheet/$factionSlug.tsx`) and the capture page
-   (`print/capture/PublisherFactionSheetCapture.tsx`). */
+   (`print/capture/PublisherCapture.tsx`). */
 html[data-faction-sheet] {
   background-color: #fff;
   background-image: none;

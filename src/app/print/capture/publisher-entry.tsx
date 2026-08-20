@@ -10,7 +10,7 @@ import '@fontsource/caladea/latin-400-italic.css';
 import '@fontsource/caladea/latin-700.css';
 import '@fontsource/caladea/latin-700-italic.css';
 import './capture-page.css';
-import { PublisherFactionSheetCapture } from './PublisherFactionSheetCapture';
+import { PublisherCapture } from './PublisherCapture';
 
 const root = document.querySelector('#root');
 if (!root) {
@@ -19,6 +19,6 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <PublisherFactionSheetCapture />
+    <PublisherCapture />
   </StrictMode>
 );
