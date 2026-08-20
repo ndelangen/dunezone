@@ -526,10 +526,58 @@ async function decksHolding(
 }
 
 /**
- * One tile on the browse grid: a listing entry plus the single derived fact its caption carries.
- * Derived here rather than added to `assetListEntryValidator`, because the landing page draws piles of every type and would pay an index scan per row for a number it never shows.
+ * Enough of a container's member to draw its face, and nothing more.
+ *
+ * Deliberately not `assetListEntryValidator`: that shape carries an owner, which costs a `profiles` read per member, and a browse page of two hundred bundles would pay six hundred of them for a name no tile shows.
  */
-const assetBrowseEntryValidator = assetListEntryValidator.extend({ deckCount: v.number() });
+const memberPreviewValidator = v.object({
+  id: v.id('assets'),
+  type: v.string(),
+  name: v.string(),
+  data: v.any(),
+});
+
+/** How many members a tile draws above its container. «What a bundle looks like» chose three. */
+const MEMBER_PREVIEW_LIMIT = 3;
+
+/**
+ * How far into a container's relations this looks to find those three.
+ * A soft-deleted member has to be read before it can be skipped, so a container whose first members were deleted would otherwise draw two faces, or none, with nothing on the tile able to explain why.
+ * The bound sits on the index read, while the row reads still stop at three, which is where the cost actually is.
+ */
+const MEMBER_PREVIEW_SCAN = 12;
+
+/**
+ * The first few members of one container, in relation order, soft-deleted members skipped.
+ * The bulk forward read «Build the relation read paths for the asset detail page» left to whoever needed it first.
+ */
+async function memberPreviews(ctx: QueryCtx, containerId: Id<'assets'>, kind: string) {
+  const relations = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', containerId).eq('kind', kind))
+    .take(MEMBER_PREVIEW_SCAN);
+
+  const previews: Infer<typeof memberPreviewValidator>[] = [];
+  for (const relation of relations) {
+    if (previews.length === MEMBER_PREVIEW_LIMIT) {
+      break;
+    }
+    const member = await ctx.db.get('assets', relation.to_asset_id);
+    if (member && !member.is_deleted) {
+      previews.push({ id: member._id, type: member.type, name: nameOf(member), data: member.data });
+    }
+  }
+  return previews;
+}
+
+/**
+ * One tile on the browse grid: a listing entry plus the two derived facts it draws.
+ * Derived here rather than added to `assetListEntryValidator`, because the landing page draws piles of every type and would pay an index scan per row for facts it never shows.
+ */
+const assetBrowseEntryValidator = assetListEntryValidator.extend({
+  deckCount: v.number(),
+  members: v.array(memberPreviewValidator),
+});
 
 /**
  * How many rows one browse page holds.
@@ -543,6 +591,17 @@ const BROWSE_LIMIT = PER_TYPE_LIMIT;
  */
 function holdsDeckMembership(type: string): boolean {
   return isAssetType(type) && ASSET_TYPES[type].category === 'cards';
+}
+
+/**
+ * Whether a tile on this type's browse page draws the members standing behind it.
+ *
+ * Only bundles, and the relation kind comes off `CONTAINER_KINDS` rather than being restated here.
+ * A deck is a container too and is deliberately absent: it wears a Cardback, so it already has a face of its own, while a bundle's band is all it has, which is why «What a bundle looks like» put members above it.
+ * Every other type skips the relation pass entirely rather than reading `asset_relations` once per row to learn it holds nothing.
+ */
+function memberPreviewKind(type: string): string | null {
+  return type === 'bundle' ? (CONTAINER_KINDS[type]?.kind ?? null) : null;
 }
 
 /**
@@ -571,6 +630,7 @@ export const browsePage = query({
     const page = truncated ? rows.slice(0, BROWSE_LIMIT) : rows;
 
     const counted = holdsDeckMembership(args.type);
+    const previewKind = memberPreviewKind(args.type);
     /* One deck holds many of the cards on a page, so its row is read once and reused across the whole grid. */
     const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
     const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
@@ -580,7 +640,9 @@ export const browsePage = query({
       if (counted && deckCount === 0) {
         inNoDeckCount += 1;
       }
-      entries.push({ ...(await toListEntry(ctx, row)), deckCount });
+      /* No cache across rows here, unlike `decks`: two bundles sharing a token is the exception, where a deck shared across a page of cards is the rule. */
+      const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
+      entries.push({ ...(await toListEntry(ctx, row)), deckCount, members });
     }
 
     return { entries, inNoDeckCount: counted ? inNoDeckCount : null, truncated };

@@ -32,6 +32,7 @@ import type { ReactNode } from 'react';
 import { loadAssetPage, useAssetPage, useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
+import type { AssetFaceMember } from '@app/widgets/asset-face/AssetFace';
 
 import styles from './index.module.css';
 
@@ -115,15 +116,18 @@ function ScaledFace({
   data,
   name,
   side,
+  members = [],
 }: {
   type: string;
   data: unknown;
   name: string;
   side?: 'front' | 'back';
+  members?: AssetFaceMember[];
 }) {
   return (
-    <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(type)}>
-      <AssetFace type={type} data={data} name={name} width={900} side={side} />
+    /* A container's members stand above it and make the drawing taller, so the canvas is asked for the block's height rather than the face's. */
+    <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(type, members.length)}>
+      <AssetFace type={type} data={data} name={name} width={900} side={side} members={members} />
     </CanvasScale>
   );
 }
@@ -143,7 +147,13 @@ function AssetFaces({ page }: { page: AssetPage }) {
     /* Still a stage, uncaptioned: one face has nothing to distinguish, but it needs the same reading-size cap. */
     return (
       <FaceStage>
-        <ScaledFace type={asset.type} data={asset.data} name={asset.name} />
+        {/* A deck's cards reach `AssetFace` here too and are ignored, which is that prop's documented contract rather than an accident. */}
+        <ScaledFace
+          type={asset.type}
+          data={asset.data}
+          name={asset.name}
+          members={page.members.map(({ member }) => member)}
+        />
       </FaceStage>
     );
   }

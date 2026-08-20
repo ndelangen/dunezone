@@ -625,6 +625,33 @@ describe('bundles', () => {
     ).rejects.toThrow('holds tokens, not card-treachery');
   });
 
+  test('a browse tile carries the faces of the first three live members, and a type that holds nothing carries none', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const bundle = await owner.mutation(api.assets.create, { type: 'bundle', data: bundleData('Tech Tokens') });
+    const names = ['Deleted', 'Shield', 'Lasgun', 'Snooper', 'Fourth'];
+    const tokens = [];
+    for (const name of names) {
+      const token = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData(name) });
+      await owner.mutation(api.assets.setMemberCount, { container_id: bundle.id, member_id: token.id, count: 1 });
+      tokens.push(token);
+    }
+    /* The first member goes, so what follows proves the read looks past a deleted row rather than stopping three rows in. */
+    await owner.mutation(api.assets.softDelete, { id: tokens[0]!.id });
+
+    const bundles = await t.query(api.assets.browsePage, { type: 'bundle' });
+    const members = bundles.entries[0]!.members;
+    expect(members.map((member) => member.name)).toEqual(['Shield', 'Lasgun', 'Snooper']);
+    /* `type` and `data` are the whole point of this shape: without both, a tile can name a member but not draw it. */
+    expect(members.map((member) => member.type)).toEqual(['token-round', 'token-round', 'token-round']);
+    expect(members.every((member) => member.data.front)).toBe(true);
+
+    /* A card holds nothing, so its page skips the relation pass rather than reading it once per row to learn zero. */
+    const cards = await t.query(api.assets.browsePage, { type: 'card-treachery' });
+    expect(cards.entries.every((entry) => entry.members.length === 0)).toBe(true);
+  });
+
   test('a bundle publishes nothing, unlike every other live type', async () => {
     const t = convexTest(schema, modules);
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Bundle owner' }));

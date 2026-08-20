@@ -23,6 +23,33 @@ import type { BundleBandData } from './BundleContainer';
 
 export const CARD_ASPECT = CARD_SIZE.height / CARD_SIZE.width;
 
+/** Enough of a container's member to draw its face. The browse read and the detail page's member list both supply this shape. */
+export type AssetFaceMember = { id: string; type: string; name: string; data: unknown };
+
+/** A member draws at 44% of the container's width, so three read as "a few" rather than as a crowd. */
+const MEMBER_WIDTH_RATIO = 0.44;
+
+/** A member rises this much of its own width above the container's top edge. */
+const MEMBER_RISE_RATIO = 0.42;
+
+/**
+ * Where each peeking member sits, as a fraction of the container's width, plus its tilt.
+ * Lifted from the landing page's `TokenStack`: a few things leaning out of a pile is the app's existing idiom rather than a second one invented here.
+ */
+const MEMBER_PEEK = [
+  { left: -0.26, rotation: -7 },
+  { left: 0, rotation: 3 },
+  { left: 0.26, rotation: 8 },
+];
+
+/** How many members peek. «What a bundle looks like» chose three, and the read that feeds this caps at the same number. */
+const PEEKING_LIMIT = MEMBER_PEEK.length;
+
+/** The height a peeking row adds above a container, as a multiple of the container's width. Nothing peeking costs nothing. */
+function bundleHeadroom(memberCount: number): number {
+  return memberCount > 0 ? MEMBER_WIDTH_RATIO * MEMBER_RISE_RATIO : 0;
+}
+
 /** A rectangle token is wider than it is tall; every other token shape is square. */
 const RECTANGLE_TOKEN_ASPECT = 0.62;
 
@@ -225,10 +252,13 @@ export type AssetFaceSide = 'front' | 'back';
 /**
  * The height of a type's face as a multiple of its width.
  * One place, because the frames below and every caller that has to reserve space for a face were otherwise deriving the same three numbers separately.
+ *
+ * `memberCount` matters only for a bundle, whose peeking members stand above the container and make the drawn block taller than the container alone.
+ * A caller that passes none gets the container's own ratio, which is what every other type and every memberless bundle draws.
  */
-export function assetFaceAspect(type: string): number {
+export function assetFaceAspect(type: string, memberCount = 0): number {
   if (type === 'bundle') {
-    return BUNDLE_ASPECT;
+    return BUNDLE_ASPECT + bundleHeadroom(memberCount);
   }
   const shape = tokenShapeOfType(type);
   switch (shape) {
@@ -270,6 +300,52 @@ function tokenBottom(face: DrawableTokenFace): string | undefined {
 }
 
 /**
+ * A container's first few members, rising from behind its front edge.
+ *
+ * They are the caller's to supply, since only a caller holding those rows has them, which is why `BundleContainer` draws none.
+ * The nested `AssetFace` is passed no members of its own, so a member draws its bare face and the recursion stops one level down whatever it holds.
+ */
+function PeekingMembers({ width, members }: { width: number; members: AssetFaceMember[] }) {
+  const memberWidth = width * MEMBER_WIDTH_RATIO;
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'start center' }}>
+      {members.slice(0, PEEKING_LIMIT).map((member, index) => {
+        const placement = MEMBER_PEEK[index] ?? MEMBER_PEEK[1]!;
+        return (
+          <div
+            key={member.id}
+            style={{
+              gridArea: '1 / 1',
+              transform: `translate(${placement.left * width}px, ${-memberWidth * MEMBER_RISE_RATIO}px) rotate(${placement.rotation}deg)`,
+            }}
+          >
+            <AssetFace type={member.type} data={member.data} name={member.name} width={memberWidth} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * A bundle's block: the container, with its members standing behind it.
+ *
+ * The block is taller than the container by exactly the headroom the peeking row needs, and `assetFaceAspect` reports that same total from the same function, so a caller reserving space and this drawing it cannot drift apart.
+ */
+function BundleBlock({ width, members, children }: { width: number; members: AssetFaceMember[]; children: ReactNode }) {
+  const height = width * BUNDLE_ASPECT;
+  return (
+    <div style={{ position: 'relative', width, height: height + width * bundleHeadroom(members.length) }}>
+      {/* Pinned to the container's own box rather than the block's, so the two stay aligned whenever the headroom changes. */}
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height }}>
+        {members.length > 0 ? <PeekingMembers width={width} members={members} /> : null}
+        <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Renders one asset's face at the given width, framed and clipped per its type.
  * Unknown types and unrenderable data come back as the neutral face, never a crash.
  *
@@ -282,12 +358,22 @@ export function AssetFace({
   name,
   width,
   side = 'front',
+  members = [],
 }: {
   type: string;
   data: unknown;
   name: string;
   width: number;
   side?: AssetFaceSide;
+  /**
+   * A container's first few members, drawn peeking above it.
+   *
+   * Only `bundle` reads this, the way only tokens read `side`.
+   * A deck is a container too and ignores it, because a deck wears a Cardback and is recognisable on sight.
+   * «What a bundle looks like» gave the peeking members to the one type with no face of its own.
+   * Empty draws the container alone, which is also what a bundle nobody has filled draws.
+   */
+  members?: AssetFaceMember[];
 }) {
   if (type === 'card-treachery') {
     const parsed = TreacheryAsset.safeParse(data);
@@ -303,13 +389,16 @@ export function AssetFace({
 
   if (type === 'bundle') {
     const parsed = bundleFaceSchema.safeParse(data);
-    if (parsed.success) {
-      return (
-        /* the stored composition is a Background; the listing trusts storage and the renderer takes it as-is */
-        <BundleContainer band={parsed.data.band as BundleBandData} name={name} width={width} />
-      );
-    }
-    return <NeutralFace name={name} width={width} aspect={BUNDLE_ASPECT} />;
+    return (
+      <BundleBlock width={width} members={members}>
+        {parsed.success ? (
+          /* the stored composition is a Background; the listing trusts storage and the renderer takes it as-is */
+          <BundleContainer band={parsed.data.band as BundleBandData} name={name} width={width} />
+        ) : (
+          <NeutralFace name={name} width={width} aspect={BUNDLE_ASPECT} />
+        )}
+      </BundleBlock>
+    );
   }
 
   if (type === 'deck') {

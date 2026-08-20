@@ -201,8 +201,9 @@ function BrowseTile({ entry }: { entry: AssetBrowseEntry }) {
       >
         <Stack gap={6}>
           <div className={styles.tileArt}>
-            <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(entry.type)}>
-              <AssetFace type={entry.type} data={entry.data} name={entry.name} width={900} />
+            {/* A container's members stand above it and make the drawing taller, so the canvas is asked for the block's height rather than the face's. */}
+            <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(entry.type, entry.members.length)}>
+              <AssetFace type={entry.type} data={entry.data} name={entry.name} width={900} members={entry.members} />
             </CanvasScale>
           </div>
           <Stack gap={0}>
