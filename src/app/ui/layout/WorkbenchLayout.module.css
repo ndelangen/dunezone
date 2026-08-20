@@ -60,12 +60,21 @@
   }
 }
 
+/* The narrowest step stacks instead of hiding: these rails hold the artifact being drawn,
+   and an author composing blind was ruled out (Norbert, 2026-08-21). The desk stops following,
+   since sticky beside nothing is just an overlap, and the proof rides centred at a hand's width. */
 @container workbench (max-width: 44em) {
   .workbench {
     display: block;
   }
 
   .rail {
-    display: none;
+    max-width: 24rem;
+    margin: var(--mantine-spacing-md) auto 0;
+    padding-left: 0;
+  }
+
+  .desk {
+    position: static;
   }
 }

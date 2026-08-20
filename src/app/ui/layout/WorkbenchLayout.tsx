@@ -14,7 +14,7 @@ function Rail(_: PropsWithChildren): null {
 
 /**
  * The two-column region of the workbench: chapters beside a sticky artifact rail.
- * The rail narrows in steps as its own container narrows and leaves entirely below 44em;
+ * The rail narrows in steps as its own container narrows and drops below the chapters at the narrowest step, capped and centred, rather than hiding what is being drawn;
  * its desk stretches children to the rail's width, so a proof fills the rail rather than shrinking to content.
  * The desk holds however many artifacts an editor stacks, and the count may change while mounted: a token draws two faces and loses one when its backside becomes a reference.
  * The blur handler rides the grid because settling a draft when focus leaves the form is the editors' shared idiom.
