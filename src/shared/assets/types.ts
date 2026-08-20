@@ -6,7 +6,7 @@
 
 const ASSET_CATEGORIES = ['cards', 'decks', 'tokens', 'boards'] as const;
 
-type AssetCategory = (typeof ASSET_CATEGORIES)[number];
+export type AssetCategory = (typeof ASSET_CATEGORIES)[number];
 
 type AssetTypeStatus = 'live' | 'planned';
 
@@ -43,6 +43,12 @@ export const ASSET_TYPES = {
 } as const satisfies Record<string, AssetTypeDefinition>;
 
 export type AssetType = keyof typeof ASSET_TYPES;
+
+/**
+ * Every Asset type, in the registry's own declaration order.
+ * That order is curated rather than incidental, so a surface arranging types by category reads them from here instead of restating a list this registry already holds.
+ */
+export const ASSET_TYPE_KEYS = Object.keys(ASSET_TYPES) as AssetType[];
 
 /** The Asset type is the URL vocabulary: `/assets/{type}/…` uses these discriminators verbatim. */
 export function isAssetType(value: string): value is AssetType {

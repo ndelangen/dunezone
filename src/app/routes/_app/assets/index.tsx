@@ -1,6 +1,6 @@
 import { Badge, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
-import { ASSET_TYPES } from '@shared/assets/types';
-import type { AssetType } from '@shared/assets/types';
+import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
+import type { AssetCategory, AssetType } from '@shared/assets/types';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -49,24 +49,25 @@ function useSlotWidth() {
   return { ref: setNode, width };
 }
 
-/** the ledger's three rows: each names the Asset types whose piles it holds */
-const PILE_GROUPS: { label: string; types: AssetType[] }[] = [
-  {
-    label: 'Cards & decks',
-    types: [
-      'card-treachery',
-      'card-spice',
-      'card-custom',
-      'card-leaderability',
-      'card-storm',
-      'card-stronghold',
-      'card-nexus',
-      'deck',
-    ],
-  },
-  { label: 'Tokens', types: ['token-round', 'token-gear', 'token-square', 'token-rectangle'] },
-  { label: 'Boards', types: ['board'] },
+/**
+ * The ledger's three rows, each naming the categories whose piles it holds.
+ * Written out rather than derived from the category list, because the rows do not map one to one onto categories: cards and decks share a row.
+ */
+const PILE_ROWS: { label: string; categories: AssetCategory[] }[] = [
+  { label: 'Cards & decks', categories: ['cards', 'decks'] },
+  { label: 'Tokens', categories: ['tokens'] },
+  { label: 'Boards', categories: ['boards'] },
 ];
+
+/**
+ * Which types each row draws.
+ * Derived rather than listed, because a hand-written list is a second answer to which types exist and it had already drifted: `bundle` went live and never reached this page, so a live type had no pile and no way in from the landing.
+ * Order comes from `ASSET_TYPES`' own declaration order, which is the curated order the old list already had.
+ */
+const PILE_GROUPS = PILE_ROWS.map(({ label, categories }) => ({
+  label,
+  types: ASSET_TYPE_KEYS.filter((type) => categories.includes(ASSET_TYPES[type].category)),
+}));
 
 function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
   const fan = cards.slice(0, 5);
