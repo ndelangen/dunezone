@@ -137,15 +137,19 @@ function liveFetcher(
 }
 
 describe('Cloudflare live drift check', () => {
-  test('keeps the PR workflow on trusted base code with a dedicated read credential', () => {
+  test('keeps the required audit workflow on trusted code for PRs and merge groups', () => {
     const workflow = readFileSync(path.resolve(process.cwd(), '.github/workflows/cloudflare-live-drift.yml'), 'utf8');
     expect(workflow).toContain('pull_request_target:');
+    expect(workflow).toContain('merge_group:');
+    expect(workflow).toContain('types: [checks_requested]');
     expect(workflow).toContain('branches: [main]');
     expect(workflow).toContain('types: [opened, synchronize, reopened, ready_for_review, edited]');
     expect(workflow).not.toContain("github.event.pull_request.base.ref == 'main'");
     expect(workflow).toMatch(/actions\/checkout@[0-9a-f]{40} # v\d/);
     expect(workflow).toMatch(/oven-sh\/setup-bun@[0-9a-f]{40} # v[\d.]+/);
-    expect(workflow).toContain(`ref: $${'{'}{ github.sha }}`);
+    expect(workflow).toContain(
+      `ref: $${'{'}{ github.event_name == 'merge_group' && github.event.repository.default_branch || github.sha }}`
+    );
     expect(workflow).not.toContain('github.event.pull_request.base.sha');
     expect(workflow).toContain('persist-credentials: false');
     expect(workflow).toContain(`CLOUDFLARE_API_TOKEN: $${'{'}{ secrets.CLOUDFLARE_READ_API_TOKEN }}`);
