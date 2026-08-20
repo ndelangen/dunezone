@@ -35,6 +35,7 @@
     "migrations:narrow-check": "bun run ./scripts/migration-guards.ts narrow-check --prod",
     "migrations:run-local-required": "bun run migrations:dev-strict",
     "migrations:static-check": "bun run ./scripts/migration-guards.ts static-check",
+    "prototype:rulebook-conflicts": "VITE_CONVEX_URL=https://prototype.convex.cloud APP_DEV_PORT=4173 bun run app:dev",
     "provision": "bun run ./scripts/provision.ts",
     "publisher:assets": "bun run app:build && bun run build-storybook && vite build --config workers/publisher/vite.config.ts && bun run ./scripts/assemble-publisher-assets.ts",
     "publisher:assets:check": "bun run ./scripts/assemble-publisher-assets.ts --check-only",
