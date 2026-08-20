@@ -136,6 +136,9 @@ function DeckPile({ entries, slot }: { entries: AssetListEntry[]; slot: number }
   );
 }
 
+/** The height a token pile's box reserves, and the width a square-shaped token draws at. */
+const TOKEN_PILE_FACE = 96;
+
 /** different tokens dropped into a loose stack */
 const STACK_PLACEMENTS = [
   { top: 42, left: -3, rot: -5 },
@@ -147,8 +150,26 @@ const STACK_PLACEMENTS = [
 function TokenStack({ entries, width }: { entries: AssetListEntry[]; width: number }) {
   const shown = entries.slice(0, 4);
   const placements = STACK_PLACEMENTS.slice(STACK_PLACEMENTS.length - shown.length);
+  const type = shown[0]?.type ?? '';
+  /*
+   * A bundle is a box and a box sits flat, so its pile takes the offsets and drops the tilt.
+   * The other token shapes are counters, and a leaning counter is what makes a pile read as a pile.
+   */
+  const straight = type === 'bundle';
+  /*
+   * Every token pile reserves the same box and centres its face in it, so the row shares one
+   * centreline whatever each face's proportions are.
+   *
+   * It used to size the box from the pile's own width, which is not a shared number: a disc draws at
+   * `TOKEN_PILE_FACE` and an enhance token draws to its grid slot. Bottom-aligned boxes of different
+   * heights then put every face on a different line, worst for the widest and shortest one
+   * (Norbert, 2026-08-20).
+   */
+  const faceHeight = width * assetFaceAspect(type);
+  const boxHeight = TOKEN_PILE_FACE + (placements[0]?.top ?? 0) + 6;
+  const centring = (TOKEN_PILE_FACE - faceHeight) / 2;
   return (
-    <div style={{ position: 'relative', width: width + 26, height: width + (placements[0]?.top ?? 0) + 6 }}>
+    <div style={{ position: 'relative', width: width + 26, height: boxHeight }}>
       {shown.map((entry, i) => {
         const placement = placements[i] ?? { top: 0, left: 0, rot: 0 };
         return (
@@ -156,9 +177,9 @@ function TokenStack({ entries, width }: { entries: AssetListEntry[]; width: numb
             key={entry.id}
             style={{
               position: 'absolute',
-              top: placement.top,
+              top: placement.top + centring,
               left: 6 + placement.left,
-              transform: `rotate(${placement.rot}deg)`,
+              transform: straight ? undefined : `rotate(${placement.rot}deg)`,
             }}
           >
             <AssetFace type={entry.type} data={entry.data} name={entry.name} width={width} />
@@ -229,7 +250,7 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
     ) : isCardish ? (
       <MiniFan entries={entries.slice(0, 4)} slot={drawnAt} />
     ) : (
-      <TokenStack entries={entries} width={type === 'token-enhance' ? drawnAt - 26 : 96} />
+      <TokenStack entries={entries} width={type === 'token-enhance' ? drawnAt - 26 : TOKEN_PILE_FACE} />
     );
 
   const body = (
