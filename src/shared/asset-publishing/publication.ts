@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { FactionInputSchema, FactionRowSlugSchema } from '../factions/schema';
+import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
 export const PUBLICATION_MAX_ATTEMPTS = 10;
@@ -58,7 +59,7 @@ export type FactionSheetAssetData = z.infer<typeof factionSheetAssetDataSchema>;
  */
 const assignedPublicationJobSchema = z.object({
   jobId: z.string(),
-  assetType: z.literal('faction_sheet'),
+  assetType: z.enum(PUBLICATION_ASSET_TYPES),
   assetId: z.string(),
   expiresAt: z.number().finite(),
 });

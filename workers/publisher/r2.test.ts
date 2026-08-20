@@ -1,7 +1,8 @@
 import { describe, expect, test, vi } from 'vitest';
 
+import { publishedR2Key } from '../../src/shared/asset-publishing/publicationTargets';
 import type { AssignedPublicationJob } from './convex';
-import { factionSheetKey, PUBLISHER_CACHE_TOKEN_METADATA_KEY, putPublishedAsset } from './r2';
+import { PUBLISHER_CACHE_TOKEN_METADATA_KEY, putPublishedAsset } from './r2';
 import type { AssetBucket } from './r2';
 import { fakeR2Object } from './test-helpers';
 
@@ -18,7 +19,7 @@ describe('stable Publication object writes', () => {
   test('replaces the one stable object and stores current diagnostic metadata', async () => {
     const put = vi.fn(async () =>
       fakeR2Object({
-        key: factionSheetKey(job.assetId),
+        key: publishedR2Key(job.assetType, job.assetId),
         etag: 'new-etag',
         size: 3,
         uploaded: new Date(),
@@ -51,7 +52,7 @@ describe('stable Publication object writes', () => {
   });
 
   test('rejects invalid stable keys and output metadata', async () => {
-    expect(() => factionSheetKey('../faction')).toThrow();
+    expect(() => publishedR2Key('faction_sheet', '../faction')).toThrow();
     const bucket: AssetBucket = { put: vi.fn() };
     await expect(putPublishedAsset(bucket, job, 'not-a-hash', cacheToken, new Uint8Array([1]))).rejects.toThrow(
       /Payload hash/

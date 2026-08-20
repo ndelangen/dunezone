@@ -1,3 +1,4 @@
+import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './types';
 
@@ -31,7 +32,7 @@ export function projectPublicAssetPublishingStatus(
   return {
     status: 'current',
     captureStatus: null,
-    publicationHref: `/published/factions/${encodeURIComponent(asset.asset_id)}/sheet.pdf?v=${encodeURIComponent(asset.cache_token)}`,
+    publicationHref: publishedHref('faction_sheet', asset.asset_id, asset.cache_token),
     lastPublishedAt: asset.published_at,
   };
 }
