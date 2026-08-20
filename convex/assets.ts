@@ -170,6 +170,12 @@ export const getPage = query({
       /** The decks holding this asset. Empty for a deck, which nothing may hold. */
       inDecks: v.array(deckReferenceValidator),
       /**
+       * The bundles holding this asset, the same shape and the same question one container kind over.
+       * Empty for every type a bundle cannot hold, which is everything but tokens.
+       * Its own field rather than merged into `inDecks`, because "in no deck" and "in no bundle" are different sentences and a page that ran them together could not say either.
+       */
+      inBundles: v.array(deckReferenceValidator),
+      /**
        * The rulesets that slot this asset, and which slot each one puts it in.
        * Read-only here: slots are managed on the ruleset edit page, per «Ruleset deck-slot residual semantics».
        * Empty for every type a ruleset cannot slot, which is everything but decks and bundles.
@@ -202,7 +208,8 @@ export const getPage = query({
       assignableGroups: access.assignableGroups,
       backToken: back ? await toListEntry(ctx, back) : null,
       members: CONTAINER_KINDS[row.type] ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind) : [],
-      inDecks: row.type === 'deck' ? [] : await decksHolding(ctx, row._id),
+      inDecks: row.type === 'deck' ? [] : await containersHolding(ctx, row._id, DECK_CARD),
+      inBundles: TOKEN_TYPES.has(row.type) ? await containersHolding(ctx, row._id, BUNDLE_TOKEN) : [],
       linkingRulesets: await rulesetsSlotting(ctx, row._id),
       assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
       backPublishing: await backFacePublication(ctx, row),
@@ -542,29 +549,38 @@ const DECKS_PER_CARD_LIMIT = 100;
  * a route may hold only one page query, so the browse page takes this on when its single query is redesigned rather than by mounting a second subscription.
  */
 /**
- * Which decks hold one asset.
- * Shared by the page bundle and the bulk reader below so "a deck that is soft-deleted stops being reported while its relation row survives" is decided once.
+ * Which containers of one kind hold one asset.
+ * Shared by the page bundle and the bulk reader below so "a container that is soft-deleted stops being reported while its relation row survives" is decided once.
+ *
+ * Generalised over `kind` rather than copied per container, the same call `setMemberCount` made: a deck holding a card and a bundle holding a token are one query with one literal changed.
  */
-async function decksHolding(
+async function containersHolding(
   ctx: QueryCtx,
   assetId: Id<'assets'>,
+  kind: string,
   decks?: Map<Id<'assets'>, Doc<'assets'> | null>
 ): Promise<DeckReference[]> {
   const seen = decks ?? new Map<Id<'assets'>, Doc<'assets'> | null>();
   const relations = await ctx.db
     .query('asset_relations')
-    .withIndex('by_to_kind', (q) => q.eq('to_asset_id', assetId).eq('kind', DECK_CARD))
+    .withIndex('by_to_kind', (q) => q.eq('to_asset_id', assetId).eq('kind', kind))
     .take(DECKS_PER_CARD_LIMIT);
 
   const entries: DeckReference[] = [];
   for (const relation of relations) {
-    const deckId = relation.from_asset_id;
-    if (!seen.has(deckId)) {
-      seen.set(deckId, await ctx.db.get('assets', deckId));
+    const containerId = relation.from_asset_id;
+    if (!seen.has(containerId)) {
+      seen.set(containerId, await ctx.db.get('assets', containerId));
     }
-    const deck = seen.get(deckId);
-    if (deck && !deck.is_deleted) {
-      entries.push({ id: deck._id, type: deck.type, slug: deck.slug, name: nameOf(deck), count: relation.count });
+    const container = seen.get(containerId);
+    if (container && !container.is_deleted) {
+      entries.push({
+        id: container._id,
+        type: container.type,
+        slug: container.slug,
+        name: nameOf(container),
+        count: relation.count,
+      });
     }
   }
   return entries;
@@ -681,7 +697,7 @@ export const browsePage = query({
     const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
     let inNoDeckCount = 0;
     for (const row of page) {
-      const deckCount = counted ? (await decksHolding(ctx, row._id, decks)).length : 0;
+      const deckCount = counted ? (await containersHolding(ctx, row._id, DECK_CARD, decks)).length : 0;
       if (counted && deckCount === 0) {
         inNoDeckCount += 1;
       }
@@ -703,7 +719,7 @@ export const decksForAssets = query({
     const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
 
     for (const assetId of args.assetIds.slice(0, MEMBERSHIP_LOOKUP_LIMIT)) {
-      byAsset[assetId] = await decksHolding(ctx, assetId, decks);
+      byAsset[assetId] = await containersHolding(ctx, assetId, DECK_CARD, decks);
     }
 
     return byAsset;

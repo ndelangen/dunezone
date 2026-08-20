@@ -28,7 +28,7 @@ import { Links } from '@ui/list/Links';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Download, FlipHorizontal2, Layers3, Pencil, UserRoundMinus, UsersRound } from 'lucide-react';
+import { ArrowLeft, Boxes, Download, FlipHorizontal2, Layers3, Pencil, UserRoundMinus, UsersRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { loadAssetPage, useAssetPage, useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
@@ -131,6 +131,46 @@ function ScaledFace({
     <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(type, members.length)}>
       <AssetFace type={type} data={data} name={name} width={900} side={side} members={members} />
     </CanvasScale>
+  );
+}
+
+/**
+ * The containers of one kind that hold this asset, or a line saying there are none.
+ *
+ * One component for decks and bundles, because "which containers hold this" is one question asked twice, and `containersHolding` already answers it with one query and a different kind literal.
+ * A count above one is shown as a multiplier: a deck holding three copies of a card and a bundle holding twenty of a token are the same statement (see CONTEXT.md: Bundle).
+ */
+function ContainerCard({
+  title,
+  empty,
+  containers,
+  icon,
+}: {
+  title: string;
+  empty: string;
+  containers: AssetPage['inDecks'];
+  icon: ReactNode;
+}) {
+  return (
+    <Card title={title} icon={icon}>
+      {containers.length === 0 ? (
+        <Text size="sm" c="dimmed">
+          {empty}
+        </Text>
+      ) : (
+        <Links>
+          {containers.map((container) => (
+            <Links.Item
+              key={container.id}
+              to="/assets/$type/$slug"
+              params={{ type: container.type, slug: container.slug }}
+            >
+              {container.count > 1 ? `${container.name} ×${container.count}` : container.name}
+            </Links.Item>
+          ))}
+        </Links>
+      )}
+    </Card>
   );
 }
 
@@ -344,7 +384,8 @@ function AssetDetailPage() {
     );
   }
 
-  const { asset, viewerAccess, assignableGroups, inDecks, assetPublishing, backPublishing } = page;
+  const { asset, viewerAccess, assignableGroups, inDecks, inBundles, assetPublishing, backPublishing } = page;
+  const isToken = asset.type.startsWith('token-');
   const { capabilities, assignedGroup } = viewerAccess;
   const definition = isAssetType(asset.type) ? ASSET_TYPES[asset.type] : undefined;
   const collectionLabel = definition?.label ?? 'Assets';
@@ -516,26 +557,25 @@ function AssetDetailPage() {
               ) : null}
               {/* One route per type is what turns a relation row into navigation rather than an inert name. */}
               {asset.type === 'deck' ? null : (
-                <Card title="In decks" icon={<Layers3 size={18} aria-hidden />}>
-                  {inDecks.length === 0 ? (
-                    <Text size="sm" c="dimmed">
-                      Not in any deck yet.
-                    </Text>
-                  ) : (
-                    <Links>
-                      {inDecks.map((deck) => (
-                        <Links.Item
-                          key={deck.id}
-                          to="/assets/$type/$slug"
-                          params={{ type: deck.type, slug: deck.slug }}
-                        >
-                          {deck.count > 1 ? `${deck.name} ×${deck.count}` : deck.name}
-                        </Links.Item>
-                      ))}
-                    </Links>
-                  )}
-                </Card>
+                <ContainerCard
+                  title="In decks"
+                  empty="Not in any deck yet."
+                  containers={inDecks}
+                  icon={<Layers3 size={18} aria-hidden />}
+                />
               )}
+              {/*
+               * Its own card rather than a second list inside "In decks".
+               * A token was reporting "Not in any deck yet" while sitting in a bundle, which is true and useless: the page had no place to say the thing that was actually so (Norbert, 2026-08-20).
+               */}
+              {isToken ? (
+                <ContainerCard
+                  title="In bundles"
+                  empty="Not in any bundle yet."
+                  containers={inBundles}
+                  icon={<Boxes size={18} aria-hidden />}
+                />
+              ) : null}
             </Stack>
           </ColumnsWithRailLayout.Rail>
         </ColumnsWithRailLayout>
