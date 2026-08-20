@@ -4,7 +4,7 @@ import type { Doc } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import { assertKnownAssetType, parseAssetDataForWrite } from './lib/assetInput';
-import { loadAssetAccessForLoadedSubject, requireAssetUpdate } from './lib/collaborativeAccess';
+import { loadAssetAccessForLoadedSubject, requireAssetSoftDelete, requireAssetUpdate } from './lib/collaborativeAccess';
 import { assetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
@@ -187,5 +187,22 @@ export const update = mutation({
     }
     await ctx.db.patch(args.id, { data: parsed.data, slug, updated_at: nowIso() });
     return { id: args.id, slug };
+  },
+});
+
+/**
+ * Retires an Asset without removing it: `is_deleted` is the only column that moves.
+ * Every read filters on it, the slug stays reserved by `assertAssetSlugAvailable`, and `asset_relations` rows are deliberately left alone — a deleted card simply stops appearing in the decks that reference it (decision on the assets map: Deck→card reference mechanism and deletion semantics).
+ * Idempotent, the faction convention: deleting twice is not an error.
+ */
+export const softDelete = mutation({
+  args: { id: v.id('assets') },
+  handler: async (ctx, args) => {
+    const access = await requireAssetSoftDelete(ctx, args.id);
+
+    await ctx.db.patch(access.subject._id, {
+      is_deleted: true,
+      updated_at: nowIso(),
+    });
   },
 });

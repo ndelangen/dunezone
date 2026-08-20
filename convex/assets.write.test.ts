@@ -85,3 +85,55 @@ describe('asset update', () => {
     ).rejects.toThrow('reserved');
   });
 });
+
+describe('asset soft delete', () => {
+  test('the owner retires a card: it leaves the catalogue, and its slug stays reserved', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+
+    await t.withIdentity({ subject: ownerId }).mutation(api.assets.softDelete, { id: created.id });
+
+    expect(await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' })).toBeNull();
+    expect(await t.query(api.assets.listByTypes, { types: ['card-treachery'] })).toEqual([]);
+    await expect(
+      t
+        .withIdentity({ subject: ownerId })
+        .mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') })
+    ).rejects.toThrow('reserved');
+  });
+
+  test('deletion is owner-only, even for a viewer who may edit', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, outsiderId, created } = await seedCard(t);
+    /* A group member may edit and rename a community Asset, but never retire one — delete stays with the owner. */
+    await t.run(async (ctx) => {
+      const now = '2026-01-01T00:00:00.000Z';
+      const groupId = await ctx.db.insert('groups', {
+        name: 'Arrakeen Rules Council',
+        slug: 'arrakeen-rules-council',
+        created_at: now,
+        created_by: ownerId,
+        is_deleted: false,
+      });
+      await ctx.db.insert('group_members', {
+        group_id: groupId,
+        user_id: outsiderId,
+        status: 'active',
+        requested_at: now,
+        approved_at: now,
+        approved_by: ownerId,
+      });
+      await ctx.db.patch(created.id, { group_id: groupId });
+    });
+
+    const page = await t
+      .withIdentity({ subject: outsiderId })
+      .query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
+    expect(page?.viewerAccess.capabilities.edit).toBe(true);
+    expect(page?.viewerAccess.capabilities.delete).toBe(false);
+
+    await expect(
+      t.withIdentity({ subject: outsiderId }).mutation(api.assets.softDelete, { id: created.id })
+    ).rejects.toThrow('Not authorized');
+  });
+});

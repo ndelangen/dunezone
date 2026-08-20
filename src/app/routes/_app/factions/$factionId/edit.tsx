@@ -1,10 +1,11 @@
-import { Anchor, Button, Group, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Trash2, UserRoundMinus } from 'lucide-react';
+import { UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
@@ -34,7 +35,6 @@ function FactionEditPage() {
   const updateFaction = useUpdateFaction();
   const deleteFaction = useDeleteFaction();
   const setFactionGroup = useSetFactionGroup();
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [settleTick, setSettleTick] = useState(0);
 
   const factionQuery = useFaction(factionId, {
@@ -210,45 +210,17 @@ function FactionEditPage() {
           }
           destructiveActions={
             canDelete ? (
-              confirmDelete ? (
-                <Group gap={4} wrap="nowrap" role="group" aria-label="Confirm faction deletion">
-                  <Text size="xs" c="red" fw={700}>
-                    Delete faction?
-                  </Text>
-                  <Button
-                    type="button"
-                    color="red"
-                    size="compact-xs"
-                    loading={deleteFaction.isPending}
-                    onClick={() => {
-                      void (async () => {
-                        await deleteFaction.mutateAsync({ id: faction._id });
-                        navigate({ to: '/factions' });
-                      })();
-                    }}
-                  >
-                    Delete
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="subtle"
-                    color="gray"
-                    size="compact-xs"
-                    onClick={() => setConfirmDelete(false)}
-                  >
-                    Cancel
-                  </Button>
-                </Group>
-              ) : (
-                <IconAction
-                  label="Delete faction"
-                  variant="light"
-                  color="red"
-                  size="lg"
-                  onClick={() => setConfirmDelete(true)}
-                  icon={<Trash2 size={17} aria-hidden />}
-                />
-              )
+              <ConfirmDeleteAction
+                label="Delete faction"
+                prompt="Delete faction?"
+                pending={deleteFaction.isPending}
+                onConfirm={() => {
+                  void (async () => {
+                    await deleteFaction.mutateAsync({ id: faction._id });
+                    navigate({ to: '/factions' });
+                  })();
+                }}
+              />
             ) : null
           }
         />

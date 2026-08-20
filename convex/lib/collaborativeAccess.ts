@@ -476,6 +476,15 @@ export async function requireFactionSoftDelete(ctx: MutationCtx, factionId: Id<'
   return access;
 }
 
+export async function requireAssetSoftDelete(ctx: MutationCtx, assetId: Id<'assets'>) {
+  await requireAuthenticatedViewerId(ctx);
+  const access = await loadCollaborativeAccess(ctx, { kind: 'asset', id: assetId });
+  if (access.viewerId !== access.subject.owner_id) {
+    throw new Error('Not authorized');
+  }
+  return access;
+}
+
 export async function requireRulesetSoftDelete(ctx: MutationCtx, rulesetId: Id<'rulesets'>) {
   await requireAuthenticatedViewerId(ctx);
   const access = await loadCollaborativeAccess(ctx, { kind: 'ruleset', id: rulesetId });

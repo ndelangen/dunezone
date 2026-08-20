@@ -47,3 +47,7 @@ export function useAssetForEdit(type: string, slug: string, options?: { initialD
 export function useUpdateAsset() {
   return useLiveMutation<{ id: AssetListEntry['id']; data: unknown }, { id: string; slug: string }>(api.assets.update);
 }
+
+export function useDeleteAsset() {
+  return useLiveMutation<{ id: AssetListEntry['id'] }, void>(api.assets.softDelete);
+}
