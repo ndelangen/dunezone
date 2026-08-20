@@ -16,17 +16,25 @@ import type { RectangleTokenAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { RectangleHorizontal, Type } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
-import { TokenFrame } from '@app/widgets/asset-face/AssetFace';
+import { assetFaceAspect, TokenFrame } from '@app/widgets/asset-face/AssetFace';
 import { BackgroundPresetPicker } from '@app/widgets/background-composer/BackgroundPresetPicker';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
 import { decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { RectangleToken } from '@game/assets/token/Rectangle';
 import { backgroundPresets } from '@game/data/backgrounds';
+
+/**
+ * The size the rail's proof is drawn at before `CanvasScale` fits it to the rail.
+ * Any number does.
+ * This one matches the detail page, so a proof and the page it previews scale off the same canvas.
+ */
+const PROOF_CANVAS = 900;
 
 export type RectangleDraft = z.infer<typeof RectangleTokenAsset>;
 export type RectangleFaceDraft = RectangleDraft['front'];
@@ -483,14 +491,18 @@ export function RectangleTokenEditor({
         <div style={{ position: 'sticky', top: 96 }}>
           <Stack gap="md" align="center">
             <Stack gap={4} align="center">
-              <RectangleProof face={draft.front} width={260} />
+              <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}>
+                <RectangleProof face={draft.front} width={PROOF_CANVAS} />
+              </CanvasScale>
               <Text size="xs" c="dimmed">
                 Front
               </Text>
             </Stack>
             {draft.back.mode === 'custom' ? (
               <Stack gap={4} align="center">
-                <RectangleProof face={draft.back.face} width={260} />
+                <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}>
+                  <RectangleProof face={draft.back.face} width={PROOF_CANVAS} />
+                </CanvasScale>
                 <Text size="xs" c="dimmed">
                   Back
                 </Text>

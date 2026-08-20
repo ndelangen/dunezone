@@ -3,6 +3,7 @@ import type { BundleAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -10,6 +11,7 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
+import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { BundleContainer } from '@app/widgets/asset-face/BundleContainer';
 import type { BundleBandData } from '@app/widgets/asset-face/BundleContainer';
@@ -17,6 +19,13 @@ import { BackgroundPresetControl } from '@app/widgets/background-composer/Backgr
 import { backgroundPresets } from '@game/data/backgrounds';
 
 import { STOCK_BANDS, stockBandKeyFor } from './stockBands';
+
+/**
+ * The size the rail's proof is drawn at before `CanvasScale` fits it to the rail.
+ * Any number does.
+ * This one matches the detail page, so a proof and the page it previews scale off the same canvas.
+ */
+const PROOF_CANVAS = 900;
 
 export type BundleDraft = z.infer<typeof BundleAsset>;
 export type BundleChapter = 'identity' | 'tokens' | 'about';
@@ -195,7 +204,8 @@ export function BundleEditor({
               <>
                 <ControlBlock
                   title="Contents"
-                  description="Which tokens this bundle holds, and how many of each. Shapes may be mixed freely."
+                  description="Which tokens this bundle holds, and how many of each, from any community token whoever made it. Shapes may be mixed freely."
+                  tool={tokenPicker}
                   input={
                     members.length === 0 ? (
                       <Text size="sm" c="dimmed">
@@ -238,11 +248,6 @@ export function BundleEditor({
                     )
                   }
                 />
-                <ControlBlock
-                  title="Add tokens"
-                  description="Every community token is available, whoever made it."
-                  input={tokenPicker}
-                />
               </>
             ),
           },
@@ -252,7 +257,9 @@ export function BundleEditor({
       <div style={{ minWidth: 0, paddingLeft: 'var(--mantine-spacing-md)' }}>
         <div style={{ position: 'sticky', top: 96 }}>
           <Stack gap="md" align="center">
-            <BundleContainer band={draft.band} name={draft.name} width={220} />
+            <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('bundle')}>
+              <BundleContainer band={draft.band} name={draft.name} width={PROOF_CANVAS} />
+            </CanvasScale>
             <Text size="xs" c="dimmed">
               How this bundle is shown
             </Text>

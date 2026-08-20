@@ -3,12 +3,14 @@ import type { TokenAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Coins, FlipHorizontal2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
+import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { TokenFrame, tokenShapeOfType } from '@app/widgets/asset-face/AssetFace';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import {
@@ -18,6 +20,13 @@ import {
 } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { CustomToken } from '@game/assets/token/Custom';
 import { backgroundPresets } from '@game/data/backgrounds';
+
+/**
+ * The size the rail's proof is drawn at before `CanvasScale` fits it to the rail.
+ * Any number does.
+ * This one matches the detail page, so a proof and the page it previews scale off the same canvas.
+ */
+const PROOF_CANVAS = 900;
 
 /** The draft is the stored shape: the same Zod validates it server-side, so a UI-only field here would fail the save. */
 export type TokenDraft = z.infer<typeof TokenAsset>;
@@ -313,14 +322,18 @@ export function TokenEditor({
         <div style={{ position: 'sticky', top: 96 }}>
           <Stack gap="md" align="center">
             <Stack gap={4} align="center">
-              <TokenProof face={draft.front} type={type} width={220} />
+              <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect(type)}>
+                <TokenProof face={draft.front} type={type} width={PROOF_CANVAS} />
+              </CanvasScale>
               <Text size="xs" c="dimmed">
                 Front
               </Text>
             </Stack>
             {draft.back.mode === 'custom' ? (
               <Stack gap={4} align="center">
-                <TokenProof face={draft.back.face} type={type} width={220} />
+                <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect(type)}>
+                  <TokenProof face={draft.back.face} type={type} width={PROOF_CANVAS} />
+                </CanvasScale>
                 <Text size="xs" c="dimmed">
                   Back
                 </Text>

@@ -4,6 +4,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -11,6 +12,7 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
+import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import {
@@ -22,6 +24,13 @@ import { backgroundPresets } from '@game/data/backgrounds';
 
 import { STOCK_CARDBACKS, stockKeyFor } from './stockCardbacks';
 import type { CardbackData } from './stockCardbacks';
+
+/**
+ * The size the rail's proof is drawn at before `CanvasScale` fits it to the rail.
+ * Any number does.
+ * This one matches the detail page, so a proof and the page it previews scale off the same canvas.
+ */
+const PROOF_CANVAS = 900;
 
 export type DeckDraft = z.infer<typeof DeckAsset>;
 export type DeckChapter = 'identity' | 'cards' | 'about';
@@ -253,7 +262,8 @@ export function DeckEditor({
               <>
                 <ControlBlock
                   title="Composition"
-                  description="How many of each card this deck holds. Duplicates are a count, not repeated rows."
+                  description="How many of each card this deck holds, from any community card whoever made it. Duplicates are a count, not repeated rows."
+                  tool={cardPicker}
                   input={
                     members.length === 0 ? (
                       <Text size="sm" c="dimmed">
@@ -296,11 +306,6 @@ export function DeckEditor({
                     )
                   }
                 />
-                <ControlBlock
-                  title="Add cards"
-                  description="Every community card is available, whoever made it."
-                  input={cardPicker}
-                />
               </>
             ),
           },
@@ -310,7 +315,9 @@ export function DeckEditor({
       <div style={{ minWidth: 0, paddingLeft: 'var(--mantine-spacing-md)' }}>
         <div style={{ position: 'sticky', top: 96 }}>
           <Stack gap="md" align="center">
-            <CardbackProof cardback={draft.cardback} width={220} />
+            <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('deck')}>
+              <CardbackProof cardback={draft.cardback} width={PROOF_CANVAS} />
+            </CanvasScale>
             <Text size="xs" c="dimmed">
               The deck's publication
             </Text>
