@@ -489,8 +489,9 @@ export function RectangleTokenEditor({
       />
       <div style={{ minWidth: 0, paddingLeft: 'var(--mantine-spacing-md)' }}>
         <div style={{ position: 'sticky', top: 96 }}>
+          {/* The face stacks take the full width, or a centred flex child shrinks to its content and `CanvasScale` has nothing to fill. */}
           <Stack gap="md" align="center">
-            <Stack gap={4} align="center">
+            <Stack gap={4} align="center" w="100%">
               <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}>
                 <RectangleProof face={draft.front} width={PROOF_CANVAS} />
               </CanvasScale>
@@ -499,7 +500,7 @@ export function RectangleTokenEditor({
               </Text>
             </Stack>
             {draft.back.mode === 'custom' ? (
-              <Stack gap={4} align="center">
+              <Stack gap={4} align="center" w="100%">
                 <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}>
                   <RectangleProof face={draft.back.face} width={PROOF_CANVAS} />
                 </CanvasScale>

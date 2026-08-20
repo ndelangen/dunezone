@@ -147,7 +147,7 @@ function BundleEditSession({
       ) : null}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, warningCount: warnings.length, saveState }}
+          status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save bundle',
             nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
@@ -156,15 +156,9 @@ function BundleEditSession({
              * would never fill in. `AuthoringToolbar` already omits its "Last published" line when there is no
              * timestamp, so nothing here has to suppress it.
              */
-            statusMessage:
-              saveState === 'error'
-                ? 'The bundle was not saved.'
-                : 'A bundle publishes no image of its own. Its tokens publish their own faces.',
           }}
           actions={{
             onSave: save,
-            onReviewWarnings: () =>
-              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReset: () => setDraft(baseline),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
           }}

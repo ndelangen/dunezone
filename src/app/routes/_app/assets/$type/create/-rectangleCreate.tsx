@@ -75,19 +75,13 @@ export function RectangleCreatePage() {
       ) : null}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, warningCount: warnings.length, saveState }}
+          status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',
             nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
-            statusMessage:
-              saveState === 'error'
-                ? 'The token was not saved.'
-                : 'New enhance token. Saving opens it for editing, where the backside can point at another enhance token.',
           }}
           actions={{
             onSave: save,
-            onReviewWarnings: () =>
-              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReset: () => setDraft(INITIAL_RECTANGLE_DRAFT),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: TYPE } }),
           }}

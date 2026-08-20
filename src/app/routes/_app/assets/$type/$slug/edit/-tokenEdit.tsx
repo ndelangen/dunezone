@@ -146,21 +146,13 @@ function TokenEditSession({
       ) : null}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, warningCount: warnings.length, saveState }}
+          status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',
             nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
-            statusMessage:
-              saveState === 'error'
-                ? 'The token was not saved.'
-                : draft.back.mode === 'custom'
-                  ? 'Both faces publish once the image pipeline supports tokens.'
-                  : 'The front publishes once the image pipeline supports tokens; the back resolves to the referenced token.',
           }}
           actions={{
             onSave: save,
-            onReviewWarnings: () =>
-              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReset: () => setDraft(baseline),
             onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
           }}

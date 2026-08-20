@@ -72,20 +72,14 @@ export function BundleCreatePage() {
       ) : null}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, warningCount: warnings.length, saveState }}
+          status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save bundle',
             nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
             /* No publication copy anywhere on this page: a bundle publishes nothing, and its members publish themselves. */
-            statusMessage:
-              saveState === 'error'
-                ? 'The bundle was not saved.'
-                : 'New bundle. Saving opens it for editing, where tokens can be added.',
           }}
           actions={{
             onSave: save,
-            onReviewWarnings: () =>
-              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReset: () => setDraft(INITIAL_BUNDLE_DRAFT),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
           }}

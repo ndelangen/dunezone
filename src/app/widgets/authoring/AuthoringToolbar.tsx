@@ -32,7 +32,6 @@ function statusPresentation(saveState: AuthoringSaveState, isDirty: boolean): { 
 export interface AuthoringStatus {
   isDirty: boolean;
   isNameBlank: boolean;
-  warningCount: number;
   saveState: AuthoringSaveState;
   lastPublishedAt?: number | null;
 }
@@ -43,20 +42,25 @@ export interface AuthoringCopy {
   saveLabel: string;
   /** Shown while the name is blank; explain that the name determines the URL. */
   nameBlankMessage: string;
-  /** The one-line state of the save/publication cycle, derived by the page per saveState. */
-  statusMessage: string;
+  /**
+   * Live state a reader cannot get anywhere else on the page, such as where a publication has got to.
+   * Optional, and omitted by every asset editor: theirs were standing explanations of what saving does, which is not status and which Norbert struck out on 2026-08-20.
+   * The faction editor keeps one because `factionAuthoringStatusMessage` reports real capture progress.
+   */
+  statusMessage?: string;
 }
 
 export interface AuthoringToolbarActions {
   onSave: () => void;
-  /** The toolbar count is the persistent indicator; this returns the reader to the expanded validation header. */
-  onReviewWarnings: () => void;
   onReset: () => void;
   onBack: () => void;
 }
 
 /**
- * The edit-page toolbar every authoring surface installs identically: back, save-cycle badge, warning-count jump, reset, and the confirm-green save — with slots for whatever one editor adds around them.
+ * The edit-page toolbar every authoring surface installs identically: back, save-cycle badge, reset, and the confirm-green save, with slots for whatever one editor adds around them.
+ *
+ * It carries no warning count and no standing explanation of what saving does.
+ * `ValidationHeader` is open whenever any warning exists and names the fields, so a count here repeated it less usefully, and a sentence that never changes is not status (Norbert, 2026-08-20).
  * The page owns all data and wording;
  * the toolbar owns the arrangement.
  */
@@ -80,8 +84,8 @@ export function AuthoringToolbar({
   destructiveActions?: ReactNode;
   centerIndicator?: ReactNode;
 }) {
-  const { isDirty, isNameBlank, warningCount, saveState, lastPublishedAt } = status;
-  const { onSave, onReviewWarnings, onReset, onBack } = actions;
+  const { isDirty, isNameBlank, saveState, lastPublishedAt } = status;
+  const { onSave, onReset, onBack } = actions;
   const { label: statusLabel, color: statusColor } = statusPresentation(saveState, isDirty);
 
   return (
@@ -102,11 +106,6 @@ export function AuthoringToolbar({
                 <Badge color={statusColor} variant="light">
                   {statusLabel}
                 </Badge>
-                {warningCount > 0 ? (
-                  <Button type="button" variant="subtle" color="yellow" size="compact-xs" onClick={onReviewWarnings}>
-                    {warningCount} {warningCount === 1 ? 'field may' : 'fields may'} be incomplete
-                  </Button>
-                ) : null}
                 {lastPublishedAt != null ? (
                   <Text
                     className={styles.statusDetails}
@@ -120,9 +119,11 @@ export function AuthoringToolbar({
                 ) : null}
               </Group>
               <div className={styles.statusDetails}>
-                <Text size="xs" c={saveState === 'error' ? 'red' : 'dimmed'} role="status">
-                  {isNameBlank ? copy.nameBlankMessage : copy.statusMessage}
-                </Text>
+                {isNameBlank || copy.statusMessage ? (
+                  <Text size="xs" c={saveState === 'error' ? 'red' : 'dimmed'} role="status">
+                    {isNameBlank ? copy.nameBlankMessage : copy.statusMessage}
+                  </Text>
+                ) : null}
                 {context}
               </div>
             </Stack>

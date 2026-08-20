@@ -71,19 +71,13 @@ export function DeckCreatePage() {
       ) : null}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, warningCount: warnings.length, saveState }}
+          status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save deck',
             nameBlankMessage: 'Add a deck name before saving; it determines the deck URL.',
-            statusMessage:
-              saveState === 'error'
-                ? 'The deck was not saved.'
-                : 'New deck. Saving opens it for editing, where cards can be added.',
           }}
           actions={{
             onSave: save,
-            onReviewWarnings: () =>
-              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReset: () => setDraft(INITIAL_DECK_DRAFT),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}

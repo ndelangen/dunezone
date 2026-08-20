@@ -145,21 +145,13 @@ function CardEditSession({
       ) : null}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, warningCount: warnings.length, saveState }}
+          status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save card',
             nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
-            statusMessage:
-              saveState === 'error'
-                ? 'The card was not saved.'
-                : saveState === 'saved'
-                  ? 'Saved. The card image is queued for publishing.'
-                  : 'Changes stay local until you explicitly save them.',
           }}
           actions={{
             onSave: save,
-            onReviewWarnings: () =>
-              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReset: () => setDraft(baseline),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
           }}

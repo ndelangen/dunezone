@@ -164,7 +164,6 @@ function FactionEditPage() {
           status={{
             isDirty: authoring.editing.isDirty,
             isNameBlank: authoring.editing.isNameBlank,
-            warningCount: authoring.editing.warnings.length,
             saveState: authoring.persistence.saveState,
             lastPublishedAt: assetPublishing?.lastPublishedAt,
           }}
@@ -175,8 +174,6 @@ function FactionEditPage() {
           }}
           actions={{
             onSave: authoring.actions.submit,
-            onReviewWarnings: () =>
-              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReset: authoring.actions.reset,
             onBack: () =>
               navigate({

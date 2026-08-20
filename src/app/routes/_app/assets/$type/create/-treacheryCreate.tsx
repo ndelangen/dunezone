@@ -73,19 +73,13 @@ export function TreacheryCreatePage() {
       ) : null}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, warningCount: warnings.length, saveState }}
+          status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save card',
             nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
-            statusMessage:
-              saveState === 'error'
-                ? 'The card was not saved.'
-                : 'New treachery card. Saving schedules its image for publishing.',
           }}
           actions={{
             onSave: save,
-            onReviewWarnings: () =>
-              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReset: () => setDraft(INITIAL_TREACHERY_DRAFT),
             onBack: () => void navigate({ to: '/assets' }),
           }}

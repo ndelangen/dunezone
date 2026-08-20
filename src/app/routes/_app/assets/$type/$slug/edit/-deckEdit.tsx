@@ -150,19 +150,13 @@ function DeckEditSession({
       ) : null}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, warningCount: warnings.length, saveState }}
+          status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save deck',
             nameBlankMessage: 'Add a deck name before saving; it determines the deck URL.',
-            statusMessage:
-              saveState === 'error'
-                ? 'The deck was not saved.'
-                : "The deck publishes its cardback. Member cards publish their own faces, so editing one never invalidates the deck's image.",
           }}
           actions={{
             onSave: save,
-            onReviewWarnings: () =>
-              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReset: () => setDraft(baseline),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}

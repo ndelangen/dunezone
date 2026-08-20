@@ -87,7 +87,6 @@ function CreateFactionPage() {
           status={{
             isDirty: authoring.editing.isDirty,
             isNameBlank: authoring.editing.isNameBlank,
-            warningCount: authoring.editing.warnings.length,
             saveState: authoring.persistence.saveState,
           }}
           copy={{
@@ -97,7 +96,6 @@ function CreateFactionPage() {
           }}
           actions={{
             onSave: authoring.actions.submit,
-            onReviewWarnings: () => viewRef.current?.focusFirstWarning(),
             onReset: authoring.actions.reset,
             onBack: () => navigate({ to: '/factions' }),
           }}
