@@ -108,6 +108,7 @@ describe('homepage page data', () => {
           user_id: users[index],
           username: `Member ${index}`,
           avatar_url: avatarUrl,
+          account_state: 'active',
           slug,
           created_at: createdAt,
           updated_at: createdAt,

@@ -52,6 +52,12 @@ The rating presented to readers: the Manual complexity rating when one exists, o
 **Profile summary**:
 The public identity chip for a person referenced by content they are shown on — profile identity, URL slug, display name, and avatar. It is one shape everywhere a contributor appears on content (FAQ askers and answerers, Group owners and rosters, ruleset owners), distinct from the full profile.
 
+**Account lifecycle**:
+An account is active, awaiting deletion, or deleted. The auth user owns authorization state; the Profile mirrors it for indexed public reads. Missing state is treated as active only during the compatible migration window. Awaiting-deletion and deleted accounts cannot use application reads or writes and do not appear as live public profiles. Stored authorship, memberships, and links remain historical data.
+
+**Direct ownership**:
+The narrow set of records an account alone owns and must dispose of before deletion: Groups through `created_by`, plus factions and rulesets through `owner_id`. Authorship, Group membership, collaboration, and edit capability are not direct ownership. `DIRECT_OWNERSHIP_KINDS` is the server contract; a new owned kind is incomplete until it adds an owner-and-deletion index and joins that registry.
+
 **Discoverable profile**:
 A profile eligible for public discovery because it has a non-placeholder display name and slug, an avatar, and a valid creation time. Discoverable profiles are ordered newest first. This ordered discovery concern is distinct from numerical Statistics.
 

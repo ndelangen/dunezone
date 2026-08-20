@@ -10,18 +10,15 @@ import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
-import type {
-  PublicAssetCaptureStatus,
-  PublicAssetPublishingStatus,
-  PublicAssetPublishingStatusProjection,
-} from '../../../convex/assetPublishingStatus';
-import type { AssignedGroupSummary, CollaborativeAccess } from '../../../convex/lib/collaborativeAccess';
-
 /**
  * The app reaches Convex only through this layer, so the shapes it needs are re-exported here rather than imported from
  * `convex/` a second time.
  */
-export type { PublicAssetCaptureStatus, PublicAssetPublishingStatus, PublicAssetPublishingStatusProjection };
+export type {
+  PublicAssetCaptureStatus,
+  PublicAssetPublishingStatus,
+  PublicAssetPublishingStatusProjection,
+} from '../../../convex/assetPublishingStatus';
 
 export type Faction = FactionInput;
 export type FactionData = FactionInput;
@@ -65,6 +62,15 @@ function toFactionEntry(entry: FactionRow): FactionEntry {
   };
 }
 
+function toCreatedFactionEntry(entry: FunctionReturnType<typeof api.factions.create>) {
+  return {
+    ...toFactionEntry(entry),
+    route_notice: entry.route_notice,
+  };
+}
+
+export type CreatedFactionEntry = ReturnType<typeof toCreatedFactionEntry>;
+
 function toFactionCatalogueEntry(entry: FactionCatalogueRow): FactionCatalogueEntry {
   return {
     ...entry,
@@ -100,16 +106,13 @@ export function factionRowsToEntries(rows: FactionRow[]): FactionEntry[] {
   return rows.map(toFactionEntry);
 }
 
-export type FactionDetailPageData = {
+type FactionDetailPageRaw = FunctionReturnType<typeof api.factions.getBySlug>;
+
+export type FactionDetailPageData = Omit<FactionDetailPageRaw, 'faction'> & {
   faction: FactionEntry;
-  owner: Doc<'profiles'>;
-  assetPublishing: PublicAssetPublishingStatusProjection;
-  viewerAccess: Extract<CollaborativeAccess, { kind: 'faction' }>;
-  assignableGroups: AssignedGroupSummary[];
-  rulesets: FactionRulesetSummary[];
 };
 
-function toFactionDetailPageData(raw: FunctionReturnType<typeof api.factions.getBySlug>): FactionDetailPageData {
+function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageData {
   return {
     faction: {
       ...raw.faction,
@@ -181,21 +184,24 @@ export function useFactionLoadPicker(options?: { initialData?: FactionLoadPicker
 }
 
 export function useCreateFaction() {
-  const mutation = useLiveMutation<{ data: Faction; group_id: string | null }, FactionRow>(api.factions.create);
+  const mutation = useLiveMutation<
+    { data: Faction; group_id?: string | null },
+    FunctionReturnType<typeof api.factions.create>
+  >(api.factions.create);
 
   return {
     ...mutation,
     mutate: (
       variables: { input: Faction; groupId?: string | null },
-      options?: { onSuccess?: (faction: FactionEntry) => void; onError?: (error: Error) => void }
+      options?: { onSuccess?: (faction: CreatedFactionEntry) => void; onError?: (error: Error) => void }
     ) =>
       mutation.mutate(
         {
           data: FactionInputSchema.parse(recalculateFactionComplexity(variables.input)),
-          group_id: variables.groupId ?? null,
+          ...(variables.groupId === undefined ? {} : { group_id: variables.groupId }),
         },
         {
-          onSuccess: (entry) => options?.onSuccess?.(toFactionEntry(entry)),
+          onSuccess: (entry) => options?.onSuccess?.(toCreatedFactionEntry(entry)),
           onError: (error) => options?.onError?.(error),
         }
       ),
@@ -203,9 +209,9 @@ export function useCreateFaction() {
       const validatedData = FactionInputSchema.parse(recalculateFactionComplexity(input));
       const entry = await mutation.mutateAsync({
         data: validatedData,
-        group_id: groupId ?? null,
+        ...(groupId === undefined ? {} : { group_id: groupId }),
       });
-      return toFactionEntry(entry);
+      return toCreatedFactionEntry(entry);
     },
   };
 }

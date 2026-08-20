@@ -18,6 +18,7 @@ describe('asset catalogue', () => {
         user_id: ownerId,
         username: 'stilgar',
         avatar_url: null,
+        account_state: 'active',
         slug: 'stilgar',
         created_at: '2026-08-01T00:00:00.000Z',
         updated_at: '2026-08-01T00:00:00.000Z',

@@ -75,6 +75,7 @@ describe('faction slug reservations', () => {
         user_id: ownerId,
         username: 'Faction slug migration owner',
         avatar_url: null,
+        account_state: 'active',
         slug: 'faction-slug-migration-owner',
         created_at: '2026-07-22T06:00:00.000Z',
         updated_at: '2026-07-22T06:00:00.000Z',

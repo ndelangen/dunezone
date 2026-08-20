@@ -37,6 +37,7 @@ import { Route as AppFactionsFactionIdEditRouteImport } from './routes/_app/fact
 import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/groups/$groupSlug/index'
 import { Route as AppGroupsGroupSlugEditRouteImport } from './routes/_app/groups/$groupSlug/edit'
 import { Route as AppProfilesProfileSlugIndexRouteImport } from './routes/_app/profiles/$profileSlug/index'
+import { Route as AppProfilesProfileSlugDeleteRouteImport } from './routes/_app/profiles/$profileSlug/delete'
 import { Route as AppProfilesProfileSlugEditRouteImport } from './routes/_app/profiles/$profileSlug/edit'
 import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/index'
 import { Route as AppRulesetsRulesetSlugEditRouteImport } from './routes/_app/rulesets/$rulesetSlug/edit'
@@ -188,6 +189,12 @@ const AppProfilesProfileSlugIndexRoute =
     path: '/profiles/$profileSlug/',
     getParentRoute: () => AppRoute,
   } as any)
+const AppProfilesProfileSlugDeleteRoute =
+  AppProfilesProfileSlugDeleteRouteImport.update({
+    id: '/profiles/$profileSlug/delete',
+    path: '/profiles/$profileSlug/delete',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppProfilesProfileSlugEditRoute =
   AppProfilesProfileSlugEditRouteImport.update({
     id: '/profiles/$profileSlug/edit',
@@ -260,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/rulesets/': typeof AppRulesetsIndexRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
+  '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRoute
   '/assets/$type/': typeof AppAssetsTypeIndexRoute
@@ -295,6 +303,7 @@ export interface FileRoutesByTo {
   '/rulesets': typeof AppRulesetsIndexRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
+  '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRoute
   '/assets/$type': typeof AppAssetsTypeIndexRoute
@@ -334,6 +343,7 @@ export interface FileRoutesById {
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
   '/_app/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/_app/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
+  '/_app/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRoute
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
   '/_app/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRoute
   '/_app/assets/$type/': typeof AppAssetsTypeIndexRoute
@@ -373,6 +383,7 @@ export interface FileRouteTypes {
     | '/rulesets/'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
+    | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
     | '/assets/$type/'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/rulesets'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
+    | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
     | '/assets/$type'
@@ -446,6 +458,7 @@ export interface FileRouteTypes {
     | '/_app/rulesets/'
     | '/_app/factions/$factionId/edit'
     | '/_app/groups/$groupSlug/edit'
+    | '/_app/profiles/$profileSlug/delete'
     | '/_app/profiles/$profileSlug/edit'
     | '/_app/rulesets/$rulesetSlug/edit'
     | '/_app/assets/$type/'
@@ -664,6 +677,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfilesProfileSlugIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/profiles/$profileSlug/delete': {
+      id: '/_app/profiles/$profileSlug/delete'
+      path: '/profiles/$profileSlug/delete'
+      fullPath: '/profiles/$profileSlug/delete'
+      preLoaderRoute: typeof AppProfilesProfileSlugDeleteRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/profiles/$profileSlug/edit': {
       id: '/_app/profiles/$profileSlug/edit'
       path: '/profiles/$profileSlug/edit'
@@ -778,6 +798,7 @@ interface AppRouteChildren {
   AppProfilesIndexRoute: typeof AppProfilesIndexRoute
   AppRulesetsIndexRoute: typeof AppRulesetsIndexRoute
   AppFactionsFactionIdEditRoute: typeof AppFactionsFactionIdEditRoute
+  AppProfilesProfileSlugDeleteRoute: typeof AppProfilesProfileSlugDeleteRoute
   AppProfilesProfileSlugEditRoute: typeof AppProfilesProfileSlugEditRoute
   AppAssetsTypeIndexRoute: typeof AppAssetsTypeIndexRoute
   AppFactionsFactionIdIndexRoute: typeof AppFactionsFactionIdIndexRoute
@@ -808,6 +829,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfilesIndexRoute: AppProfilesIndexRoute,
   AppRulesetsIndexRoute: AppRulesetsIndexRoute,
   AppFactionsFactionIdEditRoute: AppFactionsFactionIdEditRoute,
+  AppProfilesProfileSlugDeleteRoute: AppProfilesProfileSlugDeleteRoute,
   AppProfilesProfileSlugEditRoute: AppProfilesProfileSlugEditRoute,
   AppAssetsTypeIndexRoute: AppAssetsTypeIndexRoute,
   AppFactionsFactionIdIndexRoute: AppFactionsFactionIdIndexRoute,

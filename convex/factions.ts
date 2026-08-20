@@ -4,9 +4,9 @@ import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { factionSheetPublishingStatus } from './assetPublishingStatus';
 import { mutation } from './functions';
+import { isActiveProfile } from './lib/accountLifecycle';
 import {
   loadAssetAccessBundle,
-  requireAssignableGroup,
   requireFactionSoftDelete,
   requireFactionUpdate,
   requireGroupReassignment,
@@ -17,6 +17,7 @@ import {
   factionWithRulesetsValidator,
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
+import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import { loadFactionCatalogue, selectFactionCatalogueSpotlights } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import { parseFactionInput, parseStoredFactionForRead } from './lib/factionInput';
@@ -87,7 +88,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
       ...row,
       data: factionDataForClient(row.data),
     },
-    owner: ownerProfile,
+    owner: isActiveProfile(ownerProfile) ? ownerProfile : null,
     assetPublishing: await factionSheetPublishingStatus(ctx, row._id),
     viewerAccess: access.viewerAccess,
     assignableGroups: access.assignableGroups,
@@ -254,13 +255,11 @@ export const listByGroup = query({
 export const create = mutation({
   args: {
     data: v.any(),
-    group_id: v.union(v.id('groups'), v.null()),
+    group_id: v.optional(v.union(v.id('groups'), v.null())),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
-    if (args.group_id) {
-      await requireAssignableGroup(ctx, args.group_id);
-    }
+    const groupAssignment = await resolveGroupAssignmentForCreation(ctx, userId, args.group_id);
 
     const data = parseFactionInput(args.data, {
       requireAuthoringSemantics: true,
@@ -273,7 +272,7 @@ export const create = mutation({
       owner_id: userId,
       data,
       slug,
-      group_id: args.group_id,
+      group_id: groupAssignment.group_id,
       created_at: now,
       updated_at: now,
       is_deleted: false,
@@ -283,7 +282,7 @@ export const create = mutation({
       throw new Error('Failed to create faction');
     }
     await enqueueFactionSheetPublication(ctx, row);
-    return factionRowForClient(row);
+    return { ...factionRowForClient(row), route_notice: groupAssignment.route_notice };
   },
 });
 

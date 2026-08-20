@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as accountDeletion from "../accountDeletion.js";
 import type * as assetPublishingStatus from "../assetPublishingStatus.js";
 import type * as assets from "../assets.js";
 import type * as auth from "../auth.js";
@@ -18,11 +19,14 @@ import type * as functions from "../functions.js";
 import type * as groups from "../groups.js";
 import type * as homepage from "../homepage.js";
 import type * as http from "../http.js";
+import type * as lib_accountLifecycle from "../lib/accountLifecycle.js";
 import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
 import type * as lib_assetInput from "../lib/assetInput.js";
 import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
 import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAccessValidators.js";
 import type * as lib_decalRetune from "../lib/decalRetune.js";
+import type * as lib_defaultGroupPreference from "../lib/defaultGroupPreference.js";
+import type * as lib_directOwnership from "../lib/directOwnership.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionData from "../lib/factionData.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
@@ -64,6 +68,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  accountDeletion: typeof accountDeletion;
   assetPublishingStatus: typeof assetPublishingStatus;
   assets: typeof assets;
   auth: typeof auth;
@@ -74,11 +79,14 @@ declare const fullApi: ApiFromModules<{
   groups: typeof groups;
   homepage: typeof homepage;
   http: typeof http;
+  "lib/accountLifecycle": typeof lib_accountLifecycle;
   "lib/applicationTriggers": typeof lib_applicationTriggers;
   "lib/assetInput": typeof lib_assetInput;
   "lib/collaborativeAccess": typeof lib_collaborativeAccess;
   "lib/collaborativeAccessValidators": typeof lib_collaborativeAccessValidators;
   "lib/decalRetune": typeof lib_decalRetune;
+  "lib/defaultGroupPreference": typeof lib_defaultGroupPreference;
+  "lib/directOwnership": typeof lib_directOwnership;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionData": typeof lib_factionData;
   "lib/factionInput": typeof lib_factionInput;

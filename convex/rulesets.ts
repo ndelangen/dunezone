@@ -6,13 +6,13 @@ import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import {
-  requireAssignableGroup,
   requireGroupReassignment,
   requireRulesetMaintenance,
   requireRulesetSoftDelete,
   requireRulesetUpdate,
 } from './lib/collaborativeAccess';
 import { rulesetDetailPageValidator, rulesetPublicBundleValidator } from './lib/collaborativeAccessValidators';
+import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import {
   buildOwnedForGroupAssignRows,
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
@@ -125,7 +125,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     description: v.string(),
-    group_id: v.union(v.id('groups'), v.null()),
+    group_id: v.optional(v.union(v.id('groups'), v.null())),
     image_cover: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
@@ -137,9 +137,7 @@ export const create = mutation({
     }
     const normalizedName = parsed.data.name;
 
-    if (args.group_id) {
-      await requireAssignableGroup(ctx, args.group_id);
-    }
+    const groupAssignment = await resolveGroupAssignmentForCreation(ctx, userId, args.group_id);
 
     const duplicate = await ctx.db
       .query('rulesets')
@@ -156,7 +154,7 @@ export const create = mutation({
       description: parsed.data.description,
       slug,
       owner_id: userId,
-      group_id: args.group_id,
+      group_id: groupAssignment.group_id,
       image_cover: args.image_cover,
       created_at: now,
       updated_at: now,
@@ -166,7 +164,7 @@ export const create = mutation({
     if (!created) {
       throw new Error('Failed to create ruleset');
     }
-    return created;
+    return { ...created, route_notice: groupAssignment.route_notice };
   },
 });
 

@@ -7,6 +7,7 @@ import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalQuery, query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
+import { accountStateOf } from './lib/accountLifecycle';
 import { DECAL_ID_RENAMES, DECAL_SCALE_FACTORS } from './lib/decalRetune';
 import {
   reconcileAnswerActivity,
@@ -56,6 +57,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_complexity_grouped_verify_v1: internal.migrations.faction_complexity_grouped_verify_v1,
   assets_about_v1: internal.migrations.assets_about_v1,
   assets_about_verify_v1: internal.migrations.assets_about_verify_v1,
+  account_lifecycle_profiles_v1: internal.migrations.account_lifecycle_profiles_v1,
+  account_lifecycle_verify_v1: internal.migrations.account_lifecycle_verify_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -121,7 +124,10 @@ async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets
     .unique();
 
   if (!counter) {
-    const inserted = await ctx.db.insert('counters', { key: counterKey, value: 0 });
+    const inserted = await ctx.db.insert('counters', {
+      key: counterKey,
+      value: 0,
+    });
     counter = { _id: inserted, _creationTime: 0, key: counterKey, value: 0 };
   }
 
@@ -488,6 +494,50 @@ export const assets_about_verify_v1 = migrations.define({
   },
 });
 
+/** Backfills the compatible account lifecycle projection and mirrors it to existing auth users. */
+export const account_lifecycle_profiles_v1 = migrations.define({
+  table: 'profiles',
+  batchSize: 50,
+  migrateOne: async (ctx, profile) => {
+    const user = await ctx.db.get('users', profile.user_id);
+    if (!user) {
+      throw new Error(`Profile ${profile._id} references missing user ${profile.user_id}`);
+    }
+    const profileState = profile.account_state;
+    const userState = user.account_state;
+    if (profileState && userState && profileState !== userState) {
+      throw new Error(`Lifecycle mismatch for profile ${profile._id} and user ${user._id}`);
+    }
+    const accountState = profileState ?? userState ?? 'active';
+    if (!userState) {
+      await ctx.db.patch(user._id, { account_state: accountState });
+    }
+    return profileState ? undefined : { account_state: accountState };
+  },
+});
+
+/** Proves every auth user has one lifecycle-consistent profile before narrowing. */
+export const account_lifecycle_verify_v1 = migrations.define({
+  table: 'users',
+  batchSize: 50,
+  migrateOne: async (ctx, user) => {
+    const profiles = await ctx.db
+      .query('profiles')
+      .withIndex('by_user_id', (q) => q.eq('user_id', user._id))
+      .take(2);
+    if (profiles.length !== 1) {
+      throw new Error(`User ${user._id} has ${profiles.length} profiles; expected exactly one`);
+    }
+    const profile = profiles[0];
+    if (!profile?.account_state) {
+      throw new Error(`Profile ${profile?._id ?? 'unknown'} has no account lifecycle state`);
+    }
+    if (profile.account_state !== accountStateOf(user)) {
+      throw new Error(`Lifecycle mismatch for profile ${profile._id} and user ${user._id}`);
+    }
+  },
+});
+
 const AUDIT_SCAN_LIMIT = 4096;
 const AUDIT_ID_SAMPLE_LIMIT = 50;
 
@@ -542,6 +592,31 @@ export const groupsLifecycleAudit = internalQuery({
   },
 });
 
+/** Proves the account lifecycle picker and direct-ownership indexes are queryable after activation. */
+export const accountLifecycleIndexAudit = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const [activeProfiles, groups, factions, rulesets] = await Promise.all([
+      ctx.db
+        .query('profiles')
+        .withIndex('by_account_state_username', (q) => q.eq('account_state', 'active'))
+        .take(1),
+      ctx.db.query('groups').withIndex('by_created_by_deleted').take(1),
+      ctx.db.query('factions').withIndex('by_owner_deleted').take(1),
+      ctx.db.query('rulesets').withIndex('by_owner_deleted').take(1),
+    ]);
+    return {
+      ok: true,
+      sampled: {
+        activeProfiles: activeProfiles.length,
+        groups: groups.length,
+        factions: factions.length,
+        rulesets: rulesets.length,
+      },
+    };
+  },
+});
+
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([
@@ -562,6 +637,8 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.faction_decal_retune_v1,
   internal.migrations.groups_soft_delete_backfill_v1,
   internal.migrations.groups_soft_delete_verify_v1,
+  internal.migrations.account_lifecycle_profiles_v1,
+  internal.migrations.account_lifecycle_verify_v1,
 ]);
 
 export const runRequired = mutation({
@@ -597,7 +674,10 @@ export const adminDashboard = query({
   },
   handler: async (ctx, args) => {
     const refs = args.ids ? migrationRefsFor(args.ids) : undefined;
-    const statuses = await migrations.getStatus(ctx, { migrations: refs, limit: 100 });
+    const statuses = await migrations.getStatus(ctx, {
+      migrations: refs,
+      limit: 100,
+    });
     const snapshots = await ctx.db.query('migration_runs').order('desc').take(100);
     return { statuses, snapshots };
   },
@@ -609,7 +689,10 @@ export const syncMigrationRuns = mutation({
   },
   handler: async (ctx, args) => {
     const refs = args.ids ? migrationRefsFor(args.ids) : undefined;
-    const statuses = await migrations.getStatus(ctx, { migrations: refs, limit: 100 });
+    const statuses = await migrations.getStatus(ctx, {
+      migrations: refs,
+      limit: 100,
+    });
     const updatedAt = nowIso();
     for (const status of statuses) {
       const migrationId = toMigrationId(status.name);

@@ -55,6 +55,7 @@ const profileAvatarUrlSchema = z
 export const profileUserEditFormSchema = z.strictObject({
   username: profileDisplayNameSchema,
   avatar_url: profileAvatarUrlSchema,
+  default_group_id: z.string().nullable().optional(),
 });
 
 export type ProfileUserEditInput = z.infer<typeof profileUserEditFormSchema>;

@@ -1,5 +1,6 @@
 import { Button } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
+import type { ReactNode } from 'react';
 
 export interface SubmitActionProps {
   /** What saving means here — "Save group". A verb phrase, because it is a promise to act. */
@@ -10,6 +11,10 @@ export interface SubmitActionProps {
   disabled?: boolean;
   /** Shown in place of `children` while pending. Override only when "Saving…" would be a lie. */
   pendingLabel?: string;
+  /** Associates the action with a form elsewhere in the page, such as a PageLayout toolbar. */
+  form?: string;
+  /** Optional glyph placed before the action label. */
+  icon?: ReactNode;
   size?: ButtonProps['size'];
 }
 
@@ -27,10 +32,21 @@ export function SubmitAction({
   pending,
   disabled = false,
   pendingLabel = 'Saving…',
+  form,
+  icon,
   size,
 }: SubmitActionProps) {
   return (
-    <Button type="submit" variant="filled" color="confirm" size={size} loading={pending} disabled={disabled || pending}>
+    <Button
+      type="submit"
+      form={form}
+      variant="filled"
+      color="confirm"
+      size={size}
+      leftSection={icon}
+      loading={pending}
+      disabled={disabled || pending}
+    >
       {pending ? pendingLabel : children}
     </Button>
   );

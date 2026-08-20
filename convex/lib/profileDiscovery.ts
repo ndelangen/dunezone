@@ -6,6 +6,7 @@ import type { Infer } from 'convex/values';
 import { components } from '../_generated/api';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { isActiveProfile } from './accountLifecycle';
 
 const MAX_DISCOVERY_LIMIT = 20;
 
@@ -30,7 +31,7 @@ const profileDiscovery = new DirectAggregate<{
 }>(components.profileDiscovery);
 
 export function isProfileDiscoverable<
-  T extends Pick<Doc<'profiles'>, 'username' | 'avatar_url' | 'slug' | 'created_at'>,
+  T extends Pick<Doc<'profiles'>, 'username' | 'avatar_url' | 'slug' | 'created_at' | 'account_state'>,
 >(
   profile: T
 ): profile is T & {
@@ -38,6 +39,7 @@ export function isProfileDiscoverable<
   avatar_url: string;
 } {
   return (
+    isActiveProfile(profile) &&
     (profile.username?.trim().length ?? 0) > 0 &&
     (profile.avatar_url?.trim().length ?? 0) > 0 &&
     profile.slug.trim().length !== 0 &&

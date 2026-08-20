@@ -5,6 +5,7 @@ import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
 import { requireGroupCapability, requireMembershipRequest } from './lib/collaborativeAccess';
 import { groupMemberValidator, membershipCommandAcknowledgementValidator } from './lib/collaborativeAccessValidators';
+import { clearDefaultGroupForRemovedMembership } from './lib/defaultGroupPreference';
 import { requireAuthUserId } from './lib/policy';
 import { nowIso } from './lib/utils';
 
@@ -92,6 +93,7 @@ async function removeMembership(
     approved_by: null,
     approved_at: null,
   });
+  await clearDefaultGroupForRemovedMembership(ctx, membership.user_id, membership.group_id);
   return await requireMembership(ctx, membership._id);
 }
 
