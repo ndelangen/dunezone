@@ -18,10 +18,10 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { RectangleHorizontal, Type } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { assetFaceAspect, TokenFrame } from '@app/widgets/asset-face/AssetFace';
 import { BackgroundPresetPicker } from '@app/widgets/background-composer/BackgroundPresetPicker';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
@@ -40,6 +40,7 @@ export type RectangleDraft = z.infer<typeof RectangleTokenAsset>;
 export type RectangleFaceDraft = RectangleDraft['front'];
 export type RectangleChapter =
   | 'identity'
+  | 'about'
   | 'front'
   | 'front-decals'
   | 'front-text'
@@ -407,7 +408,7 @@ export function RectangleTokenEditor({
     {
       value: key as RectangleChapter,
       label,
-      icon: <RectangleHorizontal size={21} aria-hidden />,
+      icon: <TopicIcon topic="face" size={21} />,
       panel: panel(<SurfaceFields face={face} patch={facePatch} />),
     },
     {
@@ -419,7 +420,7 @@ export function RectangleTokenEditor({
     {
       value: `${key}-text` as RectangleChapter,
       label: `${label} text`,
-      icon: <Type size={21} aria-hidden />,
+      icon: <TopicIcon topic="text" size={21} />,
       panel: panel(<TextsFields face={face} patch={facePatch} />),
     },
   ];
@@ -469,6 +470,11 @@ export function RectangleTokenEditor({
     },
     ...faceChapters('front', 'Front', draft.front, patchFace('front')),
     ...(draft.back.mode === 'custom' ? faceChapters('back', 'Back', draft.back.face, patchFace('back')) : []),
+    /*
+     * This editor was the only one of five with no About chapter, while `INITIAL_RECTANGLE_DRAFT` has carried
+     * `about: ''` since «Assets gain an About field», so the prose was stored and unreachable (found 2026-08-20).
+     */
+    aboutChapter(draft.about, (about) => patch({ about })),
   ];
 
   /* Switching to a referenced back removes three tabs, so a selection sitting on one of them has to fall back. */

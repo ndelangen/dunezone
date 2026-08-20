@@ -17,7 +17,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Disc, ScrollText, Type } from 'lucide-react';
+import { ScrollText, Stamp } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -141,7 +141,7 @@ function IconFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
     <Stack gap="md">
       <ControlBlock
         title="Icon"
-        description="The vector in the top-right disc; it doubles as this chapter's tab icon."
+        description="The vector in the top-right disc."
         input={
           <AssetSelect
             aria-label="Icon"
@@ -387,7 +387,6 @@ export function treacheryDraftWarnings(draft: TreacheryDraft): TreacheryDraftWar
 
 /* ------------------------------ workbench ------------------------------ */
 
-/** The Icon tab wears the card's own icon, so the chapter list reflects the data. */
 /* No padding here: ConnectedTabs' panel shell owns the panel inset (--connected-tabs-panel-padding). */
 const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
 
@@ -429,13 +428,13 @@ export function TreacheryCardEditor({
           {
             value: 'head',
             label: 'Head',
-            icon: <Type size={21} aria-hidden />,
+            icon: <TopicIcon topic="text" size={21} />,
             panel: panel(<HeadFields draft={draft} patch={patch} />),
           },
           {
             value: 'icon',
-            label: 'Icon',
-            icon: <Disc size={21} aria-hidden />,
+            label: 'Symbol',
+            icon: <Stamp size={21} aria-hidden />,
             panel: panel(<IconFields draft={draft} patch={patch} />),
           },
           {

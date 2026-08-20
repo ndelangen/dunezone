@@ -152,7 +152,6 @@ const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
  * The deck workbench.
  *
  * Two chapters, because a deck is only two things: what it is, and what is in it.
- * The Identity tab wears the effective cardback rather than a generic glyph, so changing the back changes the chapter's own face.
  *
  * Membership is not draft state.
  * Each count change writes an `asset_relations` row immediately, the way a token's referenced backside does, because relations do not travel through the asset's `data`.

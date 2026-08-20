@@ -6,7 +6,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Circle, Coins, FlipHorizontal2 } from 'lucide-react';
+import { Frame } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -306,28 +306,28 @@ export function TokenEditor({
     },
     {
       value: 'front' as const,
-      label: 'Front',
-      icon: <Coins size={21} aria-hidden />,
+      label: 'Front face',
+      icon: <TopicIcon topic="face" size={21} />,
       panel: panel(<FaceFields face={draft.front} patch={patchFace('front')} />),
     },
     {
       value: 'front-rim' as const,
       label: 'Front rim',
-      icon: <Circle size={21} aria-hidden />,
+      icon: <Frame size={21} aria-hidden />,
       panel: panel(<FaceRim face={draft.front} patch={patchFace('front')} />),
     },
     ...(draft.back.mode === 'custom'
       ? [
           {
             value: 'back' as const,
-            label: 'Back',
-            icon: <FlipHorizontal2 size={21} aria-hidden />,
+            label: 'Back face',
+            icon: <TopicIcon topic="face" size={21} />,
             panel: panel(<FaceFields face={draft.back.face} patch={patchFace('back')} />),
           },
           {
             value: 'back-rim' as const,
             label: 'Back rim',
-            icon: <Circle size={21} aria-hidden />,
+            icon: <Frame size={21} aria-hidden />,
             panel: panel(<FaceRim face={draft.back.face} patch={patchFace('back')} />),
           },
         ]

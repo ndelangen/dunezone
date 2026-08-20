@@ -17,7 +17,7 @@ const MASK_TOPICS: Array<[TopicIconTopic, string]> = [
   ['fate', '/vector/icon/fate.svg'],
 ];
 
-const COMPONENT_TOPICS: TopicIconTopic[] = ['background', 'setup', 'rulesets'];
+const COMPONENT_TOPICS: TopicIconTopic[] = ['face', 'text', 'setup', 'rulesets'];
 
 describe('TopicIcon', () => {
   it.each(MASK_TOPICS)('renders the %s asset as a current-color mask', (topic, src) => {
