@@ -37,6 +37,8 @@ export const ASSET_TYPES = {
   'token-gear': { category: 'tokens', label: 'Gear tokens', shortLabel: 'Gear', status: 'live' },
   'token-square': { category: 'tokens', label: 'Square tokens', shortLabel: 'Square', status: 'live' },
   'token-rectangle': { category: 'tokens', label: 'Rectangle tokens', shortLabel: 'Rectangle', status: 'live' },
+  /* A container of tokens, so it groups with them rather than earning a fifth category (see CONTEXT.md: Asset category). */
+  bundle: { category: 'tokens', label: 'Bundles', shortLabel: 'Bundles', status: 'live' },
   board: { category: 'boards', label: 'Boards', shortLabel: 'Boards', status: 'planned' },
 } as const satisfies Record<string, AssetTypeDefinition>;
 

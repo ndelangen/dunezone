@@ -62,8 +62,9 @@ export function useSetTokenBack() {
   );
 }
 
-export function useSetDeckCardCount() {
-  return useLiveMutation<{ deck_id: AssetListEntry['id']; card_id: AssetListEntry['id']; count: number }, void>(
-    api.assets.setDeckCardCount
+/** How many of one member a container holds. Zero removes it. Serves decks and bundles alike. */
+export function useSetMemberCount() {
+  return useLiveMutation<{ container_id: AssetListEntry['id']; member_id: AssetListEntry['id']; count: number }, void>(
+    api.assets.setMemberCount
   );
 }

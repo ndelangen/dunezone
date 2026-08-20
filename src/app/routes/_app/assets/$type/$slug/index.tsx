@@ -204,26 +204,31 @@ function AboutSection({ about }: { about: string }) {
   );
 }
 
-/** A deck's cards and how many of each. Read-only here; composition is managed in the deck editor. */
-function DeckComposition({ deckCards }: { deckCards: AssetPage['deckCards'] }) {
+/**
+ * What a container holds, and how many of each.
+ * Read-only here;
+ * composition is managed in the container's editor.
+ * One component for decks and bundles, because a deck's cards and a bundle's tokens are the same relation read.
+ */
+function Composition({ members, noun }: { members: AssetPage['members']; noun: string }) {
   return (
     <Section
       id="composition"
       icon={<Layers3 size={20} aria-hidden />}
       title="Composition"
-      description="The cards in this deck and how many of each."
+      description={`The ${noun} in here and how many of each.`}
     >
-      {deckCards.length === 0 ? (
+      {members.length === 0 ? (
         <Surface padding="lg">
           <Text size="sm" c="dimmed">
-            This deck holds no cards yet.
+            No {noun} yet.
           </Text>
         </Surface>
       ) : (
         <Links>
-          {deckCards.map(({ card, count }) => (
-            <Links.Item key={card.id} to="/assets/$type/$slug" params={{ type: card.type, slug: card.slug }}>
-              {count > 1 ? `${card.name} ×${count}` : card.name}
+          {members.map(({ member, count }) => (
+            <Links.Item key={member.id} to="/assets/$type/$slug" params={{ type: member.type, slug: member.slug }}>
+              {count > 1 ? `${member.name} ×${count}` : member.name}
             </Links.Item>
           ))}
         </Links>
@@ -239,7 +244,8 @@ function DeckComposition({ deckCards }: { deckCards: AssetPage['deckCards'] }) {
  * A lookup rather than a switch, so a new type is one entry and the route never learns about it.
  */
 const PER_TYPE_BODY: Record<string, (page: AssetPage) => ReactNode> = {
-  deck: (page) => <DeckComposition deckCards={page.deckCards} />,
+  deck: (page) => <Composition members={page.members} noun="cards" />,
+  bundle: (page) => <Composition members={page.members} noun="tokens" />,
 };
 
 function AssetDetailBody({ page }: { page: AssetPage }) {

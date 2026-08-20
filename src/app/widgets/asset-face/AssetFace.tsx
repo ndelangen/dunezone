@@ -18,6 +18,9 @@ import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { TreacheryAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
+import { BUNDLE_ASPECT, BundleContainer } from './BundleContainer';
+import type { BundleBandData } from './BundleContainer';
+
 export const CARD_ASPECT = CARD_SIZE.height / CARD_SIZE.width;
 
 /** A rectangle token is wider than it is tall; every other token shape is square. */
@@ -131,6 +134,11 @@ function NeutralFace({ name, width, aspect }: { name: string; width: number; asp
 }
 
 /* The editors own the full schemas; listings ask only for what a face render needs. */
+/* A bundle draws its authored band and nothing else; its members are the caller's to supply. */
+const bundleFaceSchema = z.object({
+  band: z.looseObject({ background: z.unknown(), label: z.string() }),
+});
+
 const cardbackFaceSchema = z.object({
   cardback: z.looseObject({
     name: z.string(),
@@ -219,6 +227,9 @@ export type AssetFaceSide = 'front' | 'back';
  * One place, because the frames below and every caller that has to reserve space for a face were otherwise deriving the same three numbers separately.
  */
 export function assetFaceAspect(type: string): number {
+  if (type === 'bundle') {
+    return BUNDLE_ASPECT;
+  }
   const shape = tokenShapeOfType(type);
   switch (shape) {
     case null:
@@ -288,6 +299,17 @@ export function AssetFace({
       );
     }
     return <NeutralFace name={name} width={width} aspect={CARD_ASPECT} />;
+  }
+
+  if (type === 'bundle') {
+    const parsed = bundleFaceSchema.safeParse(data);
+    if (parsed.success) {
+      return (
+        /* the stored composition is a Background; the listing trusts storage and the renderer takes it as-is */
+        <BundleContainer band={parsed.data.band as BundleBandData} name={name} width={width} />
+      );
+    }
+    return <NeutralFace name={name} width={width} aspect={BUNDLE_ASPECT} />;
   }
 
   if (type === 'deck') {

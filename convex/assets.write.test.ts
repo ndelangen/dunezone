@@ -306,23 +306,23 @@ describe('deck composition', () => {
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
 
-    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 3 });
+    await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 3 });
     let page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
-    expect(page?.deckCards).toEqual([expect.objectContaining({ count: 3 })]);
+    expect(page?.members).toEqual([expect.objectContaining({ count: 3 })]);
 
-    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 5 });
+    await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 5 });
     page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
-    expect(page?.deckCards).toHaveLength(1);
-    expect(page?.deckCards[0]?.count).toBe(5);
+    expect(page?.members).toHaveLength(1);
+    expect(page?.members[0]?.count).toBe(5);
 
-    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 0 });
+    await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 0 });
     page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
-    expect(page?.deckCards).toEqual([]);
+    expect(page?.members).toEqual([]);
     const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
     expect(relations).toEqual([]);
   });
 
-  test('a deck holds cards and nothing else, and counts are bounded', async () => {
+  test('a container holds only its own kind, and counts are bounded', async () => {
     const t = convexTest(schema, modules);
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
@@ -330,13 +330,13 @@ describe('deck composition', () => {
     const token = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
 
     await expect(
-      owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: token.id, count: 1 })
+      owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: token.id, count: 1 })
     ).rejects.toThrow('holds cards, not token-round');
     await expect(
-      owner.mutation(api.assets.setDeckCardCount, { deck_id: created.id, card_id: created.id, count: 1 })
-    ).rejects.toThrow('holds no cards');
+      owner.mutation(api.assets.setMemberCount, { container_id: created.id, member_id: created.id, count: 1 })
+    ).rejects.toThrow('holds nothing');
     await expect(
-      owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 1.5 })
+      owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 1.5 })
     ).rejects.toThrow('whole number');
   });
 
@@ -345,12 +345,12 @@ describe('deck composition', () => {
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
-    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 2 });
+    await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 2 });
 
     await owner.mutation(api.assets.softDelete, { id: created.id });
 
     const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
-    expect(page?.deckCards).toEqual([]);
+    expect(page?.members).toEqual([]);
     const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
     expect(relations).toHaveLength(1);
   });
@@ -362,7 +362,7 @@ describe('asset page bundle', () => {
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
-    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 3 });
+    await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 3 });
 
     const card = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
     expect(card?.inDecks).toEqual([
@@ -382,7 +382,7 @@ describe('asset page bundle', () => {
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
-    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 1 });
+    await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 1 });
     await owner.mutation(api.assets.softDelete, { id: deck.id });
 
     const card = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
@@ -531,5 +531,56 @@ describe('rectangle tokens', () => {
     await expect(
       t.withIdentity({ subject: ownerId }).mutation(api.assets.create, { type: 'token-rectangle', data })
     ).rejects.toThrow();
+  });
+});
+
+describe('bundles', () => {
+  const bundleData = (name: string) => ({
+    name,
+    about: '',
+    band: {
+      label: 'Tech',
+      background: {
+        image: '/image/texture/015.jpg',
+        colors: ['#4B4C0D', '#262B04'],
+        invert: true,
+        definition: 0,
+        influence: 0.5,
+      },
+    },
+  });
+
+  test('a bundle holds tokens of mixed shapes, and a deck refuses them', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const bundle = await owner.mutation(api.assets.create, { type: 'bundle', data: bundleData('Tech Tokens') });
+    const round = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Shield') });
+    const gear = await owner.mutation(api.assets.create, { type: 'token-gear', data: tokenData('Ornithopter') });
+
+    await owner.mutation(api.assets.setMemberCount, { container_id: bundle.id, member_id: round.id, count: 20 });
+    await owner.mutation(api.assets.setMemberCount, { container_id: bundle.id, member_id: gear.id, count: 1 });
+
+    const page = await t.query(api.assets.getPage, { type: 'bundle', slug: 'tech-tokens' });
+    expect(page?.members).toHaveLength(2);
+    expect(page?.members.map((entry) => entry.count).sort()).toEqual([1, 20]);
+
+    /* Kind exclusion runs both ways: a bundle refuses cards and a deck refuses tokens. */
+    await expect(
+      owner.mutation(api.assets.setMemberCount, { container_id: bundle.id, member_id: created.id, count: 1 })
+    ).rejects.toThrow('holds tokens, not card-treachery');
+  });
+
+  test('a bundle publishes nothing, unlike every other live type', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Bundle owner' }));
+    await t.withIdentity({ subject: ownerId }).mutation(api.assets.create, {
+      type: 'bundle',
+      data: bundleData('Tech Tokens'),
+    });
+
+    expect(await t.run(async (ctx) => await ctx.db.query('publication_jobs').collect())).toEqual([]);
+    const page = await t.query(api.assets.getPage, { type: 'bundle', slug: 'tech-tokens' });
+    expect(page?.assetPublishing).toBeNull();
   });
 });

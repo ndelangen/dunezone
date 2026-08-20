@@ -1,11 +1,9 @@
-import { Alert, Anchor, Button, Group, Popover, Stack, Text } from '@mantine/core';
-import { DeckAsset } from '@shared/assets/schema';
+import { Alert, Anchor, Button, Popover, Stack, Text } from '@mantine/core';
+import { BundleAsset } from '@shared/assets/schema';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
-import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAssetPage, useDeleteAsset, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
@@ -14,33 +12,33 @@ import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
-import { DeckEditor, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
-import type { DeckChapter, DeckDraft } from '@app/widgets/deck-editor/DeckEditor';
+import { bundleDraftWarnings, BundleEditor } from '@app/widgets/bundle-editor/BundleEditor';
+import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
 
 import { AssetEditorMessage } from '../../../-assetEditorStates';
 
-const VALIDATION_HEADER_ID = 'deck-validation-header';
+const VALIDATION_HEADER_ID = 'bundle-validation-header';
 
-/** Every card type a deck may hold. Grows with the registry rather than with this file. */
-const CARD_TYPES = ['card-treachery'];
+/** Every token type a bundle may hold. A bundle mixes shapes freely, which is the point of it. */
+const TOKEN_TYPES = ['token-round', 'token-gear', 'token-square', 'token-rectangle'];
 
-export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
-  const query = useAssetPage('deck', slug, { initialData: loaderData });
+export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
+  const query = useAssetPage('bundle', slug, { initialData: loaderData });
   const data = query.data ?? loaderData;
 
   if (data === null) {
     return (
-      <AssetEditorMessage title="Deck not found" type="deck">
-        <Text>No deck lives at this address.</Text>
+      <AssetEditorMessage title="Bundle not found" type="bundle">
+        <Text>No bundle lives at this address.</Text>
       </AssetEditorMessage>
     );
   }
 
   if (data.viewerAccess.viewer.kind === 'anonymous') {
     return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="deck">
+      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="bundle">
         <Text>
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to edit decks.
+          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to edit bundles.
         </Text>
       </AssetEditorMessage>
     );
@@ -48,49 +46,49 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
 
   if (!data.viewerAccess.capabilities.edit) {
     return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="deck">
+      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="bundle">
         <Text>
           {data.viewerAccess.assignedGroup
-            ? 'Only the deck owner or an active member of its group can edit this deck.'
-            : 'Only the deck owner can edit this deck.'}
+            ? 'Only the bundle owner or an active member of its group can edit this bundle.'
+            : 'Only the bundle owner can edit this bundle.'}
         </Text>
       </AssetEditorMessage>
     );
   }
 
-  const parsed = DeckAsset.safeParse(data.asset.data);
+  const parsed = BundleAsset.safeParse(data.asset.data);
   if (!parsed.success) {
     return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="deck">
-        <Text>This deck's stored data no longer matches the deck schema, so it cannot be edited here.</Text>
+      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="bundle">
+        <Text>This bundle's stored data no longer matches the bundle schema, so it cannot be edited here.</Text>
       </AssetEditorMessage>
     );
   }
 
-  return <DeckEditSession key={data.asset.id} asset={data.asset} members={data.members} initialDraft={parsed.data} />;
+  return <BundleEditSession key={data.asset.id} asset={data.asset} members={data.members} initialDraft={parsed.data} />;
 }
 
-function DeckEditSession({
+function BundleEditSession({
   asset,
   members,
   initialDraft,
 }: {
   asset: NonNullable<AssetPageData>['asset'];
   members: NonNullable<AssetPageData>['members'];
-  initialDraft: DeckDraft;
+  initialDraft: BundleDraft;
 }) {
   const navigate = useNavigate();
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
   const setCount = useSetMemberCount();
-  const [draft, setDraft] = useState<DeckDraft>(initialDraft);
-  const [baseline, setBaseline] = useState<DeckDraft>(initialDraft);
-  const [chapter, setChapter] = useState<DeckChapter>('identity');
+  const [draft, setDraft] = useState<BundleDraft>(initialDraft);
+  const [baseline, setBaseline] = useState<BundleDraft>(initialDraft);
+  const [chapter, setChapter] = useState<BundleChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const patch = (update: Partial<DeckDraft>) => setDraft((prev) => ({ ...prev, ...update }));
-  const cards = members.map((entry) => ({ card: entry.member, count: entry.count }));
-  const warnings = deckDraftWarnings(draft, cards);
+  const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
+  const tokens = members.map((entry) => ({ token: entry.member, count: entry.count }));
+  const warnings = bundleDraftWarnings(draft, tokens);
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -110,7 +108,11 @@ function DeckEditSession({
         onSuccess: ({ slug: nextSlug }) => {
           setBaseline(saved);
           if (nextSlug !== asset.slug) {
-            void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'deck', slug: nextSlug }, replace: true });
+            void navigate({
+              to: '/assets/$type/$slug/edit',
+              params: { type: 'bundle', slug: nextSlug },
+              replace: true,
+            });
           }
         },
       }
@@ -132,29 +134,34 @@ function DeckEditSession({
         <AuthoringToolbar
           status={{ isDirty, isNameBlank, warningCount: warnings.length, saveState }}
           copy={{
-            saveLabel: 'Save deck',
-            nameBlankMessage: 'Add a deck name before saving; it determines the deck URL.',
+            saveLabel: 'Save bundle',
+            nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
+            /*
+             * A bundle publishes nothing, so this says what does happen rather than leaving a publication line that
+             * would never fill in. `AuthoringToolbar` already omits its "Last published" line when there is no
+             * timestamp, so nothing here has to suppress it.
+             */
             statusMessage:
               saveState === 'error'
-                ? 'The deck was not saved.'
-                : "The deck publishes its cardback. Member cards publish their own faces, so editing one never invalidates the deck's image.",
+                ? 'The bundle was not saved.'
+                : 'A bundle publishes no image of its own. Its tokens publish their own faces.',
           }}
           actions={{
             onSave: save,
             onReviewWarnings: () =>
               document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
             onReset: () => setDraft(baseline),
-            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
+            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
           }}
           destructiveActions={
             <ConfirmDeleteAction
-              label="Delete deck"
-              prompt="Delete deck?"
+              label="Delete bundle"
+              prompt="Delete bundle?"
               pending={deleteAsset.isPending}
               onConfirm={() =>
                 deleteAsset.mutate(
                   { id: asset.id },
-                  { onSuccess: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }) }
+                  { onSuccess: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }) }
                 )
               }
             />
@@ -169,56 +176,35 @@ function DeckEditSession({
             </Alert>
           ) : null}
           {setCount.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not change the composition">
+            <Alert color="red" variant="light" role="alert" title="Could not change the contents">
               {setCount.error.message}
             </Alert>
           ) : null}
-          <DeckEditor
+          <BundleEditor
             draft={draft}
             patch={patch}
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={() => setSettleTick((tick) => tick + 1)}
-            members={cards}
-            onCountChange={(cardId, count) =>
-              setCount.mutate({ container_id: asset.id, member_id: cardId as typeof asset.id, count })
+            members={tokens}
+            onCountChange={(tokenId, count) =>
+              setCount.mutate({ container_id: asset.id, member_id: tokenId as typeof asset.id, count })
             }
-            createCardAction={
-              <Group gap="xs">
-                <IconAction
-                  label="Create a new card"
-                  tooltip={
-                    isDirty
-                      ? 'Save your deck first, since creating a card leaves this page'
-                      : 'Create a new card, then come back and add it'
-                  }
-                  variant="filled"
-                  color="confirm"
-                  size="lg"
-                  disabled={isDirty}
-                  onClick={() => void navigate({ to: '/assets/$type/create', params: { type: 'card-treachery' } })}
-                  icon={<Plus size={17} aria-hidden />}
-                />
-                <Text size="xs" c="dimmed">
-                  {isDirty ? 'Save first: creating a card leaves this page.' : 'Missing a card? Make one.'}
-                </Text>
-              </Group>
-            }
-            cardPicker={
+            tokenPicker={
               <Popover opened={pickerOpen} onChange={setPickerOpen} width={360} position="bottom-start" withinPortal>
                 <Popover.Target>
                   <Button variant="light" size="compact-sm" onClick={() => setPickerOpen((open) => !open)}>
-                    Add a card
+                    Add a token
                   </Button>
                 </Popover.Target>
                 <Popover.Dropdown>
                   <AssetPicker
-                    types={CARD_TYPES}
-                    excludeIds={cards.map((entry) => entry.card.id)}
+                    types={TOKEN_TYPES}
+                    excludeIds={tokens.map((entry) => entry.token.id)}
                     copy={{
-                      searchLabel: 'Search cards',
+                      searchLabel: 'Search tokens',
                       searchPlaceholder: 'Type a name, slug or owner…',
-                      emptyMessage: 'No cards exist yet.',
+                      emptyMessage: 'No tokens exist yet.',
                     }}
                     onPick={(picked) => {
                       setPickerOpen(false);

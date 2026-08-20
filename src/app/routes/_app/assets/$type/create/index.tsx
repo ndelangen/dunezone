@@ -2,6 +2,7 @@ import { isAssetType } from '@shared/assets/types';
 import { createFileRoute, notFound } from '@tanstack/react-router';
 
 import { NoEditorYet } from '../../-assetEditorStates';
+import { BundleCreatePage } from './-bundleCreate';
 import { DeckCreatePage } from './-deckCreate';
 import { RectangleCreatePage } from './-rectangleCreate';
 import { TokenCreatePage } from './-tokenCreate';
@@ -40,6 +41,8 @@ function CreateAssetPage() {
       return <RectangleCreatePage />;
     case 'deck':
       return <DeckCreatePage />;
+    case 'bundle':
+      return <BundleCreatePage />;
     default:
       return <NoEditorYet type={type} />;
   }

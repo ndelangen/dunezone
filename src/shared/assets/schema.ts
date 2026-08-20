@@ -196,6 +196,35 @@ export const DeckAsset = z.strictObject({
 });
 
 /**
+ * The band across a bundle's container: the one authored thing a bundle has.
+ *
+ * A bundle is the first Asset type with no visual identifying feature of its own.
+ * A card's face comes from its own data and a deck looks like a deck because its author made a Cardback;
+ * a bundle's row carries a name and its membership lives in `asset_relations`.
+ * «What a bundle looks like» settled that it authors a container rather than wearing a house one, so that two bundles are told apart by their own identity instead of by whoever is inside them.
+ *
+ * `label` is separate from the Asset's name for the same reason `CardBack.name` is: a bundle called "Norbert's tech tokens" can wear a band reading "TECH".
+ */
+export const BundleBand = z.strictObject({
+  background: Background,
+  label: z.string(),
+});
+
+/**
+ * A bundle: a container of tokens, mixing shapes freely, exactly as a deck contains cards.
+ * Its members are `asset_relations` rows rather than data, so this carries identity and the one face it draws.
+ *
+ * Unlike every other Asset type, a bundle **publishes nothing** (decision on «Bundles: a token container Asset type»).
+ * Its members already publish individually, and its band is interface chrome rather than something you print.
+ * So there is no publication target row, no enqueue branch, and no Renderer revision entry, and that is settled rather than deferred.
+ */
+export const BundleAsset = z.strictObject({
+  name: z.string(),
+  about: About,
+  band: BundleBand,
+});
+
+/**
  * The seven faces the project ships, declared in `src/app/styles/fonts.css`.
  * A rectangle token is the only Asset type that lets an author pick one, so the list lives here rather than in a renderer, and both the schema and the renderer read it.
  */

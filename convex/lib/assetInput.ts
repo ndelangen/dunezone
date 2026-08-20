@@ -1,4 +1,10 @@
-import { DeckAsset, RectangleTokenAsset, TokenAsset, TreacheryAsset } from '../../src/shared/assets/schema';
+import {
+  BundleAsset,
+  DeckAsset,
+  RectangleTokenAsset,
+  TokenAsset,
+  TreacheryAsset,
+} from '../../src/shared/assets/schema';
 import { ASSET_TYPES } from '../../src/shared/assets/types';
 
 /**
@@ -14,6 +20,11 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
     }
     case 'deck': {
       const parsed = DeckAsset.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    /* A container of tokens. It publishes nothing, so nothing downstream of this branch enqueues. */
+    case 'bundle': {
+      const parsed = BundleAsset.parse(data);
       return { data: parsed, name: parsed.name };
     }
     /* The three shapes share one schema: shape is the Asset type, never a field, so only the clip differs downstream. */

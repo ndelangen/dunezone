@@ -4,6 +4,7 @@ import { createFileRoute, notFound } from '@tanstack/react-router';
 import { loadAssetPage } from '@app/db/assets';
 
 import { NoEditorYet } from '../../../-assetEditorStates';
+import { BundleEditPage } from './-bundleEdit';
 import { DeckEditPage } from './-deckEdit';
 import { RectangleEditPage } from './-rectangleEdit';
 import { TokenEditPage } from './-tokenEdit';
@@ -39,6 +40,8 @@ function EditAssetPage() {
       return <RectangleEditPage type={type} slug={slug} loaderData={loaderData} />;
     case 'deck':
       return <DeckEditPage slug={slug} loaderData={loaderData} />;
+    case 'bundle':
+      return <BundleEditPage slug={slug} loaderData={loaderData} />;
     default:
       return <NoEditorYet type={type} />;
   }

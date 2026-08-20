@@ -144,8 +144,12 @@ export const getPage = query({
       assignableGroups: v.array(assignedGroupSummaryValidator),
       /** The token serving as this one's backside, for the types that have one. Null covers both "custom back" and "none". */
       backToken: v.union(assetListEntryValidator, v.null()),
-      /** A deck's cards with their counts. Empty for every other type. */
-      deckCards: v.array(v.object({ card: assetListEntryValidator, count: v.number() })),
+      /**
+       * What a container holds, with counts.
+       * Empty for every type that holds nothing.
+       * One field rather than one per container kind: a deck's cards and a bundle's tokens are the same relation read with a different `kind`, and the page's per-type body already knows which it is looking at.
+       */
+      members: v.array(v.object({ member: assetListEntryValidator, count: v.number() })),
       /** The decks holding this asset. Empty for a deck, which nothing may hold. */
       inDecks: v.array(deckReferenceValidator),
       /** Null for a type that publishes nothing, which today is every type but `card-treachery`. */
@@ -168,7 +172,7 @@ export const getPage = query({
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
       backToken: back ? await toListEntry(ctx, back) : null,
-      deckCards: row.type === 'deck' ? await deckCardsFor(ctx, row._id) : [],
+      members: CONTAINER_KINDS[row.type] ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind) : [],
       inDecks: row.type === 'deck' ? [] : await decksHolding(ctx, row._id),
       assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
     };
@@ -275,9 +279,16 @@ export const setGroup = mutation({
   },
 });
 
-/** The relation kinds this file writes. Both live in one table, distinguished only by this string. */
+/** The relation kinds this file writes. All three live in one table, distinguished only by this string. */
 const TOKEN_BACK = 'token-back';
 const DECK_CARD = 'deck-card';
+const BUNDLE_TOKEN = 'bundle-token';
+
+/** Which kind a container's membership rows carry, and therefore what it is allowed to hold. */
+const CONTAINER_KINDS: Record<string, { kind: string; holds: (type: string) => boolean; noun: string }> = {
+  deck: { kind: DECK_CARD, holds: (type) => type.startsWith('card-'), noun: 'cards' },
+  bundle: { kind: BUNDLE_TOKEN, holds: (type) => TOKEN_TYPES.has(type), noun: 'tokens' },
+};
 
 /** Token Asset types, which are the only things that may sit on either end of a `token-back` relation. */
 const TOKEN_TYPES = new Set(['token-round', 'token-gear', 'token-square', 'token-rectangle']);
@@ -352,39 +363,43 @@ async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>) {
 }
 
 /**
- * Sets how many of a card a deck holds, or removes it at zero.
+ * How many of one member a container holds.
+ * Zero removes it.
  *
- * One mutation covers add, change and remove, because "three copies" and "no copies" are the same statement about the same row.
- * Count is the duplicate mechanism «Deck→card reference mechanism and deletion semantics» chose over repeated rows, and there is deliberately no ordering: a deck is shuffled in play.
+ * One mutation for every container kind, because "three copies" and "no copies" are the same statement about the same row whether the container is a deck or a bundle.
+ * Which types may sit on either end is a rule of this mutation rather than of the schema, exactly as «Deck→card reference mechanism and deletion semantics» decided when it chose one table over per-kind tables: a deck holds cards, a bundle holds tokens, and neither holds the other.
+ *
+ * `count` means the same thing for both, a number of indistinguishable members.
+ * A deck reads it as copies and a bundle reads it as physical supply, but that is wording in the editors rather than a difference in the column, so the vocabulary deliberately does not fork here.
  */
-export const setDeckCardCount = mutation({
-  args: { deck_id: v.id('assets'), card_id: v.id('assets'), count: v.number() },
+export const setMemberCount = mutation({
+  args: { container_id: v.id('assets'), member_id: v.id('assets'), count: v.number() },
   handler: async (ctx, args) => {
     if (!Number.isInteger(args.count) || args.count < 0 || args.count > 99) {
-      throw new Error('A card count must be a whole number between 0 and 99');
+      throw new Error('A member count must be a whole number between 0 and 99');
     }
-    const deck = await ctx.db.get('assets', args.deck_id);
-    if (!deck || deck.is_deleted) {
-      throw new Error(`Asset with id ${args.deck_id} not found`);
+    const container = await ctx.db.get('assets', args.container_id);
+    if (!container || container.is_deleted) {
+      throw new Error(`Asset with id ${args.container_id} not found`);
     }
-    if (deck.type !== 'deck') {
-      throw new Error(`Asset type ${deck.type} holds no cards`);
+    const rules = CONTAINER_KINDS[container.type];
+    if (!rules) {
+      throw new Error(`Asset type ${container.type} holds nothing`);
     }
-    await requireAssetUpdate(ctx, args.deck_id, nameOf(deck));
+    await requireAssetUpdate(ctx, args.container_id, nameOf(container));
 
-    const card = await ctx.db.get('assets', args.card_id);
-    if (!card || card.is_deleted) {
-      throw new Error(`Asset with id ${args.card_id} not found`);
+    const member = await ctx.db.get('assets', args.member_id);
+    if (!member || member.is_deleted) {
+      throw new Error(`Asset with id ${args.member_id} not found`);
     }
-    /* Decks hold cards and nothing else. A single table traded schema-level typing for exactly this check. */
-    if (!card.type.startsWith('card-')) {
-      throw new Error(`A deck holds cards, not ${card.type}`);
+    if (!rules.holds(member.type)) {
+      throw new Error(`A ${container.type} holds ${rules.noun}, not ${member.type}`);
     }
 
     const existing = await ctx.db
       .query('asset_relations')
       .withIndex('by_from_to_kind', (q) =>
-        q.eq('from_asset_id', args.deck_id).eq('to_asset_id', args.card_id).eq('kind', DECK_CARD)
+        q.eq('from_asset_id', args.container_id).eq('to_asset_id', args.member_id).eq('kind', rules.kind)
       )
       .unique();
     if (args.count === 0) {
@@ -395,13 +410,13 @@ export const setDeckCardCount = mutation({
       await ctx.db.patch(existing._id, { count: args.count });
     } else {
       await ctx.db.insert('asset_relations', {
-        from_asset_id: args.deck_id,
-        to_asset_id: args.card_id,
-        kind: DECK_CARD,
+        from_asset_id: args.container_id,
+        to_asset_id: args.member_id,
+        kind: rules.kind,
         count: args.count,
       });
     }
-    await ctx.db.patch(args.deck_id, { updated_at: nowIso() });
+    await ctx.db.patch(args.container_id, { updated_at: nowIso() });
   },
 });
 
@@ -412,16 +427,16 @@ const DECK_CARD_LIMIT = 500;
  * A deck's cards with their counts, soft-deleted members filtered out at read time.
  * Editor-scoped: the bulk, many-decks-at-once read the detail and browse pages want is «Build the relation read paths for the asset detail page», which this deliberately does not pre-empt.
  */
-async function deckCardsFor(ctx: QueryCtx, deckId: Id<'assets'>) {
+async function membersOf(ctx: QueryCtx, containerId: Id<'assets'>, kind: string) {
   const relations = await ctx.db
     .query('asset_relations')
-    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', deckId).eq('kind', DECK_CARD))
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', containerId).eq('kind', kind))
     .take(DECK_CARD_LIMIT);
   const entries = [];
   for (const relation of relations) {
-    const card = await ctx.db.get('assets', relation.to_asset_id);
-    if (card && !card.is_deleted) {
-      entries.push({ card: await toListEntry(ctx, card), count: relation.count });
+    const member = await ctx.db.get('assets', relation.to_asset_id);
+    if (member && !member.is_deleted) {
+      entries.push({ member: await toListEntry(ctx, member), count: relation.count });
     }
   }
   return entries;
@@ -437,13 +452,13 @@ const DECKS_PER_CARD_LIMIT = 100;
  */
 /**
  * Which decks hold each of the given cards, in one call.
- * The reverse of `deckCardsFor`, and the first read of `by_to_kind`, the index bought for this question when the table landed.
+ * The reverse of `membersOf`, and the first read of `by_to_kind`, the index bought for this question when the table landed.
  *
  * This is a companion query rather than a field on `assetListEntryValidator`.
  * The landing page draws piles of all thirteen types and needs none of it, and deriving it inside `toListEntry` would put an index scan on every row of every catalogue read.
  * Every requested id gets a key, so a card in no deck comes back as an empty array rather than a missing one, which is the predicate an "in no deck" facet reads.
  * `count` is the relation's own copies figure, already on the row being read, so one call answers both how many decks hold a card and how many copies each of them holds.
- * Soft-deleted decks stop being reported while their relation row survives, the rule `deckCardsFor` applies from the other end.
+ * Soft-deleted decks stop being reported while their relation row survives, the rule `membersOf` applies from the other end.
  *
  * No surface consumes this yet.
  * Its callers are the asset detail page's "in decks" list and the type browse page's tile count, both of which are their own tickets;
