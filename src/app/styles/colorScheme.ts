@@ -8,7 +8,7 @@ import { useSyncExternalStore } from 'react';
  * mirrored onto `<html data-mantine-color-scheme>` — the attribute both tokens.css and Mantine key
  * off — by this module and, pre-hydration, by the inline script in the `_app` route's head. This
  * module is the only writer; `ApplicationChrome` relays the resolved value into Mantine via
- * `forceColorScheme`, and `AppFooter` owns the control that writes the preference. Bare routes
+ * `forceColorScheme`, and the profile Appearance tab owns the control that writes the preference. Bare routes
  * (print capture, publisher, auth) never run either writer and stay light by construction.
  */
 

@@ -6,8 +6,8 @@ import type { ReactNode } from 'react';
 
 import '@mantine/core/styles.layer.css';
 import '../styles/mantine-shell-compatibility.css';
+import { resolvedScheme, useResolvedScheme } from '../styles/colorScheme';
 import { AppRoot } from './AppRoot';
-import { resolvedScheme, useResolvedScheme } from './colorScheme';
 
 /*
  * Mantine's default manager reads its own localStorage key in a mount layout-effect and rewrites

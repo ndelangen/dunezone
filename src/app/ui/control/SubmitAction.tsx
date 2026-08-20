@@ -10,6 +10,8 @@ export interface SubmitActionProps {
   disabled?: boolean;
   /** Shown in place of `children` while pending. Override only when "Saving…" would be a lie. */
   pendingLabel?: string;
+  /** Associates the action with a form elsewhere in the page, such as a PageLayout toolbar. */
+  form?: string;
   size?: ButtonProps['size'];
 }
 
@@ -27,10 +29,19 @@ export function SubmitAction({
   pending,
   disabled = false,
   pendingLabel = 'Saving…',
+  form,
   size,
 }: SubmitActionProps) {
   return (
-    <Button type="submit" variant="filled" color="confirm" size={size} loading={pending} disabled={disabled || pending}>
+    <Button
+      type="submit"
+      form={form}
+      variant="filled"
+      color="confirm"
+      size={size}
+      loading={pending}
+      disabled={disabled || pending}
+    >
       {pending ? pendingLabel : children}
     </Button>
   );

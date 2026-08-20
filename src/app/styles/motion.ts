@@ -7,7 +7,7 @@ import { useSyncExternalStore } from 'react';
  * (`on` | `off`) says otherwise; the override exists so a visitor who quiets their whole OS can
  * still opt into this site's motion, and it is a cookie rather than storage so the server can one
  * day render the verdict into the first byte. `AppRoot` mirrors it onto `<html data-motion>` for
- * stylesheets to read, and `AppFooter` owns the switch that writes it.
+ * stylesheets to read, and the profile Appearance tab owns the control that writes it.
  */
 
 const listeners = new Set<() => void>();

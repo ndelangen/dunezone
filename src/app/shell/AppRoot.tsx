@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 
+import { useMotionAllowed } from '../styles/motion';
 import { AppFooter } from './AppFooter';
 import { AppHeader } from './AppHeader';
 import styles from './AppRoot.module.css';
-import { useMotionAllowed } from './motion';
 
 const SCROLL_VAR = '--scroll-pct';
 

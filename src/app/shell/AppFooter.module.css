@@ -7,22 +7,6 @@
   text-transform: uppercase;
 }
 
-.linkCopy {
-  display: grid;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.linkCopy strong {
-  font-size: 0.86rem;
-  font-weight: 650;
-}
-
-.linkCopy small {
-  color: rgba(255, 249, 239, 0.7);
-  font-size: 0.68rem;
-}
-
 .waypoints {
   padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 2rem;
   border: 1px solid rgba(248, 175, 64, 0.18);
@@ -63,69 +47,9 @@
   outline-offset: 3px;
 }
 
-.preference {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin-top: 1.4rem;
-  text-align: left;
-}
-
-.preference + .preference {
-  margin-left: 2.2rem;
-}
-
-.segments {
-  display: inline-flex;
-  flex: 0 0 auto;
-  overflow: hidden;
-  border: 1px solid rgba(248, 175, 64, 0.42);
-  border-radius: 999px;
-  background: rgba(17, 11, 8, 0.6);
-}
-
-.segment {
-  position: relative;
-  cursor: pointer;
-}
-
-.segmentInput {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: 0;
-  opacity: 0;
-}
-
-.segmentLabel {
-  display: inline-block;
-  padding: 0.18rem 0.6rem;
-  color: rgba(255, 249, 239, 0.7);
-  font-size: 0.68rem;
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.segmentInput:checked + .segmentLabel {
-  background: var(--color-link);
-  color: #fff9ef;
-}
-
-.segmentInput:focus-visible + .segmentLabel {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
-}
-
 /* The band's warm-black glass belongs to the light scheme; dark trades it for Twilight navy. */
 [data-mantine-color-scheme="dark"] .waypoints {
   border-color: rgba(150, 165, 195, 0.25);
   background: radial-gradient(circle at 50% 0%, rgba(67, 83, 110, 0.3), transparent 52%), rgba(12, 20, 34, 0.82);
   box-shadow: 0 -14px 38px rgba(4, 8, 16, 0.3);
-}
-
-@media (max-width: 700px) {
-  .preference + .preference {
-    margin-left: 0;
-  }
 }
