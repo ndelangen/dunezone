@@ -42,7 +42,7 @@ because both the app and the Convex server parse against them.
 
 **Tables**: `users`, `counters`, `profiles`, `groups`, `group_members`, `factions`, `assets`,
 `asset_relations`, `publication_assets`, `publication_jobs`, `admin_settings`, `rulesets`,
-`migration_runs`, `ruleset_deck_slots`, `ruleset_factions`, `faq_items`, `faq_answers`, plus the
+`migration_runs`, `ruleset_asset_slots`, `ruleset_factions`, `faq_items`, `faq_answers`, plus the
 Convex Auth tables.
 
 **Pattern**: Domain data is stored in Convex documents, validated with function validators at the

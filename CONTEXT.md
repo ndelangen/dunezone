@@ -103,8 +103,9 @@ The shared back face of a deck — never a standalone asset. Every deck wears ex
 **Stock cardback**:
 One of the product-defined Cardback compositions a deck may wear instead of authoring its own. Choosing one changes only where the render payload comes from — the deck still publishes its own Cardback image.
 
-**Ruleset deck slot**:
-A named position on a ruleset holding at most one deck — initially a treachery slot and a spice slot — alongside a custom-decks slot holding any number of decks. Slot names are curatorial labels, not constraints: any deck may fill any slot, and a slot may sit empty. A deck may occupy slots in many rulesets; its detail page shows the rulesets that link to it, while the links themselves are managed only from the ruleset's edit surface.
+**Ruleset asset slot**:
+A named position on a ruleset. Three slots hold at most one asset each, a treachery deck, a spice deck and a tech-token bundle, and two hold any number, one for custom decks and one for custom token bundles. Slot names are curatorial labels rather than constraints. Any asset of the kind a slot expects may fill it, that kind is enforced by the link mutations rather than by the schema, and a slot may sit empty. An asset may occupy slots in many rulesets; its detail page shows the rulesets that link to it, while the links themselves are managed only from the ruleset's edit surface.
+_Avoid_: Ruleset deck slot — the slots carry token bundles as well as decks.
 
 **Renderer**:
 The currently deployed implementation that produces one asset type. Exactly one Renderer is available at a time.

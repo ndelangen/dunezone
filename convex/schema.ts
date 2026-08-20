@@ -176,17 +176,25 @@ export default defineSchema({
     .index('by_migration_id', ['migration_id'])
     .index('by_state', ['state']),
   /**
-   * Ruleset deck slots: the named slots hold at most one deck each and `custom` holds any number — single-deck semantics are mutation-level rules, not schema.
+   * Ruleset asset slots.
+   * The named slots hold at most one asset each while `custom` and `customTokens` hold any number, and that cardinality is a mutation-level rule rather than schema.
    * Slot names are curatorial labels;
-   * the mutations demand only that the asset is a deck.
+   * the mutations demand only that the asset is of the kind the slot expects, a deck for the three deck slots and a bundle for the two token ones.
+   * Which kind a slot accepts is deliberately not a column, since a `kind` field would be a second source of truth able to disagree with `slot`.
    * An empty slot is the absence of a row.
-   * Soft-deleted decks stay referenced and are filtered at query time, so the slot presents empty.
+   * Soft-deleted assets stay referenced and are filtered at query time, so the slot presents empty.
    * `by_asset` feeds the deck detail page's "used by these rulesets" view.
    */
-  ruleset_deck_slots: defineTable({
+  ruleset_asset_slots: defineTable({
     ruleset_id: v.id('rulesets'),
     asset_id: v.id('assets'),
-    slot: v.union(v.literal('treachery'), v.literal('spice'), v.literal('custom')),
+    slot: v.union(
+      v.literal('treachery'),
+      v.literal('spice'),
+      v.literal('custom'),
+      v.literal('techToken'),
+      v.literal('customTokens')
+    ),
   })
     .index('by_ruleset', ['ruleset_id'])
     .index('by_asset', ['asset_id'])
