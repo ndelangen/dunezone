@@ -68,6 +68,25 @@ async function selectDefaultGroup(
 }
 
 describe('default Group preference', () => {
+  test('rejects a profile selection for a Group the user does not actively belong to', async () => {
+    const { t, ids, member } = await defaultGroupFixture();
+    const unavailableGroupId = await t.run(
+      async (ctx) =>
+        await ctx.db.insert('groups', {
+          name: 'Unavailable Default Group',
+          slug: 'unavailable-default-group',
+          created_at: '2026-08-20T00:00:00.000Z',
+          created_by: ids.ownerId,
+          is_deleted: false,
+        })
+    );
+
+    await expect(selectDefaultGroup(member, unavailableGroupId)).resolves.toMatchObject({
+      profile: { default_group_id: null },
+      default_group_unavailable: true,
+    });
+  });
+
   test('projects legacy-missing and explicitly cleared preferences as no default', async () => {
     const { t, ids, member } = await defaultGroupFixture();
 
@@ -147,6 +166,11 @@ describe('default Group preference', () => {
         group_id: ids.groupId,
       })
     ).rejects.toThrow('not found');
+    await t.run(async (ctx) => await ctx.db.patch(ids.groupId, { is_deleted: false }));
+    await expect(member.query(api.profiles.current, {})).resolves.toMatchObject({
+      default_group_id: ids.groupId,
+      default_group_options: [{ id: ids.groupId, name: 'Default Group' }],
+    });
   });
 
   test('clears the stored preference when the active membership is removed', async () => {
@@ -160,5 +184,40 @@ describe('default Group preference', () => {
       default_group_id: null,
       default_group_options: [],
     });
+  });
+
+  test('does not restore a cleared preference when a removed member requests and regains membership', async () => {
+    const { t, ids, owner, member } = await defaultGroupFixture();
+    await selectDefaultGroup(member, ids.groupId);
+    await owner.mutation(api.members.removeMember, { membershipId: ids.membershipId });
+    const pending = await member.mutation(api.members.request, { group_id: ids.groupId });
+    expect(pending.status).toBe('pending');
+    await owner.mutation(api.members.approveRequest, { membershipId: pending._id });
+
+    await expect(t.run(async (ctx) => await ctx.db.get('profiles', ids.memberProfileId))).resolves.toMatchObject({
+      default_group_id: null,
+    });
+    await expect(member.query(api.profiles.current, {})).resolves.toMatchObject({
+      default_group_id: null,
+      default_group_options: [{ id: ids.groupId, name: 'Default Group' }],
+    });
+  });
+
+  test('keeps legacy explicit Group creation inputs authoritative and compatible', async () => {
+    const { ids, member } = await defaultGroupFixture();
+    await expect(
+      member.mutation(api.rulesets.create, {
+        name: 'LegacyExplicitRuleset',
+        description: DESCRIPTION,
+        image_cover: null,
+        group_id: ids.groupId,
+      })
+    ).resolves.toMatchObject({ group_id: ids.groupId, default_group_unavailable: false });
+    await expect(
+      member.mutation(api.factions.create, {
+        data: { ...assetPublishingFaction, name: 'Legacy Explicit Faction' },
+        group_id: ids.groupId,
+      })
+    ).resolves.toMatchObject({ group_id: ids.groupId, default_group_unavailable: false });
   });
 });

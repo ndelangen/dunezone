@@ -42,12 +42,10 @@ function CreateRulesetForm() {
           { input: { name: nextName, description: descriptionCheck.data } },
           {
             onSuccess: (entry) => {
-              if (entry.default_group_unavailable) {
-                window.alert('Ruleset saved, but its default Group was no longer available.');
-              }
               navigate({
                 to: '/rulesets/$rulesetSlug',
                 params: { rulesetSlug: entry.slug },
+                search: entry.default_group_unavailable ? { groupDefaultUnavailable: true } : {},
               });
             },
           }

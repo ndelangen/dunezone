@@ -158,12 +158,16 @@ function FactionCardMenu({
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  validateSearch: (params: Record<string, unknown>): { q?: string; tag?: FaqTag } => {
+  validateSearch: (params: Record<string, unknown>): { q?: string; tag?: FaqTag; groupDefaultUnavailable?: true } => {
     const q = params?.q;
     const tag = params?.tag;
+    const groupDefaultUnavailable = params?.groupDefaultUnavailable;
     return {
       ...(typeof q === 'string' ? { q } : {}),
       ...(typeof tag === 'string' && FAQ_TAG_VALUES.includes(tag as FaqTag) ? { tag: tag as FaqTag } : {}),
+      ...(groupDefaultUnavailable === true || groupDefaultUnavailable === 'true'
+        ? { groupDefaultUnavailable: true }
+        : {}),
     };
   },
   loader: async ({ params }) => {
@@ -266,6 +270,12 @@ function RulesetDetailPage() {
     setRulesetGroup.error?.message ??
     addFaction.error?.message ??
     removeFaction.error?.message;
+  const dismissDefaultGroupWarning = () =>
+    navigate({
+      to: '.',
+      search: (previous) => ({ ...previous, groupDefaultUnavailable: undefined }),
+      replace: true,
+    });
   /**
    * Standing beside the maintaining group, and only when the viewer has a standing worth naming.
    * "Not a member" is the default state of every reader, so saying it would be noise;
@@ -513,6 +523,17 @@ function RulesetDetailPage() {
         <ColumnsWithRailLayout>
           <ColumnsWithRailLayout.Primary>
             <Stack gap="xl">
+              {search.groupDefaultUnavailable ? (
+                <Alert
+                  color="yellow"
+                  title="Ruleset saved without its default Group"
+                  role="alert"
+                  withCloseButton
+                  onClose={dismissDefaultGroupWarning}
+                >
+                  The ruleset was saved, but the default Group was no longer available and was not set.
+                </Alert>
+              ) : null}
               {mutationError ? (
                 <Alert color="red" title="The change could not be saved" role="alert">
                   {mutationError}

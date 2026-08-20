@@ -1,7 +1,7 @@
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import type { QueryCtx } from '../types';
-import { liveGroupOrNull } from './collaborativeAccess';
+import { liveGroupOrNull, requireAssignableGroup } from './collaborativeAccess';
 import { nowIso } from './utils';
 
 type ProfilePreferenceCtx = QueryCtx | MutationCtx;
@@ -62,7 +62,9 @@ export async function resolveDefaultGroupForCreation(ctx: MutationCtx, userId: I
   if (!groupId) {
     return { group_id: null, default_group_unavailable: false };
   }
-  if (!(await canSetDefaultGroup(ctx, userId, groupId))) {
+  try {
+    await requireAssignableGroup(ctx, groupId);
+  } catch {
     return { group_id: null, default_group_unavailable: true };
   }
   return { group_id: groupId, default_group_unavailable: false };

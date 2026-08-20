@@ -40,10 +40,6 @@ export type FactionCatalogueEntry = FactionEntry & {
   rulesets: FactionRulesetSummary[];
 };
 
-export type CreatedFactionEntry = FactionEntry & {
-  default_group_unavailable: boolean;
-};
-
 export type FactionCatalogueSpotlightData = {
   slug: FactionCatalogueEntry['slug'];
   data: Pick<FactionCatalogueEntry['data'], 'name' | 'logo' | 'background'>;
@@ -69,12 +65,14 @@ function toFactionEntry(entry: FactionRow): FactionEntry {
   };
 }
 
-function toCreatedFactionEntry(entry: FactionRow & { default_group_unavailable: boolean }): CreatedFactionEntry {
+function toCreatedFactionEntry(entry: FunctionReturnType<typeof api.factions.create>) {
   return {
     ...toFactionEntry(entry),
     default_group_unavailable: entry.default_group_unavailable,
   };
 }
+
+export type CreatedFactionEntry = ReturnType<typeof toCreatedFactionEntry>;
 
 function toFactionCatalogueEntry(entry: FactionCatalogueRow): FactionCatalogueEntry {
   return {
@@ -194,7 +192,7 @@ export function useFactionLoadPicker(options?: { initialData?: FactionLoadPicker
 export function useCreateFaction() {
   const mutation = useLiveMutation<
     { data: Faction; group_id?: string | null },
-    FactionRow & { default_group_unavailable: boolean }
+    FunctionReturnType<typeof api.factions.create>
   >(api.factions.create);
 
   return {

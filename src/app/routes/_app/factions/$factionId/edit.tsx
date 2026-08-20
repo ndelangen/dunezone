@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
+import { Alert, Anchor, Button, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -20,6 +20,12 @@ import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAutho
 import styles from './edit.module.css';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
+  validateSearch: (params: Record<string, unknown>): { groupDefaultUnavailable?: true } => {
+    if (params?.groupDefaultUnavailable === true || params?.groupDefaultUnavailable === 'true') {
+      return { groupDefaultUnavailable: true };
+    }
+    return {};
+  },
   loader: async ({ params }) => await loadFaction(params.factionId),
   component: FactionEditPage,
 });
@@ -101,6 +107,7 @@ function ValidationHeader({
 
 function FactionEditPage() {
   const { factionId } = Route.useParams();
+  const search = Route.useSearch();
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
   const viewRef = useRef<FactionAuthoringViewHandle | null>(null);
@@ -203,6 +210,12 @@ function FactionEditPage() {
   const assignedGroup = viewerAccess.assignedGroup;
   const canDelete = viewerAccess.capabilities.delete;
   const canAssignGroup = viewerAccess.capabilities.changeGroup;
+  const dismissDefaultGroupWarning = () =>
+    navigate({
+      to: '.',
+      search: (previous) => ({ ...previous, groupDefaultUnavailable: undefined }),
+      replace: true,
+    });
 
   return (
     <PageLayout>
@@ -323,15 +336,28 @@ function FactionEditPage() {
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <FactionEditor
-          key={faction._id}
-          ref={viewRef}
-          form={authoring.form}
-          errors={authoring.persistence.errors}
-          isNameBlank={authoring.editing.isNameBlank}
-          warnings={authoring.editing.warnings}
-          onSettle={() => setSettleTick((tick) => tick + 1)}
-        />
+        <Stack gap="sm">
+          {search.groupDefaultUnavailable ? (
+            <Alert
+              color="yellow"
+              title="Faction saved without its default Group"
+              role="alert"
+              withCloseButton
+              onClose={dismissDefaultGroupWarning}
+            >
+              The faction was saved, but the default Group was no longer available and was not set.
+            </Alert>
+          ) : null}
+          <FactionEditor
+            key={faction._id}
+            ref={viewRef}
+            form={authoring.form}
+            errors={authoring.persistence.errors}
+            isNameBlank={authoring.editing.isNameBlank}
+            warnings={authoring.editing.warnings}
+            onSettle={() => setSettleTick((tick) => tick + 1)}
+          />
+        </Stack>
       </PageLayout.Content>
     </PageLayout>
   );

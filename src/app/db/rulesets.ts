@@ -122,9 +122,15 @@ export function useRulesetDetailPage(slug: string, options?: { initialData?: Rul
 }
 
 export function useCreateRuleset() {
+  type CreatedRulesetResult = FunctionReturnType<typeof api.rulesets.create>;
+  const toCreatedRulesetEntry = (entry: CreatedRulesetResult) => ({
+    ...entry,
+    id: entry._id,
+    name: entry.name,
+  });
   const mutation = useLiveMutation<
     { name: string; description: string; group_id?: string | null; image_cover: string | null },
-    RulesetRow & { default_group_unavailable: boolean }
+    CreatedRulesetResult
   >(api.rulesets.create);
   return {
     ...mutation,
@@ -142,12 +148,7 @@ export function useCreateRuleset() {
           image_cover: variables.imageCover ?? null,
         },
         {
-          onSuccess: (entry) =>
-            options?.onSuccess?.({
-              ...entry,
-              id: entry._id,
-              name: entry.name,
-            }),
+          onSuccess: (entry) => options?.onSuccess?.(toCreatedRulesetEntry(entry)),
           onError: (error) => options?.onError?.(error),
         }
       ),
@@ -166,7 +167,7 @@ export function useCreateRuleset() {
         ...(groupId === undefined ? {} : { group_id: groupId }),
         image_cover: imageCover ?? null,
       });
-      return { ...entry, id: entry._id, name: validated.name };
+      return toCreatedRulesetEntry(entry);
     },
   };
 }

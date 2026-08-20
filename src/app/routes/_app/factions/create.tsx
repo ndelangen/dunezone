@@ -24,15 +24,14 @@ function CreateFactionPage() {
   const navigate = useNavigate();
   const createFaction = useCreateFaction();
   const viewRef = useRef<FactionAuthoringViewHandle | null>(null);
+  const defaultGroupUnavailableRef = useRef(false);
   const authoring = useFactionAuthoring({
     sessionKey: 'create',
     initialData: defaultFaction,
     persistence: {
       save: async (draft) => {
         const entry = await createFaction.mutateAsync({ input: draft });
-        if (entry.default_group_unavailable) {
-          window.alert('Faction saved, but its default Group was no longer available.');
-        }
+        defaultGroupUnavailableRef.current = entry.default_group_unavailable;
         return entry;
       },
       isPending: createFaction.isPending,
@@ -44,6 +43,7 @@ function CreateFactionPage() {
       navigate({
         to: '/factions/$factionId/edit',
         params: { factionId: entry.slug },
+        search: defaultGroupUnavailableRef.current ? { groupDefaultUnavailable: true } : {},
       });
     },
   });

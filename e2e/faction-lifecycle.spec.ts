@@ -8,6 +8,7 @@ function factionCard(catalogue: Locator, factionName: string) {
 
 async function createFaction(page: Page, name: string, factionLeaderName: string) {
   await page.goto('/factions/create');
+  await expect(page.getByRole('combobox', { name: 'Group' })).toHaveCount(0);
   await page.getByRole('textbox', { name: 'Faction name' }).fill(name);
   await page.getByRole('tab', { name: /^Faction leader/ }).click();
   await page.getByRole('textbox', { name: 'Faction leader name' }).fill(factionLeaderName);
@@ -51,6 +52,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/edit$`));
     await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
     factionAEditUrl = page.url();
+    await page.goto(`${factionAEditUrl}?groupDefaultUnavailable=true`);
+    await expect(page.getByRole('alert')).toContainText('Faction saved without its default Group');
 
     expect(factionBEditUrl).not.toBe(factionAEditUrl);
   });

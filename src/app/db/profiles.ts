@@ -13,14 +13,8 @@ import type { Doc } from '../../../convex/_generated/dataModel';
 
 export type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
-export type CurrentProfileEntry = Omit<ProfileRow, 'default_group_id'> & {
-  default_group_id: string | null;
-  default_group_options: { id: string; name: string; slug: string }[];
-};
-export type ProfileUpdateResult = {
-  profile: ProfileRow;
-  default_group_unavailable: boolean;
-};
+export type CurrentProfileEntry = NonNullable<FunctionReturnType<typeof api.profiles.current>>;
+export type ProfileUpdateResult = FunctionReturnType<typeof api.profiles.updateCurrent>;
 export type ProfileListEntry = FunctionReturnType<typeof api.profiles.list>[number];
 
 /** Server-owned profile detail contract; the read model lives in `convex/lib/profileDetail.ts`. */

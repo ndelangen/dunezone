@@ -7,6 +7,7 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   const uniqueName = `E2ERuleset${uniqueSuffix}`;
   const expectedSlug = uniqueName.toLowerCase();
   await page.goto('/rulesets/create');
+  await expect(page.getByRole('combobox', { name: 'Group' })).toHaveCount(0);
   await page.getByRole('textbox', { name: 'Name' }).fill(uniqueName);
   /* Creation requires a description of at least 50 characters, with no exemption, so the button stays disabled without one. */
   await page
@@ -18,6 +19,8 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   const createdUrl = page.url();
   await expect(page.getByLabel('Edit ruleset')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(uniqueName).first()).toBeVisible({ timeout: 30_000 });
+  await page.goto(`${createdUrl}?groupDefaultUnavailable=true`);
+  await expect(page.getByRole('alert')).toContainText('Ruleset saved without its default Group');
 
   const userB = await newUserPage({ storageState: '.playwright/user-b.json' });
   const userBPage = userB.page;
