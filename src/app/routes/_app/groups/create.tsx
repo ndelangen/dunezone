@@ -65,7 +65,7 @@ function GroupCreatePage() {
               <IconAction
                 label="Close create group"
                 variant="light"
-                color="dune"
+                color="gray"
                 size="lg"
                 disabled={createGroup.isPending}
                 onClick={() =>

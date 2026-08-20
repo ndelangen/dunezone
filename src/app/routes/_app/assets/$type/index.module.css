@@ -3,9 +3,16 @@
  * The width belongs here because it is a fact about the field rather than about the toolbar, whose centre is sized by its content.
  */
 .joinedFilters {
+  /* The width the toolbar's centre takes, matching the faction catalogue's field.
+     A fixed width is what makes the field dictate the centre track; `min(100%, …)` had it the other
+     way round, so the field collapsed to whatever the track offered and the search clipped its own
+     placeholder mid-word inside a bar sized for something twice as wide (Norbert, 2026-08-20).
+     `min-width: 0` keeps it shrinkable, so narrow viewports narrow the field rather than overflowing
+     the band. */
+  width: 44rem;
+
   display: flex;
   align-items: stretch;
-  width: min(100%, 34rem);
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -21,12 +28,14 @@
 }
 
 .searchSegment {
-  flex: 1 1 auto;
-  min-width: 0;
+  /* A floor rather than `min-width: 0`: the search is the field's point, so the sort gives way first. */
+  flex: 1 1 15rem;
+  min-width: 9rem;
 }
 
 .sortSegment {
-  flex: 0 0 10rem;
+  flex: 0 0 11.5rem;
+  min-width: 0;
 }
 
 /*
@@ -56,10 +65,6 @@
   justify-content: space-evenly;
 }
 
-.tile {
-  min-width: 0;
-}
-
 /* An anchor, so it must not wear the browser's link colour or underline. */
 .tileOpen {
   display: block;
@@ -77,23 +82,9 @@
   border: 2px solid transparent;
 }
 
-.tile:hover .tileArt,
+.tileOpen:hover .tileArt,
 .tileOpen:focus-visible .tileArt {
   border-color: var(--mantine-primary-color-filled);
-}
-
-/* Revealed on hover, and always present for keyboard users once anything inside the tile has focus. */
-.tileActions {
-  display: flex;
-  justify-content: center;
-  min-height: 1.25rem;
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-
-.tile:hover .tileActions,
-.tile:focus-within .tileActions {
-  opacity: 1;
 }
 
 .resultCount {

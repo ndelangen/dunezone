@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, Select, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Button, Group, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
@@ -186,46 +186,38 @@ function membershipLabel(deckCount: number): string | null {
 }
 
 /**
- * One slot on the grid.
- * The whole tile is an anchor so it is middle-clickable and copyable, and the Edit affordance is a **sibling** of that anchor rather than a child, because an anchor may not contain a control.
+ * One slot on the grid: a link to the asset, and nothing else.
+ *
+ * There is deliberately no Edit here.
+ * «Type browse page design» had put one on the tile as well as the page, and Norbert reversed it on 2026-08-20: an overview never jumps straight into editing, and edit is reached from the toolbar on a detail page.
+ * Losing it makes the whole tile one anchor again, since the sibling structure only existed because an anchor may not contain a control.
  */
 function BrowseTile({ entry }: { entry: AssetBrowseEntry }) {
   const meta = [entry.owner?.username, membershipLabel(entry.deckCount)].filter(Boolean).join(' · ');
   return (
-    <div className={styles.tile}>
-      <Link
-        className={styles.tileOpen}
-        to="/assets/$type/$slug"
-        params={{ type: entry.type, slug: entry.slug }}
-        aria-label={entry.name}
-      >
-        <Stack gap={6}>
-          <div className={styles.tileArt}>
-            {/* A container's members stand above it and make the drawing taller, so the canvas is asked for the block's height rather than the face's. */}
-            <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(entry.type, entry.members.length)}>
-              <AssetFace type={entry.type} data={entry.data} name={entry.name} width={900} members={entry.members} />
-            </CanvasScale>
-          </div>
-          <Stack gap={0}>
-            <Text size="sm" fw={600} lineClamp={1}>
-              {entry.name}
-            </Text>
-            <Text size="xs" c="dimmed" lineClamp={1}>
-              {meta}
-            </Text>
-          </Stack>
+    <Link
+      className={styles.tileOpen}
+      to="/assets/$type/$slug"
+      params={{ type: entry.type, slug: entry.slug }}
+      aria-label={entry.name}
+    >
+      <Stack gap={6}>
+        <div className={styles.tileArt}>
+          {/* A container's members stand above it and make the drawing taller, so the canvas is asked for the block's height rather than the face's. */}
+          <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(entry.type, entry.members.length)}>
+            <AssetFace type={entry.type} data={entry.data} name={entry.name} width={900} members={entry.members} />
+          </CanvasScale>
+        </div>
+        {/* Centred on the same axis as the face, so the caption belongs to the art rather than floating beside it. */}
+        <Stack gap={0} align="center">
+          <Text size="sm" fw={600} lineClamp={1} ta="center">
+            {entry.name}
+          </Text>
+          <Text size="xs" c="dimmed" lineClamp={1} ta="center">
+            {meta}
+          </Text>
         </Stack>
-      </Link>
-      <div className={styles.tileActions}>
-        <Anchor
-          size="xs"
-          renderRoot={(rootProps) => (
-            <Link {...rootProps} to="/assets/$type/$slug/edit" params={{ type: entry.type, slug: entry.slug }} />
-          )}
-        >
-          Edit
-        </Anchor>
-      </div>
-    </div>
+      </Stack>
+    </Link>
   );
 }

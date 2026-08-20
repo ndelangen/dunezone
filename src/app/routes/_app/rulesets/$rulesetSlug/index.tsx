@@ -87,7 +87,7 @@ function AddFactionPopover({
         <IconAction
           label="Add a faction"
           variant="filled"
-          color="dune"
+          color="gray"
           size="lg"
           disabled={disabled}
           onClick={() => setOpened((current) => !current)}
@@ -432,7 +432,7 @@ function RulesetDetailPage() {
                 <IconAction
                   label="Edit ruleset"
                   variant="light"
-                  color="dune"
+                  color="gray"
                   size="lg"
                   renderRoot={(rootProps) => (
                     <Link {...rootProps} to="/rulesets/$rulesetSlug/edit" params={{ rulesetSlug: r.slug }} />

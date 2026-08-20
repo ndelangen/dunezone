@@ -442,7 +442,7 @@ function AssetDetailPage() {
                 <IconAction
                   label={`Edit ${asset.name}`}
                   variant="light"
-                  color="dune"
+                  color="gray"
                   size="lg"
                   icon={<Pencil size={17} aria-hidden />}
                   renderRoot={(rootProps) => (
@@ -465,7 +465,7 @@ function AssetDetailPage() {
                     /* Named by face only when there are two of them, so a card keeps the plain label it already had. */
                     label={backPublishing?.publicationHref ? 'Open published front' : 'Open published image'}
                     variant="light"
-                    color="dune"
+                    color="gray"
                     size="lg"
                     href={assetPublishing.publicationHref}
                     target="_blank"
@@ -478,7 +478,7 @@ function AssetDetailPage() {
                   <IconAction
                     label="Open published back"
                     variant="light"
-                    color="dune"
+                    color="gray"
                     size="lg"
                     href={backPublishing.publicationHref}
                     target="_blank"

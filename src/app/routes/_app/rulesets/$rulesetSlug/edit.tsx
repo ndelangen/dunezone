@@ -191,7 +191,7 @@ function RulesetEditPage() {
           <IconAction
             label="View ruleset"
             variant="light"
-            color="dune"
+            color="gray"
             size="lg"
             renderRoot={(rootProps) => (
               <Link
