@@ -21,6 +21,7 @@ import type * as lib_applicationTriggers from "../lib/applicationTriggers.js";
 import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
 import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAccessValidators.js";
 import type * as lib_decalRetune from "../lib/decalRetune.js";
+import type * as lib_defaultGroupPreference from "../lib/defaultGroupPreference.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionData from "../lib/factionData.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   "lib/collaborativeAccess": typeof lib_collaborativeAccess;
   "lib/collaborativeAccessValidators": typeof lib_collaborativeAccessValidators;
   "lib/decalRetune": typeof lib_decalRetune;
+  "lib/defaultGroupPreference": typeof lib_defaultGroupPreference;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionData": typeof lib_factionData;
   "lib/factionInput": typeof lib_factionInput;
