@@ -183,9 +183,6 @@ async function deployMode(timeoutMs: number, intervalMs: number, useProd: boolea
   if (idsToRun.length === 0) {
     throw new Error('No widen migrations defined in migration-guards.json');
   }
-  if (required.length === 0) {
-    throw new Error('No required migration IDs found for narrow guards');
-  }
 
   await ensureRequiredMigrationsReady({
     idsToRun,
@@ -204,9 +201,6 @@ async function devStrictMode(timeoutMs: number, intervalMs: number) {
 
   if (idsToRun.length === 0) {
     throw new Error('No widen migrations defined in migration-guards.json');
-  }
-  if (required.length === 0) {
-    throw new Error('No required migration IDs found for narrow guards');
   }
 
   await ensureRequiredMigrationsReady({
