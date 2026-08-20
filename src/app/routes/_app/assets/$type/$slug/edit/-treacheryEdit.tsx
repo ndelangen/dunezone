@@ -1,15 +1,14 @@
-import { Alert, Anchor, Group, Stack, Text, Title } from '@mantine/core';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Alert, Anchor, Group, Stack, Text } from '@mantine/core';
+import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 
-import { loadAssetForEdit, useAssetForEdit, useDeleteAsset, useSetAssetGroup, useUpdateAsset } from '@app/db/assets';
+import { useAssetForEdit, useDeleteAsset, useSetAssetGroup, useUpdateAsset } from '@app/db/assets';
 import type { AssetForEditData } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
@@ -18,70 +17,42 @@ import { TreacheryCardEditor, treacheryDraftWarnings } from '@app/widgets/card-e
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { Treachery } from '@game/data/objects';
 
-export const Route = createFileRoute('/_app/assets/card-treachery/$slug/edit')({
-  loader: async ({ params }) => await loadAssetForEdit('card-treachery', params.slug),
-  component: EditTreacheryCardPage,
-});
+import { AssetEditorMessage } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'card-validation-header';
 
-function MessagePage({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <PageLayout>
-      <PageLayout.Header size="compact">
-        <Stack gap={2} align="center">
-          <Title order={1}>{title}</Title>
-        </Stack>
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <Surface padding="xl">
-          <Stack gap="sm">
-            {children}
-            <Anchor
-              renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type: 'card-treachery' }} />}
-            >
-              Back to treachery cards
-            </Anchor>
-          </Stack>
-        </Surface>
-      </PageLayout.Content>
-    </PageLayout>
-  );
-}
-
-function EditTreacheryCardPage() {
-  const { slug } = Route.useParams();
-  const loaderData = Route.useLoaderData();
+/** The treachery card edit page. Mounted by the generic `$type/$slug/edit` route when the type is `card-treachery`. */
+export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderData: AssetForEditData }) {
   const query = useAssetForEdit('card-treachery', slug, { initialData: loaderData });
   const data = query.data ?? loaderData;
 
   if (data === null) {
     return (
-      <MessagePage title="Card not found">
+      <AssetEditorMessage type="card-treachery" title="Card not found">
         <Text>No treachery card lives at this address.</Text>
-      </MessagePage>
+      </AssetEditorMessage>
     );
   }
 
   if (data.viewerAccess.viewer.kind === 'anonymous') {
     return (
-      <MessagePage title={`Edit ${data.asset.name}`}>
+      <AssetEditorMessage type="card-treachery" title={`Edit ${data.asset.name}`}>
         <Text>
           <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to edit cards.
         </Text>
-      </MessagePage>
+      </AssetEditorMessage>
     );
   }
 
   if (!data.viewerAccess.capabilities.edit) {
     return (
-      <MessagePage title={`Edit ${data.asset.name}`}>
+      <AssetEditorMessage type="card-treachery" title={`Edit ${data.asset.name}`}>
         <Text>
           {data.viewerAccess.assignedGroup
             ? 'Only the card owner or an active member of its group can edit this card.'
             : 'Only the card owner can edit this card.'}
         </Text>
-      </MessagePage>
+      </AssetEditorMessage>
     );
   }
 
@@ -134,7 +105,7 @@ function DriftedCardPage({ asset, canDelete }: { asset: NonNullable<AssetForEdit
   const deletion = useCardDeletion(asset.id);
 
   return (
-    <MessagePage title={`Edit ${asset.name}`}>
+    <AssetEditorMessage type="card-treachery" title={`Edit ${asset.name}`}>
       <Text>This card's stored data no longer matches the treachery card schema, so it cannot be edited here.</Text>
       {canDelete ? (
         <>
@@ -156,7 +127,7 @@ function DriftedCardPage({ asset, canDelete }: { asset: NonNullable<AssetForEdit
           </Group>
         </>
       ) : null}
-    </MessagePage>
+    </AssetEditorMessage>
   );
 }
 
@@ -200,7 +171,11 @@ function CardEditSession({
           setBaseline(saved);
           /* Renames re-slug: follow the card to its new URL so a reload keeps editing it. */
           if (nextSlug !== asset.slug) {
-            void navigate({ to: '/assets/card-treachery/$slug/edit', params: { slug: nextSlug }, replace: true });
+            void navigate({
+              to: '/assets/$type/$slug/edit',
+              params: { type: 'card-treachery', slug: nextSlug },
+              replace: true,
+            });
           }
         },
       }

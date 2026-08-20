@@ -71,7 +71,11 @@ function AssetTypePage() {
                     <Anchor
                       size="xs"
                       renderRoot={(rootProps) => (
-                        <Link {...rootProps} to="/assets/card-treachery/$slug/edit" params={{ slug: entry.slug }} />
+                        <Link
+                          {...rootProps}
+                          to="/assets/$type/$slug/edit"
+                          params={{ type: entry.type, slug: entry.slug }}
+                        />
                       )}
                     >
                       Edit

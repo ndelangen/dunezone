@@ -1,9 +1,7 @@
 import { Alert, Anchor, Stack, Text } from '@mantine/core';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
-import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
@@ -18,13 +16,12 @@ import {
 } from '@app/widgets/card-editor/TreacheryCardEditor';
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
 
-export const Route = createFileRoute('/_app/assets/card-treachery/create')({
-  component: CreateTreacheryCardPage,
-});
+import { AssetEditorMessage } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'card-validation-header';
 
-function CreateTreacheryCardPage() {
+/** The treachery card create page. Mounted by the generic `$type/create` route when the type is `card-treachery`. */
+export function TreacheryCreatePage() {
   const navigate = useNavigate();
   const profile = useCurrentProfile();
   const createAsset = useCreateAsset();
@@ -46,21 +43,11 @@ function CreateTreacheryCardPage() {
 
   if (profile.data === null) {
     return (
-      <PageLayout>
-        <PageLayout.Header size="compact">
-          <Stack gap={2} align="center">
-            <Eyebrow tone="inverse">New treachery card</Eyebrow>
-          </Stack>
-        </PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Text>
-              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to create
-              cards.
-            </Text>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <AssetEditorMessage title="New treachery card" type="card-treachery">
+        <Text>
+          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to create cards.
+        </Text>
+      </AssetEditorMessage>
     );
   }
 

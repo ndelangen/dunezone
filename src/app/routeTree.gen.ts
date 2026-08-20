@@ -32,7 +32,6 @@ import { Route as AppRulesetsRulesetSlugRouteImport } from './routes/_app/rulese
 import { Route as AppRulesetsCreateRouteImport } from './routes/_app/rulesets/create'
 import { Route as PreviewSheetFactionSlugRouteImport } from './routes/preview/sheet/$factionSlug'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
-import { Route as AppAssetsCardTreacheryCreateRouteImport } from './routes/_app/assets/card-treachery/create'
 import { Route as AppFactionsFactionIdIndexRouteImport } from './routes/_app/factions/$factionId/index'
 import { Route as AppFactionsFactionIdEditRouteImport } from './routes/_app/factions/$factionId/edit'
 import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/groups/$groupSlug/index'
@@ -41,9 +40,10 @@ import { Route as AppProfilesProfileSlugIndexRouteImport } from './routes/_app/p
 import { Route as AppProfilesProfileSlugEditRouteImport } from './routes/_app/profiles/$profileSlug/edit'
 import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/index'
 import { Route as AppRulesetsRulesetSlugEditRouteImport } from './routes/_app/rulesets/$rulesetSlug/edit'
-import { Route as AppAssetsCardTreacherySlugEditRouteImport } from './routes/_app/assets/card-treachery/$slug/edit'
+import { Route as AppAssetsTypeCreateIndexRouteImport } from './routes/_app/assets/$type/create/index'
 import { Route as AppRulesetsRulesetSlugFaqQuestionSlugRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/$questionSlug'
 import { Route as AppRulesetsRulesetSlugFaqCreateRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/create'
+import { Route as AppAssetsTypeSlugEditIndexRouteImport } from './routes/_app/assets/$type/$slug/edit/index'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -159,12 +159,6 @@ const AppAssetsTypeIndexRoute = AppAssetsTypeIndexRouteImport.update({
   path: '/assets/$type/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAssetsCardTreacheryCreateRoute =
-  AppAssetsCardTreacheryCreateRouteImport.update({
-    id: '/assets/card-treachery/create',
-    path: '/assets/card-treachery/create',
-    getParentRoute: () => AppRoute,
-  } as any)
 const AppFactionsFactionIdIndexRoute =
   AppFactionsFactionIdIndexRouteImport.update({
     id: '/factions/$factionId/',
@@ -211,10 +205,10 @@ const AppRulesetsRulesetSlugEditRoute =
     path: '/edit',
     getParentRoute: () => AppRulesetsRulesetSlugRoute,
   } as any)
-const AppAssetsCardTreacherySlugEditRoute =
-  AppAssetsCardTreacherySlugEditRouteImport.update({
-    id: '/assets/card-treachery/$slug/edit',
-    path: '/assets/card-treachery/$slug/edit',
+const AppAssetsTypeCreateIndexRoute =
+  AppAssetsTypeCreateIndexRouteImport.update({
+    id: '/assets/$type/create/',
+    path: '/assets/$type/create/',
     getParentRoute: () => AppRoute,
   } as any)
 const AppRulesetsRulesetSlugFaqQuestionSlugRoute =
@@ -228,6 +222,12 @@ const AppRulesetsRulesetSlugFaqCreateRoute =
     id: '/faq/create',
     path: '/faq/create',
     getParentRoute: () => AppRulesetsRulesetSlugRoute,
+  } as any)
+const AppAssetsTypeSlugEditIndexRoute =
+  AppAssetsTypeSlugEditIndexRouteImport.update({
+    id: '/assets/$type/$slug/edit/',
+    path: '/assets/$type/$slug/edit/',
+    getParentRoute: () => AppRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -252,7 +252,6 @@ export interface FileRoutesByFullPath {
   '/privacy/': typeof AppPrivacyIndexRoute
   '/profiles/': typeof AppProfilesIndexRoute
   '/rulesets/': typeof AppRulesetsIndexRoute
-  '/assets/card-treachery/create': typeof AppAssetsCardTreacheryCreateRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
@@ -262,9 +261,10 @@ export interface FileRoutesByFullPath {
   '/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
-  '/assets/card-treachery/$slug/edit': typeof AppAssetsCardTreacherySlugEditRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRoute
+  '/assets/$type/create/': typeof AppAssetsTypeCreateIndexRoute
+  '/assets/$type/$slug/edit/': typeof AppAssetsTypeSlugEditIndexRoute
 }
 export interface FileRoutesByTo {
   '/$': typeof AppSplatRoute
@@ -286,7 +286,6 @@ export interface FileRoutesByTo {
   '/privacy': typeof AppPrivacyIndexRoute
   '/profiles': typeof AppProfilesIndexRoute
   '/rulesets': typeof AppRulesetsIndexRoute
-  '/assets/card-treachery/create': typeof AppAssetsCardTreacheryCreateRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
@@ -296,9 +295,10 @@ export interface FileRoutesByTo {
   '/groups/$groupSlug': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugIndexRoute
-  '/assets/card-treachery/$slug/edit': typeof AppAssetsCardTreacherySlugEditRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRoute
+  '/assets/$type/create': typeof AppAssetsTypeCreateIndexRoute
+  '/assets/$type/$slug/edit': typeof AppAssetsTypeSlugEditIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -324,7 +324,6 @@ export interface FileRoutesById {
   '/_app/privacy/': typeof AppPrivacyIndexRoute
   '/_app/profiles/': typeof AppProfilesIndexRoute
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
-  '/_app/assets/card-treachery/create': typeof AppAssetsCardTreacheryCreateRoute
   '/_app/factions/$factionId/edit': typeof AppFactionsFactionIdEditRoute
   '/_app/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRoute
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRoute
@@ -334,9 +333,10 @@ export interface FileRoutesById {
   '/_app/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/_app/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/_app/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
-  '/_app/assets/card-treachery/$slug/edit': typeof AppAssetsCardTreacherySlugEditRoute
   '/_app/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRoute
   '/_app/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRoute
+  '/_app/assets/$type/create/': typeof AppAssetsTypeCreateIndexRoute
+  '/_app/assets/$type/$slug/edit/': typeof AppAssetsTypeSlugEditIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -362,7 +362,6 @@ export interface FileRouteTypes {
     | '/privacy/'
     | '/profiles/'
     | '/rulesets/'
-    | '/assets/card-treachery/create'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/profiles/$profileSlug/edit'
@@ -372,9 +371,10 @@ export interface FileRouteTypes {
     | '/groups/$groupSlug/'
     | '/profiles/$profileSlug/'
     | '/rulesets/$rulesetSlug/'
-    | '/assets/card-treachery/$slug/edit'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
+    | '/assets/$type/create/'
+    | '/assets/$type/$slug/edit/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/$'
@@ -396,7 +396,6 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profiles'
     | '/rulesets'
-    | '/assets/card-treachery/create'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/profiles/$profileSlug/edit'
@@ -406,9 +405,10 @@ export interface FileRouteTypes {
     | '/groups/$groupSlug'
     | '/profiles/$profileSlug'
     | '/rulesets/$rulesetSlug'
-    | '/assets/card-treachery/$slug/edit'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
+    | '/assets/$type/create'
+    | '/assets/$type/$slug/edit'
   id:
     | '__root__'
     | '/_app'
@@ -433,7 +433,6 @@ export interface FileRouteTypes {
     | '/_app/privacy/'
     | '/_app/profiles/'
     | '/_app/rulesets/'
-    | '/_app/assets/card-treachery/create'
     | '/_app/factions/$factionId/edit'
     | '/_app/groups/$groupSlug/edit'
     | '/_app/profiles/$profileSlug/edit'
@@ -443,9 +442,10 @@ export interface FileRouteTypes {
     | '/_app/groups/$groupSlug/'
     | '/_app/profiles/$profileSlug/'
     | '/_app/rulesets/$rulesetSlug/'
-    | '/_app/assets/card-treachery/$slug/edit'
     | '/_app/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/_app/rulesets/$rulesetSlug/faq/create'
+    | '/_app/assets/$type/create/'
+    | '/_app/assets/$type/$slug/edit/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -617,13 +617,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssetsTypeIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/assets/card-treachery/create': {
-      id: '/_app/assets/card-treachery/create'
-      path: '/assets/card-treachery/create'
-      fullPath: '/assets/card-treachery/create'
-      preLoaderRoute: typeof AppAssetsCardTreacheryCreateRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/factions/$factionId/': {
       id: '/_app/factions/$factionId/'
       path: '/factions/$factionId'
@@ -680,11 +673,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRulesetsRulesetSlugEditRouteImport
       parentRoute: typeof AppRulesetsRulesetSlugRoute
     }
-    '/_app/assets/card-treachery/$slug/edit': {
-      id: '/_app/assets/card-treachery/$slug/edit'
-      path: '/assets/card-treachery/$slug/edit'
-      fullPath: '/assets/card-treachery/$slug/edit'
-      preLoaderRoute: typeof AppAssetsCardTreacherySlugEditRouteImport
+    '/_app/assets/$type/create/': {
+      id: '/_app/assets/$type/create/'
+      path: '/assets/$type/create'
+      fullPath: '/assets/$type/create/'
+      preLoaderRoute: typeof AppAssetsTypeCreateIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/rulesets/$rulesetSlug/faq/$questionSlug': {
@@ -700,6 +693,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/rulesets/$rulesetSlug/faq/create'
       preLoaderRoute: typeof AppRulesetsRulesetSlugFaqCreateRouteImport
       parentRoute: typeof AppRulesetsRulesetSlugRoute
+    }
+    '/_app/assets/$type/$slug/edit/': {
+      id: '/_app/assets/$type/$slug/edit/'
+      path: '/assets/$type/$slug/edit'
+      fullPath: '/assets/$type/$slug/edit/'
+      preLoaderRoute: typeof AppAssetsTypeSlugEditIndexRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
@@ -758,13 +758,13 @@ interface AppRouteChildren {
   AppPrivacyIndexRoute: typeof AppPrivacyIndexRoute
   AppProfilesIndexRoute: typeof AppProfilesIndexRoute
   AppRulesetsIndexRoute: typeof AppRulesetsIndexRoute
-  AppAssetsCardTreacheryCreateRoute: typeof AppAssetsCardTreacheryCreateRoute
   AppFactionsFactionIdEditRoute: typeof AppFactionsFactionIdEditRoute
   AppProfilesProfileSlugEditRoute: typeof AppProfilesProfileSlugEditRoute
   AppAssetsTypeIndexRoute: typeof AppAssetsTypeIndexRoute
   AppFactionsFactionIdIndexRoute: typeof AppFactionsFactionIdIndexRoute
   AppProfilesProfileSlugIndexRoute: typeof AppProfilesProfileSlugIndexRoute
-  AppAssetsCardTreacherySlugEditRoute: typeof AppAssetsCardTreacherySlugEditRoute
+  AppAssetsTypeCreateIndexRoute: typeof AppAssetsTypeCreateIndexRoute
+  AppAssetsTypeSlugEditIndexRoute: typeof AppAssetsTypeSlugEditIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -787,13 +787,13 @@ const AppRouteChildren: AppRouteChildren = {
   AppPrivacyIndexRoute: AppPrivacyIndexRoute,
   AppProfilesIndexRoute: AppProfilesIndexRoute,
   AppRulesetsIndexRoute: AppRulesetsIndexRoute,
-  AppAssetsCardTreacheryCreateRoute: AppAssetsCardTreacheryCreateRoute,
   AppFactionsFactionIdEditRoute: AppFactionsFactionIdEditRoute,
   AppProfilesProfileSlugEditRoute: AppProfilesProfileSlugEditRoute,
   AppAssetsTypeIndexRoute: AppAssetsTypeIndexRoute,
   AppFactionsFactionIdIndexRoute: AppFactionsFactionIdIndexRoute,
   AppProfilesProfileSlugIndexRoute: AppProfilesProfileSlugIndexRoute,
-  AppAssetsCardTreacherySlugEditRoute: AppAssetsCardTreacherySlugEditRoute,
+  AppAssetsTypeCreateIndexRoute: AppAssetsTypeCreateIndexRoute,
+  AppAssetsTypeSlugEditIndexRoute: AppAssetsTypeSlugEditIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
