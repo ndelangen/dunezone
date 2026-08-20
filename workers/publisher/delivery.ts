@@ -1,5 +1,11 @@
 import { isValidCacheSigningSecret, verifyCacheToken } from '../../convex/lib/publicationHttp';
-import { factionSheetKey } from './r2';
+import {
+  matchPublishedPath,
+  PUBLICATION_TARGETS,
+  publishedPath,
+  publishedR2Key,
+} from '../../src/shared/asset-publishing/publicationTargets';
+import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 
 // HTTP precondition/range evaluation (private): decisions are applied, not re-exported.
 type AssetRepresentation = {
@@ -316,11 +322,8 @@ function evaluateAssetRequest(
   return { status: 206, range };
 }
 
-const ASSET_TYPE = 'faction_sheet' as const;
 const TOKEN_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const NO_STORE = 'no-store';
-const FACTION_ID_PATTERN = /^[0-9a-z]{16,64}$/;
-const PUBLIC_ROUTE_PATTERN = /^\/published\/factions\/([0-9a-z]{16,64})\/sheet\.pdf$/;
 
 export type PublicAssetCache = {
   match(request: Request): Promise<Response | undefined>;
@@ -373,13 +376,14 @@ function rangeCacheRequest(base: Request, range: string): Request {
   return new Request(base.url, { method: 'GET', headers: { Range: range } });
 }
 
-function assetHeaders(object: R2Object, tokenized: boolean): Headers {
+function assetHeaders(object: R2Object, tokenized: boolean, assetType: PublicationAssetType): Headers {
+  const target = PUBLICATION_TARGETS[assetType];
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   headers.set('Accept-Ranges', 'bytes');
-  headers.set('Content-Disposition', 'inline; filename="faction-sheet.pdf"');
+  headers.set('Content-Disposition', `inline; filename="${target.downloadFilename}"`);
   headers.set('Content-Length', String(object.size));
-  headers.set('Content-Type', 'application/pdf');
+  headers.set('Content-Type', target.contentType);
   headers.set('ETag', object.httpEtag);
   headers.set('Last-Modified', object.uploaded.toUTCString());
   headers.set('X-Content-Type-Options', 'nosniff');
@@ -534,9 +538,10 @@ async function r2BodyResponse(
   tokenized: boolean,
   cache: PublicAssetCache,
   cacheKey: Request | null,
-  ctx: Pick<ExecutionContext, 'waitUntil'>
+  ctx: Pick<ExecutionContext, 'waitUntil'>,
+  assetType: PublicationAssetType
 ): Promise<Response> {
-  const headers = assetHeaders(object, tokenized);
+  const headers = assetHeaders(object, tokenized, assetType);
   if (decision.status === 206) {
     headers.set('Cache-Control', NO_STORE);
     headers.set('Content-Length', String(decision.range.length));
@@ -556,10 +561,7 @@ async function r2BodyResponse(
 }
 
 export function factionSheetPublicPath(factionId: string): string {
-  if (!FACTION_ID_PATTERN.test(factionId)) {
-    throw new Error('Invalid Convex faction id');
-  }
-  return `/published/factions/${encodeURIComponent(factionId)}/sheet.pdf`;
+  return publishedPath('faction_sheet', factionId);
 }
 
 export async function handlePublicAssetRequest(
@@ -574,7 +576,7 @@ export async function handlePublicAssetRequest(
     return null;
   }
 
-  const route = PUBLIC_ROUTE_PATTERN.exec(url.pathname);
+  const route = matchPublishedPath(url.pathname);
   if (!route) {
     return errorResponse(404, 'Not Found');
   }
@@ -585,22 +587,19 @@ export async function handlePublicAssetRequest(
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
 
-  const factionId = route[1];
-  if (!factionId) {
-    return errorResponse(404, 'Not Found');
-  }
-  const stablePath = factionSheetPublicPath(factionId);
+  const { assetType, assetId } = route;
+  const stablePath = publishedPath(assetType, assetId);
   const token = exactToken(url);
   if (token === null || token === undefined) {
     return errorResponse(404, 'Not Found');
   }
-  if (!(await verifyCacheToken(token, factionId, ASSET_TYPE, env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET))) {
+  if (!(await verifyCacheToken(token, assetId, assetType, env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET))) {
     return errorResponse(404, 'Not Found');
   }
   const verifiedToken = token;
 
   const bucket = env.ASSET_BUCKET as PublicAssetBucket;
-  const key = factionSheetKey(factionId);
+  const key = publishedR2Key(assetType, assetId);
   let metadata: R2Object | null;
   try {
     metadata = await bucket.head(key);
@@ -612,7 +611,7 @@ export async function handlePublicAssetRequest(
   }
 
   const decision = evaluateAssetRequest(request, objectRepresentation(metadata));
-  const headers = assetHeaders(metadata, true);
+  const headers = assetHeaders(metadata, true, assetType);
   if (decision.status === 304 || decision.status === 412 || decision.status === 416) {
     return metadataResponse(decision, headers);
   }
@@ -651,5 +650,5 @@ export async function handlePublicAssetRequest(
   if (!object || !('body' in object) || object.etag !== metadata.etag) {
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
-  return await r2BodyResponse(request, object, decision, true, cache, canonicalCacheRequest, ctx);
+  return await r2BodyResponse(request, object, decision, true, cache, canonicalCacheRequest, ctx, assetType);
 }

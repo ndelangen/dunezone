@@ -167,6 +167,7 @@ describe('publisher Worker Publication flow', () => {
       capture: async () => ({
         bytes: new Uint8Array([1, 2, 3]),
         payloadHash: 'a'.repeat(64),
+        output: 'pdf',
       }),
       close: async () => undefined,
       sessionId: () => 'browser-session-one',
