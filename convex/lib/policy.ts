@@ -1,11 +1,10 @@
-import { getAuthUserId } from '@convex-dev/auth/server';
-
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { optionalActiveUserId } from './accountLifecycle';
 
 type AnyCtx = QueryCtx | MutationCtx;
 
 export async function requireAuthUserId(ctx: AnyCtx) {
-  const userId = await getAuthUserId(ctx);
+  const userId = await optionalActiveUserId(ctx);
   if (!userId) {
     throw new Error('Not authenticated');
   }

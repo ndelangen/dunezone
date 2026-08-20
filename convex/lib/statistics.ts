@@ -4,6 +4,7 @@ import type { Triggers } from 'convex-helpers/server/triggers';
 import { components } from '../_generated/api';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { isActiveProfile } from './accountLifecycle';
 
 export const STATISTICS_METRICS = ['users', 'factions', 'rulesets', 'questions', 'answers'] as const;
 
@@ -27,8 +28,8 @@ function globalItem(namespace: 'users' | 'factions' | 'rulesets', id: string): S
   return { namespace, key: [GLOBAL_KEY], id };
 }
 
-function profileItem(profile: Doc<'profiles'>): StatisticsItem {
-  return globalItem('users', profile._id);
+function profileItem(profile: Doc<'profiles'>): StatisticsItem | null {
+  return isActiveProfile(profile) ? globalItem('users', profile._id) : null;
 }
 
 function factionItem(faction: Doc<'factions'>): StatisticsItem | null {
@@ -150,7 +151,12 @@ export async function clearStatistics(ctx: MutationCtx) {
 }
 
 export async function reconcileProfileStatistics(ctx: MutationCtx, profile: Doc<'profiles'>) {
-  await statistics.insertIfDoesNotExist(ctx, profileItem(profile));
+  const item = globalItem('users', profile._id);
+  if (isActiveProfile(profile)) {
+    await statistics.insertIfDoesNotExist(ctx, item);
+  } else {
+    await statistics.deleteIfExists(ctx, item);
+  }
 }
 
 export async function reconcileFactionStatistics(ctx: MutationCtx, faction: Doc<'factions'>) {

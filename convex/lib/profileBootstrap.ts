@@ -1,5 +1,6 @@
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
+import { accountStateOf } from './accountLifecycle';
 import { nowIso, slugify } from './utils';
 
 export type ProfileBootstrapSources = {
@@ -49,6 +50,34 @@ async function allocateUniqueProfileSlug(ctx: MutationCtx, usernameForSlug: stri
   return slug;
 }
 
+async function refreshExistingProfile(
+  ctx: MutationCtx,
+  existing: Doc<'profiles'>,
+  userId: Id<'users'>,
+  displayName: string | null,
+  imageUrl: string | null
+): Promise<Doc<'profiles'>> {
+  if (accountStateOf(existing) !== 'active') {
+    return existing;
+  }
+  const fillUsername = existing.username ?? displayName;
+  const fillAvatar = existing.avatar_url ?? imageUrl;
+  const needsRefresh =
+    fillUsername !== existing.username || fillAvatar !== existing.avatar_url || existing.account_state === undefined;
+  if (!needsRefresh) {
+    return existing;
+  }
+  await ctx.db.patch(existing._id, {
+    user_id: userId,
+    username: fillUsername ?? null,
+    avatar_url: fillAvatar ?? null,
+    account_state: 'active',
+    slug: existing.slug,
+    updated_at: nowIso(),
+  });
+  return (await ctx.db.get(existing._id)) ?? existing;
+}
+
 /**
  * Ensures a `profiles` row exists for `userId`, using explicit sources (no `ctx.auth` identity).
  * Backfills missing username/avatar on an existing row when still null.
@@ -66,25 +95,17 @@ export async function ensureProfileForUser(
     .withIndex('by_user_id', (q) => q.eq('user_id', userId))
     .unique();
 
-  if (existing) {
-    const fillUsername = existing.username ?? displayName;
-    const fillAvatar = existing.avatar_url ?? imageUrl;
-    const nextSlug = existing.slug;
+  const user = await ctx.db.get('users', userId);
+  if (!user) {
+    throw new Error(`Cannot create profile for missing user ${userId}`);
+  }
 
-    if (fillUsername !== existing.username || fillAvatar !== existing.avatar_url || nextSlug !== existing.slug) {
-      await ctx.db.patch(existing._id, {
-        user_id: userId,
-        username: fillUsername ?? null,
-        avatar_url: fillAvatar ?? null,
-        slug: nextSlug,
-        updated_at: nowIso(),
-      });
-      const refreshed = await ctx.db.get(existing._id);
-      if (refreshed) {
-        return refreshed;
-      }
-    }
-    return existing;
+  if (accountStateOf(user) !== 'active') {
+    return existing ?? Promise.reject(new Error('Inactive accounts cannot create profiles'));
+  }
+
+  if (existing) {
+    return await refreshExistingProfile(ctx, existing, userId, displayName, imageUrl);
   }
 
   const username = displayName ?? 'nameless';
@@ -98,6 +119,7 @@ export async function ensureProfileForUser(
     user_id: userId,
     username: username ?? null,
     avatar_url: imageUrl ?? null,
+    account_state: 'active',
     slug,
     created_at: now,
     updated_at: now,

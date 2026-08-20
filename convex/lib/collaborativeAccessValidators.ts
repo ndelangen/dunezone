@@ -111,7 +111,7 @@ const assetPublishingValidator = v.object({
 
 export const factionDetailPageValidator = v.object({
   faction: factionValidator,
-  owner: profileValidator,
+  owner: v.union(profileValidator, v.null()),
   assetPublishing: assetPublishingValidator,
   viewerAccess: factionViewerAccessValidator,
   assignableGroups: v.array(assignedGroupSummaryValidator),

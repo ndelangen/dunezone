@@ -1,4 +1,5 @@
 import type { QueryCtx } from '../types';
+import { isActiveProfile } from './accountLifecycle';
 import { liveGroupOrNull } from './collaborativeAccess';
 import { loadFactionCatalogue } from './factionCatalogue';
 import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './faqProfileActivity';
@@ -16,7 +17,7 @@ export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
     .query('profiles')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (!profile) {
+  if (!profile || !isActiveProfile(profile)) {
     throw new Error(`Profile with slug ${slug} not found`);
   }
 
@@ -42,7 +43,9 @@ export async function loadProfileDetailBySlug(ctx: QueryCtx, slug: string) {
     loadFaqAnswersGivenBy(ctx, profile.user_id),
   ]);
 
-  const { factions } = await loadFactionCatalogue(ctx, { ownerId: profile.user_id });
+  const { factions } = await loadFactionCatalogue(ctx, {
+    ownerId: profile.user_id,
+  });
 
   return {
     profile,

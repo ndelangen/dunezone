@@ -10,18 +10,15 @@ import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
-import type {
-  PublicAssetCaptureStatus,
-  PublicAssetPublishingStatus,
-  PublicAssetPublishingStatusProjection,
-} from '../../../convex/assetPublishingStatus';
-import type { AssignedGroupSummary, CollaborativeAccess } from '../../../convex/lib/collaborativeAccess';
-
 /**
  * The app reaches Convex only through this layer, so the shapes it needs are re-exported here rather than imported from
  * `convex/` a second time.
  */
-export type { PublicAssetCaptureStatus, PublicAssetPublishingStatus, PublicAssetPublishingStatusProjection };
+export type {
+  PublicAssetCaptureStatus,
+  PublicAssetPublishingStatus,
+  PublicAssetPublishingStatusProjection,
+} from '../../../convex/assetPublishingStatus';
 
 export type Faction = FactionInput;
 export type FactionData = FactionInput;
@@ -109,16 +106,13 @@ export function factionRowsToEntries(rows: FactionRow[]): FactionEntry[] {
   return rows.map(toFactionEntry);
 }
 
-export type FactionDetailPageData = {
+type FactionDetailPageRaw = FunctionReturnType<typeof api.factions.getBySlug>;
+
+export type FactionDetailPageData = Omit<FactionDetailPageRaw, 'faction'> & {
   faction: FactionEntry;
-  owner: Doc<'profiles'>;
-  assetPublishing: PublicAssetPublishingStatusProjection;
-  viewerAccess: Extract<CollaborativeAccess, { kind: 'faction' }>;
-  assignableGroups: AssignedGroupSummary[];
-  rulesets: FactionRulesetSummary[];
 };
 
-function toFactionDetailPageData(raw: FunctionReturnType<typeof api.factions.getBySlug>): FactionDetailPageData {
+function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageData {
   return {
     faction: {
       ...raw.faction,
