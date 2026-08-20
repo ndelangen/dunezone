@@ -6,7 +6,7 @@ import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Globe2 } from 'lucide-react';
+import { Globe2, Swords } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
 import type { Faction, FactionCatalogueEntry } from '@db/factions';
@@ -21,7 +21,6 @@ import { card as CARD_SIZE } from '@game/data/sizes';
 import { factionAuthoringChapters } from './factionAuthoringContract';
 import type { FactionAuthoringChapterId, FactionAuthoringWarning } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
-import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import { FactionFormSectionAdvantages } from './FactionFormSectionAdvantages';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
 import { FactionFormSectionBackground } from './FactionFormSectionBackground';
@@ -52,25 +51,12 @@ const chapterIcons: Record<
 };
 
 /* The tab glyph when the faction has no troops yet. */
-const FALLBACK_TROOP_SYMBOL = '/vector/troop/atreides.svg';
-
 function ChapterIcon({ chapter, form }: { chapter: FactionAuthoringChapterId; form: FactionFormApi }) {
   if (chapter === 'identity') {
-    return (
-      <form.Subscribe selector={(state) => state.values.logo}>
-        {(logo) => <Image src={assetOptionToPreviewSrc(logo)} alt="" w={22} h={22} fit="contain" />}
-      </form.Subscribe>
-    );
+    return <TopicIcon topic="identity" size={21} />;
   }
   if (chapter === 'forces') {
-    /* Live like the identity tab: the first troop's symbol is the chapter's face. */
-    return (
-      <form.Subscribe selector={(state) => state.values.troops[0]?.image}>
-        {(image) => (
-          <Image src={assetOptionToPreviewSrc(image ?? FALLBACK_TROOP_SYMBOL)} alt="" w={22} h={22} fit="contain" />
-        )}
-      </form.Subscribe>
-    );
+    return <Swords size={21} aria-hidden />;
   }
   if (chapter === 'worlds') {
     return <Globe2 size={21} aria-hidden />;

@@ -1,9 +1,10 @@
 import { Group, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
 import type { BundleAsset } from '@shared/assets/schema';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Boxes, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -131,8 +132,7 @@ export function BundleEditor({
           {
             value: 'identity',
             label: 'Identity',
-            /* The chapter wears the container it edits, so the tab changes with the band. */
-            icon: <BundleContainer band={draft.band} name={draft.name} width={26} />,
+            icon: <TopicIcon topic="identity" size={21} />,
             panel: panel(
               <>
                 <ControlBlock
@@ -175,7 +175,7 @@ export function BundleEditor({
           {
             value: 'tokens',
             label: 'Tokens',
-            icon: <Boxes size={21} aria-hidden />,
+            icon: <TopicIcon topic="contents" size={21} />,
             panel: panel(
               <>
                 <ControlBlock

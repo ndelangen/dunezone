@@ -1,7 +1,7 @@
 import { Stack, Text, Textarea } from '@mantine/core';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ConnectedTabsItem } from '@ui/surface/ConnectedTabs';
-import { Info } from 'lucide-react';
 
 /**
  * The one chapter every asset editor shares: About, the off-face prose (CONTEXT.md: About).
@@ -15,7 +15,7 @@ export function aboutChapter(about: string, onChange: (about: string) => void): 
   return {
     value: 'about',
     label: 'About',
-    icon: <Info size={21} aria-hidden />,
+    icon: <TopicIcon topic="about" size={21} />,
     panel: (
       <Stack gap="lg">
         <ControlBlock

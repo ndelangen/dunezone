@@ -1,10 +1,3 @@
-/* Asset glyphs are authored as monochrome dark artwork; the dark scheme inverts them —
-   the same treatment AssetSelect gives its previews. */
-html[data-mantine-color-scheme="dark"] .glyph {
-  filter: brightness(0) invert(1);
-  opacity: 0.9;
-}
-
 .proofFrame {
   border-radius: var(--mantine-radius-md);
   box-shadow: 0 2px 10px rgb(0 0 0 / 45%);

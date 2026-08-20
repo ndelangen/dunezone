@@ -13,10 +13,11 @@ import {
 } from '@mantine/core';
 import { RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { RectangleTokenAsset } from '@shared/assets/schema';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { RectangleHorizontal, Signature, Sticker, Type } from 'lucide-react';
+import { RectangleHorizontal, Sticker, Type } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -419,7 +420,7 @@ export function RectangleTokenEditor({
     {
       value: 'identity' as RectangleChapter,
       label: 'Identity',
-      icon: <Signature size={21} aria-hidden />,
+      icon: <TopicIcon topic="identity" size={21} />,
       panel: panel(
         <>
           <ControlBlock

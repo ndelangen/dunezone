@@ -185,11 +185,28 @@ the top of the document.
 stands at the group, ruleset and FAQ deletes; those are legacy pending a re-point, not a second
 sanctioned answer.*
 
+### A tab icon is an icon, never a proof
+
+A chapter tab carries a simple, single-colour icon and nothing else. Not a rendered artifact, not a
+live preview of the content, not an image of an authored asset. Several editors had drifted into
+using the tab as a second proof: the deck editor's Identity tab wore the cardback it edited, the
+bundle editor's wore its container, the treachery editor's Icon tab wore the chosen vector, and the
+faction editor's Identity and Forces tabs wore the faction's logo and first troop symbol. Each read
+as clever in isolation and as noise in a row of tabs.
+
+Norbert, 2026-08-20: *"tabs should contain simple single color icons, nothing else, ever."*
+
+The rail beside the editor is where a proof belongs, and every one of those editors already has one.
+
+*Convention — a tab icon is a lucide component or a `TopicIcon`; both render in `currentColor`. If a
+chapter's concept recurs across editors it earns a `TopicIcon` topic rather than a local import.*
+
 ### One canonical icon per recurring topic
 
 The same topic once appeared with different icons between the faction editor and the detail pages,
 weakening recognition. Render recurring topic icons through `TopicIcon`; the faction editor's mapping
-is authoritative.
+is authoritative. `identity`, `about` and `contents` are the chapter topics every asset editor
+shares, so those come from the mapping rather than from a local import.
 
 *Convention — the mapping is the code in
 [`TopicIcon.tsx`](../../src/app/ui/content/TopicIcon.tsx). A one-off topic may keep a local icon

@@ -16,7 +16,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Brush, ScrollText, Type } from 'lucide-react';
+import { Brush, Disc, ScrollText, Type } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -78,8 +78,6 @@ const DECAL_OFFSET_RANGE = [450, 630] as const;
 
 /* The icon disc is 125 card-space pixels; half a disc of nudge per axis, number inputs unclamped. */
 const ICON_OFFSET_RANGE = 60;
-
-const DEFAULT_TAB_VECTOR = '/vector/icon/projectile.svg';
 
 /* ------------------------------ rail proof ------------------------------ */
 
@@ -389,11 +387,6 @@ export function treacheryDraftWarnings(draft: TreacheryDraft): TreacheryDraftWar
 /* ------------------------------ workbench ------------------------------ */
 
 /** The Icon tab wears the card's own icon, so the chapter list reflects the data. */
-function ChapterGlyph({ vector }: { vector: string }) {
-  const src = assetOptionToPreviewSrc(vector) ?? assetOptionToPreviewSrc(DEFAULT_TAB_VECTOR);
-  return src ? <img src={src} alt="" width={21} height={21} className={styles.glyph} /> : null;
-}
-
 /* No padding here: ConnectedTabs' panel shell owns the panel inset (--connected-tabs-panel-padding). */
 const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
 
@@ -441,7 +434,7 @@ export function TreacheryCardEditor({
           {
             value: 'icon',
             label: 'Icon',
-            icon: <ChapterGlyph vector={draft.icon[1]} />,
+            icon: <Disc size={21} aria-hidden />,
             panel: panel(<IconFields draft={draft} patch={patch} />),
           },
           {

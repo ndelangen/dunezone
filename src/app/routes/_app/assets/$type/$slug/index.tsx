@@ -15,6 +15,7 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -25,7 +26,7 @@ import { Links } from '@ui/list/Links';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Download, Info, Layers3, Pencil, UserRoundMinus, UsersRound } from 'lucide-react';
+import { ArrowLeft, Download, Layers3, Pencil, UserRoundMinus, UsersRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { loadAssetPage, useAssetPage, useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
@@ -196,7 +197,7 @@ function AboutSection({ about }: { about: string }) {
     return null;
   }
   return (
-    <Section id="about" icon={<Info size={20} aria-hidden />} title="About">
+    <Section id="about" icon={<TopicIcon topic="about" size={20} />} title="About">
       <Surface padding="lg">
         <Text className={styles.about}>{about}</Text>
       </Surface>
@@ -214,7 +215,7 @@ function Composition({ members, noun }: { members: AssetPage['members']; noun: s
   return (
     <Section
       id="composition"
-      icon={<Layers3 size={20} aria-hidden />}
+      icon={<TopicIcon topic="contents" size={20} />}
       title="Composition"
       description={`The ${noun} in here and how many of each.`}
     >

@@ -1,9 +1,10 @@
 import { Group, SegmentedControl, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
 import type { TokenAsset } from '@shared/assets/schema';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Coins, FlipHorizontal2, Signature } from 'lucide-react';
+import { Coins, FlipHorizontal2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -229,7 +230,7 @@ export function TokenEditor({
     {
       value: 'identity' as const,
       label: 'Identity',
-      icon: <Signature size={21} aria-hidden />,
+      icon: <TopicIcon topic="identity" size={21} />,
       panel: panel(
         <>
           <ControlBlock

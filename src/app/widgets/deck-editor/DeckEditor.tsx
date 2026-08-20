@@ -1,10 +1,11 @@
 import { Group, NumberInput, Select, Slider, Stack, Text, TextInput } from '@mantine/core';
 import type { DeckAsset } from '@shared/assets/schema';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Layers, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -189,8 +190,7 @@ export function DeckEditor({
           {
             value: 'identity',
             label: 'Identity',
-            /* The chapter wears the back it edits, so the tab changes with the choice. */
-            icon: <CardbackProof cardback={draft.cardback} width={21} />,
+            icon: <TopicIcon topic="identity" size={21} />,
             panel: panel(
               <>
                 <ControlBlock
@@ -235,7 +235,7 @@ export function DeckEditor({
           {
             value: 'cards',
             label: 'Cards',
-            icon: <Layers size={21} aria-hidden />,
+            icon: <TopicIcon topic="contents" size={21} />,
             panel: panel(
               <>
                 <ControlBlock
