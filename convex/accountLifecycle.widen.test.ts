@@ -25,7 +25,7 @@ function setup() {
 }
 
 describe('account lifecycle widen rollout', () => {
-  test('backfills legacy profile and user state, then verifies the pair', async () => {
+  test('retains the completed profile backfill and mirrors a missing user state', async () => {
     const t = setup();
     const ids = await t.run(async (ctx) => {
       const userId = await ctx.db.insert('users', {});
@@ -33,6 +33,7 @@ describe('account lifecycle widen rollout', () => {
         user_id: userId,
         username: 'LegacyUser',
         avatar_url: 'https://example.com/avatar.png',
+        account_state: 'active',
         slug: 'legacy-user',
         created_at: now,
         updated_at: now,

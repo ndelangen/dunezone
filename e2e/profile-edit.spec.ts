@@ -47,6 +47,9 @@ test('profile editing connects settings, previews avatars, and persists appearan
   await page.getByRole('tab', { name: 'Creation defaults' }).click();
   await expect(page.getByRole('combobox', { name: 'Default Group' })).toBeVisible();
 
+  await page.getByRole('tab', { name: 'Account' }).click();
+  await expect(page.getByRole('link', { name: 'Delete account' })).toBeVisible();
+
   await page.getByRole('tab', { name: 'Appearance' }).click();
   await page.getByText('Dark', { exact: true }).click();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('dunezone-color-scheme'))).toBe('dark');

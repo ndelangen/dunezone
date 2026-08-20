@@ -32,6 +32,7 @@ async function defaultGroupFixture() {
       user_id: memberId,
       username: 'DefaultGroupMember',
       avatar_url: 'https://example.com/member.png',
+      account_state: 'active',
       slug: 'default-group-member',
       created_at: '2026-08-20T00:00:00.000Z',
       updated_at: '2026-08-20T00:00:00.000Z',

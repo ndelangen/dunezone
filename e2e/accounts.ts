@@ -12,3 +12,6 @@ function seededAccount(email: string) {
 }
 
 export const userA = seededAccount(process.env.PLAYWRIGHT_USER_A_EMAIL ?? 'e2e-user-a@example.com');
+export const accountDeleteUser = seededAccount(
+  process.env.PLAYWRIGHT_ACCOUNT_DELETE_EMAIL ?? 'e2e-account-delete@example.com'
+);

@@ -34,6 +34,7 @@ async function seedQuestionPage(t: ReturnType<typeof convexTest>): Promise<SeedR
         user_id: userId,
         username: name,
         avatar_url: null,
+        account_state: 'active',
         slug: name.toLowerCase(),
         created_at: at(1),
         updated_at: at(1),

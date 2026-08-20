@@ -32,6 +32,7 @@ async function softDeletionFixture() {
         user_id: userId,
         username,
         avatar_url: null,
+        account_state: 'active',
         slug,
         created_at: now,
         updated_at: now,

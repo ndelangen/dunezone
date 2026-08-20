@@ -116,6 +116,11 @@ export default async function globalSetup(config: FullConfig) {
       password: userPassword,
       storageStatePath: '.playwright/user-b-group.json',
     },
+    {
+      email: process.env.PLAYWRIGHT_ACCOUNT_DELETE_EMAIL ?? 'e2e-account-delete@example.com',
+      password: userPassword,
+      storageStatePath: '.playwright/account-delete.json',
+    },
   ];
   /*
    * Logins for the SAME user run sequentially: concurrent sign-ins write the same Convex Auth
@@ -136,15 +141,21 @@ export default async function globalSetup(config: FullConfig) {
     })
   );
 
-  execSync(`npx convex run e2e:seedBaseline '${JSON.stringify({ ownerEmail: userAEmail })}'`, {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      CONVEX_DEPLOYMENT: '',
-      CONVEX_URL: '',
-      CONVEX_CLOUD_URL: '',
-      CONVEX_SELF_HOSTED_URL: process.env.CONVEX_SELF_HOSTED_URL ?? 'http://127.0.0.1:3210',
-      CONVEX_SELF_HOSTED_ADMIN_KEY: process.env.CONVEX_SELF_HOSTED_ADMIN_KEY ?? '',
-    },
-  });
+  execSync(
+    `npx convex run e2e:seedBaseline '${JSON.stringify({
+      ownerEmail: userAEmail,
+      disposableAccountEmail: process.env.PLAYWRIGHT_ACCOUNT_DELETE_EMAIL ?? 'e2e-account-delete@example.com',
+    })}'`,
+    {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        CONVEX_DEPLOYMENT: '',
+        CONVEX_URL: '',
+        CONVEX_CLOUD_URL: '',
+        CONVEX_SELF_HOSTED_URL: process.env.CONVEX_SELF_HOSTED_URL ?? 'http://127.0.0.1:3210',
+        CONVEX_SELF_HOSTED_ADMIN_KEY: process.env.CONVEX_SELF_HOSTED_ADMIN_KEY ?? '',
+      },
+    }
+  );
 }

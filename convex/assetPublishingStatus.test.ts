@@ -18,6 +18,7 @@ async function seedFaction(t: ReturnType<typeof convexTest>) {
       user_id: ownerId,
       username: 'Status projection owner',
       avatar_url: null,
+      account_state: 'active',
       slug: 'status-projection-owner',
       created_at: '2026-07-16T12:00:00.000Z',
       updated_at: '2026-07-16T12:00:00.000Z',

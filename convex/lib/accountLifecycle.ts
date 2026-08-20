@@ -17,6 +17,11 @@ export function isActiveProfile(profile: Pick<Doc<'profiles'>, 'account_state'>)
   return accountStateOf(profile) === 'active';
 }
 
+/** Raw identity is reserved for lifecycle diagnostics that pending/deleted sessions must still observe. */
+export async function lifecycleUserId(ctx: AnyCtx): Promise<Id<'users'> | null> {
+  return await getAuthUserId(ctx);
+}
+
 /** Anonymous and inactive sessions both project as public viewers. */
 export async function optionalActiveUserId(ctx: AnyCtx): Promise<Id<'users'> | null> {
   const userId = await getAuthUserId(ctx);

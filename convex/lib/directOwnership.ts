@@ -1,3 +1,5 @@
+import { v } from 'convex/values';
+
 export const DIRECT_OWNERSHIP_KINDS = [
   {
     kind: 'group',
@@ -23,3 +25,9 @@ export const DIRECT_OWNERSHIP_KINDS = [
 ] as const;
 
 export type DirectOwnershipKind = (typeof DIRECT_OWNERSHIP_KINDS)[number]['kind'];
+
+export const directOwnershipKindValidator = v.union(
+  v.literal(DIRECT_OWNERSHIP_KINDS[0].kind),
+  v.literal(DIRECT_OWNERSHIP_KINDS[1].kind),
+  v.literal(DIRECT_OWNERSHIP_KINDS[2].kind)
+);
