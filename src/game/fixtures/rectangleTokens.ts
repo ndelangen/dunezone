@@ -9,7 +9,7 @@ const face = (data: RectangleTokenFaceData) => data;
 
 /**
  * Authored faces shared by the stories.
- * Between them they exercise every part of the free composition: an empty face, placed decals, multi-line text, the seven fonts, per-element opacity, and elements deliberately hung past the edge.
+ * Between them they exercise every part of the free composition: an empty face, placed decals, multi-line text, four of the seven fonts, per-element opacity, and elements deliberately hung past the edge.
  */
 export const rectangleTokenFixtures = {
   /** The state a fresh token starts in, and the one most likely to look wrong. */

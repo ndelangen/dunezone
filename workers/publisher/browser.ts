@@ -8,24 +8,34 @@ import type {
 } from '@cloudflare/playwright';
 
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
+import { isPublicationAssetType, PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicationTargets';
+import type { PublicationCapture } from '../../src/shared/asset-publishing/publicationTargets';
 import {
   publisherErrorMessage,
   redactPublisherResource,
   sanitizePublisherDiagnostic,
 } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import {
+  assertCaptureImageBounds,
   assertCapturePhysicalBounds,
   assertReadyCaptureMarker,
   waitForCaptureMarkerSettled,
 } from './capture-lifecycle';
+import { pngDimensions } from './image-inspection';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
 const { pdf: PDF_CONTRACT, viewport: VIEWPORT_CONTRACT } = PUBLISHER_RENDERER_CONTRACT;
 
-export type CapturedPdf = {
+/**
+ * What one capture produced, and in what format.
+ *
+ * `png` is an intermediate rather than a publishable artifact: the executor encodes it before anything is stored, so nothing ever writes a PNG under an image route.
+ */
+export type CapturedArtifact = {
   bytes: Uint8Array;
   payloadHash: string;
+  output: 'pdf' | 'png';
 };
 
 export class TargetRenderError extends Error {}
@@ -49,6 +59,20 @@ export function assertCapturedPdfOutput(inspection: {
   ) {
     throw new TargetRenderError(
       `Captured PDF MediaBoxes must be ${PDF_CONTRACT.pageWidthMm} mm × ${PDF_CONTRACT.pageHeightMm} mm within ${PDF_CONTRACT.pageSizeToleranceMm} mm`
+    );
+  }
+}
+
+/**
+ * The screenshot's own pixel size, read back off IHDR.
+ * The bounds check proves the frame is right in CSS pixels;
+ * this proves the device scale factor did not quietly turn those into something else.
+ */
+function assertCapturedPngSize(bytes: Uint8Array, expected: { widthPx: number; heightPx: number }): void {
+  const actual = pngDimensions(bytes);
+  if (actual.widthPx !== expected.widthPx || actual.heightPx !== expected.heightPx) {
+    throw new TargetRenderError(
+      `Captured PNG must be ${expected.widthPx}x${expected.heightPx}, got ${actual.widthPx}x${actual.heightPx}`
     );
   }
 }
@@ -128,6 +152,18 @@ export function publisherCaptureCookies(
   ];
 }
 
+/**
+ * The viewport a type captures in.
+ *
+ * A paged capture uses the renderer contract's fixed viewport, since the PDF page size comes from CSS rather than from the window.
+ * An image capture makes the viewport the output size, so the screenshot needs no clip and one CSS pixel is one image pixel.
+ */
+function captureViewport(capture: PublicationCapture) {
+  return capture.output === 'pdf'
+    ? VIEWPORT_CONTRACT
+    : { width: capture.widthPx, height: capture.heightPx, deviceScaleFactor: 1 };
+}
+
 async function inspectPublisherPdf(bytes: Uint8Array) {
   try {
     const inspection = await inspectChromiumPdf(bytes);
@@ -151,16 +187,21 @@ export class PublisherBrowserSession {
     return this.browser.sessionId();
   }
 
-  async capture(jobId: string, timeoutMs: number): Promise<CapturedPdf> {
+  async capture(jobId: string, assetType: string, timeoutMs: number): Promise<CapturedArtifact> {
+    if (!isPublicationAssetType(assetType)) {
+      throw new TargetRenderError(`Unsupported Publication asset type: ${assetType}`);
+    }
+    const { capture: plan } = PUBLICATION_TARGETS[assetType];
+    const viewport = captureViewport(plan);
     const deadline = performance.now() + timeoutMs;
     const lifecycleDeadlineAt = Date.now() + timeoutMs;
-    let phase: 'setup' | 'load' | 'validate' | 'pdf' = 'setup';
+    let phase: 'setup' | 'load' | 'validate' | 'output' = 'setup';
     try {
       const context = await this.browser.newContext({
-        deviceScaleFactor: VIEWPORT_CONTRACT.deviceScaleFactor,
+        deviceScaleFactor: viewport.deviceScaleFactor,
         locale: 'en-US',
         timezoneId: 'UTC',
-        viewport: { width: VIEWPORT_CONTRACT.width, height: VIEWPORT_CONTRACT.height },
+        viewport: { width: viewport.width, height: viewport.height },
       });
       await context.addCookies(publisherCaptureCookies(this.captureBaseUrl, jobId, lifecycleDeadlineAt));
       const page = await context.newPage();
@@ -176,18 +217,29 @@ export class PublisherBrowserSession {
       const markerResult = await waitForCaptureMarkerSettled(page, () => remaining(deadline));
       const payloadHash = assertReadyCaptureMarker(markerResult);
       phase = 'validate';
-      await assertCapturePhysicalBounds(page, () => remaining(deadline));
+      if (plan.output === 'pdf') {
+        await assertCapturePhysicalBounds(page, () => remaining(deadline));
+      } else {
+        await assertCaptureImageBounds(page, plan, () => remaining(deadline));
+      }
       assertCaptureDiagnostics(diagnostics);
-      phase = 'pdf';
-      const bytes = await page.pdf({
-        displayHeaderFooter: PDF_CONTRACT.displayHeaderFooter,
-        margin: PDF_CONTRACT.marginMm,
-        preferCSSPageSize: PDF_CONTRACT.preferCssPageSize,
-        printBackground: PDF_CONTRACT.printBackground,
-      });
-      await inspectPublisherPdf(bytes);
+      phase = 'output';
+      if (plan.output === 'pdf') {
+        const bytes = await page.pdf({
+          displayHeaderFooter: PDF_CONTRACT.displayHeaderFooter,
+          margin: PDF_CONTRACT.marginMm,
+          preferCSSPageSize: PDF_CONTRACT.preferCssPageSize,
+          printBackground: PDF_CONTRACT.printBackground,
+        });
+        await inspectPublisherPdf(bytes);
+        assertCaptureDiagnostics(diagnostics);
+        return { bytes, payloadHash, output: 'pdf' };
+      }
+      /* The viewport is the frame, so no clip: whatever the bounds check just approved is exactly what is shot. */
+      const bytes = new Uint8Array(await page.screenshot({ type: 'png', scale: 'css' }));
+      assertCapturedPngSize(bytes, plan);
       assertCaptureDiagnostics(diagnostics);
-      return { bytes, payloadHash };
+      return { bytes, payloadHash, output: 'png' };
     } catch (error) {
       if (error instanceof TargetRenderError) {
         throw error;

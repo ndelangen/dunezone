@@ -45,7 +45,7 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
 }
 
 export function assertKnownAssetType(type: string): void {
-  if (!(type in ASSET_TYPES)) {
+  if (!Object.hasOwn(ASSET_TYPES, type)) {
     throw new Error(`Unknown asset type ${type}`);
   }
 }

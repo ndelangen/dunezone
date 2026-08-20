@@ -53,8 +53,8 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
           style={{
             marginLeft: iconMarginLeft * 2,
             marginTop: iconMarginTop * 2,
-            width: (iconScale || 1) * 85,
-            height: (iconScale || 1) * 85,
+            width: (iconScale ?? 1) * 85,
+            height: (iconScale ?? 1) * 85,
             filter: iconFilter,
             opacity: iconAlpha,
           }}
@@ -66,11 +66,11 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
           style={{
             marginLeft: iconMarginLeft,
             marginTop: iconMarginTop,
-            width: (iconScale || 1) * 85,
-            height: (iconScale || 1) * 85,
-            top: (125 - 85 * (iconScale || 1)) / 2,
-            left: (125 - 85 * (iconScale || 1)) / 2,
-            filter: iconFilter,
+            width: (iconScale ?? 1) * 85,
+            height: (iconScale ?? 1) * 85,
+            top: (125 - 85 * (iconScale ?? 1)) / 2,
+            left: (125 - 85 * (iconScale ?? 1)) / 2,
+            /* No iconFilter here: the shade is the always-dark silhouette behind the icon, and an inverted icon would invert its own shadow into a highlight. */
             /* The shade pass bakes in 0.5; the authored opacity scales both passes together. */
             opacity: 0.5 * iconAlpha,
           }}

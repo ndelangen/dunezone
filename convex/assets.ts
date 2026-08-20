@@ -124,7 +124,13 @@ export const listByTypes = query({
       )
     );
     const rows = perType.flat().sort((a, b) => b._creationTime - a._creationTime);
-    return await Promise.all(rows.map((row) => toListEntry(ctx, row)));
+    /* Sequential rather than Promise.all, so the owner memo fills before the rows that would hit it. */
+    const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
+    const entries = [];
+    for (const row of rows) {
+      entries.push(await toListEntry(ctx, row, owners));
+    }
+    return entries;
   },
 });
 

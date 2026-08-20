@@ -29,7 +29,6 @@ export type PublicationAssetType = (typeof PUBLICATION_ASSET_TYPES)[number];
  *
  * `pdf` keeps the paged geometry in `PUBLISHER_RENDERER_CONTRACT`, since page count and MediaBox millimetres are facts about PDF rather than about the asset.
  * `image` carries its own geometry, because the viewport *is* the output: the capture frame draws at its renderer's intrinsic size and the screenshot is that viewport, so one CSS pixel is one image pixel and nothing resamples.
- * @public until the worker slice of the assets stack lands (wayfinder #568).
  */
 export type PublicationCapture =
   | { readonly output: 'pdf' }

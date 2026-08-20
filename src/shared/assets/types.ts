@@ -67,5 +67,5 @@ export function holdsDeckMembership(type: string): boolean {
  * @public until the pages slice of the assets stack lands (wayfinder #568).
  */
 export function isAssetType(value: string): value is AssetType {
-  return value in ASSET_TYPES;
+  return Object.hasOwn(ASSET_TYPES, value);
 }

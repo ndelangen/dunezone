@@ -5,8 +5,9 @@ import { TargetRenderError } from './browser';
 import type { PublisherConfig } from './config';
 import type { AssignedPublicationJob } from './convex';
 import { executeItemList } from './executor';
+import type { JpegEncoder } from './image-encode';
 import type { AssetBucket } from './r2';
-import { fakeR2Object } from './test-helpers';
+import { fakeR2Object, jpegBytes, pngBytes } from './test-helpers';
 
 const NOW = Date.parse('2026-07-17T12:00:00.000Z');
 const cacheSecret = createCacheSigningSecret();
@@ -31,8 +32,24 @@ function bucket(put = vi.fn(async () => fakeR2Object({ etag: 'etag-one', size: 3
 }
 
 function capturedPdf() {
-  return { bytes: new Uint8Array([1, 2, 3]), payloadHash: 'a'.repeat(64) };
+  return { bytes: new Uint8Array([1, 2, 3]), payloadHash: 'a'.repeat(64), output: 'pdf' as const };
 }
+
+function capturedPng() {
+  return { bytes: pngBytes(900, 1263), payloadHash: 'a'.repeat(64), output: 'png' as const };
+}
+
+const cardJob: AssignedPublicationJob = {
+  jobId: 'job-card',
+  assetType: 'card-treachery',
+  assetId: 'card-one',
+  expiresAt: NOW + 300_000,
+};
+
+/** No image type reaches the encoder in these tests, so the PDF path only has to satisfy the type. */
+const refuseToEncode: JpegEncoder = async () => {
+  throw new Error('No image encode expected');
+};
 
 describe('single-Renderer Publication execution', () => {
   test('captures each assigned job, replaces its stable object, and completes it', async () => {
@@ -50,6 +67,7 @@ describe('single-Renderer Publication execution', () => {
           close,
           sessionId: () => 'browser-session-one',
         }),
+        encodeJpeg: refuseToEncode,
         now: () => NOW,
         signCacheToken: async () => cacheToken,
       })
@@ -65,6 +83,7 @@ describe('single-Renderer Publication execution', () => {
       browserSessionId: 'browser-session-one',
       recompressedImages: 0,
       recompressionSavedBytes: 0,
+      encodedImages: 0,
     });
     expect(put).toHaveBeenCalledOnce();
     expect(complete).toHaveBeenCalledWith('job-one', cacheToken, NOW + 15_000);
@@ -87,6 +106,7 @@ describe('single-Renderer Publication execution', () => {
           close: async () => undefined,
           sessionId: () => 'browser-session-two',
         }),
+        encodeJpeg: refuseToEncode,
         now: () => NOW,
       })
     ).resolves.toMatchObject({ failed: 1, completed: 0, unprocessed: 0 });
@@ -110,6 +130,7 @@ describe('single-Renderer Publication execution', () => {
           close,
           sessionId: () => 'browser-session-infrastructure',
         }),
+        encodeJpeg: refuseToEncode,
         now: () => NOW,
       })
     ).rejects.toThrow('Browser service unavailable');
@@ -136,10 +157,82 @@ describe('single-Renderer Publication execution', () => {
           close: async () => undefined,
           sessionId: () => 'browser-session-window',
         }),
+        encodeJpeg: refuseToEncode,
         now: () => currentTime,
         signCacheToken: async () => cacheToken,
       })
     ).resolves.toMatchObject({ assigned: 2, completed: 1, unprocessed: 1 });
     expect(capture).toHaveBeenCalledOnce();
+  });
+
+  test('publishes an image job as the encoded JPEG rather than the captured PNG', async () => {
+    const encoded = jpegBytes({ widthPx: 900, heightPx: 1263, progressive: true });
+    const put = vi.fn(async () => fakeR2Object({ etag: 'etag-card', size: 3, uploaded: new Date(NOW) }));
+    const encodeJpeg = vi.fn(async () => encoded);
+
+    await expect(
+      executeItemList(config, [cardJob], {
+        bucket: bucket(put),
+        cacheTokenSecret: cacheSecret,
+        client: { complete: vi.fn(async () => 'completed' as const), fail: vi.fn() },
+        openBrowser: async () => ({
+          capture: async () => capturedPng(),
+          close: async () => undefined,
+          sessionId: () => 'browser-session-card',
+        }),
+        encodeJpeg,
+        now: () => NOW,
+        signCacheToken: async () => cacheToken,
+      })
+    ).resolves.toMatchObject({ completed: 1, encodedImages: 1, recompressedImages: 0 });
+    expect(encodeJpeg).toHaveBeenCalledWith(expect.any(Uint8Array), 88);
+    expect(put).toHaveBeenCalledWith('cards/card-one/card.jpg', encoded, expect.anything());
+  });
+
+  test('fails the job rather than publishing a baseline JPEG', async () => {
+    const fail = vi.fn(async () => 'pending' as const);
+    const put = vi.fn();
+
+    await expect(
+      executeItemList(config, [cardJob], {
+        bucket: bucket(put),
+        cacheTokenSecret: cacheSecret,
+        client: { complete: vi.fn(), fail },
+        openBrowser: async () => ({
+          capture: async () => capturedPng(),
+          close: async () => undefined,
+          sessionId: () => 'browser-session-baseline',
+        }),
+        encodeJpeg: async () => jpegBytes({ widthPx: 900, heightPx: 1263, progressive: false }),
+        now: () => NOW,
+        signCacheToken: async () => cacheToken,
+      })
+    ).resolves.toMatchObject({ failed: 1, completed: 0, encodedImages: 0 });
+    expect(fail).toHaveBeenCalledWith('job-card', expect.any(TargetRenderError), NOW + 15_000);
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  test('fails the job rather than aborting the batch when the encoder returns bytes no profiler can read', async () => {
+    const fail = vi.fn(async () => 'pending' as const);
+    const put = vi.fn();
+
+    await expect(
+      executeItemList(config, [cardJob], {
+        bucket: bucket(put),
+        cacheTokenSecret: cacheSecret,
+        client: { complete: vi.fn(), fail },
+        openBrowser: async () => ({
+          capture: async () => capturedPng(),
+          close: async () => undefined,
+          sessionId: () => 'browser-session-garbage',
+        }),
+        /* Not merely a wrong JPEG: not a JPEG at all, so profiling throws before any typed assertion runs. */
+        encodeJpeg: async () => new Uint8Array([1, 2, 3, 4]),
+        now: () => NOW,
+        signCacheToken: async () => cacheToken,
+      })
+    ).resolves.toMatchObject({ failed: 1, completed: 0, unprocessed: 0 });
+    expect(fail).toHaveBeenCalledWith('job-card', expect.any(Error), NOW + 15_000);
+    expect(put).not.toHaveBeenCalled();
   });
 });

@@ -346,6 +346,10 @@ export const setAssetSlot = mutation({
     if (existing.some((row) => row.asset_id === args.asset_id)) {
       return args;
     }
+    /* The read window is the slot's stated capacity, not a sample of it. Without the ceiling, a slot past the window would take duplicates and clear partially, silently. */
+    if (!rule.single && existing.length >= SLOT_CONTENTS_LIMIT) {
+      throw new Error(`The ${rule.label} slot is full`);
+    }
     if (rule.single) {
       for (const row of existing) {
         await ctx.db.delete(row._id);

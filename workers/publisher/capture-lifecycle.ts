@@ -70,14 +70,9 @@ export function assertReadyCaptureMarker(result: CaptureMarkerResult): string {
 }
 
 /**
- * The physical page contract: zero body margins and every sheet page exactly at its print position and size.
- * Shared verbatim by the production driver and the Chromium regression so the two cannot drift apart.
+ * Zero body margins, which both capture shapes need for the same reason: a margin offsets the subject away from the document origin, and neither a print page nor a viewport screenshot has anywhere to put that offset.
  */
-export async function assertCapturePhysicalBounds(
-  page: CapturePage,
-  timeoutFor: () => number | undefined = () => undefined
-): Promise<void> {
-  await page.emulateMedia({ media: 'print' });
+async function assertZeroBodyMargins(page: CapturePage): Promise<void> {
   const margins = await page.evaluate(() => {
     const browserGlobal = globalThis as typeof globalThis & {
       document: { body: unknown };
@@ -94,6 +89,47 @@ export async function assertCapturePhysicalBounds(
   if (margins.some((margin) => margin !== '0px')) {
     throw new Error(`Capture document body margins are not zero: ${margins.join(' ')}`);
   }
+}
+
+/**
+ * The single-frame contract for an image capture: exactly one frame, at the document origin, at exactly the size the driver sized its viewport to.
+ *
+ * Screen media, deliberately.
+ * A screenshot is not a print, and emulating print here would apply page rules the card renderer never asked for.
+ */
+export async function assertCaptureImageBounds(
+  page: CapturePage,
+  geometry: { widthPx: number; heightPx: number },
+  timeoutFor: () => number | undefined = () => undefined
+): Promise<void> {
+  await assertZeroBodyMargins(page);
+  const frames = page.locator(CAPTURE_PROTOCOL.frameMarker.selector);
+  const count = await frames.count();
+  if (count !== 1) {
+    throw new Error(`Capture route rendered ${count} capture frames, expected exactly one`);
+  }
+  const bounds = await frames.nth(0).boundingBox({ timeout: timeoutFor() });
+  if (
+    !bounds ||
+    Math.abs(bounds.x) > 0.5 ||
+    Math.abs(bounds.y) > 0.5 ||
+    Math.abs(bounds.width - geometry.widthPx) > 0.5 ||
+    Math.abs(bounds.height - geometry.heightPx) > 0.5
+  ) {
+    throw new Error(`Capture frame has invalid physical bounds, expected ${geometry.widthPx}x${geometry.heightPx}`);
+  }
+}
+
+/**
+ * The physical page contract: zero body margins and every sheet page exactly at its print position and size.
+ * Shared verbatim by the production driver and the Chromium regression so the two cannot drift apart.
+ */
+export async function assertCapturePhysicalBounds(
+  page: CapturePage,
+  timeoutFor: () => number | undefined = () => undefined
+): Promise<void> {
+  await page.emulateMedia({ media: 'print' });
+  await assertZeroBodyMargins(page);
   const width = (PDF_CONTRACT.pageWidthMm * 96) / 25.4;
   const height = (PDF_CONTRACT.pageHeightMm * 96) / 25.4;
   const pages = page.locator(CAPTURE_PROTOCOL.pageMarker.selector);

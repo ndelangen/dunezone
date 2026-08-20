@@ -63,7 +63,8 @@ function TextLayer({ texts }: { texts: Face['texts'] }) {
           fill={FOREGROUND}
           textAnchor="middle"
           opacity={text.opacity}
-          filter="drop-shadow(0 0 4px rgb(0 0 0 / 0.9))"
+          /* As a style, not the SVG presentation attribute: the attribute's grammar takes url() references, and engines differ on whether CSS filter functions in it apply. */
+          style={{ filter: 'drop-shadow(0 0 4px rgb(0 0 0 / 0.9))' }}
         >
           {text.content.split('\n').map((line, lineIndex) => (
             <text
