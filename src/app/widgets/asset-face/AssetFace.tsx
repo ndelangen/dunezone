@@ -45,9 +45,21 @@ const MEMBER_PEEK = [
 /** How many members peek. «What a bundle looks like» chose three, and the read that feeds this caps at the same number. */
 const PEEKING_LIMIT = MEMBER_PEEK.length;
 
+/**
+ * How far a tilted member's corner climbs above its own top edge, as a fraction of the member's width.
+ *
+ * A member is tilted about its centre, so the rise the layout has to reserve is not the rise the transform states.
+ * The browse tile draws inside `CanvasScale`, which clips, and without this the corner of the most-tilted member was cut: 10px off a 352px face, and only on the members whose artwork reaches their own corners, which is why a round token looked fine beside a clipped rectangle.
+ * Read off `MEMBER_PEEK` rather than measured once and written down, so changing a tilt cannot leave a stale number behind.
+ * `sin` alone slightly over-reserves, because the true growth is offset by a `cos` term that shrinks with the member's height, and over-reserving shows a few transparent pixels where under-reserving shows a cut corner.
+ */
+const MEMBER_TILT_RISE = Math.max(
+  ...MEMBER_PEEK.map(({ rotation }) => Math.sin(Math.abs(rotation) * (Math.PI / 180)) / 2)
+);
+
 /** The height a peeking row adds above a container, as a multiple of the container's width. Nothing peeking costs nothing. */
 function bundleHeadroom(memberCount: number): number {
-  return memberCount > 0 ? MEMBER_WIDTH_RATIO * MEMBER_RISE_RATIO : 0;
+  return memberCount > 0 ? MEMBER_WIDTH_RATIO * (MEMBER_RISE_RATIO + MEMBER_TILT_RISE) : 0;
 }
 
 /** A rectangle token is wider than it is tall; every other token shape is square. */
