@@ -188,17 +188,19 @@ function DeckEditSession({
           }
           context={groupActions.context}
           destructiveActions={
-            <ConfirmDeleteAction
-              label="Delete deck"
-              prompt="Delete deck?"
-              pending={deleteAsset.isPending}
-              onConfirm={() =>
-                deleteAsset.mutate(
-                  { id: asset.id },
-                  { onSuccess: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }) }
-                )
-              }
-            />
+            access.viewerAccess.capabilities.delete ? (
+              <ConfirmDeleteAction
+                label="Delete deck"
+                prompt="Delete deck?"
+                pending={deleteAsset.isPending}
+                onConfirm={() =>
+                  deleteAsset.mutate(
+                    { id: asset.id },
+                    { onSuccess: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }) }
+                  )
+                }
+              />
+            ) : null
           }
         />
       </PageLayout.Toolbar>

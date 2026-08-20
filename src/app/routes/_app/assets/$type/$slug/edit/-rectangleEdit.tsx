@@ -3,6 +3,7 @@ import { RectangleTokenAsset } from '@shared/assets/schema';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
@@ -10,6 +11,7 @@ import { useState } from 'react';
 import { useAssetPage, useDeleteAsset, useSetTokenBack, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
+import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
@@ -171,17 +173,19 @@ function RectangleEditSession({
           auxiliaryActions={groupActions.auxiliaryActions}
           context={groupActions.context}
           destructiveActions={
-            <ConfirmDeleteAction
-              label="Delete token"
-              prompt="Delete token?"
-              pending={deleteAsset.isPending}
-              onConfirm={() =>
-                deleteAsset.mutate(
-                  { id: asset.id },
-                  { onSuccess: () => void navigate({ to: '/assets/$type', params: { type } }) }
-                )
-              }
-            />
+            access.viewerAccess.capabilities.delete ? (
+              <ConfirmDeleteAction
+                label="Delete token"
+                prompt="Delete token?"
+                pending={deleteAsset.isPending}
+                onConfirm={() =>
+                  deleteAsset.mutate(
+                    { id: asset.id },
+                    { onSuccess: () => void navigate({ to: '/assets/$type', params: { type } }) }
+                  )
+                }
+              />
+            ) : null
           }
         />
       </PageLayout.Toolbar>
@@ -240,9 +244,11 @@ function RectangleEditSession({
             )}
             backProof={
               backToken ? (
-                <Stack gap={4} align="center">
+                <Stack gap={4} align="center" w="100%">
                   {parsedBack?.success ? (
-                    <RectangleProof face={parsedBack.data.front} width={260} />
+                    <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(backToken.type)}>
+                      <RectangleProof face={parsedBack.data.front} width={900} />
+                    </CanvasScale>
                   ) : (
                     <Text size="xs" c="dimmed">
                       Its stored data no longer parses, so its face cannot be shown here.

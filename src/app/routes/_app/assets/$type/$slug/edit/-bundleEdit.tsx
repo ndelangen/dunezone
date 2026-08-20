@@ -166,17 +166,19 @@ function BundleEditSession({
           auxiliaryActions={groupActions.auxiliaryActions}
           context={groupActions.context}
           destructiveActions={
-            <ConfirmDeleteAction
-              label="Delete bundle"
-              prompt="Delete bundle?"
-              pending={deleteAsset.isPending}
-              onConfirm={() =>
-                deleteAsset.mutate(
-                  { id: asset.id },
-                  { onSuccess: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }) }
-                )
-              }
-            />
+            access.viewerAccess.capabilities.delete ? (
+              <ConfirmDeleteAction
+                label="Delete bundle"
+                prompt="Delete bundle?"
+                pending={deleteAsset.isPending}
+                onConfirm={() =>
+                  deleteAsset.mutate(
+                    { id: asset.id },
+                    { onSuccess: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }) }
+                  )
+                }
+              />
+            ) : null
           }
         />
       </PageLayout.Toolbar>

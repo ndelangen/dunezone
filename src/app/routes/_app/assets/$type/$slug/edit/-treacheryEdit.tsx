@@ -1,15 +1,12 @@
 import { Alert, Anchor, Text } from '@mantine/core';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
-import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
-import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
-import { UserRoundMinus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 
-import { useAssetPage, useSetAssetGroup, useUpdateAsset } from '@app/db/assets';
+import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
@@ -18,7 +15,12 @@ import { TreacheryCardEditor, treacheryDraftWarnings } from '@app/widgets/card-e
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { TreacheryAsset } from '@game/data/objects';
 
-import { AssetEditorMessage, DriftedAssetPage, useAssetDeletion } from '../../../-assetEditorStates';
+import {
+  AssetEditorMessage,
+  DriftedAssetPage,
+  useAssetDeletion,
+  useAssetGroupActions,
+} from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'card-validation-header';
 
@@ -94,8 +96,8 @@ function CardEditSession({
   const navigate = useNavigate();
   const updateAsset = useUpdateAsset();
   const deletion = useAssetDeletion(asset);
-  const setAssetGroup = useSetAssetGroup();
-  const { assignedGroup, capabilities } = access.viewerAccess;
+  const groupActions = useAssetGroupActions({ asset, access });
+  const { capabilities } = access.viewerAccess;
   const [draft, setDraft] = useState<TreacheryDraft>(initialDraft);
   const [baseline, setBaseline] = useState<TreacheryDraft>(initialDraft);
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
@@ -156,47 +158,8 @@ function CardEditSession({
             onReset: () => setDraft(baseline),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
           }}
-          auxiliaryActions={
-            capabilities.changeGroup ? (
-              assignedGroup ? (
-                <IconAction
-                  label="Remove group"
-                  variant="light"
-                  color="red"
-                  size="lg"
-                  disabled={setAssetGroup.isPending}
-                  onClick={() => setAssetGroup.mutate({ id: asset.id, group_id: null })}
-                  icon={<UserRoundMinus size={17} aria-hidden />}
-                />
-              ) : (
-                <AssignPopover
-                  noun="group"
-                  triggerLabel="Assign group"
-                  icon={<UsersRound size={17} aria-hidden />}
-                  title="Assign Group"
-                  descriptionLines={[
-                    `Assign a group whose members can help maintain "${asset.name}".`,
-                    'You can create and join groups from your profile.',
-                  ]}
-                  disabled={setAssetGroup.isPending}
-                  options={access.assignableGroups.map((group) => ({
-                    value: group.id,
-                    label: `${group.name} (${group.slug})`,
-                  }))}
-                  onAssign={async (nextGroupId) => {
-                    await setAssetGroup.mutateAsync({ id: asset.id, group_id: nextGroupId });
-                  }}
-                />
-              )
-            ) : null
-          }
-          context={
-            assignedGroup ? (
-              <Text size="xs" c="dimmed">
-                Group access: <strong>{assignedGroup.name}</strong>
-              </Text>
-            ) : null
-          }
+          auxiliaryActions={groupActions.auxiliaryActions}
+          context={groupActions.context}
           destructiveActions={
             capabilities.delete ? (
               <ConfirmDeleteAction
@@ -221,11 +184,7 @@ function CardEditSession({
               {deletion.error.message}
             </Alert>
           ) : null}
-          {setAssetGroup.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not change group">
-              {setAssetGroup.error.message}
-            </Alert>
-          ) : null}
+          {groupActions.error}
           <TreacheryCardEditor
             draft={draft}
             patch={patch}
