@@ -1,3 +1,8 @@
+import {
+  isPublicationAssetType,
+  PUBLICATION_TARGETS,
+  publishedR2Key,
+} from '../../src/shared/asset-publishing/publicationTargets';
 import type { AssignedPublicationJob } from './convex';
 
 export const PUBLISHER_CACHE_TOKEN_METADATA_KEY = 'publisherCacheToken';
@@ -6,13 +11,6 @@ export type AssetBucket = {
   put(key: string, value: Uint8Array, options: R2PutOptions): Promise<R2Object | null>;
 };
 
-export function factionSheetKey(factionId: string): string {
-  if (!factionId || factionId.includes('/') || factionId.includes('..')) {
-    throw new Error('Faction id is invalid for the stable R2 key');
-  }
-  return `factions/${factionId}/sheet.pdf`;
-}
-
 export async function putPublishedAsset(
   bucket: AssetBucket,
   job: AssignedPublicationJob,
@@ -20,7 +18,7 @@ export async function putPublishedAsset(
   cacheToken: string,
   bytes: Uint8Array
 ): Promise<{ key: string; etag: string }> {
-  if (job.assetType !== 'faction_sheet') {
+  if (!isPublicationAssetType(job.assetType)) {
     throw new Error(`Unsupported Publication asset type: ${job.assetType}`);
   }
   if (!/^[0-9a-f]{64}$/.test(payloadHash)) {
@@ -29,9 +27,9 @@ export async function putPublishedAsset(
   if (!/^v1\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/.test(cacheToken)) {
     throw new Error('Publisher cache token is invalid');
   }
-  const key = factionSheetKey(job.assetId);
+  const key = publishedR2Key(job.assetType, job.assetId);
   const written = await bucket.put(key, bytes, {
-    httpMetadata: { contentType: 'application/pdf' },
+    httpMetadata: { contentType: PUBLICATION_TARGETS[job.assetType].contentType },
     customMetadata: {
       assetId: job.assetId,
       assetType: job.assetType,

@@ -36,6 +36,15 @@ export const CAPTURE_PROTOCOL = {
     attribute: 'data-faction-sheet-page',
     selector: '[data-faction-sheet-page]',
   },
+  /**
+   * The single element an image capture screenshots, drawn at its renderer's intrinsic size.
+   * A paged capture has as many pages as the PDF contract names;
+   * an image capture has exactly one frame, so the driver asserts the count rather than trusting the page to have rendered one thing.
+   */
+  frameMarker: {
+    attribute: 'data-capture-frame',
+    selector: '[data-capture-frame]',
+  },
 } as const;
 
 const PAYLOAD_HASH_PATTERN = /^[0-9a-f]{64}$/;

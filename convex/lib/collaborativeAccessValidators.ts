@@ -72,8 +72,9 @@ const groupViewerAccessValidator = v.object({
   }),
 });
 
-const factionViewerAccessValidator = assetViewerAccessValidator('faction');
-const rulesetViewerAccessValidator = assetViewerAccessValidator('ruleset');
+const factionViewerAccessValidator = groupAssociatedViewerAccessValidator('faction');
+const rulesetViewerAccessValidator = groupAssociatedViewerAccessValidator('ruleset');
+const assetViewerAccessValidator = groupAssociatedViewerAccessValidator('asset');
 
 const rosterEntryValidator = v.object({
   membershipId: v.id('group_members'),
@@ -87,7 +88,8 @@ const rosterEntryValidator = v.object({
   }),
 });
 
-function assetViewerAccessValidator<Kind extends 'faction' | 'ruleset'>(kind: Kind) {
+/** One capability surface for every Group-associated asset kind (see CONTEXT.md): factions, rulesets, and community Assets. */
+function groupAssociatedViewerAccessValidator<Kind extends 'faction' | 'ruleset' | 'asset'>(kind: Kind) {
   return v.object({
     kind: v.literal(kind),
     assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
@@ -102,7 +104,7 @@ function assetViewerAccessValidator<Kind extends 'faction' | 'ruleset'>(kind: Ki
   });
 }
 
-const assetPublishingValidator = v.object({
+export const assetPublishingValidator = v.object({
   status: v.union(v.literal('current'), v.null()),
   captureStatus: v.union(v.literal('scheduled'), v.literal('in_progress'), v.null()),
   publicationHref: v.union(v.string(), v.null()),
@@ -163,11 +165,23 @@ export const profileDetailPageValidator = v.object({
   groupSummaries: v.array(assignedGroupSummaryValidator),
 });
 
+/** One slotted asset: enough to name it and link to it, and deliberately not enough to draw it. A slot list is not a catalogue. */
+export const rulesetAssetSlotValidator = v.object({
+  slot: v.string(),
+  asset: v.object({
+    id: v.id('assets'),
+    type: v.string(),
+    slug: v.string(),
+    name: v.string(),
+  }),
+});
+
 export const rulesetDetailPageValidator = v.union(
   rulesetPublicBundleValidator.extend({
     faqItems: v.array(faqListItemValidator),
     owner: v.union(profileSummaryValidator, v.null()),
     assignableGroups: v.array(assignedGroupSummaryValidator),
+    assetSlots: v.array(rulesetAssetSlotValidator),
   }),
   v.null()
 );

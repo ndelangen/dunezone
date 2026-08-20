@@ -1,16 +1,11 @@
-import { CAPTURE_PROTOCOL } from '@shared/asset-publishing/capture-protocol';
-import { publisherErrorMessage, redactPublisherResource } from '@shared/asset-publishing/publisher-diagnostics';
-import { assertRequiredPublisherFonts } from '@shared/asset-publishing/publisher-fonts';
-import { publisherCaptureSnapshotSchema } from '@shared/asset-publishing/publisher-snapshot';
-import type { FactionInput } from '@shared/factions/schema';
-import { useEffect, useState } from 'react';
+/**
+ * Everything a capture document has to prove before the driver is allowed to take bytes off it.
+ *
+ * None of it is per asset type: fonts, HTML images and SVG resources settle the same way whether the subject is a two-page sheet or one card, so the checks live apart from the thing being drawn.
+ */
+import { redactPublisherResource } from '@shared/asset-publishing/publisher-diagnostics';
 
-import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
-import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
-
-const ASSET_SETTLE_TIMEOUT_MS = 15_000;
-
-type CaptureState = 'loading' | 'ready' | 'error';
+export const ASSET_SETTLE_TIMEOUT_MS = 15_000;
 
 function imageLabel(image: HTMLImageElement): string {
   const source = image.currentSrc || image.src;
@@ -115,7 +110,7 @@ async function settleExternalSvgUse(href: string, signal: AbortSignal): Promise<
   }
 }
 
-async function settleSvgResources(signal: AbortSignal): Promise<void> {
+export async function settleSvgResources(signal: AbortSignal): Promise<void> {
   const images = new Set(
     Array.from(document.querySelectorAll<SVGImageElement>('svg image'), svgHref).filter((href): href is string =>
       Boolean(href)
@@ -132,106 +127,10 @@ async function settleSvgResources(signal: AbortSignal): Promise<void> {
   ]);
 }
 
-function afterPaint(): Promise<void> {
-  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+export async function settleHtmlImages(signal: AbortSignal): Promise<void> {
+  await Promise.all(Array.from(document.images, (image) => settleImage(image, signal)));
 }
 
-export function PublisherFactionSheetCapture() {
-  const [state, setState] = useState<CaptureState>('loading');
-  const [detail, setDetail] = useState('Loading Publication job snapshot');
-  const [faction, setFaction] = useState<FactionInput>();
-  const [payloadHash, setPayloadHash] = useState<string>();
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(
-      () => controller.abort(new Error('Timed out loading Publication job snapshot')),
-      ASSET_SETTLE_TIMEOUT_MS
-    );
-    void (async () => {
-      try {
-        const response = await fetch(CAPTURE_PROTOCOL.paths.snapshot, {
-          cache: 'no-store',
-          credentials: 'same-origin',
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          throw new Error(`Publication job snapshot returned HTTP ${response.status}`);
-        }
-        const snapshot = publisherCaptureSnapshotSchema.parse(await response.json());
-        setFaction(snapshot.payload.faction);
-        setPayloadHash(snapshot.payloadHash);
-        setDetail(`Rendering Publication job snapshot ${snapshot.payloadHash}`);
-      } catch (error) {
-        setState('error');
-        setDetail(publisherErrorMessage(error));
-      } finally {
-        window.clearTimeout(timeout);
-      }
-    })();
-    return () => {
-      controller.abort(new Error('Capture route unmounted'));
-      window.clearTimeout(timeout);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!faction) {
-      return;
-    }
-    document.documentElement.dataset.factionSheet = '';
-    let disposed = false;
-    const controller = new AbortController();
-    const timeout = window.setTimeout(
-      () => controller.abort(new Error('Timed out waiting for capture assets')),
-      ASSET_SETTLE_TIMEOUT_MS
-    );
-    void (async () => {
-      try {
-        await afterPaint();
-        await document.fonts.ready;
-        await assertRequiredPublisherFonts(document.fonts);
-        await Promise.all(Array.from(document.images, (image) => settleImage(image, controller.signal)));
-        await settleSvgResources(controller.signal);
-        if (!disposed && !controller.signal.aborted) {
-          setState('ready');
-          setDetail('Exact snapshot, fonts, HTML images, and SVG resources are ready');
-        }
-      } catch (error) {
-        if (!disposed) {
-          setState('error');
-          setDetail(publisherErrorMessage(error));
-        }
-      } finally {
-        window.clearTimeout(timeout);
-      }
-    })();
-    return () => {
-      disposed = true;
-      controller.abort(new Error('Capture route unmounted'));
-      window.clearTimeout(timeout);
-      delete document.documentElement.dataset.factionSheet;
-    };
-  }, [faction]);
-
-  return (
-    <>
-      <output
-        id={CAPTURE_PROTOCOL.marker.id}
-        {...{
-          [CAPTURE_PROTOCOL.marker.stateAttribute]: state,
-          [CAPTURE_PROTOCOL.marker.payloadHashAttribute]: payloadHash,
-        }}
-        aria-live="polite"
-        hidden
-      >
-        {detail}
-      </output>
-      {faction ? (
-        <AssetRenderModeProvider mode="print">
-          <FactionSheetView faction={faction} />
-        </AssetRenderModeProvider>
-      ) : null}
-    </>
-  );
+export function afterPaint(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 }

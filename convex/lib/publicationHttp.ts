@@ -1,5 +1,7 @@
 import type { z } from 'zod';
 
+import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
+
 const encoder = new TextEncoder();
 export const MAX_PUBLISHER_JSON_BODY_BYTES = 16 * 1024;
 export const CACHE_TOKEN_PATTERN = /^v1\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/;
@@ -168,7 +170,11 @@ export async function handleAuthenticatedJson<T>(
   }
 }
 
-export async function createCacheToken(assetId: string, assetType: 'faction_sheet', secret: string): Promise<string> {
+export async function createCacheToken(
+  assetId: string,
+  assetType: PublicationAssetType,
+  secret: string
+): Promise<string> {
   const secretBytes = cacheSigningSecretBytes(secret);
   if (!secretBytes) {
     throw new Error('Cache-token signing secret is invalid');
@@ -182,7 +188,7 @@ export async function createCacheToken(assetId: string, assetType: 'faction_shee
 export async function verifyCacheToken(
   token: string,
   assetId: string,
-  assetType: 'faction_sheet',
+  assetType: PublicationAssetType,
   secret: string | undefined
 ): Promise<boolean> {
   const secretBytes = cacheSigningSecretBytes(secret);
