@@ -48,7 +48,19 @@ function AssetTypePage() {
   const definition = ASSET_TYPES[validType];
   const page = useAssetBrowsePage(validType, { initialData: loaderData });
   const data = page.data ?? loaderData;
-  const [draft, setDraft] = useState(search.q ?? '');
+  /*
+   * The box holds uncommitted keystrokes; the URL holds the search. When the URL's value changes
+   * under the box, on a type switch, a history step, or an arriving link, the box follows it,
+   * so the URL never says one thing while the box says another. Typing alone never triggers this,
+   * because typing changes the draft and not the committed value.
+   */
+  const committed = search.q ?? '';
+  const [draft, setDraft] = useState(committed);
+  const [lastCommitted, setLastCommitted] = useState(committed);
+  if (committed !== lastCommitted) {
+    setLastCommitted(committed);
+    setDraft(committed);
+  }
 
   const noun = singularLabel(definition.label);
   const entries = applyAssetBrowseSearch(data.entries, search);
