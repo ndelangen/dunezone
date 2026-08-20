@@ -1,12 +1,15 @@
 import { Alert, Anchor, Group, Stack, Text, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { Link, useNavigate } from '@tanstack/react-router';
+import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { UserRoundMinus, UsersRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { useDeleteAsset } from '@app/db/assets';
+import { useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 
 /**
@@ -126,4 +129,72 @@ export function NoEditorYet({ type }: { type: string }) {
       <Text>There is no editor for {label} yet. This type is on the roadmap and cannot hold assets so far.</Text>
     </AssetEditorMessage>
   );
+}
+
+/**
+ * Group management for an Asset's edit toolbar: the two pieces `AuthoringToolbar` takes, plus the error surface.
+ *
+ * Installed rather than copied.
+ * Delete and group assign/remove belong on the detail page *and* the edit page of every entity (map Notes, Norbert 2026-08-20), and only the treachery organ had ever wired it.
+ * The other four carried zero group references, so a deck's owner had to leave the editor to hand it to a group while the card editor did it in place.
+ * Four copies of fifty lines is how that gap reopens one organ at a time.
+ *
+ * It lives here beside `useAssetDeletion` rather than in the authoring widget, because it mutates and a widget must not fetch.
+ *
+ * Gated on the viewer's real `changeGroup` capability, which group members never have: reassignment stays with the owner.
+ */
+export function useAssetGroupActions({
+  asset,
+  access,
+}: {
+  asset: { id: NonNullable<AssetPageData>['asset']['id']; name: string };
+  access: {
+    viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
+    assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
+  };
+}): { auxiliaryActions: ReactNode; context: ReactNode; error: ReactNode } {
+  const setAssetGroup = useSetAssetGroup();
+  const { assignedGroup, capabilities } = access.viewerAccess;
+
+  const auxiliaryActions = !capabilities.changeGroup ? null : assignedGroup ? (
+    <IconAction
+      label="Remove group"
+      variant="light"
+      color="red"
+      size="lg"
+      disabled={setAssetGroup.isPending}
+      onClick={() => setAssetGroup.mutate({ id: asset.id, group_id: null })}
+      icon={<UserRoundMinus size={17} aria-hidden />}
+    />
+  ) : (
+    <AssignPopover
+      noun="group"
+      triggerLabel="Assign group"
+      icon={<UsersRound size={17} aria-hidden />}
+      title="Assign Group"
+      descriptionLines={[
+        `Assign a group whose members can help maintain "${asset.name}".`,
+        'You can create and join groups from your profile.',
+      ]}
+      disabled={setAssetGroup.isPending}
+      options={access.assignableGroups.map((group) => ({ value: group.id, label: `${group.name} (${group.slug})` }))}
+      onAssign={async (nextGroupId) => {
+        await setAssetGroup.mutateAsync({ id: asset.id, group_id: nextGroupId });
+      }}
+    />
+  );
+
+  return {
+    auxiliaryActions,
+    context: assignedGroup ? (
+      <Text size="xs" c="dimmed">
+        Group access: <strong>{assignedGroup.name}</strong>
+      </Text>
+    ) : null,
+    error: setAssetGroup.error ? (
+      <Alert color="red" variant="light" role="alert" title="Could not change group">
+        {setAssetGroup.error.message}
+      </Alert>
+    ) : null,
+  };
 }

@@ -16,7 +16,7 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
 
-import { AssetEditorMessage, DriftedAssetPage } from '../../../-assetEditorStates';
+import { AssetEditorMessage, DriftedAssetPage, useAssetGroupActions } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'token-validation-header';
 
@@ -67,6 +67,7 @@ export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: 
   return (
     <TokenEditSession
       key={data.asset.id}
+      access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
       type={type}
       asset={data.asset}
       backToken={data.backToken}
@@ -76,17 +77,23 @@ export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: 
 }
 
 function TokenEditSession({
+  access,
   type,
   asset,
   backToken,
   initialDraft,
 }: {
+  access: {
+    viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
+    assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
+  };
   type: string;
   asset: NonNullable<AssetPageData>['asset'];
   backToken: NonNullable<AssetPageData>['backToken'];
   initialDraft: TokenDraft;
 }) {
   const navigate = useNavigate();
+  const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
   const setTokenBack = useSetTokenBack();
@@ -157,6 +164,8 @@ function TokenEditSession({
             onReset: () => setDraft(baseline),
             onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
           }}
+          auxiliaryActions={groupActions.auxiliaryActions}
+          context={groupActions.context}
           destructiveActions={
             <ConfirmDeleteAction
               label="Delete token"
@@ -179,6 +188,7 @@ function TokenEditSession({
               {updateAsset.error.message}
             </Alert>
           ) : null}
+          {groupActions.error}
           {setTokenBack.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not set the backside">
               {setTokenBack.error.message}

@@ -15,7 +15,7 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { bundleDraftWarnings, BundleEditor } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
 
-import { AssetEditorMessage, DriftedAssetPage } from '../../../-assetEditorStates';
+import { AssetEditorMessage, DriftedAssetPage, useAssetGroupActions } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'bundle-validation-header';
 
@@ -65,19 +65,33 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
     );
   }
 
-  return <BundleEditSession key={data.asset.id} asset={data.asset} members={data.members} initialDraft={parsed.data} />;
+  return (
+    <BundleEditSession
+      key={data.asset.id}
+      access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
+      asset={data.asset}
+      members={data.members}
+      initialDraft={parsed.data}
+    />
+  );
 }
 
 function BundleEditSession({
+  access,
   asset,
   members,
   initialDraft,
 }: {
+  access: {
+    viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
+    assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
+  };
   asset: NonNullable<AssetPageData>['asset'];
   members: NonNullable<AssetPageData>['members'];
   initialDraft: BundleDraft;
 }) {
   const navigate = useNavigate();
+  const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
   const setCount = useSetMemberCount();
@@ -153,6 +167,8 @@ function BundleEditSession({
             onReset: () => setDraft(baseline),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
           }}
+          auxiliaryActions={groupActions.auxiliaryActions}
+          context={groupActions.context}
           destructiveActions={
             <ConfirmDeleteAction
               label="Delete bundle"
@@ -175,6 +191,7 @@ function BundleEditSession({
               {updateAsset.error.message}
             </Alert>
           ) : null}
+          {groupActions.error}
           {setCount.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not change the contents">
               {setCount.error.message}

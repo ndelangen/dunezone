@@ -1,5 +1,6 @@
 import { Alert, Anchor, Button, Group, Popover, Stack, Text } from '@mantine/core';
 import { DeckAsset } from '@shared/assets/schema';
+import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -17,12 +18,16 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { DeckEditor, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
 import type { DeckChapter, DeckDraft } from '@app/widgets/deck-editor/DeckEditor';
 
-import { AssetEditorMessage, DriftedAssetPage } from '../../../-assetEditorStates';
+import { AssetEditorMessage, DriftedAssetPage, useAssetGroupActions } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'deck-validation-header';
 
-/** Every card type a deck may hold. Grows with the registry rather than with this file. */
-const CARD_TYPES = ['card-treachery'];
+/**
+ * Every card type a deck may hold, derived so it grows with the registry rather than with this file.
+ * It had been a hand-written `['card-treachery']` under a comment claiming exactly this derivation, which is the shape that put a live Asset type on no landing pile earlier today: a second answer does not merely drift, it asserts the first one's job.
+ * Planned types are included deliberately, since `AssetPicker` can only offer assets that exist and a type with none contributes nothing.
+ */
+const CARD_TYPES = ASSET_TYPE_KEYS.filter((type) => ASSET_TYPES[type].category === 'cards');
 
 export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
   const query = useAssetPage('deck', slug, { initialData: loaderData });
@@ -67,19 +72,33 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
     );
   }
 
-  return <DeckEditSession key={data.asset.id} asset={data.asset} members={data.members} initialDraft={parsed.data} />;
+  return (
+    <DeckEditSession
+      key={data.asset.id}
+      access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
+      asset={data.asset}
+      members={data.members}
+      initialDraft={parsed.data}
+    />
+  );
 }
 
 function DeckEditSession({
+  access,
   asset,
   members,
   initialDraft,
 }: {
+  access: {
+    viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
+    assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
+  };
   asset: NonNullable<AssetPageData>['asset'];
   members: NonNullable<AssetPageData>['members'];
   initialDraft: DeckDraft;
 }) {
   const navigate = useNavigate();
+  const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
   const setCount = useSetMemberCount();
@@ -146,6 +165,8 @@ function DeckEditSession({
             onReset: () => setDraft(baseline),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}
+          auxiliaryActions={groupActions.auxiliaryActions}
+          context={groupActions.context}
           destructiveActions={
             <ConfirmDeleteAction
               label="Delete deck"
@@ -168,6 +189,7 @@ function DeckEditSession({
               {updateAsset.error.message}
             </Alert>
           ) : null}
+          {groupActions.error}
           {setCount.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not change the composition">
               {setCount.error.message}
