@@ -211,4 +211,28 @@ describe('single-Renderer Publication execution', () => {
     expect(fail).toHaveBeenCalledWith('job-card', expect.any(TargetRenderError), NOW + 15_000);
     expect(put).not.toHaveBeenCalled();
   });
+
+  test('fails the job rather than aborting the batch when the encoder returns bytes no profiler can read', async () => {
+    const fail = vi.fn(async () => 'pending' as const);
+    const put = vi.fn();
+
+    await expect(
+      executeItemList(config, [cardJob], {
+        bucket: bucket(put),
+        cacheTokenSecret: cacheSecret,
+        client: { complete: vi.fn(), fail },
+        openBrowser: async () => ({
+          capture: async () => capturedPng(),
+          close: async () => undefined,
+          sessionId: () => 'browser-session-garbage',
+        }),
+        /* Not merely a wrong JPEG: not a JPEG at all, so profiling throws before any typed assertion runs. */
+        encodeJpeg: async () => new Uint8Array([1, 2, 3, 4]),
+        now: () => NOW,
+        signCacheToken: async () => cacheToken,
+      })
+    ).resolves.toMatchObject({ failed: 1, completed: 0, unprocessed: 0 });
+    expect(fail).toHaveBeenCalledWith('job-card', expect.any(Error), NOW + 15_000);
+    expect(put).not.toHaveBeenCalled();
+  });
 });

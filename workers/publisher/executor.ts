@@ -8,6 +8,7 @@ import type { PublisherConfig } from './config';
 import type { AssignedPublicationJob, ConvexPublisherClient } from './convex';
 import { assertPublishedJpeg } from './image-encode';
 import type { JpegEncoder } from './image-encode';
+import { ImageInspectionError } from './image-inspection';
 import { recompressCapturedPdf, RECOMPRESSED_PDF_MAX_BYTES } from './pdf-recompress';
 import { putPublishedAsset } from './r2';
 import type { AssetBucket } from './r2';
@@ -169,7 +170,14 @@ export async function executeItemList(
         }
         result.unprocessed -= 1;
       } catch (error) {
-        if (!(error instanceof TargetRenderError)) {
+        /*
+         * A job fails alone when its own bytes are wrong, and that has two spellings: a typed assertion
+         * (baseline JPEG, wrong dimensions) throws TargetRenderError, while bytes malformed beyond
+         * profiling (no JPEG or PNG signature at all) surface as ImageInspectionError from the profilers
+         * themselves. Both are this job's output and nobody else's; everything else is infrastructure and
+         * still aborts the batch for expiry recovery.
+         */
+        if (!(error instanceof TargetRenderError) && !(error instanceof ImageInspectionError)) {
           throw error;
         }
         const failure = await dependencies.client.fail(item.jobId, error, budget.requestDeadline());
