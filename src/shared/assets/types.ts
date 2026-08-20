@@ -36,7 +36,7 @@ export const ASSET_TYPES = {
   'token-round': { category: 'tokens', label: 'Round tokens', shortLabel: 'Round', status: 'live' },
   'token-gear': { category: 'tokens', label: 'Gear tokens', shortLabel: 'Gear', status: 'live' },
   'token-square': { category: 'tokens', label: 'Square tokens', shortLabel: 'Square', status: 'live' },
-  'token-rectangle': { category: 'tokens', label: 'Rectangle tokens', shortLabel: 'Rectangle', status: 'planned' },
+  'token-rectangle': { category: 'tokens', label: 'Rectangle tokens', shortLabel: 'Rectangle', status: 'live' },
   board: { category: 'boards', label: 'Boards', shortLabel: 'Boards', status: 'planned' },
 } as const satisfies Record<string, AssetTypeDefinition>;
 

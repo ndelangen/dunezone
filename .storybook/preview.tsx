@@ -87,6 +87,13 @@ export default definePreview({
             height: `${Math.round(sizes.shield.height)}px`,
           },
         },
+        tokenRectangle: {
+          name: 'Rectangle token',
+          styles: {
+            width: `${Math.round(sizes.tokenRectangle.width)}px`,
+            height: `${Math.round(sizes.tokenRectangle.height)}px`,
+          },
+        },
         disc: {
           name: 'Disc',
           styles: {
@@ -166,6 +173,8 @@ export default definePreview({
         size = sizes.shield;
       } else if (viewportValue === 'disc') {
         size = sizes.disc;
+      } else if (viewportValue === 'tokenRectangle') {
+        size = sizes.tokenRectangle;
       }
       const story = size ? (
         <div style={{ ...size }}>

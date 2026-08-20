@@ -5,6 +5,7 @@ import { loadAssetPage } from '@app/db/assets';
 
 import { NoEditorYet } from '../../../-assetEditorStates';
 import { DeckEditPage } from './-deckEdit';
+import { RectangleEditPage } from './-rectangleEdit';
 import { TokenEditPage } from './-tokenEdit';
 import { TreacheryEditPage } from './-treacheryEdit';
 
@@ -33,6 +34,9 @@ function EditAssetPage() {
     case 'token-gear':
     case 'token-square':
       return <TokenEditPage type={type} slug={slug} loaderData={loaderData} />;
+    /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */
+    case 'token-rectangle':
+      return <RectangleEditPage type={type} slug={slug} loaderData={loaderData} />;
     case 'deck':
       return <DeckEditPage slug={slug} loaderData={loaderData} />;
     default:

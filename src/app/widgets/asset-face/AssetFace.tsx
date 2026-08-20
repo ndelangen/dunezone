@@ -13,6 +13,7 @@ import { z } from 'zod';
 
 import { CardBack } from '@game/assets/card/Back';
 import { CustomToken } from '@game/assets/token/Custom';
+import { RectangleToken } from '@game/assets/token/Rectangle';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { TreacheryAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
@@ -169,6 +170,45 @@ const tokenFaceSchema = z.object({
 type DrawableTokenFace = z.infer<typeof drawableTokenFace>;
 
 /**
+ * One drawable rectangle face.
+ * Loose for the same reason as the round shapes, and the element lists are optional so a face authored before either list existed still draws its background.
+ */
+const drawableRectangleFace = z.looseObject({
+  background: z.unknown(),
+  ring: z.boolean().optional(),
+  decals: z.array(z.unknown()).optional(),
+  texts: z.array(z.unknown()).optional(),
+});
+
+const rectangleFaceSchema = z.object({
+  front: drawableRectangleFace,
+  back: z
+    .union([
+      z.looseObject({ mode: z.literal('custom'), face: drawableRectangleFace }),
+      z.looseObject({ mode: z.literal('reference') }),
+    ])
+    .optional(),
+});
+
+/**
+ * Which of a token's two faces to draw.
+ * Both token models store their backside identically, so this is one rule rather than one per model.
+ * A referenced back returns nothing, since it is another token's front and only the caller holds that token.
+ */
+function faceForSide<TFace>(
+  parsed: { front: TFace; back?: { mode: 'custom'; face: TFace } | { mode: 'reference' } } | undefined,
+  side: AssetFaceSide
+): TFace | undefined {
+  if (!parsed) {
+    return undefined;
+  }
+  if (side === 'back') {
+    return parsed.back?.mode === 'custom' ? parsed.back.face : undefined;
+  }
+  return parsed.front;
+}
+
+/**
  * Which face of a token to draw.
  * `back` falls through to the neutral face when the token has no authored back, since a referenced back is another token's front and only the caller holds that token.
  */
@@ -272,17 +312,31 @@ export function AssetFace({
   }
 
   const shape = tokenShapeOfType(type);
+  /*
+   * The rectangle is a token by shape and by backside rules, and a different model by face.
+   * It parses with its own schema rather than the round one, which would reject a placed composition outright and leave every rectangle drawing as a neutral face.
+   */
+  if (shape === 'rectangle') {
+    const parsed = rectangleFaceSchema.safeParse(data);
+    const face = faceForSide(parsed.success ? parsed.data : undefined, side);
+    if (face) {
+      return (
+        <TokenFrame shape={shape} width={width}>
+          <RectangleToken
+            /* the listing trusts storage and the renderer takes these as-is, the same bargain the other faces make */
+            background={face.background as never}
+            ring={face.ring ?? false}
+            decals={(face.decals ?? []) as never}
+            texts={(face.texts ?? []) as never}
+          />
+        </TokenFrame>
+      );
+    }
+    return <NeutralFace name={name} width={width} aspect={assetFaceAspect(type)} />;
+  }
   if (shape) {
     const parsed = tokenFaceSchema.safeParse(data);
-    const back = parsed.success ? parsed.data.back : undefined;
-    const face =
-      side === 'back'
-        ? back?.mode === 'custom'
-          ? back.face
-          : undefined
-        : parsed.success
-          ? parsed.data.front
-          : undefined;
+    const face = faceForSide(parsed.success ? parsed.data : undefined, side);
     if (face) {
       return (
         <TokenFrame shape={shape} width={width}>

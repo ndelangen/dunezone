@@ -3,6 +3,7 @@ import { createFileRoute, notFound } from '@tanstack/react-router';
 
 import { NoEditorYet } from '../../-assetEditorStates';
 import { DeckCreatePage } from './-deckCreate';
+import { RectangleCreatePage } from './-rectangleCreate';
 import { TokenCreatePage } from './-tokenCreate';
 import { TreacheryCreatePage } from './-treacheryCreate';
 
@@ -34,6 +35,9 @@ function CreateAssetPage() {
     case 'token-gear':
     case 'token-square':
       return <TokenCreatePage type={type} />;
+    /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */
+    case 'token-rectangle':
+      return <RectangleCreatePage />;
     case 'deck':
       return <DeckCreatePage />;
     default:

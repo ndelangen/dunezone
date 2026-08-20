@@ -1,4 +1,4 @@
-import { DeckAsset, TokenAsset, TreacheryAsset } from '../../src/shared/assets/schema';
+import { DeckAsset, RectangleTokenAsset, TokenAsset, TreacheryAsset } from '../../src/shared/assets/schema';
 import { ASSET_TYPES } from '../../src/shared/assets/types';
 
 /**
@@ -21,6 +21,11 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
     case 'token-gear':
     case 'token-square': {
       const parsed = TokenAsset.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    /* The rectangle is a token by category and by backside rules, and its own schema by face: a free composition rather than a symbol in a fixed slot. */
+    case 'token-rectangle': {
+      const parsed = RectangleTokenAsset.parse(data);
       return { data: parsed, name: parsed.name };
     }
     default:

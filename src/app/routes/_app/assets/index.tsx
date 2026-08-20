@@ -10,7 +10,7 @@ import type { CSSProperties } from 'react';
 
 import { loadAssetCataloguePage, useAssetCataloguePage } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
-import { AssetFace, CARD_ASPECT } from '@app/widgets/asset-face/AssetFace';
+import { AssetFace, assetFaceAspect, CARD_ASPECT } from '@app/widgets/asset-face/AssetFace';
 
 import styles from './index.module.css';
 
@@ -179,7 +179,8 @@ function emptyOutlineShape(
     case 'token-square':
       return { width: 96, height: 96, borderRadius: 8 };
     case 'token-rectangle':
-      return { width: '100%', aspectRatio: '110 / 68', borderRadius: 8 };
+      /* `assetFaceAspect` owns this ratio; the literal here was 110/68, which is close to it but not equal, and drifting apart was only a matter of time. */
+      return { width: '100%', aspectRatio: `1 / ${assetFaceAspect('token-rectangle')}`, borderRadius: 8 };
     case 'board':
       return { width: '100%', aspectRatio: '3 / 2', borderRadius: 8 };
     default:

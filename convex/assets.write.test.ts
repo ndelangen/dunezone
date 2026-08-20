@@ -486,3 +486,50 @@ describe('asset publication', () => {
     expect(token.slug).toBe('axlotl');
   });
 });
+
+const rectangleBackground = {
+  image: '/image/texture/015.jpg',
+  colors: ['#4B4C0D', '#262B04'],
+  invert: true,
+  definition: 0,
+  influence: 0.5,
+};
+
+const rectangleData = (name: string) => ({
+  name,
+  about: '',
+  front: {
+    background: rectangleBackground,
+    ring: false,
+    decals: [
+      { id: '/vector/logo/atreides.svg', muted: false, outline: true, scale: 0.9, offset: [-55, -18], opacity: 1 },
+    ],
+    texts: [{ content: 'KWISATZ\nHADERACH', offset: [-58, 34], size: 15, font: 'C_Copperplate_Gothic', opacity: 1 }],
+  },
+  back: { mode: 'custom', face: { background: rectangleBackground, ring: true, decals: [], texts: [] } },
+});
+
+describe('rectangle tokens', () => {
+  test('a free composition round-trips through a save, placed elements and all', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
+    const created = await t
+      .withIdentity({ subject: ownerId })
+      .mutation(api.assets.create, { type: 'token-rectangle', data: rectangleData('Kwisatz Haderach') });
+
+    expect(created.slug).toBe('kwisatz-haderach');
+    const page = await t.query(api.assets.getPage, { type: 'token-rectangle', slug: 'kwisatz-haderach' });
+    expect(page?.asset.data).toEqual(rectangleData('Kwisatz Haderach'));
+  });
+
+  test('an unknown font is refused, so a face can never store one the project does not ship', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
+    const data = rectangleData('Bad Font');
+    data.front.texts[0]!.font = 'Comic Sans';
+
+    await expect(
+      t.withIdentity({ subject: ownerId }).mutation(api.assets.create, { type: 'token-rectangle', data })
+    ).rejects.toThrow();
+  });
+});

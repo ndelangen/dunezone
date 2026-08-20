@@ -194,3 +194,75 @@ export const DeckAsset = z.strictObject({
   about: About,
   cardback: CardBack,
 });
+
+/**
+ * The seven faces the project ships, declared in `src/app/styles/fonts.css`.
+ * A rectangle token is the only Asset type that lets an author pick one, so the list lives here rather than in a renderer, and both the schema and the renderer read it.
+ */
+export const RECTANGLE_TOKEN_FONTS = [
+  'C_Copperplate_Gothic',
+  'C_Copperplate_Gothic_Heavy',
+  'C_Busorama',
+  'C_Desdemona',
+  'C_Advokat_Modern',
+  'C_Candara',
+  'C_Trebuchet',
+] as const;
+
+const OPACITY = z.number().min(0).max(1);
+
+/**
+ * A decal the author placed, rather than one slotted into a fixed position.
+ *
+ * It extends the shared `Decal` instead of restating it, and the extension is deliberately **local to this type**.
+ * `Decal` has only the binary `muted` treatment, and the faction and card editors both depend on that contract;
+ * widening it and growing `DecalControls` an opacity slider would reach two editors that gain nothing from the field.
+ * This is the same call `TreacheryAsset` makes over `Treachery`: widen the type that needs it, leave the shared contract alone.
+ */
+const PlacedDecal = Decal.extend({
+  opacity: OPACITY,
+});
+
+/**
+ * Text the author placed, in face units from the centre.
+ * `offset` is deliberately unclamped, so an element may hang off the edge on purpose;
+ * the editor pairs a slider for reach with a bare number for precision.
+ */
+const PlacedText = z.strictObject({
+  content: z.string(),
+  offset: OFFSET,
+  /** Cap height in face units, against the renderer's 300 by 186 face. */
+  size: z.number().min(1).max(200),
+  font: z.enum(RECTANGLE_TOKEN_FONTS),
+  opacity: OPACITY,
+});
+
+/**
+ * One face of a rectangle token: a background, and two lists of placed elements.
+ *
+ * This is the free composition «Rectangle token editor» settled, and it is a capability no other Asset type has.
+ * Every other type slots its content into fixed places, which is why this face shares nothing with `TokenFace` beyond the background.
+ */
+export const RectangleTokenFace = z.strictObject({
+  background: Background,
+  /** The thin ring just inside the edge, off by default here, unlike the round shapes. */
+  ring: z.boolean(),
+  decals: z.array(PlacedDecal),
+  texts: z.array(PlacedText),
+});
+
+/**
+ * A rectangle tech token.
+ *
+ * It is a token by category and by backside rules, so the `back` discriminated union matches `TokenAsset` exactly and a referenced back is still an `asset_relations` row rather than data.
+ * It is not a token by face, which is why it carries its own schema rather than a branch inside `TokenAsset`.
+ */
+export const RectangleTokenAsset = z.strictObject({
+  name: z.string(),
+  about: About,
+  front: RectangleTokenFace,
+  back: z.discriminatedUnion('mode', [
+    z.strictObject({ mode: z.literal('custom'), face: RectangleTokenFace }),
+    z.strictObject({ mode: z.literal('reference') }),
+  ]),
+});
