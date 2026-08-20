@@ -6,7 +6,7 @@ import {
   PUBLICATION_TARGETS,
   publicationFaceId,
 } from '../src/shared/asset-publishing/publicationTargets';
-import { ASSET_TYPES, isAssetType } from '../src/shared/assets/types';
+import { holdsDeckMembership } from '../src/shared/assets/types';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
@@ -645,14 +645,6 @@ const assetBrowseEntryValidator = assetListEntryValidator.extend({
  * Tied to `PER_TYPE_LIMIT` rather than restated, since the two answer the same question about the same table.
  */
 const BROWSE_LIMIT = PER_TYPE_LIMIT;
-
-/**
- * Whether membership in a deck is a fact about this type at all.
- * A deck holds cards and nothing else, which `setDeckCardCount` enforces, so every other type skips the relation pass entirely rather than reading `asset_relations` once per row to learn zero.
- */
-function holdsDeckMembership(type: string): boolean {
-  return isAssetType(type) && ASSET_TYPES[type].category === 'cards';
-}
 
 /**
  * Whether a tile on this type's browse page draws the members standing behind it.

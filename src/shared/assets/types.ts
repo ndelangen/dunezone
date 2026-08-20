@@ -50,6 +50,15 @@ export type AssetType = keyof typeof ASSET_TYPES;
  */
 export const ASSET_TYPE_KEYS = Object.keys(ASSET_TYPES) as AssetType[];
 
+/**
+ * Whether a deck can hold this type, which is the same question as whether "in decks" is a fact about it at all.
+ * A deck holds cards and nothing else, enforced by `setMemberCount`'s `CONTAINER_KINDS`.
+ * Shared because three layers ask it: the browse read skips its relation pass, the deck editor's picker offers only these, and a detail page shows its "In decks" card only for them.
+ */
+export function holdsDeckMembership(type: string): boolean {
+  return isAssetType(type) && ASSET_TYPES[type].category === 'cards';
+}
+
 /** The Asset type is the URL vocabulary: `/assets/{type}/…` uses these discriminators verbatim. */
 export function isAssetType(value: string): value is AssetType {
   return value in ASSET_TYPES;

@@ -10,7 +10,7 @@
  * That is deliberately not a claim that nothing was ever here, and nothing of the deleted row reaches the client to leak.
  */
 import { Alert, Anchor, Group, Stack, Text, Title } from '@mantine/core';
-import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import { ASSET_TYPES, holdsDeckMembership, isAssetType } from '@shared/assets/types';
 import { RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -556,14 +556,19 @@ function AssetDetailPage() {
                 </Card>
               ) : null}
               {/* One route per type is what turns a relation row into navigation rather than an inert name. */}
-              {asset.type === 'deck' ? null : (
+              {/*
+               * Only what a deck can hold. It had excluded decks alone, so a bundle and every token wore an "In decks"
+               * card reading "Not in any deck yet", which is true, permanent and not a fact about them: a deck holds
+               * cards and nothing else (Norbert, 2026-08-20).
+               */}
+              {holdsDeckMembership(asset.type) ? (
                 <ContainerCard
                   title="In decks"
                   empty="Not in any deck yet."
                   containers={inDecks}
                   icon={<Layers3 size={18} aria-hidden />}
                 />
-              )}
+              ) : null}
               {/*
                * Its own card rather than a second list inside "In decks".
                * A token was reporting "Not in any deck yet" while sitting in a bundle, which is true and useless: the page had no place to say the thing that was actually so (Norbert, 2026-08-20).
