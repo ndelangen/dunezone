@@ -1,26 +1,27 @@
-import { Alert, Anchor, Button, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
+import { Alert, Anchor, Stack, Text, Title } from '@mantine/core';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { TriangleAlert, Trash2, UserRoundMinus } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { UserRoundMinus } from 'lucide-react';
+import { useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
 import { resolveRouteNotice } from '@app/routes/-routeNotices';
-import type { FactionAuthoringWarning } from '@app/widgets/faction-editor/factionAuthoringContract';
-import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
+import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPopover';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
-
-import styles from './edit.module.css';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
@@ -35,79 +36,6 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
 
 const VALIDATION_HEADER_ID = 'faction-validation-header';
 
-/* The masthead's replacement exists only while validation warnings exist.
-   Asymmetric settle — new warnings open it immediately, but an empty list only closes it
-   on a settle signal (field blur or chapter switch), never mid-keystroke, so the layout
-   never jumps above the sticky toolbar while typing. The open state gates the
-   PageLayout.Header slot itself; the shell's band already animates its height change. */
-function useValidationHeaderOpen(count: number, settleTick: number): boolean {
-  const [open, setOpen] = useState(count > 0);
-  const countRef = useRef(count);
-
-  /* The ref syncs inside the committed effect — a render-phase write could survive from a
-     discarded render and let a later settle close the header while warnings still show.
-     Declared before the settle effect so a commit changing both runs the sync first. */
-  useEffect(() => {
-    countRef.current = count;
-    if (count > 0) {
-      setOpen(true);
-    }
-  }, [count]);
-
-  useEffect(() => {
-    if (countRef.current === 0) {
-      setOpen(false);
-    }
-  }, [settleTick]);
-
-  return open;
-}
-
-function formatMissingList(missing: string[]): string {
-  if (missing.length <= 1) {
-    return missing[0] ?? '';
-  }
-  return `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`;
-}
-
-/* A lower-third caption strip on the artwork band: one chip per source, each a focus jump. */
-function ValidationHeader({
-  warnings,
-  onFocusWarning,
-}: {
-  warnings: FactionAuthoringWarning[];
-  onFocusWarning: (warning: FactionAuthoringWarning) => void;
-}) {
-  const groups = new Map<string, FactionAuthoringWarning[]>();
-  warnings.forEach((warning) => {
-    const group = groups.get(warning.source);
-    if (group) {
-      group.push(warning);
-    } else {
-      groups.set(warning.source, [warning]);
-    }
-  });
-
-  return (
-    <div className={styles.strip} id={VALIDATION_HEADER_ID}>
-      <span className={styles.title}>
-        <TriangleAlert size={15} aria-hidden />
-        Incomplete fields
-      </span>
-      {[...groups.entries()].map(([source, sourceWarnings]) => (
-        <UnstyledButton
-          key={source}
-          className={styles.chip}
-          onClick={() => onFocusWarning(sourceWarnings[0] as FactionAuthoringWarning)}
-        >
-          <span className={styles.chipSource}>{source}</span>: missing{' '}
-          {formatMissingList(sourceWarnings.map((warning) => warning.missing))}
-        </UnstyledButton>
-      ))}
-    </div>
-  );
-}
-
 function FactionEditPage() {
   const { factionId } = Route.useParams();
   const search = Route.useSearch();
@@ -117,7 +45,6 @@ function FactionEditPage() {
   const updateFaction = useUpdateFaction();
   const deleteFaction = useDeleteFaction();
   const setFactionGroup = useSetFactionGroup();
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [settleTick, setSettleTick] = useState(0);
 
   const factionQuery = useFaction(factionId, {
@@ -226,27 +153,27 @@ function FactionEditPage() {
       {validationHeaderOpen ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
+            id={VALIDATION_HEADER_ID}
             warnings={authoring.editing.warnings}
             onFocusWarning={(warning) => viewRef.current?.focusWarning(warning)}
           />
         </PageLayout.Header>
       ) : null}
       <PageLayout.Toolbar>
-        <FactionAuthoringToolbar
+        <AuthoringToolbar
           status={{
             isDirty: authoring.editing.isDirty,
             isNameBlank: authoring.editing.isNameBlank,
-            warningCount: authoring.editing.warnings.length,
             saveState: authoring.persistence.saveState,
-            assetPublishing,
+            lastPublishedAt: assetPublishing?.lastPublishedAt,
+          }}
+          copy={{
+            saveLabel: 'Save faction',
+            nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
+            statusMessage: factionAuthoringStatusMessage(authoring.persistence.saveState, assetPublishing),
           }}
           actions={{
             onSave: authoring.actions.submit,
-            /* The toolbar count is the persistent indicator; clicking it returns
-               to the expanded validation header at the top of the page. */
-            onReviewWarnings: () =>
-              document.getElementById(VALIDATION_HEADER_ID)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
-            onReview: (trigger) => viewRef.current?.openReview(trigger),
             onReset: authoring.actions.reset,
             onBack: () =>
               navigate({
@@ -254,6 +181,7 @@ function FactionEditPage() {
                 params: { factionId },
               }),
           }}
+          review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
           centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
           auxiliaryActions={
             <>
@@ -296,45 +224,17 @@ function FactionEditPage() {
           }
           destructiveActions={
             canDelete ? (
-              confirmDelete ? (
-                <Group gap={4} wrap="nowrap" role="group" aria-label="Confirm faction deletion">
-                  <Text size="xs" c="red" fw={700}>
-                    Delete faction?
-                  </Text>
-                  <Button
-                    type="button"
-                    color="red"
-                    size="compact-xs"
-                    loading={deleteFaction.isPending}
-                    onClick={() => {
-                      void (async () => {
-                        await deleteFaction.mutateAsync({ id: faction._id });
-                        navigate({ to: '/factions' });
-                      })();
-                    }}
-                  >
-                    Delete
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="subtle"
-                    color="gray"
-                    size="compact-xs"
-                    onClick={() => setConfirmDelete(false)}
-                  >
-                    Cancel
-                  </Button>
-                </Group>
-              ) : (
-                <IconAction
-                  label="Delete faction"
-                  variant="light"
-                  color="red"
-                  size="lg"
-                  onClick={() => setConfirmDelete(true)}
-                  icon={<Trash2 size={17} aria-hidden />}
-                />
-              )
+              <ConfirmDeleteAction
+                label="Delete faction"
+                prompt="Delete faction?"
+                pending={deleteFaction.isPending}
+                onConfirm={() => {
+                  void (async () => {
+                    await deleteFaction.mutateAsync({ id: faction._id });
+                    navigate({ to: '/factions' });
+                  })();
+                }}
+              />
             ) : null
           }
         />

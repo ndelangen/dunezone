@@ -6,7 +6,6 @@
 
 const ASSET_CATEGORIES = ['cards', 'decks', 'tokens', 'boards'] as const;
 
-/** @public until the pages slice of the assets stack lands (wayfinder #568). */
 export type AssetCategory = (typeof ASSET_CATEGORIES)[number];
 
 type AssetTypeStatus = 'live' | 'planned';
@@ -43,13 +42,11 @@ export const ASSET_TYPES = {
   board: { category: 'boards', label: 'Boards', shortLabel: 'Boards', status: 'planned' },
 } as const satisfies Record<string, AssetTypeDefinition>;
 
-/** @public until the pages slice of the assets stack lands (wayfinder #568). */
 export type AssetType = keyof typeof ASSET_TYPES;
 
 /**
  * Every Asset type, in the registry's own declaration order.
  * That order is curated rather than incidental, so a surface arranging types by category reads them from here instead of restating a list this registry already holds.
- * @public until the pages slice of the assets stack lands (wayfinder #568).
  */
 export const ASSET_TYPE_KEYS = Object.keys(ASSET_TYPES) as AssetType[];
 
@@ -62,10 +59,7 @@ export function holdsDeckMembership(type: string): boolean {
   return isAssetType(type) && ASSET_TYPES[type].category === 'cards';
 }
 
-/**
- * The Asset type is the URL vocabulary: `/assets/{type}/…` uses these discriminators verbatim.
- * @public until the pages slice of the assets stack lands (wayfinder #568).
- */
+/** The Asset type is the URL vocabulary: `/assets/{type}/…` uses these discriminators verbatim. */
 export function isAssetType(value: string): value is AssetType {
   return Object.hasOwn(ASSET_TYPES, value);
 }

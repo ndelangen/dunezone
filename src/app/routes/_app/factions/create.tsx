@@ -1,14 +1,15 @@
 import { Anchor, Stack, Text, Title } from '@mantine/core';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { useRef } from 'react';
 
 import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
+import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { defaultFaction } from '@app/widgets/faction-editor/defaultFaction';
-import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
@@ -82,20 +83,23 @@ function CreateFactionPage() {
     <PageLayout>
       <PageLayout.Header size="compact">{header}</PageLayout.Header>
       <PageLayout.Toolbar>
-        <FactionAuthoringToolbar
+        <AuthoringToolbar
           status={{
             isDirty: authoring.editing.isDirty,
             isNameBlank: authoring.editing.isNameBlank,
-            warningCount: authoring.editing.warnings.length,
             saveState: authoring.persistence.saveState,
+          }}
+          copy={{
+            saveLabel: 'Save faction',
+            nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
+            statusMessage: factionAuthoringStatusMessage(authoring.persistence.saveState),
           }}
           actions={{
             onSave: authoring.actions.submit,
-            onReviewWarnings: () => viewRef.current?.focusFirstWarning(),
-            onReview: (trigger) => viewRef.current?.openReview(trigger),
             onReset: authoring.actions.reset,
             onBack: () => navigate({ to: '/factions' }),
           }}
+          review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
           centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
           auxiliaryActions={
             <FactionLoadPopover disabled={createFaction.isPending} onLoaded={authoring.actions.loadDraft} />

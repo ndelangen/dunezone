@@ -4,8 +4,9 @@ import { FactionCard } from '@ui/block/FactionCard';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Globe2 } from 'lucide-react';
+import { Globe2, Swords } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
 import type { Faction, FactionCatalogueEntry } from '@db/factions';
@@ -15,11 +16,11 @@ import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
+import { card as CARD_SIZE } from '@game/data/sizes';
 
 import { factionAuthoringChapters } from './factionAuthoringContract';
 import type { FactionAuthoringChapterId, FactionAuthoringWarning } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
-import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import { FactionFormSectionAdvantages } from './FactionFormSectionAdvantages';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
 import { FactionFormSectionBackground } from './FactionFormSectionBackground';
@@ -50,25 +51,12 @@ const chapterIcons: Record<
 };
 
 /* The tab glyph when the faction has no troops yet. */
-const FALLBACK_TROOP_SYMBOL = '/vector/troop/atreides.svg';
-
 function ChapterIcon({ chapter, form }: { chapter: FactionAuthoringChapterId; form: FactionFormApi }) {
   if (chapter === 'identity') {
-    return (
-      <form.Subscribe selector={(state) => state.values.logo}>
-        {(logo) => <Image src={assetOptionToPreviewSrc(logo)} alt="" w={22} h={22} fit="contain" />}
-      </form.Subscribe>
-    );
+    return <TopicIcon topic="identity" size={21} />;
   }
   if (chapter === 'forces') {
-    /* Live like the identity tab: the first troop's symbol is the chapter's face. */
-    return (
-      <form.Subscribe selector={(state) => state.values.troops[0]?.image}>
-        {(image) => (
-          <Image src={assetOptionToPreviewSrc(image ?? FALLBACK_TROOP_SYMBOL)} alt="" w={22} h={22} fit="contain" />
-        )}
-      </form.Subscribe>
-    );
+    return <Swords size={21} aria-hidden />;
   }
   if (chapter === 'worlds') {
     return <Globe2 size={21} aria-hidden />;
@@ -238,18 +226,20 @@ function ArtifactProof({
         } else if (activeChapter === 'alliance') {
           title = 'Alliance card';
           artifact = selectedTroop ? (
-            <Box className={styles.cardProof}>
-              <Box className={styles.cardCanvas}>
-                <AllianceCard
-                  background={faction.background}
-                  decals={faction.decals}
-                  logo={faction.logo}
-                  text={faction.rules.alliance.text}
-                  title={faction.name}
-                  troop={selectedTroop.image}
-                />
-              </Box>
-            </Box>
+            <CanvasScale
+              canvasWidth={CARD_SIZE.width}
+              canvasHeight={CARD_SIZE.height}
+              frameClassName={styles.cardProof}
+            >
+              <AllianceCard
+                background={faction.background}
+                decals={faction.decals}
+                logo={faction.logo}
+                text={faction.rules.alliance.text}
+                title={faction.name}
+                troop={selectedTroop.image}
+              />
+            </CanvasScale>
           ) : (
             <PreviewEmpty>Add a troop type to complete the alliance-card proof.</PreviewEmpty>
           );
@@ -416,7 +406,6 @@ export const FactionFormFields = forwardRef<
   const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState({
     leader: 0,
-    decal: 0,
     world: 0,
     troop: 0,
     advantage: 0,
@@ -452,14 +441,7 @@ export const FactionFormFields = forwardRef<
           onSelectedIndexChange={(leader) => setSelectedItem((current) => ({ ...current, leader }))}
         />
       ) : null}
-      {chapter === 'alliance' ? (
-        <FactionFormSectionAlliance
-          form={form}
-          showPreview={false}
-          selectedDecalIndex={selectedItem.decal}
-          onSelectedDecalIndexChange={(decal) => setSelectedItem((current) => ({ ...current, decal }))}
-        />
-      ) : null}
+      {chapter === 'alliance' ? <FactionFormSectionAlliance form={form} showPreview={false} /> : null}
       {chapter === 'worlds' ? (
         <FactionFormSectionPlanets
           form={form}

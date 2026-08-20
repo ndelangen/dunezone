@@ -387,7 +387,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
         <IconAction
           label="View public profile"
           variant="light"
-          color="dune"
+          color="gray"
           size="lg"
           renderRoot={(rootProps) => (
             <Link {...rootProps} to="/profiles/$profileSlug" params={{ profileSlug: initial.slug }} />

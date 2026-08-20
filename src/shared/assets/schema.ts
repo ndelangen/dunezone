@@ -204,7 +204,6 @@ export const DeckAsset = z.strictObject({
  * «What a bundle looks like» settled that it authors a container rather than wearing a house one, so that two bundles are told apart by their own identity instead of by whoever is inside them.
  *
  * `label` is separate from the Asset's name for the same reason `CardBack.name` is: a bundle called "Norbert's tech tokens" can wear a band reading "TECH".
- * @public until the pages slice of the assets stack lands (wayfinder #568).
  */
 export const BundleBand = z.strictObject({
   background: Background,
@@ -228,7 +227,6 @@ export const BundleAsset = z.strictObject({
 /**
  * The seven faces the project ships, declared in `src/app/styles/fonts.css`.
  * A rectangle token is the only Asset type that lets an author pick one, so the list lives here rather than in a renderer, and both the schema and the renderer read it.
- * @public until the pages slice of the assets stack lands (wayfinder #568).
  */
 export const RECTANGLE_TOKEN_FONTS = [
   'C_Copperplate_Gothic',

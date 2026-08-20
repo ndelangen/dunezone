@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { clampInfluence, influenceToSliderPosition, sliderPositionToInfluence } from './factionInfluenceScale';
+import { clampInfluence, influenceToSliderPosition, sliderPositionToInfluence } from './influenceScale';
 
 describe('faction influence perceptual scale', () => {
   it('preserves the exact endpoints', () => {
