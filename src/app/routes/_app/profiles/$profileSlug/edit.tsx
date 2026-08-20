@@ -1,4 +1,4 @@
-import { Group, Stack, TextInput } from '@mantine/core';
+import { Group, Select, Stack, TextInput } from '@mantine/core';
 import { profileSlugBaseFromName } from '@shared/profiles/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -9,16 +9,23 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, User } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useCurrentProfile, useUpdateCurrentProfile } from '@db/profiles';
-import type { ProfileEntry } from '@db/profiles';
+import type { CurrentProfileEntry } from '@db/profiles';
 
-function ProfileSettings({ initial }: { initial: ProfileEntry }) {
+function ProfileSettings({ initial }: { initial: CurrentProfileEntry }) {
   const navigate = useNavigate();
   const update = useUpdateCurrentProfile();
   const [username, setUsername] = useState(initial.username ?? '');
   const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url ?? '');
+  const [defaultGroupId, setDefaultGroupId] = useState<string | null>(initial.default_group_id);
+
+  useEffect(() => {
+    if (defaultGroupId && !initial.default_group_options.some((group) => group.id === defaultGroupId)) {
+      setDefaultGroupId(null);
+    }
+  }, [defaultGroupId, initial.default_group_options]);
 
   const mutationError = update.isError && update.error instanceof Error ? update.error.message : null;
 
@@ -38,9 +45,12 @@ function ProfileSettings({ initial }: { initial: ProfileEntry }) {
     event.preventDefault();
     const previousSlug = initial.slug;
     update.mutate(
-      { input: { username, avatar_url: avatarUrl } },
+      { input: { username, avatar_url: avatarUrl, default_group_id: defaultGroupId } },
       {
-        onSuccess: (entry) => {
+        onSuccess: (entry, _variables, defaultGroupUnavailable) => {
+          if (defaultGroupUnavailable) {
+            window.alert('Profile saved, but the selected default Group was no longer available.');
+          }
           if (previousSlug !== entry.slug) {
             navigate({
               to: '/profiles/$profileSlug',
@@ -77,6 +87,18 @@ function ProfileSettings({ initial }: { initial: ProfileEntry }) {
         onChange={(event) => setUsername(event.target.value)}
         autoComplete="nickname"
         maxLength={30}
+      />
+
+      <Select
+        label="Default Group"
+        description="New rulesets, factions, and Assets use this Group when it is still available. You can change an item’s Group after its first save."
+        value={defaultGroupId ?? ''}
+        onChange={(value) => setDefaultGroupId(value || null)}
+        data={[
+          { value: '', label: 'No default Group' },
+          ...initial.default_group_options.map((group) => ({ value: group.id, label: group.name })),
+        ]}
+        clearable
       />
 
       <TextInput

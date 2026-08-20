@@ -123,22 +123,22 @@ export function useRulesetDetailPage(slug: string, options?: { initialData?: Rul
 
 export function useCreateRuleset() {
   const mutation = useLiveMutation<
-    { name: string; description: string; group_id: string | null; image_cover: string | null },
-    RulesetRow
+    { name: string; description: string; group_id?: string | null; image_cover: string | null },
+    RulesetRow & { default_group_unavailable: boolean }
   >(api.rulesets.create);
   return {
     ...mutation,
     mutate: (
       variables: { input: Ruleset; groupId?: string | null; imageCover?: string | null },
       options?: {
-        onSuccess?: (entry: RulesetEntry) => void;
+        onSuccess?: (entry: RulesetEntry & { default_group_unavailable: boolean }) => void;
         onError?: (error: Error) => void;
       }
     ) =>
       mutation.mutate(
         {
           ...rulesetInputSchema.parse(variables.input),
-          group_id: variables.groupId ?? null,
+          ...(variables.groupId === undefined ? {} : { group_id: variables.groupId }),
           image_cover: variables.imageCover ?? null,
         },
         {
@@ -163,7 +163,7 @@ export function useCreateRuleset() {
       const validated = rulesetInputSchema.parse(input);
       const entry = await mutation.mutateAsync({
         ...validated,
-        group_id: groupId ?? null,
+        ...(groupId === undefined ? {} : { group_id: groupId }),
         image_cover: imageCover ?? null,
       });
       return { ...entry, id: entry._id, name: validated.name };

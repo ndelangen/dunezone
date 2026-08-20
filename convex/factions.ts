@@ -17,6 +17,7 @@ import {
   factionWithRulesetsValidator,
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
+import { resolveDefaultGroupForCreation } from './lib/defaultGroupPreference';
 import { loadFactionCatalogue, selectFactionCatalogueSpotlights } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import { parseFactionInput, parseStoredFactionForRead } from './lib/factionInput';
@@ -254,10 +255,14 @@ export const listByGroup = query({
 export const create = mutation({
   args: {
     data: v.any(),
-    group_id: v.union(v.id('groups'), v.null()),
+    group_id: v.optional(v.union(v.id('groups'), v.null())),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
+    const groupAssignment =
+      args.group_id === undefined
+        ? await resolveDefaultGroupForCreation(ctx, userId)
+        : { group_id: args.group_id, default_group_unavailable: false };
     if (args.group_id) {
       await requireAssignableGroup(ctx, args.group_id);
     }
@@ -273,7 +278,7 @@ export const create = mutation({
       owner_id: userId,
       data,
       slug,
-      group_id: args.group_id,
+      group_id: groupAssignment.group_id,
       created_at: now,
       updated_at: now,
       is_deleted: false,
@@ -283,7 +288,7 @@ export const create = mutation({
       throw new Error('Failed to create faction');
     }
     await enqueueFactionSheetPublication(ctx, row);
-    return factionRowForClient(row);
+    return { ...factionRowForClient(row), default_group_unavailable: groupAssignment.default_group_unavailable };
   },
 });
 

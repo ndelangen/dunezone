@@ -7,6 +7,7 @@ import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
 import { profileDetailPageValidator, profileValidator } from './lib/collaborativeAccessValidators';
+import { canSetDefaultGroup, loadDefaultGroupPreferenceProjection } from './lib/defaultGroupPreference';
 import { requireAuthUserId } from './lib/policy';
 import { loadProfileActivityCounts } from './lib/profileActivity';
 import { ensureProfileForUser } from './lib/profileBootstrap';
@@ -60,10 +61,17 @@ export const current = query({
     if (!authUserId) {
       return null;
     }
-    return await ctx.db
+    const profile = await ctx.db
       .query('profiles')
       .withIndex('by_user_id', (q) => q.eq('user_id', authUserId))
       .unique();
+    if (!profile) {
+      return null;
+    }
+    return {
+      ...profile,
+      ...(await loadDefaultGroupPreferenceProjection(ctx, profile)),
+    };
   },
 });
 
@@ -136,6 +144,7 @@ export const updateCurrent = mutation({
   args: {
     username: v.string(),
     avatar_url: v.union(v.string(), v.null()),
+    default_group_id: v.union(v.id('groups'), v.null()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
@@ -147,6 +156,7 @@ export const updateCurrent = mutation({
     const parsed = profileUserEditFormSchema.safeParse({
       username: args.username,
       avatar_url: args.avatar_url ?? '',
+      default_group_id: args.default_group_id,
     });
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(' ');
@@ -154,6 +164,11 @@ export const updateCurrent = mutation({
     }
     const normalizedUsername = parsed.data.username;
     const normalizedAvatarUrl = parsed.data.avatar_url;
+    const requestedDefaultGroupId = args.default_group_id;
+    const defaultGroupId =
+      requestedDefaultGroupId && (await canSetDefaultGroup(ctx, userId, requestedDefaultGroupId))
+        ? requestedDefaultGroupId
+        : null;
 
     const nextSlugBase = slugify(normalizedUsername);
     if (nextSlugBase.length === 0) {
@@ -176,6 +191,7 @@ export const updateCurrent = mutation({
     await ctx.db.patch(profile._id, {
       username: normalizedUsername,
       avatar_url: normalizedAvatarUrl,
+      default_group_id: defaultGroupId,
       slug: nextSlug,
       updated_at: nowIso(),
     });
@@ -184,6 +200,9 @@ export const updateCurrent = mutation({
     if (!updated) {
       throw new Error('Failed to update profile');
     }
-    return updated;
+    return {
+      profile: updated,
+      default_group_unavailable: requestedDefaultGroupId !== null && defaultGroupId === null,
+    };
   },
 });

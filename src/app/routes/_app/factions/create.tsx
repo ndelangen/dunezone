@@ -28,7 +28,13 @@ function CreateFactionPage() {
     sessionKey: 'create',
     initialData: defaultFaction,
     persistence: {
-      save: async (draft) => await createFaction.mutateAsync({ input: draft, groupId: null }),
+      save: async (draft) => {
+        const entry = await createFaction.mutateAsync({ input: draft });
+        if (entry.default_group_unavailable) {
+          window.alert('Faction saved, but its default Group was no longer available.');
+        }
+        return entry;
+      },
       isPending: createFaction.isPending,
       error: createFaction.error,
       hasSaved: createFaction.data !== undefined,

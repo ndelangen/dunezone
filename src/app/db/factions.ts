@@ -40,6 +40,10 @@ export type FactionCatalogueEntry = FactionEntry & {
   rulesets: FactionRulesetSummary[];
 };
 
+export type CreatedFactionEntry = FactionEntry & {
+  default_group_unavailable: boolean;
+};
+
 export type FactionCatalogueSpotlightData = {
   slug: FactionCatalogueEntry['slug'];
   data: Pick<FactionCatalogueEntry['data'], 'name' | 'logo' | 'background'>;
@@ -62,6 +66,13 @@ function toFactionEntry(entry: FactionRow): FactionEntry {
   return {
     ...entry,
     data: parseClientBoundary(CanonicalFactionClientSchema, entry.data, 'Faction data'),
+  };
+}
+
+function toCreatedFactionEntry(entry: FactionRow & { default_group_unavailable: boolean }): CreatedFactionEntry {
+  return {
+    ...toFactionEntry(entry),
+    default_group_unavailable: entry.default_group_unavailable,
   };
 }
 
@@ -181,21 +192,24 @@ export function useFactionLoadPicker(options?: { initialData?: FactionLoadPicker
 }
 
 export function useCreateFaction() {
-  const mutation = useLiveMutation<{ data: Faction; group_id: string | null }, FactionRow>(api.factions.create);
+  const mutation = useLiveMutation<
+    { data: Faction; group_id?: string | null },
+    FactionRow & { default_group_unavailable: boolean }
+  >(api.factions.create);
 
   return {
     ...mutation,
     mutate: (
       variables: { input: Faction; groupId?: string | null },
-      options?: { onSuccess?: (faction: FactionEntry) => void; onError?: (error: Error) => void }
+      options?: { onSuccess?: (faction: CreatedFactionEntry) => void; onError?: (error: Error) => void }
     ) =>
       mutation.mutate(
         {
           data: FactionInputSchema.parse(recalculateFactionComplexity(variables.input)),
-          group_id: variables.groupId ?? null,
+          ...(variables.groupId === undefined ? {} : { group_id: variables.groupId }),
         },
         {
-          onSuccess: (entry) => options?.onSuccess?.(toFactionEntry(entry)),
+          onSuccess: (entry) => options?.onSuccess?.(toCreatedFactionEntry(entry)),
           onError: (error) => options?.onError?.(error),
         }
       ),
@@ -203,9 +217,9 @@ export function useCreateFaction() {
       const validatedData = FactionInputSchema.parse(recalculateFactionComplexity(input));
       const entry = await mutation.mutateAsync({
         data: validatedData,
-        group_id: groupId ?? null,
+        ...(groupId === undefined ? {} : { group_id: groupId }),
       });
-      return toFactionEntry(entry);
+      return toCreatedFactionEntry(entry);
     },
   };
 }

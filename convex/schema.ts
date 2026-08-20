@@ -26,6 +26,7 @@ export default defineSchema({
     user_id: v.id('users'),
     username: v.union(v.string(), v.null()),
     avatar_url: v.union(v.string(), v.null()),
+    default_group_id: v.optional(v.union(v.id('groups'), v.null())),
     slug: v.string(),
     created_at: v.string(),
     updated_at: v.string(),

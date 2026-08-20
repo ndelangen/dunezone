@@ -13,6 +13,14 @@ import type { Doc } from '../../../convex/_generated/dataModel';
 
 export type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
+export type CurrentProfileEntry = Omit<ProfileRow, 'default_group_id'> & {
+  default_group_id: string | null;
+  default_group_options: { id: string; name: string; slug: string }[];
+};
+export type ProfileUpdateResult = {
+  profile: ProfileRow;
+  default_group_unavailable: boolean;
+};
 export type ProfileListEntry = FunctionReturnType<typeof api.profiles.list>[number];
 
 /** Server-owned profile detail contract; the read model lives in `convex/lib/profileDetail.ts`. */
@@ -96,7 +104,10 @@ export function useCurrentProfile() {
 }
 
 export function useUpdateCurrentProfile() {
-  const mutate = useLiveMutation<{ username: string; avatar_url: string }, ProfileRow>(api.profiles.updateCurrent);
+  const mutate = useLiveMutation<
+    { username: string; avatar_url: string; default_group_id: string | null },
+    ProfileUpdateResult
+  >(api.profiles.updateCurrent);
   const parseProfileInput = (input: ProfileUserEditInput) => {
     const parsed = profileUserEditFormSchema.safeParse(input);
     if (!parsed.success) {
@@ -111,7 +122,11 @@ export function useUpdateCurrentProfile() {
     mutate: (
       variables: { input: ProfileUserEditInput },
       options?: {
-        onSuccess?: (entry: ProfileEntry, vars: { input: ProfileUserEditInput }) => void;
+        onSuccess?: (
+          entry: ProfileEntry,
+          vars: { input: ProfileUserEditInput },
+          defaultGroupUnavailable: boolean
+        ) => void;
         onError?: (error: Error, vars: { input: ProfileUserEditInput }) => void;
       }
     ) => {
@@ -121,10 +136,11 @@ export function useUpdateCurrentProfile() {
           {
             username: parsed.username,
             avatar_url: parsed.avatar_url,
+            default_group_id: parsed.default_group_id ?? null,
           },
           {
-            onSuccess: (entry) => {
-              options?.onSuccess?.(entry, variables);
+            onSuccess: (result) => {
+              options?.onSuccess?.(result.profile, variables, result.default_group_unavailable);
             },
             onError: (error) => options?.onError?.(error, variables),
           }
@@ -138,8 +154,9 @@ export function useUpdateCurrentProfile() {
       const entry = await mutate.mutateAsync({
         username: parsed.username,
         avatar_url: parsed.avatar_url,
+        default_group_id: parsed.default_group_id ?? null,
       });
-      return entry;
+      return entry.profile;
     },
   };
 }
