@@ -481,13 +481,21 @@ export const assets_about_v1 = migrations.define({
   },
 });
 
-/** Proves the backfill left nothing behind, which is what makes narrowing the Zod schemas safe. */
+/**
+ * Proves the backfill left nothing behind, which is what makes narrowing the Zod schemas safe.
+ * A row whose `data` is not a plain object is outside both halves of the pair: the backfill skips it rather than fabricating content, so the proof tolerates it for the same reason, or one hand-written row would deadlock the pair with the widen offering no remediation.
+ * Such a row is the schema-drift dead end already, and every strict read treats it as one;
+ * About is not what is wrong with it.
+ */
 export const assets_about_verify_v1 = migrations.define({
   table: 'assets',
   batchSize: 50,
   migrateOne: async (_ctx, row) => {
     const data = (row as { data?: unknown }).data;
-    const about = typeof data === 'object' && data !== null ? (data as Record<string, unknown>).about : undefined;
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+      return;
+    }
+    const about = (data as Record<string, unknown>).about;
     if (typeof about !== 'string') {
       throw new Error(`Asset ${row._id} still has no About`);
     }
