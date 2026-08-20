@@ -2,6 +2,7 @@ import type { Infer } from 'convex/values';
 import { v } from 'convex/values';
 
 import { isPublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
+import { ASSET_TYPES, isAssetType } from '../src/shared/assets/types';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
@@ -492,6 +493,68 @@ async function decksHolding(
   }
   return entries;
 }
+
+/**
+ * One tile on the browse grid: a listing entry plus the single derived fact its caption carries.
+ * Derived here rather than added to `assetListEntryValidator`, because the landing page draws piles of every type and would pay an index scan per row for a number it never shows.
+ */
+const assetBrowseEntryValidator = assetListEntryValidator.extend({ deckCount: v.number() });
+
+/**
+ * How many rows one browse page holds.
+ * Tied to `PER_TYPE_LIMIT` rather than restated, since the two answer the same question about the same table.
+ */
+const BROWSE_LIMIT = PER_TYPE_LIMIT;
+
+/**
+ * Whether membership in a deck is a fact about this type at all.
+ * A deck holds cards and nothing else, which `setDeckCardCount` enforces, so every other type skips the relation pass entirely rather than reading `asset_relations` once per row to learn zero.
+ */
+function holdsDeckMembership(type: string): boolean {
+  return isAssetType(type) && ASSET_TYPES[type].category === 'cards';
+}
+
+/**
+ * Everything `/assets/{type}` draws, in one read.
+ *
+ * The route holds one page query (see docs/technical/ui-design-decisions.md), and `listByTypes` cannot become that query because `AssetPicker` shares it and would inherit a per-row index scan it has no use for.
+ * Search, the four sorts and the membership facet all run on the client against this bounded set: three of the four sorts cannot be an index anyway, since `name` lives inside an untyped blob, `owner` lives in another table and `deckCount` is derived, so moving one of them server-side would fork the subscription to buy consistency in a single case.
+ *
+ * `truncated` exists so a full page says so rather than quietly under-reporting its own total.
+ * `inNoDeckCount` is null, not zero, for a type nothing can hold, because "no orphans" and "the question does not apply" are different answers and the facet is hidden for the second.
+ */
+export const browsePage = query({
+  args: { type: v.string() },
+  returns: v.object({
+    entries: v.array(assetBrowseEntryValidator),
+    inNoDeckCount: v.union(v.number(), v.null()),
+    truncated: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query('assets')
+      .withIndex('by_type_deleted', (q) => q.eq('type', args.type).eq('is_deleted', false))
+      .order('desc')
+      .take(BROWSE_LIMIT + 1);
+    const truncated = rows.length > BROWSE_LIMIT;
+    const page = truncated ? rows.slice(0, BROWSE_LIMIT) : rows;
+
+    const counted = holdsDeckMembership(args.type);
+    /* One deck holds many of the cards on a page, so its row is read once and reused across the whole grid. */
+    const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+    const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
+    let inNoDeckCount = 0;
+    for (const row of page) {
+      const deckCount = counted ? (await decksHolding(ctx, row._id, decks)).length : 0;
+      if (counted && deckCount === 0) {
+        inNoDeckCount += 1;
+      }
+      entries.push({ ...(await toListEntry(ctx, row)), deckCount });
+    }
+
+    return { entries, inNoDeckCount: counted ? inNoDeckCount : null, truncated };
+  },
+});
 
 export const decksForAssets = query({
   args: { assetIds: v.array(v.id('assets')) },

@@ -156,3 +156,54 @@ describe('deck membership', () => {
     expect(relations).toHaveLength(1);
   });
 });
+
+describe('browse page', () => {
+  test('counts the decks holding each card, tallies the orphans, and says nothing about types no deck can hold', async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert('users', { name: 'Asset owner' });
+      const base = { owner_id: ownerId, group_id: null, is_deleted: false };
+      const stamps = { created_at: '2026-08-10T00:00:00.000Z', updated_at: '2026-08-10T00:00:00.000Z' };
+      const lasgun = await ctx.db.insert('assets', {
+        ...base,
+        ...stamps,
+        type: 'card-treachery',
+        slug: 'lasgun',
+        data: { name: 'Lasgun' },
+      });
+      await ctx.db.insert('assets', {
+        ...base,
+        ...stamps,
+        type: 'card-treachery',
+        slug: 'orphan',
+        data: { name: 'Orphan' },
+      });
+      const deck = await ctx.db.insert('assets', {
+        ...base,
+        ...stamps,
+        type: 'deck',
+        slug: 'house-treachery',
+        data: { name: 'House Treachery' },
+      });
+      await ctx.db.insert('asset_relations', {
+        from_asset_id: deck,
+        to_asset_id: lasgun,
+        kind: 'deck-card',
+        count: 3,
+      });
+    });
+
+    const cards = await t.query(api.assets.browsePage, { type: 'card-treachery' });
+    expect(cards.entries.map((entry) => [entry.slug, entry.deckCount])).toEqual([
+      ['orphan', 0],
+      ['lasgun', 1],
+    ]);
+    expect(cards.inNoDeckCount).toBe(1);
+    expect(cards.truncated).toBe(false);
+
+    const decks = await t.query(api.assets.browsePage, { type: 'deck' });
+    /* Nothing may hold a deck, so "in no deck" is not a question about this type rather than a count of zero. */
+    expect(decks.inNoDeckCount).toBeNull();
+    expect(decks.entries.map((entry) => entry.deckCount)).toEqual([0]);
+  });
+});
