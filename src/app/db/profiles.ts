@@ -11,7 +11,7 @@ import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
 
-export type ProfileRow = Doc<'profiles'>;
+type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
 export type CurrentProfileEntry = NonNullable<FunctionReturnType<typeof api.profiles.current>>;
 export type ProfileUpdateResult = FunctionReturnType<typeof api.profiles.updateCurrent>;
