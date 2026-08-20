@@ -72,3 +72,87 @@ describe('asset catalogue', () => {
     expect(cards.map((entry) => entry.slug)).toEqual(['nameless', 'lasgun']);
   });
 });
+
+describe('deck membership', () => {
+  test('a card reports the decks holding it and how many copies each holds, and a card in none reports an empty list', async () => {
+    const t = convexTest(schema, modules);
+    const { lasgun, shield, treachery } = await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert('users', { name: 'Asset owner' });
+      const base = { owner_id: ownerId, group_id: null, is_deleted: false };
+      const stamps = { created_at: '2026-08-10T00:00:00.000Z', updated_at: '2026-08-10T00:00:00.000Z' };
+      const lasgunId = await ctx.db.insert('assets', {
+        ...base,
+        ...stamps,
+        type: 'card-treachery',
+        slug: 'lasgun',
+        data: { name: 'Lasgun' },
+      });
+      const shieldId = await ctx.db.insert('assets', {
+        ...base,
+        ...stamps,
+        type: 'card-treachery',
+        slug: 'shield',
+        data: { name: 'Shield' },
+      });
+      const treacheryId = await ctx.db.insert('assets', {
+        ...base,
+        ...stamps,
+        type: 'deck',
+        slug: 'house-treachery',
+        data: { name: 'House Treachery' },
+      });
+      await ctx.db.insert('asset_relations', {
+        from_asset_id: treacheryId,
+        to_asset_id: lasgunId,
+        kind: 'deck-card',
+        count: 3,
+      });
+      return { lasgun: lasgunId, shield: shieldId, treachery: treacheryId };
+    });
+
+    const memberships = await t.query(api.assets.decksForAssets, { assetIds: [lasgun, shield] });
+
+    expect(memberships[lasgun]).toEqual([
+      { id: treachery, type: 'deck', slug: 'house-treachery', name: 'House Treachery', count: 3 },
+    ]);
+    /* An asked-about card always gets a key, so "in no deck" is an empty list rather than a missing one. */
+    expect(memberships[shield]).toEqual([]);
+  });
+
+  test('a soft-deleted deck stops holding its cards, without its relation being touched', async () => {
+    const t = convexTest(schema, modules);
+    const lasgun = await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert('users', { name: 'Asset owner' });
+      const base = { owner_id: ownerId, group_id: null, is_deleted: false };
+      const stamps = { created_at: '2026-08-10T00:00:00.000Z', updated_at: '2026-08-10T00:00:00.000Z' };
+      const lasgunId = await ctx.db.insert('assets', {
+        ...base,
+        ...stamps,
+        type: 'card-treachery',
+        slug: 'lasgun',
+        data: { name: 'Lasgun' },
+      });
+      const retiredId = await ctx.db.insert('assets', {
+        ...base,
+        ...stamps,
+        type: 'deck',
+        slug: 'retired-deck',
+        data: { name: 'Retired' },
+        is_deleted: true,
+      });
+      await ctx.db.insert('asset_relations', {
+        from_asset_id: retiredId,
+        to_asset_id: lasgunId,
+        kind: 'deck-card',
+        count: 2,
+      });
+      return lasgunId;
+    });
+
+    const memberships = await t.query(api.assets.decksForAssets, { assetIds: [lasgun] });
+
+    expect(memberships[lasgun]).toEqual([]);
+    const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
+    expect(relations).toHaveLength(1);
+  });
+});

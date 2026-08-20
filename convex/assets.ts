@@ -1,3 +1,4 @@
+import type { Infer } from 'convex/values';
 import { v } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
@@ -396,3 +397,67 @@ async function deckCardsFor(ctx: QueryCtx, deckId: Id<'assets'>) {
   }
   return entries;
 }
+
+/** Bounds a bulk membership read; a page asking about more rows than this gets the first of them, and no card on it reports past its own ceiling. */
+const MEMBERSHIP_LOOKUP_LIMIT = 200;
+const DECKS_PER_CARD_LIMIT = 100;
+
+/**
+ * A deck as a card's membership line cites it.
+ * Enough to name it and build its `/assets/{type}/{slug}` link, and deliberately not enough to draw its face, which would mean carrying `data` for every deck on the page.
+ */
+const deckReferenceValidator = v.object({
+  id: v.id('assets'),
+  type: v.string(),
+  slug: v.string(),
+  name: v.string(),
+  count: v.number(),
+});
+
+type DeckReference = Infer<typeof deckReferenceValidator>;
+
+/**
+ * Which decks hold each of the given cards, in one call.
+ * The reverse of `deckCardsFor`, and the first read of `by_to_kind`, the index bought for this question when the table landed.
+ *
+ * This is a companion query rather than a field on `assetListEntryValidator`.
+ * The landing page draws piles of all thirteen types and needs none of it, and deriving it inside `toListEntry` would put an index scan on every row of every catalogue read.
+ * Every requested id gets a key, so a card in no deck comes back as an empty array rather than a missing one, which is the predicate an "in no deck" facet reads.
+ * `count` is the relation's own copies figure, already on the row being read, so one call answers both how many decks hold a card and how many copies each of them holds.
+ * Soft-deleted decks stop being reported while their relation row survives, the rule `deckCardsFor` applies from the other end.
+ *
+ * No surface consumes this yet.
+ * Its callers are the asset detail page's "in decks" list and the type browse page's tile count, both of which are their own tickets;
+ * a route may hold only one page query, so the browse page takes this on when its single query is redesigned rather than by mounting a second subscription.
+ */
+export const decksForAssets = query({
+  args: { assetIds: v.array(v.id('assets')) },
+  returns: v.record(v.id('assets'), v.array(deckReferenceValidator)),
+  handler: async (ctx, args) => {
+    const byAsset: Record<Id<'assets'>, DeckReference[]> = {};
+    /* One deck holds many of the cards on a page, so its row is read once and reused by every card that names it. */
+    const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+
+    for (const assetId of args.assetIds.slice(0, MEMBERSHIP_LOOKUP_LIMIT)) {
+      const relations = await ctx.db
+        .query('asset_relations')
+        .withIndex('by_to_kind', (q) => q.eq('to_asset_id', assetId).eq('kind', DECK_CARD))
+        .take(DECKS_PER_CARD_LIMIT);
+
+      const entries: DeckReference[] = [];
+      for (const relation of relations) {
+        const deckId = relation.from_asset_id;
+        if (!decks.has(deckId)) {
+          decks.set(deckId, await ctx.db.get('assets', deckId));
+        }
+        const deck = decks.get(deckId);
+        if (deck && !deck.is_deleted) {
+          entries.push({ id: deck._id, type: deck.type, slug: deck.slug, name: nameOf(deck), count: relation.count });
+        }
+      }
+      byAsset[assetId] = entries;
+    }
+
+    return byAsset;
+  },
+});
