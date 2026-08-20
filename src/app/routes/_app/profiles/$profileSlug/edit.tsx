@@ -1,4 +1,4 @@
-import { Box, Center, Image, SegmentedControl, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Button, Center, Image, SegmentedControl, Select, Stack, Text, TextInput } from '@mantine/core';
 import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/profiles/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -9,7 +9,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CircleUserRound, Palette, User, UsersRound } from 'lucide-react';
+import { ArrowLeft, CircleUserRound, Palette, Trash2, User, UsersRound } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { useCurrentProfile, useUpdateCurrentProfile } from '@db/profiles';
@@ -19,7 +19,7 @@ import type { SchemePreference } from '@app/styles/colorScheme';
 import { setMotionOverride, useMotionPreference } from '@app/styles/motion';
 import type { MotionPreference } from '@app/styles/motion';
 
-type ProfileTab = 'profile' | 'defaults' | 'appearance';
+type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'account';
 type LoadedAvatarPreview = { url: string; status: 'ready' | 'unavailable' };
 
 function parseAvatarPreviewUrl(value: string): string | null {
@@ -334,6 +334,30 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
             value={scheme}
             onChange={setSchemePreference}
           />
+        </Stack>
+      ),
+    },
+    {
+      value: 'account',
+      label: 'Account',
+      icon: <Trash2 size={20} />,
+      panel: (
+        <Stack gap="md" align="flex-start">
+          <div>
+            <Text fw={650}>Delete account</Text>
+            <Text c="dimmed" size="sm">
+              Review your direct ownership and choose what happens to it on a dedicated page.
+            </Text>
+          </div>
+          <Button
+            color="red"
+            variant="light"
+            renderRoot={(rootProps) => (
+              <Link {...rootProps} to="/profiles/$profileSlug/delete" params={{ profileSlug: initial.slug }} />
+            )}
+          >
+            Delete account
+          </Button>
         </Stack>
       ),
     },

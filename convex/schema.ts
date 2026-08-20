@@ -2,11 +2,10 @@ import { authTables } from '@convex-dev/auth/server';
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
+import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqTagValidator } from './lib/faqTags';
 
 const accountStateValidator = v.union(v.literal('active'), v.literal('deletion_pending'), v.literal('deleted'));
-
-const directOwnershipKindValidator = v.union(v.literal('group'), v.literal('faction'), v.literal('ruleset'));
 
 export default defineSchema({
   ...authTables,
@@ -34,7 +33,7 @@ export default defineSchema({
     username: v.union(v.string(), v.null()),
     avatar_url: v.union(v.string(), v.null()),
     default_group_id: v.optional(v.union(v.id('groups'), v.null())),
-    account_state: v.optional(accountStateValidator),
+    account_state: accountStateValidator,
     deleted_at: v.optional(v.string()),
     account_deletion_operation_id: v.optional(v.id('account_deletion_operations')),
     slug: v.string(),
@@ -159,6 +158,7 @@ export default defineSchema({
       v.literal('applying'),
       v.literal('verifying'),
       v.literal('finalizing'),
+      v.literal('restoring'),
       v.literal('complete')
     ),
     snapshot_kind: v.union(directOwnershipKindValidator, v.null()),
@@ -176,7 +176,7 @@ export default defineSchema({
     kind: directOwnershipKindValidator,
     entity_id: v.union(v.id('groups'), v.id('factions'), v.id('rulesets')),
     was_deleted: v.boolean(),
-    state: v.union(v.literal('captured'), v.literal('applied')),
+    state: v.union(v.literal('captured'), v.literal('applied'), v.literal('restored')),
     updated_at: v.string(),
   })
     .index('by_operation_kind_entity', ['operation_id', 'kind', 'entity_id'])

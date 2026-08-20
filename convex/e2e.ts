@@ -24,6 +24,8 @@ async function deleteFromTable(ctx: MutationCtx, table: TableNames) {
 
 async function clearAllAppData(ctx: MutationCtx) {
   const tables = [
+    'account_deletion_items',
+    'account_deletion_operations',
     'ruleset_factions',
     'faq_answers',
     'faq_items',
@@ -100,17 +102,27 @@ export const softDeleteGroupBySlug = mutation({
 export const seedBaseline = mutation({
   args: {
     ownerEmail: v.optional(v.string()),
+    disposableAccountEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     assertTestMode();
     await clearAllAppData(ctx);
+
+    const users = await ctx.db.query('users').take(500);
+    for (const user of users) {
+      await ctx.db.patch(user._id, {
+        account_state: 'active',
+        deleted_at: undefined,
+        account_deletion_operation_id: undefined,
+      });
+    }
 
     const ownerEmail = args.ownerEmail?.trim().toLowerCase() ?? null;
     if (!ownerEmail) {
       return { seeded: false, reason: 'ownerEmail not provided' as const };
     }
 
-    const ownerUser = (await ctx.db.query('users').take(500)).find((user) => user.email === ownerEmail);
+    const ownerUser = users.find((user) => user.email === ownerEmail);
 
     if (!ownerUser) {
       return { seeded: false, reason: 'owner not found' as const };
@@ -124,10 +136,31 @@ export const seedBaseline = mutation({
       user_id: ownerUser._id as Id<'users'>,
       username,
       avatar_url: null,
+      account_state: 'active',
       slug: profileSlug,
       created_at: now,
       updated_at: now,
     });
+
+    const disposableAccountEmail = args.disposableAccountEmail?.trim().toLowerCase() ?? null;
+    if (disposableAccountEmail) {
+      const disposableUser = users.find((user) => user.email === disposableAccountEmail);
+      if (!disposableUser) {
+        throw new Error('Disposable account not found');
+      }
+
+      const disposableUsername = disposableAccountEmail.split('@')[0] ?? 'e2e-account-delete';
+      const disposableSlugBase = slugify(disposableUsername);
+      await ctx.db.insert('profiles', {
+        user_id: disposableUser._id as Id<'users'>,
+        username: disposableUsername,
+        avatar_url: null,
+        account_state: 'active',
+        slug: disposableSlugBase.length > 0 ? disposableSlugBase : 'e2e-account-delete',
+        created_at: now,
+        updated_at: now,
+      });
+    }
 
     const groupId = await ctx.db.insert('groups', {
       name: 'E2E Baseline Group',

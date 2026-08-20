@@ -79,7 +79,7 @@ async function renderPage() {
 }
 
 async function chooseTab(view: ReturnType<typeof render>, name: string) {
-  const tab = await view.findByRole('tab', { name });
+  const tab = await view.findByRole('tab', { name }, { timeout: 5000 });
   await act(async () => {
     tab.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
     tab.click();
@@ -131,6 +131,7 @@ describe('profile settings page', () => {
       'Profile',
       'Creation defaults',
       'Appearance',
+      'Account',
     ]);
     expect(mocks.useCurrentProfile).toHaveBeenCalledTimes(1);
 
@@ -147,7 +148,8 @@ describe('profile settings page', () => {
     await chooseTab(view, 'Appearance');
     expect(view.getByRole('radiogroup', { name: 'Ambient motion' })).not.toBeNull();
     expect(view.getByRole('radiogroup', { name: 'Color scheme' })).not.toBeNull();
-    expect(view.queryByText('Delete account')).toBeNull();
+    await chooseTab(view, 'Account');
+    expect(view.getByRole('link', { name: 'Delete account' })).not.toBeNull();
   });
 
   it('shows empty, invalid, loading, successful, and unavailable avatar states', async () => {

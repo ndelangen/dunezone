@@ -217,6 +217,7 @@ describe('faction authoring full-field round trip', () => {
           user_id: userId,
           username: 'Faction authoring proof user',
           avatar_url: null,
+          account_state: 'active',
           slug: 'faction-authoring-proof-user',
           created_at: '2026-07-23T12:00:00.000Z',
           updated_at: '2026-07-23T12:00:00.000Z',
