@@ -9,7 +9,7 @@ export const disc: Size = {
 };
 
 /**
- * A rectangle tech token, at the same 600 unit width as `disc` so the two token shapes print at a comparable physical size.
+ * A rectangle token, at the same 600 unit width as `disc` so the two token shapes print at a comparable physical size.
  * 372 keeps the 0.62 the catalogue reserves for this shape, and it is exactly twice the renderer's 300 by 186 face units.
  */
 export const tokenRectangle: Size = {

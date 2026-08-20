@@ -65,7 +65,7 @@ function bundleHeadroom(memberCount: number): number {
 /** An enhance token is wider than it is tall; every other token shape is square. */
 const RECTANGLE_TOKEN_ASPECT = 0.62;
 
-/** a cog silhouette for gear tokens — 10 teeth, alternating outer/inner radius */
+/** a cog silhouette for the tech token's frame — 10 teeth, alternating outer/inner radius */
 const GEAR_CLIP = (() => {
   const steps = 20;
   const points: string[] = [];

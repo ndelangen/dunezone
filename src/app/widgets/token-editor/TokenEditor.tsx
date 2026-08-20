@@ -227,7 +227,7 @@ export function tokenDraftWarnings(draft: TokenDraft, hasBackReference: boolean)
 const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
 
 /**
- * The tech token workbench, installed identically by the create and edit pages for all three shapes.
+ * The token workbench, installed identically by the create and edit pages for all three shapes.
  *
  * Shape is the Asset type rather than a field, so this component differs per shape only in how the proof is clipped.
  * The Back chapter exists only while the backside is authored here;

@@ -87,7 +87,7 @@ How subtly or strongly the pattern color participates in a faction's composed ba
 The choice to reverse which light and dark regions of a selected pattern reveal the pattern color.
 
 **Asset type**:
-The flat discriminator naming exactly what a community asset is — a treachery card, a round token, a deck. There is no nested category-plus-subtype structure; each Asset type carries its own content schema, its own Renderer, its own editor, and its own route family — URLs use the discriminator verbatim (`/assets/card-treachery/{slug}`), and Asset slugs are unique within an Asset type, not globally. Decks are a single Asset type: a deck may hold any cards, deliberately unconstrained by the model.
+The flat discriminator naming exactly what a community asset is — a treachery card, a disc token, a deck. There is no nested category-plus-subtype structure; each Asset type carries its own content schema, its own Renderer, its own editor, and its own route family — URLs use the discriminator verbatim (`/assets/card-treachery/{slug}`), and Asset slugs are unique within an Asset type, not globally. Decks are a single Asset type: a deck may hold any cards, deliberately unconstrained by the model.
 
 **Card anatomy**:
 A card is described with a fixed vocabulary: the **Head** (its name, its Type line, and the Background behind them), the **Icon** (the vector in the top-right disc, its own Background, and its scale), its **Decals**, and the **Body** (the text). "Kind", "corner", "artwork", and "rules" are not card-anatomy words.

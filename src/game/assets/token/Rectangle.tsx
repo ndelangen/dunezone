@@ -82,7 +82,7 @@ function TextLayer({ texts }: { texts: Face['texts'] }) {
 }
 
 /**
- * One face of a rectangle tech token.
+ * One face of a rectangle token.
  *
  * The rectangle is a free composition rather than a stretched token: a background, then two lists of elements the author placed and scaled where they wanted them.
  * Every other Asset type slots its content into fixed positions, which is why this shares only the background with `CustomToken` and none of its curved labels.

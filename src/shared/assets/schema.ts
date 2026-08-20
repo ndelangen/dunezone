@@ -138,7 +138,7 @@ export const FactionSide = z.strictObject({
 });
 
 /**
- * One face of a tech token, in the vocabulary `CustomToken` already takes.
+ * One face of a token, in the vocabulary `CustomToken` already takes.
  * It extends `FactionSide` rather than restating it, so the renderer's props and the stored shape cannot drift.
  */
 export const TokenFace = FactionSide.extend({
@@ -157,7 +157,7 @@ export const TokenFace = FactionSide.extend({
 });
 
 /**
- * A tech token of any shape.
+ * A token of any shape.
  * Shape is the Asset type rather than a field (see CONTEXT.md: Asset type), so all three shapes share this schema and differ only in how the caller clips the face.
  *
  * Every token has a back;
@@ -281,7 +281,7 @@ export const RectangleTokenFace = z.strictObject({
 });
 
 /**
- * A rectangle tech token.
+ * A rectangle token.
  *
  * It is a token by category and by backside rules, so the `back` discriminated union matches `TokenAsset` exactly and a referenced back is still an `asset_relations` row rather than data.
  * It is not a token by face, which is why it carries its own schema rather than a branch inside `TokenAsset`.
