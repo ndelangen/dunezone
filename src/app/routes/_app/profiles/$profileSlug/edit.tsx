@@ -136,6 +136,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
   const formId = 'profile-settings-' + useId().replaceAll(':', '');
   const usernameRef = useRef<HTMLInputElement>(null);
   const avatarUrlRef = useRef<HTMLInputElement>(null);
+  const defaultGroupRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
   const [username, setUsername] = useState(initial.username ?? '');
   const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url ?? '');
@@ -168,9 +169,11 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
   })();
 
   const focusInvalidField = (field: keyof ProfileUserEditInput | undefined) => {
-    setActiveTab('profile');
+    setActiveTab(field === 'default_group_id' ? 'defaults' : 'profile');
     requestAnimationFrame(() => {
-      (field === 'avatar_url' ? avatarUrlRef.current : usernameRef.current)?.focus();
+      const fieldRef =
+        field === 'default_group_id' ? defaultGroupRef : field === 'avatar_url' ? avatarUrlRef : usernameRef;
+      fieldRef.current?.focus();
     });
   };
 
@@ -285,6 +288,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
         <Stack gap="md">
           {panelError}
           <Select
+            ref={defaultGroupRef}
             label="Default Group"
             description="New rulesets and factions use this Group when it is still available. You can change an item’s Group after its first save."
             value={defaultGroupId ?? ''}
