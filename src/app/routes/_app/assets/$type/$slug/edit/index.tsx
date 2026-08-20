@@ -31,12 +31,12 @@ function EditAssetPage() {
   switch (type) {
     case 'card-treachery':
       return <TreacheryEditPage slug={slug} loaderData={loaderData} />;
-    case 'token-round':
-    case 'token-gear':
-    case 'token-square':
+    case 'token-disc':
+    case 'token-tech':
+    case 'token-plate':
       return <TokenEditPage type={type} slug={slug} loaderData={loaderData} />;
     /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */
-    case 'token-rectangle':
+    case 'token-enhance':
       return <RectangleEditPage type={type} slug={slug} loaderData={loaderData} />;
     case 'deck':
       return <DeckEditPage slug={slug} loaderData={loaderData} />;

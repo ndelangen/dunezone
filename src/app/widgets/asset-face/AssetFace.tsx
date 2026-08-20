@@ -49,7 +49,7 @@ const PEEKING_LIMIT = MEMBER_PEEK.length;
  * How far a tilted member's corner climbs above its own top edge, as a fraction of the member's width.
  *
  * A member is tilted about its centre, so the rise the layout has to reserve is not the rise the transform states.
- * The browse tile draws inside `CanvasScale`, which clips, and without this the corner of the most-tilted member was cut: 10px off a 352px face, and only on the members whose artwork reaches their own corners, which is why a round token looked fine beside a clipped rectangle.
+ * The browse tile draws inside `CanvasScale`, which clips, and without this the corner of the most-tilted member was cut: 10px off a 352px face, and only on the members whose artwork reaches their own corners, which is why a disc token looked fine beside a clipped enhance token.
  * Read off `MEMBER_PEEK` rather than measured once and written down, so changing a tilt cannot leave a stale number behind.
  * `sin` alone slightly over-reserves, because the true growth is offset by a `cos` term that shrinks with the member's height, and over-reserving shows a few transparent pixels where under-reserving shows a cut corner.
  */
@@ -62,7 +62,7 @@ function bundleHeadroom(memberCount: number): number {
   return memberCount > 0 ? MEMBER_WIDTH_RATIO * (MEMBER_RISE_RATIO + MEMBER_TILT_RISE) : 0;
 }
 
-/** A rectangle token is wider than it is tall; every other token shape is square. */
+/** An enhance token is wider than it is tall; every other token shape is square. */
 const RECTANGLE_TOKEN_ASPECT = 0.62;
 
 /** a cog silhouette for gear tokens — 10 teeth, alternating outer/inner radius */
@@ -285,13 +285,13 @@ export function assetFaceAspect(type: string, memberCount = 0): number {
 
 export function tokenShapeOfType(type: string): TokenShape | null {
   switch (type) {
-    case 'token-round':
+    case 'token-disc':
       return 'round';
-    case 'token-gear':
+    case 'token-tech':
       return 'gear';
-    case 'token-square':
+    case 'token-plate':
       return 'square';
-    case 'token-rectangle':
+    case 'token-enhance':
       return 'rectangle';
     default:
       return null;

@@ -16,10 +16,10 @@ export const PUBLICATION_ASSET_TYPES = [
   'faction_sheet',
   'card-treachery',
   'deck',
-  'token-round',
-  'token-gear',
-  'token-square',
-  'token-rectangle',
+  'token-disc',
+  'token-tech',
+  'token-plate',
+  'token-enhance',
 ] as const;
 
 export type PublicationAssetType = (typeof PUBLICATION_ASSET_TYPES)[number];
@@ -78,10 +78,10 @@ export type PublicationFace = 'back';
  * that is an enqueue-time rule rather than a shape of the table, since the same token can switch modes without changing type.
  */
 const TOKEN_TARGETS = {
-  'token-round': tokenTarget('round', 600, 600),
-  'token-gear': tokenTarget('gear', 600, 600),
-  'token-square': tokenTarget('square', 600, 600),
-  'token-rectangle': tokenTarget('rectangle', 600, 372),
+  'token-disc': tokenTarget('round', 600, 600),
+  'token-tech': tokenTarget('gear', 600, 600),
+  'token-plate': tokenTarget('square', 600, 600),
+  'token-enhance': tokenTarget('rectangle', 600, 372),
 } as const satisfies Record<string, PublicationTarget>;
 
 function tokenTarget(shape: string, widthPx: number, heightPx: number): PublicationTarget {

@@ -9,8 +9,8 @@ export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
 export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
 export const DECK_ASSET_TYPE = 'deck' as const;
 /** The three shapes whose face is a symbol in a fixed slot. The rectangle is a token too, and a different face model. */
-export const ROUND_TOKEN_ASSET_TYPES = ['token-round', 'token-gear', 'token-square'] as const;
-export const RECTANGLE_TOKEN_ASSET_TYPE = 'token-rectangle' as const;
+export const ROUND_TOKEN_ASSET_TYPES = ['token-disc', 'token-tech', 'token-plate'] as const;
+export const RECTANGLE_TOKEN_ASSET_TYPE = 'token-enhance' as const;
 export const PUBLICATION_MAX_ATTEMPTS = 10;
 export const PUBLICATION_MAX_PICKUP = 20;
 export const PUBLICATION_JOB_EXPIRY_MS = 5 * 60 * 1000;
@@ -74,9 +74,9 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   [FACTION_SHEET_ASSET_TYPE]: factionSheetAssetDataSchema,
   [TREACHERY_CARD_ASSET_TYPE]: treacheryCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
-  'token-round': tokenFaceAssetDataSchema,
-  'token-gear': tokenFaceAssetDataSchema,
-  'token-square': tokenFaceAssetDataSchema,
+  'token-disc': tokenFaceAssetDataSchema,
+  'token-tech': tokenFaceAssetDataSchema,
+  'token-plate': tokenFaceAssetDataSchema,
   [RECTANGLE_TOKEN_ASSET_TYPE]: rectangleTokenFaceAssetDataSchema,
 } as const satisfies Record<PublicationAssetType, z.ZodType>;
 

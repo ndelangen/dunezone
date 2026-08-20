@@ -28,14 +28,14 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
       return { data: parsed, name: parsed.name };
     }
     /* The three shapes share one schema: shape is the Asset type, never a field, so only the clip differs downstream. */
-    case 'token-round':
-    case 'token-gear':
-    case 'token-square': {
+    case 'token-disc':
+    case 'token-tech':
+    case 'token-plate': {
       const parsed = TokenAsset.parse(data);
       return { data: parsed, name: parsed.name };
     }
     /* The rectangle is a token by category and by backside rules, and its own schema by face: a free composition rather than a symbol in a fixed slot. */
-    case 'token-rectangle': {
+    case 'token-enhance': {
       const parsed = RectangleTokenAsset.parse(data);
       return { data: parsed, name: parsed.name };
     }

@@ -228,21 +228,21 @@ describe('token backsides', () => {
     const t = convexTest(schema, modules);
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
-    const front = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
-    const backA = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Sietch') });
-    const backB = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Spice') });
+    const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
+    const backA = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Sietch') });
+    const backB = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Spice') });
 
     await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: backA.id });
-    let page = await t.query(api.assets.getPage, { type: 'token-round', slug: 'axlotl' });
+    let page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken?.name).toBe('Sietch');
 
     /* Re-pointing replaces rather than accumulates: the index is not unique, so the mutation clears first. */
     await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: backB.id });
-    page = await t.query(api.assets.getPage, { type: 'token-round', slug: 'axlotl' });
+    page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken?.name).toBe('Spice');
 
     await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: null });
-    page = await t.query(api.assets.getPage, { type: 'token-round', slug: 'axlotl' });
+    page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken).toBeNull();
   });
 
@@ -250,11 +250,11 @@ describe('token backsides', () => {
     const t = convexTest(schema, modules);
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
-    const round = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
-    const square = await owner.mutation(api.assets.create, { type: 'token-square', data: tokenData('Shield') });
+    const round = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
+    const square = await owner.mutation(api.assets.create, { type: 'token-plate', data: tokenData('Shield') });
 
     await expect(owner.mutation(api.assets.setTokenBack, { id: round.id, back_asset_id: square.id })).rejects.toThrow(
-      'must also be a token-round'
+      'must also be a token-disc'
     );
     await expect(owner.mutation(api.assets.setTokenBack, { id: round.id, back_asset_id: round.id })).rejects.toThrow(
       'cannot be its own backside'
@@ -268,13 +268,13 @@ describe('token backsides', () => {
     const t = convexTest(schema, modules);
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
-    const front = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
-    const back = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Sietch') });
+    const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
+    const back = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Sietch') });
     await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: back.id });
 
     await owner.mutation(api.assets.softDelete, { id: back.id });
 
-    const page = await t.query(api.assets.getPage, { type: 'token-round', slug: 'axlotl' });
+    const page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken).toBeNull();
     const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
     expect(relations).toHaveLength(1);
@@ -327,11 +327,11 @@ describe('deck composition', () => {
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
-    const token = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
+    const token = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
 
     await expect(
       owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: token.id, count: 1 })
-    ).rejects.toThrow('holds cards, not token-round');
+    ).rejects.toThrow('holds cards, not token-disc');
     await expect(
       owner.mutation(api.assets.setMemberCount, { container_id: created.id, member_id: created.id, count: 1 })
     ).rejects.toThrow('holds nothing');
@@ -480,13 +480,13 @@ describe('asset publication', () => {
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
     const token = await t
       .withIdentity({ subject: ownerId })
-      .mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
+      .mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
 
     const jobs = await t.run(
       async (ctx) =>
         await ctx.db
           .query('publication_jobs')
-          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'token-round'))
+          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'token-disc'))
           .collect()
     );
     expect(jobs.map((job) => job.asset_id).sort()).toEqual([token.id, `${token.id}.back`].sort());
@@ -496,7 +496,7 @@ describe('asset publication', () => {
     const t = convexTest(schema, modules);
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
     const token = await t.withIdentity({ subject: ownerId }).mutation(api.assets.create, {
-      type: 'token-round',
+      type: 'token-disc',
       data: { ...tokenData('Axlotl'), back: { mode: 'reference' } },
     });
 
@@ -504,7 +504,7 @@ describe('asset publication', () => {
       async (ctx) =>
         await ctx.db
           .query('publication_jobs')
-          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'token-round'))
+          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'token-disc'))
           .collect()
     );
     /* A referenced back is another token's front and publishes nothing of its own. */
@@ -540,20 +540,20 @@ describe('a token page reports both of its faces', () => {
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
 
-    await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
+    await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
     await owner.mutation(api.assets.create, {
-      type: 'token-round',
+      type: 'token-disc',
       data: { ...tokenData('Sietch'), back: { mode: 'reference' } },
     });
 
-    const authored = await t.query(api.assets.getPage, { type: 'token-round', slug: 'axlotl' });
+    const authored = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
     expect(authored?.backPublishing).toMatchObject({ captureStatus: 'scheduled', publicationHref: null });
 
     /*
      * A referenced back is another token's front, so this token publishes nothing of its own for it.
      * Read from the stored mode rather than from whether bytes exist: switching a back from authored to referenced orphans the object instead of deleting it.
      */
-    const referenced = await t.query(api.assets.getPage, { type: 'token-round', slug: 'sietch' });
+    const referenced = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'sietch' });
     expect(referenced?.backPublishing).toBeNull();
 
     const card = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
@@ -563,16 +563,16 @@ describe('a token page reports both of its faces', () => {
   });
 });
 
-describe('rectangle tokens', () => {
+describe('enhance tokens', () => {
   test('a free composition round-trips through a save, placed elements and all', async () => {
     const t = convexTest(schema, modules);
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
     const created = await t
       .withIdentity({ subject: ownerId })
-      .mutation(api.assets.create, { type: 'token-rectangle', data: rectangleData('Kwisatz Haderach') });
+      .mutation(api.assets.create, { type: 'token-enhance', data: rectangleData('Kwisatz Haderach') });
 
     expect(created.slug).toBe('kwisatz-haderach');
-    const page = await t.query(api.assets.getPage, { type: 'token-rectangle', slug: 'kwisatz-haderach' });
+    const page = await t.query(api.assets.getPage, { type: 'token-enhance', slug: 'kwisatz-haderach' });
     expect(page?.asset.data).toEqual(rectangleData('Kwisatz Haderach'));
   });
 
@@ -583,7 +583,7 @@ describe('rectangle tokens', () => {
     data.front.texts[0]!.font = 'Comic Sans';
 
     await expect(
-      t.withIdentity({ subject: ownerId }).mutation(api.assets.create, { type: 'token-rectangle', data })
+      t.withIdentity({ subject: ownerId }).mutation(api.assets.create, { type: 'token-enhance', data })
     ).rejects.toThrow();
   });
 });
@@ -609,8 +609,8 @@ describe('bundles', () => {
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const bundle = await owner.mutation(api.assets.create, { type: 'bundle', data: bundleData('Tech Tokens') });
-    const round = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Shield') });
-    const gear = await owner.mutation(api.assets.create, { type: 'token-gear', data: tokenData('Ornithopter') });
+    const round = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Shield') });
+    const gear = await owner.mutation(api.assets.create, { type: 'token-tech', data: tokenData('Ornithopter') });
 
     await owner.mutation(api.assets.setMemberCount, { container_id: bundle.id, member_id: round.id, count: 20 });
     await owner.mutation(api.assets.setMemberCount, { container_id: bundle.id, member_id: gear.id, count: 1 });
@@ -633,7 +633,7 @@ describe('bundles', () => {
     const names = ['Deleted', 'Shield', 'Lasgun', 'Snooper', 'Fourth'];
     const tokens = [];
     for (const name of names) {
-      const token = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData(name) });
+      const token = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData(name) });
       await owner.mutation(api.assets.setMemberCount, { container_id: bundle.id, member_id: token.id, count: 1 });
       tokens.push(token);
     }
@@ -644,7 +644,7 @@ describe('bundles', () => {
     const members = bundles.entries[0]!.members;
     expect(members.map((member) => member.name)).toEqual(['Shield', 'Lasgun', 'Snooper']);
     /* `type` and `data` are the whole point of this shape: without both, a tile can name a member but not draw it. */
-    expect(members.map((member) => member.type)).toEqual(['token-round', 'token-round', 'token-round']);
+    expect(members.map((member) => member.type)).toEqual(['token-disc', 'token-disc', 'token-disc']);
     expect(members.every((member) => member.data.front)).toBe(true);
 
     /* A card holds nothing, so its page skips the relation pass rather than reading it once per row to learn zero. */

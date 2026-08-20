@@ -362,10 +362,10 @@ export function rectangleDraftWarnings(draft: RectangleDraft, hasBackReference: 
 const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
 
 /**
- * The rectangle token workbench.
+ * The enhance token workbench.
  *
  * It is its own component rather than a branch inside `TokenEditor` because the two share only their backside rules.
- * A round token's face is a symbol in a fixed slot with curved labels, and fits one chapter;
+ * A disc token's face is a symbol in a fixed slot with curved labels, and fits one chapter;
  * a rectangle's face is a free composition and takes three, so one editor would be two editors wearing one name.
  */
 export function RectangleTokenEditor({
@@ -436,7 +436,7 @@ export function RectangleTokenEditor({
           />
           <ControlBlock
             title="Backside"
-            description="Every token has one. Author it here, or point at a rectangle token that already exists."
+            description="Every token has one. Author it here, or point at an enhance token that already exists."
             input={
               <Stack gap="sm">
                 <Switch
@@ -476,7 +476,7 @@ export function RectangleTokenEditor({
           onChapterChange(next);
           onSettle();
         }}
-        ariaLabel="Rectangle token chapters"
+        ariaLabel="Enhance token chapters"
         items={items}
       />
       <div style={{ minWidth: 0, paddingLeft: 'var(--mantine-spacing-md)' }}>

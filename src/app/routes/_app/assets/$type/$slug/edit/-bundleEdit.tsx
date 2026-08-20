@@ -20,7 +20,7 @@ import { AssetEditorMessage } from '../../../-assetEditorStates';
 const VALIDATION_HEADER_ID = 'bundle-validation-header';
 
 /** Every token type a bundle may hold. A bundle mixes shapes freely, which is the point of it. */
-const TOKEN_TYPES = ['token-round', 'token-gear', 'token-square', 'token-rectangle'];
+const TOKEN_TYPES = ['token-disc', 'token-tech', 'token-plate', 'token-enhance'];
 
 export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
   const query = useAssetPage('bundle', slug, { initialData: loaderData });

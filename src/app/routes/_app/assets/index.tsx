@@ -174,14 +174,14 @@ function emptyOutlineShape(
   type: AssetType
 ): { width: number | string; borderRadius: number | string } & ({ height: number } | { aspectRatio: string }) {
   switch (type) {
-    case 'token-round':
-    case 'token-gear':
+    case 'token-disc':
+    case 'token-tech':
       return { width: 96, height: 96, borderRadius: '50%' };
-    case 'token-square':
+    case 'token-plate':
       return { width: 96, height: 96, borderRadius: 8 };
-    case 'token-rectangle':
+    case 'token-enhance':
       /* `assetFaceAspect` owns this ratio; the literal here was 110/68, which is close to it but not equal, and drifting apart was only a matter of time. */
-      return { width: '100%', aspectRatio: `1 / ${assetFaceAspect('token-rectangle')}`, borderRadius: 8 };
+      return { width: '100%', aspectRatio: `1 / ${assetFaceAspect('token-enhance')}`, borderRadius: 8 };
     case 'board':
       return { width: '100%', aspectRatio: '3 / 2', borderRadius: 8 };
     default:
@@ -229,7 +229,7 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
     ) : isCardish ? (
       <MiniFan entries={entries.slice(0, 4)} slot={drawnAt} />
     ) : (
-      <TokenStack entries={entries} width={type === 'token-rectangle' ? drawnAt - 26 : 96} />
+      <TokenStack entries={entries} width={type === 'token-enhance' ? drawnAt - 26 : 96} />
     );
 
   const body = (

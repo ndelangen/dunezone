@@ -368,7 +368,7 @@ const CONTAINER_KINDS: Record<string, { kind: string; holds: (type: string) => b
 };
 
 /** Token Asset types, which are the only things that may sit on either end of a `token-back` relation. */
-const TOKEN_TYPES = new Set(['token-round', 'token-gear', 'token-square', 'token-rectangle']);
+const TOKEN_TYPES = new Set(['token-disc', 'token-tech', 'token-plate', 'token-enhance']);
 
 /**
  * Points a token's backside at another token, or clears the reference.

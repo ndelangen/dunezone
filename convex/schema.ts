@@ -84,7 +84,7 @@ export default defineSchema({
     .index('by_group_deleted', ['group_id', 'is_deleted']),
   /**
    * Community assets — one table for every Asset category (cards, decks, tokens, boards).
-   * `type` is the flat Asset type discriminator (`card-treachery`, `deck`, `token-round`, …);
+   * `type` is the flat Asset type discriminator (`card-treachery`, `deck`, `token-disc`, …);
    * the browse category is always derived from it, never stored.
    * `data` is validated by the per-type Zod schema at the seams, like factions.
    * Slugs are unique per Asset category — enforced by the slug-reservation mutations, not the schema.

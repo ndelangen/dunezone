@@ -18,11 +18,11 @@ import type { RectangleChapter, RectangleDraft } from '@app/widgets/token-editor
 
 import { AssetEditorMessage } from '../../-assetEditorStates';
 
-const TYPE = 'token-rectangle';
+const TYPE = 'token-enhance';
 const VALIDATION_HEADER_ID = 'rectangle-token-validation-header';
 
 /**
- * The create page for a rectangle token.
+ * The create page for an enhance token.
  * A referenced backside cannot be set here for the same reason as the round shapes: the relation needs an asset id, and there is none until the first save.
  */
 export function RectangleCreatePage() {
@@ -47,7 +47,7 @@ export function RectangleCreatePage() {
 
   if (profile.data === null) {
     return (
-      <AssetEditorMessage title="New rectangle token" type={TYPE}>
+      <AssetEditorMessage title="New enhance token" type={TYPE}>
         <Text>
           <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to create tokens.
         </Text>
@@ -82,7 +82,7 @@ export function RectangleCreatePage() {
             statusMessage:
               saveState === 'error'
                 ? 'The token was not saved.'
-                : 'New rectangle token. Saving opens it for editing, where the backside can point at another rectangle.',
+                : 'New enhance token. Saving opens it for editing, where the backside can point at another enhance token.',
           }}
           actions={{
             onSave: save,

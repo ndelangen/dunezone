@@ -42,13 +42,13 @@ const cardSnapshot = envelope('card-treachery', {
   slug: 'publisher-contract-card',
   card: publishingTreacheryCard,
 });
-const tokenSnapshot = envelope('token-round', {
+const tokenSnapshot = envelope('token-disc', {
   assetId: 'k17publisherContractToken',
   slug: 'publisher-contract-token',
   face: publishingTokenFace,
 });
 /* The back publishes under a qualified id, so the regression drives the exact string a real back job would carry. */
-const rectangleSnapshot = envelope('token-rectangle', {
+const rectangleSnapshot = envelope('token-enhance', {
   assetId: 'k17publisherContractRect.back',
   slug: 'publisher-contract-rectangle',
   face: publishingRectangleTokenFace,
@@ -232,7 +232,7 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
  */
 async function checkPublisherImageCapture(
   browser: Browser,
-  assetType: 'card-treachery' | 'deck' | 'token-round' | 'token-rectangle',
+  assetType: 'card-treachery' | 'deck' | 'token-disc' | 'token-enhance',
   snapshot: ReturnType<typeof envelope>,
   label: string
 ): Promise<void> {
@@ -280,8 +280,8 @@ try {
   await checkPublisherPdf(browser);
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
-  await checkPublisherImageCapture(browser, 'token-round', tokenSnapshot, 'round token face');
-  await checkPublisherImageCapture(browser, 'token-rectangle', rectangleSnapshot, 'rectangle token back');
+  await checkPublisherImageCapture(browser, 'token-disc', tokenSnapshot, 'round token face');
+  await checkPublisherImageCapture(browser, 'token-enhance', rectangleSnapshot, 'rectangle token back');
 } finally {
   await browser.close();
   server.stop(true);

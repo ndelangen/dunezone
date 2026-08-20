@@ -140,9 +140,9 @@ export async function enqueueAssetPublication(
      * Every token has two faces and «Token multi-face publication model» publishes them independently, so a save schedules two jobs rather than one.
      * The two face models differ, so the parse differs and the scheduling does not.
      */
-    case 'token-round':
-    case 'token-gear':
-    case 'token-square':
+    case 'token-disc':
+    case 'token-tech':
+    case 'token-plate':
       return await enqueueTokenFaces(ctx, asset, asset.type, TokenAsset.parse(asset.data), now);
     case RECTANGLE_TOKEN_ASSET_TYPE:
       return await enqueueTokenFaces(ctx, asset, asset.type, RectangleTokenAsset.parse(asset.data), now);

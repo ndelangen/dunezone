@@ -44,9 +44,9 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
      */
     case TREACHERY_CARD_ASSET_TYPE:
     case DECK_ASSET_TYPE:
-    case 'token-round':
-    case 'token-gear':
-    case 'token-square':
+    case 'token-disc':
+    case 'token-tech':
+    case 'token-plate':
     case RECTANGLE_TOKEN_ASSET_TYPE: {
       const page = await ctx.db
         .query('assets')

@@ -32,12 +32,12 @@ function CreateAssetPage() {
     case 'card-treachery':
       return <TreacheryCreatePage />;
     /* One editor for all three shapes: shape is the type, and only the proof's clip differs. */
-    case 'token-round':
-    case 'token-gear':
-    case 'token-square':
+    case 'token-disc':
+    case 'token-tech':
+    case 'token-plate':
       return <TokenCreatePage type={type} />;
     /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */
-    case 'token-rectangle':
+    case 'token-enhance':
       return <RectangleCreatePage />;
     case 'deck':
       return <DeckCreatePage />;

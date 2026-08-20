@@ -72,9 +72,9 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
      * A token face, already resolved by the producer, so this never asks which face it is drawing.
      * No `TokenFrame`: that is catalogue chrome and carries a drop shadow, and a JPEG cannot hold a mask anyway, so the published artifact is the renderer's own square face and a consumer masks it themselves.
      */
-    case 'token-round':
-    case 'token-gear':
-    case 'token-square':
+    case 'token-disc':
+    case 'token-tech':
+    case 'token-plate':
       return {
         node: (
           <CaptureFrame assetType={snapshot.assetType}>
@@ -99,7 +99,7 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
           </CaptureFrame>
         ),
       };
-    case 'token-rectangle':
+    case 'token-enhance':
       return {
         node: (
           <CaptureFrame assetType={snapshot.assetType}>
