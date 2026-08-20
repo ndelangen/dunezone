@@ -1,6 +1,8 @@
 import { userA } from './accounts';
 import { expect, test } from './coverage';
 
+test.use({ storageState: '.playwright/user-a-profile-edit.json' });
+
 const onePixelPng = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
   'base64'
