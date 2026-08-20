@@ -11,7 +11,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
 import { mutation } from './functions';
-import { assertKnownAssetType, parseAssetDataForWrite } from './lib/assetInput';
+import { assetDisplayName, assertKnownAssetType, parseAssetDataForWrite } from './lib/assetInput';
 import {
   loadAssetAccessBundle,
   requireAssetSoftDelete,
@@ -53,8 +53,7 @@ const assetListEntryValidator = v.object({
 });
 
 function nameOf(row: Doc<'assets'>): string {
-  const data = row.data as { name?: unknown } | null | undefined;
-  return typeof data?.name === 'string' && data.name.trim() ? data.name : 'Untitled';
+  return assetDisplayName(row);
 }
 
 async function toListEntry(

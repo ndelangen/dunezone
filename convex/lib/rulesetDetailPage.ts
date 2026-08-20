@@ -1,5 +1,6 @@
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import { assetDisplayName } from './assetInput';
 import { loadAssetAccessBundle, loadRulesetAccessForLoadedSubject } from './collaborativeAccess';
 import { parseStoredFactionForRead } from './factionInput';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
@@ -95,11 +96,6 @@ async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
 }
 
 /** The stored `name` inside an untyped `data` blob, with the same fallback every catalogue surface uses. */
-function assetDisplayName(asset: Doc<'assets'>): string {
-  const data = asset.data as { name?: unknown } | null | undefined;
-  return typeof data?.name === 'string' && data.name.trim() ? data.name : 'Untitled';
-}
-
 export async function loadRulesetDetailPageBySlug(ctx: QueryCtx, slug: string) {
   const row = await loadPublicRulesetBySlug(ctx, slug);
   if (!row) {
