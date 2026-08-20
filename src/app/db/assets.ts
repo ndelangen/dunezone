@@ -33,14 +33,14 @@ export function useCreateAsset() {
   return useLiveMutation<{ type: string; data: unknown }, { id: string; slug: string }>(api.assets.create);
 }
 
-export type AssetForEditData = FunctionReturnType<typeof api.assets.getForEdit>;
+export type AssetPageData = FunctionReturnType<typeof api.assets.getPage>;
 
-export async function loadAssetForEdit(type: string, slug: string): Promise<AssetForEditData> {
-  return await db.query(api.assets.getForEdit, { type, slug });
+export async function loadAssetPage(type: string, slug: string): Promise<AssetPageData> {
+  return await db.query(api.assets.getPage, { type, slug });
 }
 
-export function useAssetForEdit(type: string, slug: string, options?: { initialData?: AssetForEditData }) {
-  const liveData = useQuery(api.assets.getForEdit, { type, slug });
+export function useAssetPage(type: string, slug: string, options?: { initialData?: AssetPageData }) {
+  const liveData = useQuery(api.assets.getPage, { type, slug });
   return toLiveQueryResult(liveData, true, () => options?.initialData);
 }
 

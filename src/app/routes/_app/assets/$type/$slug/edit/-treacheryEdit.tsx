@@ -8,8 +8,8 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 
-import { useAssetForEdit, useDeleteAsset, useSetAssetGroup, useUpdateAsset } from '@app/db/assets';
-import type { AssetForEditData } from '@app/db/assets';
+import { useAssetPage, useDeleteAsset, useSetAssetGroup, useUpdateAsset } from '@app/db/assets';
+import type { AssetPageData } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
@@ -22,8 +22,8 @@ import { AssetEditorMessage } from '../../../-assetEditorStates';
 const VALIDATION_HEADER_ID = 'card-validation-header';
 
 /** The treachery card edit page. Mounted by the generic `$type/$slug/edit` route when the type is `card-treachery`. */
-export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderData: AssetForEditData }) {
-  const query = useAssetForEdit('card-treachery', slug, { initialData: loaderData });
+export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
+  const query = useAssetPage('card-treachery', slug, { initialData: loaderData });
   const data = query.data ?? loaderData;
 
   if (data === null) {
@@ -73,8 +73,8 @@ export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderDa
 
 /** What the editor toolbar needs to know about the viewer: what they may do, and which Groups they could hand the card to. */
 type CardEditAccess = {
-  viewerAccess: NonNullable<AssetForEditData>['viewerAccess'];
-  assignableGroups: NonNullable<AssetForEditData>['assignableGroups'];
+  viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
+  assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
 };
 
 /**
@@ -82,7 +82,7 @@ type CardEditAccess = {
  * Deleting is the caller's to trigger and the page's to navigate away from;
  * this only holds the mutation.
  */
-function useCardDeletion(assetId: NonNullable<AssetForEditData>['asset']['id']) {
+function useCardDeletion(assetId: NonNullable<AssetPageData>['asset']['id']) {
   const navigate = useNavigate();
   const deleteAsset = useDeleteAsset();
   return {
@@ -101,7 +101,7 @@ function useCardDeletion(assetId: NonNullable<AssetForEditData>['asset']['id']) 
  * A card whose stored data no longer satisfies the treachery schema, reachable whenever the schema tightens ahead of a backfill.
  * The editor cannot open it, but deletion never reads the data, so the owner keeps the one action that still applies rather than needing the database to be rid of it.
  */
-function DriftedCardPage({ asset, canDelete }: { asset: NonNullable<AssetForEditData>['asset']; canDelete: boolean }) {
+function DriftedCardPage({ asset, canDelete }: { asset: NonNullable<AssetPageData>['asset']; canDelete: boolean }) {
   const deletion = useCardDeletion(asset.id);
 
   return (
@@ -136,7 +136,7 @@ function CardEditSession({
   initialDraft,
   access,
 }: {
-  asset: NonNullable<AssetForEditData>['asset'];
+  asset: NonNullable<AssetPageData>['asset'];
   initialDraft: TreacheryDraft;
   access: CardEditAccess;
 }) {

@@ -104,7 +104,7 @@ function groupAssociatedViewerAccessValidator<Kind extends 'faction' | 'ruleset'
   });
 }
 
-const assetPublishingValidator = v.object({
+export const assetPublishingValidator = v.object({
   status: v.union(v.literal('current'), v.null()),
   captureStatus: v.union(v.literal('scheduled'), v.literal('in_progress'), v.null()),
   publicationHref: v.union(v.string(), v.null()),

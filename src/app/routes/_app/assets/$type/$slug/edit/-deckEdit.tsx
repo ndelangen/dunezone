@@ -8,8 +8,8 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 
-import { useAssetForEdit, useDeleteAsset, useSetDeckCardCount, useUpdateAsset } from '@app/db/assets';
-import type { AssetForEditData } from '@app/db/assets';
+import { useAssetPage, useDeleteAsset, useSetDeckCardCount, useUpdateAsset } from '@app/db/assets';
+import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
@@ -24,8 +24,8 @@ const VALIDATION_HEADER_ID = 'deck-validation-header';
 /** Every card type a deck may hold. Grows with the registry rather than with this file. */
 const CARD_TYPES = ['card-treachery'];
 
-export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: AssetForEditData }) {
-  const query = useAssetForEdit('deck', slug, { initialData: loaderData });
+export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
+  const query = useAssetPage('deck', slug, { initialData: loaderData });
   const data = query.data ?? loaderData;
 
   if (data === null) {
@@ -77,8 +77,8 @@ function DeckEditSession({
   deckCards,
   initialDraft,
 }: {
-  asset: NonNullable<AssetForEditData>['asset'];
-  deckCards: NonNullable<AssetForEditData>['deckCards'];
+  asset: NonNullable<AssetPageData>['asset'];
+  deckCards: NonNullable<AssetPageData>['deckCards'];
   initialDraft: DeckDraft;
 }) {
   const navigate = useNavigate();

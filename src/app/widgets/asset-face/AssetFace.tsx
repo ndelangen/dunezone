@@ -19,6 +19,9 @@ import { card as CARD_SIZE } from '@game/data/sizes';
 
 export const CARD_ASPECT = CARD_SIZE.height / CARD_SIZE.width;
 
+/** A rectangle token is wider than it is tall; every other token shape is square. */
+const RECTANGLE_TOKEN_ASPECT = 0.62;
+
 /** a cog silhouette for gear tokens — 10 teeth, alternating outer/inner radius */
 const GEAR_CLIP = (() => {
   const steps = 20;
@@ -76,7 +79,7 @@ export function TokenFrame({
   children: ReactNode;
   style?: CSSProperties;
 }) {
-  const height = shape === 'rectangle' ? width * 0.62 : width;
+  const height = shape === 'rectangle' ? width * RECTANGLE_TOKEN_ASPECT : width;
   const gear = shape === 'gear';
   return (
     <div
@@ -137,12 +140,55 @@ const cardbackFaceSchema = z.object({
   }),
 });
 
-const tokenFaceSchema = z.object({
-  front: z.looseObject({
-    background: z.unknown(),
-    image: z.string(),
-  }),
+/**
+ * One drawable token face.
+ * Loose on purpose: the editors own the full schema, and a listing that refused to draw a face over one unexpected key would be worse than one that draws it.
+ * The label and scale fields are optional so a token stored before they existed still renders.
+ */
+const drawableTokenFace = z.looseObject({
+  background: z.unknown(),
+  image: z.string(),
+  symbolScale: z.number().optional(),
+  top: z.string().optional(),
+  bottomFirst: z.string().optional(),
+  bottomSecond: z.string().optional(),
+  ring: z.boolean().optional(),
 });
+
+const tokenFaceSchema = z.object({
+  front: drawableTokenFace,
+  /* A referenced back stores no face; the caller resolves it to the other token and draws that token's front. */
+  back: z
+    .union([
+      z.looseObject({ mode: z.literal('custom'), face: drawableTokenFace }),
+      z.looseObject({ mode: z.literal('reference') }),
+    ])
+    .optional(),
+});
+
+type DrawableTokenFace = z.infer<typeof drawableTokenFace>;
+
+/**
+ * Which face of a token to draw.
+ * `back` falls through to the neutral face when the token has no authored back, since a referenced back is another token's front and only the caller holds that token.
+ */
+export type AssetFaceSide = 'front' | 'back';
+
+/**
+ * The height of a type's face as a multiple of its width.
+ * One place, because the frames below and every caller that has to reserve space for a face were otherwise deriving the same three numbers separately.
+ */
+export function assetFaceAspect(type: string): number {
+  const shape = tokenShapeOfType(type);
+  switch (shape) {
+    case null:
+      return CARD_ASPECT;
+    case 'rectangle':
+      return RECTANGLE_TOKEN_ASPECT;
+    default:
+      return 1;
+  }
+}
 
 export function tokenShapeOfType(type: string): TokenShape | null {
   switch (type) {
@@ -159,11 +205,39 @@ export function tokenShapeOfType(type: string): TokenShape | null {
   }
 }
 
+/** The renderer centres the symbol in a 300-unit box, so scale is expressed against its reference size. */
+function tokenSymbolSize(face: DrawableTokenFace) {
+  const scale = face.symbolScale ?? 1;
+  return { width: 100 * scale, height: 100 * scale };
+}
+
+/** The renderer takes one `bottom` string split on a newline; the stored shape keeps the two lines apart. */
+function tokenBottom(face: DrawableTokenFace): string | undefined {
+  const first = face.bottomFirst ?? '';
+  const second = face.bottomSecond ?? '';
+  return first || second ? `${first}\n${second}` : undefined;
+}
+
 /**
  * Renders one asset's face at the given width, framed and clipped per its type.
  * Unknown types and unrenderable data come back as the neutral face, never a crash.
+ *
+ * `side` picks which face of a token to draw and is ignored by every other type.
+ * A token whose back is a *reference* draws nothing here: that back is another token's front, and only a caller holding that token's own row can supply it.
  */
-export function AssetFace({ type, data, name, width }: { type: string; data: unknown; name: string; width: number }) {
+export function AssetFace({
+  type,
+  data,
+  name,
+  width,
+  side = 'front',
+}: {
+  type: string;
+  data: unknown;
+  name: string;
+  width: number;
+  side?: AssetFaceSide;
+}) {
   if (type === 'card-treachery') {
     const parsed = TreacheryAsset.safeParse(data);
     if (parsed.success) {
@@ -200,18 +274,30 @@ export function AssetFace({ type, data, name, width }: { type: string; data: unk
   const shape = tokenShapeOfType(type);
   if (shape) {
     const parsed = tokenFaceSchema.safeParse(data);
-    if (parsed.success) {
+    const back = parsed.success ? parsed.data.back : undefined;
+    const face =
+      side === 'back'
+        ? back?.mode === 'custom'
+          ? back.face
+          : undefined
+        : parsed.success
+          ? parsed.data.front
+          : undefined;
+    if (face) {
       return (
         <TokenFrame shape={shape} width={width}>
           <CustomToken
-            background={parsed.data.front.background as never}
-            image={parsed.data.front.image as never}
-            circle={shape === 'round'}
+            background={face.background as never}
+            image={face.image as never}
+            circle={face.ring ?? shape === 'round'}
+            top={face.top || undefined}
+            bottom={tokenBottom(face)}
+            size={tokenSymbolSize(face)}
           />
         </TokenFrame>
       );
     }
-    return <NeutralFace name={name} width={width} aspect={shape === 'rectangle' ? 0.62 : 1} />;
+    return <NeutralFace name={name} width={width} aspect={assetFaceAspect(type)} />;
   }
 
   return <NeutralFace name={name} width={width} aspect={1} />;

@@ -1,7 +1,7 @@
 import { isAssetType } from '@shared/assets/types';
 import { createFileRoute, notFound } from '@tanstack/react-router';
 
-import { loadAssetForEdit } from '@app/db/assets';
+import { loadAssetPage } from '@app/db/assets';
 
 import { NoEditorYet } from '../../../-assetEditorStates';
 import { DeckEditPage } from './-deckEdit';
@@ -17,7 +17,7 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/edit/')({
     if (!isAssetType(params.type)) {
       throw notFound();
     }
-    return await loadAssetForEdit(params.type, params.slug);
+    return await loadAssetPage(params.type, params.slug);
   },
   component: EditAssetPage,
 });

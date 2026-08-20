@@ -6,9 +6,6 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 
 import { loadAssetsByTypes, useAssetsByTypes } from '@app/db/assets';
-
-/* Mirrors the dispatch in `$type/create` and `$type/$slug/edit`; the detail page will take this over. */
-const TYPES_WITH_EDITORS = new Set(['card-treachery', 'token-round', 'token-gear', 'token-square', 'deck']);
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
 export const Route = createFileRoute('/_app/assets/$type/')({
@@ -69,21 +66,19 @@ function AssetTypePage() {
                   <Text size="xs" c="dimmed">
                     {entry.owner?.username ? `by ${entry.owner.username}` : ''}
                   </Text>
-                  {/* Only types with a landed editor get the affordance; the asset detail page will take over this role. */}
-                  {TYPES_WITH_EDITORS.has(entry.type) ? (
-                    <Anchor
-                      size="xs"
-                      renderRoot={(rootProps) => (
-                        <Link
-                          {...rootProps}
-                          to="/assets/$type/$slug/edit"
-                          params={{ type: entry.type, slug: entry.slug }}
-                        />
-                      )}
-                    >
-                      Edit
-                    </Anchor>
-                  ) : null}
+                  {/*
+                    Every type has a page now, so the tile links to the asset rather than to its editor.
+                    That was always the plan: an Edit link here could only be offered to the types with a landed editor,
+                    and it sent a reader who wanted to look at a thing into a form for changing it.
+                  */}
+                  <Anchor
+                    size="xs"
+                    renderRoot={(rootProps) => (
+                      <Link {...rootProps} to="/assets/$type/$slug" params={{ type: entry.type, slug: entry.slug }} />
+                    )}
+                  >
+                    View
+                  </Anchor>
                 </Stack>
               ))}
             </Group>

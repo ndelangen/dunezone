@@ -1,8 +1,10 @@
 import type { Infer } from 'convex/values';
 import { v } from 'convex/values';
 
+import { isPublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
+import { publicationStatusFor } from './assetPublishingStatus';
 import { mutation } from './functions';
 import { assertKnownAssetType, parseAssetDataForWrite } from './lib/assetInput';
 import {
@@ -11,7 +13,11 @@ import {
   requireAssetUpdate,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
-import { assetViewerAccessValidator, assignedGroupSummaryValidator } from './lib/collaborativeAccessValidators';
+import {
+  assetPublishingValidator,
+  assetViewerAccessValidator,
+  assignedGroupSummaryValidator,
+} from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { enqueueAssetPublication } from './lib/publication';
@@ -107,11 +113,28 @@ export const listByTypes = query({
   },
 });
 
+/** One deck naming an asset it holds, and how many copies. */
+const deckReferenceValidator = v.object({
+  id: v.id('assets'),
+  type: v.string(),
+  slug: v.string(),
+  name: v.string(),
+  count: v.number(),
+});
+
+type DeckReference = Infer<typeof deckReferenceValidator>;
+
 /**
- * The edit page's bundle: the asset by type-scoped slug, what the viewer may do with it, and the Groups they could hand it to.
- * `assignableGroups` rides along rather than taking a query of its own, the faction convention, because the toolbar needs it the moment the page renders.
+ * One Asset's whole page, for both the routes that show one.
+ *
+ * The detail page and the edit page take the same bundle, the way `loadRulesetDetailPage` already serves both ruleset routes.
+ * They want the same things for the same reasons: the toolbars are the same toolbar (management actions live on the detail page *and* the edit page), so both need `viewerAccess` and `assignableGroups`, and both draw the asset itself.
+ *
+ * Nothing here is access-gated.
+ * `loadAssetAccessBundle` reads the viewer without demanding one, so an anonymous reader gets the full bundle with every capability false, which is what makes this serve a public page.
+ * A soft-deleted asset reads as absent: its slug stays reserved so the address survives, but nothing behind it is a viewer's to see, and the pages render the same body they would for a slug that never existed.
  */
-export const getForEdit = query({
+export const getPage = query({
   args: { type: v.string(), slug: v.string() },
   returns: v.union(
     v.null(),
@@ -123,6 +146,10 @@ export const getForEdit = query({
       backToken: v.union(assetListEntryValidator, v.null()),
       /** A deck's cards with their counts. Empty for every other type. */
       deckCards: v.array(v.object({ card: assetListEntryValidator, count: v.number() })),
+      /** The decks holding this asset. Empty for a deck, which nothing may hold. */
+      inDecks: v.array(deckReferenceValidator),
+      /** Null for a type that publishes nothing, which today is every type but `card-treachery`. */
+      assetPublishing: v.union(assetPublishingValidator, v.null()),
     })
   ),
   handler: async (ctx, args) => {
@@ -142,6 +169,8 @@ export const getForEdit = query({
       assignableGroups: access.assignableGroups,
       backToken: back ? await toListEntry(ctx, back) : null,
       deckCards: row.type === 'deck' ? await deckCardsFor(ctx, row._id) : [],
+      inDecks: row.type === 'deck' ? [] : await decksHolding(ctx, row._id),
+      assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
     };
   },
 });
@@ -406,16 +435,6 @@ const DECKS_PER_CARD_LIMIT = 100;
  * A deck as a card's membership line cites it.
  * Enough to name it and build its `/assets/{type}/{slug}` link, and deliberately not enough to draw its face, which would mean carrying `data` for every deck on the page.
  */
-const deckReferenceValidator = v.object({
-  id: v.id('assets'),
-  type: v.string(),
-  slug: v.string(),
-  name: v.string(),
-  count: v.number(),
-});
-
-type DeckReference = Infer<typeof deckReferenceValidator>;
-
 /**
  * Which decks hold each of the given cards, in one call.
  * The reverse of `deckCardsFor`, and the first read of `by_to_kind`, the index bought for this question when the table landed.
@@ -430,6 +449,35 @@ type DeckReference = Infer<typeof deckReferenceValidator>;
  * Its callers are the asset detail page's "in decks" list and the type browse page's tile count, both of which are their own tickets;
  * a route may hold only one page query, so the browse page takes this on when its single query is redesigned rather than by mounting a second subscription.
  */
+/**
+ * Which decks hold one asset.
+ * Shared by the page bundle and the bulk reader below so "a deck that is soft-deleted stops being reported while its relation row survives" is decided once.
+ */
+async function decksHolding(
+  ctx: QueryCtx,
+  assetId: Id<'assets'>,
+  decks?: Map<Id<'assets'>, Doc<'assets'> | null>
+): Promise<DeckReference[]> {
+  const seen = decks ?? new Map<Id<'assets'>, Doc<'assets'> | null>();
+  const relations = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_to_kind', (q) => q.eq('to_asset_id', assetId).eq('kind', DECK_CARD))
+    .take(DECKS_PER_CARD_LIMIT);
+
+  const entries: DeckReference[] = [];
+  for (const relation of relations) {
+    const deckId = relation.from_asset_id;
+    if (!seen.has(deckId)) {
+      seen.set(deckId, await ctx.db.get('assets', deckId));
+    }
+    const deck = seen.get(deckId);
+    if (deck && !deck.is_deleted) {
+      entries.push({ id: deck._id, type: deck.type, slug: deck.slug, name: nameOf(deck), count: relation.count });
+    }
+  }
+  return entries;
+}
+
 export const decksForAssets = query({
   args: { assetIds: v.array(v.id('assets')) },
   returns: v.record(v.id('assets'), v.array(deckReferenceValidator)),
@@ -439,23 +487,7 @@ export const decksForAssets = query({
     const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
 
     for (const assetId of args.assetIds.slice(0, MEMBERSHIP_LOOKUP_LIMIT)) {
-      const relations = await ctx.db
-        .query('asset_relations')
-        .withIndex('by_to_kind', (q) => q.eq('to_asset_id', assetId).eq('kind', DECK_CARD))
-        .take(DECKS_PER_CARD_LIMIT);
-
-      const entries: DeckReference[] = [];
-      for (const relation of relations) {
-        const deckId = relation.from_asset_id;
-        if (!decks.has(deckId)) {
-          decks.set(deckId, await ctx.db.get('assets', deckId));
-        }
-        const deck = decks.get(deckId);
-        if (deck && !deck.is_deleted) {
-          entries.push({ id: deck._id, type: deck.type, slug: deck.slug, name: nameOf(deck), count: relation.count });
-        }
-      }
-      byAsset[assetId] = entries;
+      byAsset[assetId] = await decksHolding(ctx, assetId, decks);
     }
 
     return byAsset;

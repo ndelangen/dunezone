@@ -40,6 +40,7 @@ import { Route as AppProfilesProfileSlugIndexRouteImport } from './routes/_app/p
 import { Route as AppProfilesProfileSlugEditRouteImport } from './routes/_app/profiles/$profileSlug/edit'
 import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/index'
 import { Route as AppRulesetsRulesetSlugEditRouteImport } from './routes/_app/rulesets/$rulesetSlug/edit'
+import { Route as AppAssetsTypeSlugIndexRouteImport } from './routes/_app/assets/$type/$slug/index'
 import { Route as AppAssetsTypeCreateIndexRouteImport } from './routes/_app/assets/$type/create/index'
 import { Route as AppRulesetsRulesetSlugFaqQuestionSlugRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/$questionSlug'
 import { Route as AppRulesetsRulesetSlugFaqCreateRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/create'
@@ -205,6 +206,11 @@ const AppRulesetsRulesetSlugEditRoute =
     path: '/edit',
     getParentRoute: () => AppRulesetsRulesetSlugRoute,
   } as any)
+const AppAssetsTypeSlugIndexRoute = AppAssetsTypeSlugIndexRouteImport.update({
+  id: '/assets/$type/$slug/',
+  path: '/assets/$type/$slug/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAssetsTypeCreateIndexRoute =
   AppAssetsTypeCreateIndexRouteImport.update({
     id: '/assets/$type/create/',
@@ -263,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRoute
+  '/assets/$type/$slug/': typeof AppAssetsTypeSlugIndexRoute
   '/assets/$type/create/': typeof AppAssetsTypeCreateIndexRoute
   '/assets/$type/$slug/edit/': typeof AppAssetsTypeSlugEditIndexRoute
 }
@@ -297,6 +304,7 @@ export interface FileRoutesByTo {
   '/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugIndexRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRoute
+  '/assets/$type/$slug': typeof AppAssetsTypeSlugIndexRoute
   '/assets/$type/create': typeof AppAssetsTypeCreateIndexRoute
   '/assets/$type/$slug/edit': typeof AppAssetsTypeSlugEditIndexRoute
 }
@@ -335,6 +343,7 @@ export interface FileRoutesById {
   '/_app/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
   '/_app/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRoute
   '/_app/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRoute
+  '/_app/assets/$type/$slug/': typeof AppAssetsTypeSlugIndexRoute
   '/_app/assets/$type/create/': typeof AppAssetsTypeCreateIndexRoute
   '/_app/assets/$type/$slug/edit/': typeof AppAssetsTypeSlugEditIndexRoute
 }
@@ -373,6 +382,7 @@ export interface FileRouteTypes {
     | '/rulesets/$rulesetSlug/'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
+    | '/assets/$type/$slug/'
     | '/assets/$type/create/'
     | '/assets/$type/$slug/edit/'
   fileRoutesByTo: FileRoutesByTo
@@ -407,6 +417,7 @@ export interface FileRouteTypes {
     | '/rulesets/$rulesetSlug'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
+    | '/assets/$type/$slug'
     | '/assets/$type/create'
     | '/assets/$type/$slug/edit'
   id:
@@ -444,6 +455,7 @@ export interface FileRouteTypes {
     | '/_app/rulesets/$rulesetSlug/'
     | '/_app/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/_app/rulesets/$rulesetSlug/faq/create'
+    | '/_app/assets/$type/$slug/'
     | '/_app/assets/$type/create/'
     | '/_app/assets/$type/$slug/edit/'
   fileRoutesById: FileRoutesById
@@ -673,6 +685,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRulesetsRulesetSlugEditRouteImport
       parentRoute: typeof AppRulesetsRulesetSlugRoute
     }
+    '/_app/assets/$type/$slug/': {
+      id: '/_app/assets/$type/$slug/'
+      path: '/assets/$type/$slug'
+      fullPath: '/assets/$type/$slug/'
+      preLoaderRoute: typeof AppAssetsTypeSlugIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/assets/$type/create/': {
       id: '/_app/assets/$type/create/'
       path: '/assets/$type/create'
@@ -763,6 +782,7 @@ interface AppRouteChildren {
   AppAssetsTypeIndexRoute: typeof AppAssetsTypeIndexRoute
   AppFactionsFactionIdIndexRoute: typeof AppFactionsFactionIdIndexRoute
   AppProfilesProfileSlugIndexRoute: typeof AppProfilesProfileSlugIndexRoute
+  AppAssetsTypeSlugIndexRoute: typeof AppAssetsTypeSlugIndexRoute
   AppAssetsTypeCreateIndexRoute: typeof AppAssetsTypeCreateIndexRoute
   AppAssetsTypeSlugEditIndexRoute: typeof AppAssetsTypeSlugEditIndexRoute
 }
@@ -792,6 +812,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAssetsTypeIndexRoute: AppAssetsTypeIndexRoute,
   AppFactionsFactionIdIndexRoute: AppFactionsFactionIdIndexRoute,
   AppProfilesProfileSlugIndexRoute: AppProfilesProfileSlugIndexRoute,
+  AppAssetsTypeSlugIndexRoute: AppAssetsTypeSlugIndexRoute,
   AppAssetsTypeCreateIndexRoute: AppAssetsTypeCreateIndexRoute,
   AppAssetsTypeSlugEditIndexRoute: AppAssetsTypeSlugEditIndexRoute,
 }

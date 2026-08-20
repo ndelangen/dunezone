@@ -56,9 +56,9 @@ describe('asset update', () => {
       .mutation(api.assets.update, { id: created.id, data: cardData('Hunter-Seeker') });
     expect(renamed.slug).toBe('hunter-seeker');
 
-    const page = await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'hunter-seeker' });
+    const page = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'hunter-seeker' });
     expect(page?.asset.name).toBe('Hunter-Seeker');
-    expect(await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' })).toBeNull();
+    expect(await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' })).toBeNull();
   });
 
   test('a viewer without edit capability cannot update, and anonymous viewers get read-only access facts', async () => {
@@ -69,7 +69,7 @@ describe('asset update', () => {
       t.withIdentity({ subject: outsiderId }).mutation(api.assets.update, { id: created.id, data: cardData('Stolen') })
     ).rejects.toThrow('Not authorized');
 
-    const page = await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
+    const page = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.viewerAccess.viewer.kind).toBe('anonymous');
     expect(page?.viewerAccess.capabilities.edit).toBe(false);
   });
@@ -94,7 +94,7 @@ describe('asset soft delete', () => {
 
     await t.withIdentity({ subject: ownerId }).mutation(api.assets.softDelete, { id: created.id });
 
-    expect(await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' })).toBeNull();
+    expect(await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' })).toBeNull();
     expect(await t.query(api.assets.listByTypes, { types: ['card-treachery'] })).toEqual([]);
     await expect(
       t
@@ -129,7 +129,7 @@ describe('asset soft delete', () => {
 
     const page = await t
       .withIdentity({ subject: outsiderId })
-      .query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
+      .query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.viewerAccess.capabilities.edit).toBe(true);
     expect(page?.viewerAccess.capabilities.delete).toBe(false);
 
@@ -169,14 +169,14 @@ describe('asset group assignment', () => {
 
     const page = await t
       .withIdentity({ subject: outsiderId })
-      .query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
+      .query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.viewerAccess.assignedGroup?.slug).toBe('arrakeen-rules-council');
     expect(page?.viewerAccess.capabilities.edit).toBe(true);
     /* Reassignment and deletion stay with the owner even once a group can edit. */
     expect(page?.viewerAccess.capabilities.changeGroup).toBe(false);
 
     await t.withIdentity({ subject: ownerId }).mutation(api.assets.setGroup, { id: created.id, group_id: null });
-    const cleared = await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
+    const cleared = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
     expect(cleared?.viewerAccess.assignedGroup).toBeNull();
   });
 
@@ -233,16 +233,16 @@ describe('token backsides', () => {
     const backB = await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Spice') });
 
     await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: backA.id });
-    let page = await t.query(api.assets.getForEdit, { type: 'token-round', slug: 'axlotl' });
+    let page = await t.query(api.assets.getPage, { type: 'token-round', slug: 'axlotl' });
     expect(page?.backToken?.name).toBe('Sietch');
 
     /* Re-pointing replaces rather than accumulates: the index is not unique, so the mutation clears first. */
     await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: backB.id });
-    page = await t.query(api.assets.getForEdit, { type: 'token-round', slug: 'axlotl' });
+    page = await t.query(api.assets.getPage, { type: 'token-round', slug: 'axlotl' });
     expect(page?.backToken?.name).toBe('Spice');
 
     await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: null });
-    page = await t.query(api.assets.getForEdit, { type: 'token-round', slug: 'axlotl' });
+    page = await t.query(api.assets.getPage, { type: 'token-round', slug: 'axlotl' });
     expect(page?.backToken).toBeNull();
   });
 
@@ -274,7 +274,7 @@ describe('token backsides', () => {
 
     await owner.mutation(api.assets.softDelete, { id: back.id });
 
-    const page = await t.query(api.assets.getForEdit, { type: 'token-round', slug: 'axlotl' });
+    const page = await t.query(api.assets.getPage, { type: 'token-round', slug: 'axlotl' });
     expect(page?.backToken).toBeNull();
     const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
     expect(relations).toHaveLength(1);
@@ -307,16 +307,16 @@ describe('deck composition', () => {
     const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
 
     await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 3 });
-    let page = await t.query(api.assets.getForEdit, { type: 'deck', slug: 'house-treachery' });
+    let page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
     expect(page?.deckCards).toEqual([expect.objectContaining({ count: 3 })]);
 
     await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 5 });
-    page = await t.query(api.assets.getForEdit, { type: 'deck', slug: 'house-treachery' });
+    page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
     expect(page?.deckCards).toHaveLength(1);
     expect(page?.deckCards[0]?.count).toBe(5);
 
     await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 0 });
-    page = await t.query(api.assets.getForEdit, { type: 'deck', slug: 'house-treachery' });
+    page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
     expect(page?.deckCards).toEqual([]);
     const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
     expect(relations).toEqual([]);
@@ -349,8 +349,44 @@ describe('deck composition', () => {
 
     await owner.mutation(api.assets.softDelete, { id: created.id });
 
-    const page = await t.query(api.assets.getForEdit, { type: 'deck', slug: 'house-treachery' });
+    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
     expect(page?.deckCards).toEqual([]);
+    const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
+    expect(relations).toHaveLength(1);
+  });
+});
+
+describe('asset page bundle', () => {
+  test('a card reports the decks holding it and its publication; a deck reports neither', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
+    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 3 });
+
+    const card = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    expect(card?.inDecks).toEqual([
+      expect.objectContaining({ id: deck.id, type: 'deck', slug: 'house-treachery', count: 3 }),
+    ]);
+    /* Saving the card enqueued a publication, so it has capture state but no published asset yet. */
+    expect(card?.assetPublishing).toMatchObject({ status: null, captureStatus: 'scheduled', publicationHref: null });
+
+    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
+    /* Nothing may hold a deck, and a deck publishes its Cardback through a type that has no target row yet. */
+    expect(page?.inDecks).toEqual([]);
+    expect(page?.assetPublishing).toBeNull();
+  });
+
+  test('a deck holding a soft-deleted card stops being reported by that card', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const deck = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('House Treachery') });
+    await owner.mutation(api.assets.setDeckCardCount, { deck_id: deck.id, card_id: created.id, count: 1 });
+    await owner.mutation(api.assets.softDelete, { id: deck.id });
+
+    const card = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    expect(card?.inDecks).toEqual([]);
     const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
     expect(relations).toHaveLength(1);
   });
@@ -366,7 +402,7 @@ describe('asset about', () => {
       data: { ...cardData('Lasgun'), about: '  A lasgun hitting a shield destroys the territory.\n  ' },
     });
 
-    const page = await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
+    const page = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.asset.data).toMatchObject({
       about: 'A lasgun hitting a shield destroys the territory.',
     });
@@ -376,7 +412,7 @@ describe('asset about', () => {
     const t = convexTest(schema, modules);
     const { created } = await seedCard(t);
 
-    const page = await t.query(api.assets.getForEdit, { type: 'card-treachery', slug: 'lasgun' });
+    const page = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.asset.data).toMatchObject({ about: '' });
     expect(created.slug).toBe('lasgun');
   });

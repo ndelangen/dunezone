@@ -7,8 +7,8 @@ import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useState } from 'react';
 
-import { useAssetForEdit, useDeleteAsset, useSetTokenBack, useUpdateAsset } from '@app/db/assets';
-import type { AssetForEditData } from '@app/db/assets';
+import { useAssetPage, useDeleteAsset, useSetTokenBack, useUpdateAsset } from '@app/db/assets';
+import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
@@ -20,16 +20,8 @@ import { AssetEditorMessage } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'token-validation-header';
 
-export function TokenEditPage({
-  type,
-  slug,
-  loaderData,
-}: {
-  type: string;
-  slug: string;
-  loaderData: AssetForEditData;
-}) {
-  const query = useAssetForEdit(type, slug, { initialData: loaderData });
+export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: string; loaderData: AssetPageData }) {
+  const query = useAssetPage(type, slug, { initialData: loaderData });
   const data = query.data ?? loaderData;
   const label = isAssetType(type) ? ASSET_TYPES[type].shortLabel.toLowerCase() : 'token';
 
@@ -90,8 +82,8 @@ function TokenEditSession({
   initialDraft,
 }: {
   type: string;
-  asset: NonNullable<AssetForEditData>['asset'];
-  backToken: NonNullable<AssetForEditData>['backToken'];
+  asset: NonNullable<AssetPageData>['asset'];
+  backToken: NonNullable<AssetPageData>['backToken'];
   initialDraft: TokenDraft;
 }) {
   const navigate = useNavigate();
