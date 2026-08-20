@@ -263,7 +263,15 @@ function AboutSection({ about }: { about: string }) {
  * composition is managed in the container's editor.
  * One component for decks and bundles, because a deck's cards and a bundle's tokens are the same relation read.
  */
-function Composition({ members, noun }: { members: AssetPage['members']; noun: string }) {
+function Composition({
+  members,
+  truncated,
+  noun,
+}: {
+  members: AssetPage['members'];
+  truncated: boolean;
+  noun: string;
+}) {
   return (
     <Section
       id="composition"
@@ -278,13 +286,20 @@ function Composition({ members, noun }: { members: AssetPage['members']; noun: s
           </Text>
         </Surface>
       ) : (
-        <Links>
-          {members.map(({ member, count }) => (
-            <Links.Item key={member.id} to="/assets/$type/$slug" params={{ type: member.type, slug: member.slug }}>
-              {count > 1 ? `${member.name} ×${count}` : member.name}
-            </Links.Item>
-          ))}
-        </Links>
+        <>
+          <Links>
+            {members.map(({ member, count }) => (
+              <Links.Item key={member.id} to="/assets/$type/$slug" params={{ type: member.type, slug: member.slug }}>
+                {count > 1 ? `${member.name} ×${count}` : member.name}
+              </Links.Item>
+            ))}
+          </Links>
+          {truncated ? (
+            <Text size="sm" c="dimmed">
+              Showing the first {members.length} {noun}; this one holds more.
+            </Text>
+          ) : null}
+        </>
       )}
     </Section>
   );
@@ -334,13 +349,13 @@ const PER_TYPE_BODY: Record<string, (page: AssetPage) => ReactNode> = {
   /* Both slottable types show the same two sections: what is inside, then who ships it. */
   deck: (page) => (
     <>
-      <Composition members={page.members} noun="cards" />
+      <Composition members={page.members} truncated={page.membersTruncated} noun="cards" />
       <LinkingRulesets rulesets={page.linkingRulesets} />
     </>
   ),
   bundle: (page) => (
     <>
-      <Composition members={page.members} noun="tokens" />
+      <Composition members={page.members} truncated={page.membersTruncated} noun="tokens" />
       <LinkingRulesets rulesets={page.linkingRulesets} />
     </>
   ),

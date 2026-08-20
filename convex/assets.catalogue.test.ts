@@ -77,7 +77,7 @@ describe('asset catalogue', () => {
 describe('deck membership', () => {
   test('a card reports the decks holding it and how many copies each holds, and a card in none reports an empty list', async () => {
     const t = convexTest(schema, modules);
-    const { lasgun, shield, treachery } = await t.run(async (ctx) => {
+    const { treachery } = await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Asset owner' });
       const base = { owner_id: ownerId, group_id: null, is_deleted: false };
       const stamps = { created_at: '2026-08-10T00:00:00.000Z', updated_at: '2026-08-10T00:00:00.000Z' };
@@ -111,18 +111,17 @@ describe('deck membership', () => {
       return { lasgun: lasgunId, shield: shieldId, treachery: treacheryId };
     });
 
-    const memberships = await t.query(api.assets.decksForAssets, { assetIds: [lasgun, shield] });
-
-    expect(memberships[lasgun]).toEqual([
+    const held = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    expect(held?.inDecks).toEqual([
       { id: treachery, type: 'deck', slug: 'house-treachery', name: 'House Treachery', count: 3 },
     ]);
-    /* An asked-about card always gets a key, so "in no deck" is an empty list rather than a missing one. */
-    expect(memberships[shield]).toEqual([]);
+    const free = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'shield' });
+    expect(free?.inDecks).toEqual([]);
   });
 
   test('a soft-deleted deck stops holding its cards, without its relation being touched', async () => {
     const t = convexTest(schema, modules);
-    const lasgun = await t.run(async (ctx) => {
+    await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Asset owner' });
       const base = { owner_id: ownerId, group_id: null, is_deleted: false };
       const stamps = { created_at: '2026-08-10T00:00:00.000Z', updated_at: '2026-08-10T00:00:00.000Z' };
@@ -150,9 +149,8 @@ describe('deck membership', () => {
       return lasgunId;
     });
 
-    const memberships = await t.query(api.assets.decksForAssets, { assetIds: [lasgun] });
-
-    expect(memberships[lasgun]).toEqual([]);
+    const page = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    expect(page?.inDecks).toEqual([]);
     const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
     expect(relations).toHaveLength(1);
   });

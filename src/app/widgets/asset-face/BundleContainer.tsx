@@ -16,8 +16,7 @@ export const BUNDLE_ASPECT = 0.62;
  * everything else is the house box, so two bundles are told apart by the band rather than by whoever happens to be inside them.
  *
  * Members are deliberately **not** drawn here.
- * Up to three of them peek above the container from browse-tile size upward, but only a caller holding those rows can supply them, and the landing page draws the container alone on purpose: at pile size the members resolve into a smudge, and putting member data on every catalogue row is the cost
- * `decksForAssets` was written to avoid.
+ * Up to three of them peek above the container from browse-tile size upward, but only a caller holding those rows can supply them, and the landing page draws the container alone on purpose: at pile size the members resolve into a smudge, and putting member data on every catalogue row is a cost only the browse page agrees to pay.
  */
 export function BundleContainer({ band, name, width }: { band: BundleBandData; name: string; width: number }) {
   const height = width * BUNDLE_ASPECT;

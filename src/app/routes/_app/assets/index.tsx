@@ -322,7 +322,9 @@ function AssetsLandingPage() {
                       <Stack gap={2} className={styles.pileGroupLabel}>
                         <Eyebrow>{group.label}</Eyebrow>
                         <Text size="sm" c="dimmed">
-                          {allPlanned ? 'planned' : `${total} asset${total === 1 ? '' : 's'}`}
+                          {allPlanned
+                            ? 'planned'
+                            : `${total}${data.countsTruncated && total > 0 ? '+' : ''} asset${total === 1 ? '' : 's'}`}
                         </Text>
                       </Stack>
                       <div className={styles.pileGrid}>

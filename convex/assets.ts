@@ -57,7 +57,15 @@ function nameOf(row: Doc<'assets'>): string {
   return typeof data?.name === 'string' && data.name.trim() ? data.name : 'Untitled';
 }
 
-async function toListEntry(ctx: QueryCtx, row: Doc<'assets'>) {
+async function toListEntry(
+  ctx: QueryCtx,
+  row: Doc<'assets'>,
+  /* One owner holds many assets on a page, so a caller reading hundreds of rows passes a memo and pays per owner rather than per row. */
+  owners?: Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>
+) {
+  if (owners && !owners.has(row.owner_id)) {
+    owners.set(row.owner_id, await profileSummary(ctx, row.owner_id));
+  }
   return {
     id: row._id,
     type: row.type,
@@ -65,7 +73,7 @@ async function toListEntry(ctx: QueryCtx, row: Doc<'assets'>) {
     name: nameOf(row),
     created_at: row.created_at,
     updated_at: row.updated_at,
-    owner: await profileSummary(ctx, row.owner_id),
+    owner: owners ? owners.get(row.owner_id)! : await profileSummary(ctx, row.owner_id),
     data: row.data,
   };
 }
@@ -81,6 +89,8 @@ export const cataloguePage = query({
   returns: v.object({
     recent: v.array(assetListEntryValidator),
     countsByType: v.record(v.string(), v.number()),
+    /* The counts tally a bounded window, so a full window says so rather than quietly under-reporting, the same honesty `browsePage.truncated` already keeps. */
+    countsTruncated: v.boolean(),
   }),
   handler: async (ctx) => {
     const rows = await ctx.db
@@ -95,7 +105,7 @@ export const cataloguePage = query({
     }
 
     const recent = await Promise.all(rows.slice(0, RECENT_LIMIT).map((row) => toListEntry(ctx, row)));
-    return { recent, countsByType };
+    return { recent, countsByType, countsTruncated: rows.length === CATALOGUE_SCAN_LIMIT };
   },
 });
 
@@ -167,6 +177,7 @@ export const getPage = query({
        * One field rather than one per container kind: a deck's cards and a bundle's tokens are the same relation read with a different `kind`, and the page's per-type body already knows which it is looking at.
        */
       members: v.array(v.object({ member: assetListEntryValidator, count: v.number() })),
+      membersTruncated: v.boolean(),
       /** The decks holding this asset. Empty for a deck, which nothing may hold. */
       inDecks: v.array(deckReferenceValidator),
       /**
@@ -207,7 +218,12 @@ export const getPage = query({
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
       backToken: back ? await toListEntry(ctx, back) : null,
-      members: CONTAINER_KINDS[row.type] ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind) : [],
+      ...(CONTAINER_KINDS[row.type]
+        ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind).then((m) => ({
+            members: m.entries,
+            membersTruncated: m.truncated,
+          }))
+        : { members: [], membersTruncated: false }),
       inDecks: row.type === 'deck' ? [] : await containersHolding(ctx, row._id, DECK_CARD),
       inBundles: TOKEN_TYPES.has(row.type) ? await containersHolding(ctx, row._id, BUNDLE_TOKEN) : [],
       linkingRulesets: await rulesetsSlotting(ctx, row._id),
@@ -515,38 +531,24 @@ async function membersOf(ctx: QueryCtx, containerId: Id<'assets'>, kind: string)
   const relations = await ctx.db
     .query('asset_relations')
     .withIndex('by_from_kind', (q) => q.eq('from_asset_id', containerId).eq('kind', kind))
-    .take(DECK_CARD_LIMIT);
+    .take(DECK_CARD_LIMIT + 1);
+  const truncated = relations.length > DECK_CARD_LIMIT;
+  const page = truncated ? relations.slice(0, DECK_CARD_LIMIT) : relations;
   const entries = [];
-  for (const relation of relations) {
+  for (const relation of page) {
     const member = await ctx.db.get('assets', relation.to_asset_id);
     if (member && !member.is_deleted) {
       entries.push({ member: await toListEntry(ctx, member), count: relation.count });
     }
   }
-  return entries;
+  return { entries, truncated };
 }
 
-/** Bounds a bulk membership read; a page asking about more rows than this gets the first of them, and no card on it reports past its own ceiling. */
-const MEMBERSHIP_LOOKUP_LIMIT = 200;
 const DECKS_PER_CARD_LIMIT = 100;
 
 /**
  * A deck as a card's membership line cites it.
  * Enough to name it and build its `/assets/{type}/{slug}` link, and deliberately not enough to draw its face, which would mean carrying `data` for every deck on the page.
- */
-/**
- * Which decks hold each of the given cards, in one call.
- * The reverse of `membersOf`, and the first read of `by_to_kind`, the index bought for this question when the table landed.
- *
- * This is a companion query rather than a field on `assetListEntryValidator`.
- * The landing page draws a pile per type and needs none of it, and deriving it inside `toListEntry` would put an index scan on every row of every catalogue read.
- * Every requested id gets a key, so a card in no deck comes back as an empty array rather than a missing one, which is the predicate an "in no deck" facet reads.
- * `count` is the relation's own copies figure, already on the row being read, so one call answers both how many decks hold a card and how many copies each of them holds.
- * Soft-deleted decks stop being reported while their relation row survives, the rule `membersOf` applies from the other end.
- *
- * No surface consumes this yet.
- * Its callers are the asset detail page's "in decks" list and the type browse page's tile count, both of which are their own tickets;
- * a route may hold only one page query, so the browse page takes this on when its single query is redesigned rather than by mounting a second subscription.
  */
 /**
  * Which containers of one kind hold one asset.
@@ -558,13 +560,14 @@ async function containersHolding(
   ctx: QueryCtx,
   assetId: Id<'assets'>,
   kind: string,
-  decks?: Map<Id<'assets'>, Doc<'assets'> | null>
+  decks?: Map<Id<'assets'>, Doc<'assets'> | null>,
+  limit = DECKS_PER_CARD_LIMIT
 ): Promise<DeckReference[]> {
   const seen = decks ?? new Map<Id<'assets'>, Doc<'assets'> | null>();
   const relations = await ctx.db
     .query('asset_relations')
     .withIndex('by_to_kind', (q) => q.eq('to_asset_id', assetId).eq('kind', kind))
-    .take(DECKS_PER_CARD_LIMIT);
+    .take(limit);
 
   const entries: DeckReference[] = [];
   for (const relation of relations) {
@@ -637,8 +640,18 @@ async function memberPreviews(ctx: QueryCtx, containerId: Id<'assets'>, kind: st
  */
 const assetBrowseEntryValidator = assetListEntryValidator.extend({
   deckCount: v.number(),
+  /* True when the count hit its browse-page ceiling, so a tile says "25+ decks" rather than lying at the cap. */
+  deckCountCapped: v.boolean(),
   members: v.array(memberPreviewValidator),
 });
+
+/*
+ * The browse read is a product: rows times relations times container rows, and Convex allows 16,384
+ * documents per function. Two hundred rows at the detail page's ceiling of one hundred is 20,000
+ * before a single profile, so a mature page would throw rather than degrade. Twenty-five holds the
+ * worst case near 10,000 with the memoisation, and the tile reports the cap honestly.
+ */
+const BROWSE_DECKS_PER_CARD = 25;
 
 /**
  * How many rows one browse page holds.
@@ -684,36 +697,23 @@ export const browsePage = query({
 
     const counted = holdsDeckMembership(args.type);
     const previewKind = memberPreviewKind(args.type);
-    /* One deck holds many of the cards on a page, so its row is read once and reused across the whole grid. */
+    /* One deck holds many of the cards on a page, and one owner holds many of the assets, so each row is read once and reused across the whole grid. */
     const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+    const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
     const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
     let inNoDeckCount = 0;
     for (const row of page) {
-      const deckCount = counted ? (await containersHolding(ctx, row._id, DECK_CARD, decks)).length : 0;
+      const holders = counted ? await containersHolding(ctx, row._id, DECK_CARD, decks, BROWSE_DECKS_PER_CARD + 1) : [];
+      const deckCountCapped = holders.length > BROWSE_DECKS_PER_CARD;
+      const deckCount = deckCountCapped ? BROWSE_DECKS_PER_CARD : holders.length;
       if (counted && deckCount === 0) {
         inNoDeckCount += 1;
       }
       /* No cache across rows here, unlike `decks`: two bundles sharing a token is the exception, where a deck shared across a page of cards is the rule. */
       const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
-      entries.push({ ...(await toListEntry(ctx, row)), deckCount, members });
+      entries.push({ ...(await toListEntry(ctx, row, owners)), deckCount, deckCountCapped, members });
     }
 
     return { entries, inNoDeckCount: counted ? inNoDeckCount : null, truncated };
-  },
-});
-
-export const decksForAssets = query({
-  args: { assetIds: v.array(v.id('assets')) },
-  returns: v.record(v.id('assets'), v.array(deckReferenceValidator)),
-  handler: async (ctx, args) => {
-    const byAsset: Record<Id<'assets'>, DeckReference[]> = {};
-    /* One deck holds many of the cards on a page, so its row is read once and reused by every card that names it. */
-    const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
-
-    for (const assetId of args.assetIds.slice(0, MEMBERSHIP_LOOKUP_LIMIT)) {
-      byAsset[assetId] = await containersHolding(ctx, assetId, DECK_CARD, decks);
-    }
-
-    return byAsset;
   },
 });

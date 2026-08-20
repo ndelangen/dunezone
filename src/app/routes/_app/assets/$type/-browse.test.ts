@@ -15,6 +15,7 @@ function entry(name: string, options: { owner?: string; deckCount?: number } = {
     owner: options.owner ? { id: 'p1' as never, slug: options.owner, username: options.owner, avatar_url: null } : null,
     data: {},
     deckCount: options.deckCount ?? 0,
+    deckCountCapped: false,
     /* Nothing in the search, the sorts or the facet reads a member, so every fixture here holds none. */
     members: [],
   };

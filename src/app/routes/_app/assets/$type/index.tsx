@@ -185,8 +185,11 @@ function AssetTypePage() {
   );
 }
 
-/** How many decks hold this card, or nothing at all when the answer is zero or the question does not apply. */
-function membershipLabel(deckCount: number): string | null {
+/** How many decks hold this card, or nothing at all when the answer is zero or the question does not apply. A capped count owns up to being a floor. */
+function membershipLabel(deckCount: number, capped: boolean): string | null {
+  if (capped) {
+    return `${deckCount}+ decks`;
+  }
   switch (deckCount) {
     case 0:
       return null;
@@ -205,7 +208,9 @@ function membershipLabel(deckCount: number): string | null {
  * Losing it makes the whole tile one anchor again, since the sibling structure only existed because an anchor may not contain a control.
  */
 function BrowseTile({ entry }: { entry: AssetBrowseEntry }) {
-  const meta = [entry.owner?.username, membershipLabel(entry.deckCount)].filter(Boolean).join(' · ');
+  const meta = [entry.owner?.username, membershipLabel(entry.deckCount, entry.deckCountCapped)]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <Link
       className={styles.tileOpen}
