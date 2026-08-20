@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 
+import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { rulesetInputSchema } from '../src/shared/rulesets/validation';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
@@ -294,6 +295,93 @@ export const removeFaction = mutation({
       .unique();
     if (existing) {
       await ctx.db.delete(existing._id);
+    }
+    return args;
+  },
+});
+
+/**
+ * The slot vocabulary as Convex sees it.
+ * `ruleset_asset_slots` declares the same five literals and cannot import the shared table without ceasing to be a schema, so a drift test holds the two together.
+ */
+const assetSlotValidator = v.union(
+  v.literal('treachery'),
+  v.literal('spice'),
+  v.literal('custom'),
+  v.literal('techToken'),
+  v.literal('customTokens')
+);
+
+/** Bounds one slot's contents. The many-asset slots are curated by hand, so this is a ceiling on nonsense rather than a paging limit. */
+const SLOT_CONTENTS_LIMIT = 100;
+
+/**
+ * Puts an asset in a slot.
+ *
+ * Which kind a slot accepts is enforced here rather than by the schema, per «Ruleset slot table generalises to assets»: a `kind` column would be a second source of truth able to disagree with `slot`.
+ * At-most-one is enforced by clearing before inserting, because `by_ruleset_slot` is a plain index and nothing in the table would stop a second row.
+ * That is the same shape `setTokenBack` established for `asset_relations`.
+ * Idempotent, like `addFaction`: linking what is already linked is a no-op rather than a duplicate row.
+ */
+export const setAssetSlot = mutation({
+  args: {
+    ruleset_id: v.id('rulesets'),
+    asset_id: v.id('assets'),
+    slot: assetSlotValidator,
+  },
+  handler: async (ctx, args) => {
+    await requireRulesetMaintenance(ctx, args.ruleset_id);
+
+    const rule = RULESET_ASSET_SLOTS[args.slot];
+    const asset = await ctx.db.get('assets', args.asset_id);
+    if (!asset || asset.is_deleted) {
+      throw new Error('Asset not found');
+    }
+    if (asset.type !== rule.holds) {
+      throw new Error(`The ${rule.label} slot holds ${rule.noun}, not ${asset.type}`);
+    }
+
+    const existing = await ctx.db
+      .query('ruleset_asset_slots')
+      .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', args.ruleset_id).eq('slot', args.slot))
+      .take(SLOT_CONTENTS_LIMIT);
+    if (existing.some((row) => row.asset_id === args.asset_id)) {
+      return args;
+    }
+    if (rule.single) {
+      for (const row of existing) {
+        await ctx.db.delete(row._id);
+      }
+    }
+
+    await ctx.db.insert('ruleset_asset_slots', {
+      ruleset_id: args.ruleset_id,
+      asset_id: args.asset_id,
+      slot: args.slot,
+    });
+    return args;
+  },
+});
+
+/**
+ * Takes an asset out of a slot.
+ * Idempotent for the same reason as `removeFaction`: clearing what is already clear is a no-op, so a double click cannot fail.
+ */
+export const clearAssetSlot = mutation({
+  args: {
+    ruleset_id: v.id('rulesets'),
+    asset_id: v.id('assets'),
+    slot: assetSlotValidator,
+  },
+  handler: async (ctx, args) => {
+    await requireRulesetMaintenance(ctx, args.ruleset_id);
+
+    const existing = await ctx.db
+      .query('ruleset_asset_slots')
+      .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', args.ruleset_id).eq('slot', args.slot))
+      .take(SLOT_CONTENTS_LIMIT);
+    for (const row of existing.filter((candidate) => candidate.asset_id === args.asset_id)) {
+      await ctx.db.delete(row._id);
     }
     return args;
   },

@@ -1,4 +1,6 @@
-import { Anchor, Center, Group, Image, Stack, Text, Textarea, TextInput, Title } from '@mantine/core';
+import { Anchor, Button, Center, Group, Image, Popover, Stack, Text, Textarea, TextInput, Title } from '@mantine/core';
+import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
+import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import { rulesetDescriptionSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -8,11 +10,18 @@ import { IconAction } from '@ui/control/IconAction';
 import { SubmitAction } from '@ui/control/SubmitAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { ArrowLeft, BookOpen } from 'lucide-react';
+import { ArrowLeft, BookOpen, X } from 'lucide-react';
 import { useState } from 'react';
 
-import { loadRulesetDetailPage, useRulesetDetailPage, useUpdateRuleset } from '@db/rulesets';
+import {
+  loadRulesetDetailPage,
+  useClearRulesetAssetSlot,
+  useRulesetDetailPage,
+  useSetRulesetAssetSlot,
+  useUpdateRuleset,
+} from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
+import { AssetPicker } from '@app/pickers/AssetPicker';
 
 import styles from './edit.module.css';
 
@@ -283,10 +292,128 @@ function RulesetEditPage() {
       <PageLayout.Header>{header}</PageLayout.Header>
       <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
       <PageLayout.Content>
-        <Surface padding="lg">
-          <RulesetSettings key={r.slug} initial={r} canRename={viewerAccess.capabilities.rename} />
-        </Surface>
+        <Stack gap="lg">
+          <Surface padding="lg">
+            <RulesetSettings key={r.slug} initial={r} canRename={viewerAccess.capabilities.rename} />
+          </Surface>
+          {/* A sibling pane rather than a nested one: surfaces do not nest, and slots are a different subject from the ruleset's own fields. */}
+          <Surface padding="lg">
+            <RulesetAssetSlots rulesetId={r.id} slots={page.assetSlots} />
+          </Surface>
+        </Stack>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+type SlottedAsset = { id: string; type: string; slug: string; name: string };
+
+/**
+ * A ruleset's asset slots.
+ *
+ * Slots are curatorial labels, so a slot demands only the kind it holds and an empty slot is a legal state rather than a warning.
+ * The single-asset slots replace rather than refuse: choosing a second deck for `treachery` swaps it, which is what "at most one" means to someone filling it in.
+ */
+function RulesetAssetSlots({
+  rulesetId,
+  slots,
+}: {
+  rulesetId: string;
+  slots: { slot: string; asset: SlottedAsset }[];
+}) {
+  const setSlot = useSetRulesetAssetSlot();
+  const clearSlot = useClearRulesetAssetSlot();
+  const [openSlot, setOpenSlot] = useState<RulesetAssetSlot | null>(null);
+
+  return (
+    <Stack gap="lg">
+      <Stack gap={2}>
+        <Title order={2} size="h4">
+          Decks and bundles
+        </Title>
+        <Text size="sm" c="dimmed">
+          What this ruleset ships. Slot names are labels rather than rules, so any deck may fill any deck slot, and an
+          empty slot is fine.
+        </Text>
+      </Stack>
+      {setSlot.error ? <FormError title="Slot could not be filled">{setSlot.error.message}</FormError> : null}
+      {clearSlot.error ? <FormError title="Slot could not be cleared">{clearSlot.error.message}</FormError> : null}
+      {RULESET_ASSET_SLOT_ORDER.map((slot) => {
+        const rule = RULESET_ASSET_SLOTS[slot];
+        const held = slots.filter((entry) => entry.slot === slot).map((entry) => entry.asset);
+        return (
+          <Stack key={slot} gap="xs">
+            <Group justify="space-between" align="center" wrap="nowrap">
+              <Text size="sm" fw={600}>
+                {rule.label}
+              </Text>
+              {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
+              <Popover
+                opened={openSlot === slot}
+                onChange={(opened) => setOpenSlot(opened ? slot : null)}
+                width={340}
+                position="bottom-end"
+                withinPortal
+              >
+                <Popover.Target>
+                  <Button
+                    variant="light"
+                    size="compact-sm"
+                    onClick={() => setOpenSlot(openSlot === slot ? null : slot)}
+                  >
+                    {rule.single && held.length > 0 ? 'Change' : 'Add'}
+                  </Button>
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <AssetPicker
+                    types={[rule.holds]}
+                    excludeIds={held.map((asset) => asset.id)}
+                    copy={{
+                      searchLabel: `Search ${rule.noun}`,
+                      searchPlaceholder: 'Type a name, slug or owner…',
+                      emptyMessage: `No ${rule.noun} exist yet.`,
+                    }}
+                    onPick={(picked) => {
+                      setOpenSlot(null);
+                      setSlot.mutate({ rulesetId, assetId: picked.id, slot });
+                    }}
+                    onCancel={() => setOpenSlot(null)}
+                  />
+                </Popover.Dropdown>
+              </Popover>
+            </Group>
+            {held.length === 0 ? (
+              <Text size="sm" c="dimmed">
+                Empty.
+              </Text>
+            ) : (
+              <Stack gap={4}>
+                {held.map((asset) => (
+                  <Group key={asset.id} gap="xs" wrap="nowrap">
+                    <Anchor
+                      size="sm"
+                      style={{ flex: 1, minWidth: 0 }}
+                      renderRoot={(rootProps) => (
+                        <Link {...rootProps} to="/assets/$type/$slug" params={{ type: asset.type, slug: asset.slug }} />
+                      )}
+                    >
+                      {asset.name}
+                    </Anchor>
+                    <IconAction
+                      label={`Remove ${asset.name} from ${rule.label}`}
+                      variant="subtle"
+                      color="red"
+                      size="sm"
+                      onClick={() => clearSlot.mutate({ rulesetId, assetId: asset.id, slot })}
+                      icon={<X size={15} aria-hidden />}
+                    />
+                  </Group>
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        );
+      })}
+    </Stack>
   );
 }

@@ -165,11 +165,23 @@ export const profileDetailPageValidator = v.object({
   groupSummaries: v.array(assignedGroupSummaryValidator),
 });
 
+/** One slotted asset: enough to name it and link to it, and deliberately not enough to draw it. A slot list is not a catalogue. */
+export const rulesetAssetSlotValidator = v.object({
+  slot: v.string(),
+  asset: v.object({
+    id: v.id('assets'),
+    type: v.string(),
+    slug: v.string(),
+    name: v.string(),
+  }),
+});
+
 export const rulesetDetailPageValidator = v.union(
   rulesetPublicBundleValidator.extend({
     faqItems: v.array(faqListItemValidator),
     owner: v.union(profileSummaryValidator, v.null()),
     assignableGroups: v.array(assignedGroupSummaryValidator),
+    assetSlots: v.array(rulesetAssetSlotValidator),
   }),
   v.null()
 );
