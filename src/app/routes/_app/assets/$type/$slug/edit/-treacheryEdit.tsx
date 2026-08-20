@@ -1,10 +1,11 @@
-import { Alert, Anchor, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Text } from '@mantine/core';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 
@@ -209,7 +210,7 @@ function CardEditSession({
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <Stack gap="sm" style={{ width: '100%', maxWidth: '78rem', margin: '0 auto' }}>
+        <WorkbenchLayout gap="sm">
           {updateAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {updateAsset.error.message}
@@ -232,7 +233,7 @@ function CardEditSession({
             onChapterChange={setChapter}
             onSettle={() => setSettleTick((tick) => tick + 1)}
           />
-        </Stack>
+        </WorkbenchLayout>
       </PageLayout.Content>
     </PageLayout>
   );

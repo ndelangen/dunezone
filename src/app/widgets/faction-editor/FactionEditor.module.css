@@ -1,3 +1,7 @@
+/* This root, .workbench, .connectedTabs, .artifactColumn and .artifactDesk are the values
+   WorkbenchLayout (ui/layout) now owns for every asset editor. This copy stays only because
+   ArtifactProof renders a labelled desk per chapter, which the Layout's rail does not model yet;
+   converging the faction editor onto WorkbenchLayout retires all five classes. */
 .root {
   display: flex;
   flex-direction: column;

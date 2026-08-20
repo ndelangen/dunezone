@@ -1,7 +1,8 @@
-import { Alert, Anchor, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Text } from '@mantine/core';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
@@ -86,7 +87,7 @@ export function BundleCreatePage() {
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <Stack gap="sm" style={{ width: '100%', maxWidth: '78rem', margin: '0 auto' }}>
+        <WorkbenchLayout gap="sm">
           {createAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {createAsset.error.message}
@@ -106,7 +107,7 @@ export function BundleCreatePage() {
               </Text>
             }
           />
-        </Stack>
+        </WorkbenchLayout>
       </PageLayout.Content>
     </PageLayout>
   );

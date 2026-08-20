@@ -1,4 +1,4 @@
-import { Alert, Anchor, Popover, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Popover, Text } from '@mantine/core';
 import { DeckAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -7,6 +7,7 @@ import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { FilePlus2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -202,7 +203,7 @@ function DeckEditSession({
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <Stack gap="sm" style={{ width: '100%', maxWidth: '78rem', margin: '0 auto' }}>
+        <WorkbenchLayout gap="sm">
           {updateAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {updateAsset.error.message}
@@ -249,7 +250,7 @@ function DeckEditSession({
               </Popover>
             }
           />
-        </Stack>
+        </WorkbenchLayout>
       </PageLayout.Content>
     </PageLayout>
   );

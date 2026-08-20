@@ -4,6 +4,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 
 import { useAssetPage, useDeleteAsset, useSetTokenBack, useUpdateAsset } from '@app/db/assets';
@@ -185,7 +186,7 @@ function RectangleEditSession({
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <Stack gap="sm" style={{ width: '100%', maxWidth: '78rem', margin: '0 auto' }}>
+        <WorkbenchLayout gap="sm">
           {updateAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {updateAsset.error.message}
@@ -249,7 +250,7 @@ function RectangleEditSession({
               ) : null
             }
           />
-        </Stack>
+        </WorkbenchLayout>
       </PageLayout.Content>
     </PageLayout>
   );
