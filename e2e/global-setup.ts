@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 
 import type { FullConfig } from '@playwright/test';
@@ -141,11 +141,17 @@ export default async function globalSetup(config: FullConfig) {
     })
   );
 
-  execSync(
-    `npx convex run e2e:seedBaseline '${JSON.stringify({
-      ownerEmail: userAEmail,
-      disposableAccountEmail: process.env.PLAYWRIGHT_ACCOUNT_DELETE_EMAIL ?? 'e2e-account-delete@example.com',
-    })}'`,
+  execFileSync(
+    'npx',
+    [
+      'convex',
+      'run',
+      'e2e:seedBaseline',
+      JSON.stringify({
+        ownerEmail: userAEmail,
+        disposableAccountEmail: process.env.PLAYWRIGHT_ACCOUNT_DELETE_EMAIL ?? 'e2e-account-delete@example.com',
+      }),
+    ],
     {
       stdio: 'inherit',
       env: {

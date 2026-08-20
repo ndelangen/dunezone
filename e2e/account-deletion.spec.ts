@@ -14,7 +14,7 @@ test('a disposable account reviews ownership and completes deletion', async ({ p
   await page.getByRole('button', { name: 'Choose a replacement owner' }).click();
   await expect(page.getByRole('searchbox', { name: 'Search profiles' })).toBeVisible();
   await page.getByRole('searchbox', { name: 'Search profiles' }).fill(userA.username);
-  await expect(page.getByRole('option', { name: new RegExp(userA.username, 'i') })).toBeVisible();
+  await expect(page.getByRole('option', { name: userA.username })).toBeVisible();
   await page.getByRole('button', { name: 'Cancel' }).click();
 
   await page.setViewportSize({ width: 390, height: 844 });
