@@ -3,6 +3,10 @@ import { z } from 'zod';
 import {
   DECK_ASSET_TYPE,
   deckCardbackAssetDataSchema,
+  RECTANGLE_TOKEN_ASSET_TYPE,
+  rectangleTokenFaceAssetDataSchema,
+  ROUND_TOKEN_ASSET_TYPES,
+  tokenFaceAssetDataSchema,
   FACTION_SHEET_ASSET_TYPE,
   factionSheetAssetDataSchema,
   TREACHERY_CARD_ASSET_TYPE,
@@ -36,6 +40,21 @@ export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', 
     ok: z.literal(true),
     assetType: z.literal(DECK_ASSET_TYPE),
     payload: deckCardbackAssetDataSchema,
+    payloadHash: payloadHashSchema,
+  }),
+  /* The three slotted shapes share one payload, since they differ only in the clip the capture frame draws through. */
+  ...ROUND_TOKEN_ASSET_TYPES.map((assetType) =>
+    z.strictObject({
+      ok: z.literal(true),
+      assetType: z.literal(assetType),
+      payload: tokenFaceAssetDataSchema,
+      payloadHash: payloadHashSchema,
+    })
+  ),
+  z.strictObject({
+    ok: z.literal(true),
+    assetType: z.literal(RECTANGLE_TOKEN_ASSET_TYPE),
+    payload: rectangleTokenFaceAssetDataSchema,
     payloadHash: payloadHashSchema,
   }),
 ]);

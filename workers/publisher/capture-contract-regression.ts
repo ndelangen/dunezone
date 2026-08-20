@@ -6,6 +6,8 @@ import type { Browser, Page } from 'playwright';
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import { PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicationTargets';
 import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
+import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import {
@@ -39,6 +41,17 @@ const cardSnapshot = envelope('card-treachery', {
   assetId: 'k17publisherContractCard',
   slug: 'publisher-contract-card',
   card: publishingTreacheryCard,
+});
+const tokenSnapshot = envelope('token-round', {
+  assetId: 'k17publisherContractToken',
+  slug: 'publisher-contract-token',
+  face: publishingTokenFace,
+});
+/* The back publishes under a qualified id, so the regression drives the exact string a real back job would carry. */
+const rectangleSnapshot = envelope('token-rectangle', {
+  assetId: 'k17publisherContractRect.back',
+  slug: 'publisher-contract-rectangle',
+  face: publishingRectangleTokenFace,
 });
 const deckSnapshot = envelope('deck', {
   assetId: 'k17publisherContractDeck',
@@ -219,7 +232,7 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
  */
 async function checkPublisherImageCapture(
   browser: Browser,
-  assetType: 'card-treachery' | 'deck',
+  assetType: 'card-treachery' | 'deck' | 'token-round' | 'token-rectangle',
   snapshot: ReturnType<typeof envelope>,
   label: string
 ): Promise<void> {
@@ -267,6 +280,8 @@ try {
   await checkPublisherPdf(browser);
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
+  await checkPublisherImageCapture(browser, 'token-round', tokenSnapshot, 'round token face');
+  await checkPublisherImageCapture(browser, 'token-rectangle', rectangleSnapshot, 'rectangle token back');
 } finally {
   await browser.close();
   server.stop(true);

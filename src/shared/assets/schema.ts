@@ -141,7 +141,7 @@ export const FactionSide = z.strictObject({
  * One face of a tech token, in the vocabulary `CustomToken` already takes.
  * It extends `FactionSide` rather than restating it, so the renderer's props and the stored shape cannot drift.
  */
-const TokenFace = FactionSide.extend({
+export const TokenFace = FactionSide.extend({
   /** Multiplies the renderer's reference symbol size. */
   symbolScale: z.number().min(0.5).max(2),
   /** The curved label along the top edge. */

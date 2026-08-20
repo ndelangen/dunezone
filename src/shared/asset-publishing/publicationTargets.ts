@@ -12,7 +12,15 @@
  */
 
 /** The wire vocabulary. Order is not meaningful; `matchPublishedPath` tries every entry. */
-export const PUBLICATION_ASSET_TYPES = ['faction_sheet', 'card-treachery', 'deck'] as const;
+export const PUBLICATION_ASSET_TYPES = [
+  'faction_sheet',
+  'card-treachery',
+  'deck',
+  'token-round',
+  'token-gear',
+  'token-square',
+  'token-rectangle',
+] as const;
 
 export type PublicationAssetType = (typeof PUBLICATION_ASSET_TYPES)[number];
 
@@ -46,7 +54,46 @@ export type PublicationTarget = {
   /** What a browser calls the file when it saves it, which is not what R2 calls it. */
   downloadFilename: string;
   capture: PublicationCapture;
+  /**
+   * Faces this type publishes beside the one under its bare asset id.
+   * A token publishes two artifacts, and «Token multi-face publication model» put the qualification in the id rather than in a second type, so `{id}` is the front and `{id}.back` is the back.
+   * Declaring it per row rather than widening the id pattern globally keeps every type that has no second face exactly as strict as it was.
+   */
+  faces?: readonly PublicationFace[];
 };
+
+/**
+ * The faces a publication may have beyond its default one.
+ * The default face has no name, because it is the asset itself.
+ */
+export type PublicationFace = 'back';
+
+/**
+ * The four token shapes, which differ only in the clip their renderer draws through and therefore only in geometry.
+ * Sizes are each renderer's own, from `@game/data/sizes`, the same justification the card row carries: `disc` for the three round shapes and `tokenRectangle` for the fourth.
+ * Both axes sit far above the 50 pixel per-axis floor below which the encoder drops to baseline, which is what the encode spike actually established.
+ *
+ * Every row declares a `back`, because every token has one.
+ * A token whose back is a reference publishes only its front;
+ * that is an enqueue-time rule rather than a shape of the table, since the same token can switch modes without changing type.
+ */
+const TOKEN_TARGETS = {
+  'token-round': tokenTarget('round', 600, 600),
+  'token-gear': tokenTarget('gear', 600, 600),
+  'token-square': tokenTarget('square', 600, 600),
+  'token-rectangle': tokenTarget('rectangle', 600, 372),
+} as const satisfies Record<string, PublicationTarget>;
+
+function tokenTarget(shape: string, widthPx: number, heightPx: number): PublicationTarget {
+  return {
+    collection: `${shape}-tokens`,
+    file: 'token.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: `${shape}-token.jpg`,
+    capture: { output: 'image', widthPx, heightPx, jpegQuality: 88, maxBytes: 2_000_000 },
+    faces: ['back'],
+  };
+}
 
 export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget> = {
   faction_sheet: {
@@ -75,6 +122,7 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     downloadFilename: 'deck-cardback.jpg',
     capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
   },
+  ...TOKEN_TARGETS,
 };
 
 /**
@@ -82,6 +130,30 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
  * Published URLs key on the id and never the slug: a rename re-slugs an Asset, and a published URL that moved on rename would break every embed of it while orphaning the bytes it used to name.
  */
 const PUBLIC_ASSET_ID_PATTERN = /^[0-9a-z]{16,64}$/;
+
+/**
+ * The id one face publishes under.
+ * The default face keeps the bare asset id, so every URL published before faces existed is still the URL it was.
+ */
+export function publicationFaceId(assetId: string, face?: PublicationFace): string {
+  return face ? `${assetId}.${face}` : assetId;
+}
+
+/**
+ * Whether an id may sit in this type's public path.
+ * A bare id always may.
+ * A qualified one may only when the type declares that face, so widening never reaches a type that has no second face, and the id pattern itself stays exactly as narrow as it was.
+ * The suffix is matched as a whole literal rather than by admitting `.` to the pattern, which would let `..` form and hand `publishedR2Key` a key that escapes its prefix.
+ */
+function isPublicIdForType(assetType: PublicationAssetType, assetId: string): boolean {
+  if (PUBLIC_ASSET_ID_PATTERN.test(assetId)) {
+    return true;
+  }
+  return (PUBLICATION_TARGETS[assetType].faces ?? []).some((face) => {
+    const suffix = `.${face}`;
+    return assetId.endsWith(suffix) && PUBLIC_ASSET_ID_PATTERN.test(assetId.slice(0, -suffix.length));
+  });
+}
 
 export function isPublicationAssetType(value: string): value is PublicationAssetType {
   return (PUBLICATION_ASSET_TYPES as readonly string[]).includes(value);
@@ -104,7 +176,7 @@ export function publishedR2Key(assetType: PublicationAssetType, assetId: string)
 
 /** The path half of the public URL, without the cache token that makes it fetchable. */
 export function publishedPath(assetType: PublicationAssetType, assetId: string): string {
-  if (!PUBLIC_ASSET_ID_PATTERN.test(assetId)) {
+  if (!isPublicIdForType(assetType, assetId)) {
     throw new Error('Asset id is invalid for a published path');
   }
   const target = PUBLICATION_TARGETS[assetType];
@@ -126,7 +198,7 @@ export function matchPublishedPath(pathname: string): { assetType: PublicationAs
       continue;
     }
     const assetId = pathname.slice(prefix.length, pathname.length - suffix.length);
-    if (PUBLIC_ASSET_ID_PATTERN.test(assetId)) {
+    if (isPublicIdForType(assetType, assetId)) {
       return { assetType, assetId };
     }
   }

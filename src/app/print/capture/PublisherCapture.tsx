@@ -11,6 +11,8 @@ import type { ReactNode } from 'react';
 import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
 import { CardBack } from '@game/assets/card/Back';
+import { CustomToken } from '@game/assets/token/Custom';
+import { RectangleToken } from '@game/assets/token/Rectangle';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 
 import { afterPaint, ASSET_SETTLE_TIMEOUT_MS, settleHtmlImages, settleSvgResources } from './captureSettle';
@@ -62,6 +64,47 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
           <CaptureFrame assetType={snapshot.assetType}>
             <AssetRenderModeProvider mode="print">
               <TreacheryCard {...snapshot.payload.card} />
+            </AssetRenderModeProvider>
+          </CaptureFrame>
+        ),
+      };
+    /*
+     * A token face, already resolved by the producer, so this never asks which face it is drawing.
+     * No `TokenFrame`: that is catalogue chrome and carries a drop shadow, and a JPEG cannot hold a mask anyway, so the published artifact is the renderer's own square face and a consumer masks it themselves.
+     */
+    case 'token-round':
+    case 'token-gear':
+    case 'token-square':
+      return {
+        node: (
+          <CaptureFrame assetType={snapshot.assetType}>
+            <AssetRenderModeProvider mode="print">
+              <CustomToken
+                background={snapshot.payload.face.background}
+                image={snapshot.payload.face.image}
+                circle={snapshot.payload.face.ring}
+                top={snapshot.payload.face.top || undefined}
+                bottom={
+                  snapshot.payload.face.bottomFirst || snapshot.payload.face.bottomSecond
+                    ? `${snapshot.payload.face.bottomFirst}\n${snapshot.payload.face.bottomSecond}`
+                    : undefined
+                }
+                /* The renderer centres the symbol in a 300 unit box, so scale is expressed against its reference size, the same arithmetic the editor's proof uses. */
+                size={{
+                  width: 100 * snapshot.payload.face.symbolScale,
+                  height: 100 * snapshot.payload.face.symbolScale,
+                }}
+              />
+            </AssetRenderModeProvider>
+          </CaptureFrame>
+        ),
+      };
+    case 'token-rectangle':
+      return {
+        node: (
+          <CaptureFrame assetType={snapshot.assetType}>
+            <AssetRenderModeProvider mode="print">
+              <RectangleToken {...snapshot.payload.face} />
             </AssetRenderModeProvider>
           </CaptureFrame>
         ),

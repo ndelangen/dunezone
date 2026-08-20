@@ -1,13 +1,15 @@
 import {
   DECK_ASSET_TYPE,
+  RECTANGLE_TOKEN_ASSET_TYPE,
   FACTION_SHEET_ASSET_TYPE,
   factionSheetAssetDataSchema,
   parsePublicationAssetData,
   TREACHERY_CARD_ASSET_TYPE,
 } from '../../src/shared/asset-publishing/publication';
 import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/publication';
+import { publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
-import { DeckAsset } from '../../src/shared/assets/schema';
+import { DeckAsset, RectangleTokenAsset, TokenAsset } from '../../src/shared/assets/schema';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 
@@ -97,8 +99,8 @@ export async function enqueueFactionSheetPublication(
 /**
  * Schedules an Asset's own publication, if its type has one yet.
  *
- * A type with no branch here publishes nothing at all, which is deliberate rather than an omission: decks publish their Cardback and tokens publish per face, and both need a capture renderer before a job would have anything to draw.
- * Returning null keeps a save working for those types instead of failing it over work that has not landed.
+ * Every Asset type that can be written now has a branch here, so the `default` is unreachable in practice and stays as the guard for the next type: a type whose editor lands before its publication should save rather than fail.
+ * That also means the invariant "a type with no publication saves without scheduling one" is no longer observable through the public API, which is why the test asserting it was removed rather than retargeted for a third time.
  *
  * Known and accepted for cards: `about` lives inside `data` and reaches no face, so an About-only edit schedules a capture that produces byte-identical output, and the fresh cache token cold-caches it (wayfinder #521).
  * The fix, if that ever costs enough to matter, is to compare `data` minus `about` here rather than enqueueing unconditionally.
@@ -134,9 +136,59 @@ export async function enqueueAssetPublication(
         assetData: { assetId: asset._id, slug: asset.slug, cardback: DeckAsset.parse(asset.data).cardback },
         now,
       });
+    /*
+     * Every token has two faces and «Token multi-face publication model» publishes them independently, so a save schedules two jobs rather than one.
+     * The two face models differ, so the parse differs and the scheduling does not.
+     */
+    case 'token-round':
+    case 'token-gear':
+    case 'token-square':
+      return await enqueueTokenFaces(ctx, asset, asset.type, TokenAsset.parse(asset.data), now);
+    case RECTANGLE_TOKEN_ASSET_TYPE:
+      return await enqueueTokenFaces(ctx, asset, asset.type, RectangleTokenAsset.parse(asset.data), now);
     default:
       return null;
   }
+}
+
+/** Both token models store their faces the same way, so scheduling them is one function over whatever a face happens to be. */
+type TokenFaces<TFace> = {
+  front: TFace;
+  back: { mode: 'custom'; face: TFace } | { mode: 'reference' };
+};
+
+/**
+ * Schedules a token's faces.
+ *
+ * The front takes the bare asset id, so a token's primary URL is the same shape as a card's.
+ * An authored back takes `{id}.back`, which the target row declares and the id guard admits only for types that do.
+ * A referenced back schedules nothing: it is another token's front, and that token publishes it under its own id.
+ *
+ * Switching a back from authored to referenced orphans the `.back` object rather than deleting it, which #498 accepted on the grounds that publications are replaced and never deleted.
+ */
+async function enqueueTokenFaces<TFace>(
+  ctx: MutationCtx,
+  asset: { _id: Id<'assets'>; slug: string },
+  assetType: PublicationAssetType,
+  token: TokenFaces<TFace>,
+  now?: number
+) {
+  const front = await enqueuePublicationJob(ctx, {
+    assetType,
+    assetId: asset._id,
+    assetData: { assetId: asset._id, slug: asset.slug, face: token.front },
+    now,
+  });
+  if (token.back.mode === 'custom') {
+    const backId = publicationFaceId(asset._id, 'back');
+    await enqueuePublicationJob(ctx, {
+      assetType,
+      assetId: backId,
+      assetData: { assetId: backId, slug: asset.slug, face: token.back.face },
+      now,
+    });
+  }
+  return front;
 }
 
 export async function publicationSettings(ctx: PublicationReadCtx) {

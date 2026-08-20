@@ -475,15 +475,40 @@ describe('asset publication', () => {
     });
   });
 
-  test('a type with no publication of its own saves without scheduling one', async () => {
+  test('saving a token schedules both faces, the back under a qualified id', async () => {
     const t = convexTest(schema, modules);
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
     const token = await t
       .withIdentity({ subject: ownerId })
       .mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
 
-    expect(await t.run(async (ctx) => await ctx.db.query('publication_jobs').collect())).toEqual([]);
-    expect(token.slug).toBe('axlotl');
+    const jobs = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('publication_jobs')
+          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'token-round'))
+          .collect()
+    );
+    expect(jobs.map((job) => job.asset_id).sort()).toEqual([token.id, `${token.id}.back`].sort());
+  });
+
+  test('a token whose back is a reference publishes only its front', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
+    const token = await t.withIdentity({ subject: ownerId }).mutation(api.assets.create, {
+      type: 'token-round',
+      data: { ...tokenData('Axlotl'), back: { mode: 'reference' } },
+    });
+
+    const jobs = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('publication_jobs')
+          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'token-round'))
+          .collect()
+    );
+    /* A referenced back is another token's front and publishes nothing of its own. */
+    expect(jobs.map((job) => job.asset_id)).toEqual([token.id]);
   });
 });
 
