@@ -40,12 +40,14 @@ because both the app and the Convex server parse against them.
 
 ## Basic DB Structure
 
-**Tables**: `users`, `counters`, `profiles`, `groups`, `group_members`, `factions`,
-`publication_assets`, `publication_jobs`, `admin_settings`, `rulesets`, `migration_runs`,
-`ruleset_factions`, `faq_items`, `faq_answers` — plus the Convex Auth tables.
+**Tables**: `users`, `counters`, `profiles`, `groups`, `group_members`, `factions`, `assets`,
+`asset_relations`, `publication_assets`, `publication_jobs`, `admin_settings`, `rulesets`,
+`migration_runs`, `ruleset_deck_slots`, `ruleset_factions`, `faq_items`, `faq_answers` — plus the
+Convex Auth tables.
 
 **Pattern**: Domain data is stored in Convex documents, validated with function validators at the
-boundary and shared Zod schemas inside the handler. Factions, rulesets, and groups use soft delete.
+boundary and shared Zod schemas inside the handler. Factions, rulesets, groups, and community Assets
+use soft delete.
 
 ## Domain File Pattern
 
@@ -144,7 +146,7 @@ export const updateSomething = mutation({
 
 ## Soft Delete Pattern
 
-Factions, rulesets, and groups use `is_deleted` flags instead of hard deletes:
+Factions, rulesets, groups, and community Assets use `is_deleted` flags instead of hard deletes:
 
 - Queries filter deleted rows in Convex query handlers
 - Delete mutation sets `is_deleted: true`
@@ -153,6 +155,8 @@ Factions, rulesets, and groups use `is_deleted` flags instead of hard deletes:
   historical hard deletions) is projected to `null` inside the Convex layer
   (`liveGroupOrNull` in [`convex/lib/collaborativeAccess.ts`](../convex/lib/collaborativeAccess.ts)),
   so clients never see a deleted group or a dangling reference
+- Deleting an Asset never cascades either: `asset_relations` rows survive, so a deleted card simply
+  stops appearing in the decks that reference it, filtered at query level
 - Deleted names and slugs stay reserved (see ADR-0003)
 
 **Example**: [`src/app/db/factions.ts`](../src/app/db/factions.ts)

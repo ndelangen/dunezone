@@ -30,7 +30,7 @@ export interface ConfirmDeleteActionProps {
  * Callers own what is deleted and the words for it;
  * this owns the two-step shape — a red glyph that expands in place into a question and a pair of answers, and collapses again on cancel.
  *
- * The asking is in place rather than in a modal, deliberately: a toolbar action that opens a dialog loses the row it belongs to, and this repo puts addressable pages where other apps put modals.
+ * The asking is in place rather than in a dialog, deliberately: a toolbar action that opens one loses the row it belongs to, and `window.confirm` cannot be styled, tested, or dismissed by keyboard the way the rest of the app can (see docs/technical/ui-design-decisions.md, "Destructive confirmation asks in place").
  * The mid-confirm state lives here because it is furniture around committing the action, not something a caller ever needs to read.
  *
  * Swapping the trigger for the question would strand keyboard focus on an unmounted node, so the swap hands focus over in both directions — to the question on open, back to the glyph on cancel — the same contract `AssignPopover` gets from Mantine's `returnFocus`.

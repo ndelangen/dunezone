@@ -171,6 +171,20 @@ recognizable action with an `aria-label`; if the icon would be ambiguous, label 
 forward-moving primary, and the colour tuples in [`theme.ts`](../../src/app/ui/theme.ts).
 (`StatusBadge`'s tone scale is for state, not actions.)*
 
+### Destructive confirmation asks in place
+
+A delete that opens a dialog takes the reader out of the row it belongs to, and the browser's own
+`window.confirm` blocks the thread and cannot be styled, tested, or dismissed by keyboard the way the
+rest of the app can. So a destructive action asks where it stands: the red glyph swaps for a question
+and a pair of answers, and swaps back on cancel. The swap hands keyboard focus over in both
+directions — an in-place swap unmounts the focused node, and without the handoff focus restarts at
+the top of the document.
+
+*Convention — the kit carries it: `ConfirmDeleteAction` in
+[`src/app/ui/control`](../../src/app/ui/control/ConfirmDeleteAction.tsx). `window.confirm` still
+stands at the group, ruleset and FAQ deletes; those are legacy pending a re-point, not a second
+sanctioned answer.*
+
 ### One canonical icon per recurring topic
 
 The same topic once appeared with different icons between the faction editor and the detail pages,
