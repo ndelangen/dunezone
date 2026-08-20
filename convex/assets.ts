@@ -139,6 +139,18 @@ type DeckReference = Infer<typeof deckReferenceValidator>;
  * `loadAssetAccessBundle` reads the viewer without demanding one, so an anonymous reader gets the full bundle with every capability false, which is what makes this serve a public page.
  * A soft-deleted asset reads as absent: its slug stays reserved so the address survives, but nothing behind it is a viewer's to see, and the pages render the same body they would for a slug that never existed.
  */
+/**
+ * A ruleset as a slotted asset's page cites it: enough to name it, link to it, and say which slot it fills.
+ * No owner, deliberately.
+ * That would be a `profiles` read per row for a name the section does not draw.
+ */
+const rulesetSlotReferenceValidator = v.object({
+  id: v.id('rulesets'),
+  slug: v.string(),
+  name: v.string(),
+  slot: v.string(),
+});
+
 export const getPage = query({
   args: { type: v.string(), slug: v.string() },
   returns: v.union(
@@ -157,6 +169,12 @@ export const getPage = query({
       members: v.array(v.object({ member: assetListEntryValidator, count: v.number() })),
       /** The decks holding this asset. Empty for a deck, which nothing may hold. */
       inDecks: v.array(deckReferenceValidator),
+      /**
+       * The rulesets that slot this asset, and which slot each one puts it in.
+       * Read-only here: slots are managed on the ruleset edit page, per «Ruleset deck-slot residual semantics».
+       * Empty for every type a ruleset cannot slot, which is everything but decks and bundles.
+       */
+      linkingRulesets: v.array(rulesetSlotReferenceValidator),
       /** Null for a type that publishes nothing, which today is every type but `card-treachery`. */
       assetPublishing: v.union(assetPublishingValidator, v.null()),
       /**
@@ -185,6 +203,7 @@ export const getPage = query({
       backToken: back ? await toListEntry(ctx, back) : null,
       members: CONTAINER_KINDS[row.type] ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind) : [],
       inDecks: row.type === 'deck' ? [] : await decksHolding(ctx, row._id),
+      linkingRulesets: await rulesetsSlotting(ctx, row._id),
       assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
       backPublishing: await backFacePublication(ctx, row),
     };
@@ -212,6 +231,32 @@ async function backFacePublication(ctx: QueryCtx, row: Doc<'assets'>) {
     return null;
   }
   return await publicationStatusFor(ctx, row.type, publicationFaceId(row._id, 'back'));
+}
+
+/** Bounds the reverse slot read. A single asset appearing in more rulesets than this is a curation accident rather than a page to paginate. */
+const LINKING_RULESET_LIMIT = 100;
+
+/**
+ * Which rulesets slot this asset, the mirror of `listRulesetAssetSlots`.
+ *
+ * The first read of `by_asset`, which the table has carried unused since it landed.
+ * A soft-deleted ruleset has to be fetched before it can be skipped, so the bound sits on the index read rather than on the surviving count;
+ * the slot row itself survives, the same bargain every other relation read here makes.
+ */
+async function rulesetsSlotting(ctx: QueryCtx, assetId: Id<'assets'>) {
+  const rows = await ctx.db
+    .query('ruleset_asset_slots')
+    .withIndex('by_asset', (q) => q.eq('asset_id', assetId))
+    .take(LINKING_RULESET_LIMIT);
+
+  const entries = [];
+  for (const row of rows) {
+    const ruleset = await ctx.db.get('rulesets', row.ruleset_id);
+    if (ruleset && !ruleset.is_deleted) {
+      entries.push({ id: ruleset._id, slug: ruleset.slug, name: ruleset.name, slot: row.slot });
+    }
+  }
+  return entries;
 }
 
 async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {

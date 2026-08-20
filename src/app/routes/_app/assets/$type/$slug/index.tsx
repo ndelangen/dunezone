@@ -11,6 +11,8 @@
  */
 import { Alert, Anchor, Group, Stack, Text, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import { RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
+import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
@@ -254,9 +256,54 @@ function Composition({ members, noun }: { members: AssetPage['members']; noun: s
  * a deck gets its composition first.
  * A lookup rather than a switch, so a new type is one entry and the route never learns about it.
  */
+/**
+ * The rulesets that ship this asset, and the slot each one puts it in.
+ *
+ * Read-only here.
+ * Slots are managed on the ruleset edit page, per «Ruleset deck-slot residual semantics», so this section links out rather than offering an action.
+ * It renders nothing at all when there are none, the way About does: "no ruleset uses this yet" is not a fact worth a heading.
+ */
+function LinkingRulesets({ rulesets }: { rulesets: AssetPage['linkingRulesets'] }) {
+  if (rulesets.length === 0) {
+    return null;
+  }
+  return (
+    <Section
+      id="linking-rulesets"
+      icon={<TopicIcon topic="rulesets" size={20} />}
+      title="Shipped by"
+      description="The rulesets that include this, and the slot each one fills with it."
+    >
+      <Links>
+        {rulesets.map((ruleset) => (
+          <Links.Item key={ruleset.id} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
+            {`${ruleset.name} · ${slotLabel(ruleset.slot)}`}
+          </Links.Item>
+        ))}
+      </Links>
+    </Section>
+  );
+}
+
+/** The slot's own label, falling back to the stored key so an unrecognised slot names itself rather than vanishing. */
+function slotLabel(slot: string): string {
+  return slot in RULESET_ASSET_SLOTS ? RULESET_ASSET_SLOTS[slot as RulesetAssetSlot].label : slot;
+}
+
 const PER_TYPE_BODY: Record<string, (page: AssetPage) => ReactNode> = {
-  deck: (page) => <Composition members={page.members} noun="cards" />,
-  bundle: (page) => <Composition members={page.members} noun="tokens" />,
+  /* Both slottable types show the same two sections: what is inside, then who ships it. */
+  deck: (page) => (
+    <>
+      <Composition members={page.members} noun="cards" />
+      <LinkingRulesets rulesets={page.linkingRulesets} />
+    </>
+  ),
+  bundle: (page) => (
+    <>
+      <Composition members={page.members} noun="tokens" />
+      <LinkingRulesets rulesets={page.linkingRulesets} />
+    </>
+  ),
 };
 
 function AssetDetailBody({ page }: { page: AssetPage }) {

@@ -120,6 +120,29 @@ describe('ruleset asset slots', () => {
     expect(rows).toHaveLength(1);
   });
 
+  test('a slotted deck names the rulesets shipping it, and a soft-deleted ruleset drops out of that list', async () => {
+    const { t, owner, ruleset, first } = await slotFixture();
+
+    await owner.mutation(api.rulesets.setAssetSlot, {
+      ruleset_id: ruleset._id,
+      asset_id: first.id,
+      slot: 'treachery',
+    });
+
+    const linked = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
+    expect(linked?.linkingRulesets).toEqual([
+      { id: ruleset._id, slug: ruleset.slug, name: 'SlottedRuleset', slot: 'treachery' },
+    ]);
+
+    await owner.mutation(api.rulesets.softDelete, { id: ruleset._id });
+
+    /* The slot row survives a deleted ruleset; the reverse view filters it, the same way the forward view filters a deleted asset. */
+    const orphaned = await t.query(api.assets.getPage, { type: 'deck', slug: 'house-treachery' });
+    expect(orphaned?.linkingRulesets).toEqual([]);
+    const rows = await t.run(async (ctx) => await ctx.db.query('ruleset_asset_slots').collect());
+    expect(rows).toHaveLength(1);
+  });
+
   test('the schema lists exactly the slots the shared table defines', () => {
     /* The schema cannot import the shared table and stay a schema, so this is what keeps the two from drifting. */
     const validator = schema.tables.ruleset_asset_slots.validator;
