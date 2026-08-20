@@ -1,7 +1,11 @@
 import type { Infer } from 'convex/values';
 import { v } from 'convex/values';
 
-import { isPublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
+import {
+  isPublicationAssetType,
+  PUBLICATION_TARGETS,
+  publicationFaceId,
+} from '../src/shared/asset-publishing/publicationTargets';
 import { ASSET_TYPES, isAssetType } from '../src/shared/assets/types';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
@@ -155,6 +159,12 @@ export const getPage = query({
       inDecks: v.array(deckReferenceValidator),
       /** Null for a type that publishes nothing, which today is every type but `card-treachery`. */
       assetPublishing: v.union(assetPublishingValidator, v.null()),
+      /**
+       * The authored back's own publication, which is a second artifact under a face-qualified id rather than a second field on the first.
+       * Null when the type has no second face, or when the back is a reference and therefore publishes nothing of its own.
+       * A sidecar rather than a widening of `assetPublishingValidator`, because that validator is shared with the faction and ruleset pages, which have exactly one publication each and gain nothing from learning about faces.
+       */
+      backPublishing: v.union(assetPublishingValidator, v.null()),
     })
   ),
   handler: async (ctx, args) => {
@@ -176,6 +186,7 @@ export const getPage = query({
       members: CONTAINER_KINDS[row.type] ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind) : [],
       inDecks: row.type === 'deck' ? [] : await decksHolding(ctx, row._id),
       assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
+      backPublishing: await backFacePublication(ctx, row),
     };
   },
 });
@@ -183,6 +194,26 @@ export const getPage = query({
 /**
  * Slugs are unique per Asset type (see CONTEXT.md) — the slug's job is URL identity and URLs are `/assets/{type}/{slug}` — and a slug once used stays reserved even by soft-deleted assets, the group/faction convention.
  */
+/**
+ * The publication of an asset's authored back, if it has one.
+ *
+ * Read from the **stored mode**, never from whether bytes exist.
+ * Switching a back from authored to referenced leaves its `.back` object in R2, which «Token multi-face publication model» accepted because publications are replaced and never deleted, so a page that asked R2 would keep offering a stale back forever.
+ */
+async function backFacePublication(ctx: QueryCtx, row: Doc<'assets'>) {
+  if (!isPublicationAssetType(row.type)) {
+    return null;
+  }
+  if (!(PUBLICATION_TARGETS[row.type].faces ?? []).includes('back')) {
+    return null;
+  }
+  const back = (row.data as { back?: { mode?: unknown } } | null | undefined)?.back;
+  if (back?.mode !== 'custom') {
+    return null;
+  }
+  return await publicationStatusFor(ctx, row.type, publicationFaceId(row._id, 'back'));
+}
+
 async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {
   const holders = await ctx.db
     .query('assets')

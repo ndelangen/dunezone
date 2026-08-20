@@ -534,6 +534,35 @@ const rectangleData = (name: string) => ({
   back: { mode: 'custom', face: { background: rectangleBackground, ring: true, decals: [], texts: [] } },
 });
 
+describe('a token page reports both of its faces', () => {
+  test('an authored back has a publication of its own, a referenced back has none, and a card has no second face at all', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId, created } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+
+    await owner.mutation(api.assets.create, { type: 'token-round', data: tokenData('Axlotl') });
+    await owner.mutation(api.assets.create, {
+      type: 'token-round',
+      data: { ...tokenData('Sietch'), back: { mode: 'reference' } },
+    });
+
+    const authored = await t.query(api.assets.getPage, { type: 'token-round', slug: 'axlotl' });
+    expect(authored?.backPublishing).toMatchObject({ captureStatus: 'scheduled', publicationHref: null });
+
+    /*
+     * A referenced back is another token's front, so this token publishes nothing of its own for it.
+     * Read from the stored mode rather than from whether bytes exist: switching a back from authored to referenced orphans the object instead of deleting it.
+     */
+    const referenced = await t.query(api.assets.getPage, { type: 'token-round', slug: 'sietch' });
+    expect(referenced?.backPublishing).toBeNull();
+
+    const card = await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
+    expect(card?.backPublishing).toBeNull();
+    expect(card?.assetPublishing).toMatchObject({ captureStatus: 'scheduled' });
+    expect(created.slug).toBe('lasgun');
+  });
+});
+
 describe('rectangle tokens', () => {
   test('a free composition round-trips through a save, placed elements and all', async () => {
     const t = convexTest(schema, modules);

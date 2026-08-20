@@ -26,7 +26,7 @@ import { Links } from '@ui/list/Links';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Download, Layers3, Pencil, UserRoundMinus, UsersRound } from 'lucide-react';
+import { ArrowLeft, Download, FlipHorizontal2, Layers3, Pencil, UserRoundMinus, UsersRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { loadAssetPage, useAssetPage, useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
@@ -287,11 +287,15 @@ function AssetDetailPage() {
     );
   }
 
-  const { asset, viewerAccess, assignableGroups, inDecks, assetPublishing } = page;
+  const { asset, viewerAccess, assignableGroups, inDecks, assetPublishing, backPublishing } = page;
   const { capabilities, assignedGroup } = viewerAccess;
   const definition = isAssetType(asset.type) ? ASSET_TYPES[asset.type] : undefined;
   const collectionLabel = definition?.label ?? 'Assets';
-  const showRight = Boolean(assetPublishing?.publicationHref) || capabilities.changeGroup || capabilities.delete;
+  const showRight =
+    Boolean(assetPublishing?.publicationHref) ||
+    Boolean(backPublishing?.publicationHref) ||
+    capabilities.changeGroup ||
+    capabilities.delete;
 
   return (
     <PageLayout>
@@ -360,7 +364,8 @@ function AssetDetailPage() {
               <Group role="group" aria-label={`${collectionLabel} actions`} gap="xs" wrap="wrap">
                 {assetPublishing?.publicationHref ? (
                   <IconAction
-                    label="Open published image"
+                    /* Named by face only when there are two of them, so a card keeps the plain label it already had. */
+                    label={backPublishing?.publicationHref ? 'Open published front' : 'Open published image'}
                     variant="light"
                     color="dune"
                     size="lg"
@@ -368,6 +373,19 @@ function AssetDetailPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     icon={<Download size={17} aria-hidden />}
+                  />
+                ) : null}
+                {/* A second published artifact rather than a second link to the first. A referenced back reaches here as null, so it offers nothing. */}
+                {backPublishing?.publicationHref ? (
+                  <IconAction
+                    label="Open published back"
+                    variant="light"
+                    color="dune"
+                    size="lg"
+                    href={backPublishing.publicationHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    icon={<FlipHorizontal2 size={17} aria-hidden />}
                   />
                 ) : null}
                 {capabilities.changeGroup ? (
