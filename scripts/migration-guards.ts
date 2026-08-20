@@ -178,7 +178,7 @@ async function ensureRequiredMigrationsReady({
 async function deployMode(timeoutMs: number, intervalMs: number, useProd: boolean) {
   const manifest = await loadManifest();
   const idsToRun = deploySet(manifest.entries);
-  const required = requiredForAnyNarrow(manifest.entries);
+  const required = idsToRun;
 
   if (idsToRun.length === 0) {
     throw new Error('No widen migrations defined in migration-guards.json');
@@ -200,7 +200,7 @@ async function deployMode(timeoutMs: number, intervalMs: number, useProd: boolea
 async function devStrictMode(timeoutMs: number, intervalMs: number) {
   const manifest = await loadManifest();
   const idsToRun = deploySet(manifest.entries);
-  const required = requiredForAnyNarrow(manifest.entries);
+  const required = idsToRun;
 
   if (idsToRun.length === 0) {
     throw new Error('No widen migrations defined in migration-guards.json');
