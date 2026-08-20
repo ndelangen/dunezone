@@ -1,4 +1,4 @@
-import { Button, Group, NativeSelect, Stack, Textarea, TextInput } from '@mantine/core';
+import { Button, Group, Stack, Textarea, TextInput } from '@mantine/core';
 import { rulesetDescriptionSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -10,7 +10,6 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useState } from 'react';
 
-import { useGroupsByCreator } from '@db/groups';
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
 
@@ -18,13 +17,11 @@ export const Route = createFileRoute('/_app/rulesets/create')({
   component: CreateRulesetPage,
 });
 
-function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
+function CreateRulesetForm() {
   const navigate = useNavigate();
   const createRuleset = useCreateRuleset();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [groupId, setGroupId] = useState<string | null>(null);
-  const groups = useGroupsByCreator(ownerUserId);
 
   const descriptionCheck = rulesetDescriptionSchema.safeParse(description);
   /** Only complain about a description that has been started and left short; an empty one is covered by the requirement line. */
@@ -42,12 +39,13 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
           return;
         }
         createRuleset.mutate(
-          { input: { name: nextName, description: descriptionCheck.data }, groupId: groupId ?? null },
+          { input: { name: nextName, description: descriptionCheck.data } },
           {
             onSuccess: (entry) => {
               navigate({
                 to: '/rulesets/$rulesetSlug',
                 params: { rulesetSlug: entry.slug },
+                search: entry.route_notice ? { notice: entry.route_notice } : {},
               });
             },
           }
@@ -72,16 +70,6 @@ function CreateRulesetForm({ ownerUserId }: { ownerUserId: string }) {
         minRows={4}
         value={description}
         onChange={(event) => setDescription(event.currentTarget.value)}
-      />
-      <NativeSelect
-        label="Group"
-        name="group"
-        value={groupId ?? ''}
-        onChange={(event) => setGroupId(event.target.value === '' ? null : event.target.value)}
-        data={[
-          { value: '', label: 'No group' },
-          ...(groups.data?.map((group) => ({ value: group.id, label: group.name })) ?? []),
-        ]}
       />
       {createRuleset.error ? (
         <FormError title="Ruleset could not be created">{createRuleset.error.message}</FormError>
@@ -135,7 +123,7 @@ function CreateRulesetPage() {
           </Surface>
         ) : (
           <Surface padding="lg">
-            <CreateRulesetForm ownerUserId={profile.data.user_id} />
+            <CreateRulesetForm />
           </Surface>
         )}
       </PageLayout.Content>

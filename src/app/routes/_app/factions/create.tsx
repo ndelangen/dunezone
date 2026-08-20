@@ -1,4 +1,5 @@
 import { Anchor, Stack, Text, Title } from '@mantine/core';
+import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -24,11 +25,16 @@ function CreateFactionPage() {
   const navigate = useNavigate();
   const createFaction = useCreateFaction();
   const viewRef = useRef<FactionAuthoringViewHandle | null>(null);
+  const routeNoticeRef = useRef<RouteNoticeCode | null>(null);
   const authoring = useFactionAuthoring({
     sessionKey: 'create',
     initialData: defaultFaction,
     persistence: {
-      save: async (draft) => await createFaction.mutateAsync({ input: draft, groupId: null }),
+      save: async (draft) => {
+        const entry = await createFaction.mutateAsync({ input: draft });
+        routeNoticeRef.current = entry.route_notice;
+        return entry;
+      },
       isPending: createFaction.isPending,
       error: createFaction.error,
       hasSaved: createFaction.data !== undefined,
@@ -38,6 +44,7 @@ function CreateFactionPage() {
       navigate({
         to: '/factions/$factionId/edit',
         params: { factionId: entry.slug },
+        search: routeNoticeRef.current ? { notice: routeNoticeRef.current } : {},
       });
     },
   });

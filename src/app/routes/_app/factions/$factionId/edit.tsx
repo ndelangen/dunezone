@@ -1,4 +1,6 @@
-import { Anchor, Button, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
+import { Alert, Anchor, Button, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
+import { isRouteNoticeCode } from '@shared/routeNotices';
+import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -8,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
+import { resolveRouteNotice } from '@app/routes/-routeNotices';
 import type { FactionAuthoringWarning } from '@app/widgets/faction-editor/factionAuthoringContract';
 import { FactionAuthoringToolbar } from '@app/widgets/faction-editor/FactionAuthoringToolbar';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
@@ -20,6 +23,12 @@ import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAutho
 import styles from './edit.module.css';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
+  validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
+    if (isRouteNoticeCode(params?.notice)) {
+      return { notice: params.notice };
+    }
+    return {};
+  },
   loader: async ({ params }) => await loadFaction(params.factionId),
   component: FactionEditPage,
 });
@@ -101,6 +110,7 @@ function ValidationHeader({
 
 function FactionEditPage() {
   const { factionId } = Route.useParams();
+  const search = Route.useSearch();
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
   const viewRef = useRef<FactionAuthoringViewHandle | null>(null);
@@ -203,6 +213,13 @@ function FactionEditPage() {
   const assignedGroup = viewerAccess.assignedGroup;
   const canDelete = viewerAccess.capabilities.delete;
   const canAssignGroup = viewerAccess.capabilities.changeGroup;
+  const routeNotice = resolveRouteNotice(search.notice);
+  const dismissRouteNotice = () =>
+    navigate({
+      to: '.',
+      search: (previous) => ({ ...previous, notice: undefined }),
+      replace: true,
+    });
 
   return (
     <PageLayout>
@@ -323,15 +340,28 @@ function FactionEditPage() {
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <FactionEditor
-          key={faction._id}
-          ref={viewRef}
-          form={authoring.form}
-          errors={authoring.persistence.errors}
-          isNameBlank={authoring.editing.isNameBlank}
-          warnings={authoring.editing.warnings}
-          onSettle={() => setSettleTick((tick) => tick + 1)}
-        />
+        <Stack gap="sm">
+          {routeNotice ? (
+            <Alert
+              color={routeNotice.color}
+              title={routeNotice.title}
+              role="alert"
+              withCloseButton
+              onClose={dismissRouteNotice}
+            >
+              {routeNotice.message}
+            </Alert>
+          ) : null}
+          <FactionEditor
+            key={faction._id}
+            ref={viewRef}
+            form={authoring.form}
+            errors={authoring.persistence.errors}
+            isNameBlank={authoring.editing.isNameBlank}
+            warnings={authoring.editing.warnings}
+            onSettle={() => setSettleTick((tick) => tick + 1)}
+          />
+        </Stack>
       </PageLayout.Content>
     </PageLayout>
   );

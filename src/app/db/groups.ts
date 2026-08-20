@@ -78,16 +78,6 @@ export function useGroupEditBySlug(slug: string, options?: { initialData?: Group
   return result;
 }
 
-/** Call only when `createdBy` is a real user id (e.g. mount a child after profile is known). */
-export function useGroupsByCreator(createdBy: string) {
-  const liveData = useQuery(api.groups.listByCreator, { created_by: createdBy } as never) as GroupRow[] | undefined;
-  const result = toLiveQueryResult(liveData, true);
-  return {
-    ...result,
-    data: result.data?.map((entry) => ({ ...entry, id: entry._id })),
-  };
-}
-
 export function useCreateGroup() {
   const mutation = useLiveMutation<{ name: string }, GroupRow>(api.groups.create);
   const parseGroupInput = (input: { name: string }) => {
