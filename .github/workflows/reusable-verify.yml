@@ -24,6 +24,27 @@ jobs:
           rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
           -color
 
+  # Named for what it audits, because `audit` already means the Cloudflare live-drift
+  # check in cloudflare-live-drift.yml and two checks with one name are unreadable.
+  dependency_audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      # Reads bun.lock and package.json only, so no `bun install` and no cache.
+      # Fails the job on any advisory at moderate or above; a conscious exception is
+      # `--ignore=<GHSA-id>` with the reason in the diff, never lowering the level.
+      # Fail-closed: an unreachable registry also exits non-zero, so read the log
+      # before assuming a red run means a new advisory.
+      - name: Audit dependencies for known advisories
+        run: bun audit --audit-level=moderate
+
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 15
