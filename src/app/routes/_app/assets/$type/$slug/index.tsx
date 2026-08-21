@@ -99,7 +99,7 @@ function AssetDetailError({ error }: ErrorComponentProps) {
   );
 }
 
-/** One face at reading size, captioned. Tokens use two of these; everything else uses one, uncaptioned. */
+/** One face at reading size, captioned. Tokens use two of these; everything else uses one, captioned only when a deck wears another's cardback. */
 function FaceStage({ children, caption }: { children: ReactNode; caption?: ReactNode }) {
   return (
     <Stack gap={6} align="center" className={styles.faceStage}>
@@ -178,25 +178,65 @@ function ContainerCard({
  * What Primary holds.
  *
  * Tokens stack both faces, the shape the token editor's rail already settled on.
- * A *referenced* back is the interesting case: it is another token's front, never copied data, so the page draws that token's own face from its own row and links to it.
+ * A *referenced* back draws the referenced token's own BACK face from its own row and links to it: picking a token picks its back, never its front («A referenced back shows the other token's back»).
  * That is the same payoff the "In decks" card has, one route per type turning a relation row into navigation.
- * A back pointing at a soft-deleted token resolves to nothing, and saying so beats a silently single-faced page.
+ * A deck wearing another deck's cardback gets the same treatment: the target's composition drawn from its own row, attributed and linked.
+ * A dangling reference acts double-sided and the note says so, because without it the state is undetectable rather than merely unexplained, and saying so beats a silently single-faced page.
+ * A dangling *deck* also draws the deployed fallback image beside the note, the same wrongness signal the tiles show;
+ * the stored-truth page has no presentation marker to key on, so the URL is drawn explicitly.
  */
 function AssetFaces({ page }: { page: AssetPage }) {
-  const { asset, backToken } = page;
+  const { asset, backToken, backDeck } = page;
+  /* The server's one answer to what the back is; dangling covers a deleted target and one that stopped qualifying alike. */
+  const dangling = page.resolvedBack?.mode === 'dangling';
   const isToken = asset.type.startsWith('token-');
   if (!isToken) {
-    /* Still a stage, uncaptioned: one face has nothing to distinguish, but it needs the same reading-size cap. */
+    const danglingDeck = asset.type === 'deck' && dangling;
     return (
-      <FaceStage>
-        {/* A deck's cards reach `AssetFace` here too and are ignored, which is that prop's documented contract rather than an accident. */}
-        <ScaledFace
-          type={asset.type}
-          data={asset.data}
-          name={asset.name}
-          members={page.members.map(({ member }) => member)}
-        />
-      </FaceStage>
+      <Stack gap="sm" align="center" w="100%">
+        {/* Still one stage: a single face needs the same reading-size cap, and only a worn cardback earns a caption. */}
+        <FaceStage
+          caption={
+            backDeck ? (
+              <>
+                Cardback from{' '}
+                <Anchor
+                  size="xs"
+                  renderRoot={(rootProps) => (
+                    <Link
+                      {...rootProps}
+                      to="/assets/$type/$slug"
+                      params={{ type: backDeck.type, slug: backDeck.slug }}
+                    />
+                  )}
+                >
+                  {backDeck.name}
+                </Anchor>
+              </>
+            ) : undefined
+          }
+        >
+          {backDeck ? (
+            <ScaledFace type="deck" data={backDeck.data} name={backDeck.name} />
+          ) : danglingDeck && page.resolvedBack?.href ? (
+            /* The note below carries the words, so the image is decorative to a screen reader. */
+            <img src={page.resolvedBack.href} alt="" className={styles.fallbackCardback} />
+          ) : (
+            /* A deck's cards reach `AssetFace` here too and are ignored, which is that prop's documented contract rather than an accident. */
+            <ScaledFace
+              type={asset.type}
+              data={asset.data}
+              name={asset.name}
+              members={page.members.map(({ member }) => member)}
+            />
+          )}
+        </FaceStage>
+        {danglingDeck ? (
+          <Text size="sm" c="dimmed">
+            The cardback this deck referenced is gone.
+          </Text>
+        ) : null}
+      </Stack>
     );
   }
 
@@ -206,39 +246,39 @@ function AssetFaces({ page }: { page: AssetPage }) {
       <FaceStage caption="Front">
         <ScaledFace type={asset.type} data={asset.data} name={asset.name} side="front" />
       </FaceStage>
-      {back?.mode === 'reference' ? (
-        backToken ? (
-          <FaceStage
-            caption={
-              <>
-                Back:{' '}
-                <Anchor
-                  size="xs"
-                  renderRoot={(rootProps) => (
-                    <Link
-                      {...rootProps}
-                      to="/assets/$type/$slug"
-                      params={{ type: backToken.type, slug: backToken.slug }}
-                    />
-                  )}
-                >
-                  {backToken.name}
-                </Anchor>
-              </>
-            }
-          >
-            <ScaledFace type={backToken.type} data={backToken.data} name={backToken.name} side="front" />
-          </FaceStage>
-        ) : (
-          <Text size="sm" c="dimmed">
-            This token's back points at a token that was deleted.
-          </Text>
-        )
+      {back?.mode === 'reference' && backToken && !dangling ? (
+        <FaceStage
+          caption={
+            <>
+              Back:{' '}
+              <Anchor
+                size="xs"
+                renderRoot={(rootProps) => (
+                  <Link
+                    {...rootProps}
+                    to="/assets/$type/$slug"
+                    params={{ type: backToken.type, slug: backToken.slug }}
+                  />
+                )}
+              >
+                {backToken.name}
+              </Anchor>
+            </>
+          }
+        >
+          <ScaledFace type={backToken.type} data={backToken.data} name={backToken.name} side="back" />
+        </FaceStage>
       ) : (
         <FaceStage caption="Back">
-          <ScaledFace type={asset.type} data={asset.data} name={asset.name} side="back" />
+          {/* A dangling reference shows the front on both sides; the note below is the only thing on the page that says otherwise. */}
+          <ScaledFace type={asset.type} data={asset.data} name={asset.name} side={dangling ? 'front' : 'back'} />
         </FaceStage>
       )}
+      {dangling ? (
+        <Text size="sm" c="dimmed">
+          The back this token referenced is gone, so it shows its front on both sides.
+        </Text>
+      ) : null}
     </Stack>
   );
 }

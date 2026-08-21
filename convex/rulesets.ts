@@ -318,7 +318,7 @@ const SLOT_CONTENTS_LIMIT = 100;
  *
  * Which kind a slot accepts is enforced here rather than by the schema, per «Ruleset slot table generalises to assets»: a `kind` column would be a second source of truth able to disagree with `slot`.
  * At-most-one is enforced by clearing before inserting, because `by_ruleset_slot` is a plain index and nothing in the table would stop a second row.
- * That is the same shape `setTokenBack` established for `asset_relations`.
+ * Clear-before-insert is the at-most-one shape the `asset_relations` writers settled on.
  * Idempotent, like `addFaction`: linking what is already linked is a no-op rather than a duplicate row.
  */
 export const setAssetSlot = mutation({

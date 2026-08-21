@@ -74,6 +74,63 @@ describe('asset catalogue', () => {
   });
 });
 
+describe('deck cardback reference on the page', () => {
+  test('a valid reference names the target deck, and a dangling one resolves as such with no target', async () => {
+    const t = convexTest(schema, modules);
+    const composition = {
+      name: 'Treachery',
+      image: '/vector/decal/amal.svg',
+      imageOffset: [0, 0],
+      imageScale: 1,
+      background: {},
+    };
+    await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert('users', { name: 'Deck owner' });
+      const base = {
+        owner_id: ownerId,
+        group_id: null,
+        is_deleted: false,
+        created_at: '2026-08-20T00:00:00.000Z',
+        updated_at: '2026-08-20T00:00:00.000Z',
+      };
+      const targetId = await ctx.db.insert('assets', {
+        ...base,
+        type: 'deck',
+        slug: 'authored',
+        data: { name: 'Authored', about: '', cardback: { mode: 'custom', ...composition } },
+      });
+      await ctx.db.insert('assets', {
+        ...base,
+        type: 'deck',
+        slug: 'wearer',
+        data: { name: 'Wearer', about: '', cardback: { mode: 'reference', asset_id: targetId } },
+      });
+      /* The realistic dangling case: the id is well formed (the save path guarantees that) but the target is gone. */
+      const goneId = await ctx.db.insert('assets', {
+        ...base,
+        type: 'deck',
+        slug: 'gone',
+        is_deleted: true,
+        data: { name: 'Gone', about: '', cardback: { mode: 'custom', ...composition } },
+      });
+      await ctx.db.insert('assets', {
+        ...base,
+        type: 'deck',
+        slug: 'orphan',
+        data: { name: 'Orphan', about: '', cardback: { mode: 'reference', asset_id: goneId } },
+      });
+    });
+
+    const wearer = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
+    expect(wearer?.backDeck?.slug).toBe('authored');
+    expect(wearer?.resolvedBack?.mode).toBe('reference');
+
+    const orphan = await t.query(api.assets.getPage, { type: 'deck', slug: 'orphan' });
+    expect(orphan?.backDeck).toBeNull();
+    expect(orphan?.resolvedBack?.mode).toBe('dangling');
+  });
+});
+
 describe('deck membership', () => {
   test('a card reports the decks holding it and how many copies each holds, and a card in none reports an empty list', async () => {
     const t = convexTest(schema, modules);

@@ -51,6 +51,14 @@ export interface AssetPickerProps {
   types: string[];
   /** Asset ids to leave out. In practice the one being edited, so nothing can reference itself. */
   excludeIds?: string[];
+  /**
+   * Which of the remaining rows may be chosen at all, applied after the exclude set.
+   * For rules the picker cannot infer from a type: a back reference may only point at an asset whose own back is authored, so offering the rest would be offering a pick the save would refuse.
+   * The server validators stay the backstop;
+   * this only keeps the interface honest about what it has.
+   * A caller that filters should say so in `emptyMessage`, since "nothing here" now also means "none qualify".
+   */
+  filter?: (entry: AssetListEntry) => boolean;
   copy: AssetPickerCopy;
   /** Fires once per choice. The picker never closes itself; the container that gated its mount decides that. */
   onPick: (picked: PickedAsset) => void;
@@ -71,7 +79,7 @@ export interface AssetPickerProps {
  * It truncates at 200 rows per type without saying so, and search runs client-side over whatever was fetched.
  * A dedicated `assets.listForPicker` lands when a type approaches that, following `factions.listForLoadPicker`.
  */
-export function AssetPicker({ types, excludeIds, copy, onPick, onCancel }: AssetPickerProps) {
+export function AssetPicker({ types, excludeIds, filter, copy, onPick, onCancel }: AssetPickerProps) {
   const catalogue = useAssetsByTypes(types);
   const combobox = useCombobox();
   const [search, setSearch] = useState('');
@@ -79,8 +87,9 @@ export function AssetPicker({ types, excludeIds, copy, onPick, onCancel }: Asset
   const availableRows = useMemo(() => {
     /* Built inside the memo that uses it: callers pass a fresh array each render, so memoizing the set alone never hits. */
     const excluded = new Set(excludeIds ?? []);
-    return (catalogue.data ?? []).filter((row) => !excluded.has(row.id));
-  }, [catalogue.data, excludeIds]);
+    const offered = (catalogue.data ?? []).filter((row) => !excluded.has(row.id));
+    return filter ? offered.filter((row) => filter(row)) : offered;
+  }, [catalogue.data, excludeIds, filter]);
 
   const query = search.trim().toLocaleLowerCase();
   const filteredRows = query

@@ -9,7 +9,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 
-import { useAssetPage, useSetTokenBack, useUpdateAsset } from '@app/db/assets';
+import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
@@ -17,7 +17,7 @@ import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
-import type { TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
+import type { TokenWarning, TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
 
 import {
   AssetEditorMessage,
@@ -25,6 +25,7 @@ import {
   useAssetDeletion,
   useAssetGroupActions,
 } from '../../../-assetEditorStates';
+import { referencedTokenBackFace } from './-referencedBackFace';
 
 const VALIDATION_HEADER_ID = 'token-validation-header';
 
@@ -72,6 +73,12 @@ export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: 
     );
   }
 
+  /* The draft's reference member models pick-pending as an explicit null, which the stored optional cannot say. */
+  const initialBack =
+    parsed.data.back.mode === 'reference'
+      ? { mode: 'reference' as const, asset_id: parsed.data.back.asset_id ?? null }
+      : parsed.data.back;
+
   return (
     <TokenEditSession
       key={data.asset.id}
@@ -79,7 +86,8 @@ export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: 
       type={type}
       asset={data.asset}
       backToken={data.backToken}
-      initialDraft={parsed.data}
+      danglingBack={data.resolvedBack?.mode === 'dangling'}
+      initialDraft={{ ...parsed.data, back: initialBack }}
     />
   );
 }
@@ -89,6 +97,7 @@ function TokenEditSession({
   type,
   asset,
   backToken,
+  danglingBack,
   initialDraft,
 }: {
   access: {
@@ -98,22 +107,41 @@ function TokenEditSession({
   type: string;
   asset: NonNullable<AssetPageData>['asset'];
   backToken: NonNullable<AssetPageData>['backToken'];
+  /** The server judged the stored reference dangling; the routes only relay the complaint. */
+  danglingBack: boolean;
   initialDraft: TokenDraft;
 }) {
   const navigate = useNavigate();
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
   const deletion = useAssetDeletion(asset);
-  const setTokenBack = useSetTokenBack();
   const [draft, setDraft] = useState<TokenDraft>(initialDraft);
+  /*
+   * The token whose back the draft references, for the label and the proof.
+   * Server truth seeds it and a pick replaces it; the draft holds only the id, and demanding the
+   * entry back from the server before save would make the pick a write, which it no longer is.
+   */
+  const [pickedBack, setPickedBack] = useState<{ name: string; data: unknown } | null>(backToken);
+  /* Armed by a save attempt while the reference has no target; disarmed the moment the state resolves. */
+  const [pickBlocked, setPickBlocked] = useState(false);
   const [baseline, setBaseline] = useState<TokenDraft>(initialDraft);
   const [chapter, setChapter] = useState<TokenChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const patch = (update: Partial<TokenDraft>) => setDraft((prev) => ({ ...prev, ...update }));
-  const warnings = tokenDraftWarnings(draft, backToken !== null);
-  /* The referenced token's data is another asset's, so it gets the same distrust as our own: a back that no longer parses shows a note, never a crash. */
-  const parsedBack = backToken ? TokenAsset.safeParse(backToken.data) : null;
+  /*
+   * The dangling complaint rides the widened validation header beside the widget's own warnings
+   * («How a dangling back reference presents»): a signpost, never a second set of mode controls.
+   * It routes to Identity, the chapter the back tiles live in.
+   */
+  const warnings: (TokenWarning | { source: string; complaint: string; chapter: TokenChapter })[] = [
+    ...tokenDraftWarnings(draft),
+    ...(danglingBack && draft.back.mode === 'reference'
+      ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as TokenChapter }]
+      : []),
+  ];
+  /* The proof draws what was picked, which is the target's authored back, never its front; the shared reader carries the distrust. */
+  const referencedBack = pickedBack ? referencedTokenBackFace(pickedBack.data) : null;
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -125,7 +153,15 @@ function TokenEditSession({
         : 'idle';
   const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
 
+  const pickless = draft.back.mode === 'reference' && draft.back.asset_id === null;
+
   const save = () => {
+    /* A pickless reference is blocked here with words, rather than letting the stored schema answer with a Zod error. */
+    if (pickless) {
+      setPickBlocked(true);
+      return;
+    }
+    setPickBlocked(false);
     const saved = draft;
     updateAsset.mutate(
       { id: asset.id, data: saved },
@@ -161,7 +197,12 @@ function TokenEditSession({
           }}
           actions={{
             onSave: save,
-            onReset: () => setDraft(baseline),
+            onReset: () => {
+              setDraft(baseline);
+              /* The pick lives in the draft now, so discarding the draft discards the pick with it. */
+              setPickedBack(backToken);
+              setPickBlocked(false);
+            },
             onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
@@ -191,9 +232,9 @@ function TokenEditSession({
             </Alert>
           ) : null}
           {groupActions.error}
-          {setTokenBack.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not set the backside">
-              {setTokenBack.error.message}
+          {pickBlocked && pickless ? (
+            <Alert color="yellow" variant="light" role="alert" title="No token picked">
+              Pick a token whose back this one wears, or choose another back mode.
             </Alert>
           ) : null}
           <TokenEditor
@@ -205,7 +246,7 @@ function TokenEditSession({
             onSettle={() => setSettleTick((tick) => tick + 1)}
             backPicker={(disabled) => (
               <Group gap="xs" wrap="nowrap">
-                <Text size="sm">{backToken ? backToken.name : 'No token chosen yet'}</Text>
+                <Text size="sm">{pickedBack ? pickedBack.name : 'No token chosen yet'}</Text>
                 {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
                 <Popover opened={pickerOpen} onChange={setPickerOpen} width={340} position="bottom-start" withinPortal>
                   <Popover.Target>
@@ -215,21 +256,25 @@ function TokenEditSession({
                       disabled={disabled}
                       onClick={() => setPickerOpen((open) => !open)}
                     >
-                      {backToken ? 'Change' : 'Choose'}
+                      {pickedBack ? 'Change' : 'Choose'}
                     </Button>
                   </Popover.Target>
                   <Popover.Dropdown>
                     <AssetPicker
                       types={[type]}
                       excludeIds={[asset.id]}
+                      /* Only an authored back is referenceable («Which tokens are referenceable»); token listings are unpresented, so the stored mode is readable here. */
+                      filter={(entry) => (entry.data as { back?: { mode?: string } } | null)?.back?.mode === 'custom'}
                       copy={{
                         searchLabel: 'Search tokens',
                         searchPlaceholder: 'Type a name, slug or owner…',
-                        emptyMessage: 'No other tokens of this shape exist yet.',
+                        emptyMessage: 'No other token of this shape has an authored back yet.',
                       }}
                       onPick={(picked) => {
                         setPickerOpen(false);
-                        setTokenBack.mutate({ id: asset.id, back_asset_id: picked.id });
+                        /* A pick is a draft edit, not a write; the reference reaches storage when the token is saved («The stored shape of three back modes»: one field, one writer). */
+                        setPickedBack(picked);
+                        patch({ back: { mode: 'reference', asset_id: picked.id } });
                       }}
                       onCancel={() => setPickerOpen(false)}
                     />
@@ -238,19 +283,20 @@ function TokenEditSession({
               </Group>
             )}
             backProof={
-              backToken ? (
+              pickedBack ? (
                 <Stack gap={4} align="center" w="100%">
-                  {parsedBack?.success ? (
-                    <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(backToken.type)}>
-                      <TokenProof face={parsedBack.data.front} type={backToken.type} width={900} />
+                  {referencedBack ? (
+                    /* The picker offers only this token's own type, so the page's type fixes the aspect. */
+                    <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(type)}>
+                      <TokenProof face={referencedBack} type={type} width={900} />
                     </CanvasScale>
                   ) : (
                     <Text size="xs" c="dimmed">
-                      Its stored data no longer parses, so its face cannot be shown here.
+                      Its stored back can no longer be read as an authored back, so it cannot be shown here.
                     </Text>
                   )}
                   <Text size="xs" c="dimmed">
-                    Back, from {backToken.name}
+                    Back, from {pickedBack.name}
                   </Text>
                 </Stack>
               ) : null

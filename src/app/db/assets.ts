@@ -69,12 +69,6 @@ export function useSetAssetGroup() {
   return useLiveMutation<{ id: AssetListEntry['id']; group_id: string | null }, void>(api.assets.setGroup);
 }
 
-export function useSetTokenBack() {
-  return useLiveMutation<{ id: AssetListEntry['id']; back_asset_id: AssetListEntry['id'] | null }, void>(
-    api.assets.setTokenBack
-  );
-}
-
 /** How many of one member a container holds. Zero removes it. Serves decks and bundles alike. */
 export function useSetMemberCount() {
   return useLiveMutation<{ container_id: AssetListEntry['id']; member_id: AssetListEntry['id']; count: number }, void>(

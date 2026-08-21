@@ -1,3 +1,4 @@
+import { NO_DECK_BACK_HREF } from '../../src/shared/asset-publishing/fallbacks';
 import { publicationFaceId, isPublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import type { Doc, Id } from '../_generated/dataModel';
 import { publicationStatusFor } from '../assetPublishingStatus';
@@ -9,22 +10,31 @@ type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 /** The four token types, the set every back rule ranges over. */
 export const TOKEN_ASSET_TYPES = new Set(['token-disc', 'token-tech', 'token-plate', 'token-enhance']);
 
-/**
- * The static back a dangling deck reference falls to («What does each back mode publish»): a deployed image rather than a broken link, served beside `logo.svg` as the one other committed web asset.
- * It carries a centred [?] rather than being blank, so a reader can tell "loaded, and wrong" from a failed load («How a dangling back reference presents»).
- */
-export const NO_DECK_BACK_HREF = '/web/no-deck-back.svg';
-
 /** A token's stored back, read without trusting the row to satisfy the current schema. */
 export function tokenBackOf(data: unknown): { mode?: unknown; asset_id?: unknown } | null {
   const back = (data as { back?: unknown } | null | undefined)?.back;
   return typeof back === 'object' && back !== null ? (back as { mode?: unknown; asset_id?: unknown }) : null;
 }
 
-/** A deck's stored cardback, read the same distrustful way. The authored member has no `mode` key. */
+/** A deck's stored cardback, read the same distrustful way. Authored wears `mode: 'custom'` or, transitionally, no mode key; a reference wears `mode: 'reference'`. */
 export function deckCardbackOf(data: unknown): { mode?: unknown; asset_id?: unknown } | Record<string, unknown> | null {
   const cardback = (data as { cardback?: unknown } | null | undefined)?.cardback;
   return typeof cardback === 'object' && cardback !== null ? (cardback as Record<string, unknown>) : null;
+}
+
+/**
+ * The authored composition inside a stored cardback, or null when it is a reference.
+ * The one three-way judgement (bare transitional, wrapped custom, reference) every server-side reader shares.
+ */
+export function cardbackComposition(cardback: Record<string, unknown>): Record<string, unknown> | null {
+  if (!('mode' in cardback)) {
+    return cardback;
+  }
+  if (cardback.mode !== 'custom') {
+    return null;
+  }
+  const { mode: _mode, ...composition } = cardback;
+  return composition;
 }
 
 /**
@@ -36,7 +46,7 @@ export function authoredDeckCardback(row: Doc<'assets'>): Record<string, unknown
     return null;
   }
   const cardback = deckCardbackOf(row.data);
-  return cardback && !('mode' in cardback) ? cardback : null;
+  return cardback ? cardbackComposition(cardback) : null;
 }
 
 /**
@@ -60,7 +70,7 @@ export function hasAuthoredBack(row: Doc<'assets'>): boolean {
 }
 
 /**
- * The one validator for a token back reference, shared by the save path and the transitional `setTokenBack` so the rules cannot fork.
+ * The one validator for a token back reference, owned by the save path since the transitional pick mutation retired.
  * Returns the target row on success.
  * `_id` is null while creating, when self-reference cannot arise because the row has no id to name.
  */
@@ -103,7 +113,7 @@ export async function assertReferenceableDeckCardback(
     throw new Error('A cardback reference must name a deck');
   }
   const cardback = deckCardbackOf(target.data);
-  if (!cardback || 'mode' in cardback) {
+  if (!cardback || !cardbackComposition(cardback)) {
     throw new Error('Only a deck with an authored cardback can be referenced');
   }
   return target;
@@ -164,7 +174,7 @@ export async function resolveBackHref(ctx: ReadCtx, row: Doc<'assets'>): Promise
     if (!cardback) {
       return null;
     }
-    if (!('mode' in cardback)) {
+    if (cardbackComposition(cardback)) {
       const status = await publicationStatusFor(ctx, 'deck', row._id);
       return { mode: 'authored-cardback', href: status?.publicationHref ?? null };
     }

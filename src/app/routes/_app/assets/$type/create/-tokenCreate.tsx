@@ -31,8 +31,11 @@ export function TokenCreatePage({ type }: { type: string }) {
   const [chapter, setChapter] = useState<TokenChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);
   const label = isAssetType(type) ? ASSET_TYPES[type].shortLabel.toLowerCase() : 'token';
+  /* Armed by a save attempt while the reference has no target; disarmed the moment the state resolves. */
+  const [pickBlocked, setPickBlocked] = useState(false);
   const patch = (update: Partial<TokenDraft>) => setDraft((prev) => ({ ...prev, ...update }));
-  const warnings = tokenDraftWarnings(draft, false);
+  const pickless = draft.back.mode === 'reference' && draft.back.asset_id === null;
+  const warnings = tokenDraftWarnings(draft);
   const isDirty = JSON.stringify(draft) !== JSON.stringify(initialDraft);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -55,6 +58,12 @@ export function TokenCreatePage({ type }: { type: string }) {
   }
 
   const save = () => {
+    /* The reference tile can be chosen here but not filled (picking waits for the edit page), so the save says so with words rather than a Zod error. */
+    if (pickless) {
+      setPickBlocked(true);
+      return;
+    }
+    setPickBlocked(false);
     createAsset.mutate(
       { type, data: draft },
       {
@@ -94,6 +103,11 @@ export function TokenCreatePage({ type }: { type: string }) {
           {createAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {createAsset.error.message}
+            </Alert>
+          ) : null}
+          {pickBlocked && pickless ? (
+            <Alert color="yellow" variant="light" role="alert" title="No token picked">
+              Picking a token's back happens on the edit page; save with another back mode first.
             </Alert>
           ) : null}
           <TokenEditor

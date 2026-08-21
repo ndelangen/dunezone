@@ -16,16 +16,17 @@ import type { RectangleTokenAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
+import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
+import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { assetFaceAspect, TokenFrame } from '@app/widgets/asset-face/AssetFace';
-import { sameBackground } from '@app/widgets/background-composer/BackgroundPresetControl';
-import { BackgroundPresetPicker } from '@app/widgets/background-composer/BackgroundPresetPicker';
+import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
 import { decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { RectangleToken } from '@game/assets/token/Rectangle';
@@ -38,7 +39,18 @@ import { backgroundPresets } from '@game/data/backgrounds';
  */
 const PROOF_CANVAS = 900;
 
-export type RectangleDraft = z.infer<typeof RectangleTokenAsset>;
+/**
+ * The draft is the stored shape, with one widening: a reference carries `asset_id: string | null`.
+ *
+ * Choosing the reference tile necessarily precedes picking the token, so the editor has to hold a reference that has not chosen its target yet.
+ * Storage stays strict and never sees the null: the route refuses that save in words rather than letting Zod reject it, the same shape the deck uses.
+ * Before this the state was inferred from route-held server state, so the widget needed the route to whisper what it already knew, and the two could disagree.
+ */
+export type RectangleDraft = Omit<z.infer<typeof RectangleTokenAsset>, 'back'> & {
+  back:
+    | Extract<z.infer<typeof RectangleTokenAsset>['back'], { mode: 'custom' | 'same' }>
+    | { mode: 'reference'; asset_id: string | null };
+};
 export type RectangleFaceDraft = RectangleDraft['front'];
 export type RectangleChapter =
   | 'identity'
@@ -150,26 +162,21 @@ function PlacementControl({
 type FacePatch = (update: Partial<RectangleFaceDraft>) => void;
 
 function SurfaceFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePatch }) {
-  const selected =
-    BACKGROUND_PRESETS.find((preset) => sameBackground(preset.background, face.background))?.key ?? 'custom';
   return (
     <Stack gap="lg">
-      <ControlBlock
+      {/*
+       * The same control the round editor uses, rather than the bare picker this once reached for.
+       * The bare picker offers a Custom tile with nothing behind it: choosing it found no preset and
+       * patched nothing, so the option sat there dead. `BackgroundPresetControl` owns the composer
+       * that Custom is supposed to open, and the two token editors now compose a background the same way.
+       */}
+      <BackgroundPresetControl
         title="Background"
         description="Behind the whole face."
-        input={
-          <BackgroundPresetPicker
-            presets={BACKGROUND_PRESETS}
-            selected={selected}
-            customBackground={face.background}
-            onSelect={(key) => {
-              const preset = BACKGROUND_PRESETS.find((candidate) => candidate.key === key);
-              if (preset) {
-                patch({ background: preset.background });
-              }
-            }}
-          />
-        }
+        usedOn="this token's face"
+        presets={BACKGROUND_PRESETS}
+        value={face.background}
+        onChange={(background) => patch({ background })}
       />
       <ControlBlock
         title="Edge ring"
@@ -359,12 +366,12 @@ export type RectangleWarning = { source: string; missing: string; chapter: Recta
  * A blank name blocks the save outright, so it is not listed here.
  * An empty face is the one state worth warning about, since a rectangle with no decals and no text is a bare background that says nothing.
  */
-export function rectangleDraftWarnings(draft: RectangleDraft, hasBackReference: boolean): RectangleWarning[] {
+export function rectangleDraftWarnings(draft: RectangleDraft): RectangleWarning[] {
   const warnings: RectangleWarning[] = [];
   if (draft.front.decals.length === 0 && draft.front.texts.length === 0) {
     warnings.push({ source: 'Front', missing: 'any decal or text', chapter: 'front-text' });
   }
-  if (draft.back.mode === 'reference' && !hasBackReference) {
+  if (draft.back.mode === 'reference' && draft.back.asset_id === null) {
     warnings.push({ source: 'Identity', missing: 'a back token', chapter: 'identity' });
   }
   return warnings;
@@ -380,6 +387,33 @@ const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
  * A disc token's face is a symbol in a fixed slot with curved labels, and fits one chapter;
  * a rectangle's face is a free composition and takes three, so one editor would be two editors wearing one name.
  */
+/**
+ * The back a chosen mode becomes, restoring the composition the author last had.
+ *
+ * The rectangle twin of the round editor's helper, and it keeps the same promise: storage is strict and the draft remembers («The stored shape of three back modes», section 2).
+ * Switch away from a composed back and return, and it is in the shape you left it;
+ * only saving collapses to one truth.
+ */
+function backForMode(
+  mode: RectangleDraft['back']['mode'],
+  draft: RectangleDraft,
+  remembered: RectangleFaceDraft | null,
+  rememberedTarget: string | null
+): RectangleDraft['back'] {
+  switch (mode) {
+    case 'custom':
+      return { mode: 'custom', face: draft.back.mode === 'custom' ? draft.back.face : (remembered ?? INITIAL_FACE) };
+    case 'same':
+      return { mode: 'same' };
+    case 'reference':
+      if (draft.back.mode === 'reference') {
+        return draft.back;
+      }
+      /* The pick survives the flip too: the display never stopped showing it, so the save must not disagree. */
+      return { mode: 'reference', asset_id: rememberedTarget };
+  }
+}
+
 export function RectangleTokenEditor({
   draft,
   patch,
@@ -399,6 +433,13 @@ export function RectangleTokenEditor({
   /** The referenced token's front, drawn in the rail in place of an authored back. */
   backProof: ReactNode;
 }) {
+  /* The composition the author last had, kept across mode flips; the stored union cannot hold it. */
+  const composedFace = useRef<RectangleFaceDraft | null>(draft.back.mode === 'custom' ? draft.back.face : null);
+  /* The target the author last picked, kept across mode flips for the same reason the face is. */
+  const referencedTarget = useRef<string | null>(
+    draft.back.mode === 'reference' ? (draft.back.asset_id ?? null) : null
+  );
+
   const patchFace = (key: 'front' | 'back'): FacePatch =>
     key === 'front'
       ? (update) => patch({ front: { ...draft.front, ...update } })
@@ -448,24 +489,46 @@ export function RectangleTokenEditor({
           />
           <ControlBlock
             title="Backside"
-            description="Every token has one. Author it here, or point at an enhance token that already exists."
+            description="Every token has one. Compose it, print the front on both sides, or wear another token's back."
             input={
-              <Stack gap="sm">
-                <Switch
-                  aria-label="Custom"
-                  label="Custom"
-                  checked={draft.back.mode === 'custom'}
-                  onChange={(event) =>
-                    patch({
-                      back: event.currentTarget.checked
-                        ? { mode: 'custom', face: draft.back.mode === 'custom' ? draft.back.face : INITIAL_FACE }
-                        : { mode: 'reference' },
-                    })
+              <PreviewChoice
+                label="Backside"
+                value={draft.back.mode}
+                aspectRatio={String(1 / assetFaceAspect('token-enhance'))}
+                onChange={(mode) => {
+                  /* Captured on the way out, so returning to Composed finds the face as it was left. */
+                  if (draft.back.mode === 'custom') {
+                    composedFace.current = draft.back.face;
                   }
-                />
-                {/* Always present, inert while the back is authored here: the alternative stays visible instead of the control disappearing under the toggle. */}
-                {backPicker(draft.back.mode === 'custom')}
-              </Stack>
+                  if (draft.back.mode === 'reference' && draft.back.asset_id) {
+                    referencedTarget.current = draft.back.asset_id;
+                  }
+                  patch({ back: backForMode(mode, draft, composedFace.current, referencedTarget.current) });
+                }}
+                options={[
+                  {
+                    value: 'custom',
+                    label: 'Composed here',
+                    preview:
+                      draft.back.mode === 'custom' ? (
+                        <RectangleProof face={draft.back.face} width={PROOF_CANVAS} />
+                      ) : undefined,
+                    emptyHint: <Text size="xs">Not composed yet</Text>,
+                  },
+                  {
+                    value: 'same',
+                    label: 'Same as front',
+                    preview: <RectangleProof face={draft.front} width={PROOF_CANVAS} />,
+                  },
+                  {
+                    value: 'reference',
+                    label: "Another token's back",
+                    preview: backProof ?? undefined,
+                    emptyHint: <Text size="xs">No token chosen</Text>,
+                    detail: backPicker(false),
+                  },
+                ]}
+              />
             }
           />
         </>

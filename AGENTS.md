@@ -381,7 +381,8 @@ This is a single-context repository using root `CONTEXT.md` and `docs/adr/`. See
 ## Image pipeline
 
 Raster image sources live in `media/**`; everything under `public/image/**` and
-`public/web/**` (except `logo.svg`) is generated output (gitignored). Run
+`public/web/**` is generated output (gitignored), apart from the committed files
+named in `COMMITTED_WEB_FILES` (`scripts/verify-images.ts`). Run
 `bun run generate:images` after changing sources or `src/shared/assetRules.ts`
 (dev and Storybook need the generated files locally; CI produces the deployed
 bytes). `bun run verify:images` checks the output structurally. Renderer

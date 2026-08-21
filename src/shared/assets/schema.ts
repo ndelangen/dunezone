@@ -204,20 +204,30 @@ export const CardBack = z.strictObject({
  * The cardback is the renderer's own `CardBack` contract rather than a restatement of it, so the stored shape and the thing that draws it cannot drift.
  * Whether that composition came from a stock back or was authored is deliberately not stored: publication is uniform either way, so stock only supplies the render payload, and the editor recovers the choice by comparing values the same way a background preset is recovered.
  *
- * A cardback may instead reference another deck's authored cardback («The stored shape of three back modes»): the tagged member names the target, and the bare `CardBack` is the authored member.
+ * A cardback may instead reference another deck's authored cardback («The stored shape of three back modes»): the tagged member names the target, and the authored member spreads `CardBack` under `mode: 'custom'`.
  * There is no `same` mode, since the cardback is a deck's only face.
- * The authored member stays bare rather than wearing a `mode` tag, so every existing row and reader is already in the union;
- * the tag arrives with the editor that can produce references.
+ * The bare member is transitional: it keeps every pre-wrap row valid until `assets_deck_cardback_wrap_v1` has tagged them all, and the narrow that removes it rides a later release.
  */
 export const DeckAsset = z.strictObject({
   name: z.string(),
   about: About,
-  cardback: z.union([CardBack, z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1) })]),
+  cardback: z.union([
+    CardBack.extend({ mode: z.literal('custom') }),
+    z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1) }),
+    CardBack,
+  ]),
 });
 
-/** The authored composition of a deck's cardback, or null when the cardback is a reference. */
+/** The authored composition of a deck's cardback, bare or wrapped alike, or null when the cardback is a reference. */
 export function authoredCardback(cardback: z.infer<typeof DeckAsset>['cardback']): z.infer<typeof CardBack> | null {
-  return 'mode' in cardback ? null : cardback;
+  if (!('mode' in cardback)) {
+    return cardback;
+  }
+  if (cardback.mode !== 'custom') {
+    return null;
+  }
+  const { mode: _mode, ...composition } = cardback;
+  return composition;
 }
 
 /**

@@ -1,0 +1,102 @@
+/*
+ * Always one row, however many options there are.
+ * `auto-fill` with a `6rem` floor wrapped the last option onto a second line the moment a set had
+ * five entries, which read as two groups rather than one choice (Norbert, 2026-08-20).
+ * `1fr` columns share the width instead, so the tiles narrow together rather than one dropping.
+ */
+.row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--mantine-spacing-sm);
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+/*
+ * The choose affordance, and the only control the tile itself owns.
+ * A real radio, so grouping, arrow keys, checked state and the announcement are the platform's
+ * rather than ours; there is no key handling anywhere in this file.
+ * Stretched across the tile and painting nothing, because the frame draws every visible state.
+ * Never `display: none` or `visibility: hidden`, which would drop it from the tab order and out of
+ * the radio group entirely.
+ */
+.pick {
+  position: absolute;
+  margin: 0;
+  cursor: pointer;
+  appearance: none;
+  inset: 0;
+  opacity: 0;
+}
+
+/*
+ * The visible box. An option's own control sits inside it, in flow at the foot, so the art makes
+ * room rather than being covered and nobody has to know the control's height.
+ * `aspect-ratio` belongs here rather than on the art, so a tile carrying a control is the same
+ * rectangle as one that does not and the row keeps its height as the choice moves.
+ * It takes no clicks, so a press on the picture reaches the radio beneath whatever a later ancestor
+ * does to the stacking order. That is why this is `pointer-events` and not `z-index`.
+ */
+.frame {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  border: 2px solid transparent;
+  border-radius: var(--mantine-radius-md);
+  pointer-events: none;
+}
+
+/* An option with nothing to show yet: a reserved spot, the dashed convention. */
+.frame[data-empty] {
+  border-color: var(--mantine-color-dimmed);
+  border-style: dashed;
+  color: var(--mantine-color-dimmed);
+}
+
+.art {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  place-items: center;
+}
+
+/* A preview fills its tile: it is meant to be what you get, at the tile's shape. */
+.art > * {
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * The one thing inside the frame that takes its own clicks. Positioned, and after the radio in tree
+ * order, so it paints above the hit layer without a `z-index`: with none, a stacking context added
+ * to the frame later carries the detail up with it rather than trapping it underneath.
+ */
+.detail {
+  position: relative;
+  min-width: 0;
+  padding: var(--mantine-spacing-xs);
+  pointer-events: auto;
+}
+
+.tile:has(.pick:checked) .frame {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.tile:has(.pick:hover) .frame {
+  border-color: var(--mantine-color-dimmed);
+}
+
+.tile:has(.pick:checked):has(.pick:hover) .frame {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.tile:has(.pick:focus-visible) .frame {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}

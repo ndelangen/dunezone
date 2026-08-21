@@ -63,6 +63,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   assets_back_modes_v1: internal.migrations.assets_back_modes_v1,
   asset_relations_token_back_drop_v1: internal.migrations.asset_relations_token_back_drop_v1,
   assets_back_modes_verify_v1: internal.migrations.assets_back_modes_verify_v1,
+  assets_deck_cardback_wrap_v1: internal.migrations.assets_deck_cardback_wrap_v1,
+  assets_deck_cardback_wrap_verify_v1: internal.migrations.assets_deck_cardback_wrap_verify_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -620,6 +622,41 @@ export const assets_back_modes_verify_v1 = migrations.define({
       .first();
     if (relation) {
       throw new Error(`Token ${row._id} still has a token-back relation row`);
+    }
+  },
+});
+
+/**
+ * Wraps every bare deck cardback into the tagged custom member («The stored shape of three back modes», the wrap deferred out of slice 1).
+ * Reference cardbacks and already-wrapped rows pass untouched, so the rewrite reaches exactly the pre-wrap authored rows.
+ */
+export const assets_deck_cardback_wrap_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    if (row.type !== 'deck') {
+      return;
+    }
+    const data = row.data as { cardback?: Record<string, unknown> } | null;
+    const cardback = data?.cardback;
+    if (typeof cardback !== 'object' || cardback === null || 'mode' in cardback) {
+      return;
+    }
+    return { data: { ...data, cardback: { mode: 'custom', ...cardback } } };
+  },
+});
+
+/** Proves every deck cardback wears a mode, which is what makes removing the bare transitional member safe later. */
+export const assets_deck_cardback_wrap_verify_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    if (row.type !== 'deck') {
+      return;
+    }
+    const cardback = (row.data as { cardback?: { mode?: unknown } } | null)?.cardback;
+    if (cardback?.mode !== 'custom' && cardback?.mode !== 'reference') {
+      throw new Error(`Deck ${row._id} still has an untagged cardback`);
     }
   },
 });

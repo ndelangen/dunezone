@@ -37,6 +37,18 @@ export default defineMain({
       titlePrefix: 'Widgets/Background Composer',
     },
     {
+      directory: '../src/app/widgets/token-editor',
+      titlePrefix: 'Widgets/Token Editor',
+    },
+    {
+      directory: '../src/app/widgets/deck-editor',
+      titlePrefix: 'Widgets/Deck Editor',
+    },
+    {
+      directory: '../src/app/widgets/card-editor',
+      titlePrefix: 'Widgets/Card Editor',
+    },
+    {
       directory: '../src/app/ui/block',
       titlePrefix: 'Blocks',
     },

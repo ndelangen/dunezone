@@ -23,7 +23,7 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
-import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
+import { BackgroundPresetControl, sameBackground } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
 import {
   assetOptionToPreviewSrc,
@@ -123,17 +123,35 @@ function HeadFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
       />
       <BackgroundPresetControl
         title="Head background"
-        description="The background behind the card's name. Picking a preset also resets the icon background to its matching stripes."
+        description="The background behind the card's name. The icon's stripes follow it, unless you have composed your own."
         usedOn="this card's head"
         presets={HEAD_PRESETS}
         value={draft.head}
         onChange={(head, presetKey) => {
-          const preset = CARD_PRESETS.find((candidate) => candidate.key === presetKey);
-          patch(preset ? { head, icon: [preset.striped, draft.icon[1]] } : { head });
+          patch({ head, ...matchingStripes(presetKey, draft) });
         }}
       />
     </Stack>
   );
+}
+
+/**
+ * The icon background a new head preset brings with it, or nothing when the author has composed their own.
+ *
+ * Picking a head used to rewrite the icon's background unconditionally.
+ * That is a convenience while the icon still wears the stripes a previous head gave it, and a silent discard of the author's work the moment it does not, with no undo and no word at the time it happens.
+ * It also became repeatable: the tile control is a radio group, so arrowing across the presets would have rewritten the icon at every step (Norbert, 2026-08-21, choosing to fix the coupling rather than stop arrows selecting).
+ *
+ * So the stripes still follow the head, and only while there is nothing to lose.
+ */
+function matchingStripes(presetKey: string | null, draft: TreacheryDraft): Pick<TreacheryDraft, 'icon'> | undefined {
+  const preset = CARD_PRESETS.find((candidate) => candidate.key === presetKey);
+  if (!preset) {
+    return undefined;
+  }
+  const wornHead = CARD_PRESETS.find((candidate) => sameBackground(candidate.head, draft.head));
+  const iconIsStillItsStripes = wornHead ? sameBackground(wornHead.striped, draft.icon[0]) : false;
+  return iconIsStillItsStripes ? { icon: [preset.striped, draft.icon[1]] } : undefined;
 }
 
 /* The card's icon: the vector in the top-right disc, its Background, and its scale. */
