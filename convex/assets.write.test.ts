@@ -4,6 +4,7 @@
 import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
+import { publicationFaceId } from '../src/shared/asset-publishing/publicationTargets';
 import { api } from './_generated/api';
 import schema from './schema';
 
@@ -319,9 +320,10 @@ describe('token backsides', () => {
     const owner = t.withIdentity({ subject: ownerId });
     const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
 
+    const backId = publicationFaceId(front.id, 'back');
     const backJobs = async () =>
       await t.run(async (ctx) =>
-        (await ctx.db.query('publication_jobs').collect()).filter((job) => job.asset_id.endsWith('.back'))
+        (await ctx.db.query('publication_jobs').collect()).filter((job) => job.asset_id === backId)
       );
     expect(await backJobs()).toHaveLength(1);
 
@@ -744,6 +746,25 @@ describe('deck cardback references', () => {
     const presented = entries.find((entry) => entry.id === wearer.id);
     const presentedData = presented?.data as { cardback: { name?: string } | null } | undefined;
     expect(presentedData?.cardback?.name).toBe('Treachery');
+  });
+
+  test('the page query returns the stored reference, never the presented composition', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
+    const owner = t.withIdentity({ subject: ownerId });
+    const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('Source') });
+    await owner.mutation(api.assets.create, {
+      type: 'deck',
+      data: { name: 'Wearer', about: '', cardback: { mode: 'reference', asset_id: source.id } },
+    });
+
+    /*
+     * The editor's reference guard reads this data; a presented composition here would open the deck
+     * wearing the target's cardback as its own, and a save would persist the copy.
+     */
+    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
+    const pageData = page?.asset.data as { cardback: unknown } | undefined;
+    expect(pageData?.cardback).toEqual({ mode: 'reference', asset_id: source.id });
   });
 
   test('a reference must name a deck whose cardback is authored', async () => {

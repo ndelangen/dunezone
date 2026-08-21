@@ -14,7 +14,9 @@ import { mutation } from './functions';
 import {
   assertReferenceableDeckCardback,
   assertReferenceableTokenBack,
+  authoredDeckCardback,
   deckCardbackOf,
+  legacyRelationBackId,
   resolveBackHref,
   supersedePendingBackJob,
   TOKEN_ASSET_TYPES,
@@ -65,13 +67,19 @@ function nameOf(row: Doc<'assets'>): string {
   return assetDisplayName(row);
 }
 
+/**
+ * The presentation opt-in for list surfaces, and nothing else.
+ * Passing it is what turns a reference-mode deck's `data` into the target's composition;
+ * `getPage` and every other caller must NOT pass it, because an editor reading presented data would take the target's composition for the row's own and persist the copy on save.
+ */
+type DeckBackPresentation = { deckBacks: Map<Id<'assets'>, Doc<'assets'> | null> };
+
 async function toListEntry(
   ctx: QueryCtx,
   row: Doc<'assets'>,
   /* One owner holds many assets on a page, so a caller reading hundreds of rows passes a memo and pays per owner rather than per row. */
   owners?: Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>,
-  /* One referenced deck backs many rows the same way, so list callers pass a second memo for the join. */
-  deckBacks?: Map<Id<'assets'>, Doc<'assets'> | null>
+  presentation?: DeckBackPresentation
 ) {
   if (owners && !owners.has(row.owner_id)) {
     owners.set(row.owner_id, await profileSummary(ctx, row.owner_id));
@@ -84,18 +92,18 @@ async function toListEntry(
     created_at: row.created_at,
     updated_at: row.updated_at,
     owner: owners ? owners.get(row.owner_id)! : await profileSummary(ctx, row.owner_id),
-    data: await presentedData(ctx, row, deckBacks),
+    data: presentation ? await presentedData(ctx, row, presentation.deckBacks) : row.data,
   };
 }
 
 /**
- * What a listing hands the client as `data`.
+ * What a listing hands the client as `data`, distinct from the stored truth the page query returns.
  *
  * A reference-mode deck has no composition of its own, so the target's authored cardback resolves in here («How browse surfaces get a referenced deck's cardback»): one memoized point read, depth one always since only authored cardbacks are referenceable, and tiles, piles and pickers render exactly what they rendered before.
- * A dangling reference presents no cardback, which the face renderer already treats as a neutral face.
+ * A dangling reference presents `cardback: null`, the marker recorded on that ticket: no other path produces it, and the face renderer treats it as a neutral face until the tile presentation lands.
  * Every other row passes through untouched.
  */
-async function presentedData(ctx: QueryCtx, row: Doc<'assets'>, deckBacks?: Map<Id<'assets'>, Doc<'assets'> | null>) {
+async function presentedData(ctx: QueryCtx, row: Doc<'assets'>, deckBacks: Map<Id<'assets'>, Doc<'assets'> | null>) {
   if (row.type !== 'deck') {
     return row.data;
   }
@@ -106,16 +114,14 @@ async function presentedData(ctx: QueryCtx, row: Doc<'assets'>, deckBacks?: Map<
   const targetId = typeof cardback.asset_id === 'string' ? (cardback.asset_id as Id<'assets'>) : null;
   let target: Doc<'assets'> | null = null;
   if (targetId) {
-    if (deckBacks?.has(targetId)) {
+    if (deckBacks.has(targetId)) {
       target = deckBacks.get(targetId) ?? null;
     } else {
       target = await ctx.db.get('assets', targetId);
-      deckBacks?.set(targetId, target);
+      deckBacks.set(targetId, target);
     }
   }
-  const targetCardback = target && !target.is_deleted && target.type === 'deck' ? deckCardbackOf(target.data) : null;
-  const resolved = targetCardback && !('mode' in targetCardback) ? targetCardback : null;
-  return { ...(row.data as Record<string, unknown>), cardback: resolved };
+  return { ...(row.data as Record<string, unknown>), cardback: target ? authoredDeckCardback(target) : null };
 }
 
 /** Bounds every catalogue read; ordinary use sits far below it. */
@@ -146,7 +152,7 @@ export const cataloguePage = query({
 
     const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
     const recent = await Promise.all(
-      rows.slice(0, RECENT_LIMIT).map((row) => toListEntry(ctx, row, undefined, deckBacks))
+      rows.slice(0, RECENT_LIMIT).map((row) => toListEntry(ctx, row, undefined, { deckBacks }))
     );
     return { recent, countsByType, countsTruncated: rows.length === CATALOGUE_SCAN_LIMIT };
   },
@@ -172,7 +178,7 @@ export const listByTypes = query({
     const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
     const entries = [];
     for (const row of rows) {
-      entries.push(await toListEntry(ctx, row, owners, deckBacks));
+      entries.push(await toListEntry(ctx, row, owners, { deckBacks }));
     }
     return entries;
   },
@@ -389,15 +395,6 @@ async function withValidatedBack(
     return data;
   }
   return data;
-}
-
-/** The target of a pre-migration `token-back` relation row, read only until the drop migration lands. */
-async function legacyRelationBackId(ctx: MutationCtx | QueryCtx, assetId: Id<'assets'>): Promise<string | null> {
-  const relation = await ctx.db
-    .query('asset_relations')
-    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', assetId).eq('kind', TOKEN_BACK))
-    .first();
-  return relation ? relation.to_asset_id : null;
 }
 
 export const create = mutation({
@@ -816,7 +813,12 @@ export const browsePage = query({
       }
       /* No cache across rows here, unlike `decks`: two bundles sharing a token is the exception, where a deck shared across a page of cards is the rule. */
       const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
-      entries.push({ ...(await toListEntry(ctx, row, owners, decks)), deckCount, deckCountCapped, members });
+      entries.push({
+        ...(await toListEntry(ctx, row, owners, { deckBacks: decks })),
+        deckCount,
+        deckCountCapped,
+        members,
+      });
     }
 
     return { entries, inNoDeckCount: counted ? inNoDeckCount : null, truncated };

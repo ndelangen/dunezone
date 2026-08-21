@@ -171,7 +171,7 @@ function tokenBackUnion<TFace extends z.ZodType>(face: TFace) {
   return z.discriminatedUnion('mode', [
     z.strictObject({ mode: z.literal('custom'), face }),
     z.strictObject({ mode: z.literal('same') }),
-    z.strictObject({ mode: z.literal('reference'), asset_id: z.string().optional() }),
+    z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1).optional() }),
   ]);
 }
 
@@ -212,7 +212,7 @@ export const CardBack = z.strictObject({
 export const DeckAsset = z.strictObject({
   name: z.string(),
   about: About,
-  cardback: z.union([CardBack, z.strictObject({ mode: z.literal('reference'), asset_id: z.string() })]),
+  cardback: z.union([CardBack, z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1) })]),
 });
 
 /** The authored composition of a deck's cardback, or null when the cardback is a reference. */

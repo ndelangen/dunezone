@@ -28,6 +28,31 @@ export function deckCardbackOf(data: unknown): { mode?: unknown; asset_id?: unkn
 }
 
 /**
+ * A deck row's authored cardback composition, or null when the row is not a live deck wearing one.
+ * The one judgement of "can this deck's cardback be worn by someone else", shared by the browse presentation and the resolver so the dangling rules cannot fork.
+ */
+export function authoredDeckCardback(row: Doc<'assets'>): Record<string, unknown> | null {
+  if (row.is_deleted || row.type !== 'deck') {
+    return null;
+  }
+  const cardback = deckCardbackOf(row.data);
+  return cardback && !('mode' in cardback) ? cardback : null;
+}
+
+/**
+ * The target of a pre-migration `token-back` relation row.
+ * Read only until `asset_relations_token_back_drop_v1` lands everywhere;
+ * every transitional reader shares this one fallthrough.
+ */
+export async function legacyRelationBackId(ctx: ReadCtx, assetId: Id<'assets'>): Promise<Id<'assets'> | null> {
+  const relation = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', assetId).eq('kind', 'token-back'))
+    .first();
+  return relation ? relation.to_asset_id : null;
+}
+
+/**
  * Whether a token row qualifies as a reference target («Which tokens are referenceable»): it must carry an authored back, so chains never form and the resolver never recurses.
  */
 export function hasAuthoredBack(row: Doc<'assets'>): boolean {
@@ -110,8 +135,14 @@ export async function resolveBackHref(ctx: ReadCtx, row: Doc<'assets'>): Promise
       return { mode: 'custom', href: status?.publicationHref ?? null };
     }
     if (back?.mode === 'same' || back?.mode === 'reference') {
-      const target =
-        typeof back.asset_id === 'string' ? await ctx.db.get('assets', back.asset_id as Id<'assets'>) : null;
+      /* The legacy fallthrough matches the save path's, so a pre-migration reference resolves to its target rather than reading as dangling during the deploy window. */
+      const targetId =
+        typeof back.asset_id === 'string'
+          ? (back.asset_id as Id<'assets'>)
+          : back.mode === 'reference'
+            ? await legacyRelationBackId(ctx, row._id)
+            : null;
+      const target = targetId ? await ctx.db.get('assets', targetId) : null;
       if (
         back.mode === 'reference' &&
         target &&
@@ -139,12 +170,9 @@ export async function resolveBackHref(ctx: ReadCtx, row: Doc<'assets'>): Promise
     }
     const targetId = typeof cardback.asset_id === 'string' ? (cardback.asset_id as Id<'assets'>) : null;
     const target = targetId ? await ctx.db.get('assets', targetId) : null;
-    if (target && !target.is_deleted && target.type === 'deck') {
-      const targetCardback = deckCardbackOf(target.data);
-      if (targetCardback && !('mode' in targetCardback)) {
-        const status = await publicationStatusFor(ctx, 'deck', target._id);
-        return { mode: 'reference', href: status?.publicationHref ?? null };
-      }
+    if (target && authoredDeckCardback(target)) {
+      const status = await publicationStatusFor(ctx, 'deck', target._id);
+      return { mode: 'reference', href: status?.publicationHref ?? null };
     }
     return { mode: 'dangling', href: NO_DECK_BACK_HREF };
   }
