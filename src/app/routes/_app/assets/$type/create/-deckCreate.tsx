@@ -29,7 +29,10 @@ export function DeckCreatePage() {
   const [draft, setDraft] = useState<DeckDraft>(INITIAL_DECK_DRAFT);
   const [chapter, setChapter] = useState<DeckChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);
+  /* Armed by a save attempt while the reference has no target; disarmed the moment the state resolves. */
+  const [pickBlocked, setPickBlocked] = useState(false);
   const patch = (update: Partial<DeckDraft>) => setDraft((prev) => ({ ...prev, ...update }));
+  const pickless = draft.cardback.mode === 'reference' && draft.cardback.asset_id === null;
   const warnings = deckDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'cards');
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_DECK_DRAFT);
   const isNameBlank = !draft.name.trim();
@@ -53,9 +56,15 @@ export function DeckCreatePage() {
   }
 
   const save = () => {
+    /* The reference tile can be chosen here but not filled (picking waits for the edit page), so the save says so with words rather than a Zod error. */
+    if (pickless) {
+      setPickBlocked(true);
+      return;
+    }
+    setPickBlocked(false);
     createAsset.mutate(
-      /* The draft carries the bare composition; the stored shape wears the custom tag («The stored shape of three back modes»). */
-      { type: 'deck', data: { ...draft, cardback: { mode: 'custom', ...draft.cardback } } },
+      /* The draft carries its mode, so the save writes it through; the strict stored union is the one truth («The stored shape of three back modes»). */
+      { type: 'deck', data: draft },
       {
         onSuccess: ({ slug }) =>
           void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'deck', slug }, replace: true }),
@@ -95,6 +104,11 @@ export function DeckCreatePage() {
               {createAsset.error.message}
             </Alert>
           ) : null}
+          {pickBlocked && pickless ? (
+            <Alert color="yellow" variant="light" role="alert" title="No deck picked">
+              Picking a deck to wear happens on the edit page; save with another back mode first.
+            </Alert>
+          ) : null}
           <DeckEditor
             draft={draft}
             patch={patch}
@@ -108,6 +122,13 @@ export function DeckCreatePage() {
                 Cards can be added once the deck has been saved.
               </Text>
             }
+            backPicker={
+              /* The same once-saved line the token creates keep; whether creates should pick is one editorial decision, recorded for Norbert. */
+              <Text size="xs" c="dimmed">
+                A deck can wear another deck's cardback once it has been saved.
+              </Text>
+            }
+            backProof={null}
           />
         </WorkbenchLayout>
       </PageLayout.Content>
