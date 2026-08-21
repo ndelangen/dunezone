@@ -1,3 +1,4 @@
+import { NO_DECK_BACK_HREF } from '../../src/shared/asset-publishing/fallbacks';
 import { publicationFaceId, isPublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import type { Doc, Id } from '../_generated/dataModel';
 import { publicationStatusFor } from '../assetPublishingStatus';
@@ -8,12 +9,6 @@ type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 
 /** The four token types, the set every back rule ranges over. */
 export const TOKEN_ASSET_TYPES = new Set(['token-disc', 'token-tech', 'token-plate', 'token-enhance']);
-
-/**
- * The static back a dangling deck reference falls to («What does each back mode publish»): a deployed image rather than a broken link, served beside `logo.svg` as the one other committed web asset.
- * It carries a centred [?] rather than being blank, so a reader can tell "loaded, and wrong" from a failed load («How a dangling back reference presents»).
- */
-export const NO_DECK_BACK_HREF = '/web/no-deck-back.svg';
 
 /** A token's stored back, read without trusting the row to satisfy the current schema. */
 export function tokenBackOf(data: unknown): { mode?: unknown; asset_id?: unknown } | null {
