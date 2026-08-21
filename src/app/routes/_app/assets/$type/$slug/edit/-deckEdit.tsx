@@ -11,7 +11,7 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { FilePlus2 } from 'lucide-react';
 import { useState } from 'react';
 
-import { useAssetPage, useDeleteAsset, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
+import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -20,7 +20,12 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { DeckEditor, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
 import type { DeckChapter, DeckDraft } from '@app/widgets/deck-editor/DeckEditor';
 
-import { AssetEditorMessage, DriftedAssetPage, useAssetGroupActions } from '../../../-assetEditorStates';
+import {
+  AssetEditorMessage,
+  DriftedAssetPage,
+  useAssetDeletion,
+  useAssetGroupActions,
+} from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'deck-validation-header';
 
@@ -102,7 +107,7 @@ function DeckEditSession({
   const navigate = useNavigate();
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
-  const deleteAsset = useDeleteAsset();
+  const deletion = useAssetDeletion(asset);
   const setCount = useSetMemberCount();
   const [draft, setDraft] = useState<DeckDraft>(initialDraft);
   const [baseline, setBaseline] = useState<DeckDraft>(initialDraft);
@@ -192,13 +197,8 @@ function DeckEditSession({
               <ConfirmDeleteAction
                 label="Delete deck"
                 prompt="Delete deck?"
-                pending={deleteAsset.isPending}
-                onConfirm={() =>
-                  deleteAsset.mutate(
-                    { id: asset.id },
-                    { onSuccess: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }) }
-                  )
-                }
+                pending={deletion.pending}
+                onConfirm={deletion.confirm}
               />
             ) : null
           }

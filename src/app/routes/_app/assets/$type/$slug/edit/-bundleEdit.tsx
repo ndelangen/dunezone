@@ -8,7 +8,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 
-import { useAssetPage, useDeleteAsset, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
+import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -17,7 +17,12 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { bundleDraftWarnings, BundleEditor } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
 
-import { AssetEditorMessage, DriftedAssetPage, useAssetGroupActions } from '../../../-assetEditorStates';
+import {
+  AssetEditorMessage,
+  DriftedAssetPage,
+  useAssetDeletion,
+  useAssetGroupActions,
+} from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'bundle-validation-header';
 
@@ -95,7 +100,7 @@ function BundleEditSession({
   const navigate = useNavigate();
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
-  const deleteAsset = useDeleteAsset();
+  const deletion = useAssetDeletion(asset);
   const setCount = useSetMemberCount();
   const [draft, setDraft] = useState<BundleDraft>(initialDraft);
   const [baseline, setBaseline] = useState<BundleDraft>(initialDraft);
@@ -170,13 +175,8 @@ function BundleEditSession({
               <ConfirmDeleteAction
                 label="Delete bundle"
                 prompt="Delete bundle?"
-                pending={deleteAsset.isPending}
-                onConfirm={() =>
-                  deleteAsset.mutate(
-                    { id: asset.id },
-                    { onSuccess: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }) }
-                  )
-                }
+                pending={deletion.pending}
+                onConfirm={deletion.confirm}
               />
             ) : null
           }

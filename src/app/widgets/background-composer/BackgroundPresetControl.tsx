@@ -7,8 +7,14 @@ import type { BackgroundData } from '@game/data/backgrounds';
 import { BackgroundComposer } from './BackgroundComposer';
 import { BackgroundPresetPicker } from './BackgroundPresetPicker';
 
-/** Value equality, since a preset is only "selected" while the stored background still matches it exactly. */
-function sameBackground(a: BackgroundData, b: BackgroundData): boolean {
+/**
+ * Value equality for a background, since a preset is only "selected" while the stored value still matches it exactly.
+ * Scalars compare field by field;
+ * `colors` alone compares by stringify, because a colour element may be a gradient object and a round-tripped clone never satisfies reference equality.
+ * Stringifying the whole background would be unsafe, since a clone that round-tripped through the database carries Zod's key order, but `colors` is an array whose element order is the contract, so its stringify is stable.
+ * Every stock matcher that embeds a background (`sameCardback`, `sameBand`) delegates here rather than restating the split.
+ */
+export function sameBackground(a: BackgroundData, b: BackgroundData): boolean {
   return (
     a.image === b.image &&
     a.invert === b.invert &&

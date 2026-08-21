@@ -8,7 +8,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 
-import { useAssetPage, useDeleteAsset, useSetTokenBack, useUpdateAsset } from '@app/db/assets';
+import { useAssetPage, useSetTokenBack, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
@@ -22,7 +22,12 @@ import {
 } from '@app/widgets/token-editor/RectangleTokenEditor';
 import type { RectangleChapter, RectangleDraft } from '@app/widgets/token-editor/RectangleTokenEditor';
 
-import { AssetEditorMessage, DriftedAssetPage, useAssetGroupActions } from '../../../-assetEditorStates';
+import {
+  AssetEditorMessage,
+  DriftedAssetPage,
+  useAssetDeletion,
+  useAssetGroupActions,
+} from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'rectangle-token-validation-header';
 
@@ -109,7 +114,7 @@ function RectangleEditSession({
   const navigate = useNavigate();
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
-  const deleteAsset = useDeleteAsset();
+  const deletion = useAssetDeletion(asset);
   const setTokenBack = useSetTokenBack();
   const [draft, setDraft] = useState<RectangleDraft>(initialDraft);
   const [baseline, setBaseline] = useState<RectangleDraft>(initialDraft);
@@ -177,13 +182,8 @@ function RectangleEditSession({
               <ConfirmDeleteAction
                 label="Delete token"
                 prompt="Delete token?"
-                pending={deleteAsset.isPending}
-                onConfirm={() =>
-                  deleteAsset.mutate(
-                    { id: asset.id },
-                    { onSuccess: () => void navigate({ to: '/assets/$type', params: { type } }) }
-                  )
-                }
+                pending={deletion.pending}
+                onConfirm={deletion.confirm}
               />
             ) : null
           }

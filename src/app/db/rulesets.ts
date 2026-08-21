@@ -267,10 +267,6 @@ function useRulesetFactionLinkMutation(reference: typeof api.rulesets.addFaction
   };
 }
 
-/**
- * Links a faction to a ruleset, and unlinks it.
- * Both are gated server-side on the ruleset's `edit` capability — its owner, or an active member of its maintaining group — so the page shows the affordances on the same condition.
- */
 type RulesetAssetSlotLink = { rulesetId: string; assetId: string; slot: RulesetAssetSlot };
 
 /**
@@ -300,6 +296,10 @@ export function useClearRulesetAssetSlot() {
   return useRulesetAssetSlotMutation(api.rulesets.clearAssetSlot);
 }
 
+/**
+ * Links a faction to a ruleset, and unlinks it.
+ * Both are gated server-side on the ruleset's `edit` capability — its owner, or an active member of its maintaining group — so the page shows the affordances on the same condition.
+ */
 export function useAddRulesetFaction() {
   return useRulesetFactionLinkMutation(api.rulesets.addFaction);
 }

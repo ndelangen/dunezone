@@ -1,4 +1,5 @@
 import type { BundleBandData } from '@app/widgets/asset-face/BundleContainer';
+import { sameBackground } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 /**
@@ -20,20 +21,11 @@ export const STOCK_BANDS: { key: string; label: string; band: BundleBandData }[]
 ];
 
 /**
- * Scalars field by field, `colors` alone by stringify.
- * A band that round-tripped through the database is a clone of its preset carrying Zod's key order, so a whole-object stringify reports every stock band as custom;
- * `colors` is an array whose element order is the contract, so its stringify is stable, and a colour element may be a gradient object that reference equality would never match.
- * `sameCardback` and the card editor's `sameBackground` follow the same split.
+ * The band's own label compares directly;
+ * the embedded background delegates to `sameBackground`, which owns the colors-by-stringify convention.
  */
 function sameBand(left: BundleBandData, right: BundleBandData): boolean {
-  return (
-    left.label === right.label &&
-    left.background.image === right.background.image &&
-    left.background.invert === right.background.invert &&
-    left.background.definition === right.background.definition &&
-    left.background.influence === right.background.influence &&
-    JSON.stringify(left.background.colors) === JSON.stringify(right.background.colors)
-  );
+  return left.label === right.label && sameBackground(left.background, right.background);
 }
 
 /** The stock key a composition matches, or null when it was authored. */

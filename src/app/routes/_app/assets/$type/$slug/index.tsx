@@ -14,11 +14,10 @@ import { ASSET_TYPES, holdsDeckMembership, isAssetType } from '@shared/assets/ty
 import { RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
@@ -28,14 +27,15 @@ import { Links } from '@ui/list/Links';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Boxes, Download, FlipHorizontal2, Layers3, Pencil, UserRoundMinus, UsersRound } from 'lucide-react';
+import { ArrowLeft, Boxes, Download, FlipHorizontal2, Layers3, Pencil, UsersRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { loadAssetPage, useAssetPage, useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
+import { loadAssetPage, useAssetPage } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import type { AssetFaceMember } from '@app/widgets/asset-face/AssetFace';
 
+import { useAssetDeletion, useAssetGroupActions } from '../../-assetEditorStates';
 import styles from './index.module.css';
 
 type AssetPage = NonNullable<AssetPageData>;
@@ -306,12 +306,6 @@ function Composition({
 }
 
 /**
- * The one region that is not the same for every Asset type.
- * A card or token is its face, so it gets About and nothing else;
- * a deck gets its composition first.
- * A lookup rather than a switch, so a new type is one entry and the route never learns about it.
- */
-/**
  * The rulesets that ship this asset, and the slot each one puts it in.
  *
  * Read-only here.
@@ -345,6 +339,12 @@ function slotLabel(slot: string): string {
   return slot in RULESET_ASSET_SLOTS ? RULESET_ASSET_SLOTS[slot as RulesetAssetSlot].label : slot;
 }
 
+/**
+ * The one region that is not the same for every Asset type.
+ * A card or token is its face, so it gets About and nothing else;
+ * a deck gets its composition first.
+ * A lookup rather than a switch, so a new type is one entry and the route never learns about it.
+ */
 const PER_TYPE_BODY: Record<string, (page: AssetPage) => ReactNode> = {
   /* Both slottable types show the same two sections: what is inside, then who ships it. */
   deck: (page) => (
@@ -379,9 +379,6 @@ function AssetDetailPage() {
   const loaderData = Route.useLoaderData();
   const live = useAssetPage(type, slug, { initialData: loaderData });
   const page = live.data ?? loaderData;
-  const navigate = useNavigate();
-  const setAssetGroup = useSetAssetGroup();
-  const deleteAsset = useDeleteAsset();
 
   if (!page) {
     return (
@@ -399,7 +396,18 @@ function AssetDetailPage() {
     );
   }
 
+  return <LoadedAssetDetail page={page} />;
+}
+
+/**
+ * The page below the not-found guard.
+ * Its own component so the management hooks can take a definite asset, which the route component cannot promise before the guard runs.
+ * Group assign/remove and delete install from the shared hooks in `-assetEditorStates` rather than repeating here as a fifth copy of the same fifty lines.
+ */
+function LoadedAssetDetail({ page }: { page: AssetPage }) {
   const { asset, viewerAccess, assignableGroups, inDecks, inBundles, assetPublishing, backPublishing } = page;
+  const groupActions = useAssetGroupActions({ asset, access: { viewerAccess, assignableGroups } });
+  const deletion = useAssetDeletion(asset);
   const isToken = asset.type.startsWith('token-');
   const { capabilities, assignedGroup } = viewerAccess;
   const definition = isAssetType(asset.type) ? ASSET_TYPES[asset.type] : undefined;
@@ -501,50 +509,13 @@ function AssetDetailPage() {
                     icon={<FlipHorizontal2 size={17} aria-hidden />}
                   />
                 ) : null}
-                {capabilities.changeGroup ? (
-                  assignedGroup ? (
-                    <IconAction
-                      label="Remove group"
-                      variant="light"
-                      color="red"
-                      size="lg"
-                      disabled={setAssetGroup.isPending}
-                      onClick={() => setAssetGroup.mutate({ id: asset.id, group_id: null })}
-                      icon={<UserRoundMinus size={17} aria-hidden />}
-                    />
-                  ) : (
-                    <AssignPopover
-                      noun="group"
-                      triggerLabel="Assign group"
-                      icon={<UsersRound size={17} aria-hidden />}
-                      title="Assign Group"
-                      descriptionLines={[
-                        `Assign a group whose members can help maintain "${asset.name}".`,
-                        'You can create and join groups from your profile.',
-                      ]}
-                      disabled={setAssetGroup.isPending}
-                      options={assignableGroups.map((group) => ({
-                        value: group.id,
-                        label: `${group.name} (${group.slug})`,
-                      }))}
-                      onAssign={async (nextGroupId) => {
-                        await setAssetGroup.mutateAsync({ id: asset.id, group_id: nextGroupId });
-                      }}
-                    />
-                  )
-                ) : null}
+                {groupActions.auxiliaryActions}
                 {capabilities.delete ? (
                   <ConfirmDeleteAction
                     label={`Delete ${asset.name}`}
                     prompt="Delete this asset?"
-                    pending={deleteAsset.isPending}
-                    /* This page IS the asset's address, so a successful delete has nowhere to stay; the type it belonged to is also where a reader arriving from a browse tile came from. */
-                    onConfirm={() =>
-                      deleteAsset.mutate(
-                        { id: asset.id },
-                        { onSuccess: () => void navigate({ to: '/assets/$type', params: { type: asset.type } }) }
-                      )
-                    }
+                    pending={deletion.pending}
+                    onConfirm={deletion.confirm}
                   />
                 ) : null}
               </Group>
@@ -554,6 +525,12 @@ function AssetDetailPage() {
       </PageLayout.Toolbar>
 
       <PageLayout.Content>
+        {groupActions.error}
+        {deletion.error ? (
+          <Alert color="red" variant="light" role="alert" title="Could not delete">
+            {deletion.error.message}
+          </Alert>
+        ) : null}
         <ColumnsWithRailLayout>
           <ColumnsWithRailLayout.Primary>
             <AssetFaces page={page} />

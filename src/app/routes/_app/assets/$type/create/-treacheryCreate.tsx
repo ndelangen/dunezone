@@ -56,7 +56,8 @@ export function TreacheryCreatePage() {
     createAsset.mutate(
       { type: 'card-treachery', data: draft },
       {
-        onSuccess: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
+        onSuccess: ({ slug }) =>
+          void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'card-treachery', slug } }),
       }
     );
   };
@@ -82,7 +83,7 @@ export function TreacheryCreatePage() {
           actions={{
             onSave: save,
             onReset: () => setDraft(INITIAL_TREACHERY_DRAFT),
-            onBack: () => void navigate({ to: '/assets' }),
+            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
           }}
         />
       </PageLayout.Toolbar>

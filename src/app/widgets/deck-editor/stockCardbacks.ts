@@ -1,6 +1,7 @@
 import type { CardBack } from '@shared/assets/schema';
 import type { z } from 'zod';
 
+import { sameBackground } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 export type CardbackData = z.infer<typeof CardBack>;
@@ -50,10 +51,8 @@ export const STOCK_CARDBACKS: { key: string; label: string; cardback: CardbackDa
 /**
  * Value equality, since a stock back is only "chosen" while the stored composition still matches it exactly.
  *
- * Scalars compare field by field;
- * `colors` alone compares by stringify, because a colour element may be a gradient object and a round-tripped clone never satisfies reference equality.
- * Stringifying the whole background would be unsafe, since Zod's key order differs from this file's, but `colors` is an array whose element order is the contract, so its stringify is stable.
- * `sameBand` and the card editor's `sameBackground` follow the same split.
+ * The cardback's own scalars compare field by field;
+ * the embedded background delegates to `sameBackground`, which owns the colors-by-stringify convention.
  */
 function sameCardback(a: CardbackData, b: CardbackData): boolean {
   return (
@@ -62,11 +61,7 @@ function sameCardback(a: CardbackData, b: CardbackData): boolean {
     a.imageScale === b.imageScale &&
     a.imageOffset[0] === b.imageOffset[0] &&
     a.imageOffset[1] === b.imageOffset[1] &&
-    a.background.image === b.background.image &&
-    a.background.invert === b.background.invert &&
-    a.background.definition === b.background.definition &&
-    a.background.influence === b.background.influence &&
-    JSON.stringify(a.background.colors) === JSON.stringify(b.background.colors)
+    sameBackground(a.background, b.background)
   );
 }
 
