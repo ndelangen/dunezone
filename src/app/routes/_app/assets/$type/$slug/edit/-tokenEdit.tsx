@@ -129,7 +129,7 @@ function TokenEditSession({
   const warnings: (TokenWarning | { source: string; complaint: string; chapter: TokenChapter })[] = [
     ...tokenDraftWarnings(draft, pickedBack !== null),
     ...(danglingBack && draft.back.mode === 'reference'
-      ? [{ source: 'Backside', complaint: 'its referenced token is gone', chapter: 'identity' as TokenChapter }]
+      ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as TokenChapter }]
       : []),
   ];
   /* The proof draws what was picked, which is the target's authored back, never its front; the shared reader carries the distrust. */

@@ -233,7 +233,7 @@ function AssetFaces({ page }: { page: AssetPage }) {
         </FaceStage>
         {danglingDeck ? (
           <Text size="sm" c="dimmed">
-            This deck's cardback referenced a deck that is gone.
+            The cardback this deck referenced is gone.
           </Text>
         ) : null}
       </Stack>
@@ -276,7 +276,7 @@ function AssetFaces({ page }: { page: AssetPage }) {
       )}
       {dangling ? (
         <Text size="sm" c="dimmed">
-          This token's back referenced a token that is gone, so it shows its front on both sides.
+          The back this token referenced is gone, so it shows its front on both sides.
         </Text>
       ) : null}
     </Stack>

@@ -149,7 +149,7 @@ function DeckEditSession({
   const warnings: (DeckWarning | { source: string; complaint: string; chapter: DeckChapter })[] = [
     ...deckDraftWarnings(draft, cards),
     ...(danglingBack && draft.cardback.mode === 'reference'
-      ? [{ source: 'Cardback', complaint: 'its referenced deck is gone', chapter: 'identity' as DeckChapter }]
+      ? [{ source: 'Cardback', complaint: 'its referenced cardback is gone', chapter: 'identity' as DeckChapter }]
       : []),
   ];
   const pickless = draft.cardback.mode === 'reference' && draft.cardback.asset_id === null;

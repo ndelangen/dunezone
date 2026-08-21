@@ -144,7 +144,7 @@ function RectangleEditSession({
   const warnings: (RectangleWarning | { source: string; complaint: string; chapter: RectangleChapter })[] = [
     ...rectangleDraftWarnings(draft, pickedBack !== null),
     ...(danglingBack && draft.back.mode === 'reference'
-      ? [{ source: 'Backside', complaint: 'its referenced token is gone', chapter: 'identity' as RectangleChapter }]
+      ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as RectangleChapter }]
       : []),
   ];
   /* The proof draws what was picked, which is the target's authored back, never its front; the shared reader carries the distrust. */
