@@ -99,10 +99,17 @@ for (const source of sources) {
   }
 }
 
+/* Committed alongside the generated tree, not produced from media/; each names the change that added it. */
+const COMMITTED_WEB_FILES = new Set([
+  'web/logo.svg',
+  /* The dangling deck-back fallback the resolver serves («What does each back mode publish», amended by «How a dangling back reference presents»). */
+  'web/no-deck-back.svg',
+]);
+
 for (const generated of [...walk(path.join(publicRoot, 'image')), ...walk(path.join(publicRoot, 'web'))]) {
   const relative = path.relative(publicRoot, generated).split(path.sep).join('/');
-  if (relative === 'web/logo.svg') {
-    continue; // committed, not generated
+  if (COMMITTED_WEB_FILES.has(relative)) {
+    continue;
   }
   if (!expectedFiles.has(relative)) {
     failures.push(`orphan generated file: ${relative}`);

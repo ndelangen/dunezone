@@ -11,6 +11,17 @@ import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
 import { mutation } from './functions';
+import {
+  assertReferenceableDeckCardback,
+  assertReferenceableTokenBack,
+  authoredDeckCardback,
+  deckCardbackOf,
+  legacyRelationBackId,
+  resolveBackHref,
+  supersedePendingBackJob,
+  TOKEN_ASSET_TYPES,
+  tokenBackOf,
+} from './lib/assetBacks';
 import { assetDisplayName, assertKnownAssetType, parseAssetDataForWrite } from './lib/assetInput';
 import {
   loadAssetAccessBundle,
@@ -56,11 +67,19 @@ function nameOf(row: Doc<'assets'>): string {
   return assetDisplayName(row);
 }
 
+/**
+ * The presentation opt-in for list surfaces, and nothing else.
+ * Passing it is what turns a reference-mode deck's `data` into the target's composition;
+ * `getPage` and every other caller must NOT pass it, because an editor reading presented data would take the target's composition for the row's own and persist the copy on save.
+ */
+type DeckBackPresentation = { deckBacks: Map<Id<'assets'>, Doc<'assets'> | null> };
+
 async function toListEntry(
   ctx: QueryCtx,
   row: Doc<'assets'>,
   /* One owner holds many assets on a page, so a caller reading hundreds of rows passes a memo and pays per owner rather than per row. */
-  owners?: Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>
+  owners?: Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>,
+  presentation?: DeckBackPresentation
 ) {
   if (owners && !owners.has(row.owner_id)) {
     owners.set(row.owner_id, await profileSummary(ctx, row.owner_id));
@@ -73,8 +92,36 @@ async function toListEntry(
     created_at: row.created_at,
     updated_at: row.updated_at,
     owner: owners ? owners.get(row.owner_id)! : await profileSummary(ctx, row.owner_id),
-    data: row.data,
+    data: presentation ? await presentedData(ctx, row, presentation.deckBacks) : row.data,
   };
+}
+
+/**
+ * What a listing hands the client as `data`, distinct from the stored truth the page query returns.
+ *
+ * A reference-mode deck has no composition of its own, so the target's authored cardback resolves in here («How browse surfaces get a referenced deck's cardback»): one memoized point read, depth one always since only authored cardbacks are referenceable, and tiles, piles and pickers render exactly what they rendered before.
+ * A dangling reference presents `cardback: null`, the marker recorded on that ticket: no other path produces it, and the face renderer treats it as a neutral face until the tile presentation lands.
+ * Every other row passes through untouched.
+ */
+async function presentedData(ctx: QueryCtx, row: Doc<'assets'>, deckBacks: Map<Id<'assets'>, Doc<'assets'> | null>) {
+  if (row.type !== 'deck') {
+    return row.data;
+  }
+  const cardback = deckCardbackOf(row.data);
+  if (!cardback || !('mode' in cardback)) {
+    return row.data;
+  }
+  const targetId = typeof cardback.asset_id === 'string' ? (cardback.asset_id as Id<'assets'>) : null;
+  let target: Doc<'assets'> | null = null;
+  if (targetId) {
+    if (deckBacks.has(targetId)) {
+      target = deckBacks.get(targetId) ?? null;
+    } else {
+      target = await ctx.db.get('assets', targetId);
+      deckBacks.set(targetId, target);
+    }
+  }
+  return { ...(row.data as Record<string, unknown>), cardback: target ? authoredDeckCardback(target) : null };
 }
 
 /** Bounds every catalogue read; ordinary use sits far below it. */
@@ -103,7 +150,12 @@ export const cataloguePage = query({
       countsByType[row.type] = (countsByType[row.type] ?? 0) + 1;
     }
 
-    const recent = await Promise.all(rows.slice(0, RECENT_LIMIT).map((row) => toListEntry(ctx, row)));
+    /* Sequential like the other list readers, so the memo fills before the rows that would hit it. */
+    const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+    const recent = [];
+    for (const row of rows.slice(0, RECENT_LIMIT)) {
+      recent.push(await toListEntry(ctx, row, undefined, { deckBacks }));
+    }
     return { recent, countsByType, countsTruncated: rows.length === CATALOGUE_SCAN_LIMIT };
   },
 });
@@ -123,11 +175,12 @@ export const listByTypes = query({
       )
     );
     const rows = perType.flat().sort((a, b) => b._creationTime - a._creationTime);
-    /* Sequential rather than Promise.all, so the owner memo fills before the rows that would hit it. */
+    /* Sequential rather than Promise.all, so the memos fill before the rows that would hit them. */
     const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
+    const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
     const entries = [];
     for (const row of rows) {
-      entries.push(await toListEntry(ctx, row, owners));
+      entries.push(await toListEntry(ctx, row, owners, { deckBacks }));
     }
     return entries;
   },
@@ -205,6 +258,12 @@ export const getPage = query({
        * A sidecar rather than a widening of `assetPublishingValidator`, because that validator is shared with the faction and ruleset pages, which have exactly one publication each and gain nothing from learning about faces.
        */
       backPublishing: v.union(assetPublishingValidator, v.null()),
+      /**
+       * The one server-side answer to "what is this asset's back?" («What does each back mode publish»): the mode the resolution took and the URL a consumer fetches for it, or null for a type with no back.
+       * Additive this release;
+       * the pages that draw from it land with the editor slice.
+       */
+      resolvedBack: v.union(v.object({ mode: v.string(), href: v.union(v.string(), v.null()) }), v.null()),
     })
   ),
   handler: async (ctx, args) => {
@@ -217,7 +276,7 @@ export const getPage = query({
       return null;
     }
     const access = await loadAssetAccessBundle(ctx, { kind: 'asset', row });
-    const back = TOKEN_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id) : null;
+    const back = TOKEN_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id, row.data) : null;
     return {
       asset: await toListEntry(ctx, row),
       viewerAccess: access.viewerAccess,
@@ -234,6 +293,7 @@ export const getPage = query({
       linkingRulesets: await rulesetsSlotting(ctx, row._id),
       assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
       backPublishing: await backFacePublication(ctx, row),
+      resolvedBack: await resolveBackHref(ctx, row),
     };
   },
 });
@@ -297,6 +357,48 @@ async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: st
   }
 }
 
+/**
+ * Save-path validation of an asset's back, the one gate every writer of it shares («The stored shape of three back modes»: one field, one writer, one rule).
+ *
+ * A token reference may arrive without its target, because today's editors still pick through `setTokenBack` and the draft only carries the mode.
+ * The stored id is preserved rather than demanded back from the client, falling through to the legacy relation row for rows the migration has not reached.
+ * A reference with no target anywhere stays a dangling reference, which resolves to the front rather than to an error, the lazy rule «Which tokens are referenceable» set.
+ */
+async function withValidatedBack(
+  ctx: MutationCtx,
+  row: { _id?: Id<'assets'>; type: string; data?: unknown },
+  data: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  if (TOKEN_TYPES.has(row.type)) {
+    const back = tokenBackOf(data);
+    if (back?.mode !== 'reference') {
+      return data;
+    }
+    const stored = typeof back.asset_id === 'string' ? back.asset_id : null;
+    const previous = row.data ? tokenBackOf(row.data) : null;
+    const carried = typeof previous?.asset_id === 'string' ? previous.asset_id : null;
+    const legacy = row._id ? await legacyRelationBackId(ctx, row._id) : null;
+    const targetId = (stored ?? carried ?? legacy) as Id<'assets'> | null;
+    if (!targetId) {
+      return data;
+    }
+    await assertReferenceableTokenBack(ctx, { _id: row._id ?? null, type: row.type }, targetId);
+    return { ...data, back: { mode: 'reference', asset_id: targetId } };
+  }
+  if (row.type === 'deck') {
+    const cardback = deckCardbackOf(data);
+    if (cardback && 'mode' in cardback && typeof cardback.asset_id === 'string') {
+      await assertReferenceableDeckCardback(
+        ctx,
+        { _id: row._id ?? null, type: row.type },
+        cardback.asset_id as Id<'assets'>
+      );
+    }
+    return data;
+  }
+  return data;
+}
+
 export const create = mutation({
   args: { type: v.string(), data: v.any() },
   returns: v.object({ id: v.id('assets'), slug: v.string() }),
@@ -304,6 +406,7 @@ export const create = mutation({
     const userId = await requireAuthUserId(ctx);
     assertKnownAssetType(args.type);
     const parsed = parseAssetDataForWrite(args.type, args.data);
+    parsed.data = await withValidatedBack(ctx, { type: args.type }, parsed.data as Record<string, unknown>);
     const slug = slugify(parsed.name);
     if (!slug) {
       throw new Error('An asset name is required; it determines the asset URL');
@@ -335,6 +438,7 @@ export const update = mutation({
     }
     /* The type is immutable: the stored row decides which schema the incoming data must satisfy. */
     const parsed = parseAssetDataForWrite(row.type, args.data);
+    parsed.data = await withValidatedBack(ctx, row, parsed.data as Record<string, unknown>);
     await requireAssetUpdate(ctx, args.id, parsed.name);
     const slug = slugify(parsed.name);
     if (!slug) {
@@ -395,16 +499,18 @@ const CONTAINER_KINDS: Record<string, { kind: string; holds: (type: string) => b
   bundle: { kind: BUNDLE_TOKEN, holds: (type) => TOKEN_TYPES.has(type), noun: 'tokens' },
 };
 
-/** Token Asset types, which are the only things that may sit on either end of a `token-back` relation. */
-const TOKEN_TYPES = new Set(['token-disc', 'token-tech', 'token-plate', 'token-enhance']);
+/** Token Asset types, from the module every back rule shares. */
+const TOKEN_TYPES = TOKEN_ASSET_TYPES;
 
 /**
- * Points a token's backside at another token, or clears the reference.
+ * Points a token's backside at another token.
  *
- * First writer of `asset_relations`, so it establishes the shape deck composition will follow: which types may link is a rule of this mutation rather than of the schema, exactly as «Deck→card reference mechanism and deletion semantics» decided when it chose one table over per-kind tables.
+ * Transitional: the reference now lives in `data.back` («The stored shape of three back modes»), and this mutation survives one release only because today's editors pick through it.
+ * It routes through the same validator as the save path, writes the same field, and clears any legacy `token-back` relation row it finds;
+ * the draft-based pick that retires it lands with the editor slice.
  *
- * `by_from_kind` is a plain index, not unique, so "at most one back per token" is enforced here by clearing what is there before inserting.
- * Nothing in the table would stop a second row.
+ * Clearing moved to the save path with the mode union, so `null` is refused rather than half-supported;
+ * no caller has ever sent it.
  */
 export const setTokenBack = mutation({
   args: { id: v.id('assets'), back_asset_id: v.union(v.id('assets'), v.null()) },
@@ -417,20 +523,10 @@ export const setTokenBack = mutation({
       throw new Error(`Asset type ${row.type} has no backside`);
     }
     await requireAssetUpdate(ctx, args.id, nameOf(row));
-
-    if (args.back_asset_id !== null) {
-      if (args.back_asset_id === args.id) {
-        throw new Error('A token cannot be its own backside');
-      }
-      const back = await ctx.db.get('assets', args.back_asset_id);
-      if (!back || back.is_deleted) {
-        throw new Error(`Asset with id ${args.back_asset_id} not found`);
-      }
-      /* Same shape only: the back is the reverse of this physical disc, so a different shape would render clipped. */
-      if (back.type !== row.type) {
-        throw new Error(`A ${row.type} backside must also be a ${row.type}`);
-      }
+    if (args.back_asset_id === null) {
+      throw new Error('Clearing a backside happens by saving another back mode');
     }
+    await assertReferenceableTokenBack(ctx, row, args.back_asset_id);
 
     const existing = await ctx.db
       .query('asset_relations')
@@ -439,32 +535,35 @@ export const setTokenBack = mutation({
     for (const relation of existing) {
       await ctx.db.delete(relation._id);
     }
-    if (args.back_asset_id !== null) {
-      await ctx.db.insert('asset_relations', {
-        from_asset_id: args.id,
-        to_asset_id: args.back_asset_id,
-        kind: TOKEN_BACK,
-        count: 1,
-      });
-    }
-    await ctx.db.patch(args.id, { updated_at: nowIso() });
+    const data = row.data as Record<string, unknown>;
+    await ctx.db.patch(args.id, {
+      data: { ...data, back: { mode: 'reference', asset_id: args.back_asset_id } },
+      updated_at: nowIso(),
+    });
+    /* Leaving an authored back supersedes its pending publication, the same rule the save path applies. */
+    await supersedePendingBackJob(ctx, row.type, args.id);
   },
 });
 
 /**
  * The token a given token uses as its backside, or null.
+ * Reads the reference from `data.back`, falling through to the legacy `token-back` relation row until
+ * `assets_back_modes_v1` has rewritten every row.
  * Filters a soft-deleted target at read time rather than cascading on delete, the rule «Deck→card reference mechanism and deletion semantics» set for every kind in this table.
  */
-async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>) {
-  const relation = await ctx.db
-    .query('asset_relations')
-    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', assetId).eq('kind', TOKEN_BACK))
-    .first();
-  if (!relation) {
+async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>, data: unknown) {
+  const back = tokenBackOf(data);
+  const targetId =
+    back?.mode === 'reference' && typeof back.asset_id === 'string'
+      ? (back.asset_id as Id<'assets'>)
+      : back?.mode === 'reference'
+        ? ((await legacyRelationBackId(ctx, assetId)) as Id<'assets'> | null)
+        : null;
+  if (!targetId) {
     return null;
   }
-  const back = await ctx.db.get('assets', relation.to_asset_id);
-  return back && !back.is_deleted ? back : null;
+  const target = await ctx.db.get('assets', targetId);
+  return target && !target.is_deleted ? target : null;
 }
 
 /**
@@ -716,7 +815,12 @@ export const browsePage = query({
       }
       /* No cache across rows here, unlike `decks`: two bundles sharing a token is the exception, where a deck shared across a page of cards is the rule. */
       const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
-      entries.push({ ...(await toListEntry(ctx, row, owners)), deckCount, deckCountCapped, members });
+      entries.push({
+        ...(await toListEntry(ctx, row, owners, { deckBacks: decks })),
+        deckCount,
+        deckCountCapped,
+        members,
+      });
     }
 
     return { entries, inNoDeckCount: counted ? inNoDeckCount : null, truncated };

@@ -1,5 +1,5 @@
 import { Alert, Anchor, Popover, Text } from '@mantine/core';
-import { DeckAsset } from '@shared/assets/schema';
+import { authoredCardback, DeckAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
@@ -79,13 +79,23 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
     );
   }
 
+  /* A reference-mode cardback has no composition to edit; the editor that understands it lands with the back-picker slice. */
+  const cardback = authoredCardback(parsed.data.cardback);
+  if (!cardback) {
+    return (
+      <DriftedAssetPage asset={data.asset} noun="deck" canDelete={data.viewerAccess.capabilities.delete}>
+        <Text>This deck's cardback references another deck, which this editor cannot edit yet.</Text>
+      </DriftedAssetPage>
+    );
+  }
+
   return (
     <DeckEditSession
       key={data.asset.id}
       access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
       asset={data.asset}
       members={data.members}
-      initialDraft={parsed.data}
+      initialDraft={{ ...parsed.data, cardback }}
     />
   );
 }

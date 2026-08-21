@@ -34,7 +34,11 @@ import type { CardbackData } from './stockCardbacks';
  */
 const PROOF_CANVAS = 900;
 
-export type DeckDraft = z.infer<typeof DeckAsset>;
+/*
+ * The editor's draft always carries an authored cardback: no editor can produce a reference until the
+ * back-picker slice lands, so the stored union's tagged member stops at the route's parse boundary.
+ */
+export type DeckDraft = Omit<z.infer<typeof DeckAsset>, 'cardback'> & { cardback: CardbackData };
 export type DeckChapter = 'identity' | 'cards' | 'about';
 
 /** One member of a deck as the editor sees it: the card itself, and how many copies. */

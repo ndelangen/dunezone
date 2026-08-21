@@ -157,21 +157,36 @@ export const TokenFace = FactionSide.extend({
 });
 
 /**
+ * A token's back, parameterised by the face model since the two token schemas differ only there.
+ *
+ * Three modes, decided on «The stored shape of three back modes, and the migration»:
+ * `custom` carries an authored face, `same` repeats the front, `reference` names another token whose authored back this one wears.
+ * The target rides the data and is written at save, so the stored row is the single owner of its back;
+ * the `token-back` relation rows this replaces are dropped by `assets_back_modes_v1`.
+ *
+ * `asset_id` is optional only until that migration completes everywhere;
+ * the narrow that requires it rides a later release, the widen-migrate-narrow convention.
+ */
+function tokenBackUnion<TFace extends z.ZodType>(face: TFace) {
+  return z.discriminatedUnion('mode', [
+    z.strictObject({ mode: z.literal('custom'), face }),
+    z.strictObject({ mode: z.literal('same') }),
+    z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1).optional() }),
+  ]);
+}
+
+/**
  * A token of any shape.
  * Shape is the Asset type rather than a field (see CONTEXT.md: Asset type), so all three shapes share this schema and differ only in how the caller clips the face.
  *
  * Every token has a back;
  * only where it comes from varies.
- * A referenced back is an `asset_relations` row rather than data, so this records the mode and, for a custom back, the face itself.
  */
 export const TokenAsset = z.strictObject({
   name: z.string(),
   about: About,
   front: TokenFace,
-  back: z.discriminatedUnion('mode', [
-    z.strictObject({ mode: z.literal('custom'), face: TokenFace }),
-    z.strictObject({ mode: z.literal('reference') }),
-  ]),
+  back: tokenBackUnion(TokenFace),
 });
 
 export const CardBack = z.strictObject({
@@ -188,12 +203,22 @@ export const CardBack = z.strictObject({
  *
  * The cardback is the renderer's own `CardBack` contract rather than a restatement of it, so the stored shape and the thing that draws it cannot drift.
  * Whether that composition came from a stock back or was authored is deliberately not stored: publication is uniform either way, so stock only supplies the render payload, and the editor recovers the choice by comparing values the same way a background preset is recovered.
+ *
+ * A cardback may instead reference another deck's authored cardback («The stored shape of three back modes»): the tagged member names the target, and the bare `CardBack` is the authored member.
+ * There is no `same` mode, since the cardback is a deck's only face.
+ * The authored member stays bare rather than wearing a `mode` tag, so every existing row and reader is already in the union;
+ * the tag arrives with the editor that can produce references.
  */
 export const DeckAsset = z.strictObject({
   name: z.string(),
   about: About,
-  cardback: CardBack,
+  cardback: z.union([CardBack, z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1) })]),
 });
+
+/** The authored composition of a deck's cardback, or null when the cardback is a reference. */
+export function authoredCardback(cardback: z.infer<typeof DeckAsset>['cardback']): z.infer<typeof CardBack> | null {
+  return 'mode' in cardback ? null : cardback;
+}
 
 /**
  * The band across a bundle's container: the one authored thing a bundle has.
@@ -283,15 +308,12 @@ export const RectangleTokenFace = z.strictObject({
 /**
  * A rectangle token.
  *
- * It is a token by category and by backside rules, so the `back` discriminated union matches `TokenAsset` exactly and a referenced back is still an `asset_relations` row rather than data.
+ * It is a token by category and by backside rules, so the `back` union matches `TokenAsset` exactly.
  * It is not a token by face, which is why it carries its own schema rather than a branch inside `TokenAsset`.
  */
 export const RectangleTokenAsset = z.strictObject({
   name: z.string(),
   about: About,
   front: RectangleTokenFace,
-  back: z.discriminatedUnion('mode', [
-    z.strictObject({ mode: z.literal('custom'), face: RectangleTokenFace }),
-    z.strictObject({ mode: z.literal('reference') }),
-  ]),
+  back: tokenBackUnion(RectangleTokenFace),
 });

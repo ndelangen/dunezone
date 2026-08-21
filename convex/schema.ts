@@ -106,7 +106,8 @@ export default defineSchema({
     .index('by_group_deleted', ['group_id', 'is_deleted'])
     .index('by_group_id', ['group_id']),
   /**
-   * Asset↔asset references: deck→card memberships (`kind: 'deck-card'`, count = copies) and token→token backsides (`kind: 'token-back'`, count 1);
+   * Asset↔asset references: deck→card memberships (`kind: 'deck-card'`, count = copies) and bundle→token memberships;
+   * token backsides moved into `data.back` and their `token-back` rows are dropped by `asset_relations_token_back_drop_v1`;
    * future kinds join the same table.
    * Which types may link (a deck's `to` must be a card) is a rule of the link mutations — the single-table decision traded schema-level reference typing for that.
    * Soft-deleted targets stay referenced;
