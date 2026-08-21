@@ -162,12 +162,7 @@ function CardEditSession({
           context={groupActions.context}
           destructiveActions={
             capabilities.delete ? (
-              <ConfirmDeleteAction
-                label="Delete card"
-                prompt="Delete card?"
-                pending={deletion.pending}
-                onConfirm={deletion.confirm}
-              />
+              <ConfirmDeleteAction label="Delete card" pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />

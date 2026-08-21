@@ -553,7 +553,6 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                 {capabilities.delete ? (
                   <ConfirmDeleteAction
                     label={`Delete ${asset.name}`}
-                    prompt="Delete this asset?"
                     pending={deletion.pending}
                     onConfirm={deletion.confirm}
                   />

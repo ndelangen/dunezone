@@ -1,6 +1,6 @@
 import { ActionIcon, Tooltip } from '@mantine/core';
 import type { ActionIconProps } from '@mantine/core';
-import type { MouseEventHandler, ReactNode, Ref } from 'react';
+import type { KeyboardEventHandler, MouseEventHandler, PointerEventHandler, ReactNode, Ref } from 'react';
 
 import type { RenderRoot } from '../renderRoot';
 
@@ -15,6 +15,16 @@ export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'colo
   /** The glyph. Sized by the caller; marked decorative here, since `label` carries the meaning. */
   icon: ReactNode;
   onClick?: MouseEventHandler<HTMLButtonElement>;
+  /** Press-and-hold support, for an action whose commitment is the held duration rather than the click. */
+  onPointerDown?: PointerEventHandler<HTMLButtonElement>;
+  onPointerUp?: PointerEventHandler<HTMLButtonElement>;
+  onPointerLeave?: PointerEventHandler<HTMLButtonElement>;
+  onPointerCancel?: PointerEventHandler<HTMLButtonElement>;
+  onKeyDown?: KeyboardEventHandler<HTMLButtonElement>;
+  onKeyUp?: KeyboardEventHandler<HTMLButtonElement>;
+  onContextMenu?: MouseEventHandler<HTMLButtonElement>;
+  /** Forces the hover text open, for the moments it carries live state (a hold's countdown). */
+  tooltipOpened?: boolean;
   /** Makes the action a link — in practice the router's `Link`. */
   renderRoot?: RenderRoot;
   /** Makes the action a plain anchor, for a destination outside the router. */
@@ -41,8 +51,16 @@ export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'colo
 export function IconAction({
   label,
   tooltip,
+  tooltipOpened,
   icon,
   onClick,
+  onPointerDown,
+  onPointerUp,
+  onPointerLeave,
+  onPointerCancel,
+  onKeyDown,
+  onKeyUp,
+  onContextMenu,
   renderRoot,
   href,
   target,
@@ -56,7 +74,7 @@ export function IconAction({
   /* Two branches rather than one spread: `component="a"` re-types the whole element, so the
      anchor form cannot carry the button-shaped ref, click handler or form binding anyway. */
   return (
-    <Tooltip label={tooltip ?? label}>
+    <Tooltip label={tooltip ?? label} opened={tooltipOpened}>
       {href == null ? (
         <ActionIcon
           {...actionIconProps}
@@ -65,6 +83,13 @@ export function IconAction({
           form={form}
           aria-label={label}
           onClick={onClick}
+          onPointerDown={onPointerDown}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerLeave}
+          onPointerCancel={onPointerCancel}
+          onKeyDown={onKeyDown}
+          onKeyUp={onKeyUp}
+          onContextMenu={onContextMenu}
           className={className}
           renderRoot={renderRoot}
         >
