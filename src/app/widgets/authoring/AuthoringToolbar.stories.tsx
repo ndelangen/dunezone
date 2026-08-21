@@ -4,7 +4,6 @@ import { AuthoringToolbar } from './AuthoringToolbar';
 
 const toolbarActions = {
   onSave: () => undefined,
-  onReviewWarnings: () => undefined,
   onReset: () => undefined,
   onBack: () => undefined,
 };
@@ -12,7 +11,6 @@ const toolbarActions = {
 const cleanStatus = {
   isDirty: false,
   isNameBlank: false,
-  warningCount: 0,
   saveState: 'idle' as const,
 };
 
