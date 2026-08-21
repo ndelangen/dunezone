@@ -73,6 +73,12 @@ export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: 
     );
   }
 
+  /* The draft's reference member models pick-pending as an explicit null, which the stored optional cannot say. */
+  const initialBack =
+    parsed.data.back.mode === 'reference'
+      ? { mode: 'reference' as const, asset_id: parsed.data.back.asset_id ?? null }
+      : parsed.data.back;
+
   return (
     <TokenEditSession
       key={data.asset.id}
@@ -81,7 +87,7 @@ export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: 
       asset={data.asset}
       backToken={data.backToken}
       danglingBack={data.resolvedBack?.mode === 'dangling'}
-      initialDraft={parsed.data}
+      initialDraft={{ ...parsed.data, back: initialBack }}
     />
   );
 }
@@ -116,6 +122,8 @@ function TokenEditSession({
    * entry back from the server before save would make the pick a write, which it no longer is.
    */
   const [pickedBack, setPickedBack] = useState<{ name: string; data: unknown } | null>(backToken);
+  /* Armed by a save attempt while the reference has no target; disarmed the moment the state resolves. */
+  const [pickBlocked, setPickBlocked] = useState(false);
   const [baseline, setBaseline] = useState<TokenDraft>(initialDraft);
   const [chapter, setChapter] = useState<TokenChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);
@@ -127,7 +135,7 @@ function TokenEditSession({
    * It routes to Identity, the chapter the back tiles live in.
    */
   const warnings: (TokenWarning | { source: string; complaint: string; chapter: TokenChapter })[] = [
-    ...tokenDraftWarnings(draft, pickedBack !== null),
+    ...tokenDraftWarnings(draft),
     ...(danglingBack && draft.back.mode === 'reference'
       ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as TokenChapter }]
       : []),
@@ -145,7 +153,15 @@ function TokenEditSession({
         : 'idle';
   const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
 
+  const pickless = draft.back.mode === 'reference' && draft.back.asset_id === null;
+
   const save = () => {
+    /* A pickless reference is blocked here with words, rather than letting the stored schema answer with a Zod error. */
+    if (pickless) {
+      setPickBlocked(true);
+      return;
+    }
+    setPickBlocked(false);
     const saved = draft;
     updateAsset.mutate(
       { id: asset.id, data: saved },
@@ -185,6 +201,7 @@ function TokenEditSession({
               setDraft(baseline);
               /* The pick lives in the draft now, so discarding the draft discards the pick with it. */
               setPickedBack(backToken);
+              setPickBlocked(false);
             },
             onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
           }}
@@ -215,6 +232,11 @@ function TokenEditSession({
             </Alert>
           ) : null}
           {groupActions.error}
+          {pickBlocked && pickless ? (
+            <Alert color="yellow" variant="light" role="alert" title="No token picked">
+              Pick a token whose back this one wears, or choose another back mode.
+            </Alert>
+          ) : null}
           <TokenEditor
             draft={draft}
             patch={patch}

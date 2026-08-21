@@ -44,5 +44,5 @@ export const BackFromAnotherToken = meta.story({
 
 /** Chosen but not yet picked, which is the state the draft holds between the tile and the pick. */
 export const BackReferenceNotYetPicked = meta.story({
-  args: { draft: draftWith({ mode: 'reference' }), backProof: null },
+  args: { draft: draftWith({ mode: 'reference', asset_id: null }), backProof: null },
 });

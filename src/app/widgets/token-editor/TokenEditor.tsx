@@ -32,7 +32,18 @@ import { backgroundPresets } from '@game/data/backgrounds';
 const PROOF_CANVAS = 900;
 
 /** The draft is the stored shape: the same Zod validates it server-side, so a UI-only field here would fail the save. */
-export type TokenDraft = z.infer<typeof TokenAsset>;
+/**
+ * The draft is the stored shape, with one widening: a reference carries `asset_id: string | null`.
+ *
+ * Choosing the reference tile necessarily precedes picking the token, so the editor has to hold a reference that has not chosen its target yet.
+ * Storage stays strict and never sees the null: the route refuses that save in words rather than letting Zod reject it, the same shape the deck uses.
+ * Before this the state was inferred from route-held server state, so the widget needed the route to whisper what it already knew, and the two could disagree.
+ */
+export type TokenDraft = Omit<z.infer<typeof TokenAsset>, 'back'> & {
+  back:
+    | Extract<z.infer<typeof TokenAsset>['back'], { mode: 'custom' | 'same' }>
+    | { mode: 'reference'; asset_id: string | null };
+};
 export type TokenFaceDraft = TokenDraft['front'];
 /**
  * A token's chapters.
@@ -214,12 +225,12 @@ export type TokenWarning = { source: string; missing: string; chapter: TokenChap
  * A blank name blocks the save outright, so it is not listed here;
  * these are the fields a token can be saved without and probably should not be.
  */
-export function tokenDraftWarnings(draft: TokenDraft, hasBackReference: boolean): TokenWarning[] {
+export function tokenDraftWarnings(draft: TokenDraft): TokenWarning[] {
   const warnings: TokenWarning[] = [];
   if (!draft.front.top.trim() && !draft.front.bottomFirst.trim() && !draft.front.bottomSecond.trim()) {
     warnings.push({ source: 'Front rim', missing: 'any label', chapter: 'front-rim' });
   }
-  if (draft.back.mode === 'reference' && !hasBackReference) {
+  if (draft.back.mode === 'reference' && draft.back.asset_id === null) {
     warnings.push({ source: 'Identity', missing: 'a back token', chapter: 'identity' });
   }
   return warnings;
@@ -261,7 +272,7 @@ function backForMode(
         return draft.back;
       }
       /* The pick survives the flip too: the display never stopped showing it, so the save must not disagree. */
-      return rememberedTarget === null ? { mode: 'reference' } : { mode: 'reference', asset_id: rememberedTarget };
+      return { mode: 'reference', asset_id: rememberedTarget };
   }
 }
 

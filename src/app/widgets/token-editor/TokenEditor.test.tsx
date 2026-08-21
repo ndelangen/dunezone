@@ -6,7 +6,7 @@ import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 
-import { initialTokenDraft, TokenEditor } from './TokenEditor';
+import { initialTokenDraft, TokenEditor, tokenDraftWarnings } from './TokenEditor';
 import type { TokenChapter, TokenDraft } from './TokenEditor';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -71,4 +71,19 @@ it('keeps the picked target across a trip through another back mode', () => {
   fireEvent.click(tile("Another token's back"));
 
   expect(state.draft.back).toEqual({ mode: 'reference', asset_id: 'the-picked-token' });
+});
+
+/**
+ * The draft says "chosen, nothing picked" rather than the route inferring it.
+ *
+ * The warning used to read a `hasBackReference` flag the route passed in, seeded from server state, so the widget needed the route to whisper what the draft already knew and the two could disagree.
+ * A reference with a null target is now a state the draft holds and the warning reads directly.
+ */
+it('warns that a chosen reference has no token picked, from the draft alone', () => {
+  expect(
+    tokenDraftWarnings({ ...initialTokenDraft(TYPE), back: { mode: 'reference', asset_id: null } })
+  ).toContainEqual({ source: 'Identity', missing: 'a back token', chapter: 'identity' });
+  expect(
+    tokenDraftWarnings({ ...initialTokenDraft(TYPE), back: { mode: 'reference', asset_id: 'picked' } })
+  ).not.toContainEqual({ source: 'Identity', missing: 'a back token', chapter: 'identity' });
 });
