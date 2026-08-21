@@ -44,11 +44,14 @@ function fontSet(missing?: (typeof requiredPublisherFontFaces)[number]): Publish
 }
 
 describe('publisher self-hosted font readiness', () => {
-  test('requires every sheet family, weight, and style to be loaded', async () => {
+  test('requires every renderer family, weight, and style to be loaded', async () => {
     await expect(assertRequiredPublisherFonts(fontSet())).resolves.toBeUndefined();
-    await expect(assertRequiredPublisherFonts(fontSet(requiredPublisherFontFaces[3]))).rejects.toThrow(
-      /Caladea 700 italic/
-    );
+
+    for (const face of requiredPublisherFontFaces) {
+      await expect(assertRequiredPublisherFonts(fontSet(face))).rejects.toThrow(
+        new RegExp(`${face.family} ${face.weight} ${face.style}`)
+      );
+    }
   });
 
   test('rejects Chromium-style substitution even when check reports true', async () => {

@@ -4,8 +4,12 @@ export const requiredPublisherFontFaces = [
   { family: 'Caladea', weight: '700', style: 'normal' },
   { family: 'Caladea', weight: '700', style: 'italic' },
   { family: 'C_Copperplate_Gothic', weight: '400', style: 'normal' },
-  { family: 'C_Advokat_Modern', weight: '400', style: 'italic' },
-  { family: 'C_Trebuchet', weight: '400', style: 'italic' },
+  { family: 'C_Copperplate_Gothic_Heavy', weight: '400', style: 'normal' },
+  { family: 'C_Desdemona', weight: '400', style: 'normal' },
+  { family: 'C_Candara', weight: '400', style: 'normal' },
+  { family: 'C_Advokat_Modern', weight: '400', style: 'normal' },
+  { family: 'C_Busorama', weight: '400', style: 'normal' },
+  { family: 'C_Trebuchet', weight: '400', style: 'normal' },
 ] as const;
 
 export type PublisherFontFaceSet = {
