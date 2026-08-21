@@ -44,6 +44,35 @@ const GENERATED_VECTOR_INGREDIENT_PATHS = [
   'scripts/generate-vectors.ts',
 ] as const;
 
+const RENDERER_MANIFEST_INPUT_PREFIXES = [
+  'src/shared/',
+  'src/game/',
+  'src/app/print/',
+  'workers/publisher/',
+  'media/',
+] as const;
+
+const RENDERER_MANIFEST_INPUT_PATHS = new Set<string>([
+  ...GENERATED_IMAGE_INGREDIENT_PATHS,
+  ...GENERATED_VECTOR_INGREDIENT_PATHS,
+  'src/app/styles/fonts.css',
+  'src/app/styles/tokens.css',
+  'publisher-capture.html',
+  'package.json',
+]);
+
+export function isRendererManifestInputPath(relativePath: string): boolean {
+  const normalizedPath = relativePath.split(path.sep).join('/');
+  if (normalizedPath.startsWith('public/')) {
+    const builtPath = normalizedPath.slice('public/'.length);
+    return normalizedPath === 'public/web/logo.svg' || isRendererManifestAsset(builtPath);
+  }
+  return (
+    RENDERER_MANIFEST_INPUT_PATHS.has(normalizedPath) ||
+    RENDERER_MANIFEST_INPUT_PREFIXES.some((prefix) => normalizedPath.startsWith(prefix))
+  );
+}
+
 /** DevDependencies whose exact versions are renderer-identity ingredients. */
 const PINNED_TOOLCHAIN_DEPENDENCIES = ['sharp', 'svgo', 'svgpath', 'linkedom'] as const;
 
