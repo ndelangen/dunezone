@@ -1,9 +1,17 @@
-import { BookOpen, Image as ImageIcon } from 'lucide-react';
+import { BookOpen, Boxes, Image as ImageIcon, Info, Signature, Type } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const TOPIC_ICON_DEFINITIONS = {
-  identity: { kind: 'mask', src: '/vector/icon/eye.svg' },
-  background: { kind: 'component', component: ImageIcon },
+  /* Every authoring surface opens on an Identity chapter: what a thing is called, and what it fundamentally is. */
+  identity: { kind: 'component', component: Signature },
+  /* Off-face prose (CONTEXT.md: About), on every asset editor and every detail page. */
+  about: { kind: 'component', component: Info },
+  /* What a container holds. A deck's cards and a bundle's tokens are the same idea at the same place in the tabs. */
+  contents: { kind: 'component', component: Boxes },
+  /* What a face is composed of, before anything is written on it. Four tabs across the two token editors. */
+  face: { kind: 'component', component: ImageIcon },
+  /* Words on an artifact: a card's Head, an enhance token's per-face text. Both editors had hand-picked the same glyph. */
+  text: { kind: 'component', component: Type },
   hero: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
   leaders: { kind: 'mask', src: '/vector/icon/traitor.svg' },
   alliance: { kind: 'mask', src: '/vector/icon/alliance.svg' },

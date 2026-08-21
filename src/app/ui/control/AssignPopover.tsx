@@ -264,6 +264,8 @@ export function AssignPopover({ icon, size = 'lg', ...body }: AssignPopoverProps
         <IconAction
           label={body.triggerLabel ?? body.title ?? `Assign ${body.noun}`}
           variant="light"
+          /* Neutral, not the primary colour: red on a toolbar means destructive and nothing else, and this sits beside a delete. */
+          color="gray"
           size={size}
           disabled={body.disabled}
           onClick={() => setOpened((current) => !current)}
