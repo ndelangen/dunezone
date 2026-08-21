@@ -31,12 +31,12 @@ test('owner adds an owned, unassigned faction to their Group', async ({ page }) 
     await expect(page.getByText(factionName)).not.toBeVisible();
 
     await page.getByRole('button', { name: 'Add a faction you own' }).click();
-    const search = page.getByRole('combobox', { name: 'Search your factions' });
+    /* The suggestions are inline in the pane and choosing one is the commit. */
+    const search = page.getByRole('searchbox', { name: 'Search your factions' });
     await search.fill(factionName);
     await page.getByRole('option').filter({ hasText: factionName }).click();
-    await page.getByRole('button', { name: 'Add to this group' }).click();
 
     await expect(page.getByRole('link', { name: factionName })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Add to this group' })).not.toBeVisible();
+    await expect(page.getByRole('searchbox', { name: 'Search your factions' })).not.toBeVisible();
   });
 });

@@ -1,4 +1,4 @@
-import { Badge, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
+import { Badge, Stack, Text, Title, UnstyledButton } from '@mantine/core';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import type { AssetCategory, AssetType } from '@shared/assets/types';
 import { Link, createFileRoute } from '@tanstack/react-router';
@@ -26,8 +26,10 @@ const JITTER_LEFT = [3, -4, 2, -3, 4];
 
 /** the slot width a pile is drawn at when the row has room for it in full */
 const PILE_SLOT = 150;
-/** horizontal shift per extra card in a fan */
-const FAN_OVERLAP = 26;
+/** horizontal shift per extra card in a fan; slight, so the faces keep the placeholder's size rather than sharing the slot out (Norbert, 2026-08-21) */
+const FAN_OVERLAP = 6;
+/** how many cards a pile's fan shows; three reads as a pile without shrinking anyone */
+const FAN_COUNT = 3;
 
 /* Handed to the stylesheet so the grid tracks and the art cannot drift apart. */
 const pileGroupStyle = { '--pile-slot': `${PILE_SLOT}px` } as CSSProperties;
@@ -97,9 +99,9 @@ function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
   );
 }
 
-/** a small overlapping fan of real faces — card-type piles; cards share out the slot width */
+/** a slightly fanned pile of real faces — card-type piles; every face keeps the placeholder's width */
 function MiniFan({ entries, slot }: { entries: AssetListEntry[]; slot: number }) {
-  /* The grid track may shrink below the overlap in the stacked state, so the face width floors at 1px rather than going negative. */
+  /* The grid track may shrink below the spread in the stacked state, so the face width floors at 1px rather than going negative. */
   const cardWidth = Math.max(1, slot - (entries.length - 1) * FAN_OVERLAP);
   const mid = (entries.length - 1) / 2;
   return (
@@ -110,8 +112,8 @@ function MiniFan({ entries, slot }: { entries: AssetListEntry[]; slot: number })
           style={{
             position: 'absolute',
             left: i * FAN_OVERLAP,
-            top: 8 + Math.abs(i - mid) * 4,
-            transform: `rotate(${(i - mid) * 6 + (JITTER_ROT[i % JITTER_ROT.length] ?? 0)}deg)`,
+            top: 8 + Math.abs(i - mid) * 3,
+            transform: `rotate(${(i - mid) * 4 + (JITTER_ROT[i % JITTER_ROT.length] ?? 0)}deg)`,
             transformOrigin: '50% 120%',
           }}
         >
@@ -249,7 +251,7 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
     ) : drawnAt === 0 ? null : type === 'deck' ? (
       <DeckPile entries={entries} slot={drawnAt} />
     ) : isCardish ? (
-      <MiniFan entries={entries.slice(0, 4)} slot={drawnAt} />
+      <MiniFan entries={entries.slice(0, FAN_COUNT)} slot={drawnAt} />
     ) : (
       <TokenStack entries={entries} width={type === 'token-enhance' ? Math.max(1, drawnAt - 26) : TOKEN_PILE_FACE} />
     );
@@ -259,12 +261,10 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
       <div ref={slot.ref} className={styles.pileArt}>
         {art}
       </div>
-      <Group gap={6}>
-        <Text fw={700} c={planned ? 'dimmed' : undefined}>
-          {definition.shortLabel}
-        </Text>
-        {planned ? null : <Text c="dimmed">{entries.length}</Text>}
-      </Group>
+      {/* The pile is its art and its name; the count it once wore said nothing the grid behind the link does not (Norbert, 2026-08-21). */}
+      <Text fw={700} c={planned ? 'dimmed' : undefined}>
+        {definition.shortLabel}
+      </Text>
     </Stack>
   );
 
@@ -313,31 +313,22 @@ function AssetsLandingPage() {
             </Text>
           </Stack>
           <SectionedSurface>
-            {PILE_GROUPS.map((group) => {
-              const total = group.types.reduce((n, type) => n + (data.countsByType[type] ?? 0), 0);
-              const allPlanned = group.types.every((type) => ASSET_TYPES[type].status === 'planned');
-              return (
-                <SectionedSurface.Row key={group.label}>
-                  <div className={styles.pileGroup} style={pileGroupStyle}>
-                    <div className={styles.pileGroupLayout}>
-                      <Stack gap={2} className={styles.pileGroupLabel}>
-                        <Eyebrow>{group.label}</Eyebrow>
-                        <Text size="sm" c="dimmed">
-                          {allPlanned
-                            ? 'planned'
-                            : `${total}${data.countsTruncated && total > 0 ? '+' : ''} asset${total === 1 ? '' : 's'}`}
-                        </Text>
-                      </Stack>
-                      <div className={styles.pileGrid}>
-                        {group.types.map((type) => (
-                          <TypePile key={type} type={type} entries={byType.get(type) ?? []} />
-                        ))}
-                      </div>
+            {PILE_GROUPS.map((group) => (
+              <SectionedSurface.Row key={group.label}>
+                <div className={styles.pileGroup} style={pileGroupStyle}>
+                  <div className={styles.pileGroupLayout}>
+                    <Stack gap={2} className={styles.pileGroupLabel}>
+                      <Eyebrow>{group.label}</Eyebrow>
+                    </Stack>
+                    <div className={styles.pileGrid}>
+                      {group.types.map((type) => (
+                        <TypePile key={type} type={type} entries={byType.get(type) ?? []} />
+                      ))}
                     </div>
                   </div>
-                </SectionedSurface.Row>
-              );
-            })}
+                </div>
+              </SectionedSurface.Row>
+            ))}
           </SectionedSurface>
         </Stack>
       </PageLayout.Content>

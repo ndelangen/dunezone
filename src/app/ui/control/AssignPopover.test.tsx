@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { MantineProvider } from '@mantine/core';
+import { fireEvent } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { Users } from 'lucide-react';
 import { act } from 'react';
@@ -24,6 +25,9 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   removeEventListener: vi.fn(),
   dispatchEvent: vi.fn(),
 }));
+
+/* jsdom has no layout, so Mantine's scroll-selected-option-into-view call needs a stub the way ResizeObserver does. */
+HTMLElement.prototype.scrollIntoView = vi.fn();
 
 globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
@@ -96,7 +100,7 @@ describe('AssignPopover', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
-  it('submits only a selected option and closes after success', async () => {
+  it('commits the chosen option and closes after success', async () => {
     container = document.createElement('div');
     document.body.append(container);
     root = createRoot(container);
@@ -124,28 +128,13 @@ describe('AssignPopover', () => {
     await act(async () => trigger.click());
     await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
 
-    const searchInput = document.querySelector<HTMLInputElement>('input[placeholder="Type group name…"]');
-    expect(searchInput).not.toBeNull();
-    if (!searchInput) {
-      return;
-    }
-    await act(async () => searchInput.click());
-
+    /* The suggestions are inline in the pane, not a nested dropdown: the option exists without opening anything further. */
     const option = document.querySelector<HTMLElement>('[role="option"]');
     expect(option?.textContent).toContain('Arrakeen Rules Council');
     if (!option) {
       return;
     }
     await act(async () => option.click());
-
-    const assignButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
-      button.textContent?.includes('Assign selected group')
-    );
-    expect(assignButton).toBeDefined();
-    if (!assignButton) {
-      return;
-    }
-    await act(async () => assignButton.click());
 
     expect(onAssign).toHaveBeenCalledOnce();
     expect(onAssign).toHaveBeenCalledWith('group-1');
@@ -181,12 +170,6 @@ describe('AssignPopover', () => {
     await act(async () => trigger.click());
     await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
 
-    const searchInput = document.querySelector<HTMLInputElement>('input[placeholder="Type group name…"]');
-    expect(searchInput).not.toBeNull();
-    if (!searchInput) {
-      return;
-    }
-    await act(async () => searchInput.click());
     const option = document.querySelector<HTMLElement>('[role="option"]');
     expect(option).not.toBeNull();
     if (!option) {
@@ -194,18 +177,53 @@ describe('AssignPopover', () => {
     }
     await act(async () => option.click());
 
-    const assignButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
-      button.textContent?.includes('Assign selected group')
-    );
-    expect(assignButton).toBeDefined();
-    if (!assignButton) {
-      return;
-    }
-    await act(async () => assignButton.click());
-
     const alerts = document.querySelectorAll('[role="alert"]');
     expect(alerts).toHaveLength(1);
     expect(alerts[0]?.textContent).toContain('Could not assign the group. Try again.');
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  });
+  it('typing and pressing Enter commits the highlighted option', async () => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+    const onAssign = vi.fn(async () => undefined);
+
+    await act(async () => {
+      root?.render(
+        <MantineProvider theme={appContentTheme} forceColorScheme="light">
+          <AssignPopover
+            noun="group"
+            icon={<Users size={17} aria-hidden />}
+            disabled={false}
+            onAssign={onAssign}
+            options={[groupOption, { value: 'group-2', label: 'Spice Cartel (spice-cartel)' }]}
+          />
+        </MantineProvider>
+      );
+    });
+
+    const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="Assign group"]');
+    expect(trigger).not.toBeNull();
+    if (!trigger) {
+      return;
+    }
+    await act(async () => trigger.click());
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
+
+    const searchInput = document.querySelector<HTMLInputElement>('input[placeholder="Type group name…"]');
+    expect(searchInput).not.toBeNull();
+    if (!searchInput) {
+      return;
+    }
+    searchInput.focus();
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'spice' } });
+    });
+    await act(async () => {
+      fireEvent.keyDown(searchInput, { key: 'Enter', code: 'Enter' });
+    });
+
+    expect(onAssign).toHaveBeenCalledOnce();
+    expect(onAssign).toHaveBeenCalledWith('group-2');
   });
 });

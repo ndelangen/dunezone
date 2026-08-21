@@ -4,25 +4,21 @@ import type { AssetBrowseEntry } from '@app/db/assets';
  * The browse page's URL state.
  *
  * `newest` is the default sort and therefore has **no representable value**, the way `name` is absent from the faction catalogue's sort union: absence is the default, so a clean URL stays clean and there is one spelling per state.
- * `deck` is present only when engaged, for the same reason.
- * Its only meaningful state is on, so it encodes as presence rather than as `?deck=all`.
  */
-type AssetBrowseSort = 'name' | 'owner' | 'most-used';
+type AssetBrowseSort = 'updated' | 'name';
 
 export type AssetBrowseSearch = {
   q?: string;
   sort?: AssetBrowseSort;
-  deck?: 'none';
 };
 
-const SORT_VALUES: readonly AssetBrowseSort[] = ['name', 'owner', 'most-used'];
+const SORT_VALUES: readonly AssetBrowseSort[] = ['updated', 'name'];
 
 /** The sort control's options. `newest` leads because it is what the query already returns. */
 export const ASSET_BROWSE_SORTS = [
   { value: 'newest', label: 'Newest' },
+  { value: 'updated', label: 'Recently updated' },
   { value: 'name', label: 'Name' },
-  { value: 'owner', label: 'Owner' },
-  { value: 'most-used', label: 'Most used' },
 ];
 
 function cleanText(value: unknown): string | undefined {
@@ -40,11 +36,10 @@ function cleanSort(value: unknown): AssetBrowseSort | undefined {
 export function parseAssetBrowseSearch(input: Record<string, unknown>): AssetBrowseSearch {
   const q = cleanText(input.q);
   const sort = cleanSort(input.sort);
-  const deck = input.deck === 'none' ? ('none' as const) : undefined;
-  return { ...(q ? { q } : {}), ...(sort ? { sort } : {}), ...(deck ? { deck } : {}) };
+  return { ...(q ? { q } : {}), ...(sort ? { sort } : {}) };
 }
 
-/** Case-insensitive over the two facts a tile shows, which are the two a reader can see to search by. */
+/** Case-insensitive over the name on the tile and the owner behind it, so a reader can find their own work. */
 function matchesQuery(entry: AssetBrowseEntry, query: string): boolean {
   const needle = query.toLowerCase();
   return entry.name.toLowerCase().includes(needle) || (entry.owner?.username ?? '').toLowerCase().includes(needle);
@@ -53,29 +48,21 @@ function matchesQuery(entry: AssetBrowseEntry, query: string): boolean {
 /**
  * Applies the URL state to the page the query returned.
  *
- * All of it runs here rather than in Convex: three of the four sorts cannot be an index, since `name` lives inside an untyped blob, `owner` lives in another table and `deckCount` is derived, so sorting server-side would fork the subscription per sort to buy consistency in one case out of four.
+ * All of it runs here rather than in Convex: `name` lives inside an untyped blob and `updated_at` has no index, so sorting server-side would fork the subscription per sort to buy consistency in one case.
  * The set is bounded by the query, which is what makes that affordable.
  */
 export function applyAssetBrowseSearch(
   entries: readonly AssetBrowseEntry[],
   search: AssetBrowseSearch
 ): AssetBrowseEntry[] {
-  const filtered = entries.filter((entry) => {
-    if (search.deck === 'none' && entry.deckCount !== 0) {
-      return false;
-    }
-    return search.q ? matchesQuery(entry, search.q) : true;
-  });
+  const query = search.q;
+  const filtered = query ? entries.filter((entry) => matchesQuery(entry, query)) : [...entries];
 
   switch (search.sort) {
     case 'name':
-      return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
-    case 'owner':
-      return [...filtered].sort(
-        (a, b) => (a.owner?.username ?? '').localeCompare(b.owner?.username ?? '') || a.name.localeCompare(b.name)
-      );
-    case 'most-used':
-      return [...filtered].sort((a, b) => b.deckCount - a.deckCount || a.name.localeCompare(b.name));
+      return filtered.sort((a, b) => a.name.localeCompare(b.name));
+    case 'updated':
+      return filtered.sort((a, b) => b.updated_at.localeCompare(a.updated_at) || a.name.localeCompare(b.name));
     default:
       /* The query already returns newest first, so the default sort is the absence of one. */
       return filtered;

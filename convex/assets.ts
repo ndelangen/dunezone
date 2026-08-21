@@ -6,7 +6,7 @@ import {
   PUBLICATION_TARGETS,
   publicationFaceId,
 } from '../src/shared/asset-publishing/publicationTargets';
-import { holdsDeckMembership } from '../src/shared/assets/types';
+import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
@@ -123,39 +123,41 @@ async function presentedData(ctx: QueryCtx, row: Doc<'assets'>, deckBacks: Map<I
   return { ...(row.data as Record<string, unknown>), cardback: target ? authoredDeckCardback(target) : null };
 }
 
-/** Bounds every catalogue read; ordinary use sits far below it. */
-const CATALOGUE_SCAN_LIMIT = 1000;
-const RECENT_LIMIT = 24;
+/* Enough for the deepest pile: the masthead fan draws five, the token stacks four. */
+const RECENT_PER_TYPE = 5;
 const PER_TYPE_LIMIT = 200;
 
-/** The `/assets` landing: newest assets across every type, plus per-type counts. */
+/**
+ * The `/assets` landing: the newest few assets of every type.
+ * It carried per-type counts over a thousand-row scan until the landing stopped showing numbers, a pile being its art and its name (Norbert, 2026-08-21), so now it reads exactly the rows it draws.
+ * Per type rather than one newest-overall window, because a shared window starves quiet types: a burst of new cards would push an older type out entirely and its pile would claim "none yet" about assets that exist.
+ */
 export const cataloguePage = query({
   args: {},
   returns: v.object({
     recent: v.array(assetListEntryValidator),
-    countsByType: v.record(v.string(), v.number()),
-    /* The counts tally a bounded window, so a full window says so rather than quietly under-reporting, the same honesty `browsePage.truncated` already keeps. */
-    countsTruncated: v.boolean(),
   }),
   handler: async (ctx) => {
-    const rows = await ctx.db
-      .query('assets')
-      .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-      .order('desc')
-      .take(CATALOGUE_SCAN_LIMIT);
-
-    const countsByType: Record<string, number> = {};
-    for (const row of rows) {
-      countsByType[row.type] = (countsByType[row.type] ?? 0) + 1;
+    const rows: Doc<'assets'>[] = [];
+    for (const type of ASSET_TYPE_KEYS) {
+      rows.push(
+        ...(await ctx.db
+          .query('assets')
+          .withIndex('by_type_deleted', (q) => q.eq('type', type).eq('is_deleted', false))
+          .order('desc')
+          .take(RECENT_PER_TYPE))
+      );
     }
+    rows.sort((a, b) => b._creationTime - a._creationTime);
 
-    /* Sequential like the other list readers, so the memo fills before the rows that would hit it. */
+    /* Sequential like the other list readers, so the memos fill before the rows that would hit them. */
     const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+    const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
     const recent = [];
-    for (const row of rows.slice(0, RECENT_LIMIT)) {
-      recent.push(await toListEntry(ctx, row, undefined, { deckBacks }));
+    for (const row of rows) {
+      recent.push(await toListEntry(ctx, row, owners, { deckBacks }));
     }
-    return { recent, countsByType, countsTruncated: rows.length === CATALOGUE_SCAN_LIMIT };
+    return { recent };
   },
 });
 
@@ -722,23 +724,12 @@ async function memberPreviews(ctx: QueryCtx, containerId: Id<'assets'>, kind: st
 }
 
 /**
- * One tile on the browse grid: a listing entry plus the two derived facts it draws.
- * Derived here rather than added to `assetListEntryValidator`, because the landing page draws piles of every type and would pay an index scan per row for facts it never shows.
+ * One tile on the browse grid: a listing entry plus the member previews a bundle's band draws.
+ * Derived here rather than added to `assetListEntryValidator`, because the landing page draws piles of every type and would pay a relation pass per row for a fact it never shows.
  */
 const assetBrowseEntryValidator = assetListEntryValidator.extend({
-  deckCount: v.number(),
-  /* True when the count hit its browse-page ceiling, so a tile says "25+ decks" rather than lying at the cap. */
-  deckCountCapped: v.boolean(),
   members: v.array(memberPreviewValidator),
 });
-
-/*
- * The browse read is a product: rows times relations times container rows, and Convex allows 16,384
- * documents per function. Two hundred rows at the detail page's ceiling of one hundred is 20,000
- * before a single profile, so a mature page would throw rather than degrade. Twenty-five holds the
- * worst case near 10,000 with the memoisation, and the tile reports the cap honestly.
- */
-const BROWSE_DECKS_PER_CARD = 25;
 
 /**
  * How many rows one browse page holds.
@@ -761,16 +752,14 @@ function memberPreviewKind(type: string): string | null {
  * Everything `/assets/{type}` draws, in one read.
  *
  * The route holds one page query (see docs/technical/ui-design-decisions.md), and `listByTypes` cannot become that query because `AssetPicker` shares it and would inherit a per-row index scan it has no use for.
- * Search, the four sorts and the membership facet all run on the client against this bounded set: three of the four sorts cannot be an index anyway, since `name` lives inside an untyped blob, `owner` lives in another table and `deckCount` is derived, so moving one of them server-side would fork the subscription to buy consistency in a single case.
+ * Search and the sorts run on the client against this bounded set: `name` lives inside an untyped blob and `updated_at` has no index, so moving one of them server-side would fork the subscription to buy consistency in a single case.
  *
  * `truncated` exists so a full page says so rather than quietly under-reporting its own total.
- * `inNoDeckCount` is null, not zero, for a type nothing can hold, because "no orphans" and "the question does not apply" are different answers and the facet is hidden for the second.
  */
 export const browsePage = query({
   args: { type: v.string() },
   returns: v.object({
     entries: v.array(assetBrowseEntryValidator),
-    inNoDeckCount: v.union(v.number(), v.null()),
     truncated: v.boolean(),
   }),
   handler: async (ctx, args) => {
@@ -782,30 +771,20 @@ export const browsePage = query({
     const truncated = rows.length > BROWSE_LIMIT;
     const page = truncated ? rows.slice(0, BROWSE_LIMIT) : rows;
 
-    const counted = holdsDeckMembership(args.type);
     const previewKind = memberPreviewKind(args.type);
-    /* One deck holds many of the cards on a page, and one owner holds many of the assets, so each row is read once and reused across the whole grid. */
+    /* One deck backs many of the cards on a page, and one owner holds many of the assets, so each row is read once and reused across the whole grid. */
     const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
     const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
     const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
-    let inNoDeckCount = 0;
     for (const row of page) {
-      const holders = counted ? await containersHolding(ctx, row._id, DECK_CARD, decks, BROWSE_DECKS_PER_CARD + 1) : [];
-      const deckCountCapped = holders.length > BROWSE_DECKS_PER_CARD;
-      const deckCount = deckCountCapped ? BROWSE_DECKS_PER_CARD : holders.length;
-      if (counted && deckCount === 0) {
-        inNoDeckCount += 1;
-      }
       /* No cache across rows here, unlike `decks`: two bundles sharing a token is the exception, where a deck shared across a page of cards is the rule. */
       const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
       entries.push({
         ...(await toListEntry(ctx, row, owners, { deckBacks: decks })),
-        deckCount,
-        deckCountCapped,
         members,
       });
     }
 
-    return { entries, inNoDeckCount: counted ? inNoDeckCount : null, truncated };
+    return { entries, truncated };
   },
 });

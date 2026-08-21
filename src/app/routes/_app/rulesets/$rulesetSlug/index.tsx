@@ -483,10 +483,6 @@ function RulesetDetailPage() {
                       await setRulesetGroup.mutateAsync({ id: r._id, groupId: nextGroupId });
                     }}
                     title="Assign Group"
-                    descriptionLines={[
-                      `Assign a group that can help maintain "${r.name}".`,
-                      'You can create and join groups from your profile.',
-                    ]}
                   />
                 ) : null}
                 {actionVisibility.removeGroup ? (

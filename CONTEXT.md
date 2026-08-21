@@ -96,7 +96,7 @@ A card is described with a fixed vocabulary: the **Head** (its name, its Type li
 The presentational grouping of Asset types — cards, decks, tokens, boards — used to arrange the assets landing page. It is always derived from the Asset type, never maintained independently, and it appears nowhere in URLs or uniqueness rules: routes and slugs are per Asset type.
 
 **About**:
-Entity-level prose explaining a thing, shown in an "About this X" section on its detail page and shown nowhere at all when it is empty. Plain text, never markdown. An Asset carries one inside `data`, with no length floor, because an Asset with nothing to explain is the normal case; a Ruleset carries one in a column still named `description`, with a 50-character floor, because a Ruleset without one is useless.
+Entity-level prose explaining a thing, shown in an "About" section on its detail page; an empty one shows the section with a nothing-written-yet line rather than hiding it, so the field reads as present-but-blank instead of missing. Plain text, never markdown. An Asset carries one inside `data`, with no length floor, because an Asset with nothing to explain is the normal case; a Ruleset carries one in a column still named `description`, with a 50-character floor, because a Ruleset without one is useless.
 
 _Not_: **description**, which names a label on a sub-component inside `factions.data`: a troop's, a planet's, an extras link's. The two live at different levels, and only one of them is prose a reader chooses to read.
 

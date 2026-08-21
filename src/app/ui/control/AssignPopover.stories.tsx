@@ -23,7 +23,7 @@ const meta = preview.meta({
 });
 
 export const Default = meta.story({
-  play: async ({ canvasElement }) => {
+  play: async ({ args, canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const trigger = page.getByRole('button', { name: 'Assign group' });
 
@@ -31,7 +31,11 @@ export const Default = meta.story({
 
     await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
     await expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    await waitFor(() => expect(page.getByRole('combobox', { name: 'Search groups' })).toBeVisible());
+    await waitFor(() => expect(page.getByRole('searchbox', { name: 'Search groups' })).toBeVisible());
+    /* The suggestions are already in the pane — one floating layer — and choosing one commits it. */
+    await expect(page.getByRole('option', { name: /Spice Cartel/ })).toBeVisible();
+    await userEvent.click(page.getByRole('option', { name: /Spice Cartel/ }));
+    await waitFor(() => expect(args.onAssign).toHaveBeenCalledWith('group-2'));
   },
 });
 
@@ -47,13 +51,13 @@ export const DifferentNoun = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(page.getByRole('button', { name: 'Add a faction' }));
-    await waitFor(() => expect(page.getByRole('combobox', { name: 'Search factions' })).toBeVisible());
+    await waitFor(() => expect(page.getByRole('searchbox', { name: 'Search factions' })).toBeVisible());
   },
 });
 
 /**
- * The group page's exact wording, which the noun cannot derive: the trigger says what the reader is about to do, the field says whose factions these are, and the commit says where they land.
- * Asserted here because deriving all three from `noun` silently rewrote this copy once, and only an end-to-end spec noticed.
+ * The group page's exact wording, which the noun cannot derive: the trigger says what the reader is about to do and the field says whose factions these are.
+ * Asserted here because deriving both from `noun` silently rewrote this copy once, and only an end-to-end spec noticed.
  */
 export const CallerSuppliedCopy = meta.story({
   args: {
@@ -63,15 +67,13 @@ export const CallerSuppliedCopy = meta.story({
     title: 'Add a faction',
     triggerLabel: 'Add a faction you own',
     searchLabel: 'Search your factions',
-    submitLabel: 'Add to this group',
     options: [{ value: 'faction-1', label: 'House Atreides — unassigned' }],
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
 
     await userEvent.click(page.getByRole('button', { name: 'Add a faction you own' }));
-    await waitFor(() => expect(page.getByRole('combobox', { name: 'Search your factions' })).toBeVisible());
-    await expect(page.getByRole('button', { name: 'Add to this group' })).toBeVisible();
+    await waitFor(() => expect(page.getByRole('searchbox', { name: 'Search your factions' })).toBeVisible());
   },
 });
 

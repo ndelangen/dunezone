@@ -64,7 +64,6 @@ describe('asset catalogue', () => {
     });
 
     const page = await t.query(api.assets.cataloguePage, {});
-    expect(page.countsByType).toEqual({ 'card-treachery': 2, deck: 1 });
     expect(page.recent.map((entry) => entry.slug)).toEqual(['house-treachery', 'nameless', 'lasgun']);
     expect(page.recent[1]?.name).toBe('Untitled');
     expect(page.recent[0]?.owner?.username).toBe('stilgar');
@@ -214,7 +213,7 @@ describe('deck membership', () => {
 });
 
 describe('browse page', () => {
-  test('counts the decks holding each card, tallies the orphans, and says nothing about types no deck can hold', async () => {
+  test('lists the page newest first and owns up to a full page, without deriving membership', async () => {
     const t = convexTest(schema, modules);
     await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Asset owner' });
@@ -250,16 +249,11 @@ describe('browse page', () => {
     });
 
     const cards = await t.query(api.assets.browsePage, { type: 'card-treachery' });
-    expect(cards.entries.map((entry) => [entry.slug, entry.deckCount])).toEqual([
-      ['orphan', 0],
-      ['lasgun', 1],
-    ]);
-    expect(cards.inNoDeckCount).toBe(1);
+    /* Deck membership left this payload with the tile's meta line (Norbert, 2026-08-21): a browse entry is the listing shape plus member previews, nothing derived. */
+    expect(cards.entries.map((entry) => entry.slug)).toEqual(['orphan', 'lasgun']);
     expect(cards.truncated).toBe(false);
 
     const decks = await t.query(api.assets.browsePage, { type: 'deck' });
-    /* Nothing may hold a deck, so "in no deck" is not a question about this type rather than a count of zero. */
-    expect(decks.inNoDeckCount).toBeNull();
-    expect(decks.entries.map((entry) => entry.deckCount)).toEqual([0]);
+    expect(decks.entries.map((entry) => entry.slug)).toEqual(['house-treachery']);
   });
 });

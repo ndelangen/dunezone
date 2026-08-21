@@ -312,11 +312,6 @@ function OwnedAssetPicker({
       title={`Add a ${noun}`}
       triggerLabel={`Add a ${noun} you own`}
       searchLabel={`Search your ${noun}s`}
-      submitLabel="Add to this group"
-      descriptionLines={[
-        `Only ${noun}s you own are listed.`,
-        'Moving one already in another group needs confirmation.',
-      ]}
       disabled={disabled}
       loading={loading}
       options={assignable.map((item) => ({

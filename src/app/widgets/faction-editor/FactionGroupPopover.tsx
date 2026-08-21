@@ -17,10 +17,6 @@ export function FactionGroupPopover({ onAssignGroup, disabled, assignableGroups 
       triggerLabel="Assign group"
       icon={<Users size={17} aria-hidden />}
       title="Assign Group"
-      descriptionLines={[
-        'Groups are used to allow group members to edit this faction.',
-        'You can create groups on your profile page.',
-      ]}
       disabled={disabled}
       options={assignableGroups.map((group) => ({
         value: group.id,
