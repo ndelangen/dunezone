@@ -33,6 +33,7 @@ import {
   ArrowLeft,
   Boxes,
   CalendarPlus,
+  Copy,
   Download,
   FlipHorizontal2,
   History,
@@ -54,6 +55,9 @@ type AssetPage = NonNullable<AssetPageData>;
 
 export const Route = createFileRoute('/_app/assets/$type/$slug/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
+  /* The container grid's one view choice. Absent is the default (every copy); only the collapsed state reaches the URL, the browse page's absence-is-default rule. */
+  validateSearch: (input: Record<string, unknown>): { copies?: 'once' } =>
+    input.copies === 'once' ? { copies: 'once' } : {},
   loader: async ({ params }) => {
     if (!isAssetType(params.type)) {
       throw notFound();
@@ -326,20 +330,30 @@ function AboutSection({ about }: { about: string }) {
 }
 
 /**
- * What a container holds, and how many of each.
+ * What a container holds, drawn rather than listed: a grid of member previews, each tile a link to the member's own page.
+ * The container's matter is its members, not its band or back (Norbert, 2026-08-22).
  * Read-only here;
  * composition is managed in the container's editor.
  * One component for decks and bundles, because a deck's cards and a bundle's tokens are the same relation read.
+ *
+ * `duplicated` draws one tile per copy — the deck as it physically stacks — while the collapsed view draws each member once with its count on the caption.
  */
 function Composition({
   members,
   truncated,
   noun,
+  duplicated,
 }: {
   members: AssetPage['members'];
   truncated: boolean;
   noun: string;
+  duplicated: boolean;
 }) {
+  const tiles = duplicated
+    ? members.flatMap(({ member, count }) =>
+        Array.from({ length: count }, (_, copy) => ({ member, key: `${member.id}-${copy}`, count: 1 }))
+      )
+    : members.map(({ member, count }) => ({ member, key: member.id, count }));
   return (
     <Section
       id="composition"
@@ -355,13 +369,28 @@ function Composition({
         </Surface>
       ) : (
         <>
-          <Links>
-            {members.map(({ member, count }) => (
-              <Links.Item key={member.id} to="/assets/$type/$slug" params={{ type: member.type, slug: member.slug }}>
-                {count > 1 ? `${member.name} ×${count}` : member.name}
-              </Links.Item>
+          <div className={styles.memberGrid}>
+            {tiles.map(({ member, key, count }) => (
+              <Link
+                key={key}
+                className={styles.memberTile}
+                to="/assets/$type/$slug"
+                params={{ type: member.type, slug: member.slug }}
+                aria-label={member.name}
+              >
+                <Stack gap={6}>
+                  <div className={styles.memberTileArt}>
+                    <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(member.type)}>
+                      <AssetFace type={member.type} data={member.data} name={member.name} width={900} />
+                    </CanvasScale>
+                  </div>
+                  <Text size="sm" fw={600} lineClamp={1} ta="center">
+                    {count > 1 ? `${member.name} ×${count}` : member.name}
+                  </Text>
+                </Stack>
+              </Link>
             ))}
-          </Links>
+          </div>
           {truncated ? (
             <Text size="sm" c="dimmed">
               Showing the first {members.length} {noun}; this one holds more.
@@ -374,23 +403,18 @@ function Composition({
 }
 
 /**
- * The rulesets that ship this asset, and the slot each one puts it in.
+ * The rulesets that ship this container, and the slot each one puts it in — a rail card beside the preview (Norbert, 2026-08-22).
  *
  * Read-only here.
- * Slots are managed on the ruleset edit page, per «Ruleset deck-slot residual semantics», so this section links out rather than offering an action.
- * It renders nothing at all when there are none, the way About does: "no ruleset uses this yet" is not a fact worth a heading.
+ * Slots are managed on the ruleset edit page, per «Ruleset deck-slot residual semantics», so this card links out rather than offering an action.
+ * It renders nothing at all when there are none, the way About's old shape did: "no ruleset uses this yet" is not a fact worth a heading.
  */
-function LinkingRulesets({ rulesets }: { rulesets: AssetPage['linkingRulesets'] }) {
+function ShippedByCard({ rulesets }: { rulesets: AssetPage['linkingRulesets'] }) {
   if (rulesets.length === 0) {
     return null;
   }
   return (
-    <Section
-      id="linking-rulesets"
-      icon={<TopicIcon topic="rulesets" size={20} />}
-      title="Shipped by"
-      description="The rulesets that include this, and the slot each one fills with it."
-    >
+    <Card title="Shipped by" icon={<TopicIcon topic="rulesets" size={18} />}>
       <Links>
         {rulesets.map((ruleset) => (
           <Links.Item key={ruleset.id} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
@@ -398,7 +422,7 @@ function LinkingRulesets({ rulesets }: { rulesets: AssetPage['linkingRulesets'] 
           </Links.Item>
         ))}
       </Links>
-    </Section>
+    </Card>
   );
 }
 
@@ -413,30 +437,29 @@ function slotLabel(slot: string): string {
  * a deck gets its composition first.
  * A lookup rather than a switch, so a new type is one entry and the route never learns about it.
  */
-const PER_TYPE_BODY: Record<string, (page: AssetPage) => ReactNode> = {
-  /* Both slottable types show the same two sections: what is inside, then who ships it. */
-  deck: (page) => (
-    <>
-      <Composition members={page.members} truncated={page.membersTruncated} noun="cards" />
-      <LinkingRulesets rulesets={page.linkingRulesets} />
-    </>
+const PER_TYPE_BODY: Record<string, (page: AssetPage, duplicated: boolean) => ReactNode> = {
+  /* Both container types lead with the grid; who ships them moved to the rail with the preview (Norbert, 2026-08-22). */
+  deck: (page, duplicated) => (
+    <Composition members={page.members} truncated={page.membersTruncated} noun="cards" duplicated={duplicated} />
   ),
-  bundle: (page) => (
-    <>
-      <Composition members={page.members} truncated={page.membersTruncated} noun="tokens" />
-      <LinkingRulesets rulesets={page.linkingRulesets} />
-    </>
+  bundle: (page, duplicated) => (
+    <Composition members={page.members} truncated={page.membersTruncated} noun="tokens" duplicated={duplicated} />
   ),
 };
 
-function AssetDetailBody({ page }: { page: AssetPage }) {
+/** Which types the container arrangement applies to: grid-led body, slim rail. Derived from the body table rather than restated. */
+function isContainerType(type: string): boolean {
+  return type in PER_TYPE_BODY;
+}
+
+function AssetDetailBody({ page, duplicated }: { page: AssetPage; duplicated: boolean }) {
   const about =
     typeof (page.asset.data as { about?: unknown })?.about === 'string'
       ? (page.asset.data as { about: string }).about
       : '';
   return (
     <Stack gap="lg">
-      {PER_TYPE_BODY[page.asset.type]?.(page)}
+      {PER_TYPE_BODY[page.asset.type]?.(page, duplicated)}
       {/* Membership reads with the other facts rather than beside the render: the rail is the preview's, the column is the reader's (Norbert, 2026-08-21). */}
       {holdsDeckMembership(page.asset.type) ? (
         <ContainerSection
@@ -495,6 +518,13 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
   const { asset, viewerAccess, assignableGroups, inDecks, assetPublishing, backPublishing } = page;
   const groupActions = useAssetGroupActions({ asset, access: { viewerAccess, assignableGroups } });
   const deletion = useAssetDeletion(asset);
+  const { copies } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const container = isContainerType(asset.type);
+  const duplicated = copies !== 'once';
+  /* Only a container holding an actual multiple offers the toggle: with every count at one, the two views are the same picture. */
+  const hasCopies = container && page.members.some(({ count }) => count > 1);
+  const memberNoun = asset.type === 'deck' ? 'card' : 'token';
   const { capabilities, assignedGroup } = viewerAccess;
   const definition = isAssetType(asset.type) ? ASSET_TYPES[asset.type] : undefined;
   const collectionLabel = definition?.label ?? 'Assets';
@@ -592,6 +622,17 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                   )}
                 />
               ) : null}
+              {/* Every copy or each once: the grid's one view choice, for decks stacking multiples (Norbert, 2026-08-22). */}
+              {hasCopies ? (
+                <IconAction
+                  label={duplicated ? `Show each ${memberNoun} once` : `Show every copy`}
+                  variant={duplicated ? 'filled' : 'light'}
+                  color="gray"
+                  size="lg"
+                  icon={<Copy size={17} aria-hidden />}
+                  onClick={() => void navigate({ search: duplicated ? { copies: 'once' } : {}, replace: true })}
+                />
+              ) : null}
             </Group>
           </Toolbar.Left>
           {/* The management actions the map's standing rule puts on the detail page as well as the edit page, each gated on the viewer's real capabilities. */}
@@ -645,15 +686,16 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
             {deletion.error.message}
           </Alert>
         ) : null}
-        {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement, on every asset detail page alike (Norbert, 2026-08-21). */}
-        <AsymmetricSplitLayout>
+        {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21). A container's rail slims to a band: its matter is the member grid, and the band or back preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
+        <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>
           <AsymmetricSplitLayout.Wide>
-            <AssetDetailBody page={page} />
+            <AssetDetailBody page={page} duplicated={duplicated} />
           </AsymmetricSplitLayout.Wide>
 
           <AsymmetricSplitLayout.Narrow>
             <Stack gap="lg">
               <AssetFaces page={page} />
+              {container ? <ShippedByCard rulesets={page.linkingRulesets} /> : null}
               {assignedGroup ? (
                 <Card title="Maintained by" icon={<UsersRound size={18} aria-hidden />}>
                   <Text size="sm">{assignedGroup.name}</Text>

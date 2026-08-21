@@ -12,8 +12,15 @@ function Narrow(_: PropsWithChildren): null {
   return null;
 }
 
-/** A wide column beside a narrow one, responsive by container query. */
-function AsymmetricSplitLayoutBase({ className, children }: PropsWithChildren<{ className?: string }>) {
+/**
+ * A wide column beside a narrow one, responsive by container query.
+ * `rail="slim"` narrows the second column to a fixed-ish band, for pages whose matter is the wide column and whose rail only carries a preview and a few cards (Norbert, 2026-08-22).
+ */
+function AsymmetricSplitLayoutBase({
+  className,
+  rail = 'reading',
+  children,
+}: PropsWithChildren<{ className?: string; rail?: 'reading' | 'slim' }>) {
   let wide: ReactNode = null;
   let narrow: ReactNode = null;
 
@@ -32,7 +39,7 @@ function AsymmetricSplitLayoutBase({ className, children }: PropsWithChildren<{ 
 
   return (
     <div className={clsx(styles.root, className)}>
-      <div className={styles.layout}>
+      <div className={clsx(styles.layout, rail === 'slim' && styles.slim)}>
         <div>{wide}</div>
         <div>{narrow}</div>
       </div>
@@ -40,7 +47,9 @@ function AsymmetricSplitLayoutBase({ className, children }: PropsWithChildren<{ 
   );
 }
 
-type AsymmetricSplitLayoutComponent = ((props: PropsWithChildren<{ className?: string }>) => ReactNode) & {
+type AsymmetricSplitLayoutComponent = ((
+  props: PropsWithChildren<{ className?: string; rail?: 'reading' | 'slim' }>
+) => ReactNode) & {
   Wide: typeof Wide;
   Narrow: typeof Narrow;
 };

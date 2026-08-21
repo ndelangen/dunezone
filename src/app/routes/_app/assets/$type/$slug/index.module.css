@@ -44,3 +44,29 @@
 .about {
   white-space: pre-line;
 }
+
+/* The member grid: the browse page's tile tracks, since the two answer the same question at the same size. */
+.memberGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(0, 9.5rem));
+  justify-content: start;
+  gap: var(--mantine-spacing-md);
+}
+
+.memberTile {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--mantine-radius-md);
+  padding: 4px;
+}
+
+.memberTile:hover,
+.memberTile:focus-visible {
+  background: var(--mantine-color-default-hover);
+}
+
+.memberTileArt {
+  border-radius: var(--mantine-radius-sm);
+  overflow: hidden;
+}
