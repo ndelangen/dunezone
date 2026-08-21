@@ -229,6 +229,8 @@ export const getPage = query({
       assignableGroups: v.array(assignedGroupSummaryValidator),
       /** The token serving as this one's backside, for the types that have one. Null covers both "custom back" and "none". */
       backToken: v.union(assetListEntryValidator, v.null()),
+      /** The deck whose authored cardback this one wears, the deck analog of `backToken`. Null covers authored, transitional bare, and dangling alike. */
+      backDeck: v.union(assetListEntryValidator, v.null()),
       /**
        * What a container holds, with counts.
        * Empty for every type that holds nothing.
@@ -277,11 +279,13 @@ export const getPage = query({
     }
     const access = await loadAssetAccessBundle(ctx, { kind: 'asset', row });
     const back = TOKEN_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id, row.data) : null;
+    const backDeckRow = await referencedCardbackDeck(ctx, row);
     return {
       asset: await toListEntry(ctx, row),
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
       backToken: back ? await toListEntry(ctx, back) : null,
+      backDeck: backDeckRow ? await toListEntry(ctx, backDeckRow) : null,
       ...(CONTAINER_KINDS[row.type]
         ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind).then((m) => ({
             members: m.entries,
@@ -564,6 +568,24 @@ async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>, data: unknown)
   }
   const target = await ctx.db.get('assets', targetId);
   return target && !target.is_deleted ? target : null;
+}
+
+/**
+ * The deck a reference cardback points at, when the target still qualifies;
+ * the deck sibling of `tokenBackFor`.
+ * Qualification is `authoredDeckCardback`, the same judgement the browse presentation and the resolver apply, so the page cannot call a deck referenced that a tile would call dangling.
+ * No legacy fallthrough: deck references never had a relation-row era.
+ */
+async function referencedCardbackDeck(ctx: QueryCtx, row: Doc<'assets'>) {
+  if (row.type !== 'deck') {
+    return null;
+  }
+  const cardback = deckCardbackOf(row.data);
+  if (!cardback || cardback.mode !== 'reference' || typeof cardback.asset_id !== 'string') {
+    return null;
+  }
+  const target = await ctx.db.get('assets', cardback.asset_id as Id<'assets'>);
+  return target && authoredDeckCardback(target) ? target : null;
 }
 
 /**
