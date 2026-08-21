@@ -54,7 +54,7 @@ export function ValidationHeader<W extends ValidationHeaderWarning>({
     <div className={styles.strip} id={id}>
       <span className={styles.title}>
         <TriangleAlert size={15} aria-hidden />
-        Incomplete fields
+        Needs attention
       </span>
       {[...groups.entries()].map(([source, sourceWarnings]) => {
         const missing = sourceWarnings.flatMap((warning) => ('missing' in warning ? [warning.missing] : []));

@@ -384,6 +384,10 @@ async function withValidatedBack(
     const carried = typeof previous?.asset_id === 'string' ? previous.asset_id : null;
     const legacy = row._id ? await legacyRelationBackId(ctx, row._id) : null;
     const targetId = (stored ?? carried ?? legacy) as Id<'assets'> | null;
+    if (!stored && targetId) {
+      /* No shipped editor produces a mode-only reference any more, so each merge is a straggler tab worth counting before the tolerance retires. */
+      console.warn(`token back tolerance: mode-only reference merged for asset ${row._id ?? '(create)'}`);
+    }
     if (!targetId) {
       return data;
     }

@@ -1,5 +1,5 @@
 import { Alert, Anchor, Button, Group, Popover, Stack, Text } from '@mantine/core';
-import { authoredCardback, DeckAsset } from '@shared/assets/schema';
+import { DeckAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
@@ -82,14 +82,13 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
   }
 
   /*
-   * The parse boundary flattens the transitional bare shape: authored and bare alike become the
-   * draft's custom member, a reference passes through, and the editor never learns the third,
-   * transitional member the stored union still carries until the narrow.
+   * The parse boundary flattens the transitional bare shape: the 'in'-narrow derives the reference
+   * member, everything else re-tags as the draft's custom member, and the editor never learns the
+   * third, transitional member the stored union still carries until the narrow.
    */
-  const authored = authoredCardback(parsed.data.cardback);
-  const initialCardback: DeckDraftCardback = authored
-    ? { mode: 'custom', ...authored }
-    : { mode: 'reference', asset_id: (parsed.data.cardback as { mode: 'reference'; asset_id: string }).asset_id };
+  const cardback = parsed.data.cardback;
+  const initialCardback: DeckDraftCardback =
+    'mode' in cardback && cardback.mode === 'reference' ? cardback : { ...cardback, mode: 'custom' };
 
   return (
     <DeckEditSession
