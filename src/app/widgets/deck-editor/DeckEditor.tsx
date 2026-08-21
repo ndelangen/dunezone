@@ -4,6 +4,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { MemberCountInput } from '@ui/control/MemberCountInput';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
@@ -280,14 +281,13 @@ export function DeckEditor({
                               <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
                                 {member.card.name}
                               </Text>
-                              <NumberInput
-                                aria-label={`Copies of ${member.card.name}`}
+                              <MemberCountInput
+                                label={`Copies of ${member.card.name}`}
                                 min={1}
                                 max={99}
-                                w={90}
                                 disabled={onCountChange === null}
                                 value={member.count}
-                                onChange={(value) => onCountChange?.(member.card.id, Number(value) || 1)}
+                                onCommit={(count) => onCountChange?.(member.card.id, count)}
                               />
                               <IconAction
                                 label={`Remove ${member.card.name}`}

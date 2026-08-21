@@ -4,7 +4,13 @@ import { describe, expect, it } from 'vitest';
 import type { Faction } from '@db/factions';
 
 import { BACKGROUND_PATTERN_CATALOGUE } from './backgroundPatternCatalogue';
-import { backgroundRecipeCount, randomizeBackground, withRandomPattern } from './backgroundRandomizer';
+import {
+  backgroundRecipeCount,
+  randomizeBackground,
+  randomizeBackgroundColors,
+  randomizeBackgroundTreatment,
+  withRandomPattern,
+} from './backgroundRandomizer';
 
 const original: Faction['background'] = {
   image: '/image/texture/021.jpg',
@@ -61,4 +67,24 @@ describe('background studio random actions', () => {
       }
     }
   });
+});
+
+/*
+ * A random tool that can hand back the value already showing reads as a dead button, and with a
+ * catalogue of N entries it does so about one press in N. Each partial tool is rolled against every
+ * index so the guarantee holds for the whole catalogue rather than for a lucky seed.
+ */
+it('partial random tools never return the value already showing', () => {
+  const start = randomizeBackground(original, () => 0);
+  for (let index = 0; index < backgroundRecipeCount; index += 1) {
+    const roll = () => index / backgroundRecipeCount;
+    expect(withRandomPattern(start, roll).image).not.toEqual(start.image);
+    const treatment = randomizeBackgroundTreatment(start, roll);
+    expect([treatment.invert, treatment.definition, treatment.influence]).not.toEqual([
+      start.invert,
+      start.definition,
+      start.influence,
+    ]);
+    expect(randomizeBackgroundColors(start, roll).colors).not.toEqual(start.colors);
+  }
 });

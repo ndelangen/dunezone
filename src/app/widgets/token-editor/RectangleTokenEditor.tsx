@@ -24,6 +24,7 @@ import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { assetFaceAspect, TokenFrame } from '@app/widgets/asset-face/AssetFace';
+import { sameBackground } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { BackgroundPresetPicker } from '@app/widgets/background-composer/BackgroundPresetPicker';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
 import { decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
@@ -149,7 +150,8 @@ function PlacementControl({
 type FacePatch = (update: Partial<RectangleFaceDraft>) => void;
 
 function SurfaceFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePatch }) {
-  const selected = BACKGROUND_PRESETS.find((preset) => preset.background === face.background)?.key ?? 'custom';
+  const selected =
+    BACKGROUND_PRESETS.find((preset) => sameBackground(preset.background, face.background))?.key ?? 'custom';
   return (
     <Stack gap="lg">
       <ControlBlock

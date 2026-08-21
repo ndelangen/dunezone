@@ -1,8 +1,9 @@
-import { Group, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Group, Select, Stack, Text, TextInput } from '@mantine/core';
 import type { BundleAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { MemberCountInput } from '@ui/control/MemberCountInput';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
@@ -223,14 +224,13 @@ export function BundleEditor({
                               <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
                                 {member.token.name}
                               </Text>
-                              <NumberInput
-                                aria-label={`How many ${member.token.name}`}
+                              <MemberCountInput
+                                label={`How many ${member.token.name}`}
                                 min={1}
                                 max={99}
-                                w={90}
                                 disabled={onCountChange === null}
                                 value={member.count}
-                                onChange={(value) => onCountChange?.(member.token.id, Number(value) || 1)}
+                                onCommit={(count) => onCountChange?.(member.token.id, count)}
                               />
                               <IconAction
                                 label={`Remove ${member.token.name}`}
