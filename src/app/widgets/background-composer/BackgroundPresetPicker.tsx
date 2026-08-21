@@ -15,11 +15,17 @@ export type BackgroundPreset = { key: string; label: string; background: Backgro
  * what stays here is the one thing only a background knows, that its preview is a `BackgroundRenderer` at 3:2.
  */
 export function BackgroundPresetPicker({
+  label,
   presets,
   selected,
   onSelect,
   customBackground,
 }: {
+  /**
+   * Names this row for assistive technology.
+   * Required rather than defaulted, because a page may hold more than one: a treachery card composes a head background and an icon background, and two rows both announcing "Background" are two rows a screen reader reader cannot tell apart.
+   */
+  label: string;
   presets: readonly BackgroundPreset[];
   /** A preset key, or 'custom'. */
   selected: string;
@@ -29,7 +35,7 @@ export function BackgroundPresetPicker({
 }) {
   return (
     <PreviewChoice
-      label="Background"
+      label={label}
       value={selected}
       onChange={onSelect}
       aspectRatio="3 / 2"

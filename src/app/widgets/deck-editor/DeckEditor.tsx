@@ -11,6 +11,7 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -205,7 +206,8 @@ function tileFor(cardback: DeckDraftCardback, stockKey: string | null, customCho
 function cardbackForTile(
   tile: CardbackTile,
   current: DeckDraftCardback,
-  stockKey: string | null
+  stockKey: string | null,
+  remembered: CardbackData | null
 ): DeckDraftCardback | null {
   switch (tile) {
     case 'reference':
@@ -217,7 +219,12 @@ function cardbackForTile(
       return { mode: 'custom', ...STOCK_CARDBACKS[0]!.cardback };
     }
     case 'custom':
-      return current.mode === 'custom' ? null : { mode: 'custom', ...STOCK_CARDBACKS[0]!.cardback };
+      if (current.mode === 'custom') {
+        return null;
+      }
+      /* Storage is strict and the draft remembers, the same promise the token editors keep: coming
+         back from a reference restores the composition the author left, not the first stock look. */
+      return { mode: 'custom', ...(remembered ?? STOCK_CARDBACKS[0]!.cardback) };
   }
 }
 
@@ -261,6 +268,8 @@ export function DeckEditor({
 }) {
   const composition = draftCardbackComposition(draft.cardback);
   const stockKey = composition ? stockKeyFor(composition) : null;
+  /* The composition the author last had, kept across mode flips; the stored union cannot hold it. */
+  const composedCardback = useRef<CardbackData | null>(composition);
   /* The stock tile shows the stock look this deck wears; with none chosen yet it stands in with the first. */
   const stockPreview = (STOCK_CARDBACKS.find((stock) => stock.key === stockKey) ?? STOCK_CARDBACKS[0]!).cardback;
   /*
@@ -312,7 +321,11 @@ export function DeckEditor({
                         aspectRatio={String(1 / assetFaceAspect('deck'))}
                         onChange={(tile) => {
                           setCustomChosen(tile === CUSTOM);
-                          const next = cardbackForTile(tile, draft.cardback, stockKey);
+                          /* Captured on the way out, so returning to Composed finds the composition as it was left. */
+                          if (composition) {
+                            composedCardback.current = composition;
+                          }
+                          const next = cardbackForTile(tile, draft.cardback, stockKey, composedCardback.current);
                           if (next) {
                             patch({ cardback: next });
                           }
@@ -321,10 +334,8 @@ export function DeckEditor({
                           {
                             value: 'stock',
                             label: 'Stock',
-                            preview: stockPreview ? (
-                              <CardbackProof cardback={stockPreview} width={PROOF_CANVAS} />
-                            ) : undefined,
-                            emptyHint: <Text size="xs">Pick one</Text>,
+                            /* Always drawable: the stock look this deck wears, or the first standing in. */
+                            preview: <CardbackProof cardback={stockPreview} width={PROOF_CANVAS} />,
                             detail: (
                               <Select
                                 aria-label="Which stock back"

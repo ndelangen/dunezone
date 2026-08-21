@@ -69,6 +69,7 @@ export function BackgroundPresetControl({
       input={
         <Stack gap="sm">
           <BackgroundPresetPicker
+            label={title}
             presets={presets}
             selected={selected}
             customBackground={value}

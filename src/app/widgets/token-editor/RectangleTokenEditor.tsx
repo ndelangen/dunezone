@@ -386,7 +386,8 @@ const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
 function backForMode(
   mode: RectangleDraft['back']['mode'],
   draft: RectangleDraft,
-  remembered: RectangleFaceDraft | null
+  remembered: RectangleFaceDraft | null,
+  rememberedTarget: string | null
 ): RectangleDraft['back'] {
   switch (mode) {
     case 'custom':
@@ -394,7 +395,11 @@ function backForMode(
     case 'same':
       return { mode: 'same' };
     case 'reference':
-      return draft.back.mode === 'reference' ? draft.back : { mode: 'reference' };
+      if (draft.back.mode === 'reference') {
+        return draft.back;
+      }
+      /* The pick survives the flip too: the display never stopped showing it, so the save must not disagree. */
+      return rememberedTarget === null ? { mode: 'reference' } : { mode: 'reference', asset_id: rememberedTarget };
   }
 }
 
@@ -419,6 +424,10 @@ export function RectangleTokenEditor({
 }) {
   /* The composition the author last had, kept across mode flips; the stored union cannot hold it. */
   const composedFace = useRef<RectangleFaceDraft | null>(draft.back.mode === 'custom' ? draft.back.face : null);
+  /* The target the author last picked, kept across mode flips for the same reason the face is. */
+  const referencedTarget = useRef<string | null>(
+    draft.back.mode === 'reference' ? (draft.back.asset_id ?? null) : null
+  );
 
   const patchFace = (key: 'front' | 'back'): FacePatch =>
     key === 'front'
@@ -480,7 +489,10 @@ export function RectangleTokenEditor({
                   if (draft.back.mode === 'custom') {
                     composedFace.current = draft.back.face;
                   }
-                  patch({ back: backForMode(mode, draft, composedFace.current) });
+                  if (draft.back.mode === 'reference' && draft.back.asset_id) {
+                    referencedTarget.current = draft.back.asset_id;
+                  }
+                  patch({ back: backForMode(mode, draft, composedFace.current, referencedTarget.current) });
                 }}
                 options={[
                   {

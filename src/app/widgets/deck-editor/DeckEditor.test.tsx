@@ -75,3 +75,24 @@ it('reaches an authored cardback from the stock one it starts on', () => {
   /* The composition fields are the point: a control reading "Composed here" over a panel that never appeared is the defect. */
   expect(labelField()).not.toBeNull();
 });
+
+/**
+ * Storage is strict and the draft remembers («The stored shape of three back modes», section 2).
+ *
+ * The first version of this control returned the first stock back when Composed was re-entered, so a detour through the reference tile silently discarded whatever the author had composed.
+ * The docblock claimed otherwise, which is why this is pinned rather than left to the comment.
+ */
+it('keeps a composed cardback across a trip through the reference tile', () => {
+  const { container } = render(<Harness />);
+  const tile = (name: string) => screen.getByRole('radio', { name }) as HTMLInputElement;
+  const labelField = () => container.querySelector<HTMLInputElement>('input[aria-label="Label"]');
+
+  fireEvent.click(tile('Composed here'));
+  fireEvent.change(labelField() as HTMLInputElement, { target: { value: 'Hand of the Emperor' } });
+  expect(labelField()?.value).toBe('Hand of the Emperor');
+
+  fireEvent.click(tile("Another deck's back"));
+  fireEvent.click(tile('Composed here'));
+
+  expect(labelField()?.value).toBe('Hand of the Emperor');
+});

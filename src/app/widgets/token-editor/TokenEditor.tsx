@@ -245,7 +245,8 @@ function backForMode(
   mode: TokenDraft['back']['mode'],
   draft: TokenDraft,
   type: string,
-  remembered: TokenFaceDraft | null
+  remembered: TokenFaceDraft | null,
+  rememberedTarget: string | null
 ): TokenDraft['back'] {
   switch (mode) {
     case 'custom':
@@ -256,7 +257,11 @@ function backForMode(
     case 'same':
       return { mode: 'same' };
     case 'reference':
-      return draft.back.mode === 'reference' ? draft.back : { mode: 'reference' };
+      if (draft.back.mode === 'reference') {
+        return draft.back;
+      }
+      /* The pick survives the flip too: the display never stopped showing it, so the save must not disagree. */
+      return rememberedTarget === null ? { mode: 'reference' } : { mode: 'reference', asset_id: rememberedTarget };
   }
 }
 
@@ -290,6 +295,10 @@ export function TokenEditor({
 }) {
   /* The composition the author last had, kept across mode flips; the stored union cannot hold it. */
   const composedFace = useRef<TokenFaceDraft | null>(draft.back.mode === 'custom' ? draft.back.face : null);
+  /* The target the author last picked, kept across mode flips for the same reason the face is. */
+  const referencedTarget = useRef<string | null>(
+    draft.back.mode === 'reference' ? (draft.back.asset_id ?? null) : null
+  );
 
   const patchFace = (key: 'front' | 'back'): FacePatch =>
     key === 'front'
@@ -330,7 +339,10 @@ export function TokenEditor({
                   if (draft.back.mode === 'custom') {
                     composedFace.current = draft.back.face;
                   }
-                  patch({ back: backForMode(mode, draft, type, composedFace.current) });
+                  if (draft.back.mode === 'reference' && draft.back.asset_id) {
+                    referencedTarget.current = draft.back.asset_id;
+                  }
+                  patch({ back: backForMode(mode, draft, type, composedFace.current, referencedTarget.current) });
                 }}
                 options={[
                   {

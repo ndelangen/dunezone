@@ -445,8 +445,14 @@ export function AssetFace({
     if (danglingDeckCardback(data)) {
       return (
         <CardFrame width={width}>
-          {/* Decorative: the detail page carries the words, and a tile has no room for them. */}
-          <img src={NO_DECK_BACK_HREF} alt="" width={width} />
+          {/*
+           * Drawn at the frame's internal canvas size, not the caller's width: `CardFrame` lays its
+           * children out at `CARD_SIZE` and scales the lot by `width / CARD_SIZE.width`, so a child
+           * sized to `width` is scaled a second time and lands at `width² / 900`. On a browse tile
+           * that is a few pixels of image inside an empty card.
+           * Decorative: the detail page carries the words, and a tile has no room for them.
+           */}
+          <img src={NO_DECK_BACK_HREF} alt="" width={CARD_SIZE.width} height={CARD_SIZE.height} />
         </CardFrame>
       );
     }
