@@ -2,7 +2,12 @@ import viteReact from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import type { Plugin } from 'vite';
 
-const DEFERRED_ASSET_WARNING = /didn't resolve at build time/;
+/*
+ * Only the URLs `verify:images` actually validates, which is narrower than the warning.
+ * Vite reports the same way for a relative miss like `./missing.woff2`, and nothing checks those, so a filter on the message alone would bury a genuine broken reference (CodeRabbit, PR #614).
+ */
+const DEFERRED_ASSET_WARNING =
+  /^\s*(?:\/(?:image|web|font)\/\S*|\/dice\.svg) referenced in [\s\S]*didn't resolve at build time/;
 
 /**
  * Drops Vite's "didn't resolve at build time" warning for root-absolute asset URLs.

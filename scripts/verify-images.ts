@@ -103,6 +103,17 @@ for (const source of sources) {
 /* The same list the generator spares, so the two cannot drift apart again (`COMMITTED_WEB_FILES` in assetRules.ts says what happened when they did). */
 const committedWebPaths = new Set(COMMITTED_WEB_FILES.map((name) => `web/${name}`));
 
+/*
+ * Each committed file has to BE there, checked head-on rather than inferred.
+ * The orphan walk below only visits files that exist, so a deleted one is silently not-an-orphan, and the reference scan further down catches it only while some `src/` file happens to name it in a string literal.
+ * `no-deck-back.svg` was caught that way and a committed file nobody references by literal would not be (CodeRabbit, PR #614).
+ */
+for (const name of COMMITTED_WEB_FILES) {
+  if (!existsSync(path.join(publicRoot, 'web', name))) {
+    failures.push(`committed web file missing: web/${name} (generate:images must spare it, see COMMITTED_WEB_FILES)`);
+  }
+}
+
 for (const generated of [...walk(path.join(publicRoot, 'image')), ...walk(path.join(publicRoot, 'web'))]) {
   const relative = path.relative(publicRoot, generated).split(path.sep).join('/');
   if (committedWebPaths.has(relative)) {
