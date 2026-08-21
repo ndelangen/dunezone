@@ -545,6 +545,8 @@ export function BackgroundComposer({
 }) {
   const resolve = useAssetResolver();
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const selectedPattern = BACKGROUND_PATTERN_CATALOGUE.find((option) => option.image === value.image);
+  const treatment = backgroundTreatment(value);
 
   return (
     <Stack component="section" gap="md" aria-label="Background builder">
@@ -559,56 +561,50 @@ export function BackgroundComposer({
       ) : (
         <>
           <Box className={styles.pipelineTop}>
-            {(() => {
-              const selected = BACKGROUND_PATTERN_CATALOGUE.find((option) => option.image === value.image);
-              const treatment = backgroundTreatment(value);
-              return (
-                <Box className={styles.pipelineStage}>
-                  <ControlBlock
-                    title="01 · Pattern"
-                    tool={<RandomButton label="Random pattern" onClick={() => onChange(withRandomPattern(value))} />}
-                    input={
-                      <Stack gap="xs">
-                        <Box className={styles.selectedPattern}>
-                          <Image
-                            src={resolve(value.image)}
-                            alt=""
-                            fit="cover"
-                            w="100%"
-                            h="100%"
-                            style={{
-                              filter: treatment.patternFilter,
-                              opacity: treatment.patternOpacity,
-                            }}
-                          />
-                        </Box>
-                        <Group gap="sm" wrap="nowrap" align="center">
-                          <Text fw={700} size="sm" truncate style={{ flex: 1, minWidth: 0 }}>
-                            {selected?.label ?? 'Existing pattern'}
-                          </Text>
-                          {/* Invert lives with the pattern it flips, not in the sliders column. */}
-                          <Switch
-                            size="sm"
-                            label="Invert"
-                            checked={value.invert}
-                            onChange={(event) => onChange({ ...value, invert: event.currentTarget.checked })}
-                          />
-                          <Button
-                            type="button"
-                            variant="subtle"
-                            color="dune"
-                            size="compact-sm"
-                            onClick={() => setLibraryOpen(true)}
-                          >
-                            Browse
-                          </Button>
-                        </Group>
-                      </Stack>
-                    }
-                  />
-                </Box>
-              );
-            })()}
+            <Box className={styles.pipelineStage}>
+              <ControlBlock
+                title="01 · Pattern"
+                tool={<RandomButton label="Random pattern" onClick={() => onChange(withRandomPattern(value))} />}
+                input={
+                  <Stack gap="xs">
+                    <Box className={styles.selectedPattern}>
+                      <Image
+                        src={resolve(value.image)}
+                        alt=""
+                        fit="cover"
+                        w="100%"
+                        h="100%"
+                        style={{
+                          filter: treatment.patternFilter,
+                          opacity: treatment.patternOpacity,
+                        }}
+                      />
+                    </Box>
+                    <Group gap="sm" wrap="nowrap" align="center">
+                      <Text fw={700} size="sm" truncate style={{ flex: 1, minWidth: 0 }}>
+                        {selectedPattern?.label ?? 'Existing pattern'}
+                      </Text>
+                      {/* Invert lives with the pattern it flips, not in the sliders column. */}
+                      <Switch
+                        size="sm"
+                        label="Invert"
+                        checked={value.invert}
+                        onChange={(event) => onChange({ ...value, invert: event.currentTarget.checked })}
+                      />
+                      <Button
+                        type="button"
+                        variant="subtle"
+                        color="dune"
+                        size="compact-sm"
+                        onClick={() => setLibraryOpen(true)}
+                      >
+                        Browse
+                      </Button>
+                    </Group>
+                  </Stack>
+                }
+              />
+            </Box>
 
             <TreatmentControls
               value={value}
