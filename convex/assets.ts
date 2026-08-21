@@ -18,7 +18,6 @@ import {
   deckCardbackOf,
   legacyRelationBackId,
   resolveBackHref,
-  supersedePendingBackJob,
   TOKEN_ASSET_TYPES,
   tokenBackOf,
 } from './lib/assetBacks';
@@ -364,8 +363,10 @@ async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: st
 /**
  * Save-path validation of an asset's back, the one gate every writer of it shares («The stored shape of three back modes»: one field, one writer, one rule).
  *
- * A token reference may arrive without its target, because today's editors still pick through `setTokenBack` and the draft only carries the mode.
+ * A token reference may arrive without its target: a tab opened before the draft-based pick shipped submits only the mode.
  * The stored id is preserved rather than demanded back from the client, falling through to the legacy relation row for rows the migration has not reached.
+ * Named tolerance, kept one release by ruling on the back-tiles ticket;
+ * it and the legacy fallthrough retire together on the release after this slice ships.
  * A reference with no target anywhere stays a dangling reference, which resolves to the front rather than to an error, the lazy rule «Which tokens are referenceable» set.
  */
 async function withValidatedBack(
@@ -492,8 +493,7 @@ export const setGroup = mutation({
   },
 });
 
-/** The relation kinds this file writes. All three live in one table, distinguished only by this string. */
-const TOKEN_BACK = 'token-back';
+/** The relation kinds this file writes. Both live in one table, distinguished only by this string. */
 const DECK_CARD = 'deck-card';
 const BUNDLE_TOKEN = 'bundle-token';
 
@@ -505,49 +505,6 @@ const CONTAINER_KINDS: Record<string, { kind: string; holds: (type: string) => b
 
 /** Token Asset types, from the module every back rule shares. */
 const TOKEN_TYPES = TOKEN_ASSET_TYPES;
-
-/**
- * Points a token's backside at another token.
- *
- * Transitional: the reference now lives in `data.back` («The stored shape of three back modes»), and this mutation survives one release only because today's editors pick through it.
- * It routes through the same validator as the save path, writes the same field, and clears any legacy `token-back` relation row it finds;
- * the draft-based pick that retires it lands with the editor slice.
- *
- * Clearing moved to the save path with the mode union, so `null` is refused rather than half-supported;
- * no caller has ever sent it.
- */
-export const setTokenBack = mutation({
-  args: { id: v.id('assets'), back_asset_id: v.union(v.id('assets'), v.null()) },
-  handler: async (ctx, args) => {
-    const row = await ctx.db.get('assets', args.id);
-    if (!row || row.is_deleted) {
-      throw new Error(`Asset with id ${args.id} not found`);
-    }
-    if (!TOKEN_TYPES.has(row.type)) {
-      throw new Error(`Asset type ${row.type} has no backside`);
-    }
-    await requireAssetUpdate(ctx, args.id, nameOf(row));
-    if (args.back_asset_id === null) {
-      throw new Error('Clearing a backside happens by saving another back mode');
-    }
-    await assertReferenceableTokenBack(ctx, row, args.back_asset_id);
-
-    const existing = await ctx.db
-      .query('asset_relations')
-      .withIndex('by_from_kind', (q) => q.eq('from_asset_id', args.id).eq('kind', TOKEN_BACK))
-      .take(10);
-    for (const relation of existing) {
-      await ctx.db.delete(relation._id);
-    }
-    const data = row.data as Record<string, unknown>;
-    await ctx.db.patch(args.id, {
-      data: { ...data, back: { mode: 'reference', asset_id: args.back_asset_id } },
-      updated_at: nowIso(),
-    });
-    /* Leaving an authored back supersedes its pending publication, the same rule the save path applies. */
-    await supersedePendingBackJob(ctx, row.type, args.id);
-  },
-});
 
 /**
  * The token a given token uses as its backside, or null.

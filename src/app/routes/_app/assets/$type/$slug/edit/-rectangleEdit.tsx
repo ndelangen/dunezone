@@ -8,7 +8,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 
-import { useAssetPage, useSetTokenBack, useUpdateAsset } from '@app/db/assets';
+import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
@@ -124,8 +124,13 @@ function RectangleEditSession({
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
   const deletion = useAssetDeletion(asset);
-  const setTokenBack = useSetTokenBack();
   const [draft, setDraft] = useState<RectangleDraft>(initialDraft);
+  /*
+   * The token whose back the draft references, for the label and the proof.
+   * Server truth seeds it and a pick replaces it; the draft holds only the id, and demanding the
+   * entry back from the server before save would make the pick a write, which it no longer is.
+   */
+  const [pickedBack, setPickedBack] = useState<{ name: string; data: unknown } | null>(backToken);
   const [baseline, setBaseline] = useState<RectangleDraft>(initialDraft);
   const [chapter, setChapter] = useState<RectangleChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);
@@ -134,16 +139,16 @@ function RectangleEditSession({
   /*
    * The dangling complaint rides the widened validation header beside the widget's own warnings
    * («How a dangling back reference presents»): a signpost, never a second set of mode controls.
-   * It routes to the chapter holding today's back picker; the tiles' chapter takes over at integration.
+   * It routes to Identity, the chapter the back tiles live in.
    */
   const warnings: (RectangleWarning | { source: string; complaint: string; chapter: RectangleChapter })[] = [
-    ...rectangleDraftWarnings(draft, backToken !== null),
+    ...rectangleDraftWarnings(draft, pickedBack !== null),
     ...(danglingBack && draft.back.mode === 'reference'
       ? [{ source: 'Backside', complaint: 'its referenced token is gone', chapter: 'identity' as RectangleChapter }]
       : []),
   ];
   /* The proof draws what was picked, which is the target's authored back, never its front; the shared reader carries the distrust. */
-  const referencedBack = backToken ? referencedRectangleBackFace(backToken.data) : null;
+  const referencedBack = pickedBack ? referencedRectangleBackFace(pickedBack.data) : null;
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -191,7 +196,11 @@ function RectangleEditSession({
           }}
           actions={{
             onSave: save,
-            onReset: () => setDraft(baseline),
+            onReset: () => {
+              setDraft(baseline);
+              /* The pick lives in the draft now, so discarding the draft discards the pick with it. */
+              setPickedBack(backToken);
+            },
             onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
@@ -221,11 +230,6 @@ function RectangleEditSession({
             </Alert>
           ) : null}
           {groupActions.error}
-          {setTokenBack.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not set the backside">
-              {setTokenBack.error.message}
-            </Alert>
-          ) : null}
           <RectangleTokenEditor
             draft={draft}
             patch={patch}
@@ -234,7 +238,7 @@ function RectangleEditSession({
             onSettle={() => setSettleTick((tick) => tick + 1)}
             backPicker={(disabled) => (
               <Group gap="xs" wrap="nowrap">
-                <Text size="sm">{backToken ? backToken.name : 'No token chosen yet'}</Text>
+                <Text size="sm">{pickedBack ? pickedBack.name : 'No token chosen yet'}</Text>
                 {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
                 <Popover opened={pickerOpen} onChange={setPickerOpen} width={340} position="bottom-start" withinPortal>
                   <Popover.Target>
@@ -244,21 +248,25 @@ function RectangleEditSession({
                       disabled={disabled}
                       onClick={() => setPickerOpen((open) => !open)}
                     >
-                      {backToken ? 'Change' : 'Choose'}
+                      {pickedBack ? 'Change' : 'Choose'}
                     </Button>
                   </Popover.Target>
                   <Popover.Dropdown>
                     <AssetPicker
                       types={[type]}
                       excludeIds={[asset.id]}
+                      /* Only an authored back is referenceable («Which tokens are referenceable»); token listings are unpresented, so the stored mode is readable here. */
+                      filter={(entry) => (entry.data as { back?: { mode?: string } } | null)?.back?.mode === 'custom'}
                       copy={{
                         searchLabel: 'Search tokens',
                         searchPlaceholder: 'Type a name, slug or owner…',
-                        emptyMessage: 'No other tokens of this shape exist yet.',
+                        emptyMessage: 'No other token of this shape has an authored back yet.',
                       }}
                       onPick={(picked) => {
                         setPickerOpen(false);
-                        setTokenBack.mutate({ id: asset.id, back_asset_id: picked.id });
+                        /* A pick is a draft edit, not a write; the reference reaches storage when the token is saved («The stored shape of three back modes»: one field, one writer). */
+                        setPickedBack(picked);
+                        patch({ back: { mode: 'reference', asset_id: picked.id } });
                       }}
                       onCancel={() => setPickerOpen(false)}
                     />
@@ -267,10 +275,11 @@ function RectangleEditSession({
               </Group>
             )}
             backProof={
-              backToken ? (
+              pickedBack ? (
                 <Stack gap={4} align="center" w="100%">
                   {referencedBack ? (
-                    <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(backToken.type)}>
+                    /* The picker offers only this token's own type, so the page's type fixes the aspect. */
+                    <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(type)}>
                       <RectangleProof face={referencedBack} width={900} />
                     </CanvasScale>
                   ) : (
@@ -279,7 +288,7 @@ function RectangleEditSession({
                     </Text>
                   )}
                   <Text size="xs" c="dimmed">
-                    Back, from {backToken.name}
+                    Back, from {pickedBack.name}
                   </Text>
                 </Stack>
               ) : null

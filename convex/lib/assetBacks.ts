@@ -70,7 +70,7 @@ export function hasAuthoredBack(row: Doc<'assets'>): boolean {
 }
 
 /**
- * The one validator for a token back reference, shared by the save path and the transitional `setTokenBack` so the rules cannot fork.
+ * The one validator for a token back reference, owned by the save path since the transitional pick mutation retired.
  * Returns the target row on success.
  * `_id` is null while creating, when self-reference cannot arise because the row has no id to name.
  */

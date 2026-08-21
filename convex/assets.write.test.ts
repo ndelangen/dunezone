@@ -224,6 +224,12 @@ const tokenData = (name: string) => ({
   back: { mode: 'custom', face: tokenFace() },
 });
 
+/** The one writer of a reference since setTokenBack retired: an ordinary save carrying the draft's pick. */
+const withReference = (name: string, targetId: string) => ({
+  ...tokenData(name),
+  back: { mode: 'reference', asset_id: targetId },
+});
+
 describe('token backsides', () => {
   test('a token points at another token of its own shape, in data rather than in a relation row', async () => {
     const t = convexTest(schema, modules);
@@ -233,12 +239,12 @@ describe('token backsides', () => {
     const backA = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Sietch') });
     const backB = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Spice') });
 
-    await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: backA.id });
+    await owner.mutation(api.assets.update, { id: front.id, data: withReference('Axlotl', backA.id) });
     let page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken?.name).toBe('Sietch');
 
     /* Re-pointing replaces rather than accumulates: the reference is one field on one row. */
-    await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: backB.id });
+    await owner.mutation(api.assets.update, { id: front.id, data: withReference('Axlotl', backB.id) });
     page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken?.name).toBe('Spice');
 
@@ -248,10 +254,13 @@ describe('token backsides', () => {
     const stored = await t.run(async (ctx) => (await ctx.db.get('assets', front.id))?.data);
     expect((stored as { back: unknown }).back).toEqual({ mode: 'reference', asset_id: backB.id });
 
-    /* Clearing moved to the save path with the mode union. */
-    await expect(owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: null })).rejects.toThrow(
-      'saving another back mode'
-    );
+    /* Clearing is saving another back mode; there is no other verb. */
+    await owner.mutation(api.assets.update, {
+      id: front.id,
+      data: { ...tokenData('Axlotl'), back: { mode: 'same' } },
+    });
+    page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
+    expect(page?.backToken).toBeNull();
   });
 
   test('the backside must be the same shape with an authored back, and never the token itself', async () => {
@@ -265,18 +274,19 @@ describe('token backsides', () => {
       data: { ...tokenData('Mirror'), back: { mode: 'same' } },
     });
 
-    await expect(owner.mutation(api.assets.setTokenBack, { id: round.id, back_asset_id: square.id })).rejects.toThrow(
-      'must also be a token-disc'
-    );
-    await expect(owner.mutation(api.assets.setTokenBack, { id: round.id, back_asset_id: round.id })).rejects.toThrow(
-      'same-front-and-back'
-    );
     await expect(
-      owner.mutation(api.assets.setTokenBack, { id: round.id, back_asset_id: unauthored.id })
+      owner.mutation(api.assets.update, { id: round.id, data: withReference('Axlotl', square.id) })
+    ).rejects.toThrow('must also be a token-disc');
+    await expect(
+      owner.mutation(api.assets.update, { id: round.id, data: withReference('Axlotl', round.id) })
+    ).rejects.toThrow('same-front-and-back');
+    await expect(
+      owner.mutation(api.assets.update, { id: round.id, data: withReference('Axlotl', unauthored.id) })
     ).rejects.toThrow('authored back');
-    await expect(owner.mutation(api.assets.setTokenBack, { id: created.id, back_asset_id: round.id })).rejects.toThrow(
-      'has no backside'
-    );
+    /* A card cannot even express a back: its strict schema refuses the key, which is what retired the old type gate. */
+    await expect(
+      owner.mutation(api.assets.update, { id: created.id, data: { ...cardData('Lasgun'), back: { mode: 'same' } } })
+    ).rejects.toThrow();
   });
 
   test('a soft-deleted backside stops resolving at read time', async () => {
@@ -285,7 +295,7 @@ describe('token backsides', () => {
     const owner = t.withIdentity({ subject: ownerId });
     const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
     const back = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Sietch') });
-    await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: back.id });
+    await owner.mutation(api.assets.update, { id: front.id, data: withReference('Axlotl', back.id) });
 
     await owner.mutation(api.assets.softDelete, { id: back.id });
 
@@ -302,9 +312,9 @@ describe('token backsides', () => {
     const owner = t.withIdentity({ subject: ownerId });
     const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
     const back = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Sietch') });
-    await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: back.id });
+    await owner.mutation(api.assets.update, { id: front.id, data: withReference('Axlotl', back.id) });
 
-    /* Today's editor drafts carry the mode alone; the save path must not lose the target over that. */
+    /* A tab opened before the draft-based pick shipped submits only the mode; the named tolerance keeps the target one release. */
     await owner.mutation(api.assets.update, {
       id: front.id,
       data: { ...tokenData('Axlotl'), back: { mode: 'reference' } },
