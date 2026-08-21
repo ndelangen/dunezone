@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FocusEvent, KeyboardEvent, MouseEvent, PointerEvent } from 'react';
 
+/** Space or Enter: the two keys that press a button, and so the two that hold one. */
+function isActivationKey(event: KeyboardEvent<HTMLElement>): boolean {
+  return event.key === 'Enter' || event.key === ' ';
+}
+
 /** How long a destructive trigger is held before it fires. One number for the whole application, so every hold means the same thing. */
 const HOLD_SECONDS = 5;
 
@@ -94,14 +99,14 @@ export function useHoldToConfirm({ pending, onConfirm }: { pending: boolean; onC
     onBlur: (_event: FocusEvent<HTMLElement>) => cancelHold(),
     /* A held key repeats its keydown; only the first one starts the countdown. */
     onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
-      if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
+      if (isActivationKey(event) && !event.repeat) {
         event.preventDefault();
         startHold();
       }
     },
     /* Only the activation key's release cancels; letting go of an unrelated key mid-hold is not a change of mind. */
     onKeyUp: (event: KeyboardEvent<HTMLElement>) => {
-      if (event.key === 'Enter' || event.key === ' ') {
+      if (isActivationKey(event)) {
         cancelHold();
       }
     },
