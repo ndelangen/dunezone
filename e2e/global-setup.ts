@@ -67,9 +67,19 @@ async function loginWithLocalAuth(baseUrl: string, credentials: Credentials) {
           `[globalSetup] login attempt ${attempt} for ${credentials.email} did not leave /auth/login; retrying`
         );
         /* A native submit may have reloaded the page with the credentials in the query; start clean. */
-        await page.goto(`${baseUrl}/auth/login`, { waitUntil: 'domcontentloaded', timeout: 10_000 });
-        /* A login that completed just as the attempt timed out bounces this visit away from the form; that is success, not a retry. */
-        if (!new URL(page.url()).pathname.endsWith('/auth/login')) {
+        try {
+          await page.goto(`${baseUrl}/auth/login`, { waitUntil: 'domcontentloaded', timeout: 10_000 });
+        } catch {
+          /* A wedged server is context for the login failure, not a better error; keep the informative one for the trace's filing. */
+          continue;
+        }
+        /*
+         * A login that completed just as the attempt timed out shows either success signal on this
+         * visit, the same two the race above accepts: bounced off the form, or the signed-in heading
+         * on the login route. Either is success, not a retry.
+         */
+        const offLoginRoute = !new URL(page.url()).pathname.endsWith('/auth/login');
+        if (offLoginRoute || (await page.getByRole('heading', { name: /you're signed in/i }).isVisible())) {
           loginError = null;
           break;
         }
