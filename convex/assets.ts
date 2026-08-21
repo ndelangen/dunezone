@@ -108,7 +108,7 @@ async function presentedData(ctx: QueryCtx, row: Doc<'assets'>, deckBacks: Map<I
     return row.data;
   }
   const cardback = deckCardbackOf(row.data);
-  if (!cardback || !('mode' in cardback)) {
+  if (!cardback || cardback.mode !== 'reference') {
     return row.data;
   }
   const targetId = typeof cardback.asset_id === 'string' ? (cardback.asset_id as Id<'assets'>) : null;
@@ -387,7 +387,7 @@ async function withValidatedBack(
   }
   if (row.type === 'deck') {
     const cardback = deckCardbackOf(data);
-    if (cardback && 'mode' in cardback && typeof cardback.asset_id === 'string') {
+    if (cardback && cardback.mode === 'reference' && typeof cardback.asset_id === 'string') {
       await assertReferenceableDeckCardback(
         ctx,
         { _id: row._id ?? null, type: row.type },

@@ -21,10 +21,25 @@ export function tokenBackOf(data: unknown): { mode?: unknown; asset_id?: unknown
   return typeof back === 'object' && back !== null ? (back as { mode?: unknown; asset_id?: unknown }) : null;
 }
 
-/** A deck's stored cardback, read the same distrustful way. The authored member has no `mode` key. */
+/** A deck's stored cardback, read the same distrustful way. Authored wears `mode: 'custom'` or, transitionally, no mode key; a reference wears `mode: 'reference'`. */
 export function deckCardbackOf(data: unknown): { mode?: unknown; asset_id?: unknown } | Record<string, unknown> | null {
   const cardback = (data as { cardback?: unknown } | null | undefined)?.cardback;
   return typeof cardback === 'object' && cardback !== null ? (cardback as Record<string, unknown>) : null;
+}
+
+/**
+ * The authored composition inside a stored cardback, or null when it is a reference.
+ * The one three-way judgement (bare transitional, wrapped custom, reference) every server-side reader shares.
+ */
+export function cardbackComposition(cardback: Record<string, unknown>): Record<string, unknown> | null {
+  if (!('mode' in cardback)) {
+    return cardback;
+  }
+  if (cardback.mode !== 'custom') {
+    return null;
+  }
+  const { mode: _mode, ...composition } = cardback;
+  return composition;
 }
 
 /**
@@ -36,7 +51,7 @@ export function authoredDeckCardback(row: Doc<'assets'>): Record<string, unknown
     return null;
   }
   const cardback = deckCardbackOf(row.data);
-  return cardback && !('mode' in cardback) ? cardback : null;
+  return cardback ? cardbackComposition(cardback) : null;
 }
 
 /**
@@ -103,7 +118,7 @@ export async function assertReferenceableDeckCardback(
     throw new Error('A cardback reference must name a deck');
   }
   const cardback = deckCardbackOf(target.data);
-  if (!cardback || 'mode' in cardback) {
+  if (!cardback || !cardbackComposition(cardback)) {
     throw new Error('Only a deck with an authored cardback can be referenced');
   }
   return target;
@@ -164,7 +179,7 @@ export async function resolveBackHref(ctx: ReadCtx, row: Doc<'assets'>): Promise
     if (!cardback) {
       return null;
     }
-    if (!('mode' in cardback)) {
+    if (cardbackComposition(cardback)) {
       const status = await publicationStatusFor(ctx, 'deck', row._id);
       return { mode: 'authored-cardback', href: status?.publicationHref ?? null };
     }

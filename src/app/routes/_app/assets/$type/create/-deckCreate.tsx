@@ -54,7 +54,8 @@ export function DeckCreatePage() {
 
   const save = () => {
     createAsset.mutate(
-      { type: 'deck', data: draft },
+      /* The draft carries the bare composition; the stored shape wears the custom tag («The stored shape of three back modes»). */
+      { type: 'deck', data: { ...draft, cardback: { mode: 'custom', ...draft.cardback } } },
       {
         onSuccess: ({ slug }) =>
           void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'deck', slug }, replace: true }),

@@ -767,6 +767,33 @@ describe('deck cardback references', () => {
     expect(pageData?.cardback).toEqual({ mode: 'reference', asset_id: source.id });
   });
 
+  test('a wrapped custom cardback saves, presents its fields, and is referenceable', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
+    const owner = t.withIdentity({ subject: ownerId });
+    const deck = deckData('Wrapped');
+    const source = await owner.mutation(api.assets.create, {
+      type: 'deck',
+      data: { ...deck, cardback: { mode: 'custom', ...deck.cardback } },
+    });
+
+    const stored = await t.run(async (ctx) => (await ctx.db.get('assets', source.id))?.data);
+    expect((stored as { cardback: { mode?: string } }).cardback.mode).toBe('custom');
+
+    /* List surfaces read the composition through the spread, tag and all. */
+    const entries = await t.query(api.assets.listByTypes, { types: ['deck'] });
+    const presented = entries.find((entry) => entry.id === source.id)?.data as { cardback: { name?: string } };
+    expect(presented.cardback.name).toBe('Treachery');
+
+    /* A wrapped authored cardback is a valid reference target, same as a bare one. */
+    await owner.mutation(api.assets.create, {
+      type: 'deck',
+      data: { name: 'Wearer', about: '', cardback: { mode: 'reference', asset_id: source.id } },
+    });
+    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
+    expect(page?.resolvedBack).toMatchObject({ mode: 'reference' });
+  });
+
   test('a reference must name a deck whose cardback is authored', async () => {
     const t = convexTest(schema, modules);
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));

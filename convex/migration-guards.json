@@ -210,6 +210,16 @@
       "id": "assets_back_modes_verify_v1",
       "phase": "widen",
       "requires": ["assets_back_modes_v1", "asset_relations_token_back_drop_v1"]
+    },
+    {
+      "id": "assets_deck_cardback_wrap_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "assets_deck_cardback_wrap_verify_v1",
+      "phase": "widen",
+      "requires": ["assets_deck_cardback_wrap_v1"]
     }
   ]
 }

@@ -141,7 +141,8 @@ function DeckEditSession({
   const save = () => {
     const saved = draft;
     updateAsset.mutate(
-      { id: asset.id, data: saved },
+      /* The draft carries the bare composition; the stored shape wears the custom tag («The stored shape of three back modes»). */
+      { id: asset.id, data: { ...saved, cardback: { mode: 'custom', ...saved.cardback } } },
       {
         onSuccess: ({ slug: nextSlug }) => {
           setBaseline(saved);
