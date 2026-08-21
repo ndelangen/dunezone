@@ -17,7 +17,7 @@ import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
-import type { TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
+import type { TokenWarning, TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
 
 import {
   AssetEditorMessage,
@@ -79,6 +79,7 @@ export function TokenEditPage({ type, slug, loaderData }: { type: string; slug: 
       type={type}
       asset={data.asset}
       backToken={data.backToken}
+      danglingBack={data.resolvedBack?.mode === 'dangling'}
       initialDraft={parsed.data}
     />
   );
@@ -89,6 +90,7 @@ function TokenEditSession({
   type,
   asset,
   backToken,
+  danglingBack,
   initialDraft,
 }: {
   access: {
@@ -98,6 +100,8 @@ function TokenEditSession({
   type: string;
   asset: NonNullable<AssetPageData>['asset'];
   backToken: NonNullable<AssetPageData>['backToken'];
+  /** The server judged the stored reference dangling; the routes only relay the complaint. */
+  danglingBack: boolean;
   initialDraft: TokenDraft;
 }) {
   const navigate = useNavigate();
@@ -111,7 +115,17 @@ function TokenEditSession({
   const [settleTick, setSettleTick] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const patch = (update: Partial<TokenDraft>) => setDraft((prev) => ({ ...prev, ...update }));
-  const warnings = tokenDraftWarnings(draft, backToken !== null);
+  /*
+   * The dangling complaint rides the widened validation header beside the widget's own warnings
+   * («How a dangling back reference presents»): a signpost, never a second set of mode controls.
+   * It routes to the chapter holding today's back picker; the tiles' chapter takes over at integration.
+   */
+  const warnings: (TokenWarning | { source: string; complaint: string; chapter: TokenChapter })[] = [
+    ...tokenDraftWarnings(draft, backToken !== null),
+    ...(danglingBack && draft.back.mode === 'reference'
+      ? [{ source: 'Backside', complaint: 'its referenced token is gone', chapter: 'identity' as TokenChapter }]
+      : []),
+  ];
   /* The referenced token's data is another asset's, so it gets the same distrust as our own: a back that no longer parses shows a note, never a crash. */
   const parsedBack = backToken ? TokenAsset.safeParse(backToken.data) : null;
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);

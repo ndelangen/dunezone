@@ -20,7 +20,11 @@ import {
   RectangleProof,
   rectangleDraftWarnings,
 } from '@app/widgets/token-editor/RectangleTokenEditor';
-import type { RectangleChapter, RectangleDraft } from '@app/widgets/token-editor/RectangleTokenEditor';
+import type {
+  RectangleWarning,
+  RectangleChapter,
+  RectangleDraft,
+} from '@app/widgets/token-editor/RectangleTokenEditor';
 
 import {
   AssetEditorMessage,
@@ -90,6 +94,7 @@ export function RectangleEditPage({
       type={type}
       asset={data.asset}
       backToken={data.backToken}
+      danglingBack={data.resolvedBack?.mode === 'dangling'}
       initialDraft={parsed.data}
     />
   );
@@ -100,6 +105,7 @@ function RectangleEditSession({
   type,
   asset,
   backToken,
+  danglingBack,
   initialDraft,
 }: {
   access: {
@@ -109,6 +115,8 @@ function RectangleEditSession({
   type: string;
   asset: NonNullable<AssetPageData>['asset'];
   backToken: NonNullable<AssetPageData>['backToken'];
+  /** The server judged the stored reference dangling; the routes only relay the complaint. */
+  danglingBack: boolean;
   initialDraft: RectangleDraft;
 }) {
   const navigate = useNavigate();
@@ -122,7 +130,17 @@ function RectangleEditSession({
   const [settleTick, setSettleTick] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const patch = (update: Partial<RectangleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
-  const warnings = rectangleDraftWarnings(draft, backToken !== null);
+  /*
+   * The dangling complaint rides the widened validation header beside the widget's own warnings
+   * («How a dangling back reference presents»): a signpost, never a second set of mode controls.
+   * It routes to the chapter holding today's back picker; the tiles' chapter takes over at integration.
+   */
+  const warnings: (RectangleWarning | { source: string; complaint: string; chapter: RectangleChapter })[] = [
+    ...rectangleDraftWarnings(draft, backToken !== null),
+    ...(danglingBack && draft.back.mode === 'reference'
+      ? [{ source: 'Backside', complaint: 'its referenced token is gone', chapter: 'identity' as RectangleChapter }]
+      : []),
+  ];
   /* The referenced token's data is another asset's, so it gets the same distrust as our own: a back that no longer parses shows a note, never a crash. */
   const parsedBack = backToken ? RectangleTokenAsset.safeParse(backToken.data) : null;
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
