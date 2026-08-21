@@ -513,12 +513,14 @@ export function RectangleTokenEditor({
                       draft.back.mode === 'custom' ? (
                         <RectangleProof face={draft.back.face} width={PROOF_CANVAS} />
                       ) : undefined,
+                    canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('token-enhance') },
                     emptyHint: <Text size="xs">Not composed yet</Text>,
                   },
                   {
                     value: 'same',
                     label: 'Same as front',
                     preview: <RectangleProof face={draft.front} width={PROOF_CANVAS} />,
+                    canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('token-enhance') },
                   },
                   {
                     value: 'reference',

@@ -31,8 +31,11 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   await expect(userBPage.getByLabel('Edit ruleset')).toHaveCount(0);
   await userB.close();
 
-  page.once('dialog', (dialog) => dialog.accept());
-  await page.getByLabel('Delete ruleset').click();
+  /* Deletes are held, not asked twice: five seconds of press, with a beat of margin for timer skew. */
+  await page.getByLabel('Delete ruleset').hover();
+  await page.mouse.down();
+  await page.waitForTimeout(5200);
+  await page.mouse.up();
   await expect(page).toHaveURL(/\/rulesets\/?$/);
   await expect(page.getByRole('link', { name: uniqueName })).toHaveCount(0);
 });

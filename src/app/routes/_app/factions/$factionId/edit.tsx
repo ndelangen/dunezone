@@ -226,7 +226,6 @@ function FactionEditPage() {
             canDelete ? (
               <ConfirmDeleteAction
                 label="Delete faction"
-                prompt="Delete faction?"
                 pending={deleteFaction.isPending}
                 onConfirm={() =>
                   deleteFaction.mutate({ id: faction._id }, { onSuccess: () => void navigate({ to: '/factions' }) })

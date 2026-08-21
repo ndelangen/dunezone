@@ -172,12 +172,7 @@ function BundleEditSession({
           context={groupActions.context}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction
-                label="Delete bundle"
-                prompt="Delete bundle?"
-                pending={deletion.pending}
-                onConfirm={deletion.confirm}
-              />
+              <ConfirmDeleteAction label="Delete bundle" pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />

@@ -3,10 +3,11 @@ import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
+import { Check, MessageSquarePlus, Pencil, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
@@ -121,9 +122,6 @@ function FaqDetailPage() {
   const hasUserAnswered = !showAddAnswerForm && answers.some((a) => a.capabilities.editAnswer);
 
   const handleDeleteQuestion = () => {
-    if (!window.confirm('Delete this question and all its answers? This cannot be undone.')) {
-      return;
-    }
     void faq.deleteQuestion
       .run()
       .then(() => navigate({ to: '/rulesets/$rulesetSlug', params: { rulesetSlug } }))
@@ -136,9 +134,6 @@ function FaqDetailPage() {
   const saveAnswer = (answerId: string) => void editingSession.saveAnswer(answers.find((x) => x.id === answerId));
 
   const handleDeleteAnswer = (answerId: string) => {
-    if (!window.confirm('Delete this answer?')) {
-      return;
-    }
     void faq.deleteAnswer.run({ answerId }).catch(() => undefined);
   };
 
@@ -220,14 +215,10 @@ function FaqDetailPage() {
                         onClick={startEditQuestion}
                         icon={<Pencil size={16} aria-hidden />}
                       />
-                      <IconAction
+                      <ConfirmDeleteAction
                         label="Delete question"
-                        variant="light"
-                        color="red"
-                        size="lg"
-                        onClick={handleDeleteQuestion}
-                        disabled={faq.deleteQuestion.isPending}
-                        icon={<Trash2 size={16} aria-hidden />}
+                        pending={faq.deleteQuestion.isPending}
+                        onConfirm={handleDeleteQuestion}
                       />
                       {faq.deleteQuestion.isError && (
                         <span className={styles.error}>{faq.deleteQuestion.error?.message}</span>
@@ -380,14 +371,10 @@ function FaqDetailPage() {
                               />
                             )}
                             {a.capabilities.deleteAnswer && (
-                              <IconAction
+                              <ConfirmDeleteAction
                                 label="Delete answer"
-                                variant="light"
-                                color="red"
-                                size="lg"
-                                onClick={() => handleDeleteAnswer(a.id)}
-                                disabled={faq.deleteAnswer.isPending}
-                                icon={<Trash2 size={16} aria-hidden />}
+                                pending={faq.deleteAnswer.isPending}
+                                onConfirm={() => handleDeleteAnswer(a.id)}
                               />
                             )}
                           </Group>

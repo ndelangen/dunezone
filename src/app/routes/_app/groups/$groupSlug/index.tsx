@@ -3,24 +3,13 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { AssignPopover } from '@ui/control/AssignPopover';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import {
-  ArrowLeft,
-  BookOpen,
-  Check,
-  Crown,
-  Pencil,
-  Plus,
-  Trash2,
-  UserPlus,
-  UserRoundMinus,
-  UsersRound,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, BookOpen, Check, Crown, Pencil, Plus, UserPlus, UserRoundMinus, UsersRound, X } from 'lucide-react';
 
 import { useFactionsOwnedForGroupAssign, useSetFactionGroup } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
@@ -135,9 +124,6 @@ function GroupDetailPage() {
   };
 
   const handleDeleteGroup = () => {
-    if (!window.confirm(`Delete group "${group.name}"? This cannot be undone.`)) {
-      return;
-    }
     deleteGroup.mutate(groupId, {
       onSuccess: () => void navigate({ to: '/profiles' }),
     });
@@ -182,14 +168,10 @@ function GroupDetailPage() {
                   />
                 ) : null}
                 {viewerAccess.capabilities.delete ? (
-                  <IconAction
+                  <ConfirmDeleteAction
                     label="Delete group"
-                    variant="light"
-                    color="red"
-                    size="lg"
-                    disabled={deleteGroup.isPending}
-                    onClick={handleDeleteGroup}
-                    icon={<Trash2 size={17} aria-hidden />}
+                    pending={deleteGroup.isPending}
+                    onConfirm={handleDeleteGroup}
                   />
                 ) : null}
               </Group>

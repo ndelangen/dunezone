@@ -242,12 +242,7 @@ function DeckEditSession({
           context={groupActions.context}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction
-                label="Delete deck"
-                prompt="Delete deck?"
-                pending={deletion.pending}
-                onConfirm={deletion.confirm}
-              />
+              <ConfirmDeleteAction label="Delete deck" pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />
@@ -311,7 +306,9 @@ function DeckEditSession({
             }
             backPicker={
               <Group gap="xs" wrap="nowrap">
-                <Text size="sm">{pickedBackDeck ? pickedBackDeck.name : 'No deck chosen yet'}</Text>
+                <Text size="sm" truncate style={{ minWidth: 0, flex: 1 }} title={pickedBackDeck?.name}>
+                  {pickedBackDeck ? pickedBackDeck.name : 'No deck chosen yet'}
+                </Text>
                 {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
                 <Popover
                   opened={backPickerOpen}
@@ -321,7 +318,12 @@ function DeckEditSession({
                   withinPortal
                 >
                   <Popover.Target>
-                    <Button variant="light" size="compact-sm" onClick={() => setBackPickerOpen((open) => !open)}>
+                    <Button
+                      variant="light"
+                      size="compact-sm"
+                      style={{ flexShrink: 0 }}
+                      onClick={() => setBackPickerOpen((open) => !open)}
+                    >
                       {pickedBackDeck ? 'Change' : 'Choose'}
                     </Button>
                   </Popover.Target>

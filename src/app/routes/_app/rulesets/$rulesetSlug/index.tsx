@@ -13,6 +13,7 @@ import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignPopover } from '@ui/control/AssignPopover';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { ColumnsWithRailLayout } from '@ui/layout/ColumnsWithRailLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -33,7 +34,6 @@ import {
   MessageCircleQuestionMark,
   Pencil,
   Search,
-  Trash2,
   UserRoundMinus,
   UsersRound,
 } from 'lucide-react';
@@ -322,9 +322,6 @@ function RulesetDetailPage() {
   };
 
   const handleDelete = () => {
-    if (!window.confirm(`Delete ruleset "${r.name}"? This cannot be undone.`)) {
-      return;
-    }
     deleteRuleset.mutate(r._id, {
       onSuccess: () => navigate({ to: '/rulesets' }),
     });
@@ -506,14 +503,10 @@ function RulesetDetailPage() {
                   />
                 ) : null}
                 {actionVisibility.canDelete ? (
-                  <IconAction
+                  <ConfirmDeleteAction
                     label="Delete ruleset"
-                    color="red"
-                    variant="light"
-                    size="lg"
-                    onClick={handleDelete}
-                    disabled={deleteRuleset.isPending}
-                    icon={<Trash2 size={17} aria-hidden />}
+                    pending={deleteRuleset.isPending}
+                    onConfirm={handleDelete}
                   />
                 ) : null}
               </Group>

@@ -8,7 +8,7 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { Plus, Search } from 'lucide-react';
+import { ArrowLeft, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 
 import { loadAssetBrowsePage, useAssetBrowsePage } from '@app/db/assets';
@@ -99,9 +99,15 @@ function AssetTypePage() {
           <Toolbar>
             <Toolbar.Left>
               <Group gap="sm" wrap="nowrap">
-                <Text size="sm" c="dimmed" className={styles.resultCount}>
-                  {entries.length === total ? `${total}${data.truncated ? '+' : ''}` : `${entries.length} of ${total}`}
-                </Text>
+                {/* A way back to the shelves, where a result count stood: the number told nobody anything a full grid did not (Norbert, 2026-08-21). */}
+                <IconAction
+                  label="Back to all assets"
+                  variant="light"
+                  color="gray"
+                  size="lg"
+                  icon={<ArrowLeft size={17} aria-hidden />}
+                  renderRoot={(rootProps) => <Link {...rootProps} to="/assets" />}
+                />
                 {data.inNoDeckCount === null ? null : (
                   <Button
                     size="compact-sm"

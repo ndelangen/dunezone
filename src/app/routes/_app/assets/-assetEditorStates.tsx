@@ -105,12 +105,7 @@ export function DriftedAssetPage({
             </Alert>
           ) : null}
           <Group>
-            <ConfirmDeleteAction
-              label={`Delete ${noun}`}
-              prompt={`Delete ${noun}?`}
-              pending={deletion.pending}
-              onConfirm={deletion.confirm}
-            />
+            <ConfirmDeleteAction label={`Delete ${noun}`} pending={deletion.pending} onConfirm={deletion.confirm} />
           </Group>
         </>
       ) : null}
