@@ -14,6 +14,7 @@ import { useMemo, useState } from 'react';
 
 import { useAssetsByTypes } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
+import type { AssetFaceSide } from '@app/widgets/asset-face/AssetFace';
 
 import { AssetPickerOptionRow, assetPickerSearchText } from './AssetPicker.parts';
 
@@ -59,6 +60,8 @@ export interface AssetPickerProps {
    * A caller that filters should say so in `emptyMessage`, since "nothing here" now also means "none qualify".
    */
   filter?: (entry: AssetListEntry) => boolean;
+  /** Which face the row thumbnails draw. The back-pickers pass 'back', because picking a token picks its back and the row should preview the thing the pick takes. */
+  previewSide?: AssetFaceSide;
   copy: AssetPickerCopy;
   /** Fires once per choice. The picker never closes itself; the container that gated its mount decides that. */
   onPick: (picked: PickedAsset) => void;
@@ -79,7 +82,7 @@ export interface AssetPickerProps {
  * It truncates at 200 rows per type without saying so, and search runs client-side over whatever was fetched.
  * A dedicated `assets.listForPicker` lands when a type approaches that, following `factions.listForLoadPicker`.
  */
-export function AssetPicker({ types, excludeIds, filter, copy, onPick, onCancel }: AssetPickerProps) {
+export function AssetPicker({ types, excludeIds, filter, copy, onPick, onCancel, previewSide }: AssetPickerProps) {
   const catalogue = useAssetsByTypes(types);
   const combobox = useCombobox();
   const [search, setSearch] = useState('');
@@ -149,7 +152,7 @@ export function AssetPicker({ types, excludeIds, filter, copy, onPick, onCancel 
               ) : (
                 filteredRows.map((row) => (
                   <Combobox.Option value={String(row.id)} key={row.id}>
-                    <AssetPickerOptionRow entry={row} />
+                    <AssetPickerOptionRow entry={row} previewSide={previewSide} />
                   </Combobox.Option>
                 ))
               )}

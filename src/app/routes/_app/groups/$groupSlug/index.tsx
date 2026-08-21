@@ -116,10 +116,8 @@ function GroupDetailPage() {
     membershipWorkflow.remove.error?.message ??
     null;
 
+  /* No question: the trigger itself is held five seconds, the same commitment every destructive action asks for. */
   const handleRemoveMember = (membershipId: string) => {
-    if (!window.confirm('Remove this member from the group?')) {
-      return;
-    }
     void membershipWorkflow.remove.run(membershipId).catch(() => undefined);
   };
 
@@ -516,12 +514,11 @@ function MemberRow({
           />
         )}
         {entry.capabilities.remove && onRemove && (
-          <IconAction
+          <ConfirmDeleteAction
             label="Remove member"
-            color="red"
-            variant="light"
-            disabled={moderationBusy}
-            onClick={() => onRemove(entry.membershipId)}
+            verb="remove"
+            pending={moderationBusy}
+            onConfirm={() => onRemove(entry.membershipId)}
             icon={<UserRoundMinus size={15} aria-hidden />}
           />
         )}

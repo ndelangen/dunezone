@@ -3,6 +3,7 @@ import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 
 import type { AssetListEntry } from '@app/db/assets';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
+import type { AssetFaceSide } from '@app/widgets/asset-face/AssetFace';
 
 /** Wide enough to tell two treachery cards apart at a glance, narrow enough that eight rows still fit a popover. */
 const PREVIEW_WIDTH = 44;
@@ -26,18 +27,18 @@ export function assetPickerSearchText(entry: AssetListEntry): string {
  * Today it live-renders the face, because the publisher still only knows `faction_sheet` and no Asset has a published image to point at.
  * «Extend the publisher to asset images» flips this to an `img`, and keeping it a single component is what makes that one file rather than four.
  */
-function AssetPickerPreview({ entry }: { entry: AssetListEntry }) {
+function AssetPickerPreview({ entry, side }: { entry: AssetListEntry; side?: AssetFaceSide }) {
   return (
     <Box aria-hidden w={PREVIEW_WIDTH} miw={PREVIEW_WIDTH} style={{ display: 'grid', placeItems: 'center' }}>
-      <AssetFace type={entry.type} data={entry.data} name={entry.name} width={PREVIEW_WIDTH} />
+      <AssetFace type={entry.type} data={entry.data} name={entry.name} width={PREVIEW_WIDTH} side={side} />
     </Box>
   );
 }
 
-export function AssetPickerOptionRow({ entry }: { entry: AssetListEntry }) {
+export function AssetPickerOptionRow({ entry, previewSide }: { entry: AssetListEntry; previewSide?: AssetFaceSide }) {
   return (
     <Group gap="sm" wrap="nowrap" align="center">
-      <AssetPickerPreview entry={entry} />
+      <AssetPickerPreview entry={entry} side={previewSide} />
       <Stack gap={2} miw={0}>
         <Text size="sm" fw={700} lh={1.25}>
           {entry.name}

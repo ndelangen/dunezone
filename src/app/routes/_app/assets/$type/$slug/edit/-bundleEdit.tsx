@@ -202,6 +202,7 @@ function BundleEditSession({
             onChapterChange={setChapter}
             onSettle={() => setSettleTick((tick) => tick + 1)}
             members={tokens}
+            countPending={setCount.isPending}
             onCountChange={(tokenId, count) =>
               setCount.mutate({ container_id: asset.id, member_id: tokenId as typeof asset.id, count })
             }

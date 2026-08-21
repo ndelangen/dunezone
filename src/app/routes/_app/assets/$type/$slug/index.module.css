@@ -23,8 +23,9 @@
 }
 
 /* The face at reading size: large enough that a card's rules text is legible, short of becoming a poster. */
+/* The stage fills its rail rather than capping below it (Norbert, 2026-08-21): the column owns the width. */
 .faceStage {
-  width: min(100%, 22rem);
+  width: 100%;
 }
 
 /* The deployed fallback cardback is a plain image, sized by the stage the way a drawn face is. */

@@ -39,6 +39,7 @@ export function BackgroundPresetPicker({
       value={selected}
       onChange={onSelect}
       aspectRatio="3 / 2"
+      labelPlacement="inside"
       options={[
         ...presets.map((preset) => ({
           value: preset.key,

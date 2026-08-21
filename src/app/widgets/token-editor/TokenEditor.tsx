@@ -111,6 +111,7 @@ export function TokenProof({ face, type, width }: { face: TokenFaceDraft; type: 
         background={face.background}
         image={face.image}
         circle={face.ring}
+        circleShadow={face.ringShadow ?? false}
         top={face.top || undefined}
         bottom={face.bottomFirst || face.bottomSecond ? bottomFor(face) : undefined}
         /* The renderer centres the symbol in a 300-unit box, so scale is expressed against its reference size. */
@@ -190,6 +191,18 @@ function FaceRim({ face, patch }: { face: TokenFaceDraft; patch: FacePatch }) {
             aria-label="Edge ring"
             checked={face.ring}
             onChange={(event) => patch({ ring: event.currentTarget.checked })}
+          />
+        }
+      />
+      <ControlBlock
+        title="Ring shadow"
+        description="A pronounced shadow under the ring. Needs the ring."
+        input={
+          <Switch
+            aria-label="Ring shadow"
+            checked={face.ringShadow ?? false}
+            disabled={!face.ring}
+            onChange={(event) => patch({ ringShadow: event.currentTarget.checked })}
           />
         }
       />
@@ -443,7 +456,7 @@ export function TokenEditor({
       <WorkbenchLayout.Rail>
         <Stack gap="md" align="center">
           <Stack gap={4} align="center" w="100%">
-            <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect(type)}>
+            <CanvasScale rounded canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect(type)}>
               <TokenProof face={draft.front} type={type} width={PROOF_CANVAS} />
             </CanvasScale>
             <Text size="xs" c="dimmed">
@@ -452,7 +465,7 @@ export function TokenEditor({
           </Stack>
           {draft.back.mode === 'custom' ? (
             <Stack gap={4} align="center" w="100%">
-              <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect(type)}>
+              <CanvasScale rounded canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect(type)}>
                 <TokenProof face={draft.back.face} type={type} width={PROOF_CANVAS} />
               </CanvasScale>
               <Text size="xs" c="dimmed">

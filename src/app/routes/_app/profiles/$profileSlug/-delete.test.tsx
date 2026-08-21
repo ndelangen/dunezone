@@ -128,7 +128,12 @@ describe('account deletion page', () => {
     fireEvent.click(pickReplacement);
     expect(view.getByText(/New owner:/).textContent).toContain('Replacement');
     fireEvent.click(view.getByRole('checkbox'));
-    fireEvent.click(view.getByRole('button', { name: 'Transfer ownership and delete account' }));
+    /* The button is held, not clicked: five fake-timer seconds of primary press, the application's one destructive gesture. */
+    vi.useFakeTimers();
+    const submit = view.getByRole('button', { name: 'Transfer ownership and delete account' });
+    fireEvent.pointerDown(submit, { isPrimary: true, button: 0 });
+    act(() => vi.advanceTimersByTime(5000));
+    vi.useRealTimers();
     expect(mocks.mutate).toHaveBeenCalledWith({ replacementUserId: 'user-2' });
   });
 
@@ -138,7 +143,13 @@ describe('account deletion page', () => {
     expect(submit.disabled).toBe(true);
     fireEvent.click(view.getByRole('checkbox'));
     expect(submit.disabled).toBe(false);
+    /* A plain click fires nothing; the hold does. */
     fireEvent.click(submit);
+    expect(mocks.mutate).not.toHaveBeenCalled();
+    vi.useFakeTimers();
+    fireEvent.pointerDown(submit, { isPrimary: true, button: 0 });
+    act(() => vi.advanceTimersByTime(5000));
+    vi.useRealTimers();
     expect(mocks.mutate).toHaveBeenCalledWith({ replacementUserId: null });
   });
 

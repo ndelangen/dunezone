@@ -259,6 +259,7 @@ function TokenEditSession({
                   </Popover.Target>
                   <Popover.Dropdown>
                     <AssetPicker
+                      previewSide="back"
                       types={[type]}
                       excludeIds={[asset.id]}
                       /* Only an authored back is referenceable («Which tokens are referenceable»); token listings are unpresented, so the stored mode is readable here. */

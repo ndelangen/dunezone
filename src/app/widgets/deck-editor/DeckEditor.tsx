@@ -2,14 +2,13 @@ import { Group, NumberInput, Select, Slider, Stack, Text, TextInput } from '@man
 import type { DeckAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { IconAction } from '@ui/control/IconAction';
 import { MemberCountInput } from '@ui/control/MemberCountInput';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useRef } from 'react';
 import type { ReactNode } from 'react';
@@ -247,6 +246,7 @@ export function DeckEditor({
   onSettle,
   members,
   onCountChange,
+  countPending = false,
   cardPicker,
   backPicker,
   backProof,
@@ -260,6 +260,8 @@ export function DeckEditor({
   members: DeckMember[];
   /** Zero removes the card. Null while the deck has no id yet, which disables the steppers. */
   onCountChange: ((cardId: string, count: number) => void) | null;
+  /** True while a count write is in flight; it latches the removal holds so a fired one resets when the round trip ends. */
+  countPending?: boolean;
   cardPicker: ReactNode;
   /** Chooses which deck's cardback this one wears, rendered inside the reference tile. */
   backPicker: ReactNode;
@@ -421,14 +423,13 @@ export function DeckEditor({
                                 value={member.count}
                                 onCommit={(count) => onCountChange?.(member.card.id, count)}
                               />
-                              <IconAction
+                              {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
+                              <ConfirmDeleteAction
                                 label={`Remove ${member.card.name}`}
-                                variant="light"
-                                color="red"
-                                size="lg"
+                                verb="remove"
+                                pending={countPending}
                                 disabled={onCountChange === null}
-                                onClick={() => onCountChange?.(member.card.id, 0)}
-                                icon={<Trash2 size={17} aria-hidden />}
+                                onConfirm={() => onCountChange?.(member.card.id, 0)}
                               />
                             </Group>
                           ))}
@@ -445,7 +446,7 @@ export function DeckEditor({
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <Stack gap="md" align="center">
-          <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('deck')}>
+          <CanvasScale rounded canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('deck')}>
             {composition ? <CardbackProof cardback={composition} width={PROOF_CANVAS} /> : backProof}
           </CanvasScale>
           <Text size="xs" c="dimmed">
