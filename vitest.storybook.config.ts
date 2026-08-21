@@ -9,7 +9,7 @@ import viteReact from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
-import { coverageExclude, coverageIncludeSrc } from './coverage-denominator';
+import { coverageExclude, coverageIncludeSrc } from './coverage-denominator.ts';
 
 export default defineConfig({
   /**
@@ -18,6 +18,16 @@ export default defineConfig({
    */
   define: {
     'import.meta.env.VITE_CONVEX_URL': JSON.stringify('storybook-disconnected'),
+  },
+  /**
+   * Only `scripts/` imports these two modules, so the story-file scan never crawls them, and the v8 coverage pass over untested `src/` files discovers `svgpath` and `three` after the last test.
+   * That forces a re-optimize mid-run, and Vite reloads a browser test that has already started:
+   * "Vite unexpectedly reloaded a test", which is a flake, not a warning.
+   * Scanning them up front means the optimizer already holds them by the time coverage walks the file.
+   * Entries rather than `include`, so Vite keeps following their imports and a new transitive dependency cannot reintroduce the reload without anyone noticing.
+   */
+  optimizeDeps: {
+    entries: ['src/shared/svgToObj.ts', 'src/shared/vectorNormalize.ts'],
   },
   resolve: {
     /* Typings in the current Vite package lag behind docs/runtime support
@@ -33,7 +43,6 @@ export default defineConfig({
       headless: true,
       instances: [{ browser: 'chromium' }],
     },
-    setupFiles: ['.storybook/vitest.setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'lcov'],

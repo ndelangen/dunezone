@@ -86,6 +86,19 @@ export const FORMAT_EXTENSION: Record<AssetFormat, string> = {
   png: 'png',
 };
 
+/**
+ * Files under `public/web/` that are committed rather than produced from `media/`, each naming the change that added it.
+ * One list, read by both sides, because two lists is how this broke: `generate-images.ts` cleared `public/web/` while sparing a single hardcoded name, and `no-deck-back.svg` arrived later without anyone updating that name.
+ * Every generate run then deleted the dangling-deck fallback the resolver serves, and CI publishes what generate leaves behind, so the deployed URL 404'd and no check said so.
+ * A file added here is spared by the generator and expected by the verifier in the same edit.
+ */
+export const COMMITTED_WEB_FILES = [
+  /* The site logo, committed since the web tree existed. */
+  'logo.svg',
+  /* The dangling deck-back fallback the resolver serves («What does each back mode publish», amended by «How a dangling back reference presents»). */
+  'no-deck-back.svg',
+] as const;
+
 /** Category rule for a canonical asset key like `/image/texture/021.jpg` or `/web/head.png`. */
 export function ruleForKey(key: string): CategoryRule | undefined {
   const trimmed = key.replace(/^\//, '');

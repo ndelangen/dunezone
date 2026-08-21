@@ -1,5 +1,5 @@
 /**
- * Generates every file under public/image/** and public/web/** (except the committed logo.svg) from the sources in media/, per src/shared/assetRules.ts.
+ * Generates every file under public/image/** and public/web/** from the sources in media/, per src/shared/assetRules.ts, sparing the committed files that `COMMITTED_WEB_FILES` names.
  *
  * Bun run generate:images
  *
@@ -14,7 +14,7 @@ import path from 'node:path';
 
 import sharp from 'sharp';
 
-import { ASSET_RULES, FORMAT_EXTENSION, ruleForKey } from '../src/shared/assetRules';
+import { ASSET_RULES, COMMITTED_WEB_FILES, FORMAT_EXTENSION, ruleForKey } from '../src/shared/assetRules';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const mediaRoot = path.join(repoRoot, 'media');
@@ -101,8 +101,9 @@ async function generateOne(sourceAbsolute: string): Promise<MapEntry> {
 
 // Reset output directories so removals in media/ propagate.
 rmSync(path.join(publicRoot, 'image'), { recursive: true, force: true });
+const committedWebFiles = new Set<string>(COMMITTED_WEB_FILES);
 for (const entry of readdirSync(path.join(publicRoot, 'web'))) {
-  if (entry !== 'logo.svg') {
+  if (!committedWebFiles.has(entry)) {
     rmSync(path.join(publicRoot, 'web', entry), { force: true });
   }
 }
