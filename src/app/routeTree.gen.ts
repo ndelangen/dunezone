@@ -31,6 +31,7 @@ import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/ind
 import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
 import { Route as AppRulesetsRulesetSlugRouteImport } from './routes/_app/rulesets/$rulesetSlug'
 import { Route as AppRulesetsCreateRouteImport } from './routes/_app/rulesets/create'
+import { Route as AppRulesetsRulebookEditorPrototypeRouteImport } from './routes/_app/rulesets/rulebook-editor-prototype'
 import { Route as PreviewSheetFactionSlugRouteImport } from './routes/preview/sheet/$factionSlug'
 import { Route as AppFactionsFactionIdIndexRouteImport } from './routes/_app/factions/$factionId/index'
 import { Route as AppFactionsFactionIdEditRouteImport } from './routes/_app/factions/$factionId/edit'
@@ -153,6 +154,12 @@ const AppRulesetsCreateRoute = AppRulesetsCreateRouteImport.update({
   path: '/rulesets/create',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRulesetsRulebookEditorPrototypeRoute =
+  AppRulesetsRulebookEditorPrototypeRouteImport.update({
+    id: '/rulesets/rulebook-editor-prototype',
+    path: '/rulesets/rulebook-editor-prototype',
+    getParentRoute: () => AppRoute,
+  } as any)
 const PreviewSheetFactionSlugRoute = PreviewSheetFactionSlugRouteImport.update({
   id: '/preview/sheet/$factionSlug',
   path: '/preview/sheet/$factionSlug',
@@ -238,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/groups/create': typeof AppGroupsCreateRoute
   '/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugRouteWithChildren
   '/rulesets/create': typeof AppRulesetsCreateRoute
+  '/rulesets/rulebook-editor-prototype': typeof AppRulesetsRulebookEditorPrototypeRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRoute
   '/assets/': typeof AppAssetsIndexRoute
   '/auth/': typeof AppAuthIndexRoute
@@ -271,6 +279,7 @@ export interface FileRoutesByTo {
   '/factions/create': typeof AppFactionsCreateRoute
   '/groups/create': typeof AppGroupsCreateRoute
   '/rulesets/create': typeof AppRulesetsCreateRoute
+  '/rulesets/rulebook-editor-prototype': typeof AppRulesetsRulebookEditorPrototypeRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRoute
   '/assets': typeof AppAssetsIndexRoute
   '/auth': typeof AppAuthIndexRoute
@@ -308,6 +317,7 @@ export interface FileRoutesById {
   '/_app/groups/create': typeof AppGroupsCreateRoute
   '/_app/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugRouteWithChildren
   '/_app/rulesets/create': typeof AppRulesetsCreateRoute
+  '/_app/rulesets/rulebook-editor-prototype': typeof AppRulesetsRulebookEditorPrototypeRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRoute
   '/_app/assets/': typeof AppAssetsIndexRoute
   '/_app/auth/': typeof AppAuthIndexRoute
@@ -345,6 +355,7 @@ export interface FileRouteTypes {
     | '/groups/create'
     | '/rulesets/$rulesetSlug'
     | '/rulesets/create'
+    | '/rulesets/rulebook-editor-prototype'
     | '/preview/sheet/$factionSlug'
     | '/assets/'
     | '/auth/'
@@ -378,6 +389,7 @@ export interface FileRouteTypes {
     | '/factions/create'
     | '/groups/create'
     | '/rulesets/create'
+    | '/rulesets/rulebook-editor-prototype'
     | '/preview/sheet/$factionSlug'
     | '/assets'
     | '/auth'
@@ -414,6 +426,7 @@ export interface FileRouteTypes {
     | '/_app/groups/create'
     | '/_app/rulesets/$rulesetSlug'
     | '/_app/rulesets/create'
+    | '/_app/rulesets/rulebook-editor-prototype'
     | '/preview/sheet/$factionSlug'
     | '/_app/assets/'
     | '/_app/auth/'
@@ -597,6 +610,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRulesetsCreateRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/rulesets/rulebook-editor-prototype': {
+      id: '/_app/rulesets/rulebook-editor-prototype'
+      path: '/rulesets/rulebook-editor-prototype'
+      fullPath: '/rulesets/rulebook-editor-prototype'
+      preLoaderRoute: typeof AppRulesetsRulebookEditorPrototypeRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/preview/sheet/$factionSlug': {
       id: '/preview/sheet/$factionSlug'
       path: '/preview/sheet/$factionSlug'
@@ -732,6 +752,7 @@ interface AppRouteChildren {
   AppGroupsCreateRoute: typeof AppGroupsCreateRoute
   AppRulesetsRulesetSlugRoute: typeof AppRulesetsRulesetSlugRouteWithChildren
   AppRulesetsCreateRoute: typeof AppRulesetsCreateRoute
+  AppRulesetsRulebookEditorPrototypeRoute: typeof AppRulesetsRulebookEditorPrototypeRoute
   AppAssetsIndexRoute: typeof AppAssetsIndexRoute
   AppAuthIndexRoute: typeof AppAuthIndexRoute
   AppFactionsIndexRoute: typeof AppFactionsIndexRoute
@@ -760,6 +781,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppGroupsCreateRoute: AppGroupsCreateRoute,
   AppRulesetsRulesetSlugRoute: AppRulesetsRulesetSlugRouteWithChildren,
   AppRulesetsCreateRoute: AppRulesetsCreateRoute,
+  AppRulesetsRulebookEditorPrototypeRoute:
+    AppRulesetsRulebookEditorPrototypeRoute,
   AppAssetsIndexRoute: AppAssetsIndexRoute,
   AppAuthIndexRoute: AppAuthIndexRoute,
   AppFactionsIndexRoute: AppFactionsIndexRoute,
