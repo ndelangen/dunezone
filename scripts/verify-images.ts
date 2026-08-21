@@ -13,7 +13,8 @@
  * 3.
  * No orphan files in the generated tree (removals propagate)
  * 4.
- * Every /image/ and /web/ URL referenced from src CSS resolves to a file
+ * Every /image/, /web/, /font/ and /dice.svg URL referenced from src CSS, TS or TSX resolves to a file.
+ * The Storybook build silences Vite's warning about these, so this is what keeps them honest.
  */
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
@@ -116,15 +117,29 @@ for (const generated of [...walk(path.join(publicRoot, 'image')), ...walk(path.j
   }
 }
 
-// CSS references (decision #254: hardcoded variant URLs guarded by CI).
-const cssFiles = walk(path.join(repoRoot, 'src')).filter((file) => file.endsWith('.css'));
-const urlPattern = /url\(["']?(\/(?:image|web)\/[^"')]+)["']?\)/g;
-for (const cssFile of cssFiles) {
-  const contents = await Bun.file(cssFile).text();
-  for (const match of contents.matchAll(urlPattern)) {
+/*
+ * Root-absolute asset references (decision #254: hardcoded variant URLs guarded by CI).
+ * Storybook builds with `publicDir: false` and only mounts `public/` in DEVELOPMENT (`.storybook/main.ts`), so Vite cannot resolve these at build time and says so once per asset.
+ * That message is filtered out of the Storybook build log, which is only honest while something else proves the files are there.
+ * This is that something else, so the two must stay in step: every prefix the filter silences has to be a prefix this check walks.
+ */
+const REFERENCE_PREFIXES = ['image', 'web', 'font'] as const;
+const prefixGroup = REFERENCE_PREFIXES.join('|');
+/* `url("/font/x.woff2")` in a stylesheet. */
+const cssUrlPattern = new RegExp(`url\\(["']?(/(?:${prefixGroup})/[^"')]+|/dice\\.svg)["']?\\)`, 'g');
+/* `href: '/font/x.woff2'` in a preload list, and any other quoted literal naming a file. */
+const literalPattern = new RegExp(`['"](/(?:${prefixGroup})/[A-Za-z0-9._/-]+\\.[a-z0-9]+|/dice\\.svg)['"]`, 'g');
+
+const referencingFiles = walk(path.join(repoRoot, 'src')).filter(
+  (file) => file.endsWith('.css') || file.endsWith('.ts') || file.endsWith('.tsx')
+);
+for (const referencingFile of referencingFiles) {
+  const contents = await Bun.file(referencingFile).text();
+  const pattern = referencingFile.endsWith('.css') ? cssUrlPattern : literalPattern;
+  for (const match of contents.matchAll(pattern)) {
     const referenced = match[1] as string;
     if (!existsSync(path.join(publicRoot, referenced.replace(/^\//, '')))) {
-      failures.push(`${path.relative(repoRoot, cssFile)}: references ${referenced} which does not exist`);
+      failures.push(`${path.relative(repoRoot, referencingFile)}: references ${referenced} which does not exist`);
     }
   }
 }
