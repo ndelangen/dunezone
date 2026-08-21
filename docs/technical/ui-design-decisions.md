@@ -171,19 +171,19 @@ recognizable action with an `aria-label`; if the icon would be ambiguous, label 
 forward-moving primary, and the colour tuples in [`theme.ts`](../../src/app/ui/theme.ts).
 (`StatusBadge`'s tone scale is for state, not actions.)*
 
-### Destructive confirmation asks in place
+### Destructive actions are held, not asked twice
 
-A delete that opens a dialog takes the reader out of the row it belongs to, and the browser's own
-`window.confirm` blocks the thread and cannot be styled, tested, or dismissed by keyboard the way the
-rest of the app can. So a destructive action asks where it stands: the red glyph swaps for a question
-and a pair of answers, and swaps back on cancel. The swap hands keyboard focus over in both
-directions. An in-place swap unmounts the focused node, and without the handoff, focus restarts at
-the top of the document.
+A delete fires after its trigger is held for five seconds. Hovering says "hold to delete"; pressing
+starts a countdown that the hover text and the glyph both show ("deletion in 4.."), and releasing
+anywhere short of zero cancels with nothing fired. The keyboard holds the same way with Space or
+Enter. A question-and-answer confirm asked for a second decision; the hold asks for sustained
+intent, which is one interaction and cannot be clicked through on autopilot. On success the page
+navigates to the deleted thing's parent, since its own address just died.
 
 *Convention. The kit carries it: `ConfirmDeleteAction` in
-[`src/app/ui/control`](../../src/app/ui/control/ConfirmDeleteAction.tsx). `window.confirm` still
-stands at the group, ruleset and FAQ deletes; those are legacy pending a re-point, not a second
-sanctioned answer.*
+[`src/app/ui/control`](../../src/app/ui/control/ConfirmDeleteAction.tsx). Every delete goes through
+it; `window.confirm` remains only at non-delete confirmations (removing a member, moving an asset
+between groups) pending their own treatment.*
 
 ### A tab icon is an icon, never a proof
 

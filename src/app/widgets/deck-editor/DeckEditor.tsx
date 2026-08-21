@@ -336,6 +336,7 @@ export function DeckEditor({
                             label: 'Stock',
                             /* Always drawable: the stock look this deck wears, or the first standing in. */
                             preview: <CardbackProof cardback={stockPreview} width={PROOF_CANVAS} />,
+                            canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
                             detail: (
                               <Select
                                 aria-label="Which stock back"
@@ -358,6 +359,7 @@ export function DeckEditor({
                             preview: composition ? (
                               <CardbackProof cardback={composition} width={PROOF_CANVAS} />
                             ) : undefined,
+                            canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
                             emptyHint: <Text size="xs">Not composed yet</Text>,
                           },
                           {
