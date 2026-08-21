@@ -38,9 +38,14 @@ export async function publicationJobsForAsset(ctx: PublicationReadCtx, assetType
  * Removes the pending jobs for one publication id, leaving in-progress and completed work alone.
  * This is how a save that takes a face away stops the pipeline from republishing it («The stored shape of three back modes»);
  * completed publications stay, per #498's replaced-never-deleted rule.
+ * The window is wider than the sibling readers' four: those tolerate missing a row, while a pending job this misses republishes a removed face.
+ * The lifecycle holds rows per id to single digits (pending coalesces at enqueue, errors purge at enqueue, expired captures become errors at pickup), so the margin is safety rather than budget.
  */
 export async function supersedePendingPublication(ctx: MutationCtx, assetType: string, assetId: string) {
-  const jobs = await publicationJobsForAsset(ctx, assetType, assetId);
+  const jobs = await ctx.db
+    .query('publication_jobs')
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
+    .take(64);
   for (const job of jobs) {
     if (job.status === 'pending') {
       await ctx.db.delete(job._id);

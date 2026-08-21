@@ -117,8 +117,9 @@ describe('the back-modes widen, drop, and verify trio', () => {
 
     await t.mutation(internal.migrations.assets_back_modes_verify_v1, {});
 
-    await expect(t.query(api.migrations.assertReadyForNarrow, { required: REQUIRED })).rejects.toThrow(
-      'Narrow blocked'
-    );
+    /* Only the verify is required here, so the rejection proves it recorded the legacy row rather than proving the unrun siblings are absent. */
+    await expect(
+      t.query(api.migrations.assertReadyForNarrow, { required: ['assets_back_modes_verify_v1'] })
+    ).rejects.toThrow('Narrow blocked');
   });
 });

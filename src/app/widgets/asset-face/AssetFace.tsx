@@ -205,10 +205,11 @@ const drawableTokenFace = z.looseObject({
 
 const tokenFaceSchema = z.object({
   front: drawableTokenFace,
-  /* A referenced back stores no face; the caller resolves it to the other token and draws that token's front. */
+  /* A referenced back stores no face; the caller resolves it to the other token. A same back repeats the front. */
   back: z
     .union([
       z.looseObject({ mode: z.literal('custom'), face: drawableTokenFace }),
+      z.looseObject({ mode: z.literal('same') }),
       z.looseObject({ mode: z.literal('reference') }),
     ])
     .optional(),
@@ -232,6 +233,7 @@ const rectangleFaceSchema = z.object({
   back: z
     .union([
       z.looseObject({ mode: z.literal('custom'), face: drawableRectangleFace }),
+      z.looseObject({ mode: z.literal('same') }),
       z.looseObject({ mode: z.literal('reference') }),
     ])
     .optional(),

@@ -150,10 +150,12 @@ export const cataloguePage = query({
       countsByType[row.type] = (countsByType[row.type] ?? 0) + 1;
     }
 
+    /* Sequential like the other list readers, so the memo fills before the rows that would hit it. */
     const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
-    const recent = await Promise.all(
-      rows.slice(0, RECENT_LIMIT).map((row) => toListEntry(ctx, row, undefined, { deckBacks }))
-    );
+    const recent = [];
+    for (const row of rows.slice(0, RECENT_LIMIT)) {
+      recent.push(await toListEntry(ctx, row, undefined, { deckBacks }));
+    }
     return { recent, countsByType, countsTruncated: rows.length === CATALOGUE_SCAN_LIMIT };
   },
 });
