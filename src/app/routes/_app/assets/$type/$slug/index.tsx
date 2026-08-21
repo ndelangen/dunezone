@@ -140,7 +140,7 @@ function ScaledFace({
 }) {
   return (
     /* A container's members stand above it and make the drawing taller, so the canvas is asked for the block's height rather than the face's. */
-    <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(type, members.length)}>
+    <CanvasScale rounded canvasWidth={900} canvasHeight={900 * assetFaceAspect(type, members.length)}>
       <AssetFace type={type} data={data} name={name} width={900} side={side} members={members} />
     </CanvasScale>
   );
@@ -152,23 +152,27 @@ function ScaledFace({
  * One component for decks and bundles, because "which containers hold this" is one question asked twice, and `containersHolding` already answers it with one query and a different kind literal.
  * A count above one is shown as a multiplier: a deck holding three copies of a card and a bundle holding twenty of a token are the same statement (see CONTEXT.md: Bundle).
  */
-function ContainerCard({
+function ContainerSection({
+  id,
   title,
   empty,
   containers,
   icon,
 }: {
+  id: string;
   title: string;
   empty: string;
   containers: AssetPage['inDecks'];
   icon: ReactNode;
 }) {
   return (
-    <Card title={title} icon={icon}>
+    <Section id={id} icon={icon} title={title}>
       {containers.length === 0 ? (
-        <Text size="sm" c="dimmed">
-          {empty}
-        </Text>
+        <Surface padding="lg">
+          <Text size="sm" c="dimmed">
+            {empty}
+          </Text>
+        </Surface>
       ) : (
         <Links>
           {containers.map((container) => (
@@ -182,7 +186,7 @@ function ContainerCard({
           ))}
         </Links>
       )}
-    </Card>
+    </Section>
   );
 }
 
@@ -253,12 +257,27 @@ function AssetFaces({ page }: { page: AssetPage }) {
   }
 
   const back = (asset.data as { back?: { mode?: string } } | null)?.back;
+  /* One image, one caption: same-mode is double-sided by choice, a dangling reference by fallback, and stacking two identical renders said nothing twice (Norbert, 2026-08-21). */
+  if (back?.mode === 'same' || dangling) {
+    return (
+      <Stack gap="sm" align="center">
+        <FaceStage caption="Front & back">
+          <ScaledFace type={asset.type} data={asset.data} name={asset.name} side="front" />
+        </FaceStage>
+        {dangling ? (
+          <Text size="sm" c="dimmed">
+            The back this token referenced is gone, so it shows its front on both sides.
+          </Text>
+        ) : null}
+      </Stack>
+    );
+  }
   return (
     <Stack gap="lg" align="center">
       <FaceStage caption="Front">
         <ScaledFace type={asset.type} data={asset.data} name={asset.name} side="front" />
       </FaceStage>
-      {back?.mode === 'reference' && backToken && !dangling ? (
+      {back?.mode === 'reference' && backToken ? (
         <FaceStage
           caption={
             <>
@@ -282,15 +301,9 @@ function AssetFaces({ page }: { page: AssetPage }) {
         </FaceStage>
       ) : (
         <FaceStage caption="Back">
-          {/* A dangling reference shows the front on both sides; the note below is the only thing on the page that says otherwise. */}
-          <ScaledFace type={asset.type} data={asset.data} name={asset.name} side={dangling ? 'front' : 'back'} />
+          <ScaledFace type={asset.type} data={asset.data} name={asset.name} side="back" />
         </FaceStage>
       )}
-      {dangling ? (
-        <Text size="sm" c="dimmed">
-          The back this token referenced is gone, so it shows its front on both sides.
-        </Text>
-      ) : null}
     </Stack>
   );
 }
@@ -424,6 +437,25 @@ function AssetDetailBody({ page }: { page: AssetPage }) {
   return (
     <Stack gap="lg">
       {PER_TYPE_BODY[page.asset.type]?.(page)}
+      {/* Membership reads with the other facts rather than beside the render: the rail is the preview's, the column is the reader's (Norbert, 2026-08-21). */}
+      {holdsDeckMembership(page.asset.type) ? (
+        <ContainerSection
+          id="in-decks"
+          title="In decks"
+          empty="Not in any deck yet."
+          containers={page.inDecks}
+          icon={<Layers3 size={20} aria-hidden />}
+        />
+      ) : null}
+      {page.asset.type.startsWith('token-') ? (
+        <ContainerSection
+          id="in-bundles"
+          title="In bundles"
+          empty="Not in any bundle yet."
+          containers={page.inBundles}
+          icon={<Boxes size={20} aria-hidden />}
+        />
+      ) : null}
       <AboutSection about={about} />
     </Stack>
   );
@@ -460,10 +492,9 @@ function AssetDetailPage() {
  * Group assign/remove and delete install from the shared hooks in `-assetEditorStates` rather than repeating here as a fifth copy of the same fifty lines.
  */
 function LoadedAssetDetail({ page }: { page: AssetPage }) {
-  const { asset, viewerAccess, assignableGroups, inDecks, inBundles, assetPublishing, backPublishing } = page;
+  const { asset, viewerAccess, assignableGroups, inDecks, assetPublishing, backPublishing } = page;
   const groupActions = useAssetGroupActions({ asset, access: { viewerAccess, assignableGroups } });
   const deletion = useAssetDeletion(asset);
-  const isToken = asset.type.startsWith('token-');
   const { capabilities, assignedGroup } = viewerAccess;
   const definition = isAssetType(asset.type) ? ASSET_TYPES[asset.type] : undefined;
   const collectionLabel = definition?.label ?? 'Assets';
@@ -515,6 +546,17 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                     value: formatRelativeDate(asset.updated_at),
                     label: `Updated ${formatRelativeDate(asset.updated_at)}`,
                   },
+                  /* Only for types a deck can hold; the payload already carries the list for the In-decks section. */
+                  ...(holdsDeckMembership(asset.type)
+                    ? [
+                        {
+                          key: 'decks',
+                          icon: <Layers3 size={17} aria-hidden />,
+                          value: inDecks.length,
+                          label: `In ${inDecks.length} ${inDecks.length === 1 ? 'deck' : 'decks'}`,
+                        },
+                      ]
+                    : []),
                 ]}
               />
             </Group>
@@ -616,32 +658,6 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                 <Card title="Maintained by" icon={<UsersRound size={18} aria-hidden />}>
                   <Text size="sm">{assignedGroup.name}</Text>
                 </Card>
-              ) : null}
-              {/* One route per type is what turns a relation row into navigation rather than an inert name. */}
-              {/*
-               * Only what a deck can hold. It had excluded decks alone, so a bundle and every token wore an "In decks"
-               * card reading "Not in any deck yet", which is true, permanent and not a fact about them: a deck holds
-               * cards and nothing else (Norbert, 2026-08-20).
-               */}
-              {holdsDeckMembership(asset.type) ? (
-                <ContainerCard
-                  title="In decks"
-                  empty="Not in any deck yet."
-                  containers={inDecks}
-                  icon={<Layers3 size={18} aria-hidden />}
-                />
-              ) : null}
-              {/*
-               * Its own card rather than a second list inside "In decks".
-               * A token was reporting "Not in any deck yet" while sitting in a bundle, which is true and useless: the page had no place to say the thing that was actually so (Norbert, 2026-08-20).
-               */}
-              {isToken ? (
-                <ContainerCard
-                  title="In bundles"
-                  empty="Not in any bundle yet."
-                  containers={inBundles}
-                  icon={<Boxes size={18} aria-hidden />}
-                />
               ) : null}
             </Stack>
           </AsymmetricSplitLayout.Narrow>

@@ -75,6 +75,7 @@ bun run publisher:assets:check
 bun run publisher:font-regression
 bun run publisher:capture-contract-regression
 bun run publisher:dry-run
+bun run publisher:manifest:verify-changed
 bun run publisher:release:verify
 bun run publisher:startup
 ```
@@ -88,6 +89,13 @@ unified Worker release, regenerates the Renderer manifest, and rejects an uncomm
 change. The Renderer identity covers the capture bundle, renderer static assets, runtime closure,
 and PDF contract. It deliberately excludes application-only SPA shell and hashed chunk files so
 ordinary application UI changes do not create platform-specific Renderer identities.
+
+The standard `bun run check` suite runs `publisher:manifest:verify-changed`. It compares the branch
+with its main-branch merge base and skips the publisher build unless a Renderer-identity input
+changed. The input classifier lives beside the manifest builder so the check includes capture
+source, runtime files, static source assets, generators, and pinned toolchain versions. When an
+input changed, the check runs the publisher dry-run and fails if that regenerates the tracked
+Renderer manifest. The failure prints the exact rebuild and commit instructions.
 
 The pull-request publisher job runs the same command on Linux with the production Convex URL.
 

@@ -5,12 +5,15 @@ import { StrokedUse } from '../../components/block/StrokedUse';
 import type { FactionSide } from '../../data/objects';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import styles from './Custom.module.css';
+import { ELEMENT_SHADOW_FILTER } from './elementShadow';
 
 const foreGroundColor = '#ffffff';
 
 export const CustomToken: FC<
   z.infer<typeof FactionSide> & {
     circle: boolean;
+    /** The author-chosen elevation under the ring; the two built-in glow passes stay either way. */
+    circleShadow?: boolean;
     top?: string;
     bottom?: string;
     size?: { width: number; height: number };
@@ -18,7 +21,7 @@ export const CustomToken: FC<
     stroke?: string;
     strokeWidth?: number;
   }
-> = ({ background, image, circle, top, bottom, size, fill, stroke, strokeWidth }) => {
+> = ({ background, image, circle, circleShadow, top, bottom, size, fill, stroke, strokeWidth }) => {
   const iconSize = { width: size?.width || 100, height: size?.width || 100 };
   const iconLocation = { x: 150 - iconSize.width / 2, y: 150 - iconSize.height / 2 };
   return (
@@ -55,7 +58,7 @@ export const CustomToken: FC<
           />
         </g>
         {circle && (
-          <>
+          <g style={circleShadow ? { filter: ELEMENT_SHADOW_FILTER } : undefined}>
             <g filter="drop-shadow( 0 0 9px rgba(0, 0, 0, 0.8))">
               <circle
                 cx="150"
@@ -78,7 +81,7 @@ export const CustomToken: FC<
                 strokeWidth={1.3}
               />
             </g>
-          </>
+          </g>
         )}
 
         {top && (

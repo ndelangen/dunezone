@@ -4,6 +4,7 @@ import type { z } from 'zod';
 import { StrokedUse } from '../../components/block/StrokedUse';
 import type { RectangleTokenFace } from '../../data/objects';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
+import { ELEMENT_SHADOW_FILTER } from './elementShadow';
 import styles from './Rectangle.module.css';
 
 /**
@@ -29,7 +30,11 @@ function DecalLayer({ decals }: { decals: Face['decals'] }) {
       {decals.map((decal, index) => {
         const size = DECAL_REFERENCE * decal.scale;
         return (
-          <g key={index} opacity={decal.opacity * (decal.muted ? MUTED_OPACITY : 1)}>
+          <g
+            key={index}
+            opacity={decal.opacity * (decal.muted ? MUTED_OPACITY : 1)}
+            style={decal.shadow ? { filter: ELEMENT_SHADOW_FILTER } : undefined}
+          >
             <StrokedUse
               xlinkHref={`${decal.id}#root`}
               x={FACE_WIDTH / 2 - size / 2 + decal.offset[0]}
@@ -88,23 +93,25 @@ function TextLayer({ texts }: { texts: Face['texts'] }) {
  * The rectangle is a free composition rather than a stretched token: a background, then two lists of elements the author placed and scaled where they wanted them.
  * Every other Asset type slots its content into fixed positions, which is why this shares only the background with `CustomToken` and none of its curved labels.
  */
-export const RectangleToken: FC<Face> = ({ background, ring, decals, texts }) => {
+export const RectangleToken: FC<Face> = ({ background, ring, ringShadow, decals, texts }) => {
   return (
     <BackgroundRenderer className={styles.face} background={background}>
       <svg className={styles.canvas} viewBox={`0 0 ${FACE_WIDTH} ${FACE_HEIGHT}`} aria-label="Rectangle token face">
         <DecalLayer decals={decals} />
         <TextLayer texts={texts} />
         {ring ? (
-          <rect
-            x={8}
-            y={8}
-            width={FACE_WIDTH - 16}
-            height={FACE_HEIGHT - 16}
-            rx={10}
-            fill="transparent"
-            stroke={FOREGROUND}
-            strokeWidth={1.3}
-          />
+          <g style={ringShadow ? { filter: ELEMENT_SHADOW_FILTER } : undefined}>
+            <rect
+              x={8}
+              y={8}
+              width={FACE_WIDTH - 16}
+              height={FACE_HEIGHT - 16}
+              rx={10}
+              fill="transparent"
+              stroke={FOREGROUND}
+              strokeWidth={1.3}
+            />
+          </g>
         ) : null}
       </svg>
     </BackgroundRenderer>

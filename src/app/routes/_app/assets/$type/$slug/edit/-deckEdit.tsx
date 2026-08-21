@@ -277,6 +277,7 @@ function DeckEditSession({
             onChapterChange={setChapter}
             onSettle={() => setSettleTick((tick) => tick + 1)}
             members={cards}
+            countPending={setCount.isPending}
             onCountChange={(cardId, count) =>
               setCount.mutate({ container_id: asset.id, member_id: cardId as typeof asset.id, count })
             }

@@ -189,6 +189,18 @@ function SurfaceFields({ face, patch }: { face: RectangleFaceDraft; patch: FaceP
           />
         }
       />
+      <ControlBlock
+        title="Ring shadow"
+        description="A pronounced shadow under the ring. Needs the ring."
+        input={
+          <Switch
+            aria-label="Ring shadow"
+            checked={face.ringShadow ?? false}
+            disabled={!face.ring}
+            onChange={(event) => patch({ ringShadow: event.currentTarget.checked })}
+          />
+        }
+      />
     </Stack>
   );
 }
@@ -223,14 +235,32 @@ function DecalsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePa
             value={decal}
             onChange={(next) =>
               patch({
-                /* `DecalControls` speaks the shared `Decal` contract, which has no opacity, so this type's own field is carried across the edit rather than lost. */
+                /* `DecalControls` speaks the shared `Decal` contract, which has neither opacity nor shadow, so this type's own fields are carried across the edit rather than lost. */
                 decals: face.decals.map((current, position) =>
-                  position === index ? { ...next, opacity: current.opacity } : current
+                  position === index ? { ...next, opacity: current.opacity, shadow: current.shadow } : current
                 ),
               })
             }
             label={`decal ${index + 1}`}
             offsetRange={[FACE_WIDTH, FACE_HEIGHT]}
+          />
+          {/* Beside `DecalControls` rather than inside it, the same seam Opacity uses: the shared contract stays narrow. */}
+          <ControlBlock
+            title="Shadow"
+            description="A drop shadow under the decal, the ring shadow's twin."
+            input={
+              <Switch
+                aria-label={`Shadow for decal ${index + 1}`}
+                checked={decal.shadow ?? false}
+                onChange={(event) =>
+                  patch({
+                    decals: face.decals.map((current, position) =>
+                      position === index ? { ...current, shadow: event.currentTarget.checked } : current
+                    ),
+                  })
+                }
+              />
+            }
           />
           <PlacementControl
             title="Opacity"
@@ -567,7 +597,11 @@ export function RectangleTokenEditor({
         {/* The face stacks take the full width, or a centred flex child shrinks to its content and `CanvasScale` has nothing to fill. */}
         <Stack gap="md" align="center">
           <Stack gap={4} align="center" w="100%">
-            <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}>
+            <CanvasScale
+              rounded
+              canvasWidth={PROOF_CANVAS}
+              canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}
+            >
               <RectangleProof face={draft.front} width={PROOF_CANVAS} />
             </CanvasScale>
             <Text size="xs" c="dimmed">
@@ -576,7 +610,11 @@ export function RectangleTokenEditor({
           </Stack>
           {draft.back.mode === 'custom' ? (
             <Stack gap={4} align="center" w="100%">
-              <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}>
+              <CanvasScale
+                rounded
+                canvasWidth={PROOF_CANVAS}
+                canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}
+              >
                 <RectangleProof face={draft.back.face} width={PROOF_CANVAS} />
               </CanvasScale>
               <Text size="xs" c="dimmed">
