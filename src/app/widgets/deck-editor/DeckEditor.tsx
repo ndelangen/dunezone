@@ -356,11 +356,14 @@ export function DeckEditor({
                           {
                             value: CUSTOM,
                             label: 'Composed here',
-                            preview: composition ? (
-                              <CardbackProof cardback={composition} width={PROOF_CANVAS} />
-                            ) : undefined,
+                            /* Always drawable, the stock tile's own rule: the live composition, the one the author left behind, or the first stock look standing in — never a dashed nothing (Norbert, 2026-08-21). */
+                            preview: (
+                              <CardbackProof
+                                cardback={composition ?? composedCardback.current ?? STOCK_CARDBACKS[0]!.cardback}
+                                width={PROOF_CANVAS}
+                              />
+                            ),
                             canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
-                            emptyHint: <Text size="xs">Not composed yet</Text>,
                           },
                           {
                             value: 'reference',

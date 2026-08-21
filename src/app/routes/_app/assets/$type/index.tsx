@@ -1,4 +1,4 @@
-import { Button, Group, Select, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
@@ -98,27 +98,15 @@ function AssetTypePage() {
         <PageLayout.Toolbar>
           <Toolbar>
             <Toolbar.Left>
-              <Group gap="sm" wrap="nowrap">
-                {/* A way back to the shelves, where a result count stood: the number told nobody anything a full grid did not (Norbert, 2026-08-21). */}
-                <IconAction
-                  label="Back to all assets"
-                  variant="light"
-                  color="gray"
-                  size="lg"
-                  icon={<ArrowLeft size={17} aria-hidden />}
-                  renderRoot={(rootProps) => <Link {...rootProps} to="/assets" />}
-                />
-                {data.inNoDeckCount === null ? null : (
-                  <Button
-                    size="compact-sm"
-                    variant={search.deck === 'none' ? 'filled' : 'default'}
-                    aria-pressed={search.deck === 'none'}
-                    onClick={() => changeSearch({ deck: search.deck === 'none' ? undefined : 'none' })}
-                  >
-                    In no deck ({data.inNoDeckCount})
-                  </Button>
-                )}
-              </Group>
+              {/* A way back to the shelves, where a result count stood: the number told nobody anything a full grid did not (Norbert, 2026-08-21). */}
+              <IconAction
+                label="Back to all assets"
+                variant="light"
+                color="gray"
+                size="lg"
+                icon={<ArrowLeft size={17} aria-hidden />}
+                renderRoot={(rootProps) => <Link {...rootProps} to="/assets" />}
+              />
             </Toolbar.Left>
             <Toolbar.Center>
               {/* The band's centre width comes from this field, not from the toolbar. */}
@@ -191,21 +179,6 @@ function AssetTypePage() {
   );
 }
 
-/** How many decks hold this card, or nothing at all when the answer is zero or the question does not apply. A capped count owns up to being a floor. */
-function membershipLabel(deckCount: number, capped: boolean): string | null {
-  if (capped) {
-    return `${deckCount}+ decks`;
-  }
-  switch (deckCount) {
-    case 0:
-      return null;
-    case 1:
-      return '1 deck';
-    default:
-      return `${deckCount} decks`;
-  }
-}
-
 /**
  * One slot on the grid: a link to the asset, and nothing else.
  *
@@ -214,9 +187,6 @@ function membershipLabel(deckCount: number, capped: boolean): string | null {
  * Losing it makes the whole tile one anchor again, since the sibling structure only existed because an anchor may not contain a control.
  */
 function BrowseTile({ entry }: { entry: AssetBrowseEntry }) {
-  const meta = [entry.owner?.username, membershipLabel(entry.deckCount, entry.deckCountCapped)]
-    .filter(Boolean)
-    .join(' · ');
   return (
     <Link
       className={styles.tileOpen}
@@ -231,15 +201,10 @@ function BrowseTile({ entry }: { entry: AssetBrowseEntry }) {
             <AssetFace type={entry.type} data={entry.data} name={entry.name} width={900} members={entry.members} />
           </CanvasScale>
         </div>
-        {/* Centred on the same axis as the face, so the caption belongs to the art rather than floating beside it. */}
-        <Stack gap={0} align="center">
-          <Text size="sm" fw={600} lineClamp={1} ta="center">
-            {entry.name}
-          </Text>
-          <Text size="xs" c="dimmed" lineClamp={1} ta="center">
-            {meta}
-          </Text>
-        </Stack>
+        {/* Centred on the same axis as the face, so the caption belongs to the art rather than floating beside it. A tile is its render and its name; everything else lives on the detail page (Norbert, 2026-08-21). */}
+        <Text size="sm" fw={600} lineClamp={1} ta="center">
+          {entry.name}
+        </Text>
       </Stack>
     </Link>
   );

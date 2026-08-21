@@ -96,7 +96,7 @@ describe('AssignPopover', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
-  it('submits only a selected option and closes after success', async () => {
+  it('commits the chosen option and closes after success', async () => {
     container = document.createElement('div');
     document.body.append(container);
     root = createRoot(container);
@@ -124,28 +124,13 @@ describe('AssignPopover', () => {
     await act(async () => trigger.click());
     await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
 
-    const searchInput = document.querySelector<HTMLInputElement>('input[placeholder="Type group name…"]');
-    expect(searchInput).not.toBeNull();
-    if (!searchInput) {
-      return;
-    }
-    await act(async () => searchInput.click());
-
+    /* The suggestions are inline in the pane, not a nested dropdown: the option exists without opening anything further. */
     const option = document.querySelector<HTMLElement>('[role="option"]');
     expect(option?.textContent).toContain('Arrakeen Rules Council');
     if (!option) {
       return;
     }
     await act(async () => option.click());
-
-    const assignButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
-      button.textContent?.includes('Assign selected group')
-    );
-    expect(assignButton).toBeDefined();
-    if (!assignButton) {
-      return;
-    }
-    await act(async () => assignButton.click());
 
     expect(onAssign).toHaveBeenCalledOnce();
     expect(onAssign).toHaveBeenCalledWith('group-1');
@@ -181,27 +166,12 @@ describe('AssignPopover', () => {
     await act(async () => trigger.click());
     await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
 
-    const searchInput = document.querySelector<HTMLInputElement>('input[placeholder="Type group name…"]');
-    expect(searchInput).not.toBeNull();
-    if (!searchInput) {
-      return;
-    }
-    await act(async () => searchInput.click());
     const option = document.querySelector<HTMLElement>('[role="option"]');
     expect(option).not.toBeNull();
     if (!option) {
       return;
     }
     await act(async () => option.click());
-
-    const assignButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
-      button.textContent?.includes('Assign selected group')
-    );
-    expect(assignButton).toBeDefined();
-    if (!assignButton) {
-      return;
-    }
-    await act(async () => assignButton.click());
 
     const alerts = document.querySelectorAll('[role="alert"]');
     expect(alerts).toHaveLength(1);

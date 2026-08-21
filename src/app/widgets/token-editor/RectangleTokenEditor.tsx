@@ -509,12 +509,14 @@ export function RectangleTokenEditor({
                   {
                     value: 'custom',
                     label: 'Composed here',
-                    preview:
-                      draft.back.mode === 'custom' ? (
-                        <RectangleProof face={draft.back.face} width={PROOF_CANVAS} />
-                      ) : undefined,
+                    /* Always drawable, the deck's stock tile's rule: the composed face, the one the author left behind, or the composer's own starting point — never a dashed nothing (Norbert, 2026-08-21). */
+                    preview: (
+                      <RectangleProof
+                        face={draft.back.mode === 'custom' ? draft.back.face : (composedFace.current ?? INITIAL_FACE)}
+                        width={PROOF_CANVAS}
+                      />
+                    ),
                     canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('token-enhance') },
-                    emptyHint: <Text size="xs">Not composed yet</Text>,
                   },
                   {
                     value: 'same',

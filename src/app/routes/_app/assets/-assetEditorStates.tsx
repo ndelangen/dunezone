@@ -167,10 +167,6 @@ export function useAssetGroupActions({
       triggerLabel="Assign group"
       icon={<UsersRound size={17} aria-hidden />}
       title="Assign Group"
-      descriptionLines={[
-        `Assign a group whose members can help maintain "${asset.name}".`,
-        'You can create and join groups from your profile.',
-      ]}
       disabled={setAssetGroup.isPending}
       options={access.assignableGroups.map((group) => ({ value: group.id, label: `${group.name} (${group.slug})` }))}
       onAssign={async (nextGroupId) => {

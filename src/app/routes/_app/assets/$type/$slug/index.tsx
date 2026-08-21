@@ -16,18 +16,30 @@ import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
+import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
+import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { CanvasScale } from '@ui/layout/CanvasScale';
-import { ColumnsWithRailLayout } from '@ui/layout/ColumnsWithRailLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Links } from '@ui/list/Links';
+import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Boxes, Download, FlipHorizontal2, Layers3, Pencil, UsersRound } from 'lucide-react';
+import {
+  ArrowLeft,
+  Boxes,
+  CalendarPlus,
+  Download,
+  FlipHorizontal2,
+  History,
+  Layers3,
+  Pencil,
+  UsersRound,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { loadAssetPage, useAssetPage } from '@app/db/assets';
@@ -283,15 +295,18 @@ function AssetFaces({ page }: { page: AssetPage }) {
   );
 }
 
-/** Prose the face cannot carry. Renders nothing at all when empty, which is the normal case (CONTEXT.md: About). */
+/** Prose the face cannot carry. An empty About says so rather than vanishing: the field is part of the page, and its absence was read as the page missing it (Norbert, 2026-08-21). */
 function AboutSection({ about }: { about: string }) {
-  if (!about.trim()) {
-    return null;
-  }
   return (
     <Section id="about" icon={<TopicIcon topic="about" size={20} />} title="About">
       <Surface padding="lg">
-        <Text className={styles.about}>{about}</Text>
+        {about.trim() ? (
+          <Text className={styles.about}>{about}</Text>
+        ) : (
+          <Text size="sm" c="dimmed">
+            Nothing written about this yet.
+          </Text>
+        )}
       </Surface>
     </Section>
   );
@@ -484,6 +499,24 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                 Made by
               </Text>
               {asset.owner ? <ProfileLink {...asset.owner} /> : <Text size="sm">Unknown</Text>}
+              {/* The band carries the page's statistics, the ruleset band's pattern (Norbert, 2026-08-21). */}
+              <Stats
+                orientation="row"
+                items={[
+                  {
+                    key: 'created',
+                    icon: <CalendarPlus size={17} aria-hidden />,
+                    value: formatRelativeDate(asset.created_at),
+                    label: `Created ${formatRelativeDate(asset.created_at)}`,
+                  },
+                  {
+                    key: 'updated',
+                    icon: <History size={17} aria-hidden />,
+                    value: formatRelativeDate(asset.updated_at),
+                    label: `Updated ${formatRelativeDate(asset.updated_at)}`,
+                  },
+                ]}
+              />
             </Group>
           </Stack>
         </Group>
@@ -570,17 +603,15 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
             {deletion.error.message}
           </Alert>
         ) : null}
-        <ColumnsWithRailLayout>
-          <ColumnsWithRailLayout.Primary>
-            <AssetFaces page={page} />
-          </ColumnsWithRailLayout.Primary>
-
-          <ColumnsWithRailLayout.Secondary>
+        {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement, on every asset detail page alike (Norbert, 2026-08-21). */}
+        <AsymmetricSplitLayout>
+          <AsymmetricSplitLayout.Wide>
             <AssetDetailBody page={page} />
-          </ColumnsWithRailLayout.Secondary>
+          </AsymmetricSplitLayout.Wide>
 
-          <ColumnsWithRailLayout.Rail>
+          <AsymmetricSplitLayout.Narrow>
             <Stack gap="lg">
+              <AssetFaces page={page} />
               {assignedGroup ? (
                 <Card title="Maintained by" icon={<UsersRound size={18} aria-hidden />}>
                   <Text size="sm">{assignedGroup.name}</Text>
@@ -613,8 +644,8 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                 />
               ) : null}
             </Stack>
-          </ColumnsWithRailLayout.Rail>
-        </ColumnsWithRailLayout>
+          </AsymmetricSplitLayout.Narrow>
+        </AsymmetricSplitLayout>
       </PageLayout.Content>
     </PageLayout>
   );

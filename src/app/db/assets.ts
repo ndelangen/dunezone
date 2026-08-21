@@ -22,7 +22,7 @@ export type AssetsByTypesData = FunctionReturnType<typeof api.assets.listByTypes
 
 /**
  * The picker's options read.
- * The browse page deliberately does not share it: a route holds one page query, and giving this one the browse tile's deck count would make every picker pay an index scan per row for a number it never draws.
+ * The browse page deliberately does not share it: a route holds one page query, and giving this one the browse tile's member previews would make every picker pay a relation pass per row for art it never draws.
  */
 export function useAssetsByTypes(types: string[], options?: { initialData?: AssetsByTypesData }) {
   const liveData = useQuery(api.assets.listByTypes, { types });
@@ -36,7 +36,7 @@ export async function loadAssetBrowsePage(type: string): Promise<AssetBrowsePage
   return await db.query(api.assets.browsePage, { type });
 }
 
-/** The browse route's one page query. Search, sort and the membership facet are URL state applied to what this returns, so none of them re-fetch. */
+/** The browse route's one page query. Search and sort are URL state applied to what this returns, so neither re-fetches. */
 export function useAssetBrowsePage(type: string, options?: { initialData?: AssetBrowsePageData }) {
   const liveData = useQuery(api.assets.browsePage, { type });
   return toLiveQueryResult(liveData, true, () => options?.initialData);

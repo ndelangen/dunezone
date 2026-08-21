@@ -359,12 +359,19 @@ export function TokenEditor({
                   {
                     value: 'custom',
                     label: 'Composed here',
-                    preview:
-                      draft.back.mode === 'custom' ? (
-                        <TokenProof face={draft.back.face} type={type} width={PROOF_CANVAS} />
-                      ) : undefined,
+                    /* Always drawable, the deck's stock tile's rule: the composed face, the one the author left behind, or the composer's own starting point — never a dashed nothing (Norbert, 2026-08-21). */
+                    preview: (
+                      <TokenProof
+                        face={
+                          draft.back.mode === 'custom'
+                            ? draft.back.face
+                            : (composedFace.current ?? initialTokenFace(type))
+                        }
+                        type={type}
+                        width={PROOF_CANVAS}
+                      />
+                    ),
                     canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect(type) },
-                    emptyHint: <Text size="xs">Not composed yet</Text>,
                   },
                   {
                     value: 'same',
