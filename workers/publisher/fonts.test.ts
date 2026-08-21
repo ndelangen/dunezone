@@ -45,11 +45,13 @@ function fontSet(missing?: (typeof requiredPublisherFontFaces)[number]): Publish
 
 describe('publisher self-hosted font readiness', () => {
   test('requires every renderer family, weight, and style to be loaded', async () => {
-    const busorama = requiredPublisherFontFaces.find((face) => face.family === 'C_Busorama');
-    expect(busorama).toBeDefined();
-
     await expect(assertRequiredPublisherFonts(fontSet())).resolves.toBeUndefined();
-    await expect(assertRequiredPublisherFonts(fontSet(busorama))).rejects.toThrow(/C_Busorama 400 normal/);
+
+    for (const face of requiredPublisherFontFaces) {
+      await expect(assertRequiredPublisherFonts(fontSet(face))).rejects.toThrow(
+        new RegExp(`${face.family} ${face.weight} ${face.style}`)
+      );
+    }
   });
 
   test('rejects Chromium-style substitution even when check reports true', async () => {
