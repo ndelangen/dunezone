@@ -8,6 +8,7 @@
  * The scale frames wrap the renderers' intrinsic sizes (cards draw at 900x1263, tokens fill).
  */
 import { Text } from '@mantine/core';
+import { NO_DECK_BACK_HREF } from '@shared/asset-publishing/fallbacks';
 import type { CSSProperties, ReactNode } from 'react';
 import { z } from 'zod';
 
@@ -177,6 +178,16 @@ function NeutralFace({ name, width, aspect }: { name: string; width: number; asp
 const bundleFaceSchema = z.object({
   band: z.looseObject({ background: z.unknown(), label: z.string() }),
 });
+
+/**
+ * Whether this listing row is a deck whose referenced cardback no longer resolves.
+ *
+ * `cardback: null` is the presentation marker the listing join sets and only it sets;
+ * the stored shape never holds null, so a row reaching here with one has been through that join.
+ */
+function danglingDeckCardback(data: unknown): boolean {
+  return typeof data === 'object' && data !== null && 'cardback' in data && data.cardback === null;
+}
 
 const cardbackFaceSchema = z.object({
   cardback: z.looseObject({
@@ -425,6 +436,20 @@ export function AssetFace({
   }
 
   if (type === 'deck') {
+    /*
+     * The listing marks a dangling reference by nulling the cardback, and nothing else produces that
+     * («How browse surfaces get a referenced deck's cardback»). Keyed on the marker rather than on a
+     * failed parse, so a malformed legacy row still falls to the neutral face: `[?]` claims the deck
+     * loaded and its back is gone, which is a different sentence from "this row would not read".
+     */
+    if (danglingDeckCardback(data)) {
+      return (
+        <CardFrame width={width}>
+          {/* Decorative: the detail page carries the words, and a tile has no room for them. */}
+          <img src={NO_DECK_BACK_HREF} alt="" width={width} />
+        </CardFrame>
+      );
+    }
     const parsed = cardbackFaceSchema.safeParse(data);
     if (parsed.success) {
       const cardback = parsed.data.cardback;

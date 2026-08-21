@@ -3,10 +3,12 @@ import type { TokenAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Frame } from 'lucide-react';
+import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -233,6 +235,31 @@ const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
  * The Back chapter exists only while the backside is authored here;
  * a referenced back is another token's front and has nothing to edit.
  */
+/**
+ * The back a chosen mode becomes, restoring the composition the author last had.
+ *
+ * Storage is strict and the draft remembers («The stored shape of three back modes», section 2): a saved row holds exactly one mode with exactly that mode's fields, but while editing you can switch away from a composed back and return to find it in the shape you left it.
+ * The memory is component state rather than draft state because the stored union has nowhere to keep it, which is the whole point of storage being strict.
+ */
+function backForMode(
+  mode: TokenDraft['back']['mode'],
+  draft: TokenDraft,
+  type: string,
+  remembered: TokenFaceDraft | null
+): TokenDraft['back'] {
+  switch (mode) {
+    case 'custom':
+      return {
+        mode: 'custom',
+        face: draft.back.mode === 'custom' ? draft.back.face : (remembered ?? initialTokenFace(type)),
+      };
+    case 'same':
+      return { mode: 'same' };
+    case 'reference':
+      return draft.back.mode === 'reference' ? draft.back : { mode: 'reference' };
+  }
+}
+
 export function TokenEditor({
   draft,
   patch,
@@ -255,9 +282,15 @@ export function TokenEditor({
    * A function of that disabled state rather than a node, so the rule lives here and the organ still renders a properly disabled control rather than an inert-looking one.
    */
   backPicker: (disabled: boolean) => ReactNode;
-  /** The referenced token's front, drawn in the rail in place of an authored back. */
+  /**
+   * The referenced token's **back**, drawn on the reference tile and in the rail in place of an authored one.
+   * Its back, never its front, per «A referenced back shows the other token's back, never its front».
+   */
   backProof: ReactNode;
 }) {
+  /* The composition the author last had, kept across mode flips; the stored union cannot hold it. */
+  const composedFace = useRef<TokenFaceDraft | null>(draft.back.mode === 'custom' ? draft.back.face : null);
+
   const patchFace = (key: 'front' | 'back'): FacePatch =>
     key === 'front'
       ? (update) => patch({ front: { ...draft.front, ...update } })
@@ -286,27 +319,43 @@ export function TokenEditor({
           />
           <ControlBlock
             title="Backside"
-            description="Every token has one. Author it here, or point at a token that already exists."
+            description="Every token has one. Compose it, print the front on both sides, or wear another token's back."
             input={
-              <Stack gap="sm">
-                <Switch
-                  aria-label="Custom"
-                  label="Custom"
-                  checked={draft.back.mode === 'custom'}
-                  onChange={(event) =>
-                    patch({
-                      back: event.currentTarget.checked
-                        ? {
-                            mode: 'custom',
-                            face: draft.back.mode === 'custom' ? draft.back.face : initialTokenFace(type),
-                          }
-                        : { mode: 'reference' },
-                    })
+              <PreviewChoice
+                label="Backside"
+                value={draft.back.mode}
+                aspectRatio={String(1 / assetFaceAspect(type))}
+                onChange={(mode) => {
+                  /* Captured on the way out, so returning to Composed finds the face as it was left. */
+                  if (draft.back.mode === 'custom') {
+                    composedFace.current = draft.back.face;
                   }
-                />
-                {/* Always present, inert while the back is authored here: the alternative stays visible instead of the control disappearing under the toggle. */}
-                {backPicker(draft.back.mode === 'custom')}
-              </Stack>
+                  patch({ back: backForMode(mode, draft, type, composedFace.current) });
+                }}
+                options={[
+                  {
+                    value: 'custom',
+                    label: 'Composed here',
+                    preview:
+                      draft.back.mode === 'custom' ? (
+                        <TokenProof face={draft.back.face} type={type} width={PROOF_CANVAS} />
+                      ) : undefined,
+                    emptyHint: <Text size="xs">Not composed yet</Text>,
+                  },
+                  {
+                    value: 'same',
+                    label: 'Same as front',
+                    preview: <TokenProof face={draft.front} type={type} width={PROOF_CANVAS} />,
+                  },
+                  {
+                    value: 'reference',
+                    label: "Another token's back",
+                    preview: backProof ?? undefined,
+                    emptyHint: <Text size="xs">No token chosen</Text>,
+                    detail: backPicker(false),
+                  },
+                ]}
+              />
             }
           />
         </>
