@@ -49,8 +49,9 @@ import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import type { AssetFaceMember } from '@app/widgets/asset-face/AssetFace';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../-assetEditorStates';
+/* Relative rather than aliased, so the orphan checker can resolve who imports this sheet. */
+import tiles from '../../../../../ui/surface/openableTileGrid.module.css';
 import styles from './index.module.css';
-import tiles from '@ui/surface/openableTileGrid.module.css';
 
 type AssetPage = NonNullable<AssetPageData>;
 

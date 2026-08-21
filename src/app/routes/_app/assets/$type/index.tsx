@@ -15,10 +15,11 @@ import { loadAssetBrowsePage, useAssetBrowsePage } from '@app/db/assets';
 import type { AssetBrowseEntry } from '@app/db/assets';
 import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 
+/* Relative rather than aliased, so the orphan checker can resolve who imports this sheet. */
+import tiles from '../../../../ui/surface/openableTileGrid.module.css';
 import { applyAssetBrowseSearch, ASSET_BROWSE_SORTS, parseAssetBrowseSearch } from './-browse';
 import type { AssetBrowseSearch } from './-browse';
 import styles from './index.module.css';
-import tiles from '@ui/surface/openableTileGrid.module.css';
 
 /**
  * The type's name as a noun for one of them.
