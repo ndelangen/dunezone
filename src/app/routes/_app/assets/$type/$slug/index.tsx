@@ -15,6 +15,7 @@ import { RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { OpenableTile } from '@ui/block/OpenableTile';
 import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -26,6 +27,7 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
+import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
@@ -49,8 +51,7 @@ import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import type { AssetFaceMember } from '@app/widgets/asset-face/AssetFace';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../-assetEditorStates';
-/* Relative rather than aliased, so the orphan checker can resolve who imports this sheet. */
-import tiles from '../../../../../ui/surface/openableTileGrid.module.css';
+import { compositionTiles, DUPLICATED_TILE_CAP, omissionNote } from './-composition';
 import styles from './index.module.css';
 
 type AssetPage = NonNullable<AssetPageData>;
@@ -341,9 +342,8 @@ function AboutSection({ about }: { about: string }) {
  * One component for decks and bundles, because a deck's cards and a bundle's tokens are the same relation read.
  *
  * `duplicated` draws one tile per copy, the deck as it physically stacks, while the collapsed view draws each member once with its count on the caption.
- * The per-copy expansion is bounded: five hundred members at ninety-nine copies each is a page no browser should mount, so past the cap the grid says what it left out and the collapsed view carries the whole truth.
+ * The per-copy expansion is bounded, and the collapsed view never is: the arithmetic and its note live in the composition module, where they are testable without a mounted renderer.
  */
-const DUPLICATED_TILE_CAP = 200;
 
 function Composition({
   members,
@@ -356,13 +356,16 @@ function Composition({
   noun: string;
   duplicated: boolean;
 }) {
-  const expanded = duplicated
-    ? members.flatMap(({ member, count }) =>
-        Array.from({ length: count }, (_, copy) => ({ member, key: `${member.id}-${copy}`, count: 1 }))
-      )
-    : members.map(({ member, count }) => ({ member, key: member.id, count }));
-  const shown = expanded.slice(0, DUPLICATED_TILE_CAP);
-  const copiesLeftOut = expanded.length - shown.length;
+  const { tiles, omittedCopies, omittedMembers } = compositionTiles(members, { duplicated });
+  const note = omissionNote({
+    duplicated,
+    cap: DUPLICATED_TILE_CAP,
+    omittedCopies,
+    omittedMembers,
+    serverTruncated: truncated,
+    loadedMembers: members.length,
+    noun,
+  });
   return (
     <Section
       id="composition"
@@ -378,37 +381,24 @@ function Composition({
         </Surface>
       ) : (
         <>
-          <div className={tiles.grid}>
-            {shown.map(({ member, key, count }) => (
-              <Link
+          <TileGrid>
+            {tiles.map(({ member, key, count }) => (
+              <OpenableTile
                 key={key}
-                className={tiles.tile}
-                to="/assets/$type/$slug"
-                params={{ type: member.type, slug: member.slug }}
+                caption={count > 1 ? `${member.name} ×${count}` : member.name}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/assets/$type/$slug" params={{ type: member.type, slug: member.slug }} />
+                )}
               >
-                <Stack gap={6}>
-                  <div className={tiles.art} aria-hidden>
-                    <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(member.type)}>
-                      <AssetFace type={member.type} data={member.data} name={member.name} width={900} />
-                    </CanvasScale>
-                  </div>
-                  {/* The caption is the link's accessible name, count and all. */}
-                  <Text size="sm" fw={600} lineClamp={1} ta="center">
-                    {count > 1 ? `${member.name} ×${count}` : member.name}
-                  </Text>
-                </Stack>
-              </Link>
+                <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(member.type)}>
+                  <AssetFace type={member.type} data={member.data} name={member.name} width={900} />
+                </CanvasScale>
+              </OpenableTile>
             ))}
-          </div>
-          {copiesLeftOut > 0 ? (
+          </TileGrid>
+          {note ? (
             <Text size="sm" c="dimmed">
-              Showing the first {DUPLICATED_TILE_CAP} copies; another {copiesLeftOut} are not drawn. The each-once view
-              shows every one with its count.
-            </Text>
-          ) : null}
-          {truncated ? (
-            <Text size="sm" c="dimmed">
-              Showing the first {members.length} distinct {noun}; this one holds more.
+              {note}
             </Text>
           ) : null}
         </>
@@ -452,6 +442,7 @@ function slotLabel(slot: string): string {
  * a deck gets its composition first.
  * A lookup rather than a switch, so a new type is one entry and the route never learns about it.
  */
+/* This table doubles as the container registry: a type listed here also gets the slim rail and the rail-side Shipped by. A future type wanting a body region without the container arrangement needs the registry split first. */
 const PER_TYPE_BODY: Record<string, (page: AssetPage, duplicated: boolean) => ReactNode> = {
   /* Both container types lead with the grid; who ships them moved to the rail with the preview (Norbert, 2026-08-22). */
   deck: (page, duplicated) => (
@@ -647,16 +638,8 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                   icon={<Copy size={17} aria-hidden />}
                   onClick={() =>
                     void navigate({
-                      /* Functional, the browse controls' shape: a future search param must survive the toggle. */
-                      search: (previous) => {
-                        const next = { ...previous };
-                        if (duplicated) {
-                          next.copies = 'once';
-                        } else {
-                          delete next.copies;
-                        }
-                        return next;
-                      },
+                      /* Functional, the browse controls' shape: a future search param must survive the toggle, and an undefined value is how absence-is-default is spelled. */
+                      search: (previous) => ({ ...previous, copies: duplicated ? ('once' as const) : undefined }),
                       replace: true,
                     })
                   }

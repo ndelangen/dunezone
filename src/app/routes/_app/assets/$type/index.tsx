@@ -1,11 +1,13 @@
 import { Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
+import { OpenableTile } from '@ui/block/OpenableTile';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Plus, Search } from 'lucide-react';
@@ -15,8 +17,6 @@ import { loadAssetBrowsePage, useAssetBrowsePage } from '@app/db/assets';
 import type { AssetBrowseEntry } from '@app/db/assets';
 import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 
-/* Relative rather than aliased, so the orphan checker can resolve who imports this sheet. */
-import tiles from '../../../../ui/surface/openableTileGrid.module.css';
 import { applyAssetBrowseSearch, ASSET_BROWSE_SORTS, parseAssetBrowseSearch } from './-browse';
 import type { AssetBrowseSearch } from './-browse';
 import styles from './index.module.css';
@@ -169,11 +169,11 @@ function AssetTypePage() {
               </Text>
             </Stack>
           ) : (
-            <div className={tiles.grid}>
+            <TileGrid>
               {entries.map((entry) => (
                 <BrowseTile key={entry.id} entry={entry} />
               ))}
-            </div>
+            </TileGrid>
           )}
         </Surface>
       </PageLayout.Content>
@@ -190,24 +190,16 @@ function AssetTypePage() {
  */
 function BrowseTile({ entry }: { entry: AssetBrowseEntry }) {
   return (
-    <Link
-      className={tiles.tile}
-      to="/assets/$type/$slug"
-      params={{ type: entry.type, slug: entry.slug }}
-      aria-label={entry.name}
+    <OpenableTile
+      caption={entry.name}
+      renderRoot={(rootProps) => (
+        <Link {...rootProps} to="/assets/$type/$slug" params={{ type: entry.type, slug: entry.slug }} />
+      )}
     >
-      <Stack gap={6}>
-        <div className={tiles.art}>
-          {/* A container's members stand above it and make the drawing taller, so the canvas is asked for the block's height rather than the face's. */}
-          <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(entry.type, entry.members.length)}>
-            <AssetFace type={entry.type} data={entry.data} name={entry.name} width={900} members={entry.members} />
-          </CanvasScale>
-        </div>
-        {/* Centred on the same axis as the face, so the caption belongs to the art rather than floating beside it. A tile is its render and its name; everything else lives on the detail page (Norbert, 2026-08-21). */}
-        <Text size="sm" fw={600} lineClamp={1} ta="center">
-          {entry.name}
-        </Text>
-      </Stack>
-    </Link>
+      {/* A container's members stand above it and make the drawing taller, so the canvas is asked for the block's height rather than the face's. */}
+      <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(entry.type, entry.members.length)}>
+        <AssetFace type={entry.type} data={entry.data} name={entry.name} width={900} members={entry.members} />
+      </CanvasScale>
+    </OpenableTile>
   );
 }
