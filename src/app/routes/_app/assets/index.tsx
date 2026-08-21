@@ -99,7 +99,8 @@ function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
 
 /** a small overlapping fan of real faces — card-type piles; cards share out the slot width */
 function MiniFan({ entries, slot }: { entries: AssetListEntry[]; slot: number }) {
-  const cardWidth = slot - (entries.length - 1) * FAN_OVERLAP;
+  /* The grid track may shrink below the overlap in the stacked state, so the face width floors at 1px rather than going negative. */
+  const cardWidth = Math.max(1, slot - (entries.length - 1) * FAN_OVERLAP);
   const mid = (entries.length - 1) / 2;
   return (
     <div style={{ position: 'relative', width: slot, height: cardWidth * CARD_ASPECT + 16 }}>
@@ -124,7 +125,7 @@ function MiniFan({ entries, slot }: { entries: AssetListEntry[]; slot: number })
 /** a squared-up pile — decks; the newest deck's cardback on top */
 function DeckPile({ entries, slot }: { entries: AssetListEntry[]; slot: number }) {
   const top = entries[0] as AssetListEntry;
-  const cardWidth = slot - 6;
+  const cardWidth = Math.max(1, slot - 6);
   return (
     <div style={{ position: 'relative', width: slot, height: cardWidth * CARD_ASPECT + 10 }}>
       {[2, 1, 0].map((n) => (
@@ -250,7 +251,7 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
     ) : isCardish ? (
       <MiniFan entries={entries.slice(0, 4)} slot={drawnAt} />
     ) : (
-      <TokenStack entries={entries} width={type === 'token-enhance' ? drawnAt - 26 : TOKEN_PILE_FACE} />
+      <TokenStack entries={entries} width={type === 'token-enhance' ? Math.max(1, drawnAt - 26) : TOKEN_PILE_FACE} />
     );
 
   const body = (

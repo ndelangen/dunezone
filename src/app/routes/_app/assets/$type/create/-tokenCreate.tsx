@@ -57,7 +57,10 @@ export function TokenCreatePage({ type }: { type: string }) {
   const save = () => {
     createAsset.mutate(
       { type, data: draft },
-      { onSuccess: ({ slug }) => void navigate({ to: '/assets/$type/$slug/edit', params: { type, slug } }) }
+      {
+        onSuccess: ({ slug }) =>
+          void navigate({ to: '/assets/$type/$slug/edit', params: { type, slug }, replace: true }),
+      }
     );
   };
 

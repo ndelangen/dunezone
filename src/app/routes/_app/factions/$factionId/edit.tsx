@@ -228,12 +228,9 @@ function FactionEditPage() {
                 label="Delete faction"
                 prompt="Delete faction?"
                 pending={deleteFaction.isPending}
-                onConfirm={() => {
-                  void (async () => {
-                    await deleteFaction.mutateAsync({ id: faction._id });
-                    navigate({ to: '/factions' });
-                  })();
-                }}
+                onConfirm={() =>
+                  deleteFaction.mutate({ id: faction._id }, { onSuccess: () => void navigate({ to: '/factions' }) })
+                }
               />
             ) : null
           }
@@ -250,6 +247,11 @@ function FactionEditPage() {
               onClose={dismissRouteNotice}
             >
               {routeNotice.message}
+            </Alert>
+          ) : null}
+          {deleteFaction.error ? (
+            <Alert color="red" variant="light" role="alert" title="Could not delete">
+              {deleteFaction.error.message}
             </Alert>
           ) : null}
           <FactionEditor

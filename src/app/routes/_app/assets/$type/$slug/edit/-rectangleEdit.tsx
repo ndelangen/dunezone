@@ -196,6 +196,11 @@ function RectangleEditSession({
               {updateAsset.error.message}
             </Alert>
           ) : null}
+          {deletion.error ? (
+            <Alert color="red" variant="light" role="alert" title="Could not delete">
+              {deletion.error.message}
+            </Alert>
+          ) : null}
           {groupActions.error}
           {setTokenBack.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not set the backside">

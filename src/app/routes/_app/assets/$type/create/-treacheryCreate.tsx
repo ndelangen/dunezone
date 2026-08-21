@@ -57,7 +57,7 @@ export function TreacheryCreatePage() {
       { type: 'card-treachery', data: draft },
       {
         onSuccess: ({ slug }) =>
-          void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'card-treachery', slug } }),
+          void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'card-treachery', slug }, replace: true }),
       }
     );
   };

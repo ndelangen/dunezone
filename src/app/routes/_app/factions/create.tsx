@@ -4,17 +4,21 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { defaultFaction } from '@app/widgets/faction-editor/defaultFaction';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
+
+const VALIDATION_HEADER_ID = 'faction-validation-header';
 
 export const Route = createFileRoute('/_app/factions/create')({
   component: CreateFactionPage,
@@ -49,6 +53,8 @@ function CreateFactionPage() {
       });
     },
   });
+  const [settleTick, setSettleTick] = useState(0);
+  const validationHeaderOpen = useValidationHeaderOpen(authoring.editing.warnings.length, settleTick);
 
   const header = (
     <Stack align="center" gap={4}>
@@ -81,7 +87,17 @@ function CreateFactionPage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">{header}</PageLayout.Header>
+      <PageLayout.Header size="compact">
+        {validationHeaderOpen ? (
+          <ValidationHeader
+            id={VALIDATION_HEADER_ID}
+            warnings={authoring.editing.warnings}
+            onFocusWarning={(warning) => viewRef.current?.focusWarning(warning)}
+          />
+        ) : (
+          header
+        )}
+      </PageLayout.Header>
       <PageLayout.Toolbar>
         <AuthoringToolbar
           status={{
@@ -119,6 +135,7 @@ function CreateFactionPage() {
           errors={authoring.persistence.errors}
           isNameBlank={authoring.editing.isNameBlank}
           warnings={authoring.editing.warnings}
+          onSettle={() => setSettleTick((tick) => tick + 1)}
         />
       </PageLayout.Content>
     </PageLayout>

@@ -37,7 +37,10 @@ interface PickedAsset {
 interface AssetPickerCopy {
   searchLabel: string;
   searchPlaceholder: string;
-  /** Shown when nothing of these types exists yet, which is not the same as a search matching nothing. */
+  /**
+   * Shown when nothing is available to choose, which is not the same as a search matching nothing.
+   * `excludeIds` counts: a caller that excludes the edited asset words this around that ("No other tokens of this shape exist yet").
+   */
   emptyMessage: string;
   /** Optional dismissal, rendered only when the caller passes `onCancel`. */
   cancelLabel?: string;

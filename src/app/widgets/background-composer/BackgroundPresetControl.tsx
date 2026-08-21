@@ -7,11 +7,29 @@ import type { BackgroundData } from '@game/data/backgrounds';
 import { BackgroundComposer } from './BackgroundComposer';
 import { BackgroundPresetPicker } from './BackgroundPresetPicker';
 
+/*
+ * Object keys sort before stringifying, so a gradient clone the schema re-emits in shape key order
+ * still equals the preset literal whatever order its author wrote.
+ * Arrays keep their order: colour order and stop order are the contract.
+ */
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonical);
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonical((value as Record<string, unknown>)[key])])
+    );
+  }
+  return value;
+}
+
 /**
  * Value equality for a background, since a preset is only "selected" while the stored value still matches it exactly.
  * Scalars compare field by field;
- * `colors` alone compares by stringify, because a colour element may be a gradient object and a round-tripped clone never satisfies reference equality.
- * Stringifying the whole background would be unsafe, since a clone that round-tripped through the database carries Zod's key order, but `colors` is an array whose element order is the contract, so its stringify is stable.
+ * `colors` alone compares by canonical stringify, because a colour element may be a gradient object and a round-tripped clone never satisfies reference equality or, once the schema re-emits it, key order.
  * Every stock matcher that embeds a background (`sameCardback`, `sameBand`) delegates here rather than restating the split.
  */
 export function sameBackground(a: BackgroundData, b: BackgroundData): boolean {
@@ -20,7 +38,7 @@ export function sameBackground(a: BackgroundData, b: BackgroundData): boolean {
     a.invert === b.invert &&
     a.definition === b.definition &&
     a.influence === b.influence &&
-    JSON.stringify(a.colors) === JSON.stringify(b.colors)
+    JSON.stringify(canonical(a.colors)) === JSON.stringify(canonical(b.colors))
   );
 }
 

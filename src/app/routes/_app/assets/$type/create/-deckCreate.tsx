@@ -55,7 +55,10 @@ export function DeckCreatePage() {
   const save = () => {
     createAsset.mutate(
       { type: 'deck', data: draft },
-      { onSuccess: ({ slug }) => void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'deck', slug } }) }
+      {
+        onSuccess: ({ slug }) =>
+          void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'deck', slug }, replace: true }),
+      }
     );
   };
 

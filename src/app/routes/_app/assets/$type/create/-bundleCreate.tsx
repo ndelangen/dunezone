@@ -56,7 +56,10 @@ export function BundleCreatePage() {
   const save = () => {
     createAsset.mutate(
       { type: 'bundle', data: draft },
-      { onSuccess: ({ slug }) => void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'bundle', slug } }) }
+      {
+        onSuccess: ({ slug }) =>
+          void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'bundle', slug }, replace: true }),
+      }
     );
   };
 

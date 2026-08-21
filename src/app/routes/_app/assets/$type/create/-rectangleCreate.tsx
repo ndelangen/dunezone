@@ -59,7 +59,10 @@ export function RectangleCreatePage() {
   const save = () => {
     createAsset.mutate(
       { type: TYPE, data: draft },
-      { onSuccess: ({ slug }) => void navigate({ to: '/assets/$type/$slug/edit', params: { type: TYPE, slug } }) }
+      {
+        onSuccess: ({ slug }) =>
+          void navigate({ to: '/assets/$type/$slug/edit', params: { type: TYPE, slug }, replace: true }),
+      }
     );
   };
 
