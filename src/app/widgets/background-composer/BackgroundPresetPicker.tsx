@@ -1,10 +1,8 @@
-import { Text, UnstyledButton } from '@mantine/core';
+import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { Brush } from 'lucide-react';
 
 import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 import type { BackgroundData } from '@game/data/backgrounds';
-
-import styles from './BackgroundPresetPicker.module.css';
 
 export type BackgroundPreset = { key: string; label: string; background: BackgroundData };
 
@@ -12,6 +10,9 @@ export type BackgroundPreset = { key: string; label: string; background: Backgro
  * Chooses a Background from named presets by showing them: every option renders through the real background pipeline, so the tile is exactly what the card gets.
  * The Custom tile paints the current value once it diverges from every preset;
  * the caller opens the composer behind it.
+ *
+ * The row, the selected treatment and the dashed reserved spot are `PreviewChoice`'s, which this was the first caller of;
+ * what stays here is the one thing only a background knows, that its preview is a `BackgroundRenderer` at 3:2.
  */
 export function BackgroundPresetPicker({
   presets,
@@ -27,38 +28,27 @@ export function BackgroundPresetPicker({
   customBackground?: BackgroundData;
 }) {
   return (
-    <div className={styles.row}>
-      {presets.map((preset) => (
-        <UnstyledButton
-          key={preset.key}
-          type="button"
-          className={styles.option}
-          aria-pressed={selected === preset.key}
-          onClick={() => onSelect(preset.key)}
-        >
-          <BackgroundRenderer background={preset.background} className={styles.art} />
-          <Text size="xs" fw={selected === preset.key ? 700 : 500} ta="center" mt={4} truncate>
-            {preset.label}
-          </Text>
-        </UnstyledButton>
-      ))}
-      <UnstyledButton
-        type="button"
-        className={styles.option}
-        aria-pressed={selected === 'custom'}
-        onClick={() => onSelect('custom')}
-      >
-        {selected === 'custom' && customBackground ? (
-          <BackgroundRenderer background={customBackground} className={styles.art} />
-        ) : (
-          <div className={styles.customArt}>
-            <Brush size={20} aria-hidden />
-          </div>
-        )}
-        <Text size="xs" fw={selected === 'custom' ? 700 : 500} ta="center" mt={4} truncate>
-          Custom
-        </Text>
-      </UnstyledButton>
-    </div>
+    <PreviewChoice
+      label="Background"
+      value={selected}
+      onChange={onSelect}
+      aspectRatio="3 / 2"
+      options={[
+        ...presets.map((preset) => ({
+          value: preset.key,
+          label: preset.label,
+          preview: <BackgroundRenderer background={preset.background} />,
+        })),
+        {
+          value: 'custom',
+          label: 'Custom',
+          preview:
+            selected === 'custom' && customBackground ? (
+              <BackgroundRenderer background={customBackground} />
+            ) : undefined,
+          emptyHint: <Brush size={20} aria-hidden />,
+        },
+      ]}
+    />
   );
 }

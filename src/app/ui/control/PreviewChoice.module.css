@@ -1,0 +1,73 @@
+/*
+ * Always one row, however many options there are.
+ * `auto-fill` with a `6rem` floor wrapped the last option onto a second line the moment a set had
+ * five entries, which read as two groups rather than one choice (Norbert, 2026-08-20).
+ * `1fr` columns share the width instead, so the tiles narrow together rather than one dropping.
+ */
+.row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--mantine-spacing-sm);
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/*
+ * Only the art and its caption are the button.
+ * An option may carry a control of its own — a deck's stock back narrows to which stock back — and
+ * a select nested inside a button is neither valid nor operable, so `detail` sits below instead.
+ */
+.target {
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+  min-width: 0;
+}
+
+.art,
+.emptyArt {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: var(--mantine-radius-md);
+}
+
+.target[aria-pressed="true"] .art,
+.target[aria-pressed="true"] .emptyArt {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.target:hover .art,
+.target:hover .emptyArt,
+.target:focus-visible .art,
+.target:focus-visible .emptyArt {
+  border-color: var(--mantine-color-dimmed);
+}
+
+.target[aria-pressed="true"]:hover .art,
+.target[aria-pressed="true"]:hover .emptyArt {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+/* A preview fills its tile: it is meant to be what you get, at the tile's shape. */
+.art > * {
+  width: 100%;
+  height: 100%;
+}
+
+/* An option with nothing to show yet: a reserved spot, the dashed convention. */
+.emptyArt {
+  border: 2px dashed var(--mantine-color-dimmed);
+  color: var(--mantine-color-dimmed);
+}
+
+.detail {
+  margin-top: var(--mantine-spacing-xs);
+  min-width: 0;
+}
