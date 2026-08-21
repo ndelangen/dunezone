@@ -1,3 +1,4 @@
+import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import { rulesetInputSchema } from '@shared/rulesets/validation';
 import type { RulesetInput } from '@shared/rulesets/validation';
 import { useQuery } from 'convex/react';
@@ -28,10 +29,14 @@ export type RulesetPageData = {
   viewerAccess: Extract<CollaborativeAccess, { kind: 'ruleset' }>;
 };
 
+/** One asset a ruleset has slotted: enough to name it and link to it, since a slot list is not a catalogue. */
+type RulesetSlottedAsset = { slot: string; asset: { id: string; type: string; slug: string; name: string } };
+
 export type RulesetDetailPageData = RulesetPageData & {
   owner: ProfileSummary | null;
   assignableGroups: AssignedGroupSummary[];
   faqItems: FaqItemWithDetails[];
+  assetSlots: RulesetSlottedAsset[];
 };
 
 function toRulesetPageData(raw: FunctionReturnType<typeof api.rulesets.getBySlug>): RulesetPageData {
@@ -53,6 +58,7 @@ function normalizeRulesetDetailPage(
     owner: raw.owner,
     assignableGroups: raw.assignableGroups,
     faqItems: mapFaqItemsFromConvex(raw.faqItems),
+    assetSlots: raw.assetSlots,
   };
 }
 
@@ -259,6 +265,35 @@ function useRulesetFactionLinkMutation(reference: typeof api.rulesets.addFaction
       mutation.mutate(toArgs(variables), { onSuccess: () => options?.onSuccess?.(), onError: options?.onError }),
     mutateAsync: async (variables: RulesetFactionLink) => await mutation.mutateAsync(toArgs(variables)),
   };
+}
+
+type RulesetAssetSlotLink = { rulesetId: string; assetId: string; slot: RulesetAssetSlot };
+
+/**
+ * Both slot mutations take the same three arguments and differ only in which function they call, so they share one wrapper the way the faction links do.
+ * The snake_case boundary stops here rather than leaking into the routes.
+ */
+function useRulesetAssetSlotMutation(reference: typeof api.rulesets.setAssetSlot) {
+  const mutation = useLiveMutation<{ ruleset_id: string; asset_id: string; slot: string }, unknown>(reference);
+  const toArgs = ({ rulesetId, assetId, slot }: RulesetAssetSlotLink) => ({
+    ruleset_id: rulesetId,
+    asset_id: assetId,
+    slot,
+  });
+  return {
+    ...mutation,
+    mutate: (variables: RulesetAssetSlotLink, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) =>
+      mutation.mutate(toArgs(variables), { onSuccess: () => options?.onSuccess?.(), onError: options?.onError }),
+    mutateAsync: async (variables: RulesetAssetSlotLink) => await mutation.mutateAsync(toArgs(variables)),
+  };
+}
+
+export function useSetRulesetAssetSlot() {
+  return useRulesetAssetSlotMutation(api.rulesets.setAssetSlot);
+}
+
+export function useClearRulesetAssetSlot() {
+  return useRulesetAssetSlotMutation(api.rulesets.clearAssetSlot);
 }
 
 /**

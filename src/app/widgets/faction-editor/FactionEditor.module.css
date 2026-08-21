@@ -1,3 +1,7 @@
+/* This root, .workbench, .connectedTabs, .artifactColumn and .artifactDesk are the values
+   WorkbenchLayout (ui/layout) now owns for every asset editor. This copy stays only because
+   ArtifactProof renders a labelled desk per chapter, which the Layout's rail does not model yet;
+   converging the faction editor onto WorkbenchLayout retires all five classes. */
 .root {
   display: flex;
   flex-direction: column;
@@ -154,20 +158,10 @@
   aspect-ratio: 1;
 }
 
+/* Sizing and clipping come from CanvasScale; this class only decorates the frame. */
 .cardProof {
-  width: 15rem;
-  height: 21.05rem;
-  margin: 0 auto;
-  overflow: hidden;
   border-radius: var(--mantine-radius-md);
   box-shadow: var(--panel-shadow);
-}
-
-.cardCanvas {
-  width: 900px;
-  height: 1263px;
-  transform: scale(0.2666667);
-  transform-origin: top left;
 }
 
 .rulesProof {

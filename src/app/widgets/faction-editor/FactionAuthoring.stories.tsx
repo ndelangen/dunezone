@@ -1,9 +1,11 @@
 import { Box, Stack } from '@mantine/core';
 import preview from '@sb/preview';
+import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
 import { useRef } from 'react';
 
+import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+
 import { factionEntry, representativeFaction } from './FactionAuthoringStoryFixtures';
-import { FactionAuthoringToolbar } from './FactionAuthoringToolbar';
 import { FactionComplexityIndicator } from './FactionComplexityIndicator';
 import { FactionEditor } from './FactionEditor';
 import type { FactionAuthoringViewHandle } from './FactionEditor';
@@ -28,20 +30,23 @@ function FactionAuthoringFixture() {
   return (
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
       <Stack gap="clamp(var(--mantine-spacing-sm), 3vw, var(--mantine-spacing-xl))">
-        <FactionAuthoringToolbar
+        <AuthoringToolbar
           status={{
             isDirty: authoring.editing.isDirty,
             isNameBlank: authoring.editing.isNameBlank,
-            warningCount: authoring.editing.warnings.length,
             saveState: authoring.persistence.saveState,
+          }}
+          copy={{
+            saveLabel: 'Save faction',
+            nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
+            statusMessage: factionAuthoringStatusMessage(authoring.persistence.saveState),
           }}
           actions={{
             onSave: authoring.actions.submit,
-            onReviewWarnings: () => viewRef.current?.focusFirstWarning(),
-            onReview: (trigger) => viewRef.current?.openReview(trigger),
             onReset: authoring.actions.reset,
             onBack: () => undefined,
           }}
+          review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
           centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
         />
         <FactionEditor

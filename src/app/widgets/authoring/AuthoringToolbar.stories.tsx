@@ -1,12 +1,9 @@
-import { Box } from '@mantine/core';
 import preview from '@sb/preview';
 
-import { FactionAuthoringToolbar } from './FactionAuthoringToolbar';
+import { AuthoringToolbar } from './AuthoringToolbar';
 
 const toolbarActions = {
   onSave: () => undefined,
-  onReviewWarnings: () => undefined,
-  onReview: () => undefined,
   onReset: () => undefined,
   onBack: () => undefined,
 };
@@ -14,25 +11,24 @@ const toolbarActions = {
 const cleanStatus = {
   isDirty: false,
   isNameBlank: false,
-  warningCount: 0,
   saveState: 'idle' as const,
+};
+
+const factionCopy = {
+  saveLabel: 'Save faction',
+  nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
+  statusMessage: 'Saving this faction schedules its public assets.',
 };
 
 const cleanToolbar = {
   status: cleanStatus,
+  copy: factionCopy,
   actions: toolbarActions,
 };
 
 const meta = preview.meta({
-  title: 'Faction Authoring Toolbar',
-  component: FactionAuthoringToolbar,
-  decorators: [
-    (Story) => (
-      <Box w="min(78rem, calc(100vw - 2rem))" p="md">
-        <Story />
-      </Box>
-    ),
-  ],
+  title: 'Authoring Toolbar',
+  component: AuthoringToolbar,
   args: cleanToolbar,
   parameters: {
     layout: 'fullscreen',
@@ -47,6 +43,7 @@ export const SaveFailed = meta.story({
   args: {
     ...cleanToolbar,
     status: { ...cleanStatus, isDirty: true, saveState: 'error' },
+    copy: { ...factionCopy, statusMessage: 'Changes were not saved.' },
   },
 });
 
@@ -56,12 +53,15 @@ export const PublishedAndCurrent = meta.story({
     status: {
       ...cleanStatus,
       saveState: 'saved',
-      assetPublishing: {
-        status: 'current',
-        captureStatus: null,
-        publicationHref: '/published/factions/storybook-faction/sheet.pdf',
-        lastPublishedAt: Date.parse('2026-08-04T18:30:00.000Z'),
-      },
+      lastPublishedAt: Date.parse('2026-08-04T18:30:00.000Z'),
     },
+    copy: { ...factionCopy, statusMessage: 'Saved. Publication scheduled. Public assets are current.' },
+  },
+});
+
+export const WithReviewAction = meta.story({
+  args: {
+    ...cleanToolbar,
+    review: { label: 'Review faction sheet', onOpen: () => undefined },
   },
 });

@@ -1,37 +1,20 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
-import { useForm } from '@tanstack/react-form';
+import { useState } from 'react';
 
-import type { Faction } from '@db/factions';
+import type { BackgroundData } from '@game/data/backgrounds';
 
-import { defaultFaction } from './defaultFaction';
-import { FactionFormSectionBackground } from './FactionFormSectionBackground';
+import { BackgroundComposer } from './BackgroundComposer';
 
-function BackgroundStudioFixture({ background }: { background: Faction['background'] }) {
-  const defaultValues: Faction = {
-    ...structuredClone(defaultFaction),
-    background: structuredClone(background),
-  };
-  const form = useForm<
-    Faction,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined
-  >({
-    defaultValues,
-  });
-
+function BackgroundStudioFixture({ background }: { background: BackgroundData }) {
+  const [value, setValue] = useState<BackgroundData>(() => structuredClone(background));
   return (
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
-      <FactionFormSectionBackground form={form} />
+      <BackgroundComposer
+        value={value}
+        onChange={setValue}
+        usedOn="faction sheet · faction token · leader tokens · troops · alliance card"
+      />
     </Box>
   );
 }

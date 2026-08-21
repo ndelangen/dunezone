@@ -75,9 +75,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await loadFactionDraft(page, factionBName);
 
     await page.getByRole('tab', { name: 'Identity & Appearance', exact: true }).click();
-    /* The toolbar count returns the reader to the validation header (wayfinder #485);
+    /* The validation header is open whenever a warning exists, so there is no toolbar count to click through;
        the header's per-source chip is what jumps to and focuses the field. */
-    await page.getByRole('button', { name: '1 field may be incomplete' }).click();
     await page.getByRole('button', { name: 'Faction leader: missing name' }).click();
     const factionLeaderName = page.getByRole('textbox', { name: 'Faction leader name' });
     await expect(factionLeaderName).toBeFocused();

@@ -125,12 +125,38 @@ function backgroundsMatch(left: FactionBackground, right: FactionBackground): bo
   );
 }
 
-function randomPatternImage(random: () => number = Math.random): FactionBackground['image'] {
-  const option = BACKGROUND_PATTERN_CATALOGUE[randomIndex(BACKGROUND_PATTERN_CATALOGUE.length, random)];
-  if (!option) {
+/**
+ * A catalogue entry that differs from what the author already has.
+ *
+ * A random tool that can hand back the current value reads as a dead button, and with a catalogue of N entries it does so roughly one press in N.
+ * `randomizeBackground` has always walked forward from its roll to avoid that;
+ * these partial tools now do the same for the field each one owns.
+ * Undefined only when every entry matches, which means the catalogue cannot express a change.
+ */
+function pickDifferent<T>(
+  entries: readonly T[],
+  random: () => number,
+  isCurrent: (entry: T) => boolean
+): T | undefined {
+  const start = randomIndex(entries.length, random);
+  for (let step = 0; step < entries.length; step += 1) {
+    const entry = entries[(start + step) % entries.length];
+    if (entry && !isCurrent(entry)) {
+      return entry;
+    }
+  }
+  return undefined;
+}
+
+function randomPatternImage(
+  current: FactionBackground['image'],
+  random: () => number = Math.random
+): FactionBackground['image'] {
+  if (BACKGROUND_PATTERN_CATALOGUE.length === 0) {
     throw new Error('The background pattern catalogue must contain at least one pattern');
   }
-  return option.image;
+  const option = pickDifferent(BACKGROUND_PATTERN_CATALOGUE, random, (candidate) => candidate.image === current);
+  return option?.image ?? current;
 }
 
 export function withRandomPattern(
@@ -139,7 +165,7 @@ export function withRandomPattern(
 ): FactionBackground {
   return {
     ...structuredClone(background),
-    image: randomPatternImage(random),
+    image: randomPatternImage(background.image, random),
   };
 }
 
@@ -182,7 +208,14 @@ export function randomizeBackgroundTreatment(
   background: FactionBackground,
   random: () => number = Math.random
 ): FactionBackground {
-  const recipe = RECIPES[randomIndex(RECIPES.length, random)];
+  const recipe = pickDifferent(
+    RECIPES,
+    random,
+    (candidate) =>
+      candidate.invert === background.invert &&
+      candidate.definition === background.definition &&
+      candidate.influence === background.influence
+  );
   if (!recipe) {
     return structuredClone(background);
   }
@@ -198,7 +231,8 @@ export function randomizeBackgroundColors(
   background: FactionBackground,
   random: () => number = Math.random
 ): FactionBackground {
-  const recipe = RECIPES[randomIndex(RECIPES.length, random)];
+  const current = JSON.stringify(background.colors);
+  const recipe = pickDifferent(RECIPES, random, (candidate) => JSON.stringify(candidate.colors) === current);
   if (!recipe) {
     return structuredClone(background);
   }

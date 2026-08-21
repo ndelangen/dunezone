@@ -173,7 +173,7 @@ function GroupDetailPage() {
                   <IconAction
                     label="Edit group settings"
                     variant="light"
-                    color="dune"
+                    color="gray"
                     size="lg"
                     renderRoot={(rootProps) => (
                       <Link {...rootProps} to="/groups/$groupSlug/edit" params={{ groupSlug }} />

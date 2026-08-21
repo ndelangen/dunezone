@@ -226,7 +226,7 @@ function ProfileDetailPage() {
             <IconAction
               label="Edit profile"
               variant="light"
-              color="dune"
+              color="gray"
               size="lg"
               renderRoot={(rootProps) => (
                 <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />

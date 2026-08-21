@@ -77,6 +77,7 @@ export const decalAssetOptions = [
 ].sort((a, b) => a.localeCompare(b)) as readonly string[];
 
 export const logoOptionToLabel = createPathOptionLabeler(logoOptions);
+
 export const decalAssetOptionToLabel = createPathOptionLabeler(decalAssetOptions);
 export const leaderOptionToLabel = createPathOptionLabeler(LEADERS.options);
 export const troopOptionToLabel = createPathOptionLabeler(TROOP.options);

@@ -185,7 +185,7 @@ function FaqDetailPage() {
                     <IconAction
                       label="Cancel editing question"
                       variant="light"
-                      color="dune"
+                      color="gray"
                       size="lg"
                       onClick={() => editingSession.cancelQuestion()}
                       icon={<X size={16} aria-hidden />}
@@ -316,7 +316,7 @@ function FaqDetailPage() {
                             <IconAction
                               label="Cancel editing answer"
                               variant="light"
-                              color="dune"
+                              color="gray"
                               size="lg"
                               onClick={() => editingSession.cancelAnswer()}
                               icon={<X size={16} aria-hidden />}
@@ -360,7 +360,7 @@ function FaqDetailPage() {
                               <IconAction
                                 label="Unmark accepted answer"
                                 variant="light"
-                                color="dune"
+                                color="gray"
                                 size="lg"
                                 onClick={() =>
                                   void faq.setAcceptedAnswer.run({ answerId: null }).catch(() => undefined)

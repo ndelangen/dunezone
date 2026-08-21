@@ -18,14 +18,9 @@ export const RULESET_ASSET_SLOTS = {
   customTokens: { holds: 'bundle', single: false, label: 'Custom token bundles', noun: 'token bundles' },
 } as const satisfies Record<string, { holds: string; single: boolean; label: string; noun: string }>;
 
-/** @public until the pages slice of the assets stack lands (wayfinder #568). */
 export type RulesetAssetSlot = keyof typeof RULESET_ASSET_SLOTS;
 
-/**
- * Presentation order.
- * Single-asset slots first, since they are the ones a ruleset is expected to fill.
- * @public until the pages slice of the assets stack lands (wayfinder #568).
- */
+/** Presentation order. Single-asset slots first, since they are the ones a ruleset is expected to fill. */
 export const RULESET_ASSET_SLOT_ORDER = [
   'treachery',
   'spice',

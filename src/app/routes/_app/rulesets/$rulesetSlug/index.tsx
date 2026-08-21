@@ -11,6 +11,7 @@ import { Section } from '@ui/block/Section';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { IconAction } from '@ui/control/IconAction';
 import { ColumnsWithRailLayout } from '@ui/layout/ColumnsWithRailLayout';
@@ -22,7 +23,6 @@ import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
-  BookOpen,
   CheckCircle2,
   CircleHelp,
   EllipsisVertical,
@@ -87,7 +87,7 @@ function AddFactionPopover({
         <IconAction
           label="Add a faction"
           variant="filled"
-          color="dune"
+          color="gray"
           size="lg"
           disabled={disabled}
           onClick={() => setOpened((current) => !current)}
@@ -432,7 +432,7 @@ function RulesetDetailPage() {
                 <IconAction
                   label="Edit ruleset"
                   variant="light"
-                  color="dune"
+                  color="gray"
                   size="lg"
                   renderRoot={(rootProps) => (
                     <Link {...rootProps} to="/rulesets/$rulesetSlug/edit" params={{ rulesetSlug: r.slug }} />
@@ -548,7 +548,7 @@ function RulesetDetailPage() {
                 the owner is prompted by the settings form, not by a placeholder here.
               */}
               {r.description ? (
-                <Section id="overview" icon={<BookOpen size={20} aria-hidden />} title="About this ruleset">
+                <Section id="overview" icon={<TopicIcon topic="about" size={20} />} title="About this ruleset">
                   <Surface padding="lg">
                     {/* Authored in a textarea, so its own line breaks are the only structure it has. */}
                     <Text className={styles.description}>{r.description}</Text>

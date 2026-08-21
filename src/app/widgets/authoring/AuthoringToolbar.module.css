@@ -37,7 +37,10 @@
   }
 }
 
-@media (max-width: 48em) {
+/* 47.99em, not 48em: FactionSheetReview gates the plane on `min-width: 48em`, so an inclusive
+   max-width here would hide the only control at exactly 48em while the plane still opens.
+   The review panel's own stylesheet partitions the range the same way. */
+@media (max-width: 47.99em) {
   .reviewAction {
     display: none;
   }

@@ -205,7 +205,7 @@ function FactionDetailPage() {
                 <IconAction
                   label="Edit faction"
                   variant="light"
-                  color="dune"
+                  color="gray"
                   size="lg"
                   renderRoot={(rootProps) => (
                     <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
@@ -238,7 +238,7 @@ function FactionDetailPage() {
                 <IconAction
                   label="Open published PDF"
                   variant="light"
-                  color="dune"
+                  color="gray"
                   size="lg"
                   href={assetPublishing.publicationHref}
                   target="_blank"

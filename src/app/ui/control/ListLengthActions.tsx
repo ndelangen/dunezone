@@ -10,7 +10,6 @@ import { IconAction } from './IconAction';
  * Extracted so the treatment is owned once.
  * Nine widgets reach it through `ListLengthActions`, and a picker that opens rather than appends wants the same affordance without the minus beside it (Norbert, 2026-08-20).
  * Takes a `ref` because a picker mounts it as a popover target.
- * @public until the pages slice of the assets stack lands (wayfinder #568).
  */
 export function AddAction({
   label,
