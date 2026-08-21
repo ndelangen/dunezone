@@ -240,17 +240,26 @@ const rectangleFaceSchema = z.object({
 /**
  * Which of a token's two faces to draw.
  * Both token models store their backside identically, so this is one rule rather than one per model.
- * A referenced back returns nothing, since it is another token's front and only the caller holds that token.
+ * A `same` back draws the front, its decided meaning.
+ * A referenced back returns nothing, since it is another token's back and only the caller holds that token.
  */
 function faceForSide<TFace>(
-  parsed: { front: TFace; back?: { mode: 'custom'; face: TFace } | { mode: 'reference' } } | undefined,
+  parsed:
+    | {
+        front: TFace;
+        back?: { mode: 'custom'; face: TFace } | { mode: 'same' } | { mode: 'reference'; asset_id?: string };
+      }
+    | undefined,
   side: AssetFaceSide
 ): TFace | undefined {
   if (!parsed) {
     return undefined;
   }
   if (side === 'back') {
-    return parsed.back?.mode === 'custom' ? parsed.back.face : undefined;
+    if (parsed.back?.mode === 'custom') {
+      return parsed.back.face;
+    }
+    return parsed.back?.mode === 'same' ? parsed.front : undefined;
   }
   return parsed.front;
 }

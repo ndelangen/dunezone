@@ -9,7 +9,7 @@ import {
 import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/publication';
 import { publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
-import { DeckAsset, RectangleTokenAsset, TokenAsset } from '../../src/shared/assets/schema';
+import { authoredCardback, DeckAsset, RectangleTokenAsset, TokenAsset } from '../../src/shared/assets/schema';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 
@@ -32,6 +32,20 @@ export async function publicationJobsForAsset(ctx: PublicationReadCtx, assetType
     .query('publication_jobs')
     .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
     .take(4);
+}
+
+/**
+ * Removes the pending jobs for one publication id, leaving in-progress and completed work alone.
+ * This is how a save that takes a face away stops the pipeline from republishing it («The stored shape of three back modes»);
+ * completed publications stay, per #498's replaced-never-deleted rule.
+ */
+export async function supersedePendingPublication(ctx: MutationCtx, assetType: string, assetId: string) {
+  const jobs = await publicationJobsForAsset(ctx, assetType, assetId);
+  for (const job of jobs) {
+    if (job.status === 'pending') {
+      await ctx.db.delete(job._id);
+    }
+  }
 }
 
 /**
@@ -129,13 +143,24 @@ export async function enqueueAssetPublication(
      * The Cardback is lifted out of the stored deck here rather than carried whole, so the payload is exactly the publication's input.
      * `parseAssetDataForWrite` already validated this row on the way in, so the parse is a total function rather than a guard.
      */
-    case DECK_ASSET_TYPE:
+    case DECK_ASSET_TYPE: {
+      const cardback = authoredCardback(DeckAsset.parse(asset.data).cardback);
+      /*
+       * A reference-mode deck publishes nothing of its own: the resolver serves the target's URL.
+       * Any job pending for a cardback the author replaced with a reference is superseded here, the
+       * same rule a token's back follows below.
+       */
+      if (!cardback) {
+        await supersedePendingPublication(ctx, DECK_ASSET_TYPE, asset._id);
+        return null;
+      }
       return await enqueuePublicationJob(ctx, {
         assetType: DECK_ASSET_TYPE,
         assetId: asset._id,
-        assetData: { assetId: asset._id, slug: asset.slug, cardback: DeckAsset.parse(asset.data).cardback },
+        assetData: { assetId: asset._id, slug: asset.slug, cardback },
         now,
       });
+    }
     /*
      * Every token has two faces and «Token multi-face publication model» publishes them independently, so a save schedules two jobs rather than one.
      * The two face models differ, so the parse differs and the scheduling does not.
@@ -154,7 +179,7 @@ export async function enqueueAssetPublication(
 /** Both token models store their faces the same way, so scheduling them is one function over whatever a face happens to be. */
 type TokenFaces<TFace> = {
   front: TFace;
-  back: { mode: 'custom'; face: TFace } | { mode: 'reference' };
+  back: { mode: 'custom'; face: TFace } | { mode: 'same' } | { mode: 'reference'; asset_id?: string };
 };
 
 /**
@@ -162,9 +187,10 @@ type TokenFaces<TFace> = {
  *
  * The front takes the bare asset id, so a token's primary URL is the same shape as a card's.
  * An authored back takes `{id}.back`, which the target row declares and the id guard admits only for types that do.
- * A referenced back schedules nothing: it is another token's front, and that token publishes it under its own id.
+ * A `same` or `reference` back schedules nothing: the resolver serves the front or the target's own back («What does each back mode publish»).
  *
- * Switching a back from authored to referenced orphans the `.back` object rather than deleting it, which #498 accepted on the grounds that publications are replaced and never deleted.
+ * A save that leaves `custom` mode also supersedes any `.back` job still pending, so the pipeline never republishes a face the author took away («The stored shape of three back modes»).
+ * The completed `.back` object stays, which #498 accepted on the grounds that publications are replaced and never deleted.
  */
 async function enqueueTokenFaces<TFace>(
   ctx: MutationCtx,
@@ -179,14 +205,16 @@ async function enqueueTokenFaces<TFace>(
     assetData: { assetId: asset._id, slug: asset.slug, face: token.front },
     now,
   });
+  const backId = publicationFaceId(asset._id, 'back');
   if (token.back.mode === 'custom') {
-    const backId = publicationFaceId(asset._id, 'back');
     await enqueuePublicationJob(ctx, {
       assetType,
       assetId: backId,
       assetData: { assetId: backId, slug: asset.slug, face: token.back.face },
       now,
     });
+  } else {
+    await supersedePendingPublication(ctx, assetType, backId);
   }
   return front;
 }

@@ -8,6 +8,7 @@ import type { Id } from './_generated/dataModel';
 import { internalQuery, query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { accountStateOf } from './lib/accountLifecycle';
+import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { DECAL_ID_RENAMES, DECAL_SCALE_FACTORS } from './lib/decalRetune';
 import {
   reconcileAnswerActivity,
@@ -59,6 +60,9 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   assets_about_verify_v1: internal.migrations.assets_about_verify_v1,
   account_lifecycle_profiles_v1: internal.migrations.account_lifecycle_profiles_v1,
   account_lifecycle_verify_v1: internal.migrations.account_lifecycle_verify_v1,
+  assets_back_modes_v1: internal.migrations.assets_back_modes_v1,
+  asset_relations_token_back_drop_v1: internal.migrations.asset_relations_token_back_drop_v1,
+  assets_back_modes_verify_v1: internal.migrations.assets_back_modes_verify_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -542,6 +546,80 @@ export const account_lifecycle_verify_v1 = migrations.define({
     }
     if (profile.account_state !== accountStateOf(user)) {
       throw new Error(`Lifecycle mismatch for profile ${profile._id} and user ${user._id}`);
+    }
+  },
+});
+
+/**
+ * Moves every token's back reference into its data («The stored shape of three back modes»).
+ *
+ * A reference whose relation row names a target the new rules honor gains that target's id in `data.back`;
+ * a reference the rules cannot honor (missing row, deleted target, wrong type, or a target whose own back is not authored) rewrites to `same`, the migration policy Norbert set for both invalid classes.
+ * Custom rows pass untouched, so only reference rows are rewritten.
+ */
+export const assets_back_modes_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    if (!TOKEN_ASSET_TYPES.has(row.type)) {
+      return;
+    }
+    const back = tokenBackOf(row.data);
+    if (back?.mode !== 'reference' || typeof back.asset_id === 'string') {
+      return;
+    }
+    const relation = await ctx.db
+      .query('asset_relations')
+      .withIndex('by_from_kind', (q) => q.eq('from_asset_id', row._id).eq('kind', 'token-back'))
+      .first();
+    const target = relation ? await ctx.db.get('assets', relation.to_asset_id) : null;
+    const honored = target !== null && !target.is_deleted && target.type === row.type && hasAuthoredBack(target);
+    const data = row.data as Record<string, unknown>;
+    return {
+      data: {
+        ...data,
+        back: honored ? { mode: 'reference', asset_id: relation!.to_asset_id } : { mode: 'same' },
+      },
+    };
+  },
+});
+
+/** Drops the `token-back` relation rows whose targets `assets_back_modes_v1` moved into the data. */
+export const asset_relations_token_back_drop_v1 = migrations.define({
+  table: 'asset_relations',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    if (row.kind !== 'token-back') {
+      return;
+    }
+    await ctx.db.delete(row._id);
+  },
+});
+
+/**
+ * Proves the move left nothing behind: every token back is one of the three modes, every reference carries its target in data, and no `token-back` relation row remains.
+ * Passing is what makes requiring `asset_id` on the reference member safe in a later release.
+ */
+export const assets_back_modes_verify_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    if (!TOKEN_ASSET_TYPES.has(row.type)) {
+      return;
+    }
+    const back = tokenBackOf(row.data);
+    if (back?.mode !== 'custom' && back?.mode !== 'same' && back?.mode !== 'reference') {
+      throw new Error(`Token ${row._id} has no recognisable back mode`);
+    }
+    if (back.mode === 'reference' && typeof back.asset_id !== 'string') {
+      throw new Error(`Token ${row._id} still references through a relation row`);
+    }
+    const relation = await ctx.db
+      .query('asset_relations')
+      .withIndex('by_from_kind', (q) => q.eq('from_asset_id', row._id).eq('kind', 'token-back'))
+      .first();
+    if (relation) {
+      throw new Error(`Token ${row._id} still has a token-back relation row`);
     }
   },
 });

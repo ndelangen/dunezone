@@ -224,7 +224,7 @@ const tokenData = (name: string) => ({
 });
 
 describe('token backsides', () => {
-  test('a token points at another token of its own shape, and only one at a time', async () => {
+  test('a token points at another token of its own shape, in data rather than in a relation row', async () => {
     const t = convexTest(schema, modules);
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
@@ -236,35 +236,49 @@ describe('token backsides', () => {
     let page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken?.name).toBe('Sietch');
 
-    /* Re-pointing replaces rather than accumulates: the index is not unique, so the mutation clears first. */
+    /* Re-pointing replaces rather than accumulates: the reference is one field on one row. */
     await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: backB.id });
     page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken?.name).toBe('Spice');
 
-    await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: null });
-    page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
-    expect(page?.backToken).toBeNull();
+    /* The reference lives in data now, so no relation row exists to leak or dangle. */
+    const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
+    expect(relations).toEqual([]);
+    const stored = await t.run(async (ctx) => (await ctx.db.get('assets', front.id))?.data);
+    expect((stored as { back: unknown }).back).toEqual({ mode: 'reference', asset_id: backB.id });
+
+    /* Clearing moved to the save path with the mode union. */
+    await expect(owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: null })).rejects.toThrow(
+      'saving another back mode'
+    );
   });
 
-  test('the backside must be the same shape, and never the token itself', async () => {
+  test('the backside must be the same shape with an authored back, and never the token itself', async () => {
     const t = convexTest(schema, modules);
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
     const round = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
     const square = await owner.mutation(api.assets.create, { type: 'token-plate', data: tokenData('Shield') });
+    const unauthored = await owner.mutation(api.assets.create, {
+      type: 'token-disc',
+      data: { ...tokenData('Mirror'), back: { mode: 'same' } },
+    });
 
     await expect(owner.mutation(api.assets.setTokenBack, { id: round.id, back_asset_id: square.id })).rejects.toThrow(
       'must also be a token-disc'
     );
     await expect(owner.mutation(api.assets.setTokenBack, { id: round.id, back_asset_id: round.id })).rejects.toThrow(
-      'cannot be its own backside'
+      'same-front-and-back'
     );
+    await expect(
+      owner.mutation(api.assets.setTokenBack, { id: round.id, back_asset_id: unauthored.id })
+    ).rejects.toThrow('authored back');
     await expect(owner.mutation(api.assets.setTokenBack, { id: created.id, back_asset_id: round.id })).rejects.toThrow(
       'has no backside'
     );
   });
 
-  test('a soft-deleted backside stops resolving without touching the relation', async () => {
+  test('a soft-deleted backside stops resolving at read time', async () => {
     const t = convexTest(schema, modules);
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
@@ -276,8 +290,49 @@ describe('token backsides', () => {
 
     const page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
     expect(page?.backToken).toBeNull();
-    const relations = await t.run(async (ctx) => await ctx.db.query('asset_relations').collect());
-    expect(relations).toHaveLength(1);
+    /* The stored reference stays: dangling is a read-time judgement, the soft-delete rule for every kind. */
+    const stored = await t.run(async (ctx) => (await ctx.db.get('assets', front.id))?.data);
+    expect((stored as { back: { asset_id?: string } }).back.asset_id).toBe(back.id);
+  });
+
+  test('an ordinary save preserves the picked reference the draft cannot carry', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
+    const back = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Sietch') });
+    await owner.mutation(api.assets.setTokenBack, { id: front.id, back_asset_id: back.id });
+
+    /* Today's editor drafts carry the mode alone; the save path must not lose the target over that. */
+    await owner.mutation(api.assets.update, {
+      id: front.id,
+      data: { ...tokenData('Axlotl'), back: { mode: 'reference' } },
+    });
+
+    const page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
+    expect(page?.backToken?.name).toBe('Sietch');
+  });
+
+  test('leaving custom mode supersedes the pending back job and schedules no new one', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
+
+    const backJobs = async () =>
+      await t.run(async (ctx) =>
+        (await ctx.db.query('publication_jobs').collect()).filter((job) => job.asset_id.endsWith('.back'))
+      );
+    expect(await backJobs()).toHaveLength(1);
+
+    await owner.mutation(api.assets.update, {
+      id: front.id,
+      data: { ...tokenData('Axlotl'), back: { mode: 'same' } },
+    });
+
+    expect(await backJobs()).toEqual([]);
+    const page = await t.query(api.assets.getPage, { type: 'token-disc', slug: 'axlotl' });
+    expect(page?.resolvedBack).toMatchObject({ mode: 'same' });
   });
 });
 
@@ -663,5 +718,70 @@ describe('bundles', () => {
     expect(await t.run(async (ctx) => await ctx.db.query('publication_jobs').collect())).toEqual([]);
     const page = await t.query(api.assets.getPage, { type: 'bundle', slug: 'tech-tokens' });
     expect(page?.assetPublishing).toBeNull();
+  });
+});
+
+describe('deck cardback references', () => {
+  test("a deck may wear another deck's authored cardback, publishing nothing of its own", async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
+    const owner = t.withIdentity({ subject: ownerId });
+    const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('Source') });
+    const wearer = await owner.mutation(api.assets.create, {
+      type: 'deck',
+      data: { name: 'Wearer', about: '', cardback: { mode: 'reference', asset_id: source.id } },
+    });
+
+    /* Only the authored deck publishes; the reference deck's URL is the resolver's to hand out. */
+    const jobs = await t.run(async (ctx) => await ctx.db.query('publication_jobs').collect());
+    expect(jobs.map((job) => job.asset_id)).toEqual([source.id]);
+
+    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
+    expect(page?.resolvedBack).toMatchObject({ mode: 'reference' });
+
+    /* List surfaces present the target's composition, so tiles render unchanged. */
+    const entries = await t.query(api.assets.listByTypes, { types: ['deck'] });
+    const presented = entries.find((entry) => entry.id === wearer.id);
+    const presentedData = presented?.data as { cardback: { name?: string } | null } | undefined;
+    expect(presentedData?.cardback?.name).toBe('Treachery');
+  });
+
+  test('a reference must name a deck whose cardback is authored', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
+    const owner = t.withIdentity({ subject: ownerId });
+    const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('Source') });
+    const wearer = await owner.mutation(api.assets.create, {
+      type: 'deck',
+      data: { name: 'Wearer', about: '', cardback: { mode: 'reference', asset_id: source.id } },
+    });
+
+    await expect(
+      owner.mutation(api.assets.create, {
+        type: 'deck',
+        data: { name: 'Chained', about: '', cardback: { mode: 'reference', asset_id: wearer.id } },
+      })
+    ).rejects.toThrow('authored cardback');
+  });
+
+  test('a dangling deck reference presents no composition and resolves to the static fallback', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
+    const owner = t.withIdentity({ subject: ownerId });
+    const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('Source') });
+    const wearer = await owner.mutation(api.assets.create, {
+      type: 'deck',
+      data: { name: 'Wearer', about: '', cardback: { mode: 'reference', asset_id: source.id } },
+    });
+
+    await owner.mutation(api.assets.softDelete, { id: source.id });
+
+    const entries = await t.query(api.assets.listByTypes, { types: ['deck'] });
+    const presented = entries.find((entry) => entry.id === wearer.id);
+    const presentedData = presented?.data as { cardback: unknown } | undefined;
+    expect(presentedData?.cardback).toBeNull();
+
+    const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
+    expect(page?.resolvedBack).toEqual({ mode: 'dangling', href: '/web/no-deck-back.svg' });
   });
 });
