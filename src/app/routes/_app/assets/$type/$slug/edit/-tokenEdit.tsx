@@ -25,6 +25,7 @@ import {
   useAssetDeletion,
   useAssetGroupActions,
 } from '../../../-assetEditorStates';
+import { referencedTokenBackFace } from './-referencedBackFace';
 
 const VALIDATION_HEADER_ID = 'token-validation-header';
 
@@ -126,8 +127,8 @@ function TokenEditSession({
       ? [{ source: 'Backside', complaint: 'its referenced token is gone', chapter: 'identity' as TokenChapter }]
       : []),
   ];
-  /* The referenced token's data is another asset's, so it gets the same distrust as our own: a back that no longer parses shows a note, never a crash. */
-  const parsedBack = backToken ? TokenAsset.safeParse(backToken.data) : null;
+  /* The proof draws what was picked, which is the target's authored back, never its front; the shared reader carries the distrust. */
+  const referencedBack = backToken ? referencedTokenBackFace(backToken.data) : null;
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -254,13 +255,13 @@ function TokenEditSession({
             backProof={
               backToken ? (
                 <Stack gap={4} align="center" w="100%">
-                  {parsedBack?.success ? (
+                  {referencedBack ? (
                     <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(backToken.type)}>
-                      <TokenProof face={parsedBack.data.front} type={backToken.type} width={900} />
+                      <TokenProof face={referencedBack} type={backToken.type} width={900} />
                     </CanvasScale>
                   ) : (
                     <Text size="xs" c="dimmed">
-                      Its stored data no longer parses, so its face cannot be shown here.
+                      Its stored back can no longer be read as an authored back, so it cannot be shown here.
                     </Text>
                   )}
                   <Text size="xs" c="dimmed">

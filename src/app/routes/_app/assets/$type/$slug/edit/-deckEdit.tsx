@@ -79,12 +79,21 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
     );
   }
 
-  /* A reference-mode cardback has no composition to edit; the editor that understands it lands with the back-picker slice. */
+  /*
+   * A reference-mode cardback has no composition to edit; the editor that understands it lands with the back-picker slice.
+   * Until then the bail is where the dangling complaint lives, read from the server's one answer the way the token routes read danglingBack;
+   * when the tile editor makes reference decks editable, the complaint moves into the session's validation header and this branch goes with the bail.
+   */
   const cardback = authoredCardback(parsed.data.cardback);
   if (!cardback) {
+    const dangling = data.resolvedBack?.mode === 'dangling';
     return (
       <DriftedAssetPage asset={data.asset} noun="deck" canDelete={data.viewerAccess.capabilities.delete}>
-        <Text>This deck's cardback references another deck, which this editor cannot edit yet.</Text>
+        <Text>
+          {dangling
+            ? "This deck's cardback referenced a deck that is gone, and this editor cannot repair it yet."
+            : "This deck's cardback references another deck, which this editor cannot edit yet."}
+        </Text>
       </DriftedAssetPage>
     );
   }
