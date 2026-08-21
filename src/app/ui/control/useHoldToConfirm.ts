@@ -54,7 +54,9 @@ export function useHoldToConfirm({ pending, onConfirm }: { pending: boolean; onC
   const onConfirmRef = useRef(onConfirm);
   onConfirmRef.current = onConfirm;
   const startHold = () => {
-    if (pending || submitted || timer.current) {
+    /* One name for the three reasons a hold may not start: the caller is busy, a fired hold awaits its pending, or a countdown already runs. */
+    const blocked = pending || submitted || timer.current !== null;
+    if (blocked) {
       return;
     }
     secondsLeft.current = HOLD_SECONDS;

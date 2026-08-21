@@ -41,8 +41,11 @@ test('membership lifecycle: request, approve, moderate, remove', async ({ page, 
   });
 
   await test.step('owner removes the member', async () => {
-    page.on('dialog', (dialog) => void dialog.accept());
-    await page.getByRole('button', { name: 'Remove member' }).click();
+    /* Removal is held, not asked: the confirm dialog left with the hold conversion. */
+    await page.getByRole('button', { name: 'Remove member' }).hover();
+    await page.mouse.down();
+    await page.waitForTimeout(5200);
+    await page.mouse.up();
     await expect(page.getByRole('button', { name: 'Remove member' })).not.toBeVisible();
   });
 
