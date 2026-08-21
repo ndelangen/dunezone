@@ -12,4 +12,7 @@
 
 .body {
   min-width: 0;
+
+  /* A rail card meets unbreakable names (a ruleset called after its expansion, a group named in one word); wrapping anywhere beats clipping at the pane border, the same call the asset title made. */
+  overflow-wrap: anywhere;
 }
