@@ -5,7 +5,7 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
 import { configDefaults, defineConfig } from 'vitest/config';
 
-import { coverageExclude, coverageInclude } from './coverage-denominator';
+import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
 
 /**
  * Codecov's bundle-report normalizer wildcards from the first `-` to the next `.`, so a dash or dot inside a base name either collapses distinct files into one normalized name (lato-latin-300-normal -> lato-*) or leaves the hash un-wildcarded (floating-ui.react-dom-<hash>).
