@@ -27,7 +27,7 @@ const JITTER_LEFT = [3, -4, 2, -3, 4];
 /** the slot width a pile is drawn at when the row has room for it in full */
 const PILE_SLOT = 150;
 /** horizontal shift per extra card in a fan; slight, so the faces keep the placeholder's size rather than sharing the slot out (Norbert, 2026-08-21) */
-const FAN_OVERLAP = 8;
+const FAN_OVERLAP = 6;
 /** how many cards a pile's fan shows; three reads as a pile without shrinking anyone */
 const FAN_COUNT = 3;
 

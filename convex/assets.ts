@@ -6,6 +6,7 @@ import {
   PUBLICATION_TARGETS,
   publicationFaceId,
 } from '../src/shared/asset-publishing/publicationTargets';
+import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
@@ -122,12 +123,14 @@ async function presentedData(ctx: QueryCtx, row: Doc<'assets'>, deckBacks: Map<I
   return { ...(row.data as Record<string, unknown>), cardback: target ? authoredDeckCardback(target) : null };
 }
 
-const RECENT_LIMIT = 24;
+/* Enough for the deepest pile: the masthead fan draws five, the token stacks four. */
+const RECENT_PER_TYPE = 5;
 const PER_TYPE_LIMIT = 200;
 
 /**
- * The `/assets` landing: newest assets across every type.
+ * The `/assets` landing: the newest few assets of every type.
  * It carried per-type counts over a thousand-row scan until the landing stopped showing numbers, a pile being its art and its name (Norbert, 2026-08-21), so now it reads exactly the rows it draws.
+ * Per type rather than one newest-overall window, because a shared window starves quiet types: a burst of new cards would push an older type out entirely and its pile would claim "none yet" about assets that exist.
  */
 export const cataloguePage = query({
   args: {},
@@ -135,17 +138,24 @@ export const cataloguePage = query({
     recent: v.array(assetListEntryValidator),
   }),
   handler: async (ctx) => {
-    const rows = await ctx.db
-      .query('assets')
-      .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-      .order('desc')
-      .take(RECENT_LIMIT);
+    const rows: Doc<'assets'>[] = [];
+    for (const type of ASSET_TYPE_KEYS) {
+      rows.push(
+        ...(await ctx.db
+          .query('assets')
+          .withIndex('by_type_deleted', (q) => q.eq('type', type).eq('is_deleted', false))
+          .order('desc')
+          .take(RECENT_PER_TYPE))
+      );
+    }
+    rows.sort((a, b) => b._creationTime - a._creationTime);
 
-    /* Sequential like the other list readers, so the memo fills before the rows that would hit it. */
+    /* Sequential like the other list readers, so the memos fill before the rows that would hit them. */
     const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+    const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
     const recent = [];
     for (const row of rows) {
-      recent.push(await toListEntry(ctx, row, undefined, { deckBacks }));
+      recent.push(await toListEntry(ctx, row, owners, { deckBacks }));
     }
     return { recent };
   },

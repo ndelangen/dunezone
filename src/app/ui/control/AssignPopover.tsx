@@ -1,6 +1,6 @@
 import { Alert, Combobox, Popover, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 interface AssignPopoverOption {
@@ -109,7 +109,12 @@ function AssignPopoverBody({
 }) {
   const { error, isAssigning, commit } = useAssignCommit({ noun, options, onAssign, onAssigned });
   const [search, setSearch] = useState('');
-  const combobox = useCombobox();
+  /* No Dropdown is mounted, so "opened" changes nothing visually; it is what lets Enter submit the highlighted option, which Mantine gates on the dropdown state. */
+  const combobox = useCombobox({ defaultOpened: true });
+  /* After the filtered list re-renders, not in onChange: selecting synchronously would highlight against the stale options still in the DOM. */
+  useEffect(() => {
+    combobox.selectFirstOption();
+  }, [combobox, search]);
   const needle = search.trim().toLowerCase();
   const matching = needle ? options.filter((option) => option.label.toLowerCase().includes(needle)) : options;
   const hasOptions = !loading && options.length > 0;
@@ -141,7 +146,7 @@ function AssignPopoverBody({
         /* One floating layer only, the pickers' rule: the options render inline in the pane
            (Combobox without dropdown), never as a second popover. Choosing one IS the commit —
            the pick is the whole reason the reader opened this (Norbert, 2026-08-21). */
-        <Combobox store={combobox} onOptionSubmit={(value) => void commit(value)} disabled={disabled || isAssigning}>
+        <Combobox store={combobox} onOptionSubmit={(value) => void commit(value)}>
           <Combobox.EventsTarget>
             <TextInput
               aria-label={searchLabel ?? `Search ${noun}s`}
@@ -160,7 +165,6 @@ function AssignPopoverBody({
               disabled={disabled || isAssigning}
               onChange={(event) => {
                 setSearch(event.currentTarget.value);
-                combobox.selectFirstOption();
               }}
             />
           </Combobox.EventsTarget>
