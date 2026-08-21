@@ -21,15 +21,23 @@ export interface SectionedSurfaceProps {
  * Prefer this over stacking several `Surface`s: dividing one pane is how a collection stays a single object, and surfaces never nest.
  */
 export function SectionedSurface({ children }: SectionedSurfaceProps) {
+  /* Hover highlight promises a click, so it lives on the interactive rows themselves rather than
+     on the table: a table-level highlight glows every row once any row activates, and a purely
+     informational row beside an activatable one must stay still under the pointer. */
   return (
     <Surface className={styles.surface}>
-      <Table withRowBorders highlightOnHover horizontalSpacing="md" verticalSpacing="md" className={styles.list}>
+      <Table withRowBorders horizontalSpacing="md" verticalSpacing="md" className={styles.list}>
         <Table.Tbody>{children}</Table.Tbody>
       </Table>
     </Surface>
   );
 }
 
+/*
+ * Rows must be direct `SectionedSurface.Row` children: the interactive treatment keys on the element
+ * type, so a row reaching this table through a caller's wrapper component or a Fragment renders
+ * without its activation affordances rather than failing loudly.
+ */
 interface SectionedSurfaceRowProps {
   /**
    * The entry, as one slot.

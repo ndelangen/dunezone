@@ -12,6 +12,17 @@ export interface ConnectedTabsItem<Value extends string> {
   value: Value;
   /** Words, so a string: the narrow layout puts this same text inside a native select. */
   label: string;
+  /**
+   * A simple, single-colour icon, and nothing else.
+   *
+   * Never a rendered artifact, a live preview of the panel's content, or an image of an authored asset.
+   * Four editors had drifted into using the tab as a second proof, and each read as clever alone and as noise in a row of tabs.
+   * The rail beside an editor is where a proof belongs (Norbert, 2026-08-20).
+   *
+   * In practice: a lucide component, or a `TopicIcon` for a chapter concept that recurs across editors.
+   * Both draw in `currentColor`, and `identity`, `about` and `contents` are already mapped.
+   * The rule is "A tab icon is an icon, never a proof" in docs/technical/ui-design-decisions.md.
+   */
   icon: ReactNode;
   indicator?: ReactNode;
   disabled?: boolean;

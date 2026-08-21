@@ -39,7 +39,7 @@ export const InheritedColor = meta.story({
   render: (args) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 24, color: '#c2410c' }}>
       <TopicIcon {...args} />
-      <TopicIcon topic="background" size={args.size} />
+      <TopicIcon topic="face" size={args.size} />
     </div>
   ),
 });
