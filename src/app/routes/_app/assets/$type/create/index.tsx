@@ -15,6 +15,9 @@ import { TreacheryCreatePage } from './-treacheryCreate';
  * That is the whole reason it is a param route rather than one literal per type: without it, `/assets/deck/create` would resolve to a detail page for an asset slugged "create".
  */
 export const Route = createFileRoute('/_app/assets/$type/create/')({
+  /* PROTOTYPE (wayfinder #594): lets ?variant= survive navigation. */
+  validateSearch: (search: Record<string, unknown>): { variant?: string } =>
+    typeof search.variant === 'string' ? { variant: search.variant } : {},
   loader: ({ params }) => {
     if (!isAssetType(params.type)) {
       throw notFound();

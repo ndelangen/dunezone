@@ -36,6 +36,11 @@ export default defineMain({
       directory: '../src/app/widgets/background-composer',
       titlePrefix: 'Widgets/Background Composer',
     },
+    /* PROTOTYPE (wayfinder #594): throwaway branch only, hosts the back-section variants. */
+    {
+      directory: '../src/app/widgets/token-editor',
+      titlePrefix: 'Widgets/Token Editor',
+    },
     {
       directory: '../src/app/ui/block',
       titlePrefix: 'Blocks',

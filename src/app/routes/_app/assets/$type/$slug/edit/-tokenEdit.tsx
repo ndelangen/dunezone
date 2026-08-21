@@ -1,7 +1,7 @@
 import { Alert, Anchor, Button, Group, Popover, Stack, Text } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
@@ -16,6 +16,8 @@ import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
+import { BACK_MODE_VARIANTS } from '@app/widgets/token-editor/BackModesPrototype';
+import { PrototypeSwitcher } from '@app/widgets/token-editor/PrototypeSwitcher';
 import { TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
 
@@ -100,6 +102,9 @@ function TokenEditSession({
   backToken: NonNullable<AssetPageData>['backToken'];
   initialDraft: TokenDraft;
 }) {
+  /* PROTOTYPE (wayfinder #594). */
+  const backVariant = (useSearch({ strict: false }) as { variant?: string }).variant;
+  const prototypeNavigate = useNavigate();
   const navigate = useNavigate();
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
@@ -197,6 +202,7 @@ function TokenEditSession({
             </Alert>
           ) : null}
           <TokenEditor
+            backVariant={backVariant}
             draft={draft}
             patch={patch}
             type={type}
@@ -258,6 +264,14 @@ function TokenEditSession({
           />
         </WorkbenchLayout>
       </PageLayout.Content>
+      {/* PROTOTYPE (wayfinder #594): flips the Backside block between candidates. */}
+      {backVariant ? (
+        <PrototypeSwitcher
+          variants={BACK_MODE_VARIANTS}
+          current={backVariant}
+          onChange={(key) => prototypeNavigate({ to: '.', search: { variant: key } })}
+        />
+      ) : null}
     </PageLayout>
   );
 }

@@ -15,6 +15,9 @@ import { TreacheryEditPage } from './-treacheryEdit';
  * The loader reads by the type in the URL rather than a literal, so a new type needs a branch below and no new route.
  */
 export const Route = createFileRoute('/_app/assets/$type/$slug/edit/')({
+  /* PROTOTYPE (wayfinder #594): lets ?variant= survive navigation while the back-section variants are being judged. */
+  validateSearch: (search: Record<string, unknown>): { variant?: string } =>
+    typeof search.variant === 'string' ? { variant: search.variant } : {},
   loader: async ({ params }) => {
     if (!isAssetType(params.type)) {
       throw notFound();

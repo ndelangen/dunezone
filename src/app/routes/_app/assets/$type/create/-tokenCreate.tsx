@@ -1,6 +1,6 @@
 import { Alert, Anchor, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -11,6 +11,8 @@ import { useCreateAsset } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
+import { BACK_MODE_VARIANTS } from '@app/widgets/token-editor/BackModesPrototype';
+import { PrototypeSwitcher } from '@app/widgets/token-editor/PrototypeSwitcher';
 import { initialTokenDraft, TokenEditor, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
 
@@ -24,6 +26,8 @@ const VALIDATION_HEADER_ID = 'token-validation-header';
  */
 export function TokenCreatePage({ type }: { type: string }) {
   const navigate = useNavigate();
+  /* PROTOTYPE (wayfinder #594). */
+  const backVariant = (useSearch({ strict: false }) as { variant?: string }).variant;
   const profile = useCurrentProfile();
   const createAsset = useCreateAsset();
   const initialDraft = initialTokenDraft(type);
@@ -97,6 +101,7 @@ export function TokenCreatePage({ type }: { type: string }) {
             </Alert>
           ) : null}
           <TokenEditor
+            backVariant={backVariant}
             draft={draft}
             patch={patch}
             type={type}
@@ -112,6 +117,14 @@ export function TokenCreatePage({ type }: { type: string }) {
           />
         </WorkbenchLayout>
       </PageLayout.Content>
+      {/* PROTOTYPE (wayfinder #594). */}
+      {backVariant ? (
+        <PrototypeSwitcher
+          variants={BACK_MODE_VARIANTS}
+          current={backVariant}
+          onChange={(key) => navigate({ to: '.', search: { variant: key } })}
+        />
+      ) : null}
     </PageLayout>
   );
 }

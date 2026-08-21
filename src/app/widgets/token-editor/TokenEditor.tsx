@@ -22,6 +22,8 @@ import {
 import { CustomToken } from '@game/assets/token/Custom';
 import { backgroundPresets } from '@game/data/backgrounds';
 
+import { BackModesVariant, useBackModePrototype } from './BackModesPrototype';
+
 /**
  * The size the rail's proof is drawn at before `CanvasScale` fits it to the rail.
  * Any number does.
@@ -242,6 +244,7 @@ export function TokenEditor({
   onSettle,
   backPicker,
   backProof,
+  backVariant,
 }: {
   draft: TokenDraft;
   patch: (update: Partial<TokenDraft>) => void;
@@ -257,7 +260,10 @@ export function TokenEditor({
   backPicker: (disabled: boolean) => ReactNode;
   /** The referenced token's front, drawn in the rail in place of an authored back. */
   backProof: ReactNode;
+  /** PROTOTYPE (wayfinder #594): when set, the Backside block is replaced by that variant. */
+  backVariant?: string;
 }) {
+  const [protoMode, setProtoMode] = useBackModePrototype(draft);
   const patchFace = (key: 'front' | 'back'): FacePatch =>
     key === 'front'
       ? (update) => patch({ front: { ...draft.front, ...update } })
@@ -284,31 +290,43 @@ export function TokenEditor({
               />
             }
           />
-          <ControlBlock
-            title="Backside"
-            description="Every token has one. Author it here, or point at a token that already exists."
-            input={
-              <Stack gap="sm">
-                <Switch
-                  aria-label="Custom"
-                  label="Custom"
-                  checked={draft.back.mode === 'custom'}
-                  onChange={(event) =>
-                    patch({
-                      back: event.currentTarget.checked
-                        ? {
-                            mode: 'custom',
-                            face: draft.back.mode === 'custom' ? draft.back.face : initialTokenFace(type),
-                          }
-                        : { mode: 'reference' },
-                    })
-                  }
-                />
-                {/* Always present, inert while the back is authored here: the alternative stays visible instead of the control disappearing under the toggle. */}
-                {backPicker(draft.back.mode === 'custom')}
-              </Stack>
-            }
-          />
+          {/* PROTOTYPE seam (wayfinder #594): ?variant= swaps this block for one of three candidates. */}
+          {backVariant ? (
+            <BackModesVariant
+              variant={backVariant}
+              draft={draft}
+              type={type}
+              backPicker={backPicker}
+              mode={protoMode}
+              setMode={setProtoMode}
+            />
+          ) : (
+            <ControlBlock
+              title="Backside"
+              description="Every token has one. Author it here, or point at a token that already exists."
+              input={
+                <Stack gap="sm">
+                  <Switch
+                    aria-label="Custom"
+                    label="Custom"
+                    checked={draft.back.mode === 'custom'}
+                    onChange={(event) =>
+                      patch({
+                        back: event.currentTarget.checked
+                          ? {
+                              mode: 'custom',
+                              face: draft.back.mode === 'custom' ? draft.back.face : initialTokenFace(type),
+                            }
+                          : { mode: 'reference' },
+                      })
+                    }
+                  />
+                  {/* Always present, inert while the back is authored here: the alternative stays visible instead of the control disappearing under the toggle. */}
+                  {backPicker(draft.back.mode === 'custom')}
+                </Stack>
+              }
+            />
+          )}
         </>
       ),
     },
