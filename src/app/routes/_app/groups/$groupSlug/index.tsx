@@ -517,6 +517,7 @@ function MemberRow({
           <ConfirmDeleteAction
             label="Remove member"
             verb="remove"
+            size="md"
             pending={moderationBusy}
             onConfirm={() => onRemove(entry.membershipId)}
             icon={<UserRoundMinus size={15} aria-hidden />}

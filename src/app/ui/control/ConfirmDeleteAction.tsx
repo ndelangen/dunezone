@@ -26,6 +26,8 @@ export interface ConfirmDeleteActionProps {
   icon?: ReactNode;
   /** Disables the trigger entirely, for callers whose action is sometimes unavailable rather than in flight. */
   disabled?: boolean;
+  /** The trigger's size — `lg` for toolbars, smaller where the hold sits in a dense row among same-sized neighbours. */
+  size?: 'sm' | 'md' | 'lg';
 }
 
 /** What the countdown announces per verb: "deletion in 4..", "removal in 4..". */
@@ -47,6 +49,7 @@ export function ConfirmDeleteAction({
   verb = 'delete',
   icon,
   disabled = false,
+  size = 'lg',
 }: ConfirmDeleteActionProps) {
   const { holding, remaining, submitted, handlers } = useHoldToConfirm({ pending, onConfirm });
   return (
@@ -56,7 +59,7 @@ export function ConfirmDeleteAction({
       tooltipOpened={holding ? true : undefined}
       variant="light"
       color="red"
-      size="lg"
+      size={size}
       disabled={disabled}
       loading={pending || submitted}
       {...handlers}
