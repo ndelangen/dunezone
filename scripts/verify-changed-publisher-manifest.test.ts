@@ -116,6 +116,18 @@ describe('changed publisher manifest check', () => {
     expect(readFileSync(current.callLog, 'utf8')).toBe('run publisher:dry-run\n');
   });
 
+  test('checks an untracked Renderer input before it is added to Git', () => {
+    const current = fixture();
+    const assetPath = path.join(current.root, 'public', 'new-renderer-asset.svg');
+    mkdirSync(path.dirname(assetPath), { recursive: true });
+    writeFileSync(assetPath, '<svg />\n');
+
+    const result = runCheck(current);
+
+    expect(result.status).toBe(0);
+    expect(readFileSync(current.callLog, 'utf8')).toBe('run publisher:dry-run\n');
+  });
+
   test('fails with the repair command when code generation changes the tracked manifest', () => {
     const current = fixture();
     commitChange(current.root, 'workers/publisher/capture.ts', 'export const capture = true;\n');

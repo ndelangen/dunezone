@@ -63,9 +63,11 @@ function main() {
   const explicitBase = parseBaseArgument(process.argv.slice(2));
   const baseRef = resolveBaseRef(explicitBase);
   const mergeBase = gitOutput(['merge-base', 'HEAD', baseRef]);
-  const changedPaths = gitOutput(['diff', '--name-only', '--diff-filter=ACDMRTUXB', mergeBase, '--'])
+  const trackedChangedPaths = gitOutput(['diff', '--name-only', '--diff-filter=ACDMRTUXB', mergeBase, '--'])
     .split('\n')
     .filter(Boolean);
+  const untrackedPaths = gitOutput(['ls-files', '--others', '--exclude-standard']).split('\n').filter(Boolean);
+  const changedPaths = [...new Set([...trackedChangedPaths, ...untrackedPaths])];
   const captureBundleChanged = changedPaths.some(isRendererManifestInputPath);
 
   if (!captureBundleChanged) {
