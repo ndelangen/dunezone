@@ -21,7 +21,7 @@ import path from 'node:path';
 
 import sharp from 'sharp';
 
-import { FORMAT_EXTENSION, ruleForKey } from '../src/shared/assetRules';
+import { COMMITTED_WEB_FILES, FORMAT_EXTENSION, ruleForKey } from '../src/shared/assetRules';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const mediaRoot = path.join(repoRoot, 'media');
@@ -100,16 +100,12 @@ for (const source of sources) {
   }
 }
 
-/* Committed alongside the generated tree, not produced from media/; each names the change that added it. */
-const COMMITTED_WEB_FILES = new Set([
-  'web/logo.svg',
-  /* The dangling deck-back fallback the resolver serves («What does each back mode publish», amended by «How a dangling back reference presents»). */
-  'web/no-deck-back.svg',
-]);
+/* The same list the generator spares, so the two cannot drift apart again (`COMMITTED_WEB_FILES` in assetRules.ts says what happened when they did). */
+const committedWebPaths = new Set(COMMITTED_WEB_FILES.map((name) => `web/${name}`));
 
 for (const generated of [...walk(path.join(publicRoot, 'image')), ...walk(path.join(publicRoot, 'web'))]) {
   const relative = path.relative(publicRoot, generated).split(path.sep).join('/');
-  if (COMMITTED_WEB_FILES.has(relative)) {
+  if (committedWebPaths.has(relative)) {
     continue;
   }
   if (!expectedFiles.has(relative)) {
