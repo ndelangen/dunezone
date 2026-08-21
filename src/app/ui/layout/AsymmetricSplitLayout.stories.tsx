@@ -60,3 +60,17 @@ export const IntrinsicSizingStress = meta.story({
   ),
   globals: { viewport: { value: 'appDesktop' } },
 });
+
+/** The slim variant: the wide column is the page's matter, and the rail is a band for a preview and a few cards. */
+export const SlimRail = meta.story({
+  render: () => (
+    <AsymmetricSplitLayout rail="slim">
+      <AsymmetricSplitLayout.Wide>
+        <LayoutSlotPlaceholder name="wide" minHeight={280} />
+      </AsymmetricSplitLayout.Wide>
+      <AsymmetricSplitLayout.Narrow>
+        <LayoutSlotPlaceholder name="narrow" minHeight={280} />
+      </AsymmetricSplitLayout.Narrow>
+    </AsymmetricSplitLayout>
+  ),
+});

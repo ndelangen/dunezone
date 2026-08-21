@@ -18,6 +18,7 @@ import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { applyAssetBrowseSearch, ASSET_BROWSE_SORTS, parseAssetBrowseSearch } from './-browse';
 import type { AssetBrowseSearch } from './-browse';
 import styles from './index.module.css';
+import tiles from '@ui/surface/openableTileGrid.module.css';
 
 /**
  * The type's name as a noun for one of them.
@@ -167,7 +168,7 @@ function AssetTypePage() {
               </Text>
             </Stack>
           ) : (
-            <div className={styles.uniformGrid}>
+            <div className={tiles.grid}>
               {entries.map((entry) => (
                 <BrowseTile key={entry.id} entry={entry} />
               ))}
@@ -189,13 +190,13 @@ function AssetTypePage() {
 function BrowseTile({ entry }: { entry: AssetBrowseEntry }) {
   return (
     <Link
-      className={styles.tileOpen}
+      className={tiles.tile}
       to="/assets/$type/$slug"
       params={{ type: entry.type, slug: entry.slug }}
       aria-label={entry.name}
     >
       <Stack gap={6}>
-        <div className={styles.tileArt}>
+        <div className={tiles.art}>
           {/* A container's members stand above it and make the drawing taller, so the canvas is asked for the block's height rather than the face's. */}
           <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(entry.type, entry.members.length)}>
             <AssetFace type={entry.type} data={entry.data} name={entry.name} width={900} members={entry.members} />

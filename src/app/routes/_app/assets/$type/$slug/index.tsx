@@ -50,12 +50,15 @@ import type { AssetFaceMember } from '@app/widgets/asset-face/AssetFace';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../-assetEditorStates';
 import styles from './index.module.css';
+import tiles from '@ui/surface/openableTileGrid.module.css';
 
 type AssetPage = NonNullable<AssetPageData>;
 
 export const Route = createFileRoute('/_app/assets/$type/$slug/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  /* The container grid's one view choice. Absent is the default (every copy); only the collapsed state reaches the URL, the browse page's absence-is-default rule. */
+  /* The container grid's one view choice.
+   * Absent is the default, every copy;
+   * only the collapsed state reaches the URL, the browse page's absence-is-default rule. */
   validateSearch: (input: Record<string, unknown>): { copies?: 'once' } =>
     input.copies === 'once' ? { copies: 'once' } : {},
   loader: async ({ params }) => {
@@ -336,8 +339,11 @@ function AboutSection({ about }: { about: string }) {
  * composition is managed in the container's editor.
  * One component for decks and bundles, because a deck's cards and a bundle's tokens are the same relation read.
  *
- * `duplicated` draws one tile per copy — the deck as it physically stacks — while the collapsed view draws each member once with its count on the caption.
+ * `duplicated` draws one tile per copy, the deck as it physically stacks, while the collapsed view draws each member once with its count on the caption.
+ * The per-copy expansion is bounded: five hundred members at ninety-nine copies each is a page no browser should mount, so past the cap the grid says what it left out and the collapsed view carries the whole truth.
  */
+const DUPLICATED_TILE_CAP = 200;
+
 function Composition({
   members,
   truncated,
@@ -349,11 +355,13 @@ function Composition({
   noun: string;
   duplicated: boolean;
 }) {
-  const tiles = duplicated
+  const expanded = duplicated
     ? members.flatMap(({ member, count }) =>
         Array.from({ length: count }, (_, copy) => ({ member, key: `${member.id}-${copy}`, count: 1 }))
       )
     : members.map(({ member, count }) => ({ member, key: member.id, count }));
+  const shown = expanded.slice(0, DUPLICATED_TILE_CAP);
+  const copiesLeftOut = expanded.length - shown.length;
   return (
     <Section
       id="composition"
@@ -369,21 +377,21 @@ function Composition({
         </Surface>
       ) : (
         <>
-          <div className={styles.memberGrid}>
-            {tiles.map(({ member, key, count }) => (
+          <div className={tiles.grid}>
+            {shown.map(({ member, key, count }) => (
               <Link
                 key={key}
-                className={styles.memberTile}
+                className={tiles.tile}
                 to="/assets/$type/$slug"
                 params={{ type: member.type, slug: member.slug }}
-                aria-label={member.name}
               >
                 <Stack gap={6}>
-                  <div className={styles.memberTileArt}>
+                  <div className={tiles.art} aria-hidden>
                     <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(member.type)}>
                       <AssetFace type={member.type} data={member.data} name={member.name} width={900} />
                     </CanvasScale>
                   </div>
+                  {/* The caption is the link's accessible name, count and all. */}
                   <Text size="sm" fw={600} lineClamp={1} ta="center">
                     {count > 1 ? `${member.name} ×${count}` : member.name}
                   </Text>
@@ -391,9 +399,15 @@ function Composition({
               </Link>
             ))}
           </div>
+          {copiesLeftOut > 0 ? (
+            <Text size="sm" c="dimmed">
+              Showing the first {DUPLICATED_TILE_CAP} copies; another {copiesLeftOut} are not drawn. The each-once view
+              shows every one with its count.
+            </Text>
+          ) : null}
           {truncated ? (
             <Text size="sm" c="dimmed">
-              Showing the first {members.length} {noun}; this one holds more.
+              Showing the first {members.length} distinct {noun}; this one holds more.
             </Text>
           ) : null}
         </>
@@ -403,7 +417,7 @@ function Composition({
 }
 
 /**
- * The rulesets that ship this container, and the slot each one puts it in — a rail card beside the preview (Norbert, 2026-08-22).
+ * The rulesets that ship this container, and the slot each one puts it in: a rail card beside the preview (Norbert, 2026-08-22).
  *
  * Read-only here.
  * Slots are managed on the ruleset edit page, per «Ruleset deck-slot residual semantics», so this card links out rather than offering an action.
@@ -625,12 +639,26 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
               {/* Every copy or each once: the grid's one view choice, for decks stacking multiples (Norbert, 2026-08-22). */}
               {hasCopies ? (
                 <IconAction
-                  label={duplicated ? `Show each ${memberNoun} once` : `Show every copy`}
-                  variant={duplicated ? 'filled' : 'light'}
+                  label={duplicated ? `Show each ${memberNoun} once` : 'Show every copy'}
+                  variant={duplicated ? 'light' : 'filled'}
                   color="gray"
                   size="lg"
                   icon={<Copy size={17} aria-hidden />}
-                  onClick={() => void navigate({ search: duplicated ? { copies: 'once' } : {}, replace: true })}
+                  onClick={() =>
+                    void navigate({
+                      /* Functional, the browse controls' shape: a future search param must survive the toggle. */
+                      search: (previous) => {
+                        const next = { ...previous };
+                        if (duplicated) {
+                          next.copies = 'once';
+                        } else {
+                          delete next.copies;
+                        }
+                        return next;
+                      },
+                      replace: true,
+                    })
+                  }
                 />
               ) : null}
             </Group>
@@ -686,7 +714,8 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
             {deletion.error.message}
           </Alert>
         ) : null}
-        {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21). A container's rail slims to a band: its matter is the member grid, and the band or back preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
+        {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21).
+            A container's rail slims to a band: its matter is the member grid, and the preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
         <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>
           <AsymmetricSplitLayout.Wide>
             <AssetDetailBody page={page} duplicated={duplicated} />
