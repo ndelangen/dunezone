@@ -66,8 +66,8 @@ export function FactionSheetPage1(props: SheetProps) {
       </div>
       <div className={styles.rules}>
         <div className={styles.subtitle}>Advantages</div>
-        {props.rules.advantages.map((rule) => (
-          <div className={styles.rule} key={rule.title}>
+        {props.rules.advantages.map((rule, index) => (
+          <div className={styles.rule} key={`${index}-${rule.title ?? ''}`}>
             {rule.title && (
               <div className={styles.head}>
                 {rule.title}
@@ -109,8 +109,8 @@ export function FactionSheetPage2(props: SheetProps) {
             <div className={styles.karama}>
               {props.rules.advantages
                 .filter((r) => !!r.karama)
-                .map((rule) => (
-                  <div className={styles.rule} key={rule.title}>
+                .map((rule, index) => (
+                  <div className={styles.rule} key={`${index}-${rule.title ?? ''}`}>
                     <div className={styles.head}>{rule.title}:&nbsp;</div>
                     <div className={styles.text}>
                       <MarkdownContent>{rule.karama}</MarkdownContent>

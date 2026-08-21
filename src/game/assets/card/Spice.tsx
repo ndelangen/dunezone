@@ -1,4 +1,4 @@
-/* oxlint-disable jsx-a11y/alt-text, react/jsx-key -- Static decorative game-card layers. */
+/* oxlint-disable jsx-a11y/alt-text -- Static decorative game-card layers, not content images. */
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -83,6 +83,7 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({ name, subName, icon, text
         <use xlinkHref="/vector/background/map.svg#sectors" />
         {overlays?.map((overlay) => (
           <image
+            key={`${overlay.image}-${overlay.offset[0]},${overlay.offset[1]}-${overlay.scale}`}
             href={resolveOverlay(overlay.image)}
             x={overlay.offset[0]}
             y={overlay.offset[1]}
