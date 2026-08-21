@@ -398,3 +398,4 @@ jobs:
             ${{ github.workspace }}/test-results
             ${{ github.workspace }}/.playwright/app.log
             ${{ github.workspace }}/.playwright/build.log
+            ${{ github.workspace }}/.playwright/*.zip
