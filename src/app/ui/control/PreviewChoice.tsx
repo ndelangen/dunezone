@@ -1,5 +1,5 @@
 import { Text } from '@mantine/core';
-import { useId } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import styles from './PreviewChoice.module.css';
@@ -15,6 +15,12 @@ export type PreviewChoiceOption<T extends string> = {
   preview?: ReactNode;
   /** What the dashed reserved spot holds while there is nothing to preview, e.g. an icon naming the option. */
   emptyHint?: ReactNode;
+  /**
+   * The preview's own canvas size, when it draws at a fixed one (a proof drawn at 900 card-space pixels).
+   * The tile then scales it to fit rather than cropping a native-size corner, which is what a fixed canvas inside a fluid tile otherwise shows.
+   * Omitted for previews that size themselves from the box they are given.
+   */
+  canvas?: { width: number; height: number };
   /**
    * A control this option carries once it is chosen, e.g.
    * narrowing a category to one of its members.
@@ -36,6 +42,47 @@ export type PreviewChoiceOption<T extends string> = {
  * A real radio is stretched invisibly across it and does the choosing, so grouping, arrow keys and the announcement are the platform's rather than ours.
  * An option's own control is a sibling of the art inside that box, never a descendant of the thing you press to choose, which is what a nested control would have been.
  */
+/*
+ * Contain-fits a fixed-canvas preview to the tile's art box.
+ * `CanvasScale` fits width only, which is right for a rail; a tile also has a height that a control
+ * in the detail slot can shrink, so the smaller of the two ratios wins and the render centers.
+ */
+function ContainFit({ width, height, children }: { width: number; height: number; children: ReactNode }) {
+  const [node, setNode] = useState<HTMLDivElement | null>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    if (!node) {
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) =>
+      setBox({ w: entry?.contentRect.width ?? 0, h: entry?.contentRect.height ?? 0 })
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [node]);
+  const scale = box ? Math.min(box.w / width, box.h / height) : 0;
+  return (
+    <div ref={setNode} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+      {scale > 0 && (
+        <div
+          style={{
+            width,
+            height,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+            position: 'absolute',
+            left: (box!.w - width * scale) / 2,
+            top: (box!.h - height * scale) / 2,
+            pointerEvents: 'none',
+          }}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PreviewChoice<T extends string>({
   label,
   value,
@@ -78,7 +125,13 @@ export function PreviewChoice<T extends string>({
             <div className={styles.frame} style={{ aspectRatio }} data-empty={option.preview ? undefined : true}>
               {/* Hidden from assistive technology: the caption names the option, and the picture has nothing to add. */}
               <div className={styles.art} aria-hidden>
-                {option.preview ?? option.emptyHint}
+                {option.preview && option.canvas ? (
+                  <ContainFit width={option.canvas.width} height={option.canvas.height}>
+                    {option.preview}
+                  </ContainFit>
+                ) : (
+                  (option.preview ?? option.emptyHint)
+                )}
               </div>
               {chosen && option.detail ? <div className={styles.detail}>{option.detail}</div> : null}
             </div>

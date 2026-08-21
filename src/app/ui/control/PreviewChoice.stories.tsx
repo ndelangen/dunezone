@@ -66,3 +66,37 @@ export const CardShaped = meta.story({
     value: 'reference',
   },
 });
+
+/** A fixed-canvas preview drawn at 900 pixels: the `canvas` option scales it to fit the tile instead of cropping a native-size corner. The inner border touching all four tile edges is the proof. */
+export const FixedCanvasPreview = meta.story({
+  args: {
+    label: 'Backside',
+    value: 'custom',
+    aspectRatio: '900 / 1263',
+    options: [
+      {
+        value: 'custom',
+        label: 'Composed here',
+        canvas: { width: 900, height: 1263 },
+        preview: (
+          <div
+            style={{
+              width: 900,
+              height: 1263,
+              background: 'linear-gradient(150deg, #8F2C1C, #27260C)',
+              border: '12px solid #E8C97B',
+              boxSizing: 'border-box',
+              display: 'grid',
+              placeItems: 'center',
+              color: '#E8C97B',
+              fontSize: 160,
+            }}
+          >
+            900px
+          </div>
+        ),
+      },
+      { value: 'reference', label: 'Reference', emptyHint: <span>Nothing yet</span> },
+    ],
+  },
+});

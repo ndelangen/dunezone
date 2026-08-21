@@ -363,17 +363,20 @@ export function TokenEditor({
                       draft.back.mode === 'custom' ? (
                         <TokenProof face={draft.back.face} type={type} width={PROOF_CANVAS} />
                       ) : undefined,
+                    canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect(type) },
                     emptyHint: <Text size="xs">Not composed yet</Text>,
                   },
                   {
                     value: 'same',
                     label: 'Same as front',
                     preview: <TokenProof face={draft.front} type={type} width={PROOF_CANVAS} />,
+                    canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect(type) },
                   },
                   {
                     value: 'reference',
                     label: "Another token's back",
                     preview: backProof ?? undefined,
+                    canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect(type) },
                     emptyHint: <Text size="xs">No token chosen</Text>,
                     detail: backPicker(false),
                   },

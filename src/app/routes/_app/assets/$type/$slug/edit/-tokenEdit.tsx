@@ -209,12 +209,7 @@ function TokenEditSession({
           context={groupActions.context}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction
-                label="Delete token"
-                prompt="Delete token?"
-                pending={deletion.pending}
-                onConfirm={deletion.confirm}
-              />
+              <ConfirmDeleteAction label="Delete token" pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />
@@ -246,13 +241,16 @@ function TokenEditSession({
             onSettle={() => setSettleTick((tick) => tick + 1)}
             backPicker={(disabled) => (
               <Group gap="xs" wrap="nowrap">
-                <Text size="sm">{pickedBack ? pickedBack.name : 'No token chosen yet'}</Text>
+                <Text size="sm" truncate style={{ minWidth: 0, flex: 1 }} title={pickedBack?.name}>
+                  {pickedBack ? pickedBack.name : 'No token chosen yet'}
+                </Text>
                 {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
                 <Popover opened={pickerOpen} onChange={setPickerOpen} width={340} position="bottom-start" withinPortal>
                   <Popover.Target>
                     <Button
                       variant="light"
                       size="compact-sm"
+                      style={{ flexShrink: 0 }}
                       disabled={disabled}
                       onClick={() => setPickerOpen((open) => !open)}
                     >

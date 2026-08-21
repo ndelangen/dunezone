@@ -38,6 +38,11 @@
   min-width: 0;
 }
 
+/* The unstyled variant strips the input's own inset, which left the value flush against the segment divider. */
+.sortSegment input {
+  padding-inline: var(--mantine-spacing-sm);
+}
+
 /*
  * Side by side the search box is down to about 110px on a phone, which is unusable.
  * The faction overview has the same defect and it is not this page's to fix, so this stacks rather than inheriting it.
@@ -109,8 +114,4 @@
   .tileOpen:hover .tileArt {
     transform: none;
   }
-}
-
-.resultCount {
-  white-space: nowrap;
 }
