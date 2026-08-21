@@ -154,6 +154,8 @@ export const TokenFace = FactionSide.extend({
   bottomSecond: z.string(),
   /** The thin edge ring, on by default. */
   ring: z.boolean(),
+  /** A pronounced shadow under the ring; absent (the default) draws none beyond the renderer's built-in depth. */
+  ringShadow: z.boolean().optional(),
 });
 
 /**
@@ -285,6 +287,8 @@ const OPACITY = z.number().min(0).max(1);
  */
 const PlacedDecal = Decal.extend({
   opacity: OPACITY,
+  /** A drop shadow under the decal; absent (the default) draws flat. The ring's shadow and this one are the same treatment worn by two elements. */
+  shadow: z.boolean().optional(),
 });
 
 /**
@@ -311,6 +315,8 @@ export const RectangleTokenFace = z.strictObject({
   background: Background,
   /** The thin ring just inside the edge, off by default here, unlike the round shapes. */
   ring: z.boolean(),
+  /** A pronounced shadow under the ring; absent (the default) draws none. */
+  ringShadow: z.boolean().optional(),
   decals: z.array(PlacedDecal),
   texts: z.array(PlacedText),
 });

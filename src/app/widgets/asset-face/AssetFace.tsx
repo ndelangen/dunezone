@@ -212,6 +212,7 @@ const drawableTokenFace = z.looseObject({
   bottomFirst: z.string().optional(),
   bottomSecond: z.string().optional(),
   ring: z.boolean().optional(),
+  ringShadow: z.boolean().optional(),
 });
 
 const tokenFaceSchema = z.object({
@@ -235,6 +236,7 @@ type DrawableTokenFace = z.infer<typeof drawableTokenFace>;
 const drawableRectangleFace = z.looseObject({
   background: z.unknown(),
   ring: z.boolean().optional(),
+  ringShadow: z.boolean().optional(),
   decals: z.array(z.unknown()).optional(),
   texts: z.array(z.unknown()).optional(),
 });
@@ -491,6 +493,7 @@ export function AssetFace({
             /* the listing trusts storage and the renderer takes these as-is, the same bargain the other faces make */
             background={face.background as never}
             ring={face.ring ?? false}
+            ringShadow={face.ringShadow ?? false}
             decals={(face.decals ?? []) as never}
             texts={(face.texts ?? []) as never}
           />
@@ -509,6 +512,7 @@ export function AssetFace({
             background={face.background as never}
             image={face.image as never}
             circle={face.ring ?? shape === 'round'}
+            circleShadow={face.ringShadow ?? false}
             top={face.top || undefined}
             bottom={tokenBottom(face)}
             size={tokenSymbolSize(face)}

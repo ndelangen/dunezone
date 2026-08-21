@@ -85,7 +85,12 @@ const ICON_OFFSET_RANGE = 60;
 
 function FillCard({ draft }: { draft: TreacheryDraft }) {
   return (
-    <CanvasScale canvasWidth={CARD_SIZE.width} canvasHeight={CARD_SIZE.height} frameClassName={styles.proofFrame}>
+    <CanvasScale
+      rounded
+      canvasWidth={CARD_SIZE.width}
+      canvasHeight={CARD_SIZE.height}
+      frameClassName={styles.proofFrame}
+    >
       <TreacheryCard {...draft} />
     </CanvasScale>
   );

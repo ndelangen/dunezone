@@ -89,6 +89,7 @@ export function PreviewChoice<T extends string>({
   options,
   onChange,
   aspectRatio,
+  labelPlacement = 'below',
 }: {
   /** Names the choice for assistive technology; the visible heading is the caller's ControlBlock. */
   label: string;
@@ -97,6 +98,13 @@ export function PreviewChoice<T extends string>({
   onChange: (value: T) => void;
   /** CSS aspect-ratio for every tile's frame, e.g. `'3 / 2'` for a background, `'1'` for a disc token. */
   aspectRatio: string;
+  /**
+   * Where each option's caption sits.
+   * `below` is the default;
+   * `inside` overlays it on the tile's lower edge, for rows of swatch-like options whose captions below would break the tiles' shared baseline (Norbert, 2026-08-21).
+   * An inside caption paints over the frame's foot, so a row combining it with per-option `detail` controls should stay with `below`.
+   */
+  labelPlacement?: 'below' | 'inside';
 }) {
   /*
    * One radio group name per mounted instance.
@@ -134,10 +142,25 @@ export function PreviewChoice<T extends string>({
                 )}
               </div>
               {chosen && option.detail ? <div className={styles.detail}>{option.detail}</div> : null}
+              {/* Inside the frame but a sibling of the art: the frame is pointer-events none, so the caption never sits in the radio's hit path. */}
+              {labelPlacement === 'inside' ? (
+                <Text
+                  id={captionId}
+                  size="xs"
+                  fw={chosen ? 700 : 500}
+                  ta="center"
+                  truncate
+                  className={styles.insideLabel}
+                >
+                  {option.label}
+                </Text>
+              ) : null}
             </div>
-            <Text id={captionId} size="xs" fw={chosen ? 700 : 500} ta="center" mt={4} truncate>
-              {option.label}
-            </Text>
+            {labelPlacement === 'below' ? (
+              <Text id={captionId} size="xs" fw={chosen ? 700 : 500} ta="center" mt={4} truncate>
+                {option.label}
+              </Text>
+            ) : null}
           </div>
         );
       })}

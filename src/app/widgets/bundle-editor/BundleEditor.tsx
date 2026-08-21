@@ -1,13 +1,12 @@
 import { Group, Select, Stack, Text, TextInput } from '@mantine/core';
 import type { BundleAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { IconAction } from '@ui/control/IconAction';
 import { MemberCountInput } from '@ui/control/MemberCountInput';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
@@ -111,6 +110,7 @@ export function BundleEditor({
   onSettle,
   members,
   onCountChange,
+  countPending = false,
   tokenPicker,
 }: {
   draft: BundleDraft;
@@ -122,8 +122,15 @@ export function BundleEditor({
   members: BundleMember[];
   /** Zero removes the token. Null while the bundle has no id yet, which disables the steppers. */
   onCountChange: ((tokenId: string, count: number) => void) | null;
+  /** True while a count write is in flight; it latches the removal holds so a fired one resets when the round trip ends. */
+  countPending?: boolean;
   tokenPicker: ReactNode;
 }) {
+  /* Which member's removal is in flight, so only the held row reads as busy; cleared during render when the round trip ends, the search box's pattern. */
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  if (!countPending && removingId !== null) {
+    setRemovingId(null);
+  }
   const stockKey = stockBandKeyFor(draft.band);
   /*
    * Whether Custom was picked, held here because it cannot be derived.
@@ -232,14 +239,16 @@ export function BundleEditor({
                                 value={member.count}
                                 onCommit={(count) => onCountChange?.(member.token.id, count)}
                               />
-                              <IconAction
+                              {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
+                              <ConfirmDeleteAction
                                 label={`Remove ${member.token.name}`}
-                                variant="light"
-                                color="red"
-                                size="lg"
+                                verb="remove"
+                                pending={countPending && removingId === member.token.id}
                                 disabled={onCountChange === null}
-                                onClick={() => onCountChange?.(member.token.id, 0)}
-                                icon={<Trash2 size={17} aria-hidden />}
+                                onConfirm={() => {
+                                  setRemovingId(member.token.id);
+                                  onCountChange?.(member.token.id, 0);
+                                }}
                               />
                             </Group>
                           ))}
@@ -256,7 +265,7 @@ export function BundleEditor({
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <Stack gap="md" align="center">
-          <CanvasScale canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('bundle')}>
+          <CanvasScale rounded canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('bundle')}>
             <BundleContainer band={draft.band} name={draft.name} width={PROOF_CANVAS} />
           </CanvasScale>
           <Text size="xs" c="dimmed">

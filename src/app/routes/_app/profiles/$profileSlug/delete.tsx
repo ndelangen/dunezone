@@ -1,6 +1,7 @@
 import { Alert, Anchor, Button, Checkbox, Group, List, Loader, Popover, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { ConfirmDeleteButton } from '@ui/control/ConfirmDeleteButton';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -220,14 +221,13 @@ function AccountDeletionPage() {
                   : 'Soft-delete all direct ownership, then delete my account.'
               }
             />
-            <Button
-              color="red"
-              disabled={!acknowledged || confirm.isPending}
-              loading={confirm.isPending}
-              onClick={() => confirm.mutate({ replacementUserId: replacement?.userId ?? null })}
-            >
-              {replacement ? 'Transfer ownership and delete account' : 'Delete account'}
-            </Button>
+            {/* The checkbox states what will happen; the hold is the commitment. The heaviest delete in the application wears the same five seconds as every other (Norbert, 2026-08-21). */}
+            <ConfirmDeleteButton
+              label={replacement ? 'Transfer ownership and delete account' : 'Delete account'}
+              disabled={!acknowledged}
+              pending={confirm.isPending}
+              onConfirm={() => confirm.mutate({ replacementUserId: replacement?.userId ?? null })}
+            />
           </Stack>
         </Surface>
       </PageLayout.Content>
