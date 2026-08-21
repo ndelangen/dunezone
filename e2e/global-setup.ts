@@ -40,13 +40,54 @@ async function loginWithLocalAuth(baseUrl: string, credentials: Credentials) {
     if (navigationError) {
       throw navigationError;
     }
-    await page.getByRole('textbox', { name: /email/i }).fill(credentials.email);
-    await page.getByLabel(/password/i).fill(credentials.password);
-    await page.getByTestId('local-auth-submit').click();
-    await Promise.race([
-      page.waitForURL((url: URL) => !url.pathname.endsWith('/auth/login')),
-      page.getByRole('heading', { name: /you're signed in/i }).waitFor(),
-    ]);
+    /*
+     * Three shorter attempts instead of one 30s wait, re-filling each time (issue #585).
+     * The suspected cause, unproven until a retained trace shows it: the login form is controlled, so a
+     * fill that lands before hydration types into DOM the state never saw, and hydration then resets the
+     * inputs to empty; the submit either errors on blank credentials or native-navigates back to the same
+     * URL, and either way the page sits on /auth/login for the full timeout.
+     * Re-filling after the reset makes the attempt whole; the retry also covers any other transient,
+     * and a failure that survives all three now ships its trace instead of a shrug.
+     */
+    let loginError: unknown = new Error('login never attempted');
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        await page.getByRole('textbox', { name: /email/i }).fill(credentials.email);
+        await page.getByLabel(/password/i).fill(credentials.password);
+        await page.getByTestId('local-auth-submit').click();
+        await Promise.race([
+          page.waitForURL((url: URL) => !url.pathname.endsWith('/auth/login'), { timeout: 10_000 }),
+          page.getByRole('heading', { name: /you're signed in/i }).waitFor({ timeout: 10_000 }),
+        ]);
+        loginError = null;
+        break;
+      } catch (error) {
+        loginError = error;
+        console.warn(
+          `[globalSetup] login attempt ${attempt} for ${credentials.email} did not leave /auth/login; retrying`
+        );
+        /* A native submit may have reloaded the page with the credentials in the query; start clean. */
+        try {
+          await page.goto(`${baseUrl}/auth/login`, { waitUntil: 'domcontentloaded', timeout: 10_000 });
+        } catch {
+          /* A wedged server is context for the login failure, not a better error; keep the informative one for the trace's filing. */
+          continue;
+        }
+        /*
+         * A login that completed just as the attempt timed out shows either success signal on this
+         * visit, the same two the race above accepts: bounced off the form, or the signed-in heading
+         * on the login route. Either is success, not a retry.
+         */
+        const offLoginRoute = !new URL(page.url()).pathname.endsWith('/auth/login');
+        if (offLoginRoute || (await page.getByRole('heading', { name: /you're signed in/i }).isVisible())) {
+          loginError = null;
+          break;
+        }
+      }
+    }
+    if (loginError) {
+      throw loginError;
+    }
     await context.storageState({ path: credentials.storageStatePath });
     console.log(`[globalSetup] saved storage state -> ${credentials.storageStatePath}`);
     await context.tracing.stop({ path: `${traceBase}-success.zip` });
