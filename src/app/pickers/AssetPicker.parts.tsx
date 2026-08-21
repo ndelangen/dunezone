@@ -7,11 +7,11 @@ import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 /** Wide enough to tell two treachery cards apart at a glance, narrow enough that eight rows still fit a popover. */
 const PREVIEW_WIDTH = 44;
 
-export function assetTypeLabel(type: string): string {
+function assetTypeLabel(type: string): string {
   return isAssetType(type) ? ASSET_TYPES[type].shortLabel : type;
 }
 
-export function assetOwnerLabel(entry: Pick<AssetListEntry, 'owner'>): string {
+function assetOwnerLabel(entry: Pick<AssetListEntry, 'owner'>): string {
   return entry.owner?.username?.trim() || 'Unknown owner';
 }
 
