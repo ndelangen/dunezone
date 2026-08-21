@@ -45,7 +45,7 @@
     url("/font/advokat-modern.woff2") format("woff2"),
     url("/font/advokat-modern.woff") format("woff");
   font-weight: normal;
-  font-style: italic;
+  font-style: normal;
 }
 
 @font-face {
@@ -55,7 +55,7 @@
     url("/font/busorama.woff2") format("woff2"),
     url("/font/busorama.woff") format("woff");
   font-weight: normal;
-  font-style: italic;
+  font-style: normal;
 }
 
 @font-face {
@@ -65,7 +65,7 @@
     url("/font/trebuchet.woff2") format("woff2"),
     url("/font/trebuchet.woff") format("woff");
   font-weight: normal;
-  font-style: italic;
+  font-style: normal;
 }
 
 /* App shell: body text vs headings (game modules keep their own font-family) */
