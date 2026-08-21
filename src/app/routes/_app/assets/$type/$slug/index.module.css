@@ -23,9 +23,15 @@
 }
 
 /* The face at reading size: large enough that a card's rules text is legible, short of becoming a poster. */
-/* The stage fills its rail rather than capping below it (Norbert, 2026-08-21): the column owns the width. */
+/* The stage fills its rail rather than capping below it (Norbert, 2026-08-21): the column owns the width. Below the split's breakpoint there is no rail, only one full-width column, so the old reading cap returns rather than a page-wide face. */
 .faceStage {
-  width: 100%;
+  width: min(100%, 22rem);
+}
+
+@container asymmetric-split-layout (min-width: 61.25rem) {
+  .faceStage {
+    width: 100%;
+  }
 }
 
 /* The deployed fallback cardback is a plain image, sized by the stage the way a drawn face is. */

@@ -283,6 +283,12 @@ export function DeckEditor({
    * `BackgroundPresetControl` already holds the same flag for the same reason.
    */
   const [customChosen, setCustomChosen] = useState(stockKey === null);
+  /* Which member's removal is in flight, so only the held row reads as busy; cleared during render when the round trip ends, the search box's pattern. */
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  if (!countPending && removingId !== null) {
+    setRemovingId(null);
+  }
+
   const totalCards = members.reduce((sum, member) => sum + member.count, 0);
 
   return (
@@ -427,9 +433,12 @@ export function DeckEditor({
                               <ConfirmDeleteAction
                                 label={`Remove ${member.card.name}`}
                                 verb="remove"
-                                pending={countPending}
+                                pending={countPending && removingId === member.card.id}
                                 disabled={onCountChange === null}
-                                onConfirm={() => onCountChange?.(member.card.id, 0)}
+                                onConfirm={() => {
+                                  setRemovingId(member.card.id);
+                                  onCountChange?.(member.card.id, 0);
+                                }}
                               />
                             </Group>
                           ))}

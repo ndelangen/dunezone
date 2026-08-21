@@ -102,6 +102,7 @@ export function PreviewChoice<T extends string>({
    * Where each option's caption sits.
    * `below` is the default;
    * `inside` overlays it on the tile's lower edge, for rows of swatch-like options whose captions below would break the tiles' shared baseline (Norbert, 2026-08-21).
+   * An inside caption paints over the frame's foot, so a row combining it with per-option `detail` controls should stay with `below`.
    */
   labelPlacement?: 'below' | 'inside';
 }) {

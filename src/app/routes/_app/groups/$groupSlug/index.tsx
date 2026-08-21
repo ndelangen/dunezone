@@ -10,6 +10,7 @@ import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, BookOpen, Check, Crown, Pencil, Plus, UserPlus, UserRoundMinus, UsersRound, X } from 'lucide-react';
+import { useState } from 'react';
 
 import { useFactionsOwnedForGroupAssign, useSetFactionGroup } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
@@ -117,7 +118,13 @@ function GroupDetailPage() {
     null;
 
   /* No question: the trigger itself is held five seconds, the same commitment every destructive action asks for. */
+  /* Which membership's removal is in flight, so only the held row's trigger reads as busy; cleared during render when the round trip ends, the search box's pattern. */
+  const [removingMembershipId, setRemovingMembershipId] = useState<string | null>(null);
+  if (!membershipWorkflow.remove.isPending && removingMembershipId !== null) {
+    setRemovingMembershipId(null);
+  }
   const handleRemoveMember = (membershipId: string) => {
+    setRemovingMembershipId(membershipId);
     void membershipWorkflow.remove.run(membershipId).catch(() => undefined);
   };
 
@@ -262,6 +269,7 @@ function GroupDetailPage() {
                 onApprove={(membershipId) => void membershipWorkflow.approve.run(membershipId).catch(() => undefined)}
                 onReject={(membershipId) => void membershipWorkflow.reject.run(membershipId).catch(() => undefined)}
                 onRemove={handleRemoveMember}
+                removingMembershipId={removingMembershipId}
               />
             </Card>
           </Stack>
@@ -467,12 +475,14 @@ function MemberRow({
   onApprove,
   onReject,
   onRemove,
+  removingMembershipId = null,
 }: {
   entry: RosterEntry;
   moderationBusy: boolean;
   onApprove: (membershipId: string) => void;
   onReject: (membershipId: string) => void;
   onRemove?: (membershipId: string) => void;
+  removingMembershipId?: string | null;
 }) {
   const isPending = entry.status === 'pending';
   return (
@@ -518,7 +528,8 @@ function MemberRow({
             label="Remove member"
             verb="remove"
             size="md"
-            pending={moderationBusy}
+            pending={removingMembershipId === entry.membershipId}
+            disabled={moderationBusy && removingMembershipId !== entry.membershipId}
             onConfirm={() => onRemove(entry.membershipId)}
             icon={<UserRoundMinus size={15} aria-hidden />}
           />
@@ -534,12 +545,15 @@ function MemberRoster({
   onApprove,
   onReject,
   onRemove,
+  removingMembershipId,
 }: {
   members: RosterEntry[];
   moderationBusy: boolean;
   onApprove: (membershipId: string) => void;
   onReject: (membershipId: string) => void;
   onRemove: (membershipId: string) => void;
+  /** The one row whose removal is in flight; the others stay disabled-but-quiet rather than all spinning. */
+  removingMembershipId: string | null;
 }) {
   if (members.length === 0) {
     return (
@@ -558,6 +572,7 @@ function MemberRoster({
           onApprove={onApprove}
           onReject={onReject}
           onRemove={onRemove}
+          removingMembershipId={removingMembershipId}
         />
       ))}
     </Stack>

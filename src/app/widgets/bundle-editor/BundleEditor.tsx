@@ -126,6 +126,11 @@ export function BundleEditor({
   countPending?: boolean;
   tokenPicker: ReactNode;
 }) {
+  /* Which member's removal is in flight, so only the held row reads as busy; cleared during render when the round trip ends, the search box's pattern. */
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  if (!countPending && removingId !== null) {
+    setRemovingId(null);
+  }
   const stockKey = stockBandKeyFor(draft.band);
   /*
    * Whether Custom was picked, held here because it cannot be derived.
@@ -238,9 +243,12 @@ export function BundleEditor({
                               <ConfirmDeleteAction
                                 label={`Remove ${member.token.name}`}
                                 verb="remove"
-                                pending={countPending}
+                                pending={countPending && removingId === member.token.id}
                                 disabled={onCountChange === null}
-                                onConfirm={() => onCountChange?.(member.token.id, 0)}
+                                onConfirm={() => {
+                                  setRemovingId(member.token.id);
+                                  onCountChange?.(member.token.id, 0);
+                                }}
                               />
                             </Group>
                           ))}
