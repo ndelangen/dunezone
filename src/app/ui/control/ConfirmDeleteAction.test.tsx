@@ -35,7 +35,7 @@ describe('ConfirmDeleteAction', () => {
     renderAction(onConfirm);
 
     const trigger = screen.getByRole('button', { name: 'Delete card' });
-    fireEvent.pointerDown(trigger);
+    fireEvent.pointerDown(trigger, { isPrimary: true, button: 0 });
     act(() => vi.advanceTimersByTime(4000));
     expect(onConfirm).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(1000));
@@ -52,7 +52,7 @@ describe('ConfirmDeleteAction', () => {
     renderAction(onConfirm);
 
     const trigger = screen.getByRole('button', { name: 'Delete card' });
-    fireEvent.pointerDown(trigger);
+    fireEvent.pointerDown(trigger, { isPrimary: true, button: 0 });
     act(() => vi.advanceTimersByTime(3000));
     fireEvent.pointerUp(trigger);
     act(() => vi.advanceTimersByTime(10_000));
@@ -81,13 +81,52 @@ describe('ConfirmDeleteAction', () => {
     renderAction(onConfirm);
 
     const trigger = screen.getByRole('button', { name: 'Delete card' });
-    fireEvent.pointerDown(trigger);
+    fireEvent.pointerDown(trigger, { isPrimary: true, button: 0 });
     act(() => vi.advanceTimersByTime(5000));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     fireEvent.pointerUp(trigger);
-    fireEvent.pointerDown(trigger);
+    fireEvent.pointerDown(trigger, { isPrimary: true, button: 0 });
     act(() => vi.advanceTimersByTime(5000));
     expect(onConfirm).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+  test('only a primary left-button press holds: right-click held forever fires nothing', () => {
+    vi.useFakeTimers();
+    const onConfirm = vi.fn();
+    renderAction(onConfirm);
+
+    const trigger = screen.getByRole('button', { name: 'Delete card' });
+    fireEvent.pointerDown(trigger, { isPrimary: true, button: 2 });
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(onConfirm).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  test('losing focus mid-hold cancels: the keyup would never arrive', () => {
+    vi.useFakeTimers();
+    const onConfirm = vi.fn();
+    renderAction(onConfirm);
+
+    const trigger = screen.getByRole('button', { name: 'Delete card' });
+    fireEvent.keyDown(trigger, { key: 'Enter' });
+    act(() => vi.advanceTimersByTime(3000));
+    fireEvent.blur(trigger);
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(onConfirm).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  test('unmounting mid-hold fires nothing', () => {
+    vi.useFakeTimers();
+    const onConfirm = vi.fn();
+    const { unmount } = renderAction(onConfirm);
+
+    const trigger = screen.getByRole('button', { name: 'Delete card' });
+    fireEvent.pointerDown(trigger, { isPrimary: true, button: 0 });
+    act(() => vi.advanceTimersByTime(3000));
+    unmount();
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(onConfirm).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 });

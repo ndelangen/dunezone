@@ -376,7 +376,6 @@ export function TokenEditor({
                     value: 'reference',
                     label: "Another token's back",
                     preview: backProof ?? undefined,
-                    canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect(type) },
                     emptyHint: <Text size="xs">No token chosen</Text>,
                     detail: backPicker(false),
                   },

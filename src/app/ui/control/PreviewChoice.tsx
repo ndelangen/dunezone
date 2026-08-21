@@ -63,7 +63,7 @@ function ContainFit({ width, height, children }: { width: number; height: number
   const scale = box ? Math.min(box.w / width, box.h / height) : 0;
   return (
     <div ref={setNode} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
-      {scale > 0 && (
+      {box && scale > 0 && (
         <div
           style={{
             width,
@@ -71,8 +71,8 @@ function ContainFit({ width, height, children }: { width: number; height: number
             transform: `scale(${scale})`,
             transformOrigin: 'top left',
             position: 'absolute',
-            left: (box!.w - width * scale) / 2,
-            top: (box!.h - height * scale) / 2,
+            left: (box.w - width * scale) / 2,
+            top: (box.h - height * scale) / 2,
             pointerEvents: 'none',
           }}
         >

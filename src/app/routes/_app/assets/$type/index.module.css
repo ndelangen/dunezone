@@ -38,8 +38,8 @@
   min-width: 0;
 }
 
-/* The unstyled variant strips the input's own inset, which left the value flush against the segment divider. */
-.sortSegment input {
+/* The unstyled variant strips the trigger's own inset, which left the value flush against the segment divider. Mantine renders the trigger as an input today; the button alternative covers a render-mode change. */
+.sortSegment :is(input, button) {
   padding-inline: var(--mantine-spacing-sm);
 }
 

@@ -1,6 +1,13 @@
 import { ActionIcon, Tooltip } from '@mantine/core';
 import type { ActionIconProps } from '@mantine/core';
-import type { KeyboardEventHandler, MouseEventHandler, PointerEventHandler, ReactNode, Ref } from 'react';
+import type {
+  FocusEventHandler,
+  KeyboardEventHandler,
+  MouseEventHandler,
+  PointerEventHandler,
+  ReactNode,
+  Ref,
+} from 'react';
 
 import type { RenderRoot } from '../renderRoot';
 
@@ -23,6 +30,7 @@ export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'colo
   onKeyDown?: KeyboardEventHandler<HTMLButtonElement>;
   onKeyUp?: KeyboardEventHandler<HTMLButtonElement>;
   onContextMenu?: MouseEventHandler<HTMLButtonElement>;
+  onBlur?: FocusEventHandler<HTMLButtonElement>;
   /** Forces the hover text open, for the moments it carries live state (a hold's countdown). */
   tooltipOpened?: boolean;
   /** Makes the action a link — in practice the router's `Link`. */
@@ -61,6 +69,7 @@ export function IconAction({
   onKeyDown,
   onKeyUp,
   onContextMenu,
+  onBlur,
   renderRoot,
   href,
   target,
@@ -90,6 +99,7 @@ export function IconAction({
           onKeyDown={onKeyDown}
           onKeyUp={onKeyUp}
           onContextMenu={onContextMenu}
+          onBlur={onBlur}
           className={className}
           renderRoot={renderRoot}
         >

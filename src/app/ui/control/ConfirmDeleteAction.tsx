@@ -74,6 +74,9 @@ export function ConfirmDeleteAction({ label, pending, onConfirm }: ConfirmDelete
    * re-invoke updaters, either of which turns one completed hold into a wrong number of deletions.
    */
   const secondsLeft = useRef(0);
+  /* The interval closes over the render where the hold began; the ref keeps the fired callback current if the caller re-rendered mid-countdown. */
+  const onConfirmRef = useRef(onConfirm);
+  onConfirmRef.current = onConfirm;
   const startHold = () => {
     if (pending || submitted || timer.current) {
       return;
@@ -87,7 +90,7 @@ export function ConfirmDeleteAction({ label, pending, onConfirm }: ConfirmDelete
         stopTimer();
         setRemaining(null);
         setSubmitted(true);
-        onConfirm();
+        onConfirmRef.current();
         return;
       }
       setRemaining(secondsLeft.current);
@@ -104,10 +107,22 @@ export function ConfirmDeleteAction({ label, pending, onConfirm }: ConfirmDelete
       color="red"
       size="lg"
       loading={pending || submitted}
-      onPointerDown={startHold}
+      onPointerDown={(event) => {
+        /* Only a primary press holds: a right or middle button five seconds down must not delete. */
+        if (!event.isPrimary || event.button !== 0) {
+          return;
+        }
+        /* Touch implicitly captures the pointer, which would retarget the leave event; releasing the capture lets sliding off the trigger cancel the way it does for a mouse. Capture exists only for touch, hence the check. */
+        if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        startHold();
+      }}
       onPointerUp={cancelHold}
       onPointerLeave={cancelHold}
       onPointerCancel={cancelHold}
+      /* Focus leaving mid-hold (Tab, window blur) takes the keyup with it; the hold must not outlive the reader's attention. */
+      onBlur={cancelHold}
       /* A held key repeats its keydown; only the first one starts the countdown. */
       onKeyDown={(event) => {
         if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
@@ -115,7 +130,12 @@ export function ConfirmDeleteAction({ label, pending, onConfirm }: ConfirmDelete
           startHold();
         }
       }}
-      onKeyUp={cancelHold}
+      /* Only the activation key's release cancels; letting go of an unrelated key mid-hold is not a change of mind. */
+      onKeyUp={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          cancelHold();
+        }
+      }}
       /* A touch long-press would otherwise open the browser menu mid-hold. */
       onContextMenu={(event) => event.preventDefault()}
       icon={

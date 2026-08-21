@@ -366,7 +366,6 @@ export function DeckEditor({
                             value: 'reference',
                             label: "Another deck's back",
                             preview: backProof ?? undefined,
-                            canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
                             emptyHint: <Text size="xs">No deck chosen</Text>,
                             detail: backPicker,
                           },
