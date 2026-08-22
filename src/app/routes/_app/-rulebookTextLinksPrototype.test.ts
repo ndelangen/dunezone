@@ -23,6 +23,16 @@ const repeatedLocator: RulebookTextLocator = {
   suffix: 'Carry the warning west.',
 };
 
+const repeatedItemLocator: RulebookTextLocator = {
+  v: 1,
+  path: [
+    { kind: 'page', id: 'page-storm' },
+    { kind: 'block', id: 'storm-procedure' },
+    { kind: 'item', id: 'procedure-west' },
+  ],
+  exact: 'Seal the western gate, then count three breaths.',
+};
+
 describe('Rulebook text locator prototype', () => {
   it('round-trips bounded Unicode, multiline, punctuation, and long selections', () => {
     const locator: RulebookTextLocator = {
@@ -57,6 +67,22 @@ describe('Rulebook text locator prototype', () => {
       .replaceAll('/', '_')
       .replace(/=+$/, '');
     expect(parseRulebookTextLocator(hostileAnchor).status).toBe('invalid');
+
+    const hostileItem = btoa(
+      JSON.stringify({
+        v: 1,
+        path: [
+          { kind: 'page', id: 'page-storm' },
+          { kind: 'block', id: 'storm-procedure' },
+          { kind: 'item', id: ':~:text=<script>' },
+        ],
+        exact: 'text',
+      })
+    )
+      .replaceAll('+', '-')
+      .replaceAll('/', '_')
+      .replace(/=+$/, '');
+    expect(parseRulebookTextLocator(hostileItem).status).toBe('invalid');
   });
 
   it('resolves repeated text through its Block path and falls back when text is stale', () => {
@@ -96,6 +122,20 @@ describe('Rulebook text locator prototype', () => {
     expect(new URL(url).searchParams.get('loc')).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 
+  it('validates and resolves an optional repeated-item identity while keeping the Block fallback anchor', () => {
+    const parsed = parseRulebookTextLocator(encodeRulebookTextLocator(repeatedItemLocator));
+    expect(parsed).toEqual({ status: 'valid', locator: repeatedItemLocator });
+    expect(resolveRulebookTextLocator(parsed)).toMatchObject({
+      status: 'matched',
+      anchorId: 'storm-procedure',
+      block: { id: 'storm-procedure' },
+      item: { id: 'procedure-west' },
+    });
+    expect(buildRulebookTextShareUrl('https://example.com/rulebook', repeatedItemLocator)).toContain(
+      '#storm-procedure:~:text='
+    );
+  });
+
   it('creates a contextual locator from a real browser Selection without interpreting its text', () => {
     document.body.innerHTML = `
       <main data-rulebook-prototype-document>
@@ -119,5 +159,29 @@ describe('Rulebook text locator prototype', () => {
       ok: true,
       locator: repeatedLocator,
     });
+  });
+
+  it('records repeated-item identity from a browser Selection', () => {
+    document.body.innerHTML = `
+      <main data-rulebook-prototype-document>
+        <article id="page-storm" data-rulebook-page-anchor>
+          <section id="storm-procedure" data-rulebook-block-anchor>
+            <div data-rulebook-text-content>
+              <span data-rulebook-item-id="procedure-west">Seal the western gate, then count three breaths.</span>
+            </div>
+          </section>
+        </article>
+      </main>`;
+    const textNode = document.querySelector('[data-rulebook-item-id]')?.firstChild;
+    if (!textNode) {
+      throw new Error('Missing repeated-item fixture');
+    }
+    const range = document.createRange();
+    range.selectNodeContents(textNode);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    expect(locatorFromBrowserSelection(selection)).toEqual({ ok: true, locator: repeatedItemLocator });
   });
 });

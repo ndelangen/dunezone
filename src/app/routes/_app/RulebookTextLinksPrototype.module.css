@@ -47,38 +47,30 @@
   min-height: 70vh;
   padding: clamp(1.5rem, 5vw, 4rem);
   color: var(--mantine-color-text);
-  background: transparent;
-  border: 1px dashed color-mix(in srgb, var(--mantine-color-dune-7) 34%, transparent);
-  border-radius: var(--mantine-radius-lg);
-  opacity: 0.72;
   scroll-margin-top: 1.5rem;
-  transition:
-    background 180ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease,
-    opacity 180ms ease;
 }
 
-.rulePage::before {
+.visualRenderer {
   position: absolute;
-  inset: 0.7rem;
+  z-index: 0;
+  inset: 0;
   pointer-events: none;
-  content: "";
-  border: 1px solid transparent;
-  border-radius: calc(var(--mantine-radius-lg) - 0.2rem);
-}
-
-.rulePage[data-visual-state="ready"],
-.rulePage[data-visual-state="pinned"] {
   background: linear-gradient(120deg, rgb(255 251 239 / 96%), rgb(246 233 202 / 92%)), var(--mantine-color-body);
-  border-color: rgb(123 52 25 / 28%);
+  border: 1px solid rgb(123 52 25 / 28%);
+  border-radius: var(--mantine-radius-lg);
   box-shadow: 0 1rem 3rem rgb(75 38 12 / 14%);
-  opacity: 1;
 }
 
-.rulePage[data-visual-state="ready"]::before,
-.rulePage[data-visual-state="pinned"]::before {
-  border-color: rgb(181 127 52 / 28%);
+.semanticContent {
+  position: relative;
+  z-index: 1;
+}
+
+.rulePage[data-locator-target="true"] .visualRenderer {
+  border-color: var(--mantine-color-dune-6);
+  box-shadow:
+    0 0 0 4px rgb(229 150 54 / 18%),
+    0 1rem 3rem rgb(75 38 12 / 14%);
 }
 
 .pageNumber {
@@ -107,6 +99,12 @@
   box-shadow: 0 0 0 4px rgb(229 150 54 / 10%);
 }
 
+.block [data-locator-item-target="true"] {
+  font-weight: 700;
+  text-decoration: underline 2px var(--mantine-color-dune-6);
+  text-underline-offset: 0.2em;
+}
+
 .prototype :global(::target-text) {
   color: #28170c;
   background: #ffd65a;
@@ -125,17 +123,14 @@
   z-index: 1000;
   bottom: 1.25rem;
   left: 50%;
+  width: min(92vw, 34rem);
+  transform: translateX(-50%);
+}
+
+.switcherContent {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  width: min(92vw, 34rem);
-  padding: 0.55rem;
-  color: white;
-  background: rgb(39 24 15 / 96%);
-  border: 1px solid rgb(255 214 90 / 40%);
-  border-radius: 999px;
-  box-shadow: 0 0.8rem 2.5rem rgb(0 0 0 / 35%);
-  transform: translateX(-50%);
 }
 
 .switcherLabel {

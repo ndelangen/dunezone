@@ -1,17 +1,4 @@
-import {
-  Alert,
-  Anchor,
-  Badge,
-  Button,
-  Code,
-  Group,
-  List,
-  Paper,
-  SegmentedControl,
-  Stack,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Alert, Anchor, Badge, Button, Code, Group, List, SegmentedControl, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -59,12 +46,12 @@ export const Route = createFileRoute('/_app/__rulebook-text-links-prototype')({
 
 function useVisualPage(pinned: boolean) {
   const nodeRef = useRef<HTMLElement | null>(null);
-  const [visible, setVisible] = useState(pinned);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (pinned) {
-      setVisible(true);
-      return;
+      const timer = window.setTimeout(() => setVisible(true), 350);
+      return () => window.clearTimeout(timer);
     }
     const node = nodeRef.current;
     if (!node || typeof IntersectionObserver === 'undefined') {
@@ -84,19 +71,26 @@ function useVisualPage(pinned: boolean) {
     return () => observer.disconnect();
   }, [pinned]);
 
-  return { nodeRef, visualState: pinned ? 'pinned' : visible ? 'ready' : 'waiting' } as const;
+  return {
+    nodeRef,
+    visualReady: visible,
+    visualState: visible ? (pinned ? 'pinned' : 'ready') : 'waiting',
+  } as const;
 }
 
 function RulebookPageView({
   page,
   pinned,
   targetAnchorId,
+  targetItemId,
 }: {
   page: RulebookPrototypePage;
   pinned: boolean;
   targetAnchorId?: string;
+  targetItemId?: string;
 }) {
-  const { nodeRef, visualState } = useVisualPage(pinned);
+  const { nodeRef, visualReady, visualState } = useVisualPage(pinned);
+  const pageIsTarget = targetAnchorId === page.id;
   return (
     <article
       ref={nodeRef}
@@ -104,41 +98,61 @@ function RulebookPageView({
       className={styles.rulePage}
       data-rulebook-page-anchor
       data-visual-state={visualState}
+      data-locator-target={visualReady && pageIsTarget ? 'true' : undefined}
       aria-labelledby={`${page.id}-title`}
     >
-      <Text className={styles.pageNumber} aria-hidden>
-        {page.number.toString().padStart(2, '0')}
-      </Text>
-      <Stack gap="xl">
-        <div>
-          <Badge color="dune" variant="light">
-            Page {page.number}
-          </Badge>
-          <Title id={`${page.id}-title`} order={2} mt="xs">
-            {page.title}
-          </Title>
-        </div>
-        {page.blocks.map((block) => (
-          <section
-            id={block.id}
-            className={styles.block}
-            key={block.id}
-            data-rulebook-block-anchor
-            data-locator-target={targetAnchorId === block.id ? 'true' : undefined}
-            data-testid={block.testId}
-            aria-labelledby={`${block.id}-title`}
-          >
-            <Title id={`${block.id}-title`} order={3} mb="xs">
-              {block.title}
+      {visualReady && <div className={styles.visualRenderer} data-visual-renderer aria-hidden />}
+      <div className={styles.semanticContent} data-semantic-page-content>
+        <Text className={styles.pageNumber} aria-hidden>
+          {page.number.toString().padStart(2, '0')}
+        </Text>
+        <Stack gap="xl">
+          <div>
+            <Badge color="dune" variant="light">
+              Page {page.number}
+            </Badge>
+            <Title id={`${page.id}-title`} order={2} mt="xs">
+              {page.title}
             </Title>
-            <Stack gap="sm">
-              {block.paragraphs.map((paragraph) => (
-                <Text key={paragraph}>{paragraph}</Text>
-              ))}
-            </Stack>
-          </section>
-        ))}
-      </Stack>
+          </div>
+          {page.blocks.map((block) => (
+            <section
+              id={block.id}
+              className={styles.block}
+              key={block.id}
+              data-rulebook-block-anchor
+              data-locator-target={visualReady && targetAnchorId === block.id ? 'true' : undefined}
+              data-testid={block.testId}
+              aria-labelledby={`${block.id}-title`}
+            >
+              <Title id={`${block.id}-title`} order={3} mb="xs">
+                {block.title}
+              </Title>
+              <div data-rulebook-text-content>
+                <Stack gap="sm">
+                  {block.paragraphs.map((paragraph) => (
+                    <Text key={paragraph}>{paragraph}</Text>
+                  ))}
+                  {block.items && (
+                    <List>
+                      {block.items.map((item) => (
+                        <List.Item
+                          key={item.id}
+                          data-rulebook-item-id={item.id}
+                          data-locator-item-target={visualReady && targetItemId === item.id ? 'true' : undefined}
+                          data-testid={item.testId}
+                        >
+                          {item.text}
+                        </List.Item>
+                      ))}
+                    </List>
+                  )}
+                </Stack>
+              </div>
+            </section>
+          ))}
+        </Stack>
+      </div>
     </article>
   );
 }
@@ -185,11 +199,17 @@ function RulebookTextLinksPrototype() {
   const parsed = useMemo(() => parseRulebookTextLocator(search.loc), [search.loc]);
   const resolution = useMemo(() => resolveRulebookTextLocator(parsed), [parsed]);
   const targetPage = resolution.status === 'matched' || resolution.status === 'stale' ? resolution.page : undefined;
-  const targetAnchorId =
+  const resolvedAnchorId =
     resolution.status === 'matched' || resolution.status === 'stale' ? resolution.anchorId : undefined;
+  const targetItemId =
+    resolution.status === 'matched' || resolution.status === 'stale' ? resolution.item?.id : undefined;
   const locatorKey = search.loc ?? '';
   const [unpinnedLocator, setUnpinnedLocator] = useState<string | null>(null);
   const pinned = Boolean(targetPage) && unpinnedLocator !== locatorKey;
+  const [tracking, setTracking] = useState(false);
+  const [trackedAnchorId, setTrackedAnchorId] = useState<string>();
+  const trackedAnchorRef = useRef<string | undefined>(undefined);
+  const targetAnchorId = tracking ? trackedAnchorId : resolvedAnchorId;
   const [selectedEditorPageId, setSelectedEditorPageId] = useState(targetPage?.id ?? RULEBOOK_PROTOTYPE_PAGES[0]!.id);
   const [shareUrl, setShareUrl] = useState<string>();
   const [selectionMessage, setSelectionMessage] = useState<string>();
@@ -207,31 +227,95 @@ function RulebookTextLinksPrototype() {
   }, [locatorKey, targetPage]);
 
   useEffect(() => {
-    if (!targetAnchorId || resolution.status === 'missing' || resolution.status === 'invalid') {
+    setTracking(false);
+    setTrackedAnchorId(undefined);
+    trackedAnchorRef.current = undefined;
+  }, [locatorKey]);
+
+  useEffect(() => {
+    if (!tracking) {
+      return;
+    }
+    let frame = 0;
+    const updateTrackedAnchor = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const center = window.innerHeight / 2;
+        const blocks = Array.from(document.querySelectorAll<HTMLElement>('[data-rulebook-block-anchor]'));
+        const pages = Array.from(document.querySelectorAll<HTMLElement>('[data-rulebook-page-anchor]'));
+        const visibleBlocks = blocks.filter((node) => {
+          const rect = node.getBoundingClientRect();
+          return rect.bottom > 0 && rect.top < window.innerHeight;
+        });
+        const candidates = visibleBlocks.length > 0 ? visibleBlocks : pages;
+        const nearest = candidates.reduce<HTMLElement | undefined>((best, node) => {
+          if (!best) {
+            return node;
+          }
+          const rect = node.getBoundingClientRect();
+          const bestRect = best.getBoundingClientRect();
+          const distance = Math.abs((rect.top + rect.bottom) / 2 - center);
+          const bestDistance = Math.abs((bestRect.top + bestRect.bottom) / 2 - center);
+          return distance < bestDistance ? node : best;
+        }, undefined);
+        if (!nearest) {
+          return;
+        }
+        if (trackedAnchorRef.current === nearest.id) {
+          return;
+        }
+        trackedAnchorRef.current = nearest.id;
+        setTrackedAnchorId(nearest.id);
+        const url = new URL(window.location.href);
+        url.hash = nearest.id;
+        window.history.replaceState(window.history.state, '', url);
+      });
+    };
+    updateTrackedAnchor();
+    window.addEventListener('scroll', updateTrackedAnchor, { passive: true });
+    window.addEventListener('resize', updateTrackedAnchor);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', updateTrackedAnchor);
+      window.removeEventListener('resize', updateTrackedAnchor);
+    };
+  }, [tracking]);
+
+  useEffect(() => {
+    if (!resolvedAnchorId || resolution.status === 'missing' || resolution.status === 'invalid') {
       return;
     }
     const shouldApplyFallback = forceFallback || nativeSupport === 'not-detected' || resolution.status === 'stale';
     if (!shouldApplyFallback) {
       return;
     }
-    const target = document.getElementById(targetAnchorId);
+    const target = document.getElementById(resolvedAnchorId);
     if (!target) {
       return;
     }
     const frame = requestAnimationFrame(() => target.scrollIntoView({ block: 'center' }));
     return () => cancelAnimationFrame(frame);
-  }, [forceFallback, nativeSupport, resolution.status, targetAnchorId]);
+  }, [forceFallback, nativeSupport, resolution.status, resolvedAnchorId]);
 
   const setVariant = useCallback(
     (variant: RulebookPrototypeVariant) => {
       void navigate({
         to: '/__rulebook-text-links-prototype',
-        search: { ...search, variant, ...(variant === 'compatibility' ? { simulate: 'unsupported' as const } : {}) },
+        search: {
+          variant,
+          ...(!tracking && search.loc ? { loc: search.loc } : {}),
+          ...(variant === 'compatibility' ? { simulate: 'unsupported' as const } : {}),
+        },
         replace: true,
       });
     },
-    [navigate, search]
+    [navigate, search.loc, tracking]
   );
+
+  const beginTracking = () => {
+    setUnpinnedLocator(locatorKey);
+    setTracking(true);
+  };
 
   const createSelectionLink = () => {
     const result = locatorFromBrowserSelection(window.getSelection());
@@ -337,14 +421,11 @@ function RulebookTextLinksPrototype() {
                       Fresh-load state
                     </Title>
                     {pinned && <Badge leftSection={<Pin size={12} aria-hidden />}>Pinned</Badge>}
+                    {tracking && <Badge color="green">Tracking</Badge>}
                   </Group>
                   <LocatorStatus parsed={parsed} resolution={resolution} />
                   {pinned && (
-                    <Button
-                      variant="subtle"
-                      leftSection={<PinOff size={16} aria-hidden />}
-                      onClick={() => setUnpinnedLocator(locatorKey)}
-                    >
+                    <Button variant="subtle" leftSection={<PinOff size={16} aria-hidden />} onClick={beginTracking}>
                       Unpin target
                     </Button>
                   )}
@@ -403,6 +484,7 @@ function RulebookTextLinksPrototype() {
                   page={editorPage}
                   pinned={pinned && editorPage.id === targetPage?.id}
                   targetAnchorId={editorPage.id === targetPage?.id ? targetAnchorId : undefined}
+                  targetItemId={editorPage.id === targetPage?.id ? targetItemId : undefined}
                 />
               ) : (
                 RULEBOOK_PROTOTYPE_PAGES.map((page) => (
@@ -410,7 +492,8 @@ function RulebookTextLinksPrototype() {
                     key={page.id}
                     page={page}
                     pinned={pinned && page.id === targetPage?.id}
-                    targetAnchorId={page.id === targetPage?.id ? targetAnchorId : undefined}
+                    targetAnchorId={tracking || page.id === targetPage?.id ? targetAnchorId : undefined}
+                    targetItemId={page.id === targetPage?.id ? targetItemId : undefined}
                   />
                 ))
               )}
@@ -459,16 +542,18 @@ function PrototypeSwitcher({
     return null;
   }
   return (
-    <Paper className={styles.switcher} role="group" aria-label="Prototype variants">
-      <Button variant="subtle" color="gray" aria-label="Previous prototype view" onClick={() => cycle(-1)}>
-        <ArrowLeft size={18} aria-hidden />
-      </Button>
-      <Text className={styles.switcherLabel} fw={700} truncate>
-        {currentIndex + 1} of {VARIANTS.length} — {VARIANTS[currentIndex]!.label}
-      </Text>
-      <Button variant="subtle" color="gray" aria-label="Next prototype view" onClick={() => cycle(1)}>
-        <ArrowRight size={18} aria-hidden />
-      </Button>
-    </Paper>
+    <Surface className={styles.switcher} padding="sm" aria-label="Prototype variants">
+      <div className={styles.switcherContent} role="group" aria-label="Prototype variants">
+        <Button variant="subtle" color="gray" aria-label="Previous prototype view" onClick={() => cycle(-1)}>
+          <ArrowLeft size={18} aria-hidden />
+        </Button>
+        <Text className={styles.switcherLabel} fw={700} truncate>
+          {currentIndex + 1} of {VARIANTS.length} — {VARIANTS[currentIndex]!.label}
+        </Text>
+        <Button variant="subtle" color="gray" aria-label="Next prototype view" onClick={() => cycle(1)}>
+          <ArrowRight size={18} aria-hidden />
+        </Button>
+      </div>
+    </Surface>
   );
 }

@@ -6,6 +6,13 @@ export type RulebookPrototypeBlock = {
   id: string;
   title: string;
   paragraphs: string[];
+  items?: RulebookPrototypeItem[];
+  testId?: string;
+};
+
+export type RulebookPrototypeItem = {
+  id: string;
+  text: string;
   testId?: string;
 };
 
@@ -48,6 +55,19 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
         title: 'The rule in dispute',
         testId: 'repeated-second',
         paragraphs: ['After the shields settle, The storm belongs to no one. Carry the warning west.'],
+      },
+      {
+        id: 'storm-procedure',
+        title: 'Repeated procedure',
+        paragraphs: [],
+        items: [
+          { id: 'procedure-east', text: 'Seal the eastern gate, then count three breaths.' },
+          {
+            id: 'procedure-west',
+            text: 'Seal the western gate, then count three breaths.',
+            testId: 'repeated-item-sample',
+          },
+        ],
       },
       {
         id: 'unicode-rule',
@@ -93,10 +113,11 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
 
 type PagePathEntry = { kind: 'page'; id: string };
 type BlockPathEntry = { kind: 'block'; id: string };
+type ItemPathEntry = { kind: 'item'; id: string };
 
 export type RulebookTextLocator = {
   v: 1;
-  path: [PagePathEntry] | [PagePathEntry, BlockPathEntry];
+  path: [PagePathEntry] | [PagePathEntry, BlockPathEntry] | [PagePathEntry, BlockPathEntry, ItemPathEntry];
   exact: string;
   prefix?: string;
   suffix?: string;
@@ -113,6 +134,7 @@ export type LocatorResolution =
       status: 'matched' | 'stale';
       page: RulebookPrototypePage;
       block?: RulebookPrototypeBlock;
+      item?: RulebookPrototypeItem;
       anchorId: string;
     };
 
@@ -142,7 +164,11 @@ function parseLocatorShape(value: unknown): RulebookTextLocator | null {
   if (!isRecord(value) || !hasOnlyKeys(value, ['v', 'path', 'exact', 'prefix', 'suffix'])) {
     return null;
   }
-  if (value.v !== 1 || !Array.isArray(value.path) || (value.path.length !== 1 && value.path.length !== 2)) {
+  if (
+    value.v !== 1 ||
+    !Array.isArray(value.path) ||
+    (value.path.length !== 1 && value.path.length !== 2 && value.path.length !== 3)
+  ) {
     return null;
   }
   const page = value.path[0];
@@ -153,6 +179,13 @@ function parseLocatorShape(value: unknown): RulebookTextLocator | null {
   if (
     block !== undefined &&
     (!isRecord(block) || !hasOnlyKeys(block, ['kind', 'id']) || block.kind !== 'block' || !isAnchor(block.id))
+  ) {
+    return null;
+  }
+  const item = value.path[2];
+  if (
+    item !== undefined &&
+    (!block || !isRecord(item) || !hasOnlyKeys(item, ['kind', 'id']) || item.kind !== 'item' || !isAnchor(item.id))
   ) {
     return null;
   }
@@ -167,12 +200,18 @@ function parseLocatorShape(value: unknown): RulebookTextLocator | null {
   }
   return {
     v: 1,
-    path: block
+    path: item
       ? [
           { kind: 'page', id: page.id },
           { kind: 'block', id: block.id },
+          { kind: 'item', id: item.id },
         ]
-      : [{ kind: 'page', id: page.id }],
+      : block
+        ? [
+            { kind: 'page', id: page.id },
+            { kind: 'block', id: block.id },
+          ]
+        : [{ kind: 'page', id: page.id }],
     exact: value.exact,
     ...(value.prefix === undefined ? {} : { prefix: value.prefix }),
     ...(value.suffix === undefined ? {} : { suffix: value.suffix }),
@@ -225,7 +264,7 @@ function pageText(page: RulebookPrototypePage) {
 }
 
 function blockText(block: RulebookPrototypeBlock) {
-  return normalizeRulebookText(block.paragraphs.join(' '));
+  return normalizeRulebookText([...block.paragraphs, ...(block.items?.map((item) => item.text) ?? [])].join(' '));
 }
 
 export function resolveRulebookTextLocator(result: LocatorParseResult): LocatorResolution {
@@ -242,7 +281,12 @@ export function resolveRulebookTextLocator(result: LocatorParseResult): LocatorR
   if (blockEntry && !block) {
     return { status: 'unresolved' };
   }
-  const source = block ? blockText(block) : pageText(page);
+  const itemEntry = result.locator.path[2];
+  const item = itemEntry ? block?.items?.find((candidate) => candidate.id === itemEntry.id) : undefined;
+  if (itemEntry && !item) {
+    return { status: 'unresolved' };
+  }
+  const source = item ? normalizeRulebookText(item.text) : block ? blockText(block) : pageText(page);
   const exact = normalizeRulebookText(result.locator.exact);
   const prefix = normalizeRulebookText(result.locator.prefix ?? '');
   const suffix = normalizeRulebookText(result.locator.suffix ?? '');
@@ -252,6 +296,7 @@ export function resolveRulebookTextLocator(result: LocatorParseResult): LocatorR
     status: matchAt >= 0 && source.includes(contextualNeedle) ? 'matched' : 'stale',
     page,
     ...(block ? { block } : {}),
+    ...(item ? { item } : {}),
     anchorId: block?.id ?? page.id,
   };
 }
@@ -296,7 +341,7 @@ export function buildRulebookTextShareUrl(
   if (!parsed) {
     throw new Error('Cannot build a share URL from an invalid locator');
   }
-  const anchorId = parsed.path.at(-1)?.id;
+  const anchorId = parsed.path[1]?.id ?? parsed.path[0].id;
   if (!anchorId || !isAnchor(anchorId)) {
     throw new Error('Cannot build a share URL without a safe anchor');
   }
@@ -351,6 +396,9 @@ export function locatorFromBrowserSelection(
   const startBlock = startElement.closest<HTMLElement>('[data-rulebook-block-anchor]');
   const endBlock = endElement.closest<HTMLElement>('[data-rulebook-block-anchor]');
   const block = startBlock && startBlock === endBlock && isAnchor(startBlock.id) ? startBlock : undefined;
+  const startItem = startElement.closest<HTMLElement>('[data-rulebook-item-id]');
+  const endItem = endElement.closest<HTMLElement>('[data-rulebook-item-id]');
+  const item = startItem && startItem === endItem && isAnchor(startItem.dataset.rulebookItemId) ? startItem : undefined;
   const exact = normalizeRulebookText(selection.toString());
   if (exact.length === 0) {
     return { ok: false, message: 'Select visible Rulebook text first.' };
@@ -358,18 +406,27 @@ export function locatorFromBrowserSelection(
   if (exact.length > MAX_SELECTED_TEXT_LENGTH) {
     return { ok: false, message: 'The selection is too long for a safe share URL.' };
   }
-  const scope = block ?? startPage;
+  const startContent = startElement.closest('[data-rulebook-text-content]');
+  const endContent = endElement.closest('[data-rulebook-text-content]');
+  const scope = startContent && startContent === endContent ? startContent : (block ?? startPage);
   const { prefix, suffix } = contextAroundRange(range, scope);
   return {
     ok: true,
     locator: {
       v: 1,
-      path: block
-        ? [
-            { kind: 'page', id: startPage.id },
-            { kind: 'block', id: block.id },
-          ]
-        : [{ kind: 'page', id: startPage.id }],
+      path:
+        item && block
+          ? [
+              { kind: 'page', id: startPage.id },
+              { kind: 'block', id: block.id },
+              { kind: 'item', id: item.dataset.rulebookItemId! },
+            ]
+          : block
+            ? [
+                { kind: 'page', id: startPage.id },
+                { kind: 'block', id: block.id },
+              ]
+            : [{ kind: 'page', id: startPage.id }],
       exact,
       ...(prefix ? { prefix } : {}),
       ...(suffix ? { suffix } : {}),
