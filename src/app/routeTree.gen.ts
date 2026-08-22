@@ -14,6 +14,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
 import { Route as App_iconsRouteImport } from './routes/_app/[_]_icons'
 import { Route as App_jobsRouteImport } from './routes/_app/[_]_jobs'
+import { Route as App_rulebookTextLinksPrototypeRouteImport } from './routes/_app/[_]_rulebook-text-links-prototype'
 import { Route as AuthOauthRouteImport } from './routes/auth/oauth'
 import { Route as AppAdminMigrationsRouteImport } from './routes/_app/admin/migrations'
 import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
@@ -71,6 +72,12 @@ const App_jobsRoute = App_jobsRouteImport.update({
   path: '/__jobs',
   getParentRoute: () => AppRoute,
 } as any)
+const App_rulebookTextLinksPrototypeRoute =
+  App_rulebookTextLinksPrototypeRouteImport.update({
+    id: '/__rulebook-text-links-prototype',
+    path: '/__rulebook-text-links-prototype',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AuthOauthRoute = AuthOauthRouteImport.update({
   id: '/auth/oauth',
   path: '/auth/oauth',
@@ -248,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/$': typeof AppSplatRoute
   '/__icons': typeof App_iconsRoute
   '/__jobs': typeof App_jobsRoute
+  '/__rulebook-text-links-prototype': typeof App_rulebookTextLinksPrototypeRoute
   '/auth/oauth': typeof AuthOauthRoute
   '/admin/migrations': typeof AppAdminMigrationsRoute
   '/auth/error': typeof AppAuthErrorRoute
@@ -285,6 +293,7 @@ export interface FileRoutesByTo {
   '/$': typeof AppSplatRoute
   '/__icons': typeof App_iconsRoute
   '/__jobs': typeof App_jobsRoute
+  '/__rulebook-text-links-prototype': typeof App_rulebookTextLinksPrototypeRoute
   '/auth/oauth': typeof AuthOauthRoute
   '/': typeof AppIndexRoute
   '/admin/migrations': typeof AppAdminMigrationsRoute
@@ -323,6 +332,7 @@ export interface FileRoutesById {
   '/_app/$': typeof AppSplatRoute
   '/_app/__icons': typeof App_iconsRoute
   '/_app/__jobs': typeof App_jobsRoute
+  '/_app/__rulebook-text-links-prototype': typeof App_rulebookTextLinksPrototypeRoute
   '/auth/oauth': typeof AuthOauthRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRoute
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/$'
     | '/__icons'
     | '/__jobs'
+    | '/__rulebook-text-links-prototype'
     | '/auth/oauth'
     | '/admin/migrations'
     | '/auth/error'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/$'
     | '/__icons'
     | '/__jobs'
+    | '/__rulebook-text-links-prototype'
     | '/auth/oauth'
     | '/'
     | '/admin/migrations'
@@ -438,6 +450,7 @@ export interface FileRouteTypes {
     | '/_app/$'
     | '/_app/__icons'
     | '/_app/__jobs'
+    | '/_app/__rulebook-text-links-prototype'
     | '/auth/oauth'
     | '/_app/'
     | '/_app/admin/migrations'
@@ -514,6 +527,13 @@ declare module '@tanstack/react-router' {
       path: '/__jobs'
       fullPath: '/__jobs'
       preLoaderRoute: typeof App_jobsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/__rulebook-text-links-prototype': {
+      id: '/_app/__rulebook-text-links-prototype'
+      path: '/__rulebook-text-links-prototype'
+      fullPath: '/__rulebook-text-links-prototype'
+      preLoaderRoute: typeof App_rulebookTextLinksPrototypeRouteImport
       parentRoute: typeof AppRoute
     }
     '/auth/oauth': {
@@ -781,6 +801,7 @@ interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
   App_iconsRoute: typeof App_iconsRoute
   App_jobsRoute: typeof App_jobsRoute
+  App_rulebookTextLinksPrototypeRoute: typeof App_rulebookTextLinksPrototypeRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminMigrationsRoute: typeof AppAdminMigrationsRoute
   AppAuthErrorRoute: typeof AppAuthErrorRoute
@@ -812,6 +833,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
   App_iconsRoute: App_iconsRoute,
   App_jobsRoute: App_jobsRoute,
+  App_rulebookTextLinksPrototypeRoute: App_rulebookTextLinksPrototypeRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminMigrationsRoute: AppAdminMigrationsRoute,
   AppAuthErrorRoute: AppAuthErrorRoute,

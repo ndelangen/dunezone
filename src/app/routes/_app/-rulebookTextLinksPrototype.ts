@@ -1,0 +1,378 @@
+export const RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH = '/__rulebook-text-links-prototype';
+
+export type RulebookPrototypeVariant = 'reader' | 'editor' | 'compatibility';
+
+export type RulebookPrototypeBlock = {
+  id: string;
+  title: string;
+  paragraphs: string[];
+  testId?: string;
+};
+
+export type RulebookPrototypePage = {
+  id: string;
+  number: number;
+  title: string;
+  blocks: RulebookPrototypeBlock[];
+};
+
+export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
+  {
+    id: 'page-opening',
+    number: 1,
+    title: 'Before the storm',
+    blocks: [
+      {
+        id: 'opening-rule',
+        title: 'The first warning',
+        paragraphs: [
+          'A Rulebook link should still lead somewhere useful after its quoted words change.',
+          'The Page and Block anchors provide that durable landing place.',
+        ],
+      },
+      {
+        id: 'storm-rumour',
+        title: 'A repeated warning',
+        testId: 'repeated-first',
+        paragraphs: ['Before the shields rise, The storm belongs to no one. Keep the eastern gate clear.'],
+      },
+    ],
+  },
+  {
+    id: 'page-storm',
+    number: 2,
+    title: 'Inside the storm',
+    blocks: [
+      {
+        id: 'storm-rule',
+        title: 'The rule in dispute',
+        testId: 'repeated-second',
+        paragraphs: ['After the shields settle, The storm belongs to no one. Carry the warning west.'],
+      },
+      {
+        id: 'unicode-rule',
+        title: 'Names, punctuation, and scripts',
+        testId: 'unicode-sample',
+        paragraphs: [
+          '“Shai-Hulud’s passage — naïve seers agree — begins beyond Arrakeen.” 日本語 and العربية remain text.',
+        ],
+      },
+      {
+        id: 'hostile-rule',
+        title: 'Hostile-looking text is still text',
+        testId: 'hostile-sample',
+        paragraphs: ['<script>alert("spice")</script> [data-target="#storm"] :~:text=breakout & "quoted"'],
+      },
+    ],
+  },
+  {
+    id: 'page-aftermath',
+    number: 3,
+    title: 'After the storm',
+    blocks: [
+      {
+        id: 'multiline-rule',
+        title: 'A selection can cross lines',
+        testId: 'multiline-sample',
+        paragraphs: [
+          'First, reveal every word to the browser before visual page decoration is loaded.',
+          'Then, let the visual page wake when it approaches the viewport. The selected text remains searchable throughout.',
+        ],
+      },
+      {
+        id: 'long-rule',
+        title: 'A deliberately long passage',
+        testId: 'long-sample',
+        paragraphs: [
+          'Long selections should remain bounded rather than becoming an unlimited URL payload. This passage repeats enough detail to exercise a start-and-end Text Fragment: the reader sees the stable Page, the nearest stable Block, the exact selected words, nearby context, and an application-owned fallback. None of those values become markup, selectors, or executable code. The browser may highlight the selected words when it supports Text Fragments, while the application independently validates the locator and highlights the containing Block.',
+        ],
+      },
+    ],
+  },
+];
+
+type PagePathEntry = { kind: 'page'; id: string };
+type BlockPathEntry = { kind: 'block'; id: string };
+
+export type RulebookTextLocator = {
+  v: 1;
+  path: [PagePathEntry] | [PagePathEntry, BlockPathEntry];
+  exact: string;
+  prefix?: string;
+  suffix?: string;
+};
+
+export type LocatorParseResult =
+  | { status: 'missing' }
+  | { status: 'invalid'; message: string }
+  | { status: 'valid'; locator: RulebookTextLocator };
+
+export type LocatorResolution =
+  | { status: 'missing' | 'invalid' | 'unresolved' }
+  | {
+      status: 'matched' | 'stale';
+      page: RulebookPrototypePage;
+      block?: RulebookPrototypeBlock;
+      anchorId: string;
+    };
+
+const ANCHOR_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const MAX_ENCODED_LOCATOR_LENGTH = 4096;
+const MAX_SELECTED_TEXT_LENGTH = 1024;
+const MAX_CONTEXT_LENGTH = 96;
+const TEXT_FRAGMENT_EDGE_LENGTH = 80;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, allowed: string[]) {
+  return Object.keys(value).every((key) => allowed.includes(key));
+}
+
+function isAnchor(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= 64 && ANCHOR_PATTERN.test(value);
+}
+
+function isBoundedText(value: unknown, maximum: number, allowEmpty = false): value is string {
+  return typeof value === 'string' && (allowEmpty || value.length > 0) && value.length <= maximum;
+}
+
+function parseLocatorShape(value: unknown): RulebookTextLocator | null {
+  if (!isRecord(value) || !hasOnlyKeys(value, ['v', 'path', 'exact', 'prefix', 'suffix'])) {
+    return null;
+  }
+  if (value.v !== 1 || !Array.isArray(value.path) || (value.path.length !== 1 && value.path.length !== 2)) {
+    return null;
+  }
+  const page = value.path[0];
+  if (!isRecord(page) || !hasOnlyKeys(page, ['kind', 'id']) || page.kind !== 'page' || !isAnchor(page.id)) {
+    return null;
+  }
+  const block = value.path[1];
+  if (
+    block !== undefined &&
+    (!isRecord(block) || !hasOnlyKeys(block, ['kind', 'id']) || block.kind !== 'block' || !isAnchor(block.id))
+  ) {
+    return null;
+  }
+  if (!isBoundedText(value.exact, MAX_SELECTED_TEXT_LENGTH)) {
+    return null;
+  }
+  if (value.prefix !== undefined && !isBoundedText(value.prefix, MAX_CONTEXT_LENGTH, true)) {
+    return null;
+  }
+  if (value.suffix !== undefined && !isBoundedText(value.suffix, MAX_CONTEXT_LENGTH, true)) {
+    return null;
+  }
+  return {
+    v: 1,
+    path: block
+      ? [
+          { kind: 'page', id: page.id },
+          { kind: 'block', id: block.id },
+        ]
+      : [{ kind: 'page', id: page.id }],
+    exact: value.exact,
+    ...(value.prefix === undefined ? {} : { prefix: value.prefix }),
+    ...(value.suffix === undefined ? {} : { suffix: value.suffix }),
+  };
+}
+
+function bytesToBase64Url(bytes: Uint8Array) {
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+}
+
+function base64UrlToBytes(value: string) {
+  const base64 = value.replaceAll('-', '+').replaceAll('_', '/');
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+export function encodeRulebookTextLocator(locator: RulebookTextLocator) {
+  return bytesToBase64Url(new TextEncoder().encode(JSON.stringify(locator)));
+}
+
+export function parseRulebookTextLocator(encoded: string | undefined): LocatorParseResult {
+  if (encoded === undefined || encoded.length === 0) {
+    return { status: 'missing' };
+  }
+  if (encoded.length > MAX_ENCODED_LOCATOR_LENGTH || !/^[A-Za-z0-9_-]+$/.test(encoded)) {
+    return { status: 'invalid', message: 'The link locator is malformed or too large.' };
+  }
+  try {
+    const decoded = new TextDecoder('utf-8', { fatal: true }).decode(base64UrlToBytes(encoded));
+    const locator = parseLocatorShape(JSON.parse(decoded));
+    return locator
+      ? { status: 'valid', locator }
+      : { status: 'invalid', message: 'The link locator does not match the supported version and shape.' };
+  } catch {
+    return { status: 'invalid', message: 'The link locator could not be decoded safely.' };
+  }
+}
+
+export function normalizeRulebookText(value: string) {
+  return value.replace(/\s+/gu, ' ').trim();
+}
+
+function pageText(page: RulebookPrototypePage) {
+  return normalizeRulebookText(page.blocks.flatMap((block) => block.paragraphs).join(' '));
+}
+
+function blockText(block: RulebookPrototypeBlock) {
+  return normalizeRulebookText(block.paragraphs.join(' '));
+}
+
+export function resolveRulebookTextLocator(result: LocatorParseResult): LocatorResolution {
+  if (result.status !== 'valid') {
+    return { status: result.status };
+  }
+  const pageEntry = result.locator.path[0];
+  const page = RULEBOOK_PROTOTYPE_PAGES.find((candidate) => candidate.id === pageEntry.id);
+  if (!page) {
+    return { status: 'unresolved' };
+  }
+  const blockEntry = result.locator.path[1];
+  const block = blockEntry ? page.blocks.find((candidate) => candidate.id === blockEntry.id) : undefined;
+  if (blockEntry && !block) {
+    return { status: 'unresolved' };
+  }
+  const source = block ? blockText(block) : pageText(page);
+  const exact = normalizeRulebookText(result.locator.exact);
+  const prefix = normalizeRulebookText(result.locator.prefix ?? '');
+  const suffix = normalizeRulebookText(result.locator.suffix ?? '');
+  const matchAt = source.indexOf(exact);
+  const contextualNeedle = normalizeRulebookText([prefix, exact, suffix].filter(Boolean).join(' '));
+  return {
+    status: matchAt >= 0 && source.includes(contextualNeedle) ? 'matched' : 'stale',
+    page,
+    ...(block ? { block } : {}),
+    anchorId: block?.id ?? page.id,
+  };
+}
+
+function percentEncodeTextFragmentTerm(value: string) {
+  return Array.from(new TextEncoder().encode(value), (byte) => {
+    const isAsciiLetter = (byte >= 65 && byte <= 90) || (byte >= 97 && byte <= 122);
+    const isDigit = byte >= 48 && byte <= 57;
+    return isAsciiLetter || isDigit
+      ? String.fromCharCode(byte)
+      : `%${byte.toString(16).toUpperCase().padStart(2, '0')}`;
+  }).join('');
+}
+
+function takeCodePoints(value: string, count: number, fromEnd = false) {
+  const points = Array.from(value);
+  return (fromEnd ? points.slice(-count) : points.slice(0, count)).join('');
+}
+
+export function buildTextFragmentDirective(locator: RulebookTextLocator) {
+  const exact = normalizeRulebookText(locator.exact);
+  const longSelection = Array.from(exact).length > TEXT_FRAGMENT_EDGE_LENGTH * 2;
+  const start = takeCodePoints(exact, longSelection ? TEXT_FRAGMENT_EDGE_LENGTH : Array.from(exact).length);
+  const end = longSelection ? takeCodePoints(exact, TEXT_FRAGMENT_EDGE_LENGTH, true) : undefined;
+  const prefix = normalizeRulebookText(locator.prefix ?? '');
+  const suffix = normalizeRulebookText(locator.suffix ?? '');
+  return [
+    'text=',
+    prefix ? `${percentEncodeTextFragmentTerm(prefix)}-,` : '',
+    percentEncodeTextFragmentTerm(start),
+    end ? `,${percentEncodeTextFragmentTerm(end)}` : '',
+    suffix ? `,-${percentEncodeTextFragmentTerm(suffix)}` : '',
+  ].join('');
+}
+
+export function buildRulebookTextShareUrl(
+  baseUrl: string,
+  locator: RulebookTextLocator,
+  variant: RulebookPrototypeVariant = 'reader'
+) {
+  const parsed = parseLocatorShape(locator);
+  if (!parsed) {
+    throw new Error('Cannot build a share URL from an invalid locator');
+  }
+  const anchorId = parsed.path.at(-1)?.id;
+  if (!anchorId || !isAnchor(anchorId)) {
+    throw new Error('Cannot build a share URL without a safe anchor');
+  }
+  const url = new URL(baseUrl);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('loc', encodeRulebookTextLocator(parsed));
+  if (variant !== 'reader') {
+    url.searchParams.set('variant', variant);
+  }
+  return `${url.toString()}#${anchorId}:~:${buildTextFragmentDirective(parsed)}`;
+}
+
+function elementForNode(node: Node) {
+  return node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+}
+
+function contextAroundRange(range: Range, scope: Element) {
+  const before = range.cloneRange();
+  before.selectNodeContents(scope);
+  before.setEnd(range.startContainer, range.startOffset);
+  const after = range.cloneRange();
+  after.selectNodeContents(scope);
+  after.setStart(range.endContainer, range.endOffset);
+  return {
+    prefix: takeCodePoints(normalizeRulebookText(before.toString()), MAX_CONTEXT_LENGTH, true),
+    suffix: takeCodePoints(normalizeRulebookText(after.toString()), MAX_CONTEXT_LENGTH),
+  };
+}
+
+export function locatorFromBrowserSelection(
+  selection: Selection | null
+): { ok: true; locator: RulebookTextLocator } | { ok: false; message: string } {
+  if (!selection || selection.rangeCount !== 1 || selection.isCollapsed) {
+    return { ok: false, message: 'Select some Rulebook text first.' };
+  }
+  const range = selection.getRangeAt(0);
+  const startElement = elementForNode(range.startContainer);
+  const endElement = elementForNode(range.endContainer);
+  if (!startElement || !endElement) {
+    return { ok: false, message: 'Select visible Rulebook text first.' };
+  }
+  const documentRoot = startElement.closest('[data-rulebook-prototype-document]');
+  if (!documentRoot || !documentRoot.contains(endElement)) {
+    return { ok: false, message: 'The selection must stay inside this Rulebook.' };
+  }
+  const startPage = startElement.closest<HTMLElement>('[data-rulebook-page-anchor]');
+  const endPage = endElement.closest<HTMLElement>('[data-rulebook-page-anchor]');
+  if (!startPage || startPage !== endPage || !isAnchor(startPage.id)) {
+    return { ok: false, message: 'Keep the selection inside one Rulebook Page.' };
+  }
+  const startBlock = startElement.closest<HTMLElement>('[data-rulebook-block-anchor]');
+  const endBlock = endElement.closest<HTMLElement>('[data-rulebook-block-anchor]');
+  const block = startBlock && startBlock === endBlock && isAnchor(startBlock.id) ? startBlock : undefined;
+  const exact = normalizeRulebookText(selection.toString());
+  if (exact.length === 0) {
+    return { ok: false, message: 'Select visible Rulebook text first.' };
+  }
+  if (exact.length > MAX_SELECTED_TEXT_LENGTH) {
+    return { ok: false, message: 'The selection is too long for a safe share URL.' };
+  }
+  const scope = block ?? startPage;
+  const { prefix, suffix } = contextAroundRange(range, scope);
+  return {
+    ok: true,
+    locator: {
+      v: 1,
+      path: block
+        ? [
+            { kind: 'page', id: startPage.id },
+            { kind: 'block', id: block.id },
+          ]
+        : [{ kind: 'page', id: startPage.id }],
+      exact,
+      ...(prefix ? { prefix } : {}),
+      ...(suffix ? { suffix } : {}),
+    },
+  };
+}
