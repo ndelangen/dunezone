@@ -40,10 +40,8 @@ because both the app and the Convex server parse against them.
 
 ## Basic DB Structure
 
-**Tables**: `users`, `counters`, `profiles`, `groups`, `group_members`, `factions`, `assets`,
-`asset_relations`, `publication_assets`, `publication_jobs`, `admin_settings`, `rulesets`,
-`migration_runs`, `ruleset_asset_slots`, `ruleset_factions`, `faq_items`, `faq_answers`, plus the
-Convex Auth tables.
+**Tables**: [`convex/schema.ts`](../convex/schema.ts) is the list, plus the Convex Auth tables. It is
+not repeated here, because a copy of a registry goes stale without anything failing.
 
 **Pattern**: Domain data is stored in Convex documents, validated with function validators at the
 boundary and shared Zod schemas inside the handler. Factions, rulesets, groups, and community Assets

@@ -54,7 +54,8 @@ infrastructure state that no type system or e2e spec can express.
   cover; "more coverage" is not a reason.
 - #236 (Zod-derived validators), #241 (group-membership and FAQ happy-path e2e)
   and #234 (retiring the client seam tests derived types made redundant) are all
-  closed. The e2e layer is now 6 specs / 450 lines, so the ratio quoted above is
-  historical.
+  closed, so the ratio quoted above is historical. The e2e layer has grown since
+  and will keep growing; its size is a thing to measure when the question comes
+  up, not a number to keep true here.
 - Architecture reviews should flag test accumulation against this stack the
   same way they flag shallow modules.

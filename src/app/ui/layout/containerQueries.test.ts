@@ -5,6 +5,10 @@ import { describe, expect, it } from 'vitest';
 const layoutDir = new URL('.', import.meta.url);
 
 /*
+ * A source scan under ADR-0001's narrow exception: the guarantee is the absence of a spelling across
+ * a whole directory, which no type and no lint rule covers, since `.oxlintrc.json` has no rule that
+ * reads stylesheet contents.
+ *
  * A Layout is responsive by container query, so it lays out by the room it is given, not the size
  * of the window (the "Layouts own spacing" rule in docs/technical/ui-design-decisions.md).
  * `PageLayout` is the one exemption: it is the shell's page frame, sized against the viewport in

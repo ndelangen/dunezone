@@ -15,7 +15,9 @@ Convex agent skills for common tasks can be installed by running
 ## Project Quick Context
 
 - Start with [`docs/README.md`](docs/README.md) for architecture and workflow links.
-- Stack: TanStack Router/Query, Convex, Vite, and Storybook.
+- Stack: TanStack Router, Start and Form, Convex, Vite, and Storybook. Reads go through Convex's own
+  `useQuery` inside `src/app/db`, so there is no TanStack Query and no client cache to manage; see
+  [`docs/state-management.md`](docs/state-management.md) for what Convex holds instead.
 - Non-obvious workflow: `bun run generate` refreshes generated game data outputs.
 - `bun run app:dev` uses the configured online Convex deployment. Add `--local` for the
   disposable Docker-backed environment with local test auth and a cloned production
@@ -108,9 +110,9 @@ goes next, because either one makes it unusable in a story and unusable on a sec
 [`.oxlintrc.json`](.oxlintrc.json) forbids, inside `src/app/ui`:
 
 - the Convex client in any form, including the relative path to `convex/_generated`;
-- **value** imports from a data module by *every* spelling — `@db/**`, `@app/db/**`, `@app/*/db`,
-  and the relative forms with or without a `.ts` extension. One alias is not one path: `@db/core`
-  and `@app/db/core` are the same file, and it exports a live `ConvexReactClient`.
+- **value** imports from a data module by every spelling the config lists, aliased and relative
+  alike. One alias is not one path: `@db/core` and `@app/db/core` are the same file, and it exports
+  a live `ConvexReactClient`, so a ban that misses a spelling bans nothing.
   `allowTypeImports` keeps `import type` legal, since a type is a statement about what you render,
   not a dependency;
 - the router's data and navigation surface — `useRouter` first of all, since it returns the whole
@@ -143,16 +145,16 @@ Outside the kit:
     one. What used to sit there went to the place that says what it is — `src/app/ui/<category>` when it
     was really vocabulary, the route when it was page composition, `src/app/print/` for the
     document-rendering glue, and `src/app/shell/` for the chrome.
-- **The application shell** (`src/app/shell`) — the chrome every page sits in: `AppRoot`
-  (the frame and the document-level effects), `AppHeader` (the artwork band), `AppFooter`, and the
-  organs behind them (`SiteNavigation`). The shell is chrome, not a set of organs: it has a
-  doorway — `routes/_app.tsx` mounts `ApplicationChrome` and `AppNotFound`, and nothing else
-  outside the folder imports from it — and its chrome (`AppRoot`, `AppHeader`, `AppFooter`)
-  **carries stories**, filed under a `Shell` root, because those states are worth looking at and
-  cannot be reached from any page's story. An outside importer or a story alone ends organ-hood,
-  which is why only `SiteNavigation` qualifies as one here. The shell is not a category and never
-  will be: the six are decided at the membrane, and the shell is decided by position. See
-  *The shell is chrome* in
+- **The application shell** (`src/app/shell`) — the chrome every page sits in: `AppRoot` (the frame
+  and the document-level effects), `AppHeader` (the artwork band), `AppFooter`, and
+  `SiteNavigation`. The shell is chrome, not a set of organs: it has a doorway — `routes/_app.tsx`
+  mounts `ApplicationChrome` and `AppNotFound`, and nothing else outside the folder imports from it —
+  and its chrome **carries stories**, filed under a `Shell` root, because those states are worth
+  looking at and cannot be reached from any page's story. `SiteNavigation` is chrome for that
+  reason: its four stories cover the overflow and collapsed states no page story can reach. An
+  outside importer or a story alone ends organ-hood, so the shell has no organs. The shell is not a
+  category and never will be: the six are decided at the membrane, and the shell is decided by
+  position. See *The shell is chrome* in
   [`docs/technical/ui-design-decisions.md`](docs/technical/ui-design-decisions.md#the-shell-is-chrome-decided-by-position)
   for why the header is neither a Surface nor a Layout.
 - **Widgets** (`src/app/widgets/<name>`) — an assembly too domain-specific to be kit and too
@@ -168,7 +170,7 @@ Outside the kit:
     widget imports them.
   - **The shelf is a metric.** Every widget is a concession. When `src/app/widgets/` grows,
     something upstream went wrong.
-- **Pickers** (`src/app/pickers/<Name>Picker.tsx`) — the one place a component may fetch, and the
+- **Pickers** (`src/app/pickers`) — the one place a component may fetch, and the
   reason "a widget never fetches" is a rule about *where fetching lives* rather than a blanket ban.
   A Picker is a domain control whose whole job is to let the user choose from a list it loads
   itself — the factions you can load, the users you can assign — and it loads them **lazily and
@@ -277,8 +279,15 @@ data*. Every component in `src/app/ui` has stories; Mantine components used by
 the app get stories too, filed by kind under our theme, indistinguishable from ours. Two kinds of
 file are exempt: organs, and a component whose story lives under a sibling's name because the two
 only make sense together (`SortableItem` and `SortableReorderHandle` share `SortableDnd.stories.tsx`,
-which is why no `SortableDnd.tsx` exists). A rule stated alongside its own violations is not a rule,
-so the three components that were missing stories when this was written now have them.
+which is why no `SortableDnd.tsx` exists).
+
+Three filename conventions carry weight here. A story-only fixture takes the `.stories.fixture.tsx`
+suffix, which the lint overrides key on, so it is a name the tooling reads rather than a preference.
+A Picker's pure view splits into a `.parts.tsx` companion, keeping the fetching shell and the
+rendering apart (`AssetPicker.parts.tsx`, `FactionPicker.parts.tsx`). And a directory whose stories
+should appear needs an explicit `titlePrefix` entry in
+[`.storybook/main.ts`](.storybook/main.ts): the category folder is the Storybook root for the kit,
+but the registration is per directory, so an unregistered folder's stories simply never load.
 
 ## Shared contracts
 
@@ -340,6 +349,17 @@ three callers had already settled statically. The other module imported two stri
 and cost nothing but the second path. `no-restricted-imports` enforces this for all of `src/**`
 except `src/app/db/**`.
 
+Inside `convex/`, mutations come from the trigger-aware builders in
+[`convex/functions.ts`](convex/functions.ts), never from `_generated/server`: the builders run the
+registered triggers, so a mutation that bypasses them writes without them. `no-restricted-imports`
+bans the `mutation` and `internalMutation` names from `_generated/server`, and every override
+restates the ban, because an override replaces the root rule for the files it matches rather than
+adding to it.
+
+Convex seam suites sit beside the module they cover and are named `<domain>.<facet>.test.ts`
+(`factions.catalogue.test.ts`, `groups.softDeletion.test.ts`). One facet per file, so a suite's name
+says what broke before the failure text does.
+
 Moving a file named in `RENDERER_RUNTIME_CLOSURE_PATHS` changes the renderer digest, so
 `publisher:release:verify` will report a `renderer-manifest.generated.ts` diff to commit. That is
 identity, not staleness: regeneration is driven by the checked-in `renderer_revisions`, which a move
@@ -365,6 +385,26 @@ assets, run `bun run publisher:release:verify`. The publisher Worker contains th
 release, while its Renderer identity intentionally excludes application-only shell and chunk
 files. A generated manifest diff must be resolved before push, not discovered by PR CI.
 
+## House conventions
+
+Three practices the whole repo follows, written down because they are enforced or assumed rather
+than obvious.
+
+**Commit subjects are declarative sentences about the behaviour change**, present tense, no
+conventional-commit prefix: "The slotted name field keeps the plain field's blur wiring". The subject
+says what the code now does, so a log reads as a description of the system rather than a list of
+categories.
+
+**Block comments are the house style**, enforced by the local oxlint plugin
+[`scripts/oxlint-prefer-block-comments.mjs`](scripts/oxlint-prefer-block-comments.mjs)
+(`local/prefer-block-comments`, generated files exempt). The rule also normalises the shape, one
+sentence per line, so a comment diff shows the sentence that changed.
+
+**Package scripts follow a taxonomy.** `check:*` are static tree guards backed by
+`scripts/assert-*.mjs`; `verify:*` verify generated artifacts against their sources; `generate:*`
+produce them. The prefix tells you whether a failure means "the code is wrong" or "the artifacts are
+stale".
+
 ## Agent skills
 
 ### Issue tracker
@@ -383,7 +423,8 @@ This is a single-context repository using root `CONTEXT.md` and `docs/adr/`. See
 
 Raster image sources live in `media/**`; everything under `public/image/**` and
 `public/web/**` is generated output (gitignored), apart from the committed files
-named in `COMMITTED_WEB_FILES` (`scripts/verify-images.ts`). Run
+named in `COMMITTED_WEB_FILES` (`src/shared/assetRules.ts`, read by both the generator and
+`scripts/verify-images.ts`). Run
 `bun run generate:images` after changing sources or `src/shared/assetRules.ts`
 (dev and Storybook need the generated files locally; CI produces the deployed
 bytes). `bun run verify:images` checks the output structurally. Renderer
