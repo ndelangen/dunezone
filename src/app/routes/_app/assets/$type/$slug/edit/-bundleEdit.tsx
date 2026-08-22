@@ -112,22 +112,17 @@ function BundleEditSession({
   const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const tokens = members.map((entry) => ({ token: entry.member, count: entry.count }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const conflictSlug = useNameConflict({ type: 'bundle', name: draft.name, currentSlug: asset.slug });
+  const { conflictWarnings, conflictProbe } = useNameConflict({
+    type: 'bundle',
+    name: draft.name,
+    currentSlug: asset.slug,
+    source: 'Identity',
+    chapter: 'identity' as BundleChapter,
+  });
   const warnings: (
     | ReturnType<typeof bundleDraftWarnings>[number]
     | { source: string; complaint: string; chapter: BundleChapter }
-  )[] = [
-    ...bundleDraftWarnings(draft, tokens),
-    ...(conflictSlug
-      ? [
-          {
-            source: 'Identity',
-            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
-            chapter: 'identity' as BundleChapter,
-          },
-        ]
-      : []),
-  ];
+  )[] = [...bundleDraftWarnings(draft, tokens), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -197,6 +192,7 @@ function BundleEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
+          {conflictProbe}
           {updateAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {mutationErrorMessage(updateAsset.error)}

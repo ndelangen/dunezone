@@ -149,17 +149,15 @@ function DeckEditSession({
    * («How a dangling back reference presents»), routed to Identity, the chapter the back tiles live in.
    */
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const conflictSlug = useNameConflict({ type: 'deck', name: draft.name, currentSlug: asset.slug });
+  const { conflictWarnings, conflictProbe } = useNameConflict({
+    type: 'deck',
+    name: draft.name,
+    currentSlug: asset.slug,
+    source: 'Identity',
+    chapter: 'identity' as DeckChapter,
+  });
   const warnings: (DeckWarning | { source: string; complaint: string; chapter: DeckChapter })[] = [
-    ...(conflictSlug
-      ? [
-          {
-            source: 'Identity',
-            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
-            chapter: 'identity' as DeckChapter,
-          },
-        ]
-      : []),
+    ...conflictWarnings,
     ...deckDraftWarnings(draft, cards),
     ...(danglingBack && draft.cardback.mode === 'reference'
       ? [{ source: 'Cardback', complaint: 'its referenced cardback is gone', chapter: 'identity' as DeckChapter }]
@@ -262,6 +260,7 @@ function DeckEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
+          {conflictProbe}
           {updateAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {mutationErrorMessage(updateAsset.error)}

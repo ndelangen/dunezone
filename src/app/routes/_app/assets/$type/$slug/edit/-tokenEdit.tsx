@@ -137,17 +137,15 @@ function TokenEditSession({
    * It routes to Identity, the chapter the back tiles live in.
    */
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const conflictSlug = useNameConflict({ type, name: draft.name, currentSlug: asset.slug });
+  const { conflictWarnings, conflictProbe } = useNameConflict({
+    type,
+    name: draft.name,
+    currentSlug: asset.slug,
+    source: 'Identity',
+    chapter: 'identity' as TokenChapter,
+  });
   const warnings: (TokenWarning | { source: string; complaint: string; chapter: TokenChapter })[] = [
-    ...(conflictSlug
-      ? [
-          {
-            source: 'Identity',
-            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
-            chapter: 'identity' as TokenChapter,
-          },
-        ]
-      : []),
+    ...conflictWarnings,
     ...tokenDraftWarnings(draft),
     ...(danglingBack && draft.back.mode === 'reference'
       ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as TokenChapter }]
@@ -229,6 +227,7 @@ function TokenEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
+          {conflictProbe}
           {updateAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {mutationErrorMessage(updateAsset.error)}

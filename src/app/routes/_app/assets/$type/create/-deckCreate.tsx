@@ -35,22 +35,16 @@ export function DeckCreatePage() {
   const patch = (update: Partial<DeckDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const pickless = draft.cardback.mode === 'reference' && draft.cardback.asset_id === null;
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const conflictSlug = useNameConflict({ type: 'deck', name: draft.name });
+  const { conflictWarnings, conflictProbe } = useNameConflict({
+    type: 'deck',
+    name: draft.name,
+    source: 'Identity',
+    chapter: 'identity' as DeckChapter,
+  });
   const warnings: (
     | ReturnType<typeof deckDraftWarnings>[number]
     | { source: string; complaint: string; chapter: DeckChapter }
-  )[] = [
-    ...deckDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'cards'),
-    ...(conflictSlug
-      ? [
-          {
-            source: 'Identity',
-            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
-            chapter: 'identity' as DeckChapter,
-          },
-        ]
-      : []),
-  ];
+  )[] = [...deckDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'cards'), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_DECK_DRAFT);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -116,6 +110,7 @@ export function DeckCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
+          {conflictProbe}
           {createAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {mutationErrorMessage(createAsset.error)}

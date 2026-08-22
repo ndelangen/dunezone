@@ -37,22 +37,16 @@ export function TokenCreatePage({ type }: { type: string }) {
   const patch = (update: Partial<TokenDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const pickless = draft.back.mode === 'reference' && draft.back.asset_id === null;
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const conflictSlug = useNameConflict({ type, name: draft.name });
+  const { conflictWarnings, conflictProbe } = useNameConflict({
+    type,
+    name: draft.name,
+    source: 'Identity',
+    chapter: 'identity' as TokenChapter,
+  });
   const warnings: (
     | ReturnType<typeof tokenDraftWarnings>[number]
     | { source: string; complaint: string; chapter: TokenChapter }
-  )[] = [
-    ...tokenDraftWarnings(draft),
-    ...(conflictSlug
-      ? [
-          {
-            source: 'Identity',
-            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
-            chapter: 'identity' as TokenChapter,
-          },
-        ]
-      : []),
-  ];
+  )[] = [...tokenDraftWarnings(draft), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(initialDraft);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -117,6 +111,7 @@ export function TokenCreatePage({ type }: { type: string }) {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
+          {conflictProbe}
           {createAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {mutationErrorMessage(createAsset.error)}

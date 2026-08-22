@@ -8,6 +8,7 @@ import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { useAssetSlugTaken, useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
@@ -191,25 +192,56 @@ export function useAssetGroupActions({
   };
 }
 
+/** The subscription half of the name-conflict check: mounted only while a candidate slug exists, which is how the read stays conditional without a skip. */
+function NameConflictProbe({
+  type,
+  slug,
+  onAnswer,
+}: {
+  type: string;
+  slug: string;
+  onAnswer: (conflictSlug: string | null) => void;
+}) {
+  const taken = useAssetSlugTaken({ type, slug });
+  useEffect(() => {
+    onAnswer(taken === true ? slug : null);
+  }, [taken, slug, onAnswer]);
+  return null;
+}
+
 /**
  * Whether the draft's name collides with an existing asset of the same type, live while the author types.
  *
  * The same rule the save guard refuses on, read as a subscription, so the warning and the refusal can never disagree.
  * Finding 19 of «Walk findings, round two» is the why: a card named Shield met the reserved slug of the existing Shield card and the reader learned nothing.
  * On an edit page pass `currentSlug`, so an unchanged name never warns about its own address.
- * Returns the colliding slug for the warning's words, or null while the name is free, blank, or unchanged.
+ * Returns the colliding slug for the warning's words (null while the name is free, blank, or unchanged) and a probe node the organ must render: mounting it is what turns the subscription on.
  */
-export function useNameConflict({
+export function useNameConflict<Chapter extends string>({
   type,
   name,
   currentSlug,
+  source,
+  chapter,
 }: {
   type: string;
   name: string;
   currentSlug?: string;
-}): string | null {
+  /** The validation header group the warning joins — Identity everywhere but the treachery card, whose name lives in Head. */
+  source: string;
+  chapter: Chapter;
+}): { conflictWarnings: { source: string; complaint: string; chapter: Chapter }[]; conflictProbe: ReactNode } {
+  const [answer, setAnswer] = useState<string | null>(null);
   const slug = slugify(name);
   const candidate = slug.length > 0 && slug !== currentSlug ? slug : null;
-  const taken = useAssetSlugTaken(candidate ? { type, slug: candidate } : null);
-  return taken === true && candidate ? candidate : null;
+  const conflictProbe = candidate ? (
+    <NameConflictProbe key={candidate} type={type} slug={candidate} onAnswer={setAnswer} />
+  ) : null;
+  const conflictSlug = candidate ? answer : null;
+  return {
+    conflictWarnings: conflictSlug
+      ? [{ source, complaint: `its name is already taken (another one lives at "${conflictSlug}")`, chapter }]
+      : [],
+    conflictProbe,
+  };
 }

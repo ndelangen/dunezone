@@ -106,22 +106,17 @@ function CardEditSession({
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const conflictSlug = useNameConflict({ type: 'card-treachery', name: draft.name, currentSlug: asset.slug });
+  const { conflictWarnings, conflictProbe } = useNameConflict({
+    type: 'card-treachery',
+    name: draft.name,
+    currentSlug: asset.slug,
+    source: 'Head',
+    chapter: 'head' as TreacheryChapter,
+  });
   const warnings: (
     | ReturnType<typeof treacheryDraftWarnings>[number]
     | { source: string; complaint: string; chapter: TreacheryChapter }
-  )[] = [
-    ...treacheryDraftWarnings(draft),
-    ...(conflictSlug
-      ? [
-          {
-            source: 'Head',
-            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
-            chapter: 'head' as TreacheryChapter,
-          },
-        ]
-      : []),
-  ];
+  )[] = [...treacheryDraftWarnings(draft), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -187,6 +182,7 @@ function CardEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
+          {conflictProbe}
           {updateAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {mutationErrorMessage(updateAsset.error)}

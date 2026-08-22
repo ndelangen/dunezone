@@ -39,22 +39,16 @@ export function RectangleCreatePage() {
   const patch = (update: Partial<RectangleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const pickless = draft.back.mode === 'reference' && draft.back.asset_id === null;
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const conflictSlug = useNameConflict({ type: TYPE, name: draft.name });
+  const { conflictWarnings, conflictProbe } = useNameConflict({
+    type: TYPE,
+    name: draft.name,
+    source: 'Identity',
+    chapter: 'identity' as RectangleChapter,
+  });
   const warnings: (
     | ReturnType<typeof rectangleDraftWarnings>[number]
     | { source: string; complaint: string; chapter: RectangleChapter }
-  )[] = [
-    ...rectangleDraftWarnings(draft),
-    ...(conflictSlug
-      ? [
-          {
-            source: 'Identity',
-            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
-            chapter: 'identity' as RectangleChapter,
-          },
-        ]
-      : []),
-  ];
+  )[] = [...rectangleDraftWarnings(draft), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_RECTANGLE_DRAFT);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -119,6 +113,7 @@ export function RectangleCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
+          {conflictProbe}
           {createAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {mutationErrorMessage(createAsset.error)}

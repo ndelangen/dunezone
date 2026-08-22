@@ -32,22 +32,16 @@ export function TreacheryCreatePage() {
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const conflictSlug = useNameConflict({ type: 'card-treachery', name: draft.name });
+  const { conflictWarnings, conflictProbe } = useNameConflict({
+    type: 'card-treachery',
+    name: draft.name,
+    source: 'Head',
+    chapter: 'head' as TreacheryChapter,
+  });
   const warnings: (
     | ReturnType<typeof treacheryDraftWarnings>[number]
     | { source: string; complaint: string; chapter: TreacheryChapter }
-  )[] = [
-    ...treacheryDraftWarnings(draft),
-    ...(conflictSlug
-      ? [
-          {
-            source: 'Head',
-            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
-            chapter: 'head' as TreacheryChapter,
-          },
-        ]
-      : []),
-  ];
+  )[] = [...treacheryDraftWarnings(draft), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_TREACHERY_DRAFT);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -106,6 +100,7 @@ export function TreacheryCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
+          {conflictProbe}
           {createAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {mutationErrorMessage(createAsset.error)}

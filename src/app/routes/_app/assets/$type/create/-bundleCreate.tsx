@@ -32,22 +32,16 @@ export function BundleCreatePage() {
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const conflictSlug = useNameConflict({ type: 'bundle', name: draft.name });
+  const { conflictWarnings, conflictProbe } = useNameConflict({
+    type: 'bundle',
+    name: draft.name,
+    source: 'Identity',
+    chapter: 'identity' as BundleChapter,
+  });
   const warnings: (
     | ReturnType<typeof bundleDraftWarnings>[number]
     | { source: string; complaint: string; chapter: BundleChapter }
-  )[] = [
-    ...bundleDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'tokens'),
-    ...(conflictSlug
-      ? [
-          {
-            source: 'Identity',
-            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
-            chapter: 'identity' as BundleChapter,
-          },
-        ]
-      : []),
-  ];
+  )[] = [...bundleDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'tokens'), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_BUNDLE_DRAFT);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -108,6 +102,7 @@ export function BundleCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
+          {conflictProbe}
           {createAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
               {mutationErrorMessage(createAsset.error)}
