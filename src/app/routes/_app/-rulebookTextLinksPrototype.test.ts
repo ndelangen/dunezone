@@ -6,10 +6,8 @@ import {
   buildRulebookTextShareUrl,
   buildTextFragmentDirective,
   encodeRulebookTextLocator,
-  getRulebookSemanticSegments,
   locatorFromBrowserSelection,
   parseRulebookTextLocator,
-  resolveRulebookSemanticSpan,
   resolveRulebookTextLocator,
   resolveRulebookStableAnchor,
   RULEBOOK_PROTOTYPE_PAGES,
@@ -19,8 +17,8 @@ import type { RulebookTextLocator } from './-rulebookTextLinksPrototype';
 const repeatedLocator: RulebookTextLocator = {
   v: 1,
   path: [
-    { kind: 'page', id: 'page-storm' },
-    { kind: 'block', id: 'storm-rule' },
+    { kind: 'page', id: 'page-2' },
+    { kind: 'block', id: 'block-storm-rule' },
   ],
   exact: 'The storm belongs to no one.',
   prefix: 'After the shields settle,',
@@ -30,26 +28,14 @@ const repeatedLocator: RulebookTextLocator = {
 const repeatedItemLocator: RulebookTextLocator = {
   v: 1,
   path: [
-    { kind: 'page', id: 'page-storm' },
-    { kind: 'block', id: 'storm-procedure' },
+    { kind: 'page', id: 'page-2' },
+    { kind: 'block', id: 'block-storm-procedure' },
     { kind: 'item', id: 'procedure-west' },
   ],
   exact: 'Seal the western gate, then count three breaths.',
 };
 
 describe('Rulebook text locator prototype', () => {
-  it('derives Page ownership directly from the ordered semantic segments', () => {
-    const segments = RULEBOOK_PROTOTYPE_PAGES.flatMap(getRulebookSemanticSegments);
-
-    expect(resolveRulebookSemanticSpan(segments, 'page-opening-title-segment', 'storm-rule-title-segment')).toEqual({
-      status: 'cross-page',
-    });
-    expect(resolveRulebookSemanticSpan(segments, 'storm-rule-title-segment', 'storm-rule-paragraph-1')).toMatchObject({
-      status: 'resolved',
-      pageId: 'page-storm',
-      blockId: 'storm-rule',
-    });
-  });
   it('round-trips bounded Unicode, multiline, punctuation, and long selections', () => {
     const locator: RulebookTextLocator = {
       ...repeatedLocator,
@@ -105,8 +91,8 @@ describe('Rulebook text locator prototype', () => {
     expect(resolveRulebookTextLocator({ status: 'valid', locator: repeatedLocator })).toMatchObject({
       status: 'matched',
       anchorId: 'storm-rule',
-      page: { id: 'page-storm' },
-      block: { id: 'storm-rule' },
+      page: { id: 'page-2' },
+      block: { id: 'block-storm-rule' },
     });
     expect(
       resolveRulebookTextLocator({
@@ -140,7 +126,7 @@ describe('Rulebook text locator prototype', () => {
         status: 'valid',
         locator: {
           v: 1,
-          path: [{ kind: 'page', id: 'page-storm' }],
+          path: [{ kind: 'page', id: 'page-2' }],
           exact: 'storm',
           prefix: 'Inside the',
           suffix: 'The rule in dispute',
@@ -153,7 +139,7 @@ describe('Rulebook text locator prototype', () => {
         status: 'valid',
         locator: {
           v: 1,
-          path: [{ kind: 'page', id: 'page-storm' }],
+          path: [{ kind: 'page', id: 'page-2' }],
           exact: 'storm',
           prefix: 'Inside the',
           suffix: 'belongs to no one.',
@@ -178,17 +164,17 @@ describe('Rulebook text locator prototype', () => {
     expect(new URL(url).searchParams.get('loc')).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 
-  it('validates and resolves an optional repeated-item identity while keeping the Block fallback anchor', () => {
+  it('falls back to the Page anchor when the selected Block has no public anchor', () => {
     const parsed = parseRulebookTextLocator(encodeRulebookTextLocator(repeatedItemLocator));
     expect(parsed).toEqual({ status: 'valid', locator: repeatedItemLocator });
     expect(resolveRulebookTextLocator(parsed)).toMatchObject({
       status: 'matched',
-      anchorId: 'storm-procedure',
-      block: { id: 'storm-procedure' },
+      anchorId: 'page-storm',
+      block: { id: 'block-storm-procedure' },
       item: { id: 'procedure-west' },
     });
     expect(buildRulebookTextShareUrl('https://example.com/rulebook', repeatedItemLocator)).toContain(
-      '#storm-procedure:~:text='
+      '#page-storm:~:text='
     );
   });
 
@@ -197,7 +183,7 @@ describe('Rulebook text locator prototype', () => {
       <main data-rulebook-prototype-document>
         <article id="dom-page-lie" data-rulebook-page-anchor>
           <section id="dom-block-lie" data-rulebook-block-anchor>
-            <p data-rulebook-segment-id="storm-rule-paragraph-1">After the shields settle, <span>The storm belongs to no one.</span> Carry the warning west.</p>
+            <p data-rulebook-segment-id="block-storm-rule-paragraph-1">After the shields settle, <span>The storm belongs to no one.</span> Carry the warning west.</p>
           </section>
         </article>
       </main>`;
@@ -220,18 +206,44 @@ describe('Rulebook text locator prototype', () => {
     });
   });
 
+  it('rejects a cross-Page Selection from segment ownership despite false shared ancestors', () => {
+    document.body.innerHTML = `
+      <main data-rulebook-prototype-document>
+        <article id="dom-page-lie" data-rulebook-page-anchor>
+          <p data-rulebook-segment-id="page-1-title-segment">Before the storm</p>
+          <p data-rulebook-segment-id="block-storm-rule-title-segment">The rule in dispute</p>
+        </article>
+      </main>`;
+    const start = document.querySelector('[data-rulebook-segment-id="page-1-title-segment"]')?.firstChild;
+    const end = document.querySelector('[data-rulebook-segment-id="block-storm-rule-title-segment"]')?.firstChild;
+    if (!start || !end) {
+      throw new Error('Missing cross-Page selection fixture');
+    }
+    const range = document.createRange();
+    range.setStart(start, 0);
+    range.setEnd(end, end.textContent?.length ?? 0);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    expect(locatorFromBrowserSelection(selection)).toEqual({
+      ok: false,
+      message: 'Keep the selection inside one Rulebook Page.',
+    });
+  });
+
   it('records repeated-item identity from a browser Selection', () => {
     document.body.innerHTML = `
       <main data-rulebook-prototype-document>
         <article id="dom-page-lie" data-rulebook-page-anchor>
           <section id="dom-block-lie" data-rulebook-block-anchor>
-            <div data-rulebook-text-content>
-              <span data-rulebook-item-id="dom-item-lie" data-rulebook-segment-id="procedure-west-text">Seal the western gate, then count three breaths.</span>
+            <div>
+              <span data-rulebook-segment-id="procedure-west-text">Seal the western gate, then count three breaths.</span>
             </div>
           </section>
         </article>
       </main>`;
-    const textNode = document.querySelector('[data-rulebook-item-id]')?.firstChild;
+    const textNode = document.querySelector('[data-rulebook-segment-id="procedure-west-text"]')?.firstChild;
     if (!textNode) {
       throw new Error('Missing repeated-item fixture');
     }
@@ -246,16 +258,41 @@ describe('Rulebook text locator prototype', () => {
 
   it('resolves only known Page and Block hashes as stable anchors', () => {
     expect(resolveRulebookStableAnchor('#page-storm')).toMatchObject({
-      page: { id: 'page-storm' },
+      page: { id: 'page-2' },
       anchorId: 'page-storm',
     });
     expect(resolveRulebookStableAnchor('#storm-rule')).toMatchObject({
-      page: { id: 'page-storm' },
-      block: { id: 'storm-rule' },
+      page: { id: 'page-2' },
+      block: { id: 'block-storm-rule' },
       anchorId: 'storm-rule',
     });
     expect(resolveRulebookStableAnchor('#%5Bdata-target%5D')).toBeUndefined();
     expect(resolveRulebookStableAnchor('#unknown-rule')).toBeUndefined();
+  });
+
+  it('keeps structured identity stable when a public Block anchor is renamed', () => {
+    const page = RULEBOOK_PROTOTYPE_PAGES.find((candidate) => candidate.id === 'page-2')!;
+    const block = page.blocks.find((candidate) => candidate.id === 'block-storm-rule')!;
+    const originalAnchor = block.anchor;
+    block.anchor = 'renamed-storm-rule';
+    try {
+      expect(resolveRulebookTextLocator({ status: 'valid', locator: repeatedLocator })).toMatchObject({
+        status: 'matched',
+        anchorId: 'renamed-storm-rule',
+        page: { id: 'page-2' },
+        block: { id: 'block-storm-rule' },
+      });
+      expect(resolveRulebookStableAnchor('#storm-rule')).toBeUndefined();
+      expect(resolveRulebookStableAnchor('#renamed-storm-rule')).toMatchObject({
+        page: { id: 'page-2' },
+        block: { id: 'block-storm-rule' },
+      });
+      expect(buildRulebookTextShareUrl('https://example.com/rulebook', repeatedLocator)).toContain(
+        '#renamed-storm-rule:~:text='
+      );
+    } finally {
+      block.anchor = originalAnchor;
+    }
   });
 
   it('uses the canonical Block title and body text for title selections', () => {
@@ -263,8 +300,8 @@ describe('Rulebook text locator prototype', () => {
       <main data-rulebook-prototype-document>
         <article id="page-storm" data-rulebook-page-anchor>
           <section id="storm-rule" data-rulebook-block-anchor>
-            <h3 data-rulebook-segment-id="storm-rule-title-segment">The rule in dispute</h3>
-            <p data-rulebook-segment-id="storm-rule-paragraph-1">After the shields settle, The storm belongs to no one. Carry the warning west.</p>
+            <h3 data-rulebook-segment-id="block-storm-rule-title-segment">The rule in dispute</h3>
+            <p data-rulebook-segment-id="block-storm-rule-paragraph-1">After the shields settle, The storm belongs to no one. Carry the warning west.</p>
           </section>
         </article>
       </main>`;
@@ -292,20 +329,20 @@ describe('Rulebook text locator prototype', () => {
     document.body.innerHTML = `
       <main data-rulebook-prototype-document>
         <article id="page-storm" data-rulebook-page-anchor>
-          <h2 data-rulebook-segment-id="page-storm-title-segment">Inside the storm</h2>
+          <h2 data-rulebook-segment-id="page-2-title-segment">Inside the storm</h2>
           <section id="storm-rule" data-rulebook-block-anchor>
-            <h3 data-rulebook-segment-id="storm-rule-title-segment">The rule in dispute</h3>
-            <p data-rulebook-segment-id="storm-rule-paragraph-1">After the shields settle, The storm belongs to no one. Carry the warning west.</p>
+            <h3 data-rulebook-segment-id="block-storm-rule-title-segment">The rule in dispute</h3>
+            <p data-rulebook-segment-id="block-storm-rule-paragraph-1">After the shields settle, The storm belongs to no one. Carry the warning west.</p>
           </section>
           <section id="storm-procedure" data-rulebook-block-anchor>
-            <h3 data-rulebook-segment-id="storm-procedure-title-segment">Repeated procedure</h3>
-            <span data-rulebook-item-id="procedure-east" data-rulebook-segment-id="procedure-east-text">Seal the eastern gate, then count three breaths.</span>
-            <span data-rulebook-item-id="procedure-west" data-rulebook-segment-id="procedure-west-text">Seal the western gate, then count three breaths.</span>
+            <h3 data-rulebook-segment-id="block-storm-procedure-title-segment">Repeated procedure</h3>
+            <span data-rulebook-segment-id="procedure-east-text">Seal the eastern gate, then count three breaths.</span>
+            <span data-rulebook-segment-id="procedure-west-text">Seal the western gate, then count three breaths.</span>
           </section>
         </article>
       </main>`;
     const start = document.querySelector('h2')?.firstChild;
-    const end = document.querySelector('[data-rulebook-item-id]')?.firstChild;
+    const end = document.querySelector('[data-rulebook-segment-id="procedure-east-text"]')?.firstChild;
     if (!start || !end) {
       throw new Error('Missing Page selection fixture');
     }
@@ -319,7 +356,7 @@ describe('Rulebook text locator prototype', () => {
 
     expect(result).toMatchObject({
       ok: true,
-      locator: { path: [{ kind: 'page', id: 'page-storm' }] },
+      locator: { path: [{ kind: 'page', id: 'page-2' }] },
     });
     if (result.ok) {
       expect(resolveRulebookTextLocator({ status: 'valid', locator: result.locator }).status).toBe('matched');

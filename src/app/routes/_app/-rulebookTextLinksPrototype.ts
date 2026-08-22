@@ -4,6 +4,7 @@ export type RulebookPrototypeVariant = 'reader' | 'editor' | 'compatibility';
 
 export type RulebookPrototypeBlock = {
   id: string;
+  anchor?: string;
   title: string;
   paragraphs: string[];
   items?: RulebookPrototypeItem[];
@@ -16,6 +17,7 @@ export type RulebookPrototypeItem = {
 
 export type RulebookPrototypePage = {
   id: string;
+  anchor: string;
   number: number;
   title: string;
   blocks: RulebookPrototypeBlock[];
@@ -32,12 +34,14 @@ export type RulebookSemanticSegment = {
 
 export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
   {
-    id: 'page-opening',
+    id: 'page-1',
+    anchor: 'page-opening',
     number: 1,
     title: 'Before the storm',
     blocks: [
       {
-        id: 'opening-rule',
+        id: 'block-opening-rule',
+        anchor: 'opening-rule',
         title: 'The first warning',
         paragraphs: [
           'A Rulebook link should still lead somewhere useful after its quoted words change.',
@@ -45,24 +49,27 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
         ],
       },
       {
-        id: 'storm-rumour',
+        id: 'block-storm-rumour',
+        anchor: 'storm-rumour',
         title: 'A repeated warning',
         paragraphs: ['Before the shields rise, The storm belongs to no one. Keep the eastern gate clear.'],
       },
     ],
   },
   {
-    id: 'page-storm',
+    id: 'page-2',
+    anchor: 'page-storm',
     number: 2,
     title: 'Inside the storm',
     blocks: [
       {
-        id: 'storm-rule',
+        id: 'block-storm-rule',
+        anchor: 'storm-rule',
         title: 'The rule in dispute',
         paragraphs: ['After the shields settle, The storm belongs to no one. Carry the warning west.'],
       },
       {
-        id: 'storm-procedure',
+        id: 'block-storm-procedure',
         title: 'Repeated procedure',
         paragraphs: [],
         items: [
@@ -74,26 +81,30 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
         ],
       },
       {
-        id: 'unicode-rule',
+        id: 'block-unicode-rule',
+        anchor: 'unicode-rule',
         title: 'Names, punctuation, and scripts',
         paragraphs: [
           '“Shai-Hulud’s passage — naïve seers agree — begins beyond Arrakeen.” 日本語 and العربية remain text.',
         ],
       },
       {
-        id: 'hostile-rule',
+        id: 'block-hostile-rule',
+        anchor: 'hostile-rule',
         title: 'Hostile-looking text is still text',
         paragraphs: ['<script>alert("spice")</script> [data-target="#storm"] :~:text=breakout & "quoted"'],
       },
     ],
   },
   {
-    id: 'page-aftermath',
+    id: 'page-3',
+    anchor: 'page-aftermath',
     number: 3,
     title: 'After the storm',
     blocks: [
       {
-        id: 'multiline-rule',
+        id: 'block-multiline-rule',
+        anchor: 'multiline-rule',
         title: 'A selection can cross lines',
         paragraphs: [
           'First, reveal every word to the browser before visual page decoration is loaded.',
@@ -101,7 +112,8 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
         ],
       },
       {
-        id: 'long-rule',
+        id: 'block-long-rule',
+        anchor: 'long-rule',
         title: 'A deliberately long passage',
         paragraphs: [
           'Long selections should remain bounded rather than becoming an unlimited URL payload. This passage repeats enough detail to exercise a start-and-end Text Fragment: the reader sees the stable Page, the nearest stable Block, the exact selected words, nearby context, and an application-owned fallback. None of those values become markup, selectors, or executable code. The browser may highlight the selected words when it supports Text Fragments, while the application independently validates the locator and highlights the containing Block.',
@@ -302,7 +314,7 @@ function semanticSegmentsForPath(page: RulebookPrototypePage, path: RulebookText
   );
 }
 
-export type RulebookSemanticSpanResolution =
+type RulebookSemanticSpanResolution =
   | { status: 'missing-segment' }
   | { status: 'cross-page' }
   | {
@@ -313,7 +325,7 @@ export type RulebookSemanticSpanResolution =
       segments: RulebookSemanticSegment[];
     };
 
-export function resolveRulebookSemanticSpan(
+function resolveRulebookSemanticSpan(
   segments: RulebookSemanticSegment[],
   startSegmentId: string,
   endSegmentId: string
@@ -356,14 +368,14 @@ export function resolveRulebookStableAnchor(hash: string | undefined): RulebookS
   if (!isAnchor(anchor)) {
     return undefined;
   }
-  const page = RULEBOOK_PROTOTYPE_PAGES.find((candidate) => candidate.id === anchor);
+  const page = RULEBOOK_PROTOTYPE_PAGES.find((candidate) => candidate.anchor === anchor);
   if (page) {
-    return { page, anchorId: page.id };
+    return { page, anchorId: page.anchor };
   }
   for (const candidate of RULEBOOK_PROTOTYPE_PAGES) {
-    const block = candidate.blocks.find((entry) => entry.id === anchor);
+    const block = candidate.blocks.find((entry) => entry.anchor === anchor);
     if (block) {
-      return { page: candidate, block, anchorId: block.id };
+      return { page: candidate, block, anchorId: block.anchor! };
     }
   }
   return undefined;
@@ -412,7 +424,7 @@ export function resolveRulebookTextLocator(result: LocatorParseResult): LocatorR
     page,
     ...(block ? { block } : {}),
     ...(item ? { item } : {}),
-    anchorId: block?.id ?? page.id,
+    anchorId: block?.anchor ?? page.anchor,
   };
 }
 
@@ -456,10 +468,11 @@ export function buildRulebookTextShareUrl(
   if (!parsed) {
     throw new Error('Cannot build a share URL from an invalid locator');
   }
-  const anchorId = parsed.path[1]?.id ?? parsed.path[0].id;
-  if (!anchorId || !isAnchor(anchorId)) {
+  const resolution = resolveRulebookTextLocator({ status: 'valid', locator: parsed });
+  if ((resolution.status !== 'matched' && resolution.status !== 'stale') || !isAnchor(resolution.anchorId)) {
     throw new Error('Cannot build a share URL without a safe anchor');
   }
+  const anchorId = resolution.anchorId;
   const url = new URL(baseUrl);
   url.search = '';
   url.hash = '';

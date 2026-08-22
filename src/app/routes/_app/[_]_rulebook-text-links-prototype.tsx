@@ -93,15 +93,15 @@ function RulebookPageView({
   const { nodeRef, visualReady } = useVisualPage(pinned);
   const semanticSegments = getRulebookSemanticSegments(page);
   const pageTitleSegment = semanticSegments.find((segment) => segment.kind === 'page-title')!;
-  const pageIsTarget = targetAnchorId === page.id;
+  const pageIsTarget = targetAnchorId === page.anchor;
   return (
     <article
       ref={nodeRef}
-      id={page.id}
+      id={page.anchor}
       className={styles.rulePage}
       data-rulebook-page-anchor
       data-locator-target={visualReady && pageIsTarget ? 'true' : undefined}
-      aria-labelledby={`${page.id}-title`}
+      aria-labelledby={`${page.anchor}-title`}
     >
       {visualReady && <div className={styles.visualRenderer} aria-hidden />}
       <div className={styles.semanticContent}>
@@ -113,7 +113,7 @@ function RulebookPageView({
             <Badge color="dune" variant="light">
               Page {page.number}
             </Badge>
-            <Title id={`${page.id}-title`} order={2} mt="xs" data-rulebook-segment-id={pageTitleSegment.id}>
+            <Title id={`${page.anchor}-title`} order={2} mt="xs" data-rulebook-segment-id={pageTitleSegment.id}>
               {pageTitleSegment.text}
             </Title>
           </div>
@@ -124,10 +124,10 @@ function RulebookPageView({
             const itemSegments = blockSegments.filter((segment) => segment.kind === 'item');
             return (
               <section
-                id={block.id}
+                id={block.anchor}
                 className={styles.block}
                 key={block.id}
-                data-locator-target={visualReady && targetAnchorId === block.id ? 'true' : undefined}
+                data-locator-target={visualReady && targetAnchorId === block.anchor ? 'true' : undefined}
                 aria-labelledby={`${block.id}-title`}
               >
                 <Title id={`${block.id}-title`} order={3} mb="xs" data-rulebook-segment-id={titleSegment.id}>
@@ -144,7 +144,6 @@ function RulebookPageView({
                       {itemSegments.map((segment) => (
                         <List.Item
                           key={segment.id}
-                          id={segment.itemId}
                           data-rulebook-segment-id={segment.id}
                           data-locator-item-target={visualReady && targetItemId === segment.itemId ? 'true' : undefined}
                         >

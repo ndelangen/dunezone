@@ -11,8 +11,8 @@ const baseUrl = `http://127.0.0.1:4175${RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH}`;
 const repeatedLocator: RulebookTextLocator = {
   v: 1,
   path: [
-    { kind: 'page', id: 'page-storm' },
-    { kind: 'block', id: 'storm-rule' },
+    { kind: 'page', id: 'page-2' },
+    { kind: 'block', id: 'block-storm-rule' },
   ],
   exact: 'The storm belongs to no one.',
   prefix: 'After the shields settle,',
@@ -43,7 +43,7 @@ async function selectElementText(page: Page, selector: string, phrase: string) {
 async function selectPageRange(page: Page) {
   await page.locator('#storm-rule').evaluate((startElement) => {
     const startRoot = startElement.querySelector('h3');
-    const endRoot = document.querySelector('#procedure-west');
+    const endRoot = document.querySelector('[data-rulebook-segment-id="procedure-west-text"]');
     const start = startRoot
       ? (document.createTreeWalker(startRoot, NodeFilter.SHOW_TEXT).nextNode() as Text | null)
       : null;
@@ -110,8 +110,8 @@ test('browser-native movement and application recovery remain observably distinc
   const nativeLocator: RulebookTextLocator = {
     v: 1,
     path: [
-      { kind: 'page', id: 'page-storm' },
-      { kind: 'block', id: 'unicode-rule' },
+      { kind: 'page', id: 'page-2' },
+      { kind: 'block', id: 'block-unicode-rule' },
     ],
     exact: 'naïve seers agree',
   };
@@ -144,6 +144,7 @@ test('a real Page-spanning Selection resolves through ordered semantic segments'
   await selectPageRange(page);
   const shareUrl = await createShareUrl(page);
 
+  expect(new URL(shareUrl).hash).toContain('#page-storm:~:text=');
   await page.goto(shareUrl, { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('status')).toContainText('The stable anchor and selected text agree');
   await expect(page.locator('#page-storm')).toHaveAttribute('data-locator-target', 'true');
