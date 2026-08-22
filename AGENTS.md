@@ -109,9 +109,9 @@ goes next, because either one makes it unusable in a story and unusable on a sec
 [`.oxlintrc.json`](.oxlintrc.json) forbids, inside `src/app/ui`:
 
 - the Convex client in any form, including the relative path to `convex/_generated`;
-- **value** imports from a data module by *every* spelling — `@db/**`, `@app/db`, `@app/db/**`,
-  `**/src/app/db/**`, and the relative `../**/db/*` forms. One alias is not one path: `@db/core`
-  and `@app/db/core` are the same file, and it exports a live `ConvexReactClient`.
+- **value** imports from a data module by every spelling the config lists, aliased and relative
+  alike. One alias is not one path: `@db/core` and `@app/db/core` are the same file, and it exports
+  a live `ConvexReactClient`, so a ban that misses a spelling bans nothing.
   `allowTypeImports` keeps `import type` legal, since a type is a statement about what you render,
   not a dependency;
 - the router's data and navigation surface — `useRouter` first of all, since it returns the whole
@@ -144,17 +144,16 @@ Outside the kit:
     one. What used to sit there went to the place that says what it is — `src/app/ui/<category>` when it
     was really vocabulary, the route when it was page composition, `src/app/print/` for the
     document-rendering glue, and `src/app/shell/` for the chrome.
-- **The application shell** (`src/app/shell`) — the chrome every page sits in: `AppRoot`
-  (the frame and the document-level effects), `AppHeader` (the artwork band), `AppFooter`, and
-  `SiteNavigation`. The shell is chrome, not a set of organs: it has a
-  doorway — `routes/_app.tsx` mounts `ApplicationChrome` and `AppNotFound`, and nothing else
-  outside the folder imports from it — and its chrome
-  **carries stories**, filed under a `Shell` root, because those states are worth looking at and
-  cannot be reached from any page's story. `SiteNavigation` is chrome for that reason: its four
-  stories cover the overflow and collapsed states no page story can reach. An outside importer or a
-  story alone ends organ-hood, so the shell has no organs. The shell is not a category and never
-  will be: the six are decided at the membrane, and the shell is decided by position. See
-  *The shell is chrome* in
+- **The application shell** (`src/app/shell`) — the chrome every page sits in: `AppRoot` (the frame
+  and the document-level effects), `AppHeader` (the artwork band), `AppFooter`, and
+  `SiteNavigation`. The shell is chrome, not a set of organs: it has a doorway — `routes/_app.tsx`
+  mounts `ApplicationChrome` and `AppNotFound`, and nothing else outside the folder imports from it —
+  and its chrome **carries stories**, filed under a `Shell` root, because those states are worth
+  looking at and cannot be reached from any page's story. `SiteNavigation` is chrome for that
+  reason: its four stories cover the overflow and collapsed states no page story can reach. An
+  outside importer or a story alone ends organ-hood, so the shell has no organs. The shell is not a
+  category and never will be: the six are decided at the membrane, and the shell is decided by
+  position. See *The shell is chrome* in
   [`docs/technical/ui-design-decisions.md`](docs/technical/ui-design-decisions.md#the-shell-is-chrome-decided-by-position)
   for why the header is neither a Surface nor a Layout.
 - **Widgets** (`src/app/widgets/<name>`) — an assembly too domain-specific to be kit and too
