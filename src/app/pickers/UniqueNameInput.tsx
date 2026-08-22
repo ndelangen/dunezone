@@ -1,6 +1,6 @@
 import { TextInput } from '@mantine/core';
 import { slugify } from '@shared/slugify';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 /** Who holds the candidate's address: a living entity, a deleted one whose slug stays reserved, or nobody. */
@@ -40,7 +40,7 @@ function useSettledConflict({
   currentSlug?: string;
   onConflictChange: (conflict: NameConflict | null) => void;
 }) {
-  const [answer, setAnswer] = useState<NameHolder | null>(null);
+  const [answer, setAnswer] = useState<{ slug: string; holder: NameHolder | null } | null>(null);
   const slug = slugify(value);
   const candidate = slug.length > 0 && slug !== currentSlug ? slug : null;
   const [settled, setSettled] = useState<string | null>(candidate);
@@ -48,7 +48,12 @@ function useSettledConflict({
     const timer = setTimeout(() => setSettled(candidate), 400);
     return () => clearTimeout(timer);
   }, [candidate]);
-  const holder = candidate && settled === candidate ? answer : null;
+  /* The answer carries the slug it was asked about, so a swapped probe can never lend an old verdict to a new name. */
+  const onAnswer = useCallback(
+    (holder: NameHolder | null) => setAnswer(settled ? { slug: settled, holder } : null),
+    [settled]
+  );
+  const holder = candidate && settled === candidate && answer?.slug === candidate ? answer.holder : null;
   const conflict = holder && candidate ? { holder, slug: candidate } : null;
 
   /* Reported from an effect, not render: the parent stores it in state for the header. */
@@ -59,7 +64,7 @@ function useSettledConflict({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conflictKey]);
 
-  return { settled, conflict, onAnswer: setAnswer };
+  return { settled, conflict, onAnswer };
 }
 
 /**
