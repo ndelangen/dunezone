@@ -8,6 +8,7 @@ import { useState } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
+import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
@@ -20,6 +21,7 @@ import {
   DriftedAssetPage,
   useAssetDeletion,
   useAssetGroupActions,
+  useNameConflict,
 } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'card-validation-header';
@@ -103,7 +105,23 @@ function CardEditSession({
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
-  const warnings = treacheryDraftWarnings(draft);
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const conflictSlug = useNameConflict({ type: 'card-treachery', name: draft.name, currentSlug: asset.slug });
+  const warnings: (
+    | ReturnType<typeof treacheryDraftWarnings>[number]
+    | { source: string; complaint: string; chapter: TreacheryChapter }
+  )[] = [
+    ...treacheryDraftWarnings(draft),
+    ...(conflictSlug
+      ? [
+          {
+            source: 'Head',
+            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
+            chapter: 'head' as TreacheryChapter,
+          },
+        ]
+      : []),
+  ];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -171,7 +189,7 @@ function CardEditSession({
         <WorkbenchLayout gap="sm">
           {updateAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
-              {updateAsset.error.message}
+              {mutationErrorMessage(updateAsset.error)}
             </Alert>
           ) : null}
           {deletion.error ? (

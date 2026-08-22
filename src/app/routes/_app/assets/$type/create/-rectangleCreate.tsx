@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
+import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
@@ -17,7 +18,7 @@ import {
 } from '@app/widgets/token-editor/RectangleTokenEditor';
 import type { RectangleChapter, RectangleDraft } from '@app/widgets/token-editor/RectangleTokenEditor';
 
-import { AssetEditorMessage } from '../../-assetEditorStates';
+import { AssetEditorMessage, useNameConflict } from '../../-assetEditorStates';
 
 const TYPE = 'token-enhance';
 const VALIDATION_HEADER_ID = 'rectangle-token-validation-header';
@@ -37,7 +38,23 @@ export function RectangleCreatePage() {
   const [pickBlocked, setPickBlocked] = useState(false);
   const patch = (update: Partial<RectangleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const pickless = draft.back.mode === 'reference' && draft.back.asset_id === null;
-  const warnings = rectangleDraftWarnings(draft);
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const conflictSlug = useNameConflict({ type: TYPE, name: draft.name });
+  const warnings: (
+    | ReturnType<typeof rectangleDraftWarnings>[number]
+    | { source: string; complaint: string; chapter: RectangleChapter }
+  )[] = [
+    ...rectangleDraftWarnings(draft),
+    ...(conflictSlug
+      ? [
+          {
+            source: 'Identity',
+            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
+            chapter: 'identity' as RectangleChapter,
+          },
+        ]
+      : []),
+  ];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_RECTANGLE_DRAFT);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -104,7 +121,7 @@ export function RectangleCreatePage() {
         <WorkbenchLayout gap="sm">
           {createAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
-              {createAsset.error.message}
+              {mutationErrorMessage(createAsset.error)}
             </Alert>
           ) : null}
           {pickBlocked && pickless ? (

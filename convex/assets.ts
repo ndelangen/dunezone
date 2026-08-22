@@ -1,12 +1,12 @@
 import type { Infer } from 'convex/values';
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 
 import {
   isPublicationAssetType,
   PUBLICATION_TARGETS,
   publicationFaceId,
 } from '../src/shared/asset-publishing/publicationTargets';
-import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
+import { ASSET_TYPE_KEYS, ASSET_TYPES, isAssetType } from '../src/shared/assets/types';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
@@ -352,13 +352,30 @@ async function rulesetsSlotting(ctx: QueryCtx, assetId: Id<'assets'>) {
   return entries;
 }
 
-async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {
+/**
+ * Whether an asset of this type already holds the slug — soft-deleted rows included, since their address stays reserved.
+ * One rule read twice: the save guard refuses on it, and the editors' live conflict check subscribes to it, so the warning and the refusal can never disagree.
+ */
+async function assetSlugHeld(ctx: QueryCtx, type: string, slug: string): Promise<boolean> {
   const holders = await ctx.db
     .query('assets')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .take(50);
-  if (holders.some((row) => row.type === type)) {
-    throw new Error(`Asset slug ${slug} is reserved for this asset type`);
+  return holders.some((row) => row.type === type);
+}
+
+/** The editors' live name-conflict check, the save guard's rule as a subscription. */
+export const slugTaken = query({
+  args: { type: v.string(), slug: v.string() },
+  returns: v.boolean(),
+  handler: async (ctx, args) => await assetSlugHeld(ctx, args.type, args.slug),
+});
+
+async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {
+  if (await assetSlugHeld(ctx, type, slug)) {
+    /* A ConvexError, so the words reach the editor's banner in production; a plain Error is redacted to "Server Error" (Norbert hit exactly that, 2026-08-22). */
+    const noun = isAssetType(type) ? ASSET_TYPES[type].shortLabel.toLowerCase() : type;
+    throw new ConvexError(`The name is taken: another ${noun} already lives at "${slug}". Pick a different name.`);
   }
 }
 
@@ -420,7 +437,7 @@ export const create = mutation({
     parsed.data = await withValidatedBack(ctx, { type: args.type }, parsed.data as Record<string, unknown>);
     const slug = slugify(parsed.name);
     if (!slug) {
-      throw new Error('An asset name is required; it determines the asset URL');
+      throw new ConvexError('An asset name is required; it determines the asset URL');
     }
     await assertAssetSlugAvailable(ctx, args.type, slug);
     const now = nowIso();
@@ -453,7 +470,7 @@ export const update = mutation({
     await requireAssetUpdate(ctx, args.id, parsed.name);
     const slug = slugify(parsed.name);
     if (!slug) {
-      throw new Error('An asset name is required; it determines the asset URL');
+      throw new ConvexError('An asset name is required; it determines the asset URL');
     }
     if (slug !== row.slug) {
       await assertAssetSlugAvailable(ctx, row.type, slug);
@@ -565,7 +582,7 @@ export const setMemberCount = mutation({
   args: { container_id: v.id('assets'), member_id: v.id('assets'), count: v.number() },
   handler: async (ctx, args) => {
     if (!Number.isInteger(args.count) || args.count < 0 || args.count > 99) {
-      throw new Error('A member count must be a whole number between 0 and 99');
+      throw new ConvexError('A member count must be a whole number between 0 and 99');
     }
     const container = await ctx.db.get('assets', args.container_id);
     if (!container || container.is_deleted) {
@@ -573,7 +590,7 @@ export const setMemberCount = mutation({
     }
     const rules = CONTAINER_KINDS[container.type];
     if (!rules) {
-      throw new Error(`Asset type ${container.type} holds nothing`);
+      throw new ConvexError(`Asset type ${container.type} holds nothing`);
     }
     await requireAssetUpdate(ctx, args.container_id, nameOf(container));
 
@@ -582,7 +599,7 @@ export const setMemberCount = mutation({
       throw new Error(`Asset with id ${args.member_id} not found`);
     }
     if (!rules.holds(member.type)) {
-      throw new Error(`A ${container.type} holds ${rules.noun}, not ${member.type}`);
+      throw new ConvexError(`A ${container.type} holds ${rules.noun}, not ${member.type}`);
     }
 
     const existing = await ctx.db

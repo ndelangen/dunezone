@@ -11,6 +11,7 @@ import { useState } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
+import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -24,6 +25,7 @@ import {
   DriftedAssetPage,
   useAssetDeletion,
   useAssetGroupActions,
+  useNameConflict,
 } from '../../../-assetEditorStates';
 import { referencedTokenBackFace } from './-referencedBackFace';
 
@@ -134,7 +136,18 @@ function TokenEditSession({
    * («How a dangling back reference presents»): a signpost, never a second set of mode controls.
    * It routes to Identity, the chapter the back tiles live in.
    */
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const conflictSlug = useNameConflict({ type, name: draft.name, currentSlug: asset.slug });
   const warnings: (TokenWarning | { source: string; complaint: string; chapter: TokenChapter })[] = [
+    ...(conflictSlug
+      ? [
+          {
+            source: 'Identity',
+            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
+            chapter: 'identity' as TokenChapter,
+          },
+        ]
+      : []),
     ...tokenDraftWarnings(draft),
     ...(danglingBack && draft.back.mode === 'reference'
       ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as TokenChapter }]
@@ -218,7 +231,7 @@ function TokenEditSession({
         <WorkbenchLayout gap="sm">
           {updateAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
-              {updateAsset.error.message}
+              {mutationErrorMessage(updateAsset.error)}
             </Alert>
           ) : null}
           {deletion.error ? (

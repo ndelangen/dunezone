@@ -14,6 +14,7 @@ import { useState } from 'react';
 
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
+import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -27,6 +28,7 @@ import {
   DriftedAssetPage,
   useAssetDeletion,
   useAssetGroupActions,
+  useNameConflict,
 } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'deck-validation-header';
@@ -146,7 +148,18 @@ function DeckEditSession({
    * The dangling complaint rides the widened validation header beside the widget's own warnings
    * («How a dangling back reference presents»), routed to Identity, the chapter the back tiles live in.
    */
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const conflictSlug = useNameConflict({ type: 'deck', name: draft.name, currentSlug: asset.slug });
   const warnings: (DeckWarning | { source: string; complaint: string; chapter: DeckChapter })[] = [
+    ...(conflictSlug
+      ? [
+          {
+            source: 'Identity',
+            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
+            chapter: 'identity' as DeckChapter,
+          },
+        ]
+      : []),
     ...deckDraftWarnings(draft, cards),
     ...(danglingBack && draft.cardback.mode === 'reference'
       ? [{ source: 'Cardback', complaint: 'its referenced cardback is gone', chapter: 'identity' as DeckChapter }]
@@ -251,7 +264,7 @@ function DeckEditSession({
         <WorkbenchLayout gap="sm">
           {updateAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
-              {updateAsset.error.message}
+              {mutationErrorMessage(updateAsset.error)}
             </Alert>
           ) : null}
           {deletion.error ? (

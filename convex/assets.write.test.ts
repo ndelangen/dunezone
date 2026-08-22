@@ -2,6 +2,7 @@
 // @vitest-environment edge-runtime
 
 import { convexTest } from 'convex-test';
+import { ConvexError } from 'convex/values';
 import { describe, expect, test } from 'vitest';
 
 import { publicationFaceId } from '../src/shared/asset-publishing/publicationTargets';
@@ -84,7 +85,7 @@ describe('asset update', () => {
 
     await expect(
       t.withIdentity({ subject: ownerId }).mutation(api.assets.update, { id: created.id, data: cardData('Stunner') })
-    ).rejects.toThrow('reserved');
+    ).rejects.toThrow('already lives at');
   });
 });
 
@@ -101,7 +102,7 @@ describe('asset soft delete', () => {
       t
         .withIdentity({ subject: ownerId })
         .mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') })
-    ).rejects.toThrow('reserved');
+    ).rejects.toThrow('already lives at');
   });
 
   test('deletion is owner-only, even for a viewer who may edit', async () => {
@@ -841,5 +842,25 @@ describe('deck cardback references', () => {
 
     const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
     expect(page?.resolvedBack).toEqual({ mode: 'dangling', href: '/web/no-deck-back.svg' });
+  });
+});
+
+describe('name conflicts', () => {
+  test('a colliding name is refused with words that reach the client, and the live check agrees', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId } = await seedCard(t);
+
+    /* The refusal must be a ConvexError: a plain Error is redacted to "Server Error" in production, which is how finding 19 was born. */
+    const attempt = t
+      .withIdentity({ subject: ownerId })
+      .mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun!') });
+    await expect(attempt).rejects.toThrow(ConvexError);
+    await expect(attempt).rejects.toThrow('another treachery already lives at "lasgun"');
+
+    /* The editors' subscription reads the same rule, so the warning and the refusal cannot disagree. */
+    expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe(true);
+    expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'free-name' })).toBe(false);
+    /* Another type may hold the same slug; the reservation is per type. */
+    expect(await t.query(api.assets.slugTaken, { type: 'deck', slug: 'lasgun' })).toBe(false);
   });
 });

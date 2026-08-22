@@ -7,13 +7,14 @@ import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
+import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_DRAFT } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
 
-import { AssetEditorMessage } from '../../-assetEditorStates';
+import { AssetEditorMessage, useNameConflict } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'bundle-validation-header';
 
@@ -30,7 +31,23 @@ export function BundleCreatePage() {
   const [chapter, setChapter] = useState<BundleChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
-  const warnings = bundleDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'tokens');
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const conflictSlug = useNameConflict({ type: 'bundle', name: draft.name });
+  const warnings: (
+    | ReturnType<typeof bundleDraftWarnings>[number]
+    | { source: string; complaint: string; chapter: BundleChapter }
+  )[] = [
+    ...bundleDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'tokens'),
+    ...(conflictSlug
+      ? [
+          {
+            source: 'Identity',
+            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
+            chapter: 'identity' as BundleChapter,
+          },
+        ]
+      : []),
+  ];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_BUNDLE_DRAFT);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -93,7 +110,7 @@ export function BundleCreatePage() {
         <WorkbenchLayout gap="sm">
           {createAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
-              {createAsset.error.message}
+              {mutationErrorMessage(createAsset.error)}
             </Alert>
           ) : null}
           <BundleEditor

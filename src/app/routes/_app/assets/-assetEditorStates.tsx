@@ -1,5 +1,6 @@
 import { Alert, Anchor, Group, Stack, Text, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import { slugify } from '@shared/slugify';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -9,7 +10,7 @@ import { Surface } from '@ui/surface';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
+import { useAssetSlugTaken, useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 
 /**
@@ -188,4 +189,27 @@ export function useAssetGroupActions({
       </Alert>
     ) : null,
   };
+}
+
+/**
+ * Whether the draft's name collides with an existing asset of the same type, live while the author types.
+ *
+ * The same rule the save guard refuses on, read as a subscription, so the warning and the refusal can never disagree.
+ * Finding 19 of «Walk findings, round two» is the why: a card named Shield met the reserved slug of the existing Shield card and the reader learned nothing.
+ * On an edit page pass `currentSlug`, so an unchanged name never warns about its own address.
+ * Returns the colliding slug for the warning's words, or null while the name is free, blank, or unchanged.
+ */
+export function useNameConflict({
+  type,
+  name,
+  currentSlug,
+}: {
+  type: string;
+  name: string;
+  currentSlug?: string;
+}): string | null {
+  const slug = slugify(name);
+  const candidate = slug.length > 0 && slug !== currentSlug ? slug : null;
+  const taken = useAssetSlugTaken(candidate ? { type, slug: candidate } : null);
+  return taken === true && candidate ? candidate : null;
 }

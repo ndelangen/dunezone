@@ -7,13 +7,14 @@ import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
+import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { DeckEditor, INITIAL_DECK_DRAFT, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
 import type { DeckChapter, DeckDraft } from '@app/widgets/deck-editor/DeckEditor';
 
-import { AssetEditorMessage } from '../../-assetEditorStates';
+import { AssetEditorMessage, useNameConflict } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'deck-validation-header';
 
@@ -33,7 +34,23 @@ export function DeckCreatePage() {
   const [pickBlocked, setPickBlocked] = useState(false);
   const patch = (update: Partial<DeckDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const pickless = draft.cardback.mode === 'reference' && draft.cardback.asset_id === null;
-  const warnings = deckDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'cards');
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const conflictSlug = useNameConflict({ type: 'deck', name: draft.name });
+  const warnings: (
+    | ReturnType<typeof deckDraftWarnings>[number]
+    | { source: string; complaint: string; chapter: DeckChapter }
+  )[] = [
+    ...deckDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'cards'),
+    ...(conflictSlug
+      ? [
+          {
+            source: 'Identity',
+            complaint: `its name is already taken (another one lives at "${conflictSlug}")`,
+            chapter: 'identity' as DeckChapter,
+          },
+        ]
+      : []),
+  ];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_DECK_DRAFT);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -101,7 +118,7 @@ export function DeckCreatePage() {
         <WorkbenchLayout gap="sm">
           {createAsset.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not save">
-              {createAsset.error.message}
+              {mutationErrorMessage(createAsset.error)}
             </Alert>
           ) : null}
           {pickBlocked && pickless ? (
