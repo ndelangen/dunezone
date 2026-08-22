@@ -407,8 +407,8 @@ stale".
 **Developer-facing prose has no AI tells**, and two gates hold that: em dashes, curly quotes, filler
 words, hedging openers, emoji and decorative divider bands. `local/no-ai-tells` in
 [`scripts/oxlint-local-plugin.mjs`](scripts/oxlint-local-plugin.mjs) reads comment tokens off the
-AST, so it sees comments and never string literals; product copy is out of its reach by
-construction rather than by exclusion. `bun run check:prose`
+parsed syntax tree, so it sees comments and never string literals; product copy is out of its reach
+by construction rather than by exclusion. `bun run check:prose`
 ([`scripts/assert-no-ai-tells.mjs`](scripts/assert-no-ai-tells.mjs)) covers what oxlint cannot see:
 markdown, CSS, YAML and shell comments, and `.oxlintrc.json`, whose messages are prose too. It also
 holds markdown headings to sentence case; a proper noun it flags belongs in that file's
