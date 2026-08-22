@@ -215,7 +215,7 @@
                   "@db",
                   "@db/**"
                 ],
-                "message": "The server must not import client code. A contract both sides need, a Zod schema or a tag vocabulary, belongs in `src/shared/`, which both may import. `@db/*` resolves into `src/app/db`, a domain module, or `core/index.ts` for `@db/core`, so it is client code too."
+                "message": "The server must not import client code. A contract both sides need, a Zod schema or a tag vocabulary, belongs in `src/shared/`, which both may import. `@db/*` resolves into `src/app/db` (a domain module; `core/index.ts` for `@db/core`), so it is client code too."
               },
               {
                 "group": ["@game", "@game/**", "**/game", "**/game/**"],
@@ -251,7 +251,7 @@
                   "@db",
                   "@db/**"
                 ],
-                "message": "The publisher Worker is a separate deploy artifact and must not import application code. Shared runtime contracts belong in `src/shared/`. `@db/*` resolves into `src/app/db`, a domain module, or `core/index.ts` for `@db/core`, so it is application code too."
+                "message": "The publisher Worker is a separate deploy artifact and must not import application code. Shared runtime contracts belong in `src/shared/`. `@db/*` resolves into `src/app/db` (a domain module; `core/index.ts` for `@db/core`), so it is application code too."
               },
               {
                 "group": ["@game", "@game/**", "**/game", "**/game/**"],

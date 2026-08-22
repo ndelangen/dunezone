@@ -520,7 +520,7 @@ export function RectangleTokenEditor({
                   {
                     value: 'custom',
                     label: 'Composed here',
-                    /* Always drawable, the deck's stock tile's rule: the composed face, the one the author left behind, or the composer's own starting point, never a dashed nothing (Norbert, 2026-08-21). */
+                    /* Always drawable, the deck's stock tile's rule: the composed face, the one the author left behind, or the composer's own starting point. Never a dashed nothing (Norbert, 2026-08-21). */
                     preview: (
                       <RectangleProof
                         face={draft.back.mode === 'custom' ? draft.back.face : (composedFace.current ?? INITIAL_FACE)}

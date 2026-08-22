@@ -107,9 +107,9 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
         {account ? (
           <>
             {/*
-              Mantine's `Menu`, whose dropdown takes the app's pane treatment from the theme, the same one a `Popover`
-              gets, and the same menu the faction cards use. It owns opening, focus, dismissal and the target's aria
-              state, so this holds no anchor of its own and no item has to close it by hand.
+              Mantine's `Menu`, whose dropdown takes the app's pane treatment from the theme (the same one a
+              `Popover` gets). It is the same menu the faction cards use. It owns opening, focus, dismissal and the
+              target's aria state, so this holds no anchor of its own and no item has to close it by hand.
             */}
             <Menu position="bottom-end" shadow="md" withinPortal>
               <Menu.Target>

@@ -11,7 +11,7 @@ interface AssignPopoverOption {
 
 export interface AssignPopoverProps {
   /**
-   * What is being picked, singular and lowercase, `group`, `faction`.
+   * What is being picked, singular and lowercase: `group`, `faction`.
    * Every label in the popover is derived from it, so a caller supplies one word instead of eight strings.
    */
   noun: string;
@@ -56,7 +56,7 @@ function AssignPopoverPlaceholder({ children }: { children: string }) {
 /**
  * The commit: whether one is in flight, and what went wrong.
  *
- * Separate from the rendering because it is the only imperative part, the guard against a stale option, the latch, and the two ways a commit can end without closing (a rejection, or a caller that resolved `false` because the reader backed out).
+ * Separate from the rendering because it is the only imperative part: the guard against a stale option, the latch, and the two ways a commit can end without closing (a rejection, or a caller that resolved `false` because the reader backed out).
  */
 function useAssignCommit({
   noun,
