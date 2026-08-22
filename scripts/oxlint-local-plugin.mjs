@@ -58,7 +58,7 @@ function normalizeCommentBody(sourceCode, commentStart, commentEnd) {
   return sourceCode
     .slice(commentStart, commentEnd)
     .slice(3, -2)
-    .replace(/\r\n/g, '\n')
+    .replaceAll('\r\n', '\n')
     .split('\n')
     .map((line, index) => {
       const normalizedLine = index === 0 ? COMMENT_BODY_START_RE : COMMENT_BODY_CONTINUATION_RE;

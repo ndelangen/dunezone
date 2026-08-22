@@ -90,6 +90,8 @@ const PROPER_NOUNS = new Set([
   'Zone',
 ]);
 
+const LETTER = /[A-Za-z]/;
+
 /* Product names whose second word is capitalised by the vendor, not by us. */
 const PROPER_PHRASES = ['Convex Auth', 'GitHub Action', 'Floating UI', 'Dune Zone', 'Test Analytics'];
 
@@ -138,6 +140,19 @@ function stripInlineMarkup(text) {
     .replace(/[*_]+/g, '');
 }
 
+/** Drops leading and trailing non-letters, the way a `^[^A-Za-z]+` / `[^A-Za-z]+$` pair would. */
+function trimToLetters(word) {
+  let start = 0;
+  let end = word.length;
+  while (start < end && !LETTER.test(word[start])) {
+    start += 1;
+  }
+  while (end > start && !LETTER.test(word[end - 1])) {
+    end -= 1;
+  }
+  return word.slice(start, end);
+}
+
 /**
  * A heading is title case when a word after the first is capitalised for no reason.
  * A proper noun, an acronym, and the word opening a subtitle after a colon all have a reason.
@@ -145,7 +160,7 @@ function stripInlineMarkup(text) {
 function titleCaseWords(headingText) {
   let text = stripInlineMarkup(headingText).replace(/^\d+\.\s*/, '');
   for (const phrase of PROPER_PHRASES) {
-    text = text.split(phrase).join(' ');
+    text = text.split(phrase).join(phrase.replace(/\S+/g, 'X'));
   }
   const words = text.split(/\s+/).filter(Boolean);
   const offenders = [];
@@ -156,7 +171,7 @@ function titleCaseWords(headingText) {
       if (opensTheHeading && position === 0) {
         continue;
       }
-      const bare = part.replace(/^[^A-Za-z]+/, '').replace(/[^A-Za-z]+$/, '');
+      const bare = trimToLetters(part);
       if (/^[A-Z][a-z]+$/.test(bare) && !PROPER_NOUNS.has(bare)) {
         offenders.push(bare);
       }
@@ -211,9 +226,9 @@ for await (const { full, rel } of walk(root)) {
       record(rel, lineNumber, 'hedging opener', line.trim());
     }
 
-    const heading = checks.headings && /^#{1,6}\s+(.*)$/.exec(line);
+    const heading = checks.headings && /^#{1,6}\s(.*)$/.exec(line);
     if (heading) {
-      const offenders = titleCaseWords(heading[1]);
+      const offenders = titleCaseWords(heading[1].trim());
       if (offenders.length > 0) {
         record(rel, lineNumber, `title case (${offenders.join(', ')})`, line.trim());
       }
