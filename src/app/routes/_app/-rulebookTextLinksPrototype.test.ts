@@ -4,17 +4,14 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildRulebookTextShareUrl,
-  buildTextFragmentDirective,
-  encodeRulebookTextLocator,
   locatorFromBrowserSelection,
   parseRulebookTextLocator,
   resolveRulebookTextLocator,
   resolveRulebookStableAnchor,
   RULEBOOK_PROTOTYPE_PAGES,
 } from './-rulebookTextLinksPrototype';
-import type { RulebookTextLocator } from './-rulebookTextLinksPrototype';
 
-const repeatedLocator: RulebookTextLocator = {
+const repeatedLocator = {
   v: 1,
   path: [
     { kind: 'page', id: 'page-2' },
@@ -23,9 +20,9 @@ const repeatedLocator: RulebookTextLocator = {
   exact: 'The storm belongs to no one.',
   prefix: 'After the shields settle,',
   suffix: 'Carry the warning west.',
-};
+} satisfies Parameters<typeof buildRulebookTextShareUrl>[1];
 
-const repeatedItemLocator: RulebookTextLocator = {
+const repeatedItemLocator = {
   v: 1,
   path: [
     { kind: 'page', id: 'page-2' },
@@ -33,19 +30,25 @@ const repeatedItemLocator: RulebookTextLocator = {
     { kind: 'item', id: 'procedure-west' },
   ],
   exact: 'Seal the western gate, then count three breaths.',
-};
+} satisfies Parameters<typeof buildRulebookTextShareUrl>[1];
 
 describe('Rulebook text locator prototype', () => {
   it('round-trips bounded Unicode, multiline, punctuation, and long selections', () => {
-    const locator: RulebookTextLocator = {
+    const locator = {
       ...repeatedLocator,
       exact: `“Shai-Hulud’s passage — naïve seers agree.”\n${'Long selection. '.repeat(30)}`,
       prefix: '日本語',
       suffix: 'العربية',
-    };
-
-    expect(parseRulebookTextLocator(encodeRulebookTextLocator(locator))).toEqual({ status: 'valid', locator });
-    const directive = buildTextFragmentDirective(locator);
+    } satisfies Parameters<typeof buildRulebookTextShareUrl>[1];
+    const url = new URL(buildRulebookTextShareUrl('https://example.com/rulebook', locator));
+    expect(parseRulebookTextLocator(url.searchParams.get('loc') ?? undefined)).toEqual({ status: 'valid', locator });
+    expect(
+      resolveRulebookTextLocator(parseRulebookTextLocator(url.searchParams.get('loc') ?? undefined))
+    ).toMatchObject({
+      status: 'stale',
+      anchorId: 'storm-rule',
+    });
+    const directive = url.hash;
     expect(directive).toContain('text=');
     expect(directive).toContain(',');
     expect(directive).not.toContain('—');
@@ -149,12 +152,12 @@ describe('Rulebook text locator prototype', () => {
   });
 
   it('encodes hostile selected text as data in the URL', () => {
-    const locator: RulebookTextLocator = {
+    const locator = {
       ...repeatedLocator,
       exact: '<script>alert("spice")</script> & #storm:~:text=breakout',
       prefix: '[data-target="#storm"]',
       suffix: '日本語 — العربية',
-    };
+    } satisfies Parameters<typeof buildRulebookTextShareUrl>[1];
     const url = buildRulebookTextShareUrl('https://example.com/__rulebook-text-links-prototype?old=1#old', locator);
 
     expect(url).toContain('#storm-rule:~:text=');
@@ -165,7 +168,8 @@ describe('Rulebook text locator prototype', () => {
   });
 
   it('falls back to the Page anchor when the selected Block has no public anchor', () => {
-    const parsed = parseRulebookTextLocator(encodeRulebookTextLocator(repeatedItemLocator));
+    const shareUrl = buildRulebookTextShareUrl('https://example.com/rulebook', repeatedItemLocator);
+    const parsed = parseRulebookTextLocator(new URL(shareUrl).searchParams.get('loc') ?? undefined);
     expect(parsed).toEqual({ status: 'valid', locator: repeatedItemLocator });
     expect(resolveRulebookTextLocator(parsed)).toMatchObject({
       status: 'matched',
@@ -173,9 +177,7 @@ describe('Rulebook text locator prototype', () => {
       block: { id: 'block-storm-procedure' },
       item: { id: 'procedure-west' },
     });
-    expect(buildRulebookTextShareUrl('https://example.com/rulebook', repeatedItemLocator)).toContain(
-      '#page-storm:~:text='
-    );
+    expect(shareUrl).toContain('#page-storm:~:text=');
   });
 
   it('creates a contextual locator from a real browser Selection without interpreting its text', () => {

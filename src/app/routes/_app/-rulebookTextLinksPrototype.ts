@@ -1,8 +1,6 @@
-export const RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH = '/__rulebook-text-links-prototype';
-
 export type RulebookPrototypeVariant = 'reader' | 'editor' | 'compatibility';
 
-export type RulebookPrototypeBlock = {
+type RulebookPrototypeBlock = {
   id: string;
   anchor?: string;
   title: string;
@@ -10,7 +8,7 @@ export type RulebookPrototypeBlock = {
   items?: RulebookPrototypeItem[];
 };
 
-export type RulebookPrototypeItem = {
+type RulebookPrototypeItem = {
   id: string;
   text: string;
 };
@@ -23,7 +21,7 @@ export type RulebookPrototypePage = {
   blocks: RulebookPrototypeBlock[];
 };
 
-export type RulebookSemanticSegment = {
+type RulebookSemanticSegment = {
   id: string;
   kind: 'page-title' | 'block-title' | 'paragraph' | 'item';
   text: string;
@@ -162,7 +160,7 @@ type PagePathEntry = { kind: 'page'; id: string };
 type BlockPathEntry = { kind: 'block'; id: string };
 type ItemPathEntry = { kind: 'item'; id: string };
 
-export type RulebookTextLocator = {
+type RulebookTextLocator = {
   v: 1;
   path: [PagePathEntry] | [PagePathEntry, BlockPathEntry] | [PagePathEntry, BlockPathEntry, ItemPathEntry];
   exact: string;
@@ -280,7 +278,7 @@ function base64UrlToBytes(value: string) {
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
 
-export function encodeRulebookTextLocator(locator: RulebookTextLocator) {
+function encodeRulebookTextLocator(locator: RulebookTextLocator) {
   return bytesToBase64Url(new TextEncoder().encode(JSON.stringify(locator)));
 }
 
@@ -302,7 +300,7 @@ export function parseRulebookTextLocator(encoded: string | undefined): LocatorPa
   }
 }
 
-export function normalizeRulebookText(value: string) {
+function normalizeRulebookText(value: string) {
   return value.replace(/\s+/gu, ' ').trim();
 }
 
@@ -357,7 +355,7 @@ function resolveRulebookSemanticSpan(
   };
 }
 
-export type RulebookStableAnchorResolution = {
+type RulebookStableAnchorResolution = {
   page: RulebookPrototypePage;
   block?: RulebookPrototypeBlock;
   anchorId: string;
@@ -443,7 +441,7 @@ function takeCodePoints(value: string, count: number, fromEnd = false) {
   return (fromEnd ? points.slice(-count) : points.slice(0, count)).join('');
 }
 
-export function buildTextFragmentDirective(locator: RulebookTextLocator) {
+function buildTextFragmentDirective(locator: RulebookTextLocator) {
   const exact = normalizeRulebookText(locator.exact);
   const longSelection = Array.from(exact).length > TEXT_FRAGMENT_EDGE_LENGTH * 2;
   const start = takeCodePoints(exact, longSelection ? TEXT_FRAGMENT_EDGE_LENGTH : Array.from(exact).length);

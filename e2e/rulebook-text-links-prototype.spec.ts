@@ -1,14 +1,11 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import {
-  buildRulebookTextShareUrl,
-  RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH,
-} from '../src/app/routes/_app/-rulebookTextLinksPrototype';
-import type { RulebookTextLocator } from '../src/app/routes/_app/-rulebookTextLinksPrototype';
+import { buildRulebookTextShareUrl } from '../src/app/routes/_app/-rulebookTextLinksPrototype';
 
-const baseUrl = `http://127.0.0.1:4175${RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH}`;
-const repeatedLocator: RulebookTextLocator = {
+const prototypePath = '/__rulebook-text-links-prototype';
+const baseUrl = `http://127.0.0.1:4175${prototypePath}`;
+const repeatedLocator = {
   v: 1,
   path: [
     { kind: 'page', id: 'page-2' },
@@ -17,7 +14,7 @@ const repeatedLocator: RulebookTextLocator = {
   exact: 'The storm belongs to no one.',
   prefix: 'After the shields settle,',
   suffix: 'Carry the warning west.',
-};
+} satisfies Parameters<typeof buildRulebookTextShareUrl>[1];
 
 async function selectElementText(page: Page, selector: string, phrase: string) {
   await page.locator(selector).evaluate((element, selectedPhrase) => {
@@ -107,14 +104,14 @@ test('semantic target text precedes lazy visual content on a fresh pinned load',
 });
 
 test('browser-native movement and application recovery remain observably distinct', async ({ page }) => {
-  const nativeLocator: RulebookTextLocator = {
+  const nativeLocator = {
     v: 1,
     path: [
       { kind: 'page', id: 'page-2' },
       { kind: 'block', id: 'block-unicode-rule' },
     ],
     exact: 'naïve seers agree',
-  };
+  } satisfies Parameters<typeof buildRulebookTextShareUrl>[1];
   await page.goto(buildRulebookTextShareUrl(baseUrl, nativeLocator), { waitUntil: 'domcontentloaded' });
 
   expect(await page.evaluate(() => 'fragmentDirective' in document)).toBe(true);
@@ -129,7 +126,7 @@ test('browser-native movement and application recovery remain observably distinc
 });
 
 test('a real repeated-text Selection creates a fresh link for the intended Block', async ({ page }) => {
-  await page.goto(RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH);
+  await page.goto(prototypePath);
   await selectElementText(page, '#storm-rule', 'The storm belongs to no one.');
   const shareUrl = await createShareUrl(page);
 
@@ -140,7 +137,7 @@ test('a real repeated-text Selection creates a fresh link for the intended Block
 });
 
 test('a real Page-spanning Selection resolves through ordered semantic segments', async ({ page }) => {
-  await page.goto(RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH);
+  await page.goto(prototypePath);
   await selectPageRange(page);
   const shareUrl = await createShareUrl(page);
 
@@ -210,7 +207,7 @@ test('hostile-looking selected text remains inert through a fresh browser link',
       testWindow.prototypeAlertCalls = (testWindow.prototypeAlertCalls ?? 0) + 1;
     };
   });
-  await page.goto(RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH);
+  await page.goto(prototypePath);
   await selectElementText(page, '#hostile-rule', '<script>alert("spice")</script>');
   const shareUrl = await createShareUrl(page);
 
