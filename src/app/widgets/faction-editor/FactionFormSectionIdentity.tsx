@@ -1,6 +1,7 @@
 import { Box, ColorInput, Stack, Text, TextInput } from '@mantine/core';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
 
@@ -14,13 +15,26 @@ const logoSelectOptions = logoOptions.map((value) => ({
   label: logoOptionToLabel(value),
 }));
 
+/**
+ * The control that renders in the name's place, supplied by the route.
+ * A name field that checks its address is free has to fetch, and a widget never does, so the route hands one down the way the asset editors take their pickers.
+ * The form binding stays in the section, so the caller supplies a control rather than learning this form's API.
+ */
+export type FactionIdentityNameField = (props: {
+  value: string;
+  onChange: (name: string) => void;
+  error?: string;
+}) => ReactNode;
+
 export function FactionFormSectionIdentity({
   form,
   nameError,
+  nameField,
   showIntro = true,
 }: {
   form: FactionFormApi;
   nameError?: string;
+  nameField?: FactionIdentityNameField;
   showIntro?: boolean;
 }) {
   return (
@@ -48,14 +62,22 @@ export function FactionFormSectionIdentity({
               title="Faction name"
               description="Used on faction artifacts and to derive the canonical share URL."
               input={
-                <TextInput
-                  id="faction-name"
-                  aria-label="Faction name"
-                  error={nameError}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value)}
-                />
+                nameField ? (
+                  nameField({
+                    value: field.state.value,
+                    onChange: (name) => field.handleChange(name),
+                    error: nameError,
+                  })
+                ) : (
+                  <TextInput
+                    id="faction-name"
+                    aria-label="Faction name"
+                    error={nameError}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  />
+                )
               }
             />
           )}

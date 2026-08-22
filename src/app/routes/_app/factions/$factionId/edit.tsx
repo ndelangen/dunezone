@@ -23,6 +23,8 @@ import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPop
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 
+import { useFactionNameField } from '../-factionNameField';
+
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
     if (isRouteNoticeCode(params?.notice)) {
@@ -72,7 +74,9 @@ function FactionEditPage() {
       }
     },
   });
-  const validationHeaderOpen = useValidationHeaderOpen(authoring.editing.warnings.length, settleTick);
+  const { nameField, conflictWarnings } = useFactionNameField({ currentSlug: faction.slug });
+  const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
+  const validationHeaderOpen = useValidationHeaderOpen(allWarnings.length, settleTick);
   const header = (
     <Stack align="center" gap={4}>
       <Anchor
@@ -154,7 +158,7 @@ function FactionEditPage() {
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
-            warnings={authoring.editing.warnings}
+            warnings={allWarnings}
             onFocusWarning={(warning) => viewRef.current?.focusWarning(warning)}
           />
         </PageLayout.Header>
@@ -254,12 +258,13 @@ function FactionEditPage() {
             </Alert>
           ) : null}
           <FactionEditor
+            nameField={nameField}
             key={faction._id}
             ref={viewRef}
             form={authoring.form}
             errors={authoring.persistence.errors}
             isNameBlank={authoring.editing.isNameBlank}
-            warnings={authoring.editing.warnings}
+            warnings={allWarnings}
             onSettle={() => setSettleTick((tick) => tick + 1)}
           />
         </Stack>

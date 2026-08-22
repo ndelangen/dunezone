@@ -20,10 +20,11 @@ export type NameAvailabilityProbe = (props: {
 /**
  * The one sentence a name conflict speaks on the client, shared by the field's inline error and the validation header's chip so the two cannot drift.
  * It mirrors the save guard's own distinction: a living holder and a deleted one reserving its address are different answers.
+ * Noun-free on purpose, the way this input is entity-blind: the field sits in an editor that has already told the reader what they are naming, and a noun here would be one more place per entity to keep true.
  */
 export function nameConflictComplaint({ holder, slug }: NameConflict): string {
   return holder === 'deleted'
-    ? `its name is already taken ("${slug}" stays reserved by a deleted asset)`
+    ? `its name is already taken ("${slug}" stays reserved by a deleted one)`
     : `its name is already taken (another one lives at "${slug}")`;
 }
 
@@ -102,18 +103,24 @@ function useSettledConflict({
  * The conflict shows twice on purpose: inline under the field where the author is looking, and through `onConflictChange` so the route can raise it in the validation header, whose chip routes back to this chapter.
  */
 export function UniqueNameInput({
+  id,
   label = 'Name',
   value,
   onChange,
   currentSlug,
+  error,
   probe,
   onConflictChange,
 }: {
+  /** The field's DOM id, so a validation header chip can focus it by id the way the faction editor does. */
+  id?: string;
   label?: string;
   value: string;
   onChange: (name: string) => void;
   /** The entity's own slug on an edit page, so an unchanged name never warns about its own address. */
   currentSlug?: string;
+  /** The caller's own complaint about the name, a blank one for instance. A conflict outranks it, and the two cannot coincide: a blank name has no candidate to conflict with. */
+  error?: string;
   probe: NameAvailabilityProbe;
   onConflictChange: (conflict: NameConflict | null) => void;
 }) {
@@ -122,10 +129,11 @@ export function UniqueNameInput({
     <>
       {settled ? probe({ slug: settled, onAnswer }) : null}
       <TextInput
+        id={id}
         aria-label={label}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
-        error={conflict ? nameConflictComplaint(conflict) : undefined}
+        error={conflict ? nameConflictComplaint(conflict) : error}
       />
     </>
   );

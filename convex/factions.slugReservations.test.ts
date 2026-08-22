@@ -39,13 +39,37 @@ describe('faction slug reservations', () => {
     );
   });
 
+  /*
+   * The editor's warning and the save guard's refusal read one predicate, so this pins all three answers the query can give.
+   * Without it the two surfaces can drift and only a reader typing a taken name would notice.
+   */
+  test('factionSlugTaken answers live, deleted, and free', async () => {
+    const { asUser } = await authenticatedTest();
+    expect(await asUser.query(api.factions.factionSlugTaken, { slug: 'reserved-faction' })).toBe(null);
+
+    const faction = await createFaction(asUser, 'Reserved Faction');
+    expect(await asUser.query(api.factions.factionSlugTaken, { slug: 'reserved-faction' })).toBe('live');
+
+    await asUser.mutation(api.factions.softDelete, { id: faction._id });
+    expect(await asUser.query(api.factions.factionSlugTaken, { slug: 'reserved-faction' })).toBe('deleted');
+  });
+
+  test('a live faction refuses a colliding name in its own words', async () => {
+    const { asUser } = await authenticatedTest();
+    await createFaction(asUser, 'Reserved Faction');
+
+    await expect(createFaction(asUser, 'Reserved Faction')).rejects.toThrow(
+      'another faction already lives at "reserved-faction"'
+    );
+  });
+
   test('a soft-deleted faction keeps its slug reserved for create', async () => {
     const { asUser } = await authenticatedTest();
     const faction = await createFaction(asUser, 'Reserved Faction');
     await asUser.mutation(api.factions.softDelete, { id: faction._id });
 
     await expect(createFaction(asUser, 'Reserved Faction')).rejects.toThrow(
-      'another faction already lives at "reserved-faction"'
+      '"reserved-faction" stays reserved by a deleted faction'
     );
   });
 
@@ -60,7 +84,7 @@ describe('faction slug reservations', () => {
         id: active._id,
         data: { ...assetPublishingFaction, name: 'Reserved Faction' },
       })
-    ).rejects.toThrow('another faction already lives at "reserved-faction"');
+    ).rejects.toThrow('"reserved-faction" stays reserved by a deleted faction');
   });
 
   test('the repair keeps the active public slug and archives the deleted duplicate', async () => {
