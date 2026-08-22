@@ -22,8 +22,10 @@ import type { TokenWarning, TokenChapter, TokenDraft } from '@app/widgets/token-
 import {
   AssetEditorMessage,
   DriftedAssetPage,
+  SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
+  useAssetNameField,
 } from '../../../-assetEditorStates';
 import { referencedTokenBackFace } from './-referencedBackFace';
 
@@ -134,8 +136,18 @@ function TokenEditSession({
    * («How a dangling back reference presents»): a signpost, never a second set of mode controls.
    * It routes to Identity, the chapter the back tiles live in.
    */
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const { nameField, conflictWarnings } = useAssetNameField({
+    type,
+    name: draft.name,
+    onName: (name) => patch({ name }),
+    currentSlug: asset.slug,
+    source: 'Identity',
+    chapter: 'identity' as TokenChapter,
+  });
   const warnings: (TokenWarning | { source: string; complaint: string; chapter: TokenChapter })[] = [
     ...tokenDraftWarnings(draft),
+    ...conflictWarnings,
     ...(danglingBack && draft.back.mode === 'reference'
       ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as TokenChapter }]
       : []),
@@ -216,11 +228,7 @@ function TokenEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {updateAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {updateAsset.error.message}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={updateAsset.error} />
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">
               {deletion.error.message}
@@ -233,6 +241,7 @@ function TokenEditSession({
             </Alert>
           ) : null}
           <TokenEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             type={type}

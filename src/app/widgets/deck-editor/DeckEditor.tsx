@@ -239,6 +239,7 @@ const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
  * Each count change writes an `asset_relations` row immediately, the way a token's referenced backside does, because relations do not travel through the asset's `data`.
  */
 export function DeckEditor({
+  nameField,
   draft,
   patch,
   chapter,
@@ -252,6 +253,8 @@ export function DeckEditor({
   backProof,
 }: {
   draft: DeckDraft;
+  /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
+  nameField: ReactNode;
   patch: (update: Partial<DeckDraft>) => void;
   chapter: DeckChapter;
   onChapterChange: (chapter: DeckChapter) => void;
@@ -308,17 +311,7 @@ export function DeckEditor({
               icon: <TopicIcon topic="identity" size={21} />,
               panel: panel(
                 <>
-                  <ControlBlock
-                    title="Name"
-                    description="Determines the deck's URL."
-                    input={
-                      <TextInput
-                        aria-label="Name"
-                        value={draft.name}
-                        onChange={(event) => patch({ name: event.currentTarget.value })}
-                      />
-                    }
-                  />
+                  <ControlBlock title="Name" description="Determines the deck's URL." input={nameField} />
                   <ControlBlock
                     title="Card back"
                     description="Every deck wears exactly one. The deck publishes its own image either way, so a stock back only supplies the artwork."

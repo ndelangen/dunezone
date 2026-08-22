@@ -14,6 +14,7 @@ const meta = preview.meta({
   title: 'Deck Editor',
   component: DeckEditor,
   args: {
+    nameField: <input aria-label="Name" readOnly value="Lasgun" />,
     chapter: 'identity' as const,
     onChapterChange: fn(),
     onSettle: fn(),

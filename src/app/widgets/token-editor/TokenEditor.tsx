@@ -290,6 +290,7 @@ function backForMode(
 }
 
 export function TokenEditor({
+  nameField,
   draft,
   patch,
   type,
@@ -300,6 +301,8 @@ export function TokenEditor({
   backProof,
 }: {
   draft: TokenDraft;
+  /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
+  nameField: ReactNode;
   patch: (update: Partial<TokenDraft>) => void;
   /** The Asset type, which fixes the shape of every proof on this page. */
   type: string;
@@ -339,17 +342,7 @@ export function TokenEditor({
       icon: <TopicIcon topic="identity" size={21} />,
       panel: panel(
         <>
-          <ControlBlock
-            title="Name"
-            description="Determines the token's URL."
-            input={
-              <TextInput
-                aria-label="Name"
-                value={draft.name}
-                onChange={(event) => patch({ name: event.currentTarget.value })}
-              />
-            }
-          />
+          <ControlBlock title="Name" description="Determines the token's URL." input={nameField} />
           <ControlBlock
             title="Backside"
             description="Every token has one. Compose it, print the front on both sides, or wear another token's back."

@@ -18,8 +18,10 @@ import { TreacheryAsset } from '@game/data/objects';
 import {
   AssetEditorMessage,
   DriftedAssetPage,
+  SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
+  useAssetNameField,
 } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'card-validation-header';
@@ -103,7 +105,19 @@ function CardEditSession({
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
-  const warnings = treacheryDraftWarnings(draft);
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const { nameField, conflictWarnings } = useAssetNameField({
+    type: 'card-treachery',
+    name: draft.name,
+    onName: (name) => patch({ name }),
+    currentSlug: asset.slug,
+    source: 'Head',
+    chapter: 'head' as TreacheryChapter,
+  });
+  const warnings: (
+    | ReturnType<typeof treacheryDraftWarnings>[number]
+    | { source: string; complaint: string; chapter: TreacheryChapter }
+  )[] = [...treacheryDraftWarnings(draft), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -169,11 +183,7 @@ function CardEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {updateAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {updateAsset.error.message}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={updateAsset.error} />
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">
               {deletion.error.message}
@@ -181,6 +191,7 @@ function CardEditSession({
           ) : null}
           {groupActions.error}
           <TreacheryCardEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

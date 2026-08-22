@@ -101,20 +101,10 @@ function FillCard({ draft }: { draft: TreacheryDraft }) {
 type Patch = (update: Partial<TreacheryDraft>) => void;
 
 /* The card's head: its name, type, and the Background behind them. */
-function HeadFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
+function HeadFields({ draft, patch, nameField }: { draft: TreacheryDraft; patch: Patch; nameField: ReactNode }) {
   return (
     <Stack gap="md">
-      <ControlBlock
-        title="Name"
-        description="Names the card and determines its URL."
-        input={
-          <TextInput
-            aria-label="Name"
-            value={draft.name}
-            onChange={(event) => patch({ name: event.currentTarget.value })}
-          />
-        }
-      />
+      <ControlBlock title="Name" description="Names the card and determines its URL." input={nameField} />
       <ControlBlock
         title="Type"
         description="Shown under the name, e.g. “Weapon - Projectile”."
@@ -419,6 +409,7 @@ const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
  * Pages own the draft, its persistence, and the surrounding authoring chrome.
  */
 export function TreacheryCardEditor({
+  nameField,
   draft,
   patch,
   chapter,
@@ -426,6 +417,8 @@ export function TreacheryCardEditor({
   onSettle,
 }: {
   draft: TreacheryDraft;
+  /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
+  nameField: ReactNode;
   patch: Patch;
   chapter: TreacheryChapter;
   onChapterChange: (chapter: TreacheryChapter) => void;
@@ -447,7 +440,7 @@ export function TreacheryCardEditor({
               value: 'head',
               label: 'Head',
               icon: <TopicIcon topic="text" size={21} />,
-              panel: panel(<HeadFields draft={draft} patch={patch} />),
+              panel: panel(<HeadFields draft={draft} patch={patch} nameField={nameField} />),
             },
             {
               value: 'icon',

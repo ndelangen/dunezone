@@ -1,4 +1,4 @@
-import { Alert, Anchor, Text } from '@mantine/core';
+import { Anchor, Text } from '@mantine/core';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -17,7 +17,7 @@ import {
 } from '@app/widgets/card-editor/TreacheryCardEditor';
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
 
-import { AssetEditorMessage } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'card-validation-header';
 
@@ -30,7 +30,18 @@ export function TreacheryCreatePage() {
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
-  const warnings = treacheryDraftWarnings(draft);
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const { nameField, conflictWarnings } = useAssetNameField({
+    type: 'card-treachery',
+    name: draft.name,
+    onName: (name) => patch({ name }),
+    source: 'Head',
+    chapter: 'head' as TreacheryChapter,
+  });
+  const warnings: (
+    | ReturnType<typeof treacheryDraftWarnings>[number]
+    | { source: string; complaint: string; chapter: TreacheryChapter }
+  )[] = [...treacheryDraftWarnings(draft), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_TREACHERY_DRAFT);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -89,12 +100,9 @@ export function TreacheryCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {createAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {createAsset.error.message}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={createAsset.error} />
           <TreacheryCardEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

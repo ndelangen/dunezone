@@ -13,7 +13,7 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { DeckEditor, INITIAL_DECK_DRAFT, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
 import type { DeckChapter, DeckDraft } from '@app/widgets/deck-editor/DeckEditor';
 
-import { AssetEditorMessage } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'deck-validation-header';
 
@@ -33,7 +33,18 @@ export function DeckCreatePage() {
   const [pickBlocked, setPickBlocked] = useState(false);
   const patch = (update: Partial<DeckDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const pickless = draft.cardback.mode === 'reference' && draft.cardback.asset_id === null;
-  const warnings = deckDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'cards');
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const { nameField, conflictWarnings } = useAssetNameField({
+    type: 'deck',
+    name: draft.name,
+    onName: (name) => patch({ name }),
+    source: 'Identity',
+    chapter: 'identity' as DeckChapter,
+  });
+  const warnings: (
+    | ReturnType<typeof deckDraftWarnings>[number]
+    | { source: string; complaint: string; chapter: DeckChapter }
+  )[] = [...deckDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'cards'), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_DECK_DRAFT);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -99,17 +110,14 @@ export function DeckCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {createAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {createAsset.error.message}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={createAsset.error} />
           {pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No deck picked">
               Picking a deck to wear happens on the edit page; save with another back mode first.
             </Alert>
           ) : null}
           <DeckEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

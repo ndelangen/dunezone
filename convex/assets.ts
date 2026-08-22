@@ -1,5 +1,5 @@
 import type { Infer } from 'convex/values';
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 
 import {
   isPublicationAssetType,
@@ -352,13 +352,38 @@ async function rulesetsSlotting(ctx: QueryCtx, assetId: Id<'assets'>) {
   return entries;
 }
 
-async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {
+/**
+ * Who holds the slug for this type — a living asset, a soft-deleted one whose address stays reserved, or nobody.
+ * One rule read twice: the save guard refuses on it, and the editors' live conflict check subscribes to it, so the warning and the refusal can never disagree.
+ * The take is safe because per-type uniqueness is guarded on every write, deleted rows included: a slug is held by at most one row per type, so the set is bounded by the type registry's size, far under fifty.
+ */
+async function assetSlugHolder(ctx: QueryCtx, type: string, slug: string): Promise<'live' | 'deleted' | null> {
   const holders = await ctx.db
     .query('assets')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .take(50);
-  if (holders.some((row) => row.type === type)) {
-    throw new Error(`Asset slug ${slug} is reserved for this asset type`);
+  const holder = holders.find((row) => row.type === type);
+  if (!holder) {
+    return null;
+  }
+  return holder.is_deleted ? 'deleted' : 'live';
+}
+
+/** The editors' live name-conflict check: the save guard's rule as a subscription, holder kind included, so the warning can speak the refusal's own words. */
+export const slugTaken = query({
+  args: { type: v.string(), slug: v.string() },
+  returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
+  handler: async (ctx, args) => await assetSlugHolder(ctx, args.type, args.slug),
+});
+
+async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {
+  /* A ConvexError, so the words reach the editor's banner in production; a plain Error is redacted to "Server Error" (Norbert hit exactly that, 2026-08-22). No type noun: the registry's labels are plural pile captions, not singular nouns, and borrowing one produced "another decks". */
+  const holder = await assetSlugHolder(ctx, type, slug);
+  if (holder === 'live') {
+    throw new ConvexError(`The name is taken: another one already lives at "${slug}". Pick a different name.`);
+  }
+  if (holder === 'deleted') {
+    throw new ConvexError(`The name is taken: "${slug}" stays reserved by a deleted asset. Pick a different name.`);
   }
 }
 
@@ -420,7 +445,7 @@ export const create = mutation({
     parsed.data = await withValidatedBack(ctx, { type: args.type }, parsed.data as Record<string, unknown>);
     const slug = slugify(parsed.name);
     if (!slug) {
-      throw new Error('An asset name is required; it determines the asset URL');
+      throw new ConvexError('An asset name is required; it determines the asset URL');
     }
     await assertAssetSlugAvailable(ctx, args.type, slug);
     const now = nowIso();
@@ -453,7 +478,7 @@ export const update = mutation({
     await requireAssetUpdate(ctx, args.id, parsed.name);
     const slug = slugify(parsed.name);
     if (!slug) {
-      throw new Error('An asset name is required; it determines the asset URL');
+      throw new ConvexError('An asset name is required; it determines the asset URL');
     }
     if (slug !== row.slug) {
       await assertAssetSlugAvailable(ctx, row.type, slug);
@@ -565,7 +590,7 @@ export const setMemberCount = mutation({
   args: { container_id: v.id('assets'), member_id: v.id('assets'), count: v.number() },
   handler: async (ctx, args) => {
     if (!Number.isInteger(args.count) || args.count < 0 || args.count > 99) {
-      throw new Error('A member count must be a whole number between 0 and 99');
+      throw new ConvexError('A member count must be a whole number between 0 and 99');
     }
     const container = await ctx.db.get('assets', args.container_id);
     if (!container || container.is_deleted) {

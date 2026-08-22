@@ -1,16 +1,4 @@
-import {
-  Alert,
-  Divider,
-  Group,
-  NumberInput,
-  Select,
-  Slider,
-  Stack,
-  Switch,
-  Text,
-  Textarea,
-  TextInput,
-} from '@mantine/core';
+import { Alert, Divider, Group, NumberInput, Select, Slider, Stack, Switch, Text, Textarea } from '@mantine/core';
 import { RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { RectangleTokenAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -445,6 +433,7 @@ function backForMode(
 }
 
 export function RectangleTokenEditor({
+  nameField,
   draft,
   patch,
   chapter,
@@ -454,6 +443,8 @@ export function RectangleTokenEditor({
   backProof,
 }: {
   draft: RectangleDraft;
+  /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
+  nameField: ReactNode;
   patch: (update: Partial<RectangleDraft>) => void;
   chapter: RectangleChapter;
   onChapterChange: (chapter: RectangleChapter) => void;
@@ -506,17 +497,7 @@ export function RectangleTokenEditor({
       icon: <TopicIcon topic="identity" size={21} />,
       panel: panel(
         <>
-          <ControlBlock
-            title="Name"
-            description="Determines the token's URL."
-            input={
-              <TextInput
-                aria-label="Name"
-                value={draft.name}
-                onChange={(event) => patch({ name: event.currentTarget.value })}
-              />
-            }
-          />
+          <ControlBlock title="Name" description="Determines the token's URL." input={nameField} />
           <ControlBlock
             title="Backside"
             description="Every token has one. Compose it, print the front on both sides, or wear another token's back."

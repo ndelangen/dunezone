@@ -42,6 +42,14 @@ export function useAssetBrowsePage(type: string, options?: { initialData?: Asset
   return toLiveQueryResult(liveData, true, () => options?.initialData);
 }
 
+/**
+ * The save guard's slug rule as a live subscription, for the editors' name-conflict warning.
+ * Always real args: the caller mounts and unmounts the component holding this, which is how a domain read stays conditional without a skip.
+ */
+export function useAssetSlugTaken(args: { type: string; slug: string }) {
+  return useQuery(api.assets.slugTaken, args);
+}
+
 export function useCreateAsset() {
   return useLiveMutation<{ type: string; data: unknown }, { id: string; slug: string }>(api.assets.create);
 }

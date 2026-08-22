@@ -14,7 +14,7 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { initialTokenDraft, TokenEditor, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
 
-import { AssetEditorMessage } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'token-validation-header';
 
@@ -35,7 +35,18 @@ export function TokenCreatePage({ type }: { type: string }) {
   const [pickBlocked, setPickBlocked] = useState(false);
   const patch = (update: Partial<TokenDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const pickless = draft.back.mode === 'reference' && draft.back.asset_id === null;
-  const warnings = tokenDraftWarnings(draft);
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const { nameField, conflictWarnings } = useAssetNameField({
+    type,
+    name: draft.name,
+    onName: (name) => patch({ name }),
+    source: 'Identity',
+    chapter: 'identity' as TokenChapter,
+  });
+  const warnings: (
+    | ReturnType<typeof tokenDraftWarnings>[number]
+    | { source: string; complaint: string; chapter: TokenChapter }
+  )[] = [...tokenDraftWarnings(draft), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(initialDraft);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -100,17 +111,14 @@ export function TokenCreatePage({ type }: { type: string }) {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {createAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {createAsset.error.message}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={createAsset.error} />
           {pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No token picked">
               Picking a token's back happens on the edit page; save with another back mode first.
             </Alert>
           ) : null}
           <TokenEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             type={type}

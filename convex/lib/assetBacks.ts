@@ -1,3 +1,5 @@
+import { ConvexError } from 'convex/values';
+
 import { NO_DECK_BACK_HREF } from '../../src/shared/asset-publishing/fallbacks';
 import { publicationFaceId, isPublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import type { Doc, Id } from '../_generated/dataModel';
@@ -80,18 +82,19 @@ export async function assertReferenceableTokenBack(
   targetId: Id<'assets'>
 ): Promise<Doc<'assets'>> {
   if (row._id !== null && targetId === row._id) {
-    throw new Error('A token cannot reference itself; use the same-front-and-back mode');
+    throw new ConvexError('A token cannot reference itself; use the same-front-and-back mode');
   }
   const target = await ctx.db.get('assets', targetId);
   if (!target || target.is_deleted) {
-    throw new Error(`Asset with id ${targetId} not found`);
+    /* Race-reachable: the target can be deleted between the pick and the save, so the refusal speaks. */
+    throw new ConvexError('The referenced token no longer exists; pick another back');
   }
   /* Same shape only: the back is the reverse of this physical piece, so a different shape would render clipped. */
   if (target.type !== row.type) {
-    throw new Error(`A ${row.type} backside must also be a ${row.type}`);
+    throw new ConvexError(`A ${row.type} backside must also be a ${row.type}`);
   }
   if (!hasAuthoredBack(target)) {
-    throw new Error('Only a token with an authored back can be referenced');
+    throw new ConvexError('Only a token with an authored back can be referenced');
   }
   return target;
 }
@@ -103,18 +106,19 @@ export async function assertReferenceableDeckCardback(
   targetId: Id<'assets'>
 ): Promise<Doc<'assets'>> {
   if (row._id !== null && targetId === row._id) {
-    throw new Error('A deck cannot reference its own cardback');
+    throw new ConvexError('A deck cannot reference its own cardback');
   }
   const target = await ctx.db.get('assets', targetId);
   if (!target || target.is_deleted) {
-    throw new Error(`Asset with id ${targetId} not found`);
+    /* Race-reachable: the target can be deleted between the pick and the save, so the refusal speaks. */
+    throw new ConvexError('The referenced deck no longer exists; pick another cardback');
   }
   if (target.type !== 'deck') {
-    throw new Error('A cardback reference must name a deck');
+    throw new ConvexError('A cardback reference must name a deck');
   }
   const cardback = deckCardbackOf(target.data);
   if (!cardback || !cardbackComposition(cardback)) {
-    throw new Error('Only a deck with an authored cardback can be referenced');
+    throw new ConvexError('Only a deck with an authored cardback can be referenced');
   }
   return target;
 }

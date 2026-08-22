@@ -29,8 +29,10 @@ import type {
 import {
   AssetEditorMessage,
   DriftedAssetPage,
+  SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
+  useAssetNameField,
 } from '../../../-assetEditorStates';
 import { referencedRectangleBackFace } from './-referencedBackFace';
 
@@ -149,8 +151,18 @@ function RectangleEditSession({
    * («How a dangling back reference presents»): a signpost, never a second set of mode controls.
    * It routes to Identity, the chapter the back tiles live in.
    */
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const { nameField, conflictWarnings } = useAssetNameField({
+    type,
+    name: draft.name,
+    onName: (name) => patch({ name }),
+    currentSlug: asset.slug,
+    source: 'Identity',
+    chapter: 'identity' as RectangleChapter,
+  });
   const warnings: (RectangleWarning | { source: string; complaint: string; chapter: RectangleChapter })[] = [
     ...rectangleDraftWarnings(draft),
+    ...conflictWarnings,
     ...(danglingBack && draft.back.mode === 'reference'
       ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as RectangleChapter }]
       : []),
@@ -231,11 +243,7 @@ function RectangleEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {updateAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {updateAsset.error.message}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={updateAsset.error} />
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">
               {deletion.error.message}
@@ -248,6 +256,7 @@ function RectangleEditSession({
             </Alert>
           ) : null}
           <RectangleTokenEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

@@ -1,4 +1,4 @@
-import { Alert, Anchor, Text } from '@mantine/core';
+import { Anchor, Text } from '@mantine/core';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -13,7 +13,7 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_DRAFT } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
 
-import { AssetEditorMessage } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'bundle-validation-header';
 
@@ -30,7 +30,18 @@ export function BundleCreatePage() {
   const [chapter, setChapter] = useState<BundleChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
-  const warnings = bundleDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'tokens');
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const { nameField, conflictWarnings } = useAssetNameField({
+    type: 'bundle',
+    name: draft.name,
+    onName: (name) => patch({ name }),
+    source: 'Identity',
+    chapter: 'identity' as BundleChapter,
+  });
+  const warnings: (
+    | ReturnType<typeof bundleDraftWarnings>[number]
+    | { source: string; complaint: string; chapter: BundleChapter }
+  )[] = [...bundleDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'tokens'), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_BUNDLE_DRAFT);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -91,12 +102,9 @@ export function BundleCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {createAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {createAsset.error.message}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={createAsset.error} />
           <BundleEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

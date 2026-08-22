@@ -103,6 +103,7 @@ const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
  * Each count change writes an `asset_relations` row immediately, the way a deck's composition does, because relations do not travel through the asset's `data`.
  */
 export function BundleEditor({
+  nameField,
   draft,
   patch,
   chapter,
@@ -114,6 +115,8 @@ export function BundleEditor({
   tokenPicker,
 }: {
   draft: BundleDraft;
+  /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
+  nameField: ReactNode;
   patch: (update: Partial<BundleDraft>) => void;
   chapter: BundleChapter;
   onChapterChange: (chapter: BundleChapter) => void;
@@ -161,17 +164,7 @@ export function BundleEditor({
               icon: <TopicIcon topic="identity" size={21} />,
               panel: panel(
                 <>
-                  <ControlBlock
-                    title="Name"
-                    description="Determines the bundle's URL."
-                    input={
-                      <TextInput
-                        aria-label="Name"
-                        value={draft.name}
-                        onChange={(event) => patch({ name: event.currentTarget.value })}
-                      />
-                    }
-                  />
+                  <ControlBlock title="Name" description="Determines the bundle's URL." input={nameField} />
                   <ControlBlock
                     title="Band"
                     description="A bundle has no face of its own, so this is what tells it apart. Stock or authored; nothing about the choice is stored either way."

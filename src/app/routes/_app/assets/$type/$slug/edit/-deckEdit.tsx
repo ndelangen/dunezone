@@ -14,6 +14,7 @@ import { useState } from 'react';
 
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
+import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -25,8 +26,10 @@ import type { DeckChapter, DeckDraft, DeckDraftCardback, DeckWarning } from '@ap
 import {
   AssetEditorMessage,
   DriftedAssetPage,
+  SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
+  useAssetNameField,
 } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'deck-validation-header';
@@ -146,8 +149,18 @@ function DeckEditSession({
    * The dangling complaint rides the widened validation header beside the widget's own warnings
    * («How a dangling back reference presents»), routed to Identity, the chapter the back tiles live in.
    */
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const { nameField, conflictWarnings } = useAssetNameField({
+    type: 'deck',
+    name: draft.name,
+    onName: (name) => patch({ name }),
+    currentSlug: asset.slug,
+    source: 'Identity',
+    chapter: 'identity' as DeckChapter,
+  });
   const warnings: (DeckWarning | { source: string; complaint: string; chapter: DeckChapter })[] = [
     ...deckDraftWarnings(draft, cards),
+    ...conflictWarnings,
     ...(danglingBack && draft.cardback.mode === 'reference'
       ? [{ source: 'Cardback', complaint: 'its referenced cardback is gone', chapter: 'identity' as DeckChapter }]
       : []),
@@ -249,11 +262,7 @@ function DeckEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {updateAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {updateAsset.error.message}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={updateAsset.error} />
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">
               {deletion.error.message}
@@ -262,7 +271,7 @@ function DeckEditSession({
           {groupActions.error}
           {setCount.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not change the composition">
-              {setCount.error.message}
+              {mutationErrorMessage(setCount.error)}
             </Alert>
           ) : null}
           {pickBlocked && pickless ? (
@@ -271,6 +280,7 @@ function DeckEditSession({
             </Alert>
           ) : null}
           <DeckEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

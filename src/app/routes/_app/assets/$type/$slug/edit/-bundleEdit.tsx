@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
+import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
@@ -20,8 +21,10 @@ import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/Bund
 import {
   AssetEditorMessage,
   DriftedAssetPage,
+  SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
+  useAssetNameField,
 } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'bundle-validation-header';
@@ -109,7 +112,19 @@ function BundleEditSession({
   const [pickerOpen, setPickerOpen] = useState(false);
   const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const tokens = members.map((entry) => ({ token: entry.member, count: entry.count }));
-  const warnings = bundleDraftWarnings(draft, tokens);
+  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
+  const { nameField, conflictWarnings } = useAssetNameField({
+    type: 'bundle',
+    name: draft.name,
+    onName: (name) => patch({ name }),
+    currentSlug: asset.slug,
+    source: 'Identity',
+    chapter: 'identity' as BundleChapter,
+  });
+  const warnings: (
+    | ReturnType<typeof bundleDraftWarnings>[number]
+    | { source: string; complaint: string; chapter: BundleChapter }
+  )[] = [...bundleDraftWarnings(draft, tokens), ...conflictWarnings];
   const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
   const isNameBlank = !draft.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -179,11 +194,7 @@ function BundleEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {updateAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {updateAsset.error.message}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={updateAsset.error} />
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">
               {deletion.error.message}
@@ -192,10 +203,11 @@ function BundleEditSession({
           {groupActions.error}
           {setCount.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not change the contents">
-              {setCount.error.message}
+              {mutationErrorMessage(setCount.error)}
             </Alert>
           ) : null}
           <BundleEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}
