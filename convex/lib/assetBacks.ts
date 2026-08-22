@@ -86,7 +86,8 @@ export async function assertReferenceableTokenBack(
   }
   const target = await ctx.db.get('assets', targetId);
   if (!target || target.is_deleted) {
-    throw new Error(`Asset with id ${targetId} not found`);
+    /* Race-reachable: the target can be deleted between the pick and the save, so the refusal speaks. */
+    throw new ConvexError('The referenced token no longer exists; pick another back');
   }
   /* Same shape only: the back is the reverse of this physical piece, so a different shape would render clipped. */
   if (target.type !== row.type) {
@@ -109,7 +110,8 @@ export async function assertReferenceableDeckCardback(
   }
   const target = await ctx.db.get('assets', targetId);
   if (!target || target.is_deleted) {
-    throw new Error(`Asset with id ${targetId} not found`);
+    /* Race-reachable: the target can be deleted between the pick and the save, so the refusal speaks. */
+    throw new ConvexError('The referenced deck no longer exists; pick another cardback');
   }
   if (target.type !== 'deck') {
     throw new ConvexError('A cardback reference must name a deck');

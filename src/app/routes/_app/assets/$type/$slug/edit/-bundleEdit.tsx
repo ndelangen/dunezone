@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
+import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
@@ -202,7 +203,7 @@ function BundleEditSession({
           {groupActions.error}
           {setCount.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not change the contents">
-              {setCount.error.message}
+              {mutationErrorMessage(setCount.error)}
             </Alert>
           ) : null}
           <BundleEditor
