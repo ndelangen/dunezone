@@ -71,7 +71,7 @@ export function DeckCreatePage() {
   }
 
   const save = () => {
-    /* The reference tile can be chosen here but not filled (picking waits for the edit page), so the save says so with words rather than a Zod error. */
+    /* Reference mode with nothing picked has no target to store, so the save says so with words rather than a Zod error. */
     if (pickless) {
       setPickBlocked(true);
       return;
@@ -109,8 +109,9 @@ export function DeckCreatePage() {
             onSave: save,
             onReset: () => {
               setDraft(INITIAL_DECK_DRAFT);
-              /* The pick rides beside the draft, so a reset must drop both or the tile would show a choice the draft no longer holds. */
+              /* The pick and the armed alert ride beside the draft, so a reset drops all three, the way the edit page's does. */
               setPickedBackDeck(null);
+              setPickBlocked(false);
             },
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}
@@ -121,7 +122,7 @@ export function DeckCreatePage() {
           <SaveErrorAlert error={createAsset.error} />
           {pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No deck picked">
-              Picking a deck to wear happens on the edit page; save with another back mode first.
+              Pick a deck whose cardback this one wears, or choose another back mode.
             </Alert>
           ) : null}
           <DeckEditor
