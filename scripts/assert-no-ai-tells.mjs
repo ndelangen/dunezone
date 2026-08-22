@@ -119,14 +119,21 @@ async function* walk(dir) {
  * Which checks a file gets, by what the file is.
  * `null` means the scan skips it.
  */
+const COMMENT_BEARING_EXTENSIONS = ['.css', '.yml', '.yaml'];
+const SCRIPT_EXTENSIONS = ['.ts', '.mjs'];
+
+function endsWithAny(rel, extensions) {
+  return extensions.some((extension) => rel.endsWith(extension));
+}
+
 function checksFor(rel) {
   if (rel.endsWith('.md')) {
     return { prose: true, headings: true, emoji: true };
   }
-  if (rel === '.oxlintrc.json' || rel.endsWith('.css') || rel.endsWith('.yml') || rel.endsWith('.yaml')) {
+  if (rel === '.oxlintrc.json' || endsWithAny(rel, COMMENT_BEARING_EXTENSIONS)) {
     return { prose: true, headings: false, emoji: true };
   }
-  if (rel.startsWith('scripts/') && (rel.endsWith('.ts') || rel.endsWith('.mjs'))) {
+  if (rel.startsWith('scripts/') && endsWithAny(rel, SCRIPT_EXTENSIONS)) {
     return { prose: false, headings: false, emoji: true };
   }
   return null;
@@ -186,52 +193,63 @@ function record(rel, lineNumber, tell, detail) {
   failures.push({ rel, lineNumber, tell, detail });
 }
 
+/** Every tell one line of prose carries, as `{ tell }` objects in report order. */
+function tellsIn(line, checks) {
+  const tells = [];
+  if (checks.emoji && EMOJI.test(line)) {
+    tells.push('emoji');
+  }
+  if (!checks.prose) {
+    return tells;
+  }
+  if (line.includes(EM_DASH)) {
+    tells.push('em dash');
+  }
+  if (CURLY_QUOTES.test(line)) {
+    tells.push('curly quote');
+  }
+  const stripped = stripInlineMarkup(line);
+  const filler = FILLER.exec(stripped);
+  if (filler) {
+    tells.push(`filler word "${filler[0]}"`);
+  }
+  if (HEDGE.test(stripped)) {
+    tells.push('hedging opener');
+  }
+  const heading = checks.headings && /^#{1,6}\s(.*)$/.exec(line);
+  const offenders = heading ? titleCaseWords(heading[1].trim()) : [];
+  if (offenders.length > 0) {
+    tells.push(`title case (${offenders.join(', ')})`);
+  }
+  return tells;
+}
+
+/** A fenced block is code, so its contents are not prose and are skipped whole. */
+function prosePartsOf(text, checks) {
+  const parts = [];
+  let insideFence = false;
+  for (const [index, line] of text.split('\n').entries()) {
+    if (checks.headings && /^\s*(?:```|~~~)/.test(line)) {
+      insideFence = !insideFence;
+      continue;
+    }
+    if (!insideFence) {
+      parts.push({ line, lineNumber: index + 1 });
+    }
+  }
+  return parts;
+}
+
 for await (const { full, rel } of walk(root)) {
   const checks = checksFor(rel);
   if (!checks) {
     continue;
   }
 
-  const lines = (await readFile(full, 'utf8')).split('\n');
-  let insideFence = false;
-
-  for (const [index, line] of lines.entries()) {
-    const lineNumber = index + 1;
-
-    if (checks.headings && /^\s*(?:```|~~~)/.test(line)) {
-      insideFence = !insideFence;
-      continue;
-    }
-    if (insideFence) {
-      continue;
-    }
-
-    if (checks.emoji && EMOJI.test(line)) {
-      record(rel, lineNumber, 'emoji', line.trim());
-    }
-    if (!checks.prose) {
-      continue;
-    }
-    if (line.includes(EM_DASH)) {
-      record(rel, lineNumber, 'em dash', line.trim());
-    }
-    if (CURLY_QUOTES.test(line)) {
-      record(rel, lineNumber, 'curly quote', line.trim());
-    }
-    const filler = FILLER.exec(stripInlineMarkup(line));
-    if (filler) {
-      record(rel, lineNumber, `filler word "${filler[0]}"`, line.trim());
-    }
-    if (HEDGE.test(stripInlineMarkup(line))) {
-      record(rel, lineNumber, 'hedging opener', line.trim());
-    }
-
-    const heading = checks.headings && /^#{1,6}\s(.*)$/.exec(line);
-    if (heading) {
-      const offenders = titleCaseWords(heading[1].trim());
-      if (offenders.length > 0) {
-        record(rel, lineNumber, `title case (${offenders.join(', ')})`, line.trim());
-      }
+  const text = await readFile(full, 'utf8');
+  for (const { line, lineNumber } of prosePartsOf(text, checks)) {
+    for (const tell of tellsIn(line, checks)) {
+      record(rel, lineNumber, tell, line.trim());
     }
   }
 }
