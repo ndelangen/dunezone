@@ -73,8 +73,8 @@ Storybook root; feature folders keep only organs.
 ### The shell is chrome, decided by position
 
 `AppRoot`, `AppHeader`, and `AppFooter` belong to no kit category. The header is full-bleed artwork
-that content sits *beside* in a shared grid row, where a Surface is something content sits *on*, and
-a Layout is transparent while the header paints. So the shell is decided by *position*, not at the
+that content sits *beside* in a shared grid row, whereas a Surface is something content sits *on*,
+and a Layout is transparent while the header paints. So the shell is decided by *position*, not at the
 membrane: it lives in `src/app/shell/**`, reached only through its doorway (`routes/_app.tsx` mounts
 `ApplicationChrome` and `AppNotFound`), and it carries stories under the `Shell` root. Its band
 height is negotiated with the page in CSS, since the page joins the grid through `display: contents`

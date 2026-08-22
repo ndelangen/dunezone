@@ -4,10 +4,10 @@
 
 ## Context
 
-Group deletion used to hard-delete the row and run a bounded cleanup cascade
-that nulled ruleset associations, deleted memberships, and never touched
-factions, destroying membership data and leaving dangling faction
-references in production. The soft-deletion lifecycle
+Group deletion used to hard-delete the row and run a bounded cleanup
+cascade that nulled ruleset associations, deleted memberships, and never
+touched factions. That cascade destroyed membership data and left
+dangling faction references in production. The soft-deletion lifecycle
 ([#188](https://github.com/ndelangen/dunezone/issues/188)) replaces this, and
 the contract below was settled in
 [#189](https://github.com/ndelangen/dunezone/issues/189).

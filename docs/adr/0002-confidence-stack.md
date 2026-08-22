@@ -33,9 +33,10 @@ Confidence comes from three layers, in priority order:
      failure class.
 2. **Seam-level suites cover what types cannot express.** The Convex
    boundary-suite pattern (in-memory Convex, public query/mutation seam) is the
-   approved unit-test shape. Suites are sized to behavioral rules rather
-   than to permutation matrices: visibility, ordering, capabilities,
-   lifecycle transitions. They never reach into internals (ADR-0001).
+   approved unit-test shape. Suites are sized to behavioral rules such
+   as visibility, ordering, capabilities and lifecycle transitions,
+   rather than to permutation matrices. They never reach into internals
+   (ADR-0001).
 3. **A few happy-path e2e specs are the confidence anchor.** Each major user
    flow gets one end-to-end spec exercising the real stack. Error cases and
    permutations stay in layer 2.

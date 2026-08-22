@@ -91,7 +91,7 @@ hands it, decides its category.
 | Category | Folder | Caller hands it | It owns |
 |---|---|---|---|
 | **Content** | `src/app/ui/content` | data | one kind of content, rendered our way: words, a status, a link |
-| **Controls** | `src/app/ui/control` | a value + onChange, or an intent | the user changing things: editing a value, committing an action, and the furniture around doing so |
+| **Controls** | `src/app/ui/control` | a value + onChange, or an intent | the user changing things, whether editing a value or committing an action, and the furniture around doing so |
 | **Lists** | `src/app/ui/list` | items of one shape | the rhythm between items: sequence, dividers, gaps |
 | **Layout** | `src/app/ui/layout` | slots only | where things go, never what they are |
 | **Surfaces** | `src/app/ui/surface` | slots for content; words only to name itself | the pane: border, infill, blur. **Surfaces never nest** |
@@ -103,9 +103,9 @@ root. It sits under `src/app` because there is one application and the kit is no
 extracts. A top-level `src/ui` promised an independence that does not exist.
 
 **One rule guards it: a component renders what it is given; it does not go and get things.** That is
-narrower than "domain-free", deliberately. A component may know the *shape* of what it renders,
-since a `FactionCatalogueEntry` type says exactly that and types are erased at compile time anyway,
-and it may compose a game renderer or a pure helper. What it may not do is fetch, or decide where
+narrower than "domain-free", deliberately. A component may know the *shape* of what it renders. A
+`FactionCatalogueEntry` type says exactly that, and types are erased at compile time anyway. It may
+also compose a game renderer or a pure helper. What it may not do is fetch, or decide where
 the reader goes next, because either one makes it unusable in a story and unusable on a second page.
 So [`.oxlintrc.json`](.oxlintrc.json) forbids, inside `src/app/ui`:
 

@@ -101,7 +101,7 @@ Entity-level prose explaining a thing, shown in an "About" section on its detail
 _Not_: **description**, which names a label on a sub-component inside `factions.data`: a troop's, a planet's, an extras link's. The two live at different levels, and only one of them is prose a reader chooses to read.
 
 **Token backside**:
-The reverse face every token has. It is either authored as part of the token itself, or it is another existing token serving as the back, a reference rather than a copy. A token with a referenced backside publishes only its own front face; the back resolves to the referenced token's publication.
+The reverse face every token has. It is either authored as part of the token itself, or it is another existing token serving as the back, a reference, never a copy. A token with a referenced backside publishes only its own front face; the back resolves to the referenced token's publication.
 
 **Cardback**:
 The shared back face of a deck, never a standalone asset. Every deck wears exactly one: chosen from the stock cardbacks the product defines, or authored as part of the deck. Publishing a deck publishes its Cardback image either way; the member cards' faces are published by the card assets themselves.
