@@ -28,6 +28,41 @@ export function nameConflictComplaint({ holder, slug }: NameConflict): string {
 }
 
 /**
+ * The settle-and-ask half of the field: the candidate slug, its debounce, the probe's answer, and the reported conflict.
+ * Apart from the rendering so the component is a plain view of its result.
+ */
+function useSettledConflict({
+  value,
+  currentSlug,
+  onConflictChange,
+}: {
+  value: string;
+  currentSlug?: string;
+  onConflictChange: (conflict: NameConflict | null) => void;
+}) {
+  const [answer, setAnswer] = useState<NameHolder | null>(null);
+  const slug = slugify(value);
+  const candidate = slug.length > 0 && slug !== currentSlug ? slug : null;
+  const [settled, setSettled] = useState<string | null>(candidate);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(candidate), 400);
+    return () => clearTimeout(timer);
+  }, [candidate]);
+  const holder = candidate && settled === candidate ? answer : null;
+  const conflict = holder && candidate ? { holder, slug: candidate } : null;
+
+  /* Reported from an effect, not render: the parent stores it in state for the header. */
+  const conflictKey = conflict ? `${conflict.holder}:${conflict.slug}` : null;
+  useEffect(() => {
+    onConflictChange(conflict);
+    /* Keyed by content rather than identity, so a re-render with the same answer does not loop the parent's state. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conflictKey]);
+
+  return { settled, conflict, onAnswer: setAnswer };
+}
+
+/**
  * A name field that checks its address is free while the author types.
  *
  * A Picker in the taxonomy's sense: the one kind of control that may hold its own lazily-mounted subscription, so the page query never learns about candidate slugs.
@@ -55,28 +90,10 @@ export function UniqueNameInput({
   probe: NameAvailabilityProbe;
   onConflictChange: (conflict: NameConflict | null) => void;
 }) {
-  const [answer, setAnswer] = useState<NameHolder | null>(null);
-  const slug = slugify(value);
-  const candidate = slug.length > 0 && slug !== currentSlug ? slug : null;
-  const [settled, setSettled] = useState<string | null>(candidate);
-  useEffect(() => {
-    const timer = setTimeout(() => setSettled(candidate), 400);
-    return () => clearTimeout(timer);
-  }, [candidate]);
-  const holder = candidate && settled === candidate ? answer : null;
-  const conflict = holder && candidate ? { holder, slug: candidate } : null;
-
-  /* Reported from an effect, not render: the parent stores it in state for the header. */
-  const conflictKey = conflict ? `${conflict.holder}:${conflict.slug}` : null;
-  useEffect(() => {
-    onConflictChange(conflict);
-    /* Keyed by content rather than identity, so a re-render with the same answer does not loop the parent's state. */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conflictKey]);
-
+  const { settled, conflict, onAnswer } = useSettledConflict({ value, currentSlug, onConflictChange });
   return (
     <>
-      {settled ? probe({ slug: settled, onAnswer: setAnswer }) : null}
+      {settled ? probe({ slug: settled, onAnswer }) : null}
       <TextInput
         aria-label={label}
         value={value}
