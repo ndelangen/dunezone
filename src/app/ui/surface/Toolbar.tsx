@@ -23,11 +23,11 @@ function Right({ children }: ToolbarSlotProps) {
  * A pane of controls, divided into what leads, what labels, and what acts.
  *
  * Callers own the controls.
- * This owns the band they sit in: the pane, its gutter, and the three positions — `Left` and
+ * This owns the band they sit in: the pane, its gutter, and the three positions, `Left` and
  * `Right` share the remaining width and pull to their outer edges, `Center` takes only the room it needs.
  *
  * It is a surface, so it must not be placed inside one.
- * A page hands it controls, never chrome — there is no variant of this without the pane, because a bare row of buttons is a `Group`.
+ * A page hands it controls, never chrome, there is no variant of this without the pane, because a bare row of buttons is a `Group`.
  */
 export type ToolbarProps = {
   className?: string;

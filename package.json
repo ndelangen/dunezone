@@ -14,6 +14,7 @@
     "check:app-layout": "node scripts/assert-app-layout.mjs",
     "check:convex-skip": "node scripts/assert-no-convex-skip-in-domain-db.mjs",
     "check:css-orphans": "node scripts/assert-no-orphan-css-classes.mjs",
+    "check:prose": "node scripts/assert-no-ai-tells.mjs",
     "cloudflare:drift-check": "bun run ./scripts/cloudflare-live-drift.ts",
     "convex:deploy": "convex deploy",
     "convex:dev": "bun run migrations:dev-strict && convex dev",

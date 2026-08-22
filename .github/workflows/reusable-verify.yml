@@ -61,6 +61,8 @@ jobs:
         run: bun run check:css-orphans
       - name: Check the src/app top-level layout
         run: bun run check:app-layout
+      - name: Check developer-facing prose
+        run: bun run check:prose
 
   knip:
     runs-on: ubuntu-latest
@@ -121,7 +123,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload test results to Codecov
-        # Failure results are the point of Test Analytics — upload unless cancelled.
+        # Failure results are the point of Test Analytics, so upload unless cancelled.
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
@@ -136,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      # Job-level so the bundle-upload step's `if` can test it — the secrets
+      # Job-level so the bundle-upload step's `if` can test it. The secrets
       # context is not available in step-level `if` conditions.
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:

@@ -4,7 +4,7 @@ import { z } from 'zod';
 const rulesetNameSchema = alphanumericNameSchema('Ruleset name');
 
 /**
- * Free prose, so no upper bound — the FAQ's question and answer schemas set that precedent.
+ * Free prose, so no upper bound, the FAQ's question and answer schemas set that precedent.
  * The floor is deliberate: a description shorter than this says nothing a reader could not get from the name.
  */
 export const RULESET_DESCRIPTION_MIN_LENGTH = 50;

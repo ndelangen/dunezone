@@ -3,13 +3,13 @@ import svgpath from 'svgpath';
 import { VECTOR_PRECISION, VECTOR_ROOT_ID, VECTOR_VIEWBOX_SIZE } from './vectorRules';
 
 /**
- * Pure-math normalization of a cropped SVG source into the shared `0 0 100 100` space (#296): the source viewBox maps to the square uniformly scaled and centered, and the transform is BAKED into every coordinate — path data, stroke widths, dash arrays — rather than wrapped in a `<g>`, because fragment consumers (`<use href="…#arrakeen">`) clone elements without ancestor transforms.
+ * Pure-math normalization of a cropped SVG source into the shared `0 0 100 100` space (#296): the source viewBox maps to the square uniformly scaled and centered, and the transform is BAKED into every coordinate, path data, stroke widths, dash arrays, rather than wrapped in a `<g>`, because fragment consumers (`<use href="…#arrakeen">`) clone elements without ancestor transforms.
  * The corpus is paths-only (verified in #306), so baking = svgpath over `d` plus scaling the stroke-* attributes.
  *
  * DOM access is injected so the same code runs under linkedom (generator), jsdom, or a real browser (the authoring tool, moving in-repo per #298).
  */
 
-/** The minimal element surface the baking walk needs — satisfied structurally by any DOM. */
+/** The minimal element surface the baking walk needs, satisfied structurally by any DOM. */
 export type SvgElementLike = {
   readonly tagName: string;
   getAttribute(name: string): string | null;
@@ -39,7 +39,7 @@ function multiply(a: Matrix, b: Matrix): Matrix {
   ];
 }
 
-/** Average absolute scale of a matrix — used to scale stroke widths (uniform for our matrices). */
+/** Average absolute scale of a matrix, used to scale stroke widths (uniform for our matrices). */
 function scaleOf(matrix: Matrix): number {
   return Math.sqrt(Math.abs(matrix[0] * matrix[3] - matrix[1] * matrix[2]));
 }
@@ -89,7 +89,7 @@ function parseTransform(value: string | null): Matrix {
 
 const SCALED_LENGTH_ATTRIBUTES = ['stroke-width', 'stroke-dashoffset'] as const;
 
-/** Geometry that carries coordinates outside `d` — the corpus is paths-only (#306); refuse loud. */
+/** Geometry that carries coordinates outside `d`: the corpus is paths-only (#306), so refuse loud. */
 const UNBAKEABLE_TAGS = new Set(['rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'text', 'image', 'use']);
 
 function bake(element: SvgElementLike, parent: Matrix): void {
@@ -99,9 +99,7 @@ function bake(element: SvgElementLike, parent: Matrix): void {
 
   const tag = element.tagName.toLowerCase();
   if (UNBAKEABLE_TAGS.has(tag)) {
-    throw new VectorNormalizeError(
-      `<${tag}> cannot be coordinate-baked — convert it to a <path> in the authoring tool`
-    );
+    throw new VectorNormalizeError(`<${tag}> cannot be coordinate-baked; convert it to a <path> in the authoring tool`);
   }
   if (tag === 'path') {
     const d = element.getAttribute('d');
@@ -111,7 +109,7 @@ function bake(element: SvgElementLike, parent: Matrix): void {
   }
 
   const k = scaleOf(matrix);
-  /* A stroked element without an explicit width uses the SVG default of 1 user unit — after
+  /* A stroked element without an explicit width uses the SVG default of 1 user unit, after
      coordinate baking that implicit 1 must become an explicit 1×k or strokes fatten by 1/k. */
   const stroke = element.getAttribute('stroke');
   if (stroke && stroke !== 'none' && !element.getAttribute('stroke-width')) {
@@ -149,7 +147,7 @@ function parseLength(attribute: string, value: string): number {
   const match = /^([+-]?[\d.]+(?:[eE][+-]?\d+)?)(px)?$/.exec(value.trim());
   if (!match) {
     throw new VectorNormalizeError(
-      `${attribute}="${value}" has a unit that cannot be baked — use user units in the source`
+      `${attribute}="${value}" has a unit that cannot be baked; use user units in the source`
     );
   }
   return Number(match[1]);
@@ -166,7 +164,7 @@ export function normalizeSvg(source: string, dom: SvgDom): string {
   const root = dom.parse(source);
   const viewBox = root.getAttribute('viewBox');
   if (!viewBox) {
-    throw new VectorNormalizeError('source has no viewBox — run it through the authoring tool');
+    throw new VectorNormalizeError('source has no viewBox; run it through the authoring tool');
   }
   const [minX, minY, width, height] = viewBox
     .trim()
@@ -186,7 +184,7 @@ export function normalizeSvg(source: string, dom: SvgDom): string {
   }
 
   root.setAttribute('viewBox', `0 0 ${VECTOR_VIEWBOX_SIZE} ${VECTOR_VIEWBOX_SIZE}`);
-  // Some files (map.svg) expose `#root` as an inner group — the svg element must not shadow it.
+  // Some files (map.svg) expose `#root` as an inner group; the svg element must not shadow it.
   if (root.querySelector(`[id="${VECTOR_ROOT_ID}"]`)) {
     root.removeAttribute('id');
   } else {

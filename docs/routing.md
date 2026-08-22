@@ -1,6 +1,6 @@
 # Routing
 
-## Route Structure
+## Route structure
 
 ```mermaid
 graph TD
@@ -19,7 +19,7 @@ nearly every file: `_app` is a **pathless layout route** and contributes no URL 
 ## The `_app` layout route
 
 [`src/app/routes/_app.tsx`](../src/app/routes/_app.tsx) wraps every visual route in
-`ApplicationChrome` — the Mantine provider plus `AppRoot`, which owns the persistent header, footer,
+`ApplicationChrome`, the Mantine provider plus `AppRoot`, which owns the persistent header, footer,
 and document-level scroll effects. It also owns the 404: `notFoundComponent: AppNotFound`.
 
 Two kinds of route live *outside* `_app`, deliberately, because they must not carry application
@@ -27,23 +27,23 @@ chrome: `auth/oauth.tsx` (a non-visual hand-off) and `preview/sheet/$factionSlug
 document-rendering target).
 
 **Every terminal visual route must render `PageLayout`** from
-[`@ui/layout/PageLayout`](../src/app/ui/layout/PageLayout.tsx), supplying the slots that page needs —
+[`@ui/layout/PageLayout`](../src/app/ui/layout/PageLayout.tsx), supplying the slots that page needs:
 `content`, usually a `header` (omit it for a compact page), and an optional `toolbar`. Nested parent
-routes stay outlet-only. This is
-enforced — [`PageLayout.architecture.test.ts`](../src/app/ui/layout/PageLayout.architecture.test.ts)
-scans the route files and fails on a terminal route that omits it. The reasoning is
-[*Terminal routes mount PageLayout*](technical/ui-design-decisions.md#terminal-routes-mount-pagelayout).
+routes stay outlet-only. This is enforced, since
+[`PageLayout.architecture.test.ts`](../src/app/ui/layout/PageLayout.architecture.test.ts) scans the
+route files and fails on a terminal route that omits it. The reasoning is [*Terminal routes mount
+PageLayout*](technical/ui-design-decisions.md#terminal-routes-mount-pagelayout).
 
-## File-Based Routing
+## File-based routing
 
-**Location**: `src/app/routes/` — e.g. `_app/index.tsx` → `/`, `_app/auth/login.tsx` →
+**Location**: `src/app/routes/`, for example `_app/index.tsx` → `/`, `_app/auth/login.tsx` →
 `/auth/login`, `auth/oauth.tsx` → `/auth/oauth`. Route tree auto-generates:
 [`src/app/routeTree.gen.ts`](../src/app/routeTree.gen.ts)
 
 ### Files in `routes/` that are not routes
 
 A page's composition belongs in its route file, and a piece with one caller belongs beside that
-caller — so route folders hold helpers, hooks and their tests as well as routes. The generator
+caller, so route folders hold helpers, hooks and their tests as well as routes. The generator
 scans every file in the directory, so **a co-located non-route file takes the `-` prefix**:
 [`-catalogue.ts`](../src/app/routes/_app/factions/-catalogue.ts),
 `-faqEditingSession.ts`, `-useFactionSheetPostMessage.ts`. Without it the build warns that the file
@@ -51,7 +51,7 @@ exports no `Route` and excludes it anyway. Vitest still collects `-`-prefixed te
 
 The prefix doubles as a reading aid: everything in a route folder without one is a URL.
 
-## Route Pattern
+## Route pattern
 
 ```typescript
 import { createFileRoute } from '@tanstack/react-router';
@@ -73,7 +73,7 @@ one-query-per-route rule is [*One Convex query per route*](technical/ui-design-d
 
 **Example**: [`src/app/routes/_app/index.tsx`](../src/app/routes/_app/index.tsx)
 
-## Root Route
+## Root route
 
 **File**: [`src/app/routes/__root.tsx`](../src/app/routes/__root.tsx)
 

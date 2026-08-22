@@ -64,7 +64,7 @@
 }
 
 /* Baseline, not center: the row's items are text, and baseline alignment keeps their labels
-   level automatically — whatever borders, padding, or glyph metrics their boxes pick up. */
+   level automatically, whatever borders, padding, or glyph metrics their boxes pick up. */
 .linkGroup {
   display: flex;
   align-items: baseline;
@@ -83,7 +83,7 @@
   overflow: hidden;
 }
 
-/* The full list, invisibly, in the row's own text styles — what the fit measurement reads. */
+/* The full list, invisibly, in the row's own text styles, which is what the fit measurement reads. */
 .measureRow {
   position: absolute;
   visibility: hidden;

@@ -18,7 +18,7 @@ import { coverageEnabled, mcrOptions } from './coverage';
  */
 async function dropNonSrcRecords(lcovPath: string): Promise<void> {
   if (!existsSync(lcovPath)) {
-    // Nothing was generated — e.g. globalSetup failed before any test collected coverage.
+    // Nothing was generated, e.g. globalSetup failed before any test collected coverage.
     return;
   }
   const lcov = await readFile(lcovPath, 'utf8');

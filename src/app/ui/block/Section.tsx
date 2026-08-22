@@ -15,13 +15,13 @@ export interface SectionProps {
   eyebrow?: string;
   /** One line saying what this part is for. */
   description?: string;
-  /** Topical glyph beside the title. Decorative — the words carry the meaning. */
+  /** Topical glyph beside the title. Decorative, the words carry the meaning. */
   icon?: ReactNode;
   /** The single control that belongs beside the title: a link onward, a status, one button. */
   action?: ReactNode;
   /** Stable anchor for in-page navigation. The accessible name is wired up either way. */
   id?: string;
-  /** Placement only — grid area, width. The block owns its own internal spacing. */
+  /** Placement only, grid area, width. The block owns its own internal spacing. */
   className?: string;
   children: ReactNode;
 }
@@ -29,7 +29,7 @@ export interface SectionProps {
 /**
  * A named part of a page: what it is called, optionally what kind of thing it is and what it is for, the one control that belongs beside its name, and its content.
  *
- * Callers pass **words**, not components — this block owns which content component each word becomes, and how loudly the heading speaks for how deep it sits.
+ * Callers pass **words**, not components, this block owns which content component each word becomes, and how loudly the heading speaks for how deep it sits.
  * Written by hand it was four spellings across four pages, half of them unnamed to a screen reader and each guessing its own heading level.
  *
  * Glyphs and controls stay as nodes, because an icon and a router link are not text.

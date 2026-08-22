@@ -16,7 +16,7 @@ function Right(_: PropsWithChildren): null {
   return null;
 }
 
-/** Three columns — the outer two fixed, the centre flowing — responsive by container query. */
+/** Three columns, the outer two fixed, the centre flowing, responsive by container query. */
 function TriptychLayoutBase({ className, children }: PropsWithChildren<{ className?: string }>) {
   let left: ReactNode = null;
   let center: ReactNode = null;

@@ -9,14 +9,14 @@ import schema from '../convex/schema';
 /**
  * The unified provision pipeline (map #352, ticket #359).
  *
- * Every non-production environment is a derived value — rebuilt from (code, data source), never repaired.
+ * Every non-production environment is a derived value, rebuilt from (code, data source), never repaired.
  * The pipeline is five stages: backend → configure → code → data → users, parameterized per target:
  *
  * E2e docker backend, fixture data (users: Playwright logins) local docker backend, prod clone (users: A/B logins + remap, via app-dev) dev cloud dev deployment, prod clone (users: replicated prod identities)
  *
  * Invariants: data flows prod → down only;
  * CI invokes this same script;
- * the e2e target must remain incapable of touching prod — its commands never receive production credentials (see strippedProductionCredentials).
+ * the e2e target must remain incapable of touching prod: its commands never receive production credentials (see strippedProductionCredentials).
  */
 
 export type ProvisionTarget = 'e2e' | 'local' | 'dev';
@@ -117,7 +117,7 @@ export function cloudDevEnvironment(base: NodeJS.ProcessEnv, deployment: CloudDe
 
 /**
  * Environment for the read-only prod snapshot export.
- * Prefers the dedicated CONVEX_PROD_DEPLOY_KEY, falls back to the ambient CONVEX_DEPLOY_KEY (the repo's deploy secret is the prod key — #353), and otherwise relies on the logged-in
+ * Prefers the dedicated CONVEX_PROD_DEPLOY_KEY, falls back to the ambient CONVEX_DEPLOY_KEY (the repo's deploy secret is the prod key, #353), and otherwise relies on the logged-in
  * CLI plus `--prod`.
  */
 function productionExportEnvironment(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
@@ -211,7 +211,7 @@ export type AuthConfiguration = {
 
 /**
  * Configure stage: local auth env vars + fresh JWT material for the disposable deployment.
- * The cloud dev deployment keeps its own env vars (they survive snapshot imports and are set once — ticket #354).
+ * The cloud dev deployment keeps its own env vars (they survive snapshot imports and are set once, ticket #354).
  */
 export function configureLocalAuth(
   deployment: SelfHostedDeployment,
@@ -268,9 +268,9 @@ export function cloneProductionData(deployment: TargetDeployment, env: NodeJS.Pr
 }
 
 /**
- * Rebuilding a long-lived deployment cannot simply push code and then import: a schema push is validated against the data already there, and an import is validated against the schema already there, so a narrowing change breaks the first order and a widening change breaks the second.
- * Clearing first escapes both — empty tables satisfy every schema
- * — which is also what lets a deployment whose data went stale recover instead of deadlocking on its own failed push.
+ * Rebuilding a long-lived deployment cannot push code and then import: a schema push is validated against the data already there, and an import is validated against the schema already there, so a narrowing change breaks the first order and a widening change breaks the second.
+ * Clearing first escapes both, because empty tables satisfy every schema.
+ * That is also what lets a deployment whose data went stale recover instead of deadlocking on its own failed push.
  */
 export function rebuildFromProduction(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
   const snapshotPath = exportProductionSnapshot(env, workDirectory);
@@ -532,7 +532,7 @@ async function runCli(args: ProvisionArgs) {
     /*
      * The local users stage (A/B accounts + ownership remap) needs the
      * running app, so this CLI alone cannot produce a complete local
-     * environment — refuse rather than report a half-provisioned success.
+     * environment, refuse rather than report a half-provisioned success.
      */
     throw new Error(
       "The local target is provisioned by 'bun run app:dev --local' (its users stage needs the running app). Pass explicit --stage flags for partial provisioning."

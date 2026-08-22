@@ -12,7 +12,7 @@ import styles from './FactionFormSectionAlliance.module.css';
 import type { FactionFormApi } from './factionFormTypes';
 
 /* The offset is unbounded card-space pixels from the card center (card 900 wide, art band 940
-   tall). The sliders span half of each dimension — center to edge — while the paired number
+   tall). The sliders span half of each dimension, center to edge, while the paired number
    inputs stay unclamped so legacy values beyond the range remain editable. */
 const DECAL_OFFSET_RANGE = [450, 470] as const;
 

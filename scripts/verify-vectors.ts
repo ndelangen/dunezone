@@ -1,5 +1,5 @@
 /**
- * Structural verification of generated vector output (wayfinder #296 guards, train ticket #306): checks public/vector/** against media/vector/** and the rules — without re-optimizing anything.
+ * Structural verification of generated vector output (wayfinder #296 guards, train ticket #306): checks public/vector/** against media/vector/** and the rules, without re-optimizing anything.
  *
  * Bun run verify:vectors
  *
@@ -96,7 +96,7 @@ for (const relative of sourceRelatives) {
   }
 
   /*
-   * 7. authoring stamp (#298; hard since #311 — the in-repo tool emits it, legacy sources are
+   * 7. authoring stamp (#298; hard since #311, the in-repo tool emits it, legacy sources are
    * batch-stamped, so a missing stamp means the file never went through the authoring pipeline).
    * Checked as an attribute of the root <svg> tag, not as a substring: a mention in a comment or
    * text node must not satisfy the gate.
@@ -104,7 +104,7 @@ for (const relative of sourceRelatives) {
   const source = readFileSync(path.join(mediaRoot, relative), 'utf8');
   if (!rootTagCarriesStamp(source)) {
     failures.push(
-      `${relative}: root <svg> has no ${VECTOR_AUTHORED_ATTRIBUTE} stamp — run it through the authoring tool`
+      `${relative}: root <svg> has no ${VECTOR_AUTHORED_ATTRIBUTE} stamp; run it through the authoring tool`
     );
   }
   if (rootTagCarriesStamp(generated)) {

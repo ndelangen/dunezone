@@ -2,7 +2,7 @@
 /**
  * Fails if `src/app` grows a top-level entry that is not one of the known roles.
  *
- * The application used to be filed by domain — `src/app/factions/`, `src/app/groups/`, one folder per noun, each holding a `db.ts` and whatever else that domain accumulated.
+ * The application used to be filed by domain: `src/app/factions/`, `src/app/groups/`, one folder per noun, each holding a `db.ts` and whatever else that domain accumulated.
  * Hoisting the shared validators to `src/shared` and the data modules to `src/app/db` emptied those folders, but three of them survived on a file or two apiece: a projection helper, a date formatter, a one-line type.
  * Folders outlive the scheme that created them, so the set is written down here instead.
  *
@@ -14,7 +14,7 @@ import { join } from 'node:path';
 const ALLOWED = new Map([
   ['db', 'the domain data modules, and the only doorway to Convex'],
   ['pickers', 'domain controls that lazily fetch their own options; never mutate'],
-  ['print', 'the game renderers as printable documents — the sheet bridge, the capture page'],
+  ['print', 'the game renderers as printable documents: the sheet bridge, the capture page'],
   ['routeTree.gen.ts', 'generated'],
   ['router.tsx', 'the router instance'],
   ['routes', 'file-based routes; co-located non-route files take the `-` prefix'],
@@ -30,7 +30,7 @@ const unexpected = entries.filter((name) => !ALLOWED.has(name));
 
 if (unexpected.length > 0) {
   const offenders = unexpected.map((name) => `  - ${name}`).join('\n');
-  const roles = [...ALLOWED].map(([name, why]) => `  - ${name} — ${why}`).join('\n');
+  const roles = [...ALLOWED].map(([name, why]) => `  - ${name}: ${why}`).join('\n');
   console.error(
     'Unexpected top-level entries in src/app:\n' +
       offenders +

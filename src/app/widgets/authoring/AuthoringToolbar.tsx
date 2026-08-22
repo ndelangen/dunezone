@@ -77,7 +77,7 @@ export function AuthoringToolbar({
   status: AuthoringStatus;
   copy: AuthoringCopy;
   actions: AuthoringToolbarActions;
-  /** An optional artifact-review action (the eye); absent editors simply have no review. */
+  /** An optional artifact-review action (the eye); absent editors have no review. */
   review?: { label: string; onOpen: (trigger: HTMLButtonElement) => void };
   auxiliaryActions?: ReactNode;
   context?: ReactNode;

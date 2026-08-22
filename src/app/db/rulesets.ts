@@ -15,7 +15,7 @@ import type { Doc } from '../../../convex/_generated/dataModel';
 import type { AssignedGroupSummary, CollaborativeAccess } from '../../../convex/lib/collaborativeAccess';
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
-/** What a caller authors, derived from the schema that validates it — both fields required, the description above its floor. */
+/** What a caller authors, derived from the schema that validates it. Both fields are required, and the description sits above its floor. */
 export type Ruleset = RulesetInput;
 export type RulesetRow = Doc<'rulesets'>;
 export type RulesetEntry = Omit<RulesetRow, 'name'> & {
@@ -251,7 +251,7 @@ type RulesetFactionLink = { rulesetId: string; factionId: string };
 
 /**
  * The two link mutations differ only in which function they call, so they share one wrapper.
- * It exists to keep callers in this module's camelCase vocabulary — every other hook here maps to the Convex snake_case at this boundary rather than leaking it into the routes.
+ * It exists to keep callers in this module's camelCase vocabulary, every other hook here maps to the Convex snake_case at this boundary rather than leaking it into the routes.
  */
 function useRulesetFactionLinkMutation(reference: typeof api.rulesets.addFaction) {
   const mutation = useLiveMutation<{ ruleset_id: string; faction_id: string }, unknown>(reference);
@@ -298,7 +298,7 @@ export function useClearRulesetAssetSlot() {
 
 /**
  * Links a faction to a ruleset, and unlinks it.
- * Both are gated server-side on the ruleset's `edit` capability — its owner, or an active member of its maintaining group — so the page shows the affordances on the same condition.
+ * Both are gated server-side on the ruleset's `edit` capability, its owner, or an active member of its maintaining group, so the page shows the affordances on the same condition.
  */
 export function useAddRulesetFaction() {
   return useRulesetFactionLinkMutation(api.rulesets.addFaction);

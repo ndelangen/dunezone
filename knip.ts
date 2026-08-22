@@ -18,7 +18,7 @@ const config: KnipConfig = {
         // Worker entry, referenced from workers/publisher/wrangler.jsonc.
         'workers/publisher/index.ts',
         /* Standalone scripts run ad hoc with `bun run ./scripts/...`. Deliberately
-           not scripts/lib/** — helpers there must be imported to count as used. */
+           not scripts/lib/**, where helpers must be imported to count as used. */
         'scripts/*.{ts,mjs}',
       ],
       /**

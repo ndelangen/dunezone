@@ -4,14 +4,14 @@ Dune Zone is a community catalogue for Dune board-game factions, rulesets, and t
 
 ## Language
 
-The product vocabulary. The technical vocabulary — kit, membrane, organ, doorway, seam, chrome —
-lives in [`AGENTS.md`](AGENTS.md#language).
+The product vocabulary. [`AGENTS.md`](AGENTS.md#language) holds the technical vocabulary: kit,
+membrane, organ, doorway, seam, chrome.
 
 **Group**:
 A collaboration boundary shared by factions, rulesets, and future community assets. Active members may maintain associated content and manage membership intake, while the Group owner alone may rename the Group or remove active members.
 
 **Deleted Group**:
-A Group its owner has deleted. It survives with its memberships and asset associations intact, but the product treats it as not found for everyone, owner included — it appears nowhere, grants no collaborative access, and accepts no changes — while its name and slug remain reserved. Recovery is an administrative act, not a product capability; restoring a Group never reclaims an asset whose owner reassigned it away.
+A Group its owner has deleted. It survives with its memberships and asset associations intact, but the product treats it as not found for everyone, owner included: it appears nowhere, grants no collaborative access, and accepts no changes, while its name and slug remain reserved. Recovery is an administrative act, not a product capability; restoring a Group never reclaims an asset whose owner reassigned it away.
 _Avoid_: Archived group, removed group
 
 **Group-associated asset**:
@@ -50,7 +50,7 @@ An optional author-chosen assessment of how hard a faction is to play. When pres
 The rating presented to readers: the Manual complexity rating when one exists, otherwise the Calculated complexity rating. It is a selection between the two ratings, not an independently maintained rating.
 
 **Profile summary**:
-The public identity chip for a person referenced by content they are shown on — profile identity, URL slug, display name, and avatar. It is one shape everywhere a contributor appears on content (FAQ askers and answerers, Group owners and rosters, ruleset owners), distinct from the full profile.
+The public identity chip for a person referenced by content they are shown on: profile identity, URL slug, display name, and avatar. It is one shape everywhere a contributor appears on content (FAQ askers and answerers, Group owners and rosters, ruleset owners), distinct from the full profile.
 
 **Account lifecycle**:
 An account is active, awaiting deletion, or deleted. The auth user owns authorization state; the Profile mirrors it for indexed public reads. Missing state is treated as active only during the compatible migration window. Awaiting-deletion and deleted accounts cannot use application reads or writes and do not appear as live public profiles. Stored authorship, memberships, and links remain historical data.
@@ -87,13 +87,13 @@ How subtly or strongly the pattern color participates in a faction's composed ba
 The choice to reverse which light and dark regions of a selected pattern reveal the pattern color.
 
 **Asset type**:
-The flat discriminator naming exactly what a community asset is — a treachery card, a disc token, a deck. There is no nested category-plus-subtype structure; each Asset type carries its own content schema, its own Renderer, its own editor, and its own route family — URLs use the discriminator verbatim (`/assets/card-treachery/{slug}`), and Asset slugs are unique within an Asset type, not globally. Decks are a single Asset type: a deck may hold any cards, deliberately unconstrained by the model.
+The flat discriminator naming exactly what a community asset is: a treachery card, a disc token, a deck. There is no nested category-plus-subtype structure; each Asset type carries its own content schema, its own Renderer, its own editor, and its own route family. URLs use the discriminator verbatim (`/assets/card-treachery/{slug}`), and Asset slugs are unique within an Asset type, not globally. Decks are a single Asset type: a deck may hold any cards, deliberately unconstrained by the model.
 
 **Card anatomy**:
 A card is described with a fixed vocabulary: the **Head** (its name, its Type line, and the Background behind them), the **Icon** (the vector in the top-right disc, its own Background, and its scale), its **Decals**, and the **Body** (the text). "Kind", "corner", "artwork", and "rules" are not card-anatomy words.
 
 **Asset category**:
-The presentational grouping of Asset types — cards, decks, tokens, boards — used to arrange the assets landing page. It is always derived from the Asset type, never maintained independently, and it appears nowhere in URLs or uniqueness rules: routes and slugs are per Asset type.
+The presentational grouping of Asset types that arranges the assets landing page: cards, decks, tokens, boards. It is always derived from the Asset type, never maintained independently, and it appears nowhere in URLs or uniqueness rules: routes and slugs are per Asset type.
 
 **About**:
 Entity-level prose explaining a thing, shown in an "About" section on its detail page; an empty one shows the section with a nothing-written-yet line rather than hiding it, so the field reads as present-but-blank instead of missing. Plain text, never markdown. An Asset carries one inside `data`, with no length floor, because an Asset with nothing to explain is the normal case; a Ruleset carries one in a column still named `description`, with a 50-character floor, because a Ruleset without one is useless.
@@ -101,13 +101,13 @@ Entity-level prose explaining a thing, shown in an "About" section on its detail
 _Not_: **description**, which names a label on a sub-component inside `factions.data`: a troop's, a planet's, an extras link's. The two live at different levels, and only one of them is prose a reader chooses to read.
 
 **Token backside**:
-The reverse face every token has. It is either authored as part of the token itself, or it is another existing token serving as the back — a reference, never a copy. A token with a referenced backside publishes only its own front face; the back resolves to the referenced token's publication.
+The reverse face every token has. It is either authored as part of the token itself, or it is another existing token serving as the back, a reference rather than a copy. A token with a referenced backside publishes only its own front face; the back resolves to the referenced token's publication.
 
 **Cardback**:
-The shared back face of a deck — never a standalone asset. Every deck wears exactly one: chosen from the stock cardbacks the product defines, or authored as part of the deck. Publishing a deck publishes its Cardback image either way; the member cards' faces are published by the card assets themselves.
+The shared back face of a deck, never a standalone asset. Every deck wears exactly one: chosen from the stock cardbacks the product defines, or authored as part of the deck. Publishing a deck publishes its Cardback image either way; the member cards' faces are published by the card assets themselves.
 
 **Stock cardback**:
-One of the product-defined Cardback compositions a deck may wear instead of authoring its own. Choosing one changes only where the render payload comes from — the deck still publishes its own Cardback image.
+One of the product-defined Cardback compositions a deck may wear instead of authoring its own. Choosing one changes only where the render payload comes from; the deck still publishes its own Cardback image.
 
 **Bundle**:
 An Asset type inside the tokens category that holds tokens of any shape, with a count for each. It is the one Asset type that publishes nothing at all: its members publish their own faces, and a bundle has no image of its own to publish. Membership lives in `asset_relations` rather than inside the bundle's `data`, so adding a token or changing a count writes a row at once rather than waiting for a save. A member's count is the same word, and the same meaning, as a deck's copies of a card; the vocabulary does not fork, so there is no bundle-specific counting word beside Troop count.
@@ -120,7 +120,7 @@ One of the product-defined Band compositions a bundle may wear instead of author
 
 **Ruleset asset slot**:
 A named position on a ruleset. Three slots hold at most one asset each, a treachery deck, a spice deck and a tech-token bundle, and two hold any number, one for custom decks and one for custom token bundles. Slot names are curatorial labels rather than constraints. Any asset of the kind a slot expects may fill it, that kind is enforced by the link mutations rather than by the schema, and a slot may sit empty. An asset may occupy slots in many rulesets; its detail page shows the rulesets that link to it, while the links themselves are managed only from the ruleset's edit surface.
-_Avoid_: Ruleset deck slot — the slots carry token bundles as well as decks.
+_Avoid_: Ruleset deck slot. The slots carry token bundles as well as decks.
 
 **Renderer**:
 The currently deployed implementation that produces one asset type. Exactly one Renderer is available at a time.

@@ -83,11 +83,11 @@ export default defineSchema({
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted']),
   /**
-   * Community assets — one table for every Asset category (cards, decks, tokens, boards).
+   * Community assets, one table for every Asset category (cards, decks, tokens, boards).
    * `type` is the flat Asset type discriminator (`card-treachery`, `deck`, `token-disc`, …);
    * the browse category is always derived from it, never stored.
    * `data` is validated by the per-type Zod schema at the seams, like factions.
-   * Slugs are unique per Asset category — enforced by the slug-reservation mutations, not the schema.
+   * Slugs are unique per Asset category, enforced by the slug-reservation mutations, not the schema.
    */
   assets: defineTable({
     owner_id: v.id('users'),
@@ -109,7 +109,7 @@ export default defineSchema({
    * Asset↔asset references: deck→card memberships (`kind: 'deck-card'`, count = copies) and bundle→token memberships;
    * token backsides moved into `data.back` and their `token-back` rows are dropped by `asset_relations_token_back_drop_v1`;
    * future kinds join the same table.
-   * Which types may link (a deck's `to` must be a card) is a rule of the link mutations — the single-table decision traded schema-level reference typing for that.
+   * Which types may link (a deck's `to` must be a card) is a rule of the link mutations, the single-table decision traded schema-level reference typing for that.
    * Soft-deleted targets stay referenced;
    * queries filter them out (the faction precedent).
    */

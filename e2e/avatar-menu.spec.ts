@@ -6,7 +6,7 @@ test.use({ storageState: '.playwright/user-a-avatar-menu.json' });
 
 /**
  * The signed-in account slot: the avatar opens a menu whose items lead to the user's own profile routes, and Sign out returns the slot to Login.
- * This is the one navigation state Storybook cannot reach — its Convex mocks are signed-out by design — so the contract lives here.
+ * This is the one navigation state Storybook cannot reach, since its Convex mocks are signed-out by design, so the contract lives here.
  */
 test('the avatar menu offers the profile routes and signs out', async ({ page }) => {
   await page.goto('/');
@@ -29,14 +29,14 @@ test('the avatar menu offers the profile routes and signs out', async ({ page })
 
   /*
     Each route item is followed rather than read off an `href`: arriving is the promise, the attribute is one way of
-    keeping it. The slug needs no regex escaping — `slugify` emits only lowercase letters, digits and hyphens.
+    keeping it. The slug needs no regex escaping, since `slugify` emits only lowercase letters, digits and hyphens.
   */
   await choose('Edit profile');
   await expect(page).toHaveURL(new RegExp(`/profiles/${userA.slug}/edit/?$`));
 
   await choose('Your profile');
   await expect(page).toHaveURL(new RegExp(`/profiles/${userA.slug}/?$`));
-  /* Picking an item dismisses the menu — Mantine's job, but the nav leans on it, since no item closes it by hand. */
+  /* Picking an item dismisses the menu, Mantine's job, but the nav leans on it, since no item closes it by hand. */
   await expect(menu).not.toBeVisible();
 
   await choose('Sign out');

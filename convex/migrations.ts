@@ -422,7 +422,7 @@ export const faction_decal_retune_v1 = migrations.define({
           : entry.scale;
       if (id !== entry.id || scale !== entry.scale) {
         changed = true;
-        // Convex rejects `undefined` values — never introduce an own `scale: undefined` key.
+        // Convex rejects `undefined` values, so never introduce an own `scale: undefined` key.
         return scale === undefined ? { ...entry, id } : { ...entry, id, scale };
       }
       return decal;
@@ -666,7 +666,7 @@ const AUDIT_ID_SAMPLE_LIMIT = 50;
 
 /**
  * Read-only evidence for the historical hard-delete audit (wayfinder #191, ADR-0003): counts group references that no longer resolve to a Group row.
- * Repairs nothing — dangling references stay in place and the read layer projects them to null.
+ * Repairs nothing: dangling references stay in place and the read layer projects them to null.
  */
 export const groupsLifecycleAudit = internalQuery({
   args: {},
@@ -678,7 +678,7 @@ export const groupsLifecycleAudit = internalQuery({
     const memberships = await ctx.db.query('group_members').take(AUDIT_SCAN_LIMIT);
 
     /**
-     * Every distinct referenced Group is resolved by primary key, so a reference is judged against the actual row — never against a truncated Group scan window.
+     * Every distinct referenced Group is resolved by primary key, so a reference is judged against the actual row, never against a truncated Group scan window.
      */
     const referencedIds = new Set<Id<'groups'>>();
     for (const row of [...factions, ...rulesets, ...memberships]) {

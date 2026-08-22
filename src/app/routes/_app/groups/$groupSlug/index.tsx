@@ -279,9 +279,7 @@ function GroupDetailPage() {
   );
 }
 
-/* ---------------------------------------------------------------------- */
-/* Page-local presentation helpers.                                       */
-/* ---------------------------------------------------------------------- */
+/* Page-local presentation helpers. */
 
 type AssignPickerProps = {
   disabled: boolean;
@@ -292,7 +290,7 @@ type AssignPickerProps = {
 
 /**
  * Labels this viewer's own factions or rulesets for `AssignPopover`, and owns the one thing the kit control must not: asking before a move.
- * An asset already maintained by another group leaves that group when it is added here, which is a consequence only this page knows about — so the confirmation lives here, and backing out resolves `false` to leave the popover open.
+ * An asset already maintained by another group leaves that group when it is added here, which is a consequence only this page knows about, so the confirmation lives here, and backing out resolves `false` to leave the popover open.
  */
 function OwnedAssetPicker({
   noun,
@@ -380,7 +378,7 @@ function RulesetAssignPicker(props: AssignPickerProps) {
 /**
  * Dune-specific crest for the Factions section.
  * These faction logo files ship without root width/height (see `Token`'s
- * `StrokedUse` pattern) — reference the `#root` fragment via `<use>` inside an own viewBox rather than a plain `<img src>`, which renders as a broken 0x0 image.
+ * `StrokedUse` pattern), reference the `#root` fragment via `<use>` inside an own viewBox rather than a plain `<img src>`, which renders as a broken 0x0 image.
  */
 function FremenIcon({ size = 18 }: { size?: number }) {
   return (

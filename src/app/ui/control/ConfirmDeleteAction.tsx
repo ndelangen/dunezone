@@ -17,16 +17,16 @@ export interface ConfirmDeleteActionProps {
   /** Fires once the hold completes. The caller owns the mutation and navigates to the parent page on success. */
   onConfirm: () => void;
   /**
-   * The word the hover text and countdown use — `delete` unless the action removes a thing from somewhere rather than from existence.
+   * The word the hover text and countdown use, `delete` unless the action removes a thing from somewhere rather than from existence.
    * A removal held five seconds is the same commitment;
    * only the words differ.
    */
   verb?: 'delete' | 'remove';
-  /** The glyph, when the action is not the trash can — a member removal keeps its own icon. */
+  /** The glyph, when the action is not the trash can, a member removal keeps its own icon. */
   icon?: ReactNode;
   /** Disables the trigger entirely, for callers whose action is sometimes unavailable rather than in flight. */
   disabled?: boolean;
-  /** The trigger's size — `lg` for toolbars, smaller where the hold sits in a dense row among same-sized neighbours. */
+  /** The trigger's size, `lg` for toolbars, smaller where the hold sits in a dense row among same-sized neighbours. */
   size?: 'sm' | 'md' | 'lg';
 }
 

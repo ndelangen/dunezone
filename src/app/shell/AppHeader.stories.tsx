@@ -41,7 +41,7 @@ export const DefaultHeaderMobile = meta.story({
 });
 
 /**
- * A reduced-motion visit, pinned through the Motion toolbar global: the band keeps the sharp poster, and the video element never mounts — so the loop is never even downloaded.
+ * A reduced-motion visit, pinned through the Motion toolbar global: the band keeps the sharp poster, and the video element never mounts, so the loop is never even downloaded.
  */
 export const ReducedMotion = meta.story({
   globals: { viewport: { value: 'appDesktop' }, motion: 'reduce' },
@@ -71,7 +71,7 @@ export const HeaderlessPageMobile = meta.story({
 });
 
 /**
- * Left responsive on purpose — drag the preview to any width: the compact strip must hold its fixed 51px while the artwork modes track the frame's width.
+ * Left responsive on purpose, drag the preview to any width: the compact strip must hold its fixed 51px while the artwork modes track the frame's width.
  * The play function proves the static half of that contract by walking the canvas through the widths the shell can hand the frame and measuring the band at each one.
  */
 export const HeaderlessPageResponsive = meta.story({
@@ -91,7 +91,7 @@ export const HeaderlessPageResponsive = meta.story({
     }
 
     /* The band sizes against its container, so pinching the canvas stands in for every viewport
-       the shell can meet — no window resize needed. */
+       the shell can meet, with no window resize needed. */
     for (const width of [1160, 1000, 860, 390]) {
       canvasElement.style.width = `${width}px`;
       await expect(Math.round(band.getBoundingClientRect().width)).toBe(width);

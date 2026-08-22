@@ -24,7 +24,7 @@ function Rail(_: PropsWithChildren): null {
  *
  * It gives up its columns in two stages instead of one: first the two reading columns merge into one while the rail keeps a column of its own, and only then does everything fall into a single column.
  * That middle stage exists because collapsing three columns straight into one buries the rail below everything else.
- * Merging primary into secondary keeps the order a reader wants — the prose, then the discussion of it — and leaves the rail where it already was, alongside.
+ * Merging primary into secondary keeps the order a reader wants, the prose, then the discussion of it, and leaves the rail where it already was, alongside.
  *
  * Callers own what goes in each slot and the page width around it;
  * this owns only where the three regions sit.

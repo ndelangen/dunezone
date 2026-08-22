@@ -7,7 +7,8 @@ import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 /**
  * SVG string → Wavefront OBJ text, ported verbatim-in-spirit from the authoring tool's `src/lib/obj/svgToObj.ts`
  * (moving in-repo per the tool↔repo decision, #298).
- * Headless determinism is spike-verified (#295): byte-identical across Bun/Node × jsdom/linkedom — the caller must register a `DOMParser` global before use (SVGLoader parses via it).
+ * Headless determinism is spike-verified (#295): byte-identical across Bun/Node × jsdom/linkedom;
+ * the caller must register a `DOMParser` global before use (SVGLoader parses via it).
  *
  * Pipeline: SVGLoader paths → shapes → ExtrudeGeometry (flat extrusion) → Y-up correction → lay flat on the XZ ground plane → OBJExporter, then precision trim.
  */
@@ -17,7 +18,7 @@ export type ObjExportOptions = {
   depth: number;
   /** Curve subdivision for bezier/arc segments. Lower = fewer triangles. */
   curveSegments: number;
-  /** Decimal places per coordinate — full float precision is a ~17-digit bloat. */
+  /** Decimal places per coordinate, full float precision is a ~17-digit bloat. */
   precision: number;
   /** Weld duplicate vertices into an indexed mesh (the biggest size reduction). */
   weld: boolean;

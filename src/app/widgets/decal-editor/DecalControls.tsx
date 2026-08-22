@@ -18,7 +18,7 @@ const decalOptions = decalAssetOptions.map((value) => ({
 }));
 
 /**
- * The one decal control stack — asset, treatments, scale, and slider-based offsets — every decal-bearing editor installs identically (alliance cards, treachery cards).
+ * The one decal control stack, asset, treatments, scale, and slider-based offsets, every decal-bearing editor installs identically (alliance cards, treachery cards).
  * Pure value/onChange;
  * the caller owns the decal collection and names the decal through `label` for assistive tech.
  */

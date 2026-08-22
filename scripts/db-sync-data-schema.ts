@@ -26,7 +26,7 @@ for await (const file of glob.scan({
   const module = await import(file);
 
   if (!module.schema || !(module.schema instanceof z.ZodObject)) {
-    console.warn(`⚠ No 'schema' export found in ${file} or it's not a ZodObject, skipping`);
+    console.warn(`Warning: no 'schema' export found in ${file} or it's not a ZodObject, skipping`);
     continue;
   }
 
@@ -94,7 +94,7 @@ function schemaDedupeKey(node: unknown): string {
   return JSON.stringify(sortKeysDeep(node));
 }
 
-/** Plain `type: string` with no format/pattern/length — matches any JSON string. */
+/** Plain `type: string` with no format/pattern/length, matches any JSON string. */
 function isUnrestrictedStringSchema(node: unknown): boolean {
   if (node === null || typeof node !== 'object' || Array.isArray(node)) {
     return false;
@@ -387,12 +387,12 @@ for (const config of mySchemas) {
       extractedComparable = simplifyRedundantCombinators(extractedComparable) as object;
 
       if (compareSchemas(extractedComparable, newSchema)) {
-        console.log(`✓ Schema for ${config.name} unchanged, skipping migration`);
+        console.log(`Schema for ${config.name} unchanged, skipping migration`);
         continue;
       }
     } else {
       console.warn(
-        `⚠ Could not parse JSON schema from ${latestMigration.filename} (${constraintName}); generating new migration`
+        `Warning: could not parse JSON schema from ${latestMigration.filename} (${constraintName}); generating new migration`
       );
     }
   }
@@ -404,11 +404,11 @@ for (const config of mySchemas) {
   const migrationPath = join(migrationsDir, migrationFilename);
 
   await writeFile(migrationPath, migrationSQL);
-  console.log(`✓ Generated migration: ${migrationFilename}`);
+  console.log(`Generated migration: ${migrationFilename}`);
 
   if (!extensionIncluded) {
     extensionIncluded = true;
   }
 }
 
-console.log('✓ Schema generation complete');
+console.log('Schema generation complete');

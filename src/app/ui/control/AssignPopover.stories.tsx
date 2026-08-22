@@ -32,7 +32,7 @@ export const Default = meta.story({
     await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
     await expect(trigger).toHaveAttribute('aria-expanded', 'true');
     await waitFor(() => expect(page.getByRole('searchbox', { name: 'Search groups' })).toBeVisible());
-    /* The suggestions are already in the pane — one floating layer — and choosing one commits it. */
+    /* The suggestions are already in the pane, one floating layer, and choosing one commits it. */
     await expect(page.getByRole('option', { name: /Spice Cartel/ })).toBeVisible();
     await userEvent.click(page.getByRole('option', { name: /Spice Cartel/ }));
     await waitFor(() => expect(args.onAssign).toHaveBeenCalledWith('group-2'));

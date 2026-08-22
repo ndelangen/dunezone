@@ -79,7 +79,7 @@ const ENTRIES_BY_SOURCE: Record<CatalogSource, CatalogEntry[]> = {
  * Grows `visibleCount` in `BATCH_SIZE` steps as a sentinel element at the bottom of the grid enters the viewport, and resets it whenever `resetKey` changes (new search, tab, or category).
  *
  * The sentinel is conditionally rendered (only while more entries remain), so a plain `useRef` + effect keyed on
- * `total` can miss it: if a reset's clamped visible count happens to already equal the new total, the sentinel skips rendering on that exact commit, the effect observes nothing, and — because `total` doesn't change again on the next render — never re-fires once the sentinel does appear.
+ * `total` can miss it: if a reset's clamped visible count happens to already equal the new total, the sentinel skips rendering on that exact commit, the effect observes nothing, and, because `total` doesn't change again on the next render, never re-fires once the sentinel does appear.
  * A callback ref sidesteps this: it (dis)connects the observer exactly when the sentinel DOM node itself mounts or unmounts, independent of render timing.
  */
 function useInfiniteReveal(total: number, resetKey: string) {
@@ -136,7 +136,7 @@ function useDuneSvgSizes(enabled: boolean) {
   const startedRef = useRef(false);
   const unmountedRef = useRef(false);
 
-  /* Tracks real unmount only — separate from the `[enabled]` effect below, whose cleanup fires on
+  /* Tracks real unmount only, separate from the `[enabled]` effect below, whose cleanup fires on
      every tab switch away from Dune, not just on unmount. Sharing one flag between the two used to
      mean leaving mid-scan permanently stopped `setVersion` from ever firing again for that page
      load, even though the in-flight fetches kept populating the cache in the background. */
@@ -160,7 +160,7 @@ function useDuneSvgSizes(enabled: boolean) {
     for (const entry of missing) {
       fetch(entry.path, { method: 'HEAD' })
         .then((response) => {
-          /* fetch() resolves (doesn't reject) on HTTP errors — a 404 page's own Content-Length
+          /* fetch() resolves (doesn't reject) on HTTP errors, a 404 page's own Content-Length
              would otherwise get cached as if it were the SVG's size. */
           const header = response.ok ? response.headers.get('content-length') : null;
           const contentLength = header === null ? Number.NaN : Number(header);
@@ -169,7 +169,7 @@ function useDuneSvgSizes(enabled: boolean) {
           }
         })
         .catch(() => {
-          // Leave unmeasured — size display/sort just treats it as unknown.
+          // Leave unmeasured; size display and sort treat it as unknown.
         })
         .finally(() => {
           completed += 1;
@@ -220,7 +220,7 @@ function IconsPage() {
     return filteredEntries.slice().sort((a, b) => {
       const sizeA = a.source === 'dune' ? svgByteSizeCache.get(a.path) : undefined;
       const sizeB = b.source === 'dune' ? svgByteSizeCache.get(b.path) : undefined;
-      /* Unmeasured entries sort after measured ones regardless of direction — multiplying
+      /* Unmeasured entries sort after measured ones regardless of direction, multiplying
          Infinity by -1 for descending order would otherwise put them first, not last. */
       if (sizeA === undefined || sizeB === undefined) {
         return sizeA === sizeB ? 0 : sizeA === undefined ? 1 : -1;
@@ -353,7 +353,7 @@ function IconsPage() {
   );
 }
 
-/** Square, fills the card's full width — `<svg width="100%" height="100%">` scales to fit it. */
+/** Square, filling the card's full width; `<svg width="100%" height="100%">` scales to fit it. */
 const iconSlotStyle = {
   width: '100%',
   aspectRatio: '1 / 1',

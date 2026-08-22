@@ -127,7 +127,7 @@ export function buildConnectedTabsPath({
 
 /**
  * Whether a fresh measurement says anything new.
- * Observers fire on every frame of a resize, and most of those frames land on the same rounded pixels — keeping the old object keeps the surface from re-rendering for a measurement that did not move.
+ * Observers fire on every frame of a resize, and most of those frames land on the same rounded pixels, keeping the old object keeps the surface from re-rendering for a measurement that did not move.
  */
 function isSameGeometry(current: ConnectedTabsGeometry | null, next: ConnectedTabsGeometry) {
   return current?.width === next.width && current.height === next.height && current.path === next.path;

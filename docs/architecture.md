@@ -1,6 +1,6 @@
 # Architecture
 
-## Request Flow (SPA - all client-side)
+## Request flow (SPA - all client-side)
 
 ```mermaid
 flowchart TD
@@ -15,11 +15,11 @@ flowchart TD
 ```
 
 Loaders fetch once through `db.query()` for first paint; components then subscribe through domain
-hooks, and Convex pushes updates for the life of the screen. There is no client cache — see
-[State Management](./state-management.md). The runtime is browser-first SPA, with TanStack Start
-prerender used for static output during builds.
+hooks, and Convex pushes updates for the life of the screen. There is no client cache; see [State
+Management](./state-management.md). The runtime is browser-first SPA, with TanStack Start prerender
+used for static output during builds.
 
-## Validation Flow
+## Validation flow
 
 For mutation inputs, validation happens in three stages:
 
@@ -29,7 +29,7 @@ For mutation inputs, validation happens in three stages:
 
 This keeps input types strict at the API edge and business rules centralized in shared schemas.
 
-## File-Based Routing
+## File-based routing
 
 Routes live in `src/app/routes/`. File structure maps to URLs, except that the `_app` segment is a
 pathless layout route and is stripped: `_app/index.tsx` → `/`, `_app/auth/login.tsx` →
@@ -37,7 +37,7 @@ pathless layout route and is stripped: `_app/index.tsx` → `/`, `_app/auth/logi
 Route tree auto-generates: [`src/app/routeTree.gen.ts`](../src/app/routeTree.gen.ts). Details in
 [Routing](./routing.md).
 
-## Path Aliases
+## Path aliases
 
 Configured in [`tsconfig.json`](../tsconfig.json):
 
@@ -54,25 +54,25 @@ Configured in [`tsconfig.json`](../tsconfig.json):
 Which category a component belongs to is decided by the taxonomy in
 [`AGENTS.md`](../AGENTS.md#component-taxonomy), canonically. The architectural facts are these:
 
-- `src/app/ui/**` — **every** published component, filed by category (`block`, `content`, `control`,
-  `layout`, `list`, `surface`), imported through the `@ui/*` alias. One rule guards it, in
-  [`.oxlintrc.json`](../.oxlintrc.json): a component renders what it is given and does not go and get
-  things. No Convex client, no *value* imports from `@db/**` (`import type` is fine and expected), and
-  no router data hooks — `Link` stays allowed, `useNavigate` does not.
-- `src/app/**` — the application: routes (which own their own page composition), domain data modules
-  (`db/<domain>.ts`), the shell (`shell/`), document-rendering glue (`sheet/`, `capture/`), and
-  `widgets/<name>` for assemblies two or more routes install whole. There is no `components/`
-  directory here — every published component lives in `src/app/ui`.
-- `src/game/**` — print-faithful renderers, independent of Mantine and the kit.
+- `src/app/ui/**` holds **every** published component, filed by category (`block`, `content`,
+  `control`, `layout`, `list`, `surface`), imported through the `@ui/*` alias. One rule guards it,
+  in [`.oxlintrc.json`](../.oxlintrc.json): a component renders what it is given and does not go and
+  get things. No Convex client, no *value* imports from `@db/**` (`import type` is fine and
+  expected), and no router data hooks: `Link` stays allowed, `useNavigate` does not.
+- `src/app/**` is the application: routes (which own their own page composition), domain data
+  modules (`db/<domain>.ts`), the shell (`shell/`), document-rendering glue (`sheet/`, `capture/`),
+  and `widgets/<name>` for assemblies two or more routes install whole. There is no `components/`
+  directory here; every published component lives in `src/app/ui`.
+- `src/game/**` holds print-faithful renderers, independent of Mantine and the kit.
 
-## How Things Come Together
+## How things come together
 
 ### Example: Loading the home page
 
-1. Route [`src/app/routes/_app/index.tsx`](../src/app/routes/_app/index.tsx) — `loader: loadHomepage`
+1. Route [`src/app/routes/_app/index.tsx`](../src/app/routes/_app/index.tsx): `loader: loadHomepage`
    fetches through `db.query()` before first render.
-2. Domain hook [`src/app/db/homepage.ts`](../src/app/db/homepage.ts) — `useHomepage({ initialData:
+2. Domain hook [`src/app/db/homepage.ts`](../src/app/db/homepage.ts): `useHomepage({ initialData:
    loaderData })` subscribes via Convex `useQuery` and keeps the screen live.
-3. Database — Convex document database with function-level authorization checks.
+3. Database: a Convex document database with function-level authorization checks.
 
 See [README](./README.md) for workflows.

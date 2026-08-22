@@ -92,7 +92,7 @@ function useSettledConflict({
  * A name field that checks its address is free while the author types.
  *
  * A Picker in the taxonomy's sense: the one kind of control that may hold its own lazily-mounted subscription, so the page query never learns about candidate slugs.
- * Entity-blind by design — the `probe` prop carries the per-entity read, and a new entity joins by binding its own probe, not by touching this.
+ * Entity-blind by design, the `probe` prop carries the per-entity read, and a new entity joins by binding its own probe, not by touching this.
  * One assumption is baked in: names become addresses through the shared `slugify`.
  * The first entity that derives addresses differently, the way profiles carry their own validation, moves that mapping into the binding beside the probe.
  *

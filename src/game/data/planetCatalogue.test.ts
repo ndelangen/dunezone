@@ -15,7 +15,7 @@ describe('curated planet image catalogue', () => {
 
   it('only references keys backed by media sources', () => {
     /* Keys are opaque asset ids; their ground truth is the media/ source tree. public/image is
-       generated output and may not exist when tests run — fetchability of the generated files is
+       generated output and may not exist when tests run; fetchability of the generated files is
        verified by `bun run verify:images`. */
     for (const { image } of CURATED_PLANET_IMAGES) {
       expect(existsSync(join(import.meta.dirname, '../../..', 'media', image))).toBe(true);

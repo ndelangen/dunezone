@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "unicorn", "oxc", "react", "jsx-a11y", "vitest", "import", "jsdoc"],
-  "jsPlugins": ["./scripts/oxlint-prefer-block-comments.mjs"],
+  "jsPlugins": ["./scripts/oxlint-local-plugin.mjs"],
   "categories": {
     "correctness": "error"
   },
@@ -9,7 +9,8 @@
     {
       "files": ["**/*.generated.ts", "**/*.gen.ts", "**/worker-configuration.d.ts"],
       "rules": {
-        "local/prefer-block-comments": "off"
+        "local/prefer-block-comments": "off",
+        "local/no-ai-tells": "off"
       }
     },
     {
@@ -44,8 +45,8 @@
        * A component renders what it is given; it does not go and get things.
        *
        * That is the whole rule, and it is narrower than "domain-free" on purpose. A component may
-       * know the *shape* of what it renders — a `FactionCatalogueEntry` type says exactly that, and
-       * types are erased anyway — and it may compose a game renderer or a pure helper. What it may
+       * know the *shape* of what it renders, since a `FactionCatalogueEntry` type says exactly that
+       * and types are erased anyway, and it may compose a game renderer or a pure helper. What it may
        * not do is reach for data itself, or decide where the reader goes next, because either one
        * makes it unusable in a story and unusable on a second page.
        */
@@ -80,7 +81,7 @@
               },
               {
                 "group": ["@app/shell/**", "@app/widgets/**", "@app/routes/**"],
-                "message": "The kit is imported by the shell, by widgets and by routes — never the other way around."
+                "message": "The kit is imported by the shell, by widgets and by routes, never the other way around."
               }
             ],
             "paths": [
@@ -105,7 +106,7 @@
                   "Navigate",
                   "redirect"
                 ],
-                "message": "A component may point at a place — `Link`, `createLink`, `renderRoot` — but it may not decide to go there, or read the route it happens to be on. Take a callback, or let the caller render the Link."
+                "message": "A component may point at a place with `Link`, `createLink` or `renderRoot`, but it may not decide to go there, or read the route it happens to be on. Take a callback, or let the caller render the Link."
               }
             ]
           }
@@ -115,8 +116,8 @@
     {
       /*
        * A widget never fetches. A page (route) fetches once and hands the widget its data and its
-       * mutation callbacks; the widget renders and calls back. The one apparent exception —
-       * loading a saved faction — is not a widget concern at all: it is a Picker (see src/app/pickers
+       * mutation callbacks; the widget renders and calls back. The one apparent exception, loading
+       * a saved faction, is not a widget concern at all: it is a Picker (see src/app/pickers
        * and the Pickers section in AGENTS.md), a domain control that lazily fetches its own options.
        * So the ban is total here, with type imports still allowed because a widget states the shape
        * it renders. Stories and tests are excluded: they stand in for the route and supply fixtures.
@@ -162,11 +163,11 @@
        * src/shared is the layer BOTH the browser app and the server deploy import from, so it must
        * never reach back into the browser app: if a shared file needed something from src/app, that
        * thing would not actually be shared. This is the positive counterpart to the convex-to-app
-       * and workers-to-app bans below — the same boundary, guarded from the other side.
+       * and workers-to-app bans below, the same boundary guarded from the other side.
        *
        * The pattern is deliberately NOT copied from those overrides. A convex file reaches the app
        * with a leading ../src/app path; a src/shared file already sits inside src, so it reaches the
-       * app as ../app instead — a different spelling. The globstar-app-globstar pattern in the group
+       * app as ../app instead, a different spelling. The globstar-app-globstar pattern in the group
        * catches that relative form at any depth (verified zero false positives: no legitimate
        * src/shared import contains an app path segment); the three aliases catch the aliased form.
        * See the message string for the rule itself.
@@ -179,15 +180,15 @@
             "patterns": [
               {
                 "group": ["@app", "@app/**", "@ui", "@ui/**", "@db", "@db/**", "**/app", "**/app/**"],
-                "message": "src/shared is imported by both the browser app and the server deploy, so it must not import the browser app. If a shared file needs something from src/app, that thing is not shared — hoist it into src/shared or leave the code in the app."
+                "message": "src/shared is imported by both the browser app and the server deploy, so it must not import the browser app. If a shared file needs something from src/app, that thing is not shared; hoist it into src/shared or leave the code in the app."
               },
               {
                 "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
-                "message": "src/shared must not import Convex either — it is parsed on both sides of the deploy boundary and reaches neither runtime's client. Restated here because this override replaces the repo-wide src/** convex-doorway rule for the files it matches rather than adding to it."
+                "message": "src/shared must not import Convex either, because it is parsed on both sides of the deploy boundary and reaches neither runtime's client. Restated here because this override replaces the repo-wide src/** convex-doorway rule for the files it matches rather than adding to it."
               },
               {
                 "group": ["@game", "@game/**", "**/game", "**/game/**"],
-                "message": "src/shared must not import the game renderers. The faction contract and its asset-id vocabulary now live in src/shared (factions/schema, assetIds); src/game holds only browser renderers, and a shared contract — parsed by the server too — must never reach them."
+                "message": "src/shared must not import the game renderers. The faction contract and its asset-id vocabulary now live in src/shared (factions/schema, assetIds); src/game holds only browser renderers, and a shared contract the server also parses must never reach them."
               }
             ]
           }
@@ -214,7 +215,7 @@
                   "@db",
                   "@db/**"
                 ],
-                "message": "The server must not import client code. A contract both sides need — a Zod schema, a tag vocabulary — belongs in `src/shared/`, which both may import. `@db/*` resolves into `src/app/db` — a domain module, or `core/index.ts` for `@db/core` — so it is client code too."
+                "message": "The server must not import client code. A contract both sides need, a Zod schema or a tag vocabulary, belongs in `src/shared/`, which both may import. `@db/*` resolves into `src/app/db`, a domain module, or `core/index.ts` for `@db/core`, so it is client code too."
               },
               {
                 "group": ["@game", "@game/**", "**/game", "**/game/**"],
@@ -250,11 +251,11 @@
                   "@db",
                   "@db/**"
                 ],
-                "message": "The publisher Worker is a separate deploy artifact and must not import application code. Shared runtime contracts belong in `src/shared/`. `@db/*` resolves into `src/app/db` — a domain module, or `core/index.ts` for `@db/core` — so it is application code too."
+                "message": "The publisher Worker is a separate deploy artifact and must not import application code. Shared runtime contracts belong in `src/shared/`. `@db/*` resolves into `src/app/db`, a domain module, or `core/index.ts` for `@db/core`, so it is application code too."
               },
               {
                 "group": ["@game", "@game/**", "**/game", "**/game/**"],
-                "message": "The publisher Worker must not import the game renderers as source — it renders them through its own capture page, which is app code. The faction contract lives in src/shared; src/game is browser renderers."
+                "message": "The publisher Worker must not import the game renderers as source; it renders them through its own capture page, which is app code. The faction contract lives in src/shared; src/game is browser renderers."
               },
               {
                 "group": ["**/_generated/server"],
@@ -270,6 +271,7 @@
   "rules": {
     "curly": ["error", "all"],
     "local/prefer-block-comments": "error",
+    "local/no-ai-tells": "error",
     "eqeqeq": ["error", "smart"],
     "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
     "jsdoc/check-tag-names": [

@@ -4,7 +4,7 @@ This is a single-context repository.
 
 Before exploring a domain, read:
 
-- Root [`CONTEXT.md`](../../CONTEXT.md) — the glossary is its `## Language` section, and it carries
+- Root [`CONTEXT.md`](../../CONTEXT.md): the glossary is its `## Language` section, and it carries
   `_Avoid_:` lines naming terms this project deliberately rejects.
 - Relevant decisions under [`docs/adr/`](../adr/).
 

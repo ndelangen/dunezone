@@ -1,9 +1,9 @@
-# SVG Pipeline Tool
+# SVG pipeline tool
 
 A browser-only tool for authoring dunezone vector sources. Crop to content with a
 proportional margin, mirror, optimize dirty paths, recolor, set the #root id, stamp
-provenance, pretty-format, and export OBJ previews — all client-side, no server, no
-auth. Nothing you upload ever leaves your machine.
+provenance, pretty-format, and export OBJ previews, all client-side with no server
+and no auth. Nothing you upload ever leaves your machine.
 
 Scale/aspect normalization is deliberately NOT here: the dunezone build generator
 normalizes every source into the shared 0 0 100 100 space (wayfinder #294). This tool

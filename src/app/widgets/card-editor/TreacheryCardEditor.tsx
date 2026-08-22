@@ -37,10 +37,10 @@ import { card as CARD_SIZE } from '@game/data/sizes';
 
 import styles from './TreacheryCardEditor.module.css';
 
-/* The icon draws from the same full vector pool the decals do — the schema's ALL union, not just the icon set. */
+/* The icon draws from the same full vector pool the decals do, the schema's ALL union, not just the icon set. */
 const iconOptions = decalAssetOptions.map((value) => ({ value, label: decalAssetOptionToLabel(value) }));
 
-/* ------------------------------ draft model ------------------------------ */
+/* The draft model. */
 /* The draft IS the stored shape: the same TreacheryAsset zod validates on save (server-side
    in assets.create/update) and drives the renderer live. Wider than the renderer's own `Treachery` props by
    exactly one field, About, which is the field that never reaches the face. */
@@ -81,7 +81,7 @@ const DECAL_OFFSET_RANGE = [450, 630] as const;
 /* The icon disc is 125 card-space pixels; half a disc of nudge per axis, number inputs unclamped. */
 const ICON_OFFSET_RANGE = 60;
 
-/* ------------------------------ rail proof ------------------------------ */
+/* The rail proof. */
 
 function FillCard({ draft }: { draft: TreacheryDraft }) {
   return (
@@ -96,7 +96,7 @@ function FillCard({ draft }: { draft: TreacheryDraft }) {
   );
 }
 
-/* ------------------------------ field editors ------------------------------ */
+/* The field editors. */
 
 type Patch = (update: Partial<TreacheryDraft>) => void;
 
@@ -379,7 +379,7 @@ function BodyField({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
   );
 }
 
-/* ----------------------------- validation ----------------------------- */
+/* Validation. */
 
 export type TreacheryChapter = 'head' | 'icon' | 'decals' | 'body' | 'about';
 
@@ -399,7 +399,7 @@ export function treacheryDraftWarnings(draft: TreacheryDraft): TreacheryDraftWar
   return warnings;
 }
 
-/* ------------------------------ workbench ------------------------------ */
+/* The workbench. */
 
 /* No padding here: ConnectedTabs' panel shell owns the panel inset (--connected-tabs-panel-padding). */
 const panel = (children: ReactNode) => <Stack gap="lg">{children}</Stack>;
@@ -422,7 +422,7 @@ export function TreacheryCardEditor({
   patch: Patch;
   chapter: TreacheryChapter;
   onChapterChange: (chapter: TreacheryChapter) => void;
-  /** Fired on field blur and chapter switches — the signals that let an emptied warning list close the validation header. */
+  /** Fired on field blur and chapter switches, the signals that let an emptied warning list close the validation header. */
   onSettle: () => void;
 }) {
   return (

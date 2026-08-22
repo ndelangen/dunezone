@@ -3,10 +3,10 @@ import type { FactionInput } from './schema';
 type FactionRules = FactionInput['rules'];
 export type FactionComplexity = FactionInput['complexity'];
 
-/** Below this many words the score stays 0 — every faction needs some baseline text. */
+/** Below this many words the score stays 0, every faction needs some baseline text. */
 const COMPLEXITY_GRACE_FLOOR_WORDS = 80;
 
-/** At this many words the base score reaches 1.0 — roughly the printed sheet's capacity. */
+/** At this many words the base score reaches 1.0, roughly the printed sheet's capacity. */
 export const COMPLEXITY_CAPACITY_WORDS = 700;
 
 /** Advantages beyond this count each add {@link COMPLEXITY_MANY_ADVANTAGES_STEP} to the score. */
@@ -51,7 +51,7 @@ function sheetWordCount(rules: FactionRules): number {
   );
 }
 
-/** The calculated 0..1 complexity of a rules block — never reads the manual rating. */
+/** The calculated 0..1 complexity of a rules block, never reads the manual rating. */
 export function calculateComplexity(rules: FactionRules): number {
   const total = sheetWordCount(rules);
   const base =

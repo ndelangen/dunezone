@@ -370,8 +370,8 @@ html[data-mantine-color-scheme="dark"] .mobileItemIcon img {
   }
 
   .tab {
-    /* The indicator leaves the grid below, so the tab has to become its containing block —
-       otherwise every indicator anchors to the rail and they all stack in one corner. */
+    /* The indicator leaves the grid below, so the tab has to become its containing block.
+       Otherwise every indicator anchors to the rail and they all stack in one corner. */
     position: relative;
     grid-template-columns: 2rem minmax(0, 1fr);
     gap: 0.45rem;

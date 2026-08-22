@@ -212,7 +212,7 @@ export const update = mutation({
 
 /**
  * Moves a ruleset between maintaining groups, or clears its assignment with `null`.
- * Separate from `update` on purpose: assigning a group is the owner's `changeGroup` capability rather than the content edit any active member may make, and a caller here cannot express a name or a description at all — so moving a group can never overwrite either.
+ * Separate from `update` on purpose: assigning a group is the owner's `changeGroup` capability rather than the content edit any active member may make, and a caller here cannot express a name or a description at all, so moving a group can never overwrite either.
  * `factions.setGroup` is the same shape.
  */
 export const setGroup = mutation({

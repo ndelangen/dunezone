@@ -2,9 +2,9 @@
 
 ## Working here
 
-- [`AGENTS.md`](./AGENTS.md) — repo conventions, and the canonical component taxonomy.
-- [`CONTEXT.md`](./CONTEXT.md) — the domain glossary; use its words.
-- [`design.md`](./design.md) — the Dune aesthetic: palette, glass, borders, tokens.
+- [`AGENTS.md`](./AGENTS.md): repo conventions, and the canonical component taxonomy.
+- [`CONTEXT.md`](./CONTEXT.md): the domain glossary; use its words.
+- [`design.md`](./design.md): the Dune aesthetic of palette, glass, borders and tokens.
 
 ## Documentation
 

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 /*
- * Whether this visitor welcomes the chrome's ambient motion — the band video, the turning dice.
+ * Whether this visitor welcomes the chrome's ambient motion, the band video, the turning dice.
  *
  * The OS's `prefers-reduced-motion` hint decides, unless the site-local `motion` cookie
  * (`on` | `off`) says otherwise; the override exists so a visitor who quiets their whole OS can

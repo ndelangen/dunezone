@@ -21,7 +21,7 @@ describe('layout responsiveness', () => {
   it('lays out by container query, not media query (PageLayout is the shell-frame exemption)', () => {
     const offenders = readdirSync(layoutDir)
       .filter((name) => name.endsWith('.module.css') && !VIEWPORT_EXEMPT.has(name))
-      // Any `@media` at-rule — `@media (…)`, `@media screen and (…)`, `@media only screen …`.
+      // Any `@media` at-rule, `@media (…)`, `@media screen and (…)`, `@media only screen …`.
       .filter((name) => /@media\b/.test(readFileSync(new URL(name, layoutDir), 'utf8')));
 
     expect(offenders).toEqual([]);

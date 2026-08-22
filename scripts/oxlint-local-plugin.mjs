@@ -18,6 +18,8 @@ const COMMENT_END_RE = /\*\/?$/;
 const SENTENCE_BOUNDARY_RE = /([.!?;])\s+/g;
 const WHITESPACE_RE = /\s/;
 const LOWERCASE_PREFIX_RE = /^[a-z]/;
+const DIRECTIVE_COMMENT_RE =
+  /^\s*(?:oxlint|eslint|prettier|oxfmt|@ts-|v8 ignore|c8 ignore|istanbul|global|type|jsx|vitest-environment)/;
 
 function getAdjacentNonWhitespace(sourceCode, startIndex, step) {
   for (let cursor = startIndex; cursor >= 0 && cursor < sourceCode.length; cursor += step) {
@@ -186,11 +188,81 @@ const preferBlockCommentsRule = {
   },
 };
 
+const AI_TELLS_RULE_NAME = 'no-ai-tells';
+
+const EM_DASH = '—';
+const CURLY_QUOTES = /[‘’“”]/;
+
+/**
+ * Words that say nothing the sentence did not already say.
+ * Kept in step with the same list in `scripts/assert-no-ai-tells.mjs`, which guards the prose oxlint cannot see.
+ * Words with an ordinary technical use are deliberately absent: a guard that cries wolf gets switched off.
+ */
+const FILLER =
+  /\b(?:simply|seamless(?:ly)?|delves?|crucial(?:ly)?|essentially|basically|holistic|streamlines?|utiliz(?:e|es|ing))\b/i;
+
+const HEDGE = /\b(?:it (?:is|'s) (?:important|worth) (?:to note|noting)|note that)\b/i;
+
+/* Dingbats, symbols and pictographs. Arrows and typographic marks stay legal. */
+const EMOJI = /[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F2FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u;
+
+/* A run of rule characters used to draw a band, as in three dashes, a label, three dashes. */
+const DECORATIVE_DIVIDER = /(?:^|\s)[-=*_~]{3,}(?:\s|$)/;
+
+const AI_TELL_CHECKS = [
+  { messageId: 'emDash', test: (text) => text.includes(EM_DASH) },
+  { messageId: 'curlyQuote', test: (text) => CURLY_QUOTES.test(text) },
+  { messageId: 'filler', test: (text) => FILLER.test(text) },
+  { messageId: 'hedge', test: (text) => HEDGE.test(text) },
+  { messageId: 'emoji', test: (text) => EMOJI.test(text) },
+  { messageId: 'divider', test: (text) => DECORATIVE_DIVIDER.test(text) },
+];
+
+/**
+ * Keeps AI tells out of code comments.
+ * Comments come from the AST rather than a text scan, so a string literal can never be mistaken for prose and product copy stays structurally out of reach.
+ * Directive comments are skipped: an `oxlint-disable` line is an instruction to a tool, and its payload is not English.
+ */
+const noAiTellsRule = {
+  meta: {
+    name: AI_TELLS_RULE_NAME,
+    messages: {
+      emDash: 'Em dash in a comment. End the sentence, or use a comma.',
+      curlyQuote: 'Curly quote in a comment. Use a straight quote.',
+      filler: 'Filler word in a comment. Cut it, or name the mechanism instead.',
+      hedge: 'Hedging opener in a comment. State the point.',
+      emoji: 'Emoji in a comment. Say it in words.',
+      divider: 'Decorative divider in a comment. Let the code mark its own sections.',
+    },
+  },
+  create(context) {
+    return {
+      Program() {
+        const comments = context.sourceCode.ast?.comments ?? [];
+
+        for (const comment of comments) {
+          const text = String(comment.value);
+          if (DIRECTIVE_COMMENT_RE.test(text)) {
+            continue;
+          }
+
+          for (const check of AI_TELL_CHECKS) {
+            if (check.test(text)) {
+              context.report({ node: comment, messageId: check.messageId, loc: comment.loc });
+            }
+          }
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
   },
   rules: {
     [RULE_NAME]: preferBlockCommentsRule,
+    [AI_TELLS_RULE_NAME]: noAiTellsRule,
   },
 };

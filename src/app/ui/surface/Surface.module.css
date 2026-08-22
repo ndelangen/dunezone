@@ -1,6 +1,6 @@
 /*
  * The single definition of the pane treatment. Nothing else in the codebase should re-declare
- * this combination — extend `Surface` instead.
+ * this combination. Extend `Surface` instead.
  */
 .surface {
   box-sizing: border-box;

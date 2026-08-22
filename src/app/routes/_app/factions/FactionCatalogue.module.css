@@ -11,9 +11,9 @@
 }
 
 .joinedFilters {
-  /* The width the toolbar's centre takes. It belongs here because it is a fact about this field —
-     three controls joined into one — not about toolbars. `min-width: 0` keeps it shrinkable, so
-     narrow viewports narrow the field rather than overflowing the band. */
+  /* The width the toolbar's centre takes. It belongs here because it is a fact about this field,
+     three controls joined into one, and not a fact about toolbars. `min-width: 0` keeps it
+     shrinkable, so narrow viewports narrow the field rather than overflowing the band. */
   width: 44rem;
 
   display: flex;

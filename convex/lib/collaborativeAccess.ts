@@ -88,7 +88,7 @@ type LoadedCollaborativeAccess = LoadedGroupAccess | LoadedFactionAccess | Loade
 type AnyCtx = QueryCtx | MutationCtx;
 
 /**
- * The one projection rule for group references: a reference that does not resolve to a live Group — soft-deleted or missing entirely (historical hard deletions left dangling ids) — projects to null (ADR-0003).
+ * The one projection rule for group references: a reference that does not resolve to a live Group, soft-deleted or missing entirely (historical hard deletions left dangling ids), projects to null (ADR-0003).
  */
 export function liveGroupOrNull(group: Doc<'groups'> | null): Doc<'groups'> | null {
   return group === null || group.is_deleted ? null : group;
@@ -397,7 +397,7 @@ export async function requireAssetUpdate(ctx: MutationCtx, assetId: Id<'assets'>
 }
 
 /**
- * Authorizes an edit to a ruleset's own content — its name, cover and description.
+ * Authorizes an edit to a ruleset's own content, its name, cover and description.
  * Group assignment is deliberately not among them: it is a different capability with a different audience, so it goes through `requireGroupReassignment` from `rulesets.setGroup` instead, the same route factions already take.
  */
 export async function requireRulesetUpdate(
