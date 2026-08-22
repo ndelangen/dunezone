@@ -70,10 +70,12 @@ async function createShareUrl(page: Page) {
 test('semantic target text precedes lazy visual content on a fresh pinned load', async ({ page }) => {
   await page.goto(buildRulebookTextShareUrl(baseUrl, repeatedLocator), { waitUntil: 'domcontentloaded' });
 
+  await expect(page.getByRole('main')).toHaveCount(1);
   await expect(page.locator('#storm-rule')).toBeAttached();
   await expect(page.locator('#page-aftermath')).toContainText('The selected text remains searchable throughout.');
-  await expect(page.locator('#page-storm').getByText('Visual page ready', { exact: true })).toHaveCount(0);
-  await expect(page.locator('#page-storm').getByText('Visual page ready', { exact: true })).toBeVisible();
+  const visualDecoration = page.locator('#page-storm > [aria-hidden="true"]');
+  await expect(visualDecoration).toHaveCount(0);
+  await expect(visualDecoration).toBeVisible();
   await expect(page.locator('#storm-rule')).toHaveAttribute('data-locator-target', 'true');
 });
 

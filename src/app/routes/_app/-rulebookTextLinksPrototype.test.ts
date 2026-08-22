@@ -180,8 +180,8 @@ describe('Rulebook text locator prototype', () => {
   it('creates a contextual locator from a real browser Selection without interpreting its text', () => {
     document.body.innerHTML = `
       <main data-rulebook-prototype-document>
-        <article id="page-storm" data-rulebook-page-anchor>
-          <section id="storm-rule" data-rulebook-block-anchor>
+        <article id="dom-page-lie" data-rulebook-page-anchor>
+          <section id="dom-block-lie" data-rulebook-block-anchor>
             <p data-rulebook-segment-id="storm-rule-paragraph-1">After the shields settle, <span>The storm belongs to no one.</span> Carry the warning west.</p>
           </section>
         </article>
@@ -208,10 +208,10 @@ describe('Rulebook text locator prototype', () => {
   it('records repeated-item identity from a browser Selection', () => {
     document.body.innerHTML = `
       <main data-rulebook-prototype-document>
-        <article id="page-storm" data-rulebook-page-anchor>
-          <section id="storm-procedure" data-rulebook-block-anchor>
+        <article id="dom-page-lie" data-rulebook-page-anchor>
+          <section id="dom-block-lie" data-rulebook-block-anchor>
             <div data-rulebook-text-content>
-              <span data-rulebook-item-id="procedure-west" data-rulebook-segment-id="procedure-west-text">Seal the western gate, then count three breaths.</span>
+              <span data-rulebook-item-id="dom-item-lie" data-rulebook-segment-id="procedure-west-text">Seal the western gate, then count three breaths.</span>
             </div>
           </section>
         </article>

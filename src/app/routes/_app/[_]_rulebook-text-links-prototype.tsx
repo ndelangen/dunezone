@@ -113,11 +113,6 @@ function RulebookPageView({
             <Badge color="dune" variant="light">
               Page {page.number}
             </Badge>
-            {visualReady && (
-              <Badge color="gray" variant="outline" ml="xs">
-                Visual page ready
-              </Badge>
-            )}
             <Title id={`${page.id}-title`} order={2} mt="xs" data-rulebook-segment-id={pageTitleSegment.id}>
               {pageTitleSegment.text}
             </Title>
@@ -132,7 +127,6 @@ function RulebookPageView({
                 id={block.id}
                 className={styles.block}
                 key={block.id}
-                data-rulebook-block-anchor
                 data-locator-target={visualReady && targetAnchorId === block.id ? 'true' : undefined}
                 aria-labelledby={`${block.id}-title`}
               >
@@ -151,7 +145,6 @@ function RulebookPageView({
                         <List.Item
                           key={segment.id}
                           id={segment.itemId}
-                          data-rulebook-item-id={segment.itemId}
                           data-rulebook-segment-id={segment.id}
                           data-locator-item-target={visualReady && targetItemId === segment.itemId ? 'true' : undefined}
                         >
@@ -536,7 +529,7 @@ function RulebookTextLinksPrototype() {
               )}
             </Stack>
 
-            <main className={styles.document} data-rulebook-prototype-document aria-label="Prototype Rulebook">
+            <section className={styles.document} data-rulebook-prototype-document aria-label="Prototype Rulebook">
               {search.variant === 'editor' ? (
                 <RulebookPageView
                   page={editorPage}
@@ -555,7 +548,7 @@ function RulebookTextLinksPrototype() {
                   />
                 ))
               )}
-            </main>
+            </section>
           </div>
 
           <PrototypeSwitcher variant={search.variant} onChange={setVariant} />
