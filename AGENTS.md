@@ -237,7 +237,9 @@ Rules between categories:
   controls, no sub-editors; a floating pane never opens another floating pane (display-only
   tooltips/hover previews exempt); dropdowns portal to the document. Complex editors expand inline.
 - **Only Blocks, and a Surface naming itself, render headings.** Loudness comes from depth, never
-  from a prop.
+  from a prop. The page title is the depth-zero case, and it is a Block like the rest: one
+  page-title Block, mounted once by the route, taking its words as data. `BlockHeading` keeps its
+  `h2` floor, because depth governs loudness inside a page's content, below the page's own voice.
 - **Receivers vs producers.** Layouts and Surfaces *receive* built content through slots. Blocks,
   Lists and Content *produce* content from data. Controls *change* data. A component doing two of
   these is two components.
