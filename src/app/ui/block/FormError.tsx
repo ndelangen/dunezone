@@ -15,7 +15,7 @@ export interface FormErrorProps {
  * This owns the treatment: the alert colour, and the live region that makes a screen reader announce the failure the moment it appears.
  *
  * It is a Block rather than a Surface even though it paints: it is handed words and nothing else, so the colour is content telling you something went wrong, not a pane for content to sit on.
- * It exists because the same failure was previously rendered three ways, inside a field, as an alert, and as a bare paragraph, so whether a save failure was announced at all depended on which form you were on.
+ * It exists because the same failure was previously rendered three ways (inside a field, as an alert, and as a bare paragraph), so whether a save failure was announced at all depended on which form you were on.
  */
 export function FormError({ title, children }: FormErrorProps) {
   return (

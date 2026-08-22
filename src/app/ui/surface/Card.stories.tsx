@@ -24,7 +24,7 @@ export const WithoutIcon = meta.story({
   args: { icon: undefined, title: 'About' },
 });
 
-/** One control beside the name, a status, or a single button. */
+/** One control beside the name: a status, or a single button. */
 export const WithAction = meta.story({
   args: { title: 'Files', action: <StatusBadge tone="positive">Current</StatusBadge> },
 });

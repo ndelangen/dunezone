@@ -29,7 +29,7 @@ export function FactionCard({
   faction: FactionCatalogueEntry;
   selectedRulesetSlug?: string;
   /**
-   * An adornment, not a slot: a control that acts on this faction where it is listed, a menu, a remove button.
+   * An adornment, not a slot: a control that acts on this faction where it is listed, such as a menu or a remove button.
    * It renders as a sibling of the link rather than inside it, since a button within an anchor is neither valid nor clickable without navigating, and it is positioned top-left because the other three corners carry the faction's own identity: its token, its hero, its leaders and name.
    */
   action?: ReactNode;

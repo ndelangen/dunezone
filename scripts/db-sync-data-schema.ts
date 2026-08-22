@@ -94,7 +94,7 @@ function schemaDedupeKey(node: unknown): string {
   return JSON.stringify(sortKeysDeep(node));
 }
 
-/** Plain `type: string` with no format/pattern/length, matches any JSON string. */
+/** Plain `type: string` with no format/pattern/length matches any JSON string. */
 function isUnrestrictedStringSchema(node: unknown): boolean {
   if (node === null || typeof node !== 'object' || Array.isArray(node)) {
     return false;

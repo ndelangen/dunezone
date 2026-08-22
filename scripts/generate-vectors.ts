@@ -43,7 +43,7 @@ export const linkedomDom: SvgDom = {
  *
  * - `cleanupIds` off everywhere: every file's `#root` is externally referenced, and the default plugin deletes externally-referenced ids, the research's top hazard.
  * - `removeUselessStrokeAndFill` off: the only plugin that can add paint to paint-inheriting files.
- * - `convertTransform.matrixToTransform` off: svgo#1222 shear bug (defensive, normalization bakes all transforms away).
+ * - `convertTransform.matrixToTransform` off: svgo#1222 shear bug (defensive, since normalization bakes all transforms away).
  * - Fragment-API files additionally keep their group structure so place-ids survive.
  */
 export function svgoConfigFor(category: VectorCategory): Config {

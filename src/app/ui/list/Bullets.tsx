@@ -56,7 +56,7 @@ interface BulletsItemProps {
 /**
  * One item of a `Bullets`.
  *
- * Owns the medallion treatment and the alignment rule, centred when the row is a single line, top aligned once a detail line makes it two.
+ * Owns the medallion treatment and the alignment rule: centred when the row is a single line, top aligned once a detail line makes it two.
  */
 function Item({ icon, title, detail, trailing, renderLink }: BulletsItemProps) {
   const content = (

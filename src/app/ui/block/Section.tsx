@@ -15,7 +15,7 @@ export interface SectionProps {
   eyebrow?: string;
   /** One line saying what this part is for. */
   description?: string;
-  /** Topical glyph beside the title. Decorative, the words carry the meaning. */
+  /** Topical glyph beside the title. Decorative: the words carry the meaning. */
   icon?: ReactNode;
   /** The single control that belongs beside the title: a link onward, a status, one button. */
   action?: ReactNode;

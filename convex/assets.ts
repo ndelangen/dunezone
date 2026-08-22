@@ -305,7 +305,8 @@ export const getPage = query({
 });
 
 /**
- * Slugs are unique per Asset type (see CONTEXT.md), the slug's job is URL identity and URLs are `/assets/{type}/{slug}`, and a slug once used stays reserved even by soft-deleted assets, the group/faction convention.
+ * Slugs are unique per Asset type (see CONTEXT.md): the slug's job is URL identity and URLs are `/assets/{type}/{slug}`.
+ * A slug once used stays reserved even by soft-deleted assets, the group/faction convention.
  */
 /**
  * The publication of an asset's authored back, if it has one.

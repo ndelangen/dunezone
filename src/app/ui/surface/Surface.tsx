@@ -22,7 +22,7 @@ export function PaintedSurfaceBoundary({ children }: { children: ReactNode }) {
 }
 
 /**
- * Resets the nesting guard for content that portals out of the page, a popover or menu pane whose skin IS a `Surface`.
+ * Resets the nesting guard for content that portals out of the page: a popover or menu pane whose skin IS a `Surface`.
  * React context crosses portals, so without this a floating pane opened from inside a surface warns even though nothing visually nests: the portal detaches it from the pane it was opened over.
  * Wrap the portalled content, never in-flow content.
  */
@@ -33,7 +33,7 @@ export function DetachedSurfaceBoundary({ children }: { children: ReactNode }) {
 export interface SurfaceProps {
   children: ReactNode;
   /**
-   * `none` when the children manage their own insets, a full-bleed image, a table that owns its cell padding.
+   * `none` when the children manage their own insets: a full-bleed image, a table that owns its cell padding.
    * Anything else would double the gutter.
    * Steps match the theme spacing scale.
    */

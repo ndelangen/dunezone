@@ -5,8 +5,8 @@ import { useSyncExternalStore } from 'react';
  *
  * The OS's `prefers-color-scheme` hint decides, unless localStorage (`dunezone-color-scheme`:
  * `light` | `dark`) says otherwise; System is the absence of an override. The resolved verdict is
- * mirrored onto `<html data-mantine-color-scheme>`, the attribute both tokens.css and Mantine key
- * off, by this module and, pre-hydration, by the inline script in the `_app` route's head. This
+ * mirrored onto `<html data-mantine-color-scheme>` (the attribute both tokens.css and Mantine key
+ * off) by this module and, pre-hydration, by the inline script in the `_app` route's head. This
  * module is the only writer; `ApplicationChrome` relays the resolved value into Mantine via
  * `forceColorScheme`, and the profile Appearance tab owns the control that writes the preference. Bare routes
  * (print capture, publisher, auth) never run either writer and stay light by construction.

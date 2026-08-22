@@ -6,10 +6,10 @@ import { PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
  * In-place recompression of a captured faction-sheet PDF (wayfinder #257).
  *
  * Chromium embeds every image as a lossless FlateDecode raster (see the spike record on the map, #256).
- * The accepted policy shrinks only the big RGB portrait rasters by LOSSLESS downsampling, resize to 0.35×, re-deflate, still
+ * The accepted policy shrinks only the big RGB portrait rasters by LOSSLESS downsampling: resize to 0.35×, re-deflate, still
  * FlateDecode.
  * JPEG is banned: at any quality it replaces this art style's grain with directional streaks.
- * Grayscale rasters (texture tiles), mask pairs, and small fragments are byte-untouched, tile grain is faction identity.
+ * Grayscale rasters (texture tiles), mask pairs, and small fragments are byte-untouched: tile grain is faction identity.
  *
  * Runtime-agnostic: pdf-lib + node:zlib (Workers via nodejs_compat, and Bun).
  */

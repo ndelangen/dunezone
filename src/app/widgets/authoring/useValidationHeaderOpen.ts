@@ -9,7 +9,7 @@ export function useValidationHeaderOpen(count: number, settleTick: number): bool
   const [open, setOpen] = useState(count > 0);
   const countRef = useRef(count);
 
-  /* The ref syncs inside the committed effect, a render-phase write could survive from a
+  /* The ref syncs inside the committed effect; a render-phase write could survive from a
      discarded render and let a later settle close the header while warnings still show.
      Declared before the settle effect so a commit changing both runs the sync first. */
   useEffect(() => {

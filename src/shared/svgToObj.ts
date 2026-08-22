@@ -18,7 +18,7 @@ export type ObjExportOptions = {
   depth: number;
   /** Curve subdivision for bezier/arc segments. Lower = fewer triangles. */
   curveSegments: number;
-  /** Decimal places per coordinate, full float precision is a ~17-digit bloat. */
+  /** Decimal places per coordinate. Full float precision is a ~17-digit bloat. */
   precision: number;
   /** Weld duplicate vertices into an indexed mesh (the biggest size reduction). */
   weld: boolean;

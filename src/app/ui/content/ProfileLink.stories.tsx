@@ -20,7 +20,7 @@ export const WithAvatar = meta.story({
   args: { avatar_url: '/web/logo.svg' },
 });
 
-/** For tight contexts, an avatar group, a table cell. `title` keeps the name reachable. */
+/** For tight contexts: an avatar group, a table cell. `title` keeps the name reachable. */
 export const AvatarOnly = meta.story({
   args: { avatar_url: '/web/logo.svg', showUsername: false, title: 'Central' },
 });

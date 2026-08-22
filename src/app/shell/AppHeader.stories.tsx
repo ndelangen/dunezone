@@ -71,7 +71,8 @@ export const HeaderlessPageMobile = meta.story({
 });
 
 /**
- * Left responsive on purpose, drag the preview to any width: the compact strip must hold its fixed 51px while the artwork modes track the frame's width.
+ * Left responsive on purpose.
+ * Drag the preview to any width: the compact strip must hold its fixed 51px while the artwork modes track the frame's width.
  * The play function proves the static half of that contract by walking the canvas through the widths the shell can hand the frame and measuring the band at each one.
  */
 export const HeaderlessPageResponsive = meta.story({

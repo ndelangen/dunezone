@@ -51,7 +51,7 @@ function sheetWordCount(rules: FactionRules): number {
   );
 }
 
-/** The calculated 0..1 complexity of a rules block, never reads the manual rating. */
+/** The calculated 0..1 complexity of a rules block. Never reads the manual rating. */
 export function calculateComplexity(rules: FactionRules): number {
   const total = sheetWordCount(rules);
   const base =

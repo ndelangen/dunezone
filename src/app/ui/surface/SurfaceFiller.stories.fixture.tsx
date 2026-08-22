@@ -1,7 +1,7 @@
 /**
  * Neutral stand-in content for surface stories.
  *
- * A surface story is about the pane, its border, translucency, blur, divisions, so its contents are deliberately meaningless.
+ * A surface story is about the pane (its border, translucency, blur, divisions), so its contents are deliberately meaningless.
  * Anything readable pulls the eye onto the content and away from the thing under test, and implies the surface cares what goes in it.
  * It does not.
  *

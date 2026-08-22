@@ -10,7 +10,8 @@ interface StatsItem {
   /**
    * The fact as a full phrase, e.g.
    * `3 factions`.
-   * Shown outright in a column, and on hover and to assistive tech in a row, a bare glyph and number is not readable on its own.
+   * Shown outright in a column, and on hover and to assistive tech in a row.
+   * A bare glyph and number is not readable on its own.
    */
   label: string;
   /** Column layout only: the short noun beside the number. Defaults to `label`. */
@@ -47,7 +48,7 @@ function CompactStat({ icon, value, label }: StatsItem) {
  * Summarises one subject as a set of counted facts.
  *
  * Callers own which facts matter and how to phrase them.
- * This component owns that the facts read as one group, shared icon treatment, shared number weight, shared spacing, and it owns the single decision that separates the two shapes: whether the labels are visible or deferred to hover.
+ * This component owns that the facts read as one group (shared icon treatment, shared number weight, shared spacing), and it owns the single decision that separates the two shapes: whether the labels are visible or deferred to hover.
  * Both shapes stay accessible either way, which is the part that kept getting dropped when each "At a glance" panel hand-rolled its own.
  */
 export function Stats({ items, orientation = 'row' }: StatsProps) {

@@ -98,7 +98,8 @@ export const NoHeader = meta.story({
 });
 
 /**
- * The toolbar slot adds nothing around what it is given, so anything passed brings its own pane, `Toolbar` is a surface and does.
+ * The toolbar slot adds nothing around what it is given, so anything passed brings its own pane;
+ * `Toolbar` is a surface and does.
  */
 export const WithToolbar = meta.story({
   render: () => (

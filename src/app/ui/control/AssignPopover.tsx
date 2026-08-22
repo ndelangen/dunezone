@@ -21,7 +21,7 @@ export interface AssignPopoverProps {
    * Commits the pick.
    * Rejecting shows the error's message inside the popover and leaves it open so the reader can try another choice;
    * resolving closes it.
-   * Anything the commit should ask first, a confirmation, a consequence the reader must accept, belongs here, in the caller: resolve `false` when the reader backs out, and the popover stays open.
+   * Anything the commit should ask first (a confirmation, a consequence the reader must accept) belongs here, in the caller: resolve `false` when the reader backs out, and the popover stays open.
    */
   onAssign: (value: string) => Promise<boolean | void>;
   disabled: boolean;
@@ -195,7 +195,7 @@ function AssignPopoverBody({
  * Callers own the choices and their labels, what committing means, and anything the reader must agree to first.
  * This owns the machine around that pick: the trigger, the dropdown that names itself for assistive tech, the inline suggestions, the in-flight latch, and the failure message shown in place rather than swallowed.
  *
- * The suggestions render inline in the pane rather than in a nested Select dropdown, the pickers' one-floating-layer rule, and choosing one commits it: the interstitial select-then-confirm step asked the reader to say the same thing twice (Norbert, 2026-08-21).
+ * The suggestions render inline in the pane rather than in a nested Select dropdown, keeping to the pickers' one-floating-layer rule, and choosing one commits it: the interstitial select-then-confirm step asked the reader to say the same thing twice (Norbert, 2026-08-21).
  * A caller that must ask first still can, in `onAssign`, where the question was always meant to live.
  *
  * It replaced two components that asked the same question from opposite ends (one picked a group for an asset, one picked an asset for a group) and had drifted apart in their labels, their empty states, and whether a failure was announced at all.

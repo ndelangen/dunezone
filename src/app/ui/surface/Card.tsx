@@ -14,7 +14,7 @@ export interface CardProps {
    * the title is the whole reason this component exists, not an embellishment on it.
    */
   title: string;
-  /** Topical glyph beside the title. Decorative, the words carry the meaning. */
+  /** Topical glyph beside the title. Decorative: the words carry the meaning. */
   icon?: ReactNode;
   /** The single control that belongs beside the title: a status, one button. */
   action?: ReactNode;
@@ -31,7 +31,7 @@ export interface CardProps {
  * "this pane needs a name".
  * When the title was optional the two answered the same question and picking between them was a coin toss.
  *
- * Content that brings panes of its own, a list of cards, a grid of spotlights, belongs in a `Section` instead, or the surfaces would nest.
+ * Content that brings panes of its own (a list of cards, a grid of spotlights) belongs in a `Section` instead, or the surfaces would nest.
  */
 export function Card({ title, icon, action, children }: CardProps) {
   const headingId = useId();

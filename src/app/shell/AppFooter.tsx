@@ -65,7 +65,8 @@ const DISCORD_MARK =
  * Discord's own Clyde symbol, standing in for `react-icons`' `SiDiscord`.
  * That one is the older mark: no mouth, and smaller eyes.
  * The flat left and right sides are authentic to Clyde and are not a crop;
- * Discord's file has them too, so `size` sets the width and the height follows the landscape 126.644:96 box.
+ * Discord's file has them too.
+ * `size` therefore sets the width and the height follows the landscape 126.644:96 box.
  */
 function DiscordMark({ size, ...props }: { size: number } & SVGProps<SVGSVGElement>) {
   return (

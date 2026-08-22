@@ -9,7 +9,7 @@ export interface ConfirmDeleteButtonProps {
   pending: boolean;
   /** Fires once the hold completes. The caller owns the mutation and whatever follows it. */
   onConfirm: () => void;
-  /** Disables the button entirely, for preconditions the caller gates on, an unacknowledged checkbox, a missing choice. */
+  /** Disables the button entirely, for preconditions the caller gates on: an unacknowledged checkbox, a missing choice. */
   disabled?: boolean;
 }
 

@@ -197,7 +197,7 @@ describe('current Renderer manifest digest', () => {
 
   test('encoder output changes alone do not move the identity', () => {
     /*
-     * The same ingredients must yield the same digest regardless of what the encoder produced,
+     * The same ingredients must yield the same digest regardless of what the encoder produced;
      * generated output is not part of the identity at all.
      */
     expect(digest().digest).toBe(digest().digest);

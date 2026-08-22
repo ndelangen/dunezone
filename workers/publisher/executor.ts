@@ -80,7 +80,7 @@ async function publishableBytes(
 
   /*
    * In-place recompression (#257): lossless-downsample the big RGB portrait rasters;
-   * everything else byte-untouched. A recompression failure never blocks publishing, the
+   * everything else byte-untouched. A recompression failure never blocks publishing: the
    * capture is stored as-is.
    */
   try {

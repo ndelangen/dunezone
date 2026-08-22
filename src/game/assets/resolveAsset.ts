@@ -6,7 +6,7 @@ const RASTER_KEY = /\.(png|jpe?g)$/i;
 /**
  * Resolves an opaque asset key (e.g.
  * `/image/texture/021.jpg`, stored on faction documents) to the generated variant
- * URL for a size tier, pure string logic over the shared rules table, so the app, Storybook, the print preview, and the publisher capture all resolve identical URLs (#254).
+ * URL for a size tier: pure string logic over the shared rules table, so the app, Storybook, the print preview, and the publisher capture all resolve identical URLs (#254).
  *
  * Non-raster keys (vectors) and keys outside the rules table pass through unchanged.
  * `print` falls back to `large` for categories without a print tier.

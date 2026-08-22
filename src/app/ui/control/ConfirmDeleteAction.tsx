@@ -22,11 +22,11 @@ export interface ConfirmDeleteActionProps {
    * only the words differ.
    */
   verb?: 'delete' | 'remove';
-  /** The glyph, when the action is not the trash can, a member removal keeps its own icon. */
+  /** The glyph, when the action is not the trash can. A member removal keeps its own icon. */
   icon?: ReactNode;
   /** Disables the trigger entirely, for callers whose action is sometimes unavailable rather than in flight. */
   disabled?: boolean;
-  /** The trigger's size, `lg` for toolbars, smaller where the hold sits in a dense row among same-sized neighbours. */
+  /** The trigger's size: `lg` for toolbars, smaller where the hold sits in a dense row among same-sized neighbours. */
   size?: 'sm' | 'md' | 'lg';
 }
 

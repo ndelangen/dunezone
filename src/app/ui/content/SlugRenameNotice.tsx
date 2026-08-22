@@ -1,5 +1,5 @@
 export interface SlugRenameNoticeProps {
-  /** What is being renamed, in the reader's words, `group`, `ruleset`, `profile`. */
+  /** What is being renamed, in the reader's words: `group`, `ruleset`, `profile`. */
   noun: string;
   /** The address as it stands, e.g. `…/rulesets/dune-classic`. Shown so the reader sees the stakes. */
   url: string;
