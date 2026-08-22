@@ -116,7 +116,8 @@ function FaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] }) {
 /**
  * Lists the answers a person has given, each under the question it answers.
  *
- * The page owns the collection, the empty case, and which profile is being viewed — that last one decides whether an asker reads as a name or as "Your question".
+ * The page owns the collection, the empty case, and which profile is being viewed.
+ * That last one decides whether an asker reads as a name or as "Your question".
  * This owns the rhythm and the picked-answer marker.
  */
 function FaqAnswersGiven({ items, viewedProfileId }: { items: FaqAnswerGiven[]; viewedProfileId: string }) {

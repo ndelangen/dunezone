@@ -1,6 +1,6 @@
-# Data Layer
+# Data layer
 
-## Domain File Structure
+## Domain file structure
 
 ```mermaid
 flowchart TD
@@ -19,7 +19,7 @@ are no query keys and no cache; see [State Management](./state-management.md).
 
 ## The only doorway to Convex
 
-`src/app/db` is the only place in `src/**` that may import Convex — the generated API, the types
+`src/app/db` is the only place in `src/**` that may import Convex: the generated API, the types
 under `convex/lib`, or the `convex` package. A domain module re-exports the Convex shapes the rest
 of the application needs, so a second import path never opens:
 
@@ -30,15 +30,15 @@ export type { AssignedGroupSummary, MembershipState }; // src/app/db/groups.ts
 Enforced by `no-restricted-imports` for all of `src/**` except `src/app/db/**`. See the Convex
 doorway section in [`AGENTS.md`](../AGENTS.md) for why a second doorway costs type precision.
 
-## Convex Schema
+## Convex schema
 
 Convex schema and indexes are defined in [`convex/schema.ts`](../convex/schema.ts). Domain-level Zod
-schemas live in `src/shared/<domain>/` — the validators in `validation.ts`, and the faction
-contract in [`src/shared/factions/schema.ts`](../src/shared/factions/schema.ts) with its generated
-asset-id vocabulary in [`src/shared/assetIds.ts`](../src/shared/assetIds.ts). They sit in `src/shared`
+schemas live in `src/shared/<domain>/`: the validators in `validation.ts`, and the faction contract
+in [`src/shared/factions/schema.ts`](../src/shared/factions/schema.ts) with its generated asset-id
+vocabulary in [`src/shared/assetIds.ts`](../src/shared/assetIds.ts). They sit in `src/shared`
 because both the app and the Convex server parse against them.
 
-## Basic DB Structure
+## Basic DB structure
 
 **Tables**: [`convex/schema.ts`](../convex/schema.ts) is the list, plus the Convex Auth tables. It is
 not repeated here, because a copy of a registry goes stale without anything failing.
@@ -47,7 +47,7 @@ not repeated here, because a copy of a registry goes stale without anything fail
 boundary and shared Zod schemas inside the handler. Factions, rulesets, groups, and community Assets
 use soft delete.
 
-## Domain File Pattern
+## Domain file pattern
 
 ### 1. Types
 
@@ -80,7 +80,7 @@ export function useFactionCataloguePage(options?: { initialData?: FactionCatalog
 
 **Example**: [`src/app/db/factions.ts`](../src/app/db/factions.ts)
 
-## Data Validation
+## Data validation
 
 Shared domain Zod schemas in `src/shared/<domain>/validation.ts` validate at runtime:
 
@@ -90,7 +90,7 @@ Shared domain Zod schemas in `src/shared/<domain>/validation.ts` validate at run
 
 **Example**: [`src/shared/factions/schema.ts`](../src/shared/factions/schema.ts)
 
-## Validation Standard
+## Validation standard
 
 Use a two-layer validation model for all mutations:
 
@@ -100,14 +100,14 @@ Use a two-layer validation model for all mutations:
 Both client and server should parse the same Zod schema, but server parsing is authoritative.
 Client parsing is for UX only and must not be treated as security.
 
-### Enforcement Order
+### Enforcement order
 
 1. Normalize raw inputs (trim, map optional fields, etc.).
 2. Run `safeParse` using shared Zod schema.
 3. On parse failure, map issues to a stable, user-facing error message.
 4. Continue mutation logic only with parsed data.
 
-### Convex Mutation Pattern
+### Convex mutation pattern
 
 ```typescript
 export const updateSomething = mutation({
@@ -129,7 +129,7 @@ export const updateSomething = mutation({
 });
 ```
 
-### Adoption Checklist
+### Adoption checklist
 
 - Find duplicated manual checks in Convex handlers.
 - Move those rules into shared Zod schemas.
@@ -137,12 +137,12 @@ export const updateSomething = mutation({
 - Keep Convex `v` validators at function boundaries.
 - Keep validation error messages stable and user-friendly.
 
-### Current Exemplars
+### Current exemplars
 
 - Shared profile semantic schema: [`src/shared/profiles/validation.ts`](../src/shared/profiles/validation.ts)
 - Server-authoritative parse in mutation: [`convex/profiles.ts`](../convex/profiles.ts)
 
-## Soft Delete Pattern
+## Soft delete pattern
 
 Factions, rulesets, groups, and community Assets use `is_deleted` flags instead of hard deletes:
 
@@ -153,8 +153,8 @@ Factions, rulesets, groups, and community Assets use `is_deleted` flags instead 
   historical hard deletions) is projected to `null` inside the Convex layer
   (`liveGroupOrNull` in [`convex/lib/collaborativeAccess.ts`](../convex/lib/collaborativeAccess.ts)),
   so clients never see a deleted group or a dangling reference
-- Deleting an Asset never cascades either: `asset_relations` rows survive, so a deleted card simply
-  stops appearing in the decks that reference it, filtered at query level
+- Deleting an Asset never cascades either: `asset_relations` rows survive, so a deleted card stops
+  appearing in the decks that reference it, filtered at query level
 - Deleted names and slugs stay reserved (see ADR-0003)
 
 **Example**: [`src/app/db/factions.ts`](../src/app/db/factions.ts)
@@ -163,4 +163,4 @@ Factions, rulesets, groups, and community Assets use `is_deleted` flags instead 
 
 Avoid Convex React `"skip"` and `enabled ? args : 'skip'` in domain data modules. When a subscription should not run, **unmount** the component that calls `useQuery` (for example, render a child only when `open && userId`, or split route shells so live-only paths do not mount DB-mode hooks). Route loaders continue to prefetch with `db.query`; route leaves use matching `useQuery` with the same arguments and `initialData` from the loader where applicable.
 
-**Guard**: `bun run check:convex-skip` fails if `skip` appears as a quoted string — single, double or backtick — anywhere under `src/app/db/**/*.ts`, `core/` included.
+**Guard**: `bun run check:convex-skip` fails if `skip` appears as a quoted string in any style, single or double or backtick, anywhere under `src/app/db/**/*.ts`, `core/` included.

@@ -5,7 +5,7 @@ import { useSectionDepth } from './depth';
 
 /**
  * The heading a titled block renders for itself.
- * Internal to the blocks — not a component a page picks, which is the whole point: a heading is a property of the region it names, so nothing can place one on its own or guess its level.
+ * Internal to the blocks, not a component a page picks, which is the whole point: a heading is a property of the region it names, so nothing can place one on its own or guess its level.
  *
  * The level follows depth.
  * `order` keeps the document outline honest;
@@ -13,7 +13,7 @@ import { useSectionDepth } from './depth';
  */
 export function BlockHeading({ id, title, icon }: { id: string; title: string; icon?: ReactNode }) {
   const depth = useSectionDepth();
-  /* The outline keeps descending — `h2`, `h3`, `h4` … — so a block three deep does not claim to be
+  /* The outline keeps descending (`h2`, `h3`, `h4` …), so a block three deep does not claim to be
      a sibling of one two deep. The visual scale stops at the second step, because past that the
      distinction is carried by the surrounding pane rather than by type size. */
   const order = Math.min(depth + 2, 6) as 2 | 3 | 4 | 5 | 6;

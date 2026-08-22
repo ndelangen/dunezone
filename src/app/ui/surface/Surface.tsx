@@ -8,7 +8,7 @@ import styles from './Surface.module.css';
 /**
  * Tracks whether a surface is already open above this one.
  *
- * Nesting is a brand rule rather than a technical constraint, and it is broken by composition — a page wraps a list in a Card, and three files away the list opens a pane of its own.
+ * Nesting is a brand rule rather than a technical constraint, and it is broken by composition: a page wraps a list in a Card, and three files away the list opens a pane of its own.
  * Neither author can see the other, so the check has to happen where the two meet: at render.
  */
 const InsideSurface = createContext(false);
@@ -22,7 +22,7 @@ export function PaintedSurfaceBoundary({ children }: { children: ReactNode }) {
 }
 
 /**
- * Resets the nesting guard for content that portals out of the page — a popover or menu pane whose skin IS a `Surface`.
+ * Resets the nesting guard for content that portals out of the page: a popover or menu pane whose skin IS a `Surface`.
  * React context crosses portals, so without this a floating pane opened from inside a surface warns even though nothing visually nests: the portal detaches it from the pane it was opened over.
  * Wrap the portalled content, never in-flow content.
  */
@@ -33,7 +33,7 @@ export function DetachedSurfaceBoundary({ children }: { children: ReactNode }) {
 export interface SurfaceProps {
   children: ReactNode;
   /**
-   * `none` when the children manage their own insets — a full-bleed image, a table that owns its cell padding.
+   * `none` when the children manage their own insets: a full-bleed image, a table that owns its cell padding.
    * Anything else would double the gutter.
    * Steps match the theme spacing scale.
    */
@@ -56,7 +56,7 @@ export interface SurfaceProps {
   interactive?: boolean;
   /** Makes the surface an anchor or button rather than a plain box. */
   renderRoot?: RenderRoot;
-  /** Placement only — grid area, width. The surface owns its own appearance. */
+  /** Placement only: grid area, width. The surface owns its own appearance. */
   className?: string;
 }
 
@@ -66,10 +66,11 @@ export interface SurfaceProps {
  * Callers own what goes inside and where the pane sits.
  * This component owns the one treatment that makes a pane read as a pane here: a pale border, a translucent infill, the blur that lets the desert artwork through, and the soft shadow that lifts it off the page.
  *
- * It exists because that treatment had been written out three separate times — once against the `--panel-*` tokens, once as a `color-mix` of white, and once inside the Mantine theme — so panes that should have been identical differed in border weight, blur radius and translucency depending on which copy the author happened to find first.
+ * It exists because that treatment had been written out three separate times, once against the `--panel-*` tokens, once as a `color-mix` of white, and once inside the Mantine theme, so panes that should have been identical differed in border weight, blur radius and translucency depending on which copy the author happened to find first.
  *
  * **Surfaces never nest.** Two panes stacked doubles the border and the blur, and the artwork the translucency exists to reveal disappears behind two layers of frosting.
- * Use dividers within one pane instead — that is what `List` is for.
+ * Use dividers within one pane instead;
+ * that is what `List` is for.
  * Nesting warns in development.
  */
 export function Surface({

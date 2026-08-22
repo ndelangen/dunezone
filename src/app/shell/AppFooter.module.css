@@ -34,7 +34,7 @@
   width: 2.5rem;
   height: 2.5rem;
   /* `color` arrives per entry as that destination's brand colour, so the ring is mixed down from
-     it rather than named again — the two can never drift apart. The 42% keeps the ring at the
+     it rather than named again, so the two can never drift apart. The 42% keeps the ring at the
      weight it had when the whole row was one accent, so only the hue changes. */
   border: 1px solid color-mix(in srgb, currentColor 42%, transparent);
   border-radius: 50%;

@@ -85,7 +85,7 @@ describe('current Renderer manifest digest', () => {
     expect(changed.components.sources).toBe(digest().components.sources);
   });
 
-  test('changes when a media source changes — ingredient hashing, not encoder output', () => {
+  test('changes when a media source changes: ingredient hashing, not encoder output', () => {
     const changed = digest(codeEntries(), sourceEntries({ 'media/image/texture/021.jpg': 'edited-texture' }));
     expect(changed.digest).not.toBe(digest().digest);
     expect(changed.components.sources).not.toBe(digest().components.sources);
@@ -197,7 +197,7 @@ describe('current Renderer manifest digest', () => {
 
   test('encoder output changes alone do not move the identity', () => {
     /*
-     * The same ingredients must yield the same digest regardless of what the encoder produced —
+     * The same ingredients must yield the same digest regardless of what the encoder produced;
      * generated output is not part of the identity at all.
      */
     expect(digest().digest).toBe(digest().digest);

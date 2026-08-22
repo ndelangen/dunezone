@@ -11,7 +11,7 @@ interface AssignPopoverOption {
 
 export interface AssignPopoverProps {
   /**
-   * What is being picked, singular and lowercase — `group`, `faction`.
+   * What is being picked, singular and lowercase: `group`, `faction`.
    * Every label in the popover is derived from it, so a caller supplies one word instead of eight strings.
    */
   noun: string;
@@ -21,7 +21,7 @@ export interface AssignPopoverProps {
    * Commits the pick.
    * Rejecting shows the error's message inside the popover and leaves it open so the reader can try another choice;
    * resolving closes it.
-   * Anything the commit should ask first — a confirmation, a consequence the reader must accept — belongs here, in the caller: resolve `false` when the reader backs out, and the popover stays open.
+   * Anything the commit should ask first (a confirmation, a consequence the reader must accept) belongs here, in the caller: resolve `false` when the reader backs out, and the popover stays open.
    */
   onAssign: (value: string) => Promise<boolean | void>;
   disabled: boolean;
@@ -32,7 +32,9 @@ export interface AssignPopoverProps {
   /** Names the dropdown. Defaults to `Assign <noun>`. */
   title?: string;
   /**
-   * The trigger's accessible name, when it differs from the dropdown's title — the trigger says what the reader is about to do ("Add a faction you own"), the dropdown says where they now are.
+   * The trigger's accessible name, when it differs from the dropdown's title.
+   * The trigger says what the reader is about to do ("Add a faction you own");
+   * the dropdown says where they now are.
    */
   triggerLabel?: string;
   /** Overrides `Search <noun>s` on the field, where the product says it differently. */
@@ -54,7 +56,7 @@ function AssignPopoverPlaceholder({ children }: { children: string }) {
 /**
  * The commit: whether one is in flight, and what went wrong.
  *
- * Separate from the rendering because it is the only imperative part — the guard against a stale option, the latch, and the two ways a commit can end without closing (a rejection, or a caller that resolved `false` because the reader backed out).
+ * Separate from the rendering because it is the only imperative part: the guard against a stale option, the latch, and the two ways a commit can end without closing (a rejection, or a caller that resolved `false` because the reader backed out).
  */
 function useAssignCommit({
   noun,
@@ -124,7 +126,7 @@ function AssignPopoverBody({
     <Stack gap="sm">
       {/* Not a heading: a popover is not part of the page outline, and the level it would have to
           claim depends on a caller this component cannot see. It names the dropdown through
-          `aria-labelledby` instead. The title is all the prose there is — the pick explains itself
+          `aria-labelledby` instead. The title is all the prose there is; the pick explains itself
           by being pickable (Norbert, 2026-08-21). */}
       <Text id={labelId} fw={700} fz="h4">
         {title ?? `Assign ${noun}`}
@@ -144,8 +146,8 @@ function AssignPopoverBody({
 
       {hasOptions ? (
         /* One floating layer only, the pickers' rule: the options render inline in the pane
-           (Combobox without dropdown), never as a second popover. Choosing one IS the commit —
-           the pick is the whole reason the reader opened this (Norbert, 2026-08-21). */
+           (Combobox without dropdown), never as a second popover. Choosing one IS the commit,
+           because the pick is the whole reason the reader opened this (Norbert, 2026-08-21). */
         <Combobox store={combobox} onOptionSubmit={(value) => void commit(value)}>
           <Combobox.EventsTarget>
             <TextInput
@@ -193,11 +195,12 @@ function AssignPopoverBody({
  * Callers own the choices and their labels, what committing means, and anything the reader must agree to first.
  * This owns the machine around that pick: the trigger, the dropdown that names itself for assistive tech, the inline suggestions, the in-flight latch, and the failure message shown in place rather than swallowed.
  *
- * The suggestions render inline in the pane rather than in a nested Select dropdown — the pickers' one-floating-layer rule — and choosing one commits it: the interstitial select-then-confirm step asked the reader to say the same thing twice (Norbert, 2026-08-21).
+ * The suggestions render inline in the pane rather than in a nested Select dropdown, keeping to the pickers' one-floating-layer rule, and choosing one commits it: the interstitial select-then-confirm step asked the reader to say the same thing twice (Norbert, 2026-08-21).
  * A caller that must ask first still can, in `onAssign`, where the question was always meant to live.
  *
- * It replaced two components that asked the same question from opposite ends — one picked a group for an asset, one picked an asset for a group — and had drifted apart in their labels, their empty states, and whether a failure was announced at all.
- * Every label defaults from `noun`, so the two directions cannot drift apart by accident — a page overrides the words only where it means something different by them.
+ * It replaced two components that asked the same question from opposite ends (one picked a group for an asset, one picked an asset for a group) and had drifted apart in their labels, their empty states, and whether a failure was announced at all.
+ * Every label defaults from `noun`, so the two directions cannot drift apart by accident;
+ * a page overrides the words only where it means something different by them.
  */
 export function AssignPopover({ icon, size = 'lg', ...body }: AssignPopoverProps) {
   const [opened, setOpened] = useState(false);

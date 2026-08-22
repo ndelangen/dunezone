@@ -1,9 +1,9 @@
 # UI design decisions
 
 The rules that govern UI code in this app, each with the one reason it exists. This is the current
-rulebook, not a changelog — every rule here applies. Most are also stated in
-[`AGENTS.md`](../../AGENTS.md) or caught by a guard; the italic line under each rule says where it is
-enforced and where its canonical statement lives.
+rulebook, not a changelog: every rule here applies. Most are also stated in
+[`AGENTS.md`](../../AGENTS.md) or caught by a guard; the italic line under each rule says where it
+is enforced and where its canonical statement lives.
 
 ## The component boundary
 
@@ -11,13 +11,13 @@ enforced and where its canonical statement lives.
 
 It renders its inputs; it does not go and get things. All of a component's traffic crosses its
 membrane, in both directions: a fetch brings data in that the caller never handed over, and a
-navigation sends an effect out that the caller never receives — both route around the membrane,
-and either way the component stops being reusable and a screen's behaviour scatters across the
-tree. What matters is the capability, not where the file sits: a ban keyed on import *aliases* once
-waved through `FaqList` calling `useNavigate` while flagging harmless compile-time `import type`s —
-so the rule bans the behaviour, not the location.
+navigation sends an effect out that the caller never receives. Both route around the membrane, and
+either way the component stops being reusable and a screen's behaviour scatters across the tree.
+What matters is the capability, not where the file sits: a ban keyed on import *aliases* once waved
+through `FaqList` calling `useNavigate` while flagging harmless compile-time `import type`s, so the
+rule bans the behaviour, not the location.
 
-*Enforced by [`.oxlintrc.json`](../../.oxlintrc.json) for `src/app/ui/**` — no Convex client, no
+*Enforced by [`.oxlintrc.json`](../../.oxlintrc.json) for `src/app/ui/**`: no Convex client, no
 value import from a data module (`import type` stays legal), no router navigation
 (`useNavigate`/`useRouter`; `Link` stays), no reach into `shell`/`widgets`/`routes`. Canonical in
 [`AGENTS.md`](../../AGENTS.md#component-taxonomy).*
@@ -25,20 +25,21 @@ value import from a data module (`import type` stays legal), no router navigatio
 ### Widgets are the last resort
 
 A widget is a shared assembly for the rare case that none of the six kit categories fit. Like any
-component it renders what it is handed and never fetches — fetching would multiply a route's live
-subscriptions and scatter its authoritative shape.
+component it renders what it is handed and never fetches, because fetching would multiply a route's
+live subscriptions and scatter its authoritative shape.
 
 *Enforced by [`.oxlintrc.json`](../../.oxlintrc.json) for `src/app/widgets/**`. Canonical in
 [`AGENTS.md`](../../AGENTS.md).*
 
 ### Pickers are the one place a component may fetch
 
-A Picker is a domain control whose whole job is to let the user choose from a list it loads itself —
+A Picker is a domain control whose whole job is to let the user choose from a list it loads itself,
 so a "pick a user" control never queries every user up front. It fetches only what showing its own
 options needs, read-only, through a subscription torn down when it leaves the screen; it never
 mutates, never reads the page's data, and returns the chosen value through an `onPick`-style
-callback. It is the deliberate exception to the fetch ban — justified by the one-query subscription
-discipline below, not by being a new category — and renders *through* the kit as a peer of Widgets.
+callback. It is the deliberate exception to the fetch ban, justified by the one-query subscription
+discipline below rather than by being a new category, and it renders *through* the kit as a peer of
+Widgets.
 
 *Structural: the `pickers` slot in `check:app-layout` and its deliberate absence from the fetch bans;
 the lazy/read-only/never-mutate contract is convention. Canonical in [`AGENTS.md`](../../AGENTS.md).
@@ -46,25 +47,25 @@ Example: `FactionPicker` in `src/app/pickers/`.*
 
 ### Extract a component only at a real concern boundary
 
-A component must own a behaviour or domain concept behind a small, meaningful API — not a slice of
+A component must own a behaviour or domain concept behind a small, meaningful API, not a slice of
 one page's layout, and not a thin wrapper that merely renames or forwards a Mantine component.
 `RulesetGroupToolbarControl` was neither: it took ~11 props, every one a mirror of the route's own
-state, was used once, and handed that state straight back — so you read two files to understand one
+state, was used once, and handed that state straight back, so you read two files to understand one
 toolbar. It was inlined. A view-only sub-view stays inline in the route, or becomes a local helper
 function in the same file.
 
-*Convention — the taxonomy's membrane test in [`AGENTS.md`](../../AGENTS.md#component-taxonomy): the
+*Convention. The taxonomy's membrane test in [`AGENTS.md`](../../AGENTS.md#component-taxonomy): the
 JSDoc must be able to say "callers own X; this owns Y" in one sentence.*
 
 ## Where components live
 
 ### Six categories, one home each
 
-Once Mantine became the shared layer, recurring concerns — the pane treatment, titled regions,
-heading levels — were re-spelled at every call site and drifted. The kit fixes that: six domain-free
-categories under `src/app/ui` — Content, Controls, Lists, Layout, Surfaces, Blocks — each decided
-at the membrane, by what a caller hands the component. The category is the folder and the Storybook
-root; feature folders keep only organs.
+Once Mantine became the shared layer, recurring concerns (the pane treatment, titled regions,
+heading levels) were re-spelled at every call site and drifted. The kit fixes that with six
+domain-free categories under `src/app/ui`: Content, Controls, Lists, Layout, Surfaces, Blocks. Each
+is decided at the membrane, by what a caller hands the component. The category is the folder and the
+Storybook root; feature folders keep only organs.
 
 *Top-level slots enforced by `check:app-layout`; category placement is convention. Canonical in
 [`AGENTS.md`](../../AGENTS.md#component-taxonomy).*
@@ -72,14 +73,14 @@ root; feature folders keep only organs.
 ### The shell is chrome, decided by position
 
 `AppRoot`, `AppHeader`, and `AppFooter` belong to no kit category. The header is full-bleed artwork
-that content sits *beside* in a shared grid row — where a Surface is something content sits *on*, and
-a Layout is transparent while the header paints. So the shell is decided by *position*, not at the
+that content sits *beside* in a shared grid row, whereas a Surface is something content sits *on*,
+and a Layout is transparent while the header paints. So the shell is decided by *position*, not at the
 membrane: it lives in `src/app/shell/**`, reached only through its doorway (`routes/_app.tsx` mounts
 `ApplicationChrome` and `AppNotFound`), and it carries stories under the `Shell` root. Its band
-height is negotiated with the page in CSS — the page joins the grid through `display: contents` and
-declares its state via `data-page-layout-*`, which
-`AppHeader.module.css` reads back with `:has()` — which is why the band and the page frame stay in
-one place, and why `PageLayout` is the container-query exemption below.
+height is negotiated with the page in CSS, since the page joins the grid through `display: contents`
+and declares its state via `data-page-layout-*`, which `AppHeader.module.css` reads back with
+`:has()`. That is why the band and the page frame stay in one place, and why `PageLayout` is the
+container-query exemption below.
 
 *Enforced by `check:app-layout` and the `data-page-layout-*` contract. Canonical in
 [`AGENTS.md`](../../AGENTS.md).*
@@ -90,13 +91,13 @@ one place, and why `PageLayout` is the container-query exemption below.
 
 Margin scattered through leaf components makes layout inconsistent and buries pages in nested
 `<Stack><Group><Grid>`. Spacing belongs to a Layout: a custom component built on Mantine primitives
-that arranges two or more **named compound slots** —
-`<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…</TriptychLayout>` — so composition
+that arranges two or more **named compound slots**, as in
+`<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…</TriptychLayout>`, so composition
 reads top-down and large content never rides inside a prop. A leaf never carries page margin (only
 for unavoidable third-party constraints), one slot is a passthrough rather than a Layout, and Layouts
 respond by **container query, not media query**, so they lay out by the room they are given.
 
-*Exemption:* `PageLayout` uses `@media` — it is the shell's page frame, sized against the viewport in
+*Exemption:* `PageLayout` uses `@media`. It is the shell's page frame, sized against the viewport in
 concert with `AppHeader`, genuinely viewport-scoped rather than a container.
 
 *Container-query half enforced by
@@ -109,28 +110,28 @@ the first time one is added.*
 
 Popovers clip, misposition, and outgrow their anchors when they carry real editors, and a dropdown
 opened inside a popover stacks pane on pane. So floating UI (popovers, menus, dropdowns) appears only
-where reflow is undesirable — a toolbar action, a pick-one list — and it stays small: few controls,
-no modes, no sub-editors. Anything with modes, a collection to manage, or sub-controls of its own
+where reflow is undesirable, such as a toolbar action or a pick-one list, and it stays small: few
+controls, no modes, no sub-editors. Anything with modes, a collection to manage, or sub-controls of its own
 expands inline and accepts the reflow. One floating layer at a time: a floating pane never opens
 another floating pane inside itself; its innards render inline (a search field with an inline
-options list, not a nested dropdown). Dropdowns portal to the document — never
-`withinPortal: false`, which ties positioning to whatever containment the anchor sits in. A select
+options list, not a nested dropdown). Dropdowns portal to the document, never `withinPortal: false`,
+which ties positioning to whatever containment the anchor sits in. A select
 that has to live inside a popover renders its options inline instead of as a dropdown, which is the
 same one-layer rule rather than an exception to it (see `AssignPopover`).
 
-*Exemption:* display-only, hover-transient UI — a tooltip, a hover preview — may appear over a
+*Exemption:* display-only, hover-transient UI, a tooltip or a hover preview, may appear over a
 floating pane; it is glanceable, not operable.
 
-*Convention — the faction editor carries the shapes: the Base/Pattern color editors expand inline
-below their trigger cards, and [`FactionPicker`](../../src/app/pickers/FactionPicker.tsx) renders its
-option list inline inside one popover (Combobox without dropdown).*
+*Convention. The faction editor carries the shapes: the Base/Pattern color editors expand inline
+below their trigger cards, and [`FactionPicker`](../../src/app/pickers/FactionPicker.tsx) renders
+its option list inline inside one popover (Combobox without dropdown).*
 
 ### Terminal routes mount PageLayout
 
 A parent-owned `staticData.PageHead` bridge once split one screen into detached header and body
 sub-views, duplicated the page query, and hid the whole composition across router metadata and the
 shell. So every terminal `_app` route renders `PageLayout` directly and fills only the slots that
-page needs — often all of `Header`/`Toolbar`/`Content`, but a page may omit the header and render
+page needs, often all of `Header`/`Toolbar`/`Content`, though a page may omit the header and render
 `Content` alone, which marks it compact. Route parents are outlet-only, and `AppRoot` owns only
 persistent chrome and document effects.
 
@@ -148,12 +149,12 @@ states, and scatters a screen's authoritative shape across Convex functions. Eac
 derive UI-ready fields inside that query, and pass small server-derived collections into controls
 through it rather than adding child subscriptions. The one documented exception is a lazily-mounted
 [Picker](#pickers-are-the-one-place-a-component-may-fetch), which may hold its own read-only options
-subscription — so a control choosing from a large set never forces those rows into the page query.
+subscription, so a control choosing from a large set never forces those rows into the page query.
 This subscription discipline is the real reason widgets don't fetch and Pickers fetch only lazily.
 Mutations don't count.
 
-*Convention — no automated guard. (`check:convex-skip` bans `useQuery("skip")` inside `src/app/db`, a
-separate, adjacent rule.) Stated here; [`AGENTS.md`](../../AGENTS.md) and
+*Convention, with no automated guard. (`check:convex-skip` bans `useQuery("skip")` inside
+`src/app/db`, a separate, adjacent rule.) Stated here; [`AGENTS.md`](../../AGENTS.md) and
 [`state-management.md`](../state-management.md) cite it.*
 
 ## Visual semantics
@@ -167,7 +168,7 @@ tuple), and neutral or auxiliary actions keep the default colour and vary by Man
 by hue. Keep exactly one clear primary per toolbar. Use an icon-only button only for a common,
 recognizable action with an `aria-label`; if the icon would be ambiguous, label it.
 
-*Convention — the kit carries it: `IconAction` for icon-only actions, `CallToAction` for the
+*Convention. The kit carries it: `IconAction` for icon-only actions, `CallToAction` for the
 forward-moving primary, and the colour tuples in [`theme.ts`](../../src/app/ui/theme.ts).
 (`StatusBadge`'s tone scale is for state, not actions.)*
 
@@ -199,7 +200,7 @@ Norbert, 2026-08-20: *"tabs should contain simple single color icons, nothing el
 
 The rail beside the editor is where a proof belongs, and every one of those editors already has one.
 
-*Convention — a tab icon is a lucide component or a `TopicIcon`; both render in `currentColor`. If a
+*Convention. A tab icon is a lucide component or a `TopicIcon`; both render in `currentColor`. If a
 chapter's concept recurs across editors it earns a `TopicIcon` topic rather than a local import.*
 
 ### One canonical icon per recurring topic
@@ -209,9 +210,9 @@ weakening recognition. Render recurring topic icons through `TopicIcon`; the fac
 is authoritative. `identity`, `about` and `contents` are the chapter topics every asset editor
 shares, so those come from the mapping rather than from a local import.
 
-*Convention — the mapping is the code in
-[`TopicIcon.tsx`](../../src/app/ui/content/TopicIcon.tsx). A one-off topic may keep a local icon
-until it recurs; renderer-owned game visuals stay isolated and don't consume `TopicIcon`.*
+*Convention. The mapping is the code in [`TopicIcon.tsx`](../../src/app/ui/content/TopicIcon.tsx). A
+one-off topic may keep a local icon until it recurs; renderer-owned game visuals stay isolated and
+don't consume `TopicIcon`.*
 
 ## Styling and renderers
 
@@ -228,7 +229,7 @@ Canonical in [`ui-component-hierarchy.md`](./ui-component-hierarchy.md) (Styling
 
 ### Renderers stay isolated
 
-Game-asset renderers must paint identically in a Worker, in print, and in the browser — and none of
+Game-asset renderers must paint identically in a Worker, in print, and in the browser, and none of
 those load the app shell. So a renderer imports no Mantine, no Radix, and nothing from `src/app`; it
 is pure over its inputs. A single app import would couple print and Worker output to the browser
 bundle; isolation is what lets one renderer serve three deploy targets.

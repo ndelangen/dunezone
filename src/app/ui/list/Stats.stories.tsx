@@ -78,7 +78,7 @@ export const SingleStat = meta.story({
   args: { items: [RULESET_STATS[0]!] },
 });
 
-/** Not every fact is a count — an unset version renders as an em dash. */
+/** Not every fact is a count: an unset version renders as an em dash. */
 export const NonNumericValue = meta.story({
   args: {
     items: [

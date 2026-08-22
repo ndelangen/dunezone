@@ -23,7 +23,7 @@ const trigger = (
   </Menu.Target>
 );
 
-/** One destructive choice — the shape a list item's menu usually takes. `color="red"` is how a destructive choice reads. */
+/** One destructive choice, the shape a list item's menu usually takes. `color="red"` is how a destructive choice reads. */
 export const Default = meta.story({
   render: (args) => (
     <Menu {...args}>

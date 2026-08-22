@@ -6,7 +6,7 @@
  *
  * Bun run generate:objs
  *
- * Unlike public/image and public/vector, the OBJ output is COMMITTED: the bytes sit outside the renderer identity, three is exactly pinned, and CI regenerates-and-diffs to guard determinism (research #295 — byte-identical across runtimes;
+ * Unlike public/image and public/vector, the OBJ output is COMMITTED: the bytes sit outside the renderer identity, three is exactly pinned, and CI regenerates-and-diffs to guard determinism (research #295, byte-identical across runtimes;
  * the arc-command files are the macOS↔Linux sentinel).
  */
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -28,7 +28,8 @@ const mediaRoot = path.join(repoRoot, 'media/vector');
 const objRoot = path.join(repoRoot, 'public/obj');
 
 /**
- * Sized for committed tabletop pieces: normals dropped (extruded tokens are flat-shaded and importers recompute), curveSegments 6 and 3 decimals in the 100-box — 32 MB → ~4 MB for the fleet versus the tool's interactive defaults.
+ * Sized for committed tabletop pieces: normals dropped (extruded tokens are flat-shaded and importers recompute), curveSegments 6 and 3 decimals in the 100-box.
+ * That takes the fleet from 32 MB to ~4 MB versus the tool's interactive defaults.
  */
 const PIECE_OPTIONS: ObjExportOptions = {
   depth: 10,

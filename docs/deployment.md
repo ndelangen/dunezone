@@ -110,14 +110,16 @@ validates their names but never reads, rotates, or reinstalls their values.
 On every push to `main`:
 
 1. Install dependencies, then verify schema-narrowing prerequisites
-   (`migrations:narrow-check`) — this runs *before* the Convex deploy and blocks it.
+   (`migrations:narrow-check`). This runs *before* the Convex deploy and blocks
+   it.
 2. Deploy Convex and run required migrations.
 3. Create `admin_settings` when absent, with pickup disabled and the checked-in
    Renderer revision map. Existing settings are unchanged.
 4. Validate the exact Worker release contract.
 5. Check generated Worker bindings and typecheck the release.
-6. Regenerate and verify generated output — images (`verify:images`), vectors
-   (`verify:vectors`), OBJ pieces (`generate:objs`) — and log the output digest.
+6. Regenerate and verify generated output, meaning images (`verify:images`),
+   vectors (`verify:vectors`) and OBJ pieces (`generate:objs`), then log the
+   output digest.
 7. Build the SPA, Storybook, and capture bundle once with the production Convex URL.
 8. Verify assembled assets and reject generated-source drift.
 9. Dry-run, then deploy the Worker with the full merged Git SHA.
@@ -126,8 +128,9 @@ On every push to `main`:
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
 12. Set Convex Auth `SITE_URL` to `https://dune.zone`.
-13. A follow-on `dev_rebuild` job (`needs: deploy`) rebuilds the dev deployment from
-    production — [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml).
+13. A follow-on `dev_rebuild` job (`needs: deploy`) rebuilds the dev deployment
+    from production; see
+    [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml).
 
 The revision step rejects a checked-in value lower than production. Equal values
 are a no-op. A revision activation stores the new values before scheduling scans,
@@ -216,13 +219,14 @@ After each production deploy:
 
 ## Generated images
 
-`public/image/**` and `public/web/**` (except `logo.svg`) are generated in CI
-from `media/**` by `scripts/generate-images.ts` (see `src/shared/assetRules.ts`
-for the per-category rules). CI restores the generated tree from a cache keyed
-on the media/rules/generator/sharp digest and verifies it structurally
-(`bun run verify:images`) — it never re-encodes to compare bytes. The renderer
-identity in `workers/publisher/renderer-manifest.generated.ts` (schema v2)
-hashes those same ingredients plus the capture code and PDF contract, with
+`public/image/**` and `public/web/**` are generated in CI from `media/**` by
+`scripts/generate-images.ts`, apart from the committed files named in
+`COMMITTED_WEB_FILES` (see `src/shared/assetRules.ts` for that list and for the
+per-category rules). CI restores the generated tree from a cache keyed on the
+media/rules/generator/sharp digest and verifies it structurally
+(`bun run verify:images`) without ever re-encoding to compare bytes. The
+renderer identity in `workers/publisher/renderer-manifest.generated.ts` (schema
+v2) hashes those same ingredients plus the capture code and PDF contract, with
 per-component digests so a deploy log can attribute an identity change to
 sources, toolchain, code, or contract. A toolchain change (e.g. a sharp bump)
 intentionally triggers a visually-identical recapture wave.

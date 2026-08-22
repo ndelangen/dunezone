@@ -2,7 +2,7 @@
  * Media/vector/** → public/vector/** generator (wayfinder #294, train ticket #306).
  *
  * For every source: bake the normalization into coordinates (src/shared/vectorNormalize.ts), optimize with the per-category SVGO profile decided in #295/#296, write minified output under the same relative path.
- * Sources in media/ are kept pretty-printed (git-diffable) — this script rewrites them in place through a plugin-less pretty pass, so authoring dumps stay reviewable.
+ * Sources in media/ are kept pretty-printed (git-diffable): this script rewrites them in place through a plugin-less pretty pass, so authoring dumps stay reviewable.
  *
  * Bun run generate:vectors
  *
@@ -41,9 +41,9 @@ export const linkedomDom: SvgDom = {
 /**
  * Per-category SVGO profile (#295 research, spike-verified):
  *
- * - `cleanupIds` off everywhere: every file's `#root` is externally referenced, and the default plugin deletes externally-referenced ids — the research's top hazard.
+ * - `cleanupIds` off everywhere: every file's `#root` is externally referenced, and the default plugin deletes externally-referenced ids, the research's top hazard.
  * - `removeUselessStrokeAndFill` off: the only plugin that can add paint to paint-inheriting files.
- * - `convertTransform.matrixToTransform` off: svgo#1222 shear bug (defensive — normalization bakes all transforms away).
+ * - `convertTransform.matrixToTransform` off: svgo#1222 shear bug (defensive, since normalization bakes all transforms away).
  * - Fragment-API files additionally keep their group structure so place-ids survive.
  */
 export function svgoConfigFor(category: VectorCategory): Config {

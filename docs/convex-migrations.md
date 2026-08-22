@@ -1,4 +1,4 @@
-# Convex Migrations Runbook
+# Convex migrations runbook
 
 Required process for all breaking Convex schema and data migrations in this repo.
 

@@ -1,5 +1,5 @@
 /**
- * Structural verification of generated image output (wayfinder #269): checks that public/image/** and public/web/** are complete and well-formed relative to media/ and the rules table — WITHOUT re-encoding anything (encoder bytes are not comparable across machines;
+ * Structural verification of generated image output (wayfinder #269): checks that public/image/** and public/web/** are complete and well-formed relative to media/ and the rules table, WITHOUT re-encoding anything (encoder bytes are not comparable across machines;
  * identity is ingredient-hashed).
  *
  * Bun run verify:images

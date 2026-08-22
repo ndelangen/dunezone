@@ -12,8 +12,8 @@
 }
 
 /*
- * A fixed square per breakpoint, sized to the three lines of text beside it — the same approach and the same steps as
- * the faction detail page's symbol rule.
+ * A fixed square per breakpoint, sized to the three lines of text beside it, the same approach and
+ * the same steps as the faction detail page's symbol rule.
  * Deliberately not computed from the text: `align-self: stretch` with an `aspect-ratio` is circular, since the square's
  * width would come from the row height while the row height comes from its tallest item, and the media grows without
  * bound. Matching by design is what the pattern already does.

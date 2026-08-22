@@ -198,7 +198,7 @@ export function useAssetGroupActions({
 /**
  * The route's half of the name field: state for the conflict the Picker reports, the ready warning rows for the validation header, and the field node the editor widget mounts.
  *
- * The field itself is `AssetNameInput`, a Picker — the taxonomy's one fetching control — so no route holds a second page subscription and no widget fetches.
+ * The field itself is `AssetNameInput`, a Picker (the taxonomy's one fetching control), so no route holds a second page subscription and no widget fetches.
  * Norbert ruled it so on 2026-08-22: the earlier rulebook exception was the wrong answer, and the right one was making the field a Picker.
  * Finding 19 of «Walk findings, round two» is the why: a card named Shield met the reserved slug of the existing Shield card and the reader learned nothing.
  */
@@ -214,7 +214,7 @@ export function useAssetNameField<Chapter extends string>({
   name: string;
   onName: (name: string) => void;
   currentSlug?: string;
-  /** The validation header group the warning joins — Identity everywhere but the treachery card, whose name lives in Head. */
+  /** The validation header group the warning joins, Identity everywhere but the treachery card, whose name lives in Head. */
   source: string;
   chapter: Chapter;
 }): { nameField: ReactNode; conflictWarnings: { source: string; complaint: string; chapter: Chapter }[] } {

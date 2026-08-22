@@ -33,8 +33,9 @@
 
 /*
  * The middle stage: the two reading columns merge into one and the rail keeps a column of its own.
- * Primary and secondary are both prose a reader works down, so stacking them preserves that order — description, then
- * the discussion of it — while the rail is a list to scan alongside, which is exactly what it was in three columns.
+ * Primary and secondary are both prose a reader works down, so stacking them preserves that order,
+ * the description and then the discussion of it, while the rail is a list to scan alongside, which
+ * is exactly what it was in three columns.
  */
 @container columns-with-rail-layout (min-width: 48rem) {
   .layout {

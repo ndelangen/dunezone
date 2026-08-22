@@ -56,7 +56,8 @@ import styles from '../RulesetDetail.module.css';
 /**
  * The toolbar affordance that adds a faction to this ruleset.
  * It owns the open state and nothing else: the picker is mounted only while the popover is open, so its subscription lives exactly that long, which is the contract `AGENTS.md` sets for a Picker's container.
- * The commit is the caller's — this reports the chosen faction's id and closes.
+ * The commit is the caller's;
+ * this reports the chosen faction's id and closes.
  */
 function AddFactionPopover({
   disabled,
@@ -122,10 +123,10 @@ function AddFactionPopover({
 
 /**
  * The menu in a faction card's action slot, on the ruleset page.
- * Mantine's `Menu` directly: the theme gives its dropdown the same pane a `Popover` gets, and `color="red"` is how a destructive choice reads, so a wrapper here would only forward props — see the Mantine-component stories in
- * `src/app/ui/control`.
+ * Mantine's `Menu` directly: the theme gives its dropdown the same pane a `Popover` gets, and `color="red"` is how a destructive choice reads, so a wrapper here would only forward props.
+ * See the Mantine-component stories in `src/app/ui/control`.
  * A menu rather than a bare button because the card is a link: a menu target is unambiguously not part of the navigation, and further per-faction actions land here rather than crowding the tile.
- * No confirmation — the toolbar's picker puts the faction straight back.
+ * No confirmation: the toolbar's picker puts the faction straight back.
  */
 function FactionCardMenu({
   factionName,

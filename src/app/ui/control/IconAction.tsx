@@ -13,7 +13,7 @@ import type { RenderRoot } from '../renderRoot';
 
 export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'color' | 'size' | 'disabled' | 'loading'> {
   /**
-   * What the action does, as a verb phrase — "Delete answer".
+   * What the action does, as a verb phrase: "Delete answer".
    * This is the accessible name and, unless `tooltip` says otherwise, the hover text: an icon-only control has no other way to say what it is, so the two cannot come apart.
    */
   label: string;
@@ -33,7 +33,7 @@ export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'colo
   onBlur?: FocusEventHandler<HTMLButtonElement>;
   /** Forces the hover text open, for the moments it carries live state (a hold's countdown). */
   tooltipOpened?: boolean;
-  /** Makes the action a link — in practice the router's `Link`. */
+  /** Makes the action a link, in practice the router's `Link`. */
   renderRoot?: RenderRoot;
   /** Makes the action a plain anchor, for a destination outside the router. */
   href?: string;
@@ -51,7 +51,7 @@ export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'colo
  * A single action shown as a glyph, named for people who cannot see it.
  *
  * Callers own the glyph, the intent, and the words.
- * This component owns the one thing that must never be forgotten: an icon-only control carries its name in three places at once — the hover text, the accessible name, and nothing on screen — so it takes one `label` and fans it out, rather than letting a call site set a tooltip and omit the
+ * This component owns the one thing that must never be forgotten: an icon-only control carries its name in three places at once (the hover text, the accessible name, and nothing on screen), so it takes one `label` and fans it out, rather than letting a call site set a tooltip and omit the
  * `aria-label`.
  *
  * It replaces the hand-assembled `Tooltip` around `ActionIcon` that appeared ~50 times, where the pairing was a convention rather than a guarantee.

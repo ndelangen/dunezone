@@ -22,7 +22,7 @@ export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string): Prom
 
 /**
  * The linked factions, in the same shape the catalogue puts on the wire, so a ruleset's page can render them with the same vocabulary.
- * Stored data is parsed the way the catalogue parses it — an unreadable row throws rather than degrading, because the app already bets everywhere else that faction data parses.
+ * Stored data is parsed the way the catalogue parses it: an unreadable row throws rather than degrading, because the app already bets everywhere else that faction data parses.
  * Soft-deleted and dangling links are dropped.
  *
  * `rulesets` is deliberately empty: these factions are already being read *inside* one ruleset, so captioning each card with a ruleset name would repeat the page's own subject back at the reader.

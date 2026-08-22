@@ -1,5 +1,5 @@
 /**
- * The single source of truth for generated image variants — shared by the generator (scripts/generate-images.ts), the structural verifier, and the runtime resolver.
+ * The single source of truth for generated image variants, shared by the generator (scripts/generate-images.ts), the structural verifier, and the runtime resolver.
  * Decided on the wayfinder map (#250): formats are declared by usage intent, never sniffed from source pixels;
  * sizes cover ~2× the largest rendered size per category;
  * JPEG tiers are progressive (the only shippable format with progressive rendering);
@@ -16,7 +16,7 @@ export type CategoryRule = {
   grayscale?: boolean;
   /**
    * Usage intent: does this category's UI slot require an alpha channel?
-   * The generator fails loudly when an opaque category receives a genuinely transparent source — a human decides, nothing is silently flattened.
+   * The generator fails loudly when an opaque category receives a genuinely transparent source: a human decides, and nothing is silently flattened.
    */
   transparent: boolean;
   /** Tier widths in px; `null` means native size (never upscale). */

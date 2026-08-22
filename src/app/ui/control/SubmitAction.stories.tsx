@@ -28,7 +28,7 @@ export const Pending = meta.story({
   },
 });
 
-/** Blocked by the form's own rule — a required field still empty. */
+/** Blocked by the form's own rule, a required field still empty. */
 export const Disabled = meta.story({
   args: { disabled: true },
 });

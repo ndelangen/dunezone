@@ -32,7 +32,7 @@ export const Critical = meta.story({
   args: { tone: 'critical', children: 'Failed' },
 });
 
-/** For statuses that change without the reader acting — announced politely to assistive tech. */
+/** For statuses that change without the reader acting, announced politely to assistive tech. */
 export const Live = meta.story({
   args: { tone: 'progress', live: true, children: 'In progress' },
 });

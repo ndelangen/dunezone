@@ -2,14 +2,14 @@ import { createTheme } from '@mantine/core';
 import type { MantineColorsTuple } from '@mantine/core';
 
 /*
- * Color values live in styles/tokens.css — the single source of truth, with dark overrides under
+ * Color values live in styles/tokens.css, the single source of truth, with dark overrides under
  * `:root[data-mantine-color-scheme='dark']`. Slots whose values flow to the DOM verbatim reference
  * them via var() and flip with the scheme for free.
  *
  * The color tuples below are the exception: Mantine parses tuple hex to bake hover and light-variant
  * derivations, so they stay literal. They are Mantine-internal ramps, not mirrors of tokens.css.
  * `white`/`black` are scheme-invariant inks by Mantine's contract (filled-component text in both
- * schemes) — they bind to the non-flipping --color-paper/--color-ink tokens, never to ones that
+ * schemes); they bind to the non-flipping --color-paper/--color-ink tokens, never to ones that
  * flip. Never combine `autoContrast` or `color="white"/"black"/"bright"` with var()-valued slots:
  * Mantine's luminance check reads every var() string as dark.
  */
@@ -67,8 +67,8 @@ const danger: MantineColorsTuple = [
 ];
 
 /*
- * In dark mode Mantine derives text, body, borders, dimmed, and disabled from the `dark` tuple —
- * not from our tokens — so the stock cool-gray ramp is replaced with the Twilight warm-navy ramp.
+ * In dark mode Mantine derives text, body, borders, dimmed, and disabled from the `dark` tuple,
+ * not from our tokens, so the stock cool-gray ramp is replaced with the Twilight warm-navy ramp.
  */
 const twilightNavy: MantineColorsTuple = [
   '#ece7dc',

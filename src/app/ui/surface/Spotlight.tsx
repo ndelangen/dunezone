@@ -10,7 +10,7 @@ import { Surface } from './Surface';
 export interface SpotlightProps {
   /**
    * Required.
-   * Circular artwork identifying the subject — a faction token, an avatar, a cover.
+   * Circular artwork identifying the subject: a faction token, an avatar, a cover.
    * Without it this is just a surface with text in it, and the whole point is that a spotlight is recognisable at a glance as _a specific thing you can go to_.
    */
   media: ReactNode;
@@ -19,7 +19,7 @@ export interface SpotlightProps {
   title: ReactNode;
   /**
    * Required.
-   * One line of supporting fact — a date, a summary.
+   * One line of supporting fact: a date, a summary.
    * A title on its own gives the reader nothing to choose on, which is the job a spotlight exists to do.
    */
   meta: ReactNode;

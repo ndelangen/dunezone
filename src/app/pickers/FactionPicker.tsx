@@ -32,7 +32,7 @@ function formatZodIssues(err: { issues: readonly { path: PropertyKey[]; message:
 
 /**
  * What crosses back out when a faction is chosen: which row it was, and its parsed data.
- * The row's identifiers are the point — `data` alone cannot say *which* faction was picked, since a faction's id and public slug live on the row and never inside its payload.
+ * The row's identifiers are the point: `data` alone cannot say *which* faction was picked, since a faction's id and public slug live on the row and never inside its payload.
  */
 interface PickedFaction {
   id: string;
@@ -60,7 +60,7 @@ interface FactionPickerCopy {
 }
 
 export interface FactionPickerProps {
-  /** Faction URL slugs to leave out — the one being edited, or every one already linked. */
+  /** Faction URL slugs to leave out: the one being edited, or every one already linked. */
   excludeSlugs?: string[];
   copy: FactionPickerCopy;
   onPick: (picked: PickedFaction) => void;
@@ -69,7 +69,8 @@ export interface FactionPickerProps {
 
 /**
  * A Picker: the connected control that fetches the viewer's loadable factions, lets one be chosen, and hands the choice back through `onPick`.
- * It fetches its own options (and the viewer context its own affordances need) — read-only, never mutating — and its caller mounts it lazily so the subscription lives only while it is on screen.
+ * It fetches its own options (and the viewer context its own affordances need): read-only, never mutating.
+ * Its caller mounts it lazily so the subscription lives only while it is on screen.
  * Here that caller is `FactionLoadPopover`, which mounts this only while the popover is open, so the picker subscribes the moment it appears (the container already gated the mount and opening the popover is the intent signal).
  * An inline caller with no such gate would instead defer the subscription to its own control's open;
  * see the Pickers section in

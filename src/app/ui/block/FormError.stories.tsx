@@ -11,7 +11,7 @@ const meta = preview.meta({
   },
 });
 
-/** Rendered only after an attempt failed — never as a standing placeholder. */
+/** Rendered only after an attempt failed, never as a standing placeholder. */
 export const Default = meta.story({});
 
 /** Server messages can be long and unpunctuated; the alert wraps rather than truncating them. */

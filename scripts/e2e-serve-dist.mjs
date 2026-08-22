@@ -1,6 +1,6 @@
 /*
  * Static server for the e2e suite: serves the production client build (dist/client) with the same
- * SPA semantics as the Cloudflare Worker release assembly — any path that is not a file on disk
+ * SPA semantics as the Cloudflare Worker release assembly: any path that is not a file on disk
  * falls back to the prerendered _shell.html. Replaces `vite dev` in scripts/e2e-local.sh
  * phase_serve so e2e tests exercise built, bundled code instead of on-demand dev transforms
  * (which dominated slow-spec wall clock; see prototype/e2e-coverage-build-serve).
@@ -33,14 +33,14 @@ const MIME = {
 };
 
 if (!existsSync(join(ROOT, '_shell.html'))) {
-  console.error(`[e2e-serve-dist] ${ROOT}/_shell.html missing — run vite build first`);
+  console.error(`[e2e-serve-dist] ${ROOT}/_shell.html missing; run vite build first`);
   process.exit(1);
 }
 
 const server = createServer((req, res) => {
   const urlPath = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
   /*
-   * normalize() collapses any ../ (including percent-encoded ones — the pathname is decoded
+   * normalize() collapses any ../ (including percent-encoded ones, since the pathname is decoded
    * above) and the ROOT + sep prefix check rejects what remains, including sibling-directory
    * escapes like /%2e%2e%2fclient-server/ which a bare ROOT prefix would let through.
    */

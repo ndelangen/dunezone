@@ -116,7 +116,7 @@ export function AssetSelect({
 
   return (
     /* One persistent preview panel to the input's left, swapping its artwork as
-       rows are hovered — rather than a card per row appearing and disappearing.
+       rows are hovered, rather than a card per row appearing and disappearing.
        Display-only and hover-transient: a deliberate, human-ruled exception to
        the one-floating-layer rule (see "Floating UI is small and single-layer"). */
     <Popover
