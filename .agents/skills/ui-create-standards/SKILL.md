@@ -39,7 +39,7 @@ Classify every UI concern before implementation:
 3. Adapt the composition in the route or owning component, keeping `PageLayout` ownership at the terminal route.
 4. Extract a shared composition only after repeated product semantics or repeated composition are demonstrated.
 
-Prefer direct `Button`, `ActionIcon`, `Card`/`Paper`, `Stack`, `Group`, `Grid`, `Text`, `Title`, `Tooltip`, field, and overlay composition. Do not create wrappers whose only purpose is renaming or lightly forwarding Mantine APIs. For navigation controls, use Mantine's router integration at the call site; extract an adapter only when repeated use proves it can preserve TanStack Router's typed contract.
+Prefer direct `Button`, `ActionIcon`, `Stack`, `Group`, `Grid`, `Text`, `Title`, `Tooltip`, field, and overlay composition. A pane comes from the kit's `Surface`, never from a Mantine `Paper`. Do not create wrappers whose only purpose is renaming or lightly forwarding Mantine APIs. For navigation controls, use Mantine's router integration at the call site; extract an adapter only when repeated use proves it can preserve TanStack Router's typed contract.
 
 ### Domain UI
 

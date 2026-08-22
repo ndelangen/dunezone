@@ -1,4 +1,4 @@
-import { Anchor, Badge, Box, Button, Grid, Paper, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+import { Anchor, Badge, Box, Button, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { HeroTitle } from '@ui/content/HeroTitle';
@@ -215,7 +215,7 @@ function FuturePlansPage() {
                 </Stack>
               ))}
 
-              <Paper component="section" className={styles.contribution} radius="lg" p={{ base: 'xl', md: 48 }}>
+              <Box component="section" className={styles.contribution} p={{ base: 'xl', md: 48 }}>
                 <SimpleGrid cols={{ base: 1, md: 3 }} spacing="xl" verticalSpacing="xl">
                   <ThemeIcon size={72} radius="50%" variant="light" color="dune" aria-hidden>
                     <Lightbulb />
@@ -249,7 +249,7 @@ function FuturePlansPage() {
                     </Button>
                   </Stack>
                 </SimpleGrid>
-              </Paper>
+              </Box>
             </Stack>
           </AtlasLayout.Content>
         </AtlasLayout>
