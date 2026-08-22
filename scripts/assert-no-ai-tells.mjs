@@ -44,6 +44,8 @@ const CURLY_QUOTES = /[‘’“”]/;
 const FILLER =
   /\b(?:simply|seamless(?:ly)?|delves?|crucial(?:ly)?|essentially|basically|holistic|streamlines?|utiliz(?:e|es|ing))\b/i;
 
+const HEDGE = /\b(?:it (?:is|'s) (?:important|worth) (?:to note|noting)|note that)\b/i;
+
 /* Dingbats, symbols and pictographs. Arrows and typographic marks stay legal. */
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F2FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u;
 
@@ -205,6 +207,9 @@ for await (const { full, rel } of walk(root)) {
     if (filler) {
       record(rel, lineNumber, `filler word "${filler[0]}"`, line.trim());
     }
+    if (HEDGE.test(stripInlineMarkup(line))) {
+      record(rel, lineNumber, 'hedging opener', line.trim());
+    }
 
     const heading = checks.headings && /^#{1,6}\s+(.*)$/.exec(line);
     if (heading) {
@@ -225,7 +230,7 @@ if (failures.length > 0) {
   }
 
   console.error(`Developer-facing prose carries ${failures.length} AI tell${failures.length === 1 ? '' : 's'}.\n`);
-  for (const [file, list] of [...byFile].sort()) {
+  for (const [file, list] of [...byFile].sort(([a], [b]) => a.localeCompare(b))) {
     console.error(`  ${file}`);
     for (const failure of list) {
       console.error(`    ${failure.lineNumber}: ${failure.tell}`);
