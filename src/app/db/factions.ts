@@ -140,7 +140,7 @@ export async function loadFactionCataloguePage(): Promise<FactionCataloguePageDa
  * Always real args: the caller mounts and unmounts the probe holding this, which is how a domain read stays conditional without a skip.
  */
 export function useFactionSlugTaken(args: { slug: string }) {
-  return useQuery(api.factions.factionSlugTaken, args);
+  return useQuery(api.factions.slugTaken, args);
 }
 
 export function useFaction(

@@ -43,15 +43,15 @@ describe('faction slug reservations', () => {
    * The editor's warning and the save guard's refusal read one predicate, so this pins all three answers the query can give.
    * Without it the two surfaces can drift and only a reader typing a taken name would notice.
    */
-  test('factionSlugTaken answers live, deleted, and free', async () => {
+  test('slugTaken answers live, deleted, and free', async () => {
     const { asUser } = await authenticatedTest();
-    expect(await asUser.query(api.factions.factionSlugTaken, { slug: 'reserved-faction' })).toBe(null);
+    expect(await asUser.query(api.factions.slugTaken, { slug: 'reserved-faction' })).toBe(null);
 
     const faction = await createFaction(asUser, 'Reserved Faction');
-    expect(await asUser.query(api.factions.factionSlugTaken, { slug: 'reserved-faction' })).toBe('live');
+    expect(await asUser.query(api.factions.slugTaken, { slug: 'reserved-faction' })).toBe('live');
 
     await asUser.mutation(api.factions.softDelete, { id: faction._id });
-    expect(await asUser.query(api.factions.factionSlugTaken, { slug: 'reserved-faction' })).toBe('deleted');
+    expect(await asUser.query(api.factions.slugTaken, { slug: 'reserved-faction' })).toBe('deleted');
   });
 
   test('a live faction refuses a colliding name in its own words', async () => {

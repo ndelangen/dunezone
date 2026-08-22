@@ -52,7 +52,7 @@ async function factionSlugHolder(
 }
 
 /** The faction editor's live name-conflict check, the save guard's rule as a subscription. */
-export const factionSlugTaken = query({
+export const slugTaken = query({
   args: { slug: v.string() },
   returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
   handler: async (ctx, args) => await factionSlugHolder(ctx, args.slug),

@@ -107,7 +107,11 @@ export function DeckCreatePage() {
           }}
           actions={{
             onSave: save,
-            onReset: () => setDraft(INITIAL_DECK_DRAFT),
+            onReset: () => {
+              setDraft(INITIAL_DECK_DRAFT);
+              /* The pick rides beside the draft, so a reset must drop both or the tile would show a choice the draft no longer holds. */
+              setPickedBackDeck(null);
+            },
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}
         />

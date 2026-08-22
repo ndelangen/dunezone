@@ -17,8 +17,9 @@ export interface FactionEditorProps {
   errors: string[];
   isNameBlank: boolean;
   warnings: FactionAuthoringWarning[];
-  /** Fires on field blur and chapter switch — the moments the validation header may settle closed. */
+  /** A route-bound name input rendered in the Identity section's name slot; see `FactionIdentityNameField`. */
   nameField?: FactionIdentityNameField;
+  /** Fires on field blur and chapter switch — the moments the validation header may settle closed. */
   onSettle?: () => void;
 }
 
