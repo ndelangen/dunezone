@@ -376,7 +376,13 @@ function RulebookTextLinksPrototype() {
       return;
     }
     const base = `${window.location.origin}${window.location.pathname}`;
-    setShareUrl(buildRulebookTextShareUrl(base, result.locator, search.variant));
+    const shareResult = buildRulebookTextShareUrl(base, result.locator, search.variant);
+    if (!shareResult.ok) {
+      setSelectionMessage(shareResult.message);
+      setShareUrl(undefined);
+      return;
+    }
+    setShareUrl(shareResult.url);
     setSelectionMessage('Share URL created from the browser Selection. Open it fresh to test the full path.');
   };
 

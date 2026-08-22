@@ -185,9 +185,13 @@ export type LocatorResolution =
 
 const ANCHOR_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_ENCODED_LOCATOR_LENGTH = 4096;
-const MAX_SELECTED_TEXT_LENGTH = 1024;
-const MAX_CONTEXT_LENGTH = 96;
-const TEXT_FRAGMENT_EDGE_LENGTH = 80;
+const MAX_SELECTED_TEXT_BYTES = 768;
+const MAX_CONTEXT_BYTES = 96;
+const TEXT_FRAGMENT_EDGE_CODE_POINTS = 80;
+const TEXT_ENCODER = new TextEncoder();
+const SELECTION_TOO_LARGE_MESSAGE = 'The selection is too large for a safe share URL. Select a shorter passage.';
+const LOCATOR_TOO_LARGE_MESSAGE =
+  'The selected text and nearby context cannot fit in a safe share URL. Select a shorter passage.';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -201,8 +205,12 @@ function isAnchor(value: unknown): value is string {
   return typeof value === 'string' && value.length <= 64 && ANCHOR_PATTERN.test(value);
 }
 
-function isBoundedText(value: unknown, maximum: number, allowEmpty = false): value is string {
-  return typeof value === 'string' && (allowEmpty || value.length > 0) && value.length <= maximum;
+function utf8ByteLength(value: string) {
+  return TEXT_ENCODER.encode(value).length;
+}
+
+function isBoundedText(value: unknown, maximumBytes: number, allowEmpty = false): value is string {
+  return typeof value === 'string' && (allowEmpty || value.length > 0) && utf8ByteLength(value) <= maximumBytes;
 }
 
 function parseLocatorShape(value: unknown): RulebookTextLocator | null {
@@ -234,13 +242,13 @@ function parseLocatorShape(value: unknown): RulebookTextLocator | null {
   ) {
     return null;
   }
-  if (!isBoundedText(value.exact, MAX_SELECTED_TEXT_LENGTH)) {
+  if (!isBoundedText(value.exact, MAX_SELECTED_TEXT_BYTES)) {
     return null;
   }
-  if (value.prefix !== undefined && !isBoundedText(value.prefix, MAX_CONTEXT_LENGTH, true)) {
+  if (value.prefix !== undefined && !isBoundedText(value.prefix, MAX_CONTEXT_BYTES, true)) {
     return null;
   }
-  if (value.suffix !== undefined && !isBoundedText(value.suffix, MAX_CONTEXT_LENGTH, true)) {
+  if (value.suffix !== undefined && !isBoundedText(value.suffix, MAX_CONTEXT_BYTES, true)) {
     return null;
   }
   return {
@@ -279,7 +287,7 @@ function base64UrlToBytes(value: string) {
 }
 
 function encodeRulebookTextLocator(locator: RulebookTextLocator) {
-  return bytesToBase64Url(new TextEncoder().encode(JSON.stringify(locator)));
+  return bytesToBase64Url(TEXT_ENCODER.encode(JSON.stringify(locator)));
 }
 
 export function parseRulebookTextLocator(encoded: string | undefined): LocatorParseResult {
@@ -427,7 +435,7 @@ export function resolveRulebookTextLocator(result: LocatorParseResult): LocatorR
 }
 
 function percentEncodeTextFragmentTerm(value: string) {
-  return Array.from(new TextEncoder().encode(value), (byte) => {
+  return Array.from(TEXT_ENCODER.encode(value), (byte) => {
     const isAsciiLetter = (byte >= 65 && byte <= 90) || (byte >= 97 && byte <= 122);
     const isDigit = byte >= 48 && byte <= 57;
     return isAsciiLetter || isDigit
@@ -441,11 +449,34 @@ function takeCodePoints(value: string, count: number, fromEnd = false) {
   return (fromEnd ? points.slice(-count) : points.slice(0, count)).join('');
 }
 
+function takeUtf8Bytes(value: string, maximumBytes: number, fromEnd = false) {
+  const points = Array.from(value);
+  const selected: string[] = [];
+  let bytes = 0;
+  const start = fromEnd ? points.length - 1 : 0;
+  const end = fromEnd ? -1 : points.length;
+  const step = fromEnd ? -1 : 1;
+  for (let index = start; index !== end; index += step) {
+    const point = points[index]!;
+    const pointBytes = utf8ByteLength(point);
+    if (bytes + pointBytes > maximumBytes) {
+      break;
+    }
+    bytes += pointBytes;
+    if (fromEnd) {
+      selected.unshift(point);
+    } else {
+      selected.push(point);
+    }
+  }
+  return selected.join('');
+}
+
 function buildTextFragmentDirective(locator: RulebookTextLocator) {
   const exact = normalizeRulebookText(locator.exact);
-  const longSelection = Array.from(exact).length > TEXT_FRAGMENT_EDGE_LENGTH * 2;
-  const start = takeCodePoints(exact, longSelection ? TEXT_FRAGMENT_EDGE_LENGTH : Array.from(exact).length);
-  const end = longSelection ? takeCodePoints(exact, TEXT_FRAGMENT_EDGE_LENGTH, true) : undefined;
+  const longSelection = Array.from(exact).length > TEXT_FRAGMENT_EDGE_CODE_POINTS * 2;
+  const start = takeCodePoints(exact, longSelection ? TEXT_FRAGMENT_EDGE_CODE_POINTS : Array.from(exact).length);
+  const end = longSelection ? takeCodePoints(exact, TEXT_FRAGMENT_EDGE_CODE_POINTS, true) : undefined;
   const prefix = normalizeRulebookText(locator.prefix ?? '');
   const suffix = normalizeRulebookText(locator.suffix ?? '');
   return [
@@ -464,21 +495,25 @@ export function buildRulebookTextShareUrl(
 ) {
   const parsed = parseLocatorShape(locator);
   if (!parsed) {
-    throw new Error('Cannot build a share URL from an invalid locator');
+    return { ok: false as const, message: SELECTION_TOO_LARGE_MESSAGE };
+  }
+  const encodedLocator = encodeRulebookTextLocator(parsed);
+  if (encodedLocator.length > MAX_ENCODED_LOCATOR_LENGTH) {
+    return { ok: false as const, message: LOCATOR_TOO_LARGE_MESSAGE };
   }
   const resolution = resolveRulebookTextLocator({ status: 'valid', locator: parsed });
   if ((resolution.status !== 'matched' && resolution.status !== 'stale') || !isAnchor(resolution.anchorId)) {
-    throw new Error('Cannot build a share URL without a safe anchor');
+    return { ok: false as const, message: 'The selection does not map to this Rulebook.' };
   }
   const anchorId = resolution.anchorId;
   const url = new URL(baseUrl);
   url.search = '';
   url.hash = '';
-  url.searchParams.set('loc', encodeRulebookTextLocator(parsed));
+  url.searchParams.set('loc', encodedLocator);
   if (variant !== 'reader') {
     url.searchParams.set('variant', variant);
   }
-  return `${url.toString()}#${anchorId}:~:${buildTextFragmentDirective(parsed)}`;
+  return { ok: true as const, url: `${url.toString()}#${anchorId}:~:${buildTextFragmentDirective(parsed)}` };
 }
 
 function elementForNode(node: Node) {
@@ -537,8 +572,8 @@ function canonicalTextAroundRange(
   }
   return {
     exact,
-    prefix: takeCodePoints(normalizeRulebookText(before.join(' ')), MAX_CONTEXT_LENGTH, true),
-    suffix: takeCodePoints(normalizeRulebookText(after.join(' ')), MAX_CONTEXT_LENGTH),
+    prefix: takeUtf8Bytes(normalizeRulebookText(before.join(' ')), MAX_CONTEXT_BYTES, true),
+    suffix: takeUtf8Bytes(normalizeRulebookText(after.join(' ')), MAX_CONTEXT_BYTES),
   };
 }
 
@@ -597,17 +632,19 @@ export function locatorFromBrowserSelection(
     return { ok: false, message: 'Select visible Rulebook text first.' };
   }
   const { exact, prefix, suffix } = canonical;
-  if (exact.length > MAX_SELECTED_TEXT_LENGTH) {
-    return { ok: false, message: 'The selection is too long for a safe share URL.' };
+  if (utf8ByteLength(exact) > MAX_SELECTED_TEXT_BYTES) {
+    return { ok: false, message: SELECTION_TOO_LARGE_MESSAGE };
   }
-  return {
-    ok: true,
-    locator: {
-      v: 1,
-      path,
-      exact,
-      ...(prefix ? { prefix } : {}),
-      ...(suffix ? { suffix } : {}),
-    },
+  const locator: RulebookTextLocator = {
+    v: 1,
+    path,
+    exact,
+    ...(prefix ? { prefix } : {}),
+    ...(suffix ? { suffix } : {}),
   };
+  const encodedLocator = encodeRulebookTextLocator(locator);
+  if (encodedLocator.length > MAX_ENCODED_LOCATOR_LENGTH) {
+    return { ok: false, message: LOCATOR_TOO_LARGE_MESSAGE };
+  }
+  return { ok: true, locator };
 }

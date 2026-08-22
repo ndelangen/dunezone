@@ -32,15 +32,36 @@ const repeatedItemLocator = {
   exact: 'Seal the western gate, then count three breaths.',
 } satisfies Parameters<typeof buildRulebookTextShareUrl>[1];
 
+function requireShareUrl(
+  locator: Parameters<typeof buildRulebookTextShareUrl>[1],
+  baseUrl = 'https://example.com/rulebook'
+) {
+  const result = buildRulebookTextShareUrl(baseUrl, locator);
+  expect(result).toMatchObject({ ok: true });
+  if (!result.ok) {
+    throw new Error(result.message);
+  }
+  return result.url;
+}
+
+function encodeExternalLocator(value: unknown) {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+}
+
 describe('Rulebook text locator prototype', () => {
   it('round-trips bounded Unicode, multiline, punctuation, and long selections', () => {
     const locator = {
       ...repeatedLocator,
-      exact: `“Shai-Hulud’s passage — naïve seers agree.”\n${'Long selection. '.repeat(30)}`,
+      exact: `“Shai-Hulud’s passage — naïve seers agree.”\n${'Long selection. '.repeat(26)}`,
       prefix: '日本語',
       suffix: 'العربية',
     } satisfies Parameters<typeof buildRulebookTextShareUrl>[1];
-    const url = new URL(buildRulebookTextShareUrl('https://example.com/rulebook', locator));
+    const url = new URL(requireShareUrl(locator));
     expect(parseRulebookTextLocator(url.searchParams.get('loc') ?? undefined)).toEqual({ status: 'valid', locator });
     expect(
       resolveRulebookTextLocator(parseRulebookTextLocator(url.searchParams.get('loc') ?? undefined))
@@ -53,6 +74,61 @@ describe('Rulebook text locator prototype', () => {
     expect(directive).toContain(',');
     expect(directive).not.toContain('—');
     expect(directive).not.toContain('\n');
+  });
+
+  it.each([
+    ['emoji-heavy exact text', '😀'.repeat(192)],
+    ['CJK-heavy exact text', '界'.repeat(256)],
+    ['combining-mark exact text', 'e\u0301'.repeat(256)],
+    ['boundary-sized ASCII exact text', 'x'.repeat(768)],
+  ])('round-trips %s within the shared UTF-8 byte budget', (_name, exact) => {
+    const locator = { ...repeatedLocator, exact };
+    const url = new URL(requireShareUrl(locator));
+    const parsed = parseRulebookTextLocator(url.searchParams.get('loc') ?? undefined);
+    expect(parsed).toEqual({ status: 'valid', locator });
+    expect(resolveRulebookTextLocator(parsed)).toMatchObject({ status: 'stale', anchorId: 'storm-rule' });
+  });
+
+  it('uses the same UTF-8 byte budget for context creation and parsing', () => {
+    const boundary = '😀'.repeat(24);
+    const allowed = { ...repeatedLocator, prefix: boundary, suffix: boundary };
+    const url = new URL(requireShareUrl(allowed));
+    expect(parseRulebookTextLocator(url.searchParams.get('loc') ?? undefined)).toEqual({
+      status: 'valid',
+      locator: allowed,
+    });
+
+    const oversized = { ...repeatedLocator, prefix: '😀'.repeat(25) };
+    expect(buildRulebookTextShareUrl('https://example.com/rulebook', oversized)).toEqual({
+      ok: false,
+      message: 'The selection is too large for a safe share URL. Select a shorter passage.',
+    });
+    expect(parseRulebookTextLocator(encodeExternalLocator(oversized)).status).toBe('invalid');
+  });
+
+  it.each([
+    ['emoji-heavy exact text', '😀'.repeat(193)],
+    ['CJK-heavy exact text', '界'.repeat(257)],
+    ['combining-mark exact text', 'e\u0301'.repeat(257)],
+    ['one byte over the ASCII boundary', 'x'.repeat(769)],
+  ])('rejects %s over the shared UTF-8 byte budget', (_name, exact) => {
+    const locator = { ...repeatedLocator, exact };
+    expect(buildRulebookTextShareUrl('https://example.com/rulebook', locator)).toEqual({
+      ok: false,
+      message: 'The selection is too large for a safe share URL. Select a shorter passage.',
+    });
+    expect(parseRulebookTextLocator(encodeExternalLocator(locator)).status).toBe('invalid');
+  });
+
+  it('rejects a locator whose JSON escaping exceeds the final encoded-length ceiling', () => {
+    const locator = { ...repeatedLocator, exact: '\u0000'.repeat(700) };
+    const encoded = encodeExternalLocator(locator);
+    expect(encoded.length).toBeGreaterThan(4096);
+    expect(buildRulebookTextShareUrl('https://example.com/rulebook', locator)).toEqual({
+      ok: false,
+      message: 'The selected text and nearby context cannot fit in a safe share URL. Select a shorter passage.',
+    });
+    expect(parseRulebookTextLocator(encoded).status).toBe('invalid');
   });
 
   it('rejects malformed, oversized, invalid-schema, and hostile anchor payloads', () => {
@@ -158,7 +234,7 @@ describe('Rulebook text locator prototype', () => {
       prefix: '[data-target="#storm"]',
       suffix: '日本語 — العربية',
     } satisfies Parameters<typeof buildRulebookTextShareUrl>[1];
-    const url = buildRulebookTextShareUrl('https://example.com/__rulebook-text-links-prototype?old=1#old', locator);
+    const url = requireShareUrl(locator, 'https://example.com/__rulebook-text-links-prototype?old=1#old');
 
     expect(url).toContain('#storm-rule:~:text=');
     expect(url).not.toContain('<script>');
@@ -168,7 +244,7 @@ describe('Rulebook text locator prototype', () => {
   });
 
   it('falls back to the Page anchor when the selected Block has no public anchor', () => {
-    const shareUrl = buildRulebookTextShareUrl('https://example.com/rulebook', repeatedItemLocator);
+    const shareUrl = requireShareUrl(repeatedItemLocator);
     const parsed = parseRulebookTextLocator(new URL(shareUrl).searchParams.get('loc') ?? undefined);
     expect(parsed).toEqual({ status: 'valid', locator: repeatedItemLocator });
     expect(resolveRulebookTextLocator(parsed)).toMatchObject({
@@ -289,9 +365,7 @@ describe('Rulebook text locator prototype', () => {
         page: { id: 'page-2' },
         block: { id: 'block-storm-rule' },
       });
-      expect(buildRulebookTextShareUrl('https://example.com/rulebook', repeatedLocator)).toContain(
-        '#renamed-storm-rule:~:text='
-      );
+      expect(requireShareUrl(repeatedLocator)).toContain('#renamed-storm-rule:~:text=');
     } finally {
       block.anchor = originalAnchor;
     }
