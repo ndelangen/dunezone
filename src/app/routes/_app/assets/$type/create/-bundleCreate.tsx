@@ -13,7 +13,7 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_DRAFT } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
 
-import { AssetEditorMessage, SaveErrorAlert, useNameConflict } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'bundle-validation-header';
 
@@ -31,9 +31,10 @@ export function BundleCreatePage() {
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { conflictWarnings, conflictProbe } = useNameConflict({
+  const { nameField, conflictWarnings } = useAssetNameField({
     type: 'bundle',
     name: draft.name,
+    onName: (name) => patch({ name }),
     source: 'Identity',
     chapter: 'identity' as BundleChapter,
   });
@@ -101,9 +102,9 @@ export function BundleCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {conflictProbe}
           <SaveErrorAlert error={createAsset.error} />
           <BundleEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

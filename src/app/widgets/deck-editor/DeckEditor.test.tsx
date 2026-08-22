@@ -35,6 +35,7 @@ function Harness() {
   return (
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
       <DeckEditor
+        nameField={<input aria-label="Name" readOnly value="" />}
         draft={draft}
         patch={(update) => setDraft((previous) => ({ ...previous, ...update }))}
         chapter={chapter}

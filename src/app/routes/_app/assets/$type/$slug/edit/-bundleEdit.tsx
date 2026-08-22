@@ -24,7 +24,7 @@ import {
   SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
-  useNameConflict,
+  useAssetNameField,
 } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'bundle-validation-header';
@@ -113,9 +113,10 @@ function BundleEditSession({
   const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const tokens = members.map((entry) => ({ token: entry.member, count: entry.count }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { conflictWarnings, conflictProbe } = useNameConflict({
+  const { nameField, conflictWarnings } = useAssetNameField({
     type: 'bundle',
     name: draft.name,
+    onName: (name) => patch({ name }),
     currentSlug: asset.slug,
     source: 'Identity',
     chapter: 'identity' as BundleChapter,
@@ -193,7 +194,6 @@ function BundleEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {conflictProbe}
           <SaveErrorAlert error={updateAsset.error} />
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">
@@ -207,6 +207,7 @@ function BundleEditSession({
             </Alert>
           ) : null}
           <BundleEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

@@ -9,6 +9,7 @@ const meta = preview.meta({
   title: 'Treachery Card Editor',
   component: TreacheryCardEditor,
   args: {
+    nameField: <input aria-label="Name" readOnly value="Lasgun" />,
     draft: { ...INITIAL_TREACHERY_DRAFT, name: 'Lasgun', subName: 'Weapon - Special' },
     patch: fn(),
     chapter: 'head' as const,

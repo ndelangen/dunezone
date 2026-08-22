@@ -1,6 +1,5 @@
 import { Alert, Anchor, Group, Stack, Text, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
-import { slugify } from '@shared/slugify';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -8,12 +7,15 @@ import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { useAssetSlugTaken, useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
+import { useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
+import { AssetNameInput } from '@app/pickers/AssetNameInput';
+import { nameConflictComplaint } from '@app/pickers/UniqueNameInput';
+import type { NameConflict } from '@app/pickers/UniqueNameInput';
 
 /**
  * The states an asset editor route reaches instead of an editor: no such asset, not signed in, not allowed, no editor built yet.
@@ -193,66 +195,41 @@ export function useAssetGroupActions({
   };
 }
 
-/** The subscription half of the name-conflict check: mounted only while a candidate slug exists, which is how the read stays conditional without a skip. */
-function NameConflictProbe({
-  type,
-  slug,
-  onAnswer,
-}: {
-  type: string;
-  slug: string;
-  onAnswer: (holder: 'live' | 'deleted' | null) => void;
-}) {
-  const holder = useAssetSlugTaken({ type, slug });
-  useEffect(() => {
-    onAnswer(holder ?? null);
-  }, [holder, onAnswer]);
-  return null;
-}
-
 /**
- * Whether the draft's name collides with an existing asset of the same type, live while the author types.
+ * The route's half of the name field: state for the conflict the Picker reports, the ready warning rows for the validation header, and the field node the editor widget mounts.
  *
- * The same rule the save guard refuses on, read as a subscription, so the warning and the refusal can never disagree.
+ * The field itself is `AssetNameInput`, a Picker — the taxonomy's one fetching control — so no route holds a second page subscription and no widget fetches.
+ * Norbert ruled it so on 2026-08-22: the earlier rulebook exception was the wrong answer, and the right one was making the field a Picker.
  * Finding 19 of «Walk findings, round two» is the why: a card named Shield met the reserved slug of the existing Shield card and the reader learned nothing.
- * On an edit page pass `currentSlug`, so an unchanged name never warns about its own address.
- * Returns the colliding slug for the warning's words (null while the name is free, blank, or unchanged) and a probe node the organ must render: mounting it is what turns the subscription on.
  */
-export function useNameConflict<Chapter extends string>({
+export function useAssetNameField<Chapter extends string>({
   type,
   name,
+  onName,
   currentSlug,
   source,
   chapter,
 }: {
   type: string;
   name: string;
+  onName: (name: string) => void;
   currentSlug?: string;
   /** The validation header group the warning joins — Identity everywhere but the treachery card, whose name lives in Head. */
   source: string;
   chapter: Chapter;
-}): { conflictWarnings: { source: string; complaint: string; chapter: Chapter }[]; conflictProbe: ReactNode } {
-  const [answer, setAnswer] = useState<'live' | 'deleted' | null>(null);
-  const slug = slugify(name);
-  const candidate = slug.length > 0 && slug !== currentSlug ? slug : null;
-  /* Settled rather than live: each distinct slug is a subscription swap, and a name typed letter by letter walks through every prefix. The pause also keeps a colliding prefix from flashing a warning on the way to a free name. */
-  const [settled, setSettled] = useState<string | null>(candidate);
-  useEffect(() => {
-    const timer = setTimeout(() => setSettled(candidate), 400);
-    return () => clearTimeout(timer);
-  }, [candidate]);
-  const conflictProbe = settled ? (
-    <NameConflictProbe key={settled} type={type} slug={settled} onAnswer={setAnswer} />
-  ) : null;
-  const holder = candidate && settled === candidate ? answer : null;
-  /* The warning speaks the refusal's own distinction: a living holder and a deleted one reserving its address are different answers, and the save guard words them differently too. */
-  const complaint =
-    holder === 'deleted'
-      ? `its name is already taken ("${candidate}" stays reserved by a deleted asset)`
-      : `its name is already taken (another one lives at "${candidate}")`;
+}): { nameField: ReactNode; conflictWarnings: { source: string; complaint: string; chapter: Chapter }[] } {
+  const [conflict, setConflict] = useState<NameConflict | null>(null);
   return {
-    conflictWarnings: holder ? [{ source, complaint, chapter }] : [],
-    conflictProbe,
+    nameField: (
+      <AssetNameInput
+        type={type}
+        value={name}
+        onChange={onName}
+        currentSlug={currentSlug}
+        onConflictChange={setConflict}
+      />
+    ),
+    conflictWarnings: conflict ? [{ source, complaint: nameConflictComplaint(conflict), chapter }] : [],
   };
 }
 

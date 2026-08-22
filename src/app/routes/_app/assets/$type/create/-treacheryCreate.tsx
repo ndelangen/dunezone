@@ -17,7 +17,7 @@ import {
 } from '@app/widgets/card-editor/TreacheryCardEditor';
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
 
-import { AssetEditorMessage, SaveErrorAlert, useNameConflict } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'card-validation-header';
 
@@ -31,9 +31,10 @@ export function TreacheryCreatePage() {
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { conflictWarnings, conflictProbe } = useNameConflict({
+  const { nameField, conflictWarnings } = useAssetNameField({
     type: 'card-treachery',
     name: draft.name,
+    onName: (name) => patch({ name }),
     source: 'Head',
     chapter: 'head' as TreacheryChapter,
   });
@@ -99,9 +100,9 @@ export function TreacheryCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {conflictProbe}
           <SaveErrorAlert error={createAsset.error} />
           <TreacheryCardEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

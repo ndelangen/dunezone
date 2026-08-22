@@ -14,7 +14,7 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { initialTokenDraft, TokenEditor, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
 
-import { AssetEditorMessage, SaveErrorAlert, useNameConflict } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'token-validation-header';
 
@@ -36,9 +36,10 @@ export function TokenCreatePage({ type }: { type: string }) {
   const patch = (update: Partial<TokenDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const pickless = draft.back.mode === 'reference' && draft.back.asset_id === null;
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { conflictWarnings, conflictProbe } = useNameConflict({
+  const { nameField, conflictWarnings } = useAssetNameField({
     type,
     name: draft.name,
+    onName: (name) => patch({ name }),
     source: 'Identity',
     chapter: 'identity' as TokenChapter,
   });
@@ -110,7 +111,6 @@ export function TokenCreatePage({ type }: { type: string }) {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {conflictProbe}
           <SaveErrorAlert error={createAsset.error} />
           {pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No token picked">
@@ -118,6 +118,7 @@ export function TokenCreatePage({ type }: { type: string }) {
             </Alert>
           ) : null}
           <TokenEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             type={type}

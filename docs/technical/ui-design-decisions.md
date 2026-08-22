@@ -147,11 +147,9 @@ states, and scatters a screen's authoritative shape across Convex functions. Eac
 **at most one Convex query for page data**, plus `useCurrentProfile` when the UI is auth-aware;
 derive UI-ready fields inside that query, and pass small server-derived collections into controls
 through it rather than adding child subscriptions. The one documented exception is a lazily-mounted
-[Picker](#pickers-are-the-one-place-a-component-may-fetch), which may hold its own read-only options
-subscription — so a control choosing from a large set never forces those rows into the page query.
-The second is the editors' name-conflict probe: a debounced, conditionally-mounted read of
-`assets.slugTaken` that warns about a colliding name while the author types, which cannot ride the
-page query because the candidate slug changes with every settled keystroke.
+[Picker](#pickers-are-the-one-place-a-component-may-fetch), which may hold its own read-only
+subscription — so a control whose read depends on its own transient state (a search, a candidate
+name) never forces that churn into the page query.
 This subscription discipline is the real reason widgets don't fetch and Pickers fetch only lazily.
 Mutations don't count.
 

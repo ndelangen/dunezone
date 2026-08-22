@@ -18,6 +18,7 @@ const meta = preview.meta({
   title: 'Token Editor',
   component: TokenEditor,
   args: {
+    nameField: <input aria-label="Name" readOnly value="Lasgun" />,
     type: TYPE,
     chapter: 'identity' as const,
     onChapterChange: fn(),

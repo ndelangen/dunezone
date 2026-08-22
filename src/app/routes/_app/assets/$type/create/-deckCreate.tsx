@@ -13,7 +13,7 @@ import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { DeckEditor, INITIAL_DECK_DRAFT, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
 import type { DeckChapter, DeckDraft } from '@app/widgets/deck-editor/DeckEditor';
 
-import { AssetEditorMessage, SaveErrorAlert, useNameConflict } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'deck-validation-header';
 
@@ -34,9 +34,10 @@ export function DeckCreatePage() {
   const patch = (update: Partial<DeckDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const pickless = draft.cardback.mode === 'reference' && draft.cardback.asset_id === null;
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { conflictWarnings, conflictProbe } = useNameConflict({
+  const { nameField, conflictWarnings } = useAssetNameField({
     type: 'deck',
     name: draft.name,
+    onName: (name) => patch({ name }),
     source: 'Identity',
     chapter: 'identity' as DeckChapter,
   });
@@ -109,7 +110,6 @@ export function DeckCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {conflictProbe}
           <SaveErrorAlert error={createAsset.error} />
           {pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No deck picked">
@@ -117,6 +117,7 @@ export function DeckCreatePage() {
             </Alert>
           ) : null}
           <DeckEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

@@ -38,6 +38,7 @@ function Harness({ expose }: { expose: (state: { draft: TokenDraft; setDraft: (n
   return (
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
       <TokenEditor
+        nameField={<input aria-label="Name" readOnly value="" />}
         draft={draft}
         patch={(update) => setDraft((previous) => ({ ...previous, ...update }))}
         type={TYPE}

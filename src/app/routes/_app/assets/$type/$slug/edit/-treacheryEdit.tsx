@@ -21,7 +21,7 @@ import {
   SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
-  useNameConflict,
+  useAssetNameField,
 } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'card-validation-header';
@@ -106,9 +106,10 @@ function CardEditSession({
   const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { conflictWarnings, conflictProbe } = useNameConflict({
+  const { nameField, conflictWarnings } = useAssetNameField({
     type: 'card-treachery',
     name: draft.name,
+    onName: (name) => patch({ name }),
     currentSlug: asset.slug,
     source: 'Head',
     chapter: 'head' as TreacheryChapter,
@@ -182,7 +183,6 @@ function CardEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {conflictProbe}
           <SaveErrorAlert error={updateAsset.error} />
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">
@@ -191,6 +191,7 @@ function CardEditSession({
           ) : null}
           {groupActions.error}
           <TreacheryCardEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

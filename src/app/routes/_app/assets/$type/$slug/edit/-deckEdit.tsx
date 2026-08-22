@@ -29,7 +29,7 @@ import {
   SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
-  useNameConflict,
+  useAssetNameField,
 } from '../../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'deck-validation-header';
@@ -150,9 +150,10 @@ function DeckEditSession({
    * («How a dangling back reference presents»), routed to Identity, the chapter the back tiles live in.
    */
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { conflictWarnings, conflictProbe } = useNameConflict({
+  const { nameField, conflictWarnings } = useAssetNameField({
     type: 'deck',
     name: draft.name,
+    onName: (name) => patch({ name }),
     currentSlug: asset.slug,
     source: 'Identity',
     chapter: 'identity' as DeckChapter,
@@ -261,7 +262,6 @@ function DeckEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {conflictProbe}
           <SaveErrorAlert error={updateAsset.error} />
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">
@@ -280,6 +280,7 @@ function DeckEditSession({
             </Alert>
           ) : null}
           <DeckEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             chapter={chapter}

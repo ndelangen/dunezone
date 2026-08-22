@@ -25,7 +25,7 @@ import {
   SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
-  useNameConflict,
+  useAssetNameField,
 } from '../../../-assetEditorStates';
 import { referencedTokenBackFace } from './-referencedBackFace';
 
@@ -137,9 +137,10 @@ function TokenEditSession({
    * It routes to Identity, the chapter the back tiles live in.
    */
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { conflictWarnings, conflictProbe } = useNameConflict({
+  const { nameField, conflictWarnings } = useAssetNameField({
     type,
     name: draft.name,
+    onName: (name) => patch({ name }),
     currentSlug: asset.slug,
     source: 'Identity',
     chapter: 'identity' as TokenChapter,
@@ -227,7 +228,6 @@ function TokenEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          {conflictProbe}
           <SaveErrorAlert error={updateAsset.error} />
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">
@@ -241,6 +241,7 @@ function TokenEditSession({
             </Alert>
           ) : null}
           <TokenEditor
+            nameField={nameField}
             draft={draft}
             patch={patch}
             type={type}
