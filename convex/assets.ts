@@ -6,7 +6,7 @@ import {
   PUBLICATION_TARGETS,
   publicationFaceId,
 } from '../src/shared/asset-publishing/publicationTargets';
-import { ASSET_TYPE_KEYS, ASSET_TYPES, isAssetType } from '../src/shared/assets/types';
+import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
@@ -353,29 +353,36 @@ async function rulesetsSlotting(ctx: QueryCtx, assetId: Id<'assets'>) {
 }
 
 /**
- * Whether an asset of this type already holds the slug — soft-deleted rows included, since their address stays reserved.
+ * Who holds the slug for this type — a living asset, a soft-deleted one whose address stays reserved, or nobody.
  * One rule read twice: the save guard refuses on it, and the editors' live conflict check subscribes to it, so the warning and the refusal can never disagree.
  */
-async function assetSlugHeld(ctx: QueryCtx, type: string, slug: string): Promise<boolean> {
+async function assetSlugHolder(ctx: QueryCtx, type: string, slug: string): Promise<'live' | 'deleted' | null> {
   const holders = await ctx.db
     .query('assets')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .take(50);
-  return holders.some((row) => row.type === type);
+  const holder = holders.find((row) => row.type === type);
+  if (!holder) {
+    return null;
+  }
+  return holder.is_deleted ? 'deleted' : 'live';
 }
 
 /** The editors' live name-conflict check, the save guard's rule as a subscription. */
 export const slugTaken = query({
   args: { type: v.string(), slug: v.string() },
   returns: v.boolean(),
-  handler: async (ctx, args) => await assetSlugHeld(ctx, args.type, args.slug),
+  handler: async (ctx, args) => (await assetSlugHolder(ctx, args.type, args.slug)) !== null,
 });
 
 async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {
-  if (await assetSlugHeld(ctx, type, slug)) {
-    /* A ConvexError, so the words reach the editor's banner in production; a plain Error is redacted to "Server Error" (Norbert hit exactly that, 2026-08-22). */
-    const noun = isAssetType(type) ? ASSET_TYPES[type].shortLabel.toLowerCase() : type;
-    throw new ConvexError(`The name is taken: another ${noun} already lives at "${slug}". Pick a different name.`);
+  /* A ConvexError, so the words reach the editor's banner in production; a plain Error is redacted to "Server Error" (Norbert hit exactly that, 2026-08-22). No type noun: the registry's labels are plural pile captions, not singular nouns, and borrowing one produced "another decks". */
+  const holder = await assetSlugHolder(ctx, type, slug);
+  if (holder === 'live') {
+    throw new ConvexError(`The name is taken: another one already lives at "${slug}". Pick a different name.`);
+  }
+  if (holder === 'deleted') {
+    throw new ConvexError(`The name is taken: "${slug}" stays reserved by a deleted asset. Pick a different name.`);
   }
 }
 
@@ -590,7 +597,7 @@ export const setMemberCount = mutation({
     }
     const rules = CONTAINER_KINDS[container.type];
     if (!rules) {
-      throw new ConvexError(`Asset type ${container.type} holds nothing`);
+      throw new Error(`Asset type ${container.type} holds nothing`);
     }
     await requireAssetUpdate(ctx, args.container_id, nameOf(container));
 
@@ -599,7 +606,7 @@ export const setMemberCount = mutation({
       throw new Error(`Asset with id ${args.member_id} not found`);
     }
     if (!rules.holds(member.type)) {
-      throw new ConvexError(`A ${container.type} holds ${rules.noun}, not ${member.type}`);
+      throw new Error(`A ${container.type} holds ${rules.noun}, not ${member.type}`);
     }
 
     const existing = await ctx.db

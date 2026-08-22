@@ -102,7 +102,7 @@ describe('asset soft delete', () => {
       t
         .withIdentity({ subject: ownerId })
         .mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') })
-    ).rejects.toThrow('already lives at');
+    ).rejects.toThrow('stays reserved by a deleted asset');
   });
 
   test('deletion is owner-only, even for a viewer who may edit', async () => {
@@ -855,7 +855,7 @@ describe('name conflicts', () => {
       .withIdentity({ subject: ownerId })
       .mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun!') });
     await expect(attempt).rejects.toThrow(ConvexError);
-    await expect(attempt).rejects.toThrow('another treachery already lives at "lasgun"');
+    await expect(attempt).rejects.toThrow('another one already lives at "lasgun"');
 
     /* The editors' subscription reads the same rule, so the warning and the refusal cannot disagree. */
     expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe(true);

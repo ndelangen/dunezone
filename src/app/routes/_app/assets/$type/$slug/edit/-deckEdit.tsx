@@ -158,8 +158,8 @@ function DeckEditSession({
     chapter: 'identity' as DeckChapter,
   });
   const warnings: (DeckWarning | { source: string; complaint: string; chapter: DeckChapter })[] = [
-    ...conflictWarnings,
     ...deckDraftWarnings(draft, cards),
+    ...conflictWarnings,
     ...(danglingBack && draft.cardback.mode === 'reference'
       ? [{ source: 'Cardback', complaint: 'its referenced cardback is gone', chapter: 'identity' as DeckChapter }]
       : []),

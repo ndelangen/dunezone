@@ -160,8 +160,8 @@ function RectangleEditSession({
     chapter: 'identity' as RectangleChapter,
   });
   const warnings: (RectangleWarning | { source: string; complaint: string; chapter: RectangleChapter })[] = [
-    ...conflictWarnings,
     ...rectangleDraftWarnings(draft),
+    ...conflictWarnings,
     ...(danglingBack && draft.back.mode === 'reference'
       ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as RectangleChapter }]
       : []),

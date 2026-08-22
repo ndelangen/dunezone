@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
@@ -37,7 +37,7 @@ async function assertFactionSlugAvailable(ctx: MutationCtx, slug: string, factio
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
   if (existing && existing._id !== factionId) {
-    throw new Error(`Faction slug ${slug} is reserved`);
+    throw new ConvexError(`The name is taken: another faction already lives at "${slug}". Pick a different name.`);
   }
 }
 

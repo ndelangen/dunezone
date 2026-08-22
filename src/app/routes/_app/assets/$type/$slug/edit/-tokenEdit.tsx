@@ -145,8 +145,8 @@ function TokenEditSession({
     chapter: 'identity' as TokenChapter,
   });
   const warnings: (TokenWarning | { source: string; complaint: string; chapter: TokenChapter })[] = [
-    ...conflictWarnings,
     ...tokenDraftWarnings(draft),
+    ...conflictWarnings,
     ...(danglingBack && draft.back.mode === 'reference'
       ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as TokenChapter }]
       : []),

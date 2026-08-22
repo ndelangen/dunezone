@@ -235,10 +235,16 @@ export function useNameConflict<Chapter extends string>({
   const [answer, setAnswer] = useState<string | null>(null);
   const slug = slugify(name);
   const candidate = slug.length > 0 && slug !== currentSlug ? slug : null;
-  const conflictProbe = candidate ? (
-    <NameConflictProbe key={candidate} type={type} slug={candidate} onAnswer={setAnswer} />
+  /* Settled rather than live: each distinct slug is a subscription swap, and a name typed letter by letter walks through every prefix. The pause also keeps a colliding prefix from flashing a warning on the way to a free name. */
+  const [settled, setSettled] = useState<string | null>(candidate);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(candidate), 400);
+    return () => clearTimeout(timer);
+  }, [candidate]);
+  const conflictProbe = settled ? (
+    <NameConflictProbe key={settled} type={type} slug={settled} onAnswer={setAnswer} />
   ) : null;
-  const conflictSlug = candidate ? answer : null;
+  const conflictSlug = candidate && settled === candidate ? answer : null;
   return {
     conflictWarnings: conflictSlug
       ? [{ source, complaint: `its name is already taken (another one lives at "${conflictSlug}")`, chapter }]

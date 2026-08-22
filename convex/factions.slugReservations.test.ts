@@ -45,7 +45,7 @@ describe('faction slug reservations', () => {
     await asUser.mutation(api.factions.softDelete, { id: faction._id });
 
     await expect(createFaction(asUser, 'Reserved Faction')).rejects.toThrow(
-      'Faction slug reserved-faction is reserved'
+      'another faction already lives at "reserved-faction"'
     );
   });
 
@@ -60,7 +60,7 @@ describe('faction slug reservations', () => {
         id: active._id,
         data: { ...assetPublishingFaction, name: 'Reserved Faction' },
       })
-    ).rejects.toThrow('Faction slug reserved-faction is reserved');
+    ).rejects.toThrow('another faction already lives at "reserved-faction"');
   });
 
   test('the repair keeps the active public slug and archives the deleted duplicate', async () => {

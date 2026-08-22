@@ -149,6 +149,9 @@ derive UI-ready fields inside that query, and pass small server-derived collecti
 through it rather than adding child subscriptions. The one documented exception is a lazily-mounted
 [Picker](#pickers-are-the-one-place-a-component-may-fetch), which may hold its own read-only options
 subscription — so a control choosing from a large set never forces those rows into the page query.
+The second is the editors' name-conflict probe: a debounced, conditionally-mounted read of
+`assets.slugTaken` that warns about a colliding name while the author types, which cannot ride the
+page query because the candidate slug changes with every settled keystroke.
 This subscription discipline is the real reason widgets don't fetch and Pickers fetch only lazily.
 Mutations don't count.
 
