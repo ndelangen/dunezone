@@ -54,7 +54,7 @@ in for interface tests. The test suite's churn (the architecture test changed
 - The literal-annotation assertion was removed in PR #232, and issue #233 (now
   closed) retired the remaining source-text assertions in favor of validator and
   type-level guarantees, deleting rather than translating where the compiler
-  already enforced the intent. What survives is the two tree-level scans above.
+  already enforced the intent. What survives is the three tree-level scans above.
 - Convex boundary suites (e.g. `convex/profiles.detail.test.ts`) are the
   approved testing shape: they cross the public query seam.
 - Future architecture reviews should not propose source-text contracts or
