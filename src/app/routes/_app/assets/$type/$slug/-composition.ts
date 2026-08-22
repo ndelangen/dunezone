@@ -13,13 +13,14 @@ export type CompositionTiles<M> = {
   tiles: { member: M; key: string; count: number }[];
   /** Copies the cap left undrawn. Zero in the each-once view, which is never capped: the server's page is its only bound. */
   omittedCopies: number;
-  /** Members the cap left entirely undrawn — the reader cannot learn these exist from the grid alone. */
+  /** Members the cap left entirely undrawn; the reader cannot learn these exist from the grid alone. */
   omittedMembers: number;
 };
 
 /**
  * The tiles a composition draws.
- * Every copy, bounded by the cap, or each member once with its count on the caption — the collapsed view always shows the whole loaded page, which is what the cap's note points the reader at.
+ * Every copy, bounded by the cap, or each member once with its count on the caption.
+ * The collapsed view always shows the whole loaded page, which is what the cap's note points the reader at.
  */
 export function compositionTiles<M extends { id: string }>(
   members: readonly CompositionEntry<M>[],

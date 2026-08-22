@@ -4,7 +4,7 @@
  * It left `src/app/routes` the moment something outside the assets routes needed it.
  * A picker row draws the same face as a browse tile, and a file only its own routes may import cannot serve both.
  *
- * Listing `data` arrives untyped — the per-type Zod schemas live with the editors — so each adapter safeParses just enough to hand the real game renderer its props, and anything unrenderable falls back to a neutral face rather than crashing a browse page.
+ * Listing `data` arrives untyped (the per-type Zod schemas live with the editors), so each adapter safeParses just enough to hand the real game renderer its props, and anything unrenderable falls back to a neutral face rather than crashing a browse page.
  * The scale frames wrap the renderers' intrinsic sizes (cards draw at 900x1263, tokens fill).
  */
 import { Text } from '@mantine/core';
@@ -66,7 +66,7 @@ function bundleHeadroom(memberCount: number): number {
 /** An enhance token is wider than it is tall; every other token shape is square. */
 const RECTANGLE_TOKEN_ASPECT = 0.62;
 
-/** a cog silhouette for the tech token's frame — 10 teeth, alternating outer/inner radius */
+/** a cog silhouette for the tech token's frame, 10 teeth, alternating outer/inner radius */
 const GEAR_CLIP = (() => {
   const steps = 20;
   const points: string[] = [];

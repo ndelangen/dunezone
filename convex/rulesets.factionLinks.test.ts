@@ -22,7 +22,7 @@ function linkTest() {
 }
 
 /**
- * An owner with a group, an active member of that group, and an outsider — plus a ruleset assigned to the group and a faction to link.
+ * An owner with a group, an active member of that group, and an outsider, plus a ruleset assigned to the group and a faction to link.
  * The permission the mutations enforce is the ruleset's `edit`: its owner, or an active member of its maintaining group.
  */
 async function linkFixture() {

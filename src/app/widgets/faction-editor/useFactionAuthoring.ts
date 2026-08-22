@@ -61,7 +61,7 @@ export function useFactionAuthoring({
           /*
            * form.reset(values) adopts `values` as the form's defaultValues, but useForm
            * re-applies the hook's defaultValues on every render and overwrites an
-           * untouched form whenever the two disagree — keep the hook's copy in step.
+           * untouched form whenever the two disagree. Keep the hook's copy in step.
            */
           initialBaselineRef.current = structuredClone(values);
         }

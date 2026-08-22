@@ -43,7 +43,7 @@ export function sameBackground(a: BackgroundData, b: BackgroundData): boolean {
 }
 
 /* A background chosen from named presets, with the composer behind a Custom option.
-   "Custom" stays selected while the value still equals a preset — the choice itself opens the composer. */
+   "Custom" stays selected while the value still equals a preset; the choice itself opens the composer. */
 export function BackgroundPresetControl({
   title,
   description,

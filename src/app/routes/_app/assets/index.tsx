@@ -99,7 +99,7 @@ function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
   );
 }
 
-/** a slightly fanned pile of real faces — card-type piles; every face keeps the placeholder's width */
+/** a slightly fanned pile of real faces for card-type piles; every face keeps the placeholder's width */
 function MiniFan({ entries, slot }: { entries: AssetListEntry[]; slot: number }) {
   /* The grid track may shrink below the spread in the stacked state, so the face width floors at 1px rather than going negative. */
   const cardWidth = Math.max(1, slot - (entries.length - 1) * FAN_OVERLAP);
@@ -124,7 +124,7 @@ function MiniFan({ entries, slot }: { entries: AssetListEntry[]; slot: number })
   );
 }
 
-/** a squared-up pile — decks; the newest deck's cardback on top */
+/** a squared-up pile for decks; the newest deck's cardback on top */
 function DeckPile({ entries, slot }: { entries: AssetListEntry[]; slot: number }) {
   const top = entries[0] as AssetListEntry;
   const cardWidth = Math.max(1, slot - 6);

@@ -75,7 +75,8 @@ export type PublicationWorkBudget = {
 };
 
 /**
- * The one timing contract for a publication work cycle: captures stop at the work deadline, the final report must land before the completion deadline, and each executor round-trip is clamped by the request margin.
+ * The one timing contract for a publication work cycle: captures stop at the work deadline;
+ * the final report must land before the completion deadline, and each executor round-trip is clamped by the request margin.
  * The validation in
  * `parsePublisherConfig` guarantees these fit the executor's absolute lifecycle window.
  */

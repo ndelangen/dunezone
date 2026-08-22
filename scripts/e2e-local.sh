@@ -134,7 +134,7 @@ load_app_pid() {
 
 phase_up() {
   # A previous phased run that never reached `down` leaves the app server
-  # holding the port, and the rm -rf below deletes its pid file — reap it now.
+  # holding the port, and the rm -rf below deletes its pid file. Reap it now.
   # Only kill a pid that is still our server; pids get recycled.
   load_app_pid
   if [[ -n "$APP_PID" ]] && ps -p "$APP_PID" -o command= 2>/dev/null | grep -Eq 'e2e-serve-dist|vite'; then
@@ -172,7 +172,7 @@ phase_serve() {
   export_runtime_env
 
   mkdir -p "$ROOT_DIR/.playwright"
-  # E2E runs against the production build, served statically — vite dev's
+  # E2E runs against the production build, served statically: vite dev's
   # on-demand transforms dominated slow-spec wall clock. VITE_* env is baked
   # at build time, so it must be set on the build, not the server. Sourcemaps
   # let e2e/coverage.ts map V8 coverage of chunks back to src/; minify off

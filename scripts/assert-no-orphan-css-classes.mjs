@@ -21,7 +21,7 @@ function filesUnder(root, extensions) {
   return (
     readdirSync(root, { recursive: true, withFileTypes: true })
       .filter((entry) => entry.isFile() && extensions.some((ext) => entry.name.endsWith(ext)))
-      /* `parentPath` is already relative to the cwd, because `root` is — keep it that way so these
+      /* `parentPath` is already relative to the cwd, because `root` is. Keep it that way so these
        line up with the specifiers resolved below. */
       .map((entry) => join(entry.parentPath, entry.name))
   );
@@ -33,7 +33,7 @@ const sourceFiles = filesUnder('src', ['.ts', '.tsx']);
 
 /**
  * Which source files import each stylesheet, and under what name.
- * The binding is read from the import rather than assumed to be `styles` — `FactionSheetView` calls its one `sheetPrint`, and guessing the name reports every class in that file as dead.
+ * The binding is read from the import rather than assumed to be `styles`, because `FactionSheetView` calls its one `sheetPrint`, and guessing the name reports every class in that file as dead.
  */
 const importersOf = new Map();
 for (const source of sourceFiles) {
@@ -48,7 +48,7 @@ for (const source of sourceFiles) {
 }
 
 /* One static pattern for every `object.prop` and `object['prop']` in a file, filtered by binding
-   afterwards — building a regex per binding would mean interpolating parsed text into a pattern. */
+   afterwards, since building a regex per binding would mean interpolating parsed text into a pattern. */
 const PROPERTY_ACCESS = /\b(\w+)\s*(?:\.\s*([A-Za-z_]\w*)|\[\s*'([^']+)'\s*\])/g;
 /* `styles[expression]` builds a class name at runtime, so no static reading of that file can
    decide which rules are live. Those stylesheets are skipped rather than guessed at. */

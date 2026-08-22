@@ -29,7 +29,7 @@ export const mcrOptions: CoverageReportOptions = {
   /*
    * Built chunks are served under /public/ (vite build.assetsDir) and map back to src/ via their
    * sourcemaps; the /src/ arm keeps dev-server runs working (transform-in-place module URLs).
-   * Everything else — dep bundles, vite client internals — is not ours to count.
+   * Everything else is not ours to count: dep bundles, vite client internals.
    */
   entryFilter: (entry) => entry.url.includes('/src/') || /\/public\/[^?]*\.js$/.test(entry.url.split('?')[0] ?? ''),
   /*
@@ -63,7 +63,8 @@ const shouldCollect = () => coverageEnabled && test.info().project.name !== 'ani
 const startCollecting = (page: Page) => page.coverage.startJSCoverage({ resetOnNavigation: false });
 
 /**
- * Collection must happen while the page's CDP session is alive — after the context closes, the coverage is unrecoverable.
+ * Collection must happen while the page's CDP session is alive;
+ * after the context closes the coverage is unrecoverable.
  */
 async function collectInto(page: Page): Promise<void> {
   const entries = await page.coverage.stopJSCoverage();
@@ -73,7 +74,7 @@ async function collectInto(page: Page): Promise<void> {
 /**
  * Factory fixture: coverage-aware replacement for `browser.newContext()` + `context.newPage()` in multi-user specs.
  * Prefer closing via the returned `close`;
- * any page still open when the test ends — including when it fails mid-test — is collected and closed by the fixture teardown, so coverage is never silently dropped.
+ * any page still open when the test ends, including when it fails mid-test, is collected and closed by the fixture teardown, so coverage is never silently dropped.
  */
 type NewUserPage = (options: BrowserContextOptions) => Promise<{
   page: Page;

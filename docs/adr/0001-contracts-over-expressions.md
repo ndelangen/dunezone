@@ -1,13 +1,13 @@
-# ADR-0001: Contracts over expressions — inference-first types, interface-level tests
+# ADR-0001: Contracts over expressions. Inference-first types, interface-level tests
 
 **Status:** Accepted (2026-08-06)
 
 ## Context
 
 During the merge of PR #232 (issue #199), a source-text assertion in
-`collaborativeAccessCallers.architecture.test.ts` — a grep for the literal
-annotation `groupSummaries: AssignedGroupSummary[]` — forced a fully derived
-client page type back into a hand-written one. The test dictated the API's
+`collaborativeAccessCallers.architecture.test.ts`, a grep for the
+literal annotation `groupSummaries: AssignedGroupSummary[]`, forced a
+fully derived client page type back into a hand-written one. The test dictated the API's
 expression. Separately, full-object `toEqual` assertions on page models failed
 on additive, correct changes, and issue #203 records pure-helper tests standing
 in for interface tests. The test suite's churn (the architecture test changed
@@ -25,18 +25,20 @@ in for interface tests. The test suite's churn (the architecture test changed
    formatting. Structural guarantees ("field X never reaches the client")
    belong in `returns` validators and the type system, not in greps.
 
-   **Narrow exception — a rule about the tree, not about a module.** A source
-   scan is allowed only where the guarantee is a property of the *file tree*
-   that no type or lint rule can express, and every such suite must name this
-   ADR and say why. Three exist, and the list is meant to stay short:
-   - `src/app/ui/layout/PageLayout.architecture.test.ts` — every terminal
-     visual route mounts `PageLayout`. "Every file in this directory does X" is
-     not something a type can say.
-   - `src/game/rendererIsolation.test.ts` — no renderer source mentions
-     `@mantine`, `@radix-ui`, or the app's component paths. This one asserts
-     import spellings deliberately: the guarantee is the *absence* of a
-     dependency, and absence has no type to hang off. The lint boundary in
-     `.oxlintrc.json` covers `src/app/ui`; it does not cover `src/game`.
+   **Narrow exception, a rule about the tree rather than about a
+   module.** A source scan is allowed only where the guarantee is a
+   property of the *file tree* that no type or lint rule can express,
+   and every such suite must name this ADR and say why. Three exist, and
+   the list is meant to stay short:
+   - `src/app/ui/layout/PageLayout.architecture.test.ts`: every terminal
+     visual route mounts `PageLayout`. "Every file in this directory
+     does X" is not something a type can say.
+   - `src/game/rendererIsolation.test.ts`: no renderer source mentions
+     `@mantine`, `@radix-ui`, or the app's component paths. This one
+     asserts import spellings deliberately, because the guarantee is the
+     *absence* of a dependency, and absence has no type to hang off. The
+     lint boundary in `.oxlintrc.json` covers `src/app/ui`; it does not
+     cover `src/game`.
    - `src/app/ui/layout/containerQueries.test.ts`: no layout stylesheet uses a
      `@media` query, since a Layout lays out by the room it is given. The
      guarantee is again the absence of a spelling across a directory, and

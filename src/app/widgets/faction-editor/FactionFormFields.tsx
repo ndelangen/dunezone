@@ -307,7 +307,7 @@ function ArtifactProof({
           title = 'Faction-sheet excerpt';
           artifact = (
             /* Paper, not a pane: this is an excerpt of the printed faction sheet, and it renders
-               inside the workbench surface below — surfaces never nest. */
+               inside the workbench surface below, and surfaces never nest. */
             <Box className={styles.rulesProof} p="lg">
               <Text ff="serif" fw={800} tt="uppercase">
                 At start
@@ -345,7 +345,7 @@ function ArtifactProof({
         } else if (activeChapter === 'complexity') {
           title = 'Faction card';
           /* The catalogue card carries the rating natively; `inert` keeps the proof's link out of
-             both pointer and keyboard reach — tabbing into it would navigate the editor away. */
+             both pointer and keyboard reach, since tabbing into it would navigate the editor away. */
           artifact = (
             <Box inert>
               <FactionCard
@@ -364,7 +364,7 @@ function ArtifactProof({
 
         return (
           /* Deliberately unboxed: the artifacts float on the page, stacked
-             with the desk's gap — no pane, toggle, or caption around them. */
+             with the desk's gap, and no pane, toggle, or caption around them. */
           <Box component="section" className={styles.artifactDesk} aria-label={`${title} live preview`}>
             {activeChapter === 'identity' ? (
               <>

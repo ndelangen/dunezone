@@ -41,7 +41,7 @@ export const WithDescription = meta.story({
   args: { description: 'Every faction published against this ruleset.' },
 });
 
-/** The one control that belongs beside the name — usually a link onward. */
+/** The one control that belongs beside the name, usually a link onward. */
 export const WithAction = meta.story({
   args: {
     action: (

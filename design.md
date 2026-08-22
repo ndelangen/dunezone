@@ -1,13 +1,13 @@
-# Dune UI Design Memory
+# Dune UI design memory
 
-This file is the source of truth for the Dune **aesthetic** — the palette, the glass, the borders, the
-rhythm. Future changes should preserve this language unless explicitly asked to diverge.
+This file is the source of truth for the Dune **aesthetic**: the palette, the glass, the borders,
+the rhythm. Future changes should preserve this language unless explicitly asked to diverge.
 
 It is not the source of truth for **structure**. Which component a concern belongs to, and which
 folder it lives in, is the component taxonomy in [`AGENTS.md`](AGENTS.md#component-taxonomy), with the
 decision log in [`docs/technical/ui-design-decisions.md`](docs/technical/ui-design-decisions.md).
 
-## Core Aesthetic
+## Core aesthetic
 
 - Compact and concise over spacious.
 - Glass surfaces with subtle blur on interactive containers.
@@ -16,11 +16,11 @@ decision log in [`docs/technical/ui-design-decisions.md`](docs/technical/ui-desi
 - Warm sand palette aligned with `public/web/page.jpg` and `public/web/head.png`.
 - Icon-only action controls as the default, with clear tooltip labels.
 
-## Design Tokens
+## Design tokens
 
 Global tokens live in `src/app/styles/tokens.css` and are imported by `src/app/routes/__root.tsx`.
 
-### Color Roles
+### Color roles
 
 - `--color-text`: primary text
 - `--color-muted`: secondary/help text
@@ -29,7 +29,7 @@ Global tokens live in `src/app/styles/tokens.css` and are imported by `src/app/r
 - `--color-accent`, `--color-accent-strong`: highlights and active emphasis
 - `--color-focus-ring`: focus outlines
 
-### Button Semantics
+### Button semantics
 
 - `Confirm` (`--button-confirm-*`): primary save/commit actions; use a green family so confirmation stands out.
 - `Neutral` (`--button-neutral-*`): non-destructive controls that should not draw strong attention.
@@ -44,14 +44,14 @@ Global tokens live in `src/app/styles/tokens.css` and are imported by `src/app/r
 - `--glass-input`, `--glass-overlay`
 - `--glass-blur-sm`, `--glass-blur-md`
 
-### Shared Form Foundations
+### Shared form foundations
 
 - `--panel-bg`, `--panel-border`, `--panel-shadow`, `--panel-radius`
 - `--input-bg`, `--input-border`
 - `--border-strong` (canonical 2px border)
 - `--input-border-strong`, `--field-shadow` for high-contrast controls
 
-### Radius, Spacing, Sizing
+### Radius, spacing, sizing
 
 - `--radius-sm`, `--radius-md`, `--radius-pill`
 - `--space-1` through `--space-6`
@@ -66,7 +66,7 @@ Controls come from `src/ui/control` and from Mantine under `appContentTheme`; th
 `components/form` layer they replaced is gone. `ControlBlock` carries label, hint, and error
 semantics; `IconAction` carries an icon-only action and its accessible name; `CallToAction` carries
 the forward-moving primary. Reach for Mantine's `TextInput`, `Textarea`, `Select`, and `ColorInput`
-directly rather than wrapping them — they are storied under our theme, filed by kind.
+directly rather than wrapping them; they are storied under our theme, filed by kind.
 
 The aesthetic those controls must keep:
 
@@ -76,7 +76,7 @@ The aesthetic those controls must keep:
   panes, which are `Surface`'s business.
 - Prefer a popover for a lightweight preview or contextual configuration over a new page region.
 
-## Accessibility Requirements
+## Accessibility requirements
 
 - Icon-only actions must include `aria-label`.
 - Inputs with errors should set `aria-invalid` and expose error text through `aria-describedby`.
@@ -84,10 +84,10 @@ The aesthetic those controls must keep:
 - Focus indicators must remain clearly visible on glass backgrounds.
 - Keep keyboard workflows first-class for combobox/select/popover interactions.
 
-## Faction Editor UX Patterns
+## Faction editor UX patterns
 
-The editor is a Widget — `src/app/widgets/faction-editor` — and owns its own spacing through its
-CSS modules; the shared `formRow` / `arrayCardGrid` / `formRowActions` classes it once used are gone.
+The editor is a Widget, `src/app/widgets/faction-editor`, and owns its own spacing through its CSS
+modules; the shared `formRow` / `arrayCardGrid` / `formRowActions` classes it once used are gone.
 
 - Keep accordion sections dense but scannable.
 - Keep tiny asset previews near pickers and popovers.
@@ -116,4 +116,4 @@ CSS modules; the shared `formRow` / `arrayCardGrid` / `formRowActions` classes i
 4. Add popovers where previews or contextual controls improve speed.
 5. Verify keyboard navigation and visible focus states.
 6. Confirm visuals match glass + 2px border + compact rhythm.
-7. Compose through `PageLayout`, and let `Surface` own any pane — surfaces never nest.
+7. Compose through `PageLayout`, and let `Surface` own any pane; surfaces never nest.

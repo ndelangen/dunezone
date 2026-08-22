@@ -227,7 +227,7 @@ async function assertActiveDeployment(githubSha: string, environment: NodeJS.Pro
   /*
    * The versions list result shape is under-documented (bare array vs {items});
    * both are accepted, each fully validated. Newest-first and unpaginated for
-   * our volume — the active version is expected on the first page.
+   * our volume; the active version is expected on the first page.
    */
   const versionsResult = await cloudflareApiResult(`${scriptApi}/versions`, apiToken);
   const versionItems = Array.isArray(versionsResult)
@@ -245,7 +245,7 @@ async function assertActiveDeployment(githubSha: string, environment: NodeJS.Pro
 
 /**
  * Thrown when an origin returns a healthy body for a different release.
- * Only this error — as the FINAL poll outcome — takes the advisory path;
+ * Only this error, as the FINAL poll outcome, takes the advisory path;
  * any later non-stale failure (5xx, timeout, bad body) must win and fail the deploy.
  */
 class StaleEdgeError extends Error {

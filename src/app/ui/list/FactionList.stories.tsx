@@ -52,7 +52,7 @@ export const Mobile = meta.story({
 });
 
 /**
- * With a ruleset chosen, each tile marks its membership against that one rather than listing all of them — the reason this takes a slug rather than deriving it.
+ * With a ruleset chosen, each tile marks its membership against that one rather than listing all of them, which is why this takes a slug rather than deriving it.
  */
 export const WithSelectedRuleset = meta.story({
   args: { selectedRulesetSlug: 'advanced' },

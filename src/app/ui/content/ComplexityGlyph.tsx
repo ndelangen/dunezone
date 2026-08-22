@@ -12,7 +12,7 @@ const PROGRESS_RING_RADIUS = (PROGRESS_RING_SIZE - PROGRESS_RING_STROKE) / 2;
 const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * PROGRESS_RING_RADIUS;
 
 /** The one place a tier's presentation is defined; every surface reads it from here. */
-/** The x/10 slider positions where each tier's glyph marks the track — shared by every slider. */
+/** The x/10 slider positions where each tier's glyph marks the track, shared by every slider. */
 export function complexityTierSliderMarks(size = 12) {
   return [
     { value: 1, label: <TopicIcon topic={COMPLEXITY_TIER_PRESENTATION.novice.icon} size={size} /> },
@@ -52,7 +52,7 @@ export const COMPLEXITY_TIER_PRESENTATION: Record<
 };
 
 export interface ComplexityGlyphProps {
-  /** The 0..1 rating this glyph represents (already effective — manual or calculated). */
+  /** The 0..1 rating this glyph represents (already effective, manual or calculated). */
   score: number;
   /** Renders the numeric `n/10` beside the glyph. */
   showValue?: boolean;
@@ -70,7 +70,7 @@ export interface ComplexityGlyphProps {
 /**
  * The canonical indicator for a complexity rating: the tier's glyph in `currentColor`, optionally with its x/10 value.
  * Owns which tier a score presents as;
- * callers own colour and placement — on a faction card it inherits the caption's white, in a toolbar the toolbar's ink.
+ * callers own colour and placement: on a faction card it inherits the caption's white, in a toolbar the toolbar's ink.
  */
 export function ComplexityGlyph({
   score,

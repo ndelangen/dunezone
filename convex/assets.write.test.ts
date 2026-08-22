@@ -858,7 +858,7 @@ describe('name conflicts', () => {
     await expect(attempt).rejects.toThrow(ConvexError);
     await expect(attempt).rejects.toThrow('another one already lives at "lasgun"');
 
-    /* The editors' subscription reads the same rule, holder kind included, so the warning and the refusal cannot disagree — not even about whether the holder lives. */
+    /* The editors' subscription reads the same rule, holder kind included, so the warning and the refusal cannot disagree, not even about whether the holder lives. */
     expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe('live');
     expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'free-name' })).toBeNull();
     /* Another type may hold the same slug; the reservation is per type. */

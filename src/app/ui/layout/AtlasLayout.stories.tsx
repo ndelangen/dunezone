@@ -44,7 +44,7 @@ export const Stacked = meta.story({
   globals: { viewport: { value: 'appConstrained' } },
 });
 
-/** Long content is what the sticky sidebar exists for — scroll the canvas. */
+/** Long content is what the sticky sidebar exists for. Scroll the canvas. */
 export const StickySidebarWhileScrolling = meta.story({
   render: () => (
     <AtlasLayout>

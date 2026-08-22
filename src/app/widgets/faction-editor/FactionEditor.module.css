@@ -28,9 +28,9 @@
   padding-left: var(--mantine-spacing-md);
 }
 
-/* The desk the artifact sits on. Surface owns the pane itself — border, infill, blur, shadow —
-   so this is only what makes it a desk: it follows you down a long chapter form, and it is ruled
-   like drafting paper. */
+/* The desk the artifact sits on. Surface owns the pane itself, the border, infill, blur and
+   shadow, so this is only what makes it a desk: it follows you down a long chapter form, and it is
+   ruled like drafting paper. */
 .artifactDesk {
   position: sticky;
   top: calc(var(--app-shell-header-offset, 0px) + 5.5rem);
@@ -96,7 +96,7 @@
 }
 
 /* TroopToken's root fills its parent, so the proof and each grid cell supply the square.
-   The round crop and Surface lift live on the token faces (.tokenCrop / .flipFace), not here —
+   The round crop and Surface lift live on the token faces (.tokenCrop / .flipFace), not here:
    the whole disc must rotate during a flip, mask included, or it reads as a plane behind a hole. */
 .troopProof {
   aspect-ratio: 1;
@@ -126,7 +126,7 @@
   height: 100%;
 }
 
-/* The rest of the worlds or troops ride below the focused one — bare pieces, no pane. */
+/* The rest of the worlds or troops ride below the focused one, as bare pieces with no pane. */
 .planetGrid,
 .troopGrid {
   display: grid;

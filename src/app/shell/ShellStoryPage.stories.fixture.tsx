@@ -8,7 +8,7 @@ import type { ReactNode } from 'react';
 import pageStylesheet from '../styles/page.css?inline';
 
 /**
- * Applies `page.css` — the document background whose position tracks `--scroll-pct` — for as long as this is mounted, and removes it on unmount so it cannot follow the viewer to the next story.
+ * Applies `page.css`, the document background whose position tracks `--scroll-pct`, for as long as this is mounted, and removes it on unmount so it cannot follow the viewer to the next story.
  */
 export function ShellPageBackdrop({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -27,7 +27,8 @@ export function ShellPageBackdrop({ children }: { children: ReactNode }) {
 
 /**
  * Stands in for a route: a `PageLayout` holding labelled slot placeholders instead of page content, so nothing here can be mistaken for the real product.
- * Which slots are filled is the only variable that matters to the shell — it is what sets the band's height.
+ * Which slots are filled is the only variable that matters to the shell;
+ * it is what sets the band's height.
  */
 function ShellStoryPage({ headerSize }: { headerSize?: 'default' | 'compact' }) {
   return (

@@ -179,7 +179,7 @@ export function BundleEditor({
                         value={selected}
                         onChange={(next) => {
                           if (next === CUSTOM) {
-                            /* Custom keeps the current composition and simply reveals the fields below. */
+                            /* Custom keeps the current composition and reveals the fields below. */
                             setCustomChosen(true);
                             return;
                           }

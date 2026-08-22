@@ -29,7 +29,7 @@ export function DeckCreatePage() {
   const profile = useCurrentProfile();
   const createAsset = useCreateAsset();
   const [draft, setDraft] = useState<DeckDraft>(INITIAL_DECK_DRAFT);
-  /* The chosen deck, kept beside the draft: the draft carries the id that reaches storage, this carries the name and face the tile draws. */
+  /* The chosen deck, kept beside the draft: the draft carries the id that reaches storage; this carries the name and face the tile draws. */
   const [pickedBackDeck, setPickedBackDeck] = useState<PickedBackDeck | null>(null);
   const [chapter, setChapter] = useState<DeckChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);

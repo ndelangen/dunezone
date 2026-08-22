@@ -22,13 +22,13 @@ export interface AppHeaderProps {
  * The artwork band above every page, and the two-row frame it shares with the route's content.
  *
  * Chrome rather than a kit component, and the frame is the reason: `AppRoot` renders whatever the router hands it, so it cannot pass the band's height down, and `PageLayout` cannot report upward.
- * The two meet in CSS instead — the page joins this grid through `display: contents`, takes the `hero` row to overlay the band's lower edge, and declares which height it wants through `data-page-layout-*`, which the rules here read back.
+ * The two meet in CSS instead: the page joins this grid through `display: contents`, takes the `hero` row to overlay the band's lower edge, and declares which height it wants through `data-page-layout-*`, which the rules here read back.
  * Keeping the band and the frame in one file keeps both halves of that contract in one place;
  * the band element then stays mounted across navigations, so a height change animates instead of cutting.
  *
  * The artwork itself is a three-layer stack: an inlined blurred frame that costs no request, the sharp poster photograph over it, and the looping video fading in on top once it actually plays.
  * The video only mounts client-side after `prefers-reduced-motion` says motion is welcome, so reduced-motion visitors get the poster and never download the loop.
- * The `motion` cookie — `AppFooter`'s switch — overrides that OS hint for this site alone, live in both directions.
+ * The `motion` cookie, `AppFooter`'s switch, overrides that OS hint for this site alone, live in both directions.
  */
 export function AppHeader({ children }: AppHeaderProps) {
   const videoRef = useRef<HTMLVideoElement>(null);

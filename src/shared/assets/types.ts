@@ -1,5 +1,5 @@
 /**
- * The Asset type registry — the one place the flat Asset type discriminators live.
+ * The Asset type registry, the one place the flat Asset type discriminators live.
  * The type is the unit of everything: URLs, slug uniqueness, and editors are all per type (see CONTEXT.md: Asset type, Asset category);
  * category is derived presentation-only grouping, so this registry is the client's contract for grouping, labels, and which types are live versus planned placeholders.
  */
@@ -12,7 +12,7 @@ type AssetTypeStatus = 'live' | 'planned';
 
 type AssetTypeDefinition = {
   category: AssetCategory;
-  /** the full plural name — footnotes, aria labels */
+  /** the full plural name, used in footnotes and aria labels */
   label: string;
   /** what a pile wears inside an already-labelled group row */
   shortLabel: string;

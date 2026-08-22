@@ -18,7 +18,7 @@ function Content(_: PropsWithChildren): null {
 /**
  * The frame every terminal route mounts: the hero band, an optional toolbar, and the content.
  *
- * It is the one Layout coupled to the shell — its children join `AppHeader`'s grid through `display: contents`, and it declares its state through `data-page-layout-*`, which `AppHeader.module.css` reads back with `:has()` to size the artwork band.
+ * It is the one Layout coupled to the shell: its children join `AppHeader`'s grid through `display: contents`, and it declares its state through `data-page-layout-*`, which `AppHeader.module.css` reads back with `:has()` to size the artwork band.
  * That is why it is the documented exemption from the container-query rule: it is the page frame, sized against the viewport in concert with the shell, not a container.
  *
  * Slots: `Header` (omit it to mark the page intentionally compact;

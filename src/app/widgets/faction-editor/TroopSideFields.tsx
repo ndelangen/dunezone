@@ -30,8 +30,8 @@ const LEGACY_RED_STAR_HUE = '#ff0000';
 type StarValue = Faction['troops'][number]['star'];
 
 /* Normalizes a stored legacy -red star the moment its field renders (the planet auto-pick
-   pattern — deliberate, ruled on wayfinder #488): a visible draft change to the modern shape —
-   base star plus the renderer's red in the hue field — never a silent rewrite of anything the
+   pattern, deliberate and ruled on wayfinder #488): a visible draft change to the modern shape,
+   the base star plus the renderer's red in the hue field, never a silent rewrite of anything the
    color field already overrides. Rendering the field is the touch; no interaction is awaited. */
 function StarModifierSelect({
   id,

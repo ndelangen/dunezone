@@ -17,7 +17,7 @@ const meta = preview.meta({
  */
 export const Default = meta.story({});
 
-/** For content that needs a gutter — the common case for prose and controls. */
+/** For content that needs a gutter, the common case for prose and controls. */
 export const PaddingMd = meta.story({
   args: { padding: 'md' },
 });

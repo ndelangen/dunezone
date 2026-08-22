@@ -24,8 +24,8 @@ const PRIMARY_LINKS: readonly NavLinkItem[] = [
   { label: 'Assets', to: '/assets' },
 ];
 
-/* Room reserved for the More control before deciding which links fit. It cannot be measured —
-   the control only exists once something overflows — so this over-reserves slightly, which also
+/* Room reserved for the More control before deciding which links fit. It cannot be measured
+   (the control only exists once something overflows), so this over-reserves slightly, which also
    covers the one width the measure row cannot know: the active link's 600 weight. */
 const MORE_RESERVE_PX = 90;
 
@@ -42,11 +42,11 @@ export interface SiteNavigationProps {
  * Product navigation, including its profile-aware account slot.
  *
  * The row is priority-plus: links that fit stay visible, the rest collapse behind a More control, re-measured through a
- * `ResizeObserver` against a hidden copy of the full list — so the row is correct for any link count, any label length, at any width, without a breakpoint.
+ * `ResizeObserver` against a hidden copy of the full list, so the row is correct for any link count, any label length, at any width, without a breakpoint.
  * At phone widths it collapses down to the More control.
  *
  * Both popovers (More, and the signed-in account menu) render through a portal: the band that hosts this nav is
- * `overflow: hidden` for its rounded corners, so anything positioned inside it clips at the band's lower edge — at compact band heights that swallows the panel entirely.
+ * `overflow: hidden` for its rounded corners, so anything positioned inside it clips at the band's lower edge, which at compact band heights swallows the panel entirely.
  */
 export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
   const profile = useCurrentProfile();
@@ -107,9 +107,9 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
         {account ? (
           <>
             {/*
-              Mantine's `Menu`, whose dropdown takes the app's pane treatment from the theme — the same one a `Popover`
-              gets, and the same menu the faction cards use. It owns opening, focus, dismissal and the target's aria
-              state, so this holds no anchor of its own and no item has to close it by hand.
+              Mantine's `Menu`, whose dropdown takes the app's pane treatment from the theme (the same one a
+              `Popover` gets). It is the same menu the faction cards use. It owns opening, focus, dismissal and the
+              target's aria state, so this holds no anchor of its own and no item has to close it by hand.
             */}
             <Menu position="bottom-end" shadow="md" withinPortal>
               <Menu.Target>
@@ -195,7 +195,7 @@ function useVisibleLinkCount(
     compute();
     const observer = new ResizeObserver(compute);
     observer.observe(group);
-    /* The measure row shrink-wraps its labels, so it also resizes when the webfont swaps in —
+    /* The measure row shrink-wraps its labels, so it also resizes when the webfont swaps in,
        the one width change the group (viewport-sized) never reports. */
     observer.observe(measure);
     return () => observer.disconnect();

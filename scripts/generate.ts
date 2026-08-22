@@ -5,7 +5,7 @@ import { recursiveReaddirFiles } from 'recursive-readdir-files';
 async function getFiles(path: string, root: 'public' | 'media' = 'public') {
   /*
    * Image enums read the media/ sources (public/image is generated output), but keys keep their
-   * canonical /image/... shape — they are opaque asset ids stored on faction documents, resolved
+   * canonical /image/... shape; they are opaque asset ids stored on faction documents, resolved
    * via resolveAsset at render time.
    */
   const dir = join(import.meta.dirname, '..', root, path);

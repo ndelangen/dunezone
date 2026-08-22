@@ -85,7 +85,7 @@ describe('recompressCapturedPdf', () => {
         channels: object.dict.get(PDFName.of('ColorSpace'))?.toString() === '/DeviceGray' ? 1 : 3,
       });
     }
-    // Every image is still FlateDecode — JPEG is banned from the pipeline.
+    // Every image is still FlateDecode; JPEG is banned from the pipeline.
     expect(images.every((image) => image.filter === '/FlateDecode')).toBe(true);
     // The 400x400 RGB was downsampled to 0.35x; gray, small, and masked kept their dimensions.
     const expected = Math.round(400 * RECOMPRESS_RGB_SCALE);

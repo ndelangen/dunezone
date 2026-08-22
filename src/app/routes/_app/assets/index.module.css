@@ -51,12 +51,12 @@
 
 /*
  * Below two slots plus the label column, auto-fill would seat a single pile. The label moves above
- * instead, which hands the grid back the label column and the gap either side of it — enough for
+ * instead, which hands the grid back the label column and the gap either side of it, enough for
  * two abreast, stated outright rather than left to auto-fill, which cannot be given a floor.
  *
  * 34rem is derived from those widths: a 150px label, a 2rem gap and two 150px slots either side of
  * their own 1.5rem gap need 506px, so the label steps aside before the row gets that narrow.
- * Re-derive it if the slot width changes — a container query condition cannot read `--pile-slot`.
+ * Re-derive it if the slot width changes, since a container query condition cannot read `--pile-slot`.
  */
 @container assets-pile-group (max-width: 34rem) {
   .pileGroupLayout {

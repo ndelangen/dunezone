@@ -15,7 +15,9 @@ import styles from './FactionCard.module.css';
  * A faction, as one tile: its artwork, its token, its leaders, its name.
  * The whole tile is a link to the faction.
  *
- * A Block — callers hand it the faction document and this owns which piece becomes what: the background renders as full-bleed artwork, the hero leads the cast, the first three leaders fan out beside it, the name captions the bottom with the complexity glyph at its right.
+ * A Block.
+ * Callers hand it the faction document;
+ * this owns which piece becomes what: the background renders as full-bleed artwork, the hero leads the cast, the first three leaders fan out beside it, the name captions the bottom with the complexity glyph at its right.
  * The artwork is game-asset content, not a pane treatment;
  * nothing here is a slot.
  */
@@ -27,7 +29,7 @@ export function FactionCard({
   faction: FactionCatalogueEntry;
   selectedRulesetSlug?: string;
   /**
-   * An adornment, not a slot: a control that acts on this faction where it is listed — a menu, a remove button.
+   * An adornment, not a slot: a control that acts on this faction where it is listed, such as a menu or a remove button.
    * It renders as a sibling of the link rather than inside it, since a button within an anchor is neither valid nor clickable without navigating, and it is positioned top-left because the other three corners carry the faction's own identity: its token, its hero, its leaders and name.
    */
   action?: ReactNode;

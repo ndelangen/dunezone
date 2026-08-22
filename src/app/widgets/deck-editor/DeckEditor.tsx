@@ -357,7 +357,7 @@ export function DeckEditor({
                           {
                             value: CUSTOM,
                             label: 'Composed here',
-                            /* Always drawable, the stock tile's own rule: the live composition, the one the author left behind, or the first stock look standing in — never a dashed nothing (Norbert, 2026-08-21). */
+                            /* Always drawable, the stock tile's own rule: the live composition, the one the author left behind, or the first stock look standing in. Never a dashed nothing (Norbert, 2026-08-21). */
                             preview: (
                               <CardbackProof
                                 cardback={composition ?? composedCardback.current ?? STOCK_CARDBACKS[0]!.cardback}

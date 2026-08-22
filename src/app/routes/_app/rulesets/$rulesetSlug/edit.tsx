@@ -36,7 +36,7 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
     updateRuleset.isError && updateRuleset.error instanceof Error ? updateRuleset.error.message : null;
   const descriptionCheck = rulesetDescriptionSchema.safeParse(description);
   /**
-   * The floor applies to every save, with no exemption for rows that predate the field — so a ruleset still carrying the backfilled empty string cannot be saved until someone writes a description.
+   * The floor applies to every save, with no exemption for rows that predate the field, so a ruleset still carrying the backfilled empty string cannot be saved until someone writes a description.
    * Shown as an error only once something has been typed;
    * an untouched empty field is explained by the requirement line and the disabled button instead.
    */
