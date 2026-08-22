@@ -21,6 +21,15 @@ export type RulebookPrototypePage = {
   blocks: RulebookPrototypeBlock[];
 };
 
+export type RulebookSemanticSegment = {
+  id: string;
+  kind: 'page-title' | 'block-title' | 'paragraph' | 'item';
+  text: string;
+  pageId: string;
+  blockId?: string;
+  itemId?: string;
+};
+
 export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
   {
     id: 'page-opening',
@@ -101,6 +110,41 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
     ],
   },
 ];
+
+export function getRulebookSemanticSegments(page: RulebookPrototypePage): RulebookSemanticSegment[] {
+  return [
+    {
+      id: `${page.id}-title-segment`,
+      kind: 'page-title',
+      text: page.title,
+      pageId: page.id,
+    },
+    ...page.blocks.flatMap((block) => [
+      {
+        id: `${block.id}-title-segment`,
+        kind: 'block-title' as const,
+        text: block.title,
+        pageId: page.id,
+        blockId: block.id,
+      },
+      ...block.paragraphs.map((text, index) => ({
+        id: `${block.id}-paragraph-${index + 1}`,
+        kind: 'paragraph' as const,
+        text,
+        pageId: page.id,
+        blockId: block.id,
+      })),
+      ...(block.items?.map((item) => ({
+        id: `${item.id}-text`,
+        kind: 'item' as const,
+        text: item.text,
+        pageId: page.id,
+        blockId: block.id,
+        itemId: item.id,
+      })) ?? []),
+    ]),
+  ];
+}
 
 type PagePathEntry = { kind: 'page'; id: string };
 type BlockPathEntry = { kind: 'block'; id: string };
@@ -250,14 +294,12 @@ export function normalizeRulebookText(value: string) {
   return value.replace(/\s+/gu, ' ').trim();
 }
 
-function blockText(block: RulebookPrototypeBlock) {
-  return normalizeRulebookText(
-    [block.title, ...block.paragraphs, ...(block.items?.map((item) => item.text) ?? [])].join(' ')
+function semanticSegmentsForPath(page: RulebookPrototypePage, path: RulebookTextLocator['path']) {
+  const blockId = path[1]?.id;
+  const itemId = path[2]?.id;
+  return getRulebookSemanticSegments(page).filter(
+    (segment) => (!blockId || segment.blockId === blockId) && (!itemId || segment.itemId === itemId)
   );
-}
-
-function pageText(page: RulebookPrototypePage) {
-  return normalizeRulebookText([page.title, ...page.blocks.map(blockText)].join(' '));
 }
 
 export type RulebookStableAnchorResolution = {
@@ -303,7 +345,11 @@ export function resolveRulebookTextLocator(result: LocatorParseResult): LocatorR
   if (itemEntry && !item) {
     return { status: 'unresolved' };
   }
-  const source = item ? normalizeRulebookText(item.text) : block ? blockText(block) : pageText(page);
+  const source = normalizeRulebookText(
+    semanticSegmentsForPath(page, result.locator.path)
+      .map((segment) => segment.text)
+      .join(' ')
+  );
   const exact = normalizeRulebookText(result.locator.exact);
   const prefix = normalizeRulebookText(result.locator.prefix ?? '');
   const suffix = normalizeRulebookText(result.locator.suffix ?? '');
@@ -385,47 +431,52 @@ function elementForNode(node: Node) {
   return node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
 }
 
-function canonicalTextAroundRange(range: Range, scope: Element) {
-  if (range.startContainer.nodeType !== Node.TEXT_NODE || range.endContainer.nodeType !== Node.TEXT_NODE) {
+function textOffsetWithinSegment(element: Element, container: Node, offset: number) {
+  if (!element.contains(container)) {
     return null;
   }
-  const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
-    acceptNode: (node) =>
-      node.parentElement?.closest('[data-rulebook-selectable-text]')
-        ? NodeFilter.FILTER_ACCEPT
-        : NodeFilter.FILTER_REJECT,
-  });
-  const before: string[] = [];
-  const selected: string[] = [];
-  const after: string[] = [];
-  let phase: 'before' | 'selected' | 'after' = 'before';
-  let node = walker.nextNode() as Text | null;
-  while (node) {
-    if (node === range.startContainer) {
-      phase = 'selected';
-      if (node === range.endContainer) {
-        before.push(node.data.slice(0, range.startOffset));
-        selected.push(node.data.slice(range.startOffset, range.endOffset));
-        after.push(node.data.slice(range.endOffset));
-        phase = 'after';
-        node = walker.nextNode() as Text | null;
-        continue;
-      }
-      before.push(node.data.slice(0, range.startOffset));
-      selected.push(node.data.slice(range.startOffset));
-      node = walker.nextNode() as Text | null;
-      continue;
-    }
-    if (node === range.endContainer) {
-      selected.push(node.data.slice(0, range.endOffset));
-      after.push(node.data.slice(range.endOffset));
-      phase = 'after';
-      node = walker.nextNode() as Text | null;
-      continue;
-    }
-    (phase === 'before' ? before : phase === 'selected' ? selected : after).push(node.data);
-    node = walker.nextNode() as Text | null;
+  const probe = document.createRange();
+  probe.selectNodeContents(element);
+  probe.setEnd(container, offset);
+  return probe.toString().length;
+}
+
+function canonicalTextAroundRange(
+  range: Range,
+  segments: RulebookSemanticSegment[],
+  startSegmentElement: HTMLElement,
+  endSegmentElement: HTMLElement
+) {
+  const startId = startSegmentElement.dataset.rulebookSegmentId;
+  const endId = endSegmentElement.dataset.rulebookSegmentId;
+  const startIndex = segments.findIndex((segment) => segment.id === startId);
+  const endIndex = segments.findIndex((segment) => segment.id === endId);
+  if (startIndex < 0 || endIndex < startIndex) {
+    return null;
   }
+  const startSegment = segments[startIndex]!;
+  const endSegment = segments[endIndex]!;
+  if (startSegmentElement.textContent !== startSegment.text || endSegmentElement.textContent !== endSegment.text) {
+    return null;
+  }
+  const startOffset = textOffsetWithinSegment(startSegmentElement, range.startContainer, range.startOffset);
+  const endOffset = textOffsetWithinSegment(endSegmentElement, range.endContainer, range.endOffset);
+  if (startOffset === null || endOffset === null) {
+    return null;
+  }
+  const before = [
+    ...segments.slice(0, startIndex).map((segment) => segment.text),
+    startSegment.text.slice(0, startOffset),
+  ];
+  const selected =
+    startIndex === endIndex
+      ? [startSegment.text.slice(startOffset, endOffset)]
+      : [
+          startSegment.text.slice(startOffset),
+          ...segments.slice(startIndex + 1, endIndex).map((segment) => segment.text),
+          endSegment.text.slice(0, endOffset),
+        ];
+  const after = [endSegment.text.slice(endOffset), ...segments.slice(endIndex + 1).map((segment) => segment.text)];
   const exact = normalizeRulebookText(selected.join(' '));
   if (!exact) {
     return null;
@@ -464,8 +515,29 @@ export function locatorFromBrowserSelection(
   const startItem = startElement.closest<HTMLElement>('[data-rulebook-item-id]');
   const endItem = endElement.closest<HTMLElement>('[data-rulebook-item-id]');
   const item = startItem && startItem === endItem && isAnchor(startItem.dataset.rulebookItemId) ? startItem : undefined;
-  const scope = item ?? block ?? startPage;
-  const canonical = canonicalTextAroundRange(range, scope);
+  const pageModel = RULEBOOK_PROTOTYPE_PAGES.find((page) => page.id === startPage.id);
+  if (!pageModel) {
+    return { ok: false, message: 'The selection does not map to this Rulebook.' };
+  }
+  const path: RulebookTextLocator['path'] =
+    item && block
+      ? [
+          { kind: 'page', id: startPage.id },
+          { kind: 'block', id: block.id },
+          { kind: 'item', id: item.dataset.rulebookItemId! },
+        ]
+      : block
+        ? [
+            { kind: 'page', id: startPage.id },
+            { kind: 'block', id: block.id },
+          ]
+        : [{ kind: 'page', id: startPage.id }];
+  const startSegment = startElement.closest<HTMLElement>('[data-rulebook-segment-id]');
+  const endSegment = endElement.closest<HTMLElement>('[data-rulebook-segment-id]');
+  const canonical =
+    startSegment && endSegment
+      ? canonicalTextAroundRange(range, semanticSegmentsForPath(pageModel, path), startSegment, endSegment)
+      : null;
   if (!canonical) {
     return { ok: false, message: 'Select visible Rulebook text first.' };
   }
@@ -477,19 +549,7 @@ export function locatorFromBrowserSelection(
     ok: true,
     locator: {
       v: 1,
-      path:
-        item && block
-          ? [
-              { kind: 'page', id: startPage.id },
-              { kind: 'block', id: block.id },
-              { kind: 'item', id: item.dataset.rulebookItemId! },
-            ]
-          : block
-            ? [
-                { kind: 'page', id: startPage.id },
-                { kind: 'block', id: block.id },
-              ]
-            : [{ kind: 'page', id: startPage.id }],
+      path,
       exact,
       ...(prefix ? { prefix } : {}),
       ...(suffix ? { suffix } : {}),

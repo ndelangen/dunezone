@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   buildRulebookTextShareUrl,
+  getRulebookSemanticSegments,
   locatorFromBrowserSelection,
   parseRulebookTextLocator,
   resolveRulebookTextLocator,
@@ -75,7 +76,6 @@ function useVisualPage(pinned: boolean) {
   return {
     nodeRef,
     visualReady: visible,
-    visualState: visible ? (pinned ? 'pinned' : 'ready') : 'waiting',
   } as const;
 }
 
@@ -90,7 +90,9 @@ function RulebookPageView({
   targetAnchorId?: string;
   targetItemId?: string;
 }) {
-  const { nodeRef, visualReady, visualState } = useVisualPage(pinned);
+  const { nodeRef, visualReady } = useVisualPage(pinned);
+  const semanticSegments = getRulebookSemanticSegments(page);
+  const pageTitleSegment = semanticSegments.find((segment) => segment.kind === 'page-title')!;
   const pageIsTarget = targetAnchorId === page.id;
   return (
     <article
@@ -98,12 +100,11 @@ function RulebookPageView({
       id={page.id}
       className={styles.rulePage}
       data-rulebook-page-anchor
-      data-visual-state={visualState}
       data-locator-target={visualReady && pageIsTarget ? 'true' : undefined}
       aria-labelledby={`${page.id}-title`}
     >
-      {visualReady && <div className={styles.visualRenderer} data-visual-renderer aria-hidden />}
-      <div className={styles.semanticContent} data-semantic-page-content>
+      {visualReady && <div className={styles.visualRenderer} aria-hidden />}
+      <div className={styles.semanticContent}>
         <Text className={styles.pageNumber} aria-hidden>
           {page.number.toString().padStart(2, '0')}
         </Text>
@@ -112,48 +113,57 @@ function RulebookPageView({
             <Badge color="dune" variant="light">
               Page {page.number}
             </Badge>
-            <Title id={`${page.id}-title`} order={2} mt="xs" data-rulebook-selectable-text>
-              {page.title}
+            {visualReady && (
+              <Badge color="gray" variant="outline" ml="xs">
+                Visual page ready
+              </Badge>
+            )}
+            <Title id={`${page.id}-title`} order={2} mt="xs" data-rulebook-segment-id={pageTitleSegment.id}>
+              {pageTitleSegment.text}
             </Title>
           </div>
-          {page.blocks.map((block) => (
-            <section
-              id={block.id}
-              className={styles.block}
-              key={block.id}
-              data-rulebook-block-anchor
-              data-locator-target={visualReady && targetAnchorId === block.id ? 'true' : undefined}
-              aria-labelledby={`${block.id}-title`}
-            >
-              <Title id={`${block.id}-title`} order={3} mb="xs" data-rulebook-selectable-text>
-                {block.title}
-              </Title>
-              <div data-rulebook-text-content>
+          {page.blocks.map((block) => {
+            const blockSegments = semanticSegments.filter((segment) => segment.blockId === block.id);
+            const titleSegment = blockSegments.find((segment) => segment.kind === 'block-title')!;
+            const paragraphSegments = blockSegments.filter((segment) => segment.kind === 'paragraph');
+            const itemSegments = blockSegments.filter((segment) => segment.kind === 'item');
+            return (
+              <section
+                id={block.id}
+                className={styles.block}
+                key={block.id}
+                data-rulebook-block-anchor
+                data-locator-target={visualReady && targetAnchorId === block.id ? 'true' : undefined}
+                aria-labelledby={`${block.id}-title`}
+              >
+                <Title id={`${block.id}-title`} order={3} mb="xs" data-rulebook-segment-id={titleSegment.id}>
+                  {titleSegment.text}
+                </Title>
                 <Stack gap="sm">
-                  {block.paragraphs.map((paragraph) => (
-                    <Text key={paragraph} data-rulebook-selectable-text>
-                      {paragraph}
+                  {paragraphSegments.map((segment) => (
+                    <Text key={segment.id} data-rulebook-segment-id={segment.id}>
+                      {segment.text}
                     </Text>
                   ))}
-                  {block.items && (
+                  {itemSegments.length > 0 && (
                     <List>
-                      {block.items.map((item) => (
+                      {itemSegments.map((segment) => (
                         <List.Item
-                          key={item.id}
-                          id={item.id}
-                          data-rulebook-item-id={item.id}
-                          data-rulebook-selectable-text
-                          data-locator-item-target={visualReady && targetItemId === item.id ? 'true' : undefined}
+                          key={segment.id}
+                          id={segment.itemId}
+                          data-rulebook-item-id={segment.itemId}
+                          data-rulebook-segment-id={segment.id}
+                          data-locator-item-target={visualReady && targetItemId === segment.itemId ? 'true' : undefined}
                         >
-                          {item.text}
+                          {segment.text}
                         </List.Item>
                       ))}
                     </List>
                   )}
                 </Stack>
-              </div>
-            </section>
-          ))}
+              </section>
+            );
+          })}
         </Stack>
       </div>
     </article>
@@ -436,7 +446,7 @@ function RulebookTextLinksPrototype() {
                   )}
                   {shareUrl && (
                     <Stack gap="xs">
-                      <Code className={styles.shareUrl} block data-testid="share-url">
+                      <Code className={styles.shareUrl} block aria-label="Share URL">
                         {shareUrl}
                       </Code>
                       <Group grow>

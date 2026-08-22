@@ -181,8 +181,8 @@ describe('Rulebook text locator prototype', () => {
     document.body.innerHTML = `
       <main data-rulebook-prototype-document>
         <article id="page-storm" data-rulebook-page-anchor>
-          <section id="storm-rule" data-rulebook-block-anchor data-rulebook-selectable-text>
-            After the shields settle, <span>The storm belongs to no one.</span> Carry the warning west.
+          <section id="storm-rule" data-rulebook-block-anchor>
+            <p data-rulebook-segment-id="storm-rule-paragraph-1">After the shields settle, <span>The storm belongs to no one.</span> Carry the warning west.</p>
           </section>
         </article>
       </main>`;
@@ -198,7 +198,10 @@ describe('Rulebook text locator prototype', () => {
 
     expect(locatorFromBrowserSelection(selection)).toEqual({
       ok: true,
-      locator: repeatedLocator,
+      locator: {
+        ...repeatedLocator,
+        prefix: 'The rule in dispute After the shields settle,',
+      },
     });
   });
 
@@ -208,7 +211,7 @@ describe('Rulebook text locator prototype', () => {
         <article id="page-storm" data-rulebook-page-anchor>
           <section id="storm-procedure" data-rulebook-block-anchor>
             <div data-rulebook-text-content>
-              <span data-rulebook-item-id="procedure-west" data-rulebook-selectable-text>Seal the western gate, then count three breaths.</span>
+              <span data-rulebook-item-id="procedure-west" data-rulebook-segment-id="procedure-west-text">Seal the western gate, then count three breaths.</span>
             </div>
           </section>
         </article>
@@ -245,8 +248,8 @@ describe('Rulebook text locator prototype', () => {
       <main data-rulebook-prototype-document>
         <article id="page-storm" data-rulebook-page-anchor>
           <section id="storm-rule" data-rulebook-block-anchor>
-            <h3 data-rulebook-selectable-text>The rule in dispute</h3>
-            <p data-rulebook-selectable-text>After the shields settle, The storm belongs to no one. Carry the warning west.</p>
+            <h3 data-rulebook-segment-id="storm-rule-title-segment">The rule in dispute</h3>
+            <p data-rulebook-segment-id="storm-rule-paragraph-1">After the shields settle, The storm belongs to no one. Carry the warning west.</p>
           </section>
         </article>
       </main>`;
@@ -274,15 +277,15 @@ describe('Rulebook text locator prototype', () => {
     document.body.innerHTML = `
       <main data-rulebook-prototype-document>
         <article id="page-storm" data-rulebook-page-anchor>
-          <h2 data-rulebook-selectable-text>Inside the storm</h2>
+          <h2 data-rulebook-segment-id="page-storm-title-segment">Inside the storm</h2>
           <section id="storm-rule" data-rulebook-block-anchor>
-            <h3 data-rulebook-selectable-text>The rule in dispute</h3>
-            <p data-rulebook-selectable-text>After the shields settle, The storm belongs to no one. Carry the warning west.</p>
+            <h3 data-rulebook-segment-id="storm-rule-title-segment">The rule in dispute</h3>
+            <p data-rulebook-segment-id="storm-rule-paragraph-1">After the shields settle, The storm belongs to no one. Carry the warning west.</p>
           </section>
           <section id="storm-procedure" data-rulebook-block-anchor>
-            <h3 data-rulebook-selectable-text>Repeated procedure</h3>
-            <span data-rulebook-item-id="procedure-east" data-rulebook-selectable-text>Seal the eastern gate, then count three breaths.</span>
-            <span data-rulebook-item-id="procedure-west" data-rulebook-selectable-text>Seal the western gate, then count three breaths.</span>
+            <h3 data-rulebook-segment-id="storm-procedure-title-segment">Repeated procedure</h3>
+            <span data-rulebook-item-id="procedure-east" data-rulebook-segment-id="procedure-east-text">Seal the eastern gate, then count three breaths.</span>
+            <span data-rulebook-item-id="procedure-west" data-rulebook-segment-id="procedure-west-text">Seal the western gate, then count three breaths.</span>
           </section>
         </article>
       </main>`;
