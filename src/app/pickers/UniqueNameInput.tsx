@@ -107,6 +107,7 @@ export function UniqueNameInput({
   label = 'Name',
   value,
   onChange,
+  onBlur,
   currentSlug,
   error,
   probe,
@@ -117,6 +118,8 @@ export function UniqueNameInput({
   label?: string;
   value: string;
   onChange: (name: string) => void;
+  /** For hosts whose form tracks blur, so the field this replaces loses none of its wiring. */
+  onBlur?: () => void;
   /** The entity's own slug on an edit page, so an unchanged name never warns about its own address. */
   currentSlug?: string;
   /** The caller's own complaint about the name, a blank one for instance. A conflict outranks it, and the two cannot coincide: a blank name has no candidate to conflict with. */
@@ -133,6 +136,7 @@ export function UniqueNameInput({
         aria-label={label}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
+        onBlur={onBlur}
         error={conflict ? nameConflictComplaint(conflict) : error}
       />
     </>

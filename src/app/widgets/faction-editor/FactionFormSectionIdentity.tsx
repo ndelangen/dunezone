@@ -23,6 +23,8 @@ const logoSelectOptions = logoOptions.map((value) => ({
 export type FactionIdentityNameField = (props: {
   value: string;
   onChange: (name: string) => void;
+  /** The form's blur handler, so the replacement field keeps the plain one's touched tracking. */
+  onBlur: () => void;
   error?: string;
 }) => ReactNode;
 
@@ -66,6 +68,7 @@ export function FactionFormSectionIdentity({
                   nameField({
                     value: field.state.value,
                     onChange: (name) => field.handleChange(name),
+                    onBlur: field.handleBlur,
                     error: nameError,
                   })
                 ) : (

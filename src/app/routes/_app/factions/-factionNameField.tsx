@@ -20,10 +20,11 @@ export function useFactionNameField({ currentSlug }: { currentSlug?: string } = 
 } {
   const [conflict, setConflict] = useState<NameConflict | null>(null);
   const nameField = useCallback<FactionIdentityNameField>(
-    ({ value, onChange, error }) => (
+    ({ value, onChange, onBlur, error }) => (
       <FactionNameInput
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
         currentSlug={currentSlug}
         error={error}
         onConflictChange={setConflict}

@@ -23,12 +23,14 @@ function FactionSlugProbe({ slug, onAnswer }: { slug: string; onAnswer: (holder:
 export function FactionNameInput({
   value,
   onChange,
+  onBlur,
   currentSlug,
   error,
   onConflictChange,
 }: {
   value: string;
   onChange: (name: string) => void;
+  onBlur?: () => void;
   currentSlug?: string;
   error?: string;
   onConflictChange: (conflict: NameConflict | null) => void;
@@ -41,6 +43,7 @@ export function FactionNameInput({
       error={error}
       value={value}
       onChange={onChange}
+      onBlur={onBlur}
       currentSlug={currentSlug}
       onConflictChange={onConflictChange}
       probe={({ slug, onAnswer }) => <FactionSlugProbe key={slug} slug={slug} onAnswer={onAnswer} />}
