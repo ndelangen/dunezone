@@ -7,6 +7,7 @@ import type { FactionAuthoringWarning } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
 import { FactionFormFields } from './FactionFormFields';
 import type { FactionFormFieldsHandle } from './FactionFormFields';
+import type { FactionIdentityNameField } from './FactionFormSectionIdentity';
 import type { FactionFormApi } from './factionFormTypes';
 import { FactionSheetReview } from './FactionSheetReview';
 import type { FactionSheetReviewHandle } from './FactionSheetReview';
@@ -16,6 +17,8 @@ export interface FactionEditorProps {
   errors: string[];
   isNameBlank: boolean;
   warnings: FactionAuthoringWarning[];
+  /** A route-bound name input rendered in the Identity section's name slot; see `FactionIdentityNameField`. */
+  nameField?: FactionIdentityNameField;
   /** Fires on field blur and chapter switch — the moments the validation header may settle closed. */
   onSettle?: () => void;
 }
@@ -27,7 +30,7 @@ export interface FactionAuthoringViewHandle {
 }
 
 export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEditorProps>(
-  ({ form, errors, isNameBlank, warnings, onSettle }, ref) => {
+  ({ form, errors, isNameBlank, warnings, nameField, onSettle }, ref) => {
     const reviewRef = useRef<FactionSheetReviewHandle>(null);
     const fieldsRef = useRef<FactionFormFieldsHandle>(null);
 
@@ -61,6 +64,7 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
                   ref={fieldsRef}
                   form={form}
                   warnings={warnings}
+                  nameField={nameField}
                   onSettle={onSettle}
                   nameError={
                     isNameBlank

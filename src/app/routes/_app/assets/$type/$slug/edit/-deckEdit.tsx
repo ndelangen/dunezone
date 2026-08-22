@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Group, Popover, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Popover, Text } from '@mantine/core';
 import { DeckAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -6,7 +6,6 @@ import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { FilePlus2 } from 'lucide-react';
@@ -16,7 +15,8 @@ import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets'
 import type { AssetPageData } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
-import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
+import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
+import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
@@ -135,12 +135,11 @@ function DeckEditSession({
   const [chapter, setChapter] = useState<DeckChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [backPickerOpen, setBackPickerOpen] = useState(false);
   /*
    * The deck whose cardback the draft references, for the label and the proof.
    * Server truth seeds it and a pick replaces it; the draft holds only the id.
    */
-  const [pickedBackDeck, setPickedBackDeck] = useState<{ name: string; data: unknown } | null>(backDeck);
+  const [pickedBackDeck, setPickedBackDeck] = useState<PickedBackDeck | null>(backDeck);
   /* Armed by a save attempt while the reference has no target; disarmed the moment the state resolves. */
   const [pickBlocked, setPickBlocked] = useState(false);
   const patch = (update: Partial<DeckDraft>) => setDraft((prev) => ({ ...prev, ...update }));
@@ -316,72 +315,17 @@ function DeckEditSession({
               </Popover>
             }
             backPicker={
-              <Group gap="xs" wrap="nowrap">
-                <Text size="sm" truncate style={{ minWidth: 0, flex: 1 }} title={pickedBackDeck?.name}>
-                  {pickedBackDeck ? pickedBackDeck.name : 'No deck chosen yet'}
-                </Text>
-                {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
-                <Popover
-                  opened={backPickerOpen}
-                  onChange={setBackPickerOpen}
-                  width={340}
-                  position="bottom-start"
-                  withinPortal
-                >
-                  <Popover.Target>
-                    <Button
-                      variant="light"
-                      size="compact-sm"
-                      style={{ flexShrink: 0 }}
-                      onClick={() => setBackPickerOpen((open) => !open)}
-                    >
-                      {pickedBackDeck ? 'Change' : 'Choose'}
-                    </Button>
-                  </Popover.Target>
-                  <Popover.Dropdown>
-                    <AssetPicker
-                      types={['deck']}
-                      excludeIds={[asset.id]}
-                      /*
-                       * Best effort, not the full referenceability rule: listings present a healthy
-                       * reference deck wearing its target's composition, so it reads as authored here
-                       * and only a dangling presentation (cardback null) can be excluded client-side.
-                       * assertReferenceableDeckCardback remains the gate at save.
-                       */
-                      filter={(entry) => {
-                        const cardback = (entry.data as { cardback?: unknown } | null)?.cardback;
-                        return typeof cardback === 'object' && cardback !== null;
-                      }}
-                      copy={{
-                        searchLabel: 'Search decks',
-                        searchPlaceholder: 'Type a name, slug or owner…',
-                        emptyMessage: 'No other deck has a cardback to wear yet.',
-                      }}
-                      onPick={(picked) => {
-                        setBackPickerOpen(false);
-                        /* A pick is a draft edit, not a write; the reference reaches storage when the deck is saved. */
-                        setPickedBackDeck(picked);
-                        patch({ cardback: { mode: 'reference', asset_id: picked.id } });
-                      }}
-                      onCancel={() => setBackPickerOpen(false)}
-                    />
-                  </Popover.Dropdown>
-                </Popover>
-              </Group>
+              <DeckBackPicker
+                excludeId={asset.id}
+                picked={pickedBackDeck}
+                onPick={(deck) => {
+                  /* A pick is a draft edit, not a write; the reference reaches storage when the deck is saved. */
+                  setPickedBackDeck(deck);
+                  patch({ cardback: { mode: 'reference', asset_id: deck.id } });
+                }}
+              />
             }
-            backProof={
-              pickedBackDeck ? (
-                <Stack gap={4} align="center" w="100%">
-                  {/* A deck's face is its cardback, so the target's row draws its own proof. */}
-                  <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect('deck')}>
-                    <AssetFace type="deck" data={pickedBackDeck.data} name={pickedBackDeck.name} width={900} />
-                  </CanvasScale>
-                  <Text size="xs" c="dimmed">
-                    Cardback, from {pickedBackDeck.name}
-                  </Text>
-                </Stack>
-              ) : null
-            }
+            backProof={<DeckBackProof picked={pickedBackDeck} />}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

@@ -31,13 +31,41 @@ import { enqueueFactionSheetPublication } from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
-async function assertFactionSlugAvailable(ctx: MutationCtx, slug: string, factionId?: Id<'factions'>) {
+/**
+ * Who holds this address: a living faction, a soft-deleted one whose slug stays reserved, or nobody.
+ * One rule read twice, the assets convention: the save guard refuses on it and the editor's name probe subscribes to it, so the warning and the refusal can never disagree.
+ * `exceptId` is the faction doing the asking, so renaming a faction never trips over its own address.
+ */
+async function factionSlugHolder(
+  ctx: QueryCtx,
+  slug: string,
+  exceptId?: Id<'factions'>
+): Promise<'live' | 'deleted' | null> {
   const existing = await ctx.db
     .query('factions')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (existing && existing._id !== factionId) {
+  if (!existing || existing._id === exceptId) {
+    return null;
+  }
+  return existing.is_deleted ? 'deleted' : 'live';
+}
+
+/** The faction editor's live name-conflict check, the save guard's rule as a subscription. */
+export const slugTaken = query({
+  args: { slug: v.string() },
+  returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
+  handler: async (ctx, args) => await factionSlugHolder(ctx, args.slug),
+});
+
+async function assertFactionSlugAvailable(ctx: MutationCtx, slug: string, factionId?: Id<'factions'>) {
+  /* ConvexError, so the words reach the editor's banner in production rather than being redacted to "Server Error". */
+  const holder = await factionSlugHolder(ctx, slug, factionId);
+  if (holder === 'live') {
     throw new ConvexError(`The name is taken: another faction already lives at "${slug}". Pick a different name.`);
+  }
+  if (holder === 'deleted') {
+    throw new ConvexError(`The name is taken: "${slug}" stays reserved by a deleted faction. Pick a different name.`);
   }
 }
 

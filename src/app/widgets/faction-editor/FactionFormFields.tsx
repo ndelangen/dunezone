@@ -27,6 +27,7 @@ import { FactionFormSectionBackground } from './FactionFormSectionBackground';
 import { FactionFormSectionComplexity } from './FactionFormSectionComplexity';
 import { FactionFormSectionHero } from './FactionFormSectionHero';
 import { FactionFormSectionIdentity } from './FactionFormSectionIdentity';
+import type { FactionIdentityNameField } from './FactionFormSectionIdentity';
 import { FactionFormSectionLeaders } from './FactionFormSectionLeaders';
 import { FactionFormSectionPlanets } from './FactionFormSectionPlanets';
 import { FactionFormSectionRules } from './FactionFormSectionRules';
@@ -398,10 +399,11 @@ export const FactionFormFields = forwardRef<
     form: FactionFormApi;
     warnings: FactionAuthoringWarning[];
     nameError?: string;
+    nameField?: FactionIdentityNameField;
     /** Fires on field blur and chapter switch so the route's validation header can settle closed. */
     onSettle?: () => void;
   }
->(function FactionFormFields({ form, warnings, nameError, onSettle }, ref) {
+>(function FactionFormFields({ form, warnings, nameError, nameField, onSettle }, ref) {
   const [activeChapter, setActiveChapter] = useState<FactionAuthoringChapterId>('identity');
   const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState({
@@ -428,7 +430,7 @@ export const FactionFormFields = forwardRef<
     <>
       {chapter === 'identity' ? (
         <>
-          <FactionFormSectionIdentity form={form} nameError={nameError} showIntro={false} />
+          <FactionFormSectionIdentity form={form} nameError={nameError} nameField={nameField} showIntro={false} />
           <FactionFormSectionBackground form={form} />
         </>
       ) : null}

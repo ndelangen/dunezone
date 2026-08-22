@@ -7,6 +7,8 @@ import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
+import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
+import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
@@ -27,6 +29,8 @@ export function DeckCreatePage() {
   const profile = useCurrentProfile();
   const createAsset = useCreateAsset();
   const [draft, setDraft] = useState<DeckDraft>(INITIAL_DECK_DRAFT);
+  /* The chosen deck, kept beside the draft: the draft carries the id that reaches storage, this carries the name and face the tile draws. */
+  const [pickedBackDeck, setPickedBackDeck] = useState<PickedBackDeck | null>(null);
   const [chapter, setChapter] = useState<DeckChapter>('identity');
   const [settleTick, setSettleTick] = useState(0);
   /* Armed by a save attempt while the reference has no target; disarmed the moment the state resolves. */
@@ -67,7 +71,7 @@ export function DeckCreatePage() {
   }
 
   const save = () => {
-    /* The reference tile can be chosen here but not filled (picking waits for the edit page), so the save says so with words rather than a Zod error. */
+    /* Reference mode with nothing picked has no target to store, so the save says so with words rather than a Zod error. */
     if (pickless) {
       setPickBlocked(true);
       return;
@@ -103,7 +107,12 @@ export function DeckCreatePage() {
           }}
           actions={{
             onSave: save,
-            onReset: () => setDraft(INITIAL_DECK_DRAFT),
+            onReset: () => {
+              setDraft(INITIAL_DECK_DRAFT);
+              /* The pick and the armed alert ride beside the draft, so a reset drops all three, the way the edit page's does. */
+              setPickedBackDeck(null);
+              setPickBlocked(false);
+            },
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}
         />
@@ -113,7 +122,7 @@ export function DeckCreatePage() {
           <SaveErrorAlert error={createAsset.error} />
           {pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No deck picked">
-              Picking a deck to wear happens on the edit page; save with another back mode first.
+              Pick a deck whose cardback this one wears, or choose another back mode.
             </Alert>
           ) : null}
           <DeckEditor
@@ -131,12 +140,21 @@ export function DeckCreatePage() {
               </Text>
             }
             backPicker={
-              /* The same once-saved line the token creates keep; whether creates should pick is one editorial decision, recorded for Norbert. */
-              <Text size="xs" c="dimmed">
-                A deck can wear another deck's cardback once it has been saved.
-              </Text>
+              /*
+               * Offered before the first save, unlike the members below it: a reference is a value the draft can
+               * already hold, so nothing about it needs an id of our own. Cards, by contrast, are relation rows
+               * written against a deck that does not exist yet, which is why that slot still waits.
+               */
+              <DeckBackPicker
+                picked={pickedBackDeck}
+                onPick={(deck) => {
+                  /* A pick is a draft edit, not a write; the reference reaches storage when the deck is saved. */
+                  setPickedBackDeck(deck);
+                  patch({ cardback: { mode: 'reference', asset_id: deck.id } });
+                }}
+              />
             }
-            backProof={null}
+            backProof={<DeckBackProof picked={pickedBackDeck} />}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

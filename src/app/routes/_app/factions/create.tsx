@@ -18,6 +18,8 @@ import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/Fac
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 
+import { useFactionNameField } from './-factionNameField';
+
 const VALIDATION_HEADER_ID = 'faction-validation-header';
 
 export const Route = createFileRoute('/_app/factions/create')({
@@ -54,7 +56,9 @@ function CreateFactionPage() {
     },
   });
   const [settleTick, setSettleTick] = useState(0);
-  const validationHeaderOpen = useValidationHeaderOpen(authoring.editing.warnings.length, settleTick);
+  const { nameField, conflictWarnings } = useFactionNameField();
+  const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
+  const validationHeaderOpen = useValidationHeaderOpen(allWarnings.length, settleTick);
 
   const header = (
     <Stack align="center" gap={4}>
@@ -91,7 +95,7 @@ function CreateFactionPage() {
         {validationHeaderOpen ? (
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
-            warnings={authoring.editing.warnings}
+            warnings={allWarnings}
             onFocusWarning={(warning) => viewRef.current?.focusWarning(warning)}
           />
         ) : (
@@ -129,12 +133,13 @@ function CreateFactionPage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <FactionEditor
+          nameField={nameField}
           key="create"
           ref={viewRef}
           form={authoring.form}
           errors={authoring.persistence.errors}
           isNameBlank={authoring.editing.isNameBlank}
-          warnings={authoring.editing.warnings}
+          warnings={allWarnings}
           onSettle={() => setSettleTick((tick) => tick + 1)}
         />
       </PageLayout.Content>

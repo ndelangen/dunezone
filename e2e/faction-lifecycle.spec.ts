@@ -74,7 +74,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
   await test.step('warning focus, name blocking, review, and artifact proof use the loaded draft', async () => {
     await loadFactionDraft(page, factionBName);
 
-    await page.getByRole('tab', { name: 'Identity & Appearance', exact: true }).click();
+    await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
     /* The validation header is open whenever a warning exists, so there is no toolbar count to click through;
        the header's per-source chip is what jumps to and focuses the field. */
     await page.getByRole('button', { name: 'Faction leader: missing name' }).click();
@@ -82,7 +82,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(factionLeaderName).toBeFocused();
     await factionLeaderName.fill(importedLeaderName);
 
-    await page.getByRole('tab', { name: 'Identity & Appearance', exact: true }).click();
+    await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
     const factionName = page.getByRole('textbox', { name: 'Faction name' });
     await factionName.fill('');
     await expect(page.getByRole('button', { name: 'Save faction' })).toBeDisabled();
@@ -135,7 +135,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
      */
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
     await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(importedLeaderName);
-    await page.getByRole('tab', { name: 'Identity & Appearance', exact: true }).click();
+    await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
 
     const savedFactionName = page.getByRole('textbox', { name: 'Faction name' });
     await savedFactionName.fill(`${factionAName} local`);
