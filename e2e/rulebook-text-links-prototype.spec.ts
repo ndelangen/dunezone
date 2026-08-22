@@ -68,14 +68,41 @@ async function createShareUrl(page: Page) {
 }
 
 test('semantic target text precedes lazy visual content on a fresh pinned load', async ({ page }) => {
+  await page.addInitScript(() => {
+    const testWindow = window as Window & {
+      rulebookLazyObservation?: { semanticBeforeVisual: boolean; visualAfterSemantic: boolean };
+    };
+    testWindow.rulebookLazyObservation = { semanticBeforeVisual: false, visualAfterSemantic: false };
+    const observe = () => {
+      const rulePage = document.getElementById('page-storm');
+      const semanticReady = rulePage?.textContent?.includes('The storm belongs to no one.') ?? false;
+      const visualReady = Boolean(rulePage?.querySelector(':scope > [aria-hidden="true"]'));
+      if (semanticReady && !visualReady) {
+        testWindow.rulebookLazyObservation!.semanticBeforeVisual = true;
+      }
+      if (visualReady && testWindow.rulebookLazyObservation!.semanticBeforeVisual) {
+        testWindow.rulebookLazyObservation!.visualAfterSemantic = true;
+      }
+    };
+    new MutationObserver(observe).observe(document, { childList: true, subtree: true });
+  });
   await page.goto(buildRulebookTextShareUrl(baseUrl, repeatedLocator), { waitUntil: 'domcontentloaded' });
 
   await expect(page.getByRole('main')).toHaveCount(1);
   await expect(page.locator('#storm-rule')).toBeAttached();
   await expect(page.locator('#page-aftermath')).toContainText('The selected text remains searchable throughout.');
   const visualDecoration = page.locator('#page-storm > [aria-hidden="true"]');
-  await expect(visualDecoration).toHaveCount(0);
   await expect(visualDecoration).toBeVisible();
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            rulebookLazyObservation?: { semanticBeforeVisual: boolean; visualAfterSemantic: boolean };
+          }
+        ).rulebookLazyObservation
+    )
+  ).toEqual({ semanticBeforeVisual: true, visualAfterSemantic: true });
   await expect(page.locator('#storm-rule')).toHaveAttribute('data-locator-target', 'true');
 });
 

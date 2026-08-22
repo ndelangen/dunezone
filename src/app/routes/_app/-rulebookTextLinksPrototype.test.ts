@@ -6,10 +6,13 @@ import {
   buildRulebookTextShareUrl,
   buildTextFragmentDirective,
   encodeRulebookTextLocator,
+  getRulebookSemanticSegments,
   locatorFromBrowserSelection,
   parseRulebookTextLocator,
+  resolveRulebookSemanticSpan,
   resolveRulebookTextLocator,
   resolveRulebookStableAnchor,
+  RULEBOOK_PROTOTYPE_PAGES,
 } from './-rulebookTextLinksPrototype';
 import type { RulebookTextLocator } from './-rulebookTextLinksPrototype';
 
@@ -35,6 +38,18 @@ const repeatedItemLocator: RulebookTextLocator = {
 };
 
 describe('Rulebook text locator prototype', () => {
+  it('derives Page ownership directly from the ordered semantic segments', () => {
+    const segments = RULEBOOK_PROTOTYPE_PAGES.flatMap(getRulebookSemanticSegments);
+
+    expect(resolveRulebookSemanticSpan(segments, 'page-opening-title-segment', 'storm-rule-title-segment')).toEqual({
+      status: 'cross-page',
+    });
+    expect(resolveRulebookSemanticSpan(segments, 'storm-rule-title-segment', 'storm-rule-paragraph-1')).toMatchObject({
+      status: 'resolved',
+      pageId: 'page-storm',
+      blockId: 'storm-rule',
+    });
+  });
   it('round-trips bounded Unicode, multiline, punctuation, and long selections', () => {
     const locator: RulebookTextLocator = {
       ...repeatedLocator,

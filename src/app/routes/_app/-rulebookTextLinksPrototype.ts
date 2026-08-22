@@ -302,6 +302,49 @@ function semanticSegmentsForPath(page: RulebookPrototypePage, path: RulebookText
   );
 }
 
+export type RulebookSemanticSpanResolution =
+  | { status: 'missing-segment' }
+  | { status: 'cross-page' }
+  | {
+      status: 'resolved';
+      pageId: string;
+      blockId?: string;
+      itemId?: string;
+      segments: RulebookSemanticSegment[];
+    };
+
+export function resolveRulebookSemanticSpan(
+  segments: RulebookSemanticSegment[],
+  startSegmentId: string,
+  endSegmentId: string
+): RulebookSemanticSpanResolution {
+  const startIndex = segments.findIndex((segment) => segment.id === startSegmentId);
+  const endIndex = segments.findIndex((segment) => segment.id === endSegmentId);
+  if (startIndex < 0 || endIndex < startIndex) {
+    return { status: 'missing-segment' };
+  }
+  const startSegment = segments[startIndex]!;
+  const endSegment = segments[endIndex]!;
+  if (startSegment.pageId !== endSegment.pageId) {
+    return { status: 'cross-page' };
+  }
+  const blockId =
+    startSegment.blockId && startSegment.blockId === endSegment.blockId ? startSegment.blockId : undefined;
+  const itemId = blockId && startSegment.itemId === endSegment.itemId ? startSegment.itemId : undefined;
+  return {
+    status: 'resolved',
+    pageId: startSegment.pageId,
+    ...(blockId ? { blockId } : {}),
+    ...(itemId ? { itemId } : {}),
+    segments: segments.filter(
+      (segment) =>
+        segment.pageId === startSegment.pageId &&
+        (!blockId || segment.blockId === blockId) &&
+        (!itemId || segment.itemId === itemId)
+    ),
+  };
+}
+
 export type RulebookStableAnchorResolution = {
   page: RulebookPrototypePage;
   block?: RulebookPrototypeBlock;
@@ -509,41 +552,36 @@ export function locatorFromBrowserSelection(
   if (!startSegmentElement || !endSegmentElement) {
     return { ok: false, message: 'The selection does not map to this Rulebook.' };
   }
-  const records = RULEBOOK_PROTOTYPE_PAGES.flatMap((page) =>
-    getRulebookSemanticSegments(page).map((segment) => ({ page, segment }))
+  const orderedSegments = RULEBOOK_PROTOTYPE_PAGES.flatMap(getRulebookSemanticSegments);
+  const span = resolveRulebookSemanticSpan(
+    orderedSegments,
+    startSegmentElement.dataset.rulebookSegmentId!,
+    endSegmentElement.dataset.rulebookSegmentId!
   );
-  const startRecord = records.find((record) => record.segment.id === startSegmentElement.dataset.rulebookSegmentId);
-  const endRecord = records.find((record) => record.segment.id === endSegmentElement.dataset.rulebookSegmentId);
-  if (!startRecord || !endRecord || startRecord.page.id !== endRecord.page.id) {
+  if (span.status === 'cross-page') {
     return { ok: false, message: 'Keep the selection inside one Rulebook Page.' };
   }
-  const sharedBlockId =
-    startRecord.segment.blockId && startRecord.segment.blockId === endRecord.segment.blockId
-      ? startRecord.segment.blockId
-      : undefined;
-  const sharedItemId =
-    sharedBlockId && startRecord.segment.itemId && startRecord.segment.itemId === endRecord.segment.itemId
-      ? startRecord.segment.itemId
-      : undefined;
+  if (span.status === 'missing-segment') {
+    return { ok: false, message: 'The selection does not map to this Rulebook.' };
+  }
+  const page = RULEBOOK_PROTOTYPE_PAGES.find((candidate) => candidate.id === span.pageId);
+  if (!page) {
+    return { ok: false, message: 'The selection does not map to this Rulebook.' };
+  }
   const path: RulebookTextLocator['path'] =
-    sharedItemId && sharedBlockId
+    span.itemId && span.blockId
       ? [
-          { kind: 'page', id: startRecord.page.id },
-          { kind: 'block', id: sharedBlockId },
-          { kind: 'item', id: sharedItemId },
+          { kind: 'page', id: span.pageId },
+          { kind: 'block', id: span.blockId },
+          { kind: 'item', id: span.itemId },
         ]
-      : sharedBlockId
+      : span.blockId
         ? [
-            { kind: 'page', id: startRecord.page.id },
-            { kind: 'block', id: sharedBlockId },
+            { kind: 'page', id: span.pageId },
+            { kind: 'block', id: span.blockId },
           ]
-        : [{ kind: 'page', id: startRecord.page.id }];
-  const canonical = canonicalTextAroundRange(
-    range,
-    semanticSegmentsForPath(startRecord.page, path),
-    startSegmentElement,
-    endSegmentElement
-  );
+        : [{ kind: 'page', id: span.pageId }];
+  const canonical = canonicalTextAroundRange(range, span.segments, startSegmentElement, endSegmentElement);
   if (!canonical) {
     return { ok: false, message: 'Select visible Rulebook text first.' };
   }
