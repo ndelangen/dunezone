@@ -1,5 +1,6 @@
 import { Alert, Stack } from '@mantine/core';
 import { forwardRef, useImperativeHandle, useRef } from 'react';
+import type { ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
 
@@ -11,11 +12,17 @@ import type { FactionFormApi } from './factionFormTypes';
 import { FactionSheetReview } from './FactionSheetReview';
 import type { FactionSheetReviewHandle } from './FactionSheetReview';
 
+/** The one blank-name sentence, shared with the routes' name field so the slotted and plain paths speak alike. */
+export const FACTION_NAME_BLANK_MESSAGE =
+  'A faction name is required before saving because it determines the faction URL.';
+
 export interface FactionEditorProps {
   form: FactionFormApi;
   errors: string[];
   isNameBlank: boolean;
   warnings: FactionAuthoringWarning[];
+  /** A route-bound name input (the availability-checking picker); blank-name and conflict errors ride inside it. */
+  nameField?: ReactNode;
   /** Fires on field blur and chapter switch — the moments the validation header may settle closed. */
   onSettle?: () => void;
 }
@@ -27,7 +34,7 @@ export interface FactionAuthoringViewHandle {
 }
 
 export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEditorProps>(
-  ({ form, errors, isNameBlank, warnings, onSettle }, ref) => {
+  ({ form, errors, isNameBlank, warnings, nameField, onSettle }, ref) => {
     const reviewRef = useRef<FactionSheetReviewHandle>(null);
     const fieldsRef = useRef<FactionFormFieldsHandle>(null);
 
@@ -61,12 +68,9 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
                   ref={fieldsRef}
                   form={form}
                   warnings={warnings}
+                  nameField={nameField}
                   onSettle={onSettle}
-                  nameError={
-                    isNameBlank
-                      ? 'A faction name is required before saving because it determines the faction URL.'
-                      : undefined
-                  }
+                  nameError={isNameBlank ? FACTION_NAME_BLANK_MESSAGE : undefined}
                 />
               </FactionSheetReview>
             );

@@ -31,13 +31,39 @@ import { enqueueFactionSheetPublication } from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
-async function assertFactionSlugAvailable(ctx: MutationCtx, slug: string, factionId?: Id<'factions'>) {
+/**
+ * Who holds this slug: a living faction, a soft-deleted one whose address stays reserved, or nobody.
+ * The save guard and the editors' typed warning both read this one predicate, so the two can never disagree.
+ */
+async function factionSlugHolder(
+  ctx: QueryCtx,
+  slug: string,
+  excludeId?: Id<'factions'>
+): Promise<'live' | 'deleted' | null> {
   const existing = await ctx.db
     .query('factions')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (existing && existing._id !== factionId) {
+  if (!existing || existing._id === excludeId) {
+    return null;
+  }
+  return existing.is_deleted ? 'deleted' : 'live';
+}
+
+/** The name field's availability probe; mounted per settled candidate by the editors' name picker. */
+export const slugTaken = query({
+  args: { slug: v.string() },
+  returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
+  handler: async (ctx, args) => await factionSlugHolder(ctx, args.slug),
+});
+
+async function assertFactionSlugAvailable(ctx: MutationCtx, slug: string, factionId?: Id<'factions'>) {
+  const holder = await factionSlugHolder(ctx, slug, factionId);
+  if (holder === 'live') {
     throw new ConvexError(`The name is taken: another faction already lives at "${slug}". Pick a different name.`);
+  }
+  if (holder === 'deleted') {
+    throw new ConvexError(`The name is taken: "${slug}" stays reserved by a deleted faction. Pick a different name.`);
   }
 }
 

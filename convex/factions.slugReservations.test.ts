@@ -45,7 +45,7 @@ describe('faction slug reservations', () => {
     await asUser.mutation(api.factions.softDelete, { id: faction._id });
 
     await expect(createFaction(asUser, 'Reserved Faction')).rejects.toThrow(
-      'another faction already lives at "reserved-faction"'
+      '"reserved-faction" stays reserved by a deleted faction'
     );
   });
 
@@ -60,7 +60,26 @@ describe('faction slug reservations', () => {
         id: active._id,
         data: { ...assetPublishingFaction, name: 'Reserved Faction' },
       })
-    ).rejects.toThrow('another faction already lives at "reserved-faction"');
+    ).rejects.toThrow('"reserved-faction" stays reserved by a deleted faction');
+  });
+
+  test('a living faction refuses its slug with the living sentence', async () => {
+    const { asUser } = await authenticatedTest();
+    await createFaction(asUser, 'Occupied Faction');
+
+    await expect(createFaction(asUser, 'Occupied Faction')).rejects.toThrow(
+      'another faction already lives at "occupied-faction"'
+    );
+  });
+
+  test('slugTaken answers the tri-state the name field warns from', async () => {
+    const { t, asUser } = await authenticatedTest();
+    const faction = await createFaction(asUser, 'Probed Faction');
+
+    await expect(t.query(api.factions.slugTaken, { slug: 'probed-faction' })).resolves.toBe('live');
+    await expect(t.query(api.factions.slugTaken, { slug: 'never-used' })).resolves.toBeNull();
+    await asUser.mutation(api.factions.softDelete, { id: faction._id });
+    await expect(t.query(api.factions.slugTaken, { slug: 'probed-faction' })).resolves.toBe('deleted');
   });
 
   test('the repair keeps the active public slug and archives the deleted duplicate', async () => {

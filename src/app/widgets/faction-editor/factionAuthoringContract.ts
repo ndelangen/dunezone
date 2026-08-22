@@ -25,9 +25,16 @@ export type FactionAuthoringWarning = {
   targetId: string;
   /** The entity the gap belongs to; the validation header renders one chip per source. */
   source: string;
-  /** What the source is missing, e.g. "name" or "back description". */
-  missing: string;
-};
+} & (
+  | {
+      /** What the source is missing, e.g. "name" or "back description". */
+      missing: string;
+    }
+  | {
+      /** A whole complaint about the source, carried verbatim, e.g. a name conflict. */
+      complaint: string;
+    }
+);
 
 function isBlank(value: string | undefined): boolean {
   return value == null || value.trim().length === 0;

@@ -8,6 +8,7 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Globe2, Swords } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import type { Faction, FactionCatalogueEntry } from '@db/factions';
 import { useAssetResolver } from '@game/assets/assetRenderMode';
@@ -398,10 +399,12 @@ export const FactionFormFields = forwardRef<
     form: FactionFormApi;
     warnings: FactionAuthoringWarning[];
     nameError?: string;
+    /** A route-bound name input; see `FactionFormSectionIdentity`. */
+    nameField?: ReactNode;
     /** Fires on field blur and chapter switch so the route's validation header can settle closed. */
     onSettle?: () => void;
   }
->(function FactionFormFields({ form, warnings, nameError, onSettle }, ref) {
+>(function FactionFormFields({ form, warnings, nameError, nameField, onSettle }, ref) {
   const [activeChapter, setActiveChapter] = useState<FactionAuthoringChapterId>('identity');
   const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState({
@@ -428,7 +431,7 @@ export const FactionFormFields = forwardRef<
     <>
       {chapter === 'identity' ? (
         <>
-          <FactionFormSectionIdentity form={form} nameError={nameError} showIntro={false} />
+          <FactionFormSectionIdentity form={form} nameError={nameError} nameField={nameField} showIntro={false} />
           <FactionFormSectionBackground form={form} />
         </>
       ) : null}

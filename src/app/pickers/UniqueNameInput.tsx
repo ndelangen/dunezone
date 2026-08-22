@@ -20,10 +20,11 @@ export type NameAvailabilityProbe = (props: {
 /**
  * The one sentence a name conflict speaks on the client, shared by the field's inline error and the validation header's chip so the two cannot drift.
  * It mirrors the save guard's own distinction: a living holder and a deleted one reserving its address are different answers.
+ * Noun-free on purpose: the field is entity-blind, so the sentence can never name an entity the way a per-guard refusal does.
  */
 export function nameConflictComplaint({ holder, slug }: NameConflict): string {
   return holder === 'deleted'
-    ? `its name is already taken ("${slug}" stays reserved by a deleted asset)`
+    ? `its name is already taken ("${slug}" stays reserved by a deleted one)`
     : `its name is already taken (another one lives at "${slug}")`;
 }
 
@@ -103,19 +104,27 @@ function useSettledConflict({
  */
 export function UniqueNameInput({
   label = 'Name',
+  id,
   value,
   onChange,
+  onBlur,
   currentSlug,
   probe,
   onConflictChange,
+  error,
 }: {
   label?: string;
+  /** For hosts whose validation chips focus the field by element id. */
+  id?: string;
   value: string;
   onChange: (name: string) => void;
+  onBlur?: () => void;
   /** The entity's own slug on an edit page, so an unchanged name never warns about its own address. */
   currentSlug?: string;
   probe: NameAvailabilityProbe;
   onConflictChange: (conflict: NameConflict | null) => void;
+  /** The host's own complaint about the name (a blank-name message, say); a conflict outranks it. */
+  error?: ReactNode;
 }) {
   const { settled, conflict, onAnswer } = useSettledConflict({ value, currentSlug, onConflictChange });
   return (
@@ -123,9 +132,11 @@ export function UniqueNameInput({
       {settled ? probe({ slug: settled, onAnswer }) : null}
       <TextInput
         aria-label={label}
+        id={id}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
-        error={conflict ? nameConflictComplaint(conflict) : undefined}
+        onBlur={onBlur}
+        error={conflict ? nameConflictComplaint(conflict) : error}
       />
     </>
   );

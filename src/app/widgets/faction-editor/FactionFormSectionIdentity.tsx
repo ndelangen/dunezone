@@ -1,6 +1,7 @@
 import { Box, ColorInput, Stack, Text, TextInput } from '@mantine/core';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
 
@@ -17,10 +18,13 @@ const logoSelectOptions = logoOptions.map((value) => ({
 export function FactionFormSectionIdentity({
   form,
   nameError,
+  nameField,
   showIntro = true,
 }: {
   form: FactionFormApi;
   nameError?: string;
+  /** A route-bound name input (the availability-checking picker); when given it replaces the plain field, and `nameError` rides inside it. */
+  nameField?: ReactNode;
   showIntro?: boolean;
 }) {
   return (
@@ -42,24 +46,32 @@ export function FactionFormSectionIdentity({
       ) : null}
 
       <Box className={styles.identityGrid}>
-        <form.Field name="name">
-          {(field) => (
-            <ControlBlock
-              title="Faction name"
-              description="Used on faction artifacts and to derive the canonical share URL."
-              input={
-                <TextInput
-                  id="faction-name"
-                  aria-label="Faction name"
-                  error={nameError}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value)}
-                />
-              }
-            />
-          )}
-        </form.Field>
+        {nameField ? (
+          <ControlBlock
+            title="Faction name"
+            description="Used on faction artifacts and to derive the canonical share URL."
+            input={nameField}
+          />
+        ) : (
+          <form.Field name="name">
+            {(field) => (
+              <ControlBlock
+                title="Faction name"
+                description="Used on faction artifacts and to derive the canonical share URL."
+                input={
+                  <TextInput
+                    id="faction-name"
+                    aria-label="Faction name"
+                    error={nameError}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  />
+                }
+              />
+            )}
+          </form.Field>
+        )}
 
         <form.Field name="logo">
           {(field) => (

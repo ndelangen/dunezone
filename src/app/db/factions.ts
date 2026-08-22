@@ -183,6 +183,14 @@ export function useFactionLoadPicker(options?: { initialData?: FactionLoadPicker
   return toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
 }
 
+/**
+ * Who holds a candidate faction slug, for the name field's typed warning.
+ * Always real args: the caller mounts and unmounts the component holding this, which is how a domain read stays conditional without a skip.
+ */
+export function useFactionSlugTaken(args: { slug: string }) {
+  return useQuery(api.factions.slugTaken, args);
+}
+
 export function useCreateFaction() {
   const mutation = useLiveMutation<
     { data: Faction; group_id?: string | null },
