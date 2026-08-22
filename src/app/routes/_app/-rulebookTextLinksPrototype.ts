@@ -259,12 +259,38 @@ export function normalizeRulebookText(value: string) {
   return value.replace(/\s+/gu, ' ').trim();
 }
 
-function pageText(page: RulebookPrototypePage) {
-  return normalizeRulebookText(page.blocks.flatMap((block) => block.paragraphs).join(' '));
+function blockText(block: RulebookPrototypeBlock) {
+  return normalizeRulebookText(
+    [block.title, ...block.paragraphs, ...(block.items?.map((item) => item.text) ?? [])].join(' ')
+  );
 }
 
-function blockText(block: RulebookPrototypeBlock) {
-  return normalizeRulebookText([...block.paragraphs, ...(block.items?.map((item) => item.text) ?? [])].join(' '));
+function pageText(page: RulebookPrototypePage) {
+  return normalizeRulebookText([page.title, ...page.blocks.map(blockText)].join(' '));
+}
+
+export type RulebookStableAnchorResolution = {
+  page: RulebookPrototypePage;
+  block?: RulebookPrototypeBlock;
+  anchorId: string;
+};
+
+export function resolveRulebookStableAnchor(hash: string | undefined): RulebookStableAnchorResolution | undefined {
+  const anchor = hash?.replace(/^#/, '').split(':~:', 1)[0];
+  if (!isAnchor(anchor)) {
+    return undefined;
+  }
+  const page = RULEBOOK_PROTOTYPE_PAGES.find((candidate) => candidate.id === anchor);
+  if (page) {
+    return { page, anchorId: page.id };
+  }
+  for (const candidate of RULEBOOK_PROTOTYPE_PAGES) {
+    const block = candidate.blocks.find((entry) => entry.id === anchor);
+    if (block) {
+      return { page: candidate, block, anchorId: block.id };
+    }
+  }
+  return undefined;
 }
 
 export function resolveRulebookTextLocator(result: LocatorParseResult): LocatorResolution {
@@ -359,16 +385,55 @@ function elementForNode(node: Node) {
   return node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
 }
 
-function contextAroundRange(range: Range, scope: Element) {
-  const before = range.cloneRange();
-  before.selectNodeContents(scope);
-  before.setEnd(range.startContainer, range.startOffset);
-  const after = range.cloneRange();
-  after.selectNodeContents(scope);
-  after.setStart(range.endContainer, range.endOffset);
+function canonicalTextAroundRange(range: Range, scope: Element) {
+  if (range.startContainer.nodeType !== Node.TEXT_NODE || range.endContainer.nodeType !== Node.TEXT_NODE) {
+    return null;
+  }
+  const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) =>
+      node.parentElement?.closest('[data-rulebook-selectable-text]')
+        ? NodeFilter.FILTER_ACCEPT
+        : NodeFilter.FILTER_REJECT,
+  });
+  const before: string[] = [];
+  const selected: string[] = [];
+  const after: string[] = [];
+  let phase: 'before' | 'selected' | 'after' = 'before';
+  let node = walker.nextNode() as Text | null;
+  while (node) {
+    if (node === range.startContainer) {
+      phase = 'selected';
+      if (node === range.endContainer) {
+        before.push(node.data.slice(0, range.startOffset));
+        selected.push(node.data.slice(range.startOffset, range.endOffset));
+        after.push(node.data.slice(range.endOffset));
+        phase = 'after';
+        node = walker.nextNode() as Text | null;
+        continue;
+      }
+      before.push(node.data.slice(0, range.startOffset));
+      selected.push(node.data.slice(range.startOffset));
+      node = walker.nextNode() as Text | null;
+      continue;
+    }
+    if (node === range.endContainer) {
+      selected.push(node.data.slice(0, range.endOffset));
+      after.push(node.data.slice(range.endOffset));
+      phase = 'after';
+      node = walker.nextNode() as Text | null;
+      continue;
+    }
+    (phase === 'before' ? before : phase === 'selected' ? selected : after).push(node.data);
+    node = walker.nextNode() as Text | null;
+  }
+  const exact = normalizeRulebookText(selected.join(' '));
+  if (!exact) {
+    return null;
+  }
   return {
-    prefix: takeCodePoints(normalizeRulebookText(before.toString()), MAX_CONTEXT_LENGTH, true),
-    suffix: takeCodePoints(normalizeRulebookText(after.toString()), MAX_CONTEXT_LENGTH),
+    exact,
+    prefix: takeCodePoints(normalizeRulebookText(before.join(' ')), MAX_CONTEXT_LENGTH, true),
+    suffix: takeCodePoints(normalizeRulebookText(after.join(' ')), MAX_CONTEXT_LENGTH),
   };
 }
 
@@ -399,17 +464,15 @@ export function locatorFromBrowserSelection(
   const startItem = startElement.closest<HTMLElement>('[data-rulebook-item-id]');
   const endItem = endElement.closest<HTMLElement>('[data-rulebook-item-id]');
   const item = startItem && startItem === endItem && isAnchor(startItem.dataset.rulebookItemId) ? startItem : undefined;
-  const exact = normalizeRulebookText(selection.toString());
-  if (exact.length === 0) {
+  const scope = item ?? block ?? startPage;
+  const canonical = canonicalTextAroundRange(range, scope);
+  if (!canonical) {
     return { ok: false, message: 'Select visible Rulebook text first.' };
   }
+  const { exact, prefix, suffix } = canonical;
   if (exact.length > MAX_SELECTED_TEXT_LENGTH) {
     return { ok: false, message: 'The selection is too long for a safe share URL.' };
   }
-  const startContent = startElement.closest('[data-rulebook-text-content]');
-  const endContent = endElement.closest('[data-rulebook-text-content]');
-  const scope = startContent && startContent === endContent ? startContent : (block ?? startPage);
-  const { prefix, suffix } = contextAroundRange(range, scope);
   return {
     ok: true,
     locator: {

@@ -10,6 +10,7 @@ import {
   locatorFromBrowserSelection,
   parseRulebookTextLocator,
   resolveRulebookTextLocator,
+  resolveRulebookStableAnchor,
   RULEBOOK_PROTOTYPE_PAGES,
 } from './-rulebookTextLinksPrototype';
 import type {
@@ -111,7 +112,7 @@ function RulebookPageView({
             <Badge color="dune" variant="light">
               Page {page.number}
             </Badge>
-            <Title id={`${page.id}-title`} order={2} mt="xs">
+            <Title id={`${page.id}-title`} order={2} mt="xs" data-rulebook-selectable-text>
               {page.title}
             </Title>
           </div>
@@ -125,13 +126,15 @@ function RulebookPageView({
               data-testid={block.testId}
               aria-labelledby={`${block.id}-title`}
             >
-              <Title id={`${block.id}-title`} order={3} mb="xs">
+              <Title id={`${block.id}-title`} order={3} mb="xs" data-rulebook-selectable-text>
                 {block.title}
               </Title>
               <div data-rulebook-text-content>
                 <Stack gap="sm">
                   {block.paragraphs.map((paragraph) => (
-                    <Text key={paragraph}>{paragraph}</Text>
+                    <Text key={paragraph} data-rulebook-selectable-text>
+                      {paragraph}
+                    </Text>
                   ))}
                   {block.items && (
                     <List>
@@ -139,6 +142,7 @@ function RulebookPageView({
                         <List.Item
                           key={item.id}
                           data-rulebook-item-id={item.id}
+                          data-rulebook-selectable-text
                           data-locator-item-target={visualReady && targetItemId === item.id ? 'true' : undefined}
                           data-testid={item.testId}
                         >
@@ -198,15 +202,20 @@ function RulebookTextLinksPrototype() {
   const navigate = useNavigate();
   const parsed = useMemo(() => parseRulebookTextLocator(search.loc), [search.loc]);
   const resolution = useMemo(() => resolveRulebookTextLocator(parsed), [parsed]);
-  const targetPage = resolution.status === 'matched' || resolution.status === 'stale' ? resolution.page : undefined;
-  const resolvedAnchorId =
-    resolution.status === 'matched' || resolution.status === 'stale' ? resolution.anchorId : undefined;
+  const [locationHash, setLocationHash] = useState(() => window.location.hash);
+  const stableAnchor = useMemo(
+    () => (search.loc ? undefined : resolveRulebookStableAnchor(locationHash)),
+    [locationHash, search.loc]
+  );
+  const locatorTarget = resolution.status === 'matched' || resolution.status === 'stale' ? resolution : undefined;
+  const targetPage = locatorTarget?.page ?? stableAnchor?.page;
+  const resolvedAnchorId = locatorTarget?.anchorId ?? stableAnchor?.anchorId;
   const targetItemId =
     resolution.status === 'matched' || resolution.status === 'stale' ? resolution.item?.id : undefined;
-  const locatorKey = search.loc ?? '';
-  const [unpinnedLocator, setUnpinnedLocator] = useState<string | null>(null);
-  const pinned = Boolean(targetPage) && unpinnedLocator !== locatorKey;
+  const targetKey = search.loc ? `locator:${search.loc}` : stableAnchor ? `anchor:${stableAnchor.anchorId}` : '';
+  const [unpinnedTarget, setUnpinnedTarget] = useState<string | null>(null);
   const [tracking, setTracking] = useState(false);
+  const pinned = Boolean(targetPage) && !tracking && unpinnedTarget !== targetKey;
   const [trackedAnchorId, setTrackedAnchorId] = useState<string>();
   const trackedAnchorRef = useRef<string | undefined>(undefined);
   const targetAnchorId = tracking ? trackedAnchorId : resolvedAnchorId;
@@ -221,16 +230,16 @@ function RulebookTextLinksPrototype() {
   }, []);
 
   useEffect(() => {
+    const updateHash = () => setLocationHash(window.location.hash);
+    window.addEventListener('hashchange', updateHash);
+    return () => window.removeEventListener('hashchange', updateHash);
+  }, []);
+
+  useEffect(() => {
     if (targetPage) {
       setSelectedEditorPageId(targetPage.id);
     }
-  }, [locatorKey, targetPage]);
-
-  useEffect(() => {
-    setTracking(false);
-    setTrackedAnchorId(undefined);
-    trackedAnchorRef.current = undefined;
-  }, [locatorKey]);
+  }, [targetKey, targetPage]);
 
   useEffect(() => {
     if (!tracking) {
@@ -241,13 +250,12 @@ function RulebookTextLinksPrototype() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const center = window.innerHeight / 2;
-        const blocks = Array.from(document.querySelectorAll<HTMLElement>('[data-rulebook-block-anchor]'));
         const pages = Array.from(document.querySelectorAll<HTMLElement>('[data-rulebook-page-anchor]'));
-        const visibleBlocks = blocks.filter((node) => {
+        const visiblePages = pages.filter((node) => {
           const rect = node.getBoundingClientRect();
           return rect.bottom > 0 && rect.top < window.innerHeight;
         });
-        const candidates = visibleBlocks.length > 0 ? visibleBlocks : pages;
+        const candidates = visiblePages.length > 0 ? visiblePages : pages;
         const nearest = candidates.reduce<HTMLElement | undefined>((best, node) => {
           if (!best) {
             return node;
@@ -267,8 +275,10 @@ function RulebookTextLinksPrototype() {
         trackedAnchorRef.current = nearest.id;
         setTrackedAnchorId(nearest.id);
         const url = new URL(window.location.href);
+        url.searchParams.delete('loc');
         url.hash = nearest.id;
         window.history.replaceState(window.history.state, '', url);
+        setLocationHash(url.hash);
       });
     };
     updateTrackedAnchor();
@@ -282,19 +292,25 @@ function RulebookTextLinksPrototype() {
   }, [tracking]);
 
   useEffect(() => {
-    if (!resolvedAnchorId || resolution.status === 'missing' || resolution.status === 'invalid') {
+    if (!resolvedAnchorId) {
       return;
     }
     const shouldApplyFallback = forceFallback || nativeSupport === 'not-detected' || resolution.status === 'stale';
-    if (!shouldApplyFallback) {
-      return;
-    }
     const target = document.getElementById(resolvedAnchorId);
     if (!target) {
       return;
     }
-    const frame = requestAnimationFrame(() => target.scrollIntoView({ block: 'center' }));
-    return () => cancelAnimationFrame(frame);
+    if (shouldApplyFallback) {
+      const frame = requestAnimationFrame(() => target.scrollIntoView({ block: 'center' }));
+      return () => cancelAnimationFrame(frame);
+    }
+    const recovery = window.setTimeout(() => {
+      const rect = target.getBoundingClientRect();
+      if (rect.bottom <= 0 || rect.top >= window.innerHeight) {
+        target.scrollIntoView({ block: 'center' });
+      }
+    }, 700);
+    return () => window.clearTimeout(recovery);
   }, [forceFallback, nativeSupport, resolution.status, resolvedAnchorId]);
 
   const setVariant = useCallback(
@@ -313,7 +329,7 @@ function RulebookTextLinksPrototype() {
   );
 
   const beginTracking = () => {
-    setUnpinnedLocator(locatorKey);
+    setUnpinnedTarget(targetKey);
     setTracking(true);
   };
 
@@ -434,7 +450,11 @@ function RulebookTextLinksPrototype() {
                   </Text>
                   <Text size="sm">
                     Active scroll owner:{' '}
-                    <strong>{forceFallback ? 'application fallback' : 'browser when matched'}</strong>
+                    <strong>
+                      {forceFallback || nativeSupport === 'not-detected' || resolution.status === 'stale'
+                        ? 'application fallback'
+                        : 'browser, with application recovery'}
+                    </strong>
                   </Text>
                 </Stack>
               </Surface>

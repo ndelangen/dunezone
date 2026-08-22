@@ -118,7 +118,7 @@ test('a Page-only locator receives the application-owned fallback highlight on a
   await expect(page.locator('#page-aftermath')).toBeInViewport();
 });
 
-test('manual unpin starts reader tracking and replaces the fragment as the reader moves', async ({ page }) => {
+test('manual unpin tracks Pages, removes the locator, and survives reload', async ({ page }) => {
   await page.goto(buildRulebookTextShareUrl(baseUrl, repeatedLocator));
   await page.getByRole('button', { name: 'Unpin target' }).click();
 
@@ -126,10 +126,62 @@ test('manual unpin starts reader tracking and replaces the fragment as the reade
   await expect.poll(() => new URL(page.url()).hash.length).toBeGreaterThan(1);
   await expect.poll(() => new URL(page.url()).hash).not.toContain(':~:');
 
-  await page.locator('#multiline-rule').evaluate((element) => element.scrollIntoView({ block: 'center' }));
-  await expect.poll(() => new URL(page.url()).hash).toBe('#multiline-rule');
-  await expect(page.locator('#multiline-rule')).toHaveAttribute('data-locator-target', 'true');
+  await page.locator('#page-aftermath').evaluate((element) => element.scrollIntoView({ block: 'center' }));
+  await expect.poll(() => new URL(page.url()).hash).toBe('#page-aftermath');
+  expect(new URL(page.url()).searchParams.has('loc')).toBe(false);
+  await expect(page.locator('#page-aftermath')).toHaveAttribute('data-locator-target', 'true');
   await expect(page.locator('#storm-rule')).not.toHaveAttribute('data-locator-target', 'true');
+
+  await page.reload();
+  await expect(page.getByText('Pinned', { exact: true })).toBeVisible();
+  await expect(page.locator('#page-aftermath')).toHaveAttribute('data-locator-target', 'true');
+  expect(new URL(page.url()).searchParams.has('loc')).toBe(false);
+});
+
+test('plain Page and Block anchors start pinned and remain fixed until unpinned', async ({ page }) => {
+  for (const target of [
+    { hash: '#page-storm', selector: '#page-storm' },
+    { hash: '#storm-rule', selector: '#storm-rule' },
+  ]) {
+    await page.goto(`${baseUrl}${target.hash}`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('Pinned', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Unpin target' })).toBeVisible();
+    await expect(page.locator(target.selector)).toHaveAttribute('data-locator-target', 'true');
+    expect(new URL(page.url()).hash).toBe(target.hash);
+
+    await page.getByRole('button', { name: 'Unpin target' }).click();
+    await expect(page.getByText('Tracking', { exact: true })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).hash).toMatch(/^#page-/);
+  }
+});
+
+test('Block-title and Page-spanning repeated-item selections resolve on a fresh load', async ({ page }) => {
+  await page.goto(RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH);
+  await selectElementText(page, 'repeated-second', 'The rule in dispute');
+  const titleUrl = await createShareUrl(page);
+  await page.goto(titleUrl, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('status')).toContainText('The stable anchor and selected text agree');
+  await expect(page.locator('#storm-rule')).toHaveAttribute('data-locator-target', 'true');
+
+  await page.goto(RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH);
+  await page.locator('[data-testid="repeated-second"]').evaluate((startElement) => {
+    const start = startElement.querySelector('h3')?.firstChild;
+    const endRoot = document.querySelector('[data-testid="repeated-item-sample"]');
+    const end = endRoot ? (document.createTreeWalker(endRoot, NodeFilter.SHOW_TEXT).nextNode() as Text | null) : null;
+    if (!start || !end) {
+      throw new Error('Missing Page-spanning selection nodes');
+    }
+    const range = document.createRange();
+    range.setStart(start, 0);
+    range.setEnd(end, end.textContent?.length ?? 0);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  });
+  const pageUrl = await createShareUrl(page);
+  await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('status')).toContainText('The stable anchor and selected text agree');
+  await expect(page.locator('#page-storm')).toHaveAttribute('data-locator-target', 'true');
 });
 
 test('hostile-looking selected text stays inert and unknown locators render fixed diagnostics', async ({ page }) => {

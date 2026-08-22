@@ -9,6 +9,7 @@ import {
   locatorFromBrowserSelection,
   parseRulebookTextLocator,
   resolveRulebookTextLocator,
+  resolveRulebookStableAnchor,
 } from './-rulebookTextLinksPrototype';
 import type { RulebookTextLocator } from './-rulebookTextLinksPrototype';
 
@@ -140,7 +141,7 @@ describe('Rulebook text locator prototype', () => {
     document.body.innerHTML = `
       <main data-rulebook-prototype-document>
         <article id="page-storm" data-rulebook-page-anchor>
-          <section id="storm-rule" data-rulebook-block-anchor>
+          <section id="storm-rule" data-rulebook-block-anchor data-rulebook-selectable-text>
             After the shields settle, <span>The storm belongs to no one.</span> Carry the warning west.
           </section>
         </article>
@@ -167,7 +168,7 @@ describe('Rulebook text locator prototype', () => {
         <article id="page-storm" data-rulebook-page-anchor>
           <section id="storm-procedure" data-rulebook-block-anchor>
             <div data-rulebook-text-content>
-              <span data-rulebook-item-id="procedure-west">Seal the western gate, then count three breaths.</span>
+              <span data-rulebook-item-id="procedure-west" data-rulebook-selectable-text>Seal the western gate, then count three breaths.</span>
             </div>
           </section>
         </article>
@@ -183,5 +184,87 @@ describe('Rulebook text locator prototype', () => {
     selection?.addRange(range);
 
     expect(locatorFromBrowserSelection(selection)).toEqual({ ok: true, locator: repeatedItemLocator });
+  });
+
+  it('resolves only known Page and Block hashes as stable anchors', () => {
+    expect(resolveRulebookStableAnchor('#page-storm')).toMatchObject({
+      page: { id: 'page-storm' },
+      anchorId: 'page-storm',
+    });
+    expect(resolveRulebookStableAnchor('#storm-rule')).toMatchObject({
+      page: { id: 'page-storm' },
+      block: { id: 'storm-rule' },
+      anchorId: 'storm-rule',
+    });
+    expect(resolveRulebookStableAnchor('#%5Bdata-target%5D')).toBeUndefined();
+    expect(resolveRulebookStableAnchor('#unknown-rule')).toBeUndefined();
+  });
+
+  it('uses the canonical Block title and body text for title selections', () => {
+    document.body.innerHTML = `
+      <main data-rulebook-prototype-document>
+        <article id="page-storm" data-rulebook-page-anchor>
+          <section id="storm-rule" data-rulebook-block-anchor>
+            <h3 data-rulebook-selectable-text>The rule in dispute</h3>
+            <p data-rulebook-selectable-text>After the shields settle, The storm belongs to no one. Carry the warning west.</p>
+          </section>
+        </article>
+      </main>`;
+    const textNode = document.querySelector('h3')?.firstChild;
+    if (!textNode) {
+      throw new Error('Missing title fixture');
+    }
+    const range = document.createRange();
+    range.selectNodeContents(textNode);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    const result = locatorFromBrowserSelection(selection);
+
+    expect(result).toMatchObject({
+      ok: true,
+      locator: { path: repeatedLocator.path, exact: 'The rule in dispute' },
+    });
+    if (result.ok) {
+      expect(resolveRulebookTextLocator({ status: 'valid', locator: result.locator }).status).toBe('matched');
+    }
+  });
+
+  it('uses canonical Page text for a range spanning a title and repeated item', () => {
+    document.body.innerHTML = `
+      <main data-rulebook-prototype-document>
+        <article id="page-storm" data-rulebook-page-anchor>
+          <h2 data-rulebook-selectable-text>Inside the storm</h2>
+          <section id="storm-rule" data-rulebook-block-anchor>
+            <h3 data-rulebook-selectable-text>The rule in dispute</h3>
+            <p data-rulebook-selectable-text>After the shields settle, The storm belongs to no one. Carry the warning west.</p>
+          </section>
+          <section id="storm-procedure" data-rulebook-block-anchor>
+            <h3 data-rulebook-selectable-text>Repeated procedure</h3>
+            <span data-rulebook-item-id="procedure-east" data-rulebook-selectable-text>Seal the eastern gate, then count three breaths.</span>
+            <span data-rulebook-item-id="procedure-west" data-rulebook-selectable-text>Seal the western gate, then count three breaths.</span>
+          </section>
+        </article>
+      </main>`;
+    const start = document.querySelector('h2')?.firstChild;
+    const end = document.querySelector('[data-rulebook-item-id]')?.firstChild;
+    if (!start || !end) {
+      throw new Error('Missing Page selection fixture');
+    }
+    const range = document.createRange();
+    range.setStart(start, 0);
+    range.setEnd(end, end.textContent?.length ?? 0);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    const result = locatorFromBrowserSelection(selection);
+
+    expect(result).toMatchObject({
+      ok: true,
+      locator: { path: [{ kind: 'page', id: 'page-storm' }] },
+    });
+    if (result.ok) {
+      expect(resolveRulebookTextLocator({ status: 'valid', locator: result.locator }).status).toBe('matched');
+    }
   });
 });
