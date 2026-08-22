@@ -13,6 +13,8 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
 
+import { CURLY_QUOTES, EM_DASH, EMOJI, FILLER, HEDGE } from './lib/ai-tells.mjs';
+
 const root = join(import.meta.dirname, '..');
 
 /* Vendored skills and generated output are not ours to rewrite; a reinstall would undo the sweep. */
@@ -31,24 +33,6 @@ const EXCLUDED_PATHS = [
   'storybook-static',
   'test-results',
 ];
-
-const EM_DASH = '—';
-const CURLY_QUOTES = /[‘’“”]/;
-
-/**
- * Words that say nothing the sentence did not already say.
- * Only the first had live hits when this landed;
- * the rest keep the class shut rather than catch anything.
- * Words with an ordinary technical use are deliberately absent, because a guard that cries wolf gets switched off.
- * The list is quoted nowhere else in prose, since this rule reads its own file too.
- */
-const FILLER =
-  /\b(?:simply|seamless(?:ly)?|delves?|crucial(?:ly)?|essentially|basically|holistic|streamlines?|utiliz(?:e|es|ing))\b/i;
-
-const HEDGE = /\b(?:it (?:is|'s) (?:important|worth) (?:to note|noting)|note that)\b/i;
-
-/* Dingbats, symbols and pictographs. Arrows and typographic marks stay legal. */
-const EMOJI = /[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F2FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u;
 
 /**
  * Names that keep their capital mid-heading.

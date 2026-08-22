@@ -1,6 +1,8 @@
 /**
  * NOTE: This rule is intentionally conservative and only rewrites block comments.
  */
+
+import { CURLY_QUOTES, DECORATIVE_DIVIDER, DIRECTIVE_COMMENT, EM_DASH, EMOJI, FILLER, HEDGE } from './lib/ai-tells.mjs';
 const BLOCK_TO_LINE_MESSAGE = 'Prefer normalized block comment formatting.';
 
 const RULE_NAME = 'prefer-block-comments';
@@ -18,8 +20,6 @@ const COMMENT_END_RE = /\*\/?$/;
 const SENTENCE_BOUNDARY_RE = /([.!?;])\s+/g;
 const WHITESPACE_RE = /\s/;
 const LOWERCASE_PREFIX_RE = /^[a-z]/;
-const DIRECTIVE_COMMENT_RE =
-  /^\s*(?:oxlint|eslint|prettier|oxfmt|@ts-|v8 ignore|c8 ignore|istanbul|global|type|jsx|vitest-environment)/;
 
 function getAdjacentNonWhitespace(sourceCode, startIndex, step) {
   for (let cursor = startIndex; cursor >= 0 && cursor < sourceCode.length; cursor += step) {
@@ -190,25 +190,6 @@ const preferBlockCommentsRule = {
 
 const AI_TELLS_RULE_NAME = 'no-ai-tells';
 
-const EM_DASH = '—';
-const CURLY_QUOTES = /[‘’“”]/;
-
-/**
- * Words that say nothing the sentence did not already say.
- * Kept in step with the same list in `scripts/assert-no-ai-tells.mjs`, which guards the prose oxlint cannot see.
- * Words with an ordinary technical use are deliberately absent: a guard that cries wolf gets switched off.
- */
-const FILLER =
-  /\b(?:simply|seamless(?:ly)?|delves?|crucial(?:ly)?|essentially|basically|holistic|streamlines?|utiliz(?:e|es|ing))\b/i;
-
-const HEDGE = /\b(?:it (?:is|'s) (?:important|worth) (?:to note|noting)|note that)\b/i;
-
-/* Dingbats, symbols and pictographs. Arrows and typographic marks stay legal. */
-const EMOJI = /[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F2FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u;
-
-/* A run of rule characters used to draw a band, as in three dashes, a label, three dashes. */
-const DECORATIVE_DIVIDER = /(?:^|\s)[-=*_~]{3,}(?:\s|$)/;
-
 const AI_TELL_CHECKS = [
   { messageId: 'emDash', test: (text) => text.includes(EM_DASH) },
   { messageId: 'curlyQuote', test: (text) => CURLY_QUOTES.test(text) },
@@ -223,7 +204,7 @@ const AI_TELL_CHECKS = [
  * A directive comment carries none: an `oxlint-disable` line is an instruction to a tool, and its payload is not English.
  */
 function tellsIn(text) {
-  if (DIRECTIVE_COMMENT_RE.test(text)) {
+  if (DIRECTIVE_COMMENT.test(text)) {
     return [];
   }
   return AI_TELL_CHECKS.filter((check) => check.test(text)).map((check) => check.messageId);
