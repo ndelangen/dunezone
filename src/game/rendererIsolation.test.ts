@@ -5,6 +5,10 @@ import { describe, expect, it } from 'vitest';
 const rendererDirectory = new URL('.', import.meta.url);
 
 /**
+ * A source scan under ADR-0001's narrow exception: the guarantee is the absence of a dependency, and absence has no type to hang off.
+ * The lint boundary covers `src/app/ui`;
+ * it does not cover `src/game`.
+ *
  * Any spelling that resolves a module: `import x from`, `export … from`, a bare side-effect `import`, and
  * `import(...)`, in either quote style.
  *

@@ -101,8 +101,9 @@ concert with `AppHeader`, genuinely viewport-scoped rather than a container.
 
 *Container-query half enforced by
 [`containerQueries.test.ts`](../../src/app/ui/layout/containerQueries.test.ts) (`PageLayout` excepted
-by name); the rest convention. Canonical in [`AGENTS.md`](../../AGENTS.md). Layouts today:
-`PageLayout`, `TriptychLayout`, `AtlasLayout`, `AsymmetricSplitLayout`.*
+by name); the rest convention. Canonical in [`AGENTS.md`](../../AGENTS.md). The layouts themselves are
+whatever [`src/app/ui/layout`](../../src/app/ui/layout) holds; a roster written here would go stale
+the first time one is added.*
 
 ### Floating UI is small and single-layer
 
@@ -113,10 +114,9 @@ no modes, no sub-editors. Anything with modes, a collection to manage, or sub-co
 expands inline and accepts the reflow. One floating layer at a time: a floating pane never opens
 another floating pane inside itself; its innards render inline (a search field with an inline
 options list, not a nested dropdown). Dropdowns portal to the document — never
-`withinPortal: false`, which ties positioning to whatever containment the anchor sits in — with one
-exception: a select that must live inside a popover keeps `withinPortal: false`, because a portalled
-option renders outside the popover's DOM and picking it reads as click-outside, closing the pane
-mid-selection (see `AssignPopover`).
+`withinPortal: false`, which ties positioning to whatever containment the anchor sits in. A select
+that has to live inside a popover renders its options inline instead of as a dropdown, which is the
+same one-layer rule rather than an exception to it (see `AssignPopover`).
 
 *Exemption:* display-only, hover-transient UI — a tooltip, a hover preview — may appear over a
 floating pane; it is glanceable, not operable.
@@ -180,10 +180,11 @@ Enter. A question-and-answer confirm asked for a second decision; the hold asks 
 intent, which is one interaction and cannot be clicked through on autopilot. On success the page
 navigates to the deleted thing's parent, since its own address just died.
 
-*Convention. The kit carries it: `ConfirmDeleteAction` in
-[`src/app/ui/control`](../../src/app/ui/control/ConfirmDeleteAction.tsx). Every delete goes through
-it; `window.confirm` remains only at non-delete confirmations (removing a member, moving an asset
-between groups) pending their own treatment.*
+*Convention. The kit carries it in two shapes, sharing one hold:
+[`ConfirmDeleteAction`](../../src/app/ui/control/ConfirmDeleteAction.tsx) for the icon triggers and
+[`ConfirmDeleteButton`](../../src/app/ui/control/ConfirmDeleteButton.tsx) for the full-width one on
+the account-deletion page. Every delete goes through one of them. One `window.confirm` survives, at
+the asset move on the group page, which is not a delete and is pending its own treatment.*
 
 ### A tab icon is an icon, never a proof
 

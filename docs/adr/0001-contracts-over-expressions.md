@@ -28,7 +28,7 @@ in for interface tests. The test suite's churn (the architecture test changed
    **Narrow exception — a rule about the tree, not about a module.** A source
    scan is allowed only where the guarantee is a property of the *file tree*
    that no type or lint rule can express, and every such suite must name this
-   ADR and say why. Two exist, and the list is meant to stay short:
+   ADR and say why. Three exist, and the list is meant to stay short:
    - `src/app/ui/layout/PageLayout.architecture.test.ts` — every terminal
      visual route mounts `PageLayout`. "Every file in this directory does X" is
      not something a type can say.
@@ -37,9 +37,13 @@ in for interface tests. The test suite's churn (the architecture test changed
      import spellings deliberately: the guarantee is the *absence* of a
      dependency, and absence has no type to hang off. The lint boundary in
      `.oxlintrc.json` covers `src/app/ui`; it does not cover `src/game`.
+   - `src/app/ui/layout/containerQueries.test.ts`: no layout stylesheet uses a
+     `@media` query, since a Layout lays out by the room it is given. The
+     guarantee is again the absence of a spelling across a directory, and
+     `PageLayout` is the one exemption the suite encodes.
 
    A scan that could have been a validator, a type, or a lint rule is still a
-   defect. Adding a third entry here should feel expensive.
+   defect. Adding a fourth entry here should feel expensive.
 3. **Tests must tolerate additive change.** Prefer asserting the specific
    behavior under test over whole-object equality of page models.
 4. **Testability never dictates API shape.** When a test blocks a better
