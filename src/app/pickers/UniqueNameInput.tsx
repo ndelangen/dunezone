@@ -27,6 +27,28 @@ export function nameConflictComplaint({ holder, slug }: NameConflict): string {
     : `its name is already taken (another one lives at "${slug}")`;
 }
 
+/** The slug worth asking about: non-empty and not the entity's own address. */
+function candidateSlug(value: string, currentSlug?: string): string | null {
+  const slug = slugify(value);
+  return slug.length > 0 && slug !== currentSlug ? slug : null;
+}
+
+/** The verdict that applies right now: only an answer about the settled candidate itself may speak. */
+function activeConflict({
+  candidate,
+  settled,
+  answer,
+}: {
+  candidate: string | null;
+  settled: string | null;
+  answer: { slug: string; holder: NameHolder | null } | null;
+}): NameConflict | null {
+  if (!candidate || settled !== candidate || answer?.slug !== candidate) {
+    return null;
+  }
+  return answer.holder ? { holder: answer.holder, slug: candidate } : null;
+}
+
 /**
  * The settle-and-ask half of the field: the candidate slug, its debounce, the probe's answer, and the reported conflict.
  * Apart from the rendering so the component is a plain view of its result.
@@ -41,8 +63,7 @@ function useSettledConflict({
   onConflictChange: (conflict: NameConflict | null) => void;
 }) {
   const [answer, setAnswer] = useState<{ slug: string; holder: NameHolder | null } | null>(null);
-  const slug = slugify(value);
-  const candidate = slug.length > 0 && slug !== currentSlug ? slug : null;
+  const candidate = candidateSlug(value, currentSlug);
   const [settled, setSettled] = useState<string | null>(candidate);
   useEffect(() => {
     const timer = setTimeout(() => setSettled(candidate), 400);
@@ -53,8 +74,7 @@ function useSettledConflict({
     (holder: NameHolder | null) => setAnswer(settled ? { slug: settled, holder } : null),
     [settled]
   );
-  const holder = candidate && settled === candidate && answer?.slug === candidate ? answer.holder : null;
-  const conflict = holder && candidate ? { holder, slug: candidate } : null;
+  const conflict = activeConflict({ candidate, settled, answer });
 
   /* Reported from an effect, not render: the parent stores it in state for the header. */
   const conflictKey = conflict ? `${conflict.holder}:${conflict.slug}` : null;
