@@ -198,8 +198,9 @@ function AssignPopoverBody({
  * The suggestions render inline in the pane rather than in a nested Select dropdown, the pickers' one-floating-layer rule, and choosing one commits it: the interstitial select-then-confirm step asked the reader to say the same thing twice (Norbert, 2026-08-21).
  * A caller that must ask first still can, in `onAssign`, where the question was always meant to live.
  *
- * It replaced two components that asked the same question from opposite ends, one picked a group for an asset, one picked an asset for a group, and had drifted apart in their labels, their empty states, and whether a failure was announced at all.
- * Every label defaults from `noun`, so the two directions cannot drift apart by accident, a page overrides the words only where it means something different by them.
+ * It replaced two components that asked the same question from opposite ends (one picked a group for an asset, one picked an asset for a group) and had drifted apart in their labels, their empty states, and whether a failure was announced at all.
+ * Every label defaults from `noun`, so the two directions cannot drift apart by accident;
+ * a page overrides the words only where it means something different by them.
  */
 export function AssignPopover({ icon, size = 'lg', ...body }: AssignPopoverProps) {
   const [opened, setOpened] = useState(false);

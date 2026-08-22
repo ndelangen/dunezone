@@ -41,7 +41,8 @@ import type { MutationCtx, QueryCtx } from './types';
 
 /**
  * Listing entry for catalogue surfaces.
- * `data` passes through untyped, per-type Zod schemas live with the editors, and listing renderers parse defensively, while `name` is lifted server-side so every surface agrees on the fallback.
+ * `data` passes through untyped while `name` is lifted server-side so every surface agrees on the fallback.
+ * Per-type Zod schemas live with the editors, and listing renderers parse defensively.
  */
 const assetListEntryValidator = v.object({
   id: v.id('assets'),
@@ -491,8 +492,7 @@ export const update = mutation({
 
 /**
  * Retires an Asset without removing it: `is_deleted` is the only column that moves.
- * Every read filters on it;
- * the slug stays reserved by `assertAssetSlugAvailable`, and `asset_relations` rows are deliberately left alone.
+ * Every read filters on it, the slug stays reserved by `assertAssetSlugAvailable`, and `asset_relations` rows are deliberately left alone.
  * A deleted card stops appearing in the decks that reference it (decision on the assets map: Deck→card reference mechanism and deletion semantics).
  * Idempotent, the faction convention: deleting twice is not an error.
  */

@@ -223,10 +223,10 @@ After each production deploy:
 `scripts/generate-images.ts`, apart from the committed files named in
 `COMMITTED_WEB_FILES` (see `src/shared/assetRules.ts` for that list and for the
 per-category rules). CI restores the generated tree from a cache keyed on the
-media/rules/generator/sharp digest and verifies it structurally (`bun run
-verify:images`) without ever re-encoding to compare bytes. The renderer
-identity in `workers/publisher/renderer-manifest.generated.ts` (schema v2)
-hashes those same ingredients plus the capture code and PDF contract, with
+media/rules/generator/sharp digest and verifies it structurally
+(`bun run verify:images`) without ever re-encoding to compare bytes. The
+renderer identity in `workers/publisher/renderer-manifest.generated.ts` (schema
+v2) hashes those same ingredients plus the capture code and PDF contract, with
 per-component digests so a deploy log can attribute an identity change to
 sources, toolchain, code, or contract. A toolchain change (e.g. a sharp bump)
 intentionally triggers a visually-identical recapture wave.

@@ -3,7 +3,7 @@ import svgpath from 'svgpath';
 import { VECTOR_PRECISION, VECTOR_ROOT_ID, VECTOR_VIEWBOX_SIZE } from './vectorRules';
 
 /**
- * Pure-math normalization of a cropped SVG source into the shared `0 0 100 100` space (#296): the source viewBox maps to the square uniformly scaled and centered, and the transform is BAKED into every coordinate, path data, stroke widths, dash arrays, rather than wrapped in a `<g>`, because fragment consumers (`<use href="…#arrakeen">`) clone elements without ancestor transforms.
+ * Pure-math normalization of a cropped SVG source into the shared `0 0 100 100` space (#296): the source viewBox maps to the square uniformly scaled and centered, and the transform is BAKED into every coordinate (path data, stroke widths, dash arrays) rather than wrapped in a `<g>`, because fragment consumers (`<use href="…#arrakeen">`) clone elements without ancestor transforms.
  * The corpus is paths-only (verified in #306), so baking = svgpath over `d` plus scaling the stroke-* attributes.
  *
  * DOM access is injected so the same code runs under linkedom (generator), jsdom, or a real browser (the authoring tool, moving in-repo per #298).
@@ -109,7 +109,7 @@ function bake(element: SvgElementLike, parent: Matrix): void {
   }
 
   const k = scaleOf(matrix);
-  /* A stroked element without an explicit width uses the SVG default of 1 user unit, after
+  /* A stroked element without an explicit width uses the SVG default of 1 user unit; after
      coordinate baking that implicit 1 must become an explicit 1×k or strokes fatten by 1/k. */
   const stroke = element.getAttribute('stroke');
   if (stroke && stroke !== 'none' && !element.getAttribute('stroke-width')) {

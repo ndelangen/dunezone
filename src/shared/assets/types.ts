@@ -12,7 +12,7 @@ type AssetTypeStatus = 'live' | 'planned';
 
 type AssetTypeDefinition = {
   category: AssetCategory;
-  /** the full plural name, footnotes, aria labels */
+  /** the full plural name, used in footnotes and aria labels */
   label: string;
   /** what a pile wears inside an already-labelled group row */
   shortLabel: string;

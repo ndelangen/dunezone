@@ -6,7 +6,8 @@
  * `scripts/oxlint-local-plugin.mjs`, which reads comment tokens off the AST.
  *
  * Product copy is out of scope and stays reachable only through source files this scan never opens.
- * CSS and YAML are scanned as raw text rather than parsed, because every em dash in both today sits in a comment and the one CSS `content` string in the repo is a space.
+ * CSS, YAML and shell are scanned as raw text rather than parsed, because every em dash in all three today sits in a comment and the one CSS `content` string in the repo is a space.
+ * `tools/` is a deliberate split: its markdown is swept because it documents this repo's conventions, while its source keeps the workspace's own style and is excluded from root lint, so the comment half of this gate never reaches it.
  * `scripts/` is scanned for emoji alone: its strings are CLI output a developer reads, and nothing user-facing ships from there.
  */
 import { readdir, readFile } from 'node:fs/promises';
@@ -119,7 +120,7 @@ async function* walk(dir) {
  * Which checks a file gets, by what the file is.
  * `null` means the scan skips it.
  */
-const COMMENT_BEARING_EXTENSIONS = ['.css', '.yml', '.yaml'];
+const COMMENT_BEARING_EXTENSIONS = ['.css', '.yml', '.yaml', '.sh'];
 const SCRIPT_EXTENSIONS = ['.ts', '.mjs'];
 
 function endsWithAny(rel, extensions) {
@@ -193,7 +194,41 @@ function record(rel, lineNumber, tell, detail) {
   failures.push({ rel, lineNumber, tell, detail });
 }
 
-/** Every tell one line of prose carries, as `{ tell }` objects in report order. */
+function emDashTell({ line }) {
+  return line.includes(EM_DASH) ? 'em dash' : null;
+}
+
+function curlyQuoteTell({ line }) {
+  return CURLY_QUOTES.test(line) ? 'curly quote' : null;
+}
+
+/** The matched word rides along, so the report names the word to cut. */
+function fillerTell({ stripped }) {
+  const match = FILLER.exec(stripped);
+  return match ? `filler word "${match[0]}"` : null;
+}
+
+function hedgeTell({ stripped }) {
+  return HEDGE.test(stripped) ? 'hedging opener' : null;
+}
+
+/** Only markdown asks for this one, so a file scanned without headings never reaches the regex. */
+function titleCaseTell({ line, headings }) {
+  const heading = headings ? /^#{1,6}\s(.*)$/.exec(line) : null;
+  if (!heading) {
+    return null;
+  }
+  const offenders = titleCaseWords(heading[1].trim());
+  return offenders.length > 0 ? `title case (${offenders.join(', ')})` : null;
+}
+
+/** The prose checks, in the order the report lists them. */
+const PROSE_TELLS = [emDashTell, curlyQuoteTell, fillerTell, hedgeTell, titleCaseTell];
+
+/**
+ * Every tell one line of prose carries, as strings in report order.
+ * Emoji sits outside the list because it is the one check a file can get on its own, before the prose gate.
+ */
 function tellsIn(line, checks) {
   const tells = [];
   if (checks.emoji && EMOJI.test(line)) {
@@ -202,24 +237,12 @@ function tellsIn(line, checks) {
   if (!checks.prose) {
     return tells;
   }
-  if (line.includes(EM_DASH)) {
-    tells.push('em dash');
-  }
-  if (CURLY_QUOTES.test(line)) {
-    tells.push('curly quote');
-  }
-  const stripped = stripInlineMarkup(line);
-  const filler = FILLER.exec(stripped);
-  if (filler) {
-    tells.push(`filler word "${filler[0]}"`);
-  }
-  if (HEDGE.test(stripped)) {
-    tells.push('hedging opener');
-  }
-  const heading = checks.headings && /^#{1,6}\s(.*)$/.exec(line);
-  const offenders = heading ? titleCaseWords(heading[1].trim()) : [];
-  if (offenders.length > 0) {
-    tells.push(`title case (${offenders.join(', ')})`);
+  const context = { line, stripped: stripInlineMarkup(line), headings: checks.headings };
+  for (const check of PROSE_TELLS) {
+    const tell = check(context);
+    if (tell) {
+      tells.push(tell);
+    }
   }
   return tells;
 }

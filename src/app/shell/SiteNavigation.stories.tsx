@@ -61,7 +61,7 @@ export const PartialOverflow = meta.story({
 
 /**
  * The More panel, opened.
- * It renders through a portal outside the canvas, the band hosting the nav is `overflow: hidden`, so an in-place panel would clip at compact band heights.
+ * It renders through a portal outside the canvas: the band hosting the nav is `overflow: hidden`, so an in-place panel would clip at compact band heights.
  */
 export const OverflowPanelOpen = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
@@ -76,7 +76,7 @@ export const OverflowPanelOpen = meta.story({
   },
 });
 
-/** At phone width even the product's own set folds away, priority-plus degrades to a menu. */
+/** At phone width even the product's own set folds away: priority-plus degrades to a menu. */
 export const CollapsedMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) => {

@@ -3,7 +3,7 @@ import type { FactionInput } from './schema';
 type FactionRules = FactionInput['rules'];
 export type FactionComplexity = FactionInput['complexity'];
 
-/** Below this many words the score stays 0, every faction needs some baseline text. */
+/** Below this many words the score stays 0 because every faction needs some baseline text. */
 const COMPLEXITY_GRACE_FLOOR_WORDS = 80;
 
 /** At this many words the base score reaches 1.0, roughly the printed sheet's capacity. */

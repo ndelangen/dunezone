@@ -2,7 +2,7 @@
  * Media/vector/** → public/vector/** generator (wayfinder #294, train ticket #306).
  *
  * For every source: bake the normalization into coordinates (src/shared/vectorNormalize.ts), optimize with the per-category SVGO profile decided in #295/#296, write minified output under the same relative path.
- * Sources in media/ are kept pretty-printed (git-diffable), so this script rewrites them in place through a plugin-less pretty pass, so authoring dumps stay reviewable.
+ * Sources in media/ are kept pretty-printed (git-diffable): this script rewrites them in place through a plugin-less pretty pass, so authoring dumps stay reviewable.
  *
  * Bun run generate:vectors
  *

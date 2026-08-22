@@ -32,7 +32,7 @@ function formatZodIssues(err: { issues: readonly { path: PropertyKey[]; message:
 
 /**
  * What crosses back out when a faction is chosen: which row it was, and its parsed data.
- * The row's identifiers are the point, `data` alone cannot say *which* faction was picked, since a faction's id and public slug live on the row and never inside its payload.
+ * The row's identifiers are the point: `data` alone cannot say *which* faction was picked, since a faction's id and public slug live on the row and never inside its payload.
  */
 interface PickedFaction {
   id: string;

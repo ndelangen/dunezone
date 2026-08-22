@@ -47,7 +47,7 @@ async function generateOne(sourceAbsolute: string): Promise<MapEntry> {
 
   if (!rule.transparent && !stats.isOpaque) {
     throw new Error(
-      `${key} has genuine transparency but its category is declared opaque. ` +
+      `${key} has genuine transparency but its category is declared opaque: ` +
         `move the file, fix the export, or change the declaration in assetRules.ts`
     );
   }

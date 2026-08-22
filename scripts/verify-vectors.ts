@@ -96,7 +96,7 @@ for (const relative of sourceRelatives) {
   }
 
   /*
-   * 7. authoring stamp (#298; hard since #311, the in-repo tool emits it, legacy sources are
+   * 7. authoring stamp (#298; hard since #311: the in-repo tool emits it, legacy sources are
    * batch-stamped, so a missing stamp means the file never went through the authoring pipeline).
    * Checked as an attribute of the root <svg> tag, not as a substring: a mention in a comment or
    * text node must not satisfy the gate.

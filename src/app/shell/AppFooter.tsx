@@ -17,7 +17,8 @@ const STORYBOOK_LETTER =
   'M29.4029796,23.368648 C29.4029796,24.58142 37.6567008,24.00017 38.7646901,23.1482813 C38.7646901,14.8895929 34.2873503,10.5497821 26.0885852,10.5497821 C17.88982,10.5497821 13.2961856,14.9571143 13.2961856,21.5681161 C13.2961856,33.0822778 28.9959487,33.3026444 28.9959487,39.5830962 C28.9959487,41.3460299 28.1237396,42.3927719 26.2048797,42.3927719 C23.7045471,42.3927719 22.7160434,41.1289316 22.832338,36.8317805 C22.832338,35.8995698 13.2961856,35.6089448 13.0054493,36.8317805 C12.2651161,47.2453073 18.8201763,50.248968 26.3211742,50.248968 C33.5895831,50.248968 39.2880157,46.4144645 39.2880157,39.4729126 C39.2880157,27.132376 23.3556634,27.4629261 23.3556634,21.3477494 C23.3556634,18.8686237 25.2163761,18.5380737 26.3211742,18.5380737 C27.4841196,18.5380737 29.5774214,18.7409467 29.4029796,23.368648 Z';
 
 /**
- * Storybook's own icon, standing in for `react-icons`' `SiStorybook`, that one redraws the mark with a lighter letterform and a squarer cover, which reads as an imitation next to the real thing.
+ * Storybook's own icon, standing in for `react-icons`' `SiStorybook`.
+ * That one redraws the mark with a lighter letterform and a squarer cover, which reads as an imitation next to the real thing.
  * The artwork is portrait, so `size` sets the height and the width follows the 52:64 box;
  * that keeps its ink the same height as the square marks beside it instead of the same width.
  */
@@ -92,7 +93,7 @@ const REDDIT_ORANGERED = '#FF4500';
 const BGG_ORANGE = '#FF5100';
 const SITE_ACCENT = 'var(--color-accent)';
 
-/* `to` marks a routed page; `href` is a destination outside the router, the static Storybook
+/* `to` marks a routed page; `href` is a destination outside the router: the static Storybook
    build, or an external site (opened in a new tab). */
 const footerLinks = [
   {

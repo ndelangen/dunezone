@@ -377,8 +377,8 @@ function RulesetAssignPicker(props: AssignPickerProps) {
 
 /**
  * Dune-specific crest for the Factions section.
- * These faction logo files ship without root width/height (see `Token`'s
- * `StrokedUse` pattern), reference the `#root` fragment via `<use>` inside an own viewBox rather than a plain `<img src>`, which renders as a broken 0x0 image.
+ * These faction logo files ship without root width/height (see `Token`'s `StrokedUse` pattern).
+ * Reference the `#root` fragment via `<use>` inside an own viewBox rather than a plain `<img src>`, which renders as a broken 0x0 image.
  */
 function FremenIcon({ size = 18 }: { size?: number }) {
   return (

@@ -530,7 +530,7 @@ function BackgroundColors({
 }
 
 /**
- * The three-stage background pipeline, pattern, treatment, colors, every authored Background goes through, faction sheets and card heads alike.
+ * The three-stage background pipeline (pattern, treatment, colors) every authored Background goes through, faction sheets and card heads alike.
  * Pure value/onChange: the caller owns where the Background lives (a form field, a draft property) and what it feeds.
  */
 export function BackgroundComposer({

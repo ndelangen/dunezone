@@ -70,7 +70,7 @@ export interface ComplexityGlyphProps {
 /**
  * The canonical indicator for a complexity rating: the tier's glyph in `currentColor`, optionally with its x/10 value.
  * Owns which tier a score presents as;
- * callers own colour and placement, on a faction card it inherits the caption's white, in a toolbar the toolbar's ink.
+ * callers own colour and placement: on a faction card it inherits the caption's white, in a toolbar the toolbar's ink.
  */
 export function ComplexityGlyph({
   score,

@@ -44,7 +44,7 @@ the contract below was settled in
 - Owner-facing restore and/or tombstone pages, rejected for now; without
   a restore action a tombstone has nothing to do, and one-way deletion
   keeps the authorization rule to a single clause.
-- Releasing the name and slug of deleted Groups, the purest "never
+- Releasing the name and slug of deleted Groups is the purest "never
   existed", but it breaks slug uniqueness, invites restore collisions,
   and contradicts the established faction convention.
 - Migration repair (nulling dangling pointers, deleting orphan

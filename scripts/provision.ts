@@ -268,7 +268,7 @@ export function cloneProductionData(deployment: TargetDeployment, env: NodeJS.Pr
 }
 
 /**
- * Rebuilding a long-lived deployment cannot push code and then import: a schema push is validated against the data already there, and an import is validated against the schema already there, so a narrowing change breaks the first order and a widening change breaks the second.
+ * Rebuilding a long-lived deployment cannot go straight from a code push to an import: a schema push is validated against the data already there, and an import is validated against the schema already there, so a narrowing change breaks the first order and a widening change breaks the second.
  * Clearing first escapes both, because empty tables satisfy every schema.
  * That is also what lets a deployment whose data went stale recover instead of deadlocking on its own failed push.
  */
@@ -532,7 +532,7 @@ async function runCli(args: ProvisionArgs) {
     /*
      * The local users stage (A/B accounts + ownership remap) needs the
      * running app, so this CLI alone cannot produce a complete local
-     * environment, refuse rather than report a half-provisioned success.
+     * environment. Refuse rather than report a half-provisioned success.
      */
     throw new Error(
       "The local target is provisioned by 'bun run app:dev --local' (its users stage needs the running app). Pass explicit --stage flags for partial provisioning."

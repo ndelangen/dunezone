@@ -160,7 +160,7 @@ function useDuneSvgSizes(enabled: boolean) {
     for (const entry of missing) {
       fetch(entry.path, { method: 'HEAD' })
         .then((response) => {
-          /* fetch() resolves (doesn't reject) on HTTP errors, a 404 page's own Content-Length
+          /* fetch() resolves (doesn't reject) on HTTP errors; a 404 page's own Content-Length
              would otherwise get cached as if it were the SVG's size. */
           const header = response.ok ? response.headers.get('content-length') : null;
           const contentLength = header === null ? Number.NaN : Number(header);
@@ -220,7 +220,7 @@ function IconsPage() {
     return filteredEntries.slice().sort((a, b) => {
       const sizeA = a.source === 'dune' ? svgByteSizeCache.get(a.path) : undefined;
       const sizeB = b.source === 'dune' ? svgByteSizeCache.get(b.path) : undefined;
-      /* Unmeasured entries sort after measured ones regardless of direction, multiplying
+      /* Unmeasured entries sort after measured ones regardless of direction; multiplying
          Infinity by -1 for descending order would otherwise put them first, not last. */
       if (sizeA === undefined || sizeB === undefined) {
         return sizeA === sizeB ? 0 : sizeA === undefined ? 1 : -1;

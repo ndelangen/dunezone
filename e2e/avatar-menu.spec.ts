@@ -36,7 +36,7 @@ test('the avatar menu offers the profile routes and signs out', async ({ page })
 
   await choose('Your profile');
   await expect(page).toHaveURL(new RegExp(`/profiles/${userA.slug}/?$`));
-  /* Picking an item dismisses the menu, Mantine's job, but the nav leans on it, since no item closes it by hand. */
+  /* Dismissing the menu after a pick is Mantine's job, but the nav leans on it, since no item closes it by hand. */
   await expect(menu).not.toBeVisible();
 
   await choose('Sign out');

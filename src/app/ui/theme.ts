@@ -9,7 +9,7 @@ import type { MantineColorsTuple } from '@mantine/core';
  * The color tuples below are the exception: Mantine parses tuple hex to bake hover and light-variant
  * derivations, so they stay literal. They are Mantine-internal ramps, not mirrors of tokens.css.
  * `white`/`black` are scheme-invariant inks by Mantine's contract (filled-component text in both
- * schemes), they bind to the non-flipping --color-paper/--color-ink tokens, never to ones that
+ * schemes); they bind to the non-flipping --color-paper/--color-ink tokens, never to ones that
  * flip. Never combine `autoContrast` or `color="white"/"black"/"bright"` with var()-valued slots:
  * Mantine's luminance check reads every var() string as dark.
  */

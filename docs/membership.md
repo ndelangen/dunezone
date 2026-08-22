@@ -54,8 +54,8 @@ For an asset, `group.eligible` is `assignedGroup !== null`, and a soft-deleted o
 reference projects to `assignedGroup: null` while the row's own `group_id` stays set. The client
 rule follows from that pair, not from `assignedGroup` alone:
 
-- **Offer assignment** only when the row carries no assignment at all, meaning `changeGroup &&
-group_id == null`.
+- **Offer assignment** only when the row carries no assignment at all, meaning
+  `changeGroup && group_id == null`.
 - **Keep removal available** whenever the row is assigned, including when the group no longer
   resolves, meaning `changeGroup && group_id != null`.
 

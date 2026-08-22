@@ -2,7 +2,8 @@
  * Per-category rules for the vector train (wayfinder #294, decided in #296/#297/#298): every
  * `media/vector/<category>/<name>.svg` source generates a normalized, optimized file at
  * `public/vector/<category>/<name>.svg`.
- * Consumers keep referencing `/vector/<cat>/<name>.svg#root`, the train changes bytes, never URLs.
+ * Consumers keep referencing `/vector/<cat>/<name>.svg#root`;
+ * the train changes bytes, never URLs.
  *
  * The one coordinate space: every generated file has viewBox `0 0 100 100`, art centered (`xMidYMid meet` semantics), zero padding;
  * the box is the art.

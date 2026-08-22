@@ -16,7 +16,7 @@ export interface ConfirmDeleteButtonProps {
 /**
  * The full-width shape of the hold, for the deletions heavy enough to be a labelled button rather than a toolbar glyph.
  *
- * `useHoldToConfirm` owns the mechanics, the same five seconds, cancels and latch as `ConfirmDeleteAction`, and this shape puts the countdown where a button keeps its meaning: the label itself becomes "deletion in 4.." while held, and the hover text says "hold to delete" so a plain click's silence explains itself.
+ * `useHoldToConfirm` owns the mechanics (the same five seconds, cancels and latch as `ConfirmDeleteAction`), and this shape puts the countdown where a button keeps its meaning: the label itself becomes "deletion in 4.." while held, and the hover text says "hold to delete" so a plain click's silence explains itself.
  * See docs/technical/ui-design-decisions.md, "Destructive actions are held, not asked twice".
  */
 export function ConfirmDeleteButton({ label, pending, onConfirm, disabled = false }: ConfirmDeleteButtonProps) {

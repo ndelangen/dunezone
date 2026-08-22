@@ -199,10 +199,10 @@ Outside the kit:
   reach the sheet renderer, and it exists because `src/game` may not import `@db`, so something has
   to do that parse; `print/capture/` is the standalone page the publisher screenshots. The
   dependency runs one way, capture into sheet, which is why the sheet is not filed under capture. It
-  has composition pieces of its own in `src/game/components/block`, filed under `Game
-  Assets/Composition/Blocks`: they reuse the word "block" for the same shape, words in and one fixed
-  arrangement out, but they are print vocabulary, governed by renderer fidelity rather than by the
-  rules below.
+  has composition pieces of its own in `src/game/components/block`, filed under
+  `Game Assets/Composition/Blocks`: they reuse the word "block" for the same shape, words in and one
+  fixed arrangement out, but they are print vocabulary, governed by renderer fidelity rather than by
+  the rules below.
 
 **A plain module follows the same ladder as a component.** A function, a hook or a type is not
 exempt from "one caller → beside that caller; two or more → a home named for its concern" just
@@ -311,9 +311,9 @@ shared. Its lint pattern is written for the spelling a file *inside* `src` uses 
 verbatim would have matched nothing and passed silently. Before this layer existed seven convex
 modules reached into `src/app/*/validation` for shared Zod schemas and the publisher Worker reached
 into the app's capture folder for its diagnostics, so the "server must not import client code" rule
-could only be written for one named file, and it never fired. **A rule that has to tolerate exceptions cannot be enforced; move the
-exceptions out and then it can.** When you find yourself widening a guard to fit the code, check
-whether the code wants hoisting instead.
+could only be written for one named file, and it never fired. **A rule that has to tolerate
+exceptions cannot be enforced; move the exceptions out and then it can.** When you find yourself
+widening a guard to fit the code, check whether the code wants hoisting instead.
 
 And the boundary runs the other way too: `convex/**`, `workers/**` and `src/shared/**` may not
 import `src/game` (`@game`, or a relative reach). The renderers are browser-only; nothing the server
@@ -404,6 +404,17 @@ sentence per line, so a comment diff shows the sentence that changed.
 produce them. The prefix tells you whether a failure means "the code is wrong" or "the artifacts are
 stale".
 
+**Developer-facing prose has no AI tells**, and two gates hold that: em dashes, curly quotes, filler
+words, hedging openers, emoji and decorative divider bands. `local/no-ai-tells` in
+[`scripts/oxlint-local-plugin.mjs`](scripts/oxlint-local-plugin.mjs) reads comment tokens off the
+AST, so it sees comments and never string literals; product copy is out of its reach by
+construction rather than by exclusion. `bun run check:prose`
+([`scripts/assert-no-ai-tells.mjs`](scripts/assert-no-ai-tells.mjs)) covers what oxlint cannot see:
+markdown, CSS, YAML and shell comments, and `.oxlintrc.json`, whose messages are prose too. It also
+holds markdown headings to sentence case; a proper noun it flags belongs in that file's
+`PROPER_NOUNS`. Both run in the `lint` job. Product copy is out of scope, and so is
+`tools/svg-authoring` source, which keeps its own style.
+
 ## Agent skills
 
 ### Issue tracker
@@ -422,11 +433,11 @@ This is a single-context repository using root `CONTEXT.md` and `docs/adr/`. See
 
 Raster image sources live in `media/**`; everything under `public/image/**` and `public/web/**` is
 generated output (gitignored), apart from the committed files named in `COMMITTED_WEB_FILES`
-(`src/shared/assetRules.ts`, read by both the generator and `scripts/verify-images.ts`). Run `bun
-run generate:images` after changing sources or `src/shared/assetRules.ts` (dev and Storybook need
-the generated files locally; CI produces the deployed bytes). `bun run verify:images` checks the
-output structurally. Renderer identity hashes the *ingredients* (media bytes + rules + generator +
-pinned sharp version), never encoder output, so `publisher:release:verify` remains a local check.
-Image keys such as `/image/texture/021.jpg` are opaque asset ids stored on faction documents;
-resolve them via the asset resolver, do not treat them as fetchable URLs (the canonical-name files
-are fallback safety nets).
+(`src/shared/assetRules.ts`, read by both the generator and `scripts/verify-images.ts`). Run
+`bun run generate:images` after changing sources or `src/shared/assetRules.ts` (dev and Storybook
+need the generated files locally; CI produces the deployed bytes). `bun run verify:images` checks
+the output structurally. Renderer identity hashes the *ingredients* (media bytes + rules +
+generator + pinned sharp version), never encoder output, so `publisher:release:verify` remains a
+local check. Image keys such as `/image/texture/021.jpg` are opaque asset ids stored on faction
+documents; resolve them via the asset resolver, do not treat them as fetchable URLs (the
+canonical-name files are fallback safety nets).

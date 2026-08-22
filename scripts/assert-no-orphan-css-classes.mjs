@@ -21,7 +21,7 @@ function filesUnder(root, extensions) {
   return (
     readdirSync(root, { recursive: true, withFileTypes: true })
       .filter((entry) => entry.isFile() && extensions.some((ext) => entry.name.endsWith(ext)))
-      /* `parentPath` is already relative to the cwd, because `root` is, so keep it that way so these
+      /* `parentPath` is already relative to the cwd, because `root` is. Keep it that way so these
        line up with the specifiers resolved below. */
       .map((entry) => join(entry.parentPath, entry.name))
   );

@@ -106,7 +106,7 @@ export function projectFactionCatalogue(
   const [low, high] = parseComplexityRange(search.complexity);
   const rangeNarrows = low > 0 || high < 10;
   const complexitySorted = search.sort === 'complexity-asc' || search.sort === 'complexity-desc';
-  /* Scored once per projection, filtering and sorting share it instead of recounting rules text. */
+  /* Scored once per projection. Filtering and sorting share it instead of recounting rules text. */
   const scores =
     rangeNarrows || complexitySorted
       ? new Map(rulesetMatches.map((faction) => [faction, effectiveComplexity(faction.data.complexity)]))

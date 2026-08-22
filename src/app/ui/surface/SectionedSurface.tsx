@@ -12,7 +12,7 @@ export interface SectionedSurfaceProps {
 /**
  * One pane divided into rows.
  *
- * Callers own what each row contains, and own what to show when the collection is empty, an empty pane is not this component's story to tell.
+ * Callers own what each row contains, and own what to show when the collection is empty: an empty pane is not this component's story to tell.
  *
  * It is a surface rather than a bare list because the hairlines only read as divisions when something encloses them;
  * rules floating on the page background look like stray borders.
@@ -41,7 +41,8 @@ export function SectionedSurface({ children }: SectionedSurfaceProps) {
 interface SectionedSurfaceRowProps {
   /**
    * The entry, as one slot.
-   * The row does not arrange what is inside it, a caller wanting a heading over a right-aligned meta line composes that itself.
+   * The row does not arrange what is inside it;
+   * a caller wanting a heading over a right-aligned meta line composes that itself.
    */
   children: ReactNode;
   /** Makes the whole row the target. Clicks on nested controls still reach those controls. */

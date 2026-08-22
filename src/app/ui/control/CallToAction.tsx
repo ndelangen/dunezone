@@ -16,7 +16,8 @@ export interface CallToActionProps {
   size?: ButtonProps['size'];
   /**
    * Pulses periodically to draw the eye.
-   * Reserve it for a page whose entire purpose is this one action, a second pulsing button on the same screen cancels out the first.
+   * Reserve it for a page whose entire purpose is this one action;
+   * a second pulsing button on the same screen cancels out the first.
    */
   attention?: boolean;
   renderRoot: RenderRoot;

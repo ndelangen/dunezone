@@ -13,7 +13,7 @@ const rendererDirectory = new URL('.', import.meta.url);
  * `import(...)`, in either quote style.
  *
  * Two ways to reach the app: the aliases (`@ui`/`@app`/`@db`), and a relative climb `../app/…` (`@ui` and `@db` both resolve under `src/app`, so a relative reach into either also passes through an `app/` segment).
- * Catching only the aliases would leave the relative spelling as a silent hole, no oxlint override covers `src/game`, so this test is the only guard.
+ * Catching only the aliases would leave the relative spelling as a silent hole: no oxlint override covers `src/game`, so this test is the only guard.
  *
  * The alias or the climb is followed by either a `/` (a deeper path) or the closing quote (a bare `import x from '@db'` at a package/index entry).
  * Requiring the slash alone would miss the bare form.

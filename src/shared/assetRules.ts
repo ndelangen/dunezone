@@ -16,7 +16,7 @@ export type CategoryRule = {
   grayscale?: boolean;
   /**
    * Usage intent: does this category's UI slot require an alpha channel?
-   * The generator fails loudly when an opaque category receives a genuinely transparent source, a human decides, nothing is silently flattened.
+   * The generator fails loudly when an opaque category receives a genuinely transparent source: a human decides, and nothing is silently flattened.
    */
   transparent: boolean;
   /** Tier widths in px; `null` means native size (never upscale). */

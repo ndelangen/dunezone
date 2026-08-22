@@ -8,7 +8,7 @@ import styles from './Surface.module.css';
 /**
  * Tracks whether a surface is already open above this one.
  *
- * Nesting is a brand rule rather than a technical constraint, and it is broken by composition, a page wraps a list in a Card, and three files away the list opens a pane of its own.
+ * Nesting is a brand rule rather than a technical constraint, and it is broken by composition: a page wraps a list in a Card, and three files away the list opens a pane of its own.
  * Neither author can see the other, so the check has to happen where the two meet: at render.
  */
 const InsideSurface = createContext(false);
@@ -56,7 +56,7 @@ export interface SurfaceProps {
   interactive?: boolean;
   /** Makes the surface an anchor or button rather than a plain box. */
   renderRoot?: RenderRoot;
-  /** Placement only, grid area, width. The surface owns its own appearance. */
+  /** Placement only: grid area, width. The surface owns its own appearance. */
   className?: string;
 }
 

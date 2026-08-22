@@ -219,9 +219,19 @@ const AI_TELL_CHECKS = [
 ];
 
 /**
+ * Every messageId a comment's text carries, in the order the checks run.
+ * A directive comment carries none: an `oxlint-disable` line is an instruction to a tool, and its payload is not English.
+ */
+function tellsIn(text) {
+  if (DIRECTIVE_COMMENT_RE.test(text)) {
+    return [];
+  }
+  return AI_TELL_CHECKS.filter((check) => check.test(text)).map((check) => check.messageId);
+}
+
+/**
  * Keeps AI tells out of code comments.
  * Comments come from the AST rather than a text scan, so a string literal can never be mistaken for prose and product copy stays structurally out of reach.
- * Directive comments are skipped: an `oxlint-disable` line is an instruction to a tool, and its payload is not English.
  */
 const noAiTellsRule = {
   meta: {
@@ -241,15 +251,8 @@ const noAiTellsRule = {
         const comments = context.sourceCode.ast?.comments ?? [];
 
         for (const comment of comments) {
-          const text = String(comment.value);
-          if (DIRECTIVE_COMMENT_RE.test(text)) {
-            continue;
-          }
-
-          for (const check of AI_TELL_CHECKS) {
-            if (check.test(text)) {
-              context.report({ node: comment, messageId: check.messageId, loc: comment.loc });
-            }
+          for (const messageId of tellsIn(String(comment.value))) {
+            context.report({ node: comment, messageId, loc: comment.loc });
           }
         }
       },

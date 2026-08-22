@@ -25,7 +25,7 @@ export interface CardProps {
  * A pane with a name on it.
  *
  * Callers pass the words and the body;
- * this owns the pane, the gap between title and content, and how loudly the title speaks for how deep the card sits, a card inside a `Section` is quieter than one standing on its own.
+ * this owns the pane, the gap between title and content, and how loudly the title speaks for how deep the card sits: a card inside a `Section` is quieter than one standing on its own.
  *
  * The pane is `Surface`, and that division is deliberate: `Surface` answers "content needs a plane", `Card` answers
  * "this pane needs a name".

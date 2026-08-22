@@ -24,8 +24,8 @@ const PRIMARY_LINKS: readonly NavLinkItem[] = [
   { label: 'Assets', to: '/assets' },
 ];
 
-/* Room reserved for the More control before deciding which links fit. It cannot be measured,
-   the control only exists once something overflows, so this over-reserves slightly, which also
+/* Room reserved for the More control before deciding which links fit. It cannot be measured
+   (the control only exists once something overflows), so this over-reserves slightly, which also
    covers the one width the measure row cannot know: the active link's 600 weight. */
 const MORE_RESERVE_PX = 90;
 
@@ -46,7 +46,7 @@ export interface SiteNavigationProps {
  * At phone widths it collapses down to the More control.
  *
  * Both popovers (More, and the signed-in account menu) render through a portal: the band that hosts this nav is
- * `overflow: hidden` for its rounded corners, so anything positioned inside it clips at the band's lower edge, at compact band heights that swallows the panel entirely.
+ * `overflow: hidden` for its rounded corners, so anything positioned inside it clips at the band's lower edge, which at compact band heights swallows the panel entirely.
  */
 export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
   const profile = useCurrentProfile();

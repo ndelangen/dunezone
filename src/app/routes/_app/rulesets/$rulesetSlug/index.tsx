@@ -123,8 +123,8 @@ function AddFactionPopover({
 
 /**
  * The menu in a faction card's action slot, on the ruleset page.
- * Mantine's `Menu` directly: the theme gives its dropdown the same pane a `Popover` gets, and `color="red"` is how a destructive choice reads, so a wrapper here would only forward props, see the Mantine-component stories in
- * `src/app/ui/control`.
+ * Mantine's `Menu` directly: the theme gives its dropdown the same pane a `Popover` gets, and `color="red"` is how a destructive choice reads, so a wrapper here would only forward props.
+ * See the Mantine-component stories in `src/app/ui/control`.
  * A menu rather than a bare button because the card is a link: a menu target is unambiguously not part of the navigation, and further per-faction actions land here rather than crowding the tile.
  * No confirmation: the toolbar's picker puts the faction straight back.
  */

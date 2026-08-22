@@ -10,7 +10,8 @@ export interface FormErrorProps {
 /**
  * Says that an action did not happen, and why.
  *
- * Callers own both sentences and decide when there is anything to say at all, render this only when an attempt actually failed, never as an empty placeholder.
+ * Callers own both sentences and decide when there is anything to say at all.
+ * Render this only when an attempt actually failed, never as an empty placeholder.
  * This owns the treatment: the alert colour, and the live region that makes a screen reader announce the failure the moment it appears.
  *
  * It is a Block rather than a Surface even though it paints: it is handed words and nothing else, so the colour is content telling you something went wrong, not a pane for content to sit on.
