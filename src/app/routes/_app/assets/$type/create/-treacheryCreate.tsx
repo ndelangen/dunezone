@@ -1,4 +1,4 @@
-import { Alert, Anchor, Text } from '@mantine/core';
+import { Anchor, Text } from '@mantine/core';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -7,7 +7,6 @@ import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
-import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
@@ -18,7 +17,7 @@ import {
 } from '@app/widgets/card-editor/TreacheryCardEditor';
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
 
-import { AssetEditorMessage, useNameConflict } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useNameConflict } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'card-validation-header';
 
@@ -101,11 +100,7 @@ export function TreacheryCreatePage() {
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
           {conflictProbe}
-          {createAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {mutationErrorMessage(createAsset.error)}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={createAsset.error} />
           <TreacheryCardEditor
             draft={draft}
             patch={patch}

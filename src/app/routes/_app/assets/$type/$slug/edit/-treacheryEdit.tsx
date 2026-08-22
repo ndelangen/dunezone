@@ -8,7 +8,6 @@ import { useState } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
-import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
@@ -19,6 +18,7 @@ import { TreacheryAsset } from '@game/data/objects';
 import {
   AssetEditorMessage,
   DriftedAssetPage,
+  SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
   useNameConflict,
@@ -183,11 +183,7 @@ function CardEditSession({
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
           {conflictProbe}
-          {updateAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {mutationErrorMessage(updateAsset.error)}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={updateAsset.error} />
           {deletion.error ? (
             <Alert color="red" variant="light" role="alert" title="Could not delete">
               {deletion.error.message}

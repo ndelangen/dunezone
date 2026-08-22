@@ -7,7 +7,6 @@ import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
-import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
@@ -18,7 +17,7 @@ import {
 } from '@app/widgets/token-editor/RectangleTokenEditor';
 import type { RectangleChapter, RectangleDraft } from '@app/widgets/token-editor/RectangleTokenEditor';
 
-import { AssetEditorMessage, useNameConflict } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useNameConflict } from '../../-assetEditorStates';
 
 const TYPE = 'token-enhance';
 const VALIDATION_HEADER_ID = 'rectangle-token-validation-header';
@@ -114,11 +113,7 @@ export function RectangleCreatePage() {
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
           {conflictProbe}
-          {createAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {mutationErrorMessage(createAsset.error)}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={createAsset.error} />
           {pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No token picked">
               Picking a token's back happens on the edit page; save with another back mode first.

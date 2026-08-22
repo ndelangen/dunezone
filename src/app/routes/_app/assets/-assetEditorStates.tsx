@@ -13,6 +13,7 @@ import type { ReactNode } from 'react';
 
 import { useAssetSlugTaken, useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
+import { mutationErrorMessage } from '@app/db/core/mutationError';
 
 /**
  * The states an asset editor route reaches instead of an editor: no such asset, not signed in, not allowed, no editor built yet.
@@ -244,4 +245,19 @@ export function useNameConflict<Chapter extends string>({
       : [],
     conflictProbe,
   };
+}
+
+/**
+ * The alert under a failed save, once for every editor organ.
+ * It replaced ten hand-written copies of the same Alert, whose only drift risk was exactly the ConvexError unwrap it applies.
+ */
+export function SaveErrorAlert({ error }: { error: Error | null }) {
+  if (!error) {
+    return null;
+  }
+  return (
+    <Alert color="red" variant="light" role="alert" title="Could not save">
+      {mutationErrorMessage(error)}
+    </Alert>
+  );
 }

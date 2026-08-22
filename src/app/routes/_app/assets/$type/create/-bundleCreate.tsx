@@ -1,4 +1,4 @@
-import { Alert, Anchor, Text } from '@mantine/core';
+import { Anchor, Text } from '@mantine/core';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -7,14 +7,13 @@ import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
-import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_DRAFT } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
 
-import { AssetEditorMessage, useNameConflict } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useNameConflict } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'bundle-validation-header';
 
@@ -103,11 +102,7 @@ export function BundleCreatePage() {
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
           {conflictProbe}
-          {createAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {mutationErrorMessage(createAsset.error)}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={createAsset.error} />
           <BundleEditor
             draft={draft}
             patch={patch}

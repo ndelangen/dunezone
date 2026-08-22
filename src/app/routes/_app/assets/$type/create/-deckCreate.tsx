@@ -7,14 +7,13 @@ import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
-import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { DeckEditor, INITIAL_DECK_DRAFT, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
 import type { DeckChapter, DeckDraft } from '@app/widgets/deck-editor/DeckEditor';
 
-import { AssetEditorMessage, useNameConflict } from '../../-assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, useNameConflict } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'deck-validation-header';
 
@@ -111,11 +110,7 @@ export function DeckCreatePage() {
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
           {conflictProbe}
-          {createAsset.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not save">
-              {mutationErrorMessage(createAsset.error)}
-            </Alert>
-          ) : null}
+          <SaveErrorAlert error={createAsset.error} />
           {pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No deck picked">
               Picking a deck to wear happens on the edit page; save with another back mode first.
