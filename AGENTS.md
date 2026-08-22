@@ -186,8 +186,9 @@ Outside the kit:
     already means the reader signalled intent (`FactionPicker` inside `FactionLoadPopover` is this
     case). Rendered inline with no such gate, a Picker instead defers its subscription to its own
     control's open, since its trigger must stay mounted to be clickable while its options must not
-    load until wanted. The inline shape has no instance yet; it lands with its first consumer rather
-    than as an unused code path.
+    load until wanted. `UniqueNameInput` is the inline shape's first instance: a name field whose
+    read must not fire until the reader means the name, and for a typed control the settle is the
+    open.
   - **Domain, not kit.** A Picker knows *what* it fetches, so it can never live in the domain-free
     kit; it renders *through* the kit (a `Select`, an `AssignPopover`). It is a peer of Widgets, not
     a seventh kit category.

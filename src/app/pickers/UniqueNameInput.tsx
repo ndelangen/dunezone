@@ -67,6 +67,8 @@ function useSettledConflict({
  *
  * A Picker in the taxonomy's sense: the one kind of control that may hold its own lazily-mounted subscription, so the page query never learns about candidate slugs.
  * Entity-blind by design — the `probe` prop carries the per-entity read, and a new entity joins by binding its own probe, not by touching this.
+ * One assumption is baked in: names become addresses through the shared `slugify`.
+ * The first entity that derives addresses differently, the way profiles carry their own validation, moves that mapping into the binding beside the probe.
  *
  * The candidate settles before the probe mounts: each distinct slug is a subscription swap, and a name typed letter by letter walks through every prefix.
  * The pause also keeps a colliding prefix from flashing a warning on the way to a free name.
