@@ -107,6 +107,46 @@ describe('Rulebook text locator prototype', () => {
     ).toEqual({ status: 'unresolved' });
   });
 
+  it('preserves inside-word adjacency and binds context to one repeated occurrence', () => {
+    expect(
+      resolveRulebookTextLocator({
+        status: 'valid',
+        locator: {
+          ...repeatedLocator,
+          exact: 'tor',
+          prefix: 's',
+          suffix: 'm belongs to no one.',
+        },
+      })
+    ).toMatchObject({ status: 'matched', anchorId: 'storm-rule' });
+
+    expect(
+      resolveRulebookTextLocator({
+        status: 'valid',
+        locator: {
+          v: 1,
+          path: [{ kind: 'page', id: 'page-storm' }],
+          exact: 'storm',
+          prefix: 'Inside the',
+          suffix: 'The rule in dispute',
+        },
+      })
+    ).toMatchObject({ status: 'matched', anchorId: 'page-storm' });
+
+    expect(
+      resolveRulebookTextLocator({
+        status: 'valid',
+        locator: {
+          v: 1,
+          path: [{ kind: 'page', id: 'page-storm' }],
+          exact: 'storm',
+          prefix: 'Inside the',
+          suffix: 'belongs to no one.',
+        },
+      })
+    ).toMatchObject({ status: 'stale', anchorId: 'page-storm' });
+  });
+
   it('encodes hostile selected text as data in the URL', () => {
     const locator: RulebookTextLocator = {
       ...repeatedLocator,

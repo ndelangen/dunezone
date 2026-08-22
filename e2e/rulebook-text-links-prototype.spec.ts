@@ -19,8 +19,8 @@ const repeatedLocator: RulebookTextLocator = {
   suffix: 'Carry the warning west.',
 };
 
-async function selectElementText(page: Page, testId: string, phrase?: string) {
-  await page.getByTestId(testId).evaluate((element, selectedPhrase) => {
+async function selectElementText(page: Page, selector: string, phrase?: string) {
+  await page.locator(selector).evaluate((element, selectedPhrase) => {
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     let node: Text | null = walker.nextNode() as Text | null;
     while (node) {
@@ -40,8 +40,8 @@ async function selectElementText(page: Page, testId: string, phrase?: string) {
   }, phrase);
 }
 
-async function selectTextRange(page: Page, testId: string, startPhrase: string, endPhrase: string) {
-  await page.getByTestId(testId).evaluate(
+async function selectTextRange(page: Page, selector: string, startPhrase: string, endPhrase: string) {
+  await page.locator(selector).evaluate(
     (element, phrases) => {
       const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
       const nodes: Text[] = [];
@@ -91,9 +91,35 @@ test('fresh reader load pins the target while all lazy-page text remains in the 
   await expect(page.locator('#storm-rule')).toBeInViewport();
 });
 
+test('a native Text Fragment moves before the deadline without application recovery', async ({ page }) => {
+  const nativeLocator: RulebookTextLocator = {
+    v: 1,
+    path: [
+      { kind: 'page', id: 'page-storm' },
+      { kind: 'block', id: 'unicode-rule' },
+    ],
+    exact: 'naïve seers agree',
+  };
+  await page.goto(buildRulebookTextShareUrl(baseUrl, nativeLocator), { waitUntil: 'domcontentloaded' });
+
+  expect(await page.evaluate(() => 'fragmentDirective' in document)).toBe(true);
+  await expect(page.getByText('browser native navigation', { exact: true })).toBeVisible();
+  await expect(page.locator('#unicode-rule')).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+});
+
+test('application recovery is observable when native movement is deliberately defeated', async ({ page }) => {
+  const recoveryUrl = new URL(buildRulebookTextShareUrl(baseUrl, repeatedLocator));
+  recoveryUrl.hash = 'missing-anchor:~:text=words-that-do-not-exist';
+  await page.goto(recoveryUrl.toString(), { waitUntil: 'domcontentloaded' });
+
+  await expect(page.getByText('application recovery', { exact: true })).toBeVisible();
+  await expect(page.locator('#storm-rule')).toBeInViewport();
+});
+
 test('a real repeated-text Selection creates a contextual, encoded fresh-load link', async ({ page }) => {
   await page.goto(RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH);
-  await selectElementText(page, 'repeated-second', 'The storm belongs to no one.');
+  await selectElementText(page, '#storm-rule', 'The storm belongs to no one.');
   const shareUrl = await createShareUrl(page);
   expect(shareUrl).toContain('#storm-rule:~:text=');
   expect(shareUrl).toContain('After%20the%20shields');
@@ -138,6 +164,20 @@ test('manual unpin tracks Pages, removes the locator, and survives reload', asyn
   expect(new URL(page.url()).searchParams.has('loc')).toBe(false);
 });
 
+test('fast unpin cancels pending recovery before it can restore the stale target', async ({ page }) => {
+  await page.goto(buildRulebookTextShareUrl(baseUrl, repeatedLocator), { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Unpin target' }).click();
+  await page.locator('#page-aftermath').evaluate((element) => element.scrollIntoView({ block: 'center' }));
+
+  await expect.poll(() => new URL(page.url()).hash).toBe('#page-aftermath');
+  await page.waitForTimeout(900);
+  await expect(page.getByText('reader tracking', { exact: true })).toBeVisible();
+  const trackedPageHash = new URL(page.url()).hash;
+  expect(trackedPageHash).toMatch(/^#page-/);
+  await expect(page.locator(trackedPageHash)).toBeInViewport();
+  expect(trackedPageHash).not.toBe('#storm-rule');
+});
+
 test('plain Page and Block anchors start pinned and remain fixed until unpinned', async ({ page }) => {
   for (const target of [
     { hash: '#page-storm', selector: '#page-storm' },
@@ -155,18 +195,49 @@ test('plain Page and Block anchors start pinned and remain fixed until unpinned'
   }
 });
 
+test('an unknown anchor reports that the target does not exist and leaves Page 1 usable', async ({ page }) => {
+  await page.goto(`${baseUrl}#missing-rule`, { waitUntil: 'domcontentloaded' });
+
+  await expect(
+    page.getByText('This link target does not exist in this Rulebook. Page 1 remains available.')
+  ).toBeVisible();
+  await expect(page.locator('#page-opening')).toBeAttached();
+  await expect(page.locator('#opening-rule')).toBeVisible();
+});
+
+test('tracking leaves the permalink unchanged while no Page is visible', async ({ page }) => {
+  await page.setViewportSize({ width: 500, height: 180 });
+  await page.goto(`${baseUrl}#page-storm`, { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Unpin target' }).click();
+  await expect.poll(() => new URL(page.url()).hash).toBe('#page-storm');
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect
+    .poll(() =>
+      page.locator('[data-rulebook-page-anchor]').evaluateAll((pages) =>
+        pages.some((entry) => {
+          const rect = entry.getBoundingClientRect();
+          return rect.bottom > 0 && rect.top < window.innerHeight;
+        })
+      )
+    )
+    .toBe(false);
+  await page.waitForTimeout(250);
+  expect(new URL(page.url()).hash).toBe('#page-storm');
+});
+
 test('Block-title and Page-spanning repeated-item selections resolve on a fresh load', async ({ page }) => {
   await page.goto(RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH);
-  await selectElementText(page, 'repeated-second', 'The rule in dispute');
+  await selectElementText(page, '#storm-rule', 'The rule in dispute');
   const titleUrl = await createShareUrl(page);
   await page.goto(titleUrl, { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('status')).toContainText('The stable anchor and selected text agree');
   await expect(page.locator('#storm-rule')).toHaveAttribute('data-locator-target', 'true');
 
   await page.goto(RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH);
-  await page.locator('[data-testid="repeated-second"]').evaluate((startElement) => {
+  await page.locator('#storm-rule').evaluate((startElement) => {
     const start = startElement.querySelector('h3')?.firstChild;
-    const endRoot = document.querySelector('[data-testid="repeated-item-sample"]');
+    const endRoot = document.querySelector('#procedure-west');
     const end = endRoot ? (document.createTreeWalker(endRoot, NodeFilter.SHOW_TEXT).nextNode() as Text | null) : null;
     if (!start || !end) {
       throw new Error('Missing Page-spanning selection nodes');
@@ -184,6 +255,17 @@ test('Block-title and Page-spanning repeated-item selections resolve on a fresh 
   await expect(page.locator('#page-storm')).toHaveAttribute('data-locator-target', 'true');
 });
 
+test('an inside-word selection resolves the intended repeated occurrence on a fresh load', async ({ page }) => {
+  await page.goto(RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH);
+  await selectElementText(page, '#storm-rule', 'tor');
+  const shareUrl = await createShareUrl(page);
+  await page.goto(shareUrl, { waitUntil: 'domcontentloaded' });
+
+  await expect(page.getByRole('status')).toContainText('The stable anchor and selected text agree');
+  await expect(page.locator('#storm-rule')).toHaveAttribute('data-locator-target', 'true');
+  await expect(page.locator('#storm-rumour')).not.toHaveAttribute('data-locator-target', 'true');
+});
+
 test('hostile-looking selected text stays inert and unknown locators render fixed diagnostics', async ({ page }) => {
   await page.addInitScript(() => {
     (window as Window & { prototypeAlertCalls?: number }).prototypeAlertCalls = 0;
@@ -193,7 +275,7 @@ test('hostile-looking selected text stays inert and unknown locators render fixe
     };
   });
   await page.goto(RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH);
-  await selectElementText(page, 'hostile-sample', '<script>alert("spice")</script>');
+  await selectElementText(page, '#hostile-rule', '<script>alert("spice")</script>');
   const shareUrl = await createShareUrl(page);
   expect(shareUrl).not.toContain('<script>');
   expect(shareUrl).not.toContain('"spice"');
@@ -212,19 +294,19 @@ test('Unicode, punctuation, multiline, and long selections navigate observably o
 }) => {
   const cases = [
     {
-      testId: 'unicode-sample',
+      selector: '#unicode-rule',
       start: '“Shai-Hulud’s passage',
       end: 'beyond Arrakeen.”',
       anchor: 'unicode-rule',
     },
     {
-      testId: 'multiline-sample',
+      selector: '#multiline-rule',
       start: 'reveal every word',
       end: 'selected text remains searchable throughout.',
       anchor: 'multiline-rule',
     },
     {
-      testId: 'long-sample',
+      selector: '#long-rule',
       start: 'Long selections should remain bounded',
       end: 'highlights the containing Block.',
       anchor: 'long-rule',
@@ -233,7 +315,7 @@ test('Unicode, punctuation, multiline, and long selections navigate observably o
 
   for (const selectionCase of cases) {
     await page.goto(RULEBOOK_TEXT_LINKS_PROTOTYPE_PATH);
-    await selectTextRange(page, selectionCase.testId, selectionCase.start, selectionCase.end);
+    await selectTextRange(page, selectionCase.selector, selectionCase.start, selectionCase.end);
     const shareUrl = await createShareUrl(page);
     expect(shareUrl).toContain(`#${selectionCase.anchor}:~:text=`);
     expect(shareUrl).toMatch(/%[0-9A-F]{2}/);

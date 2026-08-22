@@ -7,13 +7,11 @@ export type RulebookPrototypeBlock = {
   title: string;
   paragraphs: string[];
   items?: RulebookPrototypeItem[];
-  testId?: string;
 };
 
 export type RulebookPrototypeItem = {
   id: string;
   text: string;
-  testId?: string;
 };
 
 export type RulebookPrototypePage = {
@@ -40,7 +38,6 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
       {
         id: 'storm-rumour',
         title: 'A repeated warning',
-        testId: 'repeated-first',
         paragraphs: ['Before the shields rise, The storm belongs to no one. Keep the eastern gate clear.'],
       },
     ],
@@ -53,7 +50,6 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
       {
         id: 'storm-rule',
         title: 'The rule in dispute',
-        testId: 'repeated-second',
         paragraphs: ['After the shields settle, The storm belongs to no one. Carry the warning west.'],
       },
       {
@@ -65,14 +61,12 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
           {
             id: 'procedure-west',
             text: 'Seal the western gate, then count three breaths.',
-            testId: 'repeated-item-sample',
           },
         ],
       },
       {
         id: 'unicode-rule',
         title: 'Names, punctuation, and scripts',
-        testId: 'unicode-sample',
         paragraphs: [
           '“Shai-Hulud’s passage — naïve seers agree — begins beyond Arrakeen.” 日本語 and العربية remain text.',
         ],
@@ -80,7 +74,6 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
       {
         id: 'hostile-rule',
         title: 'Hostile-looking text is still text',
-        testId: 'hostile-sample',
         paragraphs: ['<script>alert("spice")</script> [data-target="#storm"] :~:text=breakout & "quoted"'],
       },
     ],
@@ -93,7 +86,6 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
       {
         id: 'multiline-rule',
         title: 'A selection can cross lines',
-        testId: 'multiline-sample',
         paragraphs: [
           'First, reveal every word to the browser before visual page decoration is loaded.',
           'Then, let the visual page wake when it approaches the viewport. The selected text remains searchable throughout.',
@@ -102,7 +94,6 @@ export const RULEBOOK_PROTOTYPE_PAGES: RulebookPrototypePage[] = [
       {
         id: 'long-rule',
         title: 'A deliberately long passage',
-        testId: 'long-sample',
         paragraphs: [
           'Long selections should remain bounded rather than becoming an unlimited URL payload. This passage repeats enough detail to exercise a start-and-end Text Fragment: the reader sees the stable Page, the nearest stable Block, the exact selected words, nearby context, and an application-owned fallback. None of those values become markup, selectors, or executable code. The browser may highlight the selected words when it supports Text Fragments, while the application independently validates the locator and highlights the containing Block.',
         ],
@@ -316,10 +307,19 @@ export function resolveRulebookTextLocator(result: LocatorParseResult): LocatorR
   const exact = normalizeRulebookText(result.locator.exact);
   const prefix = normalizeRulebookText(result.locator.prefix ?? '');
   const suffix = normalizeRulebookText(result.locator.suffix ?? '');
-  const matchAt = source.indexOf(exact);
-  const contextualNeedle = normalizeRulebookText([prefix, exact, suffix].filter(Boolean).join(' '));
+  let matchAt = source.indexOf(exact);
+  let contextualMatch = false;
+  while (matchAt >= 0) {
+    const before = source.slice(0, matchAt).trimEnd();
+    const after = source.slice(matchAt + exact.length).trimStart();
+    if ((!prefix || before.endsWith(prefix)) && (!suffix || after.startsWith(suffix))) {
+      contextualMatch = true;
+      break;
+    }
+    matchAt = source.indexOf(exact, matchAt + 1);
+  }
   return {
-    status: matchAt >= 0 && source.includes(contextualNeedle) ? 'matched' : 'stale',
+    status: contextualMatch ? 'matched' : 'stale',
     page,
     ...(block ? { block } : {}),
     ...(item ? { item } : {}),

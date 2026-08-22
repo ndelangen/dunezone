@@ -123,7 +123,6 @@ function RulebookPageView({
               key={block.id}
               data-rulebook-block-anchor
               data-locator-target={visualReady && targetAnchorId === block.id ? 'true' : undefined}
-              data-testid={block.testId}
               aria-labelledby={`${block.id}-title`}
             >
               <Title id={`${block.id}-title`} order={3} mb="xs" data-rulebook-selectable-text>
@@ -141,10 +140,10 @@ function RulebookPageView({
                       {block.items.map((item) => (
                         <List.Item
                           key={item.id}
+                          id={item.id}
                           data-rulebook-item-id={item.id}
                           data-rulebook-selectable-text
                           data-locator-item-target={visualReady && targetItemId === item.id ? 'true' : undefined}
-                          data-testid={item.testId}
                         >
                           {item.text}
                         </List.Item>
@@ -161,7 +160,15 @@ function RulebookPageView({
   );
 }
 
-function LocatorStatus({ parsed, resolution }: { parsed: LocatorParseResult; resolution: LocatorResolution }) {
+function LocatorStatus({
+  parsed,
+  resolution,
+  unknownAnchor,
+}: {
+  parsed: LocatorParseResult;
+  resolution: LocatorResolution;
+  unknownAnchor: boolean;
+}) {
   if (parsed.status === 'invalid') {
     return (
       <Alert color="red" title="Locator rejected" role="alert">
@@ -173,6 +180,13 @@ function LocatorStatus({ parsed, resolution }: { parsed: LocatorParseResult; res
     return (
       <Alert color="orange" title="Target unavailable" role="alert">
         The validated path does not exist in this Rulebook fixture. The page remains usable.
+      </Alert>
+    );
+  }
+  if (unknownAnchor) {
+    return (
+      <Alert color="orange" title="Target unavailable" role="status">
+        This link target does not exist in this Rulebook. Page 1 remains available.
       </Alert>
     );
   }
@@ -207,6 +221,8 @@ function RulebookTextLinksPrototype() {
     () => (search.loc ? undefined : resolveRulebookStableAnchor(locationHash)),
     [locationHash, search.loc]
   );
+  const hashAnchor = locationHash.replace(/^#/, '').split(':~:', 1)[0];
+  const unknownAnchor = !search.loc && Boolean(hashAnchor) && !stableAnchor;
   const locatorTarget = resolution.status === 'matched' || resolution.status === 'stale' ? resolution : undefined;
   const targetPage = locatorTarget?.page ?? stableAnchor?.page;
   const resolvedAnchorId = locatorTarget?.anchorId ?? stableAnchor?.anchorId;
@@ -223,6 +239,14 @@ function RulebookTextLinksPrototype() {
   const [shareUrl, setShareUrl] = useState<string>();
   const [selectionMessage, setSelectionMessage] = useState<string>();
   const [nativeSupport, setNativeSupport] = useState<'checking' | 'detected' | 'not-detected'>('checking');
+  const [scrollOwner, setScrollOwner] = useState<
+    | 'no target'
+    | 'waiting for browser navigation'
+    | 'browser native navigation'
+    | 'application fallback'
+    | 'application recovery'
+    | 'reader tracking'
+  >('no target');
   const forceFallback = search.variant === 'compatibility' || search.simulate === 'unsupported';
 
   useEffect(() => {
@@ -255,8 +279,7 @@ function RulebookTextLinksPrototype() {
           const rect = node.getBoundingClientRect();
           return rect.bottom > 0 && rect.top < window.innerHeight;
         });
-        const candidates = visiblePages.length > 0 ? visiblePages : pages;
-        const nearest = candidates.reduce<HTMLElement | undefined>((best, node) => {
+        const nearest = visiblePages.reduce<HTMLElement | undefined>((best, node) => {
           if (!best) {
             return node;
           }
@@ -292,7 +315,12 @@ function RulebookTextLinksPrototype() {
   }, [tracking]);
 
   useEffect(() => {
+    if (tracking) {
+      setScrollOwner('reader tracking');
+      return;
+    }
     if (!resolvedAnchorId) {
+      setScrollOwner('no target');
       return;
     }
     const shouldApplyFallback = forceFallback || nativeSupport === 'not-detected' || resolution.status === 'stale';
@@ -301,17 +329,22 @@ function RulebookTextLinksPrototype() {
       return;
     }
     if (shouldApplyFallback) {
+      setScrollOwner('application fallback');
       const frame = requestAnimationFrame(() => target.scrollIntoView({ block: 'center' }));
       return () => cancelAnimationFrame(frame);
     }
+    setScrollOwner('waiting for browser navigation');
     const recovery = window.setTimeout(() => {
       const rect = target.getBoundingClientRect();
       if (rect.bottom <= 0 || rect.top >= window.innerHeight) {
+        setScrollOwner('application recovery');
         target.scrollIntoView({ block: 'center' });
+      } else {
+        setScrollOwner('browser native navigation');
       }
     }, 700);
     return () => window.clearTimeout(recovery);
-  }, [forceFallback, nativeSupport, resolution.status, resolvedAnchorId]);
+  }, [forceFallback, nativeSupport, resolution.status, resolvedAnchorId, tracking]);
 
   const setVariant = useCallback(
     (variant: RulebookPrototypeVariant) => {
@@ -439,7 +472,7 @@ function RulebookTextLinksPrototype() {
                     {pinned && <Badge leftSection={<Pin size={12} aria-hidden />}>Pinned</Badge>}
                     {tracking && <Badge color="green">Tracking</Badge>}
                   </Group>
-                  <LocatorStatus parsed={parsed} resolution={resolution} />
+                  <LocatorStatus parsed={parsed} resolution={resolution} unknownAnchor={unknownAnchor} />
                   {pinned && (
                     <Button variant="subtle" leftSection={<PinOff size={16} aria-hidden />} onClick={beginTracking}>
                       Unpin target
@@ -449,12 +482,7 @@ function RulebookTextLinksPrototype() {
                     Native API: <strong>{nativeSupport}</strong>
                   </Text>
                   <Text size="sm">
-                    Active scroll owner:{' '}
-                    <strong>
-                      {forceFallback || nativeSupport === 'not-detected' || resolution.status === 'stale'
-                        ? 'application fallback'
-                        : 'browser, with application recovery'}
-                    </strong>
+                    Active scroll owner: <strong>{scrollOwner}</strong>
                   </Text>
                 </Stack>
               </Surface>
