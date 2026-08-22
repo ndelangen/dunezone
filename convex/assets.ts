@@ -355,6 +355,7 @@ async function rulesetsSlotting(ctx: QueryCtx, assetId: Id<'assets'>) {
 /**
  * Who holds the slug for this type — a living asset, a soft-deleted one whose address stays reserved, or nobody.
  * One rule read twice: the save guard refuses on it, and the editors' live conflict check subscribes to it, so the warning and the refusal can never disagree.
+ * The take is safe because per-type uniqueness is guarded on every write, deleted rows included: a slug is held by at most one row per type, so the set is bounded by the type registry's size, far under fifty.
  */
 async function assetSlugHolder(ctx: QueryCtx, type: string, slug: string): Promise<'live' | 'deleted' | null> {
   const holders = await ctx.db
@@ -368,11 +369,11 @@ async function assetSlugHolder(ctx: QueryCtx, type: string, slug: string): Promi
   return holder.is_deleted ? 'deleted' : 'live';
 }
 
-/** The editors' live name-conflict check, the save guard's rule as a subscription. */
+/** The editors' live name-conflict check: the save guard's rule as a subscription, holder kind included, so the warning can speak the refusal's own words. */
 export const slugTaken = query({
   args: { type: v.string(), slug: v.string() },
-  returns: v.boolean(),
-  handler: async (ctx, args) => (await assetSlugHolder(ctx, args.type, args.slug)) !== null,
+  returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
+  handler: async (ctx, args) => await assetSlugHolder(ctx, args.type, args.slug),
 });
 
 async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {

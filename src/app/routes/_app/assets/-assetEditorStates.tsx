@@ -201,12 +201,12 @@ function NameConflictProbe({
 }: {
   type: string;
   slug: string;
-  onAnswer: (conflictSlug: string | null) => void;
+  onAnswer: (holder: 'live' | 'deleted' | null) => void;
 }) {
-  const taken = useAssetSlugTaken({ type, slug });
+  const holder = useAssetSlugTaken({ type, slug });
   useEffect(() => {
-    onAnswer(taken === true ? slug : null);
-  }, [taken, slug, onAnswer]);
+    onAnswer(holder ?? null);
+  }, [holder, onAnswer]);
   return null;
 }
 
@@ -232,7 +232,7 @@ export function useNameConflict<Chapter extends string>({
   source: string;
   chapter: Chapter;
 }): { conflictWarnings: { source: string; complaint: string; chapter: Chapter }[]; conflictProbe: ReactNode } {
-  const [answer, setAnswer] = useState<string | null>(null);
+  const [answer, setAnswer] = useState<'live' | 'deleted' | null>(null);
   const slug = slugify(name);
   const candidate = slug.length > 0 && slug !== currentSlug ? slug : null;
   /* Settled rather than live: each distinct slug is a subscription swap, and a name typed letter by letter walks through every prefix. The pause also keeps a colliding prefix from flashing a warning on the way to a free name. */
@@ -244,11 +244,14 @@ export function useNameConflict<Chapter extends string>({
   const conflictProbe = settled ? (
     <NameConflictProbe key={settled} type={type} slug={settled} onAnswer={setAnswer} />
   ) : null;
-  const conflictSlug = candidate && settled === candidate ? answer : null;
+  const holder = candidate && settled === candidate ? answer : null;
+  /* The warning speaks the refusal's own distinction: a living holder and a deleted one reserving its address are different answers, and the save guard words them differently too. */
+  const complaint =
+    holder === 'deleted'
+      ? `its name is already taken ("${candidate}" stays reserved by a deleted asset)`
+      : `its name is already taken (another one lives at "${candidate}")`;
   return {
-    conflictWarnings: conflictSlug
-      ? [{ source, complaint: `its name is already taken (another one lives at "${conflictSlug}")`, chapter }]
-      : [],
+    conflictWarnings: holder ? [{ source, complaint, chapter }] : [],
     conflictProbe,
   };
 }

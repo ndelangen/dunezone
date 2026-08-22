@@ -103,6 +103,7 @@ describe('asset soft delete', () => {
         .withIdentity({ subject: ownerId })
         .mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') })
     ).rejects.toThrow('stays reserved by a deleted asset');
+    expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe('deleted');
   });
 
   test('deletion is owner-only, even for a viewer who may edit', async () => {
@@ -857,10 +858,10 @@ describe('name conflicts', () => {
     await expect(attempt).rejects.toThrow(ConvexError);
     await expect(attempt).rejects.toThrow('another one already lives at "lasgun"');
 
-    /* The editors' subscription reads the same rule, so the warning and the refusal cannot disagree. */
-    expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe(true);
-    expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'free-name' })).toBe(false);
+    /* The editors' subscription reads the same rule, holder kind included, so the warning and the refusal cannot disagree — not even about whether the holder lives. */
+    expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe('live');
+    expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'free-name' })).toBeNull();
     /* Another type may hold the same slug; the reservation is per type. */
-    expect(await t.query(api.assets.slugTaken, { type: 'deck', slug: 'lasgun' })).toBe(false);
+    expect(await t.query(api.assets.slugTaken, { type: 'deck', slug: 'lasgun' })).toBeNull();
   });
 });
