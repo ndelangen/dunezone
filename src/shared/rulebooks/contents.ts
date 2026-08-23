@@ -2,14 +2,26 @@ import { normalizeFormattedText } from '@shared/formattedText';
 import type { NormalizedFormattedText } from '@shared/formattedText';
 import { z } from 'zod';
 
+export const rulebookBlockKinds = ['text', 'repeated-text'] as const;
+
+const unboundedBootstrapSlot = {
+  acceptedBlockKinds: rulebookBlockKinds,
+  cardinality: { minimum: 0, maximum: null },
+} as const;
+
 export const rulebookLayoutCatalogue = [
-  // Every slot accepts Text and Repeated text Blocks, may be empty, and has no Block-count limit.
-  { id: 'single-column', slots: ['body'] },
-  { id: 'two-columns', slots: ['left', 'right'] },
+  { id: 'single-column', slots: [{ id: 'body', ...unboundedBootstrapSlot }] },
+  {
+    id: 'two-columns',
+    slots: [
+      { id: 'left', ...unboundedBootstrapSlot },
+      { id: 'right', ...unboundedBootstrapSlot },
+    ],
+  },
 ] as const;
 
 type RulebookLayoutDefinition = (typeof rulebookLayoutCatalogue)[number];
-export type RulebookSlotId = RulebookLayoutDefinition['slots'][number];
+export type RulebookSlotId = RulebookLayoutDefinition['slots'][number]['id'];
 
 const rulebookPageIdSchema = z.string().min(1);
 const rulebookBlockIdSchema = z.string().min(1);
@@ -32,7 +44,7 @@ const normalizedFormattedTextSchema = z
 
 const textBlockSchema = z.strictObject({
   id: rulebookBlockIdSchema,
-  kind: z.literal('text'),
+  kind: z.literal(rulebookBlockKinds[0]),
   anchor: rulebookAnchorSchema.optional(),
   text: normalizedFormattedTextSchema,
 });
@@ -44,7 +56,7 @@ const repeatedTextItemSchema = z.strictObject({
 
 const repeatedTextBlockSchema = z.strictObject({
   id: rulebookBlockIdSchema,
-  kind: z.literal('repeated-text'),
+  kind: z.literal(rulebookBlockKinds[1]),
   anchor: rulebookAnchorSchema.optional(),
   itemOrder: z.array(rulebookItemIdSchema),
   itemsById: z.record(rulebookItemIdSchema, repeatedTextItemSchema),
@@ -52,9 +64,9 @@ const repeatedTextBlockSchema = z.strictObject({
 
 const rulebookBlockSchema = z.discriminatedUnion('kind', [textBlockSchema, repeatedTextBlockSchema]);
 
-function slotSchema<const Slots extends readonly string[]>(slotIds: Slots) {
-  const slots = Object.fromEntries(slotIds.map((slotId) => [slotId, z.array(rulebookBlockIdSchema)])) as {
-    [SlotId in Slots[number]]: z.ZodArray<typeof rulebookBlockIdSchema>;
+function slotSchema<const Slots extends readonly { readonly id: string }[]>(slotDefinitions: Slots) {
+  const slots = Object.fromEntries(slotDefinitions.map(({ id }) => [id, z.array(rulebookBlockIdSchema)])) as {
+    [Slot in Slots[number] as Slot['id']]: z.ZodArray<typeof rulebookBlockIdSchema>;
   };
   return z.strictObject(slots);
 }
@@ -135,8 +147,34 @@ export const rulebookContentsV1Schema = rulebookContentsV1BaseSchema.superRefine
       context.addIssue({ code: 'custom', path: ['pagesById', key, 'id'], message: 'Page map key and ID must agree' });
     }
     registerAnchor(page.anchor, `pagesById.${key}.anchor`);
-    for (const ids of Object.values(page.slots)) {
+    const layout = rulebookLayoutCatalogue.find(({ id }) => id === page.layoutId)!;
+    for (const [slotId, ids] of Object.entries(page.slots)) {
       placedBlockIds.push(...ids);
+      const slot = layout.slots.find((candidate) => candidate.id === slotId)!;
+      if (ids.length < slot.cardinality.minimum) {
+        context.addIssue({
+          code: 'custom',
+          path: ['pagesById', key, 'slots', slotId],
+          message: `Slot ${slotId} requires at least ${slot.cardinality.minimum} Blocks`,
+        });
+      }
+      if (slot.cardinality.maximum !== null && ids.length > slot.cardinality.maximum) {
+        context.addIssue({
+          code: 'custom',
+          path: ['pagesById', key, 'slots', slotId],
+          message: `Slot ${slotId} accepts at most ${slot.cardinality.maximum} Blocks`,
+        });
+      }
+      for (const blockId of ids) {
+        const block = contents.blocksById[blockId];
+        if (block && !slot.acceptedBlockKinds.some((kind) => kind === block.kind)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['pagesById', key, 'slots', slotId],
+            message: `Slot ${slotId} does not accept ${block.kind} Blocks`,
+          });
+        }
+      }
     }
   }
 
@@ -213,7 +251,7 @@ type EditableValue<Value> = Value extends NormalizedFormattedText
       ? { [Key in keyof Value]: EditableValue<Value[Key]> }
       : Value;
 
-/** Canonical structure with only directly typed text and anchors widened to editable strings. */
+/** Canonical structure with normalized formatted-text values widened to raw editor strings. */
 export type RulebookContentsDraftV1 = EditableValue<RulebookContentsV1>;
 export type RulebookPageDraft = RulebookContentsDraftV1['pagesById'][string];
 export type RulebookBlockDraft = RulebookContentsDraftV1['blocksById'][string];

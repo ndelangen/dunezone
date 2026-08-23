@@ -51,13 +51,19 @@ function resolveRequest(
   if (afterAvailable) {
     return {
       ...request,
-      beforeId: afterIndex >= 0 ? (order[afterIndex + 1] ?? null) : null,
+      beforeId: afterIndex >= 0 ? (order.slice(afterIndex + 1).find((id) => !batchTargetIds.has(id)) ?? null) : null,
     };
   }
   if (beforeAvailable) {
     return {
       ...request,
-      afterId: beforeIndex >= 0 ? (order[beforeIndex - 1] ?? null) : null,
+      afterId:
+        beforeIndex >= 0
+          ? (order
+              .slice(0, beforeIndex)
+              .reverse()
+              .find((id) => !batchTargetIds.has(id)) ?? null)
+          : null,
     };
   }
   return undefined;

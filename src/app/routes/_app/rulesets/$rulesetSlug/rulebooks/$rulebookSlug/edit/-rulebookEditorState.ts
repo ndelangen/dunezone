@@ -12,6 +12,7 @@ import type {
   RulebookPageDraft,
   RulebookSlotId,
 } from '@shared/rulebooks/contents';
+import { graphemeSegments } from 'unicode-segmenter/grapheme';
 import { z } from 'zod';
 
 import { compareCanonicalText, planAtomicPlacementBatch } from './-rulebookPlacement';
@@ -32,7 +33,10 @@ const itemRefSchema = z.strictObject({
 const entityRefSchema = z.discriminatedUnion('kind', [pageRefSchema, blockRefSchema, itemRefSchema]);
 type RulebookEntityRef = z.infer<typeof entityRefSchema>;
 
-const slotIds = rulebookLayoutCatalogue.flatMap(({ slots }) => slots) as [RulebookSlotId, ...RulebookSlotId[]];
+const slotIds = rulebookLayoutCatalogue.flatMap(({ slots }) => slots.map(({ id }) => id)) as [
+  RulebookSlotId,
+  ...RulebookSlotId[],
+];
 const orderedContainerSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('page-order') }),
   z.strictObject({
@@ -536,9 +540,9 @@ function stableFingerprint(value: unknown): string {
 
 function pageSlotEntries(page: RulebookPageDraft): Array<[RulebookSlotId, string[]]> {
   if (page.layoutId === rulebookLayoutCatalogue[0].id) {
-    return rulebookLayoutCatalogue[0].slots.map((slotId) => [slotId, page.slots[slotId]]);
+    return rulebookLayoutCatalogue[0].slots.map(({ id }) => [id, page.slots[id]]);
   }
-  return rulebookLayoutCatalogue[1].slots.map((slotId) => [slotId, page.slots[slotId]]);
+  return rulebookLayoutCatalogue[1].slots.map(({ id }) => [id, page.slots[id]]);
 }
 
 function allEntityRefs(contents: RulebookContentsDraftV1): RulebookEntityRef[] {
@@ -1330,7 +1334,7 @@ function placementDiff(
       placements.push({ kind: 'place', target: ref, original, destination });
     }
   }
-  return placements.sort((left, right) => entityRefKey(left.target).localeCompare(entityRefKey(right.target)));
+  return placements.sort((left, right) => compareCanonicalText(entityRefKey(left.target), entityRefKey(right.target)));
 }
 
 function diffContents(
@@ -1487,12 +1491,26 @@ function validateDraft(draft: RulebookContentsDraftV1): {
     }
   }
 
+  const anchorOwners = new Map<string, RulebookEntityRef>();
+  for (const { ref, anchor } of anchorEntries(candidate)) {
+    if (!rulebookAnchorSchema.safeParse(anchor).success) {
+      continue;
+    }
+    const existing = anchorOwners.get(anchor);
+    if (existing) {
+      diagnostics.push({
+        target: ref,
+        field: 'anchor',
+        code: 'duplicate-anchor',
+        message: `Anchor ${anchor} is already used by ${entityRefKey(existing)}`,
+      });
+    } else {
+      anchorOwners.set(anchor, ref);
+    }
+  }
+
   const structuralCandidate = clone(candidate);
-  const occupiedAnchors = new Set(
-    anchorEntries(structuralCandidate)
-      .map(({ anchor }) => anchor)
-      .filter((anchor) => rulebookAnchorSchema.safeParse(anchor).success)
-  );
+  const occupiedAnchors = new Set<string>();
   let temporaryAnchorIndex = 0;
   const temporaryAnchor = () => {
     let value: string;
@@ -1504,13 +1522,19 @@ function validateDraft(draft: RulebookContentsDraftV1): {
     return value;
   };
   for (const page of Object.values(structuralCandidate.pagesById)) {
-    if (!rulebookAnchorSchema.safeParse(page.anchor).success) {
+    if (!rulebookAnchorSchema.safeParse(page.anchor).success || occupiedAnchors.has(page.anchor)) {
       page.anchor = temporaryAnchor();
+    } else {
+      occupiedAnchors.add(page.anchor);
     }
   }
   for (const block of Object.values(structuralCandidate.blocksById)) {
-    if (block.anchor !== undefined && !rulebookAnchorSchema.safeParse(block.anchor).success) {
-      block.anchor = undefined;
+    if (block.anchor !== undefined) {
+      if (!rulebookAnchorSchema.safeParse(block.anchor).success || occupiedAnchors.has(block.anchor)) {
+        block.anchor = undefined;
+      } else {
+        occupiedAnchors.add(block.anchor);
+      }
     }
     if (block.kind === 'text') {
       if (!normalizeFormattedText(block.text).ok) {
@@ -1557,7 +1581,10 @@ function textCombination(
   if (baseline === undefined || latest === undefined || local === undefined) {
     return undefined;
   }
-  const range = (from: string, to: string) => {
+  const units = (value: string) => [...graphemeSegments(value)].map(({ segment }) => segment);
+  const range = (fromValue: string, toValue: string) => {
+    const from = units(fromValue);
+    const to = units(toValue);
     let start = 0;
     while (from[start] === to[start] && start < from.length && start < to.length) {
       start += 1;
@@ -1574,12 +1601,61 @@ function textCombination(
   };
   const savedChange = range(baseline, latest);
   const localChange = range(baseline, local);
+  if (
+    savedChange.start === localChange.start &&
+    savedChange.end === savedChange.start &&
+    localChange.end === localChange.start &&
+    savedChange.replacement.length > 0 &&
+    localChange.replacement.length > 0
+  ) {
+    return undefined;
+  }
   if (savedChange.end <= localChange.start || localChange.end <= savedChange.start) {
     return [savedChange, localChange]
       .sort((left, right) => right.start - left.start)
-      .reduce((value, change) => value.slice(0, change.start) + change.replacement + value.slice(change.end), baseline);
+      .reduce(
+        (value, change) => [...value.slice(0, change.start), ...change.replacement, ...value.slice(change.end)],
+        units(baseline)
+      )
+      .join('');
   }
   return undefined;
+}
+
+function placementChanged(
+  baseline: RulebookContentsDraftV1,
+  latest: RulebookContentsDraftV1,
+  ref: RulebookEntityRef
+): boolean {
+  const baselinePlacement = findPlacement(baseline, ref);
+  const latestPlacement = findPlacement(latest, ref);
+  if (
+    !baselinePlacement ||
+    !latestPlacement ||
+    !sameContainer(baselinePlacement.container, latestPlacement.container)
+  ) {
+    return true;
+  }
+  const baselineOrder = getOrder(baseline, baselinePlacement.container);
+  const latestOrder = getOrder(latest, latestPlacement.container);
+  const targetId = ref.kind === 'page' ? ref.pageId : ref.kind === 'block' ? ref.blockId : ref.itemId;
+  if (!baselineOrder || !latestOrder) {
+    return true;
+  }
+  const baselineIndex = baselineOrder.indexOf(targetId);
+  const latestIndex = latestOrder.indexOf(targetId);
+  if (baselineIndex < 0 || latestIndex < 0) {
+    return true;
+  }
+  const previous = baselineOrder
+    .slice(0, baselineIndex)
+    .reverse()
+    .find((id) => latestOrder.includes(id));
+  const next = baselineOrder.slice(baselineIndex + 1).find((id) => latestOrder.includes(id));
+  return (
+    (previous !== undefined && latestOrder.indexOf(previous) >= latestIndex) ||
+    (next !== undefined && latestIndex >= latestOrder.indexOf(next))
+  );
 }
 
 function fieldIncompatibility(
@@ -1621,7 +1697,7 @@ function refsChanged(
     if (stableFingerprint(baselineFields) !== stableFingerprint(latestFields)) {
       return true;
     }
-    if (!samePlacement(findPlacement(baseline, ref), findPlacement(latest, ref))) {
+    if (placementChanged(baseline, latest, ref)) {
       return true;
     }
   }
@@ -1721,7 +1797,8 @@ function reconcile(state: ReadyState): Reconciliation {
           undefined,
           undefined,
           restoration.placement,
-          unresolvedGapReason(proposed, restoration.placement)
+          unresolvedGapReason(proposed, restoration.placement),
+          proposed
         )
       );
       continue;
@@ -1754,7 +1831,9 @@ function reconcile(state: ReadyState): Reconciliation {
       dependencyFingerprint: stableFingerprint({
         direction: 'saved-deletion',
         root: savedDeletion.root,
-        affectedRefs: savedDeletion.deletedRefs,
+        affectedRefs: [...savedDeletion.deletedRefs].sort((left, right) =>
+          compareCanonicalText(entityRefKey(left), entityRefKey(right))
+        ),
         localRestorations,
       }),
     };
@@ -1848,7 +1927,8 @@ function reconcile(state: ReadyState): Reconciliation {
           original,
           findPlacement(latest, failure.request.target),
           failure.request.destination,
-          failure.reason
+          failure.reason,
+          latest
         )
       );
     } else {
@@ -1883,7 +1963,8 @@ function reconcile(state: ReadyState): Reconciliation {
         intent.original,
         findPlacement(latest, intent.target),
         intent.destination,
-        'competing-move'
+        'competing-move',
+        latest
       )
     );
   }
@@ -1915,7 +1996,9 @@ function reconcile(state: ReadyState): Reconciliation {
           target: local.ref,
           value: local.anchor,
           collidesWith: collision.ref,
-          namespace: latestAnchors,
+          namespace: [...latestAnchors].sort((left, right) =>
+            compareCanonicalText(entityRefKey(left.ref), entityRefKey(right.ref))
+          ),
         }),
       };
       incompatibilities.push(conflict);
@@ -1925,7 +2008,7 @@ function reconcile(state: ReadyState): Reconciliation {
   const deduplicated = incompatibilities.filter(
     (item, index, all) => all.findIndex((candidate) => candidate.id === item.id) === index
   );
-  const validLedger = state.ledger.filter((approval) => {
+  const candidateLedger = state.ledger.filter((approval) => {
     const incompatibility = deduplicated.find((item) => item.id === approval.incompatibilityId);
     return (
       incompatibility?.dependencyFingerprint === approval.dependencyFingerprint &&
@@ -1937,7 +2020,7 @@ function reconcile(state: ReadyState): Reconciliation {
   const approvalPlacements: PlacementRequest[] = [];
 
   for (const incompatibility of deduplicated) {
-    const approval = validLedger.find((candidate) => candidate.incompatibilityId === incompatibility.id);
+    const approval = candidateLedger.find((candidate) => candidate.incompatibilityId === incompatibility.id);
     if (!approval) {
       continue;
     }
@@ -1982,6 +2065,22 @@ function reconcile(state: ReadyState): Reconciliation {
     }
   }
   const approvalFailures = applyPlacementBatch(comparisonDraft, approvalPlacements);
+  const invalidAnchorApprovals = new Set<string>();
+  for (const approval of candidateLedger) {
+    const incompatibility = deduplicated.find((item) => item.id === approval.incompatibilityId);
+    const target =
+      incompatibility?.kind === 'anchor' || (incompatibility?.kind === 'field' && incompatibility.field === 'anchor')
+        ? incompatibility.target
+        : undefined;
+    if (!target || approval.outcome.kind !== 'anchor' || approval.outcome.value === undefined) {
+      continue;
+    }
+    const anchorValue = approval.outcome.value;
+    if (anchorEntries(comparisonDraft).some(({ ref, anchor }) => !sameRef(ref, target) && anchor === anchorValue)) {
+      invalidAnchorApprovals.add(approval.incompatibilityId);
+    }
+  }
+  const validLedger = candidateLedger.filter((approval) => !invalidAnchorApprovals.has(approval.incompatibilityId));
   const allResolved =
     deduplicated.length > 0 && validLedger.length === deduplicated.length && approvalFailures.length === 0;
 
@@ -2001,8 +2100,11 @@ function placementIncompatibility(
   baseline: RulebookPlacement | undefined,
   latest: RulebookPlacement | undefined,
   local: RulebookPlacement,
-  reason: RulebookPlacementIncompatibility['reason']
+  reason: RulebookPlacementIncompatibility['reason'],
+  dependencyContents: RulebookContentsDraftV1
 ): RulebookPlacementIncompatibility {
+  const normalized = resolveGap(dependencyContents, target, local);
+  const destinationOrder = getOrder(dependencyContents, local.container) ?? [];
   return {
     id: `placement:${entityRefKey(target)}`,
     kind: 'placement',
@@ -2011,7 +2113,17 @@ function placementIncompatibility(
     latest,
     local,
     reason,
-    dependencyFingerprint: stableFingerprint({ target, baseline, latest, local, reason }),
+    dependencyFingerprint: stableFingerprint({
+      target: entityRefKey(target),
+      targetExists: entityExists(dependencyContents, target),
+      destination: containerKey(local.container),
+      boundaries: normalized
+        ? { afterId: normalized.afterId, beforeId: normalized.beforeId }
+        : {
+            afterId: local.afterId !== null && destinationOrder.includes(local.afterId) ? local.afterId : null,
+            beforeId: local.beforeId !== null && destinationOrder.includes(local.beforeId) ? local.beforeId : null,
+          },
+    }),
   };
 }
 
@@ -2087,7 +2199,7 @@ function stabilize(state: ReadyState): Reconciliation {
 }
 
 function readyResult(state: ReadyState): RulebookEditorReadyResult {
-  const reconciliation = stabilize(state);
+  const reconciliation = reconcile(state);
   const validation = validateDraft(state.draft);
   const hasUnresolved = reconciliation.incompatibilities.length > 0;
   const saveCandidate = hasUnresolved ? undefined : validation.candidate;
@@ -2105,8 +2217,9 @@ function readyResult(state: ReadyState): RulebookEditorReadyResult {
     rebasedPatch: clone(state.patch),
     canSave,
     isSaving: state.isSaving,
-    saveRequest:
-      canSave && saveCandidate
+    saveRequest: state.saveInFlight
+      ? { expectedRevision: state.saveInFlight.revision, contents: clone(state.saveInFlight.contents) }
+      : canSave && saveCandidate
         ? { expectedRevision: state.latest.revision, contents: clone(saveCandidate) }
         : undefined,
     operationError: state.operationError,
@@ -2124,8 +2237,8 @@ function dispatchReady(
       throw new Error('The incoming saved revision was not validated');
     }
     state.latest = clone(authoritativeRevision);
-    state.isSaving = false;
     if (action.kind === 'save-stale') {
+      state.isSaving = false;
       state.saveInFlight = undefined;
     }
     rememberPageLayouts(state, state.latest.contents);
@@ -2210,7 +2323,10 @@ function dispatchReady(
   }
   state.draft = nextDraft;
   rememberPageLayouts(state, state.draft);
-  state.patch = diffContents(state.baseline.contents, state.draft, state.baseline.revision);
+  state.patch = diffContents(state.baseline.contents, state.draft, state.baseline.revision, {
+    restorationRoots: state.patch.restorations.map(({ root }) => root),
+    reviewedDeletions: state.patch.deletes,
+  });
   stabilize(state);
 }
 
@@ -2275,23 +2391,52 @@ function safeReadyResult(state: ReadyState): RulebookEditorReadyResult {
   }
 }
 
-function createRulebookEditorCore(input: RulebookEditorInput): RulebookEditorStateManager {
+function schemaVersionOf(value: unknown): unknown {
+  return value && typeof value === 'object' && 'schemaVersion' in value
+    ? (value as { schemaVersion?: unknown }).schemaVersion
+    : undefined;
+}
+
+/**
+ * The browser editor membrane.
+ * Callers provide saved state and current intent, then dispatch semantic editor or save-lifecycle actions;
+ * reconciliation, patch compaction, approvals, and eligibility stay inside.
+ */
+export function createRulebookEditorStateManager(input: RulebookEditorInput): RulebookEditorStateManager {
   const baseline = rulebookContentsV1Schema.safeParse(input.baseline.contents);
   const latest = rulebookContentsV1Schema.safeParse(input.latest.contents);
   const patch = rulebookEditPatchV1Schema.safeParse(input.patch);
-  const initialLayoutIssue =
-    baseline.success && latest.success ? immutableLayoutError(pageLayoutMemory(baseline.data), latest.data) : undefined;
+  if (!baseline.success || !latest.success) {
+    const hasUnsupportedVersion = [input.baseline.contents, input.latest.contents].some(
+      (contents) => schemaVersionOf(contents) !== undefined && schemaVersionOf(contents) !== 1
+    );
+    return unsupportedManager({
+      received: input,
+      message: hasUnsupportedVersion
+        ? 'This Rulebook uses a schema version this application does not support. Reload or use a compatible application version.'
+        : 'This Rulebook contains invalid saved data and cannot be edited or saved. Reload without discarding the received data.',
+    });
+  }
+  if (!patch.success) {
+    return unsupportedManager({
+      received: input,
+      message:
+        schemaVersionOf(input.patch) !== 1
+          ? 'This Rulebook edit uses a patch version this application does not support. Reload or use a compatible application version.'
+          : 'This Rulebook edit patch is invalid and cannot be applied. Reload before editing.',
+    });
+  }
+  const initialLayoutIssue = immutableLayoutError(pageLayoutMemory(baseline.data), latest.data);
+  const patchIssue = patchValidationError(baseline.data, patch.data);
   if (
-    !baseline.success ||
-    !latest.success ||
-    !patch.success ||
     initialLayoutIssue !== undefined ||
     patch.data.baselineRevision !== input.baseline.revision ||
-    patchValidationError(baseline.data, patch.data) !== undefined
+    patchIssue !== undefined
   ) {
     return unsupportedManager({
       received: input,
-      message: 'This Rulebook uses unsupported or invalid editor data. Reload or use a compatible application version.',
+      message:
+        initialLayoutIssue ?? patchIssue ?? 'The edit patch baseline does not match the saved Rulebook revision.',
     });
   }
 
@@ -2320,10 +2465,11 @@ function createRulebookEditorCore(input: RulebookEditorInput): RulebookEditorSta
   };
   stabilize(core);
   let unsupported: { received: unknown; message: string } | undefined;
+  let cachedResult = safeReadyResult(core);
 
   return {
     get result() {
-      return unsupported ? unsupportedManager(unsupported).result : safeReadyResult(core);
+      return unsupported ? unsupportedManager(unsupported).result : cachedResult;
     },
     dispatch(action) {
       if (unsupported) {
@@ -2353,21 +2499,14 @@ function createRulebookEditorCore(input: RulebookEditorInput): RulebookEditorSta
       const before = clone(core);
       try {
         dispatchReady(core, action, authoritativeRevision);
-        return readyResult(core);
+        cachedResult = readyResult(core);
+        return cachedResult;
       } catch (error) {
         restoreReadyState(core, before);
         core.operationError = operationErrorMessage(error);
-        return safeReadyResult(core);
+        cachedResult = safeReadyResult(core);
+        return cachedResult;
       }
     },
   };
-}
-
-/**
- * The browser editor membrane.
- * Callers provide saved state and current intent, then dispatch semantic editor or save-lifecycle actions;
- * reconciliation, patch compaction, approvals, and eligibility stay inside.
- */
-export function createRulebookEditorStateManager(input: RulebookEditorInput): RulebookEditorStateManager {
-  return createRulebookEditorCore(input);
 }
