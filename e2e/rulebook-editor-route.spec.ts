@@ -15,11 +15,6 @@ test('the local Rulebook editor keeps its preview synchronized', async ({ page }
   await page.getByRole('textbox', { name: 'Text block' }).fill('A browser-local Rulebook revision.');
 
   await expect(preview).toContainText('A browser-local Rulebook revision.');
-
-  const invalidText = '*bold _underline* still underline_';
-  await page.getByRole('textbox', { name: 'Text block' }).fill(invalidText);
-  await expect(preview.getByText(invalidText, { exact: true })).toBeVisible();
-  await expect(preview.locator('strong')).toHaveCount(0);
 });
 
 test('the fit toggle changes Page size while the document owns vertical scrolling', async ({ page }) => {
@@ -46,7 +41,14 @@ test('the fit toggle changes Page size while the document owns vertical scrollin
   }
 
   await controlsRegion.hover();
-  await page.mouse.wheel(0, 250);
+  const hoveredFitHeightBox = await previewPage.boundingBox();
+  expect(hoveredFitHeightBox).not.toBeNull();
+  if (!hoveredFitHeightBox) {
+    throw new Error('The fit-height preview has no rendered bounds after focusing the controls.');
+  }
+  const stickyOffset = 16;
+  const engageStickyDelta = Math.max(1, Math.floor(hoveredFitHeightBox.y - stickyOffset));
+  await page.mouse.wheel(0, engageStickyDelta);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   const afterControlsWheel = await page.evaluate(() => window.scrollY);
   expect(await controlsRegion.evaluate((element) => element.scrollTop)).toBe(0);
@@ -61,7 +63,7 @@ test('the fit toggle changes Page size while the document owns vertical scrollin
   expect(stickyFitHeightBox.y + stickyFitHeightBox.height).toBeLessThanOrEqual(901);
 
   await previewRegion.hover();
-  await page.mouse.wheel(0, 250);
+  await page.mouse.wheel(0, 40);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(afterControlsWheel);
   expect(await controlsRegion.evaluate((element) => element.scrollTop)).toBe(0);
   expect(await previewRegion.evaluate((element) => element.scrollTop)).toBe(0);

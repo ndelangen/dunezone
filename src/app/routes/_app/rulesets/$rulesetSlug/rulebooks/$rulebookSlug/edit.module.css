@@ -58,6 +58,10 @@
   min-height: 100%;
 }
 
+.outlineContent {
+  padding: var(--mantine-spacing-lg);
+}
+
 .outlineAccordion {
   background: transparent;
 }
@@ -237,7 +241,7 @@
     --workspace-gap: var(--mantine-spacing-lg);
   }
 
-  .outlineRail {
+  .outlineContent {
     padding: var(--mantine-spacing-md);
   }
 
@@ -275,7 +279,7 @@
     min-width: calc(51.5rem + var(--workspace-gap));
   }
 
-  .outlineRail {
+  .outlineContent {
     padding: var(--mantine-spacing-sm);
   }
 

@@ -1,8 +1,9 @@
-import { Accordion, Alert, Badge, Box, Button, Group, Stack, Text, Textarea, Title } from '@mantine/core';
+import { Accordion, Alert, Badge, Box, Button, Group, Stack, Text, Textarea } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult } from '@shared/formattedText';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { createFileRoute } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -261,7 +262,7 @@ function PageTextEditors({
   );
 }
 
-type ConceptProps = {
+type RulebookWorkspaceProps = {
   page: RulebookPageDraft;
   pageId: string;
   pageNumber: number;
@@ -273,7 +274,7 @@ type ConceptProps = {
   selectPage: (pageId: string) => void;
 };
 
-function PageOutline({ result, pageId, selectPage }: Pick<ConceptProps, 'result' | 'pageId' | 'selectPage'>) {
+function PageOutline({ result, pageId, selectPage }: Pick<RulebookWorkspaceProps, 'result' | 'pageId' | 'selectPage'>) {
   return (
     <Stack component="nav" aria-label="Rulebook pages" gap="xs">
       <Text size="xs" fw={700} tt="uppercase" c="dimmed" className={styles.sectionLabel}>
@@ -303,7 +304,7 @@ function PageOutline({ result, pageId, selectPage }: Pick<ConceptProps, 'result'
   );
 }
 
-function PreviewRail({ page, pageNumber, result, fit }: ConceptProps) {
+function PreviewRail({ page, pageNumber, result, fit }: RulebookWorkspaceProps) {
   return (
     <section className={styles.previewRail} aria-label="Rulebook page preview">
       <RulebookPagePreview page={page} pageNumber={pageNumber} draft={result.draft} fit={fit} />
@@ -311,38 +312,40 @@ function PreviewRail({ page, pageNumber, result, fit }: ConceptProps) {
   );
 }
 
-function OutlineConcept(props: ConceptProps) {
+function RulebookWorkspace(props: RulebookWorkspaceProps) {
   return (
     <div className={styles.workspace} data-fit={props.fit}>
-      <Surface className={styles.outlineRail} padding="lg" as="section" aria-label="Rulebook controls">
-        <Accordion
-          value={props.mode}
-          onChange={(value) => value && props.setMode(value as EditorMode)}
-          className={styles.outlineAccordion}
-        >
-          <Accordion.Item value="navigate">
-            <Accordion.Control>
-              <Text fw={700}>Navigate</Text>
-              <Text size="xs" c="dimmed">
-                Page {props.pageNumber} of {props.result.draft.pageOrder.length}
-              </Text>
-            </Accordion.Control>
-            <Accordion.Panel>
-              <PageOutline result={props.result} pageId={props.pageId} selectPage={props.selectPage} />
-            </Accordion.Panel>
-          </Accordion.Item>
-          <Accordion.Item value="edit">
-            <Accordion.Control>
-              <Text fw={700}>Edit Page {props.pageNumber}</Text>
-              <Text size="xs" c="dimmed">
-                Text and repeated text
-              </Text>
-            </Accordion.Control>
-            <Accordion.Panel>
-              <PageTextEditors page={props.page} result={props.result} dispatch={props.dispatch} />
-            </Accordion.Panel>
-          </Accordion.Item>
-        </Accordion>
+      <Surface className={styles.outlineRail} padding="none" as="section" aria-label="Rulebook controls">
+        <div className={styles.outlineContent}>
+          <Accordion
+            value={props.mode}
+            onChange={(value) => value && props.setMode(value as EditorMode)}
+            className={styles.outlineAccordion}
+          >
+            <Accordion.Item value="navigate">
+              <Accordion.Control>
+                <Text fw={700}>Navigate</Text>
+                <Text size="xs" c="dimmed">
+                  Page {props.pageNumber} of {props.result.draft.pageOrder.length}
+                </Text>
+              </Accordion.Control>
+              <Accordion.Panel>
+                <PageOutline result={props.result} pageId={props.pageId} selectPage={props.selectPage} />
+              </Accordion.Panel>
+            </Accordion.Item>
+            <Accordion.Item value="edit">
+              <Accordion.Control>
+                <Text fw={700}>Edit Page {props.pageNumber}</Text>
+                <Text size="xs" c="dimmed">
+                  Text and repeated text
+                </Text>
+              </Accordion.Control>
+              <Accordion.Panel>
+                <PageTextEditors page={props.page} result={props.result} dispatch={props.dispatch} />
+              </Accordion.Panel>
+            </Accordion.Item>
+          </Accordion>
+        </div>
       </Surface>
       <PreviewRail {...props} />
     </div>
@@ -362,9 +365,7 @@ function RulebookEditorPage() {
     return (
       <PageLayout>
         <PageLayout.Header size="compact">
-          <Title order={1} size="h3">
-            Rulebook editor unavailable
-          </Title>
+          <PageTitle title="Rulebook editor unavailable" />
         </PageLayout.Header>
         <PageLayout.Content>
           <Alert color="red" role="alert" title="This starter session could not open">
@@ -396,9 +397,7 @@ function RulebookEditorPage() {
         <Group gap="sm" wrap="nowrap">
           <BookOpenText size={24} aria-hidden />
           <div>
-            <Title order={1} size="h3">
-              Rulebook workspace
-            </Title>
+            <PageTitle title="Rulebook workspace" />
             <Text size="xs" c="dimmed">
               {rulesetSlug} / {rulebookSlug}
             </Text>
@@ -442,7 +441,7 @@ function RulebookEditorPage() {
                 aria-label="Rulebook editor and preview"
                 tabIndex={0}
               >
-                <OutlineConcept
+                <RulebookWorkspace
                   page={page}
                   pageId={pageId}
                   pageNumber={pageNumber}
