@@ -5,6 +5,7 @@ import { Eyebrow } from '@ui/content/Eyebrow';
 import { AtlasLayout } from '@ui/layout/AtlasLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
+import { Surface } from '@ui/surface';
 import {
   ArrowRight,
   BookOpen,
@@ -214,7 +215,7 @@ function FuturePlansPage() {
                 </Stack>
               ))}
 
-              <Box component="section" className={styles.contribution} p={{ base: 'xl', md: 48 }}>
+              <Surface as="section" aria-label="Contribute to Dune Zone" padding="xl" className={styles.contribution}>
                 <SimpleGrid cols={{ base: 1, md: 3 }} spacing="xl" verticalSpacing="xl">
                   <ThemeIcon size={72} radius="50%" variant="light" color="dune" aria-hidden>
                     <Lightbulb />
@@ -248,7 +249,7 @@ function FuturePlansPage() {
                     </Button>
                   </Stack>
                 </SimpleGrid>
-              </Box>
+              </Surface>
             </Stack>
           </AtlasLayout.Content>
         </AtlasLayout>

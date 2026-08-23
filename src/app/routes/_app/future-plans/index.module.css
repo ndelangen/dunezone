@@ -50,11 +50,9 @@
   line-height: 1.6;
 }
 
+/* Placement only; the pane's appearance is Surface's. */
 .contribution {
   margin: 2rem 0 1rem;
-  border-radius: var(--mantine-radius-lg);
-  background: radial-gradient(circle at 95% 10%, rgb(211 146 46 / 20%), transparent 36%), var(--mantine-color-body);
-  border: 1px solid rgb(123 52 25 / 20%);
 }
 
 @media (max-width: 40.625em) {
