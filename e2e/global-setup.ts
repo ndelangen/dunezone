@@ -116,8 +116,9 @@ export default async function globalSetup(config: FullConfig) {
 
   await mkdir('.playwright', { recursive: true });
   /**
-   * Each spec file gets its own session: Convex Auth rotates refresh tokens, so two parallel workers sharing a storage state would invalidate each other's session mid-run.
-   * Logins are independent, so they run concurrently.
+   * Each authenticated spec file gets its own session: Convex Auth rotates refresh tokens, so two parallel workers sharing a storage state would invalidate each other's session mid-run.
+   * Signed-out specs override the project default with an empty storage state.
+   * Independent user logins run concurrently.
    */
   const sessions: Credentials[] = [
     { email: userAEmail, password: userPassword, storageStatePath: '.playwright/user-a.json' },

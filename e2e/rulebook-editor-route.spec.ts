@@ -1,5 +1,8 @@
 import { expect, test } from './coverage';
 
+/* The browser-local fixture editor must not rotate an authenticated spec's refresh token. */
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test('the local Rulebook editor keeps its A4 preview synchronized', async ({ page }) => {
   await page.goto('/rulesets/local-rules/rulebooks/starter/edit');
 
