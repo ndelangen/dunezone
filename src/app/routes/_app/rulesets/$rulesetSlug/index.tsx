@@ -6,6 +6,7 @@ import type { RouteNoticeCode } from '@shared/routeNotices';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
+import { PageTitle } from '@ui/block/PageTitle';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
@@ -189,7 +190,7 @@ function RulesetDetailPending() {
     <PageLayout>
       <PageLayout.Header>
         <Stack align="center" gap="xs">
-          <Title order={1}>Ruleset</Title>
+          <PageTitle title="Ruleset" />
           <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>Back to rulesets</Anchor>
         </Stack>
       </PageLayout.Header>
@@ -210,7 +211,7 @@ function RulesetDetailError({ error }: ErrorComponentProps) {
     <PageLayout>
       <PageLayout.Header>
         <Stack align="center" gap="xs">
-          <Title order={1}>Ruleset</Title>
+          <PageTitle title="Ruleset" />
           <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>Back to rulesets</Anchor>
         </Stack>
       </PageLayout.Header>
@@ -243,7 +244,7 @@ function RulesetDetailPage() {
       <PageLayout>
         <PageLayout.Header>
           <Stack align="center" gap="xs">
-            <Title order={1}>Ruleset</Title>
+            <PageTitle title="Ruleset" />
             <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>Back to rulesets</Anchor>
           </Stack>
         </PageLayout.Header>
