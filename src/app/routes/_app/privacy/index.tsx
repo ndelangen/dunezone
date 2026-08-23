@@ -1,4 +1,4 @@
-import { List, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { List, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -21,7 +21,7 @@ function PrivacyPage() {
               Signing in creates a public profile. Anything you publish can be seen and shared by anyone.
             </Text>
           </Stack>
-          <Paper bg="rgba(255, 255, 255, 0.82)" p="lg" radius="md" shadow="sm">
+          <Surface padding="lg">
             <Stack gap="sm">
               <Title order={2} size="h3">
                 Two firm promises
@@ -34,7 +34,7 @@ function PrivacyPage() {
                 There is no private-profile setting.
               </Text>
             </Stack>
-          </Paper>
+          </Surface>
         </SimpleGrid>
       </PageLayout.Header>
       <PageLayout.Content>

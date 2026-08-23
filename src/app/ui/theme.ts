@@ -125,11 +125,6 @@ export const appContentTheme = createTheme({
     xl: '0 18px 48px rgba(38, 24, 11, 0.3)',
   },
   components: {
-    Paper: {
-      styles: {
-        root: glassSurface,
-      },
-    },
     Popover: {
       styles: {
         dropdown: {
@@ -142,6 +137,21 @@ export const appContentTheme = createTheme({
     Menu: {
       styles: {
         dropdown: {
+          ...glassSurface,
+          backgroundColor: 'var(--glass-overlay)',
+        },
+      },
+    },
+    /*
+     * A drawer is a floating pane like the two above, and it used to get this treatment by accident:
+     * Mantine renders a drawer's content as a `Paper`, so the Paper mapping painted it second-hand.
+     * That mapping is gone, so the drawer asks for the pane by name.
+     * Verified by render: a `Drawer.content` entry and the old `Paper.root` entry reach the same
+     * `<section class="mantine-Drawer-content">`.
+     */
+    Drawer: {
+      styles: {
+        content: {
           ...glassSurface,
           backgroundColor: 'var(--glass-overlay)',
         },

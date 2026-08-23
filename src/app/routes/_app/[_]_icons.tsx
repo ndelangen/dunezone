@@ -1,4 +1,4 @@
-import { Chip, Group, Paper, SegmentedControl, SimpleGrid, Stack, Tabs, Text, TextInput, Title } from '@mantine/core';
+import { Box, Chip, Group, SegmentedControl, SimpleGrid, Stack, Tabs, Text, TextInput, Title } from '@mantine/core';
 import { BACKGROUND, DECAL, GENERIC, ICON, LOGO, TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { createFileRoute } from '@tanstack/react-router';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
@@ -248,7 +248,7 @@ function IconsPage() {
         </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>
-        <Paper withBorder p="md" radius="md" mb="xl">
+        <Box p="md" mb="xl">
           <Stack gap="md">
             <TextInput
               aria-label="Search icons"
@@ -312,7 +312,7 @@ function IconsPage() {
               </Group>
             ) : null}
           </Stack>
-        </Paper>
+        </Box>
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="lg">
