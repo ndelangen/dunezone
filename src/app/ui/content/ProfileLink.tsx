@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 
 import type { ProfileEntry } from '@db/profiles';
 
@@ -11,7 +11,11 @@ export type ProfileLinkProps = Pick<ProfileEntry, 'slug' | 'username' | 'avatar_
   style?: CSSProperties;
   title?: string;
   showUsername?: boolean;
-  children?: ReactNode;
+  /**
+   * The words beside the avatar, when the bare username is not what this context should read.
+   * A string rather than a slot: a citation of a person is data, and the one caller that needs this is naming the person's role in a sentence.
+   */
+  label?: string;
 };
 
 /**
@@ -30,10 +34,10 @@ export const ProfileLink = ({
   style,
   title,
   showUsername = true,
-  children,
+  label,
 }: ProfileLinkProps) => {
   const afterAvatar =
-    children !== undefined ? children : showUsername ? <span className={styles.username}>{username}</span> : null;
+    label !== undefined ? label : showUsername ? <span className={styles.username}>{username}</span> : null;
 
   return (
     <Link
