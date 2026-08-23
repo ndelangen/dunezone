@@ -154,11 +154,11 @@ export default defineSchema({
     name: v.string(),
     slug: v.string(),
     /**
-     * Narrowed by `rulesets_description_narrow` once every row carried a value.
-     * Empty is what the backfill gave rows that predate the field, and it stays readable;
-     * anything written goes through `rulesetDescriptionSchema`, which demands 50 characters.
+     * The first Ruleset About release keeps the legacy field required for the old Worker and adds the canonical field as optional until `rulesets_about_v1` and its verifier finish.
+     * Both mutation generations write the same value to both fields during this compatibility window.
      */
     description: v.string(),
+    about: v.optional(v.string()),
     created_at: v.string(),
     updated_at: v.string(),
     owner_id: v.id('users'),

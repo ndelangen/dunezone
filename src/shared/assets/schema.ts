@@ -12,7 +12,7 @@ const URL = z.string().url();
  * It never reaches a rendered card or token;
  * that is the whole point of it (CONTEXT.md: About).
  *
- * No length floor, deliberately unlike `rulesetDescriptionSchema`, which demands 50 characters with no grace.
+ * No length floor, deliberately unlike `rulesetAboutSchema`, which demands 50 characters with no grace.
  * A ruleset without an About is useless, so a floor there is a real floor.
  * An asset without one is the normal case, since most treachery cards need no explanation, so a floor here would only lock every existing asset out of saving.
  * Empty is legal forever.

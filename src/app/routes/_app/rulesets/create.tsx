@@ -1,9 +1,9 @@
 import { Button, Group, Stack, Textarea, TextInput } from '@mantine/core';
-import { rulesetDescriptionSchema } from '@shared/rulesets/validation';
+import { rulesetAboutSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
-import { rulesetDescriptionHint } from '@ui/content/rulesetDescriptionHint';
+import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -22,12 +22,11 @@ function CreateRulesetForm() {
   const navigate = useNavigate();
   const createRuleset = useCreateRuleset();
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [about, setAbout] = useState('');
 
-  const descriptionCheck = rulesetDescriptionSchema.safeParse(description);
-  /** Only complain about a description that has been started and left short; an empty one is covered by the requirement line. */
-  const descriptionError =
-    description.trim().length > 0 && !descriptionCheck.success ? descriptionCheck.error.issues[0]?.message : undefined;
+  const aboutCheck = rulesetAboutSchema.safeParse(about);
+  /** Only complain about an About that has been started and left short; an empty one is covered by the requirement line. */
+  const aboutError = about.trim().length > 0 && !aboutCheck.success ? aboutCheck.error.issues[0]?.message : undefined;
 
   return (
     <Stack
@@ -36,11 +35,11 @@ function CreateRulesetForm() {
       onSubmit={(e) => {
         e.preventDefault();
         const nextName = name.trim();
-        if (!nextName || !descriptionCheck.success) {
+        if (!nextName || !aboutCheck.success) {
           return;
         }
         createRuleset.mutate(
-          { input: { name: nextName, description: descriptionCheck.data } },
+          { input: { name: nextName, about: aboutCheck.data } },
           {
             onSuccess: (entry) => {
               navigate({
@@ -62,15 +61,15 @@ function CreateRulesetForm() {
         onChange={(event) => setName(event.target.value)}
       />
       <Textarea
-        label="Description"
-        name="description"
-        description={rulesetDescriptionHint(description)}
-        error={descriptionError}
+        label="About"
+        name="about"
+        description={rulesetAboutHint(about)}
+        error={aboutError}
         required
         autosize
         minRows={4}
-        value={description}
-        onChange={(event) => setDescription(event.currentTarget.value)}
+        value={about}
+        onChange={(event) => setAbout(event.currentTarget.value)}
       />
       {createRuleset.error ? (
         <FormError title="Ruleset could not be created">{createRuleset.error.message}</FormError>
@@ -80,7 +79,7 @@ function CreateRulesetForm() {
           variant="filled"
           color="confirm"
           type="submit"
-          disabled={createRuleset.isPending || name.trim().length === 0 || !descriptionCheck.success}
+          disabled={createRuleset.isPending || name.trim().length === 0 || !aboutCheck.success}
         >
           <Plus size={16} aria-hidden />
           <span>{createRuleset.isPending ? 'Creating…' : 'Create'}</span>

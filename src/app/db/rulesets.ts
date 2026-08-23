@@ -15,11 +15,12 @@ import type { Doc } from '../../../convex/_generated/dataModel';
 import type { AssignedGroupSummary, CollaborativeAccess } from '../../../convex/lib/collaborativeAccess';
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
-/** What a caller authors, derived from the schema that validates it. Both fields are required, and the description sits above its floor. */
+/** What a caller authors, derived from the schema that validates it. Both fields are required, and About sits above its floor. */
 export type Ruleset = RulesetInput;
 export type RulesetRow = Doc<'rulesets'>;
-export type RulesetEntry = Omit<RulesetRow, 'name'> & {
+export type RulesetEntry = Omit<RulesetRow, 'name' | 'about' | 'description'> & {
   name: Ruleset['name'];
+  about: Ruleset['about'];
   id: RulesetRow['_id'];
 };
 export type RulesetPageData = {
@@ -75,10 +76,12 @@ function mapFaqItemsFromConvex(items: FaqItemConvexRow[]): FaqItemWithDetails[] 
 }
 
 function toRulesetEntry(entry: RulesetRow): RulesetEntry {
+  const { description, ...rest } = entry;
   return {
-    ...entry,
+    ...rest,
     id: entry._id,
     name: entry.name,
+    about: entry.about ?? description,
   };
 }
 
@@ -103,11 +106,8 @@ export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetail
 
 export function useRulesetsAll(options?: { initialData?: RulesetEntry[] }) {
   const liveData = useQuery(api.rulesets.list, {});
-  const result = toLiveQueryResult(liveData, true, () => options?.initialData ?? undefined);
-  return {
-    ...result,
-    data: result.data?.map(toRulesetEntry),
-  };
+  const normalized = liveData?.map(toRulesetEntry);
+  return toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
 }
 
 export function useRulesetBySlug(slug: string, options?: { initialData?: RulesetPageData }) {
@@ -129,13 +129,12 @@ export function useRulesetDetailPage(slug: string, options?: { initialData?: Rul
 
 export function useCreateRuleset() {
   type CreatedRulesetResult = FunctionReturnType<typeof api.rulesets.create>;
-  const toCreatedRulesetEntry = (entry: CreatedRulesetResult) => ({
-    ...entry,
-    id: entry._id,
-    name: entry.name,
-  });
+  const toCreatedRulesetEntry = (entry: CreatedRulesetResult) => {
+    const { route_notice, ...row } = entry;
+    return { ...toRulesetEntry(row), route_notice };
+  };
   const mutation = useLiveMutation<
-    { name: string; description: string; group_id?: string | null; image_cover: string | null },
+    { name: string; about?: string; description?: string; group_id?: string | null; image_cover: string | null },
     CreatedRulesetResult
   >(api.rulesets.create);
   return {
@@ -180,7 +179,7 @@ export function useCreateRuleset() {
 
 export function useUpdateRuleset() {
   const mutation = useLiveMutation<
-    { id: string; name: string; description: string; image_cover?: string | null },
+    { id: string; name: string; about?: string; description?: string; image_cover?: string | null },
     RulesetRow
   >(api.rulesets.update);
   return {
@@ -203,12 +202,7 @@ export function useUpdateRuleset() {
           image_cover: variables.imageCover,
         },
         {
-          onSuccess: (entry) =>
-            options?.onSuccess?.({
-              ...entry,
-              id: entry._id,
-              name: entry.name,
-            }),
+          onSuccess: (entry) => options?.onSuccess?.(toRulesetEntry(entry)),
           onError: (error) => options?.onError?.(error),
         }
       ),
@@ -219,7 +213,7 @@ export function useUpdateRuleset() {
         ...validated,
         image_cover: imageCover,
       });
-      return { ...entry, id: entry._id, name: validated.name };
+      return toRulesetEntry(entry);
     },
   };
 }

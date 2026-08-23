@@ -35,6 +35,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   groups_slug_v1: internal.migrations.groups_slug_v1,
   rulesets_slug_v1: internal.migrations.rulesets_slug_v1,
   rulesets_description_v1: internal.migrations.rulesets_description_v1,
+  rulesets_about_v1: internal.migrations.rulesets_about_v1,
+  rulesets_about_verify_v1: internal.migrations.rulesets_about_verify_v1,
   faq_item_slug_v1: internal.migrations.faq_item_slug_v1,
   faq_item_tags_v1: internal.migrations.faq_item_tags_v1,
   profiles_from_users_v1: internal.migrations.profiles_from_users_v1,
@@ -186,6 +188,32 @@ export const rulesets_description_v1 = migrations.define({
   table: 'rulesets',
   batchSize: 50,
   migrateOne: async () => undefined,
+});
+
+/** Copies the legacy Ruleset prose exactly when a row does not carry the canonical About field yet. */
+export const rulesets_about_v1 = migrations.define({
+  table: 'rulesets',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    if (row.about !== undefined) {
+      return;
+    }
+    return { about: row.description };
+  },
+});
+
+/** Proves every Ruleset carries one value under both field names before the old field can be retired. */
+export const rulesets_about_verify_v1 = migrations.define({
+  table: 'rulesets',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    if (row.about === undefined) {
+      throw new Error(`Ruleset ${row._id} still has no About`);
+    }
+    if (row.about !== row.description) {
+      throw new Error(`Ruleset ${row._id} has different About and legacy description values`);
+    }
+  },
 });
 
 export const faq_item_slug_v1 = migrations.define({

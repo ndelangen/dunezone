@@ -533,19 +533,17 @@ function RulesetDetailPage() {
                 </Alert>
               ) : null}
 
-              {/*
-                Nothing at all when the description is empty, which is every ruleset that predates the field.
-                An empty pane saying nothing is worse than the space it would occupy;
-                the owner is prompted by the settings form, not by a placeholder here.
-              */}
-              {r.description ? (
-                <Section id="overview" icon={<TopicIcon topic="about" size={20} />} title="About this ruleset">
-                  <Surface padding="lg">
-                    {/* Authored in a textarea, so its own line breaks are the only structure it has. */}
-                    <Text className={styles.description}>{r.description}</Text>
-                  </Surface>
-                </Section>
-              ) : null}
+              <Section id="overview" icon={<TopicIcon topic="about" size={20} />} title="About this ruleset">
+                <Surface padding="lg">
+                  {r.about.trim() ? (
+                    <Text className={styles.about}>{r.about}</Text>
+                  ) : (
+                    <Text size="sm" c="dimmed" fs="italic">
+                      Nothing written about this yet.
+                    </Text>
+                  )}
+                </Surface>
+              </Section>
 
               <Card icon={<FileText size={20} aria-hidden />} title="Resources">
                 <ProposedContent label="Proposed content">

@@ -1,10 +1,10 @@
 import { Anchor, Button, Center, Group, Image, Popover, Stack, Text, Textarea, TextInput, Title } from '@mantine/core';
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
-import { rulesetDescriptionSchema } from '@shared/rulesets/validation';
+import { rulesetAboutSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
-import { rulesetDescriptionHint } from '@ui/content/rulesetDescriptionHint';
+import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
 import { SubmitAction } from '@ui/control/SubmitAction';
@@ -29,24 +29,23 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
   const navigate = useNavigate();
   const updateRuleset = useUpdateRuleset();
   const [name, setName] = useState(initial.name);
-  const [description, setDescription] = useState(initial.description ?? '');
+  const [about, setAbout] = useState(initial.about);
   const [coverUrl, setCoverUrl] = useState(initial.image_cover ?? '');
 
   const mutationError =
     updateRuleset.isError && updateRuleset.error instanceof Error ? updateRuleset.error.message : null;
-  const descriptionCheck = rulesetDescriptionSchema.safeParse(description);
+  const aboutCheck = rulesetAboutSchema.safeParse(about);
   /**
-   * The floor applies to every save, with no exemption for rows that predate the field, so a ruleset still carrying the backfilled empty string cannot be saved until someone writes a description.
+   * The floor applies to every save, with no exemption for the historical empty string, so that Ruleset cannot be saved until someone writes its About.
    * Shown as an error only once something has been typed;
    * an untouched empty field is explained by the requirement line and the disabled button instead.
    */
-  const descriptionError =
-    description.trim().length > 0 && !descriptionCheck.success ? descriptionCheck.error.issues[0]?.message : undefined;
+  const aboutError = about.trim().length > 0 && !aboutCheck.success ? aboutCheck.error.issues[0]?.message : undefined;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const nextName = name.trim();
-    if (!nextName || !descriptionCheck.success) {
+    if (!nextName || !aboutCheck.success) {
       return;
     }
     const trimmedCover = coverUrl.trim();
@@ -54,7 +53,7 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
     try {
       const entry = await updateRuleset.mutateAsync({
         id: initial._id,
-        input: { name: nextName, description: descriptionCheck.data },
+        input: { name: nextName, about: aboutCheck.data },
         imageCover: trimmedCover === '' ? null : trimmedCover,
       });
       if (previousSlug !== entry.slug) {
@@ -90,16 +89,16 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
       />
 
       <Textarea
-        id="ruleset-settings-description"
-        name="description"
-        label="Description"
-        description={rulesetDescriptionHint(description)}
-        error={descriptionError}
+        id="ruleset-settings-about"
+        name="about"
+        label="About"
+        description={rulesetAboutHint(about)}
+        error={aboutError}
         required
         autosize
         minRows={4}
-        value={description}
-        onChange={(event) => setDescription(event.currentTarget.value)}
+        value={about}
+        onChange={(event) => setAbout(event.currentTarget.value)}
       />
 
       <TextInput
@@ -120,10 +119,7 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
       {mutationError ? <FormError title="Ruleset could not be saved">{mutationError}</FormError> : null}
 
       <Group justify="flex-end">
-        <SubmitAction
-          pending={updateRuleset.isPending}
-          disabled={name.trim().length === 0 || !descriptionCheck.success}
-        >
+        <SubmitAction pending={updateRuleset.isPending} disabled={name.trim().length === 0 || !aboutCheck.success}>
           Save changes
         </SubmitAction>
       </Group>

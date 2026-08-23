@@ -1,15 +1,17 @@
-import type { Doc, Id } from '../_generated/dataModel';
+import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
 import { loadAssetAccessBundle, loadRulesetAccessForLoadedSubject } from './collaborativeAccess';
 import { parseStoredFactionForRead } from './factionInput';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
+import { withRulesetAbout } from './rulesetAbout';
+import type { RulesetWithAbout } from './rulesetAbout';
 
 const RULESET_FACTION_LIMIT = 500;
 
 /** A non-deleted ruleset resolved by its public slug, or null. The one soft-delete gate. */
-export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string): Promise<Doc<'rulesets'> | null> {
+export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string): Promise<RulesetWithAbout | null> {
   const row = await ctx.db
     .query('rulesets')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
@@ -17,7 +19,7 @@ export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string): Prom
   if (!row || row.is_deleted) {
     return null;
   }
-  return row;
+  return withRulesetAbout(row);
 }
 
 /**

@@ -397,7 +397,7 @@ export async function requireAssetUpdate(ctx: MutationCtx, assetId: Id<'assets'>
 }
 
 /**
- * Authorizes an edit to a ruleset's own content: its name, cover and description.
+ * Authorizes an edit to a ruleset's own content: its name, cover and About.
  * Group assignment is deliberately not among them: it is a different capability with a different audience, so it goes through `requireGroupReassignment` from `rulesets.setGroup` instead, the same route factions already take.
  */
 export async function requireRulesetUpdate(
