@@ -371,7 +371,17 @@ function AnimatedLeaderToken() {
     return () => window.clearTimeout(timer);
   }, [currentIndex, leader.name.length, phase, reduceMotion, typedLength]);
 
-  const displayedName = phase === 'hold' ? leader.name : phase === 'typing' ? leader.name.slice(0, typedLength) : '';
+  const displayedName = (() => {
+    switch (phase) {
+      case 'hold':
+        return leader.name;
+      case 'typing':
+        return leader.name.slice(0, typedLength);
+      /* Mid-transition the name is empty, so the outgoing token fades without its label sliding. */
+      default:
+        return '';
+    }
+  })();
 
   return (
     <div className={styles.leaderToken} role="img" aria-label="An example leader token changing as it is edited">
