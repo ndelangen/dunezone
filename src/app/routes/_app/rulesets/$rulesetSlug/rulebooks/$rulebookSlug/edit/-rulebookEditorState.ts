@@ -1816,7 +1816,11 @@ function reconcile(state: ReadyState): Reconciliation {
     if (coveredByLocalDeletion) {
       continue;
     }
-    if (!patchTouchesRefs(state.patch, closureKeys)) {
+    const remainingPatch = {
+      ...state.patch,
+      deletes: state.patch.deletes.filter((localDeletion) => !closureKeys.has(entityRefKey(localDeletion.root))),
+    };
+    if (!patchTouchesRefs(remainingPatch, closureKeys)) {
       continue;
     }
     savedDeletion.deletedRefs.forEach((ref) => blockedRefs.add(entityRefKey(ref)));
@@ -1850,7 +1854,7 @@ function reconcile(state: ReadyState): Reconciliation {
     }
     const baselineKeys = new Set(deletion.deletedRefs.map(entityRefKey));
     const hasNewDescendants = latestClosure.some((ref) => !baselineKeys.has(entityRefKey(ref)));
-    if (hasNewDescendants || refsChanged(baseline, latest, deletion.deletedRefs)) {
+    if (hasNewDescendants || refsChanged(baseline, latest, latestClosure)) {
       incompatibilities.push({
         id: `deletion:local:${entityRefKey(deletion.root)}`,
         kind: 'deletion',
@@ -1862,7 +1866,9 @@ function reconcile(state: ReadyState): Reconciliation {
           root: deletion.root,
           baseline: deletion.deletedRefs,
           latest: latestClosure,
-          changed: fieldRecords(latest).filter((record) => latestClosure.some((ref) => sameRef(ref, record.target))),
+          changed: fieldRecords(latest)
+            .filter((record) => latestClosure.some((ref) => sameRef(ref, record.target)))
+            .sort((left, right) => compareCanonicalText(fieldKey(left), fieldKey(right))),
         }),
       });
     } else {
@@ -2036,7 +2042,7 @@ function reconcile(state: ReadyState): Reconciliation {
     } else if (incompatibility.kind === 'placement' && outcome.kind === 'placement') {
       approvalPlacements.push({ target: incompatibility.target, destination: outcome.destination });
     } else if (incompatibility.kind === 'collection-order' && outcome.kind === 'collection-order') {
-      const order = getOrder(comparisonDraft, outcome.container);
+      const order = getOrder(comparisonDraft, incompatibility.container);
       if (order) {
         order.splice(0, order.length, ...outcome.orderedIds);
       }
@@ -2156,6 +2162,7 @@ function outcomeFits(
     const current = getOrder(proposed, incompatibility.container);
     return (
       outcome.kind === 'collection-order' &&
+      sameContainer(outcome.container, incompatibility.container) &&
       current !== undefined &&
       current.length === outcome.orderedIds.length &&
       current.every((id) => outcome.orderedIds.includes(id))
@@ -2418,10 +2425,11 @@ export function createRulebookEditorStateManager(input: RulebookEditorInput): Ru
     });
   }
   if (!patch.success) {
+    const patchVersion = schemaVersionOf(input.patch);
     return unsupportedManager({
       received: input,
       message:
-        schemaVersionOf(input.patch) !== 1
+        patchVersion !== undefined && patchVersion !== 1
           ? 'This Rulebook edit uses a patch version this application does not support. Reload or use a compatible application version.'
           : 'This Rulebook edit patch is invalid and cannot be applied. Reload before editing.',
     });

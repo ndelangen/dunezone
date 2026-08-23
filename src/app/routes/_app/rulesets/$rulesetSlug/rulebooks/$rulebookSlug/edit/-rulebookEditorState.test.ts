@@ -1,4 +1,4 @@
-import { rulebookContentsV1Schema, rulebookLayoutCatalogue } from '@shared/rulebooks/contents';
+import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookContentsDraftV1, RulebookContentsV1 } from '@shared/rulebooks/contents';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { describe, expect, it } from 'vitest';
@@ -83,13 +83,11 @@ describe('Rulebook Contents V1', () => {
     expect(rulebookContentsV1Schema.safeParse(duplicateAnchor).success).toBe(false);
   });
 
-  it('derives bootstrap slot acceptance and unbounded cardinality from the layout catalogue', () => {
-    for (const layout of rulebookLayoutCatalogue) {
-      for (const slot of layout.slots) {
-        expect(slot.acceptedBlockKinds).toEqual(['text', 'repeated-text']);
-        expect(slot.cardinality).toEqual({ minimum: 0, maximum: null });
-      }
-    }
+  it('accepts empty and unbounded bootstrap slots with both supported Block kinds', () => {
+    const empty = createRulebookStarterContents();
+    twoColumnPage(empty, 'page-reference').slots.left = [];
+    delete empty.blocksById['block-summary'];
+    expect(rulebookContentsV1Schema.safeParse(empty).success).toBe(true);
 
     const contents = createRulebookStarterContents();
     const text = textBlock(contents, 'block-introduction').text as Extract<
@@ -101,7 +99,21 @@ describe('Rulebook Contents V1', () => {
       contents.blocksById[blockId] = { id: blockId, kind: 'text', text };
       singleColumnPage(contents, 'page-introduction').slots.body.push(blockId);
     }
+    twoColumnPage(contents, 'page-reference').slots.right = [];
+    singleColumnPage(contents, 'page-introduction').slots.body.push('block-examples');
     expect(rulebookContentsV1Schema.safeParse(contents).success).toBe(true);
+
+    const invalidKind = createRulebookStarterContents();
+    invalidKind.blocksById['block-introduction'] = {
+      id: 'block-introduction',
+      kind: 'unsupported',
+      text,
+    } as never;
+    expect(rulebookContentsV1Schema.safeParse(invalidKind).success).toBe(false);
+
+    const invalidCardinality = createRulebookStarterContents();
+    singleColumnPage(invalidCardinality, 'page-introduction').slots.body.push('block-introduction');
+    expect(rulebookContentsV1Schema.safeParse(invalidCardinality).success).toBe(false);
   });
 });
 
@@ -1134,6 +1146,54 @@ describe('Rulebook editor state manager', () => {
     expect(result.canSave).toBe(true);
   });
 
+  it('rejects a collection-order approval for a different container with overlapping IDs', () => {
+    const input = createBodyOrderInput(['block-a', 'block-b', 'block-c', 'block-d']);
+    for (const pageId of ['block-a', 'block-b', 'block-c', 'block-d']) {
+      input.baseline.contents.pagesById[pageId] = {
+        id: pageId,
+        anchor: `page-${pageId}`,
+        layoutId: 'single-column',
+        slots: { body: [] },
+      };
+      input.baseline.contents.pageOrder.push(pageId);
+    }
+    input.latest = structuredClone(input.baseline);
+
+    const local = createRulebookEditorStateManager(input);
+    const localDraft = structuredClone(ready(local).draft);
+    singleColumnPage(localDraft, 'page-introduction').slots.body = ['block-b', 'block-d', 'block-a', 'block-c'];
+    local.dispatch({ kind: 'replace-draft', draft: localDraft });
+    const saved = createRulebookEditorStateManager(input);
+    const savedDraft = structuredClone(ready(saved).draft);
+    singleColumnPage(savedDraft, 'page-introduction').slots.body = ['block-b', 'block-c', 'block-a', 'block-d'];
+    saved.dispatch({ kind: 'replace-draft', draft: savedDraft });
+    let result = local.dispatch({
+      kind: 'receive-latest',
+      latest: { revision: 'revision-2', contents: ready(saved).saveCandidate! },
+    });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    const conflict = result.incompatibilities.find((item) => item.kind === 'collection-order')!;
+    const pageOrder = [...result.draft.pageOrder];
+    result = local.dispatch({
+      kind: 'resolve',
+      approval: {
+        incompatibilityId: conflict.id,
+        dependencyFingerprint: conflict.dependencyFingerprint,
+        outcome: { kind: 'collection-order', container: { kind: 'page-order' }, orderedIds: conflict.localOrder },
+      },
+    });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(result.incompatibilities).toEqual(expect.arrayContaining([expect.objectContaining({ id: conflict.id })]));
+    expect(result.resolutionLedger).toHaveLength(0);
+    expect(result.draft.pageOrder).toEqual(pageOrder);
+  });
+
   it('converges when both sides delete the same identity', () => {
     const input = createCleanRulebookEditorInput();
     const local = createRulebookEditorStateManager(input);
@@ -1150,6 +1210,105 @@ describe('Rulebook editor state manager', () => {
     }
     expect(result.incompatibilities).toHaveLength(0);
     expect(result.rebasedPatch.deletes).toHaveLength(0);
+  });
+
+  it('converges a saved ancestor deletion with a local descendant deletion', () => {
+    const input = createCleanRulebookEditorInput();
+    const local = createRulebookEditorStateManager(input);
+    const saved = createRulebookEditorStateManager(input);
+    local.dispatch({ kind: 'delete', root: { kind: 'block', blockId: 'block-summary' } });
+    saved.dispatch({ kind: 'delete', root: { kind: 'page', pageId: 'page-reference' } });
+
+    const result = local.dispatch({
+      kind: 'receive-latest',
+      latest: { revision: 'revision-2', contents: ready(saved).saveCandidate! },
+    });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(result.incompatibilities).toHaveLength(0);
+    expect(result.draft.pagesById['page-reference']).toBeUndefined();
+    expect(result.draft.blocksById['block-summary']).toBeUndefined();
+    expect(result.rebasedPatch.deletes).toHaveLength(0);
+  });
+
+  it('converges a local ancestor deletion with a saved descendant deletion', () => {
+    const input = createCleanRulebookEditorInput();
+    const local = createRulebookEditorStateManager(input);
+    const saved = createRulebookEditorStateManager(input);
+    local.dispatch({ kind: 'delete', root: { kind: 'page', pageId: 'page-reference' } });
+    saved.dispatch({ kind: 'delete', root: { kind: 'block', blockId: 'block-summary' } });
+
+    const result = local.dispatch({
+      kind: 'receive-latest',
+      latest: { revision: 'revision-2', contents: ready(saved).saveCandidate! },
+    });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(result.incompatibilities).toHaveLength(0);
+    expect(result.draft.pagesById['page-reference']).toBeUndefined();
+    expect(result.draft.blocksById['block-examples']).toBeUndefined();
+    expect(result.rebasedPatch.deletes).toEqual([
+      expect.objectContaining({
+        root: { kind: 'page', pageId: 'page-reference' },
+        deletedRefs: expect.not.arrayContaining([{ kind: 'block', blockId: 'block-summary' }]),
+      }),
+    ]);
+  });
+
+  it('preserves a local-deletion approval when saved field-record order changes', () => {
+    const input = createCleanRulebookEditorInput();
+    const local = createRulebookEditorStateManager(input);
+    local.dispatch({ kind: 'delete', root: { kind: 'page', pageId: 'page-reference' } });
+    local.dispatch({
+      kind: 'set',
+      target: { kind: 'block', blockId: 'block-introduction' },
+      field: 'text',
+      value: 'Local introduction',
+    });
+    const latest = createRulebookSavedRevision('revision-2', (contents) => {
+      textBlock(contents, 'block-summary').text = 'Saved summary';
+      textBlock(contents, 'block-introduction').text = 'Saved introduction';
+    });
+    let result = local.dispatch({ kind: 'receive-latest', latest });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    const deletion = result.incompatibilities.find(
+      (item) => item.kind === 'deletion' && item.direction === 'local-deletion'
+    )!;
+    result = local.dispatch({
+      kind: 'resolve',
+      approval: {
+        incompatibilityId: deletion.id,
+        dependencyFingerprint: deletion.dependencyFingerprint,
+        outcome: { kind: 'keep-local-deletion' },
+      },
+    });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(result.resolutionLedger).toEqual(
+      expect.arrayContaining([expect.objectContaining({ incompatibilityId: deletion.id })])
+    );
+
+    const reordered = structuredClone(latest.contents);
+    reordered.pagesById = Object.fromEntries(Object.entries(reordered.pagesById).reverse());
+    reordered.blocksById = Object.fromEntries(Object.entries(reordered.blocksById).reverse());
+    result = local.dispatch({ kind: 'receive-latest', latest: { revision: 'revision-3', contents: reordered } });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(result.resolutionLedger).toEqual(
+      expect.arrayContaining([expect.objectContaining({ incompatibilityId: deletion.id })])
+    );
+    expect(result.incompatibilities).toEqual(expect.arrayContaining([expect.objectContaining({ id: deletion.id })]));
   });
 
   it('deletes remotely moved reviewed descendants and their new descendants', () => {
@@ -1688,6 +1847,19 @@ describe('Rulebook editor state manager', () => {
       patch: { ...input.patch, creates: [{}] } as typeof input.patch,
     }).result;
     expect(malformed.status === 'unsupported' ? malformed.message : '').toContain('edit patch is invalid');
+
+    const { schemaVersion: _schemaVersion, ...missingVersionPatch } = input.patch;
+    const missingVersion = createRulebookEditorStateManager({
+      ...input,
+      patch: missingVersionPatch as typeof input.patch,
+    }).result;
+    expect(missingVersion.status === 'unsupported' ? missingVersion.message : '').toContain('edit patch is invalid');
+
+    const futureVersion = createRulebookEditorStateManager({
+      ...input,
+      patch: { ...input.patch, schemaVersion: 2 } as never,
+    }).result;
+    expect(futureVersion.status === 'unsupported' ? futureVersion.message : '').toContain('patch version');
   });
 
   it('emits canonical placement and creation order accepted by the public membrane', () => {
