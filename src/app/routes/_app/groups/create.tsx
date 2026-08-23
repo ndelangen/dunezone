@@ -1,5 +1,6 @@
 import { Group, Stack, TextInput } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -15,7 +16,7 @@ export const Route = createFileRoute('/_app/groups/create')({
 });
 
 const GROUP_CREATE_FORM_ID = 'group-create';
-const groupCreateHeader = <h1>Start group</h1>;
+const groupCreateHeader = <PageTitle title="Start group" />;
 
 function GroupCreatePage() {
   const navigate = useNavigate();

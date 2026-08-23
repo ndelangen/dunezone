@@ -1,6 +1,7 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Stack } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { useState } from 'react';
@@ -177,7 +178,7 @@ function LoginPage() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <h1>Sign in</h1>
+        <PageTitle title="Sign in" />
       </PageLayout.Header>
       <PageLayout.Content>
         <Surface padding="lg">

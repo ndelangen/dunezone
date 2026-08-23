@@ -25,9 +25,16 @@
   line-height: 1.45;
 }
 
+/*
+ * The scale is pinned to the engraved face rather than shared with the body face.
+ * Copperplate sets wider than Candara at the same size, so keeping the old numbers here cost two
+ * extra wrapped lines per heading once the theme's heading font changed.
+ * Every value is the old one scaled by 0.815, the ratio that puts the longest of these headings back
+ * on three lines, so the responsive shape is unchanged and only the face's extra width is paid for.
+ */
 .storyTitle {
   max-width: 36rem;
-  font-size: clamp(2rem, 3.5vw, 3.35rem);
+  font-size: clamp(1.63rem, 2.85vw, 2.73rem);
   line-height: 0.98;
   letter-spacing: -0.045em;
 }
@@ -106,7 +113,7 @@
   }
 
   .storyTitle {
-    font-size: clamp(2rem, 10vw, 3rem);
+    font-size: clamp(1.63rem, 8.15vw, 2.45rem);
   }
 
   .storyColumn {

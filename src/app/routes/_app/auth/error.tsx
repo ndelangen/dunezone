@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 
@@ -18,7 +19,7 @@ function AuthErrorPage() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <h1>Sign-in error</h1>
+        <PageTitle title="Sign-in error" />
       </PageLayout.Header>
       <PageLayout.Content>
         <Surface padding="lg">
