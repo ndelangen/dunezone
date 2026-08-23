@@ -3,15 +3,19 @@ import { expect, test } from './coverage';
 test.use({ storageState: '.playwright/user-a-ruleset.json' });
 
 test('owner can create and delete a ruleset in a two-user flow', async ({ page, newUserPage }) => {
+  await page.goto('/rulesets/e2ebaselineruleset');
+  await expect(page.getByRole('heading', { name: 'About this ruleset' })).toBeVisible();
+  await expect(page.getByText('Nothing written about this yet.')).toBeVisible();
+
   const uniqueSuffix = Date.now();
   const uniqueName = `E2ERuleset${uniqueSuffix}`;
   const expectedSlug = uniqueName.toLowerCase();
   await page.goto('/rulesets/create');
   await expect(page.getByRole('combobox', { name: 'Group' })).toHaveCount(0);
   await page.getByRole('textbox', { name: 'Name' }).fill(uniqueName);
-  /* Creation requires a description of at least 50 characters, with no exemption, so the button stays disabled without one. */
+  /* Creation requires an About of at least 50 characters, with no exemption, so the button stays disabled without one. */
   await page
-    .getByRole('textbox', { name: 'Description' })
+    .getByRole('textbox', { name: 'About' })
     .fill('A lifecycle ruleset proving that creation and deletion behave for its owner.');
   await page.getByRole('button', { name: /^create$/i }).click();
   await expect(page).toHaveURL(new RegExp(`/rulesets/${expectedSlug}$`));

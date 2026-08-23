@@ -25,10 +25,10 @@
 }
 
 /*
- * A description is authored in a textarea, so the author's own line breaks are the only structure it carries.
+ * About is authored in a textarea, so the author's own line breaks are the only structure it carries.
  * `pre-line` keeps them while still collapsing runs of spaces and wrapping normally.
  */
-.description {
+.about {
   white-space: pre-line;
 }
 
