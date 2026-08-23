@@ -426,43 +426,46 @@ export function TreacheryCardEditor({
   onSettle: () => void;
 }) {
   return (
-    <WorkbenchLayout.Workbench onBlurCapture={onSettle}>
+    <WorkbenchLayout.Workbench>
       <WorkbenchLayout.Chapters>
-        <ConnectedTabs<TreacheryChapter>
-          value={chapter}
-          onValueChange={(next) => {
-            onChapterChange(next);
-            onSettle();
-          }}
-          ariaLabel="Card chapters"
-          items={[
-            {
-              value: 'head',
-              label: 'Head',
-              icon: <TopicIcon topic="text" size={21} />,
-              panel: panel(<HeadFields draft={draft} patch={patch} nameField={nameField} />),
-            },
-            {
-              value: 'icon',
-              label: 'Symbol',
-              icon: <Stamp size={21} aria-hidden />,
-              panel: panel(<IconFields draft={draft} patch={patch} />),
-            },
-            {
-              value: 'decals',
-              label: 'Decals',
-              icon: <TopicIcon topic="decals" size={21} />,
-              panel: panel(<DecalFields draft={draft} patch={patch} />),
-            },
-            {
-              value: 'body',
-              label: 'Body',
-              icon: <ScrollText size={21} aria-hidden />,
-              panel: panel(<BodyField draft={draft} patch={patch} />),
-            },
-            aboutChapter(draft.about, (about) => patch({ about })),
-          ]}
-        />
+        {/* Settling on focus leaving the fields is the editors' idiom, not the layout's, so it rides an element this widget owns. */}
+        <div onBlurCapture={onSettle}>
+          <ConnectedTabs<TreacheryChapter>
+            value={chapter}
+            onValueChange={(next) => {
+              onChapterChange(next);
+              onSettle();
+            }}
+            ariaLabel="Card chapters"
+            items={[
+              {
+                value: 'head',
+                label: 'Head',
+                icon: <TopicIcon topic="text" size={21} />,
+                panel: panel(<HeadFields draft={draft} patch={patch} nameField={nameField} />),
+              },
+              {
+                value: 'icon',
+                label: 'Symbol',
+                icon: <Stamp size={21} aria-hidden />,
+                panel: panel(<IconFields draft={draft} patch={patch} />),
+              },
+              {
+                value: 'decals',
+                label: 'Decals',
+                icon: <TopicIcon topic="decals" size={21} />,
+                panel: panel(<DecalFields draft={draft} patch={patch} />),
+              },
+              {
+                value: 'body',
+                label: 'Body',
+                icon: <ScrollText size={21} aria-hidden />,
+                panel: panel(<BodyField draft={draft} patch={patch} />),
+              },
+              aboutChapter(draft.about, (about) => patch({ about })),
+            ]}
+          />
+        </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <FillCard draft={draft} />

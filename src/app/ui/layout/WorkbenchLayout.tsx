@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { Children, isValidElement } from 'react';
-import type { FocusEventHandler, PropsWithChildren, ReactNode } from 'react';
+import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './WorkbenchLayout.module.css';
 
@@ -18,12 +18,8 @@ function Rail(_: PropsWithChildren): null {
  * The space at the narrow steps comes from whatever the chapters column holds giving width back, and then from the rail itself becoming a thumbnail.
  * Its desk stretches children to the rail's width, so a proof fills the rail rather than shrinking to content.
  * The desk holds however many artifacts an editor stacks, and the count may change while mounted: a token draws two faces and loses one when its backside becomes a reference.
- * The blur handler rides the grid because settling a draft when focus leaves the form is the editors' shared idiom.
  */
-function Workbench({
-  children,
-  onBlurCapture,
-}: PropsWithChildren<{ onBlurCapture?: FocusEventHandler<HTMLDivElement> }>) {
+function Workbench({ children }: PropsWithChildren) {
   let chapters: ReactNode = null;
   let rail: ReactNode = null;
 
@@ -42,7 +38,7 @@ function Workbench({
 
   return (
     <div className={styles.region}>
-      <div className={styles.workbench} onBlurCapture={onBlurCapture}>
+      <div className={styles.workbench}>
         <div className={styles.chapters}>{chapters}</div>
         <div className={styles.rail}>
           <div className={styles.desk}>{rail}</div>

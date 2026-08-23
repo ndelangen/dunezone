@@ -562,17 +562,20 @@ export function RectangleTokenEditor({
   const activeChapter = items.some((item) => item.value === chapter) ? chapter : 'identity';
 
   return (
-    <WorkbenchLayout.Workbench onBlurCapture={onSettle}>
+    <WorkbenchLayout.Workbench>
       <WorkbenchLayout.Chapters>
-        <ConnectedTabs<RectangleChapter>
-          value={activeChapter}
-          onValueChange={(next) => {
-            onChapterChange(next);
-            onSettle();
-          }}
-          ariaLabel="Enhance token chapters"
-          items={items}
-        />
+        {/* Settling on focus leaving the fields is the editors' idiom, not the layout's, so it rides an element this widget owns. */}
+        <div onBlurCapture={onSettle}>
+          <ConnectedTabs<RectangleChapter>
+            value={activeChapter}
+            onValueChange={(next) => {
+              onChapterChange(next);
+              onSettle();
+            }}
+            ariaLabel="Enhance token chapters"
+            items={items}
+          />
+        </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         {/* The face stacks take the full width, or a centred flex child shrinks to its content and `CanvasScale` has nothing to fill. */}
