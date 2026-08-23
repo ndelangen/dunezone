@@ -213,7 +213,9 @@ const cardbackFaceSchema = z.object({
 /**
  * One drawable token face.
  * Loose on purpose: the editors own the full schema, and a listing that refused to draw a face over one unexpected key would be worse than one that draws it.
- * The label and scale fields are optional so a token stored before they existed still renders.
+ * The mask names what this boundary relaxes, not what a face has: the five label, scale and ring fields are optional here because the render call below defaults every one of them, so a token stored before any of them existed draws rather than falling to the neutral face.
+ * `background` and `image` are absent from the mask deliberately.
+ * They are what the renderer cannot default, so a face missing either has nothing to draw and belongs on the neutral path.
  */
 const drawableTokenFace = z.looseObject(
   TokenFace.partial({ symbolScale: true, top: true, bottomFirst: true, bottomSecond: true, ring: true }).shape
@@ -235,7 +237,9 @@ type DrawableTokenFace = z.infer<typeof drawableTokenFace>;
 
 /**
  * One drawable rectangle face.
- * Loose for the same reason as the round shapes, and the element lists are optional so a face authored before either list existed still draws its background.
+ * Loose for the same reason as the round shapes.
+ * The mask relaxes the ring and the two element lists, all three defaulted by the render call below, so a face authored before either list existed still draws its background.
+ * `background` stays required for the same reason it does on a token face.
  */
 const drawableRectangleFace = z.looseObject(
   RectangleTokenFace.partial({ ring: true, decals: true, texts: true }).shape
