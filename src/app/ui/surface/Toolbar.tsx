@@ -1,7 +1,7 @@
 import { Surface } from '@ui/surface';
 import clsx from 'clsx';
 import { Children, isValidElement } from 'react';
-import type { ComponentPropsWithoutRef, PropsWithChildren, ReactNode } from 'react';
+import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './Toolbar.module.css';
 
@@ -33,7 +33,7 @@ function Right({ children }: ToolbarSlotProps) {
 export type ToolbarProps = {
   className?: string;
   children?: ReactNode;
-} & Omit<ComponentPropsWithoutRef<'div'>, 'className' | 'children'>;
+};
 
 type ToolbarComponent = ((props: ToolbarProps) => ReactNode) & {
   Left: typeof Left;
@@ -41,7 +41,7 @@ type ToolbarComponent = ((props: ToolbarProps) => ReactNode) & {
   Right: typeof Right;
 };
 
-const ToolbarBase = ({ className, children, ...rest }: ToolbarProps) => {
+const ToolbarBase = ({ className, children }: ToolbarProps) => {
   let left: ReactNode = null;
   let center: ReactNode = null;
   let right: ReactNode = null;
@@ -68,7 +68,7 @@ const ToolbarBase = ({ className, children, ...rest }: ToolbarProps) => {
 
   return (
     <Surface padding="sm">
-      <div className={clsx(styles.root, className)} {...rest}>
+      <div className={clsx(styles.root, className)}>
         <div className={styles.left}>{left}</div>
         <div className={styles.center}>{center}</div>
         <div className={styles.right}>{right}</div>

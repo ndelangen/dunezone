@@ -23,6 +23,10 @@ interface FaqListProps {
    * The caller navigates: this list renders the destination as a `Link` too, but where the reader ends up is the page's call.
    */
   onOpenQuestion: (questionSlug: string) => void;
+  /** What to say when the ruleset carries no questions at all. The page owns the words; this owns where they sit. */
+  emptyLabel: string;
+  /** What to say when a search or tag leaves nothing, which is a different situation and reads differently. */
+  noMatchesLabel: string;
 }
 
 /**
@@ -41,13 +45,21 @@ function matchingFaqItems(
   return new Fuse(tagged, { keys: ['question'], threshold: 0.4 }).search(query).map((result) => result.item);
 }
 
-export function FaqList({ items, rulesetSlug, searchQuery, selectedTag, onOpenQuestion }: FaqListProps) {
+export function FaqList({
+  items,
+  rulesetSlug,
+  searchQuery,
+  selectedTag,
+  onOpenQuestion,
+  emptyLabel,
+  noMatchesLabel,
+}: FaqListProps) {
   const filtered = useMemo(() => matchingFaqItems(items, searchQuery, selectedTag), [items, searchQuery, selectedTag]);
 
   if (items.length === 0) {
     return (
       <Text size="sm" c="dimmed">
-        No FAQ items yet.
+        {emptyLabel}
       </Text>
     );
   }
@@ -56,7 +68,7 @@ export function FaqList({ items, rulesetSlug, searchQuery, selectedTag, onOpenQu
     <Stack gap="md">
       {filtered.length === 0 ? (
         <Text size="sm" c="dimmed">
-          No questions match your search.
+          {noMatchesLabel}
         </Text>
       ) : (
         <SectionedSurface>

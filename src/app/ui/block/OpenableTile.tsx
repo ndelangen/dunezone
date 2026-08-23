@@ -10,7 +10,7 @@ export interface OpenableTileProps {
    * A tile is its render and its name;
    * everything else lives on the page the tile opens (Norbert, 2026-08-21).
    */
-  caption: ReactNode;
+  caption: string;
   /** Makes the whole tile a link, in practice the router's `Link`, so route type-checking stays at the call site. */
   renderRoot: RenderRoot;
   /** The artwork. Decorative to a screen reader, since the caption carries the name. */
