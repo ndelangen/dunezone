@@ -1,26 +1,13 @@
-import {
-  Alert,
-  Badge,
-  Box,
-  Button,
-  Group,
-  ScrollArea,
-  SegmentedControl,
-  Stack,
-  Text,
-  Textarea,
-  Title,
-} from '@mantine/core';
+import { Accordion, Alert, Badge, Box, Button, Group, Stack, Text, Textarea, Title } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult } from '@shared/formattedText';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { createFileRoute } from '@tanstack/react-router';
-import { PageTitle } from '@ui/block/PageTitle';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { Surface } from '@ui/surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { BookOpenText, Minus } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -35,7 +22,6 @@ type PreviewFit = 'height' | 'width';
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 type FormattedBlock = FormattedTextParseResult['blocks'][number];
 type FormattedInline = Extract<FormattedBlock, { kind: 'paragraph' }>['children'][number];
-
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit')({
   component: RulebookEditorPage,
 });
@@ -275,6 +261,94 @@ function PageTextEditors({
   );
 }
 
+type ConceptProps = {
+  page: RulebookPageDraft;
+  pageId: string;
+  pageNumber: number;
+  result: ReadyResult;
+  dispatch: RulebookEditorStateManager['dispatch'];
+  mode: EditorMode;
+  fit: PreviewFit;
+  setMode: (mode: EditorMode) => void;
+  selectPage: (pageId: string) => void;
+};
+
+function PageOutline({ result, pageId, selectPage }: Pick<ConceptProps, 'result' | 'pageId' | 'selectPage'>) {
+  return (
+    <Stack component="nav" aria-label="Rulebook pages" gap="xs">
+      <Text size="xs" fw={700} tt="uppercase" c="dimmed" className={styles.sectionLabel}>
+        Contents
+      </Text>
+      {result.draft.pageOrder.map((candidateId, index) => {
+        const candidate = result.draft.pagesById[candidateId];
+        return candidate ? (
+          <Button
+            key={candidateId}
+            className={styles.pageChoice}
+            variant={candidateId === pageId ? 'light' : 'subtle'}
+            color="gray"
+            justify="space-between"
+            aria-current={candidateId === pageId ? 'page' : undefined}
+            onClick={() => selectPage(candidateId)}
+          >
+            <span className={styles.pageChoiceNumber}>{String(index + 1).padStart(2, '0')}</span>
+            <span className={styles.pageChoiceName}>Page {index + 1}</span>
+            <Text component="span" size="xs" inherit opacity={0.62}>
+              <span className={styles.pageChoiceAnchor}>{candidate.anchor}</span>
+            </Text>
+          </Button>
+        ) : null;
+      })}
+    </Stack>
+  );
+}
+
+function PreviewRail({ page, pageNumber, result, fit }: ConceptProps) {
+  return (
+    <section className={styles.previewRail} aria-label="Rulebook page preview">
+      <RulebookPagePreview page={page} pageNumber={pageNumber} draft={result.draft} fit={fit} />
+    </section>
+  );
+}
+
+function OutlineConcept(props: ConceptProps) {
+  return (
+    <div className={styles.workspace} data-fit={props.fit}>
+      <Surface className={styles.outlineRail} padding="lg" as="section" aria-label="Rulebook controls">
+        <Accordion
+          value={props.mode}
+          onChange={(value) => value && props.setMode(value as EditorMode)}
+          className={styles.outlineAccordion}
+        >
+          <Accordion.Item value="navigate">
+            <Accordion.Control>
+              <Text fw={700}>Navigate</Text>
+              <Text size="xs" c="dimmed">
+                Page {props.pageNumber} of {props.result.draft.pageOrder.length}
+              </Text>
+            </Accordion.Control>
+            <Accordion.Panel>
+              <PageOutline result={props.result} pageId={props.pageId} selectPage={props.selectPage} />
+            </Accordion.Panel>
+          </Accordion.Item>
+          <Accordion.Item value="edit">
+            <Accordion.Control>
+              <Text fw={700}>Edit Page {props.pageNumber}</Text>
+              <Text size="xs" c="dimmed">
+                Text and repeated text
+              </Text>
+            </Accordion.Control>
+            <Accordion.Panel>
+              <PageTextEditors page={props.page} result={props.result} dispatch={props.dispatch} />
+            </Accordion.Panel>
+          </Accordion.Item>
+        </Accordion>
+      </Surface>
+      <PreviewRail {...props} />
+    </div>
+  );
+}
+
 function RulebookEditorPage() {
   const { rulesetSlug, rulebookSlug } = Route.useParams();
   const [manager] = useState(() => createRulebookEditorStateManager(createCleanRulebookEditorInput()));
@@ -284,12 +358,13 @@ function RulebookEditorPage() {
   );
   const [mode, setMode] = useState<EditorMode>('navigate');
   const [fit, setFit] = useState<PreviewFit>('height');
-
   if (result.status !== 'ready') {
     return (
       <PageLayout>
-        <PageLayout.Header>
-          <PageTitle eyebrow="Local Rulebook session" title="Rulebook editor unavailable" />
+        <PageLayout.Header size="compact">
+          <Title order={1} size="h3">
+            Rulebook editor unavailable
+          </Title>
         </PageLayout.Header>
         <PageLayout.Content>
           <Alert color="red" role="alert" title="This starter session could not open">
@@ -317,120 +392,78 @@ function RulebookEditorPage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header>
-        <PageTitle eyebrow={`${rulesetSlug} / ${rulebookSlug}`} title={`Edit ${rulebookSlug}`} />
+      <PageLayout.Header size="compact">
+        <Group gap="sm" wrap="nowrap">
+          <BookOpenText size={24} aria-hidden />
+          <div>
+            <Title order={1} size="h3">
+              Rulebook workspace
+            </Title>
+            <Text size="xs" c="dimmed">
+              {rulesetSlug} / {rulebookSlug}
+            </Text>
+          </div>
+        </Group>
       </PageLayout.Header>
       <PageLayout.Toolbar>
-        <Surface padding="sm">
-          <Group justify="space-between" align="center" wrap="wrap">
-            <Group gap="xs">
+        <Toolbar>
+          <Toolbar.Left>
+            <Group gap="xs" wrap="nowrap">
               <Badge variant="light" color={hasLocalChanges ? 'yellow' : 'gray'}>
                 {hasLocalChanges ? 'Local changes' : 'Starter state'}
               </Badge>
-              <Text size="sm" c="dimmed">
-                Preview scale
+              <Text className={styles.desktopStatus} size="xs" c="dimmed">
+                Browser-only starter state. Nothing is loaded from or saved to the database.
+              </Text>
+              <Text className={styles.mobileStatus} size="xs" c="dimmed">
+                Local only.
               </Text>
             </Group>
-            <SegmentedControl
-              aria-label="Preview scale"
-              value={fit}
-              onChange={(value) => setFit(value as PreviewFit)}
-              data={[
-                { value: 'height', label: 'Fit height' },
-                { value: 'width', label: 'Fit width' },
-              ]}
-            />
-          </Group>
-        </Surface>
+          </Toolbar.Left>
+          <Toolbar.Right>
+            <Button
+              size="xs"
+              variant="default"
+              aria-label={`Switch preview to fit ${fit === 'height' ? 'width' : 'height'}`}
+              onClick={() => setFit((current) => (current === 'height' ? 'width' : 'height'))}
+            >
+              Fit {fit === 'height' ? 'width' : 'height'}
+            </Button>
+          </Toolbar.Right>
+        </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <WorkbenchLayout gap="sm">
-          <Alert
-            icon={<BookOpenText size={18} aria-hidden />}
-            color="blue"
-            variant="light"
-            title="Local editing session"
-          >
-            This page uses the starter Rulebook in this browser tab. It does not load from or save to the database.
-          </Alert>
-          {page ? (
-            <section className={styles.workspaceSticky} data-fit={fit} aria-label="Rulebook editing workspace">
-              <ScrollArea
-                className={styles.workspaceScroller}
-                type="auto"
-                scrollbars="x"
-                viewportProps={{ tabIndex: 0, role: 'region', 'aria-label': 'Editor and preview' }}
+        {page ? (
+          <section className={styles.prototypeRoot} aria-label="Rulebook editing workspace">
+            <div className={styles.workspaceSticky} data-fit={fit} data-mode={mode}>
+              <Box
+                className={styles.workspaceViewport}
+                role="region"
+                aria-label="Rulebook editor and preview"
+                tabIndex={0}
               >
-                <div className={styles.workspace}>
-                  <div className={styles.controlsScroll}>
-                    <Surface padding="lg" as="section" aria-labelledby="rulebook-editor-controls-title">
-                      <Stack gap="lg">
-                        <Group justify="space-between" align="flex-start" wrap="wrap">
-                          <Stack gap={2}>
-                            <Title id="rulebook-editor-controls-title" order={2} size="h4">
-                              {mode === 'navigate' ? 'Choose a page' : `Edit Page ${pageNumber}`}
-                            </Title>
-                            <Text size="sm" c="dimmed">
-                              Page navigation and text editing use separate modes.
-                            </Text>
-                          </Stack>
-                          <SegmentedControl
-                            aria-label="Editor mode"
-                            value={mode}
-                            onChange={(value) => setMode(value as EditorMode)}
-                            data={[
-                              { value: 'navigate', label: 'Choose page' },
-                              { value: 'edit', label: 'Edit page' },
-                            ]}
-                          />
-                        </Group>
-
-                        {mode === 'navigate' ? (
-                          <Stack component="nav" aria-label="Rulebook pages" gap="xs">
-                            {result.draft.pageOrder.map((candidateId, index) => {
-                              const candidate = result.draft.pagesById[candidateId];
-                              return candidate ? (
-                                <Button
-                                  key={candidateId}
-                                  variant={candidateId === pageId ? 'filled' : 'light'}
-                                  justify="space-between"
-                                  aria-current={candidateId === pageId ? 'page' : undefined}
-                                  onClick={() => {
-                                    setActivePageId(candidateId);
-                                    setMode('edit');
-                                  }}
-                                >
-                                  <span>Page {index + 1}</span>
-                                  <Text component="span" size="xs" inherit opacity={0.7}>
-                                    {candidate.anchor}
-                                  </Text>
-                                </Button>
-                              ) : null;
-                            })}
-                          </Stack>
-                        ) : (
-                          <PageTextEditors page={page} result={result} dispatch={dispatch} />
-                        )}
-                      </Stack>
-                    </Surface>
-                  </div>
-                  <ScrollArea
-                    className={styles.previewRail}
-                    type="auto"
-                    scrollbars="y"
-                    viewportProps={{ tabIndex: 0, role: 'region', 'aria-label': 'Rulebook page preview' }}
-                  >
-                    <RulebookPagePreview page={page} pageNumber={pageNumber} draft={result.draft} fit={fit} />
-                  </ScrollArea>
-                </div>
-              </ScrollArea>
-            </section>
-          ) : (
-            <Alert color="yellow" role="status" title="No page selected">
-              The local starter session has no Page to edit.
-            </Alert>
-          )}
-        </WorkbenchLayout>
+                <OutlineConcept
+                  page={page}
+                  pageId={pageId}
+                  pageNumber={pageNumber}
+                  result={result}
+                  dispatch={dispatch}
+                  mode={mode}
+                  fit={fit}
+                  setMode={setMode}
+                  selectPage={(candidateId) => {
+                    setActivePageId(candidateId);
+                    setMode('edit');
+                  }}
+                />
+              </Box>
+            </div>
+          </section>
+        ) : (
+          <Alert color="yellow" role="status" title="No page selected">
+            The local starter session has no Page to edit.
+          </Alert>
+        )}
       </PageLayout.Content>
     </PageLayout>
   );
