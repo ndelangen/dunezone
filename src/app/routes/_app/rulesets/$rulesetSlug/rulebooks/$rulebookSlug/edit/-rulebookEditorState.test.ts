@@ -225,6 +225,40 @@ describe('Rulebook editor state manager', () => {
     expect(result.canSave).toBe(true);
   });
 
+  it('offers a combined-text helper without resolving the field incompatibility', () => {
+    const baseline = createRulebookSavedRevision('revision-1', (contents) => {
+      textBlock(contents, 'block-introduction').text = 'Alpha middle Omega';
+    });
+    const local = createRulebookEditorStateManager({
+      ...createCleanRulebookEditorInput(),
+      baseline,
+      latest: structuredClone(baseline),
+    });
+    local.dispatch({
+      kind: 'set',
+      target: { kind: 'block', blockId: 'block-introduction' },
+      field: 'text',
+      value: 'Alpha middle Local',
+    });
+    const latest = createRulebookSavedRevision('revision-2', (contents) => {
+      textBlock(contents, 'block-introduction').text = 'Saved middle Omega';
+    });
+    const result = local.dispatch({ kind: 'receive-latest', latest });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(result.incompatibilities).toEqual([
+      expect.objectContaining({
+        kind: 'field',
+        target: { kind: 'block', blockId: 'block-introduction' },
+        combinedText: 'Saved middle Local',
+      }),
+    ]);
+    expect(result.resolutionLedger).toHaveLength(0);
+    expect(result.canSave).toBe(false);
+  });
+
   it('keeps same-gap inserts deterministic across local and saved work', () => {
     const input = createCleanRulebookEditorInput();
     const local = createRulebookEditorStateManager(input);
@@ -322,6 +356,57 @@ describe('Rulebook editor state manager', () => {
     }
     expect(result.incompatibilities).toHaveLength(0);
     expect(textBlock(result.draft, 'block-summary').text).toBe('Keep this local summary.');
+  });
+
+  it('restores a locally moved descendant at its local destination after a saved ancestor deletion', () => {
+    const input = createCleanRulebookEditorInput();
+    const local = createRulebookEditorStateManager(input);
+    local.dispatch({
+      kind: 'place',
+      target: { kind: 'block', blockId: 'block-summary' },
+      destination: {
+        container: { kind: 'page-slot', pageId: 'page-introduction', slotId: 'body' },
+        afterId: 'block-introduction',
+        beforeId: null,
+      },
+    });
+    const latest = createRulebookSavedRevision('revision-2', (contents) => {
+      contents.pageOrder = ['page-introduction'];
+      delete contents.pagesById['page-reference'];
+      delete contents.blocksById['block-summary'];
+      delete contents.blocksById['block-examples'];
+    });
+    let result = local.dispatch({ kind: 'receive-latest', latest });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    const conflict = result.incompatibilities.find((item) => item.kind === 'deletion');
+    expect(conflict).toBeDefined();
+    result = local.dispatch({
+      kind: 'resolve',
+      approval: {
+        incompatibilityId: conflict!.id,
+        dependencyFingerprint: conflict!.dependencyFingerprint,
+        outcome: { kind: 'restore-local-subtree' },
+      },
+    });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(result.incompatibilities).toHaveLength(0);
+    expect(result.draft.pagesById['page-reference']).toBeDefined();
+    expect(twoColumnPage(result.draft, 'page-reference').slots.left).toEqual([]);
+    expect(singleColumnPage(result.draft, 'page-introduction').slots.body).toEqual([
+      'block-introduction',
+      'block-summary',
+    ]);
+    expect(result.rebasedPatch.restorations.map(({ root }) => root)).toEqual([
+      { kind: 'block', blockId: 'block-summary' },
+      { kind: 'page', pageId: 'page-reference' },
+    ]);
+    expect(result.rebasedPatch.placements).toHaveLength(0);
   });
 
   it('includes newly saved descendants when keeping a local parent deletion', () => {
@@ -457,6 +542,35 @@ describe('Rulebook editor state manager', () => {
     ).toBe('unsupported');
   });
 
+  it('fails closed when save-succeeded receives unsupported Contents', () => {
+    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const received = { revision: 'revision-unsupported', contents: { schemaVersion: 2 } as never };
+    const result = manager.dispatch({ kind: 'save-succeeded', saved: received });
+    expect(result).toMatchObject({ status: 'unsupported', received, canSave: false, isSaving: false });
+    expect(result.status === 'unsupported' ? result.message : '').toMatch(/reload|compatible/i);
+  });
+
+  it.each(['receive-latest', 'save-stale', 'save-succeeded'] as const)(
+    'fails closed when %s changes an existing Page layout',
+    (kind) => {
+      const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+      const contents = createRulebookStarterContents();
+      contents.pagesById['page-introduction'] = {
+        id: 'page-introduction',
+        anchor: 'introduction',
+        layoutId: 'two-columns',
+        slots: { left: ['block-introduction'], right: [] },
+      };
+      const received = { revision: 'revision-layout-change', contents };
+      const result =
+        kind === 'save-succeeded'
+          ? manager.dispatch({ kind, saved: received })
+          : manager.dispatch({ kind, latest: received });
+      expect(result).toMatchObject({ status: 'unsupported', received, canSave: false, isSaving: false });
+      expect(result.status === 'unsupported' ? result.message : '').toMatch(/layout|compatible/i);
+    }
+  );
+
   it('rejects invalid text combined with an unattached Block', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     const draft = structuredClone(ready(manager).draft);
@@ -577,6 +691,90 @@ describe('Rulebook editor state manager', () => {
       },
     },
   ])('fails closed for $name in a serialized patch', ({ alter }) => {
+    const input = createCleanRulebookEditorInput();
+    alter(input);
+    expect(createRulebookEditorStateManager(input).result.status).toBe('unsupported');
+  });
+
+  it.each([
+    {
+      name: 'a created identity with a separate field concern',
+      alter: (input: ReturnType<typeof createCleanRulebookEditorInput>) => {
+        (input as { patch: unknown }).patch = {
+          ...input.patch,
+          creates: [
+            {
+              kind: 'create',
+              entity: { kind: 'block', block: { id: 'block-new', kind: 'text', text: 'New' } },
+              placement: {
+                container: { kind: 'page-slot', pageId: 'page-introduction', slotId: 'body' },
+                afterId: 'block-introduction',
+                beforeId: null,
+              },
+            },
+          ],
+          sets: [
+            {
+              kind: 'set',
+              target: { kind: 'block', blockId: 'block-new' },
+              field: 'text',
+              value: 'Separate concern',
+            },
+          ],
+        };
+      },
+    },
+    {
+      name: 'a restored identity with a separate placement concern',
+      alter: (input: ReturnType<typeof createCleanRulebookEditorInput>) => {
+        const placement = {
+          container: { kind: 'page-slot', pageId: 'page-introduction', slotId: 'body' },
+          afterId: 'block-introduction',
+          beforeId: null,
+        };
+        (input as { patch: unknown }).patch = {
+          ...input.patch,
+          restorations: [
+            {
+              kind: 'restore',
+              root: { kind: 'block', blockId: 'block-restored' },
+              snapshot: { kind: 'block', block: { id: 'block-restored', kind: 'text', text: 'Restored' } },
+              placement,
+            },
+          ],
+          placements: [
+            {
+              kind: 'place',
+              target: { kind: 'block', blockId: 'block-restored' },
+              original: placement,
+              destination: placement,
+            },
+          ],
+        };
+      },
+    },
+    {
+      name: 'a reviewed deletion descendant with a separate field concern',
+      alter: (input: ReturnType<typeof createCleanRulebookEditorInput>) => {
+        const local = createRulebookEditorStateManager(input);
+        const result = local.dispatch({ kind: 'delete', root: { kind: 'page', pageId: 'page-reference' } });
+        if (result.status !== 'ready') {
+          throw new Error('The fixture deletion must be supported');
+        }
+        (input as { patch: unknown }).patch = {
+          ...result.rebasedPatch,
+          sets: [
+            {
+              kind: 'set',
+              target: { kind: 'block', blockId: 'block-summary' },
+              field: 'text',
+              value: 'Superseded',
+            },
+          ],
+        };
+      },
+    },
+  ])('fails closed for $name across patch concerns', ({ alter }) => {
     const input = createCleanRulebookEditorInput();
     alter(input);
     expect(createRulebookEditorStateManager(input).result.status).toBe('unsupported');
@@ -800,13 +998,19 @@ describe('Rulebook editor state manager', () => {
     }
     expect(result.draft.pagesById['page-reference']).toBeUndefined();
     expect(result.draft.blocksById['block-examples']).toBeUndefined();
-    const deleted = result.rebasedPatch.deletes.flatMap(({ deletedRefs }) => deletedRefs);
-    expect(deleted).toEqual(
-      expect.arrayContaining([
-        { kind: 'block', blockId: 'block-examples' },
-        { kind: 'item', blockId: 'block-examples', itemId: 'item-remote' },
-      ])
-    );
+    expect(result.rebasedPatch.deletes).toEqual([
+      {
+        kind: 'delete',
+        root: { kind: 'page', pageId: 'page-reference' },
+        deletedRefs: [
+          { kind: 'block', blockId: 'block-examples' },
+          { kind: 'block', blockId: 'block-summary' },
+          { kind: 'item', blockId: 'block-examples', itemId: 'item-example' },
+          { kind: 'item', blockId: 'block-examples', itemId: 'item-remote' },
+          { kind: 'page', pageId: 'page-reference' },
+        ],
+      },
+    ]);
   });
 
   it('preserves a restoration through a later unrelated saved revision', () => {

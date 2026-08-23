@@ -118,30 +118,6 @@ const restoreIntentSchema = z.strictObject({
 });
 type RulebookRestoreIntent = z.infer<typeof restoreIntentSchema>;
 
-function serializedEntityRefKey(ref: RulebookEntityRef): string {
-  return ref.kind === 'page'
-    ? `page:${ref.pageId}`
-    : ref.kind === 'block'
-      ? `block:${ref.blockId}`
-      : `item:${ref.blockId}:${ref.itemId}`;
-}
-
-function serializedNewEntityRef(entity: RulebookNewEntity): RulebookEntityRef {
-  return entity.kind === 'page'
-    ? { kind: 'page', pageId: entity.page.id }
-    : entity.kind === 'block'
-      ? { kind: 'block', blockId: entity.block.id }
-      : { kind: 'item', blockId: entity.blockId, itemId: entity.item.id };
-}
-
-function serializedContainerAccepts(container: RulebookOrderedContainerRef, target: RulebookEntityRef): boolean {
-  return (
-    (container.kind === 'page-order' && target.kind === 'page') ||
-    (container.kind === 'page-slot' && target.kind === 'block') ||
-    (container.kind === 'item-order' && target.kind === 'item' && container.blockId === target.blockId)
-  );
-}
-
 const rulebookEditPatchV1Schema = z
   .strictObject({
     schemaVersion: z.literal(1),
@@ -154,11 +130,11 @@ const rulebookEditPatchV1Schema = z
   })
   .superRefine((patch, context) => {
     const concerns = [
-      ['creates', patch.creates.map(({ entity }) => serializedEntityRefKey(serializedNewEntityRef(entity)))],
-      ['deletes', patch.deletes.map(({ root }) => serializedEntityRefKey(root))],
-      ['sets', patch.sets.map((intent) => `${serializedEntityRefKey(intent.target)}:${intent.field}`)],
-      ['placements', patch.placements.map(({ target }) => serializedEntityRefKey(target))],
-      ['restorations', patch.restorations.map(({ root }) => serializedEntityRefKey(root))],
+      ['creates', patch.creates.map(({ entity }) => entityRefKey(entityForNew(entity)))],
+      ['deletes', patch.deletes.map(({ root }) => entityRefKey(root))],
+      ['sets', patch.sets.map((intent) => `${entityRefKey(intent.target)}:${intent.field}`)],
+      ['placements', patch.placements.map(({ target }) => entityRefKey(target))],
+      ['restorations', patch.restorations.map(({ root }) => entityRefKey(root))],
     ] as const;
     for (const [name, keys] of concerns) {
       if (new Set(keys).size !== keys.length) {
@@ -168,9 +144,11 @@ const rulebookEditPatchV1Schema = z
         context.addIssue({ code: 'custom', path: [name], message: `${name} must use canonical identity order` });
       }
     }
+    const deletedIdentityKeys: string[] = [];
     for (const deletion of patch.deletes) {
-      const keys = deletion.deletedRefs.map(serializedEntityRefKey);
-      if (!keys.includes(serializedEntityRefKey(deletion.root))) {
+      const keys = deletion.deletedRefs.map(entityRefKey);
+      deletedIdentityKeys.push(...keys);
+      if (!keys.includes(entityRefKey(deletion.root))) {
         context.addIssue({ code: 'custom', path: ['deletes'], message: 'Every deletion must contain its root' });
       }
       if (new Set(keys).size !== keys.length || [...keys].sort().some((key, index) => key !== keys[index])) {
@@ -181,9 +159,64 @@ const rulebookEditPatchV1Schema = z
         });
       }
     }
+    if (new Set(deletedIdentityKeys).size !== deletedIdentityKeys.length) {
+      context.addIssue({
+        code: 'custom',
+        path: ['deletes'],
+        message: 'An identity may belong to only one reviewed deletion',
+      });
+    }
+
+    const createdIdentityKeys = patch.creates.map(({ entity }) => entityRefKey(entityForNew(entity)));
+    const restoredIdentityKeys = patch.restorations.flatMap(({ snapshot }) => snapshotRefs(snapshot).map(entityRefKey));
+    const setIdentityKeys = new Set(patch.sets.map(({ target }) => entityRefKey(target)));
+    const placedIdentityKeys = new Set(patch.placements.map(({ target }) => entityRefKey(target)));
+    const deletedIdentityKeySet = new Set(deletedIdentityKeys);
+    const createdIdentityKeySet = new Set(createdIdentityKeys);
+    const restoredIdentityKeySet = new Set(restoredIdentityKeys);
+
+    if (new Set(restoredIdentityKeys).size !== restoredIdentityKeys.length) {
+      context.addIssue({
+        code: 'custom',
+        path: ['restorations'],
+        message: 'An identity may belong to only one restoration snapshot',
+      });
+    }
+    for (const key of new Set([...createdIdentityKeys, ...restoredIdentityKeys, ...deletedIdentityKeys])) {
+      if (
+        (createdIdentityKeySet.has(key) || restoredIdentityKeySet.has(key)) &&
+        (setIdentityKeys.has(key) || placedIdentityKeys.has(key))
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['sets'],
+          message: 'Creation and restoration payloads must own their field and placement concerns',
+        });
+      }
+      if (
+        deletedIdentityKeySet.has(key) &&
+        (createdIdentityKeySet.has(key) ||
+          restoredIdentityKeySet.has(key) ||
+          setIdentityKeys.has(key) ||
+          placedIdentityKeys.has(key))
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['deletes'],
+          message: 'A reviewed deletion must supersede every other concern for its identities',
+        });
+      }
+      if (createdIdentityKeySet.has(key) && restoredIdentityKeySet.has(key)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['restorations'],
+          message: 'Create and restore are mutually exclusive for one identity',
+        });
+      }
+    }
     const placementConcerns = [
       ...patch.creates.map((intent) => ({
-        target: serializedNewEntityRef(intent.entity),
+        target: entityForNew(intent.entity),
         placements: [intent.placement],
       })),
       ...patch.placements.map((intent) => ({
@@ -194,7 +227,7 @@ const rulebookEditPatchV1Schema = z
     ];
     for (const { target, placements } of placementConcerns) {
       for (const placement of placements) {
-        if (!serializedContainerAccepts(placement.container, target)) {
+        if (!containerAccepts(placement.container, target)) {
           context.addIssue({
             code: 'custom',
             path: ['placements'],
@@ -283,8 +316,7 @@ type RulebookDeletionIncompatibility = RulebookIncompatibilityBase & {
   readonly direction: 'saved-deletion' | 'local-deletion';
   readonly root: RulebookEntityRef;
   readonly affectedRefs: readonly RulebookEntityRef[];
-  readonly localSnapshot?: RulebookDraftSubtree;
-  readonly localPlacement?: RulebookPlacement;
+  readonly localRestorations?: readonly RulebookRestoreIntent[];
 };
 
 type RulebookIncompatibility =
@@ -434,6 +466,7 @@ type Reconciliation = {
   validLedger: RulebookResolutionApproval[];
   allResolved: boolean;
   restoredRoots: RulebookEntityRef[];
+  reviewedDeletions: RulebookDeleteIntent[];
 };
 
 const clone = <Value>(value: Value): Value => structuredClone(value);
@@ -491,8 +524,11 @@ function stableFingerprint(value: unknown): string {
   });
 }
 
-function pageSlotEntries(page: RulebookPageDraft): Array<[string, string[]]> {
-  return Object.entries(page.slots) as Array<[string, string[]]>;
+function pageSlotEntries(page: RulebookPageDraft): Array<[RulebookSlotId, string[]]> {
+  if (page.layoutId === rulebookLayoutCatalogue[0].id) {
+    return rulebookLayoutCatalogue[0].slots.map((slotId) => [slotId, page.slots[slotId]]);
+  }
+  return rulebookLayoutCatalogue[1].slots.map((slotId) => [slotId, page.slots[slotId]]);
 }
 
 function allEntityRefs(contents: RulebookContentsDraftV1): RulebookEntityRef[] {
@@ -543,7 +579,7 @@ function allContainers(contents: RulebookContentsDraftV1): RulebookOrderedContai
   const containers: RulebookOrderedContainerRef[] = [{ kind: 'page-order' }];
   for (const page of Object.values(contents.pagesById)) {
     for (const [slotId] of pageSlotEntries(page)) {
-      containers.push({ kind: 'page-slot', pageId: page.id, slotId: slotId as 'body' | 'left' | 'right' });
+      containers.push({ kind: 'page-slot', pageId: page.id, slotId });
     }
   }
   for (const block of Object.values(contents.blocksById)) {
@@ -702,6 +738,27 @@ function snapshotRefs(snapshot: RulebookDraftSubtree): RulebookEntityRef[] {
   const root = { kind: 'page' as const, pageId: snapshot.page.id };
   const blocks = Object.values(snapshot.blocksById).flatMap((block) => snapshotRefs({ kind: 'block', block }));
   return [root, ...blocks];
+}
+
+function restorationIntentsForAffectedRefs(
+  contents: RulebookContentsDraftV1,
+  affectedRefs: readonly RulebookEntityRef[]
+): RulebookRestoreIntent[] {
+  const survivingRefs = affectedRefs.filter((ref) => entityExists(contents, ref));
+  const survivingKeys = new Set(survivingRefs.map(entityRefKey));
+  const depth = (ref: RulebookEntityRef) => (ref.kind === 'page' ? 0 : ref.kind === 'block' ? 1 : 2);
+  return survivingRefs
+    .filter((ref) => {
+      const parent = parentRef(contents, ref);
+      return !parent || !survivingKeys.has(entityRefKey(parent));
+    })
+    .sort((left, right) => depth(left) - depth(right) || entityRefKey(left).localeCompare(entityRefKey(right)))
+    .map((root) => ({
+      kind: 'restore',
+      root,
+      snapshot: snapshotSubtree(contents, root),
+      placement: findPlacement(contents, root)!,
+    }));
 }
 
 function removeFromPlacements(contents: RulebookContentsDraftV1, refs: readonly RulebookEntityRef[]): void {
@@ -1085,18 +1142,16 @@ function patchValidationError(baseline: RulebookContentsV1, patch: RulebookEditP
       return 'The patch placements cannot be materialized deterministically';
     }
     for (const deletion of patch.deletes) {
-      const expected = ownedClosure(draft, deletion.root).sort((left, right) =>
-        entityRefKey(left).localeCompare(entityRefKey(right))
-      );
-      const received = [...deletion.deletedRefs].sort((left, right) =>
-        entityRefKey(left).localeCompare(entityRefKey(right))
-      );
+      const receivedKeys = new Set(deletion.deletedRefs.map(entityRefKey));
+      if (deletion.deletedRefs.some((ref) => !entityExists(draft, ref))) {
+        return 'Every identity in a reviewed deletion must exist in its source state';
+      }
       if (
-        expected.length === 0 ||
-        expected.length !== received.length ||
-        expected.some((ref, index) => !sameRef(ref, received[index]!))
+        deletion.deletedRefs.some((ref) =>
+          ownedClosure(draft, ref).some((descendant) => !receivedKeys.has(entityRefKey(descendant)))
+        )
       ) {
-        return 'A deletion must contain the exact current ownership closure of its root';
+        return 'A reviewed deletion must include every descendant owned by every listed identity';
       }
       deleteExact(draft, deletion.deletedRefs);
     }
@@ -1266,8 +1321,13 @@ function diffContents(
   source: RulebookContentsDraftV1,
   target: RulebookContentsDraftV1,
   baselineRevision: string,
-  restorationRoots: readonly RulebookEntityRef[] = []
+  options: {
+    restorationRoots?: readonly RulebookEntityRef[];
+    reviewedDeletions?: readonly RulebookDeleteIntent[];
+  } = {}
 ): RulebookEditPatchV1 {
+  const restorationRoots = options.restorationRoots ?? [];
+  const reviewedDeletions = options.reviewedDeletions ?? [];
   const sourceRefs = allEntityRefs(source);
   const targetRefs = allEntityRefs(target);
   const sourceKeys = new Set(sourceRefs.map(entityRefKey));
@@ -1278,6 +1338,7 @@ function diffContents(
   );
   const missingRefs = sourceRefs.filter((ref) => !targetKeys.has(entityRefKey(ref)));
   const missingKeys = new Set(missingRefs.map(entityRefKey));
+  const reviewedDeletionKeys = new Set(reviewedDeletions.flatMap(({ deletedRefs }) => deletedRefs.map(entityRefKey)));
 
   const creates: RulebookCreateIntent[] = newRefs.map((ref) => ({
     kind: 'create',
@@ -1286,9 +1347,10 @@ function diffContents(
   }));
 
   const deletes: RulebookDeleteIntent[] = missingRefs
+    .filter((ref) => !reviewedDeletionKeys.has(entityRefKey(ref)))
     .filter((ref) => {
       const parent = parentRef(source, ref);
-      return !parent || !missingKeys.has(entityRefKey(parent));
+      return !parent || !missingKeys.has(entityRefKey(parent)) || reviewedDeletionKeys.has(entityRefKey(parent));
     })
     .map((root) => ({
       kind: 'delete',
@@ -1297,6 +1359,7 @@ function diffContents(
         .filter((ref) => missingKeys.has(entityRefKey(ref)))
         .sort((left, right) => entityRefKey(left).localeCompare(entityRefKey(right))),
     }));
+  deletes.push(...reviewedDeletions.map((deletion) => clone(deletion)));
 
   const sourceFields = new Map(fieldRecords(source).map((record) => [fieldKey(record), record]));
   const sets: RulebookSetIntent[] = [];
@@ -1599,6 +1662,7 @@ function reconcile(state: ReadyState): Reconciliation {
   const proposed = clone(latest);
   const incompatibilities: RulebookIncompatibility[] = [];
   const blockedRefs = new Set<string>();
+  const reviewedDeletions: RulebookDeleteIntent[] = [];
   const latestDiff = diffContents(baseline, latest, state.baseline.revision);
 
   for (const restoration of state.patch.restorations) {
@@ -1626,14 +1690,12 @@ function reconcile(state: ReadyState): Reconciliation {
         direction: 'saved-deletion',
         root: restoration.root,
         affectedRefs: reviewedDeletionSet(latest, collisions),
-        localSnapshot: restoration.snapshot,
-        localPlacement: restoration.placement,
+        localRestorations: [restoration],
         dependencyFingerprint: stableFingerprint({
           root: restoration.root,
           latestSnapshot,
           latestPlacement,
-          localSnapshot: restoration.snapshot,
-          localPlacement: restoration.placement,
+          localRestorations: [restoration],
         }),
       });
       continue;
@@ -1668,20 +1730,19 @@ function reconcile(state: ReadyState): Reconciliation {
       continue;
     }
     savedDeletion.deletedRefs.forEach((ref) => blockedRefs.add(entityRefKey(ref)));
-    const rootExistsLocally = entityExists(state.draft, savedDeletion.root);
+    const localRestorations = restorationIntentsForAffectedRefs(state.draft, savedDeletion.deletedRefs);
     const incompatibility = {
       id: `deletion:saved:${entityRefKey(savedDeletion.root)}`,
       kind: 'deletion' as const,
       direction: 'saved-deletion' as const,
       root: savedDeletion.root,
       affectedRefs: savedDeletion.deletedRefs,
-      localSnapshot: rootExistsLocally ? snapshotSubtree(state.draft, savedDeletion.root) : undefined,
-      localPlacement: rootExistsLocally ? findPlacement(state.draft, savedDeletion.root) : undefined,
+      localRestorations,
       dependencyFingerprint: stableFingerprint({
         direction: 'saved-deletion',
         root: savedDeletion.root,
         affectedRefs: savedDeletion.deletedRefs,
-        localSnapshot: rootExistsLocally ? snapshotSubtree(state.draft, savedDeletion.root) : undefined,
+        localRestorations,
       }),
     };
     incompatibilities.push(incompatibility);
@@ -1714,6 +1775,7 @@ function reconcile(state: ReadyState): Reconciliation {
       });
     } else {
       deleteExact(proposed, latestClosure);
+      reviewedDeletions.push({ kind: 'delete', root: deletion.root, deletedRefs: clone(latestClosure) });
     }
   }
 
@@ -1891,13 +1953,15 @@ function reconcile(state: ReadyState): Reconciliation {
         order.splice(0, order.length, ...outcome.orderedIds);
       }
     } else if (incompatibility.kind === 'deletion' && incompatibility.direction === 'saved-deletion') {
-      if (outcome.kind === 'restore-local-subtree' && incompatibility.localSnapshot && incompatibility.localPlacement) {
+      if (outcome.kind === 'restore-local-subtree' && incompatibility.localRestorations) {
         deleteExact(
           comparisonDraft,
           incompatibility.affectedRefs.filter((ref) => entityExists(comparisonDraft, ref))
         );
-        restoreSnapshot(comparisonDraft, incompatibility.localSnapshot, incompatibility.localPlacement);
-        restoredRoots.push(incompatibility.root);
+        for (const restoration of incompatibility.localRestorations) {
+          restoreSnapshot(comparisonDraft, restoration.snapshot, restoration.placement);
+          restoredRoots.push(restoration.root);
+        }
       }
     } else if (
       incompatibility.kind === 'deletion' &&
@@ -1905,6 +1969,11 @@ function reconcile(state: ReadyState): Reconciliation {
       outcome.kind === 'keep-local-deletion'
     ) {
       deleteExact(comparisonDraft, incompatibility.affectedRefs);
+      reviewedDeletions.push({
+        kind: 'delete',
+        root: incompatibility.root,
+        deletedRefs: clone([...incompatibility.affectedRefs]),
+      });
     }
   }
   const approvalFailures = applyPlacementBatch(comparisonDraft, approvalPlacements);
@@ -1918,6 +1987,7 @@ function reconcile(state: ReadyState): Reconciliation {
     validLedger,
     allResolved,
     restoredRoots,
+    reviewedDeletions,
   };
 }
 
@@ -1984,12 +2054,10 @@ function stabilize(state: ReadyState): Reconciliation {
       if (state.baseline.revision !== state.latest.revision) {
         state.baseline = clone(state.latest);
         state.draft = reconciliation.autoDraft;
-        state.patch = diffContents(
-          state.latest.contents,
-          state.draft,
-          state.latest.revision,
-          state.patch.restorations.map(({ root }) => root)
-        );
+        state.patch = diffContents(state.latest.contents, state.draft, state.latest.revision, {
+          restorationRoots: state.patch.restorations.map(({ root }) => root),
+          reviewedDeletions: reconciliation.reviewedDeletions,
+        });
         state.ledger = [];
         continue;
       }
@@ -1998,12 +2066,10 @@ function stabilize(state: ReadyState): Reconciliation {
     if (reconciliation.allResolved) {
       state.baseline = clone(state.latest);
       state.draft = reconciliation.comparisonDraft;
-      state.patch = diffContents(
-        state.latest.contents,
-        state.draft,
-        state.latest.revision,
-        reconciliation.restoredRoots
-      );
+      state.patch = diffContents(state.latest.contents, state.draft, state.latest.revision, {
+        restorationRoots: reconciliation.restoredRoots,
+        reviewedDeletions: reconciliation.reviewedDeletions,
+      });
       state.ledger = [];
       continue;
     }
@@ -2039,24 +2105,27 @@ function readyResult(state: ReadyState): RulebookEditorReadyResult {
   };
 }
 
-function dispatchReady(state: ReadyState, action: RulebookEditorAction): void {
+function dispatchReady(
+  state: ReadyState,
+  action: RulebookEditorAction,
+  authoritativeRevision?: SavedRulebookRevision
+): void {
   state.operationError = undefined;
   if (action.kind === 'receive-latest' || action.kind === 'save-stale') {
-    const parsed = rulebookContentsV1Schema.safeParse(action.latest.contents);
-    if (!parsed.success) {
-      throw new Error('The incoming saved revision uses unsupported or invalid Rulebook Contents');
+    if (!authoritativeRevision) {
+      throw new Error('The incoming saved revision was not validated');
     }
-    state.latest = { revision: action.latest.revision, contents: parsed.data };
+    state.latest = clone(authoritativeRevision);
     state.isSaving = false;
+    rememberPageLayouts(state, state.latest.contents);
     stabilize(state);
     return;
   }
   if (action.kind === 'save-succeeded') {
-    const parsed = rulebookContentsV1Schema.safeParse(action.saved.contents);
-    if (!parsed.success) {
-      throw new Error('The saved result uses unsupported or invalid Rulebook Contents');
+    if (!authoritativeRevision) {
+      throw new Error('The saved result was not validated');
     }
-    const saved = { revision: action.saved.revision, contents: parsed.data };
+    const saved = clone(authoritativeRevision);
     state.baseline = clone(saved);
     state.latest = clone(saved);
     state.draft = clone(saved.contents) as RulebookContentsDraftV1;
@@ -2142,10 +2211,13 @@ function createRulebookEditorCore(input: RulebookEditorInput): RulebookEditorSta
   const baseline = rulebookContentsV1Schema.safeParse(input.baseline.contents);
   const latest = rulebookContentsV1Schema.safeParse(input.latest.contents);
   const patch = rulebookEditPatchV1Schema.safeParse(input.patch);
+  const initialLayoutIssue =
+    baseline.success && latest.success ? immutableLayoutError(pageLayoutMemory(baseline.data), latest.data) : undefined;
   if (
     !baseline.success ||
     !latest.success ||
     !patch.success ||
+    initialLayoutIssue !== undefined ||
     patch.data.baselineRevision !== input.baseline.revision ||
     patchValidationError(baseline.data, patch.data) !== undefined
   ) {
@@ -2171,7 +2243,11 @@ function createRulebookEditorCore(input: RulebookEditorInput): RulebookEditorSta
     draft,
     patch: clone(patch.data),
     ledger: clone([...input.resolutionLedger]),
-    knownPageLayouts: pageLayoutMemory(draft),
+    knownPageLayouts: {
+      ...pageLayoutMemory(baseline.data),
+      ...pageLayoutMemory(latest.data),
+      ...pageLayoutMemory(draft),
+    },
     isSaving: false,
   };
   stabilize(core);
@@ -2185,19 +2261,29 @@ function createRulebookEditorCore(input: RulebookEditorInput): RulebookEditorSta
       if (unsupported) {
         return unsupportedManager(unsupported).result;
       }
-      if (action.kind === 'receive-latest' || action.kind === 'save-stale') {
-        const incoming = rulebookContentsV1Schema.safeParse(action.latest.contents);
-        if (!incoming.success) {
+      const receivedRevision =
+        action.kind === 'receive-latest' || action.kind === 'save-stale'
+          ? action.latest
+          : action.kind === 'save-succeeded'
+            ? action.saved
+            : undefined;
+      let authoritativeRevision: SavedRulebookRevision | undefined;
+      if (receivedRevision) {
+        const incoming = rulebookContentsV1Schema.safeParse(receivedRevision.contents);
+        const layoutIssue = incoming.success ? immutableLayoutError(core.knownPageLayouts, incoming.data) : undefined;
+        if (!incoming.success || layoutIssue) {
           unsupported = {
-            received: action.latest,
+            received: receivedRevision,
             message:
+              layoutIssue ??
               'This saved Rulebook revision is unsupported or invalid. Reload or use a compatible application version before editing.',
           };
           return unsupportedManager(unsupported).result;
         }
+        authoritativeRevision = { revision: receivedRevision.revision, contents: incoming.data };
       }
       try {
-        dispatchReady(core, action);
+        dispatchReady(core, action, authoritativeRevision);
       } catch (error) {
         core.operationError = error instanceof Error ? error.message : 'The Rulebook edit could not be applied.';
       }
