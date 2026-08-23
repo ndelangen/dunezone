@@ -2,7 +2,7 @@ import { Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
 import { OpenableTile } from '@ui/block/OpenableTile';
-import { Eyebrow } from '@ui/content/Eyebrow';
+import { PageTitle } from '@ui/block/PageTitle';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
@@ -81,8 +81,7 @@ function AssetTypePage() {
     <PageLayout>
       <PageLayout.Header>
         <Stack gap="xs" align="center">
-          <Eyebrow tone="inverse">Community assets</Eyebrow>
-          <Title order={1}>{definition.label}</Title>
+          <PageTitle eyebrow="Community assets" title={definition.label} />
           <Text c="dimmed" ta="center" maw="34rem">
             Every {noun.toLowerCase()} the community has made. Open one to see it up close, or make your own.
           </Text>
