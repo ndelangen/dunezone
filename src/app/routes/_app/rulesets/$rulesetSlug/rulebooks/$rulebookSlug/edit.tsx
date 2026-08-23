@@ -16,10 +16,12 @@ import type { FormattedTextParseResult } from '@shared/formattedText';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { IconAction } from '@ui/control/IconAction';
+import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { Surface } from '@ui/surface';
-import { BookOpenText } from 'lucide-react';
+import { BookOpenText, Minus } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -161,6 +163,10 @@ function sameTextTarget(
   );
 }
 
+function createRepeatedTextItemId(): string {
+  return `item-${globalThis.crypto.randomUUID()}`;
+}
+
 function PageTextEditors({
   page,
   result,
@@ -171,6 +177,7 @@ function PageTextEditors({
   dispatch: RulebookEditorStateManager['dispatch'];
 }) {
   const blockIds = Object.values(page.slots).flat();
+  const repeatedBlockIds = blockIds.filter((blockId) => result.draft.blocksById[blockId]?.kind === 'repeated-text');
   return (
     <Stack gap="lg">
       {blockIds.map((blockId) => {
@@ -195,9 +202,29 @@ function PageTextEditors({
             />
           );
         }
+        const repeatedBlockNumber = repeatedBlockIds.indexOf(blockId) + 1;
+        const repeatedBlockLabel =
+          repeatedBlockIds.length === 1 ? 'repeated text block' : `repeated text block ${repeatedBlockNumber}`;
         return (
           <Stack key={blockId} gap="sm">
-            <Text fw={700}>Repeated text block</Text>
+            <Group justify="space-between" align="center" wrap="nowrap">
+              <Text fw={700}>Repeated text block</Text>
+              <AddAction
+                label={`Add item to ${repeatedBlockLabel}`}
+                onClick={() => {
+                  const itemId = createRepeatedTextItemId();
+                  dispatch({
+                    kind: 'create',
+                    entity: { kind: 'item', blockId, item: { id: itemId, text: '' } },
+                    placement: {
+                      container: { kind: 'item-order', blockId },
+                      afterId: block.itemOrder.at(-1) ?? null,
+                      beforeId: null,
+                    },
+                  });
+                }}
+              />
+            </Group>
             {block.itemOrder.length === 0 ? (
               <Text size="sm" c="dimmed">
                 This block has no items.
@@ -213,17 +240,27 @@ function PageTextEditors({
                   (diagnostic) => diagnostic.field === 'text' && sameTextTarget(diagnostic.target, target)
                 )?.message;
                 return (
-                  <Textarea
-                    key={itemId}
-                    label={`Item ${index + 1}`}
-                    value={item.text}
-                    error={error}
-                    autosize
-                    minRows={4}
-                    onChange={(event) =>
-                      dispatch({ kind: 'set', target, field: 'text', value: event.currentTarget.value })
-                    }
-                  />
+                  <Group key={itemId} align="flex-start" wrap="nowrap">
+                    <Textarea
+                      label={`Item ${index + 1}`}
+                      value={item.text}
+                      error={error}
+                      autosize
+                      minRows={4}
+                      style={{ flex: 1 }}
+                      onChange={(event) =>
+                        dispatch({ kind: 'set', target, field: 'text', value: event.currentTarget.value })
+                      }
+                    />
+                    <IconAction
+                      label={`Remove item ${index + 1} from ${repeatedBlockLabel}`}
+                      variant="light"
+                      color="red"
+                      size="sm"
+                      icon={<Minus size={15} aria-hidden />}
+                      onClick={() => dispatch({ kind: 'delete', root: target })}
+                    />
+                  </Group>
                 );
               })
             )}

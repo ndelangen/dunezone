@@ -4,6 +4,7 @@
   --preview-caption-space: 2.5rem;
   --fit-height-page-height: calc(var(--workspace-height) - var(--preview-caption-space));
   --fit-height-page-width: calc(var(--fit-height-page-height) * 210 / 297);
+  --fit-width-page-width: calc(var(--fit-height-page-width) * 1.35);
   container: rulebook-editor-workspace / inline-size;
   position: sticky;
   z-index: 1;
@@ -29,8 +30,8 @@
 }
 
 .workspaceSticky[data-fit="width"] .workspace {
-  grid-template-columns: minmax(30rem, 1fr) minmax(26rem, 34rem);
-  min-width: calc(56rem + var(--mantine-spacing-md));
+  grid-template-columns: minmax(30rem, 1fr) var(--fit-width-page-width);
+  min-width: calc(30rem + var(--fit-width-page-width) + var(--mantine-spacing-md));
 }
 
 .controlsScroll,

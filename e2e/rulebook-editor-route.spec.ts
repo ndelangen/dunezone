@@ -24,6 +24,49 @@ test('selecting a Page enters Edit mode', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Edit Page 2' })).toBeVisible();
 });
 
+test('fit height shows the full Page while fit width provides a materially larger scrolling preview', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/rulesets/local-rules/rulebooks/starter/edit');
+  await page.getByRole('button', { name: /Page 2/ }).click();
+
+  const previewScroller = page.getByRole('region', { name: 'Rulebook page preview' });
+  const previewPage = page.getByRole('article', { name: 'Preview of Page 2' });
+  const fitHeightWidth = (await previewPage.boundingBox())?.width ?? 0;
+  await expect
+    .poll(() => previewScroller.evaluate((element) => element.scrollHeight - element.clientHeight))
+    .toBeLessThanOrEqual(1);
+
+  await page.getByText('Fit width', { exact: true }).click();
+
+  await expect
+    .poll(async () => ((await previewPage.boundingBox())?.width ?? 0) / fitHeightWidth)
+    .toBeGreaterThanOrEqual(1.3);
+  await expect
+    .poll(() => previewScroller.evaluate((element) => element.scrollHeight > element.clientHeight))
+    .toBe(true);
+});
+
+test('a repeated text item can be added, edited, previewed, and removed', async ({ page }) => {
+  await page.goto('/rulesets/local-rules/rulebooks/starter/edit');
+  await page.getByRole('button', { name: /Page 2/ }).click();
+
+  const preview = page.getByRole('region', { name: 'Rulebook page preview' });
+  const items = page.getByRole('textbox', { name: /^Item \d+$/ });
+  const originalCount = await items.count();
+  await page.getByRole('button', { name: 'Add item to repeated text block' }).click();
+
+  await expect(items).toHaveCount(originalCount + 1);
+  const addedItem = page.getByRole('textbox', { name: `Item ${originalCount + 1}` });
+  await addedItem.fill('A newly repeated browser-local rule.');
+  await expect(preview).toContainText('A newly repeated browser-local rule.');
+
+  await page.getByRole('button', { name: `Remove item ${originalCount + 1} from repeated text block` }).click();
+  await expect(items).toHaveCount(originalCount);
+  await expect(preview).not.toContainText('A newly repeated browser-local rule.');
+});
+
 test('the narrow workspace scrolls beside a fixed two-column Page and changes fit', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 700 });
   await page.goto('/rulesets/local-rules/rulebooks/starter/edit');
