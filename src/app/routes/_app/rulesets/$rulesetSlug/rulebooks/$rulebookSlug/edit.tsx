@@ -316,7 +316,9 @@ function PageOutline({
             <span className={styles.pageChoiceNumber}>{String(index + 1).padStart(2, '0')}</span>
             <span className={styles.pageChoiceName}>Page {index + 1}</span>
             <Text component="span" size="xs" inherit opacity={0.62}>
-              {candidate.anchor}
+              <span className={styles.pageChoiceAnchor}>
+                {candidate.anchor}
+              </span>
             </Text>
           </Button>
         ) : null;
@@ -491,7 +493,7 @@ function PrototypeSwitcher({ variant, setVariant }: { variant: VisualVariant; se
   return (
     <div className={styles.switcher}>
       <Surface padding="sm">
-        <Group gap="xs" wrap="nowrap">
+        <Group gap="xs" wrap="wrap" justify="center">
           <Text size="xs" fw={700} c="dimmed">
             Visual direction
           </Text>
@@ -585,34 +587,42 @@ function RulebookEditorPage() {
       <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left>
-            <Group gap="xs">
-              <Badge variant="light" color={hasLocalChanges ? 'yellow' : 'gray'}>
-                {hasLocalChanges ? 'Local changes' : 'Starter state'}
-              </Badge>
-              <Text size="xs" c="dimmed">
-                Browser-only starter state. Nothing is loaded from or saved to the database.
-              </Text>
+            <Group className={styles.toolbarContents} gap="sm" justify="space-between" wrap="wrap">
+              <Group gap="xs" wrap="nowrap">
+                <Badge variant="light" color={hasLocalChanges ? 'yellow' : 'gray'}>
+                  {hasLocalChanges ? 'Local changes' : 'Starter state'}
+                </Badge>
+                <Text className={styles.desktopStatus} size="xs" c="dimmed">
+                  Browser-only starter state. Nothing is loaded from or saved to the database.
+                </Text>
+                <Text className={styles.mobileStatus} size="xs" c="dimmed">
+                  Local session, no database.
+                </Text>
+              </Group>
+              <SegmentedControl
+                size="xs"
+                aria-label="Preview fit"
+                value={fit}
+                onChange={(value) => setFit(value as PreviewFit)}
+                data={[
+                  { value: 'height', label: 'Fit height' },
+                  { value: 'width', label: 'Fit width' },
+                ]}
+              />
             </Group>
           </Toolbar.Left>
-          <Toolbar.Right>
-            <SegmentedControl
-              size="xs"
-              aria-label="Preview fit"
-              value={fit}
-              onChange={(value) => setFit(value as PreviewFit)}
-              data={[
-                { value: 'height', label: 'Fit height' },
-                { value: 'width', label: 'Fit width' },
-              ]}
-            />
-          </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
         {page ? (
           <section className={styles.prototypeRoot} aria-label="Rulebook editing workspace">
             <div className={styles.workspaceSticky} data-fit={fit}>
-              <div className={styles.workspaceScroller}>
+              <Box
+                className={styles.workspaceViewport}
+                role="region"
+                aria-label="Rulebook editor and preview"
+                tabIndex={0}
+              >
                 {(() => {
                   const conceptProps: ConceptProps = {
                     page,
@@ -636,7 +646,7 @@ function RulebookEditorPage() {
                   }
                   return <OutlineConcept {...conceptProps} />;
                 })()}
-              </div>
+              </Box>
             </div>
             <PrototypeSwitcher variant={variant} setVariant={setVariant} />
           </section>

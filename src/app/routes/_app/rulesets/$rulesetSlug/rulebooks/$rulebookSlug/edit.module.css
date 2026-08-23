@@ -1,9 +1,18 @@
 .prototypeRoot {
-  --prototype-side-space: clamp(1rem, 3vw, 2.5rem);
+  --prototype-side-space: clamp(1rem, calc((100vw - 64rem) * 1.25 + 1rem), 2.5rem);
   container: rulebook-editor-prototype / inline-size;
   width: min(116rem, calc(100vw - var(--prototype-side-space) - var(--prototype-side-space)));
   margin-inline-start: max(calc(50% - 58rem), calc(50% - 50vw + var(--prototype-side-space)));
   padding-bottom: 5rem;
+}
+
+.toolbarContents {
+  width: 100%;
+  min-width: 0;
+}
+
+.mobileStatus {
+  display: none;
 }
 
 .workspaceSticky {
@@ -22,8 +31,11 @@
   top: var(--workspace-top);
 }
 
-.workspaceScroller {
+.workspaceViewport {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
+  overflow: visible;
 }
 
 .workspace {
@@ -48,9 +60,9 @@
 }
 
 .workspace[data-concept="outline"][data-fit="width"] {
-  gap: var(--mantine-spacing-xl);
-  grid-template-columns: minmax(28rem, 1fr) var(--zoom-page-width);
-  min-width: calc(28rem + var(--zoom-page-width) + var(--mantine-spacing-xl));
+  gap: var(--mantine-spacing-lg);
+  grid-template-columns: minmax(24rem, 1fr) var(--zoom-page-width);
+  min-width: calc(24rem + var(--zoom-page-width) + var(--mantine-spacing-lg));
 }
 
 .workspace[data-concept="canvas"][data-fit="height"] {
@@ -186,6 +198,7 @@
 }
 
 .pagePreview {
+  box-sizing: border-box;
   container-type: inline-size;
   position: relative;
   width: 100%;
@@ -300,13 +313,102 @@
   filter: drop-shadow(0 0.5rem 1rem rgb(0 0 0 / 20%));
 }
 
+.switcher > * {
+  max-width: 100%;
+}
+
+@container rulebook-editor-prototype (max-width: 72rem) {
+  .workspaceSticky {
+    --workspace-height: min(44rem, calc(100dvh - var(--app-shell-header-offset, 0px) - 2rem));
+    --page-height: calc(var(--workspace-height) - var(--preview-caption-space));
+    --page-width: calc(var(--page-height) * 210 / 297);
+    --zoom-page-width: calc(var(--page-width) * 1.38);
+  }
+
+  .workspace[data-concept="outline"][data-fit="height"] {
+    gap: var(--mantine-spacing-lg);
+    grid-template-columns: minmax(18rem, 1fr) var(--page-width);
+    min-width: calc(18rem + var(--page-width) + var(--mantine-spacing-lg));
+  }
+
+  .workspace[data-concept="outline"][data-fit="width"] {
+    grid-template-columns: minmax(18rem, 1fr) var(--zoom-page-width);
+    min-width: calc(18rem + var(--zoom-page-width) + var(--mantine-spacing-lg));
+  }
+
+  .outlineRail {
+    padding: var(--mantine-spacing-md);
+  }
+
+  .outlineAccordion :global(.mantine-Accordion-content) {
+    padding-block-end: var(--mantine-spacing-md);
+  }
+
+  .pageChoiceAnchor {
+    display: none;
+  }
+}
+
 @container rulebook-editor-prototype (max-width: 48rem) {
+  .workspaceSticky {
+    --workspace-height: auto;
+    --page-height: calc(25rem * 297 / 210);
+    --page-width: 25rem;
+    --zoom-page-width: 34.5rem;
+  }
+
   .workspaceSticky[data-fit="height"] {
     position: relative;
     top: auto;
   }
 
+  .workspaceViewport {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
   .workspace {
     gap: var(--mantine-spacing-sm);
+  }
+
+  .workspace[data-concept="outline"][data-fit="height"] {
+    grid-template-columns: 17rem var(--page-width);
+    min-width: calc(17rem + var(--page-width) + var(--mantine-spacing-sm));
+  }
+
+  .workspace[data-concept="outline"][data-fit="width"] {
+    grid-template-columns: 17rem var(--zoom-page-width);
+    min-width: calc(17rem + var(--zoom-page-width) + var(--mantine-spacing-sm));
+  }
+
+  .outlineRail {
+    padding: var(--mantine-spacing-sm);
+  }
+
+  .outlineAccordion :global(.mantine-Accordion-control) {
+    padding-inline: var(--mantine-spacing-xs);
+  }
+
+  .outlineAccordion :global(.mantine-Accordion-content) {
+    padding-block-end: var(--mantine-spacing-sm);
+  }
+
+  .pageChoice {
+    min-height: 2.5rem;
+    padding-inline: var(--mantine-spacing-xs);
+  }
+
+  .pageChoice :global(.mantine-Button-label) {
+    grid-template-columns: 1.75rem minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 48rem) {
+  .desktopStatus {
+    display: none;
+  }
+
+  .mobileStatus {
+    display: block;
   }
 }
