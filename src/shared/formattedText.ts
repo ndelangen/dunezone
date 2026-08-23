@@ -1,3 +1,5 @@
+import { graphemeSegments } from 'unicode-segmenter/grapheme';
+
 const FORMATTED_TEXT_MARKS = [
   { delimiter: '_', mark: 'underline' },
   { delimiter: '-', mark: 'italic' },
@@ -122,7 +124,6 @@ const delimiterDetails = new Map<FormattedTextDelimiter, FormattedTextMark>(
 const canonicalMarkOrder = new Map<FormattedTextMark, number>(
   FORMATTED_TEXT_MARKS.map(({ mark }, index) => [mark, index])
 );
-const combiningMark = /\p{M}/u;
 const wordCharacter = /[\p{L}\p{M}\p{N}]/u;
 const HIGH_SURROGATE_MIN = 55_296;
 const HIGH_SURROGATE_MAX = 56_319;
@@ -146,21 +147,15 @@ function delimiterForMark(mark: FormattedTextMark): FormattedTextDelimiter {
 }
 
 function sourceColumns(text: string): { readonly positions: readonly number[]; readonly end: number } {
-  const positions: number[] = [];
+  const positions = Array<number>(text.length);
   let column = 1;
-  let hasCluster = false;
 
-  for (const character of text) {
-    if (!combiningMark.test(character) || !hasCluster) {
-      if (hasCluster) {
-        column += 1;
-      }
-      hasCluster = true;
-    }
-    positions.push(...Array.from({ length: character.length }, () => column));
+  for (const { index, segment } of graphemeSegments(text)) {
+    positions.fill(column, index, index + segment.length);
+    column += 1;
   }
 
-  return { positions, end: hasCluster ? column + 1 : 1 };
+  return { positions, end: column };
 }
 
 function sourceLines(value: string): readonly SourceLine[] {

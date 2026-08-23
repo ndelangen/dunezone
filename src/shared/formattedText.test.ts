@@ -202,7 +202,9 @@ describe('formatted-text core', () => {
   it.each([
     { source: '😀 text *missing', column: 8, offset: 8 },
     { source: 'e\u0301 text *missing', column: 8, offset: 8 },
-  ])('reports a Unicode-aware column and UTF-16 offset for $source', ({ source, column, offset }) => {
+    { source: 'क्ष text *missing', column: 8, offset: 9 },
+    { source: '👩‍💻 text *missing', column: 8, offset: 11 },
+  ])('reports an extended-grapheme column and UTF-16 offset for $source', ({ source, column, offset }) => {
     const parsed = parseFormattedText(source);
 
     expect(parsed.valid).toBe(false);
