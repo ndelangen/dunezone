@@ -86,7 +86,7 @@ function IndexPage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header>
+      <PageLayout.Header size="hero">
         <Stack className={styles.hero} align="center" justify="center" gap="sm">
           <Eyebrow tone="inverse">A game of conquest, diplomacy &amp; betrayal</Eyebrow>
           <HeroTitle>Make Dune your own</HeroTitle>
@@ -302,7 +302,7 @@ function IndexPage() {
 function HomepagePending() {
   return (
     <PageLayout>
-      <PageLayout.Header>
+      <PageLayout.Header size="hero">
         <HeroTitle>Make Dune your own</HeroTitle>
       </PageLayout.Header>
       <PageLayout.Content>
@@ -321,7 +321,7 @@ function HomepagePending() {
 function HomepageError({ error }: ErrorComponentProps) {
   return (
     <PageLayout>
-      <PageLayout.Header>
+      <PageLayout.Header size="hero">
         <HeroTitle>Make Dune your own</HeroTitle>
       </PageLayout.Header>
       <PageLayout.Content>
