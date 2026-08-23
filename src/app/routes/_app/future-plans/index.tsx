@@ -22,6 +22,9 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
+
+import { Surface } from '@ui/surface';
 
 import styles from './index.module.css';
 
@@ -214,45 +217,127 @@ function FuturePlansPage() {
                 </Stack>
               ))}
 
-              <Box component="section" className={styles.contribution} p={{ base: 'xl', md: 48 }}>
-                <SimpleGrid cols={{ base: 1, md: 3 }} spacing="xl" verticalSpacing="xl">
-                  <ThemeIcon size={72} radius="50%" variant="light" color="dune" aria-hidden>
-                    <Lightbulb />
-                  </ThemeIcon>
-                  <Stack gap="xs">
-                    <Eyebrow tone="accent">And more…</Eyebrow>
-                    <Title order={2}>Put a new destination on the map</Title>
-                    <Text c="dimmed">
-                      Open an idea for the community to discuss, or pick up an issue and help build the route there.
-                    </Text>
-                  </Stack>
-                  <Stack justify="center" gap="sm">
-                    <Button
-                      component="a"
-                      href={GITHUB_IDEAS}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      leftSection={<MessageCirclePlus size={17} aria-hidden />}
-                    >
-                      Suggest an idea
-                    </Button>
-                    <Button
-                      component="a"
-                      href={GITHUB_REPOSITORY}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      color="confirm"
-                      leftSection={<Code2 size={17} aria-hidden />}
-                    >
-                      Help build Dune Zone
-                    </Button>
-                  </Stack>
-                </SimpleGrid>
-              </Box>
+              <ContributionPanelPrototype />
             </Stack>
           </AtlasLayout.Content>
         </AtlasLayout>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+/*
+ * PROTOTYPE, throwaway. Three paint options for the contribution panel, switchable via ?variant=,
+ * on this existing route: A the authored warm Box (what main renders today), B a Surface wearing a
+ * warm variant (the proto class stands in for a real variant token on Surface), C the standard
+ * glass Surface. Answers the .contribution question on #637/#652. Branch: norbert/prototype-contribution-paint.
+ * The variants deliberately differ only in the pane treatment; the treatment IS the question.
+ */
+const PROTO_VARIANTS = [
+  { key: 'A', name: 'Authored warm (Box, as on main)' },
+  { key: 'B', name: 'Surface with a warm variant' },
+  { key: 'C', name: 'Standard glass Surface' },
+] as const;
+type ProtoKey = (typeof PROTO_VARIANTS)[number]['key'];
+
+function readProtoVariant(): ProtoKey {
+  const raw = new URLSearchParams(window.location.search).get('variant');
+  return raw === 'B' || raw === 'C' ? raw : 'A';
+}
+
+function ContributionInner() {
+  return (
+    <SimpleGrid cols={{ base: 1, md: 3 }} spacing="xl" verticalSpacing="xl">
+      <ThemeIcon size={72} radius="50%" variant="light" color="dune" aria-hidden>
+        <Lightbulb />
+      </ThemeIcon>
+      <Stack gap="xs">
+        <Eyebrow tone="accent">And more…</Eyebrow>
+        <Title order={2}>Put a new destination on the map</Title>
+        <Text c="dimmed">
+          Open an idea for the community to discuss, or pick up an issue and help build the route there.
+        </Text>
+      </Stack>
+      <Stack justify="center" gap="sm">
+        <Button
+          component="a"
+          href={GITHUB_IDEAS}
+          target="_blank"
+          rel="noopener noreferrer"
+          leftSection={<MessageCirclePlus size={17} aria-hidden />}
+        >
+          Suggest an idea
+        </Button>
+        <Button
+          component="a"
+          href={GITHUB_REPOSITORY}
+          target="_blank"
+          rel="noopener noreferrer"
+          color="confirm"
+          leftSection={<Code2 size={17} aria-hidden />}
+        >
+          Help build Dune Zone
+        </Button>
+      </Stack>
+    </SimpleGrid>
+  );
+}
+
+function ContributionPanelPrototype() {
+  const [variant, setVariant] = useState<ProtoKey>(readProtoVariant);
+
+  const cycle = (step: number) => {
+    const index = PROTO_VARIANTS.findIndex((entry) => entry.key === variant);
+    const next = PROTO_VARIANTS[(index + step + PROTO_VARIANTS.length) % PROTO_VARIANTS.length].key;
+    const url = new URL(window.location.href);
+    url.searchParams.set('variant', next);
+    window.history.replaceState(null, '', url);
+    setVariant(next);
+  };
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      if (event.key === 'ArrowLeft') cycle(-1);
+      if (event.key === 'ArrowRight') cycle(1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  return (
+    <>
+      {variant === 'A' && (
+        <Box component="section" className={styles.contribution} p={{ base: 'xl', md: 48 }}>
+          <ContributionInner />
+        </Box>
+      )}
+      {variant === 'B' && (
+        <Surface as="section" aria-label="Contribute" padding="xl" className={styles.protoWarmSurface}>
+          <ContributionInner />
+        </Surface>
+      )}
+      {variant === 'C' && (
+        <Surface as="section" aria-label="Contribute" padding="xl" className={styles.protoSurfaceSpacing}>
+          <ContributionInner />
+        </Surface>
+      )}
+      {import.meta.env.DEV && (
+        <div className={styles.protoBar} role="toolbar" aria-label="Prototype variant switcher">
+          <button type="button" onClick={() => cycle(-1)} aria-label="Previous variant">
+            ←
+          </button>
+          <span>
+            {variant} — {PROTO_VARIANTS.find((entry) => entry.key === variant)?.name}
+          </span>
+          <button type="button" onClick={() => cycle(1)} aria-label="Next variant">
+            →
+          </button>
+        </div>
+      )}
+    </>
   );
 }
