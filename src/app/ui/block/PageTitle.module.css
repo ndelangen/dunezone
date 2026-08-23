@@ -1,0 +1,40 @@
+.root {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  text-wrap: balance;
+}
+
+/*
+ * A page that declares a hero header sets its name in the shields' display face.
+ * The page declares it and this reads it back, so the treatment follows position rather than an
+ * argument, the same way a block's heading level follows its depth.
+ *
+ * The face has to outrank Mantine's own heading font, which the previous spelling never had to do
+ * because it rendered a bare `h1` with nothing competing.
+ */
+:global([data-page-layout-header-size="hero"]) .title {
+  color: white;
+  font-family: "C_Desdemona", sans-serif;
+  line-height: 0.94;
+  letter-spacing: -0.01em;
+  text-shadow: 0 3px 18px rgb(0 0 0 / 92%);
+  text-transform: uppercase;
+}
+
+/*
+ * Size is deliberately one class weaker than the rest, because two pages tune it at their own
+ * breakpoints and that is the size a reader sees today.
+ * Raising it here would silently outrank them.
+ */
+:global([data-page-layout-header-size="hero"]) :where(.title) {
+  font-size: clamp(2.8rem, 6.7vw, 5.8rem);
+}
+
+@media (max-width: 43.75em) {
+  :global([data-page-layout-header-size="hero"]) :where(.title) {
+    font-size: clamp(2.4rem, 12vw, 4.5rem);
+  }
+}

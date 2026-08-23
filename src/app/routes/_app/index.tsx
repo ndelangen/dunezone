@@ -16,11 +16,11 @@ import {
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
+import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { AnimatedLeaderToken } from '@ui/content/AnimatedLeaderToken';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { HeroTitle } from '@ui/content/HeroTitle';
 import { CallToAction } from '@ui/control/CallToAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -88,8 +88,7 @@ function IndexPage() {
     <PageLayout>
       <PageLayout.Header size="hero">
         <Stack className={styles.hero} align="center" justify="center" gap="sm">
-          <Eyebrow tone="inverse">A game of conquest, diplomacy &amp; betrayal</Eyebrow>
-          <HeroTitle>Make Dune your own</HeroTitle>
+          <PageTitle eyebrow="A game of conquest, diplomacy & betrayal" title="Make Dune your own" />
           <Text className={styles.heroDeck}>
             Discover what people are playing today—or make the thing they play tomorrow.
           </Text>
@@ -303,7 +302,7 @@ function HomepagePending() {
   return (
     <PageLayout>
       <PageLayout.Header size="hero">
-        <HeroTitle>Make Dune your own</HeroTitle>
+        <PageTitle title="Make Dune your own" />
       </PageLayout.Header>
       <PageLayout.Content>
         <Surface>
@@ -322,7 +321,7 @@ function HomepageError({ error }: ErrorComponentProps) {
   return (
     <PageLayout>
       <PageLayout.Header size="hero">
-        <HeroTitle>Make Dune your own</HeroTitle>
+        <PageTitle title="Make Dune your own" />
       </PageLayout.Header>
       <PageLayout.Content>
         <Alert color="red" title="The homepage could not be loaded" role="alert">

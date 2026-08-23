@@ -1,7 +1,7 @@
 import { Anchor, Badge, Box, Button, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { HeroTitle } from '@ui/content/HeroTitle';
 import { AtlasLayout } from '@ui/layout/AtlasLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
@@ -140,8 +140,7 @@ function FuturePlansPage() {
       <PageLayout.Header size="hero">
         <SimpleGrid className={styles.hero} cols={{ base: 1, md: 2 }} spacing="xl">
           <Stack gap="xs">
-            <Eyebrow tone="inverse">Our ambitions</Eyebrow>
-            <HeroTitle>A map of what Dune Zone could become</HeroTitle>
+            <PageTitle eyebrow="Our ambitions" title="A map of what Dune Zone could become" />
           </Stack>
           <Text size="lg">
             These are promises, not release dates. Explore the territory, then tell us where we should go next.

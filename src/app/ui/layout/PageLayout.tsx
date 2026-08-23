@@ -1,14 +1,9 @@
 import { Children, isValidElement } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
+import { PageHeaderSizeProvider } from './pageHeaderSize';
+import type { PageHeaderSize } from './pageHeaderSize';
 import styles from './PageLayout.module.css';
-
-/**
- * What kind of header a page declares.
- * `compact` shrinks the band;
- * `hero` marks a page whose title is the display treatment, which the title Block reads back the way `AppHeader` reads the band size.
- */
-type PageHeaderSize = 'default' | 'compact' | 'hero';
 
 function Header(_: PropsWithChildren<{ size?: PageHeaderSize }>): null {
   return null;
@@ -69,7 +64,7 @@ function PageLayoutBase({ children }: PropsWithChildren) {
           its light-scheme rendering in both schemes (see tokens.css). */}
       {hasHeader && (
         <div className={styles.headerContent} data-scheme-paper>
-          {header}
+          <PageHeaderSizeProvider value={headerSize}>{header}</PageHeaderSizeProvider>
         </div>
       )}
       <main className={styles.content}>
