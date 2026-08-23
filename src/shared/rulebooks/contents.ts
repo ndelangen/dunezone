@@ -2,7 +2,7 @@ import { normalizeFormattedText } from '@shared/formattedText';
 import type { NormalizedFormattedText } from '@shared/formattedText';
 import { z } from 'zod';
 
-export const rulebookBlockKinds = ['text', 'repeated-text'] as const;
+const rulebookBlockKinds = ['text', 'repeated-text'] as const;
 
 const unboundedBootstrapSlot = {
   acceptedBlockKinds: rulebookBlockKinds,
