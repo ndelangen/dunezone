@@ -602,6 +602,8 @@ function RulesetDetailPage() {
                 }
               />
               <FaqList
+                emptyLabel="No FAQ items yet."
+                noMatchesLabel="No questions match your search."
                 items={page.faqItems}
                 rulesetSlug={r.slug}
                 searchQuery={search.q ?? ''}
