@@ -65,14 +65,17 @@ function AskerChip({
     return <span className={styles.selfNote}>Your question</span>;
   }
 
+  /* The sentence is the page's and stays unlinked; only the chip navigates. */
   return (
-    <ProfileLink
-      slug={profile.slug}
-      username={profile.username}
-      avatar_url={profile.avatar_url}
-      className={styles.askerLink}
-      label={`Question by ${profile.username ?? 'Unknown'}`}
-    />
+    <span className={styles.askerCitation}>
+      Question by{' '}
+      <ProfileLink
+        slug={profile.slug}
+        username={profile.username}
+        avatar_url={profile.avatar_url}
+        className={styles.askerLink}
+      />
+    </span>
   );
 }
 
