@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   Group,
-  SegmentedControl,
   Stack,
   Text,
   Textarea,
@@ -436,16 +435,14 @@ function RulebookEditorPage() {
             </Group>
           </Toolbar.Left>
           <Toolbar.Right>
-            <SegmentedControl
+            <Button
               size="xs"
-              aria-label="Preview fit"
-              value={fit}
-              onChange={(value) => setFit(value as PreviewFit)}
-              data={[
-                { value: 'height', label: 'Fit height' },
-                { value: 'width', label: 'Fit width' },
-              ]}
-            />
+              variant="default"
+              aria-label={`Switch preview to fit ${fit === 'height' ? 'width' : 'height'}`}
+              onClick={() => setFit((current) => (current === 'height' ? 'width' : 'height'))}
+            >
+              Fit {fit === 'height' ? 'width' : 'height'}
+            </Button>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

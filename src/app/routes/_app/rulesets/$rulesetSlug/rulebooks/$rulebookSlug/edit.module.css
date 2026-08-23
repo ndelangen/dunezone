@@ -303,3 +303,9 @@
     display: block;
   }
 }
+
+@media (max-width: 24rem) {
+  .mobileStatus {
+    display: none;
+  }
+}
