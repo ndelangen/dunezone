@@ -8,15 +8,27 @@
 
 export const EM_DASH = '—';
 
+/**
+ * Prose with its literals removed.
+ *
+ * A backtick span names a character or a pattern rather than using it, so `\u2014` inside one is a subject under discussion and not an em dash in a sentence.
+ * Without this the gates forbid their own documentation: a comment cannot say which character it rejects.
+ */
+export function stripInlineCode(text) {
+  return text.replace(/`[^`]*`/g, ' ');
+}
+
 export const CURLY_QUOTES = /[‘’“”]/;
 
 /**
  * Words that say nothing the sentence did not already say.
  * Words with an ordinary technical use are deliberately absent, because a guard that cries wolf gets switched off.
- * The list is quoted nowhere in prose, since both gates read their own source.
+ *
+ * `utiliz` takes a wildcard tail rather than a list of endings.
+ * It used to spell out `e|es|ing`, which let `utilized` and `utilization` through, and a list of endings is the same hand-written-copy trap in miniature.
  */
 export const FILLER =
-  /\b(?:simply|seamless(?:ly)?|delves?|crucial(?:ly)?|essentially|basically|holistic|streamlines?|utiliz(?:e|es|ing))\b/i;
+  /\b(?:simply|seamless(?:ly)?|delves?|crucial(?:ly)?|essentially|basically|holistic|streamlines?|utiliz\w*)\b/i;
 
 export const HEDGE = /\b(?:it (?:is|'s) (?:important|worth) (?:to note|noting)|note that)\b/i;
 
