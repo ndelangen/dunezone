@@ -178,12 +178,12 @@ function record(rel, lineNumber, tell, detail) {
   failures.push({ rel, lineNumber, tell, detail });
 }
 
-function emDashTell({ line }) {
-  return line.includes(EM_DASH) ? 'em dash' : null;
+function emDashTell({ stripped }) {
+  return stripped.includes(EM_DASH) ? 'em dash' : null;
 }
 
-function curlyQuoteTell({ line }) {
-  return CURLY_QUOTES.test(line) ? 'curly quote' : null;
+function curlyQuoteTell({ stripped }) {
+  return CURLY_QUOTES.test(stripped) ? 'curly quote' : null;
 }
 
 /** The matched word rides along, so the report names the word to cut. */
