@@ -13,7 +13,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
 
-import { CURLY_QUOTES, EM_DASH, EMOJI, FILLER, HEDGE } from './lib/ai-tells.mjs';
+import { CURLY_QUOTES, EM_DASH, EMOJI, FILLER, HEDGE, stripInlineCode } from './lib/ai-tells.mjs';
 
 const root = join(import.meta.dirname, '..');
 
@@ -124,10 +124,12 @@ function checksFor(rel) {
   return null;
 }
 
-/** Inline code, link targets and emphasis markers are not prose. */
+/**
+ * Inline code, link targets and emphasis markers are not prose.
+ * The backtick step is the shared one, so inline-code syntax is defined in a single place rather than once per gate.
+ */
 function stripInlineMarkup(text) {
-  return text
-    .replace(/`[^`]*`/g, ' ')
+  return stripInlineCode(text)
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/[*_]+/g, '');
 }
