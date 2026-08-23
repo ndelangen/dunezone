@@ -139,9 +139,7 @@ function FuturePlansPage() {
     <PageLayout>
       <PageLayout.Header size="hero">
         <SimpleGrid className={styles.hero} cols={{ base: 1, md: 2 }} spacing="xl">
-          <Stack gap="xs">
-            <PageTitle eyebrow="Our ambitions" title="A map of what Dune Zone could become" />
-          </Stack>
+          <PageTitle eyebrow="Our ambitions" title="A map of what Dune Zone could become" />
           <Text size="lg">
             These are promises, not release dates. Explore the territory, then tell us where we should go next.
           </Text>

@@ -38,7 +38,7 @@ export function PageTitle({ title, eyebrow }: PageTitleProps) {
   }
 
   return (
-    <Stack gap={4} className={styles.root}>
+    <Stack gap="var(--space-2)" className={styles.root}>
       {eyebrow === undefined ? null : <Eyebrow tone="inverse">{eyebrow}</Eyebrow>}
       <Title order={1} className={styles.title}>
         {title}
