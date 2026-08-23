@@ -40,6 +40,45 @@ _Avoid_: Featured faction
 **Faction card**:
 A reusable, identity-first summary of a faction shown in discovery grids, including the Faction catalogue and profile detail pages. It communicates faction identity and ruleset membership; stewardship and complete game content belong on the faction detail page.
 
+**Rulebook**:
+An ordered set of fixed-size pages belonging to a Ruleset, maintained collaboratively and intended for web reading and PDF export.
+
+**Rulebook Contents**:
+The versioned authored substance of a Rulebook: its Rulebook Pages, Rulebook Blocks, Repeated text items, and their ordering and placement. Rulebook identity, ownership, name, and other metadata remain outside its Contents.
+
+**Rulebook Page**:
+One fixed-size unit of Rulebook Contents whose chosen layout owns named slots for Rulebook Blocks.
+
+**Rulebook Block**:
+A stable, structured unit of authored content placed in one Rulebook Page slot.
+
+**Repeated text Block**:
+A Rulebook Block that owns an ordered collection of Repeated text items.
+
+**Repeated text item**:
+A stable text entry owned by one Repeated text Block.
+
+**Rulebook placement**:
+The ordered location of a Rulebook Page, Rulebook Block, or Repeated text item among its siblings. A placement is understood relative to stable sibling identities rather than as a numerical position.
+
+**Rulebook edit patch**:
+One editor's unsaved intended differences from a Rulebook reconciliation baseline.
+
+**Rulebook edit operation**:
+One intended creation, deletion, field change, placement, or restoration within a Rulebook edit patch.
+
+**Rulebook reconciliation baseline**:
+The saved Rulebook Contents state against which an editor's current edit patch is interpreted.
+
+**Rulebook saved revision**:
+One identified state of saved Rulebook Contents.
+
+**Rulebook incompatibility**:
+A saved change and a local intended change that produce different outcomes for the same Rulebook value or structure.
+
+**Rulebook incompatibility resolution**:
+An editor's chosen final outcome for one Rulebook incompatibility.
+
 **Calculated complexity rating**:
 The required estimate of how hard a faction is to play, derived from its rules. It remains distinct from an author's judgment so the estimate can be inspected and retuned without erasing that judgment.
 
