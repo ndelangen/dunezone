@@ -12,16 +12,16 @@ function Narrow(_: PropsWithChildren): null {
   return null;
 }
 
-/**
- * A wide column beside a narrow one, responsive by container query.
- * `rail="slim"` narrows the second column to a fixed-ish band, for pages whose matter is the wide column and whose rail only carries a preview and a few cards (Norbert, 2026-08-22).
- */
 type AsymmetricSplitLayoutProps = PropsWithChildren<{
   className?: string;
   /** `slim` narrows the second column to a fixed-ish band, for pages whose matter is the wide column. */
   rail?: 'reading' | 'slim';
 }>;
 
+/**
+ * A wide column beside a narrow one, responsive by container query.
+ * `rail="slim"` narrows the second column to a fixed-ish band, for pages whose matter is the wide column and whose rail only carries a preview and a few cards (Norbert, 2026-08-22).
+ */
 function AsymmetricSplitLayoutBase({ className, rail = 'reading', children }: AsymmetricSplitLayoutProps) {
   let wide: ReactNode = null;
   let narrow: ReactNode = null;

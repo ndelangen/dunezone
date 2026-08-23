@@ -30,18 +30,6 @@ export type PreviewChoiceOption<T extends string> = {
   detail?: ReactNode;
 };
 
-/**
- * Chooses between a few options by showing what each one produces, rather than by naming them.
- *
- * For choices where the answer is a picture: a background, a token's back, a deck's cardback.
- * Reading a label tells you which words you picked;
- * a preview tells you what you will get, which is the only question being asked.
- * Callers own the aspect ratio, because a token, a card and a background disagree about shape.
- *
- * The tile is a box, not a control.
- * A real radio is stretched invisibly across it and does the choosing, so grouping, arrow keys and the announcement are the platform's rather than ours.
- * An option's own control is a sibling of the art inside that box, never a descendant of the thing you press to choose, which is what a nested control would have been.
- */
 /*
  * Contain-fits a fixed-canvas preview to the tile's art box.
  * `CanvasScale` fits width only, which is right for a rail; a tile also has a height that a control
@@ -83,6 +71,18 @@ function ContainFit({ width, height, children }: { width: number; height: number
   );
 }
 
+/**
+ * Chooses between a few options by showing what each one produces, rather than by naming them.
+ *
+ * For choices where the answer is a picture: a background, a token's back, a deck's cardback.
+ * Reading a label tells you which words you picked;
+ * a preview tells you what you will get, which is the only question being asked.
+ * Callers own the aspect ratio, because a token, a card and a background disagree about shape.
+ *
+ * The tile is a box, not a control.
+ * A real radio is stretched invisibly across it and does the choosing, so grouping, arrow keys and the announcement are the platform's rather than ours.
+ * An option's own control is a sibling of the art inside that box, never a descendant of the thing you press to choose, which is what a nested control would have been.
+ */
 export function PreviewChoice<T extends string>({
   label,
   value,
