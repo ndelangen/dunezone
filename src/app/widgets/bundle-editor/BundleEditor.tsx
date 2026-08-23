@@ -148,113 +148,116 @@ export function BundleEditor({
   const totalTokens = members.reduce((sum, member) => sum + member.count, 0);
 
   return (
-    <WorkbenchLayout.Workbench onBlurCapture={onSettle}>
+    <WorkbenchLayout.Workbench>
       <WorkbenchLayout.Chapters>
-        <ConnectedTabs<BundleChapter>
-          value={chapter}
-          onValueChange={(next) => {
-            onChapterChange(next);
-            onSettle();
-          }}
-          ariaLabel="Bundle chapters"
-          items={[
-            {
-              value: 'identity',
-              label: 'Identity',
-              icon: <TopicIcon topic="identity" size={21} />,
-              panel: panel(
-                <>
-                  <ControlBlock title="Name" description="Determines the bundle's URL." input={nameField} />
-                  <ControlBlock
-                    title="Band"
-                    description="A bundle has no face of its own, so this is what tells it apart. Stock or authored; nothing about the choice is stored either way."
-                    input={
-                      <Select
-                        aria-label="Band"
-                        allowDeselect={false}
-                        data={[
-                          ...STOCK_BANDS.map((stock) => ({ value: stock.key, label: `${stock.label} band` })),
-                          { value: CUSTOM, label: 'Custom…' },
-                        ]}
-                        value={selected}
-                        onChange={(next) => {
-                          if (next === CUSTOM) {
-                            /* Custom keeps the current composition and reveals the fields below. */
-                            setCustomChosen(true);
-                            return;
-                          }
-                          const stock = STOCK_BANDS.find((candidate) => candidate.key === next);
-                          if (stock) {
-                            setCustomChosen(false);
-                            patch({ band: stock.band });
-                          }
-                        }}
-                      />
-                    }
-                  />
-                  {selected === CUSTOM ? <BandFields band={draft.band} onChange={(band) => patch({ band })} /> : null}
-                </>
-              ),
-            },
-            {
-              value: 'tokens',
-              label: 'Tokens',
-              icon: <TopicIcon topic="contents" size={21} />,
-              panel: panel(
-                <>
-                  <ControlBlock
-                    title="Contents"
-                    description="Which tokens this bundle holds, and how many of each, from any community token whoever made it. Shapes may be mixed freely."
-                    tool={tokenPicker}
-                    input={
-                      members.length === 0 ? (
-                        <Text size="sm" c="dimmed">
-                          No tokens yet.
-                        </Text>
-                      ) : (
-                        <Stack gap="xs">
-                          {members.map((member) => (
-                            <Group key={member.token.id} gap="sm" wrap="nowrap" align="center">
-                              <AssetFace
-                                type={member.token.type}
-                                data={member.token.data}
-                                name={member.token.name}
-                                width={34}
-                              />
-                              <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
-                                {member.token.name}
-                              </Text>
-                              <MemberCountInput
-                                label={`How many ${member.token.name}`}
-                                min={1}
-                                max={99}
-                                disabled={onCountChange === null}
-                                value={member.count}
-                                onCommit={(count) => onCountChange?.(member.token.id, count)}
-                              />
-                              {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
-                              <ConfirmDeleteAction
-                                label={`Remove ${member.token.name}`}
-                                verb="remove"
-                                pending={countPending && removingId === member.token.id}
-                                disabled={onCountChange === null}
-                                onConfirm={() => {
-                                  setRemovingId(member.token.id);
-                                  onCountChange?.(member.token.id, 0);
-                                }}
-                              />
-                            </Group>
-                          ))}
-                        </Stack>
-                      )
-                    }
-                  />
-                </>
-              ),
-            },
-            aboutChapter(draft.about, (about) => patch({ about })),
-          ]}
-        />
+        {/* Settling on focus leaving the fields is the editors' idiom, not the layout's, so it rides an element this widget owns. */}
+        <div onBlurCapture={onSettle}>
+          <ConnectedTabs<BundleChapter>
+            value={chapter}
+            onValueChange={(next) => {
+              onChapterChange(next);
+              onSettle();
+            }}
+            ariaLabel="Bundle chapters"
+            items={[
+              {
+                value: 'identity',
+                label: 'Identity',
+                icon: <TopicIcon topic="identity" size={21} />,
+                panel: panel(
+                  <>
+                    <ControlBlock title="Name" description="Determines the bundle's URL." input={nameField} />
+                    <ControlBlock
+                      title="Band"
+                      description="A bundle has no face of its own, so this is what tells it apart. Stock or authored; nothing about the choice is stored either way."
+                      input={
+                        <Select
+                          aria-label="Band"
+                          allowDeselect={false}
+                          data={[
+                            ...STOCK_BANDS.map((stock) => ({ value: stock.key, label: `${stock.label} band` })),
+                            { value: CUSTOM, label: 'Custom…' },
+                          ]}
+                          value={selected}
+                          onChange={(next) => {
+                            if (next === CUSTOM) {
+                              /* Custom keeps the current composition and reveals the fields below. */
+                              setCustomChosen(true);
+                              return;
+                            }
+                            const stock = STOCK_BANDS.find((candidate) => candidate.key === next);
+                            if (stock) {
+                              setCustomChosen(false);
+                              patch({ band: stock.band });
+                            }
+                          }}
+                        />
+                      }
+                    />
+                    {selected === CUSTOM ? <BandFields band={draft.band} onChange={(band) => patch({ band })} /> : null}
+                  </>
+                ),
+              },
+              {
+                value: 'tokens',
+                label: 'Tokens',
+                icon: <TopicIcon topic="contents" size={21} />,
+                panel: panel(
+                  <>
+                    <ControlBlock
+                      title="Contents"
+                      description="Which tokens this bundle holds, and how many of each, from any community token whoever made it. Shapes may be mixed freely."
+                      tool={tokenPicker}
+                      input={
+                        members.length === 0 ? (
+                          <Text size="sm" c="dimmed">
+                            No tokens yet.
+                          </Text>
+                        ) : (
+                          <Stack gap="xs">
+                            {members.map((member) => (
+                              <Group key={member.token.id} gap="sm" wrap="nowrap" align="center">
+                                <AssetFace
+                                  type={member.token.type}
+                                  data={member.token.data}
+                                  name={member.token.name}
+                                  width={34}
+                                />
+                                <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
+                                  {member.token.name}
+                                </Text>
+                                <MemberCountInput
+                                  label={`How many ${member.token.name}`}
+                                  min={1}
+                                  max={99}
+                                  disabled={onCountChange === null}
+                                  value={member.count}
+                                  onCommit={(count) => onCountChange?.(member.token.id, count)}
+                                />
+                                {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
+                                <ConfirmDeleteAction
+                                  label={`Remove ${member.token.name}`}
+                                  verb="remove"
+                                  pending={countPending && removingId === member.token.id}
+                                  disabled={onCountChange === null}
+                                  onConfirm={() => {
+                                    setRemovingId(member.token.id);
+                                    onCountChange?.(member.token.id, 0);
+                                  }}
+                                />
+                              </Group>
+                            ))}
+                          </Stack>
+                        )
+                      }
+                    />
+                  </>
+                ),
+              },
+              aboutChapter(draft.about, (about) => patch({ about })),
+            ]}
+          />
+        </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <Stack gap="md" align="center">

@@ -307,156 +307,159 @@ export function DeckEditor({
   const totalCards = members.reduce((sum, member) => sum + member.count, 0);
 
   return (
-    <WorkbenchLayout.Workbench onBlurCapture={onSettle}>
+    <WorkbenchLayout.Workbench>
       <WorkbenchLayout.Chapters>
-        <ConnectedTabs<DeckChapter>
-          value={chapter}
-          onValueChange={(next) => {
-            onChapterChange(next);
-            onSettle();
-          }}
-          ariaLabel="Deck chapters"
-          items={[
-            {
-              value: 'identity',
-              label: 'Identity',
-              icon: <TopicIcon topic="identity" size={21} />,
-              panel: panel(
-                <>
-                  <ControlBlock title="Name" description="Determines the deck's URL." input={nameField} />
-                  <ControlBlock
-                    title="Card back"
-                    description="Every deck wears exactly one. The deck publishes its own image either way, so a stock back only supplies the artwork."
-                    input={
-                      <PreviewChoice
-                        label="Card back"
-                        value={tileFor(draft.cardback, stockKey, customChosen)}
-                        aspectRatio={String(1 / assetFaceAspect('deck'))}
-                        onChange={(tile) => {
-                          setCustomChosen(tile === CUSTOM);
-                          /* Captured on the way out, so returning to Composed finds the composition as it was left. */
-                          if (composition) {
-                            composedCardback.current = composition;
-                          }
-                          const next = cardbackForTile(tile, draft.cardback, stockKey, composedCardback.current);
-                          if (next) {
-                            patch({ cardback: next });
-                          }
-                        }}
-                        options={[
-                          {
-                            value: 'stock',
-                            label: 'Stock',
-                            /* Always drawable: the stock look this deck wears, or the first standing in. */
-                            preview: <CardbackProof cardback={stockPreview} width={PROOF_CANVAS} />,
-                            canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
-                            detail: (
-                              <Select
-                                aria-label="Which stock back"
-                                size="xs"
-                                allowDeselect={false}
-                                data={STOCK_CARDBACKS.map((stock) => ({ value: stock.key, label: stock.label }))}
-                                value={stockKey ?? STOCK_CARDBACKS[0]!.key}
-                                onChange={(next) => {
-                                  const stock = STOCK_CARDBACKS.find((candidate) => candidate.key === next);
-                                  if (stock) {
-                                    patch({ cardback: { mode: 'custom', ...stock.cardback } });
-                                  }
-                                }}
-                              />
-                            ),
-                          },
-                          {
-                            value: CUSTOM,
-                            label: 'Composed here',
-                            /* Always drawable, the stock tile's own rule: the live composition, the one the author left behind, or the first stock look standing in. Never a dashed nothing (Norbert, 2026-08-21). */
-                            preview: (
-                              <CardbackProof
-                                cardback={composition ?? composedCardback.current ?? STOCK_CARDBACKS[0]!.cardback}
-                                width={PROOF_CANVAS}
-                              />
-                            ),
-                            canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
-                          },
-                          {
-                            value: 'reference',
-                            label: "Another deck's back",
-                            preview: backProof ?? undefined,
-                            emptyHint: <Text size="xs">No deck chosen</Text>,
-                            detail: backPicker,
-                          },
-                        ]}
-                      />
-                    }
-                  />
-                  {composition && customChosen ? (
-                    <CardbackFields
-                      cardback={composition}
-                      onChange={(next) => patch({ cardback: { mode: 'custom', ...next } })}
+        {/* Settling on focus leaving the fields is the editors' idiom, not the layout's, so it rides an element this widget owns. */}
+        <div onBlurCapture={onSettle}>
+          <ConnectedTabs<DeckChapter>
+            value={chapter}
+            onValueChange={(next) => {
+              onChapterChange(next);
+              onSettle();
+            }}
+            ariaLabel="Deck chapters"
+            items={[
+              {
+                value: 'identity',
+                label: 'Identity',
+                icon: <TopicIcon topic="identity" size={21} />,
+                panel: panel(
+                  <>
+                    <ControlBlock title="Name" description="Determines the deck's URL." input={nameField} />
+                    <ControlBlock
+                      title="Card back"
+                      description="Every deck wears exactly one. The deck publishes its own image either way, so a stock back only supplies the artwork."
+                      input={
+                        <PreviewChoice
+                          label="Card back"
+                          value={tileFor(draft.cardback, stockKey, customChosen)}
+                          aspectRatio={String(1 / assetFaceAspect('deck'))}
+                          onChange={(tile) => {
+                            setCustomChosen(tile === CUSTOM);
+                            /* Captured on the way out, so returning to Composed finds the composition as it was left. */
+                            if (composition) {
+                              composedCardback.current = composition;
+                            }
+                            const next = cardbackForTile(tile, draft.cardback, stockKey, composedCardback.current);
+                            if (next) {
+                              patch({ cardback: next });
+                            }
+                          }}
+                          options={[
+                            {
+                              value: 'stock',
+                              label: 'Stock',
+                              /* Always drawable: the stock look this deck wears, or the first standing in. */
+                              preview: <CardbackProof cardback={stockPreview} width={PROOF_CANVAS} />,
+                              canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
+                              detail: (
+                                <Select
+                                  aria-label="Which stock back"
+                                  size="xs"
+                                  allowDeselect={false}
+                                  data={STOCK_CARDBACKS.map((stock) => ({ value: stock.key, label: stock.label }))}
+                                  value={stockKey ?? STOCK_CARDBACKS[0]!.key}
+                                  onChange={(next) => {
+                                    const stock = STOCK_CARDBACKS.find((candidate) => candidate.key === next);
+                                    if (stock) {
+                                      patch({ cardback: { mode: 'custom', ...stock.cardback } });
+                                    }
+                                  }}
+                                />
+                              ),
+                            },
+                            {
+                              value: CUSTOM,
+                              label: 'Composed here',
+                              /* Always drawable, the stock tile's own rule: the live composition, the one the author left behind, or the first stock look standing in. Never a dashed nothing (Norbert, 2026-08-21). */
+                              preview: (
+                                <CardbackProof
+                                  cardback={composition ?? composedCardback.current ?? STOCK_CARDBACKS[0]!.cardback}
+                                  width={PROOF_CANVAS}
+                                />
+                              ),
+                              canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
+                            },
+                            {
+                              value: 'reference',
+                              label: "Another deck's back",
+                              preview: backProof ?? undefined,
+                              emptyHint: <Text size="xs">No deck chosen</Text>,
+                              detail: backPicker,
+                            },
+                          ]}
+                        />
+                      }
                     />
-                  ) : null}
-                </>
-              ),
-            },
-            {
-              value: 'cards',
-              label: 'Cards',
-              icon: <TopicIcon topic="contents" size={21} />,
-              panel: panel(
-                <>
-                  <ControlBlock
-                    title="Composition"
-                    description="How many of each card this deck holds, from any community card whoever made it. Duplicates are a count, not repeated rows."
-                    tool={cardPicker}
-                    input={
-                      members.length === 0 ? (
-                        <Text size="sm" c="dimmed">
-                          No cards yet.
-                        </Text>
-                      ) : (
-                        <Stack gap="xs">
-                          {members.map((member) => (
-                            <Group key={member.card.id} gap="sm" wrap="nowrap" align="center">
-                              <AssetFace
-                                type={member.card.type}
-                                data={member.card.data}
-                                name={member.card.name}
-                                width={34}
-                              />
-                              <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
-                                {member.card.name}
-                              </Text>
-                              <MemberCountInput
-                                label={`Copies of ${member.card.name}`}
-                                min={1}
-                                max={99}
-                                disabled={onCountChange === null}
-                                value={member.count}
-                                onCommit={(count) => onCountChange?.(member.card.id, count)}
-                              />
-                              {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
-                              <ConfirmDeleteAction
-                                label={`Remove ${member.card.name}`}
-                                verb="remove"
-                                pending={countPending && removingId === member.card.id}
-                                disabled={onCountChange === null}
-                                onConfirm={() => {
-                                  setRemovingId(member.card.id);
-                                  onCountChange?.(member.card.id, 0);
-                                }}
-                              />
-                            </Group>
-                          ))}
-                        </Stack>
-                      )
-                    }
-                  />
-                </>
-              ),
-            },
-            aboutChapter(draft.about, (about) => patch({ about })),
-          ]}
-        />
+                    {composition && customChosen ? (
+                      <CardbackFields
+                        cardback={composition}
+                        onChange={(next) => patch({ cardback: { mode: 'custom', ...next } })}
+                      />
+                    ) : null}
+                  </>
+                ),
+              },
+              {
+                value: 'cards',
+                label: 'Cards',
+                icon: <TopicIcon topic="contents" size={21} />,
+                panel: panel(
+                  <>
+                    <ControlBlock
+                      title="Composition"
+                      description="How many of each card this deck holds, from any community card whoever made it. Duplicates are a count, not repeated rows."
+                      tool={cardPicker}
+                      input={
+                        members.length === 0 ? (
+                          <Text size="sm" c="dimmed">
+                            No cards yet.
+                          </Text>
+                        ) : (
+                          <Stack gap="xs">
+                            {members.map((member) => (
+                              <Group key={member.card.id} gap="sm" wrap="nowrap" align="center">
+                                <AssetFace
+                                  type={member.card.type}
+                                  data={member.card.data}
+                                  name={member.card.name}
+                                  width={34}
+                                />
+                                <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
+                                  {member.card.name}
+                                </Text>
+                                <MemberCountInput
+                                  label={`Copies of ${member.card.name}`}
+                                  min={1}
+                                  max={99}
+                                  disabled={onCountChange === null}
+                                  value={member.count}
+                                  onCommit={(count) => onCountChange?.(member.card.id, count)}
+                                />
+                                {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
+                                <ConfirmDeleteAction
+                                  label={`Remove ${member.card.name}`}
+                                  verb="remove"
+                                  pending={countPending && removingId === member.card.id}
+                                  disabled={onCountChange === null}
+                                  onConfirm={() => {
+                                    setRemovingId(member.card.id);
+                                    onCountChange?.(member.card.id, 0);
+                                  }}
+                                />
+                              </Group>
+                            ))}
+                          </Stack>
+                        )
+                      }
+                    />
+                  </>
+                ),
+              },
+              aboutChapter(draft.about, (about) => patch({ about })),
+            ]}
+          />
+        </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <Stack gap="md" align="center">

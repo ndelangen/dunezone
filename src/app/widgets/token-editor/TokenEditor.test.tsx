@@ -39,7 +39,13 @@ afterEach(cleanup);
 const TYPE = 'token-disc';
 
 /** The draft is real state, because what is guarded here is what survives a re-render. */
-function Harness({ expose }: { expose: (state: { draft: TokenDraft; setDraft: (next: TokenDraft) => void }) => void }) {
+function Harness({
+  expose = () => {},
+  onSettle = () => {},
+}: {
+  expose?: (state: { draft: TokenDraft; setDraft: (next: TokenDraft) => void }) => void;
+  onSettle?: () => void;
+}) {
   const [draft, setDraft] = useState<TokenDraft>(initialTokenDraft(TYPE));
   const [chapter, setChapter] = useState<TokenChapter>('identity');
   expose({ draft, setDraft });
@@ -52,7 +58,7 @@ function Harness({ expose }: { expose: (state: { draft: TokenDraft; setDraft: (n
         type={TYPE}
         chapter={chapter}
         onChapterChange={setChapter}
-        onSettle={() => {}}
+        onSettle={onSettle}
         backPicker={() => null}
         backProof={null}
       />
@@ -95,4 +101,21 @@ it('warns that a chosen reference has no token picked, from the draft alone', ()
   expect(
     tokenDraftWarnings({ ...initialTokenDraft(TYPE), back: { mode: 'reference', asset_id: 'picked' } })
   ).not.toContainEqual({ source: 'Identity', missing: 'a back token', chapter: 'identity' });
+});
+
+/**
+ * `onSettle` is documented as firing on field blur, and the element carrying that is this editor's own, not the layout's: `WorkbenchLayout` arranges chapters beside a rail and knows nothing about drafts.
+ * Pinned because the handler moved here off the layout's grid, and a wrong element fails silently.
+ * Note the event: React implements `onBlur` over `focusout`, so a non-bubbling `blur` never reaches it.
+ */
+it('settles when focus leaves a field', () => {
+  const onSettle = vi.fn();
+  render(<Harness onSettle={onSettle} />);
+  const name = document.querySelector('input[aria-label="Name"]');
+  if (name === null) {
+    throw new Error('the harness renders a name field');
+  }
+  fireEvent.focus(name);
+  fireEvent.focusOut(name);
+  expect(onSettle).toHaveBeenCalled();
 });

@@ -434,17 +434,20 @@ export function TokenEditor({
   const activeChapter = items.some((item) => item.value === chapter) ? chapter : 'identity';
 
   return (
-    <WorkbenchLayout.Workbench onBlurCapture={onSettle}>
+    <WorkbenchLayout.Workbench>
       <WorkbenchLayout.Chapters>
-        <ConnectedTabs<TokenChapter>
-          value={activeChapter}
-          onValueChange={(next) => {
-            onChapterChange(next);
-            onSettle();
-          }}
-          ariaLabel="Token chapters"
-          items={items}
-        />
+        {/* Settling on focus leaving the fields is the editors' idiom, not the layout's, so it rides an element this widget owns. */}
+        <div onBlurCapture={onSettle}>
+          <ConnectedTabs<TokenChapter>
+            value={activeChapter}
+            onValueChange={(next) => {
+              onChapterChange(next);
+              onSettle();
+            }}
+            ariaLabel="Token chapters"
+            items={items}
+          />
+        </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <Stack gap="md" align="center">
