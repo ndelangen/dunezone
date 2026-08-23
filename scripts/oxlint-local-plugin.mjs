@@ -2,7 +2,16 @@
  * NOTE: This rule is intentionally conservative and only rewrites block comments.
  */
 
-import { CURLY_QUOTES, DECORATIVE_DIVIDER, DIRECTIVE_COMMENT, EM_DASH, EMOJI, FILLER, HEDGE } from './lib/ai-tells.mjs';
+import {
+  CURLY_QUOTES,
+  DECORATIVE_DIVIDER,
+  DIRECTIVE_COMMENT,
+  EM_DASH,
+  EMOJI,
+  FILLER,
+  HEDGE,
+  stripInlineCode,
+} from './lib/ai-tells.mjs';
 const BLOCK_TO_LINE_MESSAGE = 'Prefer normalized block comment formatting.';
 
 const RULE_NAME = 'prefer-block-comments';
@@ -202,12 +211,14 @@ const AI_TELL_CHECKS = [
 /**
  * Every messageId a comment's text carries, in the order the checks run.
  * A directive comment carries none: an `oxlint-disable` line is an instruction to a tool, and its payload is not English.
+ * Backtick spans come out first, so a comment can name the character it rejects instead of being unable to discuss its own rule.
  */
 function tellsIn(text) {
   if (DIRECTIVE_COMMENT.test(text)) {
     return [];
   }
-  return AI_TELL_CHECKS.filter((check) => check.test(text)).map((check) => check.messageId);
+  const prose = stripInlineCode(text);
+  return AI_TELL_CHECKS.filter((check) => check.test(prose)).map((check) => check.messageId);
 }
 
 /**
