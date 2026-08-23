@@ -86,9 +86,17 @@ function PreviewBlock({ block }: { block: RulebookBlockDraft }) {
   );
 }
 
-function PreviewSlot({ blockIds, draft }: { blockIds: readonly string[]; draft: RulebookContentsDraftV1 }) {
+function PreviewSlot({
+  blockIds,
+  draft,
+  label,
+}: {
+  blockIds: readonly string[];
+  draft: RulebookContentsDraftV1;
+  label?: string;
+}) {
   return (
-    <div className={styles.previewSlot}>
+    <div className={styles.previewSlot} role={label ? 'group' : undefined} aria-label={label}>
       {blockIds.map((blockId) => {
         const block = draft.blocksById[blockId];
         return block ? <PreviewBlock key={blockId} block={block} /> : null;
@@ -117,8 +125,8 @@ function RulebookPagePreview({
             <PreviewSlot blockIds={page.slots.body} draft={draft} />
           ) : (
             <div className={styles.previewColumns}>
-              <PreviewSlot blockIds={page.slots.left} draft={draft} />
-              <PreviewSlot blockIds={page.slots.right} draft={draft} />
+              <PreviewSlot blockIds={page.slots.left} draft={draft} label="Left page column" />
+              <PreviewSlot blockIds={page.slots.right} draft={draft} label="Right page column" />
             </div>
           )}
         </article>
@@ -293,63 +301,68 @@ function RulebookEditorPage() {
             This page uses the starter Rulebook in this browser tab. It does not load from or save to the database.
           </Alert>
           {page ? (
-            <WorkbenchLayout.Workbench>
-              <WorkbenchLayout.Chapters>
-                <Surface padding="lg" as="section" aria-labelledby="rulebook-editor-controls-title">
-                  <Stack gap="lg">
-                    <Group justify="space-between" align="flex-start" wrap="wrap">
-                      <Stack gap={2}>
-                        <Title id="rulebook-editor-controls-title" order={2} size="h4">
-                          {mode === 'navigate' ? 'Choose a page' : `Edit Page ${pageNumber}`}
-                        </Title>
-                        <Text size="sm" c="dimmed">
-                          Page navigation and text editing use separate modes.
-                        </Text>
-                      </Stack>
-                      <SegmentedControl
-                        aria-label="Editor mode"
-                        value={mode}
-                        onChange={(value) => setMode(value as EditorMode)}
-                        data={[
-                          { value: 'navigate', label: 'Choose page' },
-                          { value: 'edit', label: 'Edit page' },
-                        ]}
-                      />
-                    </Group>
+            <section className={styles.workspaceSticky} data-fit={fit} aria-label="Rulebook editing workspace">
+              <div className={styles.workspaceScroller} role="group" aria-label="Editor and preview">
+                <div className={styles.workspace}>
+                  <div className={styles.controlsScroll}>
+                    <Surface padding="lg" as="section" aria-labelledby="rulebook-editor-controls-title">
+                      <Stack gap="lg">
+                        <Group justify="space-between" align="flex-start" wrap="wrap">
+                          <Stack gap={2}>
+                            <Title id="rulebook-editor-controls-title" order={2} size="h4">
+                              {mode === 'navigate' ? 'Choose a page' : `Edit Page ${pageNumber}`}
+                            </Title>
+                            <Text size="sm" c="dimmed">
+                              Page navigation and text editing use separate modes.
+                            </Text>
+                          </Stack>
+                          <SegmentedControl
+                            aria-label="Editor mode"
+                            value={mode}
+                            onChange={(value) => setMode(value as EditorMode)}
+                            data={[
+                              { value: 'navigate', label: 'Choose page' },
+                              { value: 'edit', label: 'Edit page' },
+                            ]}
+                          />
+                        </Group>
 
-                    {mode === 'navigate' ? (
-                      <Stack component="nav" aria-label="Rulebook pages" gap="xs">
-                        {result.draft.pageOrder.map((candidateId, index) => {
-                          const candidate = result.draft.pagesById[candidateId];
-                          return candidate ? (
-                            <Button
-                              key={candidateId}
-                              variant={candidateId === pageId ? 'filled' : 'light'}
-                              color={candidateId === pageId ? 'confirm' : 'gray'}
-                              justify="space-between"
-                              aria-current={candidateId === pageId ? 'page' : undefined}
-                              onClick={() => setActivePageId(candidateId)}
-                            >
-                              <span>Page {index + 1}</span>
-                              <Text component="span" size="xs" inherit opacity={0.7}>
-                                {candidate.anchor}
-                              </Text>
-                            </Button>
-                          ) : null;
-                        })}
+                        {mode === 'navigate' ? (
+                          <Stack component="nav" aria-label="Rulebook pages" gap="xs">
+                            {result.draft.pageOrder.map((candidateId, index) => {
+                              const candidate = result.draft.pagesById[candidateId];
+                              return candidate ? (
+                                <Button
+                                  key={candidateId}
+                                  variant={candidateId === pageId ? 'filled' : 'light'}
+                                  color={candidateId === pageId ? 'confirm' : 'gray'}
+                                  justify="space-between"
+                                  aria-current={candidateId === pageId ? 'page' : undefined}
+                                  onClick={() => {
+                                    setActivePageId(candidateId);
+                                    setMode('edit');
+                                  }}
+                                >
+                                  <span>Page {index + 1}</span>
+                                  <Text component="span" size="xs" inherit opacity={0.7}>
+                                    {candidate.anchor}
+                                  </Text>
+                                </Button>
+                              ) : null;
+                            })}
+                          </Stack>
+                        ) : (
+                          <PageTextEditors page={page} result={result} dispatch={dispatch} />
+                        )}
                       </Stack>
-                    ) : (
-                      <PageTextEditors page={page} result={result} dispatch={dispatch} />
-                    )}
-                  </Stack>
-                </Surface>
-              </WorkbenchLayout.Chapters>
-              <WorkbenchLayout.Rail>
-                <section className={styles.previewRail} aria-label="Rulebook page preview" aria-live="polite">
-                  <RulebookPagePreview page={page} pageNumber={pageNumber} draft={result.draft} fit={fit} />
-                </section>
-              </WorkbenchLayout.Rail>
-            </WorkbenchLayout.Workbench>
+                    </Surface>
+                  </div>
+                  <section className={styles.previewRail} aria-label="Rulebook page preview">
+                    <RulebookPagePreview page={page} pageNumber={pageNumber} draft={result.draft} fit={fit} />
+                  </section>
+                </div>
+              </div>
+            </section>
           ) : (
             <Alert color="yellow" role="status" title="No page selected">
               The local starter session has no Page to edit.
