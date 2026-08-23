@@ -13,12 +13,12 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core';
+import { useReducedMotion } from '@mantine/hooks';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
-import { AnimatedLeaderToken } from '@ui/content/AnimatedLeaderToken';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { CallToAction } from '@ui/control/CallToAction';
@@ -28,10 +28,13 @@ import { TriptychLayout } from '@ui/layout/TriptychLayout';
 import { Bullets } from '@ui/list/Bullets';
 import { Surface } from '@ui/surface';
 import { ArrowRight, BookOpen, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { FaRedditAlien } from 'react-icons/fa6';
 import { SiBoardgamegeek, SiDiscord } from 'react-icons/si';
 
 import { loadHomepage, useHomepage } from '@db/homepage';
+import { LeaderToken } from '@game/assets/faction/leader/Leader';
+import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import styles from './index.module.css';
 
@@ -295,6 +298,102 @@ function IndexPage() {
         </Stack>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+/* The three portraits and three edits the token cycles through. Baked in because they are this
+   page's illustration rather than anyone's data. */
+const LEADER_PORTRAITS = [
+  '/image/leader/ilya/ecaz.jpg',
+  '/image/leader/ilya/hundro.jpg',
+  '/image/leader/ilya/korba.png',
+] as const;
+
+const LEADER_EDITS = [
+  { name: 'Lady Siona', strength: '4', ...factionTokenFixtures.ecaz },
+  { name: 'Duke Maros', strength: '2', ...factionTokenFixtures.moritani },
+  { name: 'Farok', strength: '5', ...factionTokenFixtures.fremen },
+] as const;
+
+type LeaderAnimationPhase = 'hold' | 'transition' | 'typing';
+
+/**
+ * A real leader token demonstrating gradual edits while keeping its portrait.
+ *
+ * It lives here rather than in the kit because it has no membrane to judge a kind at: no props, both data sets baked in, and one page that renders it.
+ */
+function AnimatedLeaderToken() {
+  const reduceMotion = useReducedMotion();
+  const [portrait, setPortrait] = useState<(typeof LEADER_PORTRAITS)[number]>(LEADER_PORTRAITS[0]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
+  const [phase, setPhase] = useState<LeaderAnimationPhase>('hold');
+  const [typedLength, setTypedLength] = useState(LEADER_EDITS[0].name.length);
+  const leader = LEADER_EDITS[currentIndex];
+
+  useEffect(() => {
+    setPortrait(LEADER_PORTRAITS[Math.floor(Math.random() * LEADER_PORTRAITS.length)]);
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      return;
+    }
+
+    let delay = 1800;
+    const advance = () => {
+      if (phase === 'hold') {
+        setPreviousIndex(currentIndex);
+        setCurrentIndex((current) => (current + 1) % LEADER_EDITS.length);
+        setTypedLength(0);
+        setPhase('transition');
+        return;
+      }
+      if (phase === 'transition') {
+        setPreviousIndex(null);
+        setPhase('typing');
+        return;
+      }
+      if (typedLength < leader.name.length) {
+        setTypedLength((current) => current + 1);
+        return;
+      }
+      setPhase('hold');
+    };
+
+    if (phase === 'transition') {
+      delay = 850;
+    }
+    if (phase === 'typing') {
+      delay = typedLength < leader.name.length ? 90 : 700;
+    }
+    const timer = window.setTimeout(advance, delay);
+    return () => window.clearTimeout(timer);
+  }, [currentIndex, leader.name.length, phase, reduceMotion, typedLength]);
+
+  const displayedName = (() => {
+    switch (phase) {
+      case 'hold':
+        return leader.name;
+      case 'typing':
+        return leader.name.slice(0, typedLength);
+      /* Mid-transition the name is empty, so the outgoing token fades without its label sliding. */
+      default:
+        return '';
+    }
+  })();
+
+  return (
+    <div className={styles.leaderToken} role="img" aria-label="An example leader token changing as it is edited">
+      {previousIndex !== null ? (
+        <div className={styles.leaderTokenPrevious}>
+          <LeaderToken {...LEADER_EDITS[previousIndex]} image={portrait} />
+        </div>
+      ) : null}
+      <div className={previousIndex === null ? styles.leaderTokenStable : styles.leaderTokenCurrent}>
+        <LeaderToken {...leader} image={portrait} name={displayedName || '\u00a0'} />
+      </div>
+    </div>
   );
 }
 

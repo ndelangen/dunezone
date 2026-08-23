@@ -59,7 +59,10 @@ _Avoid_: interface, API. Both are one-way words that say how to call the thing, 
 back out, or what may never cross at all.
 
 **Organ**:
-A file whose only importers are its own feature's or category's machinery. Two obligations, no
+A file whose only importers are its own feature's or category's machinery. For the kit's own organs
+(`BlockHeading`, the depth context) the machinery is the kit as a whole rather than one category: a
+Surface naming itself takes its heading from the same file a Block uses, and that file stays as
+private as ever. Two obligations, no
 exceptions: nothing outside may import it, and it carries no story. A file that gains an outside
 importer or a story is no longer an organ. It is vocabulary that needs a proper home.
 _Avoid_: internal, private, helper. All three claim visibility without the obligations.
@@ -160,16 +163,26 @@ Outside the kit:
 - **Widgets** (`src/app/widgets/<name>`) are an assembly too domain-specific to be kit and too
   shared to be one page's JSX. Prefab: built outside the page only because two or more routes
   install the identical thing.
-  - **Last resort.** A widget exists only when ≥2 routes need the same assembly. One route → it
-    is page composition, not a component.
+  - **Last resort, with one more rung.** A widget extracted from pages exists only when ≥2 routes
+    need the same assembly; one route → it is page composition, not a component. A widget may also
+    be installed by other widgets, with no minimum count: widgets are complex bulk chunks, and
+    splitting one into child widgets is legitimate to reduce complexity or preemptively when reuse
+    is expected.
   - **Pages own the data.** A page hands a widget its value and callbacks; a widget never fetches
     and never routes. The day it does, it has become a page fragment wearing a component's name.
+  - **Derive, don't mirror.** A widget may hold no state whose correctness depends on the history
+    of the draft its caller owns. Anything derivable from the draft is computed each render;
+    anything not derivable (a stock-or-custom mode) belongs in the draft itself and arrives as
+    value plus onChange like every other field. Remounting is an escape hatch for bad design, and
+    resync effects are worse. The reviewer's test is one line: if this useState's correctness
+    depends on the draft, it belongs in the draft.
   - **Kit all the way down.** A widget adds no new visual vocabulary; anything novel inside gets
     extracted to the kit first.
   - **Organs allowed.** A widget may split its body into private files; nothing outside the
     widget imports them.
-  - **The shelf is a metric.** Every widget is a concession. When `src/app/widgets/` grows,
-    something upstream went wrong.
+  - **The shelf is a metric, for one kind of growth.** A widget extracted because routes repeated
+    an assembly is a concession, and that kind of shelf growth means something upstream went wrong.
+    A child widget split out of a bulky one is not; decomposition is maintenance, not concession.
 - **Pickers** (`src/app/pickers`) are the one place a component may fetch, and the reason "a widget
   never fetches" is a rule about *where fetching lives* rather than a blanket ban. A Picker is a
   domain control whose whole job is to let the user choose from a list it loads itself, the factions
@@ -244,7 +257,7 @@ Rules between categories:
   Lists and Content *produce* content from data. Controls *change* data. A component doing two of
   these is two components.
 - **Layouts own spacing and lay out through named slots.** A Layout arranges its slots; a leaf never
-  carries page margin/padding. Every Layout is a custom component built on Mantine primitives that
+  carries page margin/padding. Every Layout is a custom component that
   takes **named compound slots** (`<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…`),
   never fewer than two, and is responsive **by container query, not media query**, so it lays out by
   the room it is given. `PageLayout` is the one exemption from the container-query rule: it is the
@@ -253,7 +266,9 @@ Rules between categories:
   guards it.
 - **Knowledge points one way.** Content knows the theme. Blocks know Content. Lists know their
   item shape. Layouts and Surfaces know nothing about their contents. No component fetches, and none
-  navigates on its own behalf.
+  navigates on its own behalf. Pointing at a place is allowed two ways: a reusable component takes
+  the link from its caller through `renderRoot`, and a component named for one entity
+  (`ProfileLink`) may hardcode that entity's route, since the destination is its name.
 - **Kind is judged at the membrane.** What a caller hands a component decides its kind; its
   insides are composition, governed by the rules above.
 - **Adornments are not slots.** A glyph (`icon`), an action (`action`, `tool`) and hover text stay

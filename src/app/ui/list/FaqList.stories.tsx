@@ -63,17 +63,21 @@ const meta = preview.meta({
     rulesetSlug: 'dreamrules',
     searchQuery: '',
     onOpenQuestion: fn(),
+    emptyLabel: 'No FAQ items yet.',
+    noMatchesLabel: 'No questions match your search.',
   },
 });
 
 export const Populated = meta.story({});
 
+/** Nothing has been asked yet. The words are the page's, so the story passes them like a page would. */
 export const NoItems = meta.story({
   args: {
     items: [],
   },
 });
 
+/** Questions exist, but the reader's search excludes them all, which reads differently from having none. */
 export const NoFilteredMatches = meta.story({
   args: {
     searchQuery: 'ornithopter timing',

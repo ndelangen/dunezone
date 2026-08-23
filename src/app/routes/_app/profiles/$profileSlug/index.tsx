@@ -71,9 +71,8 @@ function AskerChip({
       username={profile.username}
       avatar_url={profile.avatar_url}
       className={styles.askerLink}
-    >
-      Question by {profile.username ?? 'Unknown'}
-    </ProfileLink>
+      label={`Question by ${profile.username ?? 'Unknown'}`}
+    />
   );
 }
 
