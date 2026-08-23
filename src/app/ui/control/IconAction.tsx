@@ -45,6 +45,19 @@ export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'colo
   /** Placement only. */
   className?: string;
   ref?: Ref<HTMLButtonElement>;
+  /**
+   * The attributes a drag library hangs on its activator: what a screen reader calls the control, where its live instructions live, and whether it is currently grabbed.
+   *
+   * Declared rather than left to the rest spread, because they reach the button either way and a later tightening of this membrane would drop them with no type error and no visible change.
+   * `SortableReorderHandle` is the caller;
+   * nothing else should need these.
+   */
+  role?: string;
+  tabIndex?: number;
+  'aria-describedby'?: string;
+  'aria-roledescription'?: string;
+  'aria-pressed'?: boolean;
+  'aria-disabled'?: boolean;
 }
 
 /**
