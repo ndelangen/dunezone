@@ -85,6 +85,13 @@ const twilightNavy: MantineColorsTuple = [
 
 const contentFontFamily = '"C_Candara", Candara, sans-serif';
 
+/**
+ * The engraved face the wordmark uses.
+ * `styles/fonts.css` already sets it on every bare `h1` through `h6`;
+ * naming it here too is what stops a heading's face depending on whether its author reached for `<h2>` or `<Title order={2}>`.
+ */
+const headingFontFamily = '"C_Copperplate_Gothic", sans-serif';
+
 const glassSurface = {
   backgroundColor: 'var(--glass-surface-1)',
   borderColor: 'var(--panel-border)',
@@ -95,7 +102,7 @@ const glassSurface = {
 export const appContentTheme = createTheme({
   fontFamily: contentFontFamily,
   headings: {
-    fontFamily: contentFontFamily,
+    fontFamily: headingFontFamily,
     fontWeight: '700',
   },
   white: 'var(--color-paper)',

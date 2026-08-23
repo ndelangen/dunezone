@@ -1,4 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 
 import { ApplicationChrome } from './ApplicationChrome';
@@ -10,7 +11,7 @@ export function AppNotFound() {
     <ApplicationChrome pathname={pathname}>
       <PageLayout>
         <PageLayout.Header>
-          <h1>404 - Page Not Found</h1>
+          <PageTitle title="404 - Page Not Found" />
         </PageLayout.Header>
         <PageLayout.Content>
           <p>The page you're looking for doesn't exist.</p>

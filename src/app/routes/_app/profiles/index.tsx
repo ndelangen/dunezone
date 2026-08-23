@@ -1,5 +1,6 @@
 import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Stats } from '@ui/list/Stats';
@@ -29,7 +30,7 @@ function ProfilesPage() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <h1>Profiles</h1>
+        <PageTitle title="Profiles" />
       </PageLayout.Header>
       <PageLayout.Content>
         {profiles.data && profiles.data.length > 0 ? (
