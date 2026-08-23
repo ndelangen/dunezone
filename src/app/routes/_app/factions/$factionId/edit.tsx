@@ -1,7 +1,8 @@
-import { Alert, Anchor, Stack, Text, Title } from '@mantine/core';
+import { Alert, Anchor, Stack, Text } from '@mantine/core';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -85,7 +86,7 @@ function FactionEditPage() {
       >
         View faction
       </Anchor>
-      <Title order={1}>{faction ? `Edit ${faction.data.name}` : 'Edit faction'}</Title>
+      <PageTitle title={faction ? `Edit ${faction.data.name}` : 'Edit faction'} />
       <Text c="dimmed">Changes stay local until you explicitly save them.</Text>
     </Stack>
   );

@@ -1,6 +1,7 @@
-import { Alert, Anchor, Group, Stack, Text, Title } from '@mantine/core';
+import { Alert, Anchor, Group, Stack, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { Link, useNavigate } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -34,9 +35,7 @@ export function AssetEditorMessage({
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <Stack gap={2} align="center">
-          <Title order={1}>{title}</Title>
-        </Stack>
+        <PageTitle title={title} />
       </PageLayout.Header>
       <PageLayout.Content>
         <Surface padding="xl">

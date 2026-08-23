@@ -1,6 +1,7 @@
-import { Anchor, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Stack, Text } from '@mantine/core';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -65,7 +66,7 @@ function CreateFactionPage() {
       <Anchor size="sm" renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>
         Factions
       </Anchor>
-      <Title order={1}>Create faction</Title>
+      <PageTitle title="Create faction" />
       <Text c="dimmed">Build one faction document, then save it to schedule publication.</Text>
     </Stack>
   );
