@@ -1,0 +1,119 @@
+.previewRail {
+  min-width: 0;
+}
+
+.previewFigure {
+  display: grid;
+  gap: var(--mantine-spacing-xs);
+  margin: 0;
+}
+
+.previewViewport {
+  container: rulebook-page-preview / inline-size;
+  display: grid;
+  place-items: start center;
+  min-width: 0;
+}
+
+.pagePreview {
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 210 / 297;
+  overflow: hidden;
+  contain: paint;
+  color: #282218;
+  background: linear-gradient(105deg, transparent 0 54%, rgb(125 91 40 / 5%) 55%, transparent 56%), #f4ecd9;
+  border: 1px solid rgb(75 56 29 / 32%);
+  box-shadow: 0 0.7rem 1.8rem rgb(41 27 8 / 22%);
+}
+
+.previewViewport[data-fit="width"] .pagePreview {
+  width: 100%;
+}
+
+.previewViewport[data-fit="height"] .pagePreview {
+  width: min(100%, calc((100dvh - 12rem) * 210 / 297));
+}
+
+.pageFolio {
+  padding: 6cqi 8cqi 2cqi;
+  color: #765d35;
+  font-family: var(--mantine-font-family-headings);
+  font-size: clamp(0.35rem, 4cqi, 0.86rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.previewSlot {
+  min-width: 0;
+  padding: 2cqi 8cqi 8cqi;
+}
+
+.previewColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.previewColumns .previewSlot:first-child {
+  border-right: 1px solid rgb(75 56 29 / 20%);
+}
+
+.previewBlock,
+.repeatedText {
+  font-family: var(--mantine-font-family);
+  font-size: clamp(0.34rem, 3.2cqi, 0.76rem);
+  line-height: 1.45;
+}
+
+.previewBlock + .previewBlock,
+.previewBlock + .repeatedText,
+.repeatedText + .previewBlock {
+  margin-top: 4cqi;
+}
+
+.previewBlock p,
+.repeatedText p {
+  margin: 0 0 2.5cqi;
+}
+
+.previewBlock ul,
+.repeatedText ul {
+  margin: 0 0 2.5cqi;
+  padding-left: 5cqi;
+}
+
+.repeatedText {
+  margin: 0;
+  padding-left: 6cqi;
+}
+
+.repeatedText > li + li {
+  margin-top: 2.5cqi;
+}
+
+.underline {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.emptyText {
+  color: rgb(40 34 24 / 52%);
+  font-style: italic;
+}
+
+@container rulebook-page-preview (max-width: 12rem) {
+  .pageFolio {
+    letter-spacing: 0.04em;
+  }
+
+  .previewColumns {
+    grid-template-columns: 1fr;
+  }
+
+  .previewColumns .previewSlot:first-child {
+    border-right: 0;
+    border-bottom: 1px solid rgb(75 56 29 / 20%);
+  }
+}
