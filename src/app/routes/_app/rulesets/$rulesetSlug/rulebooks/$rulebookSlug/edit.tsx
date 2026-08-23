@@ -243,6 +243,7 @@ function PageTextEditors({
                   <Group key={itemId} align="flex-start" wrap="nowrap">
                     <Textarea
                       label={`Item ${index + 1}`}
+                      aria-label={`${repeatedBlockLabel}, item ${index + 1}`}
                       value={item.text}
                       error={error}
                       autosize

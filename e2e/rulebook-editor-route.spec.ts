@@ -33,16 +33,26 @@ test('fit height shows the full Page while fit width provides a materially large
 
   const previewScroller = page.getByRole('region', { name: 'Rulebook page preview' });
   const previewPage = page.getByRole('article', { name: 'Preview of Page 2' });
-  const fitHeightWidth = (await previewPage.boundingBox())?.width ?? 0;
+  await expect(previewPage).toBeVisible();
+  const fitHeightBox = await previewPage.boundingBox();
+  expect(fitHeightBox).not.toBeNull();
+  if (!fitHeightBox) {
+    throw new Error('The fit-height preview has no rendered bounds.');
+  }
+  expect(fitHeightBox.width).toBeGreaterThan(0);
   await expect
     .poll(() => previewScroller.evaluate((element) => element.scrollHeight - element.clientHeight))
     .toBeLessThanOrEqual(1);
 
   await page.getByText('Fit width', { exact: true }).click();
 
-  await expect
-    .poll(async () => ((await previewPage.boundingBox())?.width ?? 0) / fitHeightWidth)
-    .toBeGreaterThanOrEqual(1.3);
+  const fitWidthBox = await previewPage.boundingBox();
+  expect(fitWidthBox).not.toBeNull();
+  if (!fitWidthBox) {
+    throw new Error('The fit-width preview has no rendered bounds.');
+  }
+  expect(fitWidthBox.width).toBeGreaterThan(0);
+  expect(fitWidthBox.width / fitHeightBox.width).toBeGreaterThanOrEqual(1.3);
   await expect
     .poll(() => previewScroller.evaluate((element) => element.scrollHeight > element.clientHeight))
     .toBe(true);
@@ -53,12 +63,14 @@ test('a repeated text item can be added, edited, previewed, and removed', async 
   await page.getByRole('button', { name: /Page 2/ }).click();
 
   const preview = page.getByRole('region', { name: 'Rulebook page preview' });
-  const items = page.getByRole('textbox', { name: /^Item \d+$/ });
+  const items = page.getByRole('textbox', { name: /^repeated text block, item \d+$/ });
   const originalCount = await items.count();
   await page.getByRole('button', { name: 'Add item to repeated text block' }).click();
 
   await expect(items).toHaveCount(originalCount + 1);
-  const addedItem = page.getByRole('textbox', { name: `Item ${originalCount + 1}` });
+  const addedItem = page.getByRole('textbox', {
+    name: `repeated text block, item ${originalCount + 1}`,
+  });
   await addedItem.fill('A newly repeated browser-local rule.');
   await expect(preview).toContainText('A newly repeated browser-local rule.');
 
