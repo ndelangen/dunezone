@@ -8,6 +8,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 
 import { DeckEditor, INITIAL_DECK_DRAFT } from './DeckEditor';
 import type { DeckChapter, DeckDraft } from './DeckEditor';
+import { STOCK_CARDBACKS } from './stockCardbacks';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -20,8 +21,16 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   dispatchEvent: vi.fn(),
 }));
 
+/*
+ * jsdom has no layout, so an observer that never fires reports width 0 and `CanvasScale` renders no children at all.
+ * That silently hid every rail proof from this file: an assertion about the proof would have passed against a DOM that never contained one.
+ * Reporting a width mounts what the rail actually draws.
+ */
 globalThis.ResizeObserver = class ResizeObserver {
-  observe() {}
+  constructor(private readonly callback: ResizeObserverCallback) {}
+  observe() {
+    this.callback([{ contentRect: { width: 900 } } as ResizeObserverEntry], this);
+  }
   unobserve() {}
   disconnect() {}
 };
@@ -96,4 +105,61 @@ it('keeps a composed cardback across a trip through the reference tile', () => {
   fireEvent.click(tile('Composed here'));
 
   expect(labelField()?.value).toBe('Hand of the Emperor');
+});
+
+/**
+ * A draft is transiently invalid on the way to being valid, and the proof has to keep drawing through it.
+ *
+ * `ColorInput` commits raw input text per keystroke and repairs only on blur, so five of the six characters in a hex colour reach the draft as a value `HEXCOLOR` rejects.
+ * The type says nothing about this: `CardbackData` is `z.infer<typeof CardBack>` and a regex-refined string infers as plain `string`, which is why nothing caught it until #683 made the parse real.
+ * Pinned here rather than left to the docblock on `CardbackProof`, because the failure was invisible: the proof blanked to a neutral face for six keystrokes out of seven and recovered on the last one.
+ */
+it('draws the cardback proof while a colour is still being typed', () => {
+  const emblem = STOCK_CARDBACKS[0]!.cardback.image;
+  const withFirstColor = (color: string): DeckDraft => ({
+    ...INITIAL_DECK_DRAFT,
+    cardback: {
+      mode: 'custom',
+      ...STOCK_CARDBACKS[0]!.cardback,
+      background: {
+        ...STOCK_CARDBACKS[0]!.cardback.background,
+        colors: [color, STOCK_CARDBACKS[0]!.cardback.background.colors[1]],
+      },
+    },
+  });
+  const emblemCount = (draft: DeckDraft) => {
+    const { container, unmount } = render(
+      <MantineProvider theme={appContentTheme} forceColorScheme="light">
+        <DeckEditor
+          nameField={<input aria-label="Name" readOnly value="" />}
+          draft={draft}
+          patch={() => {}}
+          chapter="identity"
+          onChapterChange={() => {}}
+          onSettle={() => {}}
+          members={[]}
+          onCountChange={null}
+          cardPicker={null}
+          backPicker={null}
+          backProof={null}
+        />
+      </MantineProvider>
+    );
+    const count = container.querySelectorAll(`img[src="${emblem}"]`).length;
+    unmount();
+    return count;
+  };
+
+  const complete = emblemCount(withFirstColor('#4B4C0D'));
+  /*
+   * More than one, not more than zero, and the difference is the whole guard.
+   * The stock picker tile draws this same emblem once, outside the canvas, so a count of exactly one means
+   * `CanvasScale` mounted nothing and there is no proof in the DOM to compare prefixes against.
+   * `CardBack` draws the emblem three times, so a proof that really mounted puts the count at four.
+   */
+  expect(complete).toBeGreaterThan(1);
+  /* Every prefix of that colour draws the same face, rather than the proof blanking and coming back. */
+  for (const partial of ['#', '#4', '#4B', '#4B4', '#4B4C', '#4B4C0']) {
+    expect(emblemCount(withFirstColor(partial))).toBe(complete);
+  }
 });

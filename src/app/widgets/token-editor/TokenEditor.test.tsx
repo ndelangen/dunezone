@@ -20,8 +20,16 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   dispatchEvent: vi.fn(),
 }));
 
+/*
+ * jsdom has no layout, so an observer that never fires reports width 0 and `CanvasScale` renders no children at all.
+ * This editor draws its proof inside one, so a dead stub would let an assertion about that proof pass against a DOM that never contained it.
+ * Reporting a width mounts what the rail actually draws.
+ */
 globalThis.ResizeObserver = class ResizeObserver {
-  observe() {}
+  constructor(private readonly callback: ResizeObserverCallback) {}
+  observe() {
+    this.callback([{ contentRect: { width: 900 } } as ResizeObserverEntry], this);
+  }
   unobserve() {}
   disconnect() {}
 };
