@@ -151,8 +151,13 @@ it('draws the cardback proof while a colour is still being typed', () => {
   };
 
   const complete = emblemCount(withFirstColor('#4B4C0D'));
-  /* The face has to be drawing something for the comparison below to mean anything. */
-  expect(complete).toBeGreaterThan(0);
+  /*
+   * More than one, not more than zero, and the difference is the whole guard.
+   * The stock picker tile draws this same emblem once, outside the canvas, so a count of exactly one means
+   * `CanvasScale` mounted nothing and there is no proof in the DOM to compare prefixes against.
+   * `CardBack` draws the emblem three times, so a proof that really mounted puts the count at four.
+   */
+  expect(complete).toBeGreaterThan(1);
   /* Every prefix of that colour draws the same face, rather than the proof blanking and coming back. */
   for (const partial of ['#', '#4', '#4B', '#4B4', '#4B4C', '#4B4C0']) {
     expect(emblemCount(withFirstColor(partial))).toBe(complete);
