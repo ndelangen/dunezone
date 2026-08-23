@@ -13,22 +13,32 @@
   --page-height: calc(var(--workspace-height) - var(--preview-caption-space));
   --page-width: calc(var(--page-height) * 210 / 297);
   --zoom-page-width: calc(var(--page-width) * 1.45);
+  min-width: 0;
+}
+
+.workspaceSticky[data-fit="height"] {
   position: sticky;
   z-index: 1;
   top: var(--workspace-top);
-  min-width: 0;
 }
 
 .workspaceScroller {
   min-width: 0;
-  overscroll-behavior-inline: contain;
 }
 
 .workspace {
   display: grid;
   gap: var(--mantine-spacing-md);
   align-items: stretch;
+}
+
+.workspace[data-fit="height"] {
   height: var(--workspace-height);
+}
+
+.workspace[data-fit="width"] {
+  align-items: start;
+  min-height: var(--workspace-height);
 }
 
 .workspace[data-concept="outline"][data-fit="height"] {
@@ -68,21 +78,10 @@
 .manuscriptTabs,
 .previewRail {
   min-width: 0;
-  height: var(--workspace-height);
-}
-
-.outlineRail,
-.canvasRail,
-.manuscriptRail {
-  overflow-y: auto;
-  overscroll-behavior-block: contain;
-  scrollbar-gutter: stable;
 }
 
 .outlineRail {
-  overflow-y: auto;
-  overscroll-behavior-block: contain;
-  scrollbar-gutter: stable;
+  min-height: 100%;
 }
 
 .outlineAccordion {
@@ -114,6 +113,7 @@
 .manuscriptTabs {
   display: grid;
   grid-template-columns: 5.5rem minmax(28rem, 1fr);
+  min-height: 100%;
 }
 
 .modeSpine {
@@ -167,8 +167,7 @@
 }
 
 .previewRail {
-  overflow-y: auto;
-  overscroll-behavior-block: contain;
+  width: 100%;
 }
 
 .previewFigure {
@@ -302,6 +301,11 @@
 }
 
 @container rulebook-editor-prototype (max-width: 48rem) {
+  .workspaceSticky[data-fit="height"] {
+    position: relative;
+    top: auto;
+  }
+
   .workspace {
     gap: var(--mantine-spacing-sm);
   }

@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   Group,
-  ScrollArea,
   SegmentedControl,
   Stack,
   Tabs,
@@ -336,14 +335,9 @@ function ControlContents(props: ConceptProps) {
 
 function PreviewRail({ page, pageNumber, result, fit }: ConceptProps) {
   return (
-    <ScrollArea
-      className={styles.previewRail}
-      type="auto"
-      scrollbars="y"
-      viewportProps={{ tabIndex: 0, role: 'region', 'aria-label': 'Rulebook page preview' }}
-    >
+    <section className={styles.previewRail} aria-label="Rulebook page preview">
       <RulebookPagePreview page={page} pageNumber={pageNumber} draft={result.draft} fit={fit} />
-    </ScrollArea>
+    </section>
   );
 }
 
@@ -389,12 +383,7 @@ function CanvasConcept(props: ConceptProps) {
   return (
     <div className={styles.workspace} data-concept="canvas" data-fit={props.fit}>
       <PreviewRail {...props} />
-      <ScrollArea
-        className={styles.canvasRail}
-        type="auto"
-        scrollbars="y"
-        viewportProps={{ tabIndex: 0, role: 'region', 'aria-label': 'Rulebook controls' }}
-      >
+      <section className={styles.canvasRail} aria-label="Rulebook controls">
         <Stack gap="lg">
           <Group justify="space-between" align="center" wrap="wrap">
             <div>
@@ -416,7 +405,7 @@ function CanvasConcept(props: ConceptProps) {
           </Group>
           <ControlContents {...props} />
         </Stack>
-      </ScrollArea>
+      </section>
     </div>
   );
 }
@@ -437,7 +426,6 @@ function ManuscriptConcept(props: ConceptProps) {
         <Tabs.Panel
           value="navigate"
           className={styles.manuscriptRail}
-          tabIndex={0}
           role="region"
           aria-label="Rulebook page navigation"
         >
@@ -454,7 +442,6 @@ function ManuscriptConcept(props: ConceptProps) {
         <Tabs.Panel
           value="edit"
           className={styles.manuscriptRail}
-          tabIndex={0}
           role="region"
           aria-label={`Edit Page ${props.pageNumber}`}
         >
@@ -624,13 +611,8 @@ function RulebookEditorPage() {
       <PageLayout.Content>
         {page ? (
           <section className={styles.prototypeRoot} aria-label="Rulebook editing workspace">
-            <div className={styles.workspaceSticky}>
-              <ScrollArea
-                className={styles.workspaceScroller}
-                type="auto"
-                scrollbars="x"
-                viewportProps={{ tabIndex: 0, role: 'region', 'aria-label': 'Editor and preview workspace' }}
-              >
+            <div className={styles.workspaceSticky} data-fit={fit}>
+              <div className={styles.workspaceScroller}>
                 {(() => {
                   const conceptProps: ConceptProps = {
                     page,
@@ -654,7 +636,7 @@ function RulebookEditorPage() {
                   }
                   return <OutlineConcept {...conceptProps} />;
                 })()}
-              </ScrollArea>
+              </div>
             </div>
             <PrototypeSwitcher variant={variant} setVariant={setVariant} />
           </section>
