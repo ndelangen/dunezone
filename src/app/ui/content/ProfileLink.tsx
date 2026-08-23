@@ -11,11 +11,6 @@ export type ProfileLinkProps = Pick<ProfileEntry, 'slug' | 'username' | 'avatar_
   style?: CSSProperties;
   title?: string;
   showUsername?: boolean;
-  /**
-   * The words beside the avatar, when the bare username is not what this context should read.
-   * A string rather than a slot: a citation of a person is data, and the one caller that needs this is naming the person's role in a sentence.
-   */
-  label?: string;
 };
 
 /**
@@ -34,10 +29,8 @@ export const ProfileLink = ({
   style,
   title,
   showUsername = true,
-  label,
 }: ProfileLinkProps) => {
-  const afterAvatar =
-    label !== undefined ? label : showUsername ? <span className={styles.username}>{username}</span> : null;
+  const afterAvatar = showUsername ? <span className={styles.username}>{username}</span> : null;
 
   return (
     <Link

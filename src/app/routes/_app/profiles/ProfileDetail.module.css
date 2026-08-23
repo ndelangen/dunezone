@@ -105,6 +105,15 @@
   gap: 0.5rem;
 }
 
+/* Holds the page's words and the chip on one baseline, so the chip reads as part of the sentence. */
+.askerCitation {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
 .askerLink {
   display: inline-flex;
   align-items: center;

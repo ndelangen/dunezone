@@ -24,11 +24,3 @@ export const WithAvatar = meta.story({
 export const AvatarOnly = meta.story({
   args: { avatar_url: '/web/logo.svg', showUsername: false, title: 'Central' },
 });
-
-/**
- * When the citation is naming the person's role in a sentence rather than just citing them.
- * `label` replaces the plain username, and it is a string: the caller owns the words, not a slot to render into.
- */
-export const Labelled = meta.story({
-  args: { avatar_url: '/web/logo.svg', label: 'Question by Central' },
-});
