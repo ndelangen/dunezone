@@ -11,7 +11,6 @@ const PROGRESS_RING_STROKE = 3;
 const PROGRESS_RING_RADIUS = (PROGRESS_RING_SIZE - PROGRESS_RING_STROKE) / 2;
 const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * PROGRESS_RING_RADIUS;
 
-/** The one place a tier's presentation is defined; every surface reads it from here. */
 /** The x/10 slider positions where each tier's glyph marks the track, shared by every slider. */
 export function complexityTierSliderMarks(size = 12) {
   return [
@@ -25,6 +24,7 @@ export function complexityTierSliderMarks(size = 12) {
   ];
 }
 
+/** The one place a tier's presentation is defined; every surface reads it from here. */
 export const COMPLEXITY_TIER_PRESENTATION: Record<
   ComplexityTier,
   { label: string; blurb: string; icon: TopicIconTopic }
