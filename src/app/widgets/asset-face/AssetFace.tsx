@@ -9,6 +9,13 @@
  */
 import { Text } from '@mantine/core';
 import { NO_DECK_BACK_HREF } from '@shared/asset-publishing/fallbacks';
+import {
+  BundleBand,
+  CardBack as CardBackContract,
+  RectangleTokenFace,
+  TokenFace,
+  TreacheryAsset,
+} from '@shared/assets/schema';
 import type { CSSProperties, ReactNode } from 'react';
 import { z } from 'zod';
 
@@ -16,11 +23,9 @@ import { CardBack } from '@game/assets/card/Back';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
-import { TreacheryAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
 import { BUNDLE_ASPECT, BundleContainer } from './BundleContainer';
-import type { BundleBandData } from './BundleContainer';
 
 export const CARD_ASPECT = CARD_SIZE.height / CARD_SIZE.width;
 
@@ -80,7 +85,11 @@ const GEAR_CLIP = (() => {
   return `polygon(${points.join(', ')})`;
 })();
 
-function CardFrame({ width, children, style }: { width: number; children: ReactNode; style?: CSSProperties }) {
+/**
+ * A card at whatever width it is given, scaled from the renderers' intrinsic 900x1263.
+ * Exported for the same reason `TokenFrame` is: an editor drawing its own live draft wants the frame the catalogue surfaces use, and has no business routing a draft through the listing parse to get it.
+ */
+export function CardFrame({ width, children, style }: { width: number; children: ReactNode; style?: CSSProperties }) {
   const scale = width / CARD_SIZE.width;
   return (
     <div
@@ -173,10 +182,17 @@ function NeutralFace({ name, width, aspect }: { name: string; width: number; asp
   );
 }
 
-/* The editors own the full schemas; listings ask only for what a face render needs. */
+/*
+ * The editors own the full schemas; listings ask only for what a face render needs.
+ * Each schema below is the stored one with fields relaxed, never a restatement of it: whatever a face hands straight
+ * to a renderer comes off `src/shared/assets/schema`, the same Zod every write is parsed through
+ * (`parseAssetDataForWrite`). Declaring `background: unknown` here and asserting it back at the JSX put an unchecked
+ * value in front of the renderer, which is the one thing the neutral face exists to prevent.
+ * What each schema relaxes, and why, is stated where it relaxes it.
+ */
 /* A bundle draws its authored band and nothing else; its members are the caller's to supply. */
 const bundleFaceSchema = z.object({
-  band: z.looseObject({ background: z.unknown(), label: z.string() }),
+  band: BundleBand.loose(),
 });
 
 /**
@@ -189,67 +205,72 @@ function danglingDeckCardback(data: unknown): boolean {
   return typeof data === 'object' && data !== null && 'cardback' in data && data.cardback === null;
 }
 
+/*
+ * A deck's cardback, at the contract the renderer draws, with two relaxations rather than one.
+ * `imageOffset` becomes optional because the call site defaults it, so a row stored before the field existed draws
+ * centred rather than falling to the neutral face.
+ * `loose()` is the second and the load-bearing one: `assets_deck_cardback_wrap_v1` tags an authored cardback
+ * `mode: 'custom'`, and `presentedData` passes a non-reference deck through untouched, so the extra key arrives here.
+ * Tightening this wrapper back to strict would turn every migrated deck into a neutral face without a type error.
+ */
 const cardbackFaceSchema = z.object({
-  cardback: z.looseObject({
-    name: z.string(),
-    background: z.unknown(),
-    image: z.string(),
-    imageScale: z.number(),
-    imageOffset: z.tuple([z.number(), z.number()]).optional(),
-  }),
+  cardback: CardBackContract.partial({ imageOffset: true }).loose(),
 });
 
 /**
  * One drawable token face.
  * Loose on purpose: the editors own the full schema, and a listing that refused to draw a face over one unexpected key would be worse than one that draws it.
- * The label and scale fields are optional so a token stored before they existed still renders.
+ * The mask names what this boundary relaxes, not what a face has: the five label, scale and ring fields are optional here because the render call below defaults every one of them, so a token stored before any of them existed draws rather than falling to the neutral face.
+ * `background` and `image` are absent from the mask deliberately.
+ * They are what the renderer cannot default, so a face missing either has nothing to draw and belongs on the neutral path.
  */
-const drawableTokenFace = z.looseObject({
-  background: z.unknown(),
-  image: z.string(),
-  symbolScale: z.number().optional(),
-  top: z.string().optional(),
-  bottomFirst: z.string().optional(),
-  bottomSecond: z.string().optional(),
-  ring: z.boolean().optional(),
-  ringShadow: z.boolean().optional(),
-});
+const drawableTokenFace = TokenFace.partial({
+  symbolScale: true,
+  top: true,
+  bottomFirst: true,
+  bottomSecond: true,
+  ring: true,
+}).loose();
 
 const tokenFaceSchema = z.object({
   front: drawableTokenFace,
-  /* A referenced back stores no face; the caller resolves it to the other token. A same back repeats the front. */
+  /*
+   * A referenced back stores no face; the caller resolves it to the other token. A same back repeats the front.
+   * `catch` keeps an unreadable back from blanking a good front. Both faces come out of one parse, so without it a
+   * back that fails takes the front down with it and a token that half draws draws nothing. An unreadable back
+   * reads as no back, which is already what a referenced back does, and only the back side falls to neutral.
+   */
   back: z
     .union([
       z.looseObject({ mode: z.literal('custom'), face: drawableTokenFace }),
       z.looseObject({ mode: z.literal('same') }),
       z.looseObject({ mode: z.literal('reference') }),
     ])
-    .optional(),
+    .optional()
+    .catch(undefined),
 });
 
 type DrawableTokenFace = z.infer<typeof drawableTokenFace>;
 
 /**
  * One drawable rectangle face.
- * Loose for the same reason as the round shapes, and the element lists are optional so a face authored before either list existed still draws its background.
+ * Loose for the same reason as the round shapes.
+ * The mask relaxes the ring and the two element lists, all three defaulted by the render call below, so a face authored before either list existed still draws its background.
+ * `background` stays required for the same reason it does on a token face.
  */
-const drawableRectangleFace = z.looseObject({
-  background: z.unknown(),
-  ring: z.boolean().optional(),
-  ringShadow: z.boolean().optional(),
-  decals: z.array(z.unknown()).optional(),
-  texts: z.array(z.unknown()).optional(),
-});
+const drawableRectangleFace = RectangleTokenFace.partial({ ring: true, decals: true, texts: true }).loose();
 
 const rectangleFaceSchema = z.object({
   front: drawableRectangleFace,
+  /* Same back rules and the same `catch` as the round shapes, for the same reason. */
   back: z
     .union([
       z.looseObject({ mode: z.literal('custom'), face: drawableRectangleFace }),
       z.looseObject({ mode: z.literal('same') }),
       z.looseObject({ mode: z.literal('reference') }),
     ])
-    .optional(),
+    .optional()
+    .catch(undefined),
 });
 
 /**
@@ -428,8 +449,7 @@ export function AssetFace({
     return (
       <BundleBlock width={width} members={members}>
         {parsed.success ? (
-          /* the stored composition is a Background; the listing trusts storage and the renderer takes it as-is */
-          <BundleContainer band={parsed.data.band as BundleBandData} name={name} width={width} />
+          <BundleContainer band={parsed.data.band} name={name} width={width} />
         ) : (
           <NeutralFace name={name} width={width} aspect={BUNDLE_ASPECT} />
         )}
@@ -465,10 +485,8 @@ export function AssetFace({
         <CardFrame width={width}>
           <CardBack
             name={cardback.name}
-            /* the stored composition is a Background and the image an asset path; the
-               listing trusts storage and the renderer takes them as-is */
-            background={cardback.background as never}
-            image={cardback.image as never}
+            background={cardback.background}
+            image={cardback.image}
             imageOffset={cardback.imageOffset ?? [0, 0]}
             imageScale={cardback.imageScale}
           />
@@ -490,12 +508,11 @@ export function AssetFace({
       return (
         <TokenFrame shape={shape} width={width}>
           <RectangleToken
-            /* the listing trusts storage and the renderer takes these as-is, the same bargain the other faces make */
-            background={face.background as never}
+            background={face.background}
             ring={face.ring ?? false}
             ringShadow={face.ringShadow ?? false}
-            decals={(face.decals ?? []) as never}
-            texts={(face.texts ?? []) as never}
+            decals={face.decals ?? []}
+            texts={face.texts ?? []}
           />
         </TokenFrame>
       );
@@ -509,8 +526,8 @@ export function AssetFace({
       return (
         <TokenFrame shape={shape} width={width}>
           <CustomToken
-            background={face.background as never}
-            image={face.image as never}
+            background={face.background}
+            image={face.image}
             circle={face.ring ?? shape === 'round'}
             circleShadow={face.ringShadow ?? false}
             top={face.top || undefined}

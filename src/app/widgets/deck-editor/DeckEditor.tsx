@@ -16,13 +16,14 @@ import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
-import { AssetFace } from '@app/widgets/asset-face/AssetFace';
+import { AssetFace, CardFrame } from '@app/widgets/asset-face/AssetFace';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import {
   assetOptionToPreviewSrc,
   decalAssetOptionToLabel,
   decalAssetOptions,
 } from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { CardBack } from '@game/assets/card/Back';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 import { STOCK_CARDBACKS, stockKeyFor } from './stockCardbacks';
@@ -80,9 +81,20 @@ function draftCardbackComposition(cardback: DeckDraftCardback): CardbackData | n
   return composition;
 }
 
-/** The cardback at whatever width it is given. This is the face the deck publishes, stock or authored alike. */
+/**
+ * The cardback at whatever width it is given.
+ * This is the face the deck publishes, stock or authored alike.
+ *
+ * It draws the renderer inside the catalogue's own frame, the way `TokenProof` and `RectangleProof` already do, rather than handing the draft to `AssetFace`.
+ * A draft is not a stored row: it is transiently invalid on the way to being valid, because `ColorInput` commits raw text per keystroke, so five of the six characters in a hex colour are not yet a colour.
+ * `AssetFace` parses what it is given and falls to a neutral face when the parse fails, which is right for a listing reading storage and wrong for a proof watching an author type, where it reads as the preview blanking.
+ */
 function CardbackProof({ cardback, width }: { cardback: CardbackData; width: number }) {
-  return <AssetFace type="deck" data={{ cardback }} name={cardback.name} width={width} />;
+  return (
+    <CardFrame width={width}>
+      <CardBack {...cardback} />
+    </CardFrame>
+  );
 }
 
 function CardbackFields({ cardback, onChange }: { cardback: CardbackData; onChange: (next: CardbackData) => void }) {
