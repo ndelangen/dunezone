@@ -40,7 +40,7 @@ const FORMATTED_TEXT_DIAGNOSTIC_CODES = ['crossed-mark', 'empty-list-item', 'emp
 
 type FormattedTextDiagnosticCode = (typeof FORMATTED_TEXT_DIAGNOSTIC_CODES)[number];
 
-/** One-based line and column plus a zero-based UTF-16 source offset. */
+/** One-based line and column plus a zero-based UTF-16 offset in the original input. */
 type FormattedTextDiagnostic = {
   readonly code: FormattedTextDiagnosticCode;
   readonly line: number;
@@ -80,9 +80,13 @@ type SourcePosition = {
 
 type SourceLine = {
   readonly text: string;
-  readonly line: number;
-  readonly column: number;
-  readonly offset: number;
+  readonly positions: readonly SourcePosition[];
+  readonly end: SourcePosition;
+};
+
+type NormalizedPlainText = {
+  readonly source: string;
+  readonly lines: readonly SourceLine[];
 };
 
 type ParsedTextNode = {
@@ -119,6 +123,10 @@ const canonicalMarkOrder = new Map<FormattedTextMark, number>(
   FORMATTED_TEXT_MARKS.map(({ mark }, index) => [mark, index])
 );
 const wordCharacter = /[\p{L}\p{N}]/u;
+const HIGH_SURROGATE_MIN = 55_296;
+const HIGH_SURROGATE_MAX = 56_319;
+const LOW_SURROGATE_MIN = 56_320;
+const LOW_SURROGATE_MAX = 57_343;
 
 function isDelimiter(value: string | undefined): value is FormattedTextDelimiter {
   return value !== undefined && delimiterDetails.has(value as FormattedTextDelimiter);
@@ -136,16 +144,66 @@ function delimiterForMark(mark: FormattedTextMark): FormattedTextDelimiter {
   return detail.delimiter;
 }
 
-function normalizePlainText(value: string): string {
-  return value
-    .replace(/\r\n?/g, '\n')
-    .split('\n')
-    .map((line) => {
-      const withCanonicalBullet = line.replace(/^(?:•|–|—)[ \t]+/u, '- ');
-      return /^-[ \t]+$/u.test(withCanonicalBullet) ? '- ' : withCanonicalBullet.replace(/[ \t]+$/u, '');
-    })
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n');
+function sourceLines(value: string): readonly SourceLine[] {
+  const lines: SourceLine[] = [];
+  let lineNumber = 1;
+  let lineStart = 0;
+
+  while (lineStart <= value.length) {
+    let lineEnd = lineStart;
+    while (lineEnd < value.length && value[lineEnd] !== '\r' && value[lineEnd] !== '\n') {
+      lineEnd += 1;
+    }
+
+    const text = value.slice(lineStart, lineEnd);
+    lines.push({
+      text,
+      positions: Array.from({ length: text.length }, (_, index) => ({
+        line: lineNumber,
+        column: index + 1,
+        offset: lineStart + index,
+      })),
+      end: { line: lineNumber, column: text.length + 1, offset: lineEnd },
+    });
+
+    if (lineEnd === value.length) {
+      break;
+    }
+    lineStart = lineEnd + (value[lineEnd] === '\r' && value[lineEnd + 1] === '\n' ? 2 : 1);
+    lineNumber += 1;
+  }
+
+  return lines;
+}
+
+function normalizeSourceLine(line: SourceLine): SourceLine {
+  const bullet = line.text.match(/^(?:•|–|—)[ \t]+/u)?.[0];
+  let text = line.text;
+  let positions = [...line.positions];
+
+  if (bullet) {
+    text = `- ${text.slice(bullet.length)}`;
+    positions = [positions[0]!, positions[1]!, ...positions.slice(bullet.length)];
+  }
+
+  if (/^-[ \t]+$/u.test(text)) {
+    return { text: '- ', positions: positions.slice(0, 2), end: line.end };
+  }
+
+  const trailingWhitespace = text.match(/[ \t]+$/u)?.[0].length ?? 0;
+  const retainedLength = text.length - trailingWhitespace;
+  return {
+    text: text.slice(0, retainedLength),
+    positions: positions.slice(0, retainedLength),
+    end: line.end,
+  };
+}
+
+function normalizePlainText(value: string): NormalizedPlainText {
+  const lines = sourceLines(value)
+    .map(normalizeSourceLine)
+    .filter((line, index, allLines) => line.text.length > 0 || allLines[index - 1]?.text.length !== 0);
+  return { source: lines.map((line) => line.text).join('\n'), lines };
 }
 
 function combineInlineSource(lines: readonly SourceLine[]): {
@@ -159,24 +217,42 @@ function combineInlineSource(lines: readonly SourceLine[]): {
     if (lineIndex > 0) {
       const previous = lines[lineIndex - 1]!;
       source += '\n';
-      positions.push({
-        line: previous.line,
-        column: previous.column + previous.text.length,
-        offset: previous.offset + previous.text.length,
-      });
+      positions.push(previous.end);
     }
 
     source += line.text;
-    for (let index = 0; index < line.text.length; index += 1) {
-      positions.push({
-        line: line.line,
-        column: line.column + index,
-        offset: line.offset + index,
-      });
-    }
+    positions.push(...line.positions);
   });
 
   return { source, positions };
+}
+
+function codePointBefore(source: string, index: number): string | undefined {
+  if (index === 0) {
+    return undefined;
+  }
+  const low = source.charCodeAt(index - 1);
+  const high = source.charCodeAt(index - 2);
+  return low >= LOW_SURROGATE_MIN &&
+    low <= LOW_SURROGATE_MAX &&
+    high >= HIGH_SURROGATE_MIN &&
+    high <= HIGH_SURROGATE_MAX
+    ? source.slice(index - 2, index)
+    : source[index - 1];
+}
+
+function codePointAfter(source: string, index: number): string | undefined {
+  if (index + 1 >= source.length) {
+    return undefined;
+  }
+  const high = source.charCodeAt(index + 1);
+  const low = source.charCodeAt(index + 2);
+  return high >= HIGH_SURROGATE_MIN &&
+    high <= HIGH_SURROGATE_MAX &&
+    low >= LOW_SURROGATE_MIN &&
+    low <= LOW_SURROGATE_MAX
+    ? source.slice(index + 1, index + 3)
+    : source[index + 1];
 }
 
 function parseInline(lines: readonly SourceLine[]): InlineParseResult {
@@ -230,8 +306,8 @@ function parseInline(lines: readonly SourceLine[]): InlineParseResult {
       continue;
     }
 
-    const previous = source[index - 1];
-    const next = source[index + 1];
+    const previous = codePointBefore(source, index);
+    const next = codePointAfter(source, index);
     const canOpen =
       next !== undefined && !/\s/u.test(next) && (previous === undefined || !wordCharacter.test(previous));
     const canClose =
@@ -355,95 +431,90 @@ function toPublicInlineNodes(nodes: readonly ParsedInlineNode[]): readonly Forma
   });
 }
 
-function parseBlocks(source: string): {
+type BlockParsingState = {
+  readonly blocks: ParsedBlock[];
+  readonly diagnostics: FormattedTextDiagnostic[];
+  paragraphLines: SourceLine[];
+  listItems: SourceLine[][];
+};
+
+function flushParagraph(state: BlockParsingState): void {
+  if (state.paragraphLines.length === 0) {
+    return;
+  }
+  const parsed = parseInline(state.paragraphLines);
+  state.blocks.push({ kind: 'paragraph', children: parsed.nodes });
+  state.diagnostics.push(...parsed.diagnostics);
+  state.paragraphLines = [];
+}
+
+function flushList(state: BlockParsingState): void {
+  if (state.listItems.length === 0) {
+    return;
+  }
+  state.blocks.push({
+    kind: 'list',
+    items: state.listItems.map((lines) => {
+      const parsed = parseInline(lines);
+      state.diagnostics.push(...parsed.diagnostics);
+      return { children: parsed.nodes };
+    }),
+  });
+  state.listItems = [];
+}
+
+function listContentLine(line: SourceLine): SourceLine {
+  return {
+    text: line.text.slice(2),
+    positions: line.positions.slice(2),
+    end: line.end,
+  };
+}
+
+function addListItem(state: BlockParsingState, line: SourceLine): void {
+  flushParagraph(state);
+  state.listItems.push([listContentLine(line)]);
+  if (line.text.length === 2) {
+    state.diagnostics.push({
+      code: 'empty-list-item',
+      ...line.end,
+      length: 0,
+      message: 'This list item has no text.',
+      suggestion: 'Type the list item after the dash, or remove this line.',
+    });
+  }
+}
+
+function consumeBlockLine(state: BlockParsingState, line: SourceLine): void {
+  if (line.text.length === 0) {
+    flushParagraph(state);
+    flushList(state);
+  } else if (line.text.startsWith('- ')) {
+    addListItem(state, line);
+  } else if (line.text.startsWith('  ') && state.listItems.length > 0) {
+    state.listItems.at(-1)!.push(listContentLine(line));
+  } else {
+    flushList(state);
+    state.paragraphLines.push(line);
+  }
+}
+
+function parseBlocks(normalized: NormalizedPlainText): {
   readonly blocks: readonly ParsedBlock[];
   readonly diagnostics: readonly FormattedTextDiagnostic[];
 } {
-  const sourceLines: SourceLine[] = [];
-  let sourceOffset = 0;
-  source.split('\n').forEach((text, index) => {
-    sourceLines.push({ text, line: index + 1, column: 1, offset: sourceOffset });
-    sourceOffset += text.length + 1;
-  });
-
-  const blocks: ParsedBlock[] = [];
-  const diagnostics: FormattedTextDiagnostic[] = [];
-  let paragraphLines: SourceLine[] = [];
-  let listItems: SourceLine[][] = [];
-
-  const flushParagraph = () => {
-    if (paragraphLines.length === 0) {
-      return;
-    }
-    const parsed = parseInline(paragraphLines);
-    blocks.push({ kind: 'paragraph', children: parsed.nodes });
-    diagnostics.push(...parsed.diagnostics);
-    paragraphLines = [];
+  const state: BlockParsingState = {
+    blocks: [],
+    diagnostics: [],
+    paragraphLines: [],
+    listItems: [],
   };
-
-  const flushList = () => {
-    if (listItems.length === 0) {
-      return;
-    }
-    blocks.push({
-      kind: 'list',
-      items: listItems.map((lines) => {
-        const parsed = parseInline(lines);
-        diagnostics.push(...parsed.diagnostics);
-        return { children: parsed.nodes };
-      }),
-    });
-    listItems = [];
-  };
-
-  for (const line of sourceLines) {
-    if (line.text.length === 0) {
-      flushParagraph();
-      flushList();
-      continue;
-    }
-
-    if (line.text.startsWith('- ')) {
-      flushParagraph();
-      listItems.push([
-        {
-          text: line.text.slice(2),
-          line: line.line,
-          column: 3,
-          offset: line.offset + 2,
-        },
-      ]);
-      if (line.text.length === 2) {
-        diagnostics.push({
-          code: 'empty-list-item',
-          line: line.line,
-          column: 3,
-          offset: line.offset + 2,
-          length: 0,
-          message: 'This list item has no text.',
-          suggestion: 'Type the list item after the dash, or remove this line.',
-        });
-      }
-      continue;
-    }
-
-    if (line.text.startsWith('  ') && listItems.length > 0) {
-      listItems.at(-1)!.push({
-        text: line.text.slice(2),
-        line: line.line,
-        column: 3,
-        offset: line.offset + 2,
-      });
-      continue;
-    }
-
-    flushList();
-    paragraphLines.push(line);
+  for (const line of normalized.lines) {
+    consumeBlockLine(state, line);
   }
-
-  flushParagraph();
-  flushList();
-  return { blocks, diagnostics };
+  flushParagraph(state);
+  flushList(state);
+  return { blocks: state.blocks, diagnostics: state.diagnostics };
 }
 
 function canonicalizeBlocks(blocks: readonly ParsedBlock[]): readonly ParsedBlock[] {
@@ -486,7 +557,7 @@ export function parseFormattedText(input: string): FormattedTextParseResult {
   if (parsed.diagnostics.length > 0) {
     return {
       valid: false,
-      source: normalizedDraft,
+      source: normalizedDraft.source,
       blocks: toPublicBlocks(parsed.blocks),
       diagnostics: parsed.diagnostics as [FormattedTextDiagnostic, ...FormattedTextDiagnostic[]],
     };

@@ -104,6 +104,19 @@ describe('formatted-text core', () => {
     });
   });
 
+  it('treats astral Unicode letters as prose-boundary word characters', () => {
+    const parsed = parseValid('𝒜*bold* and *𝒜*');
+
+    expect(parsed.source).toBe('𝒜*bold* and *𝒜*');
+    expect(parsed.blocks[0]).toMatchObject({
+      kind: 'paragraph',
+      children: [
+        { kind: 'text', value: '𝒜*bold* and ' },
+        { kind: 'mark', mark: 'bold', children: [{ kind: 'text', value: '𝒜' }] },
+      ],
+    });
+  });
+
   it('reports crossed marks at the offending delimiter with correction guidance', () => {
     const parsed = parseFormattedText('*bold _underline* still underline_');
 
@@ -143,6 +156,22 @@ describe('formatted-text core', () => {
         offset: 10,
       });
       expect(continuation.diagnostics[0].suggestion).toContain('Add *');
+    }
+  });
+
+  it('keeps diagnostics aligned to the original input while normalizing the draft', () => {
+    const input = 'Opening\r\n\r\n\r\n\r\n- item   \r\n  *missing';
+    const parsed = parseFormattedText(input);
+
+    expect(parsed.valid).toBe(false);
+    expect(parsed.source).toBe('Opening\n\n- item\n  *missing');
+    if (!parsed.valid) {
+      expect(parsed.diagnostics[0]).toMatchObject({
+        code: 'unclosed-mark',
+        line: 6,
+        column: 3,
+        offset: input.indexOf('*'),
+      });
     }
   });
 
