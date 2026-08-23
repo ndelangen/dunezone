@@ -1,5 +1,6 @@
-import { Alert, Anchor, Avatar, Badge, Box, Button, Divider, Group, Skeleton, Stack, Text, Title } from '@mantine/core';
+import { Alert, Anchor, Avatar, Badge, Box, Button, Divider, Group, Skeleton, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { AssignPopover } from '@ui/control/AssignPopover';
@@ -58,7 +59,7 @@ function GroupDetailPage() {
     return (
       <PageLayout>
         <PageLayout.Header>
-          <Title order={1}>Group</Title>
+          <PageTitle title="Group" />
         </PageLayout.Header>
         <PageLayout.Content>
           <Surface padding="xl">
@@ -76,7 +77,7 @@ function GroupDetailPage() {
     return (
       <PageLayout>
         <PageLayout.Header>
-          <Title order={1}>Group</Title>
+          <PageTitle title="Group" />
         </PageLayout.Header>
         <PageLayout.Content>
           <Box className={styles.twoColumnGrid}>
@@ -145,7 +146,7 @@ function GroupDetailPage() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <Title order={1}>{group.name}</Title>
+        <PageTitle title={group.name} />
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <>
