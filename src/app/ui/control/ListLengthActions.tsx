@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Tooltip } from '@mantine/core';
+import { Group } from '@mantine/core';
 import { Minus, Plus } from 'lucide-react';
 import type { Ref } from 'react';
 
@@ -61,19 +61,15 @@ export function ListLengthActions({
 }: ListLengthActionsProps) {
   return (
     <Group gap={6} wrap="nowrap">
-      <Tooltip label={removeLabel}>
-        <ActionIcon
-          type="button"
-          variant="light"
-          color="red"
-          size="sm"
-          aria-label={removeLabel}
-          disabled={removeDisabled}
-          onClick={onRemove}
-        >
-          <Minus size={15} aria-hidden />
-        </ActionIcon>
-      </Tooltip>
+      <IconAction
+        label={removeLabel}
+        variant="light"
+        color="red"
+        size="sm"
+        disabled={removeDisabled}
+        onClick={onRemove}
+        icon={<Minus size={15} aria-hidden />}
+      />
       <AddAction label={addLabel} disabled={addDisabled} onClick={onAdd} />
     </Group>
   );

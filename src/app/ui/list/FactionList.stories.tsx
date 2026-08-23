@@ -46,7 +46,7 @@ export const Default = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
 });
 
-/** One column once the container is narrow. */
+/** Two columns at the narrowest step, keyed on the viewport rather than the container. */
 export const Mobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
 });

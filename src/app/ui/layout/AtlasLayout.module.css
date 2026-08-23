@@ -25,6 +25,7 @@
 
   .sidebar {
     position: sticky;
-    top: 0;
+    /* The offset the one page using this layout had been reaching in to set. */
+    top: 1.5rem;
   }
 }

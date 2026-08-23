@@ -2,6 +2,7 @@ import { Button, Group, Stack, Textarea, TextInput } from '@mantine/core';
 import { rulesetDescriptionSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { PageTitle } from '@ui/block/PageTitle';
 import { rulesetDescriptionHint } from '@ui/content/rulesetDescriptionHint';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -95,7 +96,7 @@ function CreateRulesetPage() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <h1>Create ruleset</h1>
+        <PageTitle title="Create ruleset" />
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>

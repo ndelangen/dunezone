@@ -25,9 +25,16 @@
   line-height: 1.45;
 }
 
+/*
+ * The scale is pinned to the engraved face rather than shared with the body face.
+ * Copperplate sets wider than Candara at the same size, so keeping the old numbers here cost two
+ * extra wrapped lines per heading once the theme's heading font changed.
+ * Every value is the old one scaled by 0.815, the ratio that puts the longest of these headings back
+ * on three lines, so the responsive shape is unchanged and only the face's extra width is paid for.
+ */
 .storyTitle {
   max-width: 36rem;
-  font-size: clamp(2rem, 3.5vw, 3.35rem);
+  font-size: clamp(1.63rem, 2.85vw, 2.73rem);
   line-height: 0.98;
   letter-spacing: -0.045em;
 }
@@ -106,7 +113,7 @@
   }
 
   .storyTitle {
-    font-size: clamp(2rem, 10vw, 3rem);
+    font-size: clamp(1.63rem, 8.15vw, 2.45rem);
   }
 
   .storyColumn {
@@ -117,5 +124,62 @@
 @media (max-width: 61.25em) {
   .storyPreview {
     min-height: 20rem;
+  }
+}
+
+/* The animated leader token, which this page owns. Names are prefixed because this stylesheet holds
+   the whole page rather than one component. */
+.leaderToken {
+  position: relative;
+  width: min(100%, 20rem);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  filter: drop-shadow(0 18px 22px rgb(54 29 8 / 28%));
+}
+
+.leaderTokenStable,
+.leaderTokenPrevious,
+.leaderTokenCurrent {
+  position: absolute;
+  inset: 0;
+}
+
+.leaderTokenPrevious {
+  animation: leader-token-fade-out 850ms ease-in-out forwards;
+}
+
+.leaderTokenCurrent {
+  animation: leader-token-fade-in 850ms ease-in-out forwards;
+}
+
+@keyframes leader-token-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes leader-token-fade-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.015);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaderTokenPrevious,
+  .leaderTokenCurrent {
+    animation-duration: 1ms;
   }
 }

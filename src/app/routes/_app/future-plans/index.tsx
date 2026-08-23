@@ -148,7 +148,7 @@ function FuturePlansPage() {
       </PageLayout.Header>
       <PageLayout.Content>
         <AtlasLayout className={styles.atlasFrame}>
-          <AtlasLayout.Sidebar className={styles.atlasSidebar}>
+          <AtlasLayout.Sidebar>
             <Stack component="aside" gap="md">
               <Badge color="gray" variant="filled" w="fit-content">
                 All planned

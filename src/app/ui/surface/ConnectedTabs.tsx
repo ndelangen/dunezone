@@ -45,7 +45,11 @@ interface ConnectedTabsGeometry {
   path: string;
 }
 
-export function buildConnectedTabsPath({
+/**
+ * The single outline that joins the selected tab to the panel, as one `d` string.
+ * Kept private: it is the shape of this component's own render, not a geometry anyone else asks for.
+ */
+function buildConnectedTabsPath({
   width,
   height,
   panelX,
