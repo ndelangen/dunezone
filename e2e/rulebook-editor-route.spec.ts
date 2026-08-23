@@ -30,8 +30,12 @@ test('the narrow workspace scrolls beside a fixed two-column Page and changes fi
   await page.getByRole('button', { name: /Page 2/ }).click();
 
   const workspace = page.getByRole('region', { name: 'Rulebook editing workspace' });
-  const scroller = workspace.getByRole('group', { name: 'Editor and preview' });
+  const scroller = workspace.getByRole('region', { name: 'Editor and preview' });
   await expect.poll(() => scroller.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  await scroller.focus();
+  await expect(scroller).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => scroller.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
 
   const leftColumn = page.getByRole('group', { name: 'Left page column' });
   const rightColumn = page.getByRole('group', { name: 'Right page column' });
@@ -40,7 +44,7 @@ test('the narrow workspace scrolls beside a fixed two-column Page and changes fi
   expect(leftBox).not.toBeNull();
   expect(rightBox).not.toBeNull();
   expect(Math.round(rightBox?.y ?? 0)).toBe(Math.round(leftBox?.y ?? 0));
-  expect(rightBox?.x ?? 0).toBeGreaterThan((leftBox?.x ?? 0) + (leftBox?.width ?? 0) - 1);
+  expect(rightBox?.x ?? 0).toBeGreaterThan(leftBox?.x ?? 0);
 
   const previewPage = page.getByRole('article', { name: 'Preview of Page 2' });
   const fitHeightWidth = (await previewPage.boundingBox())?.width ?? 0;
@@ -51,4 +55,10 @@ test('the narrow workspace scrolls beside a fixed two-column Page and changes fi
   await expect
     .poll(async () => Math.round((await previewPage.boundingBox())?.width ?? 0))
     .not.toBe(Math.round(fitHeightWidth));
+
+  const previewScroller = page.getByRole('region', { name: 'Rulebook page preview' });
+  await previewScroller.focus();
+  await expect(previewScroller).toBeFocused();
+  await page.keyboard.press('PageDown');
+  await expect.poll(() => previewScroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
 });

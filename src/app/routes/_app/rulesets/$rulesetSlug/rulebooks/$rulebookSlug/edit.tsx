@@ -1,4 +1,16 @@
-import { Alert, Badge, Box, Button, Group, SegmentedControl, Stack, Text, Textarea, Title } from '@mantine/core';
+import {
+  Alert,
+  Badge,
+  Box,
+  Button,
+  Group,
+  ScrollArea,
+  SegmentedControl,
+  Stack,
+  Text,
+  Textarea,
+  Title,
+} from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult } from '@shared/formattedText';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from '@shared/rulebooks/contents';
@@ -302,7 +314,12 @@ function RulebookEditorPage() {
           </Alert>
           {page ? (
             <section className={styles.workspaceSticky} data-fit={fit} aria-label="Rulebook editing workspace">
-              <div className={styles.workspaceScroller} role="group" aria-label="Editor and preview">
+              <ScrollArea
+                className={styles.workspaceScroller}
+                type="auto"
+                scrollbars="x"
+                viewportProps={{ tabIndex: 0, role: 'region', 'aria-label': 'Editor and preview' }}
+              >
                 <div className={styles.workspace}>
                   <div className={styles.controlsScroll}>
                     <Surface padding="lg" as="section" aria-labelledby="rulebook-editor-controls-title">
@@ -335,7 +352,6 @@ function RulebookEditorPage() {
                                 <Button
                                   key={candidateId}
                                   variant={candidateId === pageId ? 'filled' : 'light'}
-                                  color={candidateId === pageId ? 'confirm' : 'gray'}
                                   justify="space-between"
                                   aria-current={candidateId === pageId ? 'page' : undefined}
                                   onClick={() => {
@@ -357,11 +373,16 @@ function RulebookEditorPage() {
                       </Stack>
                     </Surface>
                   </div>
-                  <section className={styles.previewRail} aria-label="Rulebook page preview">
+                  <ScrollArea
+                    className={styles.previewRail}
+                    type="auto"
+                    scrollbars="y"
+                    viewportProps={{ tabIndex: 0, role: 'region', 'aria-label': 'Rulebook page preview' }}
+                  >
                     <RulebookPagePreview page={page} pageNumber={pageNumber} draft={result.draft} fit={fit} />
-                  </section>
+                  </ScrollArea>
                 </div>
-              </div>
+              </ScrollArea>
             </section>
           ) : (
             <Alert color="yellow" role="status" title="No page selected">

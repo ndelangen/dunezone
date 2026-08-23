@@ -12,8 +12,7 @@
 }
 
 .workspaceScroller {
-  overflow-x: auto;
-  overflow-y: hidden;
+  min-width: 0;
   overscroll-behavior-inline: contain;
 }
 
@@ -47,8 +46,7 @@
 }
 
 .previewRail {
-  display: grid;
-  align-items: start;
+  height: var(--workspace-height);
 }
 
 .previewFigure {
