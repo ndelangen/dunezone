@@ -2,6 +2,7 @@ import { Group, Stack, TextInput } from '@mantine/core';
 import { groupInputSchema } from '@shared/groups/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { PageTitle } from '@ui/block/PageTitle';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
 import { SubmitAction } from '@ui/control/SubmitAction';
@@ -98,7 +99,7 @@ function GroupEditPage() {
     return (
       <PageLayout>
         <PageLayout.Header>
-          <h1>Edit group</h1>
+          <PageTitle title="Edit group" />
         </PageLayout.Header>
         <PageLayout.Content>
           <Surface padding="lg">
@@ -114,7 +115,7 @@ function GroupEditPage() {
 
   const group = editPage.group;
   const viewerAccess = editPage.viewerAccess;
-  const header = <h1>{`Edit ${group.name}`}</h1>;
+  const header = <PageTitle title={`Edit ${group.name}`} />;
   const toolbar = (
     <Toolbar>
       <Toolbar.Left>

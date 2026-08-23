@@ -1,5 +1,6 @@
 import { Group, Stack } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -20,6 +21,8 @@ function formatDate(timestamp?: number) {
   return new Date(timestamp).toLocaleString();
 }
 
+const migrationsHeader = <PageTitle title="Migration activity" />;
+
 function AdminMigrationsPage() {
   const loaderData = Route.useLoaderData();
   const profile = useCurrentProfile();
@@ -30,9 +33,7 @@ function AdminMigrationsPage() {
   if (!profile.data?._id) {
     return (
       <PageLayout>
-        <PageLayout.Header>
-          <h1>Migration activity</h1>
-        </PageLayout.Header>
+        <PageLayout.Header>{migrationsHeader}</PageLayout.Header>
         <PageLayout.Content>
           <Surface padding="lg">
             <p>
@@ -46,9 +47,7 @@ function AdminMigrationsPage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header>
-        <h1>Migration activity</h1>
-      </PageLayout.Header>
+      <PageLayout.Header>{migrationsHeader}</PageLayout.Header>
       <PageLayout.Content>
         <Stack gap="sm">
           {dashboardQuery.isPending && <p>Loading migration dashboard…</p>}
