@@ -16,6 +16,7 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
@@ -56,7 +57,7 @@ function FactionDetailPending() {
     <PageLayout>
       <PageLayout.Header>
         <Stack align="center" gap="xs">
-          <Title order={1}>Faction</Title>
+          <PageTitle title="Faction" />
           <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>Back to factions</Anchor>
         </Stack>
       </PageLayout.Header>
@@ -109,7 +110,7 @@ function FactionDetailError({ error }: ErrorComponentProps) {
     <PageLayout>
       <PageLayout.Header>
         <Stack align="center" gap="xs">
-          <Title order={1}>Faction</Title>
+          <PageTitle title="Faction" />
           <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>Back to factions</Anchor>
         </Stack>
       </PageLayout.Header>
@@ -138,7 +139,7 @@ function FactionDetailPage() {
       <PageLayout>
         <PageLayout.Header>
           <Stack align="center" gap="xs">
-            <Title order={1}>Faction</Title>
+            <PageTitle title="Faction" />
             <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>Back to factions</Anchor>
           </Stack>
         </PageLayout.Header>

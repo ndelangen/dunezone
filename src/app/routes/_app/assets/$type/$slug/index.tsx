@@ -16,6 +16,7 @@ import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { OpenableTile } from '@ui/block/OpenableTile';
+import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -86,7 +87,7 @@ function AssetDetailMessage({ children }: { children: ReactNode }) {
     <PageLayout>
       <PageLayout.Header>
         <Stack align="center" gap="xs">
-          <Title order={1}>{label}</Title>
+          <PageTitle title={label} />
           <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type }} />}>
             Back to {label.toLowerCase()}
           </Anchor>
