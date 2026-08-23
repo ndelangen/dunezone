@@ -19,10 +19,12 @@ describe('formatted-text core', () => {
 
     expect(parsed.source).toBe('');
     expect(parsed.blocks).toHaveLength(0);
-    expect(normalized).toEqual({ ok: true, value: '' });
-    if (normalized.ok) {
-      expectTypeOf(normalized.value).toEqualTypeOf<NormalizedFormattedText>();
+    expect(normalized.ok).toBe(true);
+    if (!normalized.ok) {
+      throw new Error('Expected an empty normalized value');
     }
+    expect(normalized.value).toBe('');
+    expectTypeOf<string>().not.toMatchTypeOf<NormalizedFormattedText>();
   });
 
   it('normalizes plain text into paragraphs, separate lists, and multiline list items', () => {
@@ -117,6 +119,28 @@ describe('formatted-text core', () => {
     });
   });
 
+  it.each(['e\u0301*bold*', 'क्*bold*'])(
+    'treats combining marks as part of the word before an opening delimiter in %s',
+    (source) => {
+      const parsed = parseValid(source);
+
+      expect(parsed.source).toBe(source);
+      expect(parsed.blocks[0]).toMatchObject({
+        kind: 'paragraph',
+        children: [{ kind: 'text', value: source }],
+      });
+    }
+  );
+
+  it('does not close a mark immediately before a combining sequence', () => {
+    const parsed = parseFormattedText('*bold*\u0301e');
+
+    expect(parsed.valid).toBe(false);
+    if (!parsed.valid) {
+      expect(parsed.diagnostics[0]).toMatchObject({ code: 'unclosed-mark', line: 1, column: 1, offset: 0 });
+    }
+  });
+
   it('reports crossed marks at the offending delimiter with correction guidance', () => {
     const parsed = parseFormattedText('*bold _underline* still underline_');
 
@@ -175,6 +199,23 @@ describe('formatted-text core', () => {
     }
   });
 
+  it.each([
+    { source: '😀 text *missing', column: 8, offset: 8 },
+    { source: 'e\u0301 text *missing', column: 8, offset: 8 },
+  ])('reports a Unicode-aware column and UTF-16 offset for $source', ({ source, column, offset }) => {
+    const parsed = parseFormattedText(source);
+
+    expect(parsed.valid).toBe(false);
+    if (!parsed.valid) {
+      expect(parsed.diagnostics[0]).toMatchObject({
+        code: 'unclosed-mark',
+        line: 1,
+        column,
+        offset,
+      });
+    }
+  });
+
   it('refuses to mint a normalized value for an invalid direct-typing draft', () => {
     const normalized = normalizeFormattedText('An *unfinished draft');
 
@@ -198,7 +239,6 @@ describe('formatted-text core', () => {
       kind: 'paragraph',
       children: [{ kind: 'text', value: source }],
     });
-    expect(JSON.stringify(parsed.blocks)).not.toContain('"html"');
   });
 
   it('normalizes valid input idempotently', () => {

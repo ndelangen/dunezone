@@ -40,7 +40,7 @@ const FORMATTED_TEXT_DIAGNOSTIC_CODES = ['crossed-mark', 'empty-list-item', 'emp
 
 type FormattedTextDiagnosticCode = (typeof FORMATTED_TEXT_DIAGNOSTIC_CODES)[number];
 
-/** One-based line and column plus a zero-based UTF-16 offset in the original input. */
+/** One-based line and Unicode column plus a zero-based UTF-16 offset in the original input. */
 type FormattedTextDiagnostic = {
   readonly code: FormattedTextDiagnosticCode;
   readonly line: number;
@@ -122,7 +122,8 @@ const delimiterDetails = new Map<FormattedTextDelimiter, FormattedTextMark>(
 const canonicalMarkOrder = new Map<FormattedTextMark, number>(
   FORMATTED_TEXT_MARKS.map(({ mark }, index) => [mark, index])
 );
-const wordCharacter = /[\p{L}\p{N}]/u;
+const combiningMark = /\p{M}/u;
+const wordCharacter = /[\p{L}\p{M}\p{N}]/u;
 const HIGH_SURROGATE_MIN = 55_296;
 const HIGH_SURROGATE_MAX = 56_319;
 const LOW_SURROGATE_MIN = 56_320;
@@ -144,6 +145,24 @@ function delimiterForMark(mark: FormattedTextMark): FormattedTextDelimiter {
   return detail.delimiter;
 }
 
+function sourceColumns(text: string): { readonly positions: readonly number[]; readonly end: number } {
+  const positions: number[] = [];
+  let column = 1;
+  let hasCluster = false;
+
+  for (const character of text) {
+    if (!combiningMark.test(character) || !hasCluster) {
+      if (hasCluster) {
+        column += 1;
+      }
+      hasCluster = true;
+    }
+    positions.push(...Array.from({ length: character.length }, () => column));
+  }
+
+  return { positions, end: hasCluster ? column + 1 : 1 };
+}
+
 function sourceLines(value: string): readonly SourceLine[] {
   const lines: SourceLine[] = [];
   let lineNumber = 1;
@@ -156,14 +175,15 @@ function sourceLines(value: string): readonly SourceLine[] {
     }
 
     const text = value.slice(lineStart, lineEnd);
+    const columns = sourceColumns(text);
     lines.push({
       text,
-      positions: Array.from({ length: text.length }, (_, index) => ({
+      positions: columns.positions.map((column, index) => ({
         line: lineNumber,
-        column: index + 1,
+        column,
         offset: lineStart + index,
       })),
-      end: { line: lineNumber, column: text.length + 1, offset: lineEnd },
+      end: { line: lineNumber, column: columns.end, offset: lineEnd },
     });
 
     if (lineEnd === value.length) {
