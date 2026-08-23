@@ -1,6 +1,7 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
@@ -70,9 +71,8 @@ function AskerChip({
       username={profile.username}
       avatar_url={profile.avatar_url}
       className={styles.askerLink}
-    >
-      Question by {profile.username ?? 'Unknown'}
-    </ProfileLink>
+      label={`Question by ${profile.username ?? 'Unknown'}`}
+    />
   );
 }
 
@@ -183,7 +183,7 @@ function ProfileDetailPage() {
     return (
       <PageLayout>
         <PageLayout.Header>
-          <h1>Profile</h1>
+          <PageTitle title="Profile" />
         </PageLayout.Header>
         <PageLayout.Content>
           <Surface padding="lg">

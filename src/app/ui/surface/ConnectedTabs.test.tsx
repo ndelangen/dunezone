@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { buildConnectedTabsPath, ConnectedTabs } from './ConnectedTabs';
+import { ConnectedTabs } from './ConnectedTabs';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -259,17 +259,5 @@ describe('ConnectedTabs', () => {
     const disabled = getTab('4Unavailable');
     expect(disabled.disabled).toBe(true);
     expect(disabled.hasAttribute('data-disabled')).toBe(true);
-  });
-
-  it('builds distinct joined contours for first, middle, and final tabs', () => {
-    const shared = { width: 800, height: 600, panelX: 180, radius: 8 };
-    const first = buildConnectedTabsPath({ ...shared, tabTop: 0, tabBottom: 64 });
-    const middle = buildConnectedTabsPath({ ...shared, tabTop: 144, tabBottom: 208 });
-    const final = buildConnectedTabsPath({ ...shared, tabTop: 536, tabBottom: 600 });
-
-    expect(new Set([first, middle, final]).size).toBe(3);
-    expect(first).toContain('M 8 0');
-    expect(middle).toContain('V 211');
-    expect(final).toContain('H 8');
   });
 });

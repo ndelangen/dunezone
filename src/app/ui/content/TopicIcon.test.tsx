@@ -20,8 +20,10 @@ const MASK_TOPICS: Array<[TopicIconTopic, string]> = [
 const COMPONENT_TOPICS: TopicIconTopic[] = ['face', 'text', 'setup', 'rulesets'];
 
 /*
- * Derived from the registry rather than written beside it, so a topic added there is tested here
- * without anyone remembering to extend a list. The named cases above keep their sharper assertions.
+ * The registry's own list, so a topic added there gets the render check below without anyone
+ * extending anything. Only that check. The two lists above are written by hand and carry the sharper
+ * assertions, and they do not follow the registry: today they omit the four complexity masks and the
+ * identity, about and contents glyphs.
  */
 const ALL_TOPICS = TOPIC_ICON_TOPICS;
 

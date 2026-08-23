@@ -12,7 +12,6 @@ export interface ProposedContentProps {
  * Marks a shipped region as scaffolding rather than data.
  *
  * The badge is the whole component: without it, prose describing a feature that does not exist reads as a factual statement about the record on screen.
- * It lives in the application rather than the interface kit because it describes our roadmap, not a way of presenting content.
  * Every use of it is a debt to be removed, so `grep ProposedContent` should list them all.
  */
 export function ProposedContent({ label, children }: ProposedContentProps) {
