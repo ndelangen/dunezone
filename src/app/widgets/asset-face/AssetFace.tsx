@@ -85,7 +85,11 @@ const GEAR_CLIP = (() => {
   return `polygon(${points.join(', ')})`;
 })();
 
-function CardFrame({ width, children, style }: { width: number; children: ReactNode; style?: CSSProperties }) {
+/**
+ * A card at whatever width it is given, scaled from the renderers' intrinsic 900x1263.
+ * Exported for the same reason `TokenFrame` is: an editor drawing its own live draft wants the frame the catalogue surfaces use, and has no business routing a draft through the listing parse to get it.
+ */
+export function CardFrame({ width, children, style }: { width: number; children: ReactNode; style?: CSSProperties }) {
   const scale = width / CARD_SIZE.width;
   return (
     <div
@@ -188,7 +192,7 @@ function NeutralFace({ name, width, aspect }: { name: string; width: number; asp
  */
 /* A bundle draws its authored band and nothing else; its members are the caller's to supply. */
 const bundleFaceSchema = z.object({
-  band: z.looseObject(BundleBand.shape),
+  band: BundleBand.loose(),
 });
 
 /**
@@ -202,12 +206,15 @@ function danglingDeckCardback(data: unknown): boolean {
 }
 
 /*
- * A deck's cardback, at the contract the renderer draws.
- * `imageOffset` is the one relaxation: the call site defaults it, so a row stored before the field existed draws
+ * A deck's cardback, at the contract the renderer draws, with two relaxations rather than one.
+ * `imageOffset` becomes optional because the call site defaults it, so a row stored before the field existed draws
  * centred rather than falling to the neutral face.
+ * `loose()` is the second and the load-bearing one: `assets_deck_cardback_wrap_v1` tags an authored cardback
+ * `mode: 'custom'`, and `presentedData` passes a non-reference deck through untouched, so the extra key arrives here.
+ * Tightening this wrapper back to strict would turn every migrated deck into a neutral face without a type error.
  */
 const cardbackFaceSchema = z.object({
-  cardback: z.looseObject(CardBackContract.partial({ imageOffset: true }).shape),
+  cardback: CardBackContract.partial({ imageOffset: true }).loose(),
 });
 
 /**
@@ -217,20 +224,30 @@ const cardbackFaceSchema = z.object({
  * `background` and `image` are absent from the mask deliberately.
  * They are what the renderer cannot default, so a face missing either has nothing to draw and belongs on the neutral path.
  */
-const drawableTokenFace = z.looseObject(
-  TokenFace.partial({ symbolScale: true, top: true, bottomFirst: true, bottomSecond: true, ring: true }).shape
-);
+const drawableTokenFace = TokenFace.partial({
+  symbolScale: true,
+  top: true,
+  bottomFirst: true,
+  bottomSecond: true,
+  ring: true,
+}).loose();
 
 const tokenFaceSchema = z.object({
   front: drawableTokenFace,
-  /* A referenced back stores no face; the caller resolves it to the other token. A same back repeats the front. */
+  /*
+   * A referenced back stores no face; the caller resolves it to the other token. A same back repeats the front.
+   * `catch` keeps an unreadable back from blanking a good front. Both faces come out of one parse, so without it a
+   * back that fails takes the front down with it and a token that half draws draws nothing. An unreadable back
+   * reads as no back, which is already what a referenced back does, and only the back side falls to neutral.
+   */
   back: z
     .union([
       z.looseObject({ mode: z.literal('custom'), face: drawableTokenFace }),
       z.looseObject({ mode: z.literal('same') }),
       z.looseObject({ mode: z.literal('reference') }),
     ])
-    .optional(),
+    .optional()
+    .catch(undefined),
 });
 
 type DrawableTokenFace = z.infer<typeof drawableTokenFace>;
@@ -241,19 +258,19 @@ type DrawableTokenFace = z.infer<typeof drawableTokenFace>;
  * The mask relaxes the ring and the two element lists, all three defaulted by the render call below, so a face authored before either list existed still draws its background.
  * `background` stays required for the same reason it does on a token face.
  */
-const drawableRectangleFace = z.looseObject(
-  RectangleTokenFace.partial({ ring: true, decals: true, texts: true }).shape
-);
+const drawableRectangleFace = RectangleTokenFace.partial({ ring: true, decals: true, texts: true }).loose();
 
 const rectangleFaceSchema = z.object({
   front: drawableRectangleFace,
+  /* Same back rules and the same `catch` as the round shapes, for the same reason. */
   back: z
     .union([
       z.looseObject({ mode: z.literal('custom'), face: drawableRectangleFace }),
       z.looseObject({ mode: z.literal('same') }),
       z.looseObject({ mode: z.literal('reference') }),
     ])
-    .optional(),
+    .optional()
+    .catch(undefined),
 });
 
 /**
