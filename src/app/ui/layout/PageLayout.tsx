@@ -1,9 +1,26 @@
-import { Children, isValidElement } from 'react';
+import { Children, createContext, isValidElement, useContext } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
-import { PageHeaderSizeProvider } from './pageHeaderSize';
-import type { PageHeaderSize } from './pageHeaderSize';
 import styles from './PageLayout.module.css';
+
+/**
+ * What kind of header a page declares.
+ * `compact` shrinks the band;
+ * `hero` marks a page whose name is set in the display face.
+ */
+export type PageHeaderSize = 'default' | 'compact' | 'hero';
+
+const InsidePageHeader = createContext(false);
+
+/**
+ * Whether the caller is rendering inside `PageLayout.Header`.
+ *
+ * `PageTitle` reads this to warn when a page title is rendered outside the band.
+ * The band is the only place the header treatment is correct: `data-scheme-paper` is set on the header content alone, while `data-page-layout-header-size` sits on the layout root, which `display: contents` leaves matching selectors for everything inside the layout, `Content` included.
+ */
+export function useInsidePageHeader(): boolean {
+  return useContext(InsidePageHeader);
+}
 
 function Header(_: PropsWithChildren<{ size?: PageHeaderSize }>): null {
   return null;
@@ -64,7 +81,7 @@ function PageLayoutBase({ children }: PropsWithChildren) {
           its light-scheme rendering in both schemes (see tokens.css). */}
       {hasHeader && (
         <div className={styles.headerContent} data-scheme-paper>
-          <PageHeaderSizeProvider value={headerSize}>{header}</PageHeaderSizeProvider>
+          <InsidePageHeader.Provider value>{header}</InsidePageHeader.Provider>
         </div>
       )}
       <main className={styles.content}>

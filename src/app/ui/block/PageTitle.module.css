@@ -1,4 +1,11 @@
+/*
+ * The title group adopts whatever its container aligns to, rather than taking an arrangement prop.
+ * A page header that centres its column centres the eyebrow under the name;
+ * one that aligns left keeps both on the same left edge.
+ * Without this the group stretches and the eyebrow sits flush against the name's edge instead of under its middle.
+ */
 .root {
+  align-items: inherit;
   min-width: 0;
 }
 
