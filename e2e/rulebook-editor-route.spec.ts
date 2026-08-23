@@ -2,7 +2,7 @@ import { expect, test } from './coverage';
 
 const editorPath = '/rulesets/local-rules/rulebooks/starter/edit';
 
-test('the local Rulebook editor keeps its A4 preview synchronized', async ({ page }) => {
+test('the local Rulebook editor keeps its preview synchronized', async ({ page }) => {
   await page.goto(editorPath);
 
   const preview = page.getByRole('region', { name: 'Rulebook page preview' });
@@ -14,19 +14,11 @@ test('the local Rulebook editor keeps its A4 preview synchronized', async ({ pag
   await expect(preview).toContainText('A browser-local Rulebook revision.');
 });
 
-test('selecting a Page enters its Edit path', async ({ page }) => {
-  await page.goto(editorPath);
-
-  await page.getByRole('button', { name: /Page 2/ }).click();
-
-  await expect(page.getByRole('article', { name: 'Preview of Page 2' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Edit Page 2/ })).toHaveAttribute('aria-expanded', 'true');
-});
-
 test('the fit toggle changes Page size while the document owns vertical scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(editorPath);
 
+  const controlsRegion = page.getByRole('region', { name: 'Rulebook controls' });
   const previewRegion = page.getByRole('region', { name: 'Rulebook page preview' });
   const previewPage = page.getByRole('article', { name: 'Preview of Page 1' });
   await expect(previewPage).toBeVisible();
@@ -37,6 +29,34 @@ test('the fit toggle changes Page size while the document owns vertical scrollin
     throw new Error('The fit-height preview has no rendered bounds.');
   }
   expect(fitHeightBox.width).toBeGreaterThan(0);
+  expect(fitHeightBox.width / fitHeightBox.height).toBeCloseTo(210 / 297, 2);
+
+  for (const region of [controlsRegion, previewRegion]) {
+    await expect
+      .poll(() => region.evaluate((element) => element.scrollHeight - element.clientHeight))
+      .toBeLessThanOrEqual(1);
+  }
+
+  await controlsRegion.hover();
+  await page.mouse.wheel(0, 250);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  const afterControlsWheel = await page.evaluate(() => window.scrollY);
+  expect(await controlsRegion.evaluate((element) => element.scrollTop)).toBe(0);
+  expect(await previewRegion.evaluate((element) => element.scrollTop)).toBe(0);
+
+  await previewRegion.hover();
+  await page.mouse.wheel(0, 250);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(afterControlsWheel);
+  expect(await controlsRegion.evaluate((element) => element.scrollTop)).toBe(0);
+  expect(await previewRegion.evaluate((element) => element.scrollTop)).toBe(0);
+
+  const stickyFitHeightBox = await previewPage.boundingBox();
+  expect(stickyFitHeightBox).not.toBeNull();
+  if (!stickyFitHeightBox) {
+    throw new Error('The sticky fit-height preview has no rendered bounds.');
+  }
+  expect(stickyFitHeightBox.y).toBeGreaterThanOrEqual(-1);
+  expect(stickyFitHeightBox.y + stickyFitHeightBox.height).toBeLessThanOrEqual(901);
 
   await page.getByRole('button', { name: 'Switch preview to fit width' }).click();
   await expect(page.getByRole('button', { name: 'Switch preview to fit height' })).toBeVisible();
@@ -48,19 +68,14 @@ test('the fit toggle changes Page size while the document owns vertical scrollin
   }
   expect(fitWidthBox.width).toBeGreaterThan(0);
   expect(fitWidthBox.width / fitHeightBox.width).toBeGreaterThanOrEqual(1.3);
-
-  await expect
-    .poll(() => page.evaluate(() => document.documentElement.scrollHeight > document.documentElement.clientHeight))
-    .toBe(true);
-  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight }));
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
-  expect(await previewRegion.evaluate((element) => element.scrollTop)).toBe(0);
-  expect(await previewPage.evaluate((element) => element.scrollTop)).toBe(0);
 });
 
 test('a repeated text item can be added, edited, previewed, and removed', async ({ page }) => {
   await page.goto(editorPath);
   await page.getByRole('button', { name: /Page 2/ }).click();
+
+  await expect(page.getByRole('article', { name: 'Preview of Page 2' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Edit Page 2/ })).toHaveAttribute('aria-expanded', 'true');
 
   const preview = page.getByRole('region', { name: 'Rulebook page preview' });
   const items = page.getByRole('textbox', { name: /^repeated text block, item \d+$/ });
@@ -81,7 +96,7 @@ test('a repeated text item can be added, edited, previewed, and removed', async 
 });
 
 test('only the narrow editor workspace scrolls horizontally', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 700 });
+  await page.setViewportSize({ width: 320, height: 700 });
   await page.goto(editorPath);
 
   const workspace = page.getByRole('region', { name: 'Rulebook editor and preview' });
