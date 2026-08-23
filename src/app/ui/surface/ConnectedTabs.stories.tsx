@@ -2,7 +2,6 @@ import { Box } from '@mantine/core';
 import preview from '@sb/preview';
 import { BookOpen, CircleUserRound, Settings } from 'lucide-react';
 import { useState } from 'react';
-import type { ComponentType, CSSProperties } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { ConnectedTabs } from './ConnectedTabs';
@@ -12,14 +11,11 @@ import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
 
 type ExampleTab = 'overview' | 'people' | 'settings';
 
-interface ConnectedTabsStoryArgs {
-  value?: ExampleTab;
-  onValueChange?: (value: ExampleTab) => void;
-  items?: ConnectedTabsProps<ExampleTab>['items'];
-  ariaLabel?: string;
-  className?: string;
-  panelClassName?: string;
-  style?: CSSProperties;
+/**
+ * What the example panels are made of.
+ * These are the story's own knobs, not props: the component takes finished panels, so a story that wants taller ones builds taller ones rather than asking the component for them.
+ */
+interface ExamplePanels {
   contentHeight?: number;
   animateDimensions?: boolean;
   showPanelTitle?: boolean;
@@ -51,14 +47,11 @@ function Panel({
   );
 }
 
-function createItems({
+function examplePanels({
   contentHeight,
   animateDimensions,
   showPanelTitle,
-}: Pick<
-  ConnectedTabsStoryArgs,
-  'contentHeight' | 'animateDimensions' | 'showPanelTitle'
->): ConnectedTabsProps<ExampleTab>['items'] {
+}: ExamplePanels = {}): ConnectedTabsProps<ExampleTab>['items'] {
   const resolvedContentHeight = contentHeight ?? 180;
   const resolvedAnimateDimensions = animateDimensions ?? false;
   const resolvedShowPanelTitle = showPanelTitle ?? true;
@@ -105,51 +98,20 @@ function createItems({
   ];
 }
 
-function renderConnectedTabs({
-  contentHeight,
-  animateDimensions,
-  showPanelTitle,
-  value = 'overview',
-  onValueChange = () => {},
-  items: _storyItems,
-  ariaLabel = 'Workbench sections',
-  ...optionalTabsProps
-}: ConnectedTabsStoryArgs) {
-  return (
-    <ConnectedTabs
-      {...optionalTabsProps}
-      value={value}
-      onValueChange={onValueChange}
-      ariaLabel={ariaLabel}
-      items={createItems({ contentHeight, animateDimensions, showPanelTitle })}
-    />
-  );
-}
-
 const meta = preview.meta({
   title: 'Connected Tabs',
-  component: ConnectedTabs as ComponentType<ConnectedTabsStoryArgs>,
-  render: renderConnectedTabs,
+  component: ConnectedTabs,
   args: {
     value: 'overview',
     onValueChange: () => {},
     ariaLabel: 'Workbench sections',
-    contentHeight: 180,
-    animateDimensions: false,
-    showPanelTitle: true,
+    items: examplePanels(),
   },
   argTypes: {
     value: { control: false, table: { disable: true } },
     onValueChange: { control: false, table: { disable: true } },
     items: { control: false, table: { disable: true } },
     ariaLabel: { control: false, table: { disable: true } },
-    contentHeight: {
-      name: 'Content height',
-      description: 'Selected-panel content height in pixels.',
-      control: { type: 'range', min: 40, max: 800, step: 20 },
-    },
-    animateDimensions: { control: false, table: { disable: true } },
-    showPanelTitle: { control: false, table: { disable: true } },
   },
   parameters: {
     layout: 'fullscreen',
@@ -200,7 +162,7 @@ export const FinalActive = meta.story({
 export const ContentDrivenHeight = meta.story({
   args: {
     value: 'overview',
-    contentHeight: 720,
+    items: examplePanels({ contentHeight: 720 }),
   },
   parameters: {
     docs: {
@@ -214,14 +176,13 @@ export const ContentDrivenHeight = meta.story({
 export const ResizeDrivenGeometry = meta.story({
   args: {
     value: 'people',
-    contentHeight: 320,
-    animateDimensions: true,
+    items: examplePanels({ contentHeight: 320, animateDimensions: true }),
   },
   parameters: {
     docs: {
       description: {
         story:
-          'Resize the Storybook canvas with the Viewport toolbar, browser window, or sidebar; use the Content height control for the other axis. Width always follows the canvas, while height is the greater of the left tab rail and selected-panel content. The SVG contour and clipped glass surface follow every intermediate size.',
+          'Resize the Storybook canvas with the Viewport toolbar, browser window, or sidebar. Width always follows the canvas, while height is the greater of the left tab rail and selected-panel content. The SVG contour and clipped glass surface follow every intermediate size.',
       },
     },
   },
@@ -230,8 +191,7 @@ export const ResizeDrivenGeometry = meta.story({
 export const MobileViewport = meta.story({
   args: {
     value: 'overview',
-    contentHeight: 180,
-    showPanelTitle: false,
+    items: examplePanels({ showPanelTitle: false }),
   },
   globals: {
     viewport: {
@@ -292,7 +252,7 @@ export const OverflowPreserved = meta.story({
   args: { value: 'people' },
   render: (args) => (
     <Box p="xl">
-      {renderConnectedTabs(args)}
+      <ConnectedTabs {...args} />
       <Box data-testid="overflow-marker" w={48} h={48} ml={540} mt={-80} bg="dune.7" />
     </Box>
   ),
