@@ -95,7 +95,7 @@ function duplicateValues(values: readonly string[]): readonly string[] {
     }
     seen.add(value);
   }
-  return [...duplicates].sort();
+  return [...duplicates].sort((left, right) => left.localeCompare(right));
 }
 
 function sameMembers(left: readonly string[], right: readonly string[]): boolean {

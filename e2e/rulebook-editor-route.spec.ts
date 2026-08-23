@@ -15,6 +15,18 @@ test('the local Rulebook editor keeps its A4 preview synchronized', async ({ pag
   await expect(preview).toContainText('A browser-local Rulebook revision.');
 });
 
+test('invalid formatted text stays literal in the preview', async ({ page }) => {
+  await page.goto('/rulesets/local-rules/rulebooks/starter/edit');
+  await page.getByText('Edit page', { exact: true }).click();
+
+  const invalidText = '*bold _underline* still underline_';
+  await page.getByRole('textbox', { name: 'Text block' }).fill(invalidText);
+
+  const preview = page.getByRole('region', { name: 'Rulebook page preview' });
+  await expect(preview.getByText(invalidText, { exact: true })).toBeVisible();
+  await expect(preview.locator('strong')).toHaveCount(0);
+});
+
 test('selecting a Page enters Edit mode', async ({ page }) => {
   await page.goto('/rulesets/local-rules/rulebooks/starter/edit');
 
@@ -74,7 +86,13 @@ test('a repeated text item can be added, edited, previewed, and removed', async 
   await addedItem.fill('A newly repeated browser-local rule.');
   await expect(preview).toContainText('A newly repeated browser-local rule.');
 
-  await page.getByRole('button', { name: `Remove item ${originalCount + 1} from repeated text block` }).click();
+  const removeItem = page.getByRole('button', {
+    name: `Remove item ${originalCount + 1} from repeated text block`,
+  });
+  await removeItem.hover();
+  await page.mouse.down();
+  await page.waitForTimeout(5200);
+  await page.mouse.up();
   await expect(items).toHaveCount(originalCount);
   await expect(preview).not.toContainText('A newly repeated browser-local rule.');
 });

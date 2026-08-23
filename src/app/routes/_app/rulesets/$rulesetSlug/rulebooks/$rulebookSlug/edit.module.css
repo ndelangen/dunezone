@@ -157,6 +157,11 @@
   font-style: italic;
 }
 
+.literalText {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 @container rulebook-editor-workspace (max-width: 44rem) {
   .workspace {
     gap: var(--mantine-spacing-sm);

@@ -16,7 +16,7 @@ import type { FormattedTextParseResult } from '@shared/formattedText';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
-import { IconAction } from '@ui/control/IconAction';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -65,6 +65,9 @@ function renderInline(nodes: readonly FormattedInline[]): ReactNode {
 
 function FormattedTextPreview({ value }: { value: string }) {
   const parsed = parseFormattedText(value);
+  if (!parsed.valid) {
+    return <p className={styles.literalText}>{value}</p>;
+  }
   if (parsed.blocks.length === 0) {
     return <p className={styles.emptyText}>Empty text</p>;
   }
@@ -253,13 +256,13 @@ function PageTextEditors({
                         dispatch({ kind: 'set', target, field: 'text', value: event.currentTarget.value })
                       }
                     />
-                    <IconAction
+                    <ConfirmDeleteAction
                       label={`Remove item ${index + 1} from ${repeatedBlockLabel}`}
-                      variant="light"
-                      color="red"
+                      verb="remove"
+                      pending={false}
                       size="sm"
                       icon={<Minus size={15} aria-hidden />}
-                      onClick={() => dispatch({ kind: 'delete', root: target })}
+                      onConfirm={() => dispatch({ kind: 'delete', root: target })}
                     />
                   </Group>
                 );
