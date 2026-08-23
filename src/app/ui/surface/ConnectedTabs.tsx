@@ -3,7 +3,7 @@ import * as Tabs from '@radix-ui/react-tabs';
 import clsx from 'clsx';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import styles from './ConnectedTabs.module.css';
 import { PaintedSurfaceBoundary } from './Surface';
@@ -35,8 +35,6 @@ export interface ConnectedTabsProps<Value extends string> {
   items: readonly ConnectedTabsItem<Value>[];
   ariaLabel: string;
   className?: string;
-  panelClassName?: string;
-  style?: CSSProperties;
 }
 
 interface ConnectedTabsGeometry {
@@ -289,8 +287,6 @@ export function ConnectedTabs<Value extends string>({
   items,
   ariaLabel,
   className,
-  panelClassName,
-  style,
 }: ConnectedTabsProps<Value>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -300,7 +296,7 @@ export function ConnectedTabs<Value extends string>({
   const selectAdjacent = (direction: -1 | 1) => onValueChange(findAdjacentEnabledValue({ value, items, direction }));
 
   return (
-    <div className={clsx(styles.host, className)} style={style}>
+    <div className={clsx(styles.host, className)}>
       <Tabs.Root
         ref={rootRef}
         className={styles.root}
@@ -381,7 +377,7 @@ export function ConnectedTabs<Value extends string>({
             </Tabs.Trigger>
           ))}
         </Tabs.List>
-        <div ref={panelRef} className={clsx(styles.panelShell, panelClassName)}>
+        <div ref={panelRef} className={styles.panelShell}>
           {items.map((item) => (
             <Tabs.Content className={styles.panel} key={item.value} value={item.value}>
               {/* The SVG glass paints this panel as a pane, so the nesting guard
