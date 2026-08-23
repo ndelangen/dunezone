@@ -1,6 +1,7 @@
 import { Box, Chip, Group, SegmentedControl, SimpleGrid, Stack, Tabs, Text, TextInput, Title } from '@mantine/core';
 import { BACKGROUND, DECAL, GENERIC, ICON, LOGO, TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { createFileRoute } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -241,7 +242,7 @@ function IconsPage() {
     <PageLayout>
       <PageLayout.Header size="compact">
         <Stack align="center" gap="xs">
-          <Title order={1}>Icon catalog</Title>
+          <PageTitle title="Icon catalog" />
           <Text ta="center" maw={680}>
             Browse the canonical application topics, Lucide library, and Dune SVG assets available in this project.
           </Text>

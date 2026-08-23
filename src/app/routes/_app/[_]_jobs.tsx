@@ -11,9 +11,9 @@ import {
   Switch,
   Table,
   Text,
-  Title,
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { AlertCircle, BriefcaseBusiness } from 'lucide-react';
@@ -46,7 +46,7 @@ function PublicationJobsPage() {
       <PageLayout.Header size="compact">
         <Stack align="center" gap="xs">
           <BriefcaseBusiness size={32} strokeWidth={1.6} aria-hidden />
-          <Title order={1}>Publication jobs</Title>
+          <PageTitle title="Publication jobs" />
           <Text ta="center" maw={680}>
             Inspect the durable work queue and control whether the next scheduled run may pick up pending work.
           </Text>
