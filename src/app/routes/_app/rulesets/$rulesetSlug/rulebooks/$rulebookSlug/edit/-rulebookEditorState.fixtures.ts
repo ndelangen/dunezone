@@ -2,8 +2,8 @@ import { normalizeFormattedText } from '@shared/formattedText';
 import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 
-import { createRulebookEditorStateManager } from './RulebookEditorState';
-import type { RulebookEditorInput, RulebookEditPatchV1, SavedRulebookRevision } from './RulebookEditorState';
+import { createRulebookEditorStateManager } from './-rulebookEditorState';
+import type { RulebookEditorInput, RulebookEditPatchV1 } from './-rulebookEditorState';
 
 const EMPTY_PATCH: RulebookEditPatchV1 = {
   schemaVersion: 1,
@@ -26,7 +26,7 @@ function formattedText(source: string) {
 export function createRulebookSavedRevision(
   revision: string,
   amend?: (contents: RulebookContentsV1) => void
-): SavedRulebookRevision {
+): RulebookEditorInput['baseline'] {
   const contents = structuredClone(createRulebookStarterContents());
   amend?.(contents);
   return { revision, contents };

@@ -2,10 +2,13 @@ import { normalizeFormattedText } from '@shared/formattedText';
 import type { NormalizedFormattedText } from '@shared/formattedText';
 import { z } from 'zod';
 
-const rulebookLayoutCatalogue = [
+export const rulebookLayoutCatalogue = [
   { id: 'single-column', slots: ['body'] },
   { id: 'two-columns', slots: ['left', 'right'] },
 ] as const;
+
+type RulebookLayoutDefinition = (typeof rulebookLayoutCatalogue)[number];
+export type RulebookSlotId = RulebookLayoutDefinition['slots'][number];
 
 const rulebookPageIdSchema = z.string().min(1);
 const rulebookBlockIdSchema = z.string().min(1);
@@ -48,21 +51,24 @@ const repeatedTextBlockSchema = z.strictObject({
 
 const rulebookBlockSchema = z.discriminatedUnion('kind', [textBlockSchema, repeatedTextBlockSchema]);
 
+function slotSchema<const Slots extends readonly string[]>(slotIds: Slots) {
+  const slots = Object.fromEntries(slotIds.map((slotId) => [slotId, z.array(rulebookBlockIdSchema)])) as {
+    [SlotId in Slots[number]]: z.ZodArray<typeof rulebookBlockIdSchema>;
+  };
+  return z.strictObject(slots);
+}
+
 const singleColumnPageSchema = z.strictObject({
   id: rulebookPageIdSchema,
   anchor: rulebookAnchorSchema,
   layoutId: z.literal(rulebookLayoutCatalogue[0].id),
-  slots: z.strictObject({ body: z.array(rulebookBlockIdSchema) }),
+  slots: slotSchema(rulebookLayoutCatalogue[0].slots),
 });
-
 const twoColumnsPageSchema = z.strictObject({
   id: rulebookPageIdSchema,
   anchor: rulebookAnchorSchema,
   layoutId: z.literal(rulebookLayoutCatalogue[1].id),
-  slots: z.strictObject({
-    left: z.array(rulebookBlockIdSchema),
-    right: z.array(rulebookBlockIdSchema),
-  }),
+  slots: slotSchema(rulebookLayoutCatalogue[1].slots),
 });
 
 const rulebookPageSchema = z.discriminatedUnion('layoutId', [singleColumnPageSchema, twoColumnsPageSchema]);
@@ -197,7 +203,6 @@ export const rulebookContentsV1Schema = rulebookContentsV1BaseSchema.superRefine
 });
 
 export type RulebookContentsV1 = z.infer<typeof rulebookContentsV1Schema>;
-export type RulebookSlotId = 'body' | 'left' | 'right';
 
 type EditableValue<Value> = Value extends NormalizedFormattedText
   ? string
@@ -211,5 +216,20 @@ type EditableValue<Value> = Value extends NormalizedFormattedText
 export type RulebookContentsDraftV1 = EditableValue<RulebookContentsV1>;
 export type RulebookPageDraft = RulebookContentsDraftV1['pagesById'][string];
 export type RulebookBlockDraft = RulebookContentsDraftV1['blocksById'][string];
-type RulebookRepeatedTextBlockDraft = Extract<RulebookBlockDraft, { kind: 'repeated-text' }>;
-export type RulebookRepeatedTextItemDraft = RulebookRepeatedTextBlockDraft['itemsById'][string];
+
+const repeatedTextItemDraftSchema = repeatedTextItemSchema.extend({ text: z.string() });
+const textBlockDraftSchema = textBlockSchema.extend({ anchor: z.string().optional(), text: z.string() });
+const repeatedTextBlockDraftSchema = repeatedTextBlockSchema.extend({
+  anchor: z.string().optional(),
+  itemsById: z.record(rulebookItemIdSchema, repeatedTextItemDraftSchema),
+});
+
+/** Runtime structure authority for editor operation payloads whose direct fields may contain raw text. */
+export const rulebookDraftEntitySchemas = {
+  page: z.discriminatedUnion('layoutId', [
+    singleColumnPageSchema.extend({ anchor: z.string() }),
+    twoColumnsPageSchema.extend({ anchor: z.string() }),
+  ]),
+  block: z.discriminatedUnion('kind', [textBlockDraftSchema, repeatedTextBlockDraftSchema]),
+  item: repeatedTextItemDraftSchema,
+} as const;
