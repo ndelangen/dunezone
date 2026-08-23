@@ -1,7 +1,8 @@
 .prototypeRoot {
+  --prototype-side-space: clamp(1rem, 3vw, 2.5rem);
   container: rulebook-editor-prototype / inline-size;
-  width: min(116rem, calc(100vw - 1.5rem));
-  margin-inline-start: max(calc(50% - 58rem), calc(50% - 50vw + 0.75rem));
+  width: min(116rem, calc(100vw - var(--prototype-side-space) - var(--prototype-side-space)));
+  margin-inline-start: max(calc(50% - 58rem), calc(50% - 50vw + var(--prototype-side-space)));
   padding-bottom: 5rem;
 }
 
@@ -31,13 +32,15 @@
 }
 
 .workspace[data-concept="outline"][data-fit="height"] {
+  gap: var(--mantine-spacing-xl);
   grid-template-columns: minmax(32rem, 1fr) var(--page-width);
-  min-width: calc(32rem + var(--page-width) + var(--mantine-spacing-md));
+  min-width: calc(32rem + var(--page-width) + var(--mantine-spacing-xl));
 }
 
 .workspace[data-concept="outline"][data-fit="width"] {
+  gap: var(--mantine-spacing-xl);
   grid-template-columns: minmax(28rem, 1fr) var(--zoom-page-width);
-  min-width: calc(28rem + var(--zoom-page-width) + var(--mantine-spacing-md));
+  min-width: calc(28rem + var(--zoom-page-width) + var(--mantine-spacing-xl));
 }
 
 .workspace[data-concept="canvas"][data-fit="height"] {
@@ -77,8 +80,9 @@
 }
 
 .outlineRail {
-  padding-inline-end: var(--mantine-spacing-md);
-  border-inline-end: 1px solid var(--mantine-color-default-border);
+  overflow-y: auto;
+  overscroll-behavior-block: contain;
+  scrollbar-gutter: stable;
 }
 
 .outlineAccordion {

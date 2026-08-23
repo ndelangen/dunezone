@@ -350,7 +350,7 @@ function PreviewRail({ page, pageNumber, result, fit }: ConceptProps) {
 function OutlineConcept(props: ConceptProps) {
   return (
     <div className={styles.workspace} data-concept="outline" data-fit={props.fit}>
-      <div className={styles.outlineRail}>
+      <Surface className={styles.outlineRail} padding="lg" as="section" aria-label="Rulebook controls">
         <Accordion
           value={props.mode}
           onChange={(value) => value && props.setMode(value as EditorMode)}
@@ -379,7 +379,7 @@ function OutlineConcept(props: ConceptProps) {
             </Accordion.Panel>
           </Accordion.Item>
         </Accordion>
-      </div>
+      </Surface>
       <PreviewRail {...props} />
     </div>
   );
