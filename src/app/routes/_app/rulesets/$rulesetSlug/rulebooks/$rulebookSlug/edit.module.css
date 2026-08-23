@@ -134,14 +134,18 @@
 }
 
 .pageChoice {
-  display: grid;
-  grid-template-columns: 2.25rem minmax(7rem, 1fr) auto;
   width: 100%;
   min-height: 3rem;
   padding-inline: var(--mantine-spacing-sm);
   color: var(--mantine-color-text);
   border-inline-start: 3px solid transparent;
   border-radius: 0;
+}
+
+.pageChoice :global(.mantine-Button-label) {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(7rem, 1fr) auto;
+  width: 100%;
 }
 
 .pageChoice[aria-current="page"] {
