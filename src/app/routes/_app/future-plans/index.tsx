@@ -137,7 +137,7 @@ const FUTURE_PLANS: FuturePlan[] = [
 function FuturePlansPage() {
   return (
     <PageLayout>
-      <PageLayout.Header>
+      <PageLayout.Header size="hero">
         <SimpleGrid className={styles.hero} cols={{ base: 1, md: 2 }} spacing="xl">
           <Stack gap="xs">
             <Eyebrow tone="inverse">Our ambitions</Eyebrow>

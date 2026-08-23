@@ -3,7 +3,14 @@ import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './PageLayout.module.css';
 
-function Header(_: PropsWithChildren<{ size?: 'default' | 'compact' }>): null {
+/**
+ * What kind of header a page declares.
+ * `compact` shrinks the band;
+ * `hero` marks a page whose title is the display treatment, which the title Block reads back the way `AppHeader` reads the band size.
+ */
+type PageHeaderSize = 'default' | 'compact' | 'hero';
+
+function Header(_: PropsWithChildren<{ size?: PageHeaderSize }>): null {
   return null;
 }
 
@@ -22,13 +29,13 @@ function Content(_: PropsWithChildren): null {
  * That is why it is the documented exemption from the container-query rule: it is the page frame, sized against the viewport in concert with the shell, not a container.
  *
  * Slots: `Header` (omit it to mark the page intentionally compact;
- * `size="compact"` shrinks the band), `Toolbar`, and
+ * `size="compact"` shrinks the band, and `size="hero"` declares a page whose title takes the display treatment), `Toolbar`, and
  * `Content`.
  */
 function PageLayoutBase({ children }: PropsWithChildren) {
   let hasHeader = false;
   let header: ReactNode = null;
-  let headerSize: 'default' | 'compact' = 'default';
+  let headerSize: PageHeaderSize = 'default';
   let toolbar: ReactNode = null;
   let content: ReactNode = null;
 
@@ -38,7 +45,7 @@ function PageLayoutBase({ children }: PropsWithChildren) {
     }
     if (child.type === Header) {
       hasHeader = true;
-      const props = child.props as PropsWithChildren<{ size?: 'default' | 'compact' }>;
+      const props = child.props as PropsWithChildren<{ size?: PageHeaderSize }>;
       header = props.children;
       headerSize = props.size ?? 'default';
       return;
