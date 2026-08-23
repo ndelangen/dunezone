@@ -457,6 +457,7 @@ function RulebookEditorPage() {
                 />
               </Box>
             </div>
+            <div className={styles.stickyRunway} aria-hidden="true" />
           </section>
         ) : (
           <Alert color="yellow" role="status" title="No page selected">

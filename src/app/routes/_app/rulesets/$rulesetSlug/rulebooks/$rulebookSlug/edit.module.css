@@ -6,8 +6,13 @@
   padding-bottom: 5rem;
 }
 
-.prototypeRoot:has(> .workspaceSticky[data-fit="height"][data-mode="navigate"]) {
-  min-height: 200dvh;
+.stickyRunway {
+  display: none;
+}
+
+.workspaceSticky[data-fit="height"][data-mode="navigate"] + .stickyRunway {
+  display: block;
+  height: 100dvh;
 }
 
 .mobileStatus {
@@ -259,6 +264,10 @@
 }
 
 @container rulebook-editor-prototype (max-width: 45rem) {
+  .workspaceSticky[data-fit="height"][data-mode="navigate"] + .stickyRunway {
+    display: none;
+  }
+
   .workspaceSticky {
     --workspace-gap: var(--mantine-spacing-sm);
   }

@@ -163,6 +163,23 @@ test('only the narrow editor workspace scrolls horizontally', async ({ page }) =
 
   const workspace = page.getByRole('region', { name: 'Rulebook editor and preview' });
   await expect(workspace).toBeVisible();
+  const editingSection = page.getByRole('region', { name: 'Rulebook editing workspace' });
+  const controls = page.getByRole('region', { name: 'Rulebook controls' });
+  const preview = page.getByRole('region', { name: 'Rulebook page preview' });
+  const [editingSectionBox, controlsBox, previewBox] = await Promise.all([
+    editingSection.boundingBox(),
+    controls.boundingBox(),
+    preview.boundingBox(),
+  ]);
+  expect(editingSectionBox).not.toBeNull();
+  expect(controlsBox).not.toBeNull();
+  expect(previewBox).not.toBeNull();
+  if (!editingSectionBox || !controlsBox || !previewBox) {
+    throw new Error('The narrow Rulebook workspace has no rendered bounds.');
+  }
+  const contentBottom = Math.max(controlsBox.y + controlsBox.height, previewBox.y + previewBox.height);
+  const sectionBottom = editingSectionBox.y + editingSectionBox.height;
+  expect(sectionBottom - contentBottom).toBeLessThan(350);
   await expect.poll(() => workspace.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
   await expect
     .poll(() =>
