@@ -40,17 +40,32 @@ test('the fit toggle changes Page size while the document owns vertical scrollin
       .toBeLessThanOrEqual(1);
   }
 
-  await controlsRegion.hover();
-  const hoveredFitHeightBox = await previewPage.boundingBox();
-  expect(hoveredFitHeightBox).not.toBeNull();
-  if (!hoveredFitHeightBox) {
-    throw new Error('The fit-height preview has no rendered bounds after focusing the controls.');
+  const controlsBox = await controlsRegion.boundingBox();
+  expect(controlsBox).not.toBeNull();
+  if (!controlsBox) {
+    throw new Error('The Rulebook controls have no rendered bounds.');
   }
-  const stickyOffset = 16;
-  const engageStickyDelta = Math.max(1, Math.floor(hoveredFitHeightBox.y - stickyOffset));
-  await page.mouse.wheel(0, engageStickyDelta);
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
-  const afterControlsWheel = await page.evaluate(() => window.scrollY);
+  await page.mouse.move(controlsBox.x + 20, controlsBox.y + 20);
+
+  let previousPageY = fitHeightBox.y;
+  let previousWindowY = await page.evaluate(() => window.scrollY);
+  let stickyPageY: number | undefined;
+  for (let step = 0; step < 30; step += 1) {
+    await page.mouse.wheel(0, 20);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(previousWindowY);
+    const candidateBox = await previewPage.boundingBox();
+    expect(candidateBox).not.toBeNull();
+    if (!candidateBox) {
+      throw new Error('The fit-height preview lost its rendered bounds while scrolling.');
+    }
+    if (Math.abs(candidateBox.y - previousPageY) <= 1) {
+      stickyPageY = candidateBox.y;
+      break;
+    }
+    previousPageY = candidateBox.y;
+    previousWindowY = await page.evaluate(() => window.scrollY);
+  }
+  expect(stickyPageY).toBeDefined();
   expect(await controlsRegion.evaluate((element) => element.scrollTop)).toBe(0);
   expect(await previewRegion.evaluate((element) => element.scrollTop)).toBe(0);
 
@@ -59,17 +74,27 @@ test('the fit toggle changes Page size while the document owns vertical scrollin
   if (!stickyFitHeightBox) {
     throw new Error('The sticky fit-height preview has no rendered bounds.');
   }
+  expect(stickyFitHeightBox.y).toBeCloseTo(stickyPageY ?? Number.NaN, 0);
   expect(stickyFitHeightBox.y).toBeGreaterThanOrEqual(-1);
   expect(stickyFitHeightBox.y + stickyFitHeightBox.height).toBeLessThanOrEqual(901);
 
-  await previewRegion.hover();
-  await page.mouse.wheel(0, 40);
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(afterControlsWheel);
+  await page.mouse.move(stickyFitHeightBox.x + stickyFitHeightBox.width / 2, stickyFitHeightBox.y + 20);
+  const beforePinnedWheel = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 20);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(beforePinnedWheel);
+  const pinnedFitHeightBox = await previewPage.boundingBox();
+  expect(pinnedFitHeightBox).not.toBeNull();
+  if (!pinnedFitHeightBox) {
+    throw new Error('The pinned fit-height preview has no rendered bounds.');
+  }
+  expect(Math.abs(pinnedFitHeightBox.y - stickyFitHeightBox.y)).toBeLessThanOrEqual(1);
   expect(await controlsRegion.evaluate((element) => element.scrollTop)).toBe(0);
   expect(await previewRegion.evaluate((element) => element.scrollTop)).toBe(0);
 
   await page.getByRole('button', { name: 'Switch preview to fit width' }).click();
   await expect(page.getByRole('button', { name: 'Switch preview to fit height' })).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 
   const fitWidthBox = await previewPage.boundingBox();
   expect(fitWidthBox).not.toBeNull();
@@ -78,6 +103,27 @@ test('the fit toggle changes Page size while the document owns vertical scrollin
   }
   expect(fitWidthBox.width).toBeGreaterThan(0);
   expect(fitWidthBox.width / fitHeightBox.width).toBeGreaterThanOrEqual(1.3);
+
+  const fitWidthRegionBox = await previewRegion.boundingBox();
+  expect(fitWidthRegionBox).not.toBeNull();
+  if (!fitWidthRegionBox) {
+    throw new Error('The fit-width preview region has no rendered bounds.');
+  }
+  await page.mouse.move(fitWidthRegionBox.x + fitWidthRegionBox.width / 2, fitWidthRegionBox.y + 20);
+  const beforeFitWidthWheel = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 40);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(beforeFitWidthWheel);
+  const afterFitWidthWheel = await page.evaluate(() => window.scrollY);
+  const scrolledFitWidthBox = await previewPage.boundingBox();
+  expect(scrolledFitWidthBox).not.toBeNull();
+  if (!scrolledFitWidthBox) {
+    throw new Error('The scrolled fit-width preview has no rendered bounds.');
+  }
+  expect(
+    Math.abs(fitWidthBox.y - scrolledFitWidthBox.y - (afterFitWidthWheel - beforeFitWidthWheel))
+  ).toBeLessThanOrEqual(1);
+  expect(await controlsRegion.evaluate((element) => element.scrollTop)).toBe(0);
+  expect(await previewRegion.evaluate((element) => element.scrollTop)).toBe(0);
 });
 
 test('a repeated text item can be added, edited, previewed, and removed', async ({ page }) => {

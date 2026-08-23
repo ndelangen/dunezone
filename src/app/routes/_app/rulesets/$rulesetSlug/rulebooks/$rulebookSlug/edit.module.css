@@ -6,6 +6,10 @@
   padding-bottom: 5rem;
 }
 
+.prototypeRoot:has(> .workspaceSticky[data-fit="height"][data-mode="navigate"]) {
+  min-height: 200dvh;
+}
+
 .mobileStatus {
   display: none;
 }
