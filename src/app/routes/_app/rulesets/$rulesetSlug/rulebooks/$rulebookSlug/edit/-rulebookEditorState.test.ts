@@ -216,7 +216,7 @@ describe('Rulebook editor state manager', () => {
       approval: {
         incompatibilityId: conflict.id,
         dependencyFingerprint: conflict.dependencyFingerprint,
-        outcome: { kind: 'field', value: 'The local opening.' },
+        outcome: { kind: 'text', value: 'The local opening.' },
       },
     }) as Extract<RulebookEditorResult, { status: 'ready' }>;
     expect(result.incompatibilities).toHaveLength(0);
@@ -488,6 +488,39 @@ describe('Rulebook editor state manager', () => {
     expect(result.rebasedPatch.sets).toHaveLength(0);
   });
 
+  it('rebases edits made while a save request is in flight onto the saved revision', () => {
+    const manager = createRulebookEditorStateManager(createStaleSaveInput());
+    const requested = ready(manager).saveRequest!;
+    manager.dispatch({ kind: 'begin-save' });
+    manager.dispatch({
+      kind: 'set',
+      target: { kind: 'block', blockId: 'block-summary' },
+      field: 'text',
+      value: 'Edited after Save was pressed.',
+    });
+
+    const result = manager.dispatch({
+      kind: 'save-succeeded',
+      saved: { revision: 'revision-2', contents: requested.contents },
+    });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(result.latest.revision).toBe('revision-2');
+    expect(textBlock(result.draft, 'block-summary').text).toBe('Edited after Save was pressed.');
+    expect(result.rebasedPatch.sets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: { kind: 'block', blockId: 'block-summary' },
+          field: 'text',
+          value: 'Edited after Save was pressed.',
+        }),
+      ])
+    );
+    expect(result.canSave).toBe(true);
+  });
+
   it('reconciles a stale save response through the same latest-revision path', () => {
     const manager = createRulebookEditorStateManager(createStaleSaveInput());
     manager.dispatch({ kind: 'begin-save' });
@@ -519,6 +552,54 @@ describe('Rulebook editor state manager', () => {
     }
     expect(result.operationError).toMatch(/destination/i);
     expect(result.draft).toEqual(before);
+  });
+
+  it('keeps later reads usable after an operation throws inside the membrane', () => {
+    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const before = ready(manager).draft;
+    const invalidDraft = { ...before, pagesById: () => undefined } as never;
+    const rejected = manager.dispatch({ kind: 'replace-draft', draft: invalidDraft });
+    expect(rejected.status).toBe('ready');
+    expect(rejected.status === 'ready' ? rejected.operationError : '').toBeTruthy();
+    const recovered = manager.result;
+    expect(recovered.status).toBe('ready');
+    expect(recovered.status === 'ready' ? recovered.draft : undefined).toEqual(before);
+  });
+
+  it('rejects a valueless text approval without throwing or accepting it', () => {
+    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    manager.dispatch({
+      kind: 'set',
+      target: { kind: 'block', blockId: 'block-introduction' },
+      field: 'text',
+      value: 'Local text',
+    });
+    const latest = createRulebookSavedRevision('revision-2', (contents) => {
+      textBlock(contents, 'block-introduction').text = 'Saved text';
+    });
+    const conflicted = manager.dispatch({ kind: 'receive-latest', latest });
+    expect(conflicted.status).toBe('ready');
+    if (conflicted.status !== 'ready') {
+      return;
+    }
+    const incompatibility = conflicted.incompatibilities.find(
+      (item) => item.kind === 'field' && item.field === 'text'
+    )!;
+    const result = manager.dispatch({
+      kind: 'resolve',
+      approval: {
+        incompatibilityId: incompatibility.id,
+        dependencyFingerprint: incompatibility.dependencyFingerprint,
+        outcome: { kind: 'text' } as never,
+      },
+    });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(result.incompatibilities).toHaveLength(1);
+    expect(result.resolutionLedger).toHaveLength(0);
+    expect(result.operationError).toBeUndefined();
   });
 
   it.each(['receive-latest', 'save-stale'] as const)('fails closed when %s receives unsupported Contents', (kind) => {
@@ -778,6 +859,85 @@ describe('Rulebook editor state manager', () => {
     const input = createCleanRulebookEditorInput();
     alter(input);
     expect(createRulebookEditorStateManager(input).result.status).toBe('unsupported');
+  });
+
+  it('materializes neighboring creations as one valid placement batch', () => {
+    const input = createCleanRulebookEditorInput();
+    input.patch.creates.push(
+      {
+        kind: 'create',
+        entity: { kind: 'block', block: { id: 'block-batch-a', kind: 'text', text: 'A' } },
+        placement: {
+          container: { kind: 'page-slot', pageId: 'page-introduction', slotId: 'body' },
+          afterId: 'block-introduction',
+          beforeId: 'block-batch-b',
+        },
+      },
+      {
+        kind: 'create',
+        entity: { kind: 'block', block: { id: 'block-batch-b', kind: 'text', text: 'B' } },
+        placement: {
+          container: { kind: 'page-slot', pageId: 'page-introduction', slotId: 'body' },
+          afterId: 'block-batch-a',
+          beforeId: null,
+        },
+      }
+    );
+    const result = createRulebookEditorStateManager(input).result;
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(singleColumnPage(result.draft, 'page-introduction').slots.body).toEqual([
+      'block-introduction',
+      'block-batch-a',
+      'block-batch-b',
+    ]);
+  });
+
+  it('applies no placement group when one request in the batch fails', () => {
+    const input = createCleanRulebookEditorInput();
+    const local = createRulebookEditorStateManager(input);
+    local.dispatch({
+      kind: 'place',
+      target: { kind: 'block', blockId: 'block-summary' },
+      destination: {
+        container: { kind: 'page-slot', pageId: 'page-introduction', slotId: 'body' },
+        afterId: 'block-introduction',
+        beforeId: null,
+      },
+    });
+    local.dispatch({
+      kind: 'create',
+      entity: { kind: 'item', blockId: 'block-examples', item: { id: 'item-local', text: 'Local item' } },
+      placement: {
+        container: { kind: 'item-order', blockId: 'block-examples' },
+        afterId: 'item-example',
+        beforeId: null,
+      },
+    });
+    const latest = createRulebookSavedRevision('revision-2', (contents) => {
+      const block = contents.blocksById['block-examples'];
+      if (block?.kind !== 'repeated-text') {
+        throw new Error('The fixture needs a Repeated text Block');
+      }
+      block.itemOrder = [];
+      delete block.itemsById['item-example'];
+    });
+    const result = local.dispatch({ kind: 'receive-latest', latest });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(singleColumnPage(result.comparisonDraft, 'page-introduction').slots.body).toEqual(['block-introduction']);
+    expect(twoColumnPage(result.comparisonDraft, 'page-reference').slots.left).toContain('block-summary');
+    const repeated = result.comparisonDraft.blocksById['block-examples'];
+    expect(repeated?.kind === 'repeated-text' ? repeated.itemsById['item-local'] : undefined).toBeUndefined();
+    expect(result.incompatibilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'placement', target: expect.objectContaining({ kind: 'item' }) }),
+      ])
+    );
   });
 
   it('combines a local field edit with a saved move of the same identity', () => {
@@ -1089,7 +1249,7 @@ describe('Rulebook editor state manager', () => {
       approval: {
         incompatibilityId: introduction.id,
         dependencyFingerprint: introduction.dependencyFingerprint,
-        outcome: { kind: 'field', value: 'Local introduction' },
+        outcome: { kind: 'text', value: 'Local introduction' },
       },
     });
     expect(result.status).toBe('ready');

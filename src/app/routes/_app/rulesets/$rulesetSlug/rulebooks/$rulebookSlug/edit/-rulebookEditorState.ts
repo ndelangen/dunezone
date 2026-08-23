@@ -14,6 +14,8 @@ import type {
 } from '@shared/rulebooks/contents';
 import { z } from 'zod';
 
+import { compareCanonicalText, planAtomicPlacementBatch } from './-rulebookPlacement';
+
 type SavedRulebookRevision = {
   readonly revision: string;
   readonly contents: RulebookContentsV1;
@@ -140,7 +142,7 @@ const rulebookEditPatchV1Schema = z
       if (new Set(keys).size !== keys.length) {
         context.addIssue({ code: 'custom', path: [name], message: `${name} must contain one concern per identity` });
       }
-      if ([...keys].sort().some((key, index) => key !== keys[index])) {
+      if ([...keys].sort(compareCanonicalText).some((key, index) => key !== keys[index])) {
         context.addIssue({ code: 'custom', path: [name], message: `${name} must use canonical identity order` });
       }
     }
@@ -151,7 +153,10 @@ const rulebookEditPatchV1Schema = z
       if (!keys.includes(entityRefKey(deletion.root))) {
         context.addIssue({ code: 'custom', path: ['deletes'], message: 'Every deletion must contain its root' });
       }
-      if (new Set(keys).size !== keys.length || [...keys].sort().some((key, index) => key !== keys[index])) {
+      if (
+        new Set(keys).size !== keys.length ||
+        [...keys].sort(compareCanonicalText).some((key, index) => key !== keys[index])
+      ) {
         context.addIssue({
           code: 'custom',
           path: ['deletes'],
@@ -327,7 +332,8 @@ type RulebookIncompatibility =
   | RulebookDeletionIncompatibility;
 
 type RulebookResolutionOutcome =
-  | { readonly kind: 'field'; readonly value?: string }
+  | { readonly kind: 'anchor'; readonly value?: string }
+  | { readonly kind: 'text'; readonly value: string }
   | { readonly kind: 'placement'; readonly destination: RulebookPlacement }
   | {
       readonly kind: 'collection-order';
@@ -406,6 +412,10 @@ type ReadyState = {
   ledger: RulebookResolutionApproval[];
   knownPageLayouts: Record<string, { layoutId: string; slotIds: string[] }>;
   isSaving: boolean;
+  saveInFlight?: {
+    revision: string;
+    contents: RulebookContentsV1;
+  };
   operationError?: string;
 };
 
@@ -413,7 +423,7 @@ function pageLayoutMemory(contents: RulebookContentsDraftV1): ReadyState['knownP
   return Object.fromEntries(
     Object.values(contents.pagesById).map((page) => [
       page.id,
-      { layoutId: page.layoutId, slotIds: Object.keys(page.slots).sort() },
+      { layoutId: page.layoutId, slotIds: Object.keys(page.slots).sort(compareCanonicalText) },
     ])
   );
 }
@@ -428,7 +438,7 @@ function immutableLayoutError(
 ): string | undefined {
   for (const page of Object.values(contents.pagesById)) {
     const known = knownLayouts[page.id];
-    const slotIds = Object.keys(page.slots).sort();
+    const slotIds = Object.keys(page.slots).sort(compareCanonicalText);
     if (known && (known.layoutId !== page.layoutId || known.slotIds.join('\u0000') !== slotIds.join('\u0000'))) {
       return `Page ${page.id} cannot change its issued layout or slot shape`;
     }
@@ -520,7 +530,7 @@ function stableFingerprint(value: unknown): string {
     if (!item || typeof item !== 'object' || Array.isArray(item)) {
       return item;
     }
-    return Object.fromEntries(Object.entries(item).sort(([left], [right]) => left.localeCompare(right)));
+    return Object.fromEntries(Object.entries(item).sort(([left], [right]) => compareCanonicalText(left, right)));
   });
 }
 
@@ -541,7 +551,7 @@ function allEntityRefs(contents: RulebookContentsDraftV1): RulebookEntityRef[] {
       );
     }
   }
-  return refs.sort((left, right) => entityRefKey(left).localeCompare(entityRefKey(right)));
+  return refs.sort((left, right) => compareCanonicalText(entityRefKey(left), entityRefKey(right)));
 }
 
 function entityExists(contents: RulebookContentsDraftV1, ref: RulebookEntityRef): boolean {
@@ -687,7 +697,7 @@ function reviewedDeletionSet(
       }
     }
   }
-  return [...result.values()].sort((left, right) => entityRefKey(left).localeCompare(entityRefKey(right)));
+  return [...result.values()].sort((left, right) => compareCanonicalText(entityRefKey(left), entityRefKey(right)));
 }
 
 function snapshotSubtree(contents: RulebookContentsDraftV1, root: RulebookEntityRef): RulebookDraftSubtree {
@@ -752,7 +762,7 @@ function restorationIntentsForAffectedRefs(
       const parent = parentRef(contents, ref);
       return !parent || !survivingKeys.has(entityRefKey(parent));
     })
-    .sort((left, right) => depth(left) - depth(right) || entityRefKey(left).localeCompare(entityRefKey(right)))
+    .sort((left, right) => depth(left) - depth(right) || compareCanonicalText(entityRefKey(left), entityRefKey(right)))
     .map((root) => ({
       kind: 'restore',
       root,
@@ -780,7 +790,7 @@ function removeFromPlacements(contents: RulebookContentsDraftV1, refs: readonly 
 
 function deleteExact(contents: RulebookContentsDraftV1, refs: readonly RulebookEntityRef[]): void {
   removeFromPlacements(contents, refs);
-  for (const ref of [...refs].sort((left, right) => entityRefKey(right).localeCompare(entityRefKey(left)))) {
+  for (const ref of [...refs].sort((left, right) => compareCanonicalText(entityRefKey(right), entityRefKey(left)))) {
     if (ref.kind === 'item') {
       const block = contents.blocksById[ref.blockId];
       if (block?.kind === 'repeated-text') {
@@ -894,6 +904,35 @@ function setField(contents: RulebookContentsDraftV1, intent: RulebookSetIntent):
   block.itemsById[intent.target.itemId]!.text = intent.value;
 }
 
+function fieldIntent(
+  target: RulebookEntityRef,
+  field: 'anchor' | 'text',
+  value: string | undefined
+): RulebookSetIntent {
+  if (field === 'anchor') {
+    if (target.kind === 'page') {
+      if (value === undefined) {
+        throw new Error('A Page anchor resolution needs a value');
+      }
+      return { kind: 'set', target, field, value };
+    }
+    if (target.kind === 'block') {
+      return { kind: 'set', target, field, value };
+    }
+    throw new Error('A repeated item cannot own an anchor');
+  }
+  if (value === undefined) {
+    throw new Error('A text resolution needs a value');
+  }
+  if (target.kind === 'block') {
+    return { kind: 'set', target, field, value };
+  }
+  if (target.kind === 'item') {
+    return { kind: 'set', target, field, value };
+  }
+  throw new Error('A Page cannot own editable text');
+}
+
 function resolveGap(
   contents: RulebookContentsDraftV1,
   target: RulebookEntityRef,
@@ -969,15 +1008,16 @@ function applyPlacementBatch(
     return [];
   }
 
+  const candidate = clone(contents);
   const failures: PlacementBatchFailure[] = [];
   removeFromPlacements(
-    contents,
+    candidate,
     requests.map(({ target }) => target)
   );
   const groups = new Map<string, { container: RulebookOrderedContainerRef; requests: PlacementRequest[] }>();
 
   for (const request of requests) {
-    if (!entityExists(contents, request.target) || !containerAccepts(request.destination.container, request.target)) {
+    if (!entityExists(candidate, request.target) || !containerAccepts(request.destination.container, request.target)) {
       failures.push({ kind: 'placement', request, reason: 'cross-container-neighbor' });
       continue;
     }
@@ -987,8 +1027,14 @@ function applyPlacementBatch(
     groups.set(key, group);
   }
 
-  for (const { container, requests: groupRequests } of groups.values()) {
-    const baseOrder = getOrder(contents, container);
+  const groupInputs: Array<{
+    key: string;
+    currentOrder: string[];
+    baseOrder: string[];
+    requests: Array<{ targetId: string; afterId: string | null; beforeId: string | null }>;
+  }> = [];
+  for (const [key, { container, requests: groupRequests }] of groups) {
+    const baseOrder = getOrder(candidate, container);
     if (!baseOrder) {
       failures.push(
         ...groupRequests.map((request) => ({
@@ -999,82 +1045,57 @@ function applyPlacementBatch(
       );
       continue;
     }
-    const nodes = [...baseOrder, ...groupRequests.map(({ target }) => entityId(target))];
-    const nodeSet = new Set(nodes);
-    const edges = new Map(nodes.map((id) => [id, new Set<string>()]));
-    const addEdge = (from: string, to: string) => {
-      if (from !== to) {
-        edges.get(from)?.add(to);
-      }
-    };
-    for (let index = 1; index < baseOrder.length; index += 1) {
-      addEdge(baseOrder[index - 1]!, baseOrder[index]!);
-    }
-
-    let invalid = false;
-    for (const request of groupRequests) {
-      const targetId = entityId(request.target);
-      const { afterId, beforeId } = request.destination;
-      if ((afterId !== null && !nodeSet.has(afterId)) || (beforeId !== null && !nodeSet.has(beforeId))) {
-        failures.push({ kind: 'placement', request, reason: 'missing-neighbor' });
-        invalid = true;
-        continue;
-      }
-      if (afterId === null && beforeId === null && baseOrder.length > 0) {
-        failures.push({ kind: 'placement', request, reason: 'missing-neighbor' });
-        invalid = true;
-        continue;
-      }
-      if (afterId !== null) {
-        addEdge(afterId, targetId);
-      }
-      if (beforeId !== null) {
-        addEdge(targetId, beforeId);
-      }
-      if (afterId !== null && beforeId === null) {
-        const next = baseOrder[baseOrder.indexOf(afterId) + 1];
-        if (next) {
-          addEdge(targetId, next);
-        }
-      }
-      if (beforeId !== null && afterId === null) {
-        const previous = baseOrder[baseOrder.indexOf(beforeId) - 1];
-        if (previous) {
-          addEdge(previous, targetId);
-        }
-      }
-    }
-    if (invalid) {
-      continue;
-    }
-
-    const indegree = new Map(nodes.map((id) => [id, 0]));
-    for (const outgoing of edges.values()) {
-      for (const to of outgoing) {
-        indegree.set(to, (indegree.get(to) ?? 0) + 1);
-      }
-    }
-    const ordered: string[] = [];
-    while (ordered.length < nodes.length) {
-      const next = nodes
-        .filter((id) => !ordered.includes(id) && indegree.get(id) === 0)
-        .sort((left, right) => left.localeCompare(right))[0];
-      if (!next) {
-        failures.push({ kind: 'cycle', container, requests: groupRequests });
-        break;
-      }
-      ordered.push(next);
-      for (const to of edges.get(next) ?? []) {
-        indegree.set(to, indegree.get(to)! - 1);
-      }
-    }
-    if (ordered.length === nodes.length) {
-      const order = getOrder(contents, container)!;
-      order.splice(0, order.length, ...ordered);
-    }
+    groupInputs.push({
+      key,
+      currentOrder: [...getOrder(contents, container)!],
+      baseOrder: [...baseOrder],
+      requests: groupRequests.map(({ target, destination }) => ({
+        targetId: entityId(target),
+        afterId: destination.afterId,
+        beforeId: destination.beforeId,
+      })),
+    });
+  }
+  if (failures.length > 0) {
+    return failures;
   }
 
-  return failures;
+  const planned = planAtomicPlacementBatch(groupInputs);
+  if (!planned.ok) {
+    return planned.failures.map((failure) => {
+      const group = groups.get(failure.key)!;
+      if (failure.kind === 'cycle') {
+        return { kind: 'cycle' as const, container: group.container, requests: group.requests };
+      }
+      const request = group.requests[failure.requestIndex]!;
+      return {
+        kind: 'placement' as const,
+        request,
+        reason: unresolvedGapReason(candidate, request.destination),
+      };
+    });
+  }
+
+  for (const plan of planned.plans) {
+    const order = getOrder(candidate, groups.get(plan.key)!.container)!;
+    order.splice(0, order.length, ...plan.order);
+  }
+  contents.pageOrder = [...candidate.pageOrder];
+  for (const page of Object.values(contents.pagesById)) {
+    const candidatePage = candidate.pagesById[page.id]!;
+    for (const [slotId] of pageSlotEntries(page)) {
+      (page.slots as Record<string, string[]>)[slotId] = [
+        ...(candidatePage.slots as Record<string, string[]>)[slotId]!,
+      ];
+    }
+  }
+  for (const block of Object.values(contents.blocksById)) {
+    const candidateBlock = candidate.blocksById[block.id];
+    if (block.kind === 'repeated-text' && candidateBlock?.kind === 'repeated-text') {
+      block.itemOrder = [...candidateBlock.itemOrder];
+    }
+  }
+  return [];
 }
 
 function emptyPatch(revision: string): RulebookEditPatchV1 {
@@ -1132,11 +1153,6 @@ function patchValidationError(baseline: RulebookContentsV1, patch: RulebookEditP
         return 'A placement original must match the reconciliation baseline';
       }
       placementRequests.push({ target: intent.target, destination: intent.destination });
-    }
-    for (const request of placementRequests) {
-      if (!resolveGap(draft, request.target, request.destination)) {
-        return 'Every placement must name a valid compatible neighbor gap';
-      }
     }
     if (applyPlacementBatch(draft, placementRequests).length > 0) {
       return 'The patch placements cannot be materialized deterministically';
@@ -1225,7 +1241,7 @@ function fieldsEqual(field: 'anchor' | 'text', left: string | undefined, right: 
 }
 
 function lexicographicallySmaller(left: readonly string[], right: readonly string[]): readonly string[] {
-  return left.join('\u0000').localeCompare(right.join('\u0000')) <= 0 ? left : right;
+  return compareCanonicalText(left.join('\u0000'), right.join('\u0000')) <= 0 ? left : right;
 }
 
 function longestCommonSubsequence(left: readonly string[], right: readonly string[]): readonly string[] {
@@ -1357,7 +1373,7 @@ function diffContents(
       root,
       deletedRefs: ownedClosure(source, root)
         .filter((ref) => missingKeys.has(entityRefKey(ref)))
-        .sort((left, right) => entityRefKey(left).localeCompare(entityRefKey(right))),
+        .sort((left, right) => compareCanonicalText(entityRefKey(left), entityRefKey(right))),
     }));
   deletes.push(...reviewedDeletions.map((deletion) => clone(deletion)));
 
@@ -1371,12 +1387,7 @@ function diffContents(
     if (!previous || fieldsEqual(record.field, previous.value, record.value)) {
       continue;
     }
-    sets.push({
-      kind: 'set',
-      target: record.target as never,
-      field: record.field as never,
-      value: record.value,
-    } as RulebookSetIntent);
+    sets.push(fieldIntent(record.target, record.field, record.value));
   }
 
   const restorations: RulebookRestoreIntent[] = restorationRoots.map((root) => ({
@@ -1391,12 +1402,14 @@ function diffContents(
     schemaVersion: 1,
     baselineRevision,
     creates: creates.sort((left, right) =>
-      entityRefKey(entityForNew(left.entity)).localeCompare(entityRefKey(entityForNew(right.entity)))
+      compareCanonicalText(entityRefKey(entityForNew(left.entity)), entityRefKey(entityForNew(right.entity)))
     ),
-    deletes: deletes.sort((left, right) => entityRefKey(left.root).localeCompare(entityRefKey(right.root))),
-    sets: sets.sort((left, right) => fieldKey(left).localeCompare(fieldKey(right))),
+    deletes: deletes.sort((left, right) => compareCanonicalText(entityRefKey(left.root), entityRefKey(right.root))),
+    sets: sets.sort((left, right) => compareCanonicalText(fieldKey(left), fieldKey(right))),
     placements: placementDiff(source, target, excluded),
-    restorations: restorations.sort((left, right) => entityRefKey(left.root).localeCompare(entityRefKey(right.root))),
+    restorations: restorations.sort((left, right) =>
+      compareCanonicalText(entityRefKey(left.root), entityRefKey(right.root))
+    ),
   };
 }
 
@@ -1659,7 +1672,7 @@ function anchorSuggestion(contents: RulebookContentsDraftV1, requested: string):
 function reconcile(state: ReadyState): Reconciliation {
   const baseline = state.baseline.contents as RulebookContentsDraftV1;
   const latest = state.latest.contents as RulebookContentsDraftV1;
-  const proposed = clone(latest);
+  let proposed = clone(latest);
   const incompatibilities: RulebookIncompatibility[] = [];
   const blockedRefs = new Set<string>();
   const reviewedDeletions: RulebookDeleteIntent[] = [];
@@ -1800,6 +1813,7 @@ function reconcile(state: ReadyState): Reconciliation {
     }
   }
 
+  const placementDraft = clone(proposed);
   const placementRequests: PlacementRequest[] = [];
   for (const creation of state.patch.creates) {
     const target = entityForNew(creation.entity);
@@ -1810,21 +1824,8 @@ function reconcile(state: ReadyState): Reconciliation {
     if (entityExists(latest, target)) {
       continue;
     }
-    addEntityData(proposed, creation.entity);
-    const destination = resolveGap(proposed, target, creation.placement);
-    if (destination) {
-      placementRequests.push({ target, destination });
-    } else {
-      incompatibilities.push(
-        placementIncompatibility(
-          target,
-          undefined,
-          undefined,
-          creation.placement,
-          unresolvedGapReason(proposed, creation.placement)
-        )
-      );
-    }
+    addEntityData(placementDraft, creation.entity);
+    placementRequests.push({ target, destination: creation.placement });
   }
 
   const latestMoves = new Map(latestDiff.placements.map((intent) => [entityRefKey(intent.target), intent]));
@@ -1832,31 +1833,10 @@ function reconcile(state: ReadyState): Reconciliation {
     if (blockedRefs.has(entityRefKey(intent.target)) || !entityExists(latest, intent.target)) {
       continue;
     }
-    const destination = resolveGap(proposed, intent.target, intent.destination);
-    if (!destination) {
-      incompatibilities.push(
-        placementIncompatibility(
-          intent.target,
-          intent.original,
-          findPlacement(latest, intent.target),
-          intent.destination,
-          unresolvedGapReason(proposed, intent.destination)
-        )
-      );
-      continue;
-    }
-    const savedMove = latestMoves.get(entityRefKey(intent.target));
-    const latestPlacement = findPlacement(latest, intent.target);
-    if (!savedMove) {
-      placementRequests.push({ target: intent.target, destination });
-    } else if (!samePlacement(resolveGap(latest, intent.target, savedMove.destination), destination)) {
-      incompatibilities.push(
-        placementIncompatibility(intent.target, intent.original, latestPlacement, intent.destination, 'competing-move')
-      );
-    }
+    placementRequests.push({ target: intent.target, destination: intent.destination });
   }
 
-  const placementFailures = applyPlacementBatch(proposed, placementRequests);
+  const placementFailures = applyPlacementBatch(placementDraft, placementRequests);
   for (const failure of placementFailures) {
     if (failure.kind === 'placement') {
       const original = state.patch.placements.find((intent) =>
@@ -1885,6 +1865,30 @@ function reconcile(state: ReadyState): Reconciliation {
       };
       incompatibilities.push(incompatibility);
     }
+  }
+  const competingMoves =
+    placementFailures.length === 0
+      ? state.patch.placements.filter((intent) => {
+          const savedMove = latestMoves.get(entityRefKey(intent.target));
+          return (
+            savedMove !== undefined &&
+            !samePlacement(findPlacement(placementDraft, intent.target), findPlacement(latest, intent.target))
+          );
+        })
+      : [];
+  for (const intent of competingMoves) {
+    incompatibilities.push(
+      placementIncompatibility(
+        intent.target,
+        intent.original,
+        findPlacement(latest, intent.target),
+        intent.destination,
+        'competing-move'
+      )
+    );
+  }
+  if (placementFailures.length === 0 && competingMoves.length === 0) {
+    proposed = placementDraft;
   }
 
   if (state.baseline.revision !== state.latest.revision) {
@@ -1938,13 +1942,14 @@ function reconcile(state: ReadyState): Reconciliation {
       continue;
     }
     const outcome = approval.outcome;
-    if ((incompatibility.kind === 'field' || incompatibility.kind === 'anchor') && outcome.kind === 'field') {
-      setField(comparisonDraft, {
-        kind: 'set',
-        target: incompatibility.target as never,
-        field: incompatibility.kind === 'anchor' ? 'anchor' : incompatibility.field,
-        value: outcome.value,
-      } as RulebookSetIntent);
+    if (
+      incompatibility.kind === 'field' &&
+      ((incompatibility.field === 'anchor' && outcome.kind === 'anchor') ||
+        (incompatibility.field === 'text' && outcome.kind === 'text'))
+    ) {
+      setField(comparisonDraft, fieldIntent(incompatibility.target, incompatibility.field, outcome.value));
+    } else if (incompatibility.kind === 'anchor' && outcome.kind === 'anchor') {
+      setField(comparisonDraft, fieldIntent(incompatibility.target, 'anchor', outcome.value));
     } else if (incompatibility.kind === 'placement' && outcome.kind === 'placement') {
       approvalPlacements.push({ target: incompatibility.target, destination: outcome.destination });
     } else if (incompatibility.kind === 'collection-order' && outcome.kind === 'collection-order') {
@@ -2017,10 +2022,13 @@ function outcomeFits(
 ): boolean {
   const outcome = approval.outcome;
   if (incompatibility.kind === 'field') {
-    return outcome.kind === 'field';
+    if (incompatibility.field === 'text') {
+      return outcome.kind === 'text' && typeof outcome.value === 'string';
+    }
+    return outcome.kind === 'anchor' && (incompatibility.target.kind === 'block' || typeof outcome.value === 'string');
   }
   if (incompatibility.kind === 'anchor') {
-    if (outcome.kind !== 'field' || outcome.value === undefined) {
+    if (outcome.kind !== 'anchor' || outcome.value === undefined) {
       return false;
     }
     return !anchorEntries(proposed).some(
@@ -2117,6 +2125,9 @@ function dispatchReady(
     }
     state.latest = clone(authoritativeRevision);
     state.isSaving = false;
+    if (action.kind === 'save-stale') {
+      state.saveInFlight = undefined;
+    }
     rememberPageLayouts(state, state.latest.contents);
     stabilize(state);
     return;
@@ -2126,19 +2137,33 @@ function dispatchReady(
       throw new Error('The saved result was not validated');
     }
     const saved = clone(authoritativeRevision);
-    state.baseline = clone(saved);
-    state.latest = clone(saved);
-    state.draft = clone(saved.contents) as RulebookContentsDraftV1;
-    state.patch = emptyPatch(saved.revision);
+    const saveInFlight = state.saveInFlight;
+    if (saveInFlight) {
+      state.patch = diffContents(saveInFlight.contents, state.draft, saveInFlight.revision);
+      state.baseline = { revision: saveInFlight.revision, contents: clone(saveInFlight.contents) };
+      state.latest = clone(saved);
+    } else {
+      state.baseline = clone(saved);
+      state.latest = clone(saved);
+      state.draft = clone(saved.contents) as RulebookContentsDraftV1;
+      state.patch = emptyPatch(saved.revision);
+    }
     state.ledger = [];
     state.isSaving = false;
+    state.saveInFlight = undefined;
     rememberPageLayouts(state, state.draft);
+    stabilize(state);
     return;
   }
   if (action.kind === 'begin-save') {
-    if (!readyResult(state).canSave) {
+    const result = readyResult(state);
+    if (!result.canSave || !result.saveRequest) {
       throw new Error('Save is not available for the current Rulebook draft');
     }
+    state.saveInFlight = {
+      revision: result.saveRequest.expectedRevision,
+      contents: clone(result.saveRequest.contents),
+    };
     state.isSaving = true;
     return;
   }
@@ -2207,6 +2232,49 @@ function unsupportedManager(unsupported: { received: unknown; message: string })
   };
 }
 
+function restoreReadyState(target: ReadyState, source: ReadyState): void {
+  target.baseline = clone(source.baseline);
+  target.latest = clone(source.latest);
+  target.draft = clone(source.draft);
+  target.patch = clone(source.patch);
+  target.ledger = clone(source.ledger);
+  target.knownPageLayouts = clone(source.knownPageLayouts);
+  target.isSaving = source.isSaving;
+  target.saveInFlight = clone(source.saveInFlight);
+  target.operationError = source.operationError;
+}
+
+function operationErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'The Rulebook edit could not be applied.';
+}
+
+function failedReadyResult(state: ReadyState): RulebookEditorReadyResult {
+  return {
+    status: 'ready',
+    draft: clone(state.draft),
+    comparisonDraft: clone(state.draft),
+    latest: clone(state.latest),
+    diagnostics: [],
+    incompatibilities: [],
+    resolutionLedger: clone(state.ledger),
+    rebasedPatch: clone(state.patch),
+    canSave: false,
+    isSaving: state.isSaving,
+    operationError: state.operationError,
+  };
+}
+
+function safeReadyResult(state: ReadyState): RulebookEditorReadyResult {
+  const before = clone(state);
+  try {
+    return readyResult(state);
+  } catch (error) {
+    restoreReadyState(state, before);
+    state.operationError = operationErrorMessage(error);
+    return failedReadyResult(state);
+  }
+}
+
 function createRulebookEditorCore(input: RulebookEditorInput): RulebookEditorStateManager {
   const baseline = rulebookContentsV1Schema.safeParse(input.baseline.contents);
   const latest = rulebookContentsV1Schema.safeParse(input.latest.contents);
@@ -2255,7 +2323,7 @@ function createRulebookEditorCore(input: RulebookEditorInput): RulebookEditorSta
 
   return {
     get result() {
-      return unsupported ? unsupportedManager(unsupported).result : readyResult(core);
+      return unsupported ? unsupportedManager(unsupported).result : safeReadyResult(core);
     },
     dispatch(action) {
       if (unsupported) {
@@ -2282,12 +2350,15 @@ function createRulebookEditorCore(input: RulebookEditorInput): RulebookEditorSta
         }
         authoritativeRevision = { revision: receivedRevision.revision, contents: incoming.data };
       }
+      const before = clone(core);
       try {
         dispatchReady(core, action, authoritativeRevision);
+        return readyResult(core);
       } catch (error) {
-        core.operationError = error instanceof Error ? error.message : 'The Rulebook edit could not be applied.';
+        restoreReadyState(core, before);
+        core.operationError = operationErrorMessage(error);
+        return safeReadyResult(core);
       }
-      return readyResult(core);
     },
   };
 }

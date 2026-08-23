@@ -3,6 +3,7 @@ import type { NormalizedFormattedText } from '@shared/formattedText';
 import { z } from 'zod';
 
 export const rulebookLayoutCatalogue = [
+  // Every slot accepts Text and Repeated text Blocks, may be empty, and has no Block-count limit.
   { id: 'single-column', slots: ['body'] },
   { id: 'two-columns', slots: ['left', 'right'] },
 ] as const;
