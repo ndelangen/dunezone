@@ -17,9 +17,9 @@ import {
 import { Link, createFileRoute } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
+import { PageTitle } from '@ui/block/PageTitle';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
-import { Eyebrow } from '@ui/content/Eyebrow';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -143,8 +143,7 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
     <Stack className={styles.catalogueHeader} gap="lg">
       <Group justify="space-between" align="flex-start" wrap="wrap" gap="md">
         <Stack gap={4} align="flex-start" miw={0}>
-          <Eyebrow tone="accent">Explore the collection</Eyebrow>
-          <Title order={1}>Faction catalogue</Title>
+          <PageTitle eyebrow="Explore the collection" title="Faction catalogue" />
           <Text size="sm" c="dimmed">
             Browse the living collection of community factions.
           </Text>

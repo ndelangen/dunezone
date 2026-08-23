@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 
 import { PageLayout } from '../layout/PageLayout';
+import type { PageHeaderSize } from '../layout/PageLayout';
 import { PageTitle } from './PageTitle';
 import type { PageTitleProps } from './PageTitle';
 
@@ -9,7 +10,7 @@ import type { PageTitleProps } from './PageTitle';
  * A page declares what kind of header it has and this reads it back, so each story mounts the real
  * `PageLayout` and declares the header the same way a route does.
  */
-function InHeader({ size, ...props }: PageTitleProps & { size?: 'default' | 'hero' }) {
+function InHeader({ size, ...props }: PageTitleProps & { size?: PageHeaderSize }) {
   return (
     <PageLayout>
       <PageLayout.Header size={size}>
@@ -25,7 +26,7 @@ function InHeader({ size, ...props }: PageTitleProps & { size?: 'default' | 'her
 const meta = preview.meta({
   component: PageTitle,
   parameters: { layout: 'padded' },
-  render: (args: PageTitleProps & { size?: 'default' | 'hero' }) => <InHeader {...args} />,
+  render: (args: PageTitleProps & { size?: PageHeaderSize }) => <InHeader {...args} />,
   args: {
     title: 'Faction catalogue',
     eyebrow: 'Explore the collection',
