@@ -37,7 +37,7 @@ async function faqFixture() {
   const outsider = t.withIdentity({ subject: ids.outsiderId });
   const ruleset = await owner.mutation(api.rulesets.create, {
     name: 'FAQBehaviorRuleset',
-    description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+    about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
     group_id: null,
     image_cover: null,
   });
@@ -248,7 +248,7 @@ describe('FAQ lifecycle', () => {
     const outsider = t.withIdentity({ subject: ids.outsiderId });
     const ruleset = await rulesetOwner.mutation(api.rulesets.create, {
       name: 'CollaborativeFAQRuleset',
-      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+      about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
       group_id: ids.groupId,
       image_cover: null,
     });
@@ -388,7 +388,7 @@ describe('FAQ lifecycle', () => {
     const asUser = t.withIdentity({ subject: userId });
     const ruleset = await asUser.mutation(api.rulesets.create, {
       name: 'LargeFAQRuleset',
-      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+      about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
       group_id: null,
       image_cover: null,
     });
@@ -446,7 +446,7 @@ describe('FAQ lifecycle', () => {
     const asUser = t.withIdentity({ subject: userId });
     const ruleset = await asUser.mutation(api.rulesets.create, {
       name: 'LargeAnswerRuleset',
-      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+      about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
       group_id: null,
       image_cover: null,
     });

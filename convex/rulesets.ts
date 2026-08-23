@@ -19,7 +19,7 @@ import {
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
-import { withRulesetAbout } from './lib/rulesetAbout';
+import { activeRuleset } from './lib/rulesetAbout';
 import { loadRulesetDetailPageBySlug, loadRulesetPublicBundleBySlug } from './lib/rulesetDetailPage';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -32,7 +32,6 @@ async function getRulesetById(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
  * The patch an update writes.
  * `image_cover` keeps the absent-means-untouched rule, since clearing a cover is expressed as `null`;
  * name and About are required of every write, so they are always part of the patch.
- * The two stored fields stay identical until the retirement release removes the legacy one.
  * The shape is inferred rather than restated, so adding a field here cannot drift from the type that describes it.
  */
 function rulesetUpdatePatch(fields: { name: string; slug: string; about: string; image_cover?: string | null }) {
@@ -40,31 +39,13 @@ function rulesetUpdatePatch(fields: { name: string; slug: string; about: string;
     name: fields.name,
     slug: fields.slug,
     about: fields.about,
-    description: fields.about,
     updated_at: nowIso(),
     ...(fields.image_cover === undefined ? {} : { image_cover: fields.image_cover }),
   };
 }
 
-type CompatibleRulesetInput = {
-  name: string;
-  about?: string;
-  description?: string;
-};
-
-/**
- * Accepts the new About argument and the old Worker argument during the compatibility window.
- * Supplying both is allowed only when they name the same trimmed prose, so no caller can make the dual-written columns disagree.
- */
-function parseCompatibleRulesetInput(input: CompatibleRulesetInput) {
-  const suppliedAboutValues = [input.about, input.description].filter((value): value is string => value !== undefined);
-  if (suppliedAboutValues.length === 0) {
-    throw new Error('Ruleset About is required');
-  }
-  if (new Set(suppliedAboutValues.map((value) => value.trim())).size > 1) {
-    throw new Error('Ruleset About and legacy description must match');
-  }
-  const parsed = rulesetInputSchema.safeParse({ name: input.name, about: suppliedAboutValues[0] });
+function parseRulesetInput(input: { name: string; about: string }) {
+  const parsed = rulesetInputSchema.safeParse({ name: input.name, about: input.about });
   if (!parsed.success) {
     const msg = parsed.error.issues.map((issue) => issue.message).join(' ');
     throw new Error(msg || 'Invalid ruleset input');
@@ -96,7 +77,7 @@ export const list = query({
       .query('rulesets')
       .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
       .take(500);
-    return rows.map(withRulesetAbout);
+    return rows.map(activeRuleset);
   },
 });
 
@@ -107,7 +88,7 @@ export const get = query({
     if (!row || row.is_deleted) {
       throw new Error(`Ruleset with id ${args.id} not found`);
     }
-    return withRulesetAbout(row);
+    return activeRuleset(row);
   },
 });
 
@@ -147,23 +128,20 @@ export const listByFaction = query({
       .withIndex('by_faction', (q) => q.eq('faction_id', args.faction_id))
       .take(500);
     const rulesets = await Promise.all(links.map((link) => getRulesetById(ctx, link.ruleset_id)));
-    return rulesets
-      .filter((row): row is NonNullable<typeof row> => row != null && !row.is_deleted)
-      .map(withRulesetAbout);
+    return rulesets.filter((row): row is NonNullable<typeof row> => row != null && !row.is_deleted).map(activeRuleset);
   },
 });
 
 export const create = mutation({
   args: {
     name: v.string(),
-    about: v.optional(v.string()),
-    description: v.optional(v.string()),
+    about: v.string(),
     group_id: v.optional(v.union(v.id('groups'), v.null())),
     image_cover: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
-    const input = parseCompatibleRulesetInput(args);
+    const input = parseRulesetInput(args);
     const normalizedName = input.name;
 
     const groupAssignment = await resolveGroupAssignmentForCreation(ctx, userId, args.group_id);
@@ -181,7 +159,6 @@ export const create = mutation({
     const _id = await ctx.db.insert('rulesets', {
       name: normalizedName,
       about: input.about,
-      description: input.about,
       slug,
       owner_id: userId,
       group_id: groupAssignment.group_id,
@@ -194,7 +171,7 @@ export const create = mutation({
     if (!created) {
       throw new Error('Failed to create ruleset');
     }
-    return { ...withRulesetAbout(created), route_notice: groupAssignment.route_notice };
+    return { ...activeRuleset(created), route_notice: groupAssignment.route_notice };
   },
 });
 
@@ -202,12 +179,11 @@ export const update = mutation({
   args: {
     id: v.id('rulesets'),
     name: v.string(),
-    about: v.optional(v.string()),
-    description: v.optional(v.string()),
+    about: v.string(),
     image_cover: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
-    const input = parseCompatibleRulesetInput(args);
+    const input = parseRulesetInput(args);
     const normalizedName = input.name;
     const access = await requireRulesetUpdate(ctx, args.id, { name: normalizedName });
     const ruleset = access.subject;
@@ -233,7 +209,7 @@ export const update = mutation({
     if (!updated) {
       throw new Error('Failed to update ruleset');
     }
-    return withRulesetAbout(updated);
+    return activeRuleset(updated);
   },
 });
 
@@ -263,7 +239,7 @@ export const setGroup = mutation({
     if (!updated) {
       throw new Error('Failed to update ruleset group');
     }
-    return withRulesetAbout(updated);
+    return activeRuleset(updated);
   },
 });
 

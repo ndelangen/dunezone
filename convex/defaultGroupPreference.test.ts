@@ -125,7 +125,7 @@ describe('default Group preference', () => {
     await expect(
       member.mutation(api.rulesets.create, {
         name: 'DefaultGroupRuleset',
-        description: DESCRIPTION,
+        about: DESCRIPTION,
         image_cover: null,
       })
     ).resolves.toMatchObject({ group_id: ids.groupId, route_notice: null });
@@ -160,7 +160,7 @@ describe('default Group preference', () => {
     await expect(
       member.mutation(api.rulesets.create, {
         name: 'SoftDeletedDefaultRuleset',
-        description: DESCRIPTION,
+        about: DESCRIPTION,
         image_cover: null,
       })
     ).resolves.toMatchObject({ group_id: null, route_notice: defaultGroupUnavailableRouteNoticeCode });
@@ -172,7 +172,7 @@ describe('default Group preference', () => {
     await expect(
       member.mutation(api.rulesets.create, {
         name: 'ExplicitDeletedGroupRuleset',
-        description: DESCRIPTION,
+        about: DESCRIPTION,
         image_cover: null,
         group_id: ids.groupId,
       })
@@ -219,7 +219,7 @@ describe('default Group preference', () => {
     await expect(
       member.mutation(api.rulesets.create, {
         name: 'LegacyExplicitRuleset',
-        description: DESCRIPTION,
+        about: DESCRIPTION,
         image_cover: null,
         group_id: ids.groupId,
       })

@@ -37,6 +37,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   rulesets_description_v1: internal.migrations.rulesets_description_v1,
   rulesets_about_v1: internal.migrations.rulesets_about_v1,
   rulesets_about_verify_v1: internal.migrations.rulesets_about_verify_v1,
+  rulesets_description_retire_v1: internal.migrations.rulesets_description_retire_v1,
+  rulesets_description_retire_verify_v1: internal.migrations.rulesets_description_retire_verify_v1,
   faq_item_slug_v1: internal.migrations.faq_item_slug_v1,
   faq_item_tags_v1: internal.migrations.faq_item_tags_v1,
   profiles_from_users_v1: internal.migrations.profiles_from_users_v1,
@@ -190,28 +192,39 @@ export const rulesets_description_v1 = migrations.define({
   migrateOne: async () => undefined,
 });
 
-/** Copies the legacy Ruleset prose exactly when a row does not carry the canonical About field yet. */
+/** Retains the completed About backfill identity; the required field now enforces what it filled in. */
 export const rulesets_about_v1 = migrations.define({
   table: 'rulesets',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    if (row.about !== undefined) {
-      return;
-    }
-    return { about: row.description };
-  },
+  migrateOne: async () => undefined,
 });
 
-/** Proves every Ruleset carries one value under both field names before the old field can be retired. */
+/** Retains the completed About verification identity; the required field now enforces its invariant. */
 export const rulesets_about_verify_v1 = migrations.define({
   table: 'rulesets',
   batchSize: 50,
+  migrateOne: async () => undefined,
+});
+
+/** Removes the legacy Ruleset prose after all active contracts have adopted About. */
+export const rulesets_description_retire_v1 = migrations.define({
+  table: 'rulesets',
+  batchSize: 50,
   migrateOne: async (_ctx, row) => {
-    if (row.about === undefined) {
-      throw new Error(`Ruleset ${row._id} still has no About`);
+    if (row.description === undefined) {
+      return;
     }
-    if (row.about !== row.description) {
-      throw new Error(`Ruleset ${row._id} has different About and legacy description values`);
+    return { description: undefined };
+  },
+});
+
+/** Proves every Ruleset has crossed the storage-retirement boundary before the schema drops the old field. */
+export const rulesets_description_retire_verify_v1 = migrations.define({
+  table: 'rulesets',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    if (row.description !== undefined) {
+      throw new Error(`Ruleset ${row._id} still has a legacy description`);
     }
   },
 });

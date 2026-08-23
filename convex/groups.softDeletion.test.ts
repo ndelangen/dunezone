@@ -74,7 +74,7 @@ async function softDeletionFixture() {
     });
     const rulesetId = await ctx.db.insert('rulesets', {
       name: 'Collaborative Ruleset',
-      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+      about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
       slug: 'collaborative-ruleset',
       created_at: now,
       updated_at: now,
@@ -211,7 +211,7 @@ describe('Group soft deletion lifecycle', () => {
     await expect(
       assetOwner.mutation(api.rulesets.create, {
         name: 'OrphanRuleset',
-        description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+        about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
         group_id: ids.groupId,
         image_cover: null,
       })

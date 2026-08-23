@@ -133,7 +133,7 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
 
     const advancedRulesetId = await ctx.db.insert('rulesets', {
       name: 'Advanced',
-      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+      about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
       slug: 'advanced',
       created_at: at(1),
       updated_at: at(1),
@@ -144,7 +144,7 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
     });
     const basicRulesetId = await ctx.db.insert('rulesets', {
       name: 'Basic',
-      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+      about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
       slug: 'basic',
       created_at: at(1),
       updated_at: at(1),
@@ -155,7 +155,7 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
     });
     const deletedRulesetId = await ctx.db.insert('rulesets', {
       name: 'Deleted',
-      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+      about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
       slug: 'deleted',
       created_at: at(1),
       updated_at: at(1),

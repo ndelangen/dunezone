@@ -29,7 +29,10 @@ const profileValidator = docValidator('profiles');
 
 const factionValidator = docValidator('factions').extend({ data: factionDataValidator });
 
-const rulesetValidator = docValidator('rulesets');
+const rulesetValidator = schema.tables.rulesets.validator.omit('description').extend({
+  _id: v.id('rulesets'),
+  _creationTime: v.number(),
+});
 
 const publicViewerValidator = v.union(
   v.object({ kind: v.literal('anonymous') }),

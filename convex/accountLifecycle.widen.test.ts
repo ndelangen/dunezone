@@ -139,7 +139,7 @@ describe('account lifecycle widen rollout', () => {
         owner_id: ownerId,
         name: 'Index Ruleset',
         slug: 'index-ruleset',
-        description: '',
+        about: '',
         created_at: now,
         updated_at: now,
         is_deleted: false,

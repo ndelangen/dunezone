@@ -63,7 +63,7 @@ async function linkFixture() {
   const owner = t.withIdentity({ subject: ids.ownerId });
   const ruleset = await owner.mutation(api.rulesets.create, {
     name: 'LinkableRuleset',
-    description: DESCRIPTION,
+    about: DESCRIPTION,
     group_id: ids.groupId,
     image_cover: null,
   });
@@ -128,7 +128,7 @@ describe('ruleset faction links', () => {
     const { t, ids, owner, ruleset } = await linkFixture();
     const second = await owner.mutation(api.rulesets.create, {
       name: 'SecondLinkableRuleset',
-      description: DESCRIPTION,
+      about: DESCRIPTION,
       group_id: ids.groupId,
       image_cover: null,
     });

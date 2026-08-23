@@ -17,8 +17,8 @@ import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessVali
 
 /** What a caller authors, derived from the schema that validates it. Both fields are required, and About sits above its floor. */
 export type Ruleset = RulesetInput;
-export type RulesetRow = Doc<'rulesets'>;
-export type RulesetEntry = Omit<RulesetRow, 'name' | 'about' | 'description'> & {
+export type RulesetRow = Omit<Doc<'rulesets'>, 'description'>;
+export type RulesetEntry = Omit<RulesetRow, 'name' | 'about'> & {
   name: Ruleset['name'];
   about: Ruleset['about'];
   id: RulesetRow['_id'];
@@ -76,12 +76,11 @@ function mapFaqItemsFromConvex(items: FaqItemConvexRow[]): FaqItemWithDetails[] 
 }
 
 function toRulesetEntry(entry: RulesetRow): RulesetEntry {
-  const { description, ...rest } = entry;
   return {
-    ...rest,
+    ...entry,
     id: entry._id,
     name: entry.name,
-    about: entry.about ?? description,
+    about: entry.about,
   };
 }
 
@@ -134,7 +133,7 @@ export function useCreateRuleset() {
     return { ...toRulesetEntry(row), route_notice };
   };
   const mutation = useLiveMutation<
-    { name: string; about?: string; description?: string; group_id?: string | null; image_cover: string | null },
+    { name: string; about: string; group_id?: string | null; image_cover: string | null },
     CreatedRulesetResult
   >(api.rulesets.create);
   return {
@@ -179,7 +178,7 @@ export function useCreateRuleset() {
 
 export function useUpdateRuleset() {
   const mutation = useLiveMutation<
-    { id: string; name: string; about?: string; description?: string; image_cover?: string | null },
+    { id: string; name: string; about: string; image_cover?: string | null },
     RulesetRow
   >(api.rulesets.update);
   return {

@@ -41,7 +41,7 @@ async function slotFixture() {
   const owner = t.withIdentity({ subject: ownerId });
   const ruleset = await owner.mutation(api.rulesets.create, {
     name: 'SlottedRuleset',
-    description: DESCRIPTION,
+    about: DESCRIPTION,
     group_id: null,
     image_cover: null,
   });

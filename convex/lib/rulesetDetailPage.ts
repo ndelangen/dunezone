@@ -5,13 +5,13 @@ import { loadAssetAccessBundle, loadRulesetAccessForLoadedSubject } from './coll
 import { parseStoredFactionForRead } from './factionInput';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
-import { withRulesetAbout } from './rulesetAbout';
-import type { RulesetWithAbout } from './rulesetAbout';
+import { activeRuleset } from './rulesetAbout';
+import type { ActiveRuleset } from './rulesetAbout';
 
 const RULESET_FACTION_LIMIT = 500;
 
 /** A non-deleted ruleset resolved by its public slug, or null. The one soft-delete gate. */
-export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string): Promise<RulesetWithAbout | null> {
+export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string): Promise<ActiveRuleset | null> {
   const row = await ctx.db
     .query('rulesets')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
@@ -19,7 +19,7 @@ export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string): Prom
   if (!row || row.is_deleted) {
     return null;
   }
-  return withRulesetAbout(row);
+  return activeRuleset(row);
 }
 
 /**
