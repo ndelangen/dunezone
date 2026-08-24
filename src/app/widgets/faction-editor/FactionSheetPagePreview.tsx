@@ -1,5 +1,4 @@
-import { CAPTURE_PROTOCOL } from '@shared/asset-publishing/capture-protocol';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { Faction } from '@db/factions';
@@ -32,35 +31,10 @@ function preparePreviewDocument(document: Document) {
   document.body.style.overflow = 'hidden';
 }
 
-function alignIframePage(iframe: HTMLIFrameElement | null, pageNumber: 1 | 2) {
-  const document = iframe?.contentDocument;
-  if (!document) {
-    return;
-  }
-  const target = document.querySelector<HTMLElement>(`[${CAPTURE_PROTOCOL.pageMarker.attribute}="${pageNumber}"]`);
-  if (!target) {
-    return;
-  }
-  const top = target.offsetTop;
-  document.documentElement.scrollTop = top;
-  document.body.scrollTop = top;
-}
-
 export function FactionSheetPagePreview({ faction, pageNumber }: { faction: Faction; pageNumber: 1 | 2 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const renderFaction = useMemo(() => factionDraftForRenderer(faction), [faction]);
-
-  useLayoutEffect(() => {
-    if (!portalRoot) {
-      return;
-    }
-    const firstFrame = window.requestAnimationFrame(() => {
-      alignIframePage(iframeRef.current, pageNumber);
-      window.requestAnimationFrame(() => alignIframePage(iframeRef.current, pageNumber));
-    });
-    return () => window.cancelAnimationFrame(firstFrame);
-  }, [pageNumber, portalRoot]);
 
   return (
     <>
@@ -80,7 +54,14 @@ export function FactionSheetPagePreview({ faction, pageNumber }: { faction: Fact
           setPortalRoot(document.body);
         }}
       />
-      {portalRoot ? createPortal(<FactionSheetView faction={renderFaction} />, portalRoot) : null}
+      {portalRoot
+        ? createPortal(
+            <div className={pageNumber === 2 ? styles.steppedToPage2 : undefined}>
+              <FactionSheetView faction={renderFaction} />
+            </div>,
+            portalRoot
+          )
+        : null}
     </>
   );
 }

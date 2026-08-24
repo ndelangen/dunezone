@@ -7,6 +7,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import type { CSSProperties, ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
+import { hasSheetPage2 } from '@game/assets/faction/sheet/Sheet';
 import { Shield } from '@game/assets/faction/shield/Shield';
 import { shield as shieldSize } from '@game/data/sizes';
 
@@ -93,13 +94,19 @@ function ReviewProofDesk({ faction }: { faction: Faction }) {
               <div className={styles.sheetPage} data-review-sheet-page="1">
                 <FactionSheetPagePreview faction={faction} pageNumber={1} />
               </div>
-              <div className={styles.sheetPage} data-review-sheet-page="2">
-                <FactionSheetPagePreview faction={faction} pageNumber={2} />
-              </div>
+              {/* A faction with no karama rules, troops or leaders has no second page, and a tile for it
+                  used to show the first page again under a "page 2" label. */}
+              {hasSheetPage2(faction) ? (
+                <div className={styles.sheetPage} data-review-sheet-page="2">
+                  <FactionSheetPagePreview faction={faction} pageNumber={2} />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
-        {showScrollCue ? (
+        {/* The cue names page 2 by hand, so it must not appear for a faction that has none: with the
+            tile gone there would be nothing below to scroll to. */}
+        {showScrollCue && hasSheetPage2(faction) ? (
           <div className={styles.scrollCue} role="status">
             <Text size="xs" fw={700}>
               Scroll for page 2
