@@ -26,11 +26,6 @@ import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
 
 import styles from './index.module.css';
 
-/**
- * The structural minimum both owned-asset queries satisfy.
- * Their validator-derived row types remain the authority for the shape;
- * this names only the part the picker reads.
- */
 type RosterEntry = GroupDetailPageData['roster'][number];
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/')({

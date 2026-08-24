@@ -148,6 +148,38 @@ describe('AssignPopover', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
+  it('offers the search field while the choices are still arriving, so the focus trap has something to hold', async () => {
+    /* Mantine's focus trap runs once when the dropdown attaches and never re-runs. A pane that opens
+       with only text in it leaves the caret on the dropdown container, and a field appearing a moment
+       later never receives it, so the reader types into nothing. Any pane whose contents fetch their
+       own choices reaches this frame on every open. */
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <MantineProvider theme={appContentTheme} forceColorScheme="light">
+          <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
+            <AssignOptions options={[]} loading onAssign={vi.fn(async () => undefined)} />
+          </AssignPopover>
+        </MantineProvider>
+      );
+    });
+
+    const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="Assign group"]');
+    expect(trigger).not.toBeNull();
+    if (!trigger) {
+      return;
+    }
+    await act(async () => trigger.click());
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
+
+    expect(document.body.textContent).toContain('Loading groups…');
+    const field = document.body.querySelector('input[aria-label="Search groups"]');
+    expect(field).not.toBeNull();
+  });
+
   it('commits the chosen option and closes after success', async () => {
     container = document.createElement('div');
     document.body.append(container);

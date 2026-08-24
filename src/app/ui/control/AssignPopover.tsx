@@ -144,7 +144,11 @@ export function AssignOptions({ options, onAssign, loading = false, searchLabel,
   }, [combobox, search]);
   const needle = search.trim().toLowerCase();
   const matching = needle ? options.filter((option) => option.label.toLowerCase().includes(needle)) : options;
-  const hasOptions = !loading && options.length > 0;
+  /* The field and the list are present from the first frame, including while the choices are still
+     arriving. Mantine's focus trap runs once when the dropdown attaches and does not re-run: a pane
+     that opens with nothing focusable in it leaves the caret on the dropdown itself, and the reader
+     types into nothing when the field appears a moment later. */
+  const hasPicker = loading || options.length > 0;
   const isEmpty = !loading && options.length === 0;
 
   return (
@@ -163,13 +167,11 @@ export function AssignOptions({ options, onAssign, loading = false, searchLabel,
         </Alert>
       ) : null}
 
-      {loading ? <AssignPopoverPlaceholder>{`Loading ${noun}s…`}</AssignPopoverPlaceholder> : null}
-
       {isEmpty ? (
         <AssignPopoverPlaceholder>{emptyMessage ?? `No ${noun}s are available yet.`}</AssignPopoverPlaceholder>
       ) : null}
 
-      {hasOptions ? (
+      {hasPicker ? (
         /* One floating layer only, the pickers' rule: the options render inline in the pane
            (Combobox without dropdown), never as a second popover. Choosing one IS the commit,
            because the pick is the whole reason the reader opened this (Norbert, 2026-08-21). */
@@ -197,7 +199,9 @@ export function AssignOptions({ options, onAssign, loading = false, searchLabel,
           </Combobox.EventsTarget>
           <ScrollArea.Autosize mah={260} type="auto">
             <Combobox.Options>
-              {matching.length === 0 ? (
+              {loading ? (
+                <Combobox.Empty>{`Loading ${noun}s…`}</Combobox.Empty>
+              ) : matching.length === 0 ? (
                 <Combobox.Empty>{`No matching ${noun}s`}</Combobox.Empty>
               ) : (
                 matching.map((option) => (
@@ -248,6 +252,11 @@ export function AssignPopover({
       withArrow
       trapFocus
       returnFocus
+      /* Mantine locks the placement once it has measured a visible dropdown, and drops `flip` when it
+         does. That is right for a pane whose size is settled on open, and wrong here: contents that
+         fetch their own choices grow after opening, and a placement chosen for the short version puts
+         the grown one off the bottom of the screen. */
+      preventPositionChangeWhenVisible={false}
     >
       <Popover.Target>
         <IconAction
