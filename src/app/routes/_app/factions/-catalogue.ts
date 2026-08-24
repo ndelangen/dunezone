@@ -149,8 +149,13 @@ export function useFactionCatalogueSession(data: Pick<FactionCataloguePageData, 
   const search = parseFactionCatalogueSearch(location.search ?? {});
   const rawSearch = location.searchStr;
   const [draftQuery, setDraftQuery] = useState(search.q ?? '');
-
-  useEffect(() => setDraftQuery(search.q ?? ''), [search.q]);
+  const [seededQuery, setSeededQuery] = useState(search.q ?? '');
+  /* Reset during render, the search box's pattern: the URL is the committed value, and a back button
+     that restores an older query must not paint the previous one first. */
+  if ((search.q ?? '') !== seededQuery) {
+    setSeededQuery(search.q ?? '');
+    setDraftQuery(search.q ?? '');
+  }
 
   useEffect(() => {
     if (!data) {
