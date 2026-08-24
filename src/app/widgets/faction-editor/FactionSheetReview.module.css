@@ -195,22 +195,15 @@
   padding-bottom: 3.5rem;
 }
 
-.shieldFrame {
-  position: relative;
+/* Owns the width, because `CanvasScale` sets its own to 100% inline and an inline style beats a class. */
+.shieldMount {
   flex: 0 0 auto;
   width: min(100%, 22rem);
-  overflow: hidden;
-  filter: drop-shadow(0 0.75rem 1.2rem rgb(0 0 0 / 32%));
 }
 
-.shieldCanvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 1608px;
-  height: 805px;
-  transform-origin: top left;
-  pointer-events: none;
+/* Only the decoration: the frame's position and clipping belong to `CanvasScale`. */
+.shieldFrame {
+  filter: drop-shadow(0 0.75rem 1.2rem rgb(0 0 0 / 32%));
 }
 
 .sheetSpread {
@@ -260,7 +253,7 @@
     padding-bottom: 0;
   }
 
-  .shieldFrame {
+  .shieldMount {
     width: min(30%, 17rem);
   }
 
