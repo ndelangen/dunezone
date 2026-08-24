@@ -92,9 +92,12 @@ function useInfiniteReveal(total: number, resetKey: string) {
     totalRef.current = total;
   }, [total]);
 
-  useEffect(() => {
+  const [seededKey, setSeededKey] = useState(resetKey);
+  /* Reset during render, the search box's pattern: a new search must not paint the previous batch first. */
+  if (resetKey !== seededKey) {
+    setSeededKey(resetKey);
     setVisibleCount(BATCH_SIZE);
-  }, [resetKey]);
+  }
 
   const sentinelRef = useCallback((node: HTMLDivElement | null) => {
     observerRef.current?.disconnect();
@@ -113,8 +116,6 @@ function useInfiniteReveal(total: number, resetKey: string) {
     observer.observe(node);
     observerRef.current = observer;
   }, []);
-
-  useEffect(() => () => observerRef.current?.disconnect(), []);
 
   return { visibleCount: Math.min(visibleCount, total), sentinelRef };
 }
