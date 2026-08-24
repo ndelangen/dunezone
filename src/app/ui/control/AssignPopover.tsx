@@ -250,6 +250,12 @@ export function AssignPopover({
       width={340}
       shadow="md"
       withArrow
+      /* Centred on the trigger rather than parked at the pane's corner. The pane is far wider than
+         its icon trigger, so `shift` slides it to fit and the default side-anchored arrow is left
+         pointing at empty background: measured 75px off the trigger at a 520px viewport, and it
+         grows as the pane is pushed further. Centred, it tracks the trigger exactly whether the pane
+         is shifted or not. */
+      arrowPosition="center"
       trapFocus
       returnFocus
       /* Mantine locks the placement once it has measured a visible dropdown, and drops `flip` when it
