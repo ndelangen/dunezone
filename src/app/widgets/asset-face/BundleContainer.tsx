@@ -39,6 +39,13 @@ export function BundleContainer({ band, name }: { band: BundleBandData; name: st
         position: 'relative',
         width: '100%',
         aspectRatio: `1 / ${BUNDLE_ASPECT}`,
+        /*
+         * The app's baseline is `content-box` (see `mantine-shell-compatibility.css`), which would put the
+         * border outside the ratio box and make this 2px wider and taller than the box it was told to fill.
+         * A face that overruns its own parent is the one thing this component now promises not to do, and the
+         * block above reserves headroom against this height, so those 2px came straight out of the reservation.
+         */
+        boxSizing: 'border-box',
         containerType: 'inline-size',
         borderRadius: CORNER,
         overflow: 'hidden',
