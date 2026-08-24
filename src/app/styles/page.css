@@ -17,7 +17,11 @@ html[data-mantine-color-scheme="dark"] {
 html::after {
   content: "";
   position: fixed;
-  z-index: -1;
+  /* One step further back than the page's own content, which sits at -1: the band artwork and the
+     dice shared that level, so tree order decided, and generated content on `html` paints last.
+     The dice therefore drew across the header on any window short enough for the two to meet. At
+     -2 it stays what it is, a texture on the page background, and blends against that alone. */
+  z-index: -2;
   bottom: -40vh;
   left: 0;
   width: 100%;
