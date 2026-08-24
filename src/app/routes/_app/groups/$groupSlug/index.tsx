@@ -12,14 +12,17 @@ import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, BookOpen, Check, Crown, Pencil, Plus, UserPlus, UserRoundMinus, UsersRound, X } from 'lucide-react';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 
-import { useFactionsOwnedForGroupAssign, useSetFactionGroup } from '@db/factions';
+import { useSetFactionGroup } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
 import { loadGroupDetailBySlug, useDeleteGroup, useGroupDetailBySlug } from '@db/groups';
 import type { GroupDetailPageData, MembershipState } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
-import { useRulesetsOwnedForGroupAssign, useSetRulesetGroup } from '@db/rulesets';
+import { useSetRulesetGroup } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
+import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers/GroupAssignPicker';
+import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
 
 import styles from './index.module.css';
 
@@ -28,13 +31,6 @@ import styles from './index.module.css';
  * Their validator-derived row types remain the authority for the shape;
  * this names only the part the picker reads.
  */
-type AssetAssignOption = {
-  id: string;
-  name: string;
-  groupId: string | null;
-  groupName: string | null;
-};
-
 type RosterEntry = GroupDetailPageData['roster'][number];
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/')({
@@ -135,11 +131,11 @@ function GroupDetailPage() {
     });
   };
 
-  const handleAssignFaction = async (item: AssetAssignOption) => {
+  const handleAssignFaction = async (item: OwnedAssignItem) => {
     await setFactionGroup.mutateAsync({ id: item.id, groupId });
   };
 
-  const handleAssignRuleset = async (item: AssetAssignOption) => {
+  const handleAssignRuleset = async (item: OwnedAssignItem) => {
     await setRulesetGroup.mutateAsync({ id: item.id, groupId });
   };
 
@@ -286,29 +282,31 @@ type AssignPickerProps = {
   disabled: boolean;
   currentGroupId: string;
   currentGroupName: string;
-  onAssign: (item: AssetAssignOption) => Promise<void>;
+  onAssign: (item: OwnedAssignItem) => Promise<void>;
 };
 
 /**
- * Labels this viewer's own factions or rulesets for `AssignPopover`, and owns the one thing the kit control must not: asking before a move.
- * An asset already maintained by another group leaves that group when it is added here, which is a consequence only this page knows about, so the confirmation lives here, and backing out resolves `false` to leave the popover open.
+ * The one thing neither the kit nor the picker may own: asking before a move.
+ * An asset already maintained by another group leaves that group when it is added here, which is a consequence only this page knows about, so the question lives here, and backing out resolves `false` to leave the pane open.
  */
-function OwnedAssetPicker({
-  noun,
-  items,
-  loading,
-  disabled,
-  currentGroupId,
-  currentGroupName,
-  onAssign,
-}: AssignPickerProps & {
-  noun: string;
-  items: AssetAssignOption[];
-  loading: boolean;
-}) {
-  const assignable = items.filter((item) => item.groupId !== currentGroupId);
-  const byId = new Map(assignable.map((item) => [item.id, item]));
+async function confirmThenAssign(
+  item: OwnedAssignItem,
+  currentGroupName: string,
+  onAssign: (item: OwnedAssignItem) => Promise<void>
+): Promise<boolean | void> {
+  if (item.groupId !== null) {
+    const confirmed = window.confirm(
+      `Move "${item.name}" from "${item.groupName}" to "${currentGroupName}"? It will no longer be maintained by "${item.groupName}".`
+    );
+    if (!confirmed) {
+      return false;
+    }
+  }
+  await onAssign(item);
+}
 
+/** The shell both add-buttons wear, so the two directions cannot drift apart in their words. */
+function AddOwnedPopover({ noun, disabled, children }: { noun: string; disabled: boolean; children: ReactNode }) {
   return (
     <AssignPopover
       noun={noun}
@@ -316,63 +314,38 @@ function OwnedAssetPicker({
       icon={<Plus size={14} aria-hidden />}
       title={`Add a ${noun}`}
       triggerLabel={`Add a ${noun} you own`}
-      searchLabel={`Search your ${noun}s`}
       disabled={disabled}
-      loading={loading}
-      options={assignable.map((item) => ({
-        value: item.id,
-        label: item.groupName ? `${item.name} — currently in ${item.groupName}` : `${item.name} — unassigned`,
-      }))}
-      emptyMessage={
-        items.length === 0 ? `You don't own any ${noun}s yet.` : `All your ${noun}s are already in this group.`
-      }
-      onAssign={async (value) => {
-        const item = byId.get(value);
-        if (!item) {
-          return false;
-        }
-        if (item.groupId !== null) {
-          const confirmed = window.confirm(
-            `Move "${item.name}" from "${item.groupName}" to "${currentGroupName}"? It will no longer be maintained by "${item.groupName}".`
-          );
-          if (!confirmed) {
-            return false;
-          }
-        }
-        await onAssign(item);
-      }}
-    />
+    >
+      {children}
+    </AssignPopover>
   );
 }
 
 /**
  * Only mounted for active members (see call sites): the owned-factions query requires authentication, so it must not be called for anonymous, pending, or non-member viewers.
- * Subscribing to a second query beyond the page query deviates from the one-query-per-route default;
- * that was decided explicitly for this picker (issues #348/#182: keep
- * `detailBySlug` unchanged, expose the viewer-scoped owned lists as their own queries).
+ * The query itself now starts when the pane opens rather than when the page does, because the picker is mounted by the shell's own gate;
+ * the lists staying separate from `detailBySlug` is still #348/#182's decision.
  */
-function FactionAssignPicker(props: AssignPickerProps) {
-  const ownedFactionsQuery = useFactionsOwnedForGroupAssign();
+function FactionAssignPicker({ disabled, currentGroupId, currentGroupName, onAssign }: AssignPickerProps) {
   return (
-    <OwnedAssetPicker
-      noun="faction"
-      items={ownedFactionsQuery.data ?? []}
-      loading={ownedFactionsQuery.isLoading}
-      {...props}
-    />
+    <AddOwnedPopover noun="faction" disabled={disabled}>
+      <OwnedFactionAssignPicker
+        currentGroupId={currentGroupId}
+        onPick={(item) => confirmThenAssign(item, currentGroupName, onAssign)}
+      />
+    </AddOwnedPopover>
   );
 }
 
 /** Same rules as `FactionAssignPicker`: only mount this for active members. */
-function RulesetAssignPicker(props: AssignPickerProps) {
-  const ownedRulesetsQuery = useRulesetsOwnedForGroupAssign();
+function RulesetAssignPicker({ disabled, currentGroupId, currentGroupName, onAssign }: AssignPickerProps) {
   return (
-    <OwnedAssetPicker
-      noun="ruleset"
-      items={ownedRulesetsQuery.data ?? []}
-      loading={ownedRulesetsQuery.isLoading}
-      {...props}
-    />
+    <AddOwnedPopover noun="ruleset" disabled={disabled}>
+      <OwnedRulesetAssignPicker
+        currentGroupId={currentGroupId}
+        onPick={(item) => confirmThenAssign(item, currentGroupName, onAssign)}
+      />
+    </AddOwnedPopover>
   );
 }
 

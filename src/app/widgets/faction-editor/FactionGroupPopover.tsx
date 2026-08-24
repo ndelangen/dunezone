@@ -1,4 +1,4 @@
-import { AssignPopover } from '@ui/control/AssignPopover';
+import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { Users } from 'lucide-react';
 
 import type { AssignedGroupSummary } from '@db/groups';
@@ -18,11 +18,14 @@ export function FactionGroupPopover({ onAssignGroup, disabled, assignableGroups 
       icon={<Users size={17} aria-hidden />}
       title="Assign Group"
       disabled={disabled}
-      options={assignableGroups.map((group) => ({
-        value: group.id,
-        label: `${group.name} (${group.slug})`,
-      }))}
-      onAssign={onAssignGroup}
-    />
+    >
+      <AssignOptions
+        options={assignableGroups.map((group) => ({
+          value: group.id,
+          label: `${group.name} (${group.slug})`,
+        }))}
+        onAssign={onAssignGroup}
+      />
+    </AssignPopover>
   );
 }

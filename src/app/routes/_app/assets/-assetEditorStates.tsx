@@ -2,7 +2,7 @@ import { Alert, Anchor, Group, Stack, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
-import { AssignPopover } from '@ui/control/AssignPopover';
+import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -172,11 +172,17 @@ export function useAssetGroupActions({
       icon={<UsersRound size={17} aria-hidden />}
       title="Assign Group"
       disabled={setAssetGroup.isPending}
-      options={access.assignableGroups.map((group) => ({ value: group.id, label: `${group.name} (${group.slug})` }))}
-      onAssign={async (nextGroupId) => {
-        await setAssetGroup.mutateAsync({ id: asset.id, group_id: nextGroupId });
-      }}
-    />
+    >
+      <AssignOptions
+        options={access.assignableGroups.map((group) => ({
+          value: group.id,
+          label: `${group.name} (${group.slug})`,
+        }))}
+        onAssign={async (nextGroupId) => {
+          await setAssetGroup.mutateAsync({ id: asset.id, group_id: nextGroupId });
+        }}
+      />
+    </AssignPopover>
   );
 
   return {

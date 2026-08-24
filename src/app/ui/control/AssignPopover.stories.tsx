@@ -2,12 +2,16 @@ import preview from '@sb/preview';
 import { Plus, Users } from 'lucide-react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
-import { AssignPopover } from './AssignPopover';
+import { AssignOptions, AssignPopover } from './AssignPopover';
 
 const groups = [
   { value: 'group-1', label: 'Arrakeen Rules Council (arrakeen-rules-council)' },
   { value: 'group-2', label: 'Spice Cartel (spice-cartel)' },
 ];
+
+/* The commit a story asserts on. Declared here rather than through `args` because the callback now
+   belongs to the pane's contents, and the contents are what a story passes as `children`. */
+const onAssign = fn(async () => undefined);
 
 const meta = preview.meta({
   component: AssignPopover,
@@ -16,14 +20,13 @@ const meta = preview.meta({
     noun: 'group',
     disabled: false,
     icon: <Users size={17} aria-hidden />,
-    options: groups,
-    onAssign: fn(async () => undefined),
+    children: <AssignOptions options={groups} onAssign={onAssign} />,
   },
-  argTypes: { icon: { control: false } },
+  argTypes: { icon: { control: false }, children: { control: false } },
 });
 
 export const Default = meta.story({
-  play: async ({ args, canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const trigger = page.getByRole('button', { name: 'Assign group' });
 
@@ -35,7 +38,7 @@ export const Default = meta.story({
     /* The suggestions are already in the pane, which keeps it to one floating layer, and choosing one commits it. */
     await expect(page.getByRole('option', { name: /Spice Cartel/ })).toBeVisible();
     await userEvent.click(page.getByRole('option', { name: /Spice Cartel/ }));
-    await waitFor(() => expect(args.onAssign).toHaveBeenCalledWith('group-2'));
+    await waitFor(() => expect(onAssign).toHaveBeenCalledWith('group-2'));
   },
 });
 
@@ -46,7 +49,9 @@ export const DifferentNoun = meta.story({
     title: 'Add a faction',
     size: 'sm',
     icon: <Plus size={14} aria-hidden />,
-    options: [{ value: 'faction-1', label: 'House Atreides — unassigned' }],
+    children: (
+      <AssignOptions options={[{ value: 'faction-1', label: 'House Atreides — unassigned' }]} onAssign={fn()} />
+    ),
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -66,8 +71,13 @@ export const CallerSuppliedCopy = meta.story({
     icon: <Plus size={14} aria-hidden />,
     title: 'Add a faction',
     triggerLabel: 'Add a faction you own',
-    searchLabel: 'Search your factions',
-    options: [{ value: 'faction-1', label: 'House Atreides — unassigned' }],
+    children: (
+      <AssignOptions
+        options={[{ value: 'faction-1', label: 'House Atreides — unassigned' }]}
+        searchLabel="Search your factions"
+        onAssign={fn()}
+      />
+    ),
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -78,7 +88,7 @@ export const CallerSuppliedCopy = meta.story({
 });
 
 export const NothingToAssign = meta.story({
-  args: { options: [] },
+  args: { children: <AssignOptions options={[]} onAssign={fn()} /> },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(page.getByRole('button', { name: 'Assign group' }));
@@ -90,8 +100,9 @@ export const NothingToAssign = meta.story({
 export const CallerSuppliedEmptyMessage = meta.story({
   args: {
     noun: 'faction',
-    options: [],
-    emptyMessage: 'All your factions are already in this group.',
+    children: (
+      <AssignOptions options={[]} emptyMessage="All your factions are already in this group." onAssign={fn()} />
+    ),
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -100,9 +111,12 @@ export const CallerSuppliedEmptyMessage = meta.story({
   },
 });
 
-/** Still fetching the choices. */
+/**
+ * Still fetching the choices.
+ * A pane whose contents fetch their own choices reaches this state on its own, because the read starts when the pane opens.
+ */
 export const Loading = meta.story({
-  args: { loading: true, options: [] },
+  args: { children: <AssignOptions options={[]} loading onAssign={fn()} /> },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(page.getByRole('button', { name: 'Assign group' }));

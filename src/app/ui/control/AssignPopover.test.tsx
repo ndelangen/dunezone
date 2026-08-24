@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { AssignPopover } from './AssignPopover';
+import { AssignOptions, AssignPopover } from './AssignPopover';
 
 const groupOption = { value: 'group-1', label: 'Arrakeen Rules Council (arrakeen-rules-council)' };
 
@@ -48,6 +48,58 @@ afterEach(async () => {
 });
 
 describe('AssignPopover', () => {
+  it('mounts its content only while open, which is what makes a Picker inside it lazy', async () => {
+    /* A Picker mounted here starts its read on mount. If the shell rendered its children eagerly and
+       merely hid them, every such read would fire on page load, which is the whole defect this shape
+       exists to prevent. A story cannot show this: it can only show what appears after the click. */
+    const mounted = vi.fn();
+    function Probe() {
+      mounted();
+      return <span>pane content</span>;
+    }
+
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <MantineProvider theme={appContentTheme} forceColorScheme="light">
+          <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
+            <Probe />
+          </AssignPopover>
+        </MantineProvider>
+      );
+    });
+
+    expect(mounted).not.toHaveBeenCalled();
+
+    const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="Assign group"]');
+    expect(trigger).not.toBeNull();
+    if (!trigger) {
+      return;
+    }
+    await act(async () => trigger.click());
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
+
+    expect(mounted).toHaveBeenCalled();
+
+    await act(async () => trigger.click());
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
+
+    expect(document.body.textContent).not.toContain('pane content');
+
+    /* And each opening is a fresh mount: a read starts again rather than resuming, and a cancelled pick
+       cannot reappear. Both halves currently hold whether or not the shell gates on `opened` itself,
+       because Mantine's dropdown declines to render its children while closed. This asserts the
+       property rather than the mechanism, so it still catches the change that matters: a dropdown kept
+       mounted, or content moved outside it. */
+    await act(async () => trigger.click());
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
+
+    expect(mounted).toHaveBeenCalledTimes(2);
+  });
+
   it('places popover semantics on the focusable trigger and returns focus when closed', async () => {
     container = document.createElement('div');
     document.body.append(container);
@@ -56,13 +108,9 @@ describe('AssignPopover', () => {
     await act(async () => {
       root?.render(
         <MantineProvider theme={appContentTheme} forceColorScheme="light">
-          <AssignPopover
-            noun="group"
-            icon={<Users size={17} aria-hidden />}
-            disabled={false}
-            onAssign={vi.fn(async () => undefined)}
-            options={[groupOption]}
-          />
+          <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
+            <AssignOptions options={[groupOption]} onAssign={vi.fn(async () => undefined)} />
+          </AssignPopover>
         </MantineProvider>
       );
     });
@@ -109,13 +157,9 @@ describe('AssignPopover', () => {
     await act(async () => {
       root?.render(
         <MantineProvider theme={appContentTheme} forceColorScheme="light">
-          <AssignPopover
-            noun="group"
-            icon={<Users size={17} aria-hidden />}
-            disabled={false}
-            onAssign={onAssign}
-            options={[groupOption]}
-          />
+          <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
+            <AssignOptions options={[groupOption]} onAssign={onAssign} />
+          </AssignPopover>
         </MantineProvider>
       );
     });
@@ -149,15 +193,14 @@ describe('AssignPopover', () => {
     await act(async () => {
       root?.render(
         <MantineProvider theme={appContentTheme} forceColorScheme="light">
-          <AssignPopover
-            noun="group"
-            icon={<Users size={17} aria-hidden />}
-            disabled={false}
-            onAssign={vi.fn(async () => {
-              throw 'transport failure';
-            })}
-            options={[groupOption]}
-          />
+          <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
+            <AssignOptions
+              options={[groupOption]}
+              onAssign={vi.fn(async () => {
+                throw 'transport failure';
+              })}
+            />
+          </AssignPopover>
         </MantineProvider>
       );
     });
@@ -191,13 +234,12 @@ describe('AssignPopover', () => {
     await act(async () => {
       root?.render(
         <MantineProvider theme={appContentTheme} forceColorScheme="light">
-          <AssignPopover
-            noun="group"
-            icon={<Users size={17} aria-hidden />}
-            disabled={false}
-            onAssign={onAssign}
-            options={[groupOption, { value: 'group-2', label: 'Spice Cartel (spice-cartel)' }]}
-          />
+          <AssignPopover noun="group" icon={<Users size={17} aria-hidden />} disabled={false}>
+            <AssignOptions
+              options={[groupOption, { value: 'group-2', label: 'Spice Cartel (spice-cartel)' }]}
+              onAssign={onAssign}
+            />
+          </AssignPopover>
         </MantineProvider>
       );
     });
