@@ -101,7 +101,7 @@ describe('AppRoot page header', () => {
     act(() => root.unmount());
   });
 
-  it('releases its document-level route and scroll state on unmount', () => {
+  it('releases its document-level page effects on unmount', () => {
     const container = document.createElement('div');
     const root = createRoot(container);
 
@@ -115,13 +115,11 @@ describe('AppRoot page header', () => {
       );
     });
 
-    expect(document.documentElement.dataset.route).toBe('/privacy');
     expect(document.documentElement.hasAttribute('data-initial-animate')).toBe(true);
     expect(document.documentElement.style.getPropertyValue('--scroll-pct')).not.toBe('');
 
     act(() => root.unmount());
 
-    expect(document.documentElement.hasAttribute('data-route')).toBe(false);
     expect(document.documentElement.hasAttribute('data-initial-animate')).toBe(false);
     expect(document.documentElement.style.getPropertyValue('--scroll-pct')).toBe('');
   });

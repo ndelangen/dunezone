@@ -73,13 +73,18 @@ export function AppRoot({ children, pathname }: AppRootProps) {
     };
   }, [motion]);
 
+  /*
+   * Re-arms the backdrop's eased arrival on every navigation.
+   * `pathname` is the whole point of the dependency rather than a value this reads: the attribute
+   * carries no route, it only says a route just changed, and `page.css` gives the backdrop its
+   * transition for as long as it is present. The scroll handler above drops it the moment the
+   * reader takes over, so the wheel pans the photograph directly instead of chasing an ease.
+   */
   useEffect(() => {
     const root = document.documentElement;
-    root.dataset.route = pathname;
     root.setAttribute('data-initial-animate', '');
 
     return () => {
-      delete root.dataset.route;
       root.removeAttribute('data-initial-animate');
     };
   }, [pathname]);
