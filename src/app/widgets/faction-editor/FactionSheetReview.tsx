@@ -1,8 +1,9 @@
 import { ActionIcon, Alert, Button, Group, Stack, Text, Title } from '@mantine/core';
 import { FactionRender } from '@shared/factions/schema';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ChevronDown, Link2, X } from 'lucide-react';
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
@@ -14,38 +15,19 @@ import styles from './FactionSheetReview.module.css';
 
 const DESKTOP_REVIEW_MEDIA = '(min-width: 48em)';
 
+/**
+ * The shield at whatever width the review pane gives it.
+ * The mount owns the width and names the picture;
+ * `CanvasScale` owns the fit, which is why the shield's own size is read from `@game/data/sizes` here and written down nowhere else.
+ */
 function ScaledFactionShield({ faction }: { faction: Faction }) {
-  const frameRef = useRef<HTMLDivElement>(null);
-  const [frameWidth, setFrameWidth] = useState(352);
   const renderProps = FactionRender.shield.parse(factionDraftForRenderer(faction));
-  const scale = frameWidth / shieldSize.width;
-
-  useLayoutEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) {
-      return;
-    }
-    const update = () => setFrameWidth(frame.clientWidth || 352);
-    update();
-    if (typeof ResizeObserver === 'undefined') {
-      return;
-    }
-    const observer = new ResizeObserver(update);
-    observer.observe(frame);
-    return () => observer.disconnect();
-  }, []);
 
   return (
-    <div
-      ref={frameRef}
-      className={styles.shieldFrame}
-      style={{ height: shieldSize.height * scale }}
-      role="img"
-      aria-label="Faction shield preview"
-    >
-      <div className={styles.shieldCanvas} style={{ transform: `scale(${scale})` }}>
+    <div className={styles.shieldMount} role="img" aria-label="Faction shield preview">
+      <CanvasScale canvasWidth={shieldSize.width} canvasHeight={shieldSize.height} frameClassName={styles.shieldFrame}>
         <Shield {...renderProps} />
-      </div>
+      </CanvasScale>
     </div>
   );
 }
