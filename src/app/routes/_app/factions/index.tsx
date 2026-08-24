@@ -27,7 +27,7 @@ import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, ChevronsDown, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
@@ -186,10 +186,13 @@ function ComplexityRangeSlider({
   onCommit: (value: FactionComplexityRange) => void;
 }) {
   const [draft, setDraft] = useState<FactionComplexityRange>(() => parseComplexityRange(value));
-
-  useEffect(() => {
+  const [seeded, setSeeded] = useState(value);
+  /* Reset during render, the search box's pattern. Compared on the raw prop rather than on the parsed
+     range, because parsing allocates a new object every call and would reset on every render. */
+  if (value !== seeded) {
+    setSeeded(value);
     setDraft(parseComplexityRange(value));
-  }, [value]);
+  }
 
   return (
     <RangeSlider

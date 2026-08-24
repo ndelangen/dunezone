@@ -1,5 +1,5 @@
 import { NumberInput } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 /**
  * A membership count the author types freely and commits once, because each commit is a database write.
@@ -24,7 +24,13 @@ export function MemberCountInput({
   onCommit: (count: number) => void;
 }) {
   const [typed, setTyped] = useState<string | number>(value);
-  useEffect(() => setTyped(value), [value]);
+  const [seeded, setSeeded] = useState(value);
+  /* Reset during render, the search box's pattern: a committed change arriving from elsewhere must not
+     show the stale draft for a paint first. */
+  if (value !== seeded) {
+    setSeeded(value);
+    setTyped(value);
+  }
 
   const commit = () => {
     const next = Math.min(max, Math.max(min, Math.round(Number(typed) || min)));
