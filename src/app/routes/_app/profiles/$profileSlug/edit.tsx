@@ -305,6 +305,10 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
               <Select
                 ref={defaultGroupRef}
                 aria-label="Default Group"
+                /* Not yet loaded is not the same as "you are in no Groups", and an enabled control
+                   offering only "No default Group" says the second. The effect above gates on the
+                   same distinction; this is the other half of it. */
+                disabled={defaultGroupOptions === undefined}
                 value={defaultGroupId ?? ''}
                 onChange={(value) => {
                   setDefaultGroupId(value || null);
