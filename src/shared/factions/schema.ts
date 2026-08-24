@@ -170,6 +170,32 @@ export const CanonicalFactionClientSchema = z.looseObject({
   name: z.string(),
 });
 
+/**
+ * The faction fields a catalogue-shaped surface actually draws (#642).
+ * One mask, so the stored schema, the client schema and the Convex wire validator cannot drift apart.
+ * The rest of the blob is 72% of its weight and no catalogue surface reads it;
+ * detail pages and the editor keep the full shape through their own contract.
+ */
+const catalogueFactionMask = {
+  name: true,
+  logo: true,
+  background: true,
+  hero: true,
+  leaders: true,
+  complexity: true,
+} as const;
+
+export const CatalogueFactionStoredSchema = CanonicalFactionStoredSchema.pick(catalogueFactionMask);
+
+/** Loose like its parent, so an additive server change still never breaks a stale tab. */
+export const CatalogueFactionClientSchema = CanonicalFactionClientSchema.pick(catalogueFactionMask);
+
+/**
+ * Inferred from the strict variant on purpose: `.pick()` carries a `looseObject`'s catchall through, so taking this from the client schema would type every dropped field as `unknown` rather than refusing it, and a later read of `data.rules` would compile and then silently render nothing.
+ * Parse loose, declare strict, the same split `toFactionEntry` uses.
+ */
+export type CatalogueFactionData = z.infer<typeof CatalogueFactionStoredSchema>;
+
 /** URL slug on the `factions` row, not a field on `FactionInput` / `factions.data`. */
 export const FactionRowSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 

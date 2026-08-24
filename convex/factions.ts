@@ -14,7 +14,7 @@ import {
 import {
   factionDetailPageValidator,
   factionValidator,
-  factionWithRulesetsValidator,
+  catalogueFactionValidator,
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
@@ -146,11 +146,11 @@ export const list = query({
 export const cataloguePage = query({
   args: {},
   returns: v.object({
-    factions: v.array(factionWithRulesetsValidator),
+    factions: v.array(catalogueFactionValidator),
     rulesets: v.array(rulesetSummaryValidator),
     spotlights: v.object({
-      newArrival: v.union(factionWithRulesetsValidator, v.null()),
-      freshlyUpdated: v.union(factionWithRulesetsValidator, v.null()),
+      newArrival: v.union(catalogueFactionValidator, v.null()),
+      freshlyUpdated: v.union(catalogueFactionValidator, v.null()),
     }),
   }),
   handler: async (ctx) => {

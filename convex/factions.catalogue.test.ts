@@ -94,6 +94,37 @@ describe('faction catalogue page', () => {
     expect(catalogue.spotlights.freshlyUpdated?.data.name).toBe('Recently updated');
   });
 
+  test('ships what the catalogue draws and leaves the rest of the blob behind', async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert('users', { name: 'Narrowing owner' });
+      await ctx.db.insert('factions', {
+        owner_id: ownerId,
+        data: { ...assetPublishingFaction, name: 'Full blob' },
+        slug: 'full-blob',
+        created_at: '2026-07-20T00:00:00.000Z',
+        updated_at: '2026-07-20T00:00:00.000Z',
+        is_deleted: false,
+        group_id: null,
+      });
+    });
+
+    const catalogue = await t.query(api.factions.cataloguePage, {});
+    const row = catalogue.factions[0];
+
+    expect(Object.keys(row ?? {}).sort()).toEqual(['_id', 'created_at', 'data', 'rulesets', 'slug', 'updated_at']);
+    expect(Object.keys(row?.data ?? {}).sort()).toEqual([
+      'background',
+      'complexity',
+      'hero',
+      'leaders',
+      'logo',
+      'name',
+    ]);
+    /* The stored fixture really does carry the dropped fields, or the assertions above pass for the wrong reason. */
+    expect(Object.keys(assetPublishingFaction)).toEqual(expect.arrayContaining(['rules', 'troops', 'colors']));
+  });
+
   test('rejects malformed faction data at the query boundary', async () => {
     const t = convexTest(schema, modules);
     await t.run(async (ctx) => {
