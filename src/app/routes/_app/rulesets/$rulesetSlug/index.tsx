@@ -7,7 +7,8 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { LoadError } from '@ui/block/LoadError';
-import { PageTitle } from '@ui/block/PageTitle';
+import { LoadPending } from '@ui/block/LoadPending';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
@@ -53,6 +54,7 @@ import {
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { resolveRouteNotice } from '@app/routes/-routeNotices';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from '../RulesetDetail.module.css';
 
@@ -189,42 +191,23 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   component: RulesetDetailPage,
 });
 
+const backToRulesets = <PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>;
+
 function RulesetDetailPending() {
   return (
-    <PageLayout>
-      <PageLayout.Header>
-        <Stack align="center" gap="xs">
-          <PageTitle title="Ruleset" />
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>Back to rulesets</Anchor>
-        </Stack>
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <Surface padding="xl">
-          <Stack gap="xs">
-            <Title order={2}>Loading ruleset</Title>
-            <Text c="dimmed">The ruleset details are still loading.</Text>
-          </Stack>
-        </Surface>
-      </PageLayout.Content>
-    </PageLayout>
+    <PageMessage title="Ruleset" back={backToRulesets}>
+      <LoadPending title="Loading ruleset">The ruleset details are still loading.</LoadPending>
+    </PageMessage>
   );
 }
 
 function RulesetDetailError({ error }: ErrorComponentProps) {
   return (
-    <PageLayout>
-      <PageLayout.Header>
-        <Stack align="center" gap="xs">
-          <PageTitle title="Ruleset" />
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>Back to rulesets</Anchor>
-        </Stack>
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <LoadError title="Ruleset could not be loaded" stale={isStaleClientData(error)}>
-          {error.message}
-        </LoadError>
-      </PageLayout.Content>
-    </PageLayout>
+    <PageMessage title="Ruleset" back={backToRulesets}>
+      <LoadError title="Ruleset could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
+    </PageMessage>
   );
 }
 
@@ -245,22 +228,9 @@ function RulesetDetailPage() {
 
   if (loaderData.notFound || !page) {
     return (
-      <PageLayout>
-        <PageLayout.Header>
-          <Stack align="center" gap="xs">
-            <PageTitle title="Ruleset" />
-            <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>Back to rulesets</Anchor>
-          </Stack>
-        </PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Stack gap="xs">
-              <Title order={2}>Ruleset not found</Title>
-              <Text c="dimmed">This ruleset does not exist or was deleted.</Text>
-            </Stack>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Ruleset" back={backToRulesets}>
+        <NotAvailable title="Ruleset not found">This ruleset does not exist or was deleted.</NotAvailable>
+      </PageMessage>
     );
   }
 

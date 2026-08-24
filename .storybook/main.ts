@@ -53,6 +53,10 @@ export default defineMain({
       titlePrefix: 'Widgets/Asset Face',
     },
     {
+      directory: '../src/app/widgets/page-message',
+      titlePrefix: 'Widgets/Page Message',
+    },
+    {
       directory: '../src/app/ui/block',
       titlePrefix: 'Blocks',
     },
