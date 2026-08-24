@@ -184,7 +184,16 @@ function TokenStack({ entries, fill }: { entries: AssetListEntry[]; fill: boolea
               width: fill ? 'max(1px, calc(100% - 26px))' : TOKEN_PILE_FACE,
               height: TOKEN_PILE_FACE,
               display: 'grid',
-              alignContent: 'center',
+              /*
+               * `alignItems`, which centres the face inside its row, and not `alignContent`, which centres
+               * the row inside this box and does nothing when the two are the same size.
+               * They part company for the one face that outgrows the band: a token frame carries
+               * `overflow: hidden`, which zeroes its automatic minimum size, so the auto row stops growing
+               * at this box's own height instead of reaching the face's. An enhance token past a 181px
+               * track then started at the row's top edge rather than straddling it, 5.94px low at a 200px
+               * track, which is the shared centreline this box exists to hold.
+               */
+              alignItems: 'center',
               transform: straight ? undefined : `rotate(${placement.rot}deg)`,
             }}
           >

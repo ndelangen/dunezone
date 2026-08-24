@@ -577,7 +577,7 @@ export function RectangleTokenEditor({
         </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
-        {/* The face stacks take the full width, or a centred flex child shrinks to its content and `CanvasScale` has nothing to fill. */}
+        {/* The face stacks take the full width, or a centred flex child shrinks to its content and the proof, which fills the width it is given, is given none. */}
         <Stack gap="md" align="center">
           <Stack gap={4} align="center" w="100%">
             <RectangleProof face={draft.front} />

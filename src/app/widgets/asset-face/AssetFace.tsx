@@ -172,6 +172,8 @@ function NeutralFace({ name, aspect }: { name: string; aspect: number }) {
       style={{
         width: '100%',
         aspectRatio: `1 / ${aspect}`,
+        /* Border inside the ratio box, for the reason `BundleContainer` states: the app's baseline is `content-box`, and a face that overruns its parent by its own border is not the aspect it just promised. */
+        boxSizing: 'border-box',
         borderRadius: 8,
         display: 'grid',
         placeItems: 'center',
@@ -414,8 +416,15 @@ function BundleBlock({ members, children }: { members: AssetFaceMember[]; childr
         flexShrink: 0,
       }}
     >
-      {/* Pinned to the container's own box rather than the block's, so the two stay aligned whenever the headroom changes. */}
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, aspectRatio: `1 / ${BUNDLE_ASPECT}` }}>
+      {/*
+       * Pinned to the container's own box rather than the block's, so the two stay aligned whenever the
+       * headroom changes.
+       * Its height is stated against the block's width rather than left to `aspect-ratio`, because an
+       * absolutely positioned box takes its height from its contents and `aspect-ratio` only offers a
+       * preferred one: anything the container adds outside its ratio box, a border or a padding, would
+       * otherwise push this box up and take that room out of the members' reservation without a word.
+       */}
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: `calc(100cqw * ${BUNDLE_ASPECT})` }}>
         {members.length > 0 ? <PeekingMembers members={members} /> : null}
         <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
       </div>
