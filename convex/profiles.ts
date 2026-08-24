@@ -6,7 +6,11 @@ import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { mutation } from './functions';
 import { isActiveProfile, optionalActiveUserId } from './lib/accountLifecycle';
-import { profileDetailPageValidator, profileValidator } from './lib/collaborativeAccessValidators';
+import {
+  assignedGroupSummaryValidator,
+  profileDetailPageValidator,
+  profileValidator,
+} from './lib/collaborativeAccessValidators';
 import { canSetDefaultGroup, loadDefaultGroupPreferenceProjection } from './lib/defaultGroupPreference';
 import { requireAuthUserId } from './lib/policy';
 import { loadProfileActivityCounts } from './lib/profileActivity';
@@ -45,31 +49,53 @@ async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
   });
 }
 
-export const currentUserId = query({
+/**
+ * The viewer's session in one read: who they are, and their profile row if they have one.
+ * One query rather than two because every `_app` page holds this through the shell, and the pair cost two subscriptions to answer one question.
+ * The envelope is never null: a signed-out viewer and a signed-in viewer with no profile row yet must stay distinguishable, or the client's bootstrap never fires for a new account.
+ */
+export const session = query({
   args: {},
+  returns: v.object({
+    userId: v.union(v.id('users'), v.null()),
+    profile: v.union(profileValidator, v.null()),
+  }),
   handler: async (ctx) => {
-    return await optionalActiveUserId(ctx);
-  },
-});
-
-export const current = query({
-  args: {},
-  handler: async (ctx) => {
-    const authUserId = await optionalActiveUserId(ctx);
-    if (!authUserId) {
-      return null;
+    const userId = await optionalActiveUserId(ctx);
+    if (!userId) {
+      return { userId: null, profile: null };
     }
     const profile = await ctx.db
       .query('profiles')
-      .withIndex('by_user_id', (q) => q.eq('user_id', authUserId))
+      .withIndex('by_user_id', (q) => q.eq('user_id', userId))
       .unique();
+    return { userId, profile: profile && isActiveProfile(profile) ? profile : null };
+  },
+});
+
+/**
+ * The viewer's Groups, for the one Select on the profile edit form that offers them.
+ * Its own query because it is a memberships join plus a group read per membership, and it used to ride on `session` to every page in the app.
+ * `default_group_id` comes back sanitized against that same list, so a default pointing at a group the viewer left reads as none.
+ */
+export const defaultGroupPreference = query({
+  args: {},
+  returns: v.object({
+    default_group_id: v.union(v.id('groups'), v.null()),
+    default_group_options: v.array(assignedGroupSummaryValidator),
+  }),
+  handler: async (ctx) => {
+    const userId = await optionalActiveUserId(ctx);
+    const profile = userId
+      ? await ctx.db
+          .query('profiles')
+          .withIndex('by_user_id', (q) => q.eq('user_id', userId))
+          .unique()
+      : null;
     if (!profile || !isActiveProfile(profile)) {
-      return null;
+      return { default_group_id: null, default_group_options: [] };
     }
-    return {
-      ...profile,
-      ...(await loadDefaultGroupPreferenceProjection(ctx, profile)),
-    };
+    return await loadDefaultGroupPreferenceProjection(ctx, profile);
   },
 });
 

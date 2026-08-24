@@ -13,7 +13,7 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, CircleUserRound, Palette, Save, Trash2, User, UsersRound } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
-import { useCurrentProfile, useUpdateCurrentProfile } from '@db/profiles';
+import { useCurrentProfile, useDefaultGroupPreference, useUpdateCurrentProfile } from '@db/profiles';
 import type { CurrentProfileEntry, ProfileUserEditInput } from '@db/profiles';
 import { setSchemePreference, useSchemePreference } from '@app/styles/colorScheme';
 import type { SchemePreference } from '@app/styles/colorScheme';
@@ -135,7 +135,10 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
   const [username, setUsername] = useState(initial.username ?? '');
   const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url ?? '');
-  const [defaultGroupId, setDefaultGroupId] = useState<string | null>(initial.default_group_id);
+  /* The raw column now, not the sanitized projection: `session` no longer joins memberships.
+     The effect below corrects a default pointing at a Group the viewer left, once the options land. */
+  const [defaultGroupId, setDefaultGroupId] = useState<string | null>(initial.default_group_id ?? null);
+  const defaultGroupOptions = useDefaultGroupPreference().data?.default_group_options;
   const [defaultGroupChanged, setDefaultGroupChanged] = useState(false);
   const [savedProfile, setSavedProfile] = useState({
     username: initial.username ?? '',
@@ -146,10 +149,13 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
   const scheme = useSchemePreference();
 
   useEffect(() => {
-    if (defaultGroupId && !initial.default_group_options.some((group) => group.id === defaultGroupId)) {
+    if (!defaultGroupOptions) {
+      return;
+    }
+    if (defaultGroupId && !defaultGroupOptions.some((group) => group.id === defaultGroupId)) {
       setDefaultGroupId(null);
     }
-  }, [defaultGroupId, initial.default_group_options]);
+  }, [defaultGroupId, defaultGroupOptions]);
 
   const mutationError = update.isError && update.error instanceof Error ? update.error.message : null;
   const visibleError = submissionError ?? mutationError;
@@ -306,7 +312,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
                 }}
                 data={[
                   { value: '', label: 'No default Group' },
-                  ...initial.default_group_options.map((group) => ({ value: group.id, label: group.name })),
+                  ...(defaultGroupOptions ?? []).map((group) => ({ value: group.id, label: group.name })),
                 ]}
                 clearable
               />

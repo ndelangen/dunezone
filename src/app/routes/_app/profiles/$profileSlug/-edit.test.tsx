@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   mutate: vi.fn(),
   useCurrentProfile: vi.fn(),
+  useDefaultGroupPreference: vi.fn(),
   pending: false,
   error: null as Error | null,
 }));
@@ -30,6 +31,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 
 vi.mock('@db/profiles', () => ({
   useCurrentProfile: mocks.useCurrentProfile,
+  useDefaultGroupPreference: mocks.useDefaultGroupPreference,
   useUpdateCurrentProfile: () => ({
     mutate: mocks.mutate,
     isPending: mocks.pending,
@@ -54,7 +56,6 @@ const profile = {
   username: 'Owner profile',
   avatar_url: 'https://avatar.example/original.png',
   default_group_id: null,
-  default_group_options: [{ id: 'group-1', name: 'Spacing Guild', slug: 'spacing-guild' }],
   slug: 'owner-profile',
   created_at: '2026-08-20T00:00:00.000Z',
   updated_at: '2026-08-20T00:00:00.000Z',
@@ -91,6 +92,12 @@ beforeEach(() => {
   mocks.mutate.mockReset();
   mocks.useCurrentProfile.mockReset();
   mocks.useCurrentProfile.mockReturnValue({ data: profile });
+  mocks.useDefaultGroupPreference.mockReturnValue({
+    data: {
+      default_group_id: null,
+      default_group_options: [{ id: 'group-1', name: 'Spacing Guild', slug: 'spacing-guild' }],
+    },
+  });
   mocks.pending = false;
   mocks.error = null;
   localStorage.clear();

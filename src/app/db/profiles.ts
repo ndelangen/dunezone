@@ -13,7 +13,7 @@ import type { Doc } from '../../../convex/_generated/dataModel';
 
 type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
-export type CurrentProfileEntry = NonNullable<FunctionReturnType<typeof api.profiles.current>>;
+export type CurrentProfileEntry = NonNullable<FunctionReturnType<typeof api.profiles.session>['profile']>;
 export type ProfileUpdateResult = FunctionReturnType<typeof api.profiles.updateCurrent>;
 export type ProfileListEntry = FunctionReturnType<typeof api.profiles.list>[number];
 
@@ -65,20 +65,19 @@ export function useProfilesAll(options?: { initialData?: ProfileListEntry[] }) {
 }
 
 export function useCurrentProfile() {
-  const userId = useQuery(api.profiles.currentUserId, {});
-  const liveData = useQuery(api.profiles.current, {});
+  const session = useQuery(api.profiles.session, {});
   const bootstrap = useMutation(api.profiles.bootstrapCurrent);
   const bootstrapAttemptedRef = useRef(false);
 
   useEffect(() => {
-    if (userId === undefined || liveData === undefined) {
+    if (session === undefined) {
       return;
     }
-    if (userId === null) {
+    if (session.userId === null) {
       bootstrapAttemptedRef.current = false;
       return;
     }
-    if (liveData !== null) {
+    if (session.profile !== null) {
       return;
     }
     if (bootstrapAttemptedRef.current) {
@@ -88,13 +87,21 @@ export function useCurrentProfile() {
     void bootstrap({}).catch(() => {
       bootstrapAttemptedRef.current = false;
     });
-  }, [userId, liveData, bootstrap]);
+  }, [session, bootstrap]);
 
-  const current = toLiveQueryResult(liveData, true);
+  /* Unresolved and signed-out are different states and must stay so: `session.profile` is null for a
+     signed-out viewer, and collapsing that to undefined would leave every page reading as pending. */
+  const current = toLiveQueryResult(session === undefined ? undefined : session.profile, true);
 
   return {
     ...current,
   };
+}
+
+/** The viewer's Groups, held by the page that offers them rather than by the shell. */
+export function useDefaultGroupPreference() {
+  const liveData = useQuery(api.profiles.defaultGroupPreference, {});
+  return toLiveQueryResult(liveData, true);
 }
 
 export function useUpdateCurrentProfile() {
