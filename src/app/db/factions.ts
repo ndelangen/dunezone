@@ -38,6 +38,11 @@ export type FactionRulesetSummary = {
   name: string;
 };
 
+/* Reaching for a dropped field must fail to compile. It typed as `unknown` until the catalogue data type
+   was inferred from the strict schema instead of the loose one, so this pins which side it comes from. */
+// @ts-expect-error `rules` is not on a catalogue row
+type _CatalogueDataIsExact = FactionCatalogueEntry['data']['rules'];
+
 /**
  * A catalogue-shaped faction: the fields `FactionCard` draws, not a whole faction (#642).
  * Reach for `FactionEntry` when you need the authored blob;

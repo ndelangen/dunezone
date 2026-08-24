@@ -190,7 +190,11 @@ export const CatalogueFactionStoredSchema = CanonicalFactionStoredSchema.pick(ca
 /** Loose like its parent, so an additive server change still never breaks a stale tab. */
 export const CatalogueFactionClientSchema = CanonicalFactionClientSchema.pick(catalogueFactionMask);
 
-export type CatalogueFactionData = z.infer<typeof CatalogueFactionClientSchema>;
+/**
+ * Inferred from the strict variant on purpose: `.pick()` carries a `looseObject`'s catchall through, so taking this from the client schema would type every dropped field as `unknown` rather than refusing it, and a later read of `data.rules` would compile and then silently render nothing.
+ * Parse loose, declare strict, the same split `toFactionEntry` uses.
+ */
+export type CatalogueFactionData = z.infer<typeof CatalogueFactionStoredSchema>;
 
 /** URL slug on the `factions` row, not a field on `FactionInput` / `factions.data`. */
 export const FactionRowSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
