@@ -208,6 +208,19 @@ describe('profile settings page', () => {
     expect(view.getByRole('img', { name: 'Avatar preview for Owner profile' })).not.toBeNull();
   });
 
+  it('offers no Group choice until the options have actually arrived', async () => {
+    /* The preference query is held by this page, so there is a window where it has not resolved.
+       An enabled control listing only "No default Group" would state that the viewer is in no Groups,
+       and choosing it saves a cleared default they never meant to change. */
+    mocks.useDefaultGroupPreference.mockReturnValue({ data: undefined });
+    const view = await renderPage();
+    await chooseTab(view, 'Creation defaults');
+
+    /* Disabled, so it is no longer exposed as a combobox; find it by its label. */
+    const field = view.container.querySelector('input[aria-label="Default Group"]');
+    expect(field).toHaveProperty('disabled', true);
+  });
+
   it('submits from every tab and includes an explicitly changed default Group', async () => {
     const view = await renderPage();
     fireEvent.change(view.getByRole('textbox', { name: /Display name/ }), { target: { value: 'ChangedOwner' } });
