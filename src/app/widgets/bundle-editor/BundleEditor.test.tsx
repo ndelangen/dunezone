@@ -20,7 +20,9 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   dispatchEvent: vi.fn(),
 }));
 
-/* `PreviewChoice` constructs a ResizeObserver without guarding for its absence, and jsdom has none.
+/* jsdom has no ResizeObserver and something in this tree constructs one unguarded. Here it is Mantine's
+   own ScrollArea, reached when the band Select opens its dropdown, not `PreviewChoice`: this editor's
+   preview tiles carry no `canvas`, so the branch that observes never mounts.
    It never has to fire: nothing in these tests depends on a reported size. */
 globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
