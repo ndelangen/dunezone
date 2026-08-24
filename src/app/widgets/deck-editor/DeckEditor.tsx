@@ -1,4 +1,4 @@
-import { Group, NumberInput, Select, Slider, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Group, NumberInput, Select, Slider, Stack, Text, TextInput } from '@mantine/core';
 import type { DeckAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -6,7 +6,6 @@ import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { MemberCountInput } from '@ui/control/MemberCountInput';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { useState } from 'react';
@@ -30,9 +29,10 @@ import { STOCK_CARDBACKS, stockKeyFor } from './stockCardbacks';
 import type { CardbackData } from './stockCardbacks';
 
 /**
- * The size the rail's proof is drawn at before `CanvasScale` fits it to the rail.
+ * The box a backside tile draws its proof inside, which `PreviewChoice` contain-fits to the tile.
  * Any number does.
- * This one matches the detail page, so a proof and the page it previews scale off the same canvas.
+ * This one matches the detail page, so a tile and the page it previews scale off the same canvas.
+ * The rail's own proofs no longer need it: they fill the rail and hold their own ratio.
  */
 const PROOF_CANVAS = 900;
 
@@ -89,9 +89,9 @@ function draftCardbackComposition(cardback: DeckDraftCardback): CardbackData | n
  * A draft is not a stored row: it is transiently invalid on the way to being valid, because `ColorInput` commits raw text per keystroke, so five of the six characters in a hex colour are not yet a colour.
  * `AssetFace` parses what it is given and falls to a neutral face when the parse fails, which is right for a listing reading storage and wrong for a proof watching an author type, where it reads as the preview blanking.
  */
-function CardbackProof({ cardback, width }: { cardback: CardbackData; width: number }) {
+function CardbackProof({ cardback }: { cardback: CardbackData }) {
   return (
-    <CardFrame width={width}>
+    <CardFrame>
       <CardBack {...cardback} />
     </CardFrame>
   );
@@ -350,7 +350,7 @@ export function DeckEditor({
                               value: 'stock',
                               label: 'Stock',
                               /* Always drawable: the stock look this deck wears, or the first standing in. */
-                              preview: <CardbackProof cardback={stockPreview} width={PROOF_CANVAS} />,
+                              preview: <CardbackProof cardback={stockPreview} />,
                               canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
                               detail: (
                                 <Select
@@ -375,7 +375,6 @@ export function DeckEditor({
                               preview: (
                                 <CardbackProof
                                   cardback={composition ?? composedCardback.current ?? STOCK_CARDBACKS[0]!.cardback}
-                                  width={PROOF_CANVAS}
                                 />
                               ),
                               canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
@@ -419,12 +418,10 @@ export function DeckEditor({
                           <Stack gap="xs">
                             {members.map((member) => (
                               <Group key={member.card.id} gap="sm" wrap="nowrap" align="center">
-                                <AssetFace
-                                  type={member.card.type}
-                                  data={member.card.data}
-                                  name={member.card.name}
-                                  width={34}
-                                />
+                                {/* A row thumbnail is a fixed size, which the face reads off this box rather than from a prop. */}
+                                <Box w={34} miw={34}>
+                                  <AssetFace type={member.card.type} data={member.card.data} name={member.card.name} />
+                                </Box>
                                 <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
                                   {member.card.name}
                                 </Text>
@@ -463,9 +460,7 @@ export function DeckEditor({
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <Stack gap="md" align="center">
-          <CanvasScale rounded canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('deck')}>
-            {composition ? <CardbackProof cardback={composition} width={PROOF_CANVAS} /> : backProof}
-          </CanvasScale>
+          {composition ? <CardbackProof cardback={composition} /> : backProof}
           <Text size="xs" c="dimmed">
             The deck's publication
           </Text>

@@ -5,7 +5,6 @@ import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageTitle } from '@ui/block/PageTitle';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
@@ -15,7 +14,7 @@ import { useState } from 'react';
 
 import { loadAssetBrowsePage, useAssetBrowsePage } from '@app/db/assets';
 import type { AssetBrowseEntry } from '@app/db/assets';
-import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
+import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
 import { applyAssetBrowseSearch, ASSET_BROWSE_SORTS, parseAssetBrowseSearch } from './-browse';
 import type { AssetBrowseSearch } from './-browse';
@@ -195,10 +194,7 @@ function BrowseTile({ entry }: { entry: AssetBrowseEntry }) {
         <Link {...rootProps} to="/assets/$type/$slug" params={{ type: entry.type, slug: entry.slug }} />
       )}
     >
-      {/* A container's members stand above it and make the drawing taller, so the canvas is asked for the block's height rather than the face's. */}
-      <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(entry.type, entry.members.length)}>
-        <AssetFace type={entry.type} data={entry.data} name={entry.name} width={900} members={entry.members} />
-      </CanvasScale>
+      <AssetFace type={entry.type} data={entry.data} name={entry.name} members={entry.members} />
     </OpenableTile>
   );
 }

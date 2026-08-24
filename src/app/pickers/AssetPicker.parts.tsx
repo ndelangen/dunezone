@@ -30,7 +30,7 @@ export function assetPickerSearchText(entry: AssetListEntry): string {
 function AssetPickerPreview({ entry, side }: { entry: AssetListEntry; side?: AssetFaceSide }) {
   return (
     <Box aria-hidden w={PREVIEW_WIDTH} miw={PREVIEW_WIDTH} style={{ display: 'grid', placeItems: 'center' }}>
-      <AssetFace type={entry.type} data={entry.data} name={entry.name} width={PREVIEW_WIDTH} side={side} />
+      <AssetFace type={entry.type} data={entry.data} name={entry.name} side={side} />
     </Box>
   );
 }

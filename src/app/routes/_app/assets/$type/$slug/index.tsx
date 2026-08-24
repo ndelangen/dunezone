@@ -24,7 +24,6 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
@@ -48,8 +47,7 @@ import type { ReactNode } from 'react';
 
 import { loadAssetPage, useAssetPage } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
-import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
-import type { AssetFaceMember } from '@app/widgets/asset-face/AssetFace';
+import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../-assetEditorStates';
 import { compositionTiles, DUPLICATED_TILE_CAP, omissionNote } from './-composition';
@@ -132,27 +130,6 @@ function FaceStage({ children, caption }: { children: ReactNode; caption?: React
         </Text>
       ) : null}
     </Stack>
-  );
-}
-
-function ScaledFace({
-  type,
-  data,
-  name,
-  side,
-  members = [],
-}: {
-  type: string;
-  data: unknown;
-  name: string;
-  side?: 'front' | 'back';
-  members?: AssetFaceMember[];
-}) {
-  return (
-    /* A container's members stand above it and make the drawing taller, so the canvas is asked for the block's height rather than the face's. */
-    <CanvasScale rounded canvasWidth={900} canvasHeight={900 * assetFaceAspect(type, members.length)}>
-      <AssetFace type={type} data={data} name={name} width={900} side={side} members={members} />
-    </CanvasScale>
   );
 }
 
@@ -243,13 +220,13 @@ function AssetFaces({ page }: { page: AssetPage }) {
           }
         >
           {backDeck ? (
-            <ScaledFace type="deck" data={backDeck.data} name={backDeck.name} />
+            <AssetFace type="deck" data={backDeck.data} name={backDeck.name} />
           ) : danglingDeck && page.resolvedBack?.href ? (
             /* The note below carries the words, so the image is decorative to a screen reader. */
             <img src={page.resolvedBack.href} alt="" className={styles.fallbackCardback} />
           ) : (
             /* A deck's cards reach `AssetFace` here too and are ignored, which is that prop's documented contract rather than an accident. */
-            <ScaledFace
+            <AssetFace
               type={asset.type}
               data={asset.data}
               name={asset.name}
@@ -272,7 +249,7 @@ function AssetFaces({ page }: { page: AssetPage }) {
     return (
       <Stack gap="sm" align="center">
         <FaceStage caption="Front & back">
-          <ScaledFace type={asset.type} data={asset.data} name={asset.name} side="front" />
+          <AssetFace type={asset.type} data={asset.data} name={asset.name} side="front" />
         </FaceStage>
         {dangling ? (
           <Text size="sm" c="dimmed">
@@ -285,7 +262,7 @@ function AssetFaces({ page }: { page: AssetPage }) {
   return (
     <Stack gap="lg" align="center">
       <FaceStage caption="Front">
-        <ScaledFace type={asset.type} data={asset.data} name={asset.name} side="front" />
+        <AssetFace type={asset.type} data={asset.data} name={asset.name} side="front" />
       </FaceStage>
       {back?.mode === 'reference' && backToken ? (
         <FaceStage
@@ -307,11 +284,11 @@ function AssetFaces({ page }: { page: AssetPage }) {
             </>
           }
         >
-          <ScaledFace type={backToken.type} data={backToken.data} name={backToken.name} side="back" />
+          <AssetFace type={backToken.type} data={backToken.data} name={backToken.name} side="back" />
         </FaceStage>
       ) : (
         <FaceStage caption="Back">
-          <ScaledFace type={asset.type} data={asset.data} name={asset.name} side="back" />
+          <AssetFace type={asset.type} data={asset.data} name={asset.name} side="back" />
         </FaceStage>
       )}
     </Stack>
@@ -391,9 +368,7 @@ function Composition({
                   <Link {...rootProps} to="/assets/$type/$slug" params={{ type: member.type, slug: member.slug }} />
                 )}
               >
-                <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(member.type)}>
-                  <AssetFace type={member.type} data={member.data} name={member.name} width={900} />
-                </CanvasScale>
+                <AssetFace type={member.type} data={member.data} name={member.name} />
               </OpenableTile>
             ))}
           </TileGrid>
@@ -547,7 +522,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
         {/* The identity pattern the faction and ruleset detail pages use: the media sits in its own column, so the breadcrumb, the title and the meta line share one left edge. */}
         <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
           <div className={styles.pageHeadMedia} role="img" aria-label={`${asset.name} face`}>
-            <ScaledFace type={asset.type} data={asset.data} name={asset.name} />
+            <AssetFace type={asset.type} data={asset.data} name={asset.name} />
           </div>
           <Stack gap={6} className={styles.pageHeadText}>
             <Group gap="xs" wrap="wrap">
