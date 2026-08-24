@@ -20,11 +20,10 @@ function updateScrollProgress() {
 
 export interface AppRootProps {
   children: ReactNode;
-  pathname: string;
 }
 
 /** Persistent application chrome and document-level page effects. */
-export function AppRoot({ children, pathname }: AppRootProps) {
+export function AppRoot({ children }: AppRootProps) {
   useEffect(() => {
     const root = document.documentElement;
     let animationFrameId: number | null = null;
@@ -38,15 +37,9 @@ export function AppRoot({ children, pathname }: AppRootProps) {
         updateScrollProgress();
       });
     };
-    const handleScroll = () => {
-      root.removeAttribute('data-initial-animate');
-      scheduleUpdate();
-    };
-
-    root.setAttribute('data-initial-animate', '');
     root.style.setProperty(SCROLL_VAR, '0');
     window.addEventListener('resize', updateScrollProgress);
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
 
     const resizeObserver = new ResizeObserver(scheduleUpdate);
     resizeObserver.observe(document.body);
@@ -56,7 +49,7 @@ export function AppRoot({ children, pathname }: AppRootProps) {
         cancelAnimationFrame(animationFrameId);
       }
       window.removeEventListener('resize', updateScrollProgress);
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', scheduleUpdate);
       resizeObserver.disconnect();
       root.style.removeProperty(SCROLL_VAR);
     };
@@ -72,22 +65,6 @@ export function AppRoot({ children, pathname }: AppRootProps) {
       delete root.dataset.motion;
     };
   }, [motion]);
-
-  /*
-   * Re-arms the backdrop's eased arrival on every navigation.
-   * `pathname` is the whole point of the dependency rather than a value this reads: the attribute
-   * carries no route, it only says a route just changed, and `page.css` gives the backdrop its
-   * transition for as long as it is present. The scroll handler above drops it the moment the
-   * reader takes over, so the wheel pans the photograph directly instead of chasing an ease.
-   */
-  useEffect(() => {
-    const root = document.documentElement;
-    root.setAttribute('data-initial-animate', '');
-
-    return () => {
-      root.removeAttribute('data-initial-animate');
-    };
-  }, [pathname]);
 
   return (
     <div className={styles.container} data-app-root>

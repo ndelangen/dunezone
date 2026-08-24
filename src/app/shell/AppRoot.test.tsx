@@ -64,7 +64,7 @@ describe('AppRoot page header', () => {
     act(() => {
       root.render(
         chrome(
-          <AppRoot pathname="/privacy">
+          <AppRoot>
             <PageLayout>
               <PageLayout.Header>
                 <h1>Privacy policy</h1>
@@ -85,7 +85,7 @@ describe('AppRoot page header', () => {
     act(() => {
       root.render(
         chrome(
-          <AppRoot pathname="/assets">
+          <AppRoot>
             <PageLayout>
               <h2>Assets</h2>
               <p>Asset content</p>
@@ -101,26 +101,24 @@ describe('AppRoot page header', () => {
     act(() => root.unmount());
   });
 
-  it('releases its document-level page effects on unmount', () => {
+  it('releases the scroll progress it publishes on unmount', () => {
     const container = document.createElement('div');
     const root = createRoot(container);
 
     act(() => {
       root.render(
         chrome(
-          <AppRoot pathname="/privacy">
+          <AppRoot>
             <p>Privacy content</p>
           </AppRoot>
         )
       );
     });
 
-    expect(document.documentElement.hasAttribute('data-initial-animate')).toBe(true);
     expect(document.documentElement.style.getPropertyValue('--scroll-pct')).not.toBe('');
 
     act(() => root.unmount());
 
-    expect(document.documentElement.hasAttribute('data-initial-animate')).toBe(false);
     expect(document.documentElement.style.getPropertyValue('--scroll-pct')).toBe('');
   });
 
@@ -131,7 +129,7 @@ describe('AppRoot page header', () => {
     act(() => {
       root.render(
         chrome(
-          <AppRoot pathname="/privacy">
+          <AppRoot>
             <p>Privacy content</p>
           </AppRoot>
         )

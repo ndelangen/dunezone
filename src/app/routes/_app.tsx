@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useLocation } from '@tanstack/react-router';
+import { createFileRoute, Outlet } from '@tanstack/react-router';
 
 import { ApplicationChrome } from '@app/shell/ApplicationChrome';
 import { AppNotFound } from '@app/shell/AppNotFound';
@@ -24,10 +24,8 @@ export const Route = createFileRoute('/_app')({
 });
 
 function AppLayout() {
-  const pathname = useLocation({ select: (location) => location.pathname });
-
   return (
-    <ApplicationChrome pathname={pathname}>
+    <ApplicationChrome>
       <Outlet />
     </ApplicationChrome>
   );
