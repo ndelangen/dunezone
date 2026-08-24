@@ -31,6 +31,8 @@ export function FactionLoadPopover({ disabled, currentPublicSlug, onLoaded }: Fa
       width={440}
       shadow="md"
       withArrow
+      /* A 440px pane over a 40px trigger is slid by `shift` to fit, and a side-anchored arrow goes with the pane rather than staying on the control that opened it (#715). */
+      arrowPosition="center"
       trapFocus
       returnFocus
     >
