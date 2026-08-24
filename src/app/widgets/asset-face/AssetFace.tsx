@@ -404,6 +404,14 @@ function BundleBlock({ members, children }: { members: AssetFaceMember[]; childr
         aspectRatio: `1 / ${BUNDLE_ASPECT + bundleHeadroom(members.length)}`,
         /* The block is what a peeking member measures itself against, and it is the only box here whose width is the one the caller gave. */
         containerType: 'inline-size',
+        /*
+         * The block is the flex item, so it is the only box that can refuse to be squashed: the container
+         * below it is absolutely positioned and cannot resist from in there, whatever it declares.
+         * Measured in a 300x200 column with `min-height: 0`, which any flex layout may carry: without this the
+         * block collapses from 250.6px to 60px while the container keeps drawing 186px, and since the container
+         * is pinned to the block's bottom edge, the 126px it gains goes upward over whatever sits above it.
+         */
+        flexShrink: 0,
       }}
     >
       {/* Pinned to the container's own box rather than the block's, so the two stay aligned whenever the headroom changes. */}
