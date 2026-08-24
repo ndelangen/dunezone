@@ -7,18 +7,22 @@ import type { CSSProperties, PropsWithChildren } from 'react';
  * The canvas is taken out of flow so the frame's height comes from its aspect ratio alone, never from the unscaled child it clips.
  * Pure placement;
  * the caller decorates the frame (shadow, anything bespoke) through `frameClassName`, and `rounded` is the one shared decoration: the corner treatment every rail proof wears (Norbert, 2026-08-21), kept here so five rails cannot drift apart.
+ * `frameStyle` decorates the same frame for the values a class cannot hold, the ones a caller derives from the canvas it passed;
+ * it may not re-place the frame, since the placement above is the whole point of the component.
  * The browser floor this technique sets is recorded on «Work the kit compliance wave» (#641).
  */
 export function CanvasScale({
   canvasWidth,
   canvasHeight,
   frameClassName,
+  frameStyle,
   rounded = false,
   children,
 }: PropsWithChildren<{
   canvasWidth: number;
   canvasHeight: number;
   frameClassName?: string;
+  frameStyle?: CSSProperties;
   rounded?: boolean;
 }>) {
   return (
@@ -32,6 +36,7 @@ export function CanvasScale({
           position: 'relative',
           overflow: 'hidden',
           borderRadius: rounded ? 'var(--mantine-radius-md)' : undefined,
+          ...frameStyle,
           '--canvas-width': `${canvasWidth}px`,
         } as CSSProperties
       }

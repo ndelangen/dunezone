@@ -4,7 +4,6 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Frame } from 'lucide-react';
@@ -25,9 +24,10 @@ import { CustomToken } from '@game/assets/token/Custom';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 /**
- * The size the rail's proof is drawn at before `CanvasScale` fits it to the rail.
+ * The box a backside tile draws its proof inside, which `PreviewChoice` contain-fits to the tile.
  * Any number does.
- * This one matches the detail page, so a proof and the page it previews scale off the same canvas.
+ * This one matches the detail page, so a tile and the page it previews scale off the same canvas.
+ * The rail's own proofs no longer need it: they fill the rail and hold their own ratio.
  */
 const PROOF_CANVAS = 900;
 
@@ -102,11 +102,11 @@ function bottomFor(face: TokenFaceDraft): string {
   return `${face.bottomFirst}\n${face.bottomSecond}`;
 }
 
-/** One face at whatever width it is given, clipped to its shape by the same frame the catalogue surfaces use. */
-export function TokenProof({ face, type, width }: { face: TokenFaceDraft; type: string; width: number }) {
+/** One face filling the box it is put in, clipped to its shape by the same frame the catalogue surfaces use. */
+export function TokenProof({ face, type }: { face: TokenFaceDraft; type: string }) {
   const shape = tokenShapeOfType(type) ?? 'round';
   return (
-    <TokenFrame shape={shape} width={width}>
+    <TokenFrame shape={shape}>
       <CustomToken
         background={face.background}
         image={face.image}
@@ -374,7 +374,6 @@ export function TokenEditor({
                             : (composedFace.current ?? initialTokenFace(type))
                         }
                         type={type}
-                        width={PROOF_CANVAS}
                       />
                     ),
                     canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect(type) },
@@ -382,7 +381,7 @@ export function TokenEditor({
                   {
                     value: 'same',
                     label: 'Same as front',
-                    preview: <TokenProof face={draft.front} type={type} width={PROOF_CANVAS} />,
+                    preview: <TokenProof face={draft.front} type={type} />,
                     canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect(type) },
                   },
                   {
@@ -452,18 +451,14 @@ export function TokenEditor({
       <WorkbenchLayout.Rail>
         <Stack gap="md" align="center">
           <Stack gap={4} align="center" w="100%">
-            <CanvasScale rounded canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect(type)}>
-              <TokenProof face={draft.front} type={type} width={PROOF_CANVAS} />
-            </CanvasScale>
+            <TokenProof face={draft.front} type={type} />
             <Text size="xs" c="dimmed">
               Front
             </Text>
           </Stack>
           {draft.back.mode === 'custom' ? (
             <Stack gap={4} align="center" w="100%">
-              <CanvasScale rounded canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect(type)}>
-                <TokenProof face={draft.back.face} type={type} width={PROOF_CANVAS} />
-              </CanvasScale>
+              <TokenProof face={draft.back.face} type={type} />
               <Text size="xs" c="dimmed">
                 Back
               </Text>

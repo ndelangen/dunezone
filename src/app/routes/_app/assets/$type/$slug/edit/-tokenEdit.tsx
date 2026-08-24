@@ -4,7 +4,6 @@ import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
@@ -12,7 +11,6 @@ import { useState } from 'react';
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
-import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
@@ -294,10 +292,7 @@ function TokenEditSession({
               pickedBack ? (
                 <Stack gap={4} align="center" w="100%">
                   {referencedBack ? (
-                    /* The picker offers only this token's own type, so the page's type fixes the aspect. */
-                    <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(type)}>
-                      <TokenProof face={referencedBack} type={type} width={900} />
-                    </CanvasScale>
+                    <TokenProof face={referencedBack} type={type} />
                   ) : (
                     <Text size="xs" c="dimmed">
                       Its stored back can no longer be read as an authored back, so it cannot be shown here.

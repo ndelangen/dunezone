@@ -1,10 +1,9 @@
-import { Group, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Group, Select, Stack, Text, TextInput } from '@mantine/core';
 import type { BundleAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { MemberCountInput } from '@ui/control/MemberCountInput';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { useState } from 'react';
@@ -12,7 +11,6 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
-import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { BundleContainer } from '@app/widgets/asset-face/BundleContainer';
 import type { BundleBandData } from '@app/widgets/asset-face/BundleContainer';
@@ -20,13 +18,6 @@ import { BackgroundPresetControl } from '@app/widgets/background-composer/Backgr
 import { backgroundPresets } from '@game/data/backgrounds';
 
 import { STOCK_BANDS, stockBandKeyFor } from './stockBands';
-
-/**
- * The size the rail's proof is drawn at before `CanvasScale` fits it to the rail.
- * Any number does.
- * This one matches the detail page, so a proof and the page it previews scale off the same canvas.
- */
-const PROOF_CANVAS = 900;
 
 export type BundleDraft = z.infer<typeof BundleAsset>;
 export type BundleChapter = 'identity' | 'tokens' | 'about';
@@ -217,12 +208,14 @@ export function BundleEditor({
                           <Stack gap="xs">
                             {members.map((member) => (
                               <Group key={member.token.id} gap="sm" wrap="nowrap" align="center">
-                                <AssetFace
-                                  type={member.token.type}
-                                  data={member.token.data}
-                                  name={member.token.name}
-                                  width={34}
-                                />
+                                {/* A row thumbnail is a fixed size, which the face reads off this box rather than from a prop. */}
+                                <Box w={34} miw={34}>
+                                  <AssetFace
+                                    type={member.token.type}
+                                    data={member.token.data}
+                                    name={member.token.name}
+                                  />
+                                </Box>
                                 <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
                                   {member.token.name}
                                 </Text>
@@ -261,9 +254,8 @@ export function BundleEditor({
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <Stack gap="md" align="center">
-          <CanvasScale rounded canvasWidth={PROOF_CANVAS} canvasHeight={PROOF_CANVAS * assetFaceAspect('bundle')}>
-            <BundleContainer band={draft.band} name={draft.name} width={PROOF_CANVAS} />
-          </CanvasScale>
+          {/* The rail is the container's box now; nothing here restates the size or the ratio the container already holds. */}
+          <BundleContainer band={draft.band} name={draft.name} />
           <Text size="xs" c="dimmed">
             How this bundle is shown
           </Text>

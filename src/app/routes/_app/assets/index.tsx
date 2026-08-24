@@ -5,12 +5,11 @@ import { Link, createFileRoute } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
-import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 
 import { loadAssetCataloguePage, useAssetCataloguePage } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
-import { AssetFace, assetFaceAspect, CARD_ASPECT } from '@app/widgets/asset-face/AssetFace';
+import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 
 import styles from './index.module.css';
 
@@ -30,26 +29,11 @@ const PILE_SLOT = 150;
 const FAN_OVERLAP = 6;
 /** how many cards a pile's fan shows; three reads as a pile without shrinking anyone */
 const FAN_COUNT = 3;
+/** the masthead fan's cards are placed by hand against a fixed 540px band, so they are the one fan drawn at a set size */
+const MASTHEAD_CARD = 138;
 
 /* Handed to the stylesheet so the grid tracks and the art cannot drift apart. */
 const pileGroupStyle = { '--pile-slot': `${PILE_SLOT}px` } as CSSProperties;
-
-/**
- * The width the pile's art actually has: grid tracks flex below their slot ceiling on narrow rows (see index.module.css), so a fixed pixel width would overflow its own track.
- */
-function useSlotWidth() {
-  const [node, setNode] = useState<HTMLDivElement | null>(null);
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    if (!node) {
-      return;
-    }
-    const observer = new ResizeObserver(([entry]) => setWidth(entry?.contentRect.width ?? 0));
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [node]);
-  return { ref: setNode, width };
-}
 
 /**
  * The ledger's three rows, each naming the categories whose piles it holds.
@@ -84,13 +68,14 @@ function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
               key={card.id}
               style={{
                 position: 'absolute',
+                width: MASTHEAD_CARD,
                 left: `calc(50% - 70px + ${off * 90 + (JITTER_LEFT[i] ?? 0)}px)`,
                 top: 28 + Math.abs(off) * 16 + (JITTER_TOP[i] ?? 0),
                 transform: `rotate(${off * 8 + (JITTER_ROT[i] ?? 0)}deg)`,
                 transformOrigin: '50% 130%',
               }}
             >
-              <AssetFace type={card.type} data={card.data} name={card.name} width={138} />
+              <AssetFace type={card.type} data={card.data} name={card.name} />
             </div>
           );
         })}
@@ -99,25 +84,36 @@ function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
   );
 }
 
+/*
+ * The piles below share one shape: every face sits in the same grid cell, so the pile's height is one
+ * face's height and no one computes it. The spread is a `transform`, which takes no part in layout, and
+ * the padding is the room those transforms need to lean into.
+ *
+ * They used to be absolutely positioned inside a box whose height was `faceWidth * ratio`, which is why
+ * the page measured its own grid track: that arithmetic needed a pixel width, and the track's width is a
+ * CSS answer that only a `ResizeObserver` could read back into JavaScript. Nothing needs it now, so the
+ * piles are drawn on first paint rather than after a measurement lands.
+ */
+const PILE_CELL = { gridArea: '1 / 1' } as const;
+
 /** a slightly fanned pile of real faces for card-type piles; every face keeps the placeholder's width */
-function MiniFan({ entries, slot }: { entries: AssetListEntry[]; slot: number }) {
-  /* The grid track may shrink below the spread in the stacked state, so the face width floors at 1px rather than going negative. */
-  const cardWidth = Math.max(1, slot - (entries.length - 1) * FAN_OVERLAP);
+function MiniFan({ entries }: { entries: AssetListEntry[] }) {
+  const spread = (entries.length - 1) * FAN_OVERLAP;
   const mid = (entries.length - 1) / 2;
   return (
-    <div style={{ position: 'relative', width: slot, height: cardWidth * CARD_ASPECT + 16 }}>
+    <div style={{ display: 'grid', width: '100%', padding: '8px 0' }}>
       {entries.map((entry, i) => (
         <div
           key={entry.id}
           style={{
-            position: 'absolute',
-            left: i * FAN_OVERLAP,
-            top: 8 + Math.abs(i - mid) * 3,
-            transform: `rotate(${(i - mid) * 4 + (JITTER_ROT[i % JITTER_ROT.length] ?? 0)}deg)`,
+            ...PILE_CELL,
+            /* The track can shrink below the spread on a stacked row, so the face floors at 1px rather than going negative. */
+            width: `max(1px, calc(100% - ${spread}px))`,
             transformOrigin: '50% 120%',
+            transform: `translate(${i * FAN_OVERLAP}px, ${Math.abs(i - mid) * 3}px) rotate(${(i - mid) * 4 + (JITTER_ROT[i % JITTER_ROT.length] ?? 0)}deg)`,
           }}
         >
-          <AssetFace type={entry.type} data={entry.data} name={entry.name} width={cardWidth} />
+          <AssetFace type={entry.type} data={entry.data} name={entry.name} />
         </div>
       ))}
     </div>
@@ -125,14 +121,16 @@ function MiniFan({ entries, slot }: { entries: AssetListEntry[]; slot: number })
 }
 
 /** a squared-up pile for decks; the newest deck's cardback on top */
-function DeckPile({ entries, slot }: { entries: AssetListEntry[]; slot: number }) {
+function DeckPile({ entries }: { entries: AssetListEntry[] }) {
   const top = entries[0] as AssetListEntry;
-  const cardWidth = Math.max(1, slot - 6);
   return (
-    <div style={{ position: 'relative', width: slot, height: cardWidth * CARD_ASPECT + 10 }}>
+    <div style={{ display: 'grid', width: '100%', paddingBottom: 10 }}>
       {[2, 1, 0].map((n) => (
-        <div key={n} style={{ position: 'absolute', top: n * 4, left: n * 2 }}>
-          <AssetFace type={top.type} data={top.data} name={top.name} width={cardWidth} />
+        <div
+          key={n}
+          style={{ ...PILE_CELL, width: 'max(1px, calc(100% - 6px))', transform: `translate(${n * 2}px, ${n * 4}px)` }}
+        >
+          <AssetFace type={top.type} data={top.data} name={top.name} />
         </div>
       ))}
     </div>
@@ -150,7 +148,7 @@ const STACK_PLACEMENTS = [
   { top: 0, left: 3, rot: 3 },
 ];
 
-function TokenStack({ entries, width }: { entries: AssetListEntry[]; width: number }) {
+function TokenStack({ entries, fill }: { entries: AssetListEntry[]; fill: boolean }) {
   const shown = entries.slice(0, 4);
   const placements = STACK_PLACEMENTS.slice(STACK_PLACEMENTS.length - shown.length);
   const type = shown[0]?.type ?? '';
@@ -167,12 +165,13 @@ function TokenStack({ entries, width }: { entries: AssetListEntry[]; width: numb
    * `TOKEN_PILE_FACE` and an enhance token draws to its grid slot. Bottom-aligned boxes of different
    * heights then put every face on a different line, worst for the widest and shortest one
    * (Norbert, 2026-08-20).
+   *
+   * The centring is the band's own layout now rather than an offset computed from the face's height,
+   * which is the reason this component no longer needs to know how tall its faces are.
    */
-  const faceHeight = width * assetFaceAspect(type);
   const boxHeight = TOKEN_PILE_FACE + (placements[0]?.top ?? 0) + 6;
-  const centring = (TOKEN_PILE_FACE - faceHeight) / 2;
   return (
-    <div style={{ position: 'relative', width: width + 26, height: boxHeight }}>
+    <div style={{ position: 'relative', width: fill ? '100%' : TOKEN_PILE_FACE + 26, height: boxHeight }}>
       {shown.map((entry, i) => {
         const placement = placements[i] ?? { top: 0, left: 0, rot: 0 };
         return (
@@ -180,12 +179,16 @@ function TokenStack({ entries, width }: { entries: AssetListEntry[]; width: numb
             key={entry.id}
             style={{
               position: 'absolute',
-              top: placement.top + centring,
+              top: placement.top,
               left: 6 + placement.left,
+              width: fill ? 'max(1px, calc(100% - 26px))' : TOKEN_PILE_FACE,
+              height: TOKEN_PILE_FACE,
+              display: 'grid',
+              alignContent: 'center',
               transform: straight ? undefined : `rotate(${placement.rot}deg)`,
             }}
           >
-            <AssetFace type={entry.type} data={entry.data} name={entry.name} width={width} />
+            <AssetFace type={entry.type} data={entry.data} name={entry.name} />
           </div>
         );
       })}
@@ -197,20 +200,21 @@ function TokenStack({ entries, width }: { entries: AssetListEntry[]; width: numb
 function emptyOutlineShape(
   type: AssetType
 ): { width: number | string; borderRadius: number | string } & ({ height: number } | { aspectRatio: string }) {
+  /* Every ratio below is read from `assetFaceAspect`, the same function the face itself holds its height from: an outline and the pile that replaces it are the same shape or the row jumps when the first asset of a type lands. The literal here was once 110/68, close to the enhance token's ratio but not equal, and drifting apart was only a matter of time. */
   switch (type) {
     case 'token-disc':
     case 'token-tech':
-      return { width: 96, height: 96, borderRadius: '50%' };
+      return { width: TOKEN_PILE_FACE, height: TOKEN_PILE_FACE * assetFaceAspect(type), borderRadius: '50%' };
     case 'token-plate':
-      return { width: 96, height: 96, borderRadius: 8 };
+      return { width: TOKEN_PILE_FACE, height: TOKEN_PILE_FACE * assetFaceAspect(type), borderRadius: 8 };
     case 'token-enhance':
-      /* `assetFaceAspect` owns this ratio; the literal here was 110/68, which is close to it but not equal, and drifting apart was only a matter of time. */
-      return { width: '100%', aspectRatio: `1 / ${assetFaceAspect('token-enhance')}`, borderRadius: 8 };
+      return { width: '100%', aspectRatio: `1 / ${assetFaceAspect(type)}`, borderRadius: 8 };
     case 'board':
+      /* The one shape with no ratio to read: a board is planned, so nothing renders one and `assetFaceAspect` has no answer of its own for it yet. */
       return { width: '100%', aspectRatio: '3 / 2', borderRadius: 8 };
     default:
       /* cards and decks: the card's own proportions */
-      return { width: '100%', aspectRatio: `1 / ${CARD_ASPECT}`, borderRadius: 6 };
+      return { width: '100%', aspectRatio: `1 / ${assetFaceAspect(type)}`, borderRadius: 6 };
   }
 }
 
@@ -242,25 +246,21 @@ function TypePile({ type, entries }: { type: AssetType; entries: AssetListEntry[
   const definition = ASSET_TYPES[type];
   const planned = definition.status === 'planned';
   const isCardish = type.startsWith('card-') || type === 'deck';
-  const slot = useSlotWidth();
-  /* The track is the ceiling, so the art fills whatever width it was given. */
-  const drawnAt = slot.width;
   const art =
     planned || entries.length === 0 ? (
       <EmptyPileOutline type={type} planned={planned} />
-    ) : drawnAt === 0 ? null : type === 'deck' ? (
-      <DeckPile entries={entries} slot={drawnAt} />
+    ) : type === 'deck' ? (
+      <DeckPile entries={entries} />
     ) : isCardish ? (
-      <MiniFan entries={entries.slice(0, FAN_COUNT)} slot={drawnAt} />
+      <MiniFan entries={entries.slice(0, FAN_COUNT)} />
     ) : (
-      <TokenStack entries={entries} width={type === 'token-enhance' ? Math.max(1, drawnAt - 26) : TOKEN_PILE_FACE} />
+      /* An enhance token is wide and short, so its pile takes the track; the rest draw at the shared pile size. */
+      <TokenStack entries={entries} fill={type === 'token-enhance'} />
     );
 
   const body = (
     <Stack gap={8} align="center">
-      <div ref={slot.ref} className={styles.pileArt}>
-        {art}
-      </div>
+      <div className={styles.pileArt}>{art}</div>
       {/* The pile is its art and its name; the count it once wore said nothing the grid behind the link does not (Norbert, 2026-08-21). */}
       <Text fw={700} c={planned ? 'dimmed' : undefined}>
         {definition.shortLabel}
