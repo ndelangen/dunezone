@@ -13,7 +13,7 @@ import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { AssignPopover } from '@ui/control/AssignPopover';
+import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { ColumnsWithRailLayout } from '@ui/layout/ColumnsWithRailLayout';
@@ -477,15 +477,18 @@ function RulesetDetailPage() {
                     triggerLabel="Assign group"
                     icon={<UsersRound size={17} aria-hidden />}
                     disabled={setRulesetGroup.isPending}
-                    options={page.assignableGroups.map((group) => ({
-                      value: group.id,
-                      label: `${group.name} (${group.slug})`,
-                    }))}
-                    onAssign={async (nextGroupId) => {
-                      await setRulesetGroup.mutateAsync({ id: r._id, groupId: nextGroupId });
-                    }}
                     title="Assign Group"
-                  />
+                  >
+                    <AssignOptions
+                      options={page.assignableGroups.map((group) => ({
+                        value: group.id,
+                        label: `${group.name} (${group.slug})`,
+                      }))}
+                      onAssign={async (nextGroupId) => {
+                        await setRulesetGroup.mutateAsync({ id: r._id, groupId: nextGroupId });
+                      }}
+                    />
+                  </AssignPopover>
                 ) : null}
                 {actionVisibility.removeGroup ? (
                   <IconAction
