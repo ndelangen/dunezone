@@ -172,6 +172,8 @@ function NeutralFace({ name, aspect }: { name: string; aspect: number }) {
       style={{
         width: '100%',
         aspectRatio: `1 / ${aspect}`,
+        /* Border inside the ratio box, for the reason `BundleContainer` states: the app's baseline is `content-box`, and a face that overruns its parent by its own border is not the aspect it just promised. */
+        boxSizing: 'border-box',
         borderRadius: 8,
         display: 'grid',
         placeItems: 'center',
