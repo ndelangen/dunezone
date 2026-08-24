@@ -6,6 +6,7 @@ import type { RouteNoticeCode } from '@shared/routeNotices';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
+import { LoadError } from '@ui/block/LoadError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
@@ -49,6 +50,7 @@ import {
   useRulesetDetailPage,
   useSetRulesetGroup,
 } from '@db/rulesets';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { resolveRouteNotice } from '@app/routes/-routeNotices';
 
@@ -216,9 +218,9 @@ function RulesetDetailError({ error }: ErrorComponentProps) {
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
-        <Alert color="red" title="Ruleset could not be loaded" role="alert">
-          <Text size="sm">{error.message || 'An unexpected error occurred.'}</Text>
-        </Alert>
+        <LoadError title="Ruleset could not be loaded" stale={isStaleClientData(error)}>
+          {error.message}
+        </LoadError>
       </PageLayout.Content>
     </PageLayout>
   );

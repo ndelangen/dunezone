@@ -16,6 +16,7 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { LoadError } from '@ui/block/LoadError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
@@ -37,6 +38,7 @@ import { ArrowLeft, Download, Eye, FileText, MapPin, Pencil, UserPlus, UsersRoun
 import { loadFaction, useFaction } from '@db/factions';
 import type { FactionData } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
@@ -115,9 +117,9 @@ function FactionDetailError({ error }: ErrorComponentProps) {
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
-        <Alert color="red" title="Faction could not be loaded" role="alert">
-          <Text size="sm">{error.message || 'An unexpected error occurred.'}</Text>
-        </Alert>
+        <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
+          {error.message}
+        </LoadError>
       </PageLayout.Content>
     </PageLayout>
   );

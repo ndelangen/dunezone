@@ -1,5 +1,4 @@
 import {
-  Alert,
   Badge,
   Button,
   Drawer,
@@ -17,6 +16,7 @@ import {
 import { Link, createFileRoute } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
+import { LoadError } from '@ui/block/LoadError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
@@ -32,6 +32,7 @@ import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCatalogueEntry, FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 
 import {
   complexityRangeSearchValue,
@@ -128,9 +129,9 @@ function FactionCatalogueError({ error }: ErrorComponentProps) {
         <CatalogueHeader />
       </PageLayout.Header>
       <PageLayout.Content>
-        <Alert color="red" title="Faction catalogue could not be loaded" role="alert">
-          <Text size="sm">{error.message || 'An unexpected error occurred.'}</Text>
-        </Alert>
+        <LoadError title="Faction catalogue could not be loaded" stale={isStaleClientData(error)}>
+          {error.message}
+        </LoadError>
       </PageLayout.Content>
     </PageLayout>
   );
