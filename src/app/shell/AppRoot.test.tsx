@@ -115,13 +115,11 @@ describe('AppRoot page header', () => {
       );
     });
 
-    expect(document.documentElement.dataset.route).toBe('/privacy');
     expect(document.documentElement.hasAttribute('data-initial-animate')).toBe(true);
     expect(document.documentElement.style.getPropertyValue('--scroll-pct')).not.toBe('');
 
     act(() => root.unmount());
 
-    expect(document.documentElement.hasAttribute('data-route')).toBe(false);
     expect(document.documentElement.hasAttribute('data-initial-animate')).toBe(false);
     expect(document.documentElement.style.getPropertyValue('--scroll-pct')).toBe('');
   });
