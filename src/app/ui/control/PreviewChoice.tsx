@@ -1,6 +1,6 @@
 import { Text } from '@mantine/core';
-import { useEffect, useId, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useId } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import styles from './PreviewChoice.module.css';
 
@@ -32,41 +32,39 @@ export type PreviewChoiceOption<T extends string> = {
 
 /*
  * Contain-fits a fixed-canvas preview to the tile's art box.
- * `CanvasScale` fits width only, which is right for a rail; a tile also has a height that a control
- * in the detail slot can shrink, so the smaller of the two ratios wins and the render centers.
+ * `CanvasScale` is the other way round and stays separate: there the canvas dictates the box, which is
+ * why it sets an aspect ratio, and here the caller dictates the box and the canvas fits inside it.
+ * The art box is its own container on both axes, so `min()` picks whichever of the two ratios binds,
+ * and the centring is the flex box plus a scale about the centre rather than an offset anyone computes.
  */
 function ContainFit({ width, height, children }: { width: number; height: number; children: ReactNode }) {
-  const [node, setNode] = useState<HTMLDivElement | null>(null);
-  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
-  useEffect(() => {
-    if (!node) {
-      return;
-    }
-    const observer = new ResizeObserver(([entry]) =>
-      setBox({ w: entry?.contentRect.width ?? 0, h: entry?.contentRect.height ?? 0 })
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [node]);
-  const scale = box ? Math.min(box.w / width, box.h / height) : 0;
   return (
-    <div ref={setNode} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
-      {box && scale > 0 && (
-        <div
-          style={{
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        containerType: 'size',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={
+          {
             width,
             height,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
-            position: 'absolute',
-            left: (box.w - width * scale) / 2,
-            top: (box.h - height * scale) / 2,
+            flex: '0 0 auto',
+            '--contain-fit-width': `${width}px`,
+            '--contain-fit-height': `${height}px`,
+            transform: 'scale(min(100cqw / var(--contain-fit-width), 100cqh / var(--contain-fit-height)))',
             pointerEvents: 'none',
-          }}
-        >
-          {children}
-        </div>
-      )}
+          } as CSSProperties
+        }
+      >
+        {children}
+      </div>
     </div>
   );
 }
