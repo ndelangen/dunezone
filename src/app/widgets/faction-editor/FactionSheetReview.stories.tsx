@@ -97,6 +97,29 @@ export const ConstrainedStacked = meta.story({
   play: async ({ canvasElement }) => openReview(canvasElement),
 });
 
+/**
+ * A faction with no karama rules, no troops and no leaders has no second sheet page.
+ * The review offers one tile rather than a second one showing the first page again under a page-2 label.
+ */
+const singlePageFaction: Faction = {
+  ...storyFaction,
+  leaders: [],
+  troops: [],
+  rules: { ...storyFaction.rules, advantages: [] },
+};
+
+export const WithoutASecondPage = meta.story({
+  args: {
+    faction: singlePageFaction,
+  },
+  globals: {
+    viewport: {
+      value: 'appLarge',
+    },
+  },
+  play: async ({ canvasElement }) => openReview(canvasElement),
+});
+
 export const LongContent = meta.story({
   args: {
     faction: storyFaction,
