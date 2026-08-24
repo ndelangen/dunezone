@@ -247,10 +247,10 @@
   box-shadow: var(--panel-shadow);
 }
 
-/* The turn obeys the site's Ambient motion verdict, like the dice: the shell stamps
-   `data-motion` from the footer toggle with the OS hint as its System default, so an
-   explicit "On" animates even for reduced-motion visitors. Before the stamp, the OS
-   hint decides alone. */
+/* The turn obeys the site's Ambient motion verdict, like the dice: `data-motion` is stamped
+   before first paint from the profile's Appearance toggle with the OS hint as its System
+   default, so an explicit "On" animates even for reduced-motion visitors. The media block
+   covers documents that never stamp, where the OS hint decides alone. */
 html[data-motion="reduce"] .flipCard {
   transition: none;
 }
