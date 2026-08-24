@@ -83,7 +83,7 @@ describe('account lifecycle widen rollout', () => {
     });
 
     const pending = t.withIdentity({ subject: ids.userId });
-    await expect(pending.query(api.profiles.currentUserId, {})).resolves.toBeNull();
+    await expect(pending.query(api.profiles.session, {})).resolves.toEqual({ userId: null, profile: null });
     await expect(pending.mutation(api.profiles.bootstrapCurrent, {})).rejects.toThrow(/Not authenticated/);
     await expect(t.query(api.profiles.getBySlug, { slug: 'pending-user' })).rejects.toThrow(/not found/);
     await expect(t.query(api.profiles.newestDiscoverable, {})).resolves.toEqual([]);
