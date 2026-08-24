@@ -106,6 +106,31 @@ describe('formatted-text core', () => {
     });
   });
 
+  it('keeps a delimiter glued to punctuation as prose instead of opening a mark', () => {
+    const parsed = parseValid('the Supplies!-cache is revealed, wait!-really (see below)');
+
+    expect(parsed.source).toBe('the Supplies!-cache is revealed, wait!-really (see below)');
+    expect(parsed.blocks[0]).toMatchObject({
+      kind: 'paragraph',
+      children: [{ kind: 'text', value: 'the Supplies!-cache is revealed, wait!-really (see below)' }],
+    });
+
+    const nested = parseValid('_-*all three*-_ still nest, and -after a space- still opens');
+    expect(nested.blocks[0]).toMatchObject({
+      kind: 'paragraph',
+      children: [
+        {
+          kind: 'mark',
+          mark: 'underline',
+          children: [{ kind: 'mark', mark: 'italic', children: [{ kind: 'mark', mark: 'bold' }] }],
+        },
+        { kind: 'text', value: ' still nest, and ' },
+        { kind: 'mark', mark: 'italic', children: [{ kind: 'text', value: 'after a space' }] },
+        { kind: 'text', value: ' still opens' },
+      ],
+    });
+  });
+
   it('treats astral Unicode letters as prose-boundary word characters', () => {
     const parsed = parseValid('𝒜*bold* and *𝒜*');
 
