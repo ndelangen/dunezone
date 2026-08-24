@@ -32,8 +32,10 @@ html::after {
   mix-blend-mode: overlay;
 }
 
-/* The dice hold still for reduced-motion visitors. Before the shell stamps `data-motion` the OS
-   hint decides; once stamped, the site-local override (see shell/motion.ts) wins either way. */
+/* The dice hold still for reduced-motion visitors. The `_app` layout's pre-hydration script
+   stamps `data-motion` before first paint, and the site-local override (see styles/motion.ts)
+   wins either way. The media block covers documents that never stamp (routes outside that
+   layout, and visitors with scripts disabled), where the OS hint decides alone. */
 html[data-motion="reduce"]::after {
   animation: none;
 }
