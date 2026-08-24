@@ -323,8 +323,14 @@ function parseInline(lines: readonly SourceLine[]): InlineParseResult {
 
     const previous = codePointBefore(source, index);
     const next = codePointAfter(source, index);
+    /* An opener's left flank is the start of the text, whitespace, or an enclosing delimiter (canonical
+       nesting puts the outer delimiter immediately before the inner one). Any-non-word-character was
+       too loose: a hyphen glued to punctuation ("Supplies!-cache") opened an italic that never closed,
+       turning prose into a diagnostic (#679). */
     const canOpen =
-      next !== undefined && !/\s/u.test(next) && (previous === undefined || !wordCharacter.test(previous));
+      next !== undefined &&
+      !/\s/u.test(next) &&
+      (previous === undefined || /\s/u.test(previous) || isDelimiter(previous));
     const canClose =
       previous !== undefined && !/\s/u.test(previous) && (next === undefined || !wordCharacter.test(next));
     const top = stack.at(-1);
