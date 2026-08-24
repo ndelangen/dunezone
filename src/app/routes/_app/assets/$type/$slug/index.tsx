@@ -15,6 +15,7 @@ import { RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { LoadError } from '@ui/block/LoadError';
 import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -47,6 +48,7 @@ import type { ReactNode } from 'react';
 
 import { loadAssetPage, useAssetPage } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../-assetEditorStates';
@@ -112,9 +114,9 @@ function AssetDetailPending() {
 function AssetDetailError({ error }: ErrorComponentProps) {
   return (
     <AssetDetailMessage>
-      <Alert color="red" title="This asset could not be loaded" role="alert">
-        <Text size="sm">{error.message || 'An unexpected error occurred.'}</Text>
-      </Alert>
+      <LoadError title="This asset could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
     </AssetDetailMessage>
   );
 }

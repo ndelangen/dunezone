@@ -1,11 +1,11 @@
 import { ErrorComponent, createRouter as createTanStackRouter } from '@tanstack/react-router';
 
-import { StaleClientDataError } from '@app/db/core/clientBoundary';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 
 import { routeTree } from './routeTree.gen';
 
 function AppErrorComponent({ error }: { error: Error }) {
-  if (error instanceof StaleClientDataError) {
+  if (isStaleClientData(error)) {
     return (
       <div role="alert" style={{ maxWidth: '28rem', margin: '4rem auto', textAlign: 'center' }}>
         <h1>This page changed</h1>
