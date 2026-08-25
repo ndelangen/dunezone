@@ -108,9 +108,10 @@ The retained phase 2 prototype completed the following checks:
 | Replace the worker and verify an empty rulesets table 20 times | Passed |
 | Create the same ruleset before and after worker replacement | Passed |
 | Freeze and execute a named `fetch` rejection | Passed |
+| Invoke local `t.fetch()` and its nested production `ctx.runQuery` | Passed |
 | Run the page in Storybook development | Passed |
 | Run the page from served `storybook-static` output | Passed |
 | Serve the unchanged static preview below `/catalogue/` | Passed |
-| Complete the browser suite | Passed, 98 files and 381 tests in 27.89 seconds |
+| Complete the browser suite | Passed, 98 files and 381 tests in 25.06 seconds |
 
-Nested action context, component authentication boundaries, scheduler authentication, rollback, local `t.fetch()`, and response CSP remain unproved. These are rollout gates, not hidden assumptions.
+Nested action context beyond the HTTP query, component authentication boundaries, scheduler authentication, rollback, and response CSP remain unproved. These are rollout gates, not hidden assumptions.

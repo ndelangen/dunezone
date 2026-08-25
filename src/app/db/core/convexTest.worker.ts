@@ -135,6 +135,13 @@ async function runNetworkProbe() {
   }
 }
 
+async function runHttpProbe(world: World) {
+  const response = await world.test.fetch('/asset-publishing/render', {
+    headers: { Authorization: 'Bearer missing-story-job' },
+  });
+  return { body: await response.json(), status: response.status };
+}
+
 let world = createWorld([]);
 
 async function handleRequest(request: WorkerRequest): Promise<unknown> {
@@ -154,6 +161,9 @@ async function handleRequest(request: WorkerRequest): Promise<unknown> {
   }
 
   const currentWorld = await world;
+  if (request.operation === 'httpProbe') {
+    return await runHttpProbe(currentWorld);
+  }
   if (request.operation === 'insert') {
     await insertDocuments(currentWorld, request.documents);
     return null;

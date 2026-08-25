@@ -228,11 +228,12 @@ function IdentityAndNetworkProofPage() {
       <Alert>{status}</Alert>
       <Button
         onClick={async () => {
-          const [creator, observer, signedOut, networkMessage] = await Promise.all([
+          const [creator, observer, signedOut, networkMessage, httpResult] = await Promise.all([
             client.query(profileSession, {}, createRulesetIdentity),
             client.query(profileSession, {}, { name: 'Storybook observer', subjectKey: 'observer' }),
             client.query(profileSession, {}),
             client.runNetworkProbe(),
+            client.runHttpProbe(),
           ]);
           if (!creator.userId || !observer.userId || creator.userId === observer.userId || signedOut.userId) {
             throw new Error('The worker did not keep its adjacent identities separate.');
@@ -240,7 +241,10 @@ function IdentityAndNetworkProofPage() {
           if (networkMessage !== 'Convex Storybook workers cannot make network requests.') {
             throw new Error(`Unexpected network guard result: ${networkMessage}`);
           }
-          setStatus('Two identities stayed separate, signed-out stayed empty, and fetch was blocked');
+          if (httpResult.status !== 404 || httpResult.body.error !== 'Not found') {
+            throw new Error(`Unexpected local HTTP result: ${JSON.stringify(httpResult)}`);
+          }
+          setStatus('Identities stayed separate, fetch was blocked, and local HTTP completed');
         }}
       >
         Run isolation checks
@@ -303,7 +307,7 @@ export const IdentitiesAndNetworkStayIsolated = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Run isolation checks' }));
     await expect(
-      page.findByText('Two identities stayed separate, signed-out stayed empty, and fetch was blocked')
+      page.findByText('Identities stayed separate, fetch was blocked, and local HTTP completed')
     ).resolves.toBeVisible();
   },
 });
