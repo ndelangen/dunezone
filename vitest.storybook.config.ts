@@ -4,6 +4,8 @@
  * `storybook` Codecov flag. Validated on branch prototype/combined-coverage.
  * @see docs/research/combined-coverage-codecov.md §3
  */
+import { fileURLToPath } from 'node:url';
+
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import viteReact from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
@@ -33,12 +35,24 @@ export default defineConfig({
      * first story starts. Pre-bundle that closure so Vite does not reload the
      * browser suite when it discovers the modules mid-run.
      */
-    include: ['@convex-dev/auth/server', 'convex-helpers/validators', 'convex-test', 'convex/values'],
+    include: [
+      '@convex-dev/aggregate',
+      '@convex-dev/auth/server',
+      'convex-helpers/server/customFunctions',
+      'convex-helpers/server/triggers',
+      'convex-helpers/server/zod4',
+      'convex-helpers/validators',
+      'convex-test',
+      'convex/values',
+    ],
   },
   resolve: {
     /* Typings in the current Vite package lag behind docs/runtime support
        (same cast as .storybook/vite.config.ts). */
     ...({ tsconfigPaths: true } as Record<string, unknown>),
+    alias: {
+      'node:async_hooks': fileURLToPath(new URL('./.storybook/async-hooks.ts', import.meta.url)),
+    },
   },
   plugins: [viteReact(), storybookTest({ configDir: '.storybook' })],
   test: {

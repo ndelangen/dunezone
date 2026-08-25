@@ -7,9 +7,21 @@ import type { WithoutSystemFields } from 'convex/server';
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 import type { DatabaseWriter } from '../../../../convex/_generated/server';
 import schema from '../../../../convex/schema';
-import type { SeedDocument, SeedDocumentFor, WorkerRequest, WorkerResponse } from './convexTestProtocol';
+import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
+import type {
+  SeedDocument,
+  SeedDocumentFor,
+  WorkerIdentity,
+  WorkerRequest,
+  WorkerResponse,
+} from './convexTestProtocol';
 
 Object.assign(globalThis, { global: globalThis, process: { env: {} } });
+Object.defineProperty(globalThis, 'fetch', {
+  configurable: false,
+  value: () => Promise.reject(new Error('Convex Storybook workers cannot make network requests.')),
+  writable: false,
+});
 
 const modules = import.meta.glob([
   '../../../../convex/**/*.{ts,js}',
@@ -17,6 +29,13 @@ const modules = import.meta.glob([
   '!../../../../convex/**/*.d.ts',
   '!../../../../convex/**/*.test.ts',
   '!../../../../convex/**/*.stories.ts',
+]);
+
+const aggregateModules = import.meta.glob([
+  '../../../../node_modules/@convex-dev/aggregate/src/component/**/*.{ts,js}',
+  '!../../../../node_modules/@convex-dev/aggregate/src/component/convex.config.ts',
+  '!../../../../node_modules/@convex-dev/aggregate/src/component/**/*.helpers.ts',
+  '!../../../../node_modules/@convex-dev/aggregate/src/component/**/*.test.ts',
 ]);
 
 type TestWorld = ReturnType<typeof convexTest>;
@@ -69,13 +88,32 @@ async function insertDocuments(world: World, documents: SeedDocument[], delay = 
 
 async function createWorld(seed: SeedDocument[]): Promise<World> {
   const world = { test: convexTest(schema, modules), references: new Map<string, string>() };
+  world.test.registerComponent('statistics', aggregateSchema, aggregateModules);
+  world.test.registerComponent('profileActivity', aggregateSchema, aggregateModules);
+  world.test.registerComponent('profileDiscovery', aggregateSchema, aggregateModules);
   await insertDocuments(world, seed);
   return world;
 }
 
-async function queryWorld(world: World, name: string, args: unknown) {
+function clientFor(world: World, identity?: WorkerIdentity) {
+  if (!identity) {
+    return world.test;
+  }
+  const subject = world.references.get(identity.subjectKey);
+  if (!subject) {
+    throw new Error(`Unknown identity seed reference: ${identity.subjectKey}`);
+  }
+  return world.test.withIdentity({ subject, name: identity.name });
+}
+
+async function queryWorld(world: World, name: string, args: unknown, identity?: WorkerIdentity) {
   const query = makeFunctionReference<'query', Record<string, unknown>, unknown>(name);
-  return await world.test.query(query, args as Record<string, unknown>);
+  return await clientFor(world, identity).query(query, args as Record<string, unknown>);
+}
+
+async function mutateWorld(world: World, name: string, args: unknown, identity?: WorkerIdentity) {
+  const mutation = makeFunctionReference<'mutation', Record<string, unknown>, unknown>(name);
+  return await clientFor(world, identity).mutation(mutation, args as Record<string, unknown>);
 }
 
 async function runConcurrencyProbe(request: Extract<WorkerRequest, { operation: 'concurrency' }>) {
@@ -88,9 +126,21 @@ async function runConcurrencyProbe(request: Extract<WorkerRequest, { operation: 
   ]);
 }
 
+async function runNetworkProbe() {
+  try {
+    await fetch('https://example.com');
+    throw new Error('The worker unexpectedly completed a network request.');
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+}
+
 let world = createWorld([]);
 
 async function handleRequest(request: WorkerRequest): Promise<unknown> {
+  if (request.operation === 'ping') {
+    return null;
+  }
   if (request.operation === 'reset') {
     world = createWorld(request.seed);
     await world;
@@ -99,13 +149,19 @@ async function handleRequest(request: WorkerRequest): Promise<unknown> {
   if (request.operation === 'concurrency') {
     return await runConcurrencyProbe(request);
   }
+  if (request.operation === 'networkProbe') {
+    return await runNetworkProbe();
+  }
 
   const currentWorld = await world;
   if (request.operation === 'insert') {
     await insertDocuments(currentWorld, request.documents);
     return null;
   }
-  return await queryWorld(currentWorld, request.name, request.args);
+  if (request.operation === 'mutation') {
+    return await mutateWorld(currentWorld, request.name, request.args, request.identity);
+  }
+  return await queryWorld(currentWorld, request.name, request.args, request.identity);
 }
 
 let lane = Promise.resolve();
