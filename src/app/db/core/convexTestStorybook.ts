@@ -83,6 +83,9 @@ export class ConvexTestWorkerClient {
 
   runNetworkProbe = async () => (await this.request({ operation: 'networkProbe' })) as string;
 
+  runHttpProbe = async () =>
+    (await this.request({ operation: 'httpProbe' })) as { body: { error?: string }; status: number };
+
   waitForIdle = async () => await this.request({ operation: 'ping' });
 
   subscribe = (listener: () => void) => {
