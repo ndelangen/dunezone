@@ -1,5 +1,6 @@
-import { Alert, Divider, Grid, Group, Stack, Text, Textarea } from '@mantine/core';
+import { Alert, Divider, Grid, Group, Stack, Text } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 
@@ -85,9 +86,9 @@ export function FactionFormSectionAlliance({
                   <Stack gap="md">
                     <ControlBlock
                       title="Alliance ability"
-                      description="Rules text printed on the alliance card. Markdown is supported."
+                      description="Rules text printed on the alliance card. Use the shared formatted-text syntax."
                       input={
-                        <Textarea
+                        <FormattedTextInput
                           id="rules-alliance"
                           aria-label="Alliance ability"
                           autosize
@@ -95,7 +96,7 @@ export function FactionFormSectionAlliance({
                           value={field.state.value}
                           aria-describedby={blank ? 'rules-alliance-warning' : undefined}
                           onBlur={field.handleBlur}
-                          onChange={(event) => field.handleChange(event.currentTarget.value)}
+                          onChange={field.handleChange}
                         />
                       }
                     />

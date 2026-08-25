@@ -23,6 +23,7 @@ import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -267,9 +268,7 @@ function FactionDetailPage() {
                             </Badge>
                           </Group>
                           {troop.description ? (
-                            <Text size="xs" c="dimmed">
-                              {troop.description}
-                            </Text>
+                            <FormattedTextSource source={troop.description} size="xs" c="dimmed" />
                           ) : null}
                         </Stack>
                       </Group>
@@ -290,9 +289,7 @@ function FactionDetailPage() {
                       >
                         <Stack gap="xs">
                           <Text fw={700}>{planet.name}</Text>
-                          <Text size="xs" c="dimmed">
-                            {planet.description}
-                          </Text>
+                          <FormattedTextSource source={planet.description} size="xs" c="dimmed" />
                         </Stack>
                       </Surface>
                     ))}
@@ -309,13 +306,11 @@ function FactionDetailPage() {
                         title={advantage.title ?? `Advantage ${index + 1}`}
                       >
                         <Stack gap="sm">
-                          <Text size="sm">{advantage.text}</Text>
+                          <FormattedTextSource source={advantage.text} size="sm" />
                           {advantage.karama ? (
                             <Group gap="xs" wrap="nowrap" align="flex-start">
                               <TopicIcon topic="karama" size={16} />
-                              <Text size="sm" c="dimmed">
-                                {advantage.karama}
-                              </Text>
+                              <FormattedTextSource source={advantage.karama} size="sm" c="dimmed" />
                             </Group>
                           ) : null}
                         </Stack>
@@ -331,10 +326,10 @@ function FactionDetailPage() {
 
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                 <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
-                  <Text size="sm">{data.rules.alliance.text}</Text>
+                  <FormattedTextSource source={data.rules.alliance.text} size="sm" />
                 </Card>
                 <Card icon={<TopicIcon topic="fate" size={20} />} title={data.rules.fate.title || 'Fate'}>
-                  <Text size="sm">{data.rules.fate.text}</Text>
+                  <FormattedTextSource source={data.rules.fate.text} size="sm" />
                 </Card>
               </SimpleGrid>
             </Stack>
@@ -410,7 +405,7 @@ function FactionDetailPage() {
                       At start
                     </Title>
                     <Text size="sm" mt="xs">
-                      {data.rules.startText}
+                      <InlineFormattedTextSource source={data.rules.startText} />
                     </Text>
                   </Box>
                   <Divider />
@@ -419,7 +414,7 @@ function FactionDetailPage() {
                       Revival
                     </Title>
                     <Text size="sm" mt="xs">
-                      {data.rules.revivalText}
+                      <InlineFormattedTextSource source={data.rules.revivalText} />
                     </Text>
                   </Box>
                 </Stack>

@@ -2,6 +2,7 @@ import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, us
 import type { DragEndEvent } from '@dnd-kit/core';
 import { rectSortingStrategy, SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Box, Text, UnstyledButton } from '@mantine/core';
+import { FormattedTextSource } from '@ui/content/FormattedText';
 import { IconAction } from '@ui/control/IconAction';
 import { GripVertical } from 'lucide-react';
 
@@ -52,9 +53,7 @@ function ShelfItem({
           {index + 1}. {item.label}
         </Text>
         {item.description ? (
-          <Text className={styles.description} size="xs" c="dimmed">
-            {item.description}
-          </Text>
+          <FormattedTextSource source={item.description} className={styles.description} size="xs" c="dimmed" />
         ) : null}
       </UnstyledButton>
     </Box>

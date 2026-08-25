@@ -24,14 +24,6 @@
   height: 6rem;
 }
 
-/*
- * About is authored in a textarea, so the author's own line breaks are the only structure it carries.
- * `pre-line` keeps them while still collapsing runs of spaces and wrapping normally.
- */
-.about {
-  white-space: pre-line;
-}
-
 .rulesetTitle {
   overflow-wrap: anywhere;
   color: var(--color-text, var(--mantine-color-dark-8));

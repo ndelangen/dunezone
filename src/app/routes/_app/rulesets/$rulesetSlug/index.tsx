@@ -12,6 +12,7 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
+import { FormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -513,7 +514,7 @@ function RulesetDetailPage() {
               <Section id="overview" icon={<TopicIcon topic="about" size={20} />} title="About this ruleset">
                 <Surface padding="lg">
                   {r.about.trim() ? (
-                    <Text className={styles.about}>{r.about}</Text>
+                    <FormattedTextSource source={r.about} />
                   ) : (
                     <Text size="sm" c="dimmed" fs="italic">
                       Nothing written about this yet.

@@ -27,6 +27,18 @@ describe('faction schema', () => {
     expect(CanonicalFactionStoredSchema.parse(historical).name).toBe('');
   });
 
+  it('narrows authored prose while keeping legacy stored prose readable', () => {
+    const multilineSetup = structuredClone(assetPublishingFaction);
+    multilineSetup.rules.startText = 'First line\nsecond line';
+    const invalidBody = structuredClone(assetPublishingFaction);
+    invalidBody.rules.advantages[0]!.text = '*unfinished';
+
+    expect(FactionInputSchema.safeParse(multilineSetup).success).toBe(false);
+    expect(FactionInputSchema.safeParse(invalidBody).success).toBe(false);
+    expect(CanonicalFactionStoredSchema.safeParse(multilineSetup).success).toBe(true);
+    expect(CanonicalFactionStoredSchema.safeParse(invalidBody).success).toBe(true);
+  });
+
   it('requires grouped complexity at authoring, storage, and client-read boundaries', () => {
     const { complexity: _complexity, ...withoutComplexity } = structuredClone(assetPublishingFaction);
 

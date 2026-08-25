@@ -20,10 +20,10 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
 
 afterEach(cleanup);
 
-function renderInput(value: string, onChange = vi.fn(), error?: string) {
+function renderInput(value: string, onChange = vi.fn(), error?: string, profile?: 'prose' | 'marks-only') {
   render(
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
-      <FormattedTextInput label="Text" value={value} onChange={onChange} error={error} />
+      <FormattedTextInput label="Text" value={value} onChange={onChange} error={error} profile={profile} />
     </MantineProvider>
   );
   return onChange;
@@ -43,6 +43,12 @@ it('keeps field-specific validation while formatted text is valid', () => {
   renderInput('', vi.fn(), 'Text is required');
 
   expect(screen.getByText('Text is required')).toBeTruthy();
+});
+
+it('rejects paragraphs in marks-only fields without rejecting marks', () => {
+  renderInput('First *bold* line\nsecond line', vi.fn(), undefined, 'marks-only');
+
+  expect(screen.getByText(/not line breaks or paragraphs/)).toBeTruthy();
 });
 
 it('passes the edited string through the control membrane', () => {

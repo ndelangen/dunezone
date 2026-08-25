@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ALL, BACKGROUND, GENERIC, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
+import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
 const OFFSET = z.tuple([z.number(), z.number()]);
@@ -150,8 +151,51 @@ const factionShape = {
   complexity: FactionComplexitySchema,
 };
 
+const AuthoringRule = RULE.extend({
+  text: proseFormattedTextSchema,
+  karama: proseFormattedTextSchema.optional(),
+});
+
+const AuthoringTroopSide = TroopSide.extend({ description: proseFormattedTextSchema });
+
+const AuthoringTroop = Troop.extend({
+  description: proseFormattedTextSchema,
+  back: AuthoringTroopSide.optional(),
+});
+
+const factionAuthoringShape = {
+  ...factionShape,
+  planet: z
+    .array(
+      z.strictObject({
+        image: PLANET.or(URL),
+        name: z.string(),
+        description: proseFormattedTextSchema,
+      })
+    )
+    .optional(),
+  troops: z.array(AuthoringTroop),
+  rules: z.strictObject({
+    startText: marksOnlyFormattedTextSchema,
+    revivalText: marksOnlyFormattedTextSchema,
+    spiceCount: z.number().int().positive(),
+    advantages: z.array(AuthoringRule),
+    fate: AuthoringRule.omit({ karama: true }),
+    alliance: AuthoringRule.omit({ karama: true, title: true }).required(),
+  }),
+  extras: z
+    .array(
+      z.strictObject({
+        name: z.string(),
+        description: proseFormattedTextSchema.optional(),
+        items: z.array(z.strictObject({ url: URL, description: proseFormattedTextSchema.optional() })),
+      })
+    )
+    .optional(),
+};
+
 /** Rejects unknown keys (e.g. `slug` must live on the Convex row, not in `data`). */
-export const FactionInputSchema = z.strictObject(factionShape);
+export const FactionInputSchema = z.strictObject(factionAuthoringShape);
 
 /**
  * Canonical storage is intentionally wider than current authoring semantics: historical rows with a blank name must remain readable while the UI requires a name for all new canonical writes.

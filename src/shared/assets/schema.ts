@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { ALL } from '../assetIds';
 import { Background, Decal } from '../factions/schema';
+import { proseFormattedTextSchema } from '../formattedText';
 
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
@@ -22,6 +23,7 @@ const URL = z.string().url();
  * `assets.data` is `v.any()`, so no Convex validator gates this: the migration is the only thing that makes it true.
  */
 const About = z.string().trim();
+const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
 
 export { Decal };
 
@@ -333,3 +335,14 @@ export const RectangleTokenAsset = z.strictObject({
   front: RectangleTokenFace,
   back: tokenBackUnion(RectangleTokenFace),
 });
+
+/** Write contracts normalize stored prose while the wider renderer contracts keep legacy rows readable. */
+export const TreacheryAssetInput = TreacheryAsset.extend({
+  about: FormattedAbout,
+  text: proseFormattedTextSchema,
+});
+
+export const DeckAssetInput = DeckAsset.extend({ about: FormattedAbout });
+export const BundleAssetInput = BundleAsset.extend({ about: FormattedAbout });
+export const TokenAssetInput = TokenAsset.extend({ about: FormattedAbout });
+export const RectangleTokenAssetInput = RectangleTokenAsset.extend({ about: FormattedAbout });

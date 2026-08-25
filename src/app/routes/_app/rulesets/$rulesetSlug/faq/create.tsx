@@ -1,11 +1,13 @@
-import { Button, Group, Stack, TextInput, Textarea } from '@mantine/core';
+import { Button, Group, Stack } from '@mantine/core';
 import type { FaqTag } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { useState } from 'react';
 
 import { useAskFaqQuestion } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
@@ -26,6 +28,8 @@ function FaqCreatePage() {
   const ruleset = useRulesetBySlug(rulesetSlug, { initialData: loaderData.ruleset });
   const profile = useCurrentProfile();
   const askQuestion = useAskFaqQuestion();
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
   const rulesetRow = ruleset.data?.ruleset;
 
   const header = (
@@ -79,12 +83,10 @@ function FaqCreatePage() {
             onSubmit={(e) => {
               e.preventDefault();
               const formEl = e.target as HTMLFormElement;
-              const question = (formEl.elements.namedItem('question') as HTMLInputElement).value.trim();
-              const answer = (formEl.elements.namedItem('answer') as HTMLTextAreaElement).value.trim();
               const selectedTags = Array.from(
                 formEl.querySelectorAll<HTMLInputElement>('input[name="tags"]:checked')
               ).map((input) => input.value as FaqTag);
-              if (!question) {
+              if (!question.trim()) {
                 return;
               }
               if (selectedTags.length === 0) {
@@ -94,11 +96,13 @@ function FaqCreatePage() {
                 .run({
                   rulesetId,
                   question,
-                  initialAnswer: answer || undefined,
+                  initialAnswer: answer.trim() ? answer : undefined,
                   tags: selectedTags,
                 })
                 .then((locator) => {
                   formEl.reset();
+                  setQuestion('');
+                  setAnswer('');
                   navigate({
                     to: '/rulesets/$rulesetSlug/faq/$questionSlug',
                     params: locator,
@@ -107,19 +111,23 @@ function FaqCreatePage() {
                 .catch(() => undefined);
             }}
           >
-            <TextInput
+            <FormattedTextInput
               label="Ask a question"
-              type="text"
               name="question"
+              profile="marks-only"
               required
               minLength={1}
               placeholder="Your question..."
+              value={question}
+              onChange={setQuestion}
             />
-            <Textarea
+            <FormattedTextInput
               label="Your answer (optional-you can add or edit it later)"
               name="answer"
               rows={3}
               placeholder="Optional answer..."
+              value={answer}
+              onChange={setAnswer}
             />
             <FaqTagFieldset />
             <Group gap="xs" wrap="nowrap">

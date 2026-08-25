@@ -5,7 +5,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, it, vi } from 'vitest';
 
-import { FormattedText } from './FormattedText';
+import { FormattedText, FormattedTextSource, InlineFormattedTextSource } from './FormattedText';
 import type { FormattedTextBlocks } from './FormattedText';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -83,4 +83,29 @@ it('renders no placeholder for empty parsed blocks', () => {
   renderFormattedText([]);
 
   expect(screen.getByTestId('formatted-text-host').childElementCount).toBe(0);
+});
+
+it('parses stored prose and marks through the Content reader', () => {
+  render(
+    <MantineProvider theme={appContentTheme} forceColorScheme="light">
+      <FormattedTextSource source={'Opening *bold*.\n\n- First\n- Second'} />
+      <h2>
+        <InlineFormattedTextSource source="A _marked_ question" />
+      </h2>
+    </MantineProvider>
+  );
+
+  expect(screen.getByText('bold').tagName).toBe('STRONG');
+  expect(screen.getByText('marked').tagName).toBe('SPAN');
+  expect(screen.getAllByRole('listitem')).toHaveLength(2);
+});
+
+it('shows legacy invalid source as plain text instead of dropping it', () => {
+  render(
+    <MantineProvider theme={appContentTheme} forceColorScheme="light">
+      <FormattedTextSource source="*unfinished" />
+    </MantineProvider>
+  );
+
+  expect(screen.getByText('*unfinished')).toBeTruthy();
 });

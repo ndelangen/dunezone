@@ -3,6 +3,7 @@ import type { FaqTag } from '@shared/faq/tags';
 import { Link } from '@tanstack/react-router';
 import { formatRelativeDate } from '@ui/content/dates';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
+import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
 import Fuse from 'fuse.js';
@@ -98,7 +99,7 @@ export function FaqList({
                         />
                       )}
                     >
-                      {item.question}
+                      <InlineFormattedTextSource source={item.question} />
                     </Anchor>
                     {(item.tags ?? []).map((tag) => (
                       <Badge key={`${item._id}:${tag}`} size="xs" variant="outline" color="dune">

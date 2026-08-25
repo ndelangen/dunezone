@@ -1,6 +1,8 @@
 import { alphanumericNameSchema } from '@shared/validation/names';
 import { z } from 'zod';
 
+import { proseFormattedTextSchema } from '../formattedText';
+
 const rulesetNameSchema = alphanumericNameSchema('Ruleset name');
 
 /**
@@ -13,7 +15,10 @@ export const RULESET_ABOUT_MIN_LENGTH = 50;
 export const rulesetAboutSchema = z
   .string()
   .trim()
-  .min(RULESET_ABOUT_MIN_LENGTH, `Ruleset About must be at least ${RULESET_ABOUT_MIN_LENGTH} characters`);
+  .pipe(proseFormattedTextSchema)
+  .pipe(
+    z.string().min(RULESET_ABOUT_MIN_LENGTH, `Ruleset About must be at least ${RULESET_ABOUT_MIN_LENGTH} characters`)
+  );
 
 /**
  * Every ruleset write carries both fields.
