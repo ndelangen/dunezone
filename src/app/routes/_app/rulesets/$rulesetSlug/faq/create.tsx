@@ -1,8 +1,7 @@
-import { Button, Group, Input, Stack, TextInput, Textarea } from '@mantine/core';
+import { Button, Group, Stack, TextInput, Textarea } from '@mantine/core';
 import type { FaqTag } from '@shared/faq/tags';
-import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
+import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 
@@ -118,17 +117,7 @@ function FaqCreatePage() {
               rows={3}
               placeholder="Optional answer..."
             />
-            <Input.Wrapper label="Tags">
-              <Stack component="fieldset" gap="xs" className={styles.tagFieldset}>
-                <legend className={styles.visuallyHidden}>FAQ tags</legend>
-                {FAQ_TAG_VALUES.map((tag) => (
-                  <label key={tag} className={styles.tagOption}>
-                    <input type="checkbox" name="tags" value={tag} defaultChecked={tag === 'other'} />
-                    <span>{FAQ_TAG_LABELS[tag]}</span>
-                  </label>
-                ))}
-              </Stack>
-            </Input.Wrapper>
+            <FaqTagFieldset />
             <Group gap="xs" wrap="nowrap">
               <Button variant="filled" color="confirm" type="submit" disabled={askQuestion.isPending}>
                 {askQuestion.isPending ? 'Asking…' : 'Ask'}
