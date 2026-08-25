@@ -25,8 +25,16 @@ export type SeedDocument = {
   [TableName in TableNames]: SeedDocumentFor<TableName>;
 }[TableNames];
 
+export type WorkerIdentity = {
+  name?: string;
+  subjectKey: string;
+};
+
 export type WorkerRequest =
-  | { id: number; operation: 'query'; name: string; args: unknown }
+  | { id: number; operation: 'ping' }
+  | { id: number; operation: 'networkProbe' }
+  | { id: number; operation: 'query'; name: string; args: unknown; identity?: WorkerIdentity }
+  | { id: number; operation: 'mutation'; name: string; args: unknown; identity?: WorkerIdentity }
   | { id: number; operation: 'insert'; documents: SeedDocument[] }
   | { id: number; operation: 'reset'; seed: SeedDocument[] }
   | {
