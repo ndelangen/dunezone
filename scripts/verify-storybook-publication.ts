@@ -8,6 +8,7 @@ const artifactDirectory = path.join(repositoryRoot, 'storybook-static');
 const wranglerConfig = path.join(repositoryRoot, 'workers/storybook/wrangler.jsonc');
 const port = 6842;
 const origin = `http://127.0.0.1:${port}`;
+const PROCESS_SHUTDOWN_TIMEOUT_MS = 5000;
 
 function invariant(condition: unknown, message: string): asserts condition {
   if (!condition) {
@@ -111,6 +112,20 @@ async function waitForServer(process: ReturnType<typeof Bun.spawn>) {
     await Bun.sleep(100);
   }
   throw new Error(`Wrangler did not start ${origin}.`);
+}
+
+async function stopProcess(process: ReturnType<typeof Bun.spawn>) {
+  process.kill();
+  const exited = await Promise.race([
+    process.exited.then(() => true),
+    Bun.sleep(PROCESS_SHUTDOWN_TIMEOUT_MS).then(() => false),
+  ]);
+  if (exited) {
+    return;
+  }
+
+  process.kill('SIGKILL');
+  await process.exited;
 }
 
 function assertDocumentCsp(value: string | null) {
@@ -278,8 +293,7 @@ try {
   await verifyHeaders(workerPath);
   await verifyBrowser(workerPath);
 } finally {
-  wrangler.kill();
-  await wrangler.exited;
+  await stopProcess(wrangler);
 }
 
 await verifyNonRootPath();
