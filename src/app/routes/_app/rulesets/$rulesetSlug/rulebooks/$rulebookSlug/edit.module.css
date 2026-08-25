@@ -526,8 +526,7 @@
   display: grid;
   grid-template-columns: minmax(23rem, 0.85fr) minmax(28rem, 1.15fr);
   gap: var(--mantine-spacing-lg);
-  align-items: stretch;
-  height: var(--combined-height);
+  align-items: start;
   min-height: 38rem;
 }
 
@@ -536,57 +535,145 @@
 }
 
 .drilldownSidebar {
-  display: grid;
-  height: 100%;
+  display: flex;
+  min-height: var(--combined-height);
   min-width: 0;
   overflow: hidden;
 }
 
-.drilldownSidebarPages {
-  grid-template-columns: minmax(0, 1fr);
+.drilldownPagesLevel,
+.drilldownBlocksLevel,
+.drilldownControls {
+  flex-basis: 0;
+  flex-grow: 0;
+  flex-shrink: 1;
+  transition:
+    flex-basis 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    flex-grow 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    gap 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    visibility 0ms linear;
 }
 
-.drilldownSidebarBlocks {
-  grid-template-columns: 3rem minmax(0, 1fr);
+.drilldownSidebarPages .drilldownPagesLevel,
+.drilldownSidebarBlocks .drilldownBlocksLevel,
+.drilldownSidebarControls .drilldownControls {
+  flex-grow: 1;
 }
 
-.drilldownSidebarControls {
-  grid-template-columns: 3rem 3rem minmax(0, 1fr);
+.drilldownSidebarBlocks .drilldownPagesLevel,
+.drilldownSidebarControls .drilldownPagesLevel,
+.drilldownSidebarControls .drilldownBlocksLevel {
+  flex-basis: 3rem;
+  flex-shrink: 0;
 }
 
-.drilldownRail {
+.drilldownLevel {
   display: grid;
-  grid-template-rows: auto minmax(4rem, 1fr) auto;
+  grid-template-rows: auto auto minmax(4rem, 1fr) auto;
+  gap: var(--mantine-spacing-md);
   min-width: 0;
+  padding: var(--mantine-spacing-lg);
   color: var(--mantine-color-text);
-  background: var(--mantine-color-default-hover);
   border-inline-end: 1px solid var(--mantine-color-default-border);
   overflow: hidden;
+  transition:
+    flex-basis 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    flex-grow 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    gap 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    visibility 0ms linear;
 }
 
-.drilldownRail + .drilldownRail {
+.drilldownLevel + .drilldownLevel {
   background: color-mix(in srgb, var(--mantine-primary-color-filled) 7%, var(--mantine-color-body));
 }
 
-.drilldownRailItems {
+.drilldownLevelCollapsed {
+  grid-template-rows: 0 auto minmax(4rem, 1fr) auto;
+  gap: 0;
+  padding: 0.45rem 0.35rem 0;
+  background: var(--mantine-color-default-hover);
+}
+
+.drilldownLevelHidden {
+  gap: 0;
+  padding: 0;
+  opacity: 0;
+  border-inline-end: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.drilldownLevelHeading {
+  display: flex;
+  gap: var(--mantine-spacing-sm);
+  align-items: flex-start;
+  justify-content: space-between;
+  min-width: 0;
+  max-height: 5rem;
+  padding-bottom: var(--mantine-spacing-sm);
+  overflow: hidden;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  opacity: 1;
+  transition:
+    max-height 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 140ms ease;
+}
+
+.drilldownLevelCollapsed .drilldownLevelHeading,
+.drilldownLevelHidden .drilldownLevelHeading {
+  max-height: 0;
+  padding-bottom: 0;
+  opacity: 0;
+}
+
+.drilldownLevelList {
   display: grid;
   gap: 0.35rem;
   align-content: start;
   min-height: 0;
-  padding: 0.45rem 0.35rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
-.drilldownRailItem {
+.drilldownLevelItem {
   display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: var(--mantine-spacing-xs);
+  min-width: 0;
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  transition:
+    gap 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
-.drilldownRailIcon,
-.drilldownRailLabel,
-.drilldownRailAdd {
+.drilldownLevelCollapsed .drilldownLevelItem {
+  grid-template-columns: 2.25rem 0;
+  gap: 0;
+  background: transparent;
+  border-color: transparent;
+}
+
+.drilldownLevelItem:has(.drilldownLevelIcon[aria-current]) {
+  border-color: var(--mantine-primary-color-filled);
+  box-shadow: inset 0 0 0 1px var(--mantine-primary-color-filled);
+}
+
+.drilldownLevelCollapsed .drilldownLevelItem:has(.drilldownLevelIcon[aria-current]) {
+  box-shadow: none;
+}
+
+.drilldownLevelIcon,
+.drilldownLevelChoice,
+.drilldownLevelLabel,
+.drilldownLevelAdd {
   display: grid;
-  place-items: center;
   min-width: 0;
   padding: 0;
   color: var(--mantine-color-text);
@@ -596,38 +683,39 @@
   cursor: pointer;
 }
 
-.drilldownRailIcon {
+.drilldownLevelIcon {
   position: relative;
+  place-items: center;
   width: 2.25rem;
   height: 2.25rem;
-  border: 1px solid var(--mantine-color-default-border);
+  border: 0;
   border-radius: var(--mantine-radius-sm);
   cursor: grab;
 }
 
-.drilldownRailIcon:hover,
-.drilldownRailIcon:focus-visible,
-.drilldownRailLabel:hover,
-.drilldownRailLabel:focus-visible,
-.drilldownRailAdd:hover,
-.drilldownRailAdd:focus-visible {
+.drilldownLevelIcon:hover,
+.drilldownLevelIcon:focus-visible,
+.drilldownLevelChoice:hover,
+.drilldownLevelChoice:focus-visible,
+.drilldownLevelLabel:hover,
+.drilldownLevelLabel:focus-visible,
+.drilldownLevelAdd:hover,
+.drilldownLevelAdd:focus-visible {
   color: var(--mantine-primary-color-filled);
   background: color-mix(in srgb, var(--mantine-primary-color-filled) 10%, transparent);
   outline: none;
 }
 
-.drilldownRailIcon[aria-current] {
+.drilldownLevelIcon[aria-current] {
   color: var(--mantine-primary-color-filled);
   background: color-mix(in srgb, var(--mantine-primary-color-filled) 14%, var(--mantine-color-body));
-  border-color: var(--mantine-primary-color-filled);
-  box-shadow: inset 0 0 0 1px var(--mantine-primary-color-filled);
 }
 
-.drilldownRailIcon:active {
+.drilldownLevelIcon:active {
   cursor: grabbing;
 }
 
-.drilldownRailIcon > span {
+.drilldownLevelIcon > span {
   position: absolute;
   right: 0.1rem;
   bottom: 0;
@@ -640,11 +728,63 @@
   line-height: 1.1;
 }
 
-.drilldownRailLabel {
-  min-height: 4rem;
+.drilldownLevelChoice {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--mantine-spacing-xs);
+  align-items: center;
+  padding-inline-end: var(--mantine-spacing-sm);
+  overflow: hidden;
+  text-align: start;
+  opacity: 1;
+  transition: opacity 180ms ease 100ms;
 }
 
-.drilldownRailLabel span {
+.drilldownLevelChoice > span {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.drilldownLevelChoice strong,
+.drilldownLevelChoice small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drilldownLevelChoice strong {
+  font-size: var(--mantine-font-size-sm);
+}
+
+.drilldownLevelChoice small {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.drilldownLevelCollapsed .drilldownLevelChoice,
+.drilldownLevelHidden .drilldownLevelChoice {
+  opacity: 0;
+  pointer-events: none;
+  transition-delay: 0ms;
+}
+
+.drilldownLevelLabel {
+  align-items: end;
+  justify-items: center;
+  min-height: 4rem;
+  padding-bottom: var(--mantine-spacing-sm);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.drilldownLevelCollapsed .drilldownLevelLabel {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 180ms;
+}
+
+.drilldownLevelLabel span {
   font-size: var(--mantine-font-size-sm);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -652,18 +792,55 @@
   transform: rotate(180deg);
 }
 
-.drilldownRailAdd {
+.drilldownLevelAdd {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--mantine-spacing-xs);
+  place-items: center;
   height: 3rem;
+  padding-inline: var(--mantine-spacing-sm);
+  color: var(--mantine-primary-color-filled);
   border-top: 1px solid var(--mantine-color-default-border);
 }
 
-.drilldownDrawer {
+.drilldownLevelAdd span {
+  overflow: hidden;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 700;
+  text-align: start;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 160ms ease 100ms;
+}
+
+.drilldownLevelCollapsed .drilldownLevelAdd {
+  grid-template-columns: 1fr 0;
+  gap: 0;
+  padding-inline: 0;
+}
+
+.drilldownLevelCollapsed .drilldownLevelAdd span {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+.drilldownControls {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
   gap: var(--mantine-spacing-md);
+  align-content: start;
   min-width: 0;
   padding: var(--mantine-spacing-lg);
+  opacity: 1;
+}
+
+.drilldownControlsHidden {
+  gap: 0;
+  padding: 0;
   overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition-delay: 0ms;
 }
 
 .drawerHeading {
@@ -688,111 +865,19 @@
   color: var(--mantine-primary-color-filled);
 }
 
-.drilldownList {
-  display: grid;
-  gap: var(--mantine-spacing-xs);
+.drilldownControls > .blockEditor {
   align-content: start;
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.drilldownRow {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr);
-  min-width: 0;
-  background: var(--mantine-color-body);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
-  transition:
-    border-color 120ms ease,
-    opacity 120ms ease,
-    transform 120ms ease;
-}
-
-.drilldownRow:has(.drilldownChoice[aria-current]) {
-  border-color: var(--mantine-primary-color-filled);
-  box-shadow: inset 0 0 0 1px var(--mantine-primary-color-filled);
-}
-
-.dragHandle {
-  display: grid;
-  place-items: center;
-  color: var(--mantine-color-dimmed);
-  border-inline-end: 1px solid var(--mantine-color-default-border);
-  cursor: grab;
-}
-
-.drilldownRow:active .dragHandle {
-  cursor: grabbing;
-}
-
-.drilldownChoice {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: var(--mantine-spacing-xs);
-  align-items: center;
-  min-width: 0;
-  padding: var(--mantine-spacing-sm);
-  color: var(--mantine-color-text);
-  font: inherit;
-  text-align: start;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-}
-
-.drilldownChoice > svg:first-child {
-  color: var(--mantine-primary-color-filled);
-}
-
-.drilldownChoice > span {
-  display: grid;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.drilldownRow strong,
-.drilldownRow small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.drilldownRow strong {
-  font-size: var(--mantine-font-size-sm);
-}
-
-.drilldownRow small {
-  color: var(--mantine-color-dimmed);
-  font-size: var(--mantine-font-size-xs);
-}
-
-.drilldownDrawer > .blockEditor {
-  align-content: start;
-  min-height: 0;
-  overflow-y: auto;
 }
 
 .previewSurface {
-  display: grid;
-  height: 100%;
-  min-width: 0;
-  padding: var(--mantine-spacing-md);
-  overflow: hidden;
-  place-items: start center;
-}
-
-.previewSurface .cataloguePreview {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+  justify-self: center;
 }
 
 .combinedStickyFrame .documentPage {
   width: auto;
   max-width: 100%;
-  height: 100%;
+  height: var(--combined-height);
 }
 
 .cataloguePreview {
