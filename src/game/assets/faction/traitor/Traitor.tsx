@@ -3,7 +3,7 @@ import type { FactionRender } from '@shared/factions/schema';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { MarkdownContent } from '../../../components/block/MarkdownContent';
+import { FormattedText } from '../../../components/block/FormattedText';
 import { backgroundPresets } from '../../../data/backgrounds';
 import styles from '../../card/Card.module.css';
 import { Token } from '../../faction/token/Token';
@@ -37,7 +37,7 @@ export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
       </div>
 
       <div className={styles.body}>
-        <MarkdownContent
+        <FormattedText
           value={[
             'Reveal when Battle Plans are revealed if this leader is used by your opponent.',
             'You immediately win this battle and lose nothing (even if a Lasgun and Shield are revealed).',
