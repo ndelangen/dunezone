@@ -28,6 +28,12 @@ export default defineConfig({
    */
   optimizeDeps: {
     entries: ['src/shared/svgToObj.ts', 'src/shared/vectorNormalize.ts'],
+    /*
+     * The page spike loads Convex's server modules inside a worker after the
+     * first story starts. Pre-bundle that closure so Vite does not reload the
+     * browser suite when it discovers the modules mid-run.
+     */
+    include: ['@convex-dev/auth/server', 'convex-helpers/validators', 'convex-test', 'convex/values'],
   },
   resolve: {
     /* Typings in the current Vite package lag behind docs/runtime support
