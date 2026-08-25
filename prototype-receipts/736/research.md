@@ -2,9 +2,9 @@
 
 ## Finding
 
-The idea is feasible as a research spike. The real Dune Zone Convex schema and queries can run in an in-memory `convex-test` instance inside a browser Web Worker in both Vite development and a served production build. It is not a supported `convex-test` runtime, and the compatibility layer is substantial enough that I would not make it the default page-story foundation without further proof.
+The idea is feasible. The real Dune Zone Convex schema, authenticated queries, trigger-aware mutations, and Aggregate components can run in an in-memory `convex-test` instance inside a browser Web Worker. The actual Create ruleset page now works in both Storybook development and a served static build. It creates a profile, submits the production mutation, observes the created ruleset through the production query, navigates to the result, replaces the worker, and creates the same ruleset again.
 
-The useful result is narrower: this can remove large response fixtures by running real query code over a compact seeded world. It does not remove story data, because meaningful page variations still need deterministic seed inputs.
+This can remove large response fixtures by running real selection and mutation code over a compact seeded world. It does not remove scenario design or seed data. It also does not provide a production Convex transport, supported browser runtime, or replacement for the small real-stack E2E confidence anchor.
 
 ## What was proved
 
@@ -17,9 +17,14 @@ The prototype used the versions currently installed in this repository: Convex 1
 | Insert a third record, rerun the active `useRulesetsAll` query, and render the update | Passed | Passed |
 | Execute the real `api.profiles.session` query | Passed | Passed |
 | Register the three Aggregate mounts and execute `api.homepage.get` | Passed | Passed |
+| Bootstrap an authenticated profile through the real mutation | Passed | Passed |
+| Submit the actual Create ruleset page and observe its Aggregate-backed mutation result | Passed | Passed |
+| Replace the worker, verify an empty database, and create the same ruleset again | Passed | Passed |
+| Keep two adjacent identities separate and preserve a signed-out request | Passed | Passed |
+| Reject an outbound `fetch` with the named worker guard | Passed | Passed |
 | Load function modules lazily with an ES-format worker | Passed | Passed |
 
-The homepage query returned the expected empty-world result. The ES worker build emitted about 559 kB of JavaScript in total, with a 78 kB initial worker chunk. Chromium loaded only the chunks needed by the homepage query. The default IIFE worker produced one roughly 554 kB worker file because its dynamic imports were folded into that bundle. These are prototype measurements, not target budgets.
+The homepage query returned the expected empty-world result. The phase 2 production build emits a 78.87 kB initial worker chunk plus lazy Convex and Aggregate chunks. The whole Storybook build succeeded without a Convex deployment URL in its output. These are prototype measurements, not target budgets.
 
 ## Why it does not work without adaptation
 
@@ -72,7 +77,7 @@ This proves the whole page path without exporting page composition from the rout
 
 Injecting a fake client through `ConvexReactClient` is possible because 1.43.0 has a `baseClient` option, but the option and the required `BaseConvexClientInterface` are marked internal. Its source says it may become public later. Depending on it would make the prototype more fragile than adapting the Storybook mocks already owned by this repository. [Convex React internal client seam](https://github.com/get-convex/convex-js/blob/d28852aa028dede94796a012a2a802ae6ad04188/src/react/client.ts#L291-L306)
 
-The bridge still needs explicit controls for a query that never resolves, an offline error, and other states that a real in-memory query cannot naturally hold. It should also reject outbound `fetch` from actions so a static story cannot contact third-party services from a viewer's browser.
+The bridge still needs explicit controls for a query that never resolves, an offline error, and other states that a real in-memory query cannot naturally hold. The worker now freezes `fetch` to a rejecting function before application modules load, and a story executes that guard. This catches accidental fetch calls but is not a security boundary. A hosted catalogue also needs a worker response policy with `connect-src 'none'`.
 
 ## Development, static paths, and CSP
 
@@ -86,7 +91,7 @@ Vite recognizes that exact shape, emits the worker as an asset, and rewrites its
 
 Do not inline the worker. A separately emitted same-origin worker is compatible with a policy such as `worker-src 'self'`; an inline Blob worker also needs `blob:`. The worker constructor is governed by the same-origin policy, and CSP `worker-src` governs worker script requests. [HTML Worker specification](https://html.spec.whatwg.org/multipage/workers.html#dom-worker-dev), [CSP `worker-src`](https://www.w3.org/TR/CSP3/#directive-worker-src)
 
-The standalone production proof verifies Vite's worker and chunk behavior against the actual `storybook build` output under an HTTP server. A non-root deployment path was not tested. Storybook's iframe and manager have separate asset graphs, so that remains a release-specific check if the catalogue is hosted below a path prefix.
+The standalone production proof verifies Vite's worker and chunk behavior against the actual `storybook build` output under an HTTP server. The same authenticated create, reset, and recreate interaction passed in the development server and served static output. A non-root deployment path was not tested. Storybook's iframe and manager have separate asset graphs, so that remains a release-specific check if the catalogue is hosted below a path prefix.
 
 The browser-mode Storybook test runner has another build-specific obligation. It must pre-bundle the Convex server dependencies before the suite starts. Without that list, Vite discovers the worker closure after the first story has run, re-optimizes its dependency cache, and reloads the browser suite. The worker-backed Rulesets tests passed in that failed CI run, but the reload broke two unrelated sheet stories with a stale dynamic-import URL. This is another version-sensitive list to maintain alongside the worker module maps.
 
@@ -94,7 +99,7 @@ The browser-mode Storybook test runner has another build-specific obligation. It
 
 The database replaces response fixtures, not scenario design. One compact seed should build a canonical world through database inserts or real mutations, with small overrides per story. That concentrates data and runs the same selection code as production.
 
-The retained proof makes the tradeoff visible. Its page-specific seed module is 37 lines, while the worker adapter, protocol, browser shim, Storybook bridge, and story total 551 lines. Those are spike measurements rather than a proposed abstraction, but they show where the cost moved: response fixtures became small, while unsupported runtime machinery became large.
+The retained proof makes the tradeoff visible. The authenticated page uses a 25-line seed module containing two users and no response-shaped fixture. The shared worker, protocol, browser shim, and Storybook bridge are 475 lines. The create story is another 290 lines, although much of that is proof UI and stress coverage that a reusable page harness would absorb. The cost moved from repeated response fixtures into one substantial compatibility layer and smaller scenario seeds.
 
 Determinism needs deliberate handling:
 
@@ -119,6 +124,12 @@ The main risks are:
 7. **Static-output rewriting.** The release depends on a transform tied to a private string inside `convex-test`; upstream storage-emulation changes can bypass or break it.
 8. **Optimizer coupling.** The browser test configuration must name the worker's server dependencies before Vite starts the suite, or dependency discovery can reload unrelated stories.
 
-The bounded feasibility spike succeeded, but the result should not become the repo-wide page-story foundation in its current form. Before making that commitment, prove story switching without state leakage, component-backed page queries through the retained bridge, and the intended deployment's non-root base path. Add focused tests for identity separation, nested `runQuery` and `runMutation`, rollback, timers, and concurrent RPC before trusting the async-context adapter.
+## Weighted decision
+
+The product and test value is now stronger than the first phase suggested. A page story can render a real private page, use production reads and mutations, show the result immediately, reset in about the time of a normal interaction test, and remain available to a developer in a local browser. The complete Storybook browser suite still passed 381 tests in 27.89 seconds. The new page-specific fixture is 25 lines rather than a copied query result. These benefits repeat across every page story once the bridge is shared.
+
+The costs are concentrated but serious. The runtime depends on an incomplete async-context shim, package source layouts, build transforms, optimizer hints, and manual component registration. Static publishing exposes server source. Storybook still lacks production auth, WebSocket transport, deployment environment, and backend scheduling fidelity. The JavaScript network guard is deterministic protection, not a security boundary.
+
+My weighted recommendation is to continue toward a controlled experimental harness, not a repo-wide default yet. The authenticated create/reset proof clears the largest feasibility question, and the fixture reduction plus interactive page development justify more work. Before rollout, prove the intended non-root deployment, nested action and scheduled-function context, rollback, component auth boundaries, and CSP on the worker response. Pin the dependency versions and keep all worker RPC serialized. If those checks pass, use the harness for page state and interaction coverage while retaining a few real-stack E2E paths.
 
 If those tests expose context bugs, the responsible next experiment is a small pinned fork of `convex-test` that passes execution context explicitly or provides a browser adapter. The official self-hosted Convex backend is not a static-build alternative: it is a native or Docker backend with SQLite and an HTTP service, so it cannot travel inside a static Storybook artifact. [Convex self-hosting](https://github.com/get-convex/convex-backend/blob/main/self-hosted/README.md)
