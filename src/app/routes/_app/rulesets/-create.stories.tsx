@@ -214,6 +214,41 @@ function ResetStressPage() {
   );
 }
 
+function assertIdentityIsolation(
+  creator: { userId: string | null },
+  observer: { userId: string | null },
+  signedOut: { userId: string | null }
+) {
+  if (!creator.userId || !observer.userId || creator.userId === observer.userId || signedOut.userId) {
+    throw new Error('The worker did not keep its adjacent identities separate.');
+  }
+}
+
+function assertNetworkGuard(message: string) {
+  if (message !== 'Convex Storybook workers cannot make network requests.') {
+    throw new Error(`Unexpected network guard result: ${message}`);
+  }
+}
+
+function assertLocalHttp(result: { body: { error?: string }; status: number }) {
+  if (result.status !== 404 || result.body.error !== 'Not found') {
+    throw new Error(`Unexpected local HTTP result: ${JSON.stringify(result)}`);
+  }
+}
+
+async function runIsolationChecks(client: ConvexTestWorkerClient) {
+  const [creator, observer, signedOut, networkMessage, httpResult] = await Promise.all([
+    client.query(profileSession, {}, createRulesetIdentity),
+    client.query(profileSession, {}, { name: 'Storybook observer', subjectKey: 'observer' }),
+    client.query(profileSession, {}),
+    client.runNetworkProbe(),
+    client.runHttpProbe(),
+  ]);
+  assertIdentityIsolation(creator, observer, signedOut);
+  assertNetworkGuard(networkMessage);
+  assertLocalHttp(httpResult);
+}
+
 function IdentityAndNetworkProofPage() {
   const { client } = useContext(ConvexTestWorkerContext) ?? {};
   const [status, setStatus] = useState('Ready to check adjacent identities and the network guard');
@@ -228,22 +263,7 @@ function IdentityAndNetworkProofPage() {
       <Alert>{status}</Alert>
       <Button
         onClick={async () => {
-          const [creator, observer, signedOut, networkMessage, httpResult] = await Promise.all([
-            client.query(profileSession, {}, createRulesetIdentity),
-            client.query(profileSession, {}, { name: 'Storybook observer', subjectKey: 'observer' }),
-            client.query(profileSession, {}),
-            client.runNetworkProbe(),
-            client.runHttpProbe(),
-          ]);
-          if (!creator.userId || !observer.userId || creator.userId === observer.userId || signedOut.userId) {
-            throw new Error('The worker did not keep its adjacent identities separate.');
-          }
-          if (networkMessage !== 'Convex Storybook workers cannot make network requests.') {
-            throw new Error(`Unexpected network guard result: ${networkMessage}`);
-          }
-          if (httpResult.status !== 404 || httpResult.body.error !== 'Not found') {
-            throw new Error(`Unexpected local HTTP result: ${JSON.stringify(httpResult)}`);
-          }
+          await runIsolationChecks(client);
           setStatus('Identities stayed separate, fetch was blocked, and local HTTP completed');
         }}
       >
