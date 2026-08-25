@@ -93,8 +93,7 @@ export class ConvexTestWorkerClient {
   runHttpProbe = async () =>
     (await this.request({ operation: 'httpProbe' })) as { body: { error?: string }; status: number };
 
-  runSchedulerProbe = async () =>
-    (await this.request({ operation: 'schedulerProbe' })) as SchedulerProbeResult;
+  runSchedulerProbe = async () => (await this.request({ operation: 'schedulerProbe' })) as SchedulerProbeResult;
 
   runRollbackProbe = async () => (await this.request({ operation: 'rollbackProbe' })) as RollbackProbeResult;
 
