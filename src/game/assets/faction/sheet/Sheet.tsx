@@ -2,7 +2,7 @@ import type { FactionRender } from '@shared/factions/schema';
 import type { z } from 'zod';
 
 import { CAPTURE_PROTOCOL } from '../../../../shared/asset-publishing/capture-protocol';
-import { MarkdownContent } from '../../../components/block/MarkdownContent';
+import { FormattedText, InlineFormattedText } from '../../../components/block/FormattedText';
 import { isLight } from '../../utils/contrast';
 import { LeaderToken } from '../leader/Leader';
 import { Token } from '../token/Token';
@@ -56,13 +56,13 @@ export function FactionSheetPage1(props: SheetProps) {
               ·
             </span>
             <span data-faction-start-instructions>
-              <MarkdownContent forceInline>{props.rules.startText}</MarkdownContent>
+              <InlineFormattedText value={props.rules.startText} />
             </span>
           </>
         ) : null}
       </div>
-      <div className={styles.revival}>
-        <strong className={styles.head}>Revival:</strong> <MarkdownContent>{props.rules.revivalText}</MarkdownContent>
+      <div className={styles.revival} data-faction-revival>
+        <strong className={styles.head}>Revival:</strong> <InlineFormattedText value={props.rules.revivalText} />
       </div>
       <div className={styles.rules}>
         <div className={styles.subtitle}>Advantages</div>
@@ -75,21 +75,21 @@ export function FactionSheetPage1(props: SheetProps) {
               </div>
             )}
             <div className={styles.text}>
-              <MarkdownContent>{rule.text}</MarkdownContent>
+              <FormattedText value={rule.text} />
             </div>
           </div>
         ))}
         <div className={styles.subtitle}>Alliance</div>
         <div className={styles.rule}>
           <div className={styles.text}>
-            <MarkdownContent>{props.rules.alliance.text}</MarkdownContent>
+            <FormattedText value={props.rules.alliance.text} />
           </div>
         </div>
         <div className={styles.subtitle}>Fate</div>
         <div className={styles.rule}>
           {props.rules.fate.title && <div className={styles.head}>{props.rules.fate.title}</div>}
           <div className={styles.text}>
-            <MarkdownContent>{props.rules.fate.text}</MarkdownContent>
+            <FormattedText value={props.rules.fate.text} />
           </div>
         </div>
       </div>
@@ -121,7 +121,7 @@ export function FactionSheetPage2(props: SheetProps) {
                   <div className={styles.rule} key={`${index}-${rule.title ?? ''}`}>
                     <div className={styles.head}>{rule.title}:&nbsp;</div>
                     <div className={styles.text}>
-                      <MarkdownContent>{rule.karama}</MarkdownContent>
+                      <FormattedText value={rule.karama ?? ''} />
                     </div>
                   </div>
                 ))}
@@ -149,7 +149,7 @@ export function FactionSheetPage2(props: SheetProps) {
                           </span>
                         </div>
                         <div className={styles.text}>
-                          <MarkdownContent>{troop.description}</MarkdownContent>
+                          <FormattedText value={troop.description} />
                         </div>
                       </section>
 
@@ -169,7 +169,7 @@ export function FactionSheetPage2(props: SheetProps) {
                           <section>
                             <div className={styles.head}>{troop.back.name}</div>
                             <div className={styles.text}>
-                              <MarkdownContent>{troop.back.description}</MarkdownContent>
+                              <FormattedText value={troop.back.description} />
                             </div>
                           </section>
                         </>
@@ -206,7 +206,7 @@ export function FactionSheetPage2(props: SheetProps) {
               <>
                 <div className={styles.subtitle}>{extra.name}</div>
                 <div className={styles.text}>
-                  <MarkdownContent>{extra.description}</MarkdownContent>
+                  <FormattedText value={extra.description} />
                 </div>
                 <div className={styles.extra}>
                   {extra.items.map((item) => (
@@ -214,7 +214,7 @@ export function FactionSheetPage2(props: SheetProps) {
                       <img src={item.url} alt={item.url} />
                       {item?.description && (
                         <div className={styles.text}>
-                          <MarkdownContent>{item.description}</MarkdownContent>
+                          <FormattedText value={item.description} />
                         </div>
                       )}
                     </div>

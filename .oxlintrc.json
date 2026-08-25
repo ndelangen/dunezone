@@ -32,6 +32,10 @@
           {
             "patterns": [
               {
+                "group": ["markdown-to-jsx", "markdown-to-jsx/**"],
+                "message": "Formatted text is the only rich text. Parse stored prose with `src/shared/formattedText` and render its blocks."
+              },
+              {
                 "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
                 "message": "Only `src/app/db` may import Convex. Re-export the shape you need from the domain module that owns it (`@db/factions`, `@db/groups`) and import it from there."
               }
@@ -62,6 +66,10 @@
           "error",
           {
             "patterns": [
+              {
+                "group": ["markdown-to-jsx", "markdown-to-jsx/**"],
+                "message": "Formatted text is the only rich text. Parse stored prose with `src/shared/formattedText` and render its blocks."
+              },
               {
                 "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
                 "message": "A component must not fetch. Convex belongs in a domain module under `src/app/db`; take the result as a prop."
@@ -137,6 +145,10 @@
           {
             "patterns": [
               {
+                "group": ["markdown-to-jsx", "markdown-to-jsx/**"],
+                "message": "Formatted text is the only rich text. Parse stored prose with `src/shared/formattedText` and render its blocks."
+              },
+              {
                 "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
                 "message": "A widget must not fetch. Route data reaches a widget as a prop; the query lives in a route via src/app/db. If it is a control's own lazily-loaded option list, it is a Picker (src/app/pickers), not a widget."
               },
@@ -179,6 +191,10 @@
           {
             "patterns": [
               {
+                "group": ["markdown-to-jsx", "markdown-to-jsx/**"],
+                "message": "Formatted text is the only rich text. Parse stored prose with `src/shared/formattedText` and render its blocks."
+              },
+              {
                 "group": ["@app", "@app/**", "@ui", "@ui/**", "@db", "@db/**", "**/app", "**/app/**"],
                 "message": "src/shared is imported by both the browser app and the server deploy, so it must not import the browser app. If a shared file needs something from src/app, that thing is not shared; hoist it into src/shared or leave the code in the app."
               },
@@ -202,6 +218,10 @@
           "error",
           {
             "patterns": [
+              {
+                "group": ["markdown-to-jsx", "markdown-to-jsx/**"],
+                "message": "Formatted text is the only rich text. Parse stored prose with `src/shared/formattedText` and render its blocks."
+              },
               {
                 "group": [
                   "**/src/app",
@@ -238,6 +258,10 @@
           "error",
           {
             "patterns": [
+              {
+                "group": ["markdown-to-jsx", "markdown-to-jsx/**"],
+                "message": "Formatted text is the only rich text. Parse stored prose with `src/shared/formattedText` and render its blocks."
+              },
               {
                 "group": [
                   "**/src/app",
@@ -285,6 +309,10 @@
       "error",
       {
         "patterns": [
+          {
+            "group": ["markdown-to-jsx", "markdown-to-jsx/**"],
+            "message": "Formatted text is the only rich text. Parse stored prose with `src/shared/formattedText` and render its blocks."
+          },
           {
             "group": ["**/_generated/server"],
             "importNames": ["mutation", "internalMutation"],

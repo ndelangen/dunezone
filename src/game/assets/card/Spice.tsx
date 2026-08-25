@@ -2,7 +2,7 @@
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { MarkdownContent } from '../../components/block/MarkdownContent';
+import { FormattedText } from '../../components/block/FormattedText';
 import { backgroundPresets } from '../../data/backgrounds';
 import type { Spice } from '../../data/objects';
 import { useAssetResolver } from '../assetRenderMode';
@@ -95,12 +95,12 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({ name, subName, icon, text
 
       <div className={unique.body}>
         <div>
-          <MarkdownContent
+          <FormattedText
             value={
               text ||
               (icon === 'spice-mine'
-                ? `Place a **spice mine** of ${amount} on\n${name}`
-                : `Add **${amount} spice** to\n${name}`)
+                ? `Place a *spice mine* of ${amount} on\n${name}`
+                : `Add *${amount} spice* to\n${name}`)
             }
           />
         </div>

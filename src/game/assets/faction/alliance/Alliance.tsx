@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { MarkdownContent } from '../../../components/block/MarkdownContent';
+import { FormattedText } from '../../../components/block/FormattedText';
 import { StrokedUse } from '../../../components/block/StrokedUse';
 import { backgroundPresets } from '../../../data/backgrounds';
 import { card } from '../../../data/sizes';
@@ -90,7 +90,7 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
       </svg>
 
       <div className={styles.body}>
-        <MarkdownContent value={text} />
+        <FormattedText value={text} />
       </div>
     </div>
   );

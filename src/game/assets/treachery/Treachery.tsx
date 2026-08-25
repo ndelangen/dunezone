@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { MarkdownContent } from '../../components/block/MarkdownContent';
+import { FormattedText } from '../../components/block/FormattedText';
 import type { Treachery } from '../../data/objects';
 import { card } from '../../data/sizes';
 import styles from '../card/Card.module.css';
@@ -80,7 +80,7 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
       <div className={styles.subtitle}>{subName}</div>
 
       <div className={styles.body}>
-        <MarkdownContent value={text} />
+        <FormattedText value={text} />
       </div>
     </div>
   );

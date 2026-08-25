@@ -1,12 +1,8 @@
 // @vitest-environment jsdom
 
 import { render } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../components/block/MarkdownContent', () => ({
-  MarkdownContent: ({ children }: { children?: ReactNode }) => <>{children}</>,
-}));
 vi.mock('../leader/Leader', () => ({
   LeaderToken: () => <div data-test-leader-token />,
 }));
@@ -39,6 +35,23 @@ describe('FactionSheet', () => {
 
     expect(startingSpice?.textContent).toBe(`Starting spice: ${spiceCount}`);
     expect(instructions?.textContent).toBe('Keep this authored instruction separate.');
+  });
+
+  it('keeps setup and revival in flow while rendering their marks', () => {
+    const props = factionSheetProps();
+    props.rules.startText = 'Keep the first line\nflowing on the second with *bold words*.';
+    props.rules.revivalText = '1 *free* revival.';
+
+    const { container } = render(<FactionSheetPage1 {...props} />);
+    const start = container.querySelector('[data-faction-start-instructions]');
+    const revival = container.querySelector('[data-faction-revival]');
+
+    expect(start?.textContent).toBe('Keep the first line flowing on the second with bold words.');
+    expect(start?.querySelectorAll('p, ul, br')).toHaveLength(0);
+    expect(start?.querySelector('strong')?.textContent).toBe('bold words');
+    expect(revival?.textContent).toBe('Revival: 1 free revival.');
+    expect(revival?.querySelectorAll('p, ul, br')).toHaveLength(0);
+    expect(Array.from(revival?.querySelectorAll('strong') ?? []).map((node) => node.textContent)).toContain('free');
   });
 
   it('renders one compact physical-supply count for each ordinary troop type', () => {
