@@ -12,8 +12,6 @@ export type LiveQueryResult<TData> = {
   data: TData | undefined;
   isPending: boolean;
   isLoading: boolean;
-  isError: boolean;
-  error: Error | null;
 };
 
 export type LiveMutationResult<TVariables, TResult> = {
@@ -36,8 +34,6 @@ export function toLiveQueryResult<TData>(
     data,
     isPending: enabled && liveData === undefined,
     isLoading: enabled && liveData === undefined,
-    isError: false,
-    error: null,
   };
 }
 

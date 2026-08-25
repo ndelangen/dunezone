@@ -45,7 +45,7 @@ const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMe
 
 /**
  * The frame for a load that failed, most often a slug naming no group.
- * The page used to carry its own `groupData.isError` branch for this, which could never run: `toLiveQueryResult` reports `isError: false` for every query, so the failure went past it to the router's unstyled default.
+ * A failed Convex query throws to this route boundary, so the live-query result has no separate error state.
  */
 function GroupDetailError({ error }: ErrorComponentProps) {
   return (

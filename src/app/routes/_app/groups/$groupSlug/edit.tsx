@@ -116,7 +116,7 @@ function GroupEditPage() {
   const groupData = useGroupEditBySlug(groupSlug, { initialData: loaderData.groupEdit });
 
   const editPage = groupData.data;
-  if (groupData.isError || !editPage) {
+  if (!editPage) {
     return (
       <PageMessage title="Edit group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
         <NotAvailable title="Group not found">This group does not exist or was deleted.</NotAvailable>

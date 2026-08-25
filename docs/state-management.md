@@ -39,9 +39,10 @@ export function useFaction(slug: string, options?: { initialData?: FactionDetail
 ```
 
 `toLiveQueryResult` exists to keep call sites uniform: it returns
-`{ data, isPending, isLoading, isError, error }`, falling back to `initialData` while the
-subscription is still undefined. `isError` is always `false`, because a failed Convex subscription
-throws to the route's error boundary rather than resolving into a result object.
+`{ data, isPending, isLoading }`, falling back to `initialData` while the subscription is still
+undefined. A failed Convex subscription throws to the route's `errorComponent` rather than
+resolving into a result object. The route handles the failure there instead of carrying a second,
+unreachable error branch in its component.
 
 **Example**: [`src/app/db/factions.ts`](../src/app/db/factions.ts)
 
