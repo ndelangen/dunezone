@@ -16,7 +16,6 @@ const CONFIG_PATH = path.resolve(process.cwd(), 'workers/publisher/wrangler.json
 const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.convex.site';
 const PUBLISHER_CRON = '*/5 * * * *';
 const REQUIRED_SECRETS = ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET', 'ASSET_PUBLISHER_EXECUTOR_SECRET'];
-const STORYBOOK_STORY_ID = 'game-assets-composition-background--radial-token';
 
 type JsonObject = Record<string, unknown>;
 
@@ -98,8 +97,6 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/publisher-capture',
         '/publisher-capture.html',
         '/publisher-capture/*',
-        '/__storybook',
-        '/__storybook/',
       ],
     },
     'Static Assets routing'
@@ -333,57 +330,6 @@ async function run(): Promise<void> {
         }
       }
     }
-
-    const noSlashUrl = `${APPLICATION_ORIGIN}/__storybook?path=/story/${STORYBOOK_STORY_ID}`;
-    const redirect = await fetch(noSlashUrl, {
-      redirect: 'manual',
-      signal: AbortSignal.timeout(5000),
-    });
-    invariant(redirect.status === 308, `Storybook redirect returned HTTP ${redirect.status}`);
-    invariant(
-      redirect.headers.get('Location') === `${APPLICATION_ORIGIN}/__storybook/?path=/story/${STORYBOOK_STORY_ID}`,
-      'Storybook redirect did not preserve the manager query'
-    );
-
-    const managerResponse = await fetch(`${APPLICATION_ORIGIN}/__storybook/?path=/story/${STORYBOOK_STORY_ID}`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    invariant(managerResponse.status === 200, `Storybook manager returned HTTP ${managerResponse.status}`);
-    const managerHtml = await managerResponse.text();
-    invariant(
-      managerHtml.includes('sb-manager/runtime.js') && managerHtml.includes('Dune Zone Storybook'),
-      'Storybook manager response is not the published Dune Zone Storybook shell'
-    );
-
-    const indexResponse = await fetch(`${APPLICATION_ORIGIN}/__storybook/index.json`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    invariant(indexResponse.status === 200, `Storybook index returned HTTP ${indexResponse.status}`);
-    const index = object(await indexResponse.json(), 'Storybook index');
-    const entries = object(index.entries, 'Storybook index entries');
-    invariant(STORYBOOK_STORY_ID in entries, `Storybook index is missing ${STORYBOOK_STORY_ID}`);
-
-    for (const path of [
-      `/__storybook/iframe.html?id=${STORYBOOK_STORY_ID}&viewMode=story`,
-      '/__storybook/sb-manager/runtime.js',
-      '/image/texture/054.jpg',
-    ]) {
-      const response = await fetch(`${APPLICATION_ORIGIN}${path}`, {
-        signal: AbortSignal.timeout(5000),
-      });
-      invariant(response.status === 200, `${path} returned HTTP ${response.status}`);
-    }
-
-    const rootResponse = await fetch(`${APPLICATION_ORIGIN}/`, {
-      headers: { Accept: 'text/html' },
-      signal: AbortSignal.timeout(5000),
-    });
-    invariant(rootResponse.status === 200, `Application root returned HTTP ${rootResponse.status}`);
-    invariant(
-      !(await rootResponse.text()).includes('sb-manager/runtime.js'),
-      'Application root was replaced by the Storybook manager'
-    );
-    console.log(`Storybook release smoke passed for ${STORYBOOK_STORY_ID} at ${APPLICATION_ORIGIN}/__storybook/.`);
     return;
   }
   throw new Error('Expected command: preflight or smoke');

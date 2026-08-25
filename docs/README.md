@@ -42,6 +42,7 @@ bun run format           # Format files
 bun run test             # Run tests
 bun run storybook        # Storybook dev (port 6006)
 bun run build-storybook  # Static Storybook → storybook-static
+bun run verify:storybook-publication # Public bytes, headers, isolation, and browser runtime
 bun run generate         # Regenerate the public asset catalog in src/game/data/generated.ts
 bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and dry-run gate
 ```
@@ -119,6 +120,40 @@ unpushable.
   demonstrate behavior or comparison that args cannot.
 - Represent controlled components with static values and noop callbacks unless interaction itself
   is the contract under test.
+
+#### Page stories
+
+Page stories run the real route, Convex query, and Convex mutation handlers in an isolated browser
+worker. They never contact a hosted Convex deployment. Start from the canonical valid database and
+make only the state changes that explain the rendered variation:
+
+```tsx
+export const Populated = meta.story({
+  parameters: {
+    database: db((baseline) => {
+      baseline.factions.push(faction({ name: 'House Atreides' }));
+    }),
+  },
+});
+```
+
+The callback receives a fresh mutable baseline. Return `emptyDatabase()` or another database to
+replace it. Helpers supply deterministic mechanical values and validate shared semantic contracts;
+the worker then applies the actual Convex schema. Invalid database state fails before the page
+renders. Identity is a separate `identity` parameter, and route or search parameters stay in the
+story's router setup rather than the database parameter.
+
+Use only variations that produce meaningfully different pages, including URL parameter cases when
+they change the result. A play function may exercise the page's normal mutations and navigation;
+`useStorybookDatabaseReset()` replaces the worker with the story's fresh declared state. Keep direct
+tests for unhappy query branches and server invariants. Keep end-to-end tests for a few application
+journeys instead of turning page stories into journeys.
+
+The runtime faithfully covers registered Convex handlers, schema checks, authentication identity,
+components, triggers, transactions, scheduling, HTTP handling, and query refresh. It does not cover
+hosted WebSockets, identity providers, deployment configuration, or production data. External
+network access and subworkers are disabled. An unregistered or unsupported path must fail instead
+of returning a fixture-shaped answer.
 
 ### Adding a new domain
 

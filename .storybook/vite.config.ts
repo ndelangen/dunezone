@@ -2,6 +2,14 @@ import viteReact from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import type { Plugin } from 'vite';
 
+import {
+  convexWorkerAliases,
+  convexWorkerBuildPlugins,
+  convexWorkerOptimizeDeps,
+  convexWorkerOxc,
+  convexWorkerServePlugins,
+} from './worker-async-transform.ts';
+
 /*
  * Only the URLs `verify:images` actually validates, which is narrower than the warning.
  * Vite reports the same way for a relative miss like `./missing.woff2`, and nothing checks those, so a filter on the message alone would bury a genuine broken reference (CodeRabbit, PR #614).
@@ -38,18 +46,26 @@ function quietDeferredAssetWarnings(): Plugin {
 export default defineConfig({
   build: {
     assetsDir: 'public',
+    target: 'es2020',
   },
   define: {
     /**
      * Never copy a developer or production deployment URL into the public catalogue.
      * The global manual mock ignores this inert value when app database modules load.
      */
-    'import.meta.env.VITE_CONVEX_URL': JSON.stringify('storybook-disconnected'),
+    'import.meta.env.VITE_CONVEX_URL': JSON.stringify('https://storybook.invalid'),
   },
   publicDir: false,
+  oxc: convexWorkerOxc,
+  optimizeDeps: convexWorkerOptimizeDeps,
   resolve: {
     // Keep Storybook path resolution aligned with the app config.
     ...({ tsconfigPaths: true } as Record<string, unknown>),
+    alias: convexWorkerAliases,
   },
-  plugins: [viteReact(), quietDeferredAssetWarnings()],
+  plugins: [...convexWorkerServePlugins(), viteReact(), quietDeferredAssetWarnings()],
+  worker: {
+    format: 'es',
+    plugins: convexWorkerBuildPlugins,
+  },
 });

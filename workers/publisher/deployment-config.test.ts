@@ -76,8 +76,6 @@ describe('scheduled production deployment shape', () => {
       '/publisher-capture',
       '/publisher-capture.html',
       '/publisher-capture/*',
-      '/__storybook',
-      '/__storybook/',
     ]);
   });
 });

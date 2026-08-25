@@ -38,13 +38,16 @@ Build the unified application and capture release with:
 VITE_CONVEX_URL=https://exuberant-finch-263.eu-west-1.convex.cloud bun run publisher:assets
 ```
 
-This builds `dist/client`, builds Storybook into `storybook-static`, builds the
-isolated capture bundle, and assembles all three into `workers/publisher/dist`.
-Storybook is part of the release, not an extra: the assembly requires
-`__storybook/index.html`, `__storybook/iframe.html`, and `__storybook/index.json`
-and reports a story count. The assembly also copies TanStack's `_shell.html` to the
+This builds `dist/client`, builds the isolated capture bundle, and assembles both into
+`workers/publisher/dist`. The assembly also copies TanStack's `_shell.html` to the
 `index.html` Cloudflare Static Assets requires for SPA fallback and fails if the
 final bundle violates Workers asset-count or per-file limits.
+
+Storybook is a separate secret-free Static Assets Worker at `https://storybook.dune.zone`.
+`bun run verify:storybook-publication` builds `storybook-static`, scans the final bytes for
+credentials and hosted Convex URLs, checks the CSP and exact hosting configuration, and runs the
+browser-local Convex page through both the root host and a non-root served path. The build copies
+the canonical `public/` files; there is no second maintained image or font source.
 
 For a local release rehearsal:
 
@@ -67,7 +70,6 @@ are Worker-first:
 | `/published` and `/published/*` | Stable public generated-asset delivery |
 | `/__asset-publisher` and `/__asset-publisher/*` | Health and operational endpoints |
 | `/publisher-capture`, `/publisher-capture.html`, `/publisher-capture/*` | Protected capture document and bundle |
-| `/__storybook` and `/__storybook/` | Rewritten to the built Storybook's `index.html` |
 | Everything else, including `/factions/*` | Static asset lookup, then SPA fallback |
 
 The faction-sheet delivery path is
@@ -120,15 +122,17 @@ On every push to `main`:
 6. Regenerate and verify generated output, meaning images (`verify:images`),
    vectors (`verify:vectors`) and OBJ pieces (`generate:objs`), then log the
    output digest.
-7. Build the SPA, Storybook, and capture bundle once with the production Convex URL.
+7. Build the SPA and capture bundle once with the production Convex URL.
 8. Verify assembled assets and reject generated-source drift.
 9. Dry-run, then deploy the Worker with the full merged Git SHA.
-10. Smoke the workers.dev and `dune.zone` health endpoints, including `/__storybook`.
-11. Read the stored Renderer revisions. If any checked-in revision is higher,
+10. Smoke the workers.dev and `dune.zone` health endpoints.
+11. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
+    smoke its manager, page index, preview entry, CSP, and shared public assets.
+12. Read the stored Renderer revisions. If any checked-in revision is higher,
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
-12. Set Convex Auth `SITE_URL` to `https://dune.zone`.
-13. A follow-on `dev_rebuild` job (`needs: deploy`) rebuilds the dev deployment
+13. Set Convex Auth `SITE_URL` to `https://dune.zone`.
+14. A follow-on `dev_rebuild` job (`needs: deploy`) rebuilds the dev deployment
     from production; see
     [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml).
 
