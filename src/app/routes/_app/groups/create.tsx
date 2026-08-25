@@ -1,5 +1,6 @@
 import { Group, Stack, TextInput } from '@mantine/core';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -10,6 +11,7 @@ import { useState } from 'react';
 
 import { useCreateGroup } from '@db/groups';
 import { useCurrentProfile } from '@db/profiles';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/groups/create')({
   component: GroupCreatePage,
@@ -27,19 +29,9 @@ function GroupCreatePage() {
 
   if (!profile.data?._id || !profile.data.slug) {
     return (
-      <PageLayout>
-        <PageLayout.Header>{groupCreateHeader}</PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="lg">
-            <p>
-              <Link to="/auth/login">Log in</Link> to start a group.
-            </p>
-            <p>
-              <Link to="/profiles">Back to profiles</Link>
-            </p>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Start group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
+        <LoginGate action="start a group" />
+      </PageMessage>
     );
   }
 
