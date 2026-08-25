@@ -4,7 +4,6 @@ import {
   Drawer,
   Group,
   InputBase,
-  Loader,
   Popover,
   RangeSlider,
   Select,
@@ -17,6 +16,7 @@ import { Link, createFileRoute } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { LoadError } from '@ui/block/LoadError';
+import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
@@ -33,6 +33,7 @@ import type { KeyboardEvent } from 'react';
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCatalogueEntry, FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import {
   complexityRangeSearchValue,
@@ -103,37 +104,30 @@ function FactionsPage() {
   );
 }
 
+/*
+ * No way back on either frame: the catalogue is the top of its own branch, so a link here would
+ * point at the page the reader is already on.
+ *
+ * These two states lose the catalogue header's eyebrow, its description and its create-a-faction
+ * call to action, which the frame does not carry. That is the one place in this slice where the
+ * shared frame costs a reader something they could have used, and it is a deliberate trade for one
+ * spelling of "still loading" and one of "did not load" across the tree.
+ */
 function FactionCataloguePending() {
   return (
-    <PageLayout>
-      <PageLayout.Header>
-        <CatalogueHeader />
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <Surface padding="xl">
-          <Stack align="center" gap="sm">
-            <Loader size="sm" />
-            <Title order={2}>Loading factions</Title>
-            <Text c="dimmed">The faction catalogue is still loading.</Text>
-          </Stack>
-        </Surface>
-      </PageLayout.Content>
-    </PageLayout>
+    <PageMessage title="Faction catalogue">
+      <LoadPending title="Loading factions">The faction catalogue is still loading.</LoadPending>
+    </PageMessage>
   );
 }
 
 function FactionCatalogueError({ error }: ErrorComponentProps) {
   return (
-    <PageLayout>
-      <PageLayout.Header>
-        <CatalogueHeader />
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <LoadError title="Faction catalogue could not be loaded" stale={isStaleClientData(error)}>
-          {error.message}
-        </LoadError>
-      </PageLayout.Content>
-    </PageLayout>
+    <PageMessage title="Faction catalogue">
+      <LoadError title="Faction catalogue could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
+    </PageMessage>
   );
 }
 

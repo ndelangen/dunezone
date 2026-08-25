@@ -1,7 +1,9 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Group, Stack, Text } from '@mantine/core';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { PageTitle } from '@ui/block/PageTitle';
+import { LoadError } from '@ui/block/LoadError';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
@@ -32,6 +34,8 @@ import {
 
 import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, useCurrentProfile, useProfileBySlug } from '@db/profiles';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from '../ProfileDetail.module.css';
 
@@ -40,8 +44,25 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
     const profilePage = await loadProfileBySlug(params.profileSlug);
     return { profilePage };
   },
+  errorComponent: ProfileDetailError,
   component: ProfileDetailPage,
 });
+
+const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>;
+
+/**
+ * The frame for a load that failed, most often a slug naming no profile.
+ * The loader throws rather than returning nothing, so the component's absent branch below never sees that case and the reader met the router's unstyled default instead.
+ */
+function ProfileDetailError({ error }: ErrorComponentProps) {
+  return (
+    <PageMessage title="Profile" back={backToProfiles}>
+      <LoadError title="Profile could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
+    </PageMessage>
+  );
+}
 
 type FaqQuestionAsked = ProfilePageData['faqAsked'][number];
 type FaqAnswerGiven = ProfilePageData['faqAnswers'][number];
@@ -184,19 +205,9 @@ function ProfileDetailPage() {
 
   if (!page) {
     return (
-      <PageLayout>
-        <PageLayout.Header>
-          <PageTitle title="Profile" />
-        </PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="lg">
-            <p>Profile not found.</p>
-            <p>
-              <Link to="/profiles">Back to profiles</Link>
-            </p>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Profile" back={backToProfiles}>
+        <NotAvailable title="Profile not found">This profile does not exist or was deleted.</NotAvailable>
+      </PageMessage>
     );
   }
 
