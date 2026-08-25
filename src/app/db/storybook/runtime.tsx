@@ -175,8 +175,11 @@ export function useConvexStorybookQuery<Query extends FunctionReference<'query'>
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    let active = true;
     setValue(undefined);
+  }, [client, identity, stableArgs, stableQuery]);
+
+  useEffect(() => {
+    let active = true;
     setError(null);
     void client
       .query(stableQuery, stableArgs, identity)

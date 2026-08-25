@@ -47,6 +47,10 @@ export type ContextTraceEntry = {
 };
 
 export type ContextConformanceResult = {
+  date: {
+    deterministicDefault: boolean;
+    multiArgumentMatchesNative: boolean;
+  };
   ambient: {
     mismatches: number;
     trace: ContextTraceEntry[];

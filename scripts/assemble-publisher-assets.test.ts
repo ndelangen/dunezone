@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -62,10 +62,23 @@ describe('publisher Static Assets assembly', () => {
     expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe(expected);
   });
 
+  test('removes stale assembled assets while preserving the fresh capture build', () => {
+    const { app, publisher } = fixture();
+    mkdirSync(path.join(publisher, '__storybook'));
+    writeFileSync(path.join(publisher, '__storybook', 'index.html'), 'stale Storybook');
+    writeFileSync(path.join(publisher, 'old-application.js'), 'stale application');
+
+    assemblePublisherAssets(app, publisher);
+
+    expect(existsSync(path.join(publisher, '__storybook'))).toBe(false);
+    expect(existsSync(path.join(publisher, 'old-application.js'))).toBe(false);
+    expect(readFileSync(path.join(publisher, 'publisher-capture.html'), 'utf8')).toBe('<html>capture</html>');
+  });
+
   test('fails closed for oversized files and symbolic links', () => {
     const oversized = fixture();
     writeFileSync(
-      path.join(oversized.publisher, 'too-large.bin'),
+      path.join(oversized.publisher, 'publisher-capture', 'too-large.bin'),
       new Uint8Array(WORKERS_STATIC_ASSET_FILE_LIMIT_BYTES + 1)
     );
     expect(() => assemblePublisherAssets(oversized.app, oversized.publisher)).toThrow('exceeds 25 MiB');

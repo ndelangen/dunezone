@@ -27,8 +27,27 @@ Object.assign(globalThis, { global: globalThis, process: { env: {} } });
 const NativeDate = Date;
 const STORYBOOK_NOW = Date.parse('2026-01-01T12:00:00.000Z');
 class DeterministicStorybookDate extends NativeDate {
-  constructor(value?: string | number) {
-    super(value ?? STORYBOOK_NOW);
+  constructor(
+    ...args:
+      | []
+      | [value: string | number]
+      | [
+          year: number,
+          monthIndex: number,
+          date?: number,
+          hours?: number,
+          minutes?: number,
+          seconds?: number,
+          ms?: number,
+        ]
+  ) {
+    if (args.length === 0) {
+      super(STORYBOOK_NOW);
+    } else if (args.length === 1) {
+      super(args[0]);
+    } else {
+      super(...args);
+    }
   }
 
   static override now() {
@@ -327,7 +346,12 @@ async function runConvexHelperGate() {
 }
 
 async function runContextConformance(): Promise<ContextConformanceResult> {
+  const dateParts = [2020, 4, 3, 2, 1, 0, 9] as const;
   return {
+    date: {
+      deterministicDefault: new Date().getTime() === STORYBOOK_NOW,
+      multiArgumentMatchesNative: new Date(...dateParts).getTime() === new NativeDate(...dateParts).getTime(),
+    },
     ambient: await runAmbientContextBaseline(),
     explicit: await runExplicitFrameBaseline(),
     convexHelper: await runConvexHelperGate(),

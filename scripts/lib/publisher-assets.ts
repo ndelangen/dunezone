@@ -5,6 +5,7 @@ import {
   lstatSync,
   readdirSync,
   readFileSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
@@ -98,6 +99,13 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
 export function assemblePublisherAssets(appDirectory: string, publisherDirectory: string): PublisherAssetReport {
   assertDirectory(appDirectory, 'Application build');
   assertDirectory(publisherDirectory, 'Publisher capture build');
+
+  const captureEntries = new Set(['publisher-capture', 'publisher-capture.html']);
+  for (const entry of readdirSync(publisherDirectory, { withFileTypes: true })) {
+    if (!captureEntries.has(entry.name)) {
+      rmSync(path.join(publisherDirectory, entry.name), { recursive: true, force: true });
+    }
+  }
 
   for (const entry of readdirSync(appDirectory, { withFileTypes: true })) {
     cpSync(path.join(appDirectory, entry.name), path.join(publisherDirectory, entry.name), {

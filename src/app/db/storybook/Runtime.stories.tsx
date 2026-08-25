@@ -12,6 +12,8 @@ function assertContext(
   if (
     result.ambient.mismatches !== 0 ||
     result.explicit.mismatches !== 0 ||
+    !result.date.deterministicDefault ||
+    !result.date.multiArgumentMatchesNative ||
     result.convexHelper.status !== 'supported'
   ) {
     throw new Error(`The browser-local Convex context check failed: ${JSON.stringify(result)}`);
