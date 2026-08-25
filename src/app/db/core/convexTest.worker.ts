@@ -42,6 +42,7 @@ const aggregateModules = import.meta.glob([
 
 type TestWorld = ReturnType<typeof convexTest>;
 type World = { test: TestWorld; references: Map<string, string> };
+type WorldRequest = Exclude<WorkerRequest, { operation: 'concurrency' | 'networkProbe' | 'ping' | 'reset' }>;
 
 function resolveSeedObject(value: Record<string, unknown>, references: Map<string, string>) {
   if (typeof value.$seedRef === 'string') {
@@ -167,8 +168,9 @@ async function runRollbackProbe(): Promise<RollbackProbeResult> {
 }
 
 let world = createWorld([]);
+const unhandledRequest = Symbol('unhandledRequest');
 
-async function handleRequest(request: WorkerRequest): Promise<unknown> {
+async function handleLifecycleRequest(request: WorkerRequest): Promise<unknown | typeof unhandledRequest> {
   if (request.operation === 'ping') {
     return null;
   }
@@ -183,8 +185,10 @@ async function handleRequest(request: WorkerRequest): Promise<unknown> {
   if (request.operation === 'networkProbe') {
     return await runNetworkProbe();
   }
+  return unhandledRequest;
+}
 
-  const currentWorld = await world;
+async function handleWorldRequest(request: WorldRequest, currentWorld: World): Promise<unknown> {
   if (request.operation === 'httpProbe') {
     return await runHttpProbe(currentWorld);
   }
@@ -202,6 +206,14 @@ async function handleRequest(request: WorkerRequest): Promise<unknown> {
     return await mutateWorld(currentWorld, request.name, request.args, request.identity);
   }
   return await queryWorld(currentWorld, request.name, request.args, request.identity);
+}
+
+async function handleRequest(request: WorkerRequest): Promise<unknown> {
+  const lifecycleResult = await handleLifecycleRequest(request);
+  if (lifecycleResult !== unhandledRequest) {
+    return lifecycleResult;
+  }
+  return await handleWorldRequest(request as WorldRequest, await world);
 }
 
 let lane = Promise.resolve();
