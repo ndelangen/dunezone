@@ -88,6 +88,8 @@ Do not inline the worker. A separately emitted same-origin worker is compatible 
 
 The standalone production proof verifies Vite's worker and chunk behavior against the actual `storybook build` output under an HTTP server. A non-root deployment path was not tested. Storybook's iframe and manager have separate asset graphs, so that remains a release-specific check if the catalogue is hosted below a path prefix.
 
+The browser-mode Storybook test runner has another build-specific obligation. It must pre-bundle the Convex server dependencies before the suite starts. Without that list, Vite discovers the worker closure after the first story has run, re-optimizes its dependency cache, and reloads the browser suite. The worker-backed Rulesets tests passed in that failed CI run, but the reload broke two unrelated sheet stories with a stale dynamic-import URL. This is another version-sensitive list to maintain alongside the worker module maps.
+
 ## Determinism and repository cost
 
 The database replaces response fixtures, not scenario design. One compact seed should build a canonical world through database inserts or real mutations, with small overrides per story. That concentrates data and runs the same selection code as production.
@@ -115,6 +117,7 @@ The main risks are:
 5. **Source disclosure and accidental network access.** Server code becomes browser code, and actions run with the viewer's browser capabilities.
 6. **Seed complexity.** A believable reusable world is smaller than page response fixtures, but it is still maintained data and can become a second database population system.
 7. **Static-output rewriting.** The release depends on a transform tied to a private string inside `convex-test`; upstream storage-emulation changes can bypass or break it.
+8. **Optimizer coupling.** The browser test configuration must name the worker's server dependencies before Vite starts the suite, or dependency discovery can reload unrelated stories.
 
 The bounded feasibility spike succeeded, but the result should not become the repo-wide page-story foundation in its current form. Before making that commitment, prove story switching without state leakage, component-backed page queries through the retained bridge, and the intended deployment's non-root base path. Add focused tests for identity separation, nested `runQuery` and `runMutation`, rollback, timers, and concurrent RPC before trusting the async-context adapter.
 
