@@ -93,6 +93,52 @@ function FaqDetailPage() {
   return <LoadedFaqQuestion />;
 }
 
+type FaqQuestionCommands = ReturnType<typeof useFaqQuestionPage>;
+
+function AddAnswerForm({ createAnswer }: { createAnswer: FaqQuestionCommands['createAnswer'] }) {
+  const [answer, setAnswer] = useState('');
+
+  return (
+    <Stack
+      component="form"
+      gap="sm"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!answer.trim()) {
+          return;
+        }
+        void createAnswer
+          .run({ answer })
+          .then(() => setAnswer(''))
+          .catch(() => undefined);
+      }}
+    >
+      <FormattedTextInput
+        description="Add your answer (1 per person-you can edit it later)"
+        error={createAnswer.isError ? createAnswer.error?.message : undefined}
+        name="answer"
+        rows={3}
+        required
+        minLength={1}
+        placeholder="Your answer..."
+        value={answer}
+        onChange={setAnswer}
+      />
+      <Group gap="xs" wrap="nowrap">
+        <IconAction
+          label="Add answer"
+          variant="filled"
+          color="confirm"
+          size="lg"
+          type="submit"
+          disabled={createAnswer.isPending}
+          icon={<MessageSquarePlus size={16} aria-hidden />}
+        />
+      </Group>
+    </Stack>
+  );
+}
+
 function LoadedFaqQuestion() {
   const { rulesetSlug, questionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -105,7 +151,6 @@ function LoadedFaqQuestion() {
   );
 
   const [editing, setEditing] = useState(INITIAL_FAQ_EDITING_STATE);
-  const [newAnswer, setNewAnswer] = useState('');
   const editingSessionRef = useRef<FaqEditingSession>(undefined);
   const commandsRef = useRef({ faq });
   commandsRef.current = { faq };
@@ -279,45 +324,7 @@ function LoadedFaqQuestion() {
               )}
             </Stack>
 
-            {showAddAnswerForm && (
-              <Stack
-                component="form"
-                gap="sm"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!newAnswer.trim()) {
-                    return;
-                  }
-                  void faq.createAnswer
-                    .run({ answer: newAnswer })
-                    .then(() => setNewAnswer(''))
-                    .catch(() => undefined);
-                }}
-              >
-                <FormattedTextInput
-                  description="Add your answer (1 per person-you can edit it later)"
-                  error={faq.createAnswer.isError ? faq.createAnswer.error?.message : undefined}
-                  name="answer"
-                  rows={3}
-                  required
-                  minLength={1}
-                  placeholder="Your answer..."
-                  value={newAnswer}
-                  onChange={setNewAnswer}
-                />
-                <Group gap="xs" wrap="nowrap">
-                  <IconAction
-                    label="Add answer"
-                    variant="filled"
-                    color="confirm"
-                    size="lg"
-                    type="submit"
-                    disabled={faq.createAnswer.isPending}
-                    icon={<MessageSquarePlus size={16} aria-hidden />}
-                  />
-                </Group>
-              </Stack>
-            )}
+            {showAddAnswerForm ? <AddAnswerForm createAnswer={faq.createAnswer} /> : null}
 
             {hasUserAnswered && !showAddAnswerForm && (
               <p className={styles.hintBlock}>You&apos;ve answered. You can edit your answer below.</p>
