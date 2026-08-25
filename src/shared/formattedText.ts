@@ -6,7 +6,7 @@ const FORMATTED_TEXT_MARKS = [
   { delimiter: '*', mark: 'bold' },
 ] as const;
 
-export const FORMATTED_TEXT_PROFILES = ['prose', 'marks-only'] as const;
+const FORMATTED_TEXT_PROFILES = ['prose', 'marks-only'] as const;
 
 export type FormattedTextProfile = (typeof FORMATTED_TEXT_PROFILES)[number];
 
