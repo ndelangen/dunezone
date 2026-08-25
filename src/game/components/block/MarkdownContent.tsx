@@ -29,17 +29,21 @@ type InlineNodeOf<TBlock> = TBlock extends {
     : never;
 type InlineNode = InlineNodeOf<ParsedBlocks[number]>;
 
-function renderInline(nodes: readonly InlineNode[], keyPrefix: string): ReactNode[] {
+function renderInline(
+  nodes: readonly InlineNode[],
+  keyPrefix: string,
+  lineBreak: 'break' | 'space' = 'break'
+): ReactNode[] {
   return nodes.map((node, index) => {
     const key = `${keyPrefix}-${index}`;
     if (node.kind === 'text') {
       return node.value;
     }
     if (node.kind === 'line-break') {
-      return <br key={key} />;
+      return lineBreak === 'break' ? <br key={key} /> : ' ';
     }
 
-    const children = renderInline(node.children, key);
+    const children = renderInline(node.children, key, lineBreak);
     switch (node.mark) {
       case 'bold':
         return <strong key={key}>{children}</strong>;
@@ -54,31 +58,14 @@ function renderInline(nodes: readonly InlineNode[], keyPrefix: string): ReactNod
 function FormattedTextPrototype({ forceInline, value }: { forceInline?: boolean; value: string }) {
   const parsed = parseFormattedText(value);
   if (forceInline) {
-    return parsed.blocks.map((block, blockIndex) => {
-      if (block.kind === 'paragraph') {
-        return (
-          <Fragment key={`paragraph-${blockIndex}`}>
-            {blockIndex > 0 ? (
-              <>
-                <br />
-                <br />
-              </>
-            ) : null}
-            {renderInline(block.children, `paragraph-${blockIndex}`)}
-          </Fragment>
-        );
-      }
-      return (
-        <span key={`list-${blockIndex}`}>
-          {block.items.map((item, itemIndex) => (
-            <span key={`item-${itemIndex}`}>
-              {blockIndex > 0 || itemIndex > 0 ? <br /> : null}•{' '}
-              {renderInline(item.children, `list-${blockIndex}-item-${itemIndex}`)}
-            </span>
-          ))}
-        </span>
-      );
-    });
+    const [block] = parsed.blocks;
+    if (block === undefined) {
+      return null;
+    }
+    if (parsed.blocks.length !== 1 || block.kind !== 'paragraph') {
+      throw new Error('Inline formatted text cannot contain multiple blocks or lists');
+    }
+    return <Fragment>{renderInline(block.children, 'inline', 'space')}</Fragment>;
   }
 
   return parsed.blocks.map((block, blockIndex) =>
@@ -94,19 +81,24 @@ function FormattedTextPrototype({ forceInline, value }: { forceInline?: boolean;
   );
 }
 
-export const MarkdownContent: FC<
-  PropsWithChildren<{
-    value?: string;
-    forceInline?: boolean;
-    forceBlock?: boolean;
-  }>
-> = ({ forceBlock, forceInline, value = '', children }) => {
-  const v = `${value}${onlyText(children)}`.replace(/^(\w+.+)(\n)(^\w+.+)/gim, '$1  \n$3\n');
+type MarkdownContentProps = PropsWithChildren<{
+  value?: string;
+  forceInline?: boolean;
+  forceBlock?: boolean;
+}>;
+
+export const MarkdownContent: FC<MarkdownContentProps> = ({ forceBlock, forceInline, value = '', children }) => {
+  const source = `${value}${onlyText(children)}`;
   const prototypeMode = useContext(PrototypeRenderModeContext);
 
   if (prototypeMode === 'formatted-text') {
-    return <FormattedTextPrototype forceInline={forceInline} value={v} />;
+    return <FormattedTextPrototype forceInline={forceInline} value={source} />;
   }
 
+  const v = source.replace(/^(\w+.+)(\n)(^\w+.+)/gim, '$1  \n$3\n');
   return <Markdown options={{ disableParsingRawHTML: true, forceBlock, forceInline }}>{v}</Markdown>;
 };
+
+export const InlineMarkdownContent: FC<Omit<MarkdownContentProps, 'forceBlock' | 'forceInline'>> = (props) => (
+  <MarkdownContent {...props} forceInline />
+);

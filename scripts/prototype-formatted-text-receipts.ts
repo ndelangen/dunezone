@@ -295,8 +295,12 @@ const receipts: Receipt[] = [];
 let emperorChoamBefore: Buffer | undefined;
 let emperorChoamAfter: Buffer | undefined;
 let emperorChoamReceipt: Receipt | undefined;
+let richeseBefore: Buffer | undefined;
+let richeseAfter: Buffer | undefined;
+let richeseReceipt: Receipt | undefined;
 try {
   for (const row of [...liveFactions].sort((left, right) => left.slug.localeCompare(right.slug))) {
+    console.log(`Capturing faction ${row.slug}`);
     const faction = FactionInputSchema.parse(row.data);
     const input = snapshot('faction_sheet', {
       factionId: row._id,
@@ -322,6 +326,11 @@ try {
         emperorChoamAfter = candidate;
         emperorChoamReceipt = receipt;
       }
+      if (row.slug === 'richese' && pageIndex === 0) {
+        richeseBefore = current;
+        richeseAfter = candidate;
+        richeseReceipt = receipt;
+      }
       if (pageIndex === 0 && (factionSlugs as readonly string[]).includes(row.slug)) {
         factionRowsForSheet.push({ current, candidate, receipt });
       }
@@ -329,6 +338,7 @@ try {
   }
 
   for (const row of [...liveCards].sort((left, right) => left.slug.localeCompare(right.slug))) {
+    console.log(`Capturing treachery card ${row.slug}`);
     const card = TreacheryAsset.parse(row.data);
     const input = snapshot('card-treachery', {
       assetId: row._id,
@@ -356,13 +366,40 @@ try {
 }
 
 invariant(emperorChoamBefore && emperorChoamAfter && emperorChoamReceipt, 'Missing Emperor-CHOAM comparison');
+const emperorChoamMetadata = await sharp(emperorChoamBefore).metadata();
+invariant(
+  emperorChoamMetadata.width !== undefined && emperorChoamMetadata.height !== undefined,
+  'Missing page dimensions'
+);
+const emperorChoamHeader = {
+  left: 0,
+  top: 0,
+  width: emperorChoamMetadata.width,
+  height: Math.min(680, emperorChoamMetadata.height),
+};
+const emperorChoamBeforeHeader = await sharp(emperorChoamBefore).extract(emperorChoamHeader).png().toBuffer();
+const emperorChoamAfterHeader = await sharp(emperorChoamAfter).extract(emperorChoamHeader).png().toBuffer();
+const emperorChoamHeaderComparison = await comparePixels(emperorChoamBeforeHeader, emperorChoamAfterHeader);
 const emperorChoamFocus = { left: 0, top: 550, width: 1100, height: 1650 };
 const emperorChoamBeforeFocus = await sharp(emperorChoamBefore).extract(emperorChoamFocus).png().toBuffer();
 const emperorChoamAfterFocus = await sharp(emperorChoamAfter).extract(emperorChoamFocus).png().toBuffer();
 await Promise.all([
+  writeFile(path.join(receiptDirectory, 'emperor-choam-header-before.png'), emperorChoamBeforeHeader),
+  writeFile(path.join(receiptDirectory, 'emperor-choam-header-after.png'), emperorChoamAfterHeader),
   writeFile(path.join(receiptDirectory, 'emperor-choam-before.png'), emperorChoamBeforeFocus),
   writeFile(path.join(receiptDirectory, 'emperor-choam-after.png'), emperorChoamAfterFocus),
 ]);
+await contactSheet(
+  'emperor-choam-header-before-after.jpg',
+  'Emperor-CHOAM inline fields: Markdown before and formatted text after',
+  [
+    {
+      current: emperorChoamBeforeHeader,
+      candidate: emperorChoamAfterHeader,
+      receipt: { ...emperorChoamReceipt, label: 'page 1', ...emperorChoamHeaderComparison },
+    },
+  ]
+);
 await contactSheet('emperor-choam-before-after.jpg', 'Emperor-CHOAM list: Markdown before and formatted text after', [
   {
     current: emperorChoamBeforeFocus,
@@ -370,6 +407,34 @@ await contactSheet('emperor-choam-before-after.jpg', 'Emperor-CHOAM list: Markdo
     receipt: emperorChoamReceipt,
   },
 ]);
+
+invariant(richeseBefore && richeseAfter && richeseReceipt, 'Missing Richese comparison');
+const richeseMetadata = await sharp(richeseBefore).metadata();
+invariant(richeseMetadata.width !== undefined && richeseMetadata.height !== undefined, 'Missing Richese dimensions');
+const richeseHeader = {
+  left: 0,
+  top: 0,
+  width: richeseMetadata.width,
+  height: Math.min(680, richeseMetadata.height),
+};
+const richeseBeforeHeader = await sharp(richeseBefore).extract(richeseHeader).png().toBuffer();
+const richeseAfterHeader = await sharp(richeseAfter).extract(richeseHeader).png().toBuffer();
+const richeseHeaderComparison = await comparePixels(richeseBeforeHeader, richeseAfterHeader);
+await Promise.all([
+  writeFile(path.join(receiptDirectory, 'richese-header-before.png'), richeseBeforeHeader),
+  writeFile(path.join(receiptDirectory, 'richese-header-after.png'), richeseAfterHeader),
+]);
+await contactSheet(
+  'richese-header-before-after.jpg',
+  'Richese inline setup: Markdown before and formatted text after',
+  [
+    {
+      current: richeseBeforeHeader,
+      candidate: richeseAfterHeader,
+      receipt: { ...richeseReceipt, label: 'page 1', ...richeseHeaderComparison },
+    },
+  ]
+);
 
 await contactSheet(
   'faction-sheets.jpg',
@@ -390,6 +455,8 @@ The full sweep covers every live faction and treachery card in the clone. The co
 
 - [Faction sheet comparisons](./faction-sheets.jpg)
 - [Treachery card comparisons](./treachery-cards.jpg)
+- [Focused Emperor-CHOAM inline fields before and after](./emperor-choam-header-before-after.jpg)
+- [Focused Richese inline setup before and after](./richese-header-before-after.jpg)
 - [Focused Emperor-CHOAM before and after](./emperor-choam-before-after.jpg)
 
 Sweep summary:

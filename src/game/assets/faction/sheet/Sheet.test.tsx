@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../components/block/MarkdownContent', () => ({
+  InlineMarkdownContent: ({ children }: { children?: ReactNode }) => <>{children}</>,
   MarkdownContent: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 vi.mock('../leader/Leader', () => ({

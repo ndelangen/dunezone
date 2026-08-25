@@ -2,7 +2,7 @@ import type { FactionRender } from '@shared/factions/schema';
 import type { z } from 'zod';
 
 import { CAPTURE_PROTOCOL } from '../../../../shared/asset-publishing/capture-protocol';
-import { MarkdownContent } from '../../../components/block/MarkdownContent';
+import { InlineMarkdownContent, MarkdownContent } from '../../../components/block/MarkdownContent';
 import { isLight } from '../../utils/contrast';
 import { LeaderToken } from '../leader/Leader';
 import { Token } from '../token/Token';
@@ -56,13 +56,14 @@ export function FactionSheetPage1(props: SheetProps) {
               ·
             </span>
             <span data-faction-start-instructions>
-              <MarkdownContent forceInline>{props.rules.startText}</MarkdownContent>
+              <InlineMarkdownContent>{props.rules.startText}</InlineMarkdownContent>
             </span>
           </>
         ) : null}
       </div>
       <div className={styles.revival}>
-        <strong className={styles.head}>Revival:</strong> <MarkdownContent>{props.rules.revivalText}</MarkdownContent>
+        <strong className={styles.head}>Revival:</strong>{' '}
+        <InlineMarkdownContent>{props.rules.revivalText}</InlineMarkdownContent>
       </div>
       <div className={styles.rules}>
         <div className={styles.subtitle}>Advantages</div>
