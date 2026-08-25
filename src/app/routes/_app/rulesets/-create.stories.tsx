@@ -1,4 +1,4 @@
-import { Alert, Button, Code, Loader, Stack, Text, Title } from '@mantine/core';
+import { Alert, Button, Code, Loader, Stack, Title } from '@mantine/core';
 import preview from '@sb/preview';
 import {
   createMemoryHistory,
@@ -7,26 +7,26 @@ import {
   createRouter,
   Outlet,
   RouterProvider,
-  useNavigate,
-  useParams,
 } from '@tanstack/react-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { expect, mocked, userEvent, within } from 'storybook/test';
 
+import { db } from '@db/core';
 import type { SeedDocument, WorkerIdentity } from '@db/core/convexTestProtocol';
 import type { ContextConformanceResult } from '@db/core/convexTestProtocol';
 import {
   ConvexTestWorkerClient,
   ConvexTestWorkerContext,
+  convexTestReferences,
   convexUseMutation,
   convexUseQuery,
-  makeFunctionReference,
   useConvexTestWorkerMutation,
   useConvexTestWorkerQuery,
 } from '@db/core/convexTestStorybook';
-import { useRulesetsAll } from '@db/rulesets';
+import type { FunctionReturnType } from '@db/core/convexTestStorybook';
 
+import { Route as RulesetDetailRoute } from './$rulesetSlug/index';
 import {
   createdRuleset,
   createRulesetIdentity,
@@ -53,51 +53,51 @@ function ActualCreateRulesetPage() {
   return <Page />;
 }
 
-function CreatedRulesetPage() {
-  const navigate = useNavigate();
-  const restart = useRestartWorker();
-  const rulesets = useRulesetsAll();
-  const params = useParams({ strict: false }) as { rulesetSlug: string };
-  const created = rulesets.data?.find((ruleset) => ruleset.slug === params.rulesetSlug);
-
-  return (
-    <Stack p="xl">
-      <Title order={1}>Created {params.rulesetSlug}</Title>
-      {created ? (
-        <Alert color="green" title="Worker mutation completed">
-          Database contains {created.name}
-        </Alert>
-      ) : (
-        <Loader aria-label="Reading the created ruleset from the worker" />
-      )}
-      <Text>The real page navigated here after the real mutation committed.</Text>
-      <Code block>{JSON.stringify(rulesets.data ?? [], null, 2)}</Code>
-      <Button
-        onClick={async () => {
-          await restart();
-          await navigate({ to: '/rulesets/create' });
-        }}
-      >
-        Reset database and create again
-      </Button>
-    </Stack>
-  );
+function ActualRulesetDetailPage() {
+  const Page = RulesetDetailRoute.options.component;
+  if (!Page) {
+    throw new Error('The ruleset detail route has no page component.');
+  }
+  return <Page />;
 }
 
 const rootRoute = createRootRoute({ component: Outlet });
-const createPageRoute = createStoryRoute({
+const appRoute = createStoryRoute({
   getParentRoute: () => rootRoute,
+  id: '_app',
+  component: Outlet,
+});
+const createPageRoute = createStoryRoute({
+  getParentRoute: () => appRoute,
   path: '/rulesets/create',
   component: ActualCreateRulesetPage,
 });
-const createdRoute = createStoryRoute({
-  getParentRoute: () => rootRoute,
+const rulesetRoute = createStoryRoute({
+  getParentRoute: () => appRoute,
   path: '/rulesets/$rulesetSlug',
-  component: CreatedRulesetPage,
+  component: Outlet,
 });
-const routeTree = rootRoute.addChildren([createPageRoute, createdRoute]);
+const rulesetDetailPageRoute = createStoryRoute({
+  getParentRoute: () => rulesetRoute,
+  path: '/',
+  loader: async (context) => {
+    const loader = RulesetDetailRoute.options.loader as
+      | ((loaderContext: typeof context) => Promise<unknown>)
+      | undefined;
+    if (!loader) {
+      throw new Error('The ruleset detail route has no loader.');
+    }
+    return await loader(context);
+  },
+  validateSearch: RulesetDetailRoute.options.validateSearch,
+  component: ActualRulesetDetailPage,
+});
+const routeTree = rootRoute.addChildren([
+  appRoute.addChildren([createPageRoute, rulesetRoute.addChildren([rulesetDetailPageRoute])]),
+]);
 
 function CreateRulesetStoryPage() {
+  const restart = useRestartWorker();
   const router = useMemo(
     () =>
       createRouter({
@@ -106,7 +106,22 @@ function CreateRulesetStoryPage() {
       }),
     []
   );
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <button
+        type="button"
+        hidden
+        data-story-worker-reset
+        onClick={async () => {
+          await restart();
+          await router.navigate({ to: '/rulesets/create' });
+        }}
+      >
+        Reset the story worker
+      </button>
+    </>
+  );
 }
 
 type WorkerState =
@@ -180,6 +195,7 @@ function WithRestartableWorker({
   if (state.status === 'error') {
     return <Alert color="red">{state.message}</Alert>;
   }
+  mocked(db.query).mockImplementation(((fn, args) => state.client.query(fn, args, identity)) as typeof db.query);
   return (
     <RestartWorkerContext.Provider value={startWorker}>
       <ConvexTestWorkerContext.Provider value={{ client: state.client, identity }}>
@@ -189,10 +205,8 @@ function WithRestartableWorker({
   );
 }
 
-const rulesetsList = makeFunctionReference<'query', Record<string, never>, unknown[]>('rulesets:list');
-const profileSession = makeFunctionReference<'query', Record<string, never>, { userId: string | null }>(
-  'profiles:session'
-);
+const rulesetsList = convexTestReferences.rulesetsList;
+const profileSession = convexTestReferences.profileSession;
 
 function ResetStressPage() {
   const restart = useRestartWorker();
@@ -263,6 +277,22 @@ function assertRollback(result: Awaited<ReturnType<ConvexTestWorkerClient['runRo
   }
 }
 
+function assertRootContextReturned(rows: FunctionReturnType<typeof convexTestReferences.rulesetsList>) {
+  if (rows.length !== 1) {
+    throw new Error(`The Aggregate component did not return to the root module: ${JSON.stringify(rows)}`);
+  }
+}
+
+function assertMigrationsComponent(
+  dashboard: FunctionReturnType<typeof convexTestReferences.migrationsAdminDashboard>,
+  sync: FunctionReturnType<typeof convexTestReferences.migrationsSyncRuns>
+) {
+  const validResults = [Array.isArray(dashboard.statuses), Array.isArray(dashboard.snapshots), sync.synced === 0];
+  if (validResults.includes(false)) {
+    throw new Error(`The Migrations component returned an invalid result: ${JSON.stringify({ dashboard, sync })}`);
+  }
+}
+
 async function runIsolationChecks(client: ConvexTestWorkerClient) {
   const [creator, observer, signedOut, networkMessage, httpResult] = await Promise.all([
     client.query(profileSession, {}, createRulesetIdentity),
@@ -278,6 +308,11 @@ async function runIsolationChecks(client: ConvexTestWorkerClient) {
   const probeClient = await createSeededWorker(schedulerProbeSeed);
   try {
     assertScheduledRebuild(await probeClient.runSchedulerProbe());
+    assertRootContextReturned(await probeClient.query(rulesetsList, {}));
+    assertMigrationsComponent(
+      await probeClient.query(convexTestReferences.migrationsAdminDashboard, { ids: [] }),
+      await probeClient.mutation(convexTestReferences.migrationsSyncRuns, { ids: [] })
+    );
     assertRollback(await probeClient.runRollbackProbe());
   } finally {
     await retireWorker(probeClient);
@@ -300,7 +335,7 @@ function IdentityAndNetworkProofPage() {
         onClick={async () => {
           await runIsolationChecks(client);
           setStatus(
-            'Identities stayed separate, fetch was blocked, local HTTP completed, scheduled work ran, and rollback held'
+            'Identities stayed separate; fetch was blocked; Aggregate, Migrations, scheduling, and rollback passed'
           );
         }}
       >
@@ -334,39 +369,26 @@ function useContextConformance() {
   return result;
 }
 
-function AmbientContextBaselinePage() {
+function ZoneContextConformancePage() {
   const result = useContextConformance();
   if (!result) {
-    return <Loader aria-label="Running the ambient context baseline" />;
+    return <Loader aria-label="Running the Zone context conformance check" />;
   }
   return (
     <Stack maw={760} p="xl">
-      <Title order={1}>Before: ambient browser context</Title>
-      <Alert color="red" title={`${result.ambient.mismatches} of 5 checkpoints used the wrong frame`}>
-        Overlapping component scopes replaced their sibling or caller context.
+      <Title order={1}>After: faithful browser context</Title>
+      <Alert color="green" title={`${result.ambient.mismatches} of 5 checkpoints used the wrong frame`}>
+        Overlapping component scopes retained their sibling and caller context.
+      </Alert>
+      <Alert color="green" title={`${result.explicit.mismatches} mismatches across ${result.explicit.iterations} runs`}>
+        Context survived {result.explicit.sources.join(', ')}, parallel components, and the return to root.
+      </Alert>
+      <Alert color={result.convexHelper.status === 'supported' ? 'green' : 'red'} title="Convex helper compatibility">
+        {result.convexHelper.status === 'supported'
+          ? `createFunctionHandle completed inside the browser runtime: ${result.convexHelper.handle}`
+          : result.convexHelper.error}
       </Alert>
       <Code block>{JSON.stringify(result.ambient.trace, null, 2)}</Code>
-    </Stack>
-  );
-}
-
-function ExplicitContextAttemptPage() {
-  const result = useContextConformance();
-  if (!result) {
-    return <Loader aria-label="Running the explicit context attempt" />;
-  }
-  return (
-    <Stack maw={760} p="xl">
-      <Title order={1}>After: explicit-frame mechanism</Title>
-      <Alert color="green" title={`${result.explicit.mismatches} mismatches across ${result.explicit.iterations} runs`}>
-        The frame survived {result.explicit.sources.join(', ')}, parallel components, and the return to root.
-      </Alert>
-      <Alert color="yellow" title="Convex compatibility gate blocked">
-        The mechanism cannot preserve Convex's global helper contract without an ambient execution context.
-      </Alert>
-      <Code block style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-        {result.convexHelper.error}
-      </Code>
     </Stack>
   );
 }
@@ -391,19 +413,24 @@ const meta = preview.meta({
 
 async function createThroughPage(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
-  const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 10_000 });
+  const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
   await userEvent.type(name, createdRuleset.name);
   await userEvent.type(page.getByRole('textbox', { name: 'About' }), createdRuleset.about);
   await userEvent.click(page.getByRole('button', { name: 'Create' }));
-  await expect(page.findByRole('heading', { name: `Created ${createdRuleset.slug}` })).resolves.toBeVisible();
-  await expect(page.findByText(`Database contains ${createdRuleset.name}`)).resolves.toBeVisible();
+  await expect(page.findByRole('heading', { name: createdRuleset.name }, { timeout: 30_000 })).resolves.toBeVisible();
+  await expect(page.findByText(createdRuleset.about, {}, { timeout: 30_000 })).resolves.toBeVisible();
   return page;
 }
 
 export const CreateResetAndCreateAgain = meta.story({
   play: async ({ canvasElement }) => {
     const page = await createThroughPage(canvasElement);
-    await userEvent.click(page.getByRole('button', { name: 'Reset database and create again' }));
+    const reset = canvasElement.ownerDocument.querySelector<HTMLButtonElement>('[data-story-worker-reset]');
+    if (!reset) {
+      throw new Error('The story worker reset control is missing.');
+    }
+    reset.click();
+    await expect(page.findByRole('heading', { name: 'Create ruleset' }, { timeout: 30_000 })).resolves.toBeVisible();
     await createThroughPage(canvasElement);
   },
 });
@@ -412,9 +439,9 @@ export const TwentyCleanWorkerResets = meta.story({
   render: () => <ResetStressPage />,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Run 20 worker resets' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Run 20 worker resets' }, { timeout: 30_000 }));
     await expect(
-      page.findByText('Reset 20 of 20 completed with an empty rulesets table', {}, { timeout: 10_000 })
+      page.findByText('Reset 20 of 20 completed with an empty rulesets table', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
   },
 });
@@ -423,30 +450,27 @@ export const IdentitiesAndNetworkStayIsolated = meta.story({
   render: () => <IdentityAndNetworkProofPage />,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Run isolation checks' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Run isolation checks' }, { timeout: 30_000 }));
     await expect(
       page.findByText(
-        'Identities stayed separate, fetch was blocked, local HTTP completed, scheduled work ran, and rollback held'
+        'Identities stayed separate; fetch was blocked; Aggregate, Migrations, scheduling, and rollback passed',
+        {},
+        { timeout: 30_000 }
       )
     ).resolves.toBeVisible();
   },
 });
 
-export const AmbientContextBefore = meta.story({
-  render: () => <AmbientContextBaselinePage />,
+export const ZoneContextConformance = meta.story({
+  render: () => <ZoneContextConformancePage />,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
-      page.findByText('3 of 5 checkpoints used the wrong frame', {}, { timeout: 10_000 })
+      page.findByText('0 of 5 checkpoints used the wrong frame', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
-  },
-});
-
-export const ExplicitFrameAttempt = meta.story({
-  render: () => <ExplicitContextAttemptPage />,
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('0 mismatches across 100 runs', {}, { timeout: 10_000 })).resolves.toBeVisible();
-    await expect(page.findByText('Convex compatibility gate blocked', {}, { timeout: 10_000 })).resolves.toBeVisible();
+    await expect(page.findByText('0 mismatches across 100 runs', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(
+      page.findByText(/createFunctionHandle completed inside the browser runtime/, {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
   },
 });

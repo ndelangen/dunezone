@@ -16,6 +16,7 @@ import * as sizes from '../src/game/data/sizes';
 sb.mock(import('convex/react'));
 sb.mock(import('convex/browser'));
 sb.mock(import('@convex-dev/auth/react'));
+sb.mock(import('../src/app/db/core/index.ts'));
 
 export default definePreview({
   addons: [addonDocs()],

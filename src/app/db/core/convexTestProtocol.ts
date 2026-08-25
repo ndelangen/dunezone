@@ -1,6 +1,7 @@
-import type { WithoutSystemFields } from 'convex/server';
+import type { FunctionReturnType, WithoutSystemFields } from 'convex/server';
 import type { GenericId } from 'convex/values';
 
+import type { api } from '../../../../convex/_generated/api';
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 
 type SeedReference = { $seedRef: string };
@@ -30,16 +31,8 @@ export type WorkerIdentity = {
   subjectKey: string;
 };
 
-type StatisticsTotals = {
-  answers: number;
-  factions: number;
-  questions: number;
-  rulesets: number;
-  users: number;
-};
-
 export type SchedulerProbeResult = {
-  after: StatisticsTotals;
+  after: FunctionReturnType<typeof api.statistics.getGlobalTotals>;
 };
 
 export type RollbackProbeResult = {
@@ -65,7 +58,8 @@ export type ContextConformanceResult = {
   };
   convexHelper: {
     error: string;
-    status: 'blocked';
+    handle: string | null;
+    status: 'blocked' | 'supported';
   };
 };
 
@@ -78,15 +72,6 @@ export type WorkerRequest =
   | { id: number; operation: 'contextConformance' }
   | { id: number; operation: 'query'; name: string; args: unknown; identity?: WorkerIdentity }
   | { id: number; operation: 'mutation'; name: string; args: unknown; identity?: WorkerIdentity }
-  | { id: number; operation: 'insert'; documents: SeedDocument[] }
-  | { id: number; operation: 'reset'; seed: SeedDocument[] }
-  | {
-      id: number;
-      operation: 'concurrency';
-      name: string;
-      args: unknown;
-      first: SeedDocument[];
-      second: SeedDocument[];
-    };
+  | { id: number; operation: 'reset'; seed: SeedDocument[] };
 
 export type WorkerResponse = { id: number; ok: true; result: unknown } | { id: number; ok: false; error: string };

@@ -1,14 +1,19 @@
+import 'zone.js';
+
 type Callback<Args extends unknown[], Result> = (...args: Args) => Result;
 
-function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
-  return typeof value === 'object' && value !== null && 'then' in value;
-}
+const missingStore = Symbol('missing AsyncLocalStorage store');
+let nextStorageId = 0;
 
+/* PROTOTYPE: Maps Node's AsyncLocalStorage contract onto Zone.js.
+   This is valid only when every async function in the worker closure has been downlevelled to
+   Promise continuations. Native await bypasses ZoneAwarePromise. */
 export class AsyncLocalStorage<Store> {
-  private current: Store | undefined;
+  private readonly key = `dunezone.asyncLocalStorage.${nextStorageId++}`;
 
   getStore(): Store | undefined {
-    return this.current;
+    const store = Zone.current.get(this.key) as Store | typeof missingStore | undefined;
+    return store === missingStore ? undefined : store;
   }
 
   run<Args extends unknown[], Result>(store: Store, callback: Callback<Args, Result>, ...args: Args): Result {
@@ -16,28 +21,18 @@ export class AsyncLocalStorage<Store> {
   }
 
   exit<Args extends unknown[], Result>(callback: Callback<Args, Result>, ...args: Args): Result {
-    return this.withStore(undefined, callback, args);
+    return this.withStore(missingStore, callback, args);
   }
 
   private withStore<Args extends unknown[], Result>(
-    store: Store | undefined,
+    store: Store | typeof missingStore,
     callback: Callback<Args, Result>,
     args: Args
   ): Result {
-    const previous = this.current;
-    this.current = store;
-    try {
-      const result = callback(...args);
-      if (isPromiseLike(result)) {
-        return Promise.resolve(result).finally(() => {
-          this.current = previous;
-        }) as Result;
-      }
-      this.current = previous;
-      return result;
-    } catch (error) {
-      this.current = previous;
-      throw error;
-    }
+    const zone = Zone.current.fork({
+      name: this.key,
+      properties: { [this.key]: store },
+    });
+    return zone.run(callback, undefined, args);
   }
 }

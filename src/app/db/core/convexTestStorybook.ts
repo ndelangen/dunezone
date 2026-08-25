@@ -1,8 +1,19 @@
 import { useMutation as convexUseMutation, useQuery as convexUseQuery } from 'convex/react';
 import { getFunctionName, makeFunctionReference } from 'convex/server';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { convexToJson } from 'convex/values';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 
+import { api } from '../../../../convex/_generated/api';
 import type {
   ContextConformanceResult,
   RollbackProbeResult,
@@ -75,20 +86,6 @@ export class ConvexTestWorkerClient {
     this.notifyQueries();
   };
 
-  insert = async (documents: SeedDocument[]) => {
-    await this.request({ operation: 'insert', documents });
-    this.notifyQueries();
-  };
-
-  runConcurrencyProbe = async (first: SeedDocument[], second: SeedDocument[]) =>
-    await this.request({
-      operation: 'concurrency',
-      name: 'rulesets:list',
-      args: {},
-      first,
-      second,
-    });
-
   runNetworkProbe = async () => (await this.request({ operation: 'networkProbe' })) as string;
 
   runHttpProbe = async () =>
@@ -146,12 +143,21 @@ export type ConvexTestWorkerSession = {
 
 export const ConvexTestWorkerContext = createContext<ConvexTestWorkerSession | null>(null);
 
-export function useConvexTestWorkerSession() {
+function useConvexTestWorkerSession() {
   const session = useContext(ConvexTestWorkerContext);
   if (!session) {
     throw new Error('The story has no Convex worker client.');
   }
   return session;
+}
+
+function useStableConvexArgs<Query extends FunctionReference<'query'>>(args: FunctionArgs<Query>) {
+  const serialized = JSON.stringify(convexToJson(args));
+  const stable = useRef<{ serialized: string; value: FunctionArgs<Query> } | undefined>(undefined);
+  if (!stable.current || stable.current.serialized !== serialized) {
+    stable.current = { serialized, value: args };
+  }
+  return stable.current.value;
 }
 
 export function useConvexTestWorkerQuery<Query extends FunctionReference<'query'>>(
@@ -162,8 +168,7 @@ export function useConvexTestWorkerQuery<Query extends FunctionReference<'query'
   const revision = useSyncExternalStore(client.subscribe, client.getRevision, client.getRevision);
   const name = getFunctionName(query);
   const stableQuery = useMemo(() => makeFunctionReference(name) as Query, [name]);
-  const serializedArgs = JSON.stringify(args);
-  const stableArgs = useMemo(() => JSON.parse(serializedArgs) as FunctionArgs<Query>, [serializedArgs]);
+  const stableArgs = useStableConvexArgs(args);
   const [value, setValue] = useState<FunctionReturnType<Query>>();
   const [error, setError] = useState<Error | null>(null);
 
@@ -202,5 +207,12 @@ export function useConvexTestWorkerMutation<Mutation extends FunctionReference<'
   );
 }
 
-export { convexUseMutation, convexUseQuery, makeFunctionReference };
+export const convexTestReferences = {
+  migrationsAdminDashboard: api.migrations.adminDashboard,
+  migrationsSyncRuns: api.migrations.syncMigrationRuns,
+  profileSession: api.profiles.session,
+  rulesetsList: api.rulesets.list,
+};
+
+export { convexUseMutation, convexUseQuery };
 export type { FunctionArgs, FunctionReference, FunctionReturnType };

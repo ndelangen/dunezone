@@ -1,6 +1,30 @@
 import type { SeedDocument, WorkerIdentity } from '@db/core/convexTestProtocol';
 
-import { rulesetSeed } from './-index.stories.fixture';
+function rulesetSeed(name: string, createdAt: string, key: string): SeedDocument[] {
+  const ownerKey = `${key}-owner`;
+  return [
+    {
+      key: ownerKey,
+      table: 'users',
+      value: { name: `${name} owner` },
+    },
+    {
+      key,
+      table: 'rulesets',
+      value: {
+        owner_id: { $seedRef: ownerKey },
+        name,
+        slug: name.toLowerCase().replaceAll(' ', '-'),
+        about: `A deterministic Storybook record for ${name}.`,
+        image_cover: null,
+        group_id: null,
+        created_at: createdAt,
+        updated_at: createdAt,
+        is_deleted: false,
+      },
+    },
+  ];
+}
 
 export const createRulesetIdentity = {
   name: 'Storybook creator',

@@ -10,6 +10,7 @@ import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 import type { DatabaseWriter } from '../../../../convex/_generated/server';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
+import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
 import type {
   ContextConformanceResult,
   ContextTraceEntry,
@@ -44,12 +45,15 @@ const aggregateModules = import.meta.glob([
   '!../../../../node_modules/@convex-dev/aggregate/src/component/**/*.test.ts',
 ]);
 
+const migrationsModules = import.meta.glob([
+  '../../../../node_modules/@convex-dev/migrations/src/component/**/*.{ts,js}',
+  '!../../../../node_modules/@convex-dev/migrations/src/component/convex.config.ts',
+  '!../../../../node_modules/@convex-dev/migrations/src/component/**/*.test.ts',
+]);
+
 type TestWorld = ReturnType<typeof convexTest>;
 type World = { test: TestWorld; references: Map<string, string> };
-type WorldRequest = Exclude<
-  WorkerRequest,
-  { operation: 'concurrency' | 'contextConformance' | 'networkProbe' | 'ping' | 'reset' }
->;
+type WorldRequest = Exclude<WorkerRequest, { operation: 'contextConformance' | 'networkProbe' | 'ping' | 'reset' }>;
 
 function resolveSeedObject(value: Record<string, unknown>, references: Map<string, string>) {
   if (typeof value.$seedRef === 'string') {
@@ -101,6 +105,7 @@ async function createWorld(seed: SeedDocument[]): Promise<World> {
   world.test.registerComponent('statistics', aggregateSchema, aggregateModules);
   world.test.registerComponent('profileActivity', aggregateSchema, aggregateModules);
   world.test.registerComponent('profileDiscovery', aggregateSchema, aggregateModules);
+  world.test.registerComponent('migrations', migrationsSchema, migrationsModules);
   await insertDocuments(world, seed);
   return world;
 }
@@ -124,16 +129,6 @@ async function queryWorld(world: World, name: string, args: unknown, identity?: 
 async function mutateWorld(world: World, name: string, args: unknown, identity?: WorkerIdentity) {
   const mutation = makeFunctionReference<'mutation', Record<string, unknown>, unknown>(name);
   return await clientFor(world, identity).mutation(mutation, args as Record<string, unknown>);
-}
-
-async function runConcurrencyProbe(request: Extract<WorkerRequest, { operation: 'concurrency' }>) {
-  const first = await createWorld([]);
-  const second = await createWorld([]);
-  await Promise.all([insertDocuments(first, request.first, 5), insertDocuments(second, request.second, 25)]);
-  return await Promise.all([
-    queryWorld(first, request.name, request.args),
-    queryWorld(second, request.name, request.args),
-  ]);
 }
 
 async function runNetworkProbe() {
@@ -260,9 +255,9 @@ async function runExplicitFrameBaseline() {
     const expected = [statistics, discovery, root];
     const actual = [statisticsAfter, discoveryAfter, returnedRoot];
     mismatches += actual.filter((frame, index) => frame !== expected[index]).length;
-    if (statisticsAfter.auth !== null || discoveryAfter.auth !== null || returnedRoot.auth !== root.auth) {
-      mismatches += 1;
-    }
+    const expectedAuth = [null, null, root.auth];
+    const actualAuth = [statisticsAfter.auth, discoveryAfter.auth, returnedRoot.auth];
+    mismatches += Number(actualAuth.some((auth, index) => auth !== expectedAuth[index]));
   }
   return {
     iterations,
@@ -274,14 +269,20 @@ async function runExplicitFrameBaseline() {
 async function runConvexHelperGate() {
   const reference = makeFunctionReference<'query'>('rulesets:list');
   try {
-    await createFunctionHandle(reference);
+    const helperWorld = await createWorld([]);
+    const handle = await helperWorld.test.run(async () => {
+      await Promise.resolve();
+      return await createFunctionHandle(reference);
+    });
     return {
-      error: 'createFunctionHandle unexpectedly accepted no ambient Convex context.',
-      status: 'blocked' as const,
+      error: '',
+      handle,
+      status: 'supported' as const,
     };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : String(error),
+      handle: null,
       status: 'blocked' as const,
     };
   }
@@ -307,9 +308,6 @@ async function handleLifecycleRequest(request: WorkerRequest): Promise<unknown |
     await world;
     return null;
   }
-  if (request.operation === 'concurrency') {
-    return await runConcurrencyProbe(request);
-  }
   if (request.operation === 'networkProbe') {
     return await runNetworkProbe();
   }
@@ -328,10 +326,6 @@ async function handleWorldRequest(request: WorldRequest, currentWorld: World): P
   }
   if (request.operation === 'rollbackProbe') {
     return await runRollbackProbe();
-  }
-  if (request.operation === 'insert') {
-    await insertDocuments(currentWorld, request.documents);
-    return null;
   }
   if (request.operation === 'mutation') {
     return await mutateWorld(currentWorld, request.name, request.args, request.identity);
