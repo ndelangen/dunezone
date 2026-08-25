@@ -916,6 +916,12 @@ function PageRecipesVariant() {
 
 type DrilldownDepth = 'pages' | 'blocks' | 'controls';
 
+const drilldownDepthClassNames: Record<DrilldownDepth, string> = {
+  pages: styles.drilldownSidebarPages,
+  blocks: styles.drilldownSidebarBlocks,
+  controls: styles.drilldownSidebarControls,
+};
+
 function SlidingDrilldownVariant() {
   const model = usePrototypeDocument();
   const [depth, setDepth] = useState<DrilldownDepth>('controls');
@@ -936,31 +942,131 @@ function SlidingDrilldownVariant() {
     model.reset();
     setDepth('controls');
   };
+  const onPageDragEnd = ({ active, over }: DragEndEvent) => {
+    const sourceIndex = model.pages.findIndex((page) => page.id === active.id);
+    const targetIndex = over ? model.pages.findIndex((page) => page.id === over.id) : -1;
+    if (sourceIndex >= 0 && targetIndex >= 0 && sourceIndex !== targetIndex) {
+      model.movePage(String(active.id), targetIndex - sourceIndex);
+    }
+  };
+  const onBlockDragEnd = ({ active, over }: DragEndEvent) => {
+    const sourceIndex = model.activePage.blocks.findIndex((block) => block.id === active.id);
+    const targetIndex = over ? model.activePage.blocks.findIndex((block) => block.id === over.id) : -1;
+    if (sourceIndex >= 0 && targetIndex >= 0 && sourceIndex !== targetIndex) {
+      model.moveBlock(String(active.id), targetIndex - sourceIndex);
+    }
+  };
 
   return (
     <Stack gap="md">
       <ScenarioBrief />
-      <Surface padding="lg" as="section" className={styles.synthesisSurface}>
+      <section className={styles.synthesisSection}>
         <PrototypeHeading
           label="4"
           title="Sliding drill-down"
-          description="Pages and blocks collapse into history rails as the sidebar drills down to the selected block's controls."
+          description="Pages and blocks collapse into sortable quick-navigation rails as the sidebar drills down to the selected block's controls."
           reset={reset}
         />
         <div className={styles.combinedViewport}>
           <div className={styles.combinedStickyFrame}>
-            <div className={styles.drilldownSidebar} data-depth={depth}>
+            <Surface
+              padding="none"
+              as="aside"
+              aria-label="Rulebook outline and controls"
+              className={`${styles.drilldownSidebar} ${drilldownDepthClassNames[depth]}`}
+            >
               {depth !== 'pages' ? (
-                <button className={styles.drilldownRail} onClick={() => setDepth('pages')}>
-                  <FileText size={18} aria-hidden />
-                  <span>Pages</span>
-                </button>
+                <div className={styles.drilldownRail}>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onPageDragEnd}>
+                    <SortableContext items={model.pages.map((page) => page.id)} strategy={verticalListSortingStrategy}>
+                      <div className={styles.drilldownRailItems}>
+                        {model.pages.map((page, index) => (
+                          <SortableItem className={styles.drilldownRailItem} id={page.id} key={page.id}>
+                            {({ setActivatorNodeRef, attributes, listeners }) => (
+                              <button
+                                ref={setActivatorNodeRef}
+                                className={styles.drilldownRailIcon}
+                                aria-current={page.id === model.activePage.id ? 'page' : undefined}
+                                aria-label={`${page.title}. Page ${index + 1}. Drag to reorder or click to select.`}
+                                title={page.title}
+                                onClick={() => model.selectPage(page.id)}
+                                {...attributes}
+                                {...listeners}
+                              >
+                                <FileText size={18} aria-hidden />
+                                <span>{index + 1}</span>
+                              </button>
+                            )}
+                          </SortableItem>
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                  <button
+                    className={styles.drilldownRailLabel}
+                    aria-label="Open pages"
+                    onClick={() => setDepth('pages')}
+                  >
+                    <span>Pages</span>
+                  </button>
+                  <button
+                    className={styles.drilldownRailAdd}
+                    aria-label="Add rules page"
+                    title="Add rules page"
+                    onClick={() => {
+                      model.addPage();
+                      setDepth('blocks');
+                    }}
+                  >
+                    <Plus size={20} aria-hidden />
+                  </button>
+                </div>
               ) : null}
               {depth === 'controls' ? (
-                <button className={styles.drilldownRail} onClick={() => setDepth('blocks')}>
-                  <ListTree size={18} aria-hidden />
-                  <span>Blocks</span>
-                </button>
+                <div className={styles.drilldownRail}>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBlockDragEnd}>
+                    <SortableContext
+                      items={model.activePage.blocks.map((block) => block.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className={styles.drilldownRailItems}>
+                        {model.activePage.blocks.map((block) => (
+                          <SortableItem className={styles.drilldownRailItem} id={block.id} key={block.id}>
+                            {({ setActivatorNodeRef, attributes, listeners }) => (
+                              <button
+                                ref={setActivatorNodeRef}
+                                className={styles.drilldownRailIcon}
+                                aria-current={block.id === model.selectedBlockId ? 'true' : undefined}
+                                aria-label={`${block.title}. ${blockKindNames[block.kind]}. Drag to reorder or click to select.`}
+                                title={`${block.title} · ${blockKindNames[block.kind]}`}
+                                onClick={() => model.setSelectedBlockId(block.id)}
+                                {...attributes}
+                                {...listeners}
+                              >
+                                <BlockKindIcon kind={block.kind} />
+                              </button>
+                            )}
+                          </SortableItem>
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                  <button
+                    className={styles.drilldownRailLabel}
+                    aria-label="Open blocks"
+                    onClick={() => setDepth('blocks')}
+                  >
+                    <span>Blocks</span>
+                  </button>
+                  <button
+                    className={styles.drilldownRailAdd}
+                    aria-label="Add worked example"
+                    title="Add worked example"
+                    onClick={() => model.addBlock()}
+                  >
+                    <Plus size={20} aria-hidden />
+                  </button>
+                </div>
               ) : null}
               <section className={styles.drilldownDrawer} aria-label={`${depth} drawer`}>
                 {depth === 'pages' ? (
@@ -976,17 +1082,7 @@ function SlidingDrilldownVariant() {
                         {model.pages.length}
                       </Badge>
                     </div>
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={({ active, over }: DragEndEvent) => {
-                        const sourceIndex = model.pages.findIndex((page) => page.id === active.id);
-                        const targetIndex = over ? model.pages.findIndex((page) => page.id === over.id) : -1;
-                        if (sourceIndex >= 0 && targetIndex >= 0 && sourceIndex !== targetIndex) {
-                          model.movePage(String(active.id), targetIndex - sourceIndex);
-                        }
-                      }}
-                    >
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onPageDragEnd}>
                       <SortableContext
                         items={model.pages.map((page) => page.id)}
                         strategy={verticalListSortingStrategy}
@@ -1041,19 +1137,7 @@ function SlidingDrilldownVariant() {
                         {model.activePage.blocks.length}
                       </Badge>
                     </div>
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={({ active, over }: DragEndEvent) => {
-                        const sourceIndex = model.activePage.blocks.findIndex((block) => block.id === active.id);
-                        const targetIndex = over
-                          ? model.activePage.blocks.findIndex((block) => block.id === over.id)
-                          : -1;
-                        if (sourceIndex >= 0 && targetIndex >= 0 && sourceIndex !== targetIndex) {
-                          model.moveBlock(String(active.id), targetIndex - sourceIndex);
-                        }
-                      }}
-                    >
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBlockDragEnd}>
                       <SortableContext
                         items={model.activePage.blocks.map((block) => block.id)}
                         strategy={verticalListSortingStrategy}
@@ -1117,12 +1201,14 @@ function SlidingDrilldownVariant() {
                   </>
                 )}
               </section>
-            </div>
-            <SharedDocumentPreview model={model} highlightSelected />
+            </Surface>
+            <Surface padding="none" as="section" aria-label="Rulebook page preview" className={styles.previewSurface}>
+              <SharedDocumentPreview model={model} highlightSelected />
+            </Surface>
           </div>
           <div className={styles.combinedStickyRunway} aria-hidden />
         </div>
-      </Surface>
+      </section>
     </Stack>
   );
 }
