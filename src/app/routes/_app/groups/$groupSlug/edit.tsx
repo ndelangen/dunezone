@@ -1,7 +1,9 @@
 import { Group, Stack, TextInput } from '@mantine/core';
 import { groupInputSchema } from '@shared/groups/validation';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { LoadError } from '@ui/block/LoadError';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -16,6 +18,7 @@ import { useState } from 'react';
 
 import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
 import type { GroupEntry } from '@db/groups';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 function GroupSettings({ initial }: { initial: GroupEntry }) {
@@ -89,8 +92,23 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/edit')({
     const groupEdit = await loadGroupEditBySlug(params.groupSlug);
     return { groupEdit };
   },
+  errorComponent: GroupEditError,
   component: GroupEditPage,
 });
+
+/**
+ * The frame for a load that failed, which on this route is most often a slug that names no group: the query throws rather than returning nothing, so the component's own absent branch never runs.
+ * Without this the reader met the router's unstyled default and, in development, a stack trace.
+ */
+function GroupEditError({ error }: ErrorComponentProps) {
+  return (
+    <PageMessage title="Edit group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
+      <LoadError title="Group could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
+    </PageMessage>
+  );
+}
 
 function GroupEditPage() {
   const { groupSlug } = Route.useParams();

@@ -1,7 +1,9 @@
 import { Alert, Stack, Text } from '@mantine/core';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
@@ -14,6 +16,7 @@ import { useRef, useState } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { resolveRouteNotice } from '@app/routes/-routeNotices';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
@@ -36,8 +39,27 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
     return {};
   },
   loader: async ({ params }) => await loadFaction(params.factionId),
+  errorComponent: FactionEditError,
   component: FactionEditPage,
 });
+
+/**
+ * The frame for a load that failed, which on this route is most often a slug that names no faction: the query throws rather than returning nothing, so the component's own absent branch never runs.
+ * Without this the reader met the router's unstyled default and, in development, a stack trace.
+ */
+function FactionEditError({ error }: ErrorComponentProps) {
+  return (
+    <PageMessage
+      size="compact"
+      title="Edit faction"
+      back={<PageMessage.Back to="/factions">Back to factions</PageMessage.Back>}
+    >
+      <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
+    </PageMessage>
+  );
+}
 
 const VALIDATION_HEADER_ID = 'faction-validation-header';
 
