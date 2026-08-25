@@ -1,7 +1,9 @@
 /// <reference lib="webworker" />
 
+import { AsyncLocalStorage } from 'node:async_hooks';
+
 import { convexTest } from 'convex-test';
-import { makeFunctionReference } from 'convex/server';
+import { createFunctionHandle, makeFunctionReference } from 'convex/server';
 import type { WithoutSystemFields } from 'convex/server';
 
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
@@ -9,6 +11,8 @@ import type { DatabaseWriter } from '../../../../convex/_generated/server';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import type {
+  ContextConformanceResult,
+  ContextTraceEntry,
   SeedDocument,
   SeedDocumentFor,
   RollbackProbeResult,
@@ -42,7 +46,10 @@ const aggregateModules = import.meta.glob([
 
 type TestWorld = ReturnType<typeof convexTest>;
 type World = { test: TestWorld; references: Map<string, string> };
-type WorldRequest = Exclude<WorkerRequest, { operation: 'concurrency' | 'networkProbe' | 'ping' | 'reset' }>;
+type WorldRequest = Exclude<
+  WorkerRequest,
+  { operation: 'concurrency' | 'contextConformance' | 'networkProbe' | 'ping' | 'reset' }
+>;
 
 function resolveSeedObject(value: Record<string, unknown>, references: Map<string, string>) {
   if (typeof value.$seedRef === 'string') {
@@ -167,6 +174,127 @@ async function runRollbackProbe(): Promise<RollbackProbeResult> {
   return { error, usersAfterFailure };
 }
 
+type ExplicitFrame = Readonly<{
+  auth: string | null;
+  componentPath: string;
+  depth: number;
+  udfPath: string;
+  world: string;
+}>;
+
+function delay(milliseconds: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function nextMessage() {
+  return new Promise<void>((resolve) => {
+    const { port1, port2 } = new MessageChannel();
+    port2.onmessage = () => {
+      port1.close();
+      port2.close();
+      resolve();
+    };
+    port1.postMessage(null);
+  });
+}
+
+function traceContext(trace: ContextTraceEntry[], step: string, expected: string, actual?: string) {
+  trace.push({ actual: actual ?? null, expected, step });
+}
+
+async function runAmbientContextBaseline() {
+  const context = new AsyncLocalStorage<string>();
+  const trace: ContextTraceEntry[] = [];
+  const component = async (name: string, milliseconds: number) => {
+    return await context.run(name, async () => {
+      traceContext(trace, `${name}:start`, name, context.getStore());
+      await delay(milliseconds);
+      traceContext(trace, `${name}:resume`, name, context.getStore());
+      return context.getStore() ?? null;
+    });
+  };
+
+  await context.run('root', async () => {
+    await Promise.all([component('statistics', 5), component('profileDiscovery', 15)]);
+    traceContext(trace, 'root:after', 'root', context.getStore());
+  });
+  return { mismatches: trace.filter(({ actual, expected }) => actual !== expected).length, trace };
+}
+
+function childFrame(parent: ExplicitFrame, componentPath: string, udfPath: string): ExplicitFrame {
+  return Object.freeze({
+    auth: componentPath === parent.componentPath ? parent.auth : null,
+    componentPath,
+    depth: parent.depth + 1,
+    udfPath,
+    world: parent.world,
+  });
+}
+
+async function resumeExplicitFrame(frame: ExplicitFrame, milliseconds: number) {
+  await Promise.resolve();
+  await delay(milliseconds);
+  await nextMessage();
+  await import('./convexTestProtocol');
+  return frame;
+}
+
+async function runExplicitFrameBaseline() {
+  let mismatches = 0;
+  const iterations = 100;
+  for (let iteration = 0; iteration < iterations; iteration += 1) {
+    const root = Object.freeze({
+      auth: `identity-${iteration}`,
+      componentPath: '',
+      depth: 0,
+      udfPath: 'root:probe',
+      world: `world-${iteration}`,
+    });
+    const statistics = childFrame(root, 'statistics', 'public:probe');
+    const discovery = childFrame(root, 'profileDiscovery', 'public:probe');
+    const [statisticsAfter, discoveryAfter] = await Promise.all([
+      resumeExplicitFrame(statistics, iteration % 3),
+      resumeExplicitFrame(discovery, (iteration + 1) % 3),
+    ]);
+    const returnedRoot = await resumeExplicitFrame(root, iteration % 2);
+    const expected = [statistics, discovery, root];
+    const actual = [statisticsAfter, discoveryAfter, returnedRoot];
+    mismatches += actual.filter((frame, index) => frame !== expected[index]).length;
+    if (statisticsAfter.auth !== null || discoveryAfter.auth !== null || returnedRoot.auth !== root.auth) {
+      mismatches += 1;
+    }
+  }
+  return {
+    iterations,
+    mismatches,
+    sources: ['native promise', 'setTimeout', 'MessageChannel', 'dynamic import'],
+  };
+}
+
+async function runConvexHelperGate() {
+  const reference = makeFunctionReference<'query'>('rulesets:list');
+  try {
+    await createFunctionHandle(reference);
+    return {
+      error: 'createFunctionHandle unexpectedly accepted no ambient Convex context.',
+      status: 'blocked' as const,
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : String(error),
+      status: 'blocked' as const,
+    };
+  }
+}
+
+async function runContextConformance(): Promise<ContextConformanceResult> {
+  return {
+    ambient: await runAmbientContextBaseline(),
+    explicit: await runExplicitFrameBaseline(),
+    convexHelper: await runConvexHelperGate(),
+  };
+}
+
 let world = createWorld([]);
 const unhandledRequest = Symbol('unhandledRequest');
 
@@ -184,6 +312,9 @@ async function handleLifecycleRequest(request: WorkerRequest): Promise<unknown |
   }
   if (request.operation === 'networkProbe') {
     return await runNetworkProbe();
+  }
+  if (request.operation === 'contextConformance') {
+    return await runContextConformance();
   }
   return unhandledRequest;
 }

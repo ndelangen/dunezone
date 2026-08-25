@@ -4,6 +4,7 @@ import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import type {
+  ContextConformanceResult,
   RollbackProbeResult,
   SchedulerProbeResult,
   SeedDocument,
@@ -96,6 +97,9 @@ export class ConvexTestWorkerClient {
   runSchedulerProbe = async () => (await this.request({ operation: 'schedulerProbe' })) as SchedulerProbeResult;
 
   runRollbackProbe = async () => (await this.request({ operation: 'rollbackProbe' })) as RollbackProbeResult;
+
+  runContextConformance = async () =>
+    (await this.request({ operation: 'contextConformance' })) as ContextConformanceResult;
 
   waitForIdle = async () => await this.request({ operation: 'ping' });
 

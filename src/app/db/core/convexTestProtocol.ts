@@ -47,12 +47,35 @@ export type RollbackProbeResult = {
   usersAfterFailure: number;
 };
 
+export type ContextTraceEntry = {
+  actual: string | null;
+  expected: string;
+  step: string;
+};
+
+export type ContextConformanceResult = {
+  ambient: {
+    mismatches: number;
+    trace: ContextTraceEntry[];
+  };
+  explicit: {
+    iterations: number;
+    mismatches: number;
+    sources: string[];
+  };
+  convexHelper: {
+    error: string;
+    status: 'blocked';
+  };
+};
+
 export type WorkerRequest =
   | { id: number; operation: 'ping' }
   | { id: number; operation: 'networkProbe' }
   | { id: number; operation: 'httpProbe' }
   | { id: number; operation: 'schedulerProbe' }
   | { id: number; operation: 'rollbackProbe' }
+  | { id: number; operation: 'contextConformance' }
   | { id: number; operation: 'query'; name: string; args: unknown; identity?: WorkerIdentity }
   | { id: number; operation: 'mutation'; name: string; args: unknown; identity?: WorkerIdentity }
   | { id: number; operation: 'insert'; documents: SeedDocument[] }
