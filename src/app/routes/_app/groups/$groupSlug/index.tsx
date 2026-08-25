@@ -1,5 +1,8 @@
-import { Alert, Anchor, Avatar, Badge, Box, Button, Divider, Group, Skeleton, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Avatar, Badge, Box, Button, Divider, Group, Stack, Text } from '@mantine/core';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { LoadError } from '@ui/block/LoadError';
+import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -7,7 +10,6 @@ import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, BookOpen, Check, Crown, Pencil, Plus, UserPlus, UserRoundMinus, UsersRound, X } from 'lucide-react';
@@ -21,8 +23,10 @@ import type { GroupDetailPageData, MembershipState } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { useSetRulesetGroup } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers/GroupAssignPicker';
 import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
 
@@ -33,8 +37,25 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
     const groupDetail = await loadGroupDetailBySlug(params.groupSlug);
     return { groupDetail };
   },
+  errorComponent: GroupDetailError,
   component: GroupDetailPage,
 });
+
+const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>;
+
+/**
+ * The frame for a load that failed, most often a slug naming no group.
+ * The page used to carry its own `groupData.isError` branch for this, which could never run: `toLiveQueryResult` reports `isError: false` for every query, so the failure went past it to the router's unstyled default.
+ */
+function GroupDetailError({ error }: ErrorComponentProps) {
+  return (
+    <PageMessage title="Group" back={backToProfiles}>
+      <LoadError title="Group could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
+    </PageMessage>
+  );
+}
 
 function GroupDetailPage() {
   const { groupSlug } = Route.useParams();
@@ -46,43 +67,16 @@ function GroupDetailPage() {
   const setFactionGroup = useSetFactionGroup();
   const setRulesetGroup = useSetRulesetGroup();
 
-  if (groupData.isError) {
-    return (
-      <PageLayout>
-        <PageLayout.Header>
-          <PageTitle title="Group" />
-        </PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Alert color="red" title="Group could not be loaded" role="alert">
-              <Text size="sm">This group may have been deleted, or the link may be incorrect.</Text>
-            </Alert>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
-    );
-  }
-
+  /* The failed case is the route's `errorComponent` now, since the branch that used to sit here
+     could not run. What is left is the wait, which every other page in the tree spells this way:
+     the skeleton grid was the only one of its kind and announced nothing to a reader who cannot
+     see it. */
   const page = groupData.data;
   if (!page) {
     return (
-      <PageLayout>
-        <PageLayout.Header>
-          <PageTitle title="Group" />
-        </PageLayout.Header>
-        <PageLayout.Content>
-          <Box className={styles.twoColumnGrid}>
-            <Stack gap="lg">
-              <Skeleton height={140} radius="md" />
-              <Skeleton height={140} radius="md" />
-            </Stack>
-            <Stack gap="lg">
-              <Skeleton height={160} radius="md" />
-              <Skeleton height={160} radius="md" />
-            </Stack>
-          </Box>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Group" back={backToProfiles}>
+        <LoadPending title="Loading group">The group details are still loading.</LoadPending>
+      </PageMessage>
     );
   }
 

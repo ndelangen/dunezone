@@ -1,5 +1,9 @@
 import { Group, Stack, Textarea } from '@mantine/core';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { LoadError } from '@ui/block/LoadError';
+import { LoadPending } from '@ui/block/LoadPending';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
@@ -10,6 +14,8 @@ import { Check, MessageSquarePlus, Pencil, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './$questionSlug.module.css';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from './-faqEditingSession';
@@ -27,10 +33,65 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionS
       return { notFound: true };
     }
   },
+  errorComponent: FaqDetailError,
   component: FaqDetailPage,
 });
 
+/**
+ * The frame for a load that failed.
+ * Unlike its siblings this route's loader already catches, returning `notFound`;
+ * what escapes is the live query, which throws after mount when the question is not there, so the reader met the router's unstyled default with a page half-built behind it.
+ */
+function FaqDetailError({ error }: ErrorComponentProps) {
+  const { rulesetSlug } = Route.useParams();
+  return (
+    <PageMessage
+      title="FAQ"
+      back={
+        <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
+          Back to ruleset
+        </PageMessage.Back>
+      }
+    >
+      <LoadError title="This question could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
+    </PageMessage>
+  );
+}
+
+/**
+ * The absent case, decided before anything subscribes.
+ *
+ * It has to live above the body: the question page's hook calls `useQuery` unconditionally, and a
+ * Convex query for a question that is not there throws while rendering, which the route's
+ * `errorComponent` would catch before any guard further down the body could run.
+ * So the guard that was written inside the body could never fire, and a missing question read as a failed load.
+ * `AssetDetailPage` splits for the same reason: a guard that must run before a subscription cannot share a component with it.
+ */
 function FaqDetailPage() {
+  const { rulesetSlug } = Route.useParams();
+  const loaderData = Route.useLoaderData();
+
+  if (loaderData?.notFound) {
+    return (
+      <PageMessage
+        title="FAQ"
+        back={
+          <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
+            Back to ruleset
+          </PageMessage.Back>
+        }
+      >
+        <NotAvailable title="Question not found">This FAQ question does not exist in this ruleset.</NotAvailable>
+      </PageMessage>
+    );
+  }
+
+  return <LoadedFaqQuestion />;
+}
+
+function LoadedFaqQuestion() {
   const { rulesetSlug, questionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
@@ -94,26 +155,21 @@ function FaqDetailPage() {
     return () => window.removeEventListener('hashchange', scrollToHash);
   }, [item, answers]);
 
-  if (loaderData?.notFound) {
-    return (
-      <PageLayout>
-        <PageLayout.Header>{header}</PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="lg">
-            <h2>Question not found</h2>
-            <p>This FAQ question does not exist in this ruleset.</p>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
-    );
-  }
-
+  /* Only the message frames move here. The loaded page keeps its hand-rolled `h1` header, which is
+     item 5 of this wave rather than item 1, so the two states spell the same words two ways until
+     that lands. */
   if (!item) {
     return (
-      <PageLayout>
-        <PageLayout.Header>{header}</PageLayout.Header>
-        <PageLayout.Content>Loading question…</PageLayout.Content>
-      </PageLayout>
+      <PageMessage
+        title="FAQ"
+        back={
+          <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
+            Back to ruleset
+          </PageMessage.Back>
+        }
+      >
+        <LoadPending title="Loading question">This question and its answers are still loading.</LoadPending>
+      </PageMessage>
     );
   }
 
