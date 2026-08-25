@@ -52,10 +52,7 @@ function artifactFiles(directory: string): string[] {
     .sort();
 }
 
-function inspectArtifact() {
-  const files = artifactFiles(artifactDirectory);
-  invariant(files.length > 0, 'The Storybook publication artifact is empty.');
-
+function assertNoForbiddenText(files: string[]) {
   const forbiddenText = ['.convex.cloud', '.convex.site', 'CLOUDFLARE_API_TOKEN', 'CONVEX_DEPLOY_KEY'];
   for (const file of files) {
     const bytes = readFileSync(file);
@@ -74,9 +71,12 @@ function inspectArtifact() {
       `The Storybook artifact contains a private key block in ${path.relative(artifactDirectory, file)}.`
     );
   }
+}
 
+function assertNoSensitiveEnvironmentValues(files: string[]) {
   for (const [name, value] of Object.entries(process.env)) {
-    if (!value || value.length < 12 || !/(?:SECRET|TOKEN|PASSWORD|DEPLOY_KEY|API_KEY)$/i.test(name)) {
+    const isSensitiveValue = value && value.length >= 12 && /(?:SECRET|TOKEN|PASSWORD|DEPLOY_KEY|API_KEY)$/i.test(name);
+    if (!isSensitiveValue) {
       continue;
     }
     invariant(
@@ -84,7 +84,13 @@ function inspectArtifact() {
       `The Storybook artifact contains the value of ${name}.`
     );
   }
+}
 
+function inspectArtifact() {
+  const files = artifactFiles(artifactDirectory);
+  invariant(files.length > 0, 'The Storybook publication artifact is empty.');
+  assertNoForbiddenText(files);
+  assertNoSensitiveEnvironmentValues(files);
   const worker = files.find((file) => /^convexStorybook\.worker-[\w-]+\.js$/.test(path.basename(file)));
   invariant(worker, 'The Storybook artifact has no browser-local Convex worker.');
   invariant(statSync(worker).size > 0, 'The browser-local Convex worker is empty.');

@@ -123,7 +123,7 @@ function visitReferences(value: unknown, visit: (key: string) => void) {
   }
 }
 
-function validateDatabase(database: StorybookDatabase) {
+function collectKeys(database: StorybookDatabase) {
   const keys = new Set<string>();
   for (const rows of Object.values(database)) {
     for (const row of rows as Array<{ $key?: string }>) {
@@ -136,7 +136,10 @@ function validateDatabase(database: StorybookDatabase) {
       keys.add(row.$key);
     }
   }
+  return keys;
+}
 
+function validateReferences(database: StorybookDatabase, keys: Set<string>) {
   for (const rows of Object.values(database)) {
     for (const row of rows) {
       visitReferences(row, (key) => {
@@ -146,7 +149,9 @@ function validateDatabase(database: StorybookDatabase) {
       });
     }
   }
+}
 
+function validateDomainRows(database: StorybookDatabase) {
   for (const row of database.factions) {
     FactionInputSchema.parse(row.data);
     FactionRowSlugSchema.parse(row.slug);
@@ -154,6 +159,12 @@ function validateDatabase(database: StorybookDatabase) {
   for (const row of database.rulesets) {
     rulesetInputSchema.parse({ name: row.name, about: row.about });
   }
+}
+
+function validateDatabase(database: StorybookDatabase) {
+  const keys = collectKeys(database);
+  validateReferences(database, keys);
+  validateDomainRows(database);
 }
 
 function toSeedDocuments(database: StorybookDatabase): SeedDocument[] {
