@@ -13,6 +13,12 @@ export class ConvexReactClient {
 }
 
 export const useQuery = fn(() => undefined);
+export const usePaginatedQuery = fn(() => ({
+  isLoading: false,
+  loadMore: unconfigured('loadMore'),
+  results: [],
+  status: 'Exhausted',
+}));
 export const useMutation = fn(() => unconfigured('mutation'));
 export const useAction = fn(() => unconfigured('action'));
 export const useConvex = fn(() => new ConvexReactClient());

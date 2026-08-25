@@ -124,14 +124,15 @@ unpushable.
 #### Page stories
 
 Page stories run the real route, Convex query, and Convex mutation handlers in an isolated browser
-worker. They never contact a hosted Convex deployment. Start from the canonical valid database and
-make only the state changes that explain the rendered variation:
+worker. They never contact a hosted Convex deployment. The canonical database has one connected
+viewer, Group, ruleset, faction, FAQ, and a representative Asset of each implemented shape. Start
+there and make only the state changes that explain the rendered variation:
 
 ```tsx
 export const Populated = meta.story({
   parameters: {
     database: db((baseline) => {
-      baseline.factions.push(faction({ name: 'House Atreides' }));
+      baseline.factions.push(faction({ name: 'House Harkonnen' }));
     }),
   },
 });
@@ -142,6 +143,10 @@ replace it. Helpers supply deterministic mechanical values and validate shared s
 the worker then applies the actual Convex schema. Invalid database state fails before the page
 renders. Identity is a separate `identity` parameter, and route or search parameters stay in the
 story's router setup rather than the database parameter.
+
+The page story runner builds a memory-history route around the real route component and loader. It
+does not mount the application's document wrapper inside Storybook. Add a visible route to
+`src/app/routes/-storybookRoutes.ts`, then select its key and URL from the relevant page story.
 
 Use only variations that produce meaningfully different pages, including URL parameter cases when
 they change the result. A play function may exercise the page's normal mutations and navigation;
