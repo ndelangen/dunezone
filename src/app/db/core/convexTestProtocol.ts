@@ -33,6 +33,7 @@ export type WorkerIdentity = {
 export type WorkerRequest =
   | { id: number; operation: 'ping' }
   | { id: number; operation: 'networkProbe' }
+  | { id: number; operation: 'httpProbe' }
   | { id: number; operation: 'query'; name: string; args: unknown; identity?: WorkerIdentity }
   | { id: number; operation: 'mutation'; name: string; args: unknown; identity?: WorkerIdentity }
   | { id: number; operation: 'insert'; documents: SeedDocument[] }

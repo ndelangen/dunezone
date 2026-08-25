@@ -22,9 +22,10 @@ The prototype used the versions currently installed in this repository: Convex 1
 | Replace the worker, verify an empty database, and create the same ruleset again | Passed | Passed |
 | Keep two adjacent identities separate and preserve a signed-out request | Passed | Passed |
 | Reject an outbound `fetch` with the named worker guard | Passed | Passed |
+| Invoke the local HTTP router and nested `ctx.runQuery` while global `fetch` remains blocked | Passed | Passed |
 | Load function modules lazily with an ES-format worker | Passed | Passed |
 
-The homepage query returned the expected empty-world result. The phase 2 production build emits a 78.87 kB initial worker chunk plus lazy Convex and Aggregate chunks. The whole Storybook build succeeded without a Convex deployment URL in its output. These are prototype measurements, not target budgets.
+The homepage query returned the expected empty-world result. The phase 2 production build emits a 79.08 kB initial worker chunk plus lazy Convex and Aggregate chunks. The whole Storybook build succeeded without a Convex deployment URL in its output. These are prototype measurements, not target budgets.
 
 ## Why it does not work without adaptation
 
@@ -126,7 +127,7 @@ The main risks are:
 
 ## Weighted decision
 
-The product and test value is now stronger than the first phase suggested. A page story can render a real private page, use production reads and mutations, show the result immediately, reset in about the time of a normal interaction test, and remain available to a developer in a local browser. The complete Storybook browser suite still passed 381 tests in 27.89 seconds. The new page-specific fixture is 25 lines rather than a copied query result. These benefits repeat across every page story once the bridge is shared.
+The product and test value is now stronger than the first phase suggested. A page story can render a real private page, use production reads and mutations, show the result immediately, reset in about the time of a normal interaction test, and remain available to a developer in a local browser. The complete Storybook browser suite still passed 381 tests in 25.06 seconds. The new page-specific fixture is 25 lines rather than a copied query result. These benefits repeat across every page story once the bridge is shared.
 
 The costs are concentrated but serious. The runtime depends on an incomplete async-context shim, package source layouts, build transforms, optimizer hints, and manual component registration. Static publishing exposes server source. Storybook still lacks production auth, WebSocket transport, deployment environment, and backend scheduling fidelity. The JavaScript network guard is deterministic protection, not a security boundary.
 

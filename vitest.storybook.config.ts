@@ -38,12 +38,16 @@ export default defineConfig({
     include: [
       '@convex-dev/aggregate',
       '@convex-dev/auth/server',
+      '@convex-dev/auth/providers/Password',
+      '@auth/core/providers/discord',
+      '@auth/core/providers/google',
       'convex-helpers/server/customFunctions',
       'convex-helpers/server/triggers',
       'convex-helpers/server/zod4',
       'convex-helpers/validators',
       'convex-test',
       'convex/values',
+      'crypto-js/sha256',
     ],
   },
   resolve: {
