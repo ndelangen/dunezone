@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -22,19 +22,13 @@ function fixture() {
   const root = temporaryDirectory('publisher-assets');
   const app = path.join(root, 'app');
   const publisher = path.join(root, 'publisher');
-  const storybook = path.join(root, 'storybook');
   mkdirSync(path.join(app, 'public'), { recursive: true });
   mkdirSync(path.join(publisher, 'publisher-capture'), { recursive: true });
-  mkdirSync(path.join(storybook, 'assets'), { recursive: true });
   writeFileSync(path.join(app, '_shell.html'), '<html>spa shell</html>');
   writeFileSync(path.join(app, 'public', 'app-hash.js'), 'application');
   writeFileSync(path.join(publisher, 'publisher-capture.html'), '<html>capture</html>');
   writeFileSync(path.join(publisher, 'publisher-capture', 'entry-hash.js'), 'capture');
-  writeFileSync(path.join(storybook, 'index.html'), '<html>Dune Zone Storybook</html>');
-  writeFileSync(path.join(storybook, 'iframe.html'), '<html>preview</html>');
-  writeFileSync(path.join(storybook, 'index.json'), JSON.stringify({ entries: { example: { type: 'story' } } }));
-  writeFileSync(path.join(storybook, 'assets', 'preview-hash.js'), 'preview');
-  return { root, app, publisher, storybook };
+  return { root, app, publisher };
 }
 
 afterEach(() => {
@@ -45,39 +39,49 @@ afterEach(() => {
 
 describe('publisher Static Assets assembly', () => {
   test('combines the SPA and capture outputs for Cloudflare Static Assets', () => {
-    const { app, publisher, storybook } = fixture();
-    const report = assemblePublisherAssets(app, publisher, storybook);
+    const { app, publisher } = fixture();
+    const report = assemblePublisherAssets(app, publisher);
 
-    expect(report.assetCount).toBe(9);
-    expect(report.storyCount).toBe(1);
+    expect(report.assetCount).toBe(5);
     expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe('<html>spa shell</html>');
     expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe('<html>spa shell</html>');
     expect(report.largestAsset.bytes).toBeGreaterThan(0);
   });
 
   test('canonicalizes only the volatile TanStack root hydration timestamp', () => {
-    const { app, publisher, storybook } = fixture();
+    const { app, publisher } = fixture();
     writeFileSync(
       path.join(app, '_shell.html'),
       '<script>before;i:"__root__\0",u:1784218854699,s:"success",ssr:!0;after</script>'
     );
 
-    assemblePublisherAssets(app, publisher, storybook);
+    assemblePublisherAssets(app, publisher);
 
     const expected = '<script>before;i:"__root__\0",u:0,s:"success",ssr:!0;after</script>';
     expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe(expected);
     expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe(expected);
   });
 
+  test('removes stale assembled assets while preserving the fresh capture build', () => {
+    const { app, publisher } = fixture();
+    mkdirSync(path.join(publisher, '__storybook'));
+    writeFileSync(path.join(publisher, '__storybook', 'index.html'), 'stale Storybook');
+    writeFileSync(path.join(publisher, 'old-application.js'), 'stale application');
+
+    assemblePublisherAssets(app, publisher);
+
+    expect(existsSync(path.join(publisher, '__storybook'))).toBe(false);
+    expect(existsSync(path.join(publisher, 'old-application.js'))).toBe(false);
+    expect(readFileSync(path.join(publisher, 'publisher-capture.html'), 'utf8')).toBe('<html>capture</html>');
+  });
+
   test('fails closed for oversized files and symbolic links', () => {
     const oversized = fixture();
     writeFileSync(
-      path.join(oversized.publisher, 'too-large.bin'),
+      path.join(oversized.publisher, 'publisher-capture', 'too-large.bin'),
       new Uint8Array(WORKERS_STATIC_ASSET_FILE_LIMIT_BYTES + 1)
     );
-    expect(() => assemblePublisherAssets(oversized.app, oversized.publisher, oversized.storybook)).toThrow(
-      'exceeds 25 MiB'
-    );
+    expect(() => assemblePublisherAssets(oversized.app, oversized.publisher)).toThrow('exceeds 25 MiB');
 
     const linked = fixture();
     symlinkSync(
@@ -85,26 +89,5 @@ describe('publisher Static Assets assembly', () => {
       path.join(linked.publisher, 'publisher-capture', 'linked.html')
     );
     expect(() => inspectPublisherAssets(linked.publisher)).toThrow('symbolic link');
-  });
-
-  test('fails closed for unsafe Storybook runtime references', () => {
-    const current = fixture();
-    writeFileSync(path.join(current.storybook, 'assets', 'preview-hash.js'), 'fetch("https://example.convex.cloud")');
-
-    expect(() => assemblePublisherAssets(current.app, current.publisher, current.storybook)).toThrow(
-      'forbidden runtime reference .convex.cloud'
-    );
-  });
-
-  test('fails closed when Storybook duplicates an application-owned root asset', () => {
-    const current = fixture();
-    mkdirSync(path.join(current.app, 'image'), { recursive: true });
-    mkdirSync(path.join(current.storybook, 'image'), { recursive: true });
-    writeFileSync(path.join(current.app, 'image', 'shared.png'), 'shared application asset');
-    writeFileSync(path.join(current.storybook, 'image', 'shared.png'), 'shared application asset');
-
-    expect(() => assemblePublisherAssets(current.app, current.publisher, current.storybook)).toThrow(
-      'duplicates application-owned root asset image/shared.png'
-    );
   });
 });

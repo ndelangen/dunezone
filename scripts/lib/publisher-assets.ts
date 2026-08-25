@@ -5,6 +5,7 @@ import {
   lstatSync,
   readdirSync,
   readFileSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
@@ -15,24 +16,9 @@ export const WORKERS_STATIC_ASSET_FILE_LIMIT_BYTES = 25 * 1024 * 1024;
 
 export type PublisherAssetReport = {
   assetCount: number;
-  storyCount: number;
   totalBytes: number;
   largestAsset: { path: string; bytes: number };
 };
-
-const STORYBOOK_REQUIRED_ASSETS = [
-  '__storybook/index.html',
-  '__storybook/iframe.html',
-  '__storybook/index.json',
-] as const;
-const STORYBOOK_FORBIDDEN_RUNTIME_REFERENCES = [
-  '/generated/',
-  '.convex.cloud',
-  '.convex.site',
-  'fonts.googleapis.com',
-  'fonts.gstatic.com',
-] as const;
-const STORYBOOK_TEXT_EXTENSIONS = new Set(['.css', '.html', '.js', '.json']);
 
 function normalizePublisherShell(shell: string): string {
   return shell.replace(
@@ -85,19 +71,6 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   }
 
   const paths = new Set(files.map((file) => file.path));
-  const storybookPrefix = '__storybook/';
-  const duplicatedRootAsset = files.find(
-    (file) =>
-      file.path.startsWith(storybookPrefix) &&
-      file.path !== '__storybook/index.html' &&
-      paths.has(file.path.slice(storybookPrefix.length))
-  );
-  if (duplicatedRootAsset) {
-    throw new Error(
-      `Published Storybook duplicates application-owned root asset ${duplicatedRootAsset.path.slice(storybookPrefix.length)}`
-    );
-  }
-
   for (const required of ['_shell.html', 'index.html', 'publisher-capture.html']) {
     if (!paths.has(required)) {
       throw new Error(`Publisher Static Assets are missing ${required}`);
@@ -109,33 +82,6 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   if (![...paths].some((file) => file.startsWith('publisher-capture/'))) {
     throw new Error('Publisher Static Assets are missing the capture bundle');
   }
-  for (const required of STORYBOOK_REQUIRED_ASSETS) {
-    if (!paths.has(required)) {
-      throw new Error(`Publisher Static Assets are missing ${required}`);
-    }
-  }
-  if (![...paths].some((file) => file.startsWith('__storybook/assets/'))) {
-    throw new Error('Publisher Static Assets are missing the Storybook preview bundle');
-  }
-
-  const storyIndex = JSON.parse(readFileSync(path.join(directory, '__storybook/index.json'), 'utf8')) as {
-    entries?: Record<string, { type?: string }>;
-  };
-  const storyCount = Object.values(storyIndex.entries ?? {}).filter((entry) => entry.type === 'story').length;
-  if (storyCount === 0) {
-    throw new Error('Publisher Storybook index contains no stories');
-  }
-
-  for (const file of files) {
-    if (!file.path.startsWith('__storybook/') || !STORYBOOK_TEXT_EXTENSIONS.has(path.extname(file.path))) {
-      continue;
-    }
-    const content = readFileSync(path.join(directory, file.path), 'utf8');
-    const forbidden = STORYBOOK_FORBIDDEN_RUNTIME_REFERENCES.find((value) => content.includes(value));
-    if (forbidden) {
-      throw new Error(`Published Storybook asset ${file.path} contains forbidden runtime reference ${forbidden}`);
-    }
-  }
   const shell = readFileSync(path.join(directory, '_shell.html'));
   const index = readFileSync(path.join(directory, 'index.html'));
   if (!shell.equals(index)) {
@@ -145,24 +91,20 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   const largestAsset = files.reduce((largest, file) => (file.bytes > largest.bytes ? file : largest));
   return {
     assetCount: files.length,
-    storyCount,
     totalBytes: files.reduce((total, file) => total + file.bytes, 0),
     largestAsset,
   };
 }
 
-export function assemblePublisherAssets(
-  appDirectory: string,
-  publisherDirectory: string,
-  storybookDirectory: string
-): PublisherAssetReport {
+export function assemblePublisherAssets(appDirectory: string, publisherDirectory: string): PublisherAssetReport {
   assertDirectory(appDirectory, 'Application build');
   assertDirectory(publisherDirectory, 'Publisher capture build');
-  assertDirectory(storybookDirectory, 'Storybook build');
 
-  const storybookDestination = path.join(publisherDirectory, '__storybook');
-  if (existsSync(storybookDestination)) {
-    throw new Error(`Storybook destination already exists: ${storybookDestination}`);
+  const captureEntries = new Set(['publisher-capture', 'publisher-capture.html']);
+  for (const entry of readdirSync(publisherDirectory, { withFileTypes: true })) {
+    if (!captureEntries.has(entry.name)) {
+      rmSync(path.join(publisherDirectory, entry.name), { recursive: true, force: true });
+    }
   }
 
   for (const entry of readdirSync(appDirectory, { withFileTypes: true })) {
@@ -171,11 +113,6 @@ export function assemblePublisherAssets(
       force: true,
     });
   }
-  if (existsSync(storybookDestination)) {
-    throw new Error('Application build conflicts with the reserved __storybook asset namespace');
-  }
-  cpSync(storybookDirectory, storybookDestination, { recursive: true, force: false });
-
   const shell = path.join(publisherDirectory, '_shell.html');
   if (!existsSync(shell)) {
     throw new Error('Application build is missing the TanStack SPA shell');

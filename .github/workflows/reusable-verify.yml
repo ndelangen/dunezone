@@ -261,9 +261,9 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
-      - name: Build Storybook
-        run: bun run build-storybook
       - uses: ./.github/actions/playwright-chromium
+      - name: Verify the public Storybook artifact
+        run: bun run verify:storybook-publication
       - name: Verify generated images structurally
         run: bun run verify:images
       - name: Run story tests with coverage

@@ -7,6 +7,8 @@ import '@mantine/core/styles.layer.css';
 import '../src/app/styles/fonts.css';
 import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
+import { StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';
+import type { DatabaseDefinition, WorkerIdentity } from '../src/app/db/storybook';
 import { setMotionOverride } from '../src/app/styles/motion';
 import { appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
@@ -16,6 +18,7 @@ import * as sizes from '../src/game/data/sizes';
 sb.mock(import('convex/react'));
 sb.mock(import('convex/browser'));
 sb.mock(import('@convex-dev/auth/react'));
+sb.mock(import('../src/app/db/core/index.ts'));
 
 export default definePreview({
   addons: [addonDocs()],
@@ -195,6 +198,19 @@ export default definePreview({
       }
 
       return story;
+    },
+    (Story, { parameters }) => {
+      const database = parameters.database as DatabaseDefinition | undefined;
+      if (!database) {
+        return <Story />;
+      }
+      const identity =
+        parameters.identity === undefined ? storybookViewer : (parameters.identity as WorkerIdentity | null);
+      return (
+        <StorybookDatabaseProvider database={database} identity={identity ?? undefined}>
+          <Story />
+        </StorybookDatabaseProvider>
+      );
     },
   ],
   initialGlobals: {
