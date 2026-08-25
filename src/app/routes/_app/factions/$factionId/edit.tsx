@@ -1,13 +1,14 @@
-import { Alert, Anchor, Stack, Text } from '@mantine/core';
+import { Alert, Stack, Text } from '@mantine/core';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { PageTitle } from '@ui/block/PageTitle';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { LoadPending } from '@ui/block/LoadPending';
+import { LoginGate } from '@ui/block/LoginGate';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 import { UserRoundMinus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
@@ -23,6 +24,7 @@ import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/Fac
 import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPopover';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { useFactionNameField } from '../-factionNameField';
 
@@ -78,67 +80,39 @@ function FactionEditPage() {
   const { nameField, conflictWarnings } = useFactionNameField({ currentSlug: faction.slug });
   const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
   const validationHeaderOpen = useValidationHeaderOpen(allWarnings.length, settleTick);
-  const header = (
-    <Stack align="center" gap={4}>
-      <Anchor
-        size="sm"
-        renderRoot={(rootProps) => <Link {...rootProps} to="/factions/$factionId" params={{ factionId }} />}
-      >
-        View faction
-      </Anchor>
-      <PageTitle title={faction ? `Edit ${faction.data.name}` : 'Edit faction'} />
-      <Text c="dimmed">Changes stay local until you explicitly save them.</Text>
-    </Stack>
+  const backToFaction = (
+    <PageMessage.Back to="/factions/$factionId" params={{ factionId }}>
+      Back to faction
+    </PageMessage.Back>
   );
 
   if (viewerAccess?.viewer.kind === 'anonymous') {
+    /* The name stays conditional here, as it was in the old header: this guard runs before the one
+       below that answers whether there is a faction at all, so the title cannot assume one. */
     return (
-      <PageLayout>
-        <PageLayout.Header size="compact">{header}</PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Stack gap="sm">
-              <Text>
-                <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to edit
-                factions.
-              </Text>
-              <Anchor
-                renderRoot={(rootProps) => <Link {...rootProps} to="/factions/$factionId" params={{ factionId }} />}
-              >
-                Back to faction
-              </Anchor>
-            </Stack>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage size="compact" title={faction ? `Edit ${faction.data.name}` : 'Edit faction'} back={backToFaction}>
+        <LoginGate action="edit factions" />
+      </PageMessage>
     );
   }
 
   if (!faction) {
     return (
-      <PageLayout>
-        <PageLayout.Header size="compact">{header}</PageLayout.Header>
-        <PageLayout.Content>
-          <Text>Loading faction…</Text>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage size="compact" title="Edit faction" back={backToFaction}>
+        <LoadPending title="Loading faction">The faction is still loading.</LoadPending>
+      </PageMessage>
     );
   }
 
   if (!viewerAccess?.capabilities.edit) {
     return (
-      <PageLayout>
-        <PageLayout.Header size="compact">{header}</PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Text>
-              {faction.group_id
-                ? 'Only the faction owner or an active member of its group can edit this faction.'
-                : 'Only the faction owner can edit this faction.'}
-            </Text>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
+        <NotAvailable title="You cannot edit this faction">
+          {faction.group_id
+            ? 'Only the faction owner or an active member of its group can edit this faction.'
+            : 'Only the faction owner can edit this faction.'}
+        </NotAvailable>
+      </PageMessage>
     );
   }
 
