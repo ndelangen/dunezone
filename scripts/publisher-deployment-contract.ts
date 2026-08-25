@@ -8,6 +8,7 @@ import { rendererManifest } from '../workers/publisher/renderer-manifest.generat
 
 export const PUBLISHER_WORKER_NAME = 'faction-sheet-asset-publisher';
 export const PUBLISHER_BUCKET_NAME = 'tanstack-start-faction-sheet-assets';
+export const USER_IMAGE_BUCKET_NAME = 'dunezone-user-images';
 export const PUBLISHER_ORIGIN = 'https://faction-sheet-asset-publisher.ndelangen.workers.dev';
 export const APPLICATION_ORIGIN = 'https://dune.zone';
 export const PUBLISHER_PRODUCTION_CONVEX_URL = 'https://exuberant-finch-263.eu-west-1.convex.cloud';
@@ -15,7 +16,11 @@ export const PUBLISHER_PRODUCTION_CONVEX_URL = 'https://exuberant-finch-263.eu-w
 const CONFIG_PATH = path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc');
 const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.convex.site';
 const PUBLISHER_CRON = '*/5 * * * *';
-const REQUIRED_SECRETS = ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET', 'ASSET_PUBLISHER_EXECUTOR_SECRET'];
+const REQUIRED_SECRETS = [
+  'ASSET_PUBLISHER_CACHE_TOKEN_SECRET',
+  'ASSET_PUBLISHER_EXECUTOR_SECRET',
+  'USER_IMAGE_INGEST_SECRET',
+];
 
 type JsonObject = Record<string, unknown>;
 
@@ -97,6 +102,10 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/publisher-capture',
         '/publisher-capture.html',
         '/publisher-capture/*',
+        '/user-images',
+        '/user-images/*',
+        '/__user-images',
+        '/__user-images/*',
       ],
     },
     'Static Assets routing'
@@ -106,6 +115,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
   exactJson(
     vars,
     {
+      USER_IMAGE_PUBLIC_BASE_URL: APPLICATION_ORIGIN,
       CAPTURE_BASE_URL: PUBLISHER_ORIGIN,
       CONVEX_EXECUTOR_BASE_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/executor`,
       CONVEX_RENDER_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/render`,
@@ -118,7 +128,14 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
     'scheduled Worker variables'
   );
   exactJson(config.triggers, { crons: [PUBLISHER_CRON] }, 'Cron configuration');
-  exactJson(config.r2_buckets, [{ binding: 'ASSET_BUCKET', bucket_name: PUBLISHER_BUCKET_NAME }], 'R2 binding');
+  exactJson(
+    config.r2_buckets,
+    [
+      { binding: 'ASSET_BUCKET', bucket_name: PUBLISHER_BUCKET_NAME },
+      { binding: 'USER_IMAGE_BUCKET', bucket_name: USER_IMAGE_BUCKET_NAME },
+    ],
+    'R2 binding'
+  );
   invariant(!('queues' in config), 'Queue bindings are not used');
   exactJson(config.limits, { cpu_ms: 30_000 }, 'Worker CPU limit');
   exactJson(config.browser, { binding: 'BROWSER' }, 'Browser binding');

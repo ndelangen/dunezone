@@ -16,6 +16,13 @@
       "storageClass": "Standard",
       "managedPublic": false,
       "customDomains": []
+    },
+    {
+      "name": "dunezone-user-images",
+      "location": "weur",
+      "storageClass": "Standard",
+      "managedPublic": false,
+      "customDomains": []
     }
   ]
 }

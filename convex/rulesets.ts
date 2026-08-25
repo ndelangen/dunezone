@@ -31,6 +31,7 @@ async function getRulesetById(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
  * The patch an update writes.
  * `image_cover` keeps the absent-means-untouched rule, since clearing a cover is expressed as `null`;
  * name and About are required of every write, so they are always part of the patch.
+ * An explicit `image_cover` also clears the stored `cover`: this legacy channel is how a pre-rehost bundle expresses a cover intent, and `rulesetCovers.rehost` is the only writer that sets `cover`.
  * The shape is inferred rather than restated, so adding a field here cannot drift from the type that describes it.
  */
 function rulesetUpdatePatch(fields: { name: string; slug: string; about: string; image_cover?: string | null }) {
@@ -39,7 +40,7 @@ function rulesetUpdatePatch(fields: { name: string; slug: string; about: string;
     slug: fields.slug,
     about: fields.about,
     updated_at: nowIso(),
-    ...(fields.image_cover === undefined ? {} : { image_cover: fields.image_cover }),
+    ...(fields.image_cover === undefined ? {} : { image_cover: fields.image_cover, cover: null }),
   };
 }
 
@@ -162,6 +163,7 @@ export const create = mutation({
       owner_id: userId,
       group_id: groupAssignment.group_id,
       image_cover: args.image_cover,
+      cover: null,
       created_at: now,
       updated_at: now,
       is_deleted: false,
@@ -195,13 +197,19 @@ export const update = mutation({
       throw new Error('Ruleset name already exists');
     }
 
+    /*
+     * A pre-rehost bundle echoes the dual-written delivery URL back on every save.
+     * That echo is not a new cover intent, so it must not clear the stored cover and lose its provenance.
+     */
+    const imageCoverIntent =
+      typeof args.image_cover === 'string' && args.image_cover === ruleset.cover?.url ? undefined : args.image_cover;
     await ctx.db.patch(
       ruleset._id,
       rulesetUpdatePatch({
         name: normalizedName,
         slug: await resolveUniqueRulesetSlug(ctx, normalizedName, args.id),
         about: input.about,
-        image_cover: args.image_cover,
+        image_cover: imageCoverIntent,
       })
     );
     const updated = await ctx.db.get(ruleset._id);

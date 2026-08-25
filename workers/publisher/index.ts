@@ -8,6 +8,7 @@ import { executeItemList } from './executor';
 import { imagesJpegEncoder } from './image-encode';
 import { rendererManifest } from './renderer-manifest.generated';
 import { boundedPublisherTelemetryEvent, publisherBuildIdentity } from './telemetry';
+import { handleUserImageIngest, handleUserImageRequest } from './user-images';
 
 function log(event: Record<string, unknown>): void {
   console.log(JSON.stringify(boundedPublisherTelemetryEvent(event)));
@@ -32,7 +33,9 @@ function isReservedWorkerPath(pathname: string): boolean {
     pathname.startsWith('/published/') ||
     pathname === '/publisher-capture' ||
     pathname === '/publisher-capture.html' ||
-    pathname.startsWith('/publisher-capture/')
+    pathname.startsWith('/publisher-capture/') ||
+    pathname === '/__user-images' ||
+    pathname.startsWith('/__user-images/')
   );
 }
 
@@ -45,6 +48,14 @@ const publisherWorker = {
     const publicAsset = await handlePublicAssetRequest(request, env, ctx);
     if (publicAsset) {
       return publicAsset;
+    }
+    const userImage = await handleUserImageRequest(request, env, ctx);
+    if (userImage) {
+      return userImage;
+    }
+    const ingest = await handleUserImageIngest(request, env);
+    if (ingest) {
+      return ingest;
     }
     const capture = await handleCaptureRoute(request, env);
     if (capture) {

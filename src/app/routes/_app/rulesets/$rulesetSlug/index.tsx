@@ -335,7 +335,7 @@ function RulesetDetailPage() {
           {/* The media matches the text block's height rather than a fixed size, so the band reads as one unit. */}
           <div className={styles.pageHeadMedia}>
             <Avatar
-              src={r.image_cover}
+              src={r.coverUrl}
               alt={`Cover for ${r.name}`}
               name={r.name}
               radius="md"

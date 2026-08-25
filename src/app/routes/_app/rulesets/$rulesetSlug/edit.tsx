@@ -2,6 +2,7 @@ import { Anchor, Button, Center, Group, Image, Popover, Stack, Text, TextInput, 
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import { rulesetAboutSchema } from '@shared/rulesets/validation';
+import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
@@ -20,6 +21,7 @@ import { useState } from 'react';
 import {
   loadRulesetDetailPage,
   useClearRulesetAssetSlot,
+  useRehostRulesetCover,
   useRulesetDetailPage,
   useSetRulesetAssetSlot,
   useUpdateRuleset,
@@ -33,9 +35,14 @@ import styles from './edit.module.css';
 function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRename: boolean }) {
   const navigate = useNavigate();
   const updateRuleset = useUpdateRuleset();
+  const rehostCover = useRehostRulesetCover();
   const [name, setName] = useState(initial.name);
   const [about, setAbout] = useState(initial.about);
-  const [coverUrl, setCoverUrl] = useState(initial.image_cover ?? '');
+  /* The form shows the URL the author pasted, not the delivery URL the rehost produced from it. */
+  const initialCoverInput = initial.cover?.source_url ?? initial.image_cover ?? '';
+  const [coverUrl, setCoverUrl] = useState(initialCoverInput);
+  const [coverPending, setCoverPending] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
 
   const mutationError =
     updateRuleset.isError && updateRuleset.error instanceof Error ? updateRuleset.error.message : null;
@@ -54,12 +61,37 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
       return;
     }
     const trimmedCover = coverUrl.trim();
+    const coverChanged = trimmedCover !== initialCoverInput;
     const previousSlug = initial.slug;
+    /*
+     * A new cover URL goes through the rehost action before anything else is written: the Worker fetches it once and the document ends up serving our copy.
+     * A refusal, a dead host or a non-image all surface here as the cover error, and the save stops without touching the other fields.
+     */
+    if (coverChanged && trimmedCover !== '') {
+      const coverCheck = userImageSourceUrlSchema.safeParse(trimmedCover);
+      if (!coverCheck.success) {
+        setCoverError(coverCheck.error.issues[0]?.message ?? 'Invalid cover image URL');
+        return;
+      }
+      setCoverError(null);
+      setCoverPending(true);
+      try {
+        await rehostCover({ id: initial._id, sourceUrl: coverCheck.data });
+      } catch (error) {
+        setCoverError(error instanceof Error ? error.message : 'The cover could not be stored');
+        return;
+      } finally {
+        setCoverPending(false);
+      }
+    } else {
+      setCoverError(null);
+    }
     try {
       const entry = await updateRuleset.mutateAsync({
         id: initial._id,
         input: { name: nextName, about: aboutCheck.data },
-        imageCover: trimmedCover === '' ? null : trimmedCover,
+        /* Clearing travels through the legacy channel; a rehosted cover is already committed, so absent means untouched. */
+        imageCover: coverChanged && trimmedCover === '' ? null : undefined,
       });
       if (previousSlug !== entry.slug) {
         navigate({
@@ -112,19 +144,25 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
         label="Cover image URL"
         description={
           <>
-            Optional. Use a full <code>https://</code> URL. Leave empty to clear the cover.
+            Optional. Use a full <code>https://</code> URL. Saving copies the image into our storage, so later changes
+            at the source will not appear here. Leave empty to clear the cover.
           </>
         }
+        error={coverError ?? undefined}
         value={coverUrl}
         onChange={(event) => setCoverUrl(event.currentTarget.value)}
         placeholder="https://…"
         autoComplete="off"
       />
 
+      {coverError ? <FormError title="Cover could not be stored">{coverError}</FormError> : null}
       {mutationError ? <FormError title="Ruleset could not be saved">{mutationError}</FormError> : null}
 
       <Group justify="flex-end">
-        <SubmitAction pending={updateRuleset.isPending} disabled={name.trim().length === 0 || !aboutCheck.success}>
+        <SubmitAction
+          pending={updateRuleset.isPending || coverPending}
+          disabled={name.trim().length === 0 || !aboutCheck.success}
+        >
           Save changes
         </SubmitAction>
       </Group>
@@ -206,9 +244,9 @@ function RulesetEditPage() {
   const header = (
     <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
       <Surface className={styles.rulesetHeadCover}>
-        {r.image_cover ? (
+        {r.coverUrl ? (
           <Image
-            src={r.image_cover}
+            src={r.coverUrl}
             fallbackSrc="/image/background/card-large.jpg"
             alt={`Cover for ${r.name}`}
             className={styles.coverImage}
