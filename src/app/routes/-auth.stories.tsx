@@ -15,7 +15,7 @@ export const Login = meta.story({
   args: { path: '/auth/login', routeKey: 'login' },
   parameters: { identity: null },
 });
-export const Error = meta.story({
+export const OAuthError = meta.story({
   args: { path: '/auth/error?error=oauth_failed', routeKey: 'authError' },
   parameters: { identity: null },
 });
