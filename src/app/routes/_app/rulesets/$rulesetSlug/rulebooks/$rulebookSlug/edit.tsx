@@ -1,10 +1,11 @@
-import { Accordion, Alert, Badge, Box, Button, Group, Stack, Text, Textarea } from '@mantine/core';
+import { Accordion, Alert, Badge, Box, Button, Group, Stack, Text } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult } from '@shared/formattedText';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -142,17 +143,6 @@ function RulebookPagePreview({
   );
 }
 
-function sameTextTarget(
-  target: ReadyResult['diagnostics'][number]['target'],
-  expected: { kind: 'block'; blockId: string } | { kind: 'item'; blockId: string; itemId: string }
-) {
-  return (
-    target?.kind === expected.kind &&
-    target.blockId === expected.blockId &&
-    (target.kind !== 'item' || (expected.kind === 'item' && target.itemId === expected.itemId))
-  );
-}
-
 function createRepeatedTextItemId(): string {
   return `item-${globalThis.crypto.randomUUID()}`;
 }
@@ -177,18 +167,14 @@ function PageTextEditors({
         }
         if (block.kind === 'text') {
           const target = { kind: 'block' as const, blockId };
-          const error = result.diagnostics.find(
-            (diagnostic) => diagnostic.field === 'text' && sameTextTarget(diagnostic.target, target)
-          )?.message;
           return (
-            <Textarea
+            <FormattedTextInput
               key={blockId}
               label="Text block"
               value={block.text}
-              error={error}
               autosize
               minRows={6}
-              onChange={(event) => dispatch({ kind: 'set', target, field: 'text', value: event.currentTarget.value })}
+              onChange={(value) => dispatch({ kind: 'set', target, field: 'text', value })}
             />
           );
         }
@@ -226,22 +212,16 @@ function PageTextEditors({
                   return null;
                 }
                 const target = { kind: 'item' as const, blockId, itemId };
-                const error = result.diagnostics.find(
-                  (diagnostic) => diagnostic.field === 'text' && sameTextTarget(diagnostic.target, target)
-                )?.message;
                 return (
                   <Group key={itemId} align="flex-start" wrap="nowrap">
-                    <Textarea
+                    <FormattedTextInput
                       label={`Item ${index + 1}`}
                       aria-label={`${repeatedBlockLabel}, item ${index + 1}`}
                       value={item.text}
-                      error={error}
                       autosize
                       minRows={4}
                       style={{ flex: 1 }}
-                      onChange={(event) =>
-                        dispatch({ kind: 'set', target, field: 'text', value: event.currentTarget.value })
-                      }
+                      onChange={(value) => dispatch({ kind: 'set', target, field: 'text', value })}
                     />
                     <ConfirmDeleteAction
                       label={`Remove item ${index + 1} from ${repeatedBlockLabel}`}

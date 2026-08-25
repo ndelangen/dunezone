@@ -15,6 +15,11 @@ test('the local Rulebook editor keeps its preview synchronized', async ({ page }
   await page.getByRole('textbox', { name: 'Text block' }).fill('A browser-local Rulebook revision.');
 
   await expect(preview).toContainText('A browser-local Rulebook revision.');
+
+  await page.getByRole('textbox', { name: 'Text block' }).fill('An *unfinished draft');
+  await expect(page.getByText('Line 1, column 4: Bold starts here but has no closing *.')).toBeVisible();
+  await expect(page.getByText('Suggestion: Add * after the words you want formatted, or remove this *.')).toBeVisible();
+  await expect(preview).toContainText('An *unfinished draft');
 });
 
 test('the fit toggle changes Page size while the document owns vertical scrolling', async ({ page }) => {
@@ -143,6 +148,10 @@ test('a repeated text item can be added, edited, previewed, and removed', async 
   const addedItem = page.getByRole('textbox', {
     name: `repeated text block, item ${originalCount + 1}`,
   });
+  await addedItem.fill('An *unfinished draft');
+  await expect(page.getByText('Line 1, column 4: Bold starts here but has no closing *.')).toBeVisible();
+  await expect(page.getByText('Suggestion: Add * after the words you want formatted, or remove this *.')).toBeVisible();
+
   await addedItem.fill('A newly repeated browser-local rule.');
   await expect(preview).toContainText('A newly repeated browser-local rule.');
 
