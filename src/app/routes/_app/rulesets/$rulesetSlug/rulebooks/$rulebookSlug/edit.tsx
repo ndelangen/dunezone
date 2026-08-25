@@ -1,4 +1,4 @@
-import { Accordion, Alert, Badge, Box, Button, Group, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Accordion, Alert, Badge, Box, Button, Group, Stack, Text } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult } from '@shared/formattedText';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from '@shared/rulebooks/contents';
@@ -10,20 +10,7 @@ import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import {
-  BookOpenText,
-  ChevronLeft,
-  ChevronRight,
-  FileImage,
-  Heading,
-  List,
-  MessageSquareQuote,
-  Minus,
-  PanelTop,
-  Rows3,
-  ScrollText,
-  Type,
-} from 'lucide-react';
+import { BookOpenText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, FileImage, Minus, Plus } from 'lucide-react';
 import { Fragment, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -40,7 +27,7 @@ type FormattedInline = Extract<FormattedBlock, { kind: 'paragraph' }>['children'
 const catalogueVariants = ['blocks', 'sections', 'recipes'] as const;
 type CatalogueVariant = (typeof catalogueVariants)[number];
 
-/* Three catalogue models on the existing editor route, switchable through `?variant=`. */
+/* Three interaction models for the same authoring scenario, switchable through `?variant=`. */
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit')({
   validateSearch: (search: Record<string, unknown>): { variant?: CatalogueVariant } => ({
     variant: catalogueVariants.includes(search.variant as CatalogueVariant)
@@ -354,47 +341,6 @@ function RulebookWorkspace(props: RulebookWorkspaceProps) {
   );
 }
 
-type CatalogueBlockCardProps = {
-  icon: ReactNode;
-  name: string;
-  description: string;
-  detail?: string;
-};
-
-function CatalogueBlockCard({ icon, name, description, detail }: CatalogueBlockCardProps) {
-  return (
-    <div className={styles.catalogueBlockCard}>
-      <div className={styles.catalogueBlockIcon}>{icon}</div>
-      <div>
-        <Text fw={700} size="sm">
-          {name}
-        </Text>
-        <Text size="xs" c="dimmed">
-          {description}
-        </Text>
-        {detail ? (
-          <Text size="xs" className={styles.catalogueBlockDetail}>
-            {detail}
-          </Text>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function MockField({ label, value, rows = 1 }: { label: string; value: string; rows?: number }) {
-  return (
-    <div className={styles.mockField}>
-      <Text component="span" size="xs" fw={700}>
-        {label}
-      </Text>
-      <div className={styles.mockFieldValue} data-rows={rows}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
 function AssetImagePlaceholder({ label = 'Selected Asset image' }: { label?: string }) {
   return (
     <div className={styles.assetImagePlaceholder}>
@@ -404,348 +350,529 @@ function AssetImagePlaceholder({ label = 'Selected Asset image' }: { label?: str
   );
 }
 
-function ComposableBlocksVariant() {
+type PrototypeBlockKind = 'rule-group' | 'worked-example' | 'asset-figure';
+
+type PrototypeBlock = {
+  id: string;
+  kind: PrototypeBlockKind;
+  title: string;
+  body: string;
+};
+
+type PrototypePage = {
+  id: string;
+  title: string;
+  recipe: string;
+  blocks: PrototypeBlock[];
+};
+
+const blockKindNames: Record<PrototypeBlockKind, string> = {
+  'rule-group': 'Rule group',
+  'worked-example': 'Worked example',
+  'asset-figure': 'Asset figure',
+};
+
+function createPrototypePages(): PrototypePage[] {
+  return [
+    {
+      id: 'welcome',
+      title: 'Welcome to Arrakis',
+      recipe: 'Chapter opener',
+      blocks: [
+        {
+          id: 'welcome-hero',
+          kind: 'asset-figure',
+          title: 'Arrakis hero image',
+          body: 'A selected Asset with a short caption.',
+        },
+      ],
+    },
+    {
+      id: 'movement',
+      title: 'Movement',
+      recipe: 'Rules page',
+      blocks: [
+        {
+          id: 'movement-rules',
+          kind: 'rule-group',
+          title: 'Movement sequence',
+          body: 'Choose a force, choose an adjacent destination, then resolve the move.',
+        },
+        {
+          id: 'movement-figure',
+          kind: 'asset-figure',
+          title: 'Storm marker',
+          body: 'The storm closes the boundary between its two sectors.',
+        },
+      ],
+    },
+    {
+      id: 'reference',
+      title: 'Markers and tokens',
+      recipe: 'Visual reference',
+      blocks: [
+        {
+          id: 'reference-figures',
+          kind: 'asset-figure',
+          title: 'Marker reference',
+          body: 'Six selected Assets with names and short explanations.',
+        },
+      ],
+    },
+  ];
+}
+
+function usePrototypeDocument() {
+  const [pages, setPages] = useState(createPrototypePages);
+  const [activePageId, setActivePageId] = useState('movement');
+  const [selectedBlockId, setSelectedBlockId] = useState('movement-rules');
+  const activePage = pages.find((page) => page.id === activePageId) ?? pages[0];
+  const selectedBlock = activePage.blocks.find((block) => block.id === selectedBlockId) ?? activePage.blocks[0];
+
+  const selectPage = (pageId: string) => {
+    const page = pages.find((candidate) => candidate.id === pageId);
+    if (!page) {
+      return;
+    }
+    setActivePageId(pageId);
+    setSelectedBlockId(page.blocks[0]?.id ?? '');
+  };
+  const addPage = () => {
+    const number = pages.length + 1;
+    const page: PrototypePage = {
+      id: `new-page-${number}`,
+      title: 'New rules page',
+      recipe: 'Rules page',
+      blocks: [
+        {
+          id: `new-page-${number}-rules`,
+          kind: 'rule-group',
+          title: 'Untitled rule group',
+          body: 'Replace this starter content with the rule text.',
+        },
+      ],
+    };
+    setPages((current) => [...current, page]);
+    setActivePageId(page.id);
+    setSelectedBlockId(page.blocks[0].id);
+  };
+  const movePage = (pageId: string, offset: number) => {
+    setPages((current) => {
+      const index = current.findIndex((page) => page.id === pageId);
+      const destination = index + offset;
+      if (index < 0 || destination < 0 || destination >= current.length) {
+        return current;
+      }
+      const next = [...current];
+      const [page] = next.splice(index, 1);
+      next.splice(destination, 0, page);
+      return next;
+    });
+  };
+  const addBlock = (kind: PrototypeBlockKind = 'worked-example') => {
+    const block: PrototypeBlock = {
+      id: `${activePage.id}-block-${activePage.blocks.length + 1}`,
+      kind,
+      title: kind === 'worked-example' ? 'New worked example' : blockKindNames[kind],
+      body: 'Replace this dummy content with the finished text.',
+    };
+    setPages((current) =>
+      current.map((page) => (page.id === activePage.id ? { ...page, blocks: [...page.blocks, block] } : page))
+    );
+    setSelectedBlockId(block.id);
+  };
+  const moveBlock = (blockId: string, offset: number) => {
+    setPages((current) =>
+      current.map((page) => {
+        if (page.id !== activePage.id) {
+          return page;
+        }
+        const index = page.blocks.findIndex((block) => block.id === blockId);
+        const destination = index + offset;
+        if (index < 0 || destination < 0 || destination >= page.blocks.length) {
+          return page;
+        }
+        const blocks = [...page.blocks];
+        const [block] = blocks.splice(index, 1);
+        blocks.splice(destination, 0, block);
+        return { ...page, blocks };
+      })
+    );
+  };
+  const updateSelectedBlock = (field: 'title' | 'body', value: string) => {
+    if (!selectedBlock) {
+      return;
+    }
+    setPages((current) =>
+      current.map((page) =>
+        page.id === activePage.id
+          ? {
+              ...page,
+              blocks: page.blocks.map((block) =>
+                block.id === selectedBlock.id ? { ...block, [field]: value } : block
+              ),
+            }
+          : page
+      )
+    );
+  };
+  const reset = () => {
+    setPages(createPrototypePages());
+    setActivePageId('movement');
+    setSelectedBlockId('movement-rules');
+  };
+
+  return {
+    pages,
+    activePage,
+    selectedBlock,
+    selectedBlockId,
+    selectPage,
+    setSelectedBlockId,
+    addPage,
+    movePage,
+    addBlock,
+    moveBlock,
+    updateSelectedBlock,
+    reset,
+  };
+}
+
+type PrototypeDocument = ReturnType<typeof usePrototypeDocument>;
+
+function ScenarioBrief() {
   return (
-    <div className={styles.catalogueWorkspace} data-variant="blocks">
-      <Surface className={styles.catalogueControls} padding="lg" as="section" aria-label="Composable block catalogue">
-        <Stack gap="lg">
-          <div>
-            <Badge variant="light">A</Badge>
-            <Text fw={700} size="lg" mt="xs">
-              Composable blocks
-            </Text>
-            <Text size="sm" c="dimmed">
-              Choose a layout, then stack generic blocks in any compatible slot.
-            </Text>
-          </div>
-          <div>
-            <Text size="xs" fw={700} tt="uppercase" className={styles.sectionLabel}>
-              Available blocks
-            </Text>
-            <Stack gap="xs" mt="xs">
-              <CatalogueBlockCard icon={<Heading size={18} />} name="Heading" description="Level and formatted text" />
-              <CatalogueBlockCard icon={<Type size={18} />} name="Formatted text" description="Paragraphs and lists" />
-              <CatalogueBlockCard icon={<List size={18} />} name="Rule list" description="Ordered titled entries" />
-              <CatalogueBlockCard
-                icon={<FileImage size={18} />}
-                name="Asset image"
-                description="One referenced Asset"
-              />
-              <CatalogueBlockCard
-                icon={<MessageSquareQuote size={18} />}
-                name="Callout"
-                description="Short emphasized text"
-              />
-            </Stack>
-          </div>
-        </Stack>
-      </Surface>
-      <Surface className={styles.catalogueComposition} padding="lg" as="section" aria-label="Page block composition">
-        <Stack gap="md">
-          <Group justify="space-between">
-            <div>
-              <Text fw={700}>Page 3</Text>
-              <Text size="xs" c="dimmed">
-                Two columns
-              </Text>
-            </div>
-            <Badge color="gray" variant="outline">
-              6 blocks
-            </Badge>
-          </Group>
-          <div className={styles.compositionSlot}>
-            <Text size="xs" fw={700} c="dimmed">
-              LEFT SLOT
-            </Text>
-            <CatalogueBlockCard icon={<Heading size={18} />} name="Heading" description="Movement" detail="H2" />
-            <CatalogueBlockCard icon={<Type size={18} />} name="Formatted text" description="Three paragraphs" />
-            <CatalogueBlockCard icon={<List size={18} />} name="Rule list" description="Four items" />
-          </div>
-          <div className={styles.compositionSlot}>
-            <Text size="xs" fw={700} c="dimmed">
-              RIGHT SLOT
-            </Text>
-            <CatalogueBlockCard icon={<FileImage size={18} />} name="Asset image" description="Storm marker" />
-            <CatalogueBlockCard icon={<MessageSquareQuote size={18} />} name="Callout" description="Remember" />
-          </div>
-        </Stack>
-      </Surface>
-      <section className={styles.cataloguePreview} aria-label="Composable blocks page preview">
-        <article className={styles.documentPage} data-document="blocks">
-          <div className={styles.documentFolio}>Dune rules / 03</div>
-          <h2>Movement</h2>
-          <div className={styles.documentColumns}>
-            <div>
-              <p>Move each force into an adjacent territory. A storm sector blocks movement across its boundary.</p>
-              <ol className={styles.documentRuleList}>
-                <li>
-                  <strong>Choose a force.</strong> It must be able to move.
-                </li>
-                <li>
-                  <strong>Choose a destination.</strong> Apply terrain limits.
-                </li>
-                <li>
-                  <strong>Commit the move.</strong> Resolve any conflict.
-                </li>
-              </ol>
-            </div>
-            <div>
-              <AssetImagePlaceholder label="Storm marker Asset" />
-              <aside className={styles.documentCallout}>
-                <strong>Remember</strong>
-                <span>The storm changes which territories count as adjacent.</span>
-              </aside>
-            </div>
-          </div>
-        </article>
-      </section>
+    <Surface className={styles.scenarioBrief} padding="md" as="section" aria-label="Shared comparison scenario">
+      <div>
+        <Text size="xs" fw={700} tt="uppercase" className={styles.sectionLabel}>
+          Same scenario in every prototype
+        </Text>
+        <Text size="sm">A starter rulebook already contains three pages and dummy content.</Text>
+      </div>
+      <Group gap="xs" className={styles.scenarioTasks}>
+        <Badge color="gray" variant="light">
+          Add a page
+        </Badge>
+        <Badge color="gray" variant="light">
+          Reorder pages
+        </Badge>
+        <Badge color="gray" variant="light">
+          Add a block
+        </Badge>
+        <Badge color="gray" variant="light">
+          Reorder blocks
+        </Badge>
+        <Badge color="gray" variant="light">
+          Edit content
+        </Badge>
+      </Group>
+    </Surface>
+  );
+}
+
+function MoveActions({
+  label,
+  index,
+  count,
+  move,
+}: {
+  label: string;
+  index: number;
+  count: number;
+  move: (offset: number) => void;
+}) {
+  return (
+    <span className={styles.moveActions}>
+      <button disabled={index === 0} aria-label={`Move ${label} up`} onClick={() => move(-1)}>
+        <ChevronUp size={14} aria-hidden />
+      </button>
+      <button disabled={index === count - 1} aria-label={`Move ${label} down`} onClick={() => move(1)}>
+        <ChevronDown size={14} aria-hidden />
+      </button>
+    </span>
+  );
+}
+
+function PageList({ model }: { model: PrototypeDocument }) {
+  return (
+    <div className={styles.studyList}>
+      {model.pages.map((page, index) => (
+        <div className={styles.studyListRow} data-selected={page.id === model.activePage.id} key={page.id}>
+          <button className={styles.studyListChoice} onClick={() => model.selectPage(page.id)}>
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <span>
+              <strong>{page.title}</strong>
+              <small>{page.recipe}</small>
+            </span>
+          </button>
+          <MoveActions
+            label={`page ${page.title}`}
+            index={index}
+            count={model.pages.length}
+            move={(offset) => model.movePage(page.id, offset)}
+          />
+        </div>
+      ))}
+      <Button variant="light" leftSection={<Plus size={16} />} onClick={model.addPage}>
+        Add rules page
+      </Button>
     </div>
+  );
+}
+
+function BlockList({ model, inline = false }: { model: PrototypeDocument; inline?: boolean }) {
+  return (
+    <div className={styles.studyList} data-inline={inline}>
+      {model.activePage.blocks.map((block, index) => (
+        <div className={styles.blockStudyRow} data-selected={block.id === model.selectedBlockId} key={block.id}>
+          <button className={styles.blockStudyChoice} onClick={() => model.setSelectedBlockId(block.id)}>
+            <span>{blockKindNames[block.kind]}</span>
+            <strong>{block.title}</strong>
+            <small>{block.body}</small>
+          </button>
+          <MoveActions
+            label={`block ${block.title}`}
+            index={index}
+            count={model.activePage.blocks.length}
+            move={(offset) => model.moveBlock(block.id, offset)}
+          />
+        </div>
+      ))}
+      <Button variant="light" leftSection={<Plus size={16} />} onClick={() => model.addBlock()}>
+        Add worked example
+      </Button>
+    </div>
+  );
+}
+
+function BlockEditor({ model }: { model: PrototypeDocument }) {
+  if (!model.selectedBlock) {
+    return <Text size="sm">Select or add a block to edit it.</Text>;
+  }
+  return (
+    <div className={styles.blockEditor}>
+      <Badge variant="light">{blockKindNames[model.selectedBlock.kind]}</Badge>
+      <label>
+        <span>Title</span>
+        <input
+          value={model.selectedBlock.title}
+          onChange={(event) => model.updateSelectedBlock('title', event.currentTarget.value)}
+        />
+      </label>
+      <label>
+        <span>Content</span>
+        <textarea
+          value={model.selectedBlock.body}
+          onChange={(event) => model.updateSelectedBlock('body', event.currentTarget.value)}
+        />
+      </label>
+    </div>
+  );
+}
+
+function SharedDocumentPreview({ model }: { model: PrototypeDocument }) {
+  const pageNumber = model.pages.findIndex((page) => page.id === model.activePage.id) + 1;
+  return (
+    <section className={styles.cataloguePreview} aria-label="Shared rulebook page preview">
+      <article className={styles.documentPage}>
+        <div className={styles.documentFolio}>
+          {model.activePage.recipe} / {String(pageNumber).padStart(2, '0')}
+        </div>
+        <h2>{model.activePage.title}</h2>
+        <div className={styles.sharedPreviewBlocks}>
+          {model.activePage.blocks.map((block) =>
+            block.kind === 'asset-figure' ? (
+              <section className={styles.previewAssetBlock} key={block.id}>
+                <AssetImagePlaceholder label={block.title} />
+                <p>{block.body}</p>
+              </section>
+            ) : block.kind === 'worked-example' ? (
+              <aside className={styles.documentCallout} key={block.id}>
+                <strong>{block.title}</strong>
+                <span>{block.body}</span>
+              </aside>
+            ) : (
+              <section className={styles.recipeRuleGroup} key={block.id}>
+                <span>{blockKindNames[block.kind]}</span>
+                <h3>{block.title}</h3>
+                <p>{block.body}</p>
+              </section>
+            )
+          )}
+        </div>
+      </article>
+    </section>
+  );
+}
+
+function PrototypeHeading({
+  label,
+  title,
+  description,
+  reset,
+}: {
+  label: string;
+  title: string;
+  description: string;
+  reset: () => void;
+}) {
+  return (
+    <Group justify="space-between" align="flex-start" wrap="nowrap" className={styles.prototypeHeading}>
+      <div>
+        <Group gap="xs">
+          <Badge variant="light">{label}</Badge>
+          <Text fw={700} size="lg">
+            {title}
+          </Text>
+        </Group>
+        <Text size="sm" c="dimmed" mt={4}>
+          {description}
+        </Text>
+      </div>
+      <Button size="xs" variant="subtle" onClick={reset}>
+        Reset
+      </Button>
+    </Group>
+  );
+}
+
+function ComposableBlocksVariant() {
+  const model = usePrototypeDocument();
+  return (
+    <Stack gap="md">
+      <ScenarioBrief />
+      <Surface padding="lg" as="section">
+        <PrototypeHeading
+          label="1"
+          title="Three-pane workspace"
+          description="Pages, block structure, and the selected block stay visible together."
+          reset={model.reset}
+        />
+        <div className={styles.threePaneWorkspace}>
+          <section>
+            <Text fw={700} size="sm" mb="xs">
+              Pages
+            </Text>
+            <PageList model={model} />
+          </section>
+          <section>
+            <Text fw={700} size="sm" mb="xs">
+              Blocks on {model.activePage.title}
+            </Text>
+            <BlockList model={model} />
+          </section>
+          <section className={styles.inspectorPane}>
+            <Text fw={700} size="sm" mb="xs">
+              Selected block
+            </Text>
+            <BlockEditor model={model} />
+          </section>
+        </div>
+      </Surface>
+      <SharedDocumentPreview model={model} />
+    </Stack>
   );
 }
 
 function SemanticSectionsVariant() {
+  const model = usePrototypeDocument();
   return (
-    <div className={styles.catalogueWorkspace} data-variant="sections">
-      <Surface className={styles.catalogueControls} padding="lg" as="section" aria-label="Semantic section catalogue">
-        <Stack gap="lg">
-          <div>
-            <Badge variant="light">B</Badge>
-            <Text fw={700} size="lg" mt="xs">
-              Semantic sections
-            </Text>
-            <Text size="sm" c="dimmed">
-              Add sections that describe their editorial purpose. Each one owns a small set of fields.
-            </Text>
-          </div>
-          <div className={styles.sectionSequence}>
-            <div className={styles.sectionSequenceItem} data-active="true">
-              <span>01</span>
-              <div>
-                <Text fw={700} size="sm">
-                  Rule group
-                </Text>
-                <Text size="xs" c="dimmed">
-                  Heading, introduction, ordered rules
-                </Text>
-              </div>
-            </div>
-            <div className={styles.sectionSequenceItem}>
-              <span>02</span>
-              <div>
-                <Text fw={700} size="sm">
-                  Worked example
-                </Text>
-                <Text size="xs" c="dimmed">
-                  Situation, steps, outcome
-                </Text>
-              </div>
-            </div>
-            <div className={styles.sectionSequenceItem}>
-              <span>03</span>
-              <div>
-                <Text fw={700} size="sm">
-                  Asset figure
-                </Text>
-                <Text size="xs" c="dimmed">
-                  Asset reference and caption
-                </Text>
-              </div>
-            </div>
-          </div>
-          <Stack gap="sm">
-            <MockField label="Section heading" value="Movement" />
-            <MockField label="Introduction" value="A force may move once during the movement step." rows={2} />
-            <MockField label="Rules" value="3 ordered rules" />
-          </Stack>
-        </Stack>
+    <Stack gap="md">
+      <ScenarioBrief />
+      <Surface padding="lg" as="section">
+        <PrototypeHeading
+          label="2"
+          title="Document-first canvas"
+          description="Pages sit above the document. Blocks are selected and reordered where they appear."
+          reset={model.reset}
+        />
+        <div className={styles.pageStrip}>
+          <PageList model={model} />
+        </div>
+        <div className={styles.documentFirstWorkspace}>
+          <section>
+            <Group justify="space-between" mb="xs">
+              <Text fw={700} size="sm">
+                Page contents
+              </Text>
+              <Badge color="gray" variant="outline">
+                {model.activePage.recipe}
+              </Badge>
+            </Group>
+            <BlockList model={model} inline />
+          </section>
+          <section className={styles.documentFirstSide}>
+            <Surface padding="md" as="section">
+              <Text fw={700} size="sm" mb="xs">
+                Edit selected block
+              </Text>
+              <BlockEditor model={model} />
+            </Surface>
+            <SharedDocumentPreview model={model} />
+          </section>
+        </div>
       </Surface>
-      <section className={styles.cataloguePreview} aria-label="Semantic sections page preview">
-        <article className={styles.documentPage} data-document="sections">
-          <div className={styles.documentFolio}>Movement / 03</div>
-          <header className={styles.semanticHeader}>
-            <span>Core sequence</span>
-            <h2>Movement</h2>
-            <p>A force may move once during the movement step.</p>
-          </header>
-          <section className={styles.ruleGroup}>
-            <div className={styles.ruleNumber}>1</div>
-            <div>
-              <h3>Choose a force</h3>
-              <p>Select a force that has not moved this round.</p>
-            </div>
-            <div className={styles.ruleNumber}>2</div>
-            <div>
-              <h3>Choose a destination</h3>
-              <p>Follow adjacency, terrain, and storm restrictions.</p>
-            </div>
-            <div className={styles.ruleNumber}>3</div>
-            <div>
-              <h3>Resolve the move</h3>
-              <p>Place the force and resolve any conflict in the destination.</p>
-            </div>
-          </section>
-          <section className={styles.workedExample}>
-            <div>
-              <span>Worked example</span>
-              <p>A force in Hagga Basin moves toward the Shield Wall while the storm crosses sector four.</p>
-            </div>
-            <AssetImagePlaceholder label="Board position Asset" />
-          </section>
-        </article>
-      </section>
-    </div>
+    </Stack>
   );
 }
 
-type RecipeId = 'chapter' | 'rules' | 'reference';
-
-const recipeNames: Record<RecipeId, string> = {
-  chapter: 'Chapter opener',
-  rules: 'Rules page',
-  reference: 'Visual reference',
-};
-
 function PageRecipesVariant() {
-  const [recipe, setRecipe] = useState<RecipeId>('rules');
+  const model = usePrototypeDocument();
+  const [step, setStep] = useState<'pages' | 'blocks' | 'content'>('blocks');
   return (
-    <div className={styles.catalogueWorkspace} data-variant="recipes">
-      <Surface className={styles.recipeChooser} padding="lg" as="section" aria-label="Page recipe catalogue">
-        <Group justify="space-between" align="flex-start" mb="md">
-          <div>
-            <Group gap="xs">
-              <Badge variant="light">C</Badge>
-              <Text fw={700} size="lg">
-                Page recipes
-              </Text>
-            </Group>
-            <Text size="sm" c="dimmed" mt={4}>
-              Pick an opinionated page type. The application supplies its regions and presentation.
-            </Text>
-          </div>
-          <Badge color="gray" variant="outline">
-            {recipeNames[recipe]}
-          </Badge>
-        </Group>
-        <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
-          <button
-            className={styles.recipeChoice}
-            data-selected={recipe === 'chapter'}
-            onClick={() => setRecipe('chapter')}
-          >
-            <PanelTop size={20} aria-hidden />
-            <span>Chapter opener</span>
-            <small>Title, summary, hero Asset</small>
-          </button>
-          <button className={styles.recipeChoice} data-selected={recipe === 'rules'} onClick={() => setRecipe('rules')}>
-            <ScrollText size={20} aria-hidden />
-            <span>Rules page</span>
-            <small>Rule groups and examples</small>
-          </button>
-          <button
-            className={styles.recipeChoice}
-            data-selected={recipe === 'reference'}
-            onClick={() => setRecipe('reference')}
-          >
-            <Rows3 size={20} aria-hidden />
-            <span>Visual reference</span>
-            <small>Asset grid and short labels</small>
-          </button>
-        </SimpleGrid>
+    <Stack gap="md">
+      <ScenarioBrief />
+      <Surface padding="lg" as="section">
+        <PrototypeHeading
+          label="3"
+          title="Focused steps"
+          description="Work on pages, block order, or content in a dedicated step. The preview remains beside the task."
+          reset={model.reset}
+        />
+        <div className={styles.stepTabs} role="tablist" aria-label="Authoring step">
+          {(['pages', 'blocks', 'content'] as const).map((candidate, index) => (
+            <button aria-selected={step === candidate} onClick={() => setStep(candidate)} role="tab" key={candidate}>
+              <span>{index + 1}</span>
+              {candidate === 'pages' ? 'Pages' : candidate === 'blocks' ? 'Blocks' : 'Content'}
+            </button>
+          ))}
+        </div>
+        <div className={styles.focusedWorkspace}>
+          <section className={styles.focusedTask}>
+            {step === 'pages' ? (
+              <>
+                <Text fw={700} mb="xs">
+                  Choose, add, or reorder a page
+                </Text>
+                <PageList model={model} />
+              </>
+            ) : step === 'blocks' ? (
+              <>
+                <Text fw={700} mb="xs">
+                  Arrange blocks on {model.activePage.title}
+                </Text>
+                <BlockList model={model} />
+              </>
+            ) : (
+              <>
+                <Text fw={700} mb="xs">
+                  Edit the selected block
+                </Text>
+                <BlockEditor model={model} />
+              </>
+            )}
+          </section>
+          <SharedDocumentPreview model={model} />
+        </div>
       </Surface>
-      <Surface
-        className={styles.catalogueControls}
-        padding="lg"
-        as="section"
-        aria-label={`${recipeNames[recipe]} fields`}
-      >
-        <Stack gap="md">
-          <Text fw={700}>{recipeNames[recipe]} fields</Text>
-          {recipe === 'chapter' ? (
-            <>
-              <MockField label="Chapter number" value="03" />
-              <MockField label="Title" value="Movement" />
-              <MockField label="Summary" value="How forces cross the board and meet the storm." rows={2} />
-              <CatalogueBlockCard
-                icon={<FileImage size={18} />}
-                name="Hero Asset"
-                description="Choose one published Asset"
-              />
-            </>
-          ) : recipe === 'rules' ? (
-            <>
-              <MockField label="Page heading" value="Movement" />
-              <MockField label="Rule groups" value="Movement sequence, storm restrictions" />
-              <MockField label="Examples" value="1 worked example" />
-              <MockField label="Footer note" value="Optional" />
-            </>
-          ) : (
-            <>
-              <MockField label="Page heading" value="Markers and tokens" />
-              <MockField label="Asset entries" value="6 selected Assets" />
-              <MockField label="Entry text" value="Name and one formatted sentence" rows={2} />
-            </>
-          )}
-        </Stack>
-      </Surface>
-      <section className={styles.cataloguePreview} aria-label={`${recipeNames[recipe]} preview`}>
-        <article className={styles.documentPage} data-document="recipes" data-recipe={recipe}>
-          {recipe === 'chapter' ? (
-            <>
-              <div className={styles.chapterNumber}>03</div>
-              <AssetImagePlaceholder label="Hero Asset" />
-              <div className={styles.chapterTitle}>
-                <span>Chapter three</span>
-                <h2>Movement</h2>
-                <p>How forces cross the board and meet the storm.</p>
-              </div>
-            </>
-          ) : recipe === 'rules' ? (
-            <>
-              <div className={styles.documentFolio}>Chapter 3 / 03</div>
-              <h2>Movement</h2>
-              <div className={styles.recipeRuleGroup}>
-                <span>Movement sequence</span>
-                <h3>Move one force at a time</h3>
-                <p>Choose a force, choose an adjacent destination, then resolve the move before choosing another.</p>
-              </div>
-              <div className={styles.recipeRuleGroup}>
-                <span>Storm restrictions</span>
-                <h3>The storm closes its boundary</h3>
-                <p>No force may cross the storm boundary unless another rule says it can.</p>
-              </div>
-              <aside className={styles.documentCallout}>
-                <strong>Example</strong>
-                <span>
-                  A force may leave sector three before the storm enters it, but cannot cross into sector four
-                  afterward.
-                </span>
-              </aside>
-            </>
-          ) : (
-            <>
-              <div className={styles.documentFolio}>Reference / 03</div>
-              <h2>Markers and tokens</h2>
-              <div className={styles.referenceGrid}>
-                {['Storm marker', 'First player', 'Alliance', 'Spice blow', 'Battle', 'Turn'].map((name) => (
-                  <div key={name}>
-                    <AssetImagePlaceholder label={name} />
-                    <strong>{name}</strong>
-                    <p>One short explanation of when this marker is used.</p>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </article>
-      </section>
-    </div>
+    </Stack>
   );
 }
 
 const variantLabels: Record<CatalogueVariant, string> = {
-  blocks: 'A  Composable blocks',
-  sections: 'B  Semantic sections',
-  recipes: 'C  Page recipes',
+  blocks: '1  Three-pane workspace',
+  sections: '2  Document-first canvas',
+  recipes: '3  Focused steps',
 };
 
 function PrototypeSwitcher({
@@ -779,9 +906,9 @@ function PrototypeSwitcher({
   }
   const currentIndex = catalogueVariants.indexOf(variant);
   return (
-    <div className={styles.prototypeSwitcher} role="group" aria-label="Catalogue prototype variant">
+    <div className={styles.prototypeSwitcher} role="group" aria-label="Authoring interaction prototype">
       <button
-        aria-label="Previous catalogue variant"
+        aria-label="Previous interaction prototype"
         onClick={() =>
           select(catalogueVariants[(currentIndex - 1 + catalogueVariants.length) % catalogueVariants.length])
         }
@@ -790,7 +917,7 @@ function PrototypeSwitcher({
       </button>
       <span>{variantLabels[variant]}</span>
       <button
-        aria-label="Next catalogue variant"
+        aria-label="Next interaction prototype"
         onClick={() => select(catalogueVariants[(currentIndex + 1) % catalogueVariants.length])}
       >
         <ChevronRight size={18} aria-hidden />
@@ -811,7 +938,7 @@ function CataloguePrototypePage({ variant }: { variant: CatalogueVariant }) {
         <Group gap="sm" wrap="nowrap">
           <BookOpenText size={24} aria-hidden />
           <div>
-            <PageTitle title="Rulebook catalogue prototype" />
+            <PageTitle title="Rulebook authoring comparison" />
             <Text size="xs" c="dimmed">
               {rulesetSlug} / {rulebookSlug}
             </Text>
@@ -826,7 +953,7 @@ function CataloguePrototypePage({ variant }: { variant: CatalogueVariant }) {
                 Throwaway prototype
               </Badge>
               <Text size="xs" c="dimmed">
-                Compare three ways to define the production editorial catalogue.
+                The starting document, available actions, data, and preview are identical in all three prototypes.
               </Text>
             </Group>
           </Toolbar.Left>
@@ -838,7 +965,7 @@ function CataloguePrototypePage({ variant }: { variant: CatalogueVariant }) {
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <section className={styles.cataloguePrototype} aria-label="Rulebook editorial catalogue prototype">
+        <section className={styles.cataloguePrototype} aria-label="Rulebook authoring interaction comparison">
           {variant === 'blocks' ? (
             <ComposableBlocksVariant />
           ) : variant === 'sections' ? (
