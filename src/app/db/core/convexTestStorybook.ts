@@ -138,26 +138,18 @@ export function useConvexTestWorkerSession() {
 
 export function useConvexTestWorkerQuery<Query extends FunctionReference<'query'>>(
   query: Query,
-  args: FunctionArgs<Query> | 'skip'
+  args: FunctionArgs<Query>
 ): FunctionReturnType<Query> | undefined {
   const { client, identity } = useConvexTestWorkerSession();
   const revision = useSyncExternalStore(client.subscribe, client.getRevision, client.getRevision);
   const name = getFunctionName(query);
   const stableQuery = useMemo(() => makeFunctionReference(name) as Query, [name]);
-  const serializedArgs = args === 'skip' ? 'skip' : JSON.stringify(args);
-  const stableArgs = useMemo(
-    () => (serializedArgs === 'skip' ? 'skip' : (JSON.parse(serializedArgs) as FunctionArgs<Query>)),
-    [serializedArgs]
-  );
+  const serializedArgs = JSON.stringify(args);
+  const stableArgs = useMemo(() => JSON.parse(serializedArgs) as FunctionArgs<Query>, [serializedArgs]);
   const [value, setValue] = useState<FunctionReturnType<Query>>();
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (stableArgs === 'skip') {
-      setValue(undefined);
-      setError(null);
-      return;
-    }
     let active = true;
     setValue(undefined);
     setError(null);
@@ -192,5 +184,5 @@ export function useConvexTestWorkerMutation<Mutation extends FunctionReference<'
   );
 }
 
-export { convexUseMutation, convexUseQuery, getFunctionName, makeFunctionReference };
+export { convexUseMutation, convexUseQuery, makeFunctionReference };
 export type { FunctionArgs, FunctionReference, FunctionReturnType };
