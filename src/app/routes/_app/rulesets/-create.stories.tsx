@@ -108,46 +108,65 @@ type WorkerState =
   | { status: 'success'; client: ConvexTestWorkerClient }
   | { status: 'error'; message: string };
 
-function WithRestartableWorker({
-  children,
-  identity,
-  seed,
-}: Readonly<{ children: ReactNode; identity: WorkerIdentity; seed: SeedDocument[] }>) {
+async function createSeededWorker(seed: SeedDocument[]) {
+  const client = new ConvexTestWorkerClient();
+  try {
+    await client.reset(seed);
+    return client;
+  } catch (error) {
+    client.terminate();
+    throw error;
+  }
+}
+
+async function retireWorker(client: ConvexTestWorkerClient | null) {
+  if (!client) {
+    return;
+  }
+  await client.waitForIdle();
+  client.terminate();
+}
+
+function workerErrorState(error: unknown): WorkerState {
+  return { status: 'error', message: error instanceof Error ? error.message : String(error) };
+}
+
+function useRestartableWorker(seed: SeedDocument[]) {
   const activeClient = useRef<ConvexTestWorkerClient | null>(null);
   const mounted = useRef(true);
   const [state, setState] = useState<WorkerState>({ status: 'loading' });
 
   const startWorker = useCallback(async () => {
-    const nextClient = new ConvexTestWorkerClient();
-    try {
-      await nextClient.reset(seed);
-    } catch (error) {
-      nextClient.terminate();
-      throw error;
-    }
+    const nextClient = await createSeededWorker(seed);
     if (!mounted.current) {
       nextClient.terminate();
       throw new Error('The story stopped before its replacement worker started.');
     }
-    const previousClient = activeClient.current;
-    await previousClient?.waitForIdle();
+    await retireWorker(activeClient.current);
     activeClient.current = nextClient;
     setState({ status: 'success', client: nextClient });
-    previousClient?.terminate();
     return nextClient;
   }, [seed]);
 
   useEffect(() => {
     mounted.current = true;
-    void startWorker().catch((error: unknown) => {
-      setState({ status: 'error', message: error instanceof Error ? error.message : String(error) });
-    });
+    void startWorker().catch((error: unknown) => setState(workerErrorState(error)));
     return () => {
       mounted.current = false;
       activeClient.current?.terminate();
       activeClient.current = null;
     };
   }, [startWorker]);
+
+  return { startWorker, state };
+}
+
+function WithRestartableWorker({
+  children,
+  identity,
+  seed,
+}: Readonly<{ children: ReactNode; identity: WorkerIdentity; seed: SeedDocument[] }>) {
+  const { startWorker, state } = useRestartableWorker(seed);
 
   if (state.status === 'loading') {
     return <Loader aria-label="Starting the authenticated Convex Storybook worker" />;
