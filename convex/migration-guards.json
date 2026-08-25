@@ -26,6 +26,21 @@
       "requires": ["rulesets_about_v1"]
     },
     {
+      "id": "rulesets_about_narrow",
+      "phase": "narrow",
+      "requires": ["rulesets_about_v1", "rulesets_about_verify_v1"]
+    },
+    {
+      "id": "rulesets_description_retire_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "rulesets_description_retire_verify_v1",
+      "phase": "widen",
+      "requires": ["rulesets_description_retire_v1"]
+    },
+    {
       "id": "faq_item_slug_v1",
       "phase": "widen",
       "requires": []

@@ -1,11 +1,12 @@
 import type { Doc } from '../_generated/dataModel';
 
 /**
- * A Ruleset row as the widened release puts it on the wire.
- * The stored canonical field stays optional until the backfill finishes, but every read supplies it from the legacy field so the new Worker has one stable contract throughout the rollout.
+ * The active Ruleset contract during storage retirement.
+ * The database may still carry `description` until the retirement migration reaches a row, but no reader receives that field.
  */
-export type RulesetWithAbout = Doc<'rulesets'> & { about: string };
+export type ActiveRuleset = Omit<Doc<'rulesets'>, 'description'>;
 
-export function withRulesetAbout(row: Doc<'rulesets'>): RulesetWithAbout {
-  return { ...row, about: row.about ?? row.description };
+export function activeRuleset(row: Doc<'rulesets'>): ActiveRuleset {
+  const { description: _description, ...active } = row;
+  return active;
 }

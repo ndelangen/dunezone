@@ -50,7 +50,7 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
     });
     const activeRulesetId = await ctx.db.insert('rulesets', {
       name: 'Active ruleset',
-      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+      about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
       slug: 'active-ruleset',
       created_at: '2026-08-04T10:00:00.000Z',
       updated_at: '2026-08-04T10:00:00.000Z',
@@ -61,7 +61,7 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
     });
     const deletedRulesetId = await ctx.db.insert('rulesets', {
       name: 'Deleted ruleset',
-      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+      about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
       slug: 'deleted-ruleset',
       created_at: '2026-08-04T10:00:00.000Z',
       updated_at: '2026-08-04T10:00:00.000Z',
@@ -163,7 +163,7 @@ test('backfills Statistics resumably and rebuilds after later writes bypass trig
     });
     const insertedRulesetId = await ctx.db.insert('rulesets', {
       name: 'Dashboard ruleset',
-      description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+      about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
       slug: 'dashboard-ruleset',
       created_at: '2026-08-04T10:00:00.000Z',
       updated_at: '2026-08-04T10:00:00.000Z',

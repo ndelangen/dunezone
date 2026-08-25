@@ -85,7 +85,7 @@ async function seedOwnedRows(t: ReturnType<typeof setup>, ownerId: Id<'users'>, 
     const rulesetId = await ctx.db.insert('rulesets', {
       name: `${prefix} Ruleset`,
       slug: `${prefix}-ruleset`,
-      description: 'A sufficiently long test description for account deletion ownership coverage.',
+      about: 'A sufficiently long test About for account deletion ownership coverage.',
       created_at: now,
       updated_at: now,
       owner_id: ownerId,

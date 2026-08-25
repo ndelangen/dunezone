@@ -192,8 +192,7 @@ export const seedBaseline = mutation({
 
     const rulesetId = await ctx.db.insert('rulesets', {
       name: 'E2EBaselineRuleset',
-      /* The production Ruleset predates About and carries the same empty legacy value, so the route spec exercises that compatibility read. */
-      description: '',
+      about: '',
       slug: 'e2ebaselineruleset',
       created_at: now,
       updated_at: now,

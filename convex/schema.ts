@@ -154,11 +154,12 @@ export default defineSchema({
     name: v.string(),
     slug: v.string(),
     /**
-     * The first Ruleset About release keeps the legacy field required for the old Worker and adds the canonical field as optional until `rulesets_about_v1` and its verifier finish.
-     * Both mutation generations write the same value to both fields during this compatibility window.
+     * About is authoritative after `rulesets_about_v1` and its verifier completed in production.
+     * The legacy field stays optional only while `rulesets_description_retire_v1` removes it.
+     * The next release removes this branch.
      */
-    description: v.string(),
-    about: v.optional(v.string()),
+    about: v.string(),
+    description: v.optional(v.string()),
     created_at: v.string(),
     updated_at: v.string(),
     owner_id: v.id('users'),

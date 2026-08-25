@@ -17,7 +17,7 @@ describe('faction catalogue page', () => {
       const ownerId = await ctx.db.insert('users', { name: 'Catalogue owner' });
       const advancedId = await ctx.db.insert('rulesets', {
         name: 'Advanced',
-        description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+        about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
         slug: 'advanced',
         created_at: '2026-07-01T00:00:00.000Z',
         updated_at: '2026-07-01T00:00:00.000Z',
@@ -28,7 +28,7 @@ describe('faction catalogue page', () => {
       });
       await ctx.db.insert('rulesets', {
         name: 'Empty',
-        description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+        about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
         slug: 'empty',
         created_at: '2026-07-01T00:00:00.000Z',
         updated_at: '2026-07-01T00:00:00.000Z',
@@ -39,7 +39,7 @@ describe('faction catalogue page', () => {
       });
       await ctx.db.insert('rulesets', {
         name: 'Deleted',
-        description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+        about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
         slug: 'deleted',
         created_at: '2026-07-01T00:00:00.000Z',
         updated_at: '2026-07-01T00:00:00.000Z',

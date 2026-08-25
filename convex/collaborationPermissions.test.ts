@@ -49,7 +49,7 @@ async function collaborationFixture() {
   const contributor = t.withIdentity({ subject: ids.contributorId });
   const ruleset = await owner.mutation(api.rulesets.create, {
     name: 'CollaborativeRuleset',
-    description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+    about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
     group_id: ids.groupId,
     image_cover: null,
   });
@@ -64,7 +64,7 @@ describe('group collaboration permissions', () => {
       member.mutation(api.rulesets.update, {
         id: ruleset._id,
         name: ruleset.name,
-        description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+        about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
         image_cover: 'https://example.com/collaborative-cover.jpg',
       })
     ).resolves.toMatchObject({
@@ -75,7 +75,7 @@ describe('group collaboration permissions', () => {
       member.mutation(api.rulesets.update, {
         id: ruleset._id,
         name: 'MemberRename',
-        description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+        about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
       })
     ).rejects.toThrow('Only the ruleset owner can rename this ruleset');
     await expect(member.mutation(api.rulesets.setGroup, { id: ruleset._id, group_id: null })).rejects.toThrow(

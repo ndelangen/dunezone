@@ -26,8 +26,8 @@ async function rulesetOwner() {
   return { t, owner: t.withIdentity({ subject: ownerId }) };
 }
 
-describe('Ruleset About compatibility', () => {
-  test('canonical creates and updates keep the legacy field synchronized', async () => {
+describe('Ruleset About', () => {
+  test('creates and updates store only the canonical field', async () => {
     const { owner } = await rulesetOwner();
     const ruleset = await owner.mutation(api.rulesets.create, {
       name: 'AboutRuleset',
@@ -36,7 +36,8 @@ describe('Ruleset About compatibility', () => {
       image_cover: null,
     });
 
-    expect(ruleset).toMatchObject({ about: VALID_ABOUT, description: VALID_ABOUT });
+    expect(ruleset).toMatchObject({ about: VALID_ABOUT });
+    expect(ruleset).not.toHaveProperty('description');
 
     await expect(
       owner.mutation(api.rulesets.update, {
@@ -44,34 +45,7 @@ describe('Ruleset About compatibility', () => {
         name: 'AboutRuleset',
         about: UPDATED_ABOUT,
       })
-    ).resolves.toMatchObject({ about: UPDATED_ABOUT, description: UPDATED_ABOUT });
-  });
-
-  test('the old Worker argument remains accepted and dual-written', async () => {
-    const { owner } = await rulesetOwner();
-
-    await expect(
-      owner.mutation(api.rulesets.create, {
-        name: 'LegacyRuleset',
-        description: VALID_ABOUT,
-        group_id: null,
-        image_cover: null,
-      })
-    ).resolves.toMatchObject({ about: VALID_ABOUT, description: VALID_ABOUT });
-  });
-
-  test('conflicting compatibility arguments cannot create drift', async () => {
-    const { owner } = await rulesetOwner();
-
-    await expect(
-      owner.mutation(api.rulesets.create, {
-        name: 'ConflictingRuleset',
-        about: VALID_ABOUT,
-        description: UPDATED_ABOUT,
-        group_id: null,
-        image_cover: null,
-      })
-    ).rejects.toThrow(/must match/);
+    ).resolves.toMatchObject({ about: UPDATED_ABOUT });
   });
 
   test('an About below the floor is rejected in product language', async () => {
@@ -87,14 +61,15 @@ describe('Ruleset About compatibility', () => {
     ).rejects.toThrow(/Ruleset About must be at least 50 characters/);
   });
 
-  test('a legacy empty row reads with an empty About before the backfill reaches it', async () => {
+  test('active reads omit a legacy field that the retirement migration has not reached yet', async () => {
     const t = rulesetTest();
     const rulesetId = await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Ruleset owner' });
       return await ctx.db.insert('rulesets', {
-        name: 'PredatesAbout',
+        name: 'AwaitingRetirement',
+        about: '',
         description: '',
-        slug: 'predates-about',
+        slug: 'awaiting-retirement',
         created_at: '2026-01-01T00:00:00.000Z',
         updated_at: '2026-01-01T00:00:00.000Z',
         owner_id: ownerId,
@@ -104,10 +79,8 @@ describe('Ruleset About compatibility', () => {
       });
     });
 
-    await expect(t.query(api.rulesets.get, { id: rulesetId })).resolves.toMatchObject({
-      name: 'PredatesAbout',
-      about: '',
-      description: '',
-    });
+    const result = await t.query(api.rulesets.get, { id: rulesetId });
+    expect(result).toMatchObject({ name: 'AwaitingRetirement', about: '' });
+    expect(result).not.toHaveProperty('description');
   });
 });

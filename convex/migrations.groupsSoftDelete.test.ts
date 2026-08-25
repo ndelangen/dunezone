@@ -50,7 +50,7 @@ describe('Group lifecycle audit', () => {
       });
       const rulesetId = await ctx.db.insert('rulesets', {
         name: 'GroupedRuleset',
-        description: 'A test ruleset with a description long enough to satisfy the fifty character floor.',
+        about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
         slug: 'groupedruleset',
         created_at: now,
         updated_at: now,
