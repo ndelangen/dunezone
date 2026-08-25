@@ -30,10 +30,29 @@ export type WorkerIdentity = {
   subjectKey: string;
 };
 
+export type StatisticsTotals = {
+  answers: number;
+  factions: number;
+  questions: number;
+  rulesets: number;
+  users: number;
+};
+
+export type SchedulerProbeResult = {
+  after: StatisticsTotals;
+};
+
+export type RollbackProbeResult = {
+  error: string;
+  usersAfterFailure: number;
+};
+
 export type WorkerRequest =
   | { id: number; operation: 'ping' }
   | { id: number; operation: 'networkProbe' }
   | { id: number; operation: 'httpProbe' }
+  | { id: number; operation: 'schedulerProbe' }
+  | { id: number; operation: 'rollbackProbe' }
   | { id: number; operation: 'query'; name: string; args: unknown; identity?: WorkerIdentity }
   | { id: number; operation: 'mutation'; name: string; args: unknown; identity?: WorkerIdentity }
   | { id: number; operation: 'insert'; documents: SeedDocument[] }

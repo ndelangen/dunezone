@@ -114,4 +114,8 @@ The retained phase 2 prototype completed the following checks:
 | Serve the unchanged static preview below `/catalogue/` | Passed |
 | Complete the browser suite | Passed, 98 files and 381 tests in 25.06 seconds |
 
-Nested action context beyond the HTTP query, component authentication boundaries, scheduler authentication, rollback, and response CSP remain unproved. These are rollout gates, not hidden assumptions.
+Transaction rollback and a real scheduled statistics rebuild now pass in a fresh browser worker. The scheduler probe calls `statistics.rebuild`, drains `finishAllScheduledFunctions`, and reads one seeded profile and one seeded ruleset from the Aggregate totals. The rollback probe throws after an insert and reads zero retained users.
+
+The first scheduler attempt reused the authenticated page worker. It failed with `Could not find module for: "statistics"` because the browser adapter retained the Aggregate component path and resolved the next root call against the component module map. An extra event-loop turn did not clear it. A fresh worker passed. Scheduled execution is feasible, but the current adapter still cannot guarantee context restoration across arbitrary component-heavy sequences.
+
+Nested action context beyond the HTTP query, component authentication boundaries, scheduler authentication, and response CSP remain unproved. The component-path leak is now a concrete rollout blocker for the current adapter. These are rollout gates, not hidden assumptions.

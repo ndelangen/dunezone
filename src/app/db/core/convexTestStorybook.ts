@@ -3,7 +3,14 @@ import { getFunctionName, makeFunctionReference } from 'convex/server';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
-import type { SeedDocument, WorkerIdentity, WorkerRequest, WorkerResponse } from './convexTestProtocol';
+import type {
+  RollbackProbeResult,
+  SchedulerProbeResult,
+  SeedDocument,
+  WorkerIdentity,
+  WorkerRequest,
+  WorkerResponse,
+} from './convexTestProtocol';
 
 type WithoutId<Request> = Request extends unknown ? Omit<Request, 'id'> : never;
 type WorkerRequestPayload = WithoutId<WorkerRequest>;
@@ -85,6 +92,11 @@ export class ConvexTestWorkerClient {
 
   runHttpProbe = async () =>
     (await this.request({ operation: 'httpProbe' })) as { body: { error?: string }; status: number };
+
+  runSchedulerProbe = async () =>
+    (await this.request({ operation: 'schedulerProbe' })) as SchedulerProbeResult;
+
+  runRollbackProbe = async () => (await this.request({ operation: 'rollbackProbe' })) as RollbackProbeResult;
 
   waitForIdle = async () => await this.request({ operation: 'ping' });
 
