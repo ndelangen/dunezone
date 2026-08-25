@@ -25,6 +25,34 @@ const managerTitleScript = `
 export default defineMain({
   stories: [
     {
+      directory: '../src/app/routes',
+      titlePrefix: 'Pages',
+    },
+    {
+      directory: '../src/game/assets/faction',
+      titlePrefix: 'Game Assets/Faction',
+    },
+    {
+      directory: '../src/game/assets/card',
+      titlePrefix: 'Game Assets/Cards',
+    },
+    {
+      directory: '../src/game/assets/treachery',
+      titlePrefix: 'Game Assets/Cards/Treachery',
+    },
+    {
+      directory: '../src/game/assets/token',
+      titlePrefix: 'Game Assets/Tokens',
+    },
+    {
+      directory: '../src/game/assets/utils',
+      titlePrefix: 'Game Assets/Composition',
+    },
+    {
+      directory: '../src/game/components/block',
+      titlePrefix: 'Game Assets/Composition/Blocks',
+    },
+    {
       directory: '../src/app/widgets/faction-editor',
       titlePrefix: 'Widgets/Faction Editor',
     },
@@ -83,30 +111,6 @@ export default defineMain({
     {
       directory: '../src/app/shell',
       titlePrefix: 'Shell',
-    },
-    {
-      directory: '../src/game/assets/faction',
-      titlePrefix: 'Game Assets/Faction',
-    },
-    {
-      directory: '../src/game/assets/card',
-      titlePrefix: 'Game Assets/Cards',
-    },
-    {
-      directory: '../src/game/assets/treachery',
-      titlePrefix: 'Game Assets/Cards/Treachery',
-    },
-    {
-      directory: '../src/game/assets/token',
-      titlePrefix: 'Game Assets/Tokens',
-    },
-    {
-      directory: '../src/game/assets/utils',
-      titlePrefix: 'Game Assets/Composition',
-    },
-    {
-      directory: '../src/game/components/block',
-      titlePrefix: 'Game Assets/Composition/Blocks',
     },
   ],
   addons: ['@storybook/addon-docs', '@storybook/addon-vitest'],

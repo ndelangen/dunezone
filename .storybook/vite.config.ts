@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 import viteReact from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import type { Plugin } from 'vite';
@@ -35,6 +37,21 @@ function quietDeferredAssetWarnings(): Plugin {
   };
 }
 
+function isolateConvexTestStorageUrls(): Plugin {
+  return {
+    name: 'dunezone:isolate-convex-test-storage-urls',
+    enforce: 'pre',
+    transform(code, id) {
+      if (!id.includes('/convex-test/dist/index.js')) {
+        return;
+      }
+      return code
+        .replaceAll('https://some-deployment.convex.cloud', 'https://storybook.invalid')
+        .replaceAll('https://some.convex.site', 'https://storybook.invalid');
+    },
+  };
+}
+
 export default defineConfig({
   build: {
     assetsDir: 'public',
@@ -50,6 +67,13 @@ export default defineConfig({
   resolve: {
     // Keep Storybook path resolution aligned with the app config.
     ...({ tsconfigPaths: true } as Record<string, unknown>),
+    alias: {
+      'node:async_hooks': fileURLToPath(new URL('./async-hooks.ts', import.meta.url)),
+    },
   },
   plugins: [viteReact(), quietDeferredAssetWarnings()],
+  worker: {
+    format: 'es',
+    plugins: () => [isolateConvexTestStorageUrls()],
+  },
 });
