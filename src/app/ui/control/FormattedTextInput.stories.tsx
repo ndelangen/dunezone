@@ -1,7 +1,23 @@
 import preview from '@sb/preview';
+import { useArgs } from 'storybook/preview-api';
 import { fn } from 'storybook/test';
 
 import { FormattedTextInput } from './FormattedTextInput';
+import type { FormattedTextInputProps } from './FormattedTextInput';
+
+function ControlledFormattedTextInput(args: FormattedTextInputProps) {
+  const [{ value }, updateArgs] = useArgs<FormattedTextInputProps>();
+  return (
+    <FormattedTextInput
+      {...args}
+      value={value}
+      onChange={(nextValue) => {
+        args.onChange(nextValue);
+        updateArgs({ value: nextValue });
+      }}
+    />
+  );
+}
 
 const meta = preview.meta({
   component: FormattedTextInput,
@@ -11,6 +27,7 @@ const meta = preview.meta({
   parameters: {
     layout: 'centered',
   },
+  render: ControlledFormattedTextInput,
   args: {
     label: 'Text',
     minRows: 5,
