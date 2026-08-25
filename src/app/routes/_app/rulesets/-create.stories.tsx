@@ -26,7 +26,12 @@ import {
 } from '@db/core/convexTestStorybook';
 import { useRulesetsAll } from '@db/rulesets';
 
-import { createdRuleset, createRulesetIdentity, createRulesetSeed } from './-create.stories.fixture';
+import {
+  createdRuleset,
+  createRulesetIdentity,
+  createRulesetSeed,
+  schedulerProbeSeed,
+} from './-create.stories.fixture';
 import { Route } from './create';
 
 const RestartWorkerContext = createContext<(() => Promise<ConvexTestWorkerClient>) | null>(null);
@@ -219,8 +224,17 @@ function assertIdentityIsolation(
   observer: { userId: string | null },
   signedOut: { userId: string | null }
 ) {
-  if (!creator.userId || !observer.userId || creator.userId === observer.userId || signedOut.userId) {
-    throw new Error('The worker did not keep its adjacent identities separate.');
+  if (!creator.userId) {
+    throw new Error('The worker lost the creator identity.');
+  }
+  if (!observer.userId) {
+    throw new Error('The worker lost the observer identity.');
+  }
+  if (creator.userId === observer.userId) {
+    throw new Error('The worker mixed its adjacent identities.');
+  }
+  if (signedOut.userId) {
+    throw new Error('The worker authenticated a signed-out request.');
   }
 }
 
@@ -236,6 +250,18 @@ function assertLocalHttp(result: { body: { error?: string }; status: number }) {
   }
 }
 
+function assertScheduledRebuild(result: Awaited<ReturnType<ConvexTestWorkerClient['runSchedulerProbe']>>) {
+  if (result.after.users !== 1 || result.after.rulesets !== 1) {
+    throw new Error(`Scheduled rebuild did not restore statistics: ${JSON.stringify(result.after)}`);
+  }
+}
+
+function assertRollback(result: Awaited<ReturnType<ConvexTestWorkerClient['runRollbackProbe']>>) {
+  if (result.error !== 'Intentional rollback probe' || result.usersAfterFailure !== 0) {
+    throw new Error(`Unexpected rollback result: ${JSON.stringify(result)}`);
+  }
+}
+
 async function runIsolationChecks(client: ConvexTestWorkerClient) {
   const [creator, observer, signedOut, networkMessage, httpResult] = await Promise.all([
     client.query(profileSession, {}, createRulesetIdentity),
@@ -247,11 +273,19 @@ async function runIsolationChecks(client: ConvexTestWorkerClient) {
   assertIdentityIsolation(creator, observer, signedOut);
   assertNetworkGuard(networkMessage);
   assertLocalHttp(httpResult);
+
+  const probeClient = await createSeededWorker(schedulerProbeSeed);
+  try {
+    assertScheduledRebuild(await probeClient.runSchedulerProbe());
+    assertRollback(await probeClient.runRollbackProbe());
+  } finally {
+    await retireWorker(probeClient);
+  }
 }
 
 function IdentityAndNetworkProofPage() {
   const { client } = useContext(ConvexTestWorkerContext) ?? {};
-  const [status, setStatus] = useState('Ready to check adjacent identities and the network guard');
+  const [status, setStatus] = useState('Ready to check worker isolation and backend behavior');
 
   if (!client) {
     throw new Error('The story has no Convex worker client.');
@@ -264,7 +298,9 @@ function IdentityAndNetworkProofPage() {
       <Button
         onClick={async () => {
           await runIsolationChecks(client);
-          setStatus('Identities stayed separate, fetch was blocked, and local HTTP completed');
+          setStatus(
+            'Identities stayed separate, fetch was blocked, local HTTP completed, scheduled work ran, and rollback held'
+          );
         }}
       >
         Run isolation checks
@@ -327,7 +363,9 @@ export const IdentitiesAndNetworkStayIsolated = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Run isolation checks' }));
     await expect(
-      page.findByText('Identities stayed separate, fetch was blocked, and local HTTP completed')
+      page.findByText(
+        'Identities stayed separate, fetch was blocked, local HTTP completed, scheduled work ran, and rollback held'
+      )
     ).resolves.toBeVisible();
   },
 });
