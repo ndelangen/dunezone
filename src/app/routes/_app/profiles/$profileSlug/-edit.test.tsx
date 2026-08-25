@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   mutate: vi.fn(),
   useCurrentProfile: vi.fn(),
+  useDefaultGroupPreference: vi.fn(),
   pending: false,
   error: null as Error | null,
 }));
@@ -30,6 +31,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 
 vi.mock('@db/profiles', () => ({
   useCurrentProfile: mocks.useCurrentProfile,
+  useDefaultGroupPreference: mocks.useDefaultGroupPreference,
   useUpdateCurrentProfile: () => ({
     mutate: mocks.mutate,
     isPending: mocks.pending,
@@ -54,7 +56,6 @@ const profile = {
   username: 'Owner profile',
   avatar_url: 'https://avatar.example/original.png',
   default_group_id: null,
-  default_group_options: [{ id: 'group-1', name: 'Spacing Guild', slug: 'spacing-guild' }],
   slug: 'owner-profile',
   created_at: '2026-08-20T00:00:00.000Z',
   updated_at: '2026-08-20T00:00:00.000Z',
@@ -91,6 +92,12 @@ beforeEach(() => {
   mocks.mutate.mockReset();
   mocks.useCurrentProfile.mockReset();
   mocks.useCurrentProfile.mockReturnValue({ data: profile });
+  mocks.useDefaultGroupPreference.mockReturnValue({
+    data: {
+      default_group_id: null,
+      default_group_options: [{ id: 'group-1', name: 'Spacing Guild', slug: 'spacing-guild' }],
+    },
+  });
   mocks.pending = false;
   mocks.error = null;
   localStorage.clear();
@@ -199,6 +206,19 @@ describe('profile settings page', () => {
     );
     fireEvent.load(recoveredImage as HTMLImageElement);
     expect(view.getByRole('img', { name: 'Avatar preview for Owner profile' })).not.toBeNull();
+  });
+
+  it('offers no Group choice until the options have actually arrived', async () => {
+    /* The preference query is held by this page, so there is a window where it has not resolved.
+       An enabled control listing only "No default Group" would state that the viewer is in no Groups,
+       and choosing it saves a cleared default they never meant to change. */
+    mocks.useDefaultGroupPreference.mockReturnValue({ data: undefined });
+    const view = await renderPage();
+    await chooseTab(view, 'Creation defaults');
+
+    /* Disabled, so it is no longer exposed as a combobox; find it by its label. */
+    const field = view.container.querySelector('input[aria-label="Default Group"]');
+    expect(field).toHaveProperty('disabled', true);
   });
 
   it('submits from every tab and includes an explicitly changed default Group', async () => {

@@ -6,6 +6,10 @@
  *
  * Listing `data` arrives untyped (the per-type Zod schemas live with the editors), so each adapter safeParses just enough to hand the real game renderer its props, and anything unrenderable falls back to a neutral face rather than crashing a browse page.
  * The scale frames wrap the renderers' intrinsic sizes (cards draw at 900x1263, tokens fill).
+ *
+ * A face fills the width it is given and takes its height from `assetFaceAspect`, so it is placed by sizing its parent (#706).
+ * It was once handed a pixel width instead, which made every caller state a size the face already knew: six of them wrapped it in a `CanvasScale` restating the same 900 and the same ratio, and the landing page ran a `ResizeObserver` whose entire output was that one prop.
+ * A surface needing exact pixels still gets them, by giving the face a fixed-size parent, so there is never a second way to say the same thing.
  */
 import { Text } from '@mantine/core';
 import { NO_DECK_BACK_HREF } from '@shared/asset-publishing/fallbacks';
@@ -16,7 +20,8 @@ import {
   TokenFace,
   TreacheryAsset,
 } from '@shared/assets/schema';
-import type { CSSProperties, ReactNode } from 'react';
+import { CanvasScale } from '@ui/layout/CanvasScale';
+import type { ReactNode } from 'react';
 import { z } from 'zod';
 
 import { CardBack } from '@game/assets/card/Back';
@@ -27,7 +32,7 @@ import { card as CARD_SIZE } from '@game/data/sizes';
 
 import { BUNDLE_ASPECT, BundleContainer } from './BundleContainer';
 
-export const CARD_ASPECT = CARD_SIZE.height / CARD_SIZE.width;
+const CARD_ASPECT = CARD_SIZE.height / CARD_SIZE.width;
 
 /** Enough of a container's member to draw its face. The browse read and the detail page's member list both supply this shape. */
 export type AssetFaceMember = { id: string; type: string; name: string; data: unknown };
@@ -55,7 +60,8 @@ const PEEKING_LIMIT = MEMBER_PEEK.length;
  * How far a tilted member's corner climbs above its own top edge, as a fraction of the member's width.
  *
  * A member is tilted about its centre, so the rise the layout has to reserve is not the rise the transform states.
- * The browse tile draws inside `CanvasScale`, which clips, and without this the corner of the most-tilted member was cut: 10px off a 352px face, and only on the members whose artwork reaches their own corners, which is why a disc token looked fine beside a clipped enhance token.
+ * The browse tile clips, in `OpenableTile`'s art box, and without this the corner of the most-tilted member was cut: 10px off a 352px face, and only on the members whose artwork reaches their own corners, which is why a disc token looked fine beside a clipped enhance token.
+ * Nothing clips it on the detail page, where the same shortfall would put a member's corner over the caption instead, so the reservation is what keeps the block honest about its own height either way.
  * Read off `MEMBER_PEEK` rather than measured once and written down, so changing a tilt cannot leave a stale number behind.
  * `sin` alone slightly over-reserves, because the true growth is offset by a `cos` term that shrinks with the member's height, and over-reserving shows a few transparent pixels where under-reserving shows a cut corner.
  */
@@ -86,75 +92,74 @@ const GEAR_CLIP = (() => {
 })();
 
 /**
- * A card at whatever width it is given, scaled from the renderers' intrinsic 900x1263.
- * Exported for the same reason `TokenFrame` is: an editor drawing its own live draft wants the frame the catalogue surfaces use, and has no business routing a draft through the listing parse to get it.
+ * The card's corner, as a share of its own box rather than a pixel count read off a width.
+ *
+ * `border-radius` in the two-value percentage form takes its horizontal radius from the box's width and its vertical from its height, so dividing the second by `CARD_ASPECT` keeps the corner circular at every size, which is what `width / 18` did arithmetically.
+ * A percentage rather than a container unit because `cqw` inside an element resolves against its *ancestor* container, never against the element declaring the containment, so the frame cannot read its own width that way.
  */
-export function CardFrame({ width, children, style }: { width: number; children: ReactNode; style?: CSSProperties }) {
-  const scale = width / CARD_SIZE.width;
+const CARD_CORNER = `${100 / 18}% / ${100 / (18 * CARD_ASPECT)}%`;
+
+/**
+ * A card filling the width it is given, scaled from the renderers' intrinsic 900x1263.
+ * Exported for the same reason `TokenFrame` is: an editor drawing its own live draft wants the frame the catalogue surfaces use, and has no business routing a draft through the listing parse to get it.
+ *
+ * The fit is `CanvasScale`'s, not a second copy of it: this is exactly the case it was written for, a fixed canvas that has to land inside whatever box it is put in.
+ * All this adds is the catalogue's card decoration, which is why it goes through `frameStyle`.
+ */
+export function CardFrame({ children }: { children: ReactNode }) {
   return (
-    <div
-      style={{
-        width,
-        height: width * CARD_ASPECT,
-        position: 'relative',
-        borderRadius: width / 18,
-        overflow: 'hidden',
+    <CanvasScale
+      canvasWidth={CARD_SIZE.width}
+      canvasHeight={CARD_SIZE.height}
+      frameStyle={{
+        borderRadius: CARD_CORNER,
         boxShadow: '0 2px 10px rgba(0,0,0,0.45)',
+        /* Defends the ratio, not a width: as a flex item in a column a face without this is squashed below its own height. */
         flexShrink: 0,
-        ...style,
       }}
     >
-      <div
-        style={{
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-          width: CARD_SIZE.width,
-          height: CARD_SIZE.height,
-          pointerEvents: 'none',
-        }}
-      >
-        {children}
-      </div>
-    </div>
+      {children}
+    </CanvasScale>
   );
 }
 
 type TokenShape = 'round' | 'gear' | 'square' | 'rectangle';
 
-export function TokenFrame({
-  shape,
-  width,
-  children,
-  style,
-}: {
-  shape: TokenShape;
-  width: number;
-  children: ReactNode;
-  style?: CSSProperties;
-}) {
-  const height = shape === 'rectangle' ? width * RECTANGLE_TOKEN_ASPECT : width;
+/**
+ * The height of a token shape as a multiple of its width.
+ * Read by the frame that draws one and by `assetFaceAspect`, which used to answer the same question from its own copy of this switch.
+ */
+function tokenShapeAspect(shape: TokenShape): number {
+  return shape === 'rectangle' ? RECTANGLE_TOKEN_ASPECT : 1;
+}
+
+/**
+ * One token face filling the width it is given, clipped to its shape.
+ * No scaling: the token renderers fill their box rather than drawing at an intrinsic size, so the shape's own ratio is the whole of the geometry.
+ */
+export function TokenFrame({ shape, children }: { shape: TokenShape; children: ReactNode }) {
   const gear = shape === 'gear';
   return (
     <div
       style={{
-        width,
-        height,
+        width: '100%',
+        aspectRatio: `1 / ${tokenShapeAspect(shape)}`,
         position: 'relative',
         borderRadius: shape === 'round' ? '50%' : gear ? undefined : 8,
         clipPath: gear ? GEAR_CLIP : undefined,
         overflow: 'hidden',
         boxShadow: gear ? undefined : '0 2px 10px rgba(0,0,0,0.45)',
         filter: gear ? 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' : undefined,
+        /* Defends the ratio, not a width: as a flex item in a column a face without this is squashed below its own height. */
         flexShrink: 0,
-        ...style,
       }}
     >
-      <div style={{ width, height, pointerEvents: 'none' }}>{children}</div>
+      <div style={{ width: '100%', height: '100%', pointerEvents: 'none' }}>{children}</div>
     </div>
   );
 }
 
-function NeutralFace({ name, width, aspect }: { name: string; width: number; aspect: number }) {
+function NeutralFace({ name, aspect }: { name: string; aspect: number }) {
   const initials = name
     .split(/\s+/)
     .map((word) => word[0])
@@ -165,13 +170,16 @@ function NeutralFace({ name, width, aspect }: { name: string; width: number; asp
   return (
     <div
       style={{
-        width,
-        height: width * aspect,
+        width: '100%',
+        aspectRatio: `1 / ${aspect}`,
+        /* Border inside the ratio box, for the reason `BundleContainer` states: the app's baseline is `content-box`, and a face that overruns its parent by its own border is not the aspect it just promised. */
+        boxSizing: 'border-box',
         borderRadius: 8,
         display: 'grid',
         placeItems: 'center',
         background: 'var(--mantine-color-default)',
         border: '1px solid var(--mantine-color-default-border)',
+        /* Defends the ratio, not a width: as a flex item in a column a face without this is squashed below its own height. */
         flexShrink: 0,
       }}
     >
@@ -317,15 +325,9 @@ export function assetFaceAspect(type: string, memberCount = 0): number {
   if (type === 'bundle') {
     return BUNDLE_ASPECT + bundleHeadroom(memberCount);
   }
+  /* No token shape means no token, and every remaining type draws at card proportions. */
   const shape = tokenShapeOfType(type);
-  switch (shape) {
-    case null:
-      return CARD_ASPECT;
-    case 'rectangle':
-      return RECTANGLE_TOKEN_ASPECT;
-    default:
-      return 1;
-  }
+  return shape === null ? CARD_ASPECT : tokenShapeAspect(shape);
 }
 
 export function tokenShapeOfType(type: string): TokenShape | null {
@@ -362,8 +364,7 @@ function tokenBottom(face: DrawableTokenFace): string | undefined {
  * They are the caller's to supply, since only a caller holding those rows has them, which is why `BundleContainer` draws none.
  * The nested `AssetFace` is passed no members of its own, so a member draws its bare face and the recursion stops one level down whatever it holds.
  */
-function PeekingMembers({ width, members }: { width: number; members: AssetFaceMember[] }) {
-  const memberWidth = width * MEMBER_WIDTH_RATIO;
+function PeekingMembers({ members }: { members: AssetFaceMember[] }) {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'start center' }}>
       {members.slice(0, PEEKING_LIMIT).map((member, index) => {
@@ -373,10 +374,17 @@ function PeekingMembers({ width, members }: { width: number; members: AssetFaceM
             key={member.id}
             style={{
               gridArea: '1 / 1',
-              transform: `translate(${placement.left * width}px, ${-memberWidth * MEMBER_RISE_RATIO}px) rotate(${placement.rotation}deg)`,
+              /*
+               * Every one of these was already a fraction of the container's width, so each is now that
+               * same fraction of `100cqw`, which `BundleBlock` declares. The rise reads as a share of the
+               * block rather than of the member because a `translate` percentage resolves against the
+               * element's own box, and a member's height varies with its type while the ratio does not.
+               */
+              width: `calc(100cqw * ${MEMBER_WIDTH_RATIO})`,
+              transform: `translate(calc(100cqw * ${placement.left}), calc(100cqw * ${-MEMBER_WIDTH_RATIO * MEMBER_RISE_RATIO})) rotate(${placement.rotation}deg)`,
             }}
           >
-            <AssetFace type={member.type} data={member.data} name={member.name} width={memberWidth} />
+            <AssetFace type={member.type} data={member.data} name={member.name} />
           </div>
         );
       })}
@@ -389,13 +397,35 @@ function PeekingMembers({ width, members }: { width: number; members: AssetFaceM
  *
  * The block is taller than the container by exactly the headroom the peeking row needs, and `assetFaceAspect` reports that same total from the same function, so a caller reserving space and this drawing it cannot drift apart.
  */
-function BundleBlock({ width, members, children }: { width: number; members: AssetFaceMember[]; children: ReactNode }) {
-  const height = width * BUNDLE_ASPECT;
+function BundleBlock({ members, children }: { members: AssetFaceMember[]; children: ReactNode }) {
   return (
-    <div style={{ position: 'relative', width, height: height + width * bundleHeadroom(members.length) }}>
-      {/* Pinned to the container's own box rather than the block's, so the two stay aligned whenever the headroom changes. */}
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height }}>
-        {members.length > 0 ? <PeekingMembers width={width} members={members} /> : null}
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        aspectRatio: `1 / ${BUNDLE_ASPECT + bundleHeadroom(members.length)}`,
+        /* The block is what a peeking member measures itself against, and it is the only box here whose width is the one the caller gave. */
+        containerType: 'inline-size',
+        /*
+         * The block is the flex item, so it is the only box that can refuse to be squashed: the container
+         * below it is absolutely positioned and cannot resist from in there, whatever it declares.
+         * Measured in a 300x200 column with `min-height: 0`, which any flex layout may carry: without this the
+         * block collapses from 250.6px to 60px while the container keeps drawing 186px, and since the container
+         * is pinned to the block's bottom edge, the 126px it gains goes upward over whatever sits above it.
+         */
+        flexShrink: 0,
+      }}
+    >
+      {/*
+       * Pinned to the container's own box rather than the block's, so the two stay aligned whenever the
+       * headroom changes.
+       * Its height is stated against the block's width rather than left to `aspect-ratio`, because an
+       * absolutely positioned box takes its height from its contents and `aspect-ratio` only offers a
+       * preferred one: anything the container adds outside its ratio box, a border or a padding, would
+       * otherwise push this box up and take that room out of the members' reservation without a word.
+       */}
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: `calc(100cqw * ${BUNDLE_ASPECT})` }}>
+        {members.length > 0 ? <PeekingMembers members={members} /> : null}
         <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
       </div>
     </div>
@@ -403,9 +433,10 @@ function BundleBlock({ width, members, children }: { width: number; members: Ass
 }
 
 /**
- * Renders one asset's face at the given width, framed and clipped per its type.
+ * Renders one asset's face, framed and clipped per its type.
  * Unknown types and unrenderable data come back as the neutral face, never a crash.
  *
+ * The face fills its parent's width and takes its height from `assetFaceAspect`, so it is placed by sizing that parent.
  * `side` picks which face of a token to draw and is ignored by every other type.
  * A token whose back is a *reference* draws nothing here: that back is another token's front, and only a caller holding that token's own row can supply it.
  */
@@ -413,14 +444,12 @@ export function AssetFace({
   type,
   data,
   name,
-  width,
   side = 'front',
   members = [],
 }: {
   type: string;
   data: unknown;
   name: string;
-  width: number;
   side?: AssetFaceSide;
   /**
    * A container's first few members, drawn peeking above it.
@@ -436,22 +465,22 @@ export function AssetFace({
     const parsed = TreacheryAsset.safeParse(data);
     if (parsed.success) {
       return (
-        <CardFrame width={width}>
+        <CardFrame>
           <TreacheryCard {...parsed.data} />
         </CardFrame>
       );
     }
-    return <NeutralFace name={name} width={width} aspect={CARD_ASPECT} />;
+    return <NeutralFace name={name} aspect={assetFaceAspect(type)} />;
   }
 
   if (type === 'bundle') {
     const parsed = bundleFaceSchema.safeParse(data);
     return (
-      <BundleBlock width={width} members={members}>
+      <BundleBlock members={members}>
         {parsed.success ? (
-          <BundleContainer band={parsed.data.band} name={name} width={width} />
+          <BundleContainer band={parsed.data.band} name={name} />
         ) : (
-          <NeutralFace name={name} width={width} aspect={BUNDLE_ASPECT} />
+          <NeutralFace name={name} aspect={BUNDLE_ASPECT} />
         )}
       </BundleBlock>
     );
@@ -466,7 +495,7 @@ export function AssetFace({
      */
     if (danglingDeckCardback(data)) {
       return (
-        <CardFrame width={width}>
+        <CardFrame>
           {/*
            * Drawn at the frame's internal canvas size, not the caller's width: `CardFrame` lays its
            * children out at `CARD_SIZE` and scales the lot by `width / CARD_SIZE.width`, so a child
@@ -482,7 +511,7 @@ export function AssetFace({
     if (parsed.success) {
       const cardback = parsed.data.cardback;
       return (
-        <CardFrame width={width}>
+        <CardFrame>
           <CardBack
             name={cardback.name}
             background={cardback.background}
@@ -493,7 +522,7 @@ export function AssetFace({
         </CardFrame>
       );
     }
-    return <NeutralFace name={name} width={width} aspect={CARD_ASPECT} />;
+    return <NeutralFace name={name} aspect={assetFaceAspect(type)} />;
   }
 
   const shape = tokenShapeOfType(type);
@@ -506,7 +535,7 @@ export function AssetFace({
     const face = faceForSide(parsed.success ? parsed.data : undefined, side);
     if (face) {
       return (
-        <TokenFrame shape={shape} width={width}>
+        <TokenFrame shape={shape}>
           <RectangleToken
             background={face.background}
             ring={face.ring ?? false}
@@ -517,14 +546,14 @@ export function AssetFace({
         </TokenFrame>
       );
     }
-    return <NeutralFace name={name} width={width} aspect={assetFaceAspect(type)} />;
+    return <NeutralFace name={name} aspect={assetFaceAspect(type)} />;
   }
   if (shape) {
     const parsed = tokenFaceSchema.safeParse(data);
     const face = faceForSide(parsed.success ? parsed.data : undefined, side);
     if (face) {
       return (
-        <TokenFrame shape={shape} width={width}>
+        <TokenFrame shape={shape}>
           <CustomToken
             background={face.background}
             image={face.image}
@@ -537,8 +566,8 @@ export function AssetFace({
         </TokenFrame>
       );
     }
-    return <NeutralFace name={name} width={width} aspect={assetFaceAspect(type)} />;
+    return <NeutralFace name={name} aspect={assetFaceAspect(type)} />;
   }
 
-  return <NeutralFace name={name} width={width} aspect={1} />;
+  return <NeutralFace name={name} aspect={assetFaceAspect(type)} />;
 }

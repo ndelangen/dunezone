@@ -1,5 +1,10 @@
 import { recalculateFactionComplexity } from '@shared/factions/complexity';
-import { CanonicalFactionClientSchema, FactionInputSchema } from '@shared/factions/schema';
+import {
+  CanonicalFactionClientSchema,
+  CatalogueFactionClientSchema,
+  FactionInputSchema,
+} from '@shared/factions/schema';
+import type { CatalogueFactionData } from '@shared/factions/schema';
 import type { FactionInput } from '@shared/factions/schema';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
@@ -33,8 +38,18 @@ export type FactionRulesetSummary = {
   name: string;
 };
 
-export type FactionCatalogueEntry = FactionEntry & {
-  rulesets: FactionRulesetSummary[];
+/* Reaching for a dropped field must fail to compile. It typed as `unknown` until the catalogue data type
+   was inferred from the strict schema instead of the loose one, so this pins which side it comes from. */
+// @ts-expect-error `rules` is not on a catalogue row
+type _CatalogueDataIsExact = FactionCatalogueEntry['data']['rules'];
+
+/**
+ * A catalogue-shaped faction: the fields `FactionCard` draws, not a whole faction (#642).
+ * Reach for `FactionEntry` when you need the authored blob;
+ * it arrives from `factions.getBySlug`, a different contract.
+ */
+export type FactionCatalogueEntry = Omit<FactionCatalogueRow, 'data'> & {
+  data: CatalogueFactionData;
 };
 
 export type FactionCatalogueSpotlightData = {
@@ -42,9 +57,8 @@ export type FactionCatalogueSpotlightData = {
   data: Pick<FactionCatalogueEntry['data'], 'name' | 'logo' | 'background'>;
 };
 
-export type FactionCatalogueRow = FactionRow & {
-  rulesets: FactionRulesetSummary[];
-};
+/** Derived from the query's own return type, so the client never claims a field the server stopped sending. */
+export type FactionCatalogueRow = FunctionReturnType<typeof api.factions.cataloguePage>['factions'][number];
 
 export type FactionCataloguePageData = {
   factions: FactionCatalogueEntry[];
@@ -74,7 +88,7 @@ export type CreatedFactionEntry = ReturnType<typeof toCreatedFactionEntry>;
 function toFactionCatalogueEntry(entry: FactionCatalogueRow): FactionCatalogueEntry {
   return {
     ...entry,
-    data: parseClientBoundary(CanonicalFactionClientSchema, entry.data, 'Faction data'),
+    data: parseClientBoundary(CatalogueFactionClientSchema, entry.data, 'Faction data'),
   };
 }
 

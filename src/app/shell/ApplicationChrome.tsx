@@ -25,7 +25,6 @@ const schemeBridge: MantineColorSchemeManager = {
 
 export interface ApplicationChromeProps {
   children: ReactNode;
-  pathname: string;
 }
 
 /**
@@ -35,7 +34,7 @@ export interface ApplicationChromeProps {
  * the provider only relays the resolved verdict, so
  * Mantine and tokens.css agree without a second writer.
  */
-export function ApplicationChrome({ children, pathname }: ApplicationChromeProps) {
+export function ApplicationChrome({ children }: ApplicationChromeProps) {
   const scheme = useResolvedScheme();
 
   useEffect(
@@ -47,7 +46,7 @@ export function ApplicationChrome({ children, pathname }: ApplicationChromeProps
 
   return (
     <MantineProvider theme={appContentTheme} forceColorScheme={scheme} colorSchemeManager={schemeBridge}>
-      <AppRoot pathname={pathname}>{children}</AppRoot>
+      <AppRoot>{children}</AppRoot>
     </MantineProvider>
   );
 }

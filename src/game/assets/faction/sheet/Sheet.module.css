@@ -22,14 +22,22 @@
   }
 }
 
+/* The page's own geometry, named because a surface showing one page of a stack has to step past
+   exactly this much, and a second copy of the numbers would be free to drift from these.
+   Custom properties are not scoped by CSS modules, so a document that clones this sheet gets them too. */
+:root {
+  /* A4 portrait aspect ratio (297 / 210). */
+  --faction-sheet-page-aspect: 141.428571%;
+  --faction-sheet-page-rule: 0.3vw;
+}
+
 .page {
   position: relative;
   background-color: #fffdf1;
-  /* A4 portrait aspect ratio (297 / 210). */
-  padding-top: 141.428571%;
+  padding-top: var(--faction-sheet-page-aspect);
 
   font-size: 3vw;
-  border-bottom: 0.3vw dashed #dedede;
+  border-bottom: var(--faction-sheet-page-rule) dashed #dedede;
 
   & * {
     box-sizing: border-box;

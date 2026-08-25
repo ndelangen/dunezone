@@ -29,13 +29,6 @@ function FactionSheetDbMode() {
   const factionQuery = useFaction(factionSlug, { initialData: loaderData });
   const faction = factionQuery.data?.faction ?? loaderData?.faction;
 
-  useEffect(() => {
-    document.documentElement.dataset.factionSheet = '';
-    return () => {
-      delete document.documentElement.dataset.factionSheet;
-    };
-  }, []);
-
   if (!faction) {
     return null;
   }
@@ -45,13 +38,6 @@ function FactionSheetDbMode() {
 
 function FactionSheetLiveMode() {
   const factionFromMessage = useFactionSheetPostMessage(true);
-
-  useEffect(() => {
-    document.documentElement.dataset.factionSheet = '';
-    return () => {
-      delete document.documentElement.dataset.factionSheet;
-    };
-  }, []);
 
   if (!factionFromMessage) {
     return (
@@ -66,6 +52,16 @@ function FactionSheetLiveMode() {
 
 function FactionSheetPage() {
   const { mode } = Route.useSearch();
+
+  /* The flag belongs to the route, not to either mode: exactly one of them mounts, and both used to
+     carry an identical copy of this. Writing `<html>` is outside React's tree, so it stays an effect. */
+  useEffect(() => {
+    document.documentElement.dataset.factionSheet = '';
+    return () => {
+      delete document.documentElement.dataset.factionSheet;
+    };
+  }, []);
+
   // The Cmd+P path renders print-grade variants (#254).
   return (
     <AssetRenderModeProvider mode="print">

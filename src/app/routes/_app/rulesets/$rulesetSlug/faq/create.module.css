@@ -1,26 +1,3 @@
-.tagFieldset {
-  border: 0;
-  margin: 0;
-  padding: 0;
-}
-
-.tagOption {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 .error {
   font-size: 0.9rem;
   color: var(--color-error, #c33);

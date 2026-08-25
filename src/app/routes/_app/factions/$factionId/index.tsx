@@ -16,7 +16,8 @@ import {
 } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { PageTitle } from '@ui/block/PageTitle';
+import { LoadError } from '@ui/block/LoadError';
+import { LoadPending } from '@ui/block/LoadPending';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
@@ -37,6 +38,8 @@ import { ArrowLeft, Download, Eye, FileText, MapPin, Pencil, UserPlus, UsersRoun
 import { loadFaction, useFaction } from '@db/factions';
 import type { FactionData } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
@@ -52,24 +55,13 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
   component: FactionDetailPage,
 });
 
+const backToFactions = <PageMessage.Back to="/factions">Back to factions</PageMessage.Back>;
+
 function FactionDetailPending() {
   return (
-    <PageLayout>
-      <PageLayout.Header>
-        <Stack align="center" gap="xs">
-          <PageTitle title="Faction" />
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>Back to factions</Anchor>
-        </Stack>
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <Surface padding="xl">
-          <Stack gap="xs">
-            <Title order={2}>Loading faction</Title>
-            <Text c="dimmed">The faction details are still loading.</Text>
-          </Stack>
-        </Surface>
-      </PageLayout.Content>
-    </PageLayout>
+    <PageMessage title="Faction" back={backToFactions}>
+      <LoadPending title="Loading faction">The faction details are still loading.</LoadPending>
+    </PageMessage>
   );
 }
 
@@ -107,19 +99,11 @@ function FactionSidebarOverview({ data }: { data: FactionData }) {
 
 function FactionDetailError({ error }: ErrorComponentProps) {
   return (
-    <PageLayout>
-      <PageLayout.Header>
-        <Stack align="center" gap="xs">
-          <PageTitle title="Faction" />
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>Back to factions</Anchor>
-        </Stack>
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <Alert color="red" title="Faction could not be loaded" role="alert">
-          <Text size="sm">{error.message || 'An unexpected error occurred.'}</Text>
-        </Alert>
-      </PageLayout.Content>
-    </PageLayout>
+    <PageMessage title="Faction" back={backToFactions}>
+      <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
+    </PageMessage>
   );
 }
 
@@ -135,24 +119,7 @@ function FactionDetailPage() {
   const page = factionQuery.data;
 
   if (!page) {
-    return (
-      <PageLayout>
-        <PageLayout.Header>
-          <Stack align="center" gap="xs">
-            <PageTitle title="Faction" />
-            <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>Back to factions</Anchor>
-          </Stack>
-        </PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Stack gap="xs">
-              <Title order={2}>Loading faction</Title>
-              <Text c="dimmed">The faction details are still loading.</Text>
-            </Stack>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
-    );
+    return <FactionDetailPending />;
   }
 
   const { faction, viewerAccess, owner, assetPublishing, rulesets } = page;

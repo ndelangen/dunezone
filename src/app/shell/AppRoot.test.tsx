@@ -64,7 +64,7 @@ describe('AppRoot page header', () => {
     act(() => {
       root.render(
         chrome(
-          <AppRoot pathname="/privacy">
+          <AppRoot>
             <PageLayout>
               <PageLayout.Header>
                 <h1>Privacy policy</h1>
@@ -85,7 +85,7 @@ describe('AppRoot page header', () => {
     act(() => {
       root.render(
         chrome(
-          <AppRoot pathname="/assets">
+          <AppRoot>
             <PageLayout>
               <h2>Assets</h2>
               <p>Asset content</p>
@@ -101,29 +101,27 @@ describe('AppRoot page header', () => {
     act(() => root.unmount());
   });
 
-  it('releases its document-level route and scroll state on unmount', () => {
+  it('releases the scroll progress and motion verdict it publishes on unmount', () => {
     const container = document.createElement('div');
     const root = createRoot(container);
 
     act(() => {
       root.render(
         chrome(
-          <AppRoot pathname="/privacy">
+          <AppRoot>
             <p>Privacy content</p>
           </AppRoot>
         )
       );
     });
 
-    expect(document.documentElement.dataset.route).toBe('/privacy');
-    expect(document.documentElement.hasAttribute('data-initial-animate')).toBe(true);
     expect(document.documentElement.style.getPropertyValue('--scroll-pct')).not.toBe('');
+    expect(document.documentElement.dataset.motion).toBe('ok');
 
     act(() => root.unmount());
 
-    expect(document.documentElement.hasAttribute('data-route')).toBe(false);
-    expect(document.documentElement.hasAttribute('data-initial-animate')).toBe(false);
     expect(document.documentElement.style.getPropertyValue('--scroll-pct')).toBe('');
+    expect(document.documentElement.dataset.motion).toBeUndefined();
   });
 
   it('publishes the approved project waypoints in the footer', () => {
@@ -133,7 +131,7 @@ describe('AppRoot page header', () => {
     act(() => {
       root.render(
         chrome(
-          <AppRoot pathname="/privacy">
+          <AppRoot>
             <p>Privacy content</p>
           </AppRoot>
         )

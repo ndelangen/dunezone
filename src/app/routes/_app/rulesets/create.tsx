@@ -2,6 +2,7 @@ import { Button, Group, Stack, Textarea, TextInput } from '@mantine/core';
 import { rulesetAboutSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
 import { IconAction } from '@ui/control/IconAction';
@@ -13,6 +14,7 @@ import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/rulesets/create')({
   component: CreateRulesetPage,
@@ -92,6 +94,17 @@ function CreateRulesetForm() {
 function CreateRulesetPage() {
   const profile = useCurrentProfile();
 
+  /* An early return rather than a branch inside the content, which is what the other four gates
+     always were: a page that cannot be used is a different page, not this one with its form
+     swapped out for a sentence. The toolbar goes with it, since the frame carries the way back. */
+  if (!profile.data?.user_id) {
+    return (
+      <PageMessage title="Create ruleset" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
+        <LoginGate action="create a ruleset" />
+      </PageMessage>
+    );
+  }
+
   return (
     <PageLayout>
       <PageLayout.Header>
@@ -112,20 +125,9 @@ function CreateRulesetPage() {
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        {!profile.data?.user_id ? (
-          <Surface padding="lg">
-            <p>
-              <Link to="/auth/login">Log in</Link> to create a ruleset.
-            </p>
-            <p>
-              <Link to="/rulesets">Back to rulesets</Link>
-            </p>
-          </Surface>
-        ) : (
-          <Surface padding="lg">
-            <CreateRulesetForm />
-          </Surface>
-        )}
+        <Surface padding="lg">
+          <CreateRulesetForm />
+        </Surface>
       </PageLayout.Content>
     </PageLayout>
   );

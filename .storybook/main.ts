@@ -49,6 +49,14 @@ export default defineMain({
       titlePrefix: 'Widgets/Card Editor',
     },
     {
+      directory: '../src/app/widgets/asset-face',
+      titlePrefix: 'Widgets/Asset Face',
+    },
+    {
+      directory: '../src/app/widgets/page-message',
+      titlePrefix: 'Widgets/Page Message',
+    },
+    {
       directory: '../src/app/ui/block',
       titlePrefix: 'Blocks',
     },

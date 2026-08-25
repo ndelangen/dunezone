@@ -1,9 +1,8 @@
-import { Group, Input, Stack, Textarea } from '@mantine/core';
-import { FAQ_TAG_VALUES } from '@shared/faq/tags';
+import { Group, Stack, Textarea } from '@mantine/core';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -152,21 +151,10 @@ function FaqDetailPage() {
                     onChange={(e) => editingSession.setQuestionValue(e.target.value)}
                     rows={2}
                   />
-                  <Input.Wrapper label="Tags">
-                    <Stack component="fieldset" gap="xs" className={styles.tagFieldset}>
-                      <legend className={styles.visuallyHidden}>FAQ tags</legend>
-                      {FAQ_TAG_VALUES.map((tag) => (
-                        <label key={tag} className={styles.tagOption}>
-                          <input
-                            type="checkbox"
-                            checked={editing.tagValues.includes(tag)}
-                            onChange={(e) => editingSession.toggleTag(tag, e.target.checked)}
-                          />
-                          <span>{FAQ_TAG_LABELS[tag]}</span>
-                        </label>
-                      ))}
-                    </Stack>
-                  </Input.Wrapper>
+                  <FaqTagFieldset
+                    value={editing.tagValues}
+                    onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)}
+                  />
                   <Group gap="xs" wrap="nowrap">
                     <IconAction
                       label="Save question"

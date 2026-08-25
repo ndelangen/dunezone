@@ -4,6 +4,9 @@ import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import { rulesetAboutSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { LoadPending } from '@ui/block/LoadPending';
+import { LoginGate } from '@ui/block/LoginGate';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
@@ -22,6 +25,7 @@ import {
 } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './edit.module.css';
 
@@ -145,14 +149,67 @@ function RulesetEditPage() {
   const pageQuery = useRulesetDetailPage(rulesetSlug, { initialData: detailSeed });
   const page = pageQuery.data;
 
-  const header = page?.ruleset ? (
+  /* One condition, because the loader's verdict and a missing row are the same page to the reader.
+     They were two identical blocks before, which is how they stayed identical. */
+  if (loaderData.notFound || !page?.ruleset) {
+    return (
+      <PageMessage title="Edit ruleset" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
+        <NotAvailable title="Ruleset not found">This ruleset does not exist or was deleted.</NotAvailable>
+      </PageMessage>
+    );
+  }
+
+  const r = page.ruleset;
+  const viewerAccess = page.viewerAccess;
+  /* The ruleset's name rather than the identity band it wears when loaded: a message page says what
+     it is about in words, and the band with its cover art belongs to the page that has something to
+     edit. The way back points at the ruleset itself, which is the more useful of the two
+     destinations the toolbar offered. */
+  const guardBack = (
+    <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug: r.slug }}>
+      Back to ruleset
+    </PageMessage.Back>
+  );
+
+  if (!viewerAccess) {
+    return (
+      <PageMessage title={`Edit ${r.name}`} back={guardBack}>
+        <LoadPending title="Loading your profile">Checking what you may change here.</LoadPending>
+      </PageMessage>
+    );
+  }
+
+  if (viewerAccess.viewer.kind === 'anonymous') {
+    return (
+      <PageMessage title={`Edit ${r.name}`} back={guardBack}>
+        <LoginGate action="edit this ruleset" />
+      </PageMessage>
+    );
+  }
+
+  if (!viewerAccess.capabilities.edit) {
+    return (
+      <PageMessage title={`Edit ${r.name}`} back={guardBack}>
+        <NotAvailable title="You cannot edit this ruleset">
+          {r.group_id
+            ? 'Only the ruleset owner or an active member of its group can edit this ruleset.'
+            : 'Only the ruleset owner can edit this ruleset.'}
+        </NotAvailable>
+      </PageMessage>
+    );
+  }
+
+  /* Built here rather than above the guards: every path that lacked a ruleset now returns a
+     `PageMessage` before this point, so the band and the toolbar no longer need a shape for the
+     case where there is nothing to name. The band itself is unchanged, and stays #451's to revisit. */
+  const header = (
     <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
       <Surface>
-        {page?.ruleset.image_cover ? (
+        {r.image_cover ? (
           <Image
-            src={page?.ruleset.image_cover}
+            src={r.image_cover}
             fallbackSrc="/image/background/card-large.jpg"
-            alt={`Cover for ${page?.ruleset.name}`}
+            alt={`Cover for ${r.name}`}
             className={styles.coverImage}
           />
         ) : (
@@ -165,12 +222,10 @@ function RulesetEditPage() {
       </Surface>
       <Stack gap={6} className={styles.pageHeadText}>
         <Title order={1} className={styles.rulesetTitle}>
-          Edit {page?.ruleset.name}
+          Edit {r.name}
         </Title>
       </Stack>
     </Group>
-  ) : (
-    <Title order={1}>Edit ruleset</Title>
   );
   const toolbar = (
     <Surface padding="sm">
@@ -183,105 +238,19 @@ function RulesetEditPage() {
           renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
           icon={<ArrowLeft size={17} aria-hidden />}
         />
-        {page?.ruleset ? (
-          <IconAction
-            label="View ruleset"
-            variant="light"
-            color="gray"
-            size="lg"
-            renderRoot={(rootProps) => (
-              <Link
-                {...rootProps}
-                to="/rulesets/$rulesetSlug"
-                params={{ rulesetSlug: page?.ruleset?.slug ?? rulesetSlug }}
-              />
-            )}
-            icon={<BookOpen size={17} aria-hidden />}
-          />
-        ) : null}
+        <IconAction
+          label="View ruleset"
+          variant="light"
+          color="gray"
+          size="lg"
+          renderRoot={(rootProps) => (
+            <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: r.slug }} />
+          )}
+          icon={<BookOpen size={17} aria-hidden />}
+        />
       </Group>
     </Surface>
   );
-
-  if (loaderData.notFound) {
-    return (
-      <PageLayout>
-        <PageLayout.Header>{header}</PageLayout.Header>
-        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Text>Ruleset not found.</Text>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
-    );
-  }
-
-  if (!page?.ruleset) {
-    return (
-      <PageLayout>
-        <PageLayout.Header>{header}</PageLayout.Header>
-        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Text>Ruleset not found.</Text>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
-    );
-  }
-
-  const r = page.ruleset;
-  const viewerAccess = page.viewerAccess;
-
-  if (!viewerAccess) {
-    return (
-      <PageLayout>
-        <PageLayout.Header>{header}</PageLayout.Header>
-        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Text>Loading profile…</Text>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
-    );
-  }
-
-  if (viewerAccess.viewer.kind === 'anonymous') {
-    return (
-      <PageLayout>
-        <PageLayout.Header>{header}</PageLayout.Header>
-        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Text>
-              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to edit this
-              ruleset.
-            </Text>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
-    );
-  }
-
-  if (!viewerAccess.capabilities.edit) {
-    return (
-      <PageLayout>
-        <PageLayout.Header>{header}</PageLayout.Header>
-        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Text>
-              {r.group_id
-                ? 'Only the ruleset owner or an active member of its group can edit this ruleset.'
-                : 'Only the ruleset owner can edit this ruleset.'}
-            </Text>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
-    );
-  }
 
   return (
     <PageLayout>

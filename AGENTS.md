@@ -376,6 +376,25 @@ Convex seam suites sit beside the module they cover and are named `<domain>.<fac
 (`factions.catalogue.test.ts`, `groups.softDeletion.test.ts`). One facet per file, so a suite's name
 says what broke before the failure text does.
 
+**Deleting a public query the shell holds is an expand/contract change, not an edit.** Production ships
+the Convex functions first and the browser bundle last
+([`deploy-main.yml`](.github/workflows/deploy-main.yml)), so between those two steps every visitor
+downloads the *previous* bundle against the *new* functions. That order is right for adding a
+function and wrong for removing one: an old bundle subscribing to a deleted query gets "Could not
+find public function", `useQuery` rethrows during render, and a query held by an always-mounted
+component takes every page in `_app` down with it. Neither `routes/_app.tsx` nor `routes/__root.tsx`
+defines an `errorComponent`, and refreshing does not help, because the Worker is still serving the
+bundle that asks for the missing function. So:
+
+1. Add the new query, move the client to it, ship.
+2. Delete the old one in a **later** release, once no deployed bundle asks for it.
+
+The window is not as narrow as it looks. It measured 58 seconds on
+[the #702 deploy](https://github.com/ndelangen/dunezone/actions/runs/32717958994), which ran no
+migrations, and `migrations:deploy` sits inside it carrying a 45-minute guard budget. A deletion that
+also carries a migration can hold the site on an error page for as long as the migration takes. This
+is harsher than the stale-tab case, which at least ends in a refresh prompt.
+
 Moving a file named in `RENDERER_RUNTIME_CLOSURE_PATHS` changes the renderer digest, so
 `publisher:release:verify` will report a `renderer-manifest.generated.ts` diff to commit. That is
 identity, not staleness: regeneration is driven by the checked-in `renderer_revisions`, which a move

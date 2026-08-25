@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
 
 import schema from '../schema';
-import { factionDataValidator } from './factionData';
+import { catalogueFactionDataValidator, factionDataValidator } from './factionData';
 
 /**
  * Document validators derive from their authority, `convex/schema.ts` (ADR-0002);
@@ -123,14 +123,23 @@ export const factionDetailPageValidator = v.object({
   rulesets: v.array(rulesetSummaryValidator),
 });
 
-/** A faction with the rulesets it belongs to: what both the catalogue and a ruleset's own page put on the wire. */
-export const factionWithRulesetsValidator = factionValidator.extend({
-  rulesets: v.array(rulesetSummaryValidator),
-});
+/**
+ * A catalogue-shaped faction row: what `/factions`, a ruleset's faction rail and a profile's faction list put on the wire.
+ * Deliberately not a whole faction.
+ * It carries what `FactionCard` draws, what links and sorts the row, and the rulesets that caption it;
+ * `factions.getBySlug` remains the contract for anything that needs the authored blob.
+ */
+export const catalogueFactionValidator = schema.tables.factions.validator
+  .pick('slug', 'created_at', 'updated_at')
+  .extend({
+    _id: v.id('factions'),
+    data: catalogueFactionDataValidator,
+    rulesets: v.array(rulesetSummaryValidator),
+  });
 
 export const rulesetPublicBundleValidator = v.object({
   ruleset: rulesetValidator,
-  factions: v.array(factionWithRulesetsValidator),
+  factions: v.array(catalogueFactionValidator),
   viewerAccess: rulesetViewerAccessValidator,
 });
 
@@ -164,7 +173,7 @@ export const profileDetailPageValidator = v.object({
   profile: profileValidator,
   faqAsked: v.array(profileFaqQuestionValidator),
   faqAnswers: v.array(profileFaqAnswerValidator),
-  factions: v.array(factionWithRulesetsValidator),
+  factions: v.array(catalogueFactionValidator),
   groupSummaries: v.array(assignedGroupSummaryValidator),
 });
 

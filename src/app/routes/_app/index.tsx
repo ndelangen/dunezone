@@ -1,5 +1,4 @@
 import {
-  Alert,
   Anchor,
   Avatar,
   Badge,
@@ -17,6 +16,7 @@ import { useReducedMotion } from '@mantine/hooks';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
+import { LoadError } from '@ui/block/LoadError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
@@ -33,6 +33,7 @@ import { FaRedditAlien } from 'react-icons/fa6';
 import { SiBoardgamegeek, SiDiscord } from 'react-icons/si';
 
 import { loadHomepage, useHomepage } from '@db/homepage';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
@@ -423,9 +424,9 @@ function HomepageError({ error }: ErrorComponentProps) {
         <PageTitle title="Make Dune your own" />
       </PageLayout.Header>
       <PageLayout.Content>
-        <Alert color="red" title="The homepage could not be loaded" role="alert">
-          <Text size="sm">{error.message || 'An unexpected error occurred.'}</Text>
-        </Alert>
+        <LoadError title="The homepage could not be loaded" stale={isStaleClientData(error)}>
+          {error.message}
+        </LoadError>
       </PageLayout.Content>
     </PageLayout>
   );

@@ -1,5 +1,6 @@
 import { Group, Stack } from '@mantine/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
+import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -8,6 +9,7 @@ import { RefreshCw } from 'lucide-react';
 
 import { loadAdminMigrationDashboard, useAdminMigrationDashboard, useSyncMigrationRuns } from '@db/migrations';
 import { useCurrentProfile } from '@db/profiles';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/admin/migrations')({
   loader: async () => ({ dashboard: await loadAdminMigrationDashboard() }),
@@ -30,18 +32,14 @@ function AdminMigrationsPage() {
   const dashboard = dashboardQuery.data;
   const syncRuns = useSyncMigrationRuns();
 
+  /* The one gate with no way back, because this route has no parent in the navigation and today's
+     version offers none either. Where an admin page sends a signed-out reader is a question about
+     admin navigation rather than about this frame, so it is left as it was rather than invented. */
   if (!profile.data?._id) {
     return (
-      <PageLayout>
-        <PageLayout.Header>{migrationsHeader}</PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="lg">
-            <p>
-              <Link to="/auth/login">Log in</Link> to view migration activity.
-            </p>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Migration activity">
+        <LoginGate action="view migration activity" />
+      </PageMessage>
     );
   }
 

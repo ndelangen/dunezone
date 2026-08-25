@@ -16,7 +16,6 @@ const meta = preview.meta({
     },
   },
   args: {
-    pathname: '/factions',
     children: shellPageOptionLabels[0],
   },
   argTypes: {

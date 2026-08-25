@@ -14,14 +14,14 @@ html[data-mantine-color-scheme="dark"] {
   background-image: url("/web/page-dark-large.jpg");
 }
 
-html[data-initial-animate] {
-  transition: background-position 1.2s cubic-bezier(0.25, 0.05, 0.35, 1);
-}
-
 html::after {
   content: "";
   position: fixed;
-  z-index: -1;
+  /* One step further back than the page's own content, which sits at -1: the band artwork and the
+     dice shared that level, so tree order decided, and generated content on `html` paints last.
+     The dice therefore drew across the header on any window short enough for the two to meet. At
+     -2 it stays what it is, a texture on the page background, and blends against that alone. */
+  z-index: -2;
   bottom: -40vh;
   left: 0;
   width: 100%;
@@ -36,8 +36,10 @@ html::after {
   mix-blend-mode: overlay;
 }
 
-/* The dice hold still for reduced-motion visitors. Before the shell stamps `data-motion` the OS
-   hint decides; once stamped, the site-local override (see shell/motion.ts) wins either way. */
+/* The dice hold still for reduced-motion visitors. The `_app` layout's pre-hydration script
+   stamps `data-motion` before first paint, and the site-local override (see styles/motion.ts)
+   wins either way. The media block covers documents that never stamp (routes outside that
+   layout, and visitors with scripts disabled), where the OS hint decides alone. */
 html[data-motion="reduce"]::after {
   animation: none;
 }

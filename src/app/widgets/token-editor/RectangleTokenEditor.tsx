@@ -5,7 +5,6 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { useRef } from 'react';
@@ -21,9 +20,10 @@ import { RectangleToken } from '@game/assets/token/Rectangle';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 /**
- * The size the rail's proof is drawn at before `CanvasScale` fits it to the rail.
+ * The box a backside tile draws its proof inside, which `PreviewChoice` contain-fits to the tile.
  * Any number does.
- * This one matches the detail page, so a proof and the page it previews scale off the same canvas.
+ * This one matches the detail page, so a tile and the page it previews scale off the same canvas.
+ * The rail's own proofs no longer need it: they fill the rail and hold their own ratio.
  */
 const PROOF_CANVAS = 900;
 
@@ -95,10 +95,10 @@ const newText = (): RectangleFaceDraft['texts'][number] => ({
   opacity: 1,
 });
 
-/** One face at whatever width it is given, clipped by the same frame the catalogue surfaces use. */
-export function RectangleProof({ face, width }: { face: RectangleFaceDraft; width: number }) {
+/** One face filling the box it is put in, clipped by the same frame the catalogue surfaces use. */
+export function RectangleProof({ face }: { face: RectangleFaceDraft }) {
   return (
-    <TokenFrame shape="rectangle" width={width}>
+    <TokenFrame shape="rectangle">
       <RectangleToken {...face} />
     </TokenFrame>
   );
@@ -524,7 +524,6 @@ export function RectangleTokenEditor({
                     preview: (
                       <RectangleProof
                         face={draft.back.mode === 'custom' ? draft.back.face : (composedFace.current ?? INITIAL_FACE)}
-                        width={PROOF_CANVAS}
                       />
                     ),
                     canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('token-enhance') },
@@ -532,7 +531,7 @@ export function RectangleTokenEditor({
                   {
                     value: 'same',
                     label: 'Same as front',
-                    preview: <RectangleProof face={draft.front} width={PROOF_CANVAS} />,
+                    preview: <RectangleProof face={draft.front} />,
                     canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('token-enhance') },
                   },
                   {
@@ -578,29 +577,17 @@ export function RectangleTokenEditor({
         </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
-        {/* The face stacks take the full width, or a centred flex child shrinks to its content and `CanvasScale` has nothing to fill. */}
+        {/* The face stacks take the full width, or a centred flex child shrinks to its content and the proof, which fills the width it is given, is given none. */}
         <Stack gap="md" align="center">
           <Stack gap={4} align="center" w="100%">
-            <CanvasScale
-              rounded
-              canvasWidth={PROOF_CANVAS}
-              canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}
-            >
-              <RectangleProof face={draft.front} width={PROOF_CANVAS} />
-            </CanvasScale>
+            <RectangleProof face={draft.front} />
             <Text size="xs" c="dimmed">
               Front
             </Text>
           </Stack>
           {draft.back.mode === 'custom' ? (
             <Stack gap={4} align="center" w="100%">
-              <CanvasScale
-                rounded
-                canvasWidth={PROOF_CANVAS}
-                canvasHeight={PROOF_CANVAS * assetFaceAspect('token-enhance')}
-              >
-                <RectangleProof face={draft.back.face} width={PROOF_CANVAS} />
-              </CanvasScale>
+              <RectangleProof face={draft.back.face} />
               <Text size="xs" c="dimmed">
                 Back
               </Text>

@@ -15,8 +15,10 @@ import { RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { LoadError } from '@ui/block/LoadError';
+import { LoadPending } from '@ui/block/LoadPending';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { OpenableTile } from '@ui/block/OpenableTile';
-import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -24,7 +26,6 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
@@ -48,8 +49,9 @@ import type { ReactNode } from 'react';
 
 import { loadAssetPage, useAssetPage } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
-import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
-import type { AssetFaceMember } from '@app/widgets/asset-face/AssetFace';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { AssetFace } from '@app/widgets/asset-face/AssetFace';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../-assetEditorStates';
 import { compositionTiles, DUPLICATED_TILE_CAP, omissionNote } from './-composition';
@@ -76,37 +78,31 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
 });
 
 /**
- * The frame this page wears before it has an asset: loading, absent, failed to load.
- * One component because all three are the same page with different words;
- * the three detail pages before this each repeat the markup two or three times.
+ * The words `PageMessage` wears on this route: the asset type's own name, and a way back to that type's browse page.
+ * A local component rather than a repeated prop because the type is a route param and every message on this page reads it.
+ * An unknown type still gets a frame, since the loader's `notFound` throw has to land somewhere.
  */
 function AssetDetailMessage({ children }: { children: ReactNode }) {
   const { type } = Route.useParams();
   const label = isAssetType(type) ? ASSET_TYPES[type].label : 'Assets';
   return (
-    <PageLayout>
-      <PageLayout.Header>
-        <Stack align="center" gap="xs">
-          <PageTitle title={label} />
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type }} />}>
-            Back to {label.toLowerCase()}
-          </Anchor>
-        </Stack>
-      </PageLayout.Header>
-      <PageLayout.Content>{children}</PageLayout.Content>
-    </PageLayout>
+    <PageMessage
+      title={label}
+      back={
+        <PageMessage.Back to="/assets/$type" params={{ type }}>
+          Back to {label.toLowerCase()}
+        </PageMessage.Back>
+      }
+    >
+      {children}
+    </PageMessage>
   );
 }
 
 function AssetDetailPending() {
   return (
     <AssetDetailMessage>
-      <Surface padding="xl">
-        <Stack gap="xs">
-          <Title order={2}>Loading</Title>
-          <Text c="dimmed">This asset is still loading.</Text>
-        </Stack>
-      </Surface>
+      <LoadPending title="Loading">This asset is still loading.</LoadPending>
     </AssetDetailMessage>
   );
 }
@@ -114,9 +110,9 @@ function AssetDetailPending() {
 function AssetDetailError({ error }: ErrorComponentProps) {
   return (
     <AssetDetailMessage>
-      <Alert color="red" title="This asset could not be loaded" role="alert">
-        <Text size="sm">{error.message || 'An unexpected error occurred.'}</Text>
-      </Alert>
+      <LoadError title="This asset could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
     </AssetDetailMessage>
   );
 }
@@ -132,27 +128,6 @@ function FaceStage({ children, caption }: { children: ReactNode; caption?: React
         </Text>
       ) : null}
     </Stack>
-  );
-}
-
-function ScaledFace({
-  type,
-  data,
-  name,
-  side,
-  members = [],
-}: {
-  type: string;
-  data: unknown;
-  name: string;
-  side?: 'front' | 'back';
-  members?: AssetFaceMember[];
-}) {
-  return (
-    /* A container's members stand above it and make the drawing taller, so the canvas is asked for the block's height rather than the face's. */
-    <CanvasScale rounded canvasWidth={900} canvasHeight={900 * assetFaceAspect(type, members.length)}>
-      <AssetFace type={type} data={data} name={name} width={900} side={side} members={members} />
-    </CanvasScale>
   );
 }
 
@@ -243,13 +218,13 @@ function AssetFaces({ page }: { page: AssetPage }) {
           }
         >
           {backDeck ? (
-            <ScaledFace type="deck" data={backDeck.data} name={backDeck.name} />
+            <AssetFace type="deck" data={backDeck.data} name={backDeck.name} />
           ) : danglingDeck && page.resolvedBack?.href ? (
             /* The note below carries the words, so the image is decorative to a screen reader. */
             <img src={page.resolvedBack.href} alt="" className={styles.fallbackCardback} />
           ) : (
             /* A deck's cards reach `AssetFace` here too and are ignored, which is that prop's documented contract rather than an accident. */
-            <ScaledFace
+            <AssetFace
               type={asset.type}
               data={asset.data}
               name={asset.name}
@@ -272,7 +247,7 @@ function AssetFaces({ page }: { page: AssetPage }) {
     return (
       <Stack gap="sm" align="center">
         <FaceStage caption="Front & back">
-          <ScaledFace type={asset.type} data={asset.data} name={asset.name} side="front" />
+          <AssetFace type={asset.type} data={asset.data} name={asset.name} side="front" />
         </FaceStage>
         {dangling ? (
           <Text size="sm" c="dimmed">
@@ -285,7 +260,7 @@ function AssetFaces({ page }: { page: AssetPage }) {
   return (
     <Stack gap="lg" align="center">
       <FaceStage caption="Front">
-        <ScaledFace type={asset.type} data={asset.data} name={asset.name} side="front" />
+        <AssetFace type={asset.type} data={asset.data} name={asset.name} side="front" />
       </FaceStage>
       {back?.mode === 'reference' && backToken ? (
         <FaceStage
@@ -307,11 +282,11 @@ function AssetFaces({ page }: { page: AssetPage }) {
             </>
           }
         >
-          <ScaledFace type={backToken.type} data={backToken.data} name={backToken.name} side="back" />
+          <AssetFace type={backToken.type} data={backToken.data} name={backToken.name} side="back" />
         </FaceStage>
       ) : (
         <FaceStage caption="Back">
-          <ScaledFace type={asset.type} data={asset.data} name={asset.name} side="back" />
+          <AssetFace type={asset.type} data={asset.data} name={asset.name} side="back" />
         </FaceStage>
       )}
     </Stack>
@@ -391,9 +366,7 @@ function Composition({
                   <Link {...rootProps} to="/assets/$type/$slug" params={{ type: member.type, slug: member.slug }} />
                 )}
               >
-                <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect(member.type)}>
-                  <AssetFace type={member.type} data={member.data} name={member.name} width={900} />
-                </CanvasScale>
+                <AssetFace type={member.type} data={member.data} name={member.name} />
               </OpenableTile>
             ))}
           </TileGrid>
@@ -500,15 +473,9 @@ function AssetDetailPage() {
   if (!page) {
     return (
       <AssetDetailMessage>
-        <Surface padding="xl">
-          <Stack gap="xs">
-            <Title order={2}>Asset not found</Title>
-            <Text c="dimmed">
-              This asset does not exist or was deleted. Renaming an asset re-slugs its URL, so an old link may have
-              moved.
-            </Text>
-          </Stack>
-        </Surface>
+        <NotAvailable title="Asset not found">
+          This asset does not exist or was deleted. Renaming an asset re-slugs its URL, so an old link may have moved.
+        </NotAvailable>
       </AssetDetailMessage>
     );
   }
@@ -547,7 +514,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
         {/* The identity pattern the faction and ruleset detail pages use: the media sits in its own column, so the breadcrumb, the title and the meta line share one left edge. */}
         <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
           <div className={styles.pageHeadMedia} role="img" aria-label={`${asset.name} face`}>
-            <ScaledFace type={asset.type} data={asset.data} name={asset.name} />
+            <AssetFace type={asset.type} data={asset.data} name={asset.name} />
           </div>
           <Stack gap={6} className={styles.pageHeadText}>
             <Group gap="xs" wrap="wrap">

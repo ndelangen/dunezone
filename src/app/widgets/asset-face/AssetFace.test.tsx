@@ -54,7 +54,6 @@ describe('a token back with mode same', () => {
         type="token-disc"
         data={{ name: 'Spice', about: '', front, back: { mode: 'same' } }}
         name="Spice"
-        width={300}
         side="back"
       />
     );
@@ -67,7 +66,6 @@ describe('a token back with mode same', () => {
         type="token-disc"
         data={{ name: 'Spice', about: '', front, back: { mode: 'reference' } }}
         name="Spice"
-        width={300}
         side="back"
       />
     );

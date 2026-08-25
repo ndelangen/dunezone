@@ -1,3 +1,10 @@
+/* Steps the sheet up by one page, so the second tile shows the second page.
+   The distance is the page's own aspect box plus the rule between pages, both declared by the sheet
+   stylesheet that defines a page; nothing here measures anything. */
+.steppedToPage2 {
+  margin-block-start: calc(-1 * (var(--faction-sheet-page-aspect) + var(--faction-sheet-page-rule)));
+}
+
 .frame {
   display: block;
   width: 100%;

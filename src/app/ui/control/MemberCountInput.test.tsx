@@ -28,6 +28,26 @@ function renderInput(onCommit: (count: number) => void, value = 7) {
   );
 }
 
+it('re-seeds the field when the committed count changes underneath an untouched edit', () => {
+  /* The reset happens during render rather than in an effect, so a value arriving from elsewhere is
+     never shown stale for a paint first. Nothing else covered this branch. */
+  const onCommit = vi.fn();
+  const view = renderInput(onCommit, 7);
+  const field = () => screen.getByRole('textbox', { name: 'Copies of Lasgun' });
+  expect(field()).toHaveProperty('value', '7');
+
+  fireEvent.change(field(), { target: { value: '12' } });
+  expect(field()).toHaveProperty('value', '12');
+
+  view.rerender(
+    <MantineProvider theme={appContentTheme} forceColorScheme="light">
+      <MemberCountInput label="Copies of Lasgun" value={3} min={1} max={99} disabled={false} onCommit={onCommit} />
+    </MantineProvider>
+  );
+  expect(field()).toHaveProperty('value', '3');
+  expect(onCommit).not.toHaveBeenCalled();
+});
+
 it('commits a typed count once, not once per keystroke', () => {
   const onCommit = vi.fn();
   renderInput(onCommit);

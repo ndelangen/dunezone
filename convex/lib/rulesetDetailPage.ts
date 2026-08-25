@@ -2,7 +2,7 @@ import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
 import { loadAssetAccessBundle, loadRulesetAccessForLoadedSubject } from './collaborativeAccess';
-import { parseStoredFactionForRead } from './factionInput';
+import { toCatalogueFaction } from './factionCatalogue';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
 import { activeRuleset } from './rulesetAbout';
@@ -41,7 +41,7 @@ async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'
     if (!faction || faction.is_deleted) {
       return [];
     }
-    return [{ ...faction, data: parseStoredFactionForRead(faction.data), rulesets: [] }];
+    return [toCatalogueFaction(faction, [])];
   });
 }
 

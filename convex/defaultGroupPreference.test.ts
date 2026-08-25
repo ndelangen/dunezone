@@ -94,10 +94,15 @@ describe('default Group preference', () => {
 
     const legacyProfile = await t.run(async (ctx) => await ctx.db.get('profiles', ids.memberProfileId));
     expect(legacyProfile).not.toHaveProperty('default_group_id');
-    await expect(member.query(api.profiles.current, {})).resolves.toMatchObject({
+    await expect(member.query(api.profiles.defaultGroupPreference, {})).resolves.toMatchObject({
       default_group_id: null,
       default_group_options: [{ id: ids.groupId, name: 'Default Group' }],
     });
+
+    /* The point of the split (#698 item 2): every `_app` page holds `session`, so the memberships join
+       must not ride along on it. This member is in a Group, so a regression here would carry a populated list. */
+    const session = await member.query(api.profiles.session, {});
+    expect(session.profile).not.toHaveProperty('default_group_options');
 
     await expect(
       member.mutation(api.profiles.updateCurrent, {
@@ -117,7 +122,7 @@ describe('default Group preference', () => {
       profile: { default_group_id: ids.groupId },
       default_group_unavailable: false,
     });
-    await expect(member.query(api.profiles.current, {})).resolves.toMatchObject({
+    await expect(member.query(api.profiles.defaultGroupPreference, {})).resolves.toMatchObject({
       default_group_id: ids.groupId,
       default_group_options: [{ id: ids.groupId, name: 'Default Group' }],
     });
@@ -144,7 +149,7 @@ describe('default Group preference', () => {
     await expect(t.run(async (ctx) => await ctx.db.get('profiles', ids.memberProfileId))).resolves.toMatchObject({
       default_group_id: ids.groupId,
     });
-    await expect(member.query(api.profiles.current, {})).resolves.toMatchObject({
+    await expect(member.query(api.profiles.defaultGroupPreference, {})).resolves.toMatchObject({
       default_group_id: null,
       default_group_options: [],
     });
@@ -178,7 +183,7 @@ describe('default Group preference', () => {
       })
     ).rejects.toThrow('not found');
     await t.run(async (ctx) => await ctx.db.patch(ids.groupId, { is_deleted: false }));
-    await expect(member.query(api.profiles.current, {})).resolves.toMatchObject({
+    await expect(member.query(api.profiles.defaultGroupPreference, {})).resolves.toMatchObject({
       default_group_id: ids.groupId,
       default_group_options: [{ id: ids.groupId, name: 'Default Group' }],
     });
@@ -191,7 +196,7 @@ describe('default Group preference', () => {
 
     const profile = await t.run(async (ctx) => await ctx.db.get('profiles', ids.memberProfileId));
     expect(profile).toMatchObject({ default_group_id: null });
-    await expect(member.query(api.profiles.current, {})).resolves.toMatchObject({
+    await expect(member.query(api.profiles.defaultGroupPreference, {})).resolves.toMatchObject({
       default_group_id: null,
       default_group_options: [],
     });
@@ -208,7 +213,7 @@ describe('default Group preference', () => {
     await expect(t.run(async (ctx) => await ctx.db.get('profiles', ids.memberProfileId))).resolves.toMatchObject({
       default_group_id: null,
     });
-    await expect(member.query(api.profiles.current, {})).resolves.toMatchObject({
+    await expect(member.query(api.profiles.defaultGroupPreference, {})).resolves.toMatchObject({
       default_group_id: null,
       default_group_options: [{ id: ids.groupId, name: 'Default Group' }],
     });

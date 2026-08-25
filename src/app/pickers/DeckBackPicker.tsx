@@ -1,8 +1,7 @@
 import { Button, Group, Popover, Stack, Text } from '@mantine/core';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { useState } from 'react';
 
-import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
+import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
 import { AssetPicker } from './AssetPicker';
 
@@ -78,9 +77,7 @@ export function DeckBackProof({ picked }: { picked: PickedBackDeck | null }) {
   return (
     <Stack gap={4} align="center" w="100%">
       {/* A deck's face is its cardback, so the target's row draws its own proof. */}
-      <CanvasScale canvasWidth={900} canvasHeight={900 * assetFaceAspect('deck')}>
-        <AssetFace type="deck" data={picked.data} name={picked.name} width={900} />
-      </CanvasScale>
+      <AssetFace type="deck" data={picked.data} name={picked.name} />
       <Text size="xs" c="dimmed">
         Cardback, from {picked.name}
       </Text>

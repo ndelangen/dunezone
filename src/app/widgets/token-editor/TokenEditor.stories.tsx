@@ -25,7 +25,7 @@ const meta = preview.meta({
     onSettle: fn(),
     patch: fn(),
     backPicker: () => <Text size="xs">Choose a token…</Text>,
-    backProof: <TokenProof face={initialTokenDraft(TYPE).front} type={TYPE} width={900} />,
+    backProof: <TokenProof face={initialTokenDraft(TYPE).front} type={TYPE} />,
     draft: draftWith(composedBack),
   },
 });

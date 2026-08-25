@@ -1,6 +1,8 @@
-import type { FactionInput } from '../../src/shared/factions/schema';
+import type { Infer } from 'convex/values';
+
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import type { catalogueFactionValidator } from './collaborativeAccessValidators';
 import { parseStoredFactionForRead } from './factionInput';
 
 export type FactionRulesetSummary = {
@@ -9,10 +11,25 @@ export type FactionRulesetSummary = {
   name: string;
 };
 
-export type CatalogueFaction = Omit<Doc<'factions'>, 'data'> & {
-  data: FactionInput;
-  rulesets: FactionRulesetSummary[];
-};
+/** Derived from the wire contract, so the projection below cannot quietly ship a field the validator rejects. */
+export type CatalogueFaction = Infer<typeof catalogueFactionValidator>;
+
+/**
+ * The single narrowing site (#642): every catalogue-shaped surface builds its rows here.
+ * Stored data is parsed in full first, because the parse is the read-time correctness check;
+ * only what the surfaces draw survives onto the wire.
+ */
+export function toCatalogueFaction(row: Doc<'factions'>, rulesets: FactionRulesetSummary[]): CatalogueFaction {
+  const { name, logo, background, hero, leaders, complexity } = parseStoredFactionForRead(row.data);
+  return {
+    _id: row._id,
+    slug: row.slug,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    data: { name, logo, background, hero, leaders, complexity },
+    rulesets,
+  };
+}
 
 const FACTION_LIMIT = 500;
 /* Bounded whole-index scan of ruleset_factions for the catalogue path; one read replaces one
@@ -51,14 +68,15 @@ export async function loadFactionCatalogue(
   const linksByFaction = ownerId ? await factionLinksByIndexedReads(ctx, rows) : await factionLinksByScan(ctx);
   const activeRulesetById = new Map(rulesets.map((ruleset) => [ruleset.id, ruleset]));
 
-  const factions = rows.map((row) => ({
-    ...row,
-    data: parseStoredFactionForRead(row.data),
-    rulesets: (linksByFaction.get(row._id) ?? [])
-      .map((rulesetId) => activeRulesetById.get(rulesetId))
-      .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
-      .sort(compareRulesets),
-  }));
+  const factions = rows.map((row) =>
+    toCatalogueFaction(
+      row,
+      (linksByFaction.get(row._id) ?? [])
+        .map((rulesetId) => activeRulesetById.get(rulesetId))
+        .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
+        .sort(compareRulesets)
+    )
+  );
 
   return { factions, rulesets };
 }

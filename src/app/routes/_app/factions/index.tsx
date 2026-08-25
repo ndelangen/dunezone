@@ -1,5 +1,4 @@
 import {
-  Alert,
   Badge,
   Button,
   Drawer,
@@ -17,6 +16,7 @@ import {
 import { Link, createFileRoute } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
+import { LoadError } from '@ui/block/LoadError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
@@ -27,11 +27,12 @@ import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, ChevronsDown, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCatalogueEntry, FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 
 import {
   complexityRangeSearchValue,
@@ -128,9 +129,9 @@ function FactionCatalogueError({ error }: ErrorComponentProps) {
         <CatalogueHeader />
       </PageLayout.Header>
       <PageLayout.Content>
-        <Alert color="red" title="Faction catalogue could not be loaded" role="alert">
-          <Text size="sm">{error.message || 'An unexpected error occurred.'}</Text>
-        </Alert>
+        <LoadError title="Faction catalogue could not be loaded" stale={isStaleClientData(error)}>
+          {error.message}
+        </LoadError>
       </PageLayout.Content>
     </PageLayout>
   );
@@ -186,10 +187,13 @@ function ComplexityRangeSlider({
   onCommit: (value: FactionComplexityRange) => void;
 }) {
   const [draft, setDraft] = useState<FactionComplexityRange>(() => parseComplexityRange(value));
-
-  useEffect(() => {
+  const [seeded, setSeeded] = useState(value);
+  /* Reset during render, the search box's pattern. Compared on the raw prop rather than on the parsed
+     range, because parsing allocates a new object every call and would reset on every render. */
+  if (value !== seeded) {
+    setSeeded(value);
     setDraft(parseComplexityRange(value));
-  }, [value]);
+  }
 
   return (
     <RangeSlider

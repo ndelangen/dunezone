@@ -1,7 +1,11 @@
 import { Group, Stack, TextInput } from '@mantine/core';
 import { groupInputSchema } from '@shared/groups/validation';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { LoadError } from '@ui/block/LoadError';
+import { LoginGate } from '@ui/block/LoginGate';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
@@ -14,6 +18,8 @@ import { useState } from 'react';
 
 import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
 import type { GroupEntry } from '@db/groups';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 function GroupSettings({ initial }: { initial: GroupEntry }) {
   const navigate = useNavigate();
@@ -86,8 +92,23 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/edit')({
     const groupEdit = await loadGroupEditBySlug(params.groupSlug);
     return { groupEdit };
   },
+  errorComponent: GroupEditError,
   component: GroupEditPage,
 });
+
+/**
+ * The frame for a load that failed, which on this route is most often a slug that names no group: the query throws rather than returning nothing, so the component's own absent branch never runs.
+ * Without this the reader met the router's unstyled default and, in development, a stack trace.
+ */
+function GroupEditError({ error }: ErrorComponentProps) {
+  return (
+    <PageMessage title="Edit group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
+      <LoadError title="Group could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
+    </PageMessage>
+  );
+}
 
 function GroupEditPage() {
   const { groupSlug } = Route.useParams();
@@ -97,19 +118,9 @@ function GroupEditPage() {
   const editPage = groupData.data;
   if (groupData.isError || !editPage) {
     return (
-      <PageLayout>
-        <PageLayout.Header>
-          <PageTitle title="Edit group" />
-        </PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="lg">
-            <p>Group not found.</p>
-            <p>
-              <Link to="/profiles">Back to profiles</Link>
-            </p>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Edit group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
+        <NotAvailable title="Group not found">This group does not exist or was deleted.</NotAvailable>
+      </PageMessage>
     );
   }
 
@@ -143,43 +154,27 @@ function GroupEditPage() {
     </Toolbar>
   );
 
+  /* Back to the group rather than to profiles, which is the more useful of the two destinations the
+     toolbar carried: a reader who cannot edit this group can still read it. */
+  const guardBack = (
+    <PageMessage.Back to="/groups/$groupSlug" params={{ groupSlug: group.slug }}>
+      Back to group
+    </PageMessage.Back>
+  );
+
   if (viewerAccess.viewer.kind === 'anonymous') {
     return (
-      <PageLayout>
-        <PageLayout.Header>{header}</PageLayout.Header>
-        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
-        <PageLayout.Content>
-          <Surface padding="lg">
-            <p>
-              <Link to="/auth/login">Log in</Link> to edit group settings.
-            </p>
-            <p>
-              <Link to="/groups/$groupSlug" params={{ groupSlug: group.slug }}>
-                Back to group
-              </Link>
-            </p>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title={`Edit ${group.name}`} back={guardBack}>
+        <LoginGate action="edit group settings" />
+      </PageMessage>
     );
   }
 
   if (!viewerAccess.capabilities.rename) {
     return (
-      <PageLayout>
-        <PageLayout.Header>{header}</PageLayout.Header>
-        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
-        <PageLayout.Content>
-          <Surface padding="lg">
-            <p>Only the owner can edit the group settings.</p>
-            <p>
-              <Link to="/groups/$groupSlug" params={{ groupSlug: group.slug }}>
-                Back to group
-              </Link>
-            </p>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title={`Edit ${group.name}`} back={guardBack}>
+        <NotAvailable title="You cannot edit this group">Only the owner can edit the group settings.</NotAvailable>
+      </PageMessage>
     );
   }
 

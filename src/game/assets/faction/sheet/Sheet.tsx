@@ -97,12 +97,20 @@ export function FactionSheetPage1(props: SheetProps) {
   );
 }
 
+/**
+ * Whether a faction has a second sheet page at all.
+ * Exported because a surface that offers page 2 has to ask before offering it, and asking a different question than the renderer answers is how a preview ends up showing page 1 twice.
+ */
+export function hasSheetPage2(faction: Pick<SheetProps, 'rules' | 'troops' | 'leaders'>): boolean {
+  return (
+    faction.rules.advantages.some((rule) => !!rule.karama) || faction.troops.length > 0 || faction.leaders.length > 0
+  );
+}
+
 export function FactionSheetPage2(props: SheetProps) {
   return (
     <>
-      {props.rules.advantages.filter((r) => !!r.karama).length > 0 ||
-      props.troops.length > 0 ||
-      props.leaders.length > 0 ? (
+      {hasSheetPage2(props) ? (
         <div className={styles.page} {...{ [CAPTURE_PROTOCOL.pageMarker.attribute]: '2' }}>
           <div className={`${styles.page_subtitle} ${styles.subtitle}`}>Karama effects</div>
           <div className={styles.details}>
