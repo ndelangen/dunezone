@@ -7,28 +7,43 @@ export type FormattedTextBlocks = FormattedTextParseResult['blocks'];
 
 type FormattedTextBlock = FormattedTextBlocks[number];
 type FormattedTextInlineNode = Extract<FormattedTextBlock, { kind: 'paragraph' }>['children'][number];
+type FormattedTextMark = Extract<FormattedTextInlineNode, { kind: 'mark' }>['mark'];
+
+function FormattedMark({
+  mark,
+  children,
+}: Readonly<{
+  mark: FormattedTextMark;
+  children: ReactNode;
+}>) {
+  switch (mark) {
+    case 'bold':
+      return <strong>{children}</strong>;
+    case 'italic':
+      return <em>{children}</em>;
+    case 'underline':
+      return (
+        <Text component="span" inherit td="underline">
+          {children}
+        </Text>
+      );
+  }
+}
 
 function renderInline(nodes: readonly FormattedTextInlineNode[]): ReactNode {
-  return nodes.map((node, index) => {
-    if (node.kind === 'text') {
-      return <Fragment key={index}>{node.value}</Fragment>;
+  return nodes.map((node, position) => {
+    switch (node.kind) {
+      case 'text':
+        return <Fragment key={position}>{node.value}</Fragment>;
+      case 'line-break':
+        return <br key={position} />;
+      case 'mark':
+        return (
+          <FormattedMark key={position} mark={node.mark}>
+            {renderInline(node.children)}
+          </FormattedMark>
+        );
     }
-    if (node.kind === 'line-break') {
-      return <br key={index} />;
-    }
-
-    const children = renderInline(node.children);
-    if (node.mark === 'bold') {
-      return <strong key={index}>{children}</strong>;
-    }
-    if (node.mark === 'italic') {
-      return <em key={index}>{children}</em>;
-    }
-    return (
-      <Text key={index} component="span" inherit td="underline">
-        {children}
-      </Text>
-    );
   });
 }
 
@@ -38,7 +53,7 @@ function renderInline(nodes: readonly FormattedTextInlineNode[]): ReactNode {
  * Callers own parsing and decide what to do with invalid or empty source.
  * This component owns the app-side HTML semantics for every valid block and mark.
  */
-export function FormattedText({ blocks }: { blocks: FormattedTextBlocks }) {
+export function FormattedText({ blocks }: Readonly<{ blocks: FormattedTextBlocks }>) {
   if (blocks.length === 0) {
     return null;
   }
