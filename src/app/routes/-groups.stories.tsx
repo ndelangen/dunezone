@@ -12,9 +12,9 @@ const meta = preview.meta({
 });
 
 export const Detail = meta.story({
-  args: { path: '/groups/arrakeen-rules-council', routeKey: 'groupDetail' },
+  args: { path: '/groups/arrakeen-rules-council' },
 });
-export const Create = meta.story({ args: { path: '/groups/create', routeKey: 'groupCreate' } });
+export const Create = meta.story({ args: { path: '/groups/create' } });
 export const Edit = meta.story({
-  args: { path: '/groups/arrakeen-rules-council/edit', routeKey: 'groupEdit' },
+  args: { path: '/groups/arrakeen-rules-council/edit' },
 });

@@ -1,6 +1,6 @@
 import { db } from '@db/storybook';
 
-export const pageStoryArgs = { path: '/', routeKey: 'home' as const };
+export const pageStoryArgs = { path: '/' };
 export const pageStoryParameters = {
   controls: { disable: true },
   layout: 'fullscreen',

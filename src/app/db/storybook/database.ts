@@ -6,13 +6,7 @@ import { publishingDeckCardback } from '../../../shared/assets/fixtures/publishi
 import { publishingRectangleTokenFace } from '../../../shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingTokenFace } from '../../../shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../../shared/assets/fixtures/publishingTreacheryCard';
-import {
-  BundleAssetInput,
-  DeckAssetInput,
-  RectangleTokenAssetInput,
-  TokenAssetInput,
-  TreacheryAssetInput,
-} from '../../../shared/assets/schema';
+import { parseAssetDataForWrite } from '../../../shared/assets/validation';
 import { assetPublishingFaction } from '../../../shared/factions/fixtures/assetPublishingFaction';
 import { FactionInputSchema, FactionRowSlugSchema } from '../../../shared/factions/schema';
 import type { FactionInput } from '../../../shared/factions/schema';
@@ -173,32 +167,13 @@ function baselineDatabase(): StorybookDatabase {
   return baseline;
 }
 
-function parseAssetData(type: string, data: unknown): unknown {
-  switch (type) {
-    case 'card-treachery':
-      return TreacheryAssetInput.parse(data);
-    case 'deck':
-      return DeckAssetInput.parse(data);
-    case 'bundle':
-      return BundleAssetInput.parse(data);
-    case 'token-disc':
-    case 'token-tech':
-    case 'token-plate':
-      return TokenAssetInput.parse(data);
-    case 'token-enhance':
-      return RectangleTokenAssetInput.parse(data);
-    default:
-      throw new Error(`Storybook asset type ${type} has no deterministic data helper.`);
-  }
-}
-
 function asset({ data, type }: Readonly<{ data: unknown; type: string }>): StorybookRow<'assets'> {
-  const parsed = parseAssetData(type, data) as { name: string };
+  const parsed = parseAssetDataForWrite(type, data);
   return {
     $key: `asset:${type}:${slugify(parsed.name)}`,
     owner_id: ref(VIEWER_KEY),
     type,
-    data: parsed,
+    data: parsed.data,
     slug: slugify(parsed.name),
     created_at: STORY_TIME,
     updated_at: STORY_TIME,
@@ -304,7 +279,7 @@ function validateDomainRows(database: StorybookDatabase) {
     rulesetInputSchema.parse({ name: row.name, about: row.about });
   }
   for (const row of database.assets) {
-    parseAssetData(row.type, row.data);
+    parseAssetDataForWrite(row.type, row.data);
   }
 }
 

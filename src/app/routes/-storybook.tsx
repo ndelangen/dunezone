@@ -3,63 +3,55 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  Outlet,
   RouterProvider,
 } from '@tanstack/react-router';
 import type { AnyRoute } from '@tanstack/react-router';
 import { useMemo } from 'react';
 
-import { storybookRoutes } from './-storybookRoutes';
-import type { StorybookRouteKey } from './-storybookRoutes';
-import { Route as AppRoute } from './_app';
+import { routeTree as applicationRouteTree } from '../routeTree.gen';
 
-function routeTreeFor(routeKey: StorybookRouteKey) {
-  const entry = storybookRoutes[routeKey];
-  const rootRoute = createRootRoute({ component: Outlet });
-  rootRoute.init({ originalIndex: 0 });
-  let parent: AnyRoute = rootRoute;
-
-  if (entry.app) {
-    const appRoute = createRoute({
-      getParentRoute: () => rootRoute,
-      id: '_app',
-      component: AppRoute.options.component,
-      notFoundComponent: AppRoute.options.notFoundComponent,
-    });
-    appRoute.init({ originalIndex: 0 });
-    rootRoute.addChildren([appRoute]);
-    parent = appRoute;
-  }
-
-  /*
-   * File routes receive their IDs when the generated tree initializes them. Initialize the real
-   * route against the Storybook parent so its bound hooks read the same ID as the mounted clone.
-   */
-  entry.route.update({
-    getParentRoute: () => parent,
-    id: entry.path,
-    path: entry.path,
-  } as never);
-  entry.route.init({ originalIndex: 0 });
-  const leafRoute = createRoute({
-    ...entry.route.options,
-    getParentRoute: () => parent,
-    id: undefined,
-    path: entry.path,
-  } as never);
-  parent.addChildren([leafRoute]);
-
-  return rootRoute;
+function cloneRoute(source: AnyRoute, parent: AnyRoute): AnyRoute {
+  const {
+    getParentRoute: _sourceParent,
+    id,
+    path,
+    ...options
+  } = source.options as typeof source.options & {
+    id?: string;
+    path?: string;
+  };
+  const location = path === undefined ? { id } : { path };
+  const route = createRoute({ ...options, ...location, getParentRoute: () => parent } as never);
+  const children = Object.values(source.children ?? {}).map((child) => cloneRoute(child as AnyRoute, route));
+  return children?.length ? route.addChildren(children) : route;
 }
 
-export function StorybookPage({ path, routeKey }: Readonly<{ path: string; routeKey: StorybookRouteKey }>) {
+/* TanStack assigns a route tree to one router. Storybook can render stories concurrently, so each
+   page receives a structural copy of the complete generated tree with the same route options and
+   IDs. The production FileRoutes remain untouched and their bound hooks resolve through those IDs. */
+function cloneApplicationRouteTree() {
+  const {
+    getParentRoute: _sourceParent,
+    id: _id,
+    path: _path,
+    ...options
+  } = applicationRouteTree.options as typeof applicationRouteTree.options & {
+    id?: string;
+    path?: string;
+  };
+  const root = createRootRoute(options as never);
+  const children = Object.values(applicationRouteTree.children ?? {}).map((child) => cloneRoute(child, root));
+  return children?.length ? root.addChildren(children) : root;
+}
+
+export function StorybookPage({ path }: Readonly<{ path: string }>) {
   const router = useMemo(
     () =>
       createRouter({
         history: createMemoryHistory({ initialEntries: [path] }),
-        routeTree: routeTreeFor(routeKey),
+        routeTree: cloneApplicationRouteTree(),
       }),
-    [path, routeKey]
+    [path]
   );
 
   return <RouterProvider router={router} />;

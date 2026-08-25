@@ -11,7 +11,7 @@ const meta = preview.meta({
   globals: pageStoryGlobals,
 });
 
-export const Catalogue = meta.story({ args: { path: '/factions', routeKey: 'factions' } });
-export const Detail = meta.story({ args: { path: '/factions/house-atreides', routeKey: 'factionDetail' } });
-export const Create = meta.story({ args: { path: '/factions/create', routeKey: 'factionCreate' } });
-export const Edit = meta.story({ args: { path: '/factions/house-atreides/edit', routeKey: 'factionEdit' } });
+export const Catalogue = meta.story({ args: { path: '/factions' } });
+export const Detail = meta.story({ args: { path: '/factions/house-atreides' } });
+export const Create = meta.story({ args: { path: '/factions/create' } });
+export const Edit = meta.story({ args: { path: '/factions/house-atreides/edit' } });

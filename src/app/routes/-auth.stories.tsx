@@ -12,10 +12,10 @@ const meta = preview.meta({
 });
 
 export const Login = meta.story({
-  args: { path: '/auth/login', routeKey: 'login' },
+  args: { path: '/auth/login' },
   parameters: { identity: null },
 });
 export const OAuthError = meta.story({
-  args: { path: '/auth/error?error=oauth_failed', routeKey: 'authError' },
+  args: { path: '/auth/error?error=oauth_failed' },
   parameters: { identity: null },
 });

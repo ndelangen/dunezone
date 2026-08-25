@@ -66,6 +66,12 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  /* Storybook already owns the document and supplies the isolated database and auth providers.
+     The generated route tree still passes through this production root in every page story. */
+  if (import.meta.env.STORYBOOK) {
+    return children;
+  }
+
   return (
     /* The `_app` layout's pre-hydration script writes data-mantine-color-scheme onto <html>
        before React attaches; the attribute is script-owned, not React-owned. */

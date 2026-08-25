@@ -11,16 +11,16 @@ const meta = preview.meta({
   globals: pageStoryGlobals,
 });
 
-export const Directory = meta.story({ args: { path: '/rulesets', routeKey: 'rulesets' } });
-export const Detail = meta.story({ args: { path: '/rulesets/classicrules', routeKey: 'rulesetDetail' } });
-export const Edit = meta.story({ args: { path: '/rulesets/classicrules/edit', routeKey: 'rulesetEdit' } });
+export const Directory = meta.story({ args: { path: '/rulesets' } });
+export const Detail = meta.story({ args: { path: '/rulesets/classicrules' } });
+export const Edit = meta.story({ args: { path: '/rulesets/classicrules/edit' } });
 export const AskQuestion = meta.story({
-  args: { path: '/rulesets/classicrules/faq/create', routeKey: 'faqCreate' },
+  args: { path: '/rulesets/classicrules/faq/create' },
 });
 export const Question = meta.story({
-  args: { path: '/rulesets/classicrules/faq/when-does-the-storm-move', routeKey: 'faqQuestion' },
+  args: { path: '/rulesets/classicrules/faq/when-does-the-storm-move' },
 });
 export const RulebookEditor = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/player-aid/edit', routeKey: 'rulebookEditor' },
+  args: { path: '/rulesets/classicrules/rulebooks/player-aid/edit' },
   globals: { viewport: { value: 'appAuthoringWide' } },
 });

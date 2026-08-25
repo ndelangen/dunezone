@@ -7,6 +7,7 @@ import {
   publicationFaceId,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
+import { parseAssetDataForWrite } from '../src/shared/assets/validation';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
@@ -21,7 +22,7 @@ import {
   TOKEN_ASSET_TYPES,
   tokenBackOf,
 } from './lib/assetBacks';
-import { assetDisplayName, assertKnownAssetType, parseAssetDataForWrite } from './lib/assetInput';
+import { assetDisplayName, assertKnownAssetType } from './lib/assetInput';
 import {
   loadAssetAccessBundle,
   requireAssetSoftDelete,

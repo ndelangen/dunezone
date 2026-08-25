@@ -11,4 +11,12 @@ const meta = preview.meta({
   globals: pageStoryGlobals,
 });
 
-export const Default = meta.story({});
+export const Default = meta.story({
+  beforeEach: () => {
+    const random = Math.random;
+    Math.random = () => 0;
+    return () => {
+      Math.random = random;
+    };
+  },
+});

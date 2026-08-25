@@ -11,4 +11,4 @@ const meta = preview.meta({
   globals: pageStoryGlobals,
 });
 
-export const Migrations = meta.story({ args: { path: '/admin/migrations', routeKey: 'adminMigrations' } });
+export const Migrations = meta.story({ args: { path: '/admin/migrations' } });
