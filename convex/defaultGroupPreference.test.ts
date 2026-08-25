@@ -11,7 +11,7 @@ import { api } from './_generated/api';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
-const DESCRIPTION = 'A test ruleset with a description long enough to satisfy the fifty character floor.';
+const ABOUT = 'A test ruleset with About text long enough to satisfy the fifty character floor.';
 
 async function defaultGroupFixture() {
   const t = convexTest(schema, modules);
@@ -130,7 +130,7 @@ describe('default Group preference', () => {
     await expect(
       member.mutation(api.rulesets.create, {
         name: 'DefaultGroupRuleset',
-        about: DESCRIPTION,
+        about: ABOUT,
         image_cover: null,
       })
     ).resolves.toMatchObject({ group_id: ids.groupId, route_notice: null });
@@ -165,7 +165,7 @@ describe('default Group preference', () => {
     await expect(
       member.mutation(api.rulesets.create, {
         name: 'SoftDeletedDefaultRuleset',
-        about: DESCRIPTION,
+        about: ABOUT,
         image_cover: null,
       })
     ).resolves.toMatchObject({ group_id: null, route_notice: defaultGroupUnavailableRouteNoticeCode });
@@ -177,7 +177,7 @@ describe('default Group preference', () => {
     await expect(
       member.mutation(api.rulesets.create, {
         name: 'ExplicitDeletedGroupRuleset',
-        about: DESCRIPTION,
+        about: ABOUT,
         image_cover: null,
         group_id: ids.groupId,
       })
@@ -224,7 +224,7 @@ describe('default Group preference', () => {
     await expect(
       member.mutation(api.rulesets.create, {
         name: 'LegacyExplicitRuleset',
-        about: DESCRIPTION,
+        about: ABOUT,
         image_cover: null,
         group_id: ids.groupId,
       })

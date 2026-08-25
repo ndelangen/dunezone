@@ -41,6 +41,11 @@
       "requires": ["rulesets_description_retire_v1"]
     },
     {
+      "id": "rulesets_about_only_narrow",
+      "phase": "narrow",
+      "requires": ["rulesets_description_retire_v1", "rulesets_description_retire_verify_v1"]
+    },
+    {
       "id": "faq_item_slug_v1",
       "phase": "widen",
       "requires": []

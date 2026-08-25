@@ -19,7 +19,6 @@ import {
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
-import { activeRuleset } from './lib/rulesetAbout';
 import { loadRulesetDetailPageBySlug, loadRulesetPublicBundleBySlug } from './lib/rulesetDetailPage';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -77,7 +76,7 @@ export const list = query({
       .query('rulesets')
       .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
       .take(500);
-    return rows.map(activeRuleset);
+    return rows;
   },
 });
 
@@ -88,7 +87,7 @@ export const get = query({
     if (!row || row.is_deleted) {
       throw new Error(`Ruleset with id ${args.id} not found`);
     }
-    return activeRuleset(row);
+    return row;
   },
 });
 
@@ -128,7 +127,7 @@ export const listByFaction = query({
       .withIndex('by_faction', (q) => q.eq('faction_id', args.faction_id))
       .take(500);
     const rulesets = await Promise.all(links.map((link) => getRulesetById(ctx, link.ruleset_id)));
-    return rulesets.filter((row): row is NonNullable<typeof row> => row != null && !row.is_deleted).map(activeRuleset);
+    return rulesets.filter((row): row is NonNullable<typeof row> => row != null && !row.is_deleted);
   },
 });
 
@@ -171,7 +170,7 @@ export const create = mutation({
     if (!created) {
       throw new Error('Failed to create ruleset');
     }
-    return { ...activeRuleset(created), route_notice: groupAssignment.route_notice };
+    return { ...created, route_notice: groupAssignment.route_notice };
   },
 });
 
@@ -209,7 +208,7 @@ export const update = mutation({
     if (!updated) {
       throw new Error('Failed to update ruleset');
     }
-    return activeRuleset(updated);
+    return updated;
   },
 });
 
@@ -239,7 +238,7 @@ export const setGroup = mutation({
     if (!updated) {
       throw new Error('Failed to update ruleset group');
     }
-    return activeRuleset(updated);
+    return updated;
   },
 });
 
