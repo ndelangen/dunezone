@@ -16,8 +16,9 @@ import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
+import { LoadPending } from '@ui/block/LoadPending';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { OpenableTile } from '@ui/block/OpenableTile';
-import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -50,6 +51,7 @@ import { loadAssetPage, useAssetPage } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../-assetEditorStates';
 import { compositionTiles, DUPLICATED_TILE_CAP, omissionNote } from './-composition';
@@ -76,37 +78,31 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
 });
 
 /**
- * The frame this page wears before it has an asset: loading, absent, failed to load.
- * One component because all three are the same page with different words;
- * the three detail pages before this each repeat the markup two or three times.
+ * The words `PageMessage` wears on this route: the asset type's own name, and a way back to that type's browse page.
+ * A local component rather than a repeated prop because the type is a route param and every message on this page reads it.
+ * An unknown type still gets a frame, since the loader's `notFound` throw has to land somewhere.
  */
 function AssetDetailMessage({ children }: { children: ReactNode }) {
   const { type } = Route.useParams();
   const label = isAssetType(type) ? ASSET_TYPES[type].label : 'Assets';
   return (
-    <PageLayout>
-      <PageLayout.Header>
-        <Stack align="center" gap="xs">
-          <PageTitle title={label} />
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type }} />}>
-            Back to {label.toLowerCase()}
-          </Anchor>
-        </Stack>
-      </PageLayout.Header>
-      <PageLayout.Content>{children}</PageLayout.Content>
-    </PageLayout>
+    <PageMessage
+      title={label}
+      back={
+        <PageMessage.Back to="/assets/$type" params={{ type }}>
+          Back to {label.toLowerCase()}
+        </PageMessage.Back>
+      }
+    >
+      {children}
+    </PageMessage>
   );
 }
 
 function AssetDetailPending() {
   return (
     <AssetDetailMessage>
-      <Surface padding="xl">
-        <Stack gap="xs">
-          <Title order={2}>Loading</Title>
-          <Text c="dimmed">This asset is still loading.</Text>
-        </Stack>
-      </Surface>
+      <LoadPending title="Loading">This asset is still loading.</LoadPending>
     </AssetDetailMessage>
   );
 }
@@ -477,15 +473,9 @@ function AssetDetailPage() {
   if (!page) {
     return (
       <AssetDetailMessage>
-        <Surface padding="xl">
-          <Stack gap="xs">
-            <Title order={2}>Asset not found</Title>
-            <Text c="dimmed">
-              This asset does not exist or was deleted. Renaming an asset re-slugs its URL, so an old link may have
-              moved.
-            </Text>
-          </Stack>
-        </Surface>
+        <NotAvailable title="Asset not found">
+          This asset does not exist or was deleted. Renaming an asset re-slugs its URL, so an old link may have moved.
+        </NotAvailable>
       </AssetDetailMessage>
     );
   }
