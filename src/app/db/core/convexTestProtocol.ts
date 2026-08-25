@@ -30,7 +30,7 @@ export type WorkerIdentity = {
   subjectKey: string;
 };
 
-export type StatisticsTotals = {
+type StatisticsTotals = {
   answers: number;
   factions: number;
   questions: number;
