@@ -110,6 +110,7 @@ The retained phase 2 prototype completed the following checks:
 | Freeze and execute a named `fetch` rejection | Passed |
 | Run the page in Storybook development | Passed |
 | Run the page from served `storybook-static` output | Passed |
+| Serve the unchanged static preview below `/catalogue/` | Passed |
 | Complete the browser suite | Passed, 98 files and 381 tests in 27.89 seconds |
 
-Nested action context, component authentication boundaries, scheduler authentication, rollback, local `t.fetch()`, response CSP, and a non-root static path remain unproved. These are rollout gates, not hidden assumptions.
+Nested action context, component authentication boundaries, scheduler authentication, rollback, local `t.fetch()`, and response CSP remain unproved. These are rollout gates, not hidden assumptions.
