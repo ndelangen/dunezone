@@ -15,6 +15,7 @@ import type { ReactNode } from 'react';
 import { expect, mocked, userEvent, within } from 'storybook/test';
 
 import type { SeedDocument, WorkerIdentity } from '@db/core/convexTestProtocol';
+import type { ContextConformanceResult } from '@db/core/convexTestProtocol';
 import {
   ConvexTestWorkerClient,
   ConvexTestWorkerContext,
@@ -309,6 +310,67 @@ function IdentityAndNetworkProofPage() {
   );
 }
 
+function useContextConformance() {
+  const { client } = useContext(ConvexTestWorkerContext) ?? {};
+  const [result, setResult] = useState<ContextConformanceResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!client) {
+      return;
+    }
+    void client
+      .runContextConformance()
+      .then(setResult)
+      .catch((caught: unknown) => setError(caught instanceof Error ? caught.message : String(caught)));
+  }, [client]);
+
+  if (!client) {
+    throw new Error('The story has no Convex worker client.');
+  }
+  if (error) {
+    throw new Error(error);
+  }
+  return result;
+}
+
+function AmbientContextBaselinePage() {
+  const result = useContextConformance();
+  if (!result) {
+    return <Loader aria-label="Running the ambient context baseline" />;
+  }
+  return (
+    <Stack maw={760} p="xl">
+      <Title order={1}>Before: ambient browser context</Title>
+      <Alert color="red" title={`${result.ambient.mismatches} of 5 checkpoints used the wrong frame`}>
+        Overlapping component scopes replaced their sibling or caller context.
+      </Alert>
+      <Code block>{JSON.stringify(result.ambient.trace, null, 2)}</Code>
+    </Stack>
+  );
+}
+
+function ExplicitContextAttemptPage() {
+  const result = useContextConformance();
+  if (!result) {
+    return <Loader aria-label="Running the explicit context attempt" />;
+  }
+  return (
+    <Stack maw={760} p="xl">
+      <Title order={1}>After: explicit-frame mechanism</Title>
+      <Alert color="green" title={`${result.explicit.mismatches} mismatches across ${result.explicit.iterations} runs`}>
+        The frame survived {result.explicit.sources.join(', ')}, parallel components, and the return to root.
+      </Alert>
+      <Alert color="yellow" title="Convex compatibility gate blocked">
+        The mechanism cannot preserve Convex's global helper contract without an ambient execution context.
+      </Alert>
+      <Code block style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+        {result.convexHelper.error}
+      </Code>
+    </Stack>
+  );
+}
+
 const meta = preview.meta({
   title: 'Create ruleset',
   component: CreateRulesetStoryPage,
@@ -367,5 +429,24 @@ export const IdentitiesAndNetworkStayIsolated = meta.story({
         'Identities stayed separate, fetch was blocked, local HTTP completed, scheduled work ran, and rollback held'
       )
     ).resolves.toBeVisible();
+  },
+});
+
+export const AmbientContextBefore = meta.story({
+  render: () => <AmbientContextBaselinePage />,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByText('3 of 5 checkpoints used the wrong frame', {}, { timeout: 10_000 })
+    ).resolves.toBeVisible();
+  },
+});
+
+export const ExplicitFrameAttempt = meta.story({
+  render: () => <ExplicitContextAttemptPage />,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('0 mismatches across 100 runs', {}, { timeout: 10_000 })).resolves.toBeVisible();
+    await expect(page.findByText('Convex compatibility gate blocked', {}, { timeout: 10_000 })).resolves.toBeVisible();
   },
 });
