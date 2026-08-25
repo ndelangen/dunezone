@@ -1,10 +1,10 @@
 import { Anchor, Stack, Text } from '@mantine/core';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 import { useRef, useState } from 'react';
 
 import { useCreateFaction } from '@db/factions';
@@ -18,6 +18,7 @@ import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { useFactionNameField } from './-factionNameField';
 
@@ -73,20 +74,13 @@ function CreateFactionPage() {
 
   if (!ownerUserId) {
     return (
-      <PageLayout>
-        <PageLayout.Header size="compact">{header}</PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Stack gap="sm">
-              <Text>
-                <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to create a
-                faction.
-              </Text>
-              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>Back to factions</Anchor>
-            </Stack>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage
+        size="compact"
+        title="Create faction"
+        back={<PageMessage.Back to="/factions">Back to factions</PageMessage.Back>}
+      >
+        <LoginGate action="create a faction" />
+      </PageMessage>
     );
   }
 

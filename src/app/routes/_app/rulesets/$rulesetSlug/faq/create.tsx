@@ -1,6 +1,8 @@
 import { Button, Group, Stack, TextInput, Textarea } from '@mantine/core';
 import type { FaqTag } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { LoadPending } from '@ui/block/LoadPending';
+import { LoginGate } from '@ui/block/LoginGate';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -8,6 +10,7 @@ import { Surface } from '@ui/surface';
 import { useAskFaqQuestion } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug, useRulesetBySlug } from '@db/rulesets';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './create.module.css';
 
@@ -39,28 +42,29 @@ function FaqCreatePage() {
     </div>
   );
 
+  /* Only this page's message frames move to `PageMessage`. The loaded page keeps its hand-rolled
+     `h1` header, which is a separate item of the same wave (#701 item 5, the FAQ pages' raw
+     elements), so for now the two states spell the same words two ways. */
+  const backToRuleset = (
+    <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
+      Back to ruleset
+    </PageMessage.Back>
+  );
+
   if (!rulesetRow) {
     return (
-      <PageLayout>
-        <PageLayout.Header>{header}</PageLayout.Header>
-        <PageLayout.Content>Loading ruleset…</PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Ask a question" back={backToRuleset}>
+        <LoadPending title="Loading ruleset">The ruleset this question belongs to is still loading.</LoadPending>
+      </PageMessage>
     );
   }
   const rulesetId = rulesetRow._id;
 
   if (!profile?.data?._id) {
     return (
-      <PageLayout>
-        <PageLayout.Header>{header}</PageLayout.Header>
-        <PageLayout.Content>
-          <Surface padding="lg">
-            <p>
-              <Link to="/auth/login">Log in</Link> to ask a question.
-            </p>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Ask a question" back={backToRuleset}>
+        <LoginGate action="ask a question" />
+      </PageMessage>
     );
   }
 
