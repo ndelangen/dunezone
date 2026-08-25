@@ -1,0 +1,573 @@
+{
+  "cloneDeployment": "dev:tame-raccoon-541",
+  "generatedAt": "2026-08-25T09:04:31.511Z",
+  "liveAssetCounts": {
+    "faction_sheet": 35,
+    "card-treachery": 9
+  },
+  "proposedRevisions": {
+    "faction_sheet": {
+      "from": 8,
+      "to": 9
+    },
+    "card-treachery": {
+      "from": 1,
+      "to": 1
+    }
+  },
+  "receipts": [
+    {
+      "assetType": "faction_sheet",
+      "label": "bene-gesserit, page 1",
+      "sourceSlug": "bene-gesserit",
+      "changedPixelBounds": "294,355 to 564,419",
+      "changedPixelPercent": 0.02632168458781362
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "bene-gesserit, page 2",
+      "sourceSlug": "bene-gesserit",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "bene-tleilax, page 1",
+      "sourceSlug": "bene-tleilax",
+      "changedPixelBounds": "294,355 to 584,419",
+      "changedPixelPercent": 0.03305811571940604
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "bene-tleilax, page 2",
+      "sourceSlug": "bene-tleilax",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "choam, page 1",
+      "sourceSlug": "choam",
+      "changedPixelBounds": "294,355 to 564,419",
+      "changedPixelPercent": 0.02632168458781362
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "choam, page 2",
+      "sourceSlug": "choam",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "combine-honnete-ober-advancer-mercantiles, page 1",
+      "sourceSlug": "combine-honnete-ober-advancer-mercantiles",
+      "changedPixelBounds": "294,355 to 584,419",
+      "changedPixelPercent": 0.03305811571940604
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "combine-honnete-ober-advancer-mercantiles, page 2",
+      "sourceSlug": "combine-honnete-ober-advancer-mercantiles",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "corrino, page 1",
+      "sourceSlug": "corrino",
+      "changedPixelBounds": "294,355 to 576,419",
+      "changedPixelPercent": 0.03197004608294931
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "corrino, page 2",
+      "sourceSlug": "corrino",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ecaz-ecaz-moritani, page 1",
+      "sourceSlug": "ecaz-ecaz-moritani",
+      "changedPixelBounds": "294,355 to 557,419",
+      "changedPixelPercent": 0.025921658986175117
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ecaz-ecaz-moritani, page 2",
+      "sourceSlug": "ecaz-ecaz-moritani",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "emperor, page 1",
+      "sourceSlug": "emperor",
+      "changedPixelBounds": "294,355 to 564,419",
+      "changedPixelPercent": 0.02632168458781362
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "emperor, page 2",
+      "sourceSlug": "emperor",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "emperor-choam, page 1",
+      "sourceSlug": "emperor-choam",
+      "changedPixelBounds": "63,355 to 1004,2013",
+      "changedPixelPercent": 1.2035970302099335
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "emperor-choam, page 2",
+      "sourceSlug": "emperor-choam",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "fremen, page 1",
+      "sourceSlug": "fremen",
+      "changedPixelBounds": "295,355 to 582,419",
+      "changedPixelPercent": 0.03233806963645673
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "fremen, page 2",
+      "sourceSlug": "fremen",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ginaz-swordmasters, page 1",
+      "sourceSlug": "ginaz-swordmasters",
+      "changedPixelBounds": "294,355 to 677,419",
+      "changedPixelPercent": 0.05782770097286226
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ginaz-swordmasters, page 2",
+      "sourceSlug": "ginaz-swordmasters",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "hivers, page 1",
+      "sourceSlug": "hivers",
+      "changedPixelBounds": "63,356 to 999,1517",
+      "changedPixelPercent": 0.3623591909882232
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "hivers, page 2",
+      "sourceSlug": "hivers",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "honored-matres, page 1",
+      "sourceSlug": "honored-matres",
+      "changedPixelBounds": "294,355 to 583,419",
+      "changedPixelPercent": 0.03237007168458781
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "honored-matres, page 2",
+      "sourceSlug": "honored-matres",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "house-atreides, page 1",
+      "sourceSlug": "house-atreides",
+      "changedPixelBounds": "294,355 to 583,419",
+      "changedPixelPercent": 0.03237007168458781
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "house-atreides, page 2",
+      "sourceSlug": "house-atreides",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "house-harkonnen, page 1",
+      "sourceSlug": "house-harkonnen",
+      "changedPixelBounds": "294,355 to 583,419",
+      "changedPixelPercent": 0.03237007168458781
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "house-harkonnen, page 2",
+      "sourceSlug": "house-harkonnen",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "house-richese, page 1",
+      "sourceSlug": "house-richese",
+      "changedPixelBounds": "294,355 to 583,419",
+      "changedPixelPercent": 0.03237007168458781
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "house-richese, page 2",
+      "sourceSlug": "house-richese",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "iduali, page 1",
+      "sourceSlug": "iduali",
+      "changedPixelBounds": "295,355 to 838,419",
+      "changedPixelPercent": 0.09270993343573988
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "iduali, page 2",
+      "sourceSlug": "iduali",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ixians, page 1",
+      "sourceSlug": "ixians",
+      "changedPixelBounds": "294,355 to 941,419",
+      "changedPixelPercent": 0.12572004608294932
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ixians, page 2",
+      "sourceSlug": "ixians",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ixians-in-progress, page 1",
+      "sourceSlug": "ixians-in-progress",
+      "changedPixelBounds": "294,355 to 659,419",
+      "changedPixelPercent": 0.05325140809011777
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ixians-in-progress, page 2",
+      "sourceSlug": "ixians-in-progress",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "landsraad-council, page 1",
+      "sourceSlug": "landsraad-council",
+      "changedPixelBounds": "294,355 to 677,419",
+      "changedPixelPercent": 0.05782770097286226
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "landsraad-council, page 2",
+      "sourceSlug": "landsraad-council",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "mindwardens, page 1",
+      "sourceSlug": "mindwardens",
+      "changedPixelBounds": "294,355 to 576,419",
+      "changedPixelPercent": 0.03197004608294931
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "mindwardens, page 2",
+      "sourceSlug": "mindwardens",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "moritani-ecaz-moritani, page 1",
+      "sourceSlug": "moritani-ecaz-moritani",
+      "changedPixelBounds": "294,355 to 557,419",
+      "changedPixelPercent": 0.025921658986175117
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "moritani-ecaz-moritani, page 2",
+      "sourceSlug": "moritani-ecaz-moritani",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "new-faction, page 1",
+      "sourceSlug": "new-faction",
+      "changedPixelBounds": "294,356 to 730,419",
+      "changedPixelPercent": 0.07186059907834101
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "new-faction, page 2",
+      "sourceSlug": "new-faction",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "nobirds, page 1",
+      "sourceSlug": "nobirds",
+      "changedPixelBounds": "294,356 to 730,419",
+      "changedPixelPercent": 0.07186059907834101
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "nobirds, page 2",
+      "sourceSlug": "nobirds",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ocm, page 1",
+      "sourceSlug": "ocm",
+      "changedPixelBounds": "294,355 to 659,419",
+      "changedPixelPercent": 0.05325140809011777
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ocm, page 2",
+      "sourceSlug": "ocm",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ordos, page 1",
+      "sourceSlug": "ordos",
+      "changedPixelBounds": "294,356 to 692,419",
+      "changedPixelPercent": 0.063892089093702
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "ordos, page 2",
+      "sourceSlug": "ordos",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "richese, page 1",
+      "sourceSlug": "richese",
+      "changedPixelBounds": "294,217 to 1999,601",
+      "changedPixelPercent": 0.8468221966205838
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "richese, page 2",
+      "sourceSlug": "richese",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "shrek, page 1",
+      "sourceSlug": "shrek",
+      "changedPixelBounds": "294,356 to 730,419",
+      "changedPixelPercent": 0.07186059907834101
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "shrek, page 2",
+      "sourceSlug": "shrek",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "smugglers, page 1",
+      "sourceSlug": "smugglers",
+      "changedPixelBounds": "294,356 to 673,419",
+      "changedPixelPercent": 0.05749167946748592
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "smugglers, page 2",
+      "sourceSlug": "smugglers",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "space-orks, page 1",
+      "sourceSlug": "space-orks",
+      "changedPixelBounds": "294,355 to 1353,430",
+      "changedPixelPercent": 0.24049539170506912
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "space-orks, page 2",
+      "sourceSlug": "space-orks",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "spacing-guild, page 1",
+      "sourceSlug": "spacing-guild",
+      "changedPixelBounds": "294,355 to 564,419",
+      "changedPixelPercent": 0.02632168458781362
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "spacing-guild, page 2",
+      "sourceSlug": "spacing-guild",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "spice-smugglers, page 1",
+      "sourceSlug": "spice-smugglers",
+      "changedPixelBounds": "294,355 to 658,419",
+      "changedPixelPercent": 0.051811315924219156
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "spice-smugglers, page 2",
+      "sourceSlug": "spice-smugglers",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "suk-medics, page 1",
+      "sourceSlug": "suk-medics",
+      "changedPixelBounds": "294,355 to 658,419",
+      "changedPixelPercent": 0.051811315924219156
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "suk-medics, page 2",
+      "sourceSlug": "suk-medics",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "test-faction, page 1",
+      "sourceSlug": "test-faction",
+      "changedPixelBounds": "294,355 to 656,419",
+      "changedPixelPercent": 0.05313940092165899
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "test-faction, page 2",
+      "sourceSlug": "test-faction",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "the-smugglers, page 1",
+      "sourceSlug": "the-smugglers",
+      "changedPixelBounds": "294,356 to 673,419",
+      "changedPixelPercent": 0.05749167946748592
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "the-smugglers, page 2",
+      "sourceSlug": "the-smugglers",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "thinking-machines, page 1",
+      "sourceSlug": "thinking-machines",
+      "changedPixelBounds": "294,355 to 677,419",
+      "changedPixelPercent": 0.05782770097286226
+    },
+    {
+      "assetType": "faction_sheet",
+      "label": "thinking-machines, page 2",
+      "sourceSlug": "thinking-machines",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "card-treachery",
+      "label": "arrakeen",
+      "sourceSlug": "arrakeen",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "card-treachery",
+      "label": "ernoc-seed",
+      "sourceSlug": "ernoc-seed",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "card-treachery",
+      "label": "shield",
+      "sourceSlug": "shield",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "card-treachery",
+      "label": "small-shirt",
+      "sourceSlug": "small-shirt",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "card-treachery",
+      "label": "snooper",
+      "sourceSlug": "snooper",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "card-treachery",
+      "label": "supplies",
+      "sourceSlug": "supplies",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "card-treachery",
+      "label": "supplies-shield",
+      "sourceSlug": "supplies-shield",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "card-treachery",
+      "label": "supplies-snooper",
+      "sourceSlug": "supplies-snooper",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    },
+    {
+      "assetType": "card-treachery",
+      "label": "trishula",
+      "sourceSlug": "trishula",
+      "changedPixelBounds": "none",
+      "changedPixelPercent": 0
+    }
+  ]
+}

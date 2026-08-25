@@ -14,6 +14,7 @@ import { CardBack } from '@game/assets/card/Back';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
+import { PrototypeFormattedTextProvider } from '@game/components/block/MarkdownContent';
 
 import { afterPaint, ASSET_SETTLE_TIMEOUT_MS, settleHtmlImages, settleSvgResources } from './captureSettle';
 
@@ -171,6 +172,7 @@ export function PublisherCapture() {
 
   const subject = snapshot ? captureSubject(snapshot) : undefined;
   const documentFlag = subject?.documentFlag;
+  const prototypeMode = new URLSearchParams(window.location.search).get('prototype-renderer');
 
   useEffect(() => {
     if (!documentFlag) {
@@ -232,7 +234,9 @@ export function PublisherCapture() {
       >
         {detail}
       </output>
-      {subject?.node}
+      <PrototypeFormattedTextProvider mode={prototypeMode === 'formatted-text' ? 'formatted-text' : 'markdown'}>
+        {subject?.node}
+      </PrototypeFormattedTextProvider>
     </>
   );
 }
