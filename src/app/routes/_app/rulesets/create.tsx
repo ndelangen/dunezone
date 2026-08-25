@@ -1,10 +1,11 @@
-import { Button, Group, Stack, Textarea, TextInput } from '@mantine/core';
+import { Button, Group, Stack, TextInput } from '@mantine/core';
 import { rulesetAboutSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -62,7 +63,7 @@ function CreateRulesetForm() {
         value={name}
         onChange={(event) => setName(event.target.value)}
       />
-      <Textarea
+      <FormattedTextInput
         label="About"
         name="about"
         description={rulesetAboutHint(about)}
@@ -71,7 +72,7 @@ function CreateRulesetForm() {
         autosize
         minRows={4}
         value={about}
-        onChange={(event) => setAbout(event.currentTarget.value)}
+        onChange={setAbout}
       />
       {createRuleset.error ? (
         <FormError title="Ruleset could not be created">{createRuleset.error.message}</FormError>

@@ -1,4 +1,5 @@
 import { graphemeSegments } from 'unicode-segmenter/grapheme';
+import { z } from 'zod';
 
 const FORMATTED_TEXT_MARKS = [
   { delimiter: '_', mark: 'underline' },
@@ -669,3 +670,26 @@ export function normalizeFormattedText(
   const parsed = parseFormattedText(input, profile);
   return parsed.valid ? { ok: true, value: parsed.source } : { ok: false, diagnostics: parsed.diagnostics };
 }
+
+function formattedTextSchema(profile: FormattedTextProfile) {
+  return z.string().transform((input, context): string => {
+    const normalized = normalizeFormattedText(input, profile);
+    if (normalized.ok) {
+      return normalized.value;
+    }
+
+    for (const diagnostic of normalized.diagnostics) {
+      context.addIssue({
+        code: 'custom',
+        message: `Line ${diagnostic.line}, column ${diagnostic.column}: ${diagnostic.message}`,
+      });
+    }
+    return z.NEVER;
+  });
+}
+
+/** Canonical stored prose with paragraphs, lists, hard breaks, and inline marks. */
+export const proseFormattedTextSchema = formattedTextSchema('prose');
+
+/** Canonical stored inline prose with marks, but no lists, hard breaks, or paragraphs. */
+export const marksOnlyFormattedTextSchema = formattedTextSchema('marks-only');

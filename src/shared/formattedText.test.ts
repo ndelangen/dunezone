@@ -1,7 +1,12 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import type { NormalizedFormattedText } from './formattedText';
-import { normalizeFormattedText, parseFormattedText } from './formattedText';
+import {
+  marksOnlyFormattedTextSchema,
+  normalizeFormattedText,
+  parseFormattedText,
+  proseFormattedTextSchema,
+} from './formattedText';
 
 function parseValid(input: string) {
   const result = parseFormattedText(input);
@@ -13,6 +18,14 @@ function parseValid(input: string) {
 }
 
 describe('formatted-text core', () => {
+  it('gives Zod writes the same normalization and profile diagnostics as the parser', () => {
+    expect(proseFormattedTextSchema.parse('Opening  \r\n\r\n- first')).toBe('Opening\n\n- first');
+    expect(marksOnlyFormattedTextSchema.safeParse('*one* line').success).toBe(true);
+    expect(marksOnlyFormattedTextSchema.safeParse('first\nsecond').error?.issues[0]?.message).toContain(
+      'not line breaks or paragraphs'
+    );
+  });
+
   it('accepts an empty value without deciding field requiredness', () => {
     const parsed = parseValid('');
     const normalized = normalizeFormattedText('');

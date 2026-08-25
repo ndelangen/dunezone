@@ -1,5 +1,6 @@
-import { Divider, NumberInput, SimpleGrid, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import { Divider, NumberInput, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 
 import type { FactionFormApi } from './factionFormTypes';
 
@@ -29,15 +30,16 @@ function SetupFields({ form }: { form: FactionFormApi }) {
                     title="Starting instructions"
                     description="Free-form setup instructions shown in the faction rules output. Do not repeat the structured spice amount here unless the prose genuinely needs it."
                     input={
-                      <Textarea
+                      <FormattedTextInput
                         id="rules-start"
                         aria-label="Starting instructions"
                         autosize
                         minRows={4}
+                        profile="marks-only"
                         value={field.state.value}
                         aria-describedby={isBlank(field.state.value) ? warningId : undefined}
                         onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.currentTarget.value)}
+                        onChange={field.handleChange}
                       />
                     }
                   />
@@ -57,15 +59,16 @@ function SetupFields({ form }: { form: FactionFormApi }) {
                   <ControlBlock
                     title="Revival instructions"
                     input={
-                      <Textarea
+                      <FormattedTextInput
                         id="rules-revival"
                         aria-label="Revival instructions"
                         autosize
                         minRows={3}
+                        profile="marks-only"
                         value={field.state.value}
                         aria-describedby={isBlank(field.state.value) ? warningId : undefined}
                         onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.currentTarget.value)}
+                        onChange={field.handleChange}
                       />
                     }
                   />
@@ -139,7 +142,7 @@ function FateFields({ form }: { form: FactionFormApi }) {
             const warningId = 'rules-fate-text-warning';
             return (
               <Stack gap="md">
-                <Textarea
+                <FormattedTextInput
                   id="rules-fate-text"
                   label="Fate rule"
                   autosize
@@ -147,7 +150,7 @@ function FateFields({ form }: { form: FactionFormApi }) {
                   value={field.state.value}
                   aria-describedby={isBlank(field.state.value) ? warningId : undefined}
                   onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  onChange={field.handleChange}
                 />
                 {isBlank(field.state.value) ? <Advisory id={warningId}>Fate text is empty.</Advisory> : null}
               </Stack>

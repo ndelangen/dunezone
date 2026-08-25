@@ -1,5 +1,6 @@
-import { Alert, Divider, Group, Input, SimpleGrid, Stack, TextInput, Textarea } from '@mantine/core';
+import { Alert, Divider, Group, Input, SimpleGrid, Stack, TextInput } from '@mantine/core';
 import { AssetSelect } from '@ui/control/AssetSelect';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { useState } from 'react';
 
@@ -70,15 +71,15 @@ function PlanetFields({ form, index, onFocus }: { form: FactionFormApi; index: n
 
             <form.Field name={`planet[${index}].description`}>
               {(field) => (
-                <Textarea
+                <FormattedTextInput
                   id={`planet-${index}-description`}
                   label="Description"
                   autosize
                   minRows={2}
-                  value={field.state.value}
+                  value={field.state.value ?? ''}
                   onFocus={onFocus}
                   onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  onChange={field.handleChange}
                 />
               )}
             </form.Field>

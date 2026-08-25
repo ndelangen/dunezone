@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { parseFormattedText } from '@shared/formattedText';
 
-import { FormattedText } from './FormattedText';
+import { FormattedText, FormattedTextSource, InlineFormattedTextSource } from './FormattedText';
 import type { FormattedTextBlocks } from './FormattedText';
 
 function validBlocks(source: string): FormattedTextBlocks {
@@ -64,4 +64,18 @@ export const Empty = meta.story({
   args: {
     blocks: [],
   },
+});
+
+export const StoredSource = meta.story({
+  args: { blocks: [] },
+  render: () => <FormattedTextSource source={'A *formatted* paragraph.\n\n- First point\n- Second point'} />,
+});
+
+export const InlineSource = meta.story({
+  args: { blocks: [] },
+  render: () => (
+    <h2>
+      Can I use <InlineFormattedTextSource source="*this* effect" />?
+    </h2>
+  ),
 });

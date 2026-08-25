@@ -1,6 +1,7 @@
-import { Stack, Text, Textarea } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import type { ConnectedTabsItem } from '@ui/surface/ConnectedTabs';
 
 /**
@@ -23,15 +24,9 @@ export function aboutChapter(about: string, onChange: (about: string) => void): 
           description="Rule details that do not belong on the artwork. Shown on this asset's page, never on the face."
           input={
             <Stack gap="xs">
-              <Textarea
-                aria-label="About"
-                autosize
-                minRows={4}
-                value={about}
-                onChange={(event) => onChange(event.currentTarget.value)}
-              />
+              <FormattedTextInput aria-label="About" autosize minRows={4} value={about} onChange={onChange} />
               <Text size="xs" c="dimmed">
-                Optional. Line breaks are kept; there is no formatting.
+                Optional. Use *bold*, -italics-, _underline_, paragraphs, or dash lists.
               </Text>
             </Stack>
           }

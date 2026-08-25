@@ -39,8 +39,3 @@
   width: 100%;
   height: auto;
 }
-
-/* An About is authored in a textarea, so the author's own line breaks are the only structure it carries. */
-.about {
-  white-space: pre-line;
-}

@@ -207,6 +207,11 @@
       "requires": ["faction_inline_formatted_text_v1"]
     },
     {
+      "id": "faction_inline_formatted_text_narrow",
+      "phase": "narrow",
+      "requires": ["faction_inline_formatted_text_v1", "faction_inline_formatted_text_verify_v1"]
+    },
+    {
       "id": "faction_complexity_grouped_narrow",
       "phase": "narrow",
       "requires": ["faction_complexity_grouped_v1", "faction_complexity_grouped_verify_v1"]

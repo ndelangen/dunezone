@@ -7,6 +7,7 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
+import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
@@ -67,14 +68,6 @@ function ProfileDetailError({ error }: ErrorComponentProps) {
 type FaqQuestionAsked = ProfilePageData['faqAsked'][number];
 type FaqAnswerGiven = ProfilePageData['faqAnswers'][number];
 
-function truncate(text: string, max = 200): string {
-  const t = text.trim();
-  if (t.length <= max) {
-    return t;
-  }
-  return `${t.slice(0, max).trim()}…`;
-}
-
 function AskerChip({
   profile,
   viewedProfileId,
@@ -129,7 +122,9 @@ function FaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] }) {
               questionSlug: item.slug,
             }}
           >
-            <span className={styles.question}>{item.question}</span>
+            <span className={styles.question}>
+              <InlineFormattedTextSource source={item.question} />
+            </span>
           </Link>
         </SectionedSurface.Row>
       ))}
@@ -170,7 +165,9 @@ function FaqAnswersGiven({ items, viewedProfileId }: { items: FaqAnswerGiven[]; 
               <time dateTime={row.created_at}>{formatRelativeDate(row.created_at)}</time>
             </div>
 
-            <p className={styles.parentQuestion}>{row.faq_item.question}</p>
+            <p className={styles.parentQuestion}>
+              <InlineFormattedTextSource source={row.faq_item.question} />
+            </p>
 
             <Link
               to="/rulesets/$rulesetSlug/faq/$questionSlug"
@@ -179,7 +176,7 @@ function FaqAnswersGiven({ items, viewedProfileId }: { items: FaqAnswerGiven[]; 
                 questionSlug: row.faq_item.slug,
               }}
             >
-              <p className={styles.answerPreview}>{truncate(row.answer)}</p>
+              <FormattedTextSource source={row.answer} className={styles.answerPreview} />
             </Link>
 
             {isPicked ? (

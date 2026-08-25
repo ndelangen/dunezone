@@ -39,7 +39,7 @@ const meta = preview.meta({
 export const ValidDraft = meta.story({
   args: {
     value:
-      'Lead with *bold words*, add _underlining_, and finish with /italics/.\n\n- One clear point\n- Another clear point',
+      'Lead with *bold words*, add _underlining_, and finish with -italics-.\n\n- One clear point\n- Another clear point',
   },
 });
 
@@ -70,5 +70,13 @@ export const EmptyMark = meta.story({
 export const UnclosedMark = meta.story({
   args: {
     value: 'An *unfinished draft',
+  },
+});
+
+export const MarksOnlyRejectsParagraphs = meta.story({
+  args: {
+    label: 'Revival instructions',
+    profile: 'marks-only',
+    value: '1 *free* revival.\nThis second line is not allowed.',
   },
 });

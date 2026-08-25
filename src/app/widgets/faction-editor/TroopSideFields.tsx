@@ -1,7 +1,8 @@
-import { Box, ColorInput, SimpleGrid, Stack, Switch, TextInput, Textarea } from '@mantine/core';
+import { Box, ColorInput, SimpleGrid, Stack, Switch, TextInput } from '@mantine/core';
 import { TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { useEffect } from 'react';
 
 import type { Faction } from '@db/factions';
@@ -154,14 +155,14 @@ export function TroopSideFields({
               title={title}
               description="Used as the troop rules description on the faction sheet."
               input={
-                <Textarea
+                <FormattedTextInput
                   id={`${idBase}-desc`}
                   aria-label={title}
                   autosize
                   minRows={2}
-                  value={field.state.value}
+                  value={field.state.value ?? ''}
                   onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  onChange={field.handleChange}
                 />
               }
             />

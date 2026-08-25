@@ -21,6 +21,7 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { OpenableTile } from '@ui/block/OpenableTile';
 import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
+import { FormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -299,7 +300,7 @@ function AboutSection({ about }: { about: string }) {
     <Section id="about" icon={<TopicIcon topic="about" size={20} />} title="About">
       <Surface padding="lg">
         {about.trim() ? (
-          <Text className={styles.about}>{about}</Text>
+          <FormattedTextSource source={about} />
         ) : (
           <Text size="sm" c="dimmed">
             Nothing written about this yet.

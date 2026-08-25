@@ -1,12 +1,14 @@
-import { Group, Stack, Textarea } from '@mantine/core';
+import { Group, Stack } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -89,6 +91,52 @@ function FaqDetailPage() {
   }
 
   return <LoadedFaqQuestion />;
+}
+
+type FaqQuestionCommands = ReturnType<typeof useFaqQuestionPage>;
+
+function AddAnswerForm({ createAnswer }: { createAnswer: FaqQuestionCommands['createAnswer'] }) {
+  const [answer, setAnswer] = useState('');
+
+  return (
+    <Stack
+      component="form"
+      gap="sm"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!answer.trim()) {
+          return;
+        }
+        void createAnswer
+          .run({ answer })
+          .then(() => setAnswer(''))
+          .catch(() => undefined);
+      }}
+    >
+      <FormattedTextInput
+        description="Add your answer (1 per person-you can edit it later)"
+        error={createAnswer.isError ? createAnswer.error?.message : undefined}
+        name="answer"
+        rows={3}
+        required
+        minLength={1}
+        placeholder="Your answer..."
+        value={answer}
+        onChange={setAnswer}
+      />
+      <Group gap="xs" wrap="nowrap">
+        <IconAction
+          label="Add answer"
+          variant="filled"
+          color="confirm"
+          size="lg"
+          type="submit"
+          disabled={createAnswer.isPending}
+          icon={<MessageSquarePlus size={16} aria-hidden />}
+        />
+      </Group>
+    </Stack>
+  );
 }
 
 function LoadedFaqQuestion() {
@@ -201,10 +249,11 @@ function LoadedFaqQuestion() {
             <Stack gap="sm">
               {editing.editingQuestion ? (
                 <Stack gap="sm">
-                  <Textarea
+                  <FormattedTextInput
                     label="Edit question"
                     value={editing.questionValue}
-                    onChange={(e) => editingSession.setQuestionValue(e.target.value)}
+                    onChange={(value) => editingSession.setQuestionValue(value)}
+                    profile="marks-only"
                     rows={2}
                   />
                   <FaqTagFieldset
@@ -246,7 +295,9 @@ function LoadedFaqQuestion() {
                       />
                     )}
                     <div>
-                      <h2 className={styles.questionTitle}>{item.text}</h2>
+                      <h2 className={styles.questionTitle}>
+                        <InlineFormattedTextSource source={item.text} />
+                      </h2>
                     </div>
                   </div>
                   {item.capabilities.editQuestion && (
@@ -273,45 +324,7 @@ function LoadedFaqQuestion() {
               )}
             </Stack>
 
-            {showAddAnswerForm && (
-              <Stack
-                component="form"
-                gap="sm"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const formEl = e.target as HTMLFormElement;
-                  const answer = (formEl.elements.namedItem('answer') as HTMLTextAreaElement).value.trim();
-                  if (!answer) {
-                    return;
-                  }
-                  void faq.createAnswer
-                    .run({ answer })
-                    .then(() => formEl.reset())
-                    .catch(() => undefined);
-                }}
-              >
-                <Textarea
-                  description="Add your answer (1 per person-you can edit it later)"
-                  error={faq.createAnswer.isError ? faq.createAnswer.error?.message : undefined}
-                  name="answer"
-                  rows={3}
-                  required
-                  minLength={1}
-                  placeholder="Your answer..."
-                />
-                <Group gap="xs" wrap="nowrap">
-                  <IconAction
-                    label="Add answer"
-                    variant="filled"
-                    color="confirm"
-                    size="lg"
-                    type="submit"
-                    disabled={faq.createAnswer.isPending}
-                    icon={<MessageSquarePlus size={16} aria-hidden />}
-                  />
-                </Group>
-              </Stack>
-            )}
+            {showAddAnswerForm ? <AddAnswerForm createAnswer={faq.createAnswer} /> : null}
 
             {hasUserAnswered && !showAddAnswerForm && (
               <p className={styles.hintBlock}>You&apos;ve answered. You can edit your answer below.</p>
@@ -332,10 +345,10 @@ function LoadedFaqQuestion() {
                     >
                       {isEditing ? (
                         <Stack gap="sm">
-                          <Textarea
+                          <FormattedTextInput
                             label="Edit your answer"
                             value={editing.answerValue}
-                            onChange={(e) => editingSession.setAnswerValue(e.target.value)}
+                            onChange={(value) => editingSession.setAnswerValue(value)}
                             rows={3}
                           />
                           <Group gap="xs" wrap="nowrap">
@@ -376,7 +389,9 @@ function LoadedFaqQuestion() {
                               )}
                             </div>
                           )}
-                          <div className={styles.answerContent}>{a.text}</div>
+                          <div className={styles.answerContent}>
+                            <FormattedTextSource source={a.text} />
+                          </div>
                           <Group gap="xs" wrap="nowrap">
                             {a.capabilities.acceptAnswer && (
                               <IconAction

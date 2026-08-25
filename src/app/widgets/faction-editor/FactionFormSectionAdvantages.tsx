@@ -1,6 +1,7 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import { Alert, Box, Group, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import { Alert, Box, Group, Stack, Text, TextInput } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { useState } from 'react';
 
@@ -50,7 +51,7 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
               <ControlBlock
                 title="Advantage rule"
                 input={
-                  <Textarea
+                  <FormattedTextInput
                     id={`adv-${index}-text`}
                     aria-label="Advantage rule"
                     autosize
@@ -58,7 +59,7 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
                     value={field.state.value}
                     aria-describedby={textIsBlank ? warningId : undefined}
                     onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.currentTarget.value)}
+                    onChange={field.handleChange}
                   />
                 }
               />
@@ -78,14 +79,14 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
             title="Karama interaction (optional)"
             description="Describe the Karama effect only when this advantage has one."
             input={
-              <Textarea
+              <FormattedTextInput
                 id={`adv-${index}-karama`}
                 aria-label="Karama interaction (optional)"
                 autosize
                 minRows={2}
                 value={field.state.value ?? ''}
                 onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+                onChange={(value) => field.handleChange(value || undefined)}
               />
             }
           />

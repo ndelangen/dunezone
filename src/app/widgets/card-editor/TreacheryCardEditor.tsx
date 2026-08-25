@@ -1,19 +1,8 @@
-import {
-  Alert,
-  Divider,
-  Grid,
-  Group,
-  NumberInput,
-  Slider,
-  Stack,
-  Switch,
-  Text,
-  Textarea,
-  TextInput,
-} from '@mantine/core';
+import { Alert, Divider, Grid, Group, NumberInput, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -367,12 +356,12 @@ function BodyField({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
       title="Body"
       description="Line breaks become paragraphs on the card."
       input={
-        <Textarea
+        <FormattedTextInput
           aria-label="Body"
           autosize
           minRows={4}
           value={draft.text}
-          onChange={(event) => patch({ text: event.currentTarget.value })}
+          onChange={(text) => patch({ text })}
         />
       }
     />

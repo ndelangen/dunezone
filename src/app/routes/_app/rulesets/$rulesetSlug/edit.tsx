@@ -1,4 +1,4 @@
-import { Anchor, Button, Center, Group, Image, Popover, Stack, Text, Textarea, TextInput, Title } from '@mantine/core';
+import { Anchor, Button, Center, Group, Image, Popover, Stack, Text, TextInput, Title } from '@mantine/core';
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import { rulesetAboutSchema } from '@shared/rulesets/validation';
@@ -9,6 +9,7 @@ import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
 import { SubmitAction } from '@ui/control/SubmitAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -92,7 +93,7 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
         disabled={!canRename}
       />
 
-      <Textarea
+      <FormattedTextInput
         id="ruleset-settings-about"
         name="about"
         label="About"
@@ -102,7 +103,7 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
         autosize
         minRows={4}
         value={about}
-        onChange={(event) => setAbout(event.currentTarget.value)}
+        onChange={setAbout}
       />
 
       <TextInput

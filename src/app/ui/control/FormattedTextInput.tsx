@@ -1,7 +1,7 @@
 import { Textarea } from '@mantine/core';
 import type { TextareaProps } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
-import type { FormattedTextParseResult } from '@shared/formattedText';
+import type { FormattedTextParseResult, FormattedTextProfile } from '@shared/formattedText';
 import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 
@@ -10,6 +10,7 @@ type FormattedTextDiagnostic = Extract<FormattedTextParseResult, { valid: false 
 export interface FormattedTextInputProps extends Omit<TextareaProps, 'defaultValue' | 'onChange' | 'value'> {
   value: string;
   onChange: (value: string) => void;
+  profile?: FormattedTextProfile;
 }
 
 function Diagnostic({ diagnostic }: { diagnostic: FormattedTextDiagnostic }) {
@@ -56,8 +57,8 @@ function validationError(diagnostics: readonly FormattedTextDiagnostic[], fieldE
  * The caller owns the draft and any field-specific validation such as requiredness.
  * This control owns syntax validation so every author sees the same source location, explanation, and suggested repair.
  */
-export function FormattedTextInput({ value, onChange, error, ...props }: FormattedTextInputProps) {
-  const parsed = parseFormattedText(value);
+export function FormattedTextInput({ value, onChange, error, profile = 'prose', ...props }: FormattedTextInputProps) {
+  const parsed = parseFormattedText(value, profile);
   const diagnostics = parsed.valid ? [] : parsed.diagnostics;
 
   return (

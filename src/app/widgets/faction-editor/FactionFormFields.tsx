@@ -3,6 +3,7 @@ import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import { FactionCard } from '@ui/block/FactionCard';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
+import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
@@ -313,13 +314,14 @@ function ArtifactProof({
                 At start
               </Text>
               <Text ff="serif" size="sm">
-                Starting spice: {faction.rules.spiceCount} · {faction.rules.startText}
+                Starting spice: {faction.rules.spiceCount} ·{' '}
+                <InlineFormattedTextSource source={faction.rules.startText} />
               </Text>
               <Text ff="serif" fw={800} tt="uppercase" mt="md">
                 Revival
               </Text>
               <Text ff="serif" size="sm">
-                {faction.rules.revivalText}
+                <InlineFormattedTextSource source={faction.rules.revivalText} />
               </Text>
             </Box>
           );
@@ -330,13 +332,14 @@ function ArtifactProof({
               <Text ff="serif" fw={800} tt="uppercase">
                 {selectedAdvantage.title || 'Faction advantage'}
               </Text>
-              <Text ff="serif" size="sm">
-                {selectedAdvantage.text}
-              </Text>
+              <FormattedTextSource source={selectedAdvantage.text} size="sm" />
               {selectedAdvantage.karama ? (
-                <Text ff="serif" size="sm" mt="md">
-                  <strong>Karama:</strong> {selectedAdvantage.karama}
-                </Text>
+                <Box mt="md">
+                  <Text ff="serif" size="sm" fw={700}>
+                    Karama
+                  </Text>
+                  <FormattedTextSource source={selectedAdvantage.karama} size="sm" />
+                </Box>
               ) : null}
             </Box>
           ) : (

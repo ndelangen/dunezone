@@ -1,5 +1,7 @@
 import { List, Stack, Text } from '@mantine/core';
-import type { FormattedTextParseResult } from '@shared/formattedText';
+import type { ListProps, TextProps } from '@mantine/core';
+import { parseFormattedText } from '@shared/formattedText';
+import type { FormattedTextParseResult, FormattedTextProfile } from '@shared/formattedText';
 import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 
@@ -53,20 +55,30 @@ function renderInline(nodes: readonly FormattedTextInlineNode[]): ReactNode {
  * Callers own parsing and decide what to do with invalid or empty source.
  * This component owns the app-side HTML semantics for every valid block and mark.
  */
-export function FormattedText({ blocks }: Readonly<{ blocks: FormattedTextBlocks }>) {
+export function FormattedText({
+  blocks,
+  className,
+  size,
+  c,
+}: Readonly<{
+  blocks: FormattedTextBlocks;
+  className?: string;
+  size?: ListProps['size'];
+  c?: TextProps['c'];
+}>) {
   if (blocks.length === 0) {
     return null;
   }
 
   return (
-    <Stack gap="xs">
+    <Stack gap="xs" className={className}>
       {blocks.map((block, index) =>
         block.kind === 'paragraph' ? (
-          <Text key={index} component="p">
+          <Text key={index} component="p" size={size} c={c}>
             {renderInline(block.children)}
           </Text>
         ) : (
-          <List key={index} spacing="xs">
+          <List key={index} spacing="xs" size={size} c={c}>
             {block.items.map((item, itemIndex) => (
               <List.Item key={itemIndex}>{renderInline(item.children)}</List.Item>
             ))}
@@ -75,4 +87,41 @@ export function FormattedText({ blocks }: Readonly<{ blocks: FormattedTextBlocks
       )}
     </Stack>
   );
+}
+
+/** A marks-only block rendered inside the caller's existing text element. */
+function InlineFormattedText({ blocks }: Readonly<{ blocks: FormattedTextBlocks }>) {
+  const paragraph = blocks[0];
+  return paragraph?.kind === 'paragraph' ? renderInline(paragraph.children) : null;
+}
+
+/** Parse stored prose and render it through the app's Content treatment, with plain text as the legacy fallback. */
+export function FormattedTextSource({
+  source,
+  profile = 'prose',
+  className,
+  size,
+  c,
+}: Readonly<{
+  source: string;
+  profile?: FormattedTextProfile;
+  className?: string;
+  size?: ListProps['size'];
+  c?: TextProps['c'];
+}>) {
+  const parsed = parseFormattedText(source, profile);
+  if (!parsed.valid) {
+    return (
+      <Text className={className} size={size} c={c}>
+        {source}
+      </Text>
+    );
+  }
+  return <FormattedText blocks={parsed.blocks} className={className} size={size} c={c} />;
+}
+
+/** Parse stored inline prose and render its marks inside the caller's existing text element. */
+export function InlineFormattedTextSource({ source }: Readonly<{ source: string }>) {
+  const parsed = parseFormattedText(source, 'marks-only');
+  return parsed.valid ? <InlineFormattedText blocks={parsed.blocks} /> : source;
 }
