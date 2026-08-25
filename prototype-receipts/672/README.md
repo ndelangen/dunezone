@@ -1,11 +1,12 @@
 # Formatted-text print-renderer prototype receipts
 
-Prototype for [#672](https://github.com/ndelangen/dunezone/issues/672). The inputs came from the read-only `dev:tame-raccoon-541` clone on 2026-08-25T09:04:31.510Z. The capture uses the actual publisher bundle and fixed publication geometry.
+Prototype for [#672](https://github.com/ndelangen/dunezone/issues/672). The inputs came from the read-only `dev:tame-raccoon-541` clone on 2026-08-25T09:15:36.820Z. The capture uses the actual publisher bundle and fixed publication geometry.
 
 The full sweep covers every live faction and treachery card in the clone. The contact sheets show all three faction documents with stored list syntax, the two other largest faction changes, one dense faction, and three paragraph-heavy cards. A changed pixel means one or more RGB channels moved by more than 8 levels.
 
 - [Faction sheet comparisons](./faction-sheets.jpg)
 - [Treachery card comparisons](./treachery-cards.jpg)
+- [Focused Emperor-CHOAM before and after](./emperor-choam-before-after.jpg)
 
 Sweep summary:
 

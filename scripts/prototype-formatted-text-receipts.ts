@@ -292,6 +292,9 @@ const cardRowsForSheet: {
   receipt: Receipt;
 }[] = [];
 const receipts: Receipt[] = [];
+let emperorChoamBefore: Buffer | undefined;
+let emperorChoamAfter: Buffer | undefined;
+let emperorChoamReceipt: Receipt | undefined;
 try {
   for (const row of [...liveFactions].sort((left, right) => left.slug.localeCompare(right.slug))) {
     const faction = FactionInputSchema.parse(row.data);
@@ -314,6 +317,11 @@ try {
         ...comparison,
       };
       receipts.push(receipt);
+      if (row.slug === 'emperor-choam' && pageIndex === 0) {
+        emperorChoamBefore = current;
+        emperorChoamAfter = candidate;
+        emperorChoamReceipt = receipt;
+      }
       if (pageIndex === 0 && (factionSlugs as readonly string[]).includes(row.slug)) {
         factionRowsForSheet.push({ current, candidate, receipt });
       }
@@ -347,6 +355,22 @@ try {
   server.stop(true);
 }
 
+invariant(emperorChoamBefore && emperorChoamAfter && emperorChoamReceipt, 'Missing Emperor-CHOAM comparison');
+const emperorChoamFocus = { left: 0, top: 550, width: 1100, height: 1650 };
+const emperorChoamBeforeFocus = await sharp(emperorChoamBefore).extract(emperorChoamFocus).png().toBuffer();
+const emperorChoamAfterFocus = await sharp(emperorChoamAfter).extract(emperorChoamFocus).png().toBuffer();
+await Promise.all([
+  writeFile(path.join(receiptDirectory, 'emperor-choam-before.png'), emperorChoamBeforeFocus),
+  writeFile(path.join(receiptDirectory, 'emperor-choam-after.png'), emperorChoamAfterFocus),
+]);
+await contactSheet('emperor-choam-before-after.jpg', 'Emperor-CHOAM list: Markdown before and formatted text after', [
+  {
+    current: emperorChoamBeforeFocus,
+    candidate: emperorChoamAfterFocus,
+    receipt: emperorChoamReceipt,
+  },
+]);
+
 await contactSheet(
   'faction-sheets.jpg',
   'Faction sheets from the cloned deployment: current and formatted-text renderers',
@@ -366,6 +390,7 @@ The full sweep covers every live faction and treachery card in the clone. The co
 
 - [Faction sheet comparisons](./faction-sheets.jpg)
 - [Treachery card comparisons](./treachery-cards.jpg)
+- [Focused Emperor-CHOAM before and after](./emperor-choam-before-after.jpg)
 
 Sweep summary:
 
