@@ -2,12 +2,13 @@ import { Box, Button, Center, Image, SegmentedControl, Select, Stack, Text, Text
 import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/profiles/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { LoginGate } from '@ui/block/LoginGate';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { SubmitAction } from '@ui/control/SubmitAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, CircleUserRound, Palette, Save, Trash2, User, UsersRound } from 'lucide-react';
@@ -19,6 +20,7 @@ import { setSchemePreference, useSchemePreference } from '@app/styles/colorSchem
 import type { SchemePreference } from '@app/styles/colorScheme';
 import { setMotionOverride, useMotionPreference } from '@app/styles/motion';
 import type { MotionPreference } from '@app/styles/motion';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'account';
 type LoadedAvatarPreview = { url: string; status: 'ready' | 'unavailable' };
@@ -445,32 +447,26 @@ function ProfileSettingsPage() {
 
   if (!profile.data) {
     return (
-      <PageLayout>
-        <PageLayout.Content>
-          <Surface padding="lg">
-            <p>
-              <Link to="/auth/login">Log in</Link> to edit your profile.
-            </p>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Profile settings" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
+        <LoginGate action="edit your profile" />
+      </PageMessage>
     );
   }
 
   if (profile.data.slug !== profileSlug) {
+    /* The way out is the reader's own settings rather than a step backwards: they asked for this
+       page and there is a version of it that is theirs. */
     return (
-      <PageLayout>
-        <PageLayout.Content>
-          <Surface padding="lg">
-            <p>You can only edit your own profile.</p>
-            <p>
-              <Link to="/profiles/$profileSlug/edit" params={{ profileSlug: profile.data.slug }}>
-                Go to your profile settings
-              </Link>
-            </p>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage
+        title="Profile settings"
+        back={
+          <PageMessage.Back to="/profiles/$profileSlug/edit" params={{ profileSlug: profile.data.slug }}>
+            Go to your profile settings
+          </PageMessage.Back>
+        }
+      >
+        <NotAvailable title="This is not your profile">You can only edit your own profile.</NotAvailable>
+      </PageMessage>
     );
   }
 
