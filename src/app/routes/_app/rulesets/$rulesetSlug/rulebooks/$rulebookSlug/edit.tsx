@@ -1,3 +1,6 @@
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Accordion, Alert, Badge, Box, Button, Group, Stack, Text } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult } from '@shared/formattedText';
@@ -7,10 +10,24 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { AddAction } from '@ui/control/ListLengthActions';
+import { SortableItem } from '@ui/control/SortableItem';
+import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { BookOpenText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, FileImage, Minus, Plus } from 'lucide-react';
+import {
+  BookOpenText,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  FileImage,
+  FileText,
+  ListTree,
+  MessageSquareQuote,
+  Minus,
+  Plus,
+} from 'lucide-react';
 import { Fragment, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -24,10 +41,10 @@ type PreviewFit = 'height' | 'width';
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 type FormattedBlock = FormattedTextParseResult['blocks'][number];
 type FormattedInline = Extract<FormattedBlock, { kind: 'paragraph' }>['children'][number];
-const catalogueVariants = ['blocks', 'sections', 'recipes'] as const;
+const catalogueVariants = ['blocks', 'sections', 'recipes', 'synthesis'] as const;
 type CatalogueVariant = (typeof catalogueVariants)[number];
 
-/* Three interaction models for the same authoring scenario, switchable through `?variant=`. */
+/* Four interaction models for the same authoring scenario, switchable through `?variant=`. */
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit')({
   validateSearch: (search: Record<string, unknown>): { variant?: CatalogueVariant } => ({
     variant: catalogueVariants.includes(search.variant as CatalogueVariant)
@@ -372,6 +389,16 @@ const blockKindNames: Record<PrototypeBlockKind, string> = {
   'asset-figure': 'Asset figure',
 };
 
+function BlockKindIcon({ kind, size = 18 }: { kind: PrototypeBlockKind; size?: number }) {
+  if (kind === 'rule-group') {
+    return <ListTree size={size} aria-hidden />;
+  }
+  if (kind === 'worked-example') {
+    return <MessageSquareQuote size={size} aria-hidden />;
+  }
+  return <FileImage size={size} aria-hidden />;
+}
+
 function createPrototypePages(): PrototypePage[] {
   return [
     {
@@ -670,7 +697,13 @@ function BlockEditor({ model }: { model: PrototypeDocument }) {
   );
 }
 
-function SharedDocumentPreview({ model }: { model: PrototypeDocument }) {
+function SharedDocumentPreview({
+  model,
+  highlightSelected = false,
+}: {
+  model: PrototypeDocument;
+  highlightSelected?: boolean;
+}) {
   const pageNumber = model.pages.findIndex((page) => page.id === model.activePage.id) + 1;
   return (
     <section className={styles.cataloguePreview} aria-label="Shared rulebook page preview">
@@ -682,17 +715,29 @@ function SharedDocumentPreview({ model }: { model: PrototypeDocument }) {
         <div className={styles.sharedPreviewBlocks}>
           {model.activePage.blocks.map((block) =>
             block.kind === 'asset-figure' ? (
-              <section className={styles.previewAssetBlock} key={block.id}>
+              <section
+                className={styles.previewAssetBlock}
+                data-selected={highlightSelected && block.id === model.selectedBlockId}
+                key={block.id}
+              >
                 <AssetImagePlaceholder label={block.title} />
                 <p>{block.body}</p>
               </section>
             ) : block.kind === 'worked-example' ? (
-              <aside className={styles.documentCallout} key={block.id}>
+              <aside
+                className={styles.documentCallout}
+                data-selected={highlightSelected && block.id === model.selectedBlockId}
+                key={block.id}
+              >
                 <strong>{block.title}</strong>
                 <span>{block.body}</span>
               </aside>
             ) : (
-              <section className={styles.recipeRuleGroup} key={block.id}>
+              <section
+                className={styles.recipeRuleGroup}
+                data-selected={highlightSelected && block.id === model.selectedBlockId}
+                key={block.id}
+              >
                 <span>{blockKindNames[block.kind]}</span>
                 <h3>{block.title}</h3>
                 <p>{block.body}</p>
@@ -869,10 +914,224 @@ function PageRecipesVariant() {
   );
 }
 
+type DrilldownDepth = 'pages' | 'blocks' | 'controls';
+
+function SlidingDrilldownVariant() {
+  const model = usePrototypeDocument();
+  const [depth, setDepth] = useState<DrilldownDepth>('controls');
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const selectPage = (pageId: string) => {
+    model.selectPage(pageId);
+    setDepth('blocks');
+  };
+  const selectBlock = (blockId: string) => {
+    model.setSelectedBlockId(blockId);
+    setDepth('controls');
+  };
+  const reset = () => {
+    model.reset();
+    setDepth('controls');
+  };
+
+  return (
+    <Stack gap="md">
+      <ScenarioBrief />
+      <Surface padding="lg" as="section" className={styles.synthesisSurface}>
+        <PrototypeHeading
+          label="4"
+          title="Sliding drill-down"
+          description="Pages and blocks collapse into history rails as the sidebar drills down to the selected block's controls."
+          reset={reset}
+        />
+        <div className={styles.combinedViewport}>
+          <div className={styles.combinedStickyFrame}>
+            <div className={styles.drilldownSidebar} data-depth={depth}>
+              {depth !== 'pages' ? (
+                <button className={styles.drilldownRail} onClick={() => setDepth('pages')}>
+                  <FileText size={18} aria-hidden />
+                  <span>Pages</span>
+                </button>
+              ) : null}
+              {depth === 'controls' ? (
+                <button className={styles.drilldownRail} onClick={() => setDepth('blocks')}>
+                  <ListTree size={18} aria-hidden />
+                  <span>Blocks</span>
+                </button>
+              ) : null}
+              <section className={styles.drilldownDrawer} aria-label={`${depth} drawer`}>
+                {depth === 'pages' ? (
+                  <>
+                    <div className={styles.drawerHeading}>
+                      <div>
+                        <Text fw={700}>Pages</Text>
+                        <Text size="xs" c="dimmed">
+                          Drag to reorder, then choose a page.
+                        </Text>
+                      </div>
+                      <Badge color="gray" variant="outline">
+                        {model.pages.length}
+                      </Badge>
+                    </div>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={({ active, over }: DragEndEvent) => {
+                        const sourceIndex = model.pages.findIndex((page) => page.id === active.id);
+                        const targetIndex = over ? model.pages.findIndex((page) => page.id === over.id) : -1;
+                        if (sourceIndex >= 0 && targetIndex >= 0 && sourceIndex !== targetIndex) {
+                          model.movePage(String(active.id), targetIndex - sourceIndex);
+                        }
+                      }}
+                    >
+                      <SortableContext
+                        items={model.pages.map((page) => page.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className={styles.drilldownList}>
+                          {model.pages.map((page, index) => (
+                            <SortableItem className={styles.drilldownRow} id={page.id} key={page.id}>
+                              {({ setActivatorNodeRef, attributes, listeners }) => (
+                                <>
+                                  <SortableReorderHandle
+                                    label={`Reorder page ${page.title}`}
+                                    className={styles.dragHandle}
+                                    setActivatorNodeRef={setActivatorNodeRef}
+                                    attributes={attributes}
+                                    listeners={listeners}
+                                  />
+                                  <button
+                                    className={styles.drilldownChoice}
+                                    aria-current={page.id === model.activePage.id ? 'page' : undefined}
+                                    onClick={() => selectPage(page.id)}
+                                  >
+                                    <FileText size={18} aria-hidden />
+                                    <span>
+                                      <strong>{page.title}</strong>
+                                      <small>
+                                        {String(index + 1).padStart(2, '0')} · {page.recipe}
+                                      </small>
+                                    </span>
+                                    <ChevronRight size={16} aria-hidden />
+                                  </button>
+                                </>
+                              )}
+                            </SortableItem>
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                    <Button variant="light" leftSection={<Plus size={16} />} onClick={model.addPage}>
+                      Add rules page
+                    </Button>
+                  </>
+                ) : depth === 'blocks' ? (
+                  <>
+                    <div className={styles.drawerHeading}>
+                      <div>
+                        <Text fw={700}>{model.activePage.title}</Text>
+                        <Text size="xs" c="dimmed">
+                          Drag blocks to reorder them.
+                        </Text>
+                      </div>
+                      <Badge color="gray" variant="outline">
+                        {model.activePage.blocks.length}
+                      </Badge>
+                    </div>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={({ active, over }: DragEndEvent) => {
+                        const sourceIndex = model.activePage.blocks.findIndex((block) => block.id === active.id);
+                        const targetIndex = over
+                          ? model.activePage.blocks.findIndex((block) => block.id === over.id)
+                          : -1;
+                        if (sourceIndex >= 0 && targetIndex >= 0 && sourceIndex !== targetIndex) {
+                          model.moveBlock(String(active.id), targetIndex - sourceIndex);
+                        }
+                      }}
+                    >
+                      <SortableContext
+                        items={model.activePage.blocks.map((block) => block.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className={styles.drilldownList}>
+                          {model.activePage.blocks.map((block) => (
+                            <SortableItem className={styles.drilldownRow} id={block.id} key={block.id}>
+                              {({ setActivatorNodeRef, attributes, listeners }) => (
+                                <>
+                                  <SortableReorderHandle
+                                    label={`Reorder block ${block.title}`}
+                                    className={styles.dragHandle}
+                                    setActivatorNodeRef={setActivatorNodeRef}
+                                    attributes={attributes}
+                                    listeners={listeners}
+                                  />
+                                  <button
+                                    className={styles.drilldownChoice}
+                                    aria-current={block.id === model.selectedBlockId ? 'true' : undefined}
+                                    onClick={() => selectBlock(block.id)}
+                                  >
+                                    <BlockKindIcon kind={block.kind} />
+                                    <span>
+                                      <strong>{block.title}</strong>
+                                      <small>{blockKindNames[block.kind]}</small>
+                                    </span>
+                                    <ChevronRight size={16} aria-hidden />
+                                  </button>
+                                </>
+                              )}
+                            </SortableItem>
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                    <Button
+                      variant="light"
+                      leftSection={<Plus size={16} />}
+                      onClick={() => {
+                        model.addBlock();
+                        setDepth('controls');
+                      }}
+                    >
+                      Add worked example
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className={styles.drawerHeading}>
+                      <div className={styles.drawerEntityTitle}>
+                        {model.selectedBlock ? <BlockKindIcon kind={model.selectedBlock.kind} size={20} /> : null}
+                        <div>
+                          <Text fw={700}>{model.selectedBlock?.title ?? 'Select a block'}</Text>
+                          <Text size="xs" c="dimmed">
+                            {model.selectedBlock ? blockKindNames[model.selectedBlock.kind] : model.activePage.title}
+                          </Text>
+                        </div>
+                      </div>
+                    </div>
+                    <BlockEditor model={model} />
+                  </>
+                )}
+              </section>
+            </div>
+            <SharedDocumentPreview model={model} highlightSelected />
+          </div>
+          <div className={styles.combinedStickyRunway} aria-hidden />
+        </div>
+      </Surface>
+    </Stack>
+  );
+}
+
 const variantLabels: Record<CatalogueVariant, string> = {
   blocks: '1  Three-pane workspace',
   sections: '2  Document-first canvas',
   recipes: '3  Focused steps',
+  synthesis: '4  Sliding drill-down',
 };
 
 function PrototypeSwitcher({
@@ -953,7 +1212,7 @@ function CataloguePrototypePage({ variant }: { variant: CatalogueVariant }) {
                 Throwaway prototype
               </Badge>
               <Text size="xs" c="dimmed">
-                The starting document, available actions, data, and preview are identical in all three prototypes.
+                The starting document, available actions, data, and preview are identical in all four prototypes.
               </Text>
             </Group>
           </Toolbar.Left>
@@ -970,8 +1229,10 @@ function CataloguePrototypePage({ variant }: { variant: CatalogueVariant }) {
             <ComposableBlocksVariant />
           ) : variant === 'sections' ? (
             <SemanticSectionsVariant />
-          ) : (
+          ) : variant === 'recipes' ? (
             <PageRecipesVariant />
+          ) : (
+            <SlidingDrilldownVariant />
           )}
         </section>
         <PrototypeSwitcher variant={variant} select={select} />

@@ -506,6 +506,211 @@
   border-radius: var(--mantine-radius-sm);
 }
 
+.synthesisSurface {
+  overflow: visible;
+}
+
+.combinedViewport {
+  position: relative;
+  min-width: 0;
+}
+
+.combinedStickyFrame {
+  --combined-top: calc(var(--app-shell-header-offset, 0px) + 0.75rem);
+  --combined-height: min(52rem, calc(100dvh - var(--app-shell-header-offset, 0px) - 1.5rem));
+  position: sticky;
+  z-index: 3;
+  top: var(--combined-top);
+  display: grid;
+  grid-template-columns: minmax(23rem, 0.85fr) minmax(28rem, 1.15fr);
+  gap: var(--mantine-spacing-lg);
+  align-items: stretch;
+  height: var(--combined-height);
+  min-height: 38rem;
+}
+
+.combinedStickyRunway {
+  height: 70dvh;
+}
+
+.drilldownSidebar {
+  display: grid;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  box-shadow: var(--mantine-shadow-sm);
+}
+
+.drilldownSidebar[data-depth="pages"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.drilldownSidebar[data-depth="blocks"] {
+  grid-template-columns: 3rem minmax(0, 1fr);
+}
+
+.drilldownSidebar[data-depth="controls"] {
+  grid-template-columns: 3rem 3rem minmax(0, 1fr);
+}
+
+.drilldownRail {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--mantine-spacing-sm);
+  place-items: center;
+  min-width: 0;
+  padding: var(--mantine-spacing-sm) 0;
+  color: var(--mantine-color-text);
+  background: var(--mantine-color-default-hover);
+  border: 0;
+  border-inline-end: 1px solid var(--mantine-color-default-border);
+  cursor: pointer;
+}
+
+.drilldownRail + .drilldownRail {
+  background: color-mix(in srgb, var(--mantine-primary-color-filled) 7%, var(--mantine-color-body));
+}
+
+.drilldownRail span {
+  align-self: center;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.drilldownDrawer {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--mantine-spacing-md);
+  min-width: 0;
+  padding: var(--mantine-spacing-lg);
+  overflow: hidden;
+}
+
+.drawerHeading {
+  display: flex;
+  gap: var(--mantine-spacing-sm);
+  align-items: flex-start;
+  justify-content: space-between;
+  min-width: 0;
+  padding-bottom: var(--mantine-spacing-sm);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.drawerEntityTitle {
+  display: flex;
+  gap: var(--mantine-spacing-sm);
+  align-items: center;
+  min-width: 0;
+}
+
+.drawerEntityTitle > svg {
+  flex: 0 0 auto;
+  color: var(--mantine-primary-color-filled);
+}
+
+.drilldownList {
+  display: grid;
+  gap: var(--mantine-spacing-xs);
+  align-content: start;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.drilldownRow {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  min-width: 0;
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  transition:
+    border-color 120ms ease,
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.drilldownRow:has(.drilldownChoice[aria-current]) {
+  border-color: var(--mantine-primary-color-filled);
+  box-shadow: inset 0 0 0 1px var(--mantine-primary-color-filled);
+}
+
+.dragHandle {
+  display: grid;
+  place-items: center;
+  color: var(--mantine-color-dimmed);
+  border-inline-end: 1px solid var(--mantine-color-default-border);
+  cursor: grab;
+}
+
+.drilldownRow:active .dragHandle {
+  cursor: grabbing;
+}
+
+.drilldownChoice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--mantine-spacing-xs);
+  align-items: center;
+  min-width: 0;
+  padding: var(--mantine-spacing-sm);
+  color: var(--mantine-color-text);
+  font: inherit;
+  text-align: start;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.drilldownChoice > svg:first-child {
+  color: var(--mantine-primary-color-filled);
+}
+
+.drilldownChoice > span {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.drilldownRow strong,
+.drilldownRow small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drilldownRow strong {
+  font-size: var(--mantine-font-size-sm);
+}
+
+.drilldownRow small {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.drilldownDrawer > .blockEditor {
+  align-content: start;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.combinedStickyFrame .cataloguePreview {
+  height: 100%;
+  overflow: hidden;
+}
+
+.combinedStickyFrame .documentPage {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+}
+
 .cataloguePreview {
   display: grid;
   min-width: 0;
@@ -599,6 +804,11 @@
   display: grid;
   gap: 3cqi;
   padding: 1cqi 8cqi 8cqi;
+}
+
+.sharedPreviewBlocks > [data-selected="true"] {
+  outline: 0.8cqi solid #d17731;
+  outline-offset: 0.8cqi;
 }
 
 .recipeRuleGroup {
@@ -707,6 +917,10 @@
     grid-template-columns: minmax(20rem, 1fr) minmax(22rem, 0.9fr);
     gap: var(--mantine-spacing-lg);
   }
+
+  .combinedStickyFrame {
+    grid-template-columns: minmax(21rem, 0.9fr) minmax(24rem, 1.1fr);
+  }
 }
 
 @container catalogue-prototype (max-width: 50rem) {
@@ -735,6 +949,16 @@
     padding-inline-start: 0;
     border-top: 1px solid var(--mantine-color-default-border);
     border-inline-start: 0;
+  }
+
+  .combinedViewport {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .combinedStickyFrame {
+    grid-template-columns: 24rem 28rem;
+    min-width: calc(52rem + var(--mantine-spacing-lg));
   }
 
   .documentPage {
