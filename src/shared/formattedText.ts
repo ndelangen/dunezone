@@ -6,6 +6,10 @@ const FORMATTED_TEXT_MARKS = [
   { delimiter: '*', mark: 'bold' },
 ] as const;
 
+const FORMATTED_TEXT_PROFILES = ['prose', 'marks-only'] as const;
+
+export type FormattedTextProfile = (typeof FORMATTED_TEXT_PROFILES)[number];
+
 type FormattedTextDelimiter = (typeof FORMATTED_TEXT_MARKS)[number]['delimiter'];
 
 type FormattedTextMark = (typeof FORMATTED_TEXT_MARKS)[number]['mark'];
@@ -38,7 +42,14 @@ type FormattedTextBlock =
       }[];
     };
 
-const FORMATTED_TEXT_DIAGNOSTIC_CODES = ['crossed-mark', 'empty-list-item', 'empty-mark', 'unclosed-mark'] as const;
+const FORMATTED_TEXT_DIAGNOSTIC_CODES = [
+  'crossed-mark',
+  'empty-list-item',
+  'empty-mark',
+  'marks-only-line-break',
+  'marks-only-list',
+  'unclosed-mark',
+] as const;
 
 type FormattedTextDiagnosticCode = (typeof FORMATTED_TEXT_DIAGNOSTIC_CODES)[number];
 
@@ -107,10 +118,15 @@ type ParsedInlineNode =
     };
 
 type ParsedBlock =
-  | { readonly kind: 'paragraph'; readonly children: readonly ParsedInlineNode[] }
+  | {
+      readonly kind: 'paragraph';
+      readonly children: readonly ParsedInlineNode[];
+    }
   | {
       readonly kind: 'list';
-      readonly items: readonly { readonly children: readonly ParsedInlineNode[] }[];
+      readonly items: readonly {
+        readonly children: readonly ParsedInlineNode[];
+      }[];
     };
 
 type InlineParseResult = {
@@ -146,7 +162,10 @@ function delimiterForMark(mark: FormattedTextMark): FormattedTextDelimiter {
   return detail.delimiter;
 }
 
-function sourceColumns(text: string): { readonly positions: readonly number[]; readonly end: number } {
+function sourceColumns(text: string): {
+  readonly positions: readonly number[];
+  readonly end: number;
+} {
   const positions = Array<number>(text.length);
   let column = 1;
 
@@ -347,7 +366,11 @@ function parseInline(lines: readonly SourceLine[]): InlineParseResult {
           message: `${markName(delimiterDetails.get(character)!)} formatting has no text.`,
           suggestion: `Put words between the two ${character} marks, or remove both marks.`,
         });
-        currentNodes().push({ kind: 'text', value: `${character}${character}`, source: `${character}${character}` });
+        currentNodes().push({
+          kind: 'text',
+          value: `${character}${character}`,
+          source: `${character}${character}`,
+        });
       } else {
         currentNodes().push({
           kind: 'mark',
@@ -544,7 +567,9 @@ function canonicalizeBlocks(blocks: readonly ParsedBlock[]): readonly ParsedBloc
       ? { kind: 'paragraph', children: canonicalizeInlineNodes(block.children) }
       : {
           kind: 'list',
-          items: block.items.map((item) => ({ children: canonicalizeInlineNodes(item.children) })),
+          items: block.items.map((item) => ({
+            children: canonicalizeInlineNodes(item.children),
+          })),
         }
   );
 }
@@ -565,13 +590,46 @@ function toPublicBlocks(blocks: readonly ParsedBlock[]): readonly FormattedTextB
       ? { kind: 'paragraph', children: toPublicInlineNodes(block.children) }
       : {
           kind: 'list',
-          items: block.items.map((item) => ({ children: toPublicInlineNodes(item.children) })),
+          items: block.items.map((item) => ({
+            children: toPublicInlineNodes(item.children),
+          })),
         }
   );
 }
 
+function marksOnlyDiagnostic(
+  normalized: NormalizedPlainText,
+  blocks: readonly ParsedBlock[]
+): FormattedTextDiagnostic | undefined {
+  const listLine = normalized.lines.find((line) => /^-[ \t]/u.test(line.text));
+  if (blocks.some((block) => block.kind === 'list')) {
+    const position = listLine?.positions[0] ?? normalized.lines[0]?.positions[0] ?? { line: 1, column: 1, offset: 0 };
+    return {
+      code: 'marks-only-list',
+      ...position,
+      length: 1,
+      message: 'This field allows formatted words, but not lists.',
+      suggestion: 'Remove the list marker and keep the text in one paragraph.',
+    };
+  }
+
+  const secondLine = normalized.lines[1];
+  if (secondLine) {
+    const position = secondLine.positions[0] ?? secondLine.end;
+    return {
+      code: 'marks-only-line-break',
+      ...position,
+      length: 0,
+      message: 'This field allows formatted words, but not line breaks or paragraphs.',
+      suggestion: 'Replace the line break with a space.',
+    };
+  }
+
+  return undefined;
+}
+
 /** Parse an editable draft into renderer-safe data and source-located diagnostics. */
-export function parseFormattedText(input: string): FormattedTextParseResult {
+export function parseFormattedText(input: string, profile: FormattedTextProfile = 'prose'): FormattedTextParseResult {
   const normalizedDraft = normalizePlainText(input);
   const parsed = parseBlocks(normalizedDraft);
 
@@ -585,6 +643,16 @@ export function parseFormattedText(input: string): FormattedTextParseResult {
   }
 
   const canonicalBlocks = canonicalizeBlocks(parsed.blocks);
+  const profileDiagnostic =
+    profile === 'marks-only' ? marksOnlyDiagnostic(normalizedDraft, canonicalBlocks) : undefined;
+  if (profileDiagnostic) {
+    return {
+      valid: false,
+      source: normalizedDraft.source,
+      blocks: toPublicBlocks(canonicalBlocks),
+      diagnostics: [profileDiagnostic],
+    };
+  }
   return {
     valid: true,
     source: serializeBlocks(canonicalBlocks) as NormalizedFormattedText,
@@ -594,7 +662,10 @@ export function parseFormattedText(input: string): FormattedTextParseResult {
 }
 
 /** Mint a stored value only when the complete draft is valid and canonical. */
-export function normalizeFormattedText(input: string): FormattedTextNormalizationResult {
-  const parsed = parseFormattedText(input);
+export function normalizeFormattedText(
+  input: string,
+  profile: FormattedTextProfile = 'prose'
+): FormattedTextNormalizationResult {
+  const parsed = parseFormattedText(input, profile);
   return parsed.valid ? { ok: true, value: parsed.source } : { ok: false, diagnostics: parsed.diagnostics };
 }

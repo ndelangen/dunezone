@@ -3,6 +3,7 @@ import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
+import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalQuery, query } from './_generated/server';
@@ -60,6 +61,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   groups_soft_delete_verify_v1: internal.migrations.groups_soft_delete_verify_v1,
   faction_complexity_grouped_v1: internal.migrations.faction_complexity_grouped_v1,
   faction_complexity_grouped_verify_v1: internal.migrations.faction_complexity_grouped_verify_v1,
+  faction_inline_formatted_text_v1: internal.migrations.faction_inline_formatted_text_v1,
+  faction_inline_formatted_text_verify_v1: internal.migrations.faction_inline_formatted_text_verify_v1,
   assets_about_v1: internal.migrations.assets_about_v1,
   assets_about_verify_v1: internal.migrations.assets_about_verify_v1,
   account_lifecycle_profiles_v1: internal.migrations.account_lifecycle_profiles_v1,
@@ -478,6 +481,66 @@ export const faction_complexity_grouped_verify_v1 = migrations.define({
   table: 'factions',
   batchSize: 50,
   migrateOne: async () => undefined,
+});
+
+function normalizedMarksOnlyValue(value: unknown, field: string): string {
+  if (typeof value !== 'string') {
+    throw new Error(`${field} is not a string`);
+  }
+  const current = normalizeFormattedText(value, 'marks-only');
+  if (current.ok) {
+    return current.value;
+  }
+  const joined = value.replace(/[ \t]*\r?\n[ \t]*/gu, ' ');
+  const normalized = normalizeFormattedText(joined, 'marks-only');
+  if (!normalized.ok) {
+    throw new Error(`${field} cannot be normalized as marks-only formatted text`);
+  }
+  return normalized.value;
+}
+
+/** Joins legacy layout line breaks in faction setup and revival before those fields become marks-only. */
+export const faction_inline_formatted_text_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const data = row.data as {
+      rules?: { startText?: unknown; revivalText?: unknown };
+    } | null;
+    if (!data?.rules) {
+      throw new Error(`Faction ${row._id} has no rules`);
+    }
+    const startText = normalizedMarksOnlyValue(data.rules.startText, `Faction ${row._id} setup`);
+    const revivalText = normalizedMarksOnlyValue(data.rules.revivalText, `Faction ${row._id} revival`);
+    if (startText === data.rules.startText && revivalText === data.rules.revivalText) {
+      return;
+    }
+    return {
+      data: { ...data, rules: { ...data.rules, startText, revivalText } },
+    };
+  },
+});
+
+/** Proves every stored faction setup and revival value fits the marks-only profile. */
+export const faction_inline_formatted_text_verify_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const data = row.data as {
+      rules?: { startText?: unknown; revivalText?: unknown };
+    } | null;
+    if (!data?.rules) {
+      throw new Error(`Faction ${row._id} has no rules`);
+    }
+    for (const [field, value] of [
+      ['setup', data.rules.startText],
+      ['revival', data.rules.revivalText],
+    ] as const) {
+      if (typeof value !== 'string' || !normalizeFormattedText(value, 'marks-only').ok) {
+        throw new Error(`Faction ${row._id} ${field} is not marks-only formatted text`);
+      }
+    }
+  },
 });
 
 /** Retains the completed Group lifecycle backfill identity through the schema-narrowing release. */

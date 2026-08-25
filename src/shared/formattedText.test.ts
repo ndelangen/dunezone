@@ -27,6 +27,35 @@ describe('formatted-text core', () => {
     expectTypeOf<string>().not.toMatchTypeOf<NormalizedFormattedText>();
   });
 
+  it('keeps marks in marks-only fields while rejecting lists, hard breaks, and paragraphs', () => {
+    const marked = parseFormattedText('One *bold* instruction.', 'marks-only');
+    const list = parseFormattedText('- first', 'marks-only');
+    const hardBreak = parseFormattedText('first\nsecond', 'marks-only');
+    const paragraph = parseFormattedText('first\n\nsecond', 'marks-only');
+
+    expect(marked.valid).toBe(true);
+    expect(list.valid).toBe(false);
+    expect(hardBreak.valid).toBe(false);
+    expect(paragraph.valid).toBe(false);
+    if (!list.valid && !hardBreak.valid && !paragraph.valid) {
+      expect(list.diagnostics[0]).toMatchObject({
+        code: 'marks-only-list',
+        line: 1,
+        column: 1,
+      });
+      expect(hardBreak.diagnostics[0]).toMatchObject({
+        code: 'marks-only-line-break',
+        line: 2,
+        column: 1,
+      });
+      expect(paragraph.diagnostics[0]).toMatchObject({
+        code: 'marks-only-line-break',
+        line: 2,
+        column: 1,
+      });
+    }
+  });
+
   it('normalizes plain text into paragraphs, separate lists, and multiline list items', () => {
     const parsed = parseValid(
       'Opening  \r\ncontinues\r\n\r\n\r\n• first  \r\n– second\r\n\r\n— third\r\n  continuation'
@@ -92,7 +121,11 @@ describe('formatted-text core', () => {
     });
     expect(invalid.valid).toBe(false);
     if (!invalid.valid) {
-      expect(invalid.diagnostics[0]).toMatchObject({ code: 'unclosed-mark', line: 1, column: 1 });
+      expect(invalid.diagnostics[0]).toMatchObject({
+        code: 'unclosed-mark',
+        line: 1,
+        column: 1,
+      });
     }
   });
 
@@ -102,7 +135,12 @@ describe('formatted-text core', () => {
     expect(parsed.source).toBe(String.raw`2*3 snake_case counter-clockwise \*plain\* \-plain\- \_plain\_ \\`);
     expect(parsed.blocks[0]).toMatchObject({
       kind: 'paragraph',
-      children: [{ kind: 'text', value: '2*3 snake_case counter-clockwise *plain* -plain- _plain_ \\' }],
+      children: [
+        {
+          kind: 'text',
+          value: '2*3 snake_case counter-clockwise *plain* -plain- _plain_ \\',
+        },
+      ],
     });
   });
 
@@ -112,7 +150,12 @@ describe('formatted-text core', () => {
     expect(parsed.source).toBe('the Supplies!-cache is revealed, wait!-really (see below)');
     expect(parsed.blocks[0]).toMatchObject({
       kind: 'paragraph',
-      children: [{ kind: 'text', value: 'the Supplies!-cache is revealed, wait!-really (see below)' }],
+      children: [
+        {
+          kind: 'text',
+          value: 'the Supplies!-cache is revealed, wait!-really (see below)',
+        },
+      ],
     });
 
     const nested = parseValid('_-*all three*-_ still nest, and -after a space- still opens');
@@ -122,10 +165,20 @@ describe('formatted-text core', () => {
         {
           kind: 'mark',
           mark: 'underline',
-          children: [{ kind: 'mark', mark: 'italic', children: [{ kind: 'mark', mark: 'bold' }] }],
+          children: [
+            {
+              kind: 'mark',
+              mark: 'italic',
+              children: [{ kind: 'mark', mark: 'bold' }],
+            },
+          ],
         },
         { kind: 'text', value: ' still nest, and ' },
-        { kind: 'mark', mark: 'italic', children: [{ kind: 'text', value: 'after a space' }] },
+        {
+          kind: 'mark',
+          mark: 'italic',
+          children: [{ kind: 'text', value: 'after a space' }],
+        },
         { kind: 'text', value: ' still opens' },
       ],
     });
@@ -139,7 +192,11 @@ describe('formatted-text core', () => {
       kind: 'paragraph',
       children: [
         { kind: 'text', value: '𝒜*bold* and ' },
-        { kind: 'mark', mark: 'bold', children: [{ kind: 'text', value: '𝒜' }] },
+        {
+          kind: 'mark',
+          mark: 'bold',
+          children: [{ kind: 'text', value: '𝒜' }],
+        },
       ],
     });
   });
@@ -162,7 +219,12 @@ describe('formatted-text core', () => {
 
     expect(parsed.valid).toBe(false);
     if (!parsed.valid) {
-      expect(parsed.diagnostics[0]).toMatchObject({ code: 'unclosed-mark', line: 1, column: 1, offset: 0 });
+      expect(parsed.diagnostics[0]).toMatchObject({
+        code: 'unclosed-mark',
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
     }
   });
 
