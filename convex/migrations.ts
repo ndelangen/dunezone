@@ -206,27 +206,18 @@ export const rulesets_about_verify_v1 = migrations.define({
   migrateOne: async () => undefined,
 });
 
-/** Removes the legacy Ruleset prose after all active contracts have adopted About. */
+/** Retains the completed Ruleset prose retirement identity through the schema-narrowing release. */
 export const rulesets_description_retire_v1 = migrations.define({
   table: 'rulesets',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    if (row.description === undefined) {
-      return;
-    }
-    return { description: undefined };
-  },
+  migrateOne: async () => undefined,
 });
 
-/** Proves every Ruleset has crossed the storage-retirement boundary before the schema drops the old field. */
+/** Retains the completed retirement verification identity; the narrowed schema now enforces it. */
 export const rulesets_description_retire_verify_v1 = migrations.define({
   table: 'rulesets',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    if (row.description !== undefined) {
-      throw new Error(`Ruleset ${row._id} still has a legacy description`);
-    }
-  },
+  migrateOne: async () => undefined,
 });
 
 export const faq_item_slug_v1 = migrations.define({

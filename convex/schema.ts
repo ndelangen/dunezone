@@ -153,13 +153,7 @@ export default defineSchema({
   rulesets: defineTable({
     name: v.string(),
     slug: v.string(),
-    /**
-     * About is authoritative after `rulesets_about_v1` and its verifier completed in production.
-     * The legacy field stays optional only while `rulesets_description_retire_v1` removes it.
-     * The next release removes this branch.
-     */
     about: v.string(),
-    description: v.optional(v.string()),
     created_at: v.string(),
     updated_at: v.string(),
     owner_id: v.id('users'),

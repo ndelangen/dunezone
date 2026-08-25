@@ -17,7 +17,7 @@ import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessVali
 
 /** What a caller authors, derived from the schema that validates it. Both fields are required, and About sits above its floor. */
 export type Ruleset = RulesetInput;
-export type RulesetRow = Omit<Doc<'rulesets'>, 'description'>;
+export type RulesetRow = Doc<'rulesets'>;
 export type RulesetEntry = Omit<RulesetRow, 'name' | 'about'> & {
   name: Ruleset['name'];
   about: Ruleset['about'];

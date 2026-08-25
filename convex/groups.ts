@@ -8,7 +8,6 @@ import { mutation } from './functions';
 import { liveGroupOrNull, loadGroupAccessBundle, requireGroupCapability } from './lib/collaborativeAccess';
 import { groupDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
-import { activeRuleset } from './lib/rulesetAbout';
 import { nowIso, slugify } from './lib/utils';
 
 async function resolveUniqueGroupSlug(ctx: QueryCtx | MutationCtx, name: string, excludeId?: Id<'groups'>) {
@@ -69,7 +68,7 @@ export const detailBySlug = query({
     return {
       group: accessBundle.subject,
       factions,
-      rulesets: rulesets.map(activeRuleset),
+      rulesets,
       owner: accessBundle.owner,
       viewerAccess: accessBundle.viewerAccess,
       roster: accessBundle.roster,

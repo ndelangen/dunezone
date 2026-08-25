@@ -37,7 +37,6 @@ describe('Ruleset About', () => {
     });
 
     expect(ruleset).toMatchObject({ about: VALID_ABOUT });
-    expect(ruleset).not.toHaveProperty('description');
 
     await expect(
       owner.mutation(api.rulesets.update, {
@@ -59,28 +58,5 @@ describe('Ruleset About', () => {
         image_cover: null,
       })
     ).rejects.toThrow(/Ruleset About must be at least 50 characters/);
-  });
-
-  test('active reads omit a legacy field that the retirement migration has not reached yet', async () => {
-    const t = rulesetTest();
-    const rulesetId = await t.run(async (ctx) => {
-      const ownerId = await ctx.db.insert('users', { name: 'Ruleset owner' });
-      return await ctx.db.insert('rulesets', {
-        name: 'AwaitingRetirement',
-        about: '',
-        description: '',
-        slug: 'awaiting-retirement',
-        created_at: '2026-01-01T00:00:00.000Z',
-        updated_at: '2026-01-01T00:00:00.000Z',
-        owner_id: ownerId,
-        group_id: null,
-        is_deleted: false,
-        image_cover: null,
-      });
-    });
-
-    const result = await t.query(api.rulesets.get, { id: rulesetId });
-    expect(result).toMatchObject({ name: 'AwaitingRetirement', about: '' });
-    expect(result).not.toHaveProperty('description');
   });
 });
