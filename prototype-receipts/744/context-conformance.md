@@ -53,6 +53,16 @@ Visual receipts are stored outside the repository with the other Dune Zone captu
 /Users/me/Projects/Dune/dunezone-screenshots/issue-744/after-explicit-frame.png
 ```
 
+The branch keeps copies so the ticket can display the evidence.
+
+### Before: ambient context
+
+![The ambient browser context resumes three of five checkpoints with the wrong frame.](./before-ambient-context.png)
+
+### After: explicit-frame attempt
+
+![Explicit frames pass 100 interleavings before the Convex global helper gate blocks the strategy.](./after-explicit-frame.png)
+
 ## Stop point
 
 The prototype did not port the transaction, scheduler, HTTP, and Aggregate suites to the explicit runner. Passing those cases would require first replacing the Convex service objects that depend on the failed global boundary. Doing that work after the gate failed would measure the size of a private Convex runtime, not test whether the selected strategy is a small reliable foundation.
