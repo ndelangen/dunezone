@@ -11,6 +11,8 @@ import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/
 import type {
   SeedDocument,
   SeedDocumentFor,
+  RollbackProbeResult,
+  SchedulerProbeResult,
   WorkerIdentity,
   WorkerRequest,
   WorkerResponse,
@@ -142,6 +144,28 @@ async function runHttpProbe(world: World) {
   return { body: await response.json(), status: response.status };
 }
 
+async function runSchedulerProbe(world: World): Promise<SchedulerProbeResult> {
+  await mutateWorld(world, 'statistics:rebuild', {});
+  await world.test.finishAllScheduledFunctions(() => undefined);
+  const after = (await queryWorld(world, 'statistics:getGlobalTotals', {})) as SchedulerProbeResult['after'];
+  return { after };
+}
+
+async function runRollbackProbe(): Promise<RollbackProbeResult> {
+  const isolated = await createWorld([]);
+  let error = '';
+  try {
+    await isolated.test.run(async (ctx) => {
+      await ctx.db.insert('users', { name: 'This user must roll back' });
+      throw new Error('Intentional rollback probe');
+    });
+  } catch (caught) {
+    error = caught instanceof Error ? caught.message : String(caught);
+  }
+  const usersAfterFailure = await isolated.test.run(async (ctx) => (await ctx.db.query('users').collect()).length);
+  return { error, usersAfterFailure };
+}
+
 let world = createWorld([]);
 
 async function handleRequest(request: WorkerRequest): Promise<unknown> {
@@ -163,6 +187,12 @@ async function handleRequest(request: WorkerRequest): Promise<unknown> {
   const currentWorld = await world;
   if (request.operation === 'httpProbe') {
     return await runHttpProbe(currentWorld);
+  }
+  if (request.operation === 'schedulerProbe') {
+    return await runSchedulerProbe(currentWorld);
+  }
+  if (request.operation === 'rollbackProbe') {
+    return await runRollbackProbe();
   }
   if (request.operation === 'insert') {
     await insertDocuments(currentWorld, request.documents);

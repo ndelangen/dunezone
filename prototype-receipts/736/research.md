@@ -23,9 +23,11 @@ The prototype used the versions currently installed in this repository: Convex 1
 | Keep two adjacent identities separate and preserve a signed-out request | Passed | Passed |
 | Reject an outbound `fetch` with the named worker guard | Passed | Passed |
 | Invoke the local HTTP router and nested `ctx.runQuery` while global `fetch` remains blocked | Passed | Passed |
+| Drain a real scheduled statistics rebuild in a fresh worker | Passed | Passed |
+| Roll back a failed database transaction without retaining its write | Passed | Passed |
 | Load function modules lazily with an ES-format worker | Passed | Passed |
 
-The homepage query returned the expected empty-world result. The phase 2 production build emits a 79.08 kB initial worker chunk plus lazy Convex and Aggregate chunks. The whole Storybook build succeeded without a Convex deployment URL in its output. These are prototype measurements, not target budgets.
+The homepage query returned the expected empty-world result. The production build with the scheduler and rollback probes emits a 79.68 kB initial worker chunk plus lazy Convex and Aggregate chunks. The whole Storybook build succeeded without a Convex deployment URL in its output. These are prototype measurements, not target budgets.
 
 ## Why it does not work without adaptation
 
@@ -42,6 +44,8 @@ A normal Vite browser build externalizes `node:async_hooks`. The worker then fai
 The adapter in the proof retained a store until an asynchronous callback settled. That is enough for the serialized top-level queries exercised here, but it is not a complete `AsyncLocalStorage` implementation. `convex-test` deliberately serializes top-level functions while allowing nested `Promise.all` calls from actions, so overlapping and nested context propagation matters. Node documents `AsyncLocalStorage` as the stable, optimized context primitive. The browser replacement proposed by TC39 is still Stage 2, so there is no standards-based browser primitive to substitute today. [`convex-test` transaction manager](https://github.com/get-convex/convex-test/blob/925f5f848cf7a3a3d17a9fff798b3caca5de91c0/index.ts#L2250-L2285), [Node `AsyncLocalStorage`](https://nodejs.org/api/async_context.html#class-asynclocalstorage), [TC39 AsyncContext proposal](https://github.com/tc39/proposal-async-context)
 
 The retained concurrency story confirms the failure. It overlaps two independent `convexTest` instances in one worker so the first settles while the second is awaiting. The shim restores the active store out of order, and the second transaction fails with `No active convexTest context`. One worker must therefore serialize all of its calls, and separate stories need separate workers.
+
+The scheduled-function experiment found a second failure mode. A worker reused after the authenticated Aggregate-backed mutation sequence retained the `statistics` component path. A later root call then tried to resolve the root `statistics` module from the Aggregate component and failed with `Could not find module for: "statistics"`. Waiting another event-loop turn did not restore the path. The same rebuild passed when it was the first Convex operation in a fresh worker. This proves that request serialization prevents top-level overlap, but it does not make the adapter's nested component context reliable.
 
 There is another explicit upstream warning: Convex 1.43 logs when server functions are imported in a browser window and says a future version will throw. A worker avoids the current `window` check, but that is an accident of the check rather than support for this runtime. [Convex browser-import guard](https://github.com/get-convex/convex-js/blob/d28852aa028dede94796a012a2a802ae6ad04188/src/server/impl/registration_impl.ts#L132-L151)
 
@@ -110,13 +114,15 @@ Determinism needs deliberate handling:
 - Keep IDs inside the seeded world instead of asserting generated values.
 - Prevent network actions and keep `process.env` empty. Never bake deployment secrets into a static Storybook bundle.
 
+The rollback probe also passed. It inserted a user inside `t.run`, threw an intentional error, then found zero users in the isolated database. This tests the browser build's transaction layer rather than relying on the Node test suite.
+
 This also publishes the Convex function source, schema, validators, and embedded constants as downloadable Storybook assets. That source is normally server-only. A static Storybook deployment must be treated as a public disclosure boundary even if the UI is access controlled.
 
 ## Risks and recommendation
 
 The main risks are:
 
-1. **Incorrect async context.** The small adapter can mix auth or component state under nested or overlapping asynchronous work.
+1. **Incorrect async context.** The small adapter now has a reproduced component-path leak after a real Aggregate-backed sequence. Serialization alone does not fix it.
 2. **Upstream drift.** `convex-test`, Convex's browser-import guard, Vite glob output, and component package source layouts are not browser contracts.
 3. **Incomplete fidelity.** There is no real subscription engine, scheduler service, auth provider flow, deployment environment, or backend isolation model.
 4. **Build and startup weight.** Even lazy output adds hundreds of kilobytes and many static chunks.
@@ -131,6 +137,6 @@ The product and test value is now stronger than the first phase suggested. A pag
 
 The costs are concentrated but serious. The runtime depends on an incomplete async-context shim, package source layouts, build transforms, optimizer hints, and manual component registration. Static publishing exposes server source. Storybook still lacks production auth, WebSocket transport, deployment environment, and backend scheduling fidelity. The JavaScript network guard is deterministic protection, not a security boundary.
 
-My weighted recommendation is to continue toward a controlled experimental harness, not a repo-wide default yet. The authenticated create/reset proof clears the largest feasibility question, and the fixture reduction plus interactive page development justify more work. Before rollout, prove nested action and scheduled-function context, rollback, component auth boundaries, and CSP on the worker response. Pin the dependency versions and keep all worker RPC serialized. If those checks pass, use the harness for page state and interaction coverage while retaining a few real-stack E2E paths.
+My weighted recommendation is to continue the spike, but do not adopt the current adapter as a repo-wide default. The authenticated create/reset proof clears the largest feasibility question, and the fixture reduction plus interactive page development justify more work. Transaction rollback and scheduled execution now work in a fresh worker. The reproduced component-path leak makes a browser-specific `convex-test` fork more likely, not merely a fallback. Before rollout, prove nested action context, scheduler authentication, component auth boundaries, and CSP on the worker response. Pin the dependency versions and keep all worker RPC serialized. If those checks pass, use the worker for page state and interaction coverage while retaining a few real-stack E2E paths.
 
 If those tests expose context bugs, the responsible next experiment is a small pinned fork of `convex-test` that passes execution context explicitly or provides a browser adapter. The official self-hosted Convex backend is not a static-build alternative: it is a native or Docker backend with SQLite and an HTTP service, so it cannot travel inside a static Storybook artifact. [Convex self-hosting](https://github.com/get-convex/convex-backend/blob/main/self-hosted/README.md)
