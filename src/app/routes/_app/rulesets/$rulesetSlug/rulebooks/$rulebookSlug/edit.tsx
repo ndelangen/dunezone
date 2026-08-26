@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Accordion, Alert, Badge, Box, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { Accordion, ActionIcon, Alert, Badge, Box, Button, Group, Menu, Stack, Text, Tooltip } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult } from '@shared/formattedText';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from '@shared/rulebooks/contents';
@@ -17,6 +17,7 @@ import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   BookOpenText,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
@@ -367,6 +368,7 @@ function AssetImagePlaceholder({ label = 'Selected Asset image' }: { label?: str
 }
 
 type PrototypeBlockKind = 'rule-group' | 'worked-example' | 'asset-figure';
+type PrototypePageRecipe = 'Chapter opener' | 'Rules page' | 'Visual reference';
 
 type PrototypeBlock = {
   id: string;
@@ -378,7 +380,7 @@ type PrototypeBlock = {
 type PrototypePage = {
   id: string;
   title: string;
-  recipe: string;
+  recipe: PrototypePageRecipe;
   blocks: PrototypeBlock[];
 };
 
@@ -387,6 +389,9 @@ const blockKindNames: Record<PrototypeBlockKind, string> = {
   'worked-example': 'Worked example',
   'asset-figure': 'Asset figure',
 };
+
+const pageRecipeNames: readonly PrototypePageRecipe[] = ['Chapter opener', 'Rules page', 'Visual reference'];
+const blockKinds: readonly PrototypeBlockKind[] = ['rule-group', 'worked-example', 'asset-figure'];
 
 function BlockKindIcon({ kind, size = 18 }: { kind: PrototypeBlockKind; size?: number }) {
   if (kind === 'rule-group') {
@@ -473,24 +478,36 @@ function usePrototypeDocument() {
     setActivePageId(pageId);
     setSelectedBlockId(page.blocks[0]?.id ?? '');
   };
-  const addPage = () => {
+  const addPage = (recipe: PrototypePageRecipe = 'Rules page') => {
     const number = pages.length + 1;
+    const starterBlock: PrototypeBlock =
+      recipe === 'Rules page'
+        ? {
+            id: `new-page-${number}-rules`,
+            kind: 'rule-group',
+            title: 'Untitled rule group',
+            body: 'Replace this starter content with the rule text.',
+          }
+        : {
+            id: `new-page-${number}-figure`,
+            kind: 'asset-figure',
+            title: recipe === 'Chapter opener' ? 'Chapter image' : 'Reference image',
+            body: 'Choose an Asset and add its caption.',
+          };
     const page: PrototypePage = {
       id: `new-page-${number}`,
-      title: 'New rules page',
-      recipe: 'Rules page',
-      blocks: [
-        {
-          id: `new-page-${number}-rules`,
-          kind: 'rule-group',
-          title: 'Untitled rule group',
-          body: 'Replace this starter content with the rule text.',
-        },
-      ],
+      title:
+        recipe === 'Chapter opener'
+          ? 'New chapter'
+          : recipe === 'Visual reference'
+            ? 'New reference'
+            : 'New rules page',
+      recipe,
+      blocks: [starterBlock],
     };
     setPages((current) => [...current, page]);
     setActivePageId(page.id);
-    setSelectedBlockId(page.blocks[0].id);
+    setSelectedBlockId(starterBlock.id);
   };
   const movePage = (pageId: string, offset: number) => {
     setPages((current) => {
@@ -631,14 +648,10 @@ function BlockEditor({ model }: { model: PrototypeDocument }) {
   );
 }
 
-function SharedDocumentPreview({ model, treatment }: { model: PrototypeDocument; treatment: CatalogueVariant }) {
+function SharedDocumentPreview({ model }: { model: PrototypeDocument }) {
   const pageNumber = model.pages.findIndex((page) => page.id === model.activePage.id) + 1;
   return (
-    <article
-      className={`${styles.documentPage} ${styles.previewSurface}`}
-      data-highlight={treatment}
-      aria-label="Rulebook page preview"
-    >
+    <article className={`${styles.documentPage} ${styles.previewSurface}`} aria-label="Rulebook page preview">
       <div className={styles.documentFolio}>
         {model.activePage.recipe} / {String(pageNumber).padStart(2, '0')}
       </div>
@@ -719,17 +732,17 @@ const treatmentPresentation: Record<CatalogueVariant, { label: string; title: st
   native: {
     label: '4A',
     title: 'Quiet navigator',
-    description: 'Native navigation rows with a soft wash marking the block being edited.',
+    description: 'Native navigation rows with a quiet active state.',
   },
   index: {
     label: '4B',
     title: 'Editorial index',
-    description: 'An open outline with hairline separators and a proofreader marker in the preview.',
+    description: 'An open outline with hairline separators.',
   },
   spine: {
     label: '4C',
     title: 'Navigator spine',
-    description: 'Page and block cards attach to the same icon spine they collapse into.',
+    description: 'Page and block cards attach to the icon spine they collapse into.',
   },
 };
 
@@ -795,6 +808,57 @@ function DrilldownLevelChoice({
   );
 }
 
+function PrototypeAddMenu<T extends string>({
+  label,
+  menuLabel,
+  choices,
+  collapsed,
+  onPick,
+}: {
+  label: string;
+  menuLabel: string;
+  choices: readonly { value: T; label: string; icon: ReactNode }[];
+  collapsed: boolean;
+  onPick: (value: T) => void;
+}) {
+  return (
+    <Menu position={collapsed ? 'right-end' : 'bottom-start'} withArrow>
+      <Menu.Target>
+        {collapsed ? (
+          <ActionIcon
+            className={styles.drilldownCollapsedAdd}
+            aria-label={label}
+            color="confirm"
+            variant="light"
+            size="sm"
+          >
+            <Plus size={15} aria-hidden />
+          </ActionIcon>
+        ) : (
+          <Button
+            className={styles.drilldownExpandedAdd}
+            color="confirm"
+            size="sm"
+            leftSection={<Plus size={15} aria-hidden />}
+            rightSection={<ChevronDown size={14} aria-hidden />}
+            fullWidth
+          >
+            {label}
+          </Button>
+        )}
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Label>{menuLabel}</Menu.Label>
+        {choices.map((choice) => (
+          <Menu.Item key={choice.value} leftSection={choice.icon} onClick={() => onPick(choice.value)}>
+            {choice.label}
+          </Menu.Item>
+        ))}
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
+
 function SlidingDrilldownVariant({ treatment, fit }: { treatment: CatalogueVariant; fit: PreviewFit }) {
   const model = usePrototypeDocument();
   const [depth, setDepth] = useState<DrilldownDepth>('controls');
@@ -815,14 +879,14 @@ function SlidingDrilldownVariant({ treatment, fit }: { treatment: CatalogueVaria
     model.reset();
     setDepth('controls');
   };
-  const addPage = () => {
-    model.addPage();
+  const addPage = (recipe: PrototypePageRecipe) => {
+    model.addPage(recipe);
     if (depth !== 'pages') {
       setDepth('blocks');
     }
   };
-  const addBlock = () => {
-    model.addBlock();
+  const addBlock = (kind: PrototypeBlockKind) => {
+    model.addBlock(kind);
     if (depth === 'blocks') {
       setDepth('controls');
     }
@@ -930,24 +994,16 @@ function SlidingDrilldownVariant({ treatment, fit }: { treatment: CatalogueVaria
                     <span>Pages</span>
                   </button>
                   <div className={styles.drilldownAddSlot}>
-                    <Button
-                      className={styles.drilldownExpandedAdd}
-                      color="confirm"
-                      size="sm"
-                      leftSection={<Plus size={15} aria-hidden />}
-                      fullWidth
-                      onClick={addPage}
-                    >
-                      Add page
-                    </Button>
-                    <IconAction
-                      className={styles.drilldownCollapsedAdd}
+                    <PrototypeAddMenu
                       label="Add page"
-                      icon={<Plus size={15} aria-hidden />}
-                      color="confirm"
-                      variant="light"
-                      size="sm"
-                      onClick={addPage}
+                      menuLabel="Choose a page layout"
+                      choices={pageRecipeNames.map((recipe) => ({
+                        value: recipe,
+                        label: recipe,
+                        icon: <PageLayoutIcon recipe={recipe} />,
+                      }))}
+                      collapsed={depth !== 'pages'}
+                      onPick={addPage}
                     />
                   </div>
                 </div>
@@ -1027,24 +1083,16 @@ function SlidingDrilldownVariant({ treatment, fit }: { treatment: CatalogueVaria
                     <span>Blocks</span>
                   </button>
                   <div className={styles.drilldownAddSlot}>
-                    <Button
-                      className={styles.drilldownExpandedAdd}
-                      color="confirm"
-                      size="sm"
-                      leftSection={<Plus size={15} aria-hidden />}
-                      fullWidth
-                      onClick={addBlock}
-                    >
-                      Add block
-                    </Button>
-                    <IconAction
-                      className={styles.drilldownCollapsedAdd}
+                    <PrototypeAddMenu
                       label="Add block"
-                      icon={<Plus size={15} aria-hidden />}
-                      color="confirm"
-                      variant="light"
-                      size="sm"
-                      onClick={addBlock}
+                      menuLabel="Choose a block type"
+                      choices={blockKinds.map((kind) => ({
+                        value: kind,
+                        label: blockKindNames[kind],
+                        icon: <BlockKindIcon kind={kind} />,
+                      }))}
+                      collapsed={depth === 'controls'}
+                      onPick={addBlock}
                     />
                   </div>
                 </div>
@@ -1069,7 +1117,7 @@ function SlidingDrilldownVariant({ treatment, fit }: { treatment: CatalogueVaria
                 <BlockEditor model={model} />
               </section>
             </Surface>
-            <SharedDocumentPreview model={model} treatment={treatment} />
+            <SharedDocumentPreview model={model} />
           </div>
           <div className={styles.combinedStickyRunway} aria-hidden />
         </div>
