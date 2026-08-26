@@ -144,7 +144,7 @@ describe('AppRoot page header', () => {
         label: link.getAttribute('aria-label'),
       }))
     ).toEqual([
-      { href: '/__storybook/', label: 'Component library' },
+      { href: 'https://storybook.dune.zone', label: 'Component library' },
       { href: 'https://github.com/ndelangen/dunezone', label: 'Source code' },
       { href: '/privacy', label: 'Privacy policy' },
       {
@@ -157,6 +157,9 @@ describe('AppRoot page header', () => {
         label: 'Dune forums on BoardGameGeek',
       },
     ]);
+    const componentLibrary = container.querySelector('footer a[aria-label="Component library"]');
+    expect(componentLibrary?.getAttribute('target')).toBe('_blank');
+    expect(componentLibrary?.getAttribute('rel')).toBe('noopener noreferrer');
     expect(container.querySelector('footer [role="radiogroup"]')).toBeNull();
 
     act(() => root.unmount());
