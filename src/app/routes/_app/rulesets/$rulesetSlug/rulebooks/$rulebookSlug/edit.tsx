@@ -29,6 +29,8 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import {
   BookOpenText,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   CircleHelp,
   FileImage,
   GripVertical,
@@ -39,8 +41,8 @@ import {
   Plus,
   TextCursorInput,
 } from 'lucide-react';
-import { Fragment, useState } from 'react';
-import type { ReactElement, ReactNode } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { ReactElement, ReactNode, Ref } from 'react';
 
 import styles from './edit.module.css';
 import { createRulebookEditorStateManager } from './edit/-rulebookEditorState';
@@ -49,6 +51,7 @@ import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.
 
 type PreviewFit = 'height' | 'width';
 type DrilldownDepth = 'pages' | 'page' | 'controls';
+type ActiveTreatment = 'parchment' | 'channel' | 'notch';
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 type EditorialPage = Extract<RulebookPageDraft, { layoutId: 'chapter-opener' | 'rules-page' | 'visual-reference' }>;
 type EditorialBlock = Extract<RulebookBlockDraft, { kind: 'rule-group' | 'worked-example' | 'asset-figure' }>;
@@ -92,6 +95,12 @@ const blockKindNames: Record<BlockKind, string> = {
   'asset-figure': 'Asset figure',
 };
 const blockKinds = ['rule-group', 'worked-example', 'asset-figure'] as const;
+const activeTreatments = ['parchment', 'channel', 'notch'] as const;
+const activeTreatmentLabels: Record<ActiveTreatment, string> = {
+  parchment: 'A Quiet parchment',
+  channel: 'B Edge-lit channel',
+  notch: "C Cartographer's notch",
+};
 
 const pageLayoutIds = ['chapter-opener', 'rules-page', 'visual-reference'] as const;
 const editorialSlotCatalogue: Record<PageLayoutId, readonly EditorialSlotDefinition[]> = {
@@ -182,7 +191,15 @@ const drilldownDepthClassNames: Record<DrilldownDepth, string> = {
   controls: styles.drilldownSidebarControls,
 };
 
+function isActiveTreatment(value: unknown): value is ActiveTreatment {
+  return activeTreatments.includes(value as ActiveTreatment);
+}
+
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    variant: typeof search.variant === 'string' ? search.variant : 'native',
+    active: isActiveTreatment(search.active) ? search.active : 'parchment',
+  }),
   component: RulebookEditorPage,
 });
 
@@ -319,6 +336,7 @@ function RulebookPagePreview({
   pageNumber,
   target,
   directValues,
+  previewRef,
 }: Readonly<{
   page: EditorialPage;
   blocksById: ReadyResult['draft']['blocksById'];
@@ -326,10 +344,16 @@ function RulebookPagePreview({
   pageNumber: number;
   target: ControlTarget;
   directValues: DirectSlotValues;
+  previewRef: Ref<HTMLElement>;
 }>) {
   const pageSelected = target.kind === 'page';
   return (
-    <article className={styles.documentPage} aria-label="Rulebook page preview" data-page-selected={pageSelected}>
+    <article
+      ref={previewRef}
+      className={styles.documentPage}
+      aria-label="Rulebook page preview"
+      data-page-selected={pageSelected}
+    >
       <div className={styles.previewPageDetails}>
         <div className={styles.documentFolio}>
           {pageLayoutNames[page.layoutId]} / {String(pageNumber).padStart(2, '0')}
@@ -544,38 +568,28 @@ function StructureBlockSlot({
   blocks,
   activeTarget,
   dropAllowed,
-  onOpenSlot,
   onOpenBlock,
 }: Readonly<{
   slot: BlockSlotDefinition;
   blocks: readonly EditorialBlock[];
   activeTarget: ControlTarget;
   dropAllowed: boolean;
-  onOpenSlot: () => void;
   onOpenBlock: (block: EditorialBlock) => void;
 }>) {
   const { isOver, setNodeRef } = useDroppable({ id: structureSlotDropId(slot.id) });
-  const slotActive = activeTarget.kind === 'slot' && activeTarget.slotId === slot.id;
   return (
     <div className={styles.structureSlotGroup}>
       <div className={`${styles.levelItem} ${styles.slotSeparatorItem}`}>
-        <button
-          type="button"
-          className={`${styles.levelIcon} ${styles.slotSeparatorIcon}`}
-          aria-current={slotActive ? 'true' : undefined}
-          aria-label={`Open ${slot.label} slot`}
-          onClick={onOpenSlot}
-        >
+        <span className={`${styles.levelIcon} ${styles.slotSeparatorIcon}`} aria-hidden>
           <SlotIcon slot={slot} />
-        </button>
-        <DrilldownLevelChoice
-          title={slot.label}
-          metadata={<SlotMetadata slot={slot} count={blocks.length} />}
-          ariaLabel={`${slot.label}. Accepts ${slot.acceptedBlockKinds.map((kind) => blockKindNames[kind]).join(' and ')}. ${slotCardinality(slot, blocks.length)}.`}
-          active={slotActive}
-          tabIndex={0}
-          onClick={onOpenSlot}
-        />
+        </span>
+        <div
+          className={styles.slotSeparatorLabel}
+          aria-label={`${slot.label} slot. Accepts ${slot.acceptedBlockKinds.map((kind) => blockKindNames[kind]).join(' and ')}. ${slotCardinality(slot, blocks.length)}.`}
+        >
+          <strong>{slot.label}</strong>
+          <SlotMetadata slot={slot} count={blocks.length} />
+        </div>
       </div>
       <div
         ref={setNodeRef}
@@ -624,6 +638,55 @@ function StructureBlockSlot({
             Drop a compatible block here
           </Text>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+function StructureFieldSlot({
+  slot,
+  active,
+  tabIndex,
+  onOpenFields,
+}: Readonly<{
+  slot: FieldSlotDefinition;
+  active: boolean;
+  tabIndex: number;
+  onOpenFields: () => void;
+}>) {
+  return (
+    <div className={styles.structureSlotGroup}>
+      <div className={`${styles.levelItem} ${styles.slotSeparatorItem}`}>
+        <span className={`${styles.levelIcon} ${styles.slotSeparatorIcon}`} aria-hidden>
+          <SlotIcon slot={slot} />
+        </span>
+        <div className={styles.slotSeparatorLabel}>
+          <strong>{slot.label}</strong>
+          <Badge color="gray" variant="outline" size="sm">
+            Direct fields
+          </Badge>
+        </div>
+      </div>
+      <div className={styles.structureBlockList}>
+        <div className={`${styles.levelItem} ${styles.structureBlockItem}`}>
+          <button
+            type="button"
+            className={styles.levelIcon}
+            aria-current={active ? 'true' : undefined}
+            aria-label={`Edit ${slot.label} fields`}
+            tabIndex={tabIndex}
+            onClick={onOpenFields}
+          >
+            <TextCursorInput size={18} aria-hidden />
+          </button>
+          <DrilldownLevelChoice
+            title="Edit fields"
+            metadata={`${slot.fields.length} fields`}
+            active={active}
+            tabIndex={tabIndex}
+            onClick={onOpenFields}
+          />
+        </div>
       </div>
     </div>
   );
@@ -770,16 +833,20 @@ function RulebookWorkspace({
   result,
   dispatch,
   fit,
+  activeTreatment,
   directValues,
   onDirectValueChange,
 }: Readonly<{
   result: ReadyResult;
   dispatch: RulebookEditorStateManager['dispatch'];
   fit: PreviewFit;
+  activeTreatment: ActiveTreatment;
   directValues: DirectSlotValues;
   onDirectValueChange: (pageId: string, slotId: string, fieldId: string, value: string) => void;
 }>) {
   const [depth, setDepth] = useState<DrilldownDepth>('controls');
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLElement>(null);
   const [activePageId, setActivePageId] = useState(result.draft.pageOrder[1] ?? result.draft.pageOrder[0]);
   const [blockSlotAssignments, setBlockSlotAssignments] = useState<BlockSlotAssignments>({});
   const [draggedBlockId, setDraggedBlockId] = useState<string>();
@@ -807,6 +874,24 @@ function RulebookWorkspace({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  useLayoutEffect(() => {
+    const preview = previewRef.current;
+    const workspace = workspaceRef.current;
+    if (!preview || !workspace) {
+      return;
+    }
+    const syncPreviewHeight = () => {
+      const previewHeight = preview.getBoundingClientRect().height;
+      workspace.style.setProperty('--sidebar-height', `${previewHeight}px`);
+    };
+    syncPreviewHeight();
+    const observer = new ResizeObserver(syncPreviewHeight);
+    observer.observe(preview);
+    return () => {
+      observer.disconnect();
+    };
+  }, [activePage?.id, depth, fit]);
 
   if (!activePage) {
     return <Alert color="yellow">The editor has no page to display.</Alert>;
@@ -1050,8 +1135,10 @@ function RulebookWorkspace({
 
   return (
     <Box
+      ref={workspaceRef}
       className={styles.workspaceViewport}
       data-fit={fit}
+      data-active-treatment={activeTreatment}
       role="region"
       aria-label="Rulebook editor and preview"
       tabIndex={0}
@@ -1213,24 +1300,13 @@ function RulebookWorkspace({
                   if (slot.mode === 'fields') {
                     const active = target.kind === 'slot' && target.slotId === slot.id;
                     return (
-                      <div className={`${styles.levelItem} ${styles.slotSeparatorItem}`} key={slot.id}>
-                        <button
-                          type="button"
-                          className={`${styles.levelIcon} ${styles.slotSeparatorIcon}`}
-                          aria-current={active ? 'true' : undefined}
-                          aria-label={`Open ${slot.label} slot`}
-                          onClick={() => openSlot(slot)}
-                        >
-                          <SlotIcon slot={slot} />
-                        </button>
-                        <DrilldownLevelChoice
-                          title={slot.label}
-                          metadata="Direct fields"
-                          active={active}
-                          tabIndex={depth === 'page' ? 0 : -1}
-                          onClick={() => openSlot(slot)}
-                        />
-                      </div>
+                      <StructureFieldSlot
+                        key={slot.id}
+                        slot={slot}
+                        active={active}
+                        tabIndex={depth === 'page' ? 0 : -1}
+                        onOpenFields={() => openSlot(slot)}
+                      />
                     );
                   }
                   const blocks = blocksForSlot(activePage, slot, result.draft.blocksById, blockSlotAssignments);
@@ -1247,7 +1323,6 @@ function RulebookWorkspace({
                       blocks={blocks}
                       activeTarget={target}
                       dropAllowed={dropAllowed}
-                      onOpenSlot={() => openSlot(slot)}
                       onOpenBlock={(block) => {
                         setActiveSlotId(slot.id);
                         openBlock(block.id);
@@ -1330,6 +1405,7 @@ function RulebookWorkspace({
           pageNumber={pageNumber}
           target={target}
           directValues={directValues}
+          previewRef={previewRef}
         />
       </div>
       <div className={styles.stickyRunway} aria-hidden />
@@ -1337,7 +1413,58 @@ function RulebookWorkspace({
   );
 }
 
+function ActiveTreatmentSwitcher({
+  value,
+  onChange,
+}: Readonly<{ value: ActiveTreatment; onChange: (value: ActiveTreatment) => void }>) {
+  const cycle = (offset: number) => {
+    const index = activeTreatments.indexOf(value);
+    onChange(activeTreatments[(index + offset + activeTreatments.length) % activeTreatments.length]!);
+  };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.matches('input, textarea, [contenteditable="true"]')) {
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        cycle(-1);
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        cycle(1);
+      }
+    };
+    globalThis.addEventListener('keydown', onKeyDown);
+    return () => globalThis.removeEventListener('keydown', onKeyDown);
+  });
+
+  return (
+    <Surface padding="sm" className={styles.treatmentSwitcher} aria-label="Active state variations">
+      <Group gap="sm" wrap="nowrap">
+        <ActionIcon
+          aria-label="Previous active state variation"
+          color="gray"
+          variant="subtle"
+          onClick={() => cycle(-1)}
+        >
+          <ChevronLeft size={18} aria-hidden />
+        </ActionIcon>
+        <Text className={styles.treatmentSwitcherLabel} size="sm" fw={700} ta="center">
+          {activeTreatmentLabels[value]}
+        </Text>
+        <ActionIcon aria-label="Next active state variation" color="gray" variant="subtle" onClick={() => cycle(1)}>
+          <ChevronRight size={18} aria-hidden />
+        </ActionIcon>
+      </Group>
+    </Surface>
+  );
+}
+
 function RulebookEditorPage() {
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [manager] = useState(() => createRulebookEditorStateManager(createEditorialRulebookEditorInput()));
   const [result, setResult] = useState<RulebookEditorResult>(() => manager.result);
   const [fit, setFit] = useState<PreviewFit>('height');
@@ -1435,9 +1562,16 @@ function RulebookEditorPage() {
             result={result}
             dispatch={dispatch}
             fit={fit}
+            activeTreatment={search.active}
             directValues={directValues}
             onDirectValueChange={updateDirectValue}
           />
+          {import.meta.env.DEV ? (
+            <ActiveTreatmentSwitcher
+              value={search.active}
+              onChange={(active) => void navigate({ search: (current) => ({ ...current, active }), replace: true })}
+            />
+          ) : null}
         </section>
       </PageLayout.Content>
     </PageLayout>
