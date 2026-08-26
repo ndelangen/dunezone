@@ -267,123 +267,6 @@
   margin-bottom: var(--mantine-spacing-lg);
 }
 
-.threePaneWorkspace {
-  display: grid;
-  grid-template-columns: minmax(14rem, 0.8fr) minmax(17rem, 1fr) minmax(17rem, 1fr);
-  gap: var(--mantine-spacing-lg);
-}
-
-.threePaneWorkspace > section + section {
-  padding-inline-start: var(--mantine-spacing-lg);
-  border-inline-start: 1px solid var(--mantine-color-default-border);
-}
-
-.inspectorPane {
-  min-width: 0;
-}
-
-.studyList {
-  display: grid;
-  gap: var(--mantine-spacing-xs);
-}
-
-.studyListRow,
-.blockStudyRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: stretch;
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
-}
-
-.studyListRow[data-selected="true"],
-.blockStudyRow[data-selected="true"] {
-  border-color: var(--mantine-primary-color-filled);
-  box-shadow: inset 0 0 0 1px var(--mantine-primary-color-filled);
-}
-
-.studyListChoice,
-.blockStudyChoice {
-  min-width: 0;
-  padding: var(--mantine-spacing-sm);
-  color: var(--mantine-color-text);
-  font: inherit;
-  text-align: start;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-}
-
-.studyListChoice {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr);
-  gap: var(--mantine-spacing-xs);
-}
-
-.studyListChoice > span:first-child {
-  color: var(--mantine-color-dimmed);
-  font-size: var(--mantine-font-size-xs);
-  font-variant-numeric: tabular-nums;
-}
-
-.studyListChoice > span:last-child,
-.blockStudyChoice {
-  display: grid;
-  gap: 0.15rem;
-}
-
-.studyListChoice strong,
-.blockStudyChoice strong {
-  overflow: hidden;
-  font-size: var(--mantine-font-size-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.studyListChoice small,
-.blockStudyChoice small {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--mantine-color-dimmed);
-  font-size: var(--mantine-font-size-xs);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.blockStudyChoice > span {
-  color: var(--mantine-primary-color-filled);
-  font-size: var(--mantine-font-size-xs);
-  font-weight: 700;
-}
-
-.moveActions {
-  display: grid;
-  grid-template-rows: repeat(2, 1fr);
-  border-inline-start: 1px solid var(--mantine-color-default-border);
-}
-
-.moveActions button {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  min-height: 1.75rem;
-  padding: 0;
-  color: var(--mantine-color-text);
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-}
-
-.moveActions button + button {
-  border-top: 1px solid var(--mantine-color-default-border);
-}
-
-.moveActions button:disabled {
-  color: var(--mantine-color-dimmed);
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
 .blockEditor {
   display: grid;
   gap: var(--mantine-spacing-md);
@@ -416,94 +299,6 @@
 .blockEditor textarea {
   min-height: 7rem;
   resize: vertical;
-}
-
-.pageStrip {
-  margin-bottom: var(--mantine-spacing-lg);
-  padding-bottom: var(--mantine-spacing-lg);
-  border-bottom: 1px solid var(--mantine-color-default-border);
-}
-
-.pageStrip .studyList {
-  display: flex;
-  gap: var(--mantine-spacing-xs);
-  align-items: stretch;
-  overflow-x: auto;
-}
-
-.pageStrip .studyListRow {
-  flex: 0 0 15rem;
-}
-
-.pageStrip .studyList > :global(.mantine-Button-root) {
-  flex: 0 0 auto;
-}
-
-.documentFirstWorkspace,
-.focusedWorkspace {
-  display: grid;
-  grid-template-columns: minmax(22rem, 1fr) minmax(24rem, 0.9fr);
-  gap: var(--mantine-spacing-xl);
-  align-items: start;
-}
-
-.documentFirstSide {
-  display: grid;
-  gap: var(--mantine-spacing-lg);
-}
-
-.studyList[data-inline="true"] {
-  gap: var(--mantine-spacing-sm);
-}
-
-.studyList[data-inline="true"] .blockStudyRow {
-  min-height: 7rem;
-}
-
-.stepTabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin-bottom: var(--mantine-spacing-xl);
-  border-bottom: 1px solid var(--mantine-color-default-border);
-}
-
-.stepTabs button {
-  display: flex;
-  gap: var(--mantine-spacing-xs);
-  align-items: center;
-  justify-content: center;
-  padding: var(--mantine-spacing-sm);
-  color: var(--mantine-color-dimmed);
-  font: inherit;
-  font-size: var(--mantine-font-size-sm);
-  font-weight: 700;
-  background: transparent;
-  border: 0;
-  border-bottom: 3px solid transparent;
-  cursor: pointer;
-}
-
-.stepTabs button[aria-selected="true"] {
-  color: var(--mantine-color-text);
-  border-bottom-color: var(--mantine-primary-color-filled);
-}
-
-.stepTabs button span {
-  display: grid;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  color: var(--mantine-color-text);
-  background: var(--mantine-color-default-hover);
-  border-radius: 50%;
-  font-size: var(--mantine-font-size-xs);
-}
-
-.focusedTask {
-  min-height: 25rem;
-  padding: var(--mantine-spacing-lg);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
 }
 
 .synthesisSection {
@@ -572,7 +367,7 @@
 .drilldownLevel {
   box-sizing: border-box;
   display: grid;
-  grid-template-rows: auto auto minmax(4rem, 1fr) auto;
+  grid-template-rows: auto auto minmax(2rem, 1fr) auto;
   gap: var(--mantine-spacing-md);
   min-width: 0;
   padding: var(--mantine-spacing-lg);
@@ -589,13 +384,13 @@
 }
 
 .drilldownLevel + .drilldownLevel {
-  background: color-mix(in srgb, var(--mantine-primary-color-filled) 7%, var(--mantine-color-body));
+  background: var(--mantine-color-body);
 }
 
 .drilldownLevelCollapsed {
-  grid-template-rows: 0 auto minmax(4rem, 1fr) auto;
+  grid-template-rows: 0 auto minmax(2rem, 1fr) auto;
   gap: 0;
-  padding: 0.45rem 0 0;
+  padding: 0.45rem 0 0.5rem;
   background: var(--mantine-color-default-hover);
 }
 
@@ -611,7 +406,7 @@
 .drilldownLevelHeading {
   display: flex;
   gap: var(--mantine-spacing-sm);
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   min-width: 0;
   max-height: 5rem;
@@ -633,8 +428,9 @@
 }
 
 .drilldownLevelList {
+  position: relative;
   display: grid;
-  gap: 0.35rem;
+  gap: var(--mantine-spacing-xs);
   align-content: start;
   min-height: 0;
 }
@@ -642,14 +438,12 @@
 .drilldownLevelItem {
   display: grid;
   grid-template-columns: 2.25rem minmax(0, 1fr);
-  gap: var(--mantine-spacing-xs);
+  gap: var(--mantine-spacing-sm);
+  align-items: center;
   min-width: 0;
-  background: var(--mantine-color-body);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
+  min-height: 3.75rem;
   transition:
     gap 360ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 180ms ease,
     background-color 180ms ease,
     box-shadow 180ms ease;
 }
@@ -658,24 +452,88 @@
   grid-template-columns: 2.25rem 0;
   gap: 0;
   width: 2.25rem;
+  min-height: 2.25rem;
   justify-self: center;
   background: transparent;
-  border-color: transparent;
 }
 
-.drilldownLevelItem:has(.drilldownLevelIcon[aria-current]) {
-  border-color: var(--mantine-primary-color-filled);
-  box-shadow: inset 0 0 0 1px var(--mantine-primary-color-filled);
+.synthesisSection[data-treatment="native"] .drilldownLevelItem {
+  padding: 0.35rem;
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
 }
 
-.drilldownLevelCollapsed .drilldownLevelItem:has(.drilldownLevelIcon[aria-current]) {
+.synthesisSection[data-treatment="native"] .drilldownLevelItem:has(.drilldownLevelIcon[aria-current]) {
+  background: var(--mantine-color-default-hover);
+  box-shadow: inset 3px 0 var(--mantine-primary-color-filled);
+}
+
+.synthesisSection[data-treatment="index"] .drilldownLevelList {
+  gap: 0;
+}
+
+.synthesisSection[data-treatment="index"] .drilldownLevelItem {
+  min-height: 3.75rem;
+  padding: 0.25rem var(--mantine-spacing-sm);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.synthesisSection[data-treatment="index"] .drilldownLevelItem:has(.drilldownLevelIcon[aria-current]) {
+  background: var(--mantine-color-default-hover);
+  box-shadow: inset 3px 0 var(--mantine-primary-color-filled);
+}
+
+.synthesisSection[data-treatment="spine"] .drilldownLevelList {
+  gap: var(--mantine-spacing-xs);
+  padding-inline-start: 0.375rem;
+}
+
+.synthesisSection[data-treatment="spine"] .drilldownLevelList::before {
+  position: absolute;
+  z-index: 0;
+  top: 1.125rem;
+  bottom: 1.125rem;
+  left: 1.475rem;
+  width: 1px;
+  background: var(--mantine-color-default-border);
+  content: "";
+}
+
+.synthesisSection[data-treatment="spine"] .drilldownLevelItem {
+  z-index: 1;
+  min-height: 4.5rem;
+}
+
+.synthesisSection[data-treatment="spine"] .drilldownLevelChoice {
+  min-height: 3.5rem;
+  padding: var(--mantine-spacing-sm);
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.synthesisSection[data-treatment="spine"]
+  .drilldownLevelItem:has(.drilldownLevelIcon[aria-current])
+  .drilldownLevelChoice {
+  background: var(--mantine-color-default-hover);
+  box-shadow: inset 2px 0 var(--mantine-primary-color-filled);
+}
+
+.synthesisSection .drilldownLevelCollapsed .drilldownLevelItem {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
+}
+
+.synthesisSection[data-treatment="spine"] .drilldownLevelCollapsed .drilldownLevelList {
+  padding-inline-start: 0;
 }
 
 .drilldownLevelIcon,
 .drilldownLevelChoice,
-.drilldownLevelLabel,
-.drilldownLevelAdd {
+.drilldownLevelLabel {
   display: grid;
   min-width: 0;
   padding: 0;
@@ -701,17 +559,16 @@
 .drilldownLevelChoice:hover,
 .drilldownLevelChoice:focus-visible,
 .drilldownLevelLabel:hover,
-.drilldownLevelLabel:focus-visible,
-.drilldownLevelAdd:hover,
-.drilldownLevelAdd:focus-visible {
+.drilldownLevelLabel:focus-visible {
   color: var(--mantine-primary-color-filled);
-  background: color-mix(in srgb, var(--mantine-primary-color-filled) 10%, transparent);
-  outline: none;
+  background: var(--mantine-color-default-hover);
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
 }
 
 .drilldownLevelIcon[aria-current] {
   color: var(--mantine-primary-color-filled);
-  background: color-mix(in srgb, var(--mantine-primary-color-filled) 14%, var(--mantine-color-body));
+  background: var(--mantine-color-default-hover);
 }
 
 .drilldownLevelIcon:active {
@@ -735,33 +592,24 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--mantine-spacing-xs);
   align-items: center;
-  padding-inline-end: var(--mantine-spacing-sm);
+  height: 100%;
+  padding: var(--mantine-spacing-sm);
   overflow: hidden;
   text-align: start;
   opacity: 1;
   transition: opacity 180ms ease 100ms;
 }
 
-.drilldownLevelChoice > span {
-  display: grid;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.drilldownLevelChoice strong,
-.drilldownLevelChoice small {
+.drilldownLevelChoice strong {
   overflow: hidden;
+  min-width: 0;
+  font-size: var(--mantine-font-size-sm);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.drilldownLevelChoice strong {
-  font-size: var(--mantine-font-size-sm);
-}
-
-.drilldownLevelChoice small {
-  color: var(--mantine-color-dimmed);
-  font-size: var(--mantine-font-size-xs);
+.drilldownLevelChoice :global(.mantine-Badge-root) {
+  flex: 0 0 auto;
 }
 
 .drilldownLevelCollapsed .drilldownLevelChoice,
@@ -771,18 +619,37 @@
   transition-delay: 0ms;
 }
 
+.drilldownLevelFooter {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+  padding-top: var(--mantine-spacing-md);
+  border-top: 1px solid var(--mantine-color-default-border);
+  transition:
+    gap 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .drilldownLevelLabel {
-  align-items: end;
-  justify-items: center;
-  min-height: 4rem;
-  padding-bottom: var(--mantine-spacing-sm);
+  place-items: end center;
+  max-height: 0;
+  min-height: 0;
+  overflow: hidden;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 120ms ease;
+  transition:
+    max-height 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 120ms ease;
+}
+
+.drilldownLevelCollapsed .drilldownLevelFooter {
+  gap: 0.75rem;
+  padding: 0.75rem 0.375rem 0;
 }
 
 .drilldownLevelCollapsed .drilldownLevelLabel {
-  padding-bottom: 0;
+  max-height: 4rem;
+  min-height: 4rem;
   opacity: 1;
   pointer-events: auto;
   transition-delay: 180ms;
@@ -796,35 +663,39 @@
   transform: rotate(180deg);
 }
 
-.drilldownLevelAdd {
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--mantine-spacing-xs);
+.drilldownAddSlot {
+  display: grid;
   place-items: center;
-  height: 3rem;
-  padding-inline: var(--mantine-spacing-sm);
-  color: var(--mantine-primary-color-filled);
-  border-top: 1px solid var(--mantine-color-default-border);
+  min-width: 0;
 }
 
-.drilldownLevelAdd span {
-  overflow: hidden;
-  font-size: var(--mantine-font-size-sm);
-  font-weight: 700;
-  text-align: start;
-  white-space: nowrap;
-  opacity: 1;
-  transition: opacity 160ms ease 100ms;
+.drilldownAddSlot > * {
+  grid-area: 1 / 1;
 }
 
-.drilldownLevelCollapsed .drilldownLevelAdd {
-  grid-template-columns: 1fr 0;
-  gap: 0;
-  padding-inline: 0;
+.drilldownExpandedAdd,
+.drilldownCollapsedAdd {
+  transition: opacity 160ms ease;
 }
 
-.drilldownLevelCollapsed .drilldownLevelAdd span {
+.drilldownExpandedAdd {
+  width: 100%;
+}
+
+.drilldownCollapsedAdd {
   opacity: 0;
-  transition-delay: 0ms;
+  pointer-events: none;
+}
+
+.drilldownLevelCollapsed .drilldownExpandedAdd {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drilldownLevelCollapsed .drilldownCollapsedAdd {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 180ms;
 }
 
 .drilldownControls {
@@ -882,12 +753,6 @@
   width: auto;
   max-width: 100%;
   height: var(--combined-height);
-}
-
-.cataloguePreview {
-  display: grid;
-  min-width: 0;
-  place-items: start center;
 }
 
 .documentPage {
@@ -980,8 +845,44 @@
 }
 
 .sharedPreviewBlocks > [data-selected="true"] {
-  outline: 0.8cqi solid #d17731;
-  outline-offset: 0.8cqi;
+  position: relative;
+}
+
+.documentPage[data-highlight="native"] .sharedPreviewBlocks > [data-selected="true"] {
+  background-color: var(--mantine-primary-color-light);
+  box-shadow: inset 0.7cqi 0 var(--mantine-primary-color-filled);
+}
+
+.documentPage[data-highlight="index"] .sharedPreviewBlocks > [data-selected="true"] {
+  background-color: var(--mantine-color-default-hover);
+}
+
+.documentPage[data-highlight="index"] .sharedPreviewBlocks > [data-selected="true"]::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3.5cqi;
+  width: 0.7cqi;
+  background: var(--mantine-primary-color-filled);
+  border-radius: 999px;
+  content: "";
+  pointer-events: none;
+}
+
+.documentPage[data-highlight="spine"] .sharedPreviewBlocks > [data-selected="true"] {
+  background-color: var(--mantine-primary-color-light);
+}
+
+.documentPage[data-highlight="spine"] .sharedPreviewBlocks > [data-selected="true"]::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3.5cqi;
+  width: 2cqi;
+  border-block: 0.35cqi solid var(--mantine-primary-color-filled);
+  border-inline-start: 0.7cqi solid var(--mantine-primary-color-filled);
+  content: "";
+  pointer-events: none;
 }
 
 .recipeRuleGroup {
@@ -1073,24 +974,6 @@
 }
 
 @container catalogue-prototype (max-width: 70rem) {
-  .threePaneWorkspace {
-    grid-template-columns: minmax(14rem, 0.8fr) minmax(19rem, 1.2fr);
-  }
-
-  .threePaneWorkspace > .inspectorPane {
-    grid-column: 1 / -1;
-    padding-block-start: var(--mantine-spacing-lg);
-    padding-inline-start: 0;
-    border-top: 1px solid var(--mantine-color-default-border);
-    border-inline-start: 0;
-  }
-
-  .documentFirstWorkspace,
-  .focusedWorkspace {
-    grid-template-columns: minmax(20rem, 1fr) minmax(22rem, 0.9fr);
-    gap: var(--mantine-spacing-lg);
-  }
-
   .combinedStickyFrame {
     grid-template-columns: minmax(21rem, 0.9fr) minmax(24rem, 1.1fr);
   }
@@ -1109,19 +992,6 @@
   .prototypeHeading {
     align-items: flex-start;
     flex-wrap: wrap;
-  }
-
-  .threePaneWorkspace,
-  .documentFirstWorkspace,
-  .focusedWorkspace {
-    grid-template-columns: 1fr;
-  }
-
-  .threePaneWorkspace > section + section {
-    padding-block-start: var(--mantine-spacing-lg);
-    padding-inline-start: 0;
-    border-top: 1px solid var(--mantine-color-default-border);
-    border-inline-start: 0;
   }
 
   .combinedViewport {

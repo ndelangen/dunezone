@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Accordion, Alert, Badge, Box, Button, Group, Stack, Text } from '@mantine/core';
+import { Accordion, Alert, Badge, Box, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult } from '@shared/formattedText';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from '@shared/rulebooks/contents';
@@ -9,6 +9,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { SortableItem } from '@ui/control/SortableItem';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -16,10 +17,9 @@ import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   BookOpenText,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
+  CircleHelp,
   FileImage,
   ListTree,
   MessageSquareQuote,
@@ -27,7 +27,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { Fragment, useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import styles from './edit.module.css';
 import { createRulebookEditorStateManager } from './edit/-rulebookEditorState';
@@ -39,16 +39,17 @@ type PreviewFit = 'height' | 'width';
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 type FormattedBlock = FormattedTextParseResult['blocks'][number];
 type FormattedInline = Extract<FormattedBlock, { kind: 'paragraph' }>['children'][number];
-const catalogueVariants = ['blocks', 'sections', 'recipes', 'synthesis'] as const;
+const catalogueVariants = ['native', 'index', 'spine'] as const;
 type CatalogueVariant = (typeof catalogueVariants)[number];
 
-/* Four interaction models for the same authoring scenario, switchable through `?variant=`. */
+/* Three treatments of the sliding drill-down editor, switchable through `?variant=`. */
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit')({
-  validateSearch: (search: Record<string, unknown>): { variant?: CatalogueVariant } => ({
-    variant: catalogueVariants.includes(search.variant as CatalogueVariant)
-      ? (search.variant as CatalogueVariant)
-      : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { variant?: CatalogueVariant } => {
+    const requested = search.variant === 'synthesis' ? 'native' : search.variant;
+    return {
+      variant: catalogueVariants.includes(requested as CatalogueVariant) ? (requested as CatalogueVariant) : undefined,
+    };
+  },
   component: RulebookEditorPage,
 });
 
@@ -580,7 +581,7 @@ function ScenarioBrief() {
     <Surface className={styles.scenarioBrief} padding="md" as="section" aria-label="Shared comparison scenario">
       <div>
         <Text size="xs" fw={700} tt="uppercase" className={styles.sectionLabel}>
-          Same scenario in every prototype
+          Same flow in every variation
         </Text>
         <Text size="sm">A starter rulebook already contains three pages and dummy content.</Text>
       </div>
@@ -602,81 +603,6 @@ function ScenarioBrief() {
         </Badge>
       </Group>
     </Surface>
-  );
-}
-
-function MoveActions({
-  label,
-  index,
-  count,
-  move,
-}: {
-  label: string;
-  index: number;
-  count: number;
-  move: (offset: number) => void;
-}) {
-  return (
-    <span className={styles.moveActions}>
-      <button disabled={index === 0} aria-label={`Move ${label} up`} onClick={() => move(-1)}>
-        <ChevronUp size={14} aria-hidden />
-      </button>
-      <button disabled={index === count - 1} aria-label={`Move ${label} down`} onClick={() => move(1)}>
-        <ChevronDown size={14} aria-hidden />
-      </button>
-    </span>
-  );
-}
-
-function PageList({ model }: { model: PrototypeDocument }) {
-  return (
-    <div className={styles.studyList}>
-      {model.pages.map((page, index) => (
-        <div className={styles.studyListRow} data-selected={page.id === model.activePage.id} key={page.id}>
-          <button className={styles.studyListChoice} onClick={() => model.selectPage(page.id)}>
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <span>
-              <strong>{page.title}</strong>
-              <small>{page.recipe}</small>
-            </span>
-          </button>
-          <MoveActions
-            label={`page ${page.title}`}
-            index={index}
-            count={model.pages.length}
-            move={(offset) => model.movePage(page.id, offset)}
-          />
-        </div>
-      ))}
-      <Button variant="light" leftSection={<Plus size={16} />} onClick={model.addPage}>
-        Add rules page
-      </Button>
-    </div>
-  );
-}
-
-function BlockList({ model, inline = false }: { model: PrototypeDocument; inline?: boolean }) {
-  return (
-    <div className={styles.studyList} data-inline={inline}>
-      {model.activePage.blocks.map((block, index) => (
-        <div className={styles.blockStudyRow} data-selected={block.id === model.selectedBlockId} key={block.id}>
-          <button className={styles.blockStudyChoice} onClick={() => model.setSelectedBlockId(block.id)}>
-            <span>{blockKindNames[block.kind]}</span>
-            <strong>{block.title}</strong>
-            <small>{block.body}</small>
-          </button>
-          <MoveActions
-            label={`block ${block.title}`}
-            index={index}
-            count={model.activePage.blocks.length}
-            move={(offset) => model.moveBlock(block.id, offset)}
-          />
-        </div>
-      ))}
-      <Button variant="light" leftSection={<Plus size={16} />} onClick={() => model.addBlock()}>
-        Add worked example
-      </Button>
-    </div>
   );
 }
 
@@ -705,20 +631,13 @@ function BlockEditor({ model }: { model: PrototypeDocument }) {
   );
 }
 
-function SharedDocumentPreview({
-  model,
-  highlightSelected = false,
-  standalone = false,
-}: {
-  model: PrototypeDocument;
-  highlightSelected?: boolean;
-  standalone?: boolean;
-}) {
+function SharedDocumentPreview({ model, treatment }: { model: PrototypeDocument; treatment: CatalogueVariant }) {
   const pageNumber = model.pages.findIndex((page) => page.id === model.activePage.id) + 1;
-  const page = (
+  return (
     <article
-      className={standalone ? `${styles.documentPage} ${styles.previewSurface}` : styles.documentPage}
-      aria-label={standalone ? 'Rulebook page preview' : undefined}
+      className={`${styles.documentPage} ${styles.previewSurface}`}
+      data-highlight={treatment}
+      aria-label="Rulebook page preview"
     >
       <div className={styles.documentFolio}>
         {model.activePage.recipe} / {String(pageNumber).padStart(2, '0')}
@@ -729,25 +648,21 @@ function SharedDocumentPreview({
           block.kind === 'asset-figure' ? (
             <section
               className={styles.previewAssetBlock}
-              data-selected={highlightSelected && block.id === model.selectedBlockId}
+              data-selected={block.id === model.selectedBlockId}
               key={block.id}
             >
               <AssetImagePlaceholder label={block.title} />
               <p>{block.body}</p>
             </section>
           ) : block.kind === 'worked-example' ? (
-            <aside
-              className={styles.documentCallout}
-              data-selected={highlightSelected && block.id === model.selectedBlockId}
-              key={block.id}
-            >
+            <aside className={styles.documentCallout} data-selected={block.id === model.selectedBlockId} key={block.id}>
               <strong>{block.title}</strong>
               <span>{block.body}</span>
             </aside>
           ) : (
             <section
               className={styles.recipeRuleGroup}
-              data-selected={highlightSelected && block.id === model.selectedBlockId}
+              data-selected={block.id === model.selectedBlockId}
               key={block.id}
             >
               <span>{blockKindNames[block.kind]}</span>
@@ -758,14 +673,6 @@ function SharedDocumentPreview({
         )}
       </div>
     </article>
-  );
-  if (standalone) {
-    return page;
-  }
-  return (
-    <section className={styles.cataloguePreview} aria-label="Shared rulebook page preview">
-      {page}
-    </section>
   );
 }
 
@@ -800,139 +707,6 @@ function PrototypeHeading({
   );
 }
 
-function ComposableBlocksVariant() {
-  const model = usePrototypeDocument();
-  return (
-    <Stack gap="md">
-      <ScenarioBrief />
-      <Surface padding="lg" as="section">
-        <PrototypeHeading
-          label="1"
-          title="Three-pane workspace"
-          description="Pages, block structure, and the selected block stay visible together."
-          reset={model.reset}
-        />
-        <div className={styles.threePaneWorkspace}>
-          <section>
-            <Text fw={700} size="sm" mb="xs">
-              Pages
-            </Text>
-            <PageList model={model} />
-          </section>
-          <section>
-            <Text fw={700} size="sm" mb="xs">
-              Blocks on {model.activePage.title}
-            </Text>
-            <BlockList model={model} />
-          </section>
-          <section className={styles.inspectorPane}>
-            <Text fw={700} size="sm" mb="xs">
-              Selected block
-            </Text>
-            <BlockEditor model={model} />
-          </section>
-        </div>
-      </Surface>
-      <SharedDocumentPreview model={model} />
-    </Stack>
-  );
-}
-
-function SemanticSectionsVariant() {
-  const model = usePrototypeDocument();
-  return (
-    <Stack gap="md">
-      <ScenarioBrief />
-      <Surface padding="lg" as="section">
-        <PrototypeHeading
-          label="2"
-          title="Document-first canvas"
-          description="Pages sit above the document. Blocks are selected and reordered where they appear."
-          reset={model.reset}
-        />
-        <div className={styles.pageStrip}>
-          <PageList model={model} />
-        </div>
-        <div className={styles.documentFirstWorkspace}>
-          <section>
-            <Group justify="space-between" mb="xs">
-              <Text fw={700} size="sm">
-                Page contents
-              </Text>
-              <Badge color="gray" variant="outline">
-                {model.activePage.recipe}
-              </Badge>
-            </Group>
-            <BlockList model={model} inline />
-          </section>
-          <section className={styles.documentFirstSide}>
-            <Surface padding="md" as="section">
-              <Text fw={700} size="sm" mb="xs">
-                Edit selected block
-              </Text>
-              <BlockEditor model={model} />
-            </Surface>
-            <SharedDocumentPreview model={model} />
-          </section>
-        </div>
-      </Surface>
-    </Stack>
-  );
-}
-
-function PageRecipesVariant() {
-  const model = usePrototypeDocument();
-  const [step, setStep] = useState<'pages' | 'blocks' | 'content'>('blocks');
-  return (
-    <Stack gap="md">
-      <ScenarioBrief />
-      <Surface padding="lg" as="section">
-        <PrototypeHeading
-          label="3"
-          title="Focused steps"
-          description="Work on pages, block order, or content in a dedicated step. The preview remains beside the task."
-          reset={model.reset}
-        />
-        <div className={styles.stepTabs} role="tablist" aria-label="Authoring step">
-          {(['pages', 'blocks', 'content'] as const).map((candidate, index) => (
-            <button aria-selected={step === candidate} onClick={() => setStep(candidate)} role="tab" key={candidate}>
-              <span>{index + 1}</span>
-              {candidate === 'pages' ? 'Pages' : candidate === 'blocks' ? 'Blocks' : 'Content'}
-            </button>
-          ))}
-        </div>
-        <div className={styles.focusedWorkspace}>
-          <section className={styles.focusedTask}>
-            {step === 'pages' ? (
-              <>
-                <Text fw={700} mb="xs">
-                  Choose, add, or reorder a page
-                </Text>
-                <PageList model={model} />
-              </>
-            ) : step === 'blocks' ? (
-              <>
-                <Text fw={700} mb="xs">
-                  Arrange blocks on {model.activePage.title}
-                </Text>
-                <BlockList model={model} />
-              </>
-            ) : (
-              <>
-                <Text fw={700} mb="xs">
-                  Edit the selected block
-                </Text>
-                <BlockEditor model={model} />
-              </>
-            )}
-          </section>
-          <SharedDocumentPreview model={model} />
-        </div>
-      </Surface>
-    </Stack>
-  );
-}
-
 type DrilldownDepth = 'pages' | 'blocks' | 'controls';
 
 const drilldownDepthClassNames: Record<DrilldownDepth, string> = {
@@ -941,7 +715,87 @@ const drilldownDepthClassNames: Record<DrilldownDepth, string> = {
   controls: styles.drilldownSidebarControls,
 };
 
-function SlidingDrilldownVariant() {
+const treatmentPresentation: Record<CatalogueVariant, { label: string; title: string; description: string }> = {
+  native: {
+    label: '4A',
+    title: 'Quiet navigator',
+    description: 'Native navigation rows with a soft wash marking the block being edited.',
+  },
+  index: {
+    label: '4B',
+    title: 'Editorial index',
+    description: 'An open outline with hairline separators and a proofreader marker in the preview.',
+  },
+  spine: {
+    label: '4C',
+    title: 'Navigator spine',
+    description: 'Page and block cards attach to the same icon spine they collapse into.',
+  },
+};
+
+function DrilldownTooltip({
+  title,
+  details,
+  children,
+}: {
+  title: string;
+  details: readonly string[];
+  children: ReactElement;
+}) {
+  return (
+    <Tooltip
+      label={
+        <Stack gap={1}>
+          <Text size="xs" fw={700}>
+            {title}
+          </Text>
+          {details.map((detail) => (
+            <Text size="xs" key={detail}>
+              {detail}
+            </Text>
+          ))}
+        </Stack>
+      }
+      position="right"
+      openDelay={250}
+      withArrow
+      multiline
+      maw={260}
+    >
+      {children}
+    </Tooltip>
+  );
+}
+
+function DrilldownLevelChoice({
+  title,
+  metadata,
+  active,
+  tabIndex,
+  onClick,
+}: {
+  title: string;
+  metadata: string;
+  active: boolean;
+  tabIndex: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={styles.drilldownLevelChoice}
+      aria-current={active ? 'true' : undefined}
+      tabIndex={tabIndex}
+      onClick={onClick}
+    >
+      <strong>{title}</strong>
+      <Badge color="gray" variant="outline" size="sm">
+        {metadata}
+      </Badge>
+    </button>
+  );
+}
+
+function SlidingDrilldownVariant({ treatment }: { treatment: CatalogueVariant }) {
   const model = usePrototypeDocument();
   const [depth, setDepth] = useState<DrilldownDepth>('controls');
   const sensors = useSensors(
@@ -961,6 +815,18 @@ function SlidingDrilldownVariant() {
     model.reset();
     setDepth('controls');
   };
+  const addPage = () => {
+    model.addPage();
+    if (depth !== 'pages') {
+      setDepth('blocks');
+    }
+  };
+  const addBlock = () => {
+    model.addBlock();
+    if (depth === 'blocks') {
+      setDepth('controls');
+    }
+  };
   const onPageDragEnd = ({ active, over }: DragEndEvent) => {
     const sourceIndex = model.pages.findIndex((page) => page.id === active.id);
     const targetIndex = over ? model.pages.findIndex((page) => page.id === over.id) : -1;
@@ -979,11 +845,11 @@ function SlidingDrilldownVariant() {
   return (
     <Stack gap="md">
       <ScenarioBrief />
-      <section className={styles.synthesisSection}>
+      <section className={styles.synthesisSection} data-treatment={treatment}>
         <PrototypeHeading
-          label="4"
-          title="Sliding drill-down"
-          description="Pages and blocks collapse into sortable quick-navigation rails as the sidebar drills down to the selected block's controls."
+          label={treatmentPresentation[treatment].label}
+          title={treatmentPresentation[treatment].title}
+          description={treatmentPresentation[treatment].description}
           reset={reset}
         />
         <div className={styles.combinedViewport}>
@@ -999,15 +865,19 @@ function SlidingDrilldownVariant() {
                 aria-label="Pages panel"
               >
                 <div className={styles.drilldownLevelHeading}>
-                  <div>
-                    <Text fw={700}>Pages</Text>
-                    <Text size="xs" c="dimmed">
-                      Drag to reorder, then choose a page.
-                    </Text>
-                  </div>
-                  <Badge color="gray" variant="outline">
-                    {model.pages.length}
-                  </Badge>
+                  <Text fw={700}>Pages</Text>
+                  <Group gap={4} wrap="nowrap">
+                    <Badge color="gray" variant="outline">
+                      {model.pages.length}
+                    </Badge>
+                    <IconAction
+                      label="About page ordering"
+                      tooltip="Drag a page icon to reorder pages. Choose a page to open its blocks."
+                      icon={<CircleHelp size={15} aria-hidden />}
+                      size="sm"
+                      variant="subtle"
+                    />
+                  </Group>
                 </div>
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onPageDragEnd}>
                   <SortableContext items={model.pages.map((page) => page.id)} strategy={verticalListSortingStrategy}>
@@ -1016,32 +886,33 @@ function SlidingDrilldownVariant() {
                         <SortableItem className={styles.drilldownLevelItem} id={page.id} key={page.id}>
                           {({ setActivatorNodeRef, attributes, listeners }) => (
                             <>
-                              <button
-                                ref={setActivatorNodeRef}
-                                className={styles.drilldownLevelIcon}
-                                aria-current={page.id === model.activePage.id ? 'page' : undefined}
-                                aria-label={`${page.title}. Page ${index + 1}. Drag to reorder or click to select.`}
-                                title={`${page.title} · ${page.recipe}`}
-                                onClick={() => (depth === 'pages' ? selectPage(page.id) : model.selectPage(page.id))}
-                                {...attributes}
-                                {...listeners}
+                              <DrilldownTooltip
+                                title={page.title}
+                                details={[
+                                  `Page ${index + 1} · ${page.recipe}`,
+                                  `${page.blocks.length} ${page.blocks.length === 1 ? 'block' : 'blocks'}`,
+                                ]}
                               >
-                                <PageLayoutIcon recipe={page.recipe} />
-                                <span>{index + 1}</span>
-                              </button>
-                              <button
-                                className={styles.drilldownLevelChoice}
+                                <button
+                                  ref={setActivatorNodeRef}
+                                  className={styles.drilldownLevelIcon}
+                                  aria-current={page.id === model.activePage.id ? 'page' : undefined}
+                                  aria-label={`${page.title}. Page ${index + 1}. Drag to reorder or click to select.`}
+                                  onClick={() => (depth === 'pages' ? selectPage(page.id) : model.selectPage(page.id))}
+                                  {...attributes}
+                                  {...listeners}
+                                >
+                                  <PageLayoutIcon recipe={page.recipe} />
+                                  <span>{index + 1}</span>
+                                </button>
+                              </DrilldownTooltip>
+                              <DrilldownLevelChoice
+                                title={page.title}
+                                metadata={page.recipe}
+                                active={page.id === model.activePage.id}
                                 tabIndex={depth === 'pages' ? 0 : -1}
                                 onClick={() => selectPage(page.id)}
-                              >
-                                <span>
-                                  <strong>{page.title}</strong>
-                                  <small>
-                                    {String(index + 1).padStart(2, '0')} · {page.recipe}
-                                  </small>
-                                </span>
-                                <ChevronRight size={16} aria-hidden />
-                              </button>
+                              />
                             </>
                           )}
                         </SortableItem>
@@ -1049,27 +920,37 @@ function SlidingDrilldownVariant() {
                     </div>
                   </SortableContext>
                 </DndContext>
-                <button
-                  className={styles.drilldownLevelLabel}
-                  aria-label="Open pages"
-                  tabIndex={depth === 'pages' ? -1 : 0}
-                  onClick={() => setDepth('pages')}
-                >
-                  <span>Pages</span>
-                </button>
-                <button
-                  className={styles.drilldownLevelAdd}
-                  aria-label="Add rules page"
-                  onClick={() => {
-                    model.addPage();
-                    if (depth !== 'pages') {
-                      setDepth('blocks');
-                    }
-                  }}
-                >
-                  <Plus size={20} aria-hidden />
-                  <span>Add rules page</span>
-                </button>
+                <div className={styles.drilldownLevelFooter}>
+                  <button
+                    className={styles.drilldownLevelLabel}
+                    aria-label="Open pages"
+                    tabIndex={depth === 'pages' ? -1 : 0}
+                    onClick={() => setDepth('pages')}
+                  >
+                    <span>Pages</span>
+                  </button>
+                  <div className={styles.drilldownAddSlot}>
+                    <Button
+                      className={styles.drilldownExpandedAdd}
+                      color="confirm"
+                      size="sm"
+                      leftSection={<Plus size={15} aria-hidden />}
+                      fullWidth
+                      onClick={addPage}
+                    >
+                      Add page
+                    </Button>
+                    <IconAction
+                      className={styles.drilldownCollapsedAdd}
+                      label="Add page"
+                      icon={<Plus size={15} aria-hidden />}
+                      color="confirm"
+                      variant="light"
+                      size="sm"
+                      onClick={addPage}
+                    />
+                  </div>
+                </div>
               </section>
               <section
                 className={`${styles.drilldownLevel} ${styles.drilldownBlocksLevel} ${depth === 'controls' ? styles.drilldownLevelCollapsed : ''} ${depth === 'pages' ? styles.drilldownLevelHidden : ''}`}
@@ -1078,15 +959,21 @@ function SlidingDrilldownVariant() {
                 inert={depth === 'pages'}
               >
                 <div className={styles.drilldownLevelHeading}>
-                  <div>
-                    <Text fw={700}>{model.activePage.title}</Text>
-                    <Text size="xs" c="dimmed">
-                      Drag blocks to reorder them.
-                    </Text>
-                  </div>
-                  <Badge color="gray" variant="outline">
-                    {model.activePage.blocks.length}
-                  </Badge>
+                  <Text fw={700} truncate>
+                    {model.activePage.title}
+                  </Text>
+                  <Group gap={4} wrap="nowrap">
+                    <Badge color="gray" variant="outline">
+                      {model.activePage.blocks.length}
+                    </Badge>
+                    <IconAction
+                      label="About block ordering"
+                      tooltip="Drag a block icon to reorder blocks. Choose a block to edit it."
+                      icon={<CircleHelp size={15} aria-hidden />}
+                      size="sm"
+                      variant="subtle"
+                    />
+                  </Group>
                 </div>
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBlockDragEnd}>
                   <SortableContext
@@ -1098,31 +985,31 @@ function SlidingDrilldownVariant() {
                         <SortableItem className={styles.drilldownLevelItem} id={block.id} key={block.id}>
                           {({ setActivatorNodeRef, attributes, listeners }) => (
                             <>
-                              <button
-                                ref={setActivatorNodeRef}
-                                className={styles.drilldownLevelIcon}
-                                aria-current={block.id === model.selectedBlockId ? 'true' : undefined}
-                                aria-label={`${block.title}. ${blockKindNames[block.kind]}. Drag to reorder or click to select.`}
-                                title={`${block.title} · ${blockKindNames[block.kind]}`}
-                                onClick={() =>
-                                  depth === 'blocks' ? selectBlock(block.id) : model.setSelectedBlockId(block.id)
-                                }
-                                {...attributes}
-                                {...listeners}
+                              <DrilldownTooltip
+                                title={block.title}
+                                details={[blockKindNames[block.kind], model.activePage.title]}
                               >
-                                <BlockKindIcon kind={block.kind} />
-                              </button>
-                              <button
-                                className={styles.drilldownLevelChoice}
+                                <button
+                                  ref={setActivatorNodeRef}
+                                  className={styles.drilldownLevelIcon}
+                                  aria-current={block.id === model.selectedBlockId ? 'true' : undefined}
+                                  aria-label={`${block.title}. ${blockKindNames[block.kind]}. Drag to reorder or click to select.`}
+                                  onClick={() =>
+                                    depth === 'blocks' ? selectBlock(block.id) : model.setSelectedBlockId(block.id)
+                                  }
+                                  {...attributes}
+                                  {...listeners}
+                                >
+                                  <BlockKindIcon kind={block.kind} />
+                                </button>
+                              </DrilldownTooltip>
+                              <DrilldownLevelChoice
+                                title={block.title}
+                                metadata={blockKindNames[block.kind]}
+                                active={block.id === model.selectedBlockId}
                                 tabIndex={depth === 'blocks' ? 0 : -1}
                                 onClick={() => selectBlock(block.id)}
-                              >
-                                <span>
-                                  <strong>{block.title}</strong>
-                                  <small>{blockKindNames[block.kind]}</small>
-                                </span>
-                                <ChevronRight size={16} aria-hidden />
-                              </button>
+                              />
                             </>
                           )}
                         </SortableItem>
@@ -1130,27 +1017,37 @@ function SlidingDrilldownVariant() {
                     </div>
                   </SortableContext>
                 </DndContext>
-                <button
-                  className={styles.drilldownLevelLabel}
-                  aria-label="Open blocks"
-                  tabIndex={depth === 'controls' ? 0 : -1}
-                  onClick={() => setDepth('blocks')}
-                >
-                  <span>Blocks</span>
-                </button>
-                <button
-                  className={styles.drilldownLevelAdd}
-                  aria-label="Add worked example"
-                  onClick={() => {
-                    model.addBlock();
-                    if (depth === 'blocks') {
-                      setDepth('controls');
-                    }
-                  }}
-                >
-                  <Plus size={20} aria-hidden />
-                  <span>Add worked example</span>
-                </button>
+                <div className={styles.drilldownLevelFooter}>
+                  <button
+                    className={styles.drilldownLevelLabel}
+                    aria-label="Open blocks"
+                    tabIndex={depth === 'controls' ? 0 : -1}
+                    onClick={() => setDepth('blocks')}
+                  >
+                    <span>Blocks</span>
+                  </button>
+                  <div className={styles.drilldownAddSlot}>
+                    <Button
+                      className={styles.drilldownExpandedAdd}
+                      color="confirm"
+                      size="sm"
+                      leftSection={<Plus size={15} aria-hidden />}
+                      fullWidth
+                      onClick={addBlock}
+                    >
+                      Add block
+                    </Button>
+                    <IconAction
+                      className={styles.drilldownCollapsedAdd}
+                      label="Add block"
+                      icon={<Plus size={15} aria-hidden />}
+                      color="confirm"
+                      variant="light"
+                      size="sm"
+                      onClick={addBlock}
+                    />
+                  </div>
+                </div>
               </section>
               <section
                 className={`${styles.drilldownControls} ${depth === 'controls' ? '' : styles.drilldownControlsHidden}`}
@@ -1161,18 +1058,18 @@ function SlidingDrilldownVariant() {
                 <div className={styles.drawerHeading}>
                   <div className={styles.drawerEntityTitle}>
                     {model.selectedBlock ? <BlockKindIcon kind={model.selectedBlock.kind} size={20} /> : null}
-                    <div>
-                      <Text fw={700}>{model.selectedBlock?.title ?? 'Select a block'}</Text>
-                      <Text size="xs" c="dimmed">
-                        {model.selectedBlock ? blockKindNames[model.selectedBlock.kind] : model.activePage.title}
-                      </Text>
-                    </div>
+                    <Text fw={700}>{model.selectedBlock?.title ?? 'Select a block'}</Text>
+                    {model.selectedBlock ? (
+                      <Badge color="gray" variant="outline" size="sm">
+                        {blockKindNames[model.selectedBlock.kind]}
+                      </Badge>
+                    ) : null}
                   </div>
                 </div>
                 <BlockEditor model={model} />
               </section>
             </Surface>
-            <SharedDocumentPreview model={model} highlightSelected standalone />
+            <SharedDocumentPreview model={model} treatment={treatment} />
           </div>
           <div className={styles.combinedStickyRunway} aria-hidden />
         </div>
@@ -1182,10 +1079,9 @@ function SlidingDrilldownVariant() {
 }
 
 const variantLabels: Record<CatalogueVariant, string> = {
-  blocks: '1  Three-pane workspace',
-  sections: '2  Document-first canvas',
-  recipes: '3  Focused steps',
-  synthesis: '4  Sliding drill-down',
+  native: '4A  Quiet navigator',
+  index: '4B  Editorial index',
+  spine: '4C  Navigator spine',
 };
 
 function PrototypeSwitcher({
@@ -1251,7 +1147,7 @@ function CataloguePrototypePage({ variant }: { variant: CatalogueVariant }) {
         <Group gap="sm" wrap="nowrap">
           <BookOpenText size={24} aria-hidden />
           <div>
-            <PageTitle title="Rulebook authoring comparison" />
+            <PageTitle title="Sliding rulebook editor comparison" />
             <Text size="xs" c="dimmed">
               {rulesetSlug} / {rulebookSlug}
             </Text>
@@ -1266,7 +1162,7 @@ function CataloguePrototypePage({ variant }: { variant: CatalogueVariant }) {
                 Throwaway prototype
               </Badge>
               <Text size="xs" c="dimmed">
-                The starting document, available actions, data, and preview are identical in all four prototypes.
+                The same sliding drill-down flow, tested with three navigation and preview treatments.
               </Text>
             </Group>
           </Toolbar.Left>
@@ -1279,15 +1175,7 @@ function CataloguePrototypePage({ variant }: { variant: CatalogueVariant }) {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <section className={styles.cataloguePrototype} aria-label="Rulebook authoring interaction comparison">
-          {variant === 'blocks' ? (
-            <ComposableBlocksVariant />
-          ) : variant === 'sections' ? (
-            <SemanticSectionsVariant />
-          ) : variant === 'recipes' ? (
-            <PageRecipesVariant />
-          ) : (
-            <SlidingDrilldownVariant />
-          )}
+          <SlidingDrilldownVariant treatment={variant} />
         </section>
         <PrototypeSwitcher variant={variant} select={select} />
       </PageLayout.Content>
