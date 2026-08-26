@@ -1,14 +1,10 @@
 import preview from '@sb/preview';
 
-import { StorybookPage } from './-storybook';
-import { pageStoryArgs, pageStoryGlobals, pageStoryParameters } from './-storybookConfig';
+import { pageStoryMeta } from './-storybookConfig';
 
 const meta = preview.meta({
   title: 'Rulesets',
-  component: StorybookPage,
-  args: pageStoryArgs,
-  parameters: pageStoryParameters,
-  globals: pageStoryGlobals,
+  ...pageStoryMeta,
 });
 
 export const Directory = meta.story({ args: { path: '/rulesets' } });

@@ -107,7 +107,6 @@ const meta = preview.meta({
     layout: 'fullscreen',
     database: db((baseline) => baseline),
   },
-  globals: { viewport: { value: 'appDesktop' } },
 });
 
 async function createThroughPage(canvasElement: HTMLElement) {
