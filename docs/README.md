@@ -144,9 +144,9 @@ the worker then applies the actual Convex schema. Invalid database state fails b
 renders. Identity is a separate `identity` parameter, and route or search parameters stay in the
 story's router setup rather than the database parameter.
 
-The page story runner builds a memory-history route around the real route component and loader. It
-does not mount the application's document wrapper inside Storybook. Add a visible route to
-`src/app/routes/-storybookRoutes.ts`, then select its key and URL from the relevant page story.
+The page story runner copies the complete application route tree into a memory router. It does not
+mount the application's document wrapper inside Storybook. Add a colocated page story and pass the
+route URL through `StorybookPage`'s `args.path`; route and search parameters belong in that URL.
 
 Use only variations that produce meaningfully different pages, including URL parameter cases when
 they change the result. A play function may exercise the page's normal mutations and navigation;

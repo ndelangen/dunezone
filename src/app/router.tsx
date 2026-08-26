@@ -4,7 +4,7 @@ import { isStaleClientData } from '@app/db/core/clientBoundary';
 
 import { routeTree } from './routeTree.gen';
 
-function AppErrorComponent({ error }: { error: Error }) {
+export function AppErrorComponent({ error }: { error: Error }) {
   if (isStaleClientData(error)) {
     return (
       <div role="alert" style={{ maxWidth: '28rem', margin: '4rem auto', textAlign: 'center' }}>

@@ -12,7 +12,7 @@ import type {
 } from 'convex/react';
 import { getFunctionName, makeFunctionReference } from 'convex/server';
 import type { FunctionArgs, FunctionReference, FunctionReturnType, PaginationResult } from 'convex/server';
-import { convexToJson } from 'convex/values';
+import { convexToJson, jsonToConvex } from 'convex/values';
 import type { Value as ConvexValue } from 'convex/values';
 import {
   createContext,
@@ -20,7 +20,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
@@ -167,11 +166,7 @@ function useConvexStorybookWorkerSession() {
 
 function useStableConvexValue<Value>(value: Value) {
   const serialized = JSON.stringify(convexToJson(value as ConvexValue));
-  const stable = useRef<{ serialized: string; value: Value } | undefined>(undefined);
-  if (!stable.current || stable.current.serialized !== serialized) {
-    stable.current = { serialized, value };
-  }
-  return stable.current.value;
+  return useMemo(() => jsonToConvex(JSON.parse(serialized)) as Value, [serialized]);
 }
 
 export function useConvexStorybookQuery<Query extends FunctionReference<'query'>>(

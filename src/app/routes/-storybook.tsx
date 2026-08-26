@@ -8,6 +8,7 @@ import {
 import type { AnyRoute } from '@tanstack/react-router';
 import { useMemo } from 'react';
 
+import { AppErrorComponent } from '../router';
 import { routeTree as applicationRouteTree } from '../routeTree.gen';
 
 function cloneRoute(source: AnyRoute, parent: AnyRoute): AnyRoute {
@@ -48,6 +49,7 @@ export function StorybookPage({ path }: Readonly<{ path: string }>) {
   const router = useMemo(
     () =>
       createRouter({
+        defaultErrorComponent: AppErrorComponent,
         history: createMemoryHistory({ initialEntries: [path] }),
         routeTree: cloneApplicationRouteTree(),
       }),
