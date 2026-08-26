@@ -52,7 +52,6 @@
 
 .pagesLevel,
 .structureLevel,
-.blocksLevel,
 .controlsPanel {
   flex-basis: 0;
   flex-grow: 0;
@@ -68,24 +67,15 @@
 
 .drilldownSidebarPages .pagesLevel,
 .drilldownSidebarPage .structureLevel,
-.drilldownSidebarBlocks .blocksLevel,
 .drilldownSidebarControls .controlsPanel {
   flex-grow: 1;
 }
 
 .drilldownSidebarPage .pagesLevel,
-.drilldownSidebarBlocks .pagesLevel,
 .drilldownSidebarControls .pagesLevel,
-.drilldownSidebarBlocks .structureLevel,
-.drilldownSidebarControls .structureLevel,
-.drilldownSidebarControls .blocksLevel {
+.drilldownSidebarControls .structureLevel {
   flex-basis: 3rem;
   flex-shrink: 0;
-}
-
-.drilldownSidebarWithoutBlocks .blocksLevel {
-  flex-basis: 0;
-  flex-shrink: 1;
 }
 
 .drilldownLevel {
@@ -200,14 +190,48 @@
   background: var(--mantine-color-default-hover);
 }
 
+.slotSeparatorIcon {
+  cursor: pointer;
+}
+
 .structureEmptySlot {
   align-self: center;
   justify-self: center;
   padding: var(--mantine-spacing-xs);
 }
 
-.levelCollapsed .structureBlockList,
 .levelHidden .structureBlockList {
+  display: none;
+}
+
+.levelCollapsed .structureSlotGroup {
+  gap: 0.2rem;
+}
+
+.levelCollapsed .structureBlockList {
+  gap: 0.2rem;
+  min-height: 0;
+  margin: 0;
+  padding: 0.15rem 0 0.4rem;
+  border: 0;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  border-radius: 0;
+  pointer-events: auto;
+}
+
+.levelCollapsed .structureBlockList[data-drop-state="allowed"] {
+  background: color-mix(in srgb, var(--mantine-color-confirm-filled) 12%, transparent);
+  outline: 1px solid var(--mantine-color-confirm-filled);
+  outline-offset: -1px;
+}
+
+.levelCollapsed .structureBlockList[data-drop-state="blocked"] {
+  background: color-mix(in srgb, var(--mantine-color-red-filled) 10%, transparent);
+  outline: 1px solid var(--mantine-color-red-filled);
+  outline-offset: -1px;
+}
+
+.levelCollapsed .structureEmptySlot {
   display: none;
 }
 
@@ -245,6 +269,12 @@
   border-radius: 0;
   box-shadow: none;
   pointer-events: auto;
+}
+
+.levelCollapsed .slotSeparatorItem {
+  margin-top: 0.2rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid var(--mantine-color-default-border);
 }
 
 .levelCollapsed .levelList {
@@ -694,7 +724,6 @@
 @media (prefers-reduced-motion: reduce) {
   .pagesLevel,
   .structureLevel,
-  .blocksLevel,
   .controlsPanel,
   .levelHeading,
   .levelItem,

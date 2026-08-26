@@ -47,7 +47,7 @@ import type { RulebookEditorResult, RulebookEditorStateManager } from './edit/-r
 import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.fixtures';
 
 type PreviewFit = 'height' | 'width';
-type DrilldownDepth = 'pages' | 'page' | 'blocks' | 'controls';
+type DrilldownDepth = 'pages' | 'page' | 'controls';
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 type EditorialPage = Extract<RulebookPageDraft, { layoutId: 'chapter-opener' | 'rules-page' | 'visual-reference' }>;
 type EditorialBlock = Extract<RulebookBlockDraft, { kind: 'rule-group' | 'worked-example' | 'asset-figure' }>;
@@ -178,7 +178,6 @@ const editorialSlotCatalogue: Record<PageLayoutId, readonly EditorialSlotDefinit
 const drilldownDepthClassNames: Record<DrilldownDepth, string> = {
   pages: styles.drilldownSidebarPages,
   page: styles.drilldownSidebarPage,
-  blocks: styles.drilldownSidebarBlocks,
   controls: styles.drilldownSidebarControls,
 };
 
@@ -522,7 +521,7 @@ function StructureBlockSlot({
       : activeTarget.kind === 'block' && blocks.some((block) => block.id === activeTarget.blockId);
   return (
     <div className={styles.structureSlotGroup}>
-      <div className={styles.levelItem}>
+      <div className={`${styles.levelItem} ${styles.slotSeparatorItem}`}>
         <DrilldownTooltip
           title={slot.label}
           details={[
@@ -532,7 +531,7 @@ function StructureBlockSlot({
         >
           <button
             type="button"
-            className={styles.levelIcon}
+            className={`${styles.levelIcon} ${styles.slotSeparatorIcon}`}
             aria-current={slotActive ? 'true' : undefined}
             aria-label={`Open ${slot.label} slot`}
             onClick={onOpenSlot}
@@ -767,7 +766,6 @@ function RulebookWorkspace({
   const blockSlot = activeSlot?.mode === 'blocks' ? activeSlot : undefined;
   const slotBlocks =
     activePage && blockSlot ? blocksForSlot(activePage, blockSlot, result.draft.blocksById, blockSlotAssignments) : [];
-  const slotBlockIds = slotBlocks.map((block) => block.id);
   const selectedBlock =
     target.kind === 'block' && activePage?.slots.body.includes(target.blockId)
       ? (result.draft.blocksById[target.blockId] as EditorialBlock | undefined)
@@ -834,9 +832,8 @@ function RulebookWorkspace({
       setDepth('controls');
       return;
     }
-    const firstBlock = blocksForSlot(activePage, slot, result.draft.blocksById, blockSlotAssignments)[0];
-    setTarget(firstBlock ? { kind: 'block', blockId: firstBlock.id } : { kind: 'slot', slotId: slot.id });
-    setDepth('blocks');
+    setTarget({ kind: 'slot', slotId: slot.id });
+    setDepth('page');
   };
   const openBlock = (blockId: string) => {
     setTarget({ kind: 'block', blockId });
@@ -868,7 +865,7 @@ function RulebookWorkspace({
     setTarget({ kind: 'page' });
     setDepth('controls');
   };
-  const createBlockInSlot = (kind: BlockKind, slot: BlockSlotDefinition, nextDepth: DrilldownDepth) => {
+  const createBlockInSlot = (kind: BlockKind, slot: BlockSlotDefinition) => {
     const blockId = `block-${globalThis.crypto.randomUUID()}`;
     dispatch({
       kind: 'create',
@@ -882,19 +879,14 @@ function RulebookWorkspace({
     setBlockSlotAssignments((current) => ({ ...current, [blockId]: slot.id }));
     setActiveSlotId(slot.id);
     setTarget({ kind: 'block', blockId });
-    setDepth(nextDepth);
-  };
-  const addBlock = (kind: BlockKind) => {
-    if (blockSlot) {
-      createBlockInSlot(kind, blockSlot, 'controls');
-    }
+    setDepth('page');
   };
   const addPageBlock = (kind: BlockKind) => {
     const slot = pageBlockSlots.find(
       (candidate) => candidate.acceptedBlockKinds.includes(kind) && slotHasRoom(candidate)
     );
     if (slot) {
-      createBlockInSlot(kind, slot, 'page');
+      createBlockInSlot(kind, slot);
     }
   };
   const deletePage = () => {
@@ -914,7 +906,7 @@ function RulebookWorkspace({
     if (!selectedBlock || !blockSlot) {
       return;
     }
-    const blockIndex = slotBlockIds.indexOf(selectedBlock.id);
+    const blockIndex = slotBlocks.findIndex((block) => block.id === selectedBlock.id);
     const nextBlock = slotBlocks[blockIndex + 1] ?? slotBlocks[blockIndex - 1];
     dispatch({ kind: 'delete', root: { kind: 'block', blockId: selectedBlock.id } });
     setBlockSlotAssignments((current) => {
@@ -923,7 +915,7 @@ function RulebookWorkspace({
       return next;
     });
     setTarget(nextBlock ? { kind: 'block', blockId: nextBlock.id } : { kind: 'slot', slotId: blockSlot.id });
-    setDepth('blocks');
+    setDepth(nextBlock ? 'controls' : 'page');
   };
   const onPageDragEnd = ({ active, over }: DragEndEvent) => {
     const sourceIndex = result.draft.pageOrder.indexOf(String(active.id));
@@ -937,23 +929,6 @@ function RulebookWorkspace({
       kind: 'place',
       target: { kind: 'page', pageId: String(active.id) },
       destination: { container: { kind: 'page-order' }, ...destinationForIndex(order, index) },
-    });
-  };
-  const onBlockDragEnd = ({ active, over }: DragEndEvent) => {
-    const sourceIndex = slotBlockIds.indexOf(String(active.id));
-    const targetIndex = over ? slotBlockIds.indexOf(String(over.id)) : -1;
-    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
-      return;
-    }
-    const order = arrayMove(slotBlockIds, sourceIndex, targetIndex);
-    const index = order.indexOf(String(active.id));
-    dispatch({
-      kind: 'place',
-      target: { kind: 'block', blockId: String(active.id) },
-      destination: {
-        container: { kind: 'page-slot', pageId: activePage.id, slotId: 'body' },
-        ...destinationForIndex(order, index),
-      },
     });
   };
   const onStructureBlockDragStart = ({ active }: DragStartEvent) => {
@@ -1020,8 +995,6 @@ function RulebookWorkspace({
     setActiveSlotId(targetSlot.id);
     setTarget({ kind: 'block', blockId: activeId });
   };
-  const slotIsFull =
-    blockSlot?.cardinality.maximum !== null && slotBlocks.length >= (blockSlot?.cardinality.maximum ?? Infinity);
   const controlsHeading = (() => {
     if (target.kind === 'page') {
       return { icon: <Link size={20} aria-hidden />, label: 'Page details' };
@@ -1041,7 +1014,6 @@ function RulebookWorkspace({
           (slot): slot is FieldSlotDefinition => slot.id === target.slotId && slot.mode === 'fields'
         )
       : undefined;
-  const showBlocksLevel = Boolean(blockSlot) && (depth !== 'controls' || target.kind === 'block');
 
   return (
     <Box
@@ -1056,7 +1028,7 @@ function RulebookWorkspace({
           padding="none"
           as="aside"
           aria-label="Rulebook outline and controls"
-          className={`${styles.drilldownSidebar} ${drilldownDepthClassNames[depth]} ${showBlocksLevel ? '' : styles.drilldownSidebarWithoutBlocks}`}
+          className={`${styles.drilldownSidebar} ${drilldownDepthClassNames[depth]}`}
         >
           <section
             className={`${styles.drilldownLevel} ${styles.pagesLevel} ${depth === 'pages' ? '' : styles.levelCollapsed}`}
@@ -1146,7 +1118,7 @@ function RulebookWorkspace({
             </div>
           </section>
           <section
-            className={`${styles.drilldownLevel} ${styles.structureLevel} ${depth === 'blocks' || depth === 'controls' ? styles.levelCollapsed : ''} ${depth === 'pages' ? styles.levelHidden : ''}`}
+            className={`${styles.drilldownLevel} ${styles.structureLevel} ${depth === 'controls' ? styles.levelCollapsed : ''} ${depth === 'pages' ? styles.levelHidden : ''}`}
             aria-label="Page structure panel"
             aria-hidden={depth === 'pages'}
             inert={depth === 'pages'}
@@ -1205,14 +1177,14 @@ function RulebookWorkspace({
                   if (slot.mode === 'fields') {
                     const active = target.kind === 'slot' && target.slotId === slot.id;
                     return (
-                      <div className={styles.levelItem} key={slot.id}>
+                      <div className={`${styles.levelItem} ${styles.slotSeparatorItem}`} key={slot.id}>
                         <DrilldownTooltip
                           title={slot.label}
                           details={['Fixed fields defined by this layout', 'No blocks or block ordering']}
                         >
                           <button
                             type="button"
-                            className={styles.levelIcon}
+                            className={`${styles.levelIcon} ${styles.slotSeparatorIcon}`}
                             aria-current={active ? 'true' : undefined}
                             aria-label={`Open ${slot.label} slot`}
                             onClick={() => openSlot(slot)}
@@ -1259,7 +1231,7 @@ function RulebookWorkspace({
                 type="button"
                 className={styles.levelLabel}
                 aria-label="Open page structure"
-                tabIndex={depth === 'blocks' || depth === 'controls' ? 0 : -1}
+                tabIndex={depth === 'controls' ? 0 : -1}
                 onClick={() => setDepth('page')}
               >
                 <span>Page</span>
@@ -1272,113 +1244,6 @@ function RulebookWorkspace({
                     choices={pageBlockChoices}
                     collapsed
                     onPick={addPageBlock}
-                  />
-                </div>
-              ) : null}
-            </div>
-          </section>
-          <section
-            className={`${styles.drilldownLevel} ${styles.blocksLevel} ${depth === 'controls' ? styles.levelCollapsed : ''} ${depth === 'pages' || depth === 'page' || !showBlocksLevel ? styles.levelHidden : ''}`}
-            aria-label="Blocks panel"
-            aria-hidden={depth === 'pages' || depth === 'page' || !showBlocksLevel}
-            inert={depth === 'pages' || depth === 'page' || !showBlocksLevel}
-          >
-            <div className={styles.levelHeading}>
-              <Text fw={700} truncate>
-                {blockSlot?.label ?? 'Blocks'}
-              </Text>
-              <Group gap={4} wrap="nowrap">
-                {depth === 'blocks' && blockSlot && !slotIsFull ? (
-                  <AddMenu
-                    label="Add block"
-                    menuLabel={`Add to ${blockSlot.label}`}
-                    choices={blockSlot.acceptedBlockKinds.map((kind) => ({
-                      value: kind,
-                      label: blockKindNames[kind],
-                      icon: <BlockKindIcon kind={kind} />,
-                    }))}
-                    collapsed
-                    onPick={addBlock}
-                  />
-                ) : null}
-                <IconAction
-                  label="About this slot"
-                  tooltip={
-                    blockSlot
-                      ? `${blockSlot.label} accepts ${blockSlot.acceptedBlockKinds.map((kind) => blockKindNames[kind]).join(' or ')} blocks. Drag to reorder within this slot.`
-                      : ''
-                  }
-                  icon={<CircleHelp size={15} aria-hidden />}
-                  size="sm"
-                  variant="subtle"
-                />
-              </Group>
-            </div>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBlockDragEnd}>
-              <SortableContext items={slotBlockIds} strategy={verticalListSortingStrategy}>
-                <div className={styles.levelList}>
-                  {slotBlocks.map((block) => (
-                    <SortableItem className={styles.levelItem} id={block.id} key={block.id}>
-                      {({ setActivatorNodeRef, attributes, listeners }) => (
-                        <>
-                          <DrilldownTooltip
-                            title={block.title}
-                            details={[blockKindNames[block.kind], activePage.title]}
-                          >
-                            <button
-                              type="button"
-                              ref={setActivatorNodeRef}
-                              className={styles.levelIcon}
-                              aria-current={target.kind === 'block' && block.id === target.blockId ? 'true' : undefined}
-                              aria-label={`${block.title}. ${blockKindNames[block.kind]}. Drag to reorder or click to select.`}
-                              onClick={() => openBlock(block.id)}
-                              {...attributes}
-                              {...listeners}
-                            >
-                              <BlockKindIcon kind={block.kind} />
-                            </button>
-                          </DrilldownTooltip>
-                          <DrilldownLevelChoice
-                            title={block.title}
-                            metadata={blockKindNames[block.kind]}
-                            active={target.kind === 'block' && block.id === target.blockId}
-                            tabIndex={depth === 'blocks' ? 0 : -1}
-                            onClick={() => openBlock(block.id)}
-                          />
-                        </>
-                      )}
-                    </SortableItem>
-                  ))}
-                  {slotBlocks.length === 0 ? (
-                    <Text size="sm" c="dimmed" py="sm">
-                      This slot is empty.
-                    </Text>
-                  ) : null}
-                </div>
-              </SortableContext>
-            </DndContext>
-            <div className={styles.levelFooter} data-empty={depth === 'blocks'}>
-              <button
-                type="button"
-                className={styles.levelLabel}
-                aria-label="Open blocks"
-                tabIndex={depth === 'controls' ? 0 : -1}
-                onClick={() => setDepth('blocks')}
-              >
-                <span>Blocks</span>
-              </button>
-              {depth === 'controls' && blockSlot && !slotIsFull ? (
-                <div className={styles.addSlot}>
-                  <AddMenu
-                    label="Add block"
-                    menuLabel={`Add to ${blockSlot.label}`}
-                    choices={blockSlot.acceptedBlockKinds.map((kind) => ({
-                      value: kind,
-                      label: blockKindNames[kind],
-                      icon: <BlockKindIcon kind={kind} />,
-                    }))}
-                    collapsed
-                    onPick={addBlock}
                   />
                 </div>
               ) : null}
