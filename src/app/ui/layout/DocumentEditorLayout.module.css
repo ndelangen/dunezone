@@ -1,0 +1,122 @@
+.container {
+  --document-editor-gap: var(--mantine-spacing-lg);
+  --document-editor-peek: 4rem;
+  --document-editor-preview-min-width: 19rem;
+  --document-editor-sidebar-min-width: 21rem;
+  --document-editor-sidebar-preferred-width: 27rem;
+  --document-editor-sticky-inset: 1rem;
+  --document-editor-fit-height: min(52rem, calc(100dvh - 2 * var(--document-editor-sticky-inset)));
+  container: document-editor-layout / inline-size;
+  width: 100%;
+  min-width: 0;
+}
+
+.root {
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
+.track {
+  display: grid;
+  gap: var(--document-editor-gap);
+  align-items: start;
+  width: 100%;
+  min-width: calc(
+    var(--document-editor-sidebar-min-width) + var(--document-editor-preview-min-width) + var(--document-editor-gap)
+  );
+}
+
+.root[data-fit="height"] .track {
+  grid-template-columns:
+    minmax(var(--document-editor-sidebar-min-width), 1fr)
+    minmax(
+      var(--document-editor-preview-min-width),
+      min(
+        calc(var(--document-editor-fit-height) * var(--document-editor-ratio)),
+        calc(100cqw - var(--document-editor-sidebar-min-width) - var(--document-editor-gap))
+      )
+    );
+}
+
+.root[data-fit="width"] .track {
+  grid-template-columns:
+    minmax(var(--document-editor-sidebar-min-width), var(--document-editor-sidebar-preferred-width))
+    minmax(var(--document-editor-preview-min-width), 1fr);
+}
+
+.sidebarPane,
+.previewPane {
+  min-width: 0;
+  scroll-snap-stop: normal;
+}
+
+.previewPane {
+  align-self: stretch;
+}
+
+.sidebarPane {
+  min-height: var(--document-editor-preview-height, 0px);
+}
+
+.sidebarContent,
+.previewFrame {
+  width: 100%;
+}
+
+.sidebarContent[data-sticky],
+.previewFrame[data-sticky] {
+  position: sticky;
+  top: var(--document-editor-sticky-inset);
+}
+
+.previewFrame {
+  position: relative;
+  aspect-ratio: var(--document-editor-ratio);
+  overflow: hidden;
+}
+
+.previewContent {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+.previewContent > * {
+  width: 100%;
+  height: 100%;
+}
+
+@container document-editor-layout (max-width: 48rem) {
+  .root {
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scroll-padding-inline: 0;
+    scroll-snap-type: inline proximity;
+    scrollbar-width: thin;
+  }
+
+  .track,
+  .root[data-fit="height"] .track,
+  .root[data-fit="width"] .track {
+    grid-template-columns:
+      max(var(--document-editor-sidebar-min-width), calc(100cqw - var(--document-editor-peek)))
+      max(var(--document-editor-preview-min-width), calc(100cqw - var(--document-editor-peek)));
+    width: max-content;
+  }
+
+  .sidebarPane {
+    scroll-snap-align: start;
+  }
+
+  .previewPane {
+    scroll-snap-align: end;
+  }
+
+  .sidebarContent[data-sticky],
+  .previewFrame[data-sticky] {
+    position: static;
+  }
+}
