@@ -1,6 +1,6 @@
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookContentsDraftV1, RulebookContentsV1 } from '@shared/rulebooks/contents';
-import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
+import { createRulebookEditorialStarterContents, createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { describe, expect, it } from 'vitest';
 
 import { createRulebookEditorStateManager } from './-rulebookEditorState';
@@ -8,6 +8,7 @@ import type { RulebookEditorResult, RulebookEditorStateManager } from './-rulebo
 import {
   createCleanRebaseInput,
   createCleanRulebookEditorInput,
+  createEditorialRulebookEditorInput,
   createFieldConflictInput,
   createRulebookSavedRevision,
   createStaleSaveInput,
@@ -115,9 +116,54 @@ describe('Rulebook Contents V1', () => {
     singleColumnPage(invalidCardinality, 'page-introduction').slots.body.push('block-introduction');
     expect(rulebookContentsV1Schema.safeParse(invalidCardinality).success).toBe(false);
   });
+
+  it('enforces the editorial Page layout Block catalogue', () => {
+    const contents = createRulebookEditorialStarterContents();
+    expect(rulebookContentsV1Schema.safeParse(contents).success).toBe(true);
+
+    const markers = contents.pagesById['page-markers'];
+    const movement = contents.pagesById['page-movement'];
+    if (markers?.layoutId !== 'visual-reference' || movement?.layoutId !== 'rules-page') {
+      throw new Error('The editorial fixture must retain its accepted Page layouts');
+    }
+    markers.slots.body.push('block-movement-sequence');
+    movement.slots.body = movement.slots.body.filter((blockId) => blockId !== 'block-movement-sequence');
+    expect(rulebookContentsV1Schema.safeParse(contents).success).toBe(false);
+  });
 });
 
 describe('Rulebook editor state manager', () => {
+  it('tracks editorial titles and formatted content as Saveable field intents', () => {
+    const manager = createRulebookEditorStateManager(createEditorialRulebookEditorInput());
+    manager.dispatch({
+      kind: 'set',
+      target: { kind: 'page', pageId: 'page-movement' },
+      field: 'title',
+      value: 'Movement phase',
+    });
+    const result = manager.dispatch({
+      kind: 'set',
+      target: { kind: 'block', blockId: 'block-movement-sequence' },
+      field: 'text',
+      value: 'Choose a force, then **move it**.',
+    });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') {
+      return;
+    }
+    expect(result.draft.pagesById['page-movement']).toMatchObject({ title: 'Movement phase' });
+    expect(result.draft.blocksById['block-movement-sequence']).toMatchObject({
+      text: 'Choose a force, then **move it**.',
+    });
+    expect(result.rebasedPatch.sets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'title', target: { kind: 'page', pageId: 'page-movement' } }),
+        expect.objectContaining({ field: 'text', target: { kind: 'block', blockId: 'block-movement-sequence' } }),
+      ])
+    );
+    expect(result.canSave).toBe(true);
+  });
+
   it('fails closed for an unknown schema version', () => {
     const input = createCleanRulebookEditorInput();
     const manager = createRulebookEditorStateManager({

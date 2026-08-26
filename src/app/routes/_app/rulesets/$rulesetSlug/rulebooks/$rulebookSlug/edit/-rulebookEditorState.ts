@@ -97,16 +97,19 @@ type RulebookDeleteIntent = z.infer<typeof deleteIntentSchema>;
 
 const setIntentSchema = z.union([
   z.strictObject({ kind: z.literal('set'), target: pageRefSchema, field: z.literal('anchor'), value: z.string() }),
+  z.strictObject({ kind: z.literal('set'), target: pageRefSchema, field: z.literal('title'), value: z.string() }),
   z.strictObject({
     kind: z.literal('set'),
     target: blockRefSchema,
     field: z.literal('anchor'),
     value: z.string().optional(),
   }),
+  z.strictObject({ kind: z.literal('set'), target: blockRefSchema, field: z.literal('title'), value: z.string() }),
   z.strictObject({ kind: z.literal('set'), target: blockRefSchema, field: z.literal('text'), value: z.string() }),
   z.strictObject({ kind: z.literal('set'), target: itemRefSchema, field: z.literal('text'), value: z.string() }),
 ]);
 type RulebookSetIntent = z.infer<typeof setIntentSchema>;
+type RulebookFieldName = RulebookSetIntent['field'];
 
 const placeIntentSchema = z.strictObject({
   kind: z.literal('place'),
@@ -273,7 +276,7 @@ export type RulebookEditPatchV1 = z.infer<typeof rulebookEditPatchV1Schema>;
 
 type RulebookFieldDiagnostic = {
   readonly target?: RulebookEntityRef;
-  readonly field?: 'anchor' | 'text' | 'structure';
+  readonly field?: RulebookFieldName | 'structure';
   readonly code: string;
   readonly message: string;
   readonly line?: number;
@@ -289,7 +292,7 @@ type RulebookIncompatibilityBase = {
 type RulebookFieldIncompatibility = RulebookIncompatibilityBase & {
   readonly kind: 'field';
   readonly target: RulebookEntityRef;
-  readonly field: 'anchor' | 'text';
+  readonly field: RulebookFieldName;
   readonly baselineValue?: string;
   readonly latestValue?: string;
   readonly localValue?: string;
@@ -452,7 +455,7 @@ function immutableLayoutError(
 
 type FieldRecord = {
   target: RulebookEntityRef;
-  field: 'anchor' | 'text';
+  field: RulebookFieldName;
   value?: string;
 };
 
@@ -539,10 +542,7 @@ function stableFingerprint(value: unknown): string {
 }
 
 function pageSlotEntries(page: RulebookPageDraft): Array<[RulebookSlotId, string[]]> {
-  if (page.layoutId === rulebookLayoutCatalogue[0].id) {
-    return rulebookLayoutCatalogue[0].slots.map(({ id }) => [id, page.slots[id]]);
-  }
-  return rulebookLayoutCatalogue[1].slots.map(({ id }) => [id, page.slots[id]]);
+  return Object.entries(page.slots) as Array<[RulebookSlotId, string[]]>;
 }
 
 function allEntityRefs(contents: RulebookContentsDraftV1): RulebookEntityRef[] {
@@ -877,13 +877,63 @@ function restoreSnapshot(
   }
 }
 
+function setPageField(
+  page: RulebookContentsDraftV1['pagesById'][string],
+  field: RulebookFieldName,
+  value: string | undefined
+): void {
+  if (field === 'anchor' && value !== undefined) {
+    page.anchor = value;
+    return;
+  }
+  if (field === 'title' && value !== undefined && 'title' in page) {
+    page.title = value;
+    return;
+  }
+  throw new Error('That field does not belong to this Page layout');
+}
+
+function setBlockField(
+  block: RulebookContentsDraftV1['blocksById'][string],
+  field: RulebookFieldName,
+  value: string | undefined
+): void {
+  if (field === 'anchor') {
+    block.anchor = value;
+    return;
+  }
+  if (field === 'title' && value !== undefined && 'title' in block) {
+    block.title = value;
+    return;
+  }
+  if (field === 'text' && value !== undefined && block.kind !== 'repeated-text') {
+    block.text = value;
+    return;
+  }
+  throw new Error('That field does not belong to this Block kind');
+}
+
+function setItemField(
+  contents: RulebookContentsDraftV1,
+  target: Extract<RulebookEntityRef, { kind: 'item' }>,
+  field: RulebookFieldName,
+  value: string | undefined
+): void {
+  const block = contents.blocksById[target.blockId];
+  const item = block?.kind === 'repeated-text' ? block.itemsById[target.itemId] : undefined;
+  if (!item || field !== 'text' || value === undefined) {
+    throw new Error('The repeated-item field target is not available');
+  }
+  item.text = value;
+}
+
 function setField(contents: RulebookContentsDraftV1, intent: RulebookSetIntent): void {
   if (intent.target.kind === 'page') {
     const page = contents.pagesById[intent.target.pageId];
-    if (!page || intent.field !== 'anchor') {
+    if (!page) {
       throw new Error('The Page field target is not available');
     }
-    page.anchor = intent.value ?? '';
+    setPageField(page, intent.field, intent.value);
     return;
   }
   if (intent.target.kind === 'block') {
@@ -891,50 +941,60 @@ function setField(contents: RulebookContentsDraftV1, intent: RulebookSetIntent):
     if (!block) {
       throw new Error('The Block field target is not available');
     }
-    if (intent.field === 'anchor') {
-      block.anchor = intent.value;
-      return;
-    }
-    if (intent.field === 'text' && block.kind === 'text') {
-      block.text = intent.value;
-      return;
-    }
-    throw new Error('That field does not belong to this Block kind');
+    setBlockField(block, intent.field, intent.value);
+    return;
   }
-  const block = contents.blocksById[intent.target.blockId];
-  if (block?.kind !== 'repeated-text' || intent.field !== 'text' || !block.itemsById[intent.target.itemId]) {
-    throw new Error('The repeated-item field target is not available');
+  setItemField(contents, intent.target, intent.field, intent.value);
+}
+
+function anchorFieldIntent(target: RulebookEntityRef, value: string | undefined): RulebookSetIntent {
+  if (target.kind === 'page') {
+    if (value === undefined) {
+      throw new Error('A Page anchor resolution needs a value');
+    }
+    return { kind: 'set', target, field: 'anchor', value };
   }
-  block.itemsById[intent.target.itemId]!.text = intent.value;
+  if (target.kind === 'block') {
+    return { kind: 'set', target, field: 'anchor', value };
+  }
+  throw new Error('A repeated item cannot own an anchor');
+}
+
+function titleFieldIntent(target: RulebookEntityRef, value: string | undefined): RulebookSetIntent {
+  if (value === undefined || target.kind === 'item') {
+    throw new Error('A title resolution needs a Page or Block value');
+  }
+  if (target.kind === 'page') {
+    return { kind: 'set', target, field: 'title', value };
+  }
+  return { kind: 'set', target, field: 'title', value };
+}
+
+function textFieldIntent(target: RulebookEntityRef, value: string | undefined): RulebookSetIntent {
+  if (value === undefined) {
+    throw new Error('A text resolution needs a value');
+  }
+  if (target.kind === 'page') {
+    throw new Error('A Page cannot own editable text');
+  }
+  if (target.kind === 'block') {
+    return { kind: 'set', target, field: 'text', value };
+  }
+  return { kind: 'set', target, field: 'text', value };
 }
 
 function fieldIntent(
   target: RulebookEntityRef,
-  field: 'anchor' | 'text',
+  field: RulebookFieldName,
   value: string | undefined
 ): RulebookSetIntent {
   if (field === 'anchor') {
-    if (target.kind === 'page') {
-      if (value === undefined) {
-        throw new Error('A Page anchor resolution needs a value');
-      }
-      return { kind: 'set', target, field, value };
-    }
-    if (target.kind === 'block') {
-      return { kind: 'set', target, field, value };
-    }
-    throw new Error('A repeated item cannot own an anchor');
+    return anchorFieldIntent(target, value);
   }
-  if (value === undefined) {
-    throw new Error('A text resolution needs a value');
+  if (field === 'title') {
+    return titleFieldIntent(target, value);
   }
-  if (target.kind === 'block') {
-    return { kind: 'set', target, field, value };
-  }
-  if (target.kind === 'item') {
-    return { kind: 'set', target, field, value };
-  }
-  throw new Error('A Page cannot own editable text');
+  return textFieldIntent(target, value);
 }
 
 function resolveGap(
@@ -1210,10 +1270,16 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
   const records: FieldRecord[] = [];
   for (const page of Object.values(contents.pagesById)) {
     records.push({ target: { kind: 'page', pageId: page.id }, field: 'anchor', value: page.anchor });
+    if ('title' in page) {
+      records.push({ target: { kind: 'page', pageId: page.id }, field: 'title', value: page.title });
+    }
   }
   for (const block of Object.values(contents.blocksById)) {
     records.push({ target: { kind: 'block', blockId: block.id }, field: 'anchor', value: block.anchor });
-    if (block.kind === 'text') {
+    if ('title' in block) {
+      records.push({ target: { kind: 'block', blockId: block.id }, field: 'title', value: block.title });
+    }
+    if (block.kind !== 'repeated-text') {
       records.push({ target: { kind: 'block', blockId: block.id }, field: 'text', value: block.text });
     } else {
       for (const item of Object.values(block.itemsById)) {
@@ -1232,7 +1298,7 @@ function fieldKey(record: Pick<FieldRecord, 'target' | 'field'>): string {
   return `${entityRefKey(record.target)}:${record.field}`;
 }
 
-function comparableFieldValue(field: 'anchor' | 'text', value: string | undefined): string | undefined {
+function comparableFieldValue(field: RulebookFieldName, value: string | undefined): string | undefined {
   if (field !== 'text' || value === undefined) {
     return value;
   }
@@ -1240,7 +1306,7 @@ function comparableFieldValue(field: 'anchor' | 'text', value: string | undefine
   return normalized.ok ? normalized.value : value;
 }
 
-function fieldsEqual(field: 'anchor' | 'text', left: string | undefined, right: string | undefined): boolean {
+function fieldsEqual(field: RulebookFieldName, left: string | undefined, right: string | undefined): boolean {
   return comparableFieldValue(field, left) === comparableFieldValue(field, right);
 }
 
@@ -1458,7 +1524,7 @@ function validateDraft(draft: RulebookContentsDraftV1): {
       }
     }
     const textFields =
-      block.kind === 'text'
+      block.kind !== 'repeated-text'
         ? [{ target: { kind: 'block' as const, blockId: block.id }, value: block.text }]
         : Object.values(block.itemsById).map((item) => ({
             target: { kind: 'item' as const, blockId: block.id, itemId: item.id },
@@ -1479,8 +1545,9 @@ function validateDraft(draft: RulebookContentsDraftV1): {
           }))
         );
       } else if (textField.target.kind === 'block') {
-        (candidate.blocksById[textField.target.blockId] as Extract<RulebookBlockDraft, { kind: 'text' }>).text =
-          normalized.value;
+        (
+          candidate.blocksById[textField.target.blockId] as Exclude<RulebookBlockDraft, { kind: 'repeated-text' }>
+        ).text = normalized.value;
       } else {
         const repeated = candidate.blocksById[textField.target.blockId] as Extract<
           RulebookBlockDraft,
@@ -1536,7 +1603,7 @@ function validateDraft(draft: RulebookContentsDraftV1): {
         occupiedAnchors.add(block.anchor);
       }
     }
-    if (block.kind === 'text') {
+    if (block.kind !== 'repeated-text') {
       if (!normalizeFormattedText(block.text).ok) {
         block.text = '';
       }
@@ -1660,7 +1727,7 @@ function placementChanged(
 
 function fieldIncompatibility(
   target: RulebookEntityRef,
-  field: 'anchor' | 'text',
+  field: RulebookFieldName,
   baselineValue: string | undefined,
   latestValue: string | undefined,
   localValue: string | undefined
@@ -2034,7 +2101,7 @@ function reconcile(state: ReadyState): Reconciliation {
     if (
       incompatibility.kind === 'field' &&
       ((incompatibility.field === 'anchor' && outcome.kind === 'anchor') ||
-        (incompatibility.field === 'text' && outcome.kind === 'text'))
+        ((incompatibility.field === 'title' || incompatibility.field === 'text') && outcome.kind === 'text'))
     ) {
       setField(comparisonDraft, fieldIntent(incompatibility.target, incompatibility.field, outcome.value));
     } else if (incompatibility.kind === 'anchor' && outcome.kind === 'anchor') {
@@ -2140,7 +2207,7 @@ function outcomeFits(
 ): boolean {
   const outcome = approval.outcome;
   if (incompatibility.kind === 'field') {
-    if (incompatibility.field === 'text') {
+    if (incompatibility.field === 'title' || incompatibility.field === 'text') {
       return outcome.kind === 'text' && typeof outcome.value === 'string';
     }
     return outcome.kind === 'anchor' && (incompatibility.target.kind === 'block' || typeof outcome.value === 'string');
