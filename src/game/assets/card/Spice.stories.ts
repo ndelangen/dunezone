@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { expect } from 'storybook/test';
 
 import { SpiceCard } from './Spice';
 
@@ -18,6 +19,14 @@ export const Arsunt = meta.story({
     icon: 'spice-mine',
     highlights: ['arsunt'],
     amount: 3,
+  },
+  play: async ({ canvasElement }) => {
+    const shape = Array.from(canvasElement.querySelectorAll<HTMLElement>('div')).find((element) =>
+      getComputedStyle(element).backgroundImage.includes('/image/card/base-full-large.webp')
+    );
+
+    expect(shape).toBeDefined();
+    expect(getComputedStyle(shape as HTMLElement).backgroundSize).toBe('100% 100%');
   },
 });
 
