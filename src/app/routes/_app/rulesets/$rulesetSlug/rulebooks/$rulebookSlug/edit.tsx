@@ -795,7 +795,7 @@ function DrilldownLevelChoice({
   );
 }
 
-function SlidingDrilldownVariant({ treatment }: { treatment: CatalogueVariant }) {
+function SlidingDrilldownVariant({ treatment, fit }: { treatment: CatalogueVariant; fit: PreviewFit }) {
   const model = usePrototypeDocument();
   const [depth, setDepth] = useState<DrilldownDepth>('controls');
   const sensors = useSensors(
@@ -845,7 +845,7 @@ function SlidingDrilldownVariant({ treatment }: { treatment: CatalogueVariant })
   return (
     <Stack gap="md">
       <ScenarioBrief />
-      <section className={styles.synthesisSection} data-treatment={treatment}>
+      <section className={styles.synthesisSection} data-treatment={treatment} data-fit={fit}>
         <PrototypeHeading
           label={treatmentPresentation[treatment].label}
           title={treatmentPresentation[treatment].title}
@@ -1136,24 +1136,13 @@ function PrototypeSwitcher({
 }
 
 function CataloguePrototypePage({ variant }: { variant: CatalogueVariant }) {
-  const { rulesetSlug, rulebookSlug } = Route.useParams();
   const navigate = Route.useNavigate();
+  const [fit, setFit] = useState<PreviewFit>('height');
   const select = (next: CatalogueVariant) => {
     void navigate({ search: { variant: next }, replace: true });
   };
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
-        <Group gap="sm" wrap="nowrap">
-          <BookOpenText size={24} aria-hidden />
-          <div>
-            <PageTitle title="Sliding rulebook editor comparison" />
-            <Text size="xs" c="dimmed">
-              {rulesetSlug} / {rulebookSlug}
-            </Text>
-          </div>
-        </Group>
-      </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left>
@@ -1167,15 +1156,25 @@ function CataloguePrototypePage({ variant }: { variant: CatalogueVariant }) {
             </Group>
           </Toolbar.Left>
           <Toolbar.Right>
-            <Text size="xs" c="dimmed">
-              Use the bottom arrows or the left and right keys.
-            </Text>
+            <Group gap="sm" wrap="nowrap">
+              <Text size="xs" c="dimmed">
+                Left and right keys switch treatments.
+              </Text>
+              <Button
+                size="xs"
+                variant="default"
+                aria-label={`Switch preview to fit ${fit === 'height' ? 'width' : 'height'}`}
+                onClick={() => setFit((current) => (current === 'height' ? 'width' : 'height'))}
+              >
+                Fit {fit === 'height' ? 'width' : 'height'}
+              </Button>
+            </Group>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <section className={styles.cataloguePrototype} aria-label="Rulebook authoring interaction comparison">
-          <SlidingDrilldownVariant treatment={variant} />
+          <SlidingDrilldownVariant treatment={variant} fit={fit} />
         </section>
         <PrototypeSwitcher variant={variant} select={select} />
       </PageLayout.Content>
