@@ -1,5 +1,13 @@
-import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
@@ -67,6 +75,7 @@ type FieldSlotDefinition = {
 type EditorialSlotDefinition = BlockSlotDefinition | FieldSlotDefinition;
 type ControlTarget = { kind: 'page' } | { kind: 'slot'; slotId: string } | { kind: 'block'; blockId: string };
 type DirectSlotValues = Record<string, Record<string, Record<string, string>>>;
+type BlockSlotAssignments = Record<string, string>;
 type FormattedBlock = FormattedTextParseResult['blocks'][number];
 type FormattedInline = Extract<FormattedBlock, { kind: 'paragraph' }>['children'][number];
 
@@ -81,6 +90,7 @@ const blockKindNames: Record<BlockKind, string> = {
   'worked-example': 'Worked example',
   'asset-figure': 'Asset figure',
 };
+const blockKinds = ['rule-group', 'worked-example', 'asset-figure'] as const;
 
 const pageLayoutIds = ['chapter-opener', 'rules-page', 'visual-reference'] as const;
 const editorialSlotCatalogue: Record<PageLayoutId, readonly EditorialSlotDefinition[]> = {
@@ -128,10 +138,10 @@ const editorialSlotCatalogue: Record<PageLayoutId, readonly EditorialSlotDefinit
     },
     {
       id: 'figure',
-      label: 'Figure',
+      label: 'Supplement',
       mode: 'blocks',
-      acceptedBlockKinds: ['asset-figure'],
-      cardinality: { minimum: 0, maximum: 1 },
+      acceptedBlockKinds: ['worked-example', 'asset-figure'],
+      cardinality: { minimum: 0, maximum: 2 },
     },
   ],
   'visual-reference': [
@@ -254,17 +264,25 @@ function slotsForPage(page: EditorialPage): readonly EditorialSlotDefinition[] {
 function blocksForSlot(
   page: EditorialPage,
   slot: BlockSlotDefinition,
-  blocksById: ReadyResult['draft']['blocksById']
+  blocksById: ReadyResult['draft']['blocksById'],
+  assignments: BlockSlotAssignments
 ): readonly EditorialBlock[] {
   return page.slots.body.flatMap((id) => {
     const block = blocksById[id];
-    return block &&
-      block.kind !== 'text' &&
-      block.kind !== 'repeated-text' &&
-      slot.acceptedBlockKinds.includes(block.kind)
-      ? [block]
-      : [];
+    if (!block || block.kind === 'text' || block.kind === 'repeated-text') {
+      return [];
+    }
+    const compatibleSlots = slotsForPage(page).filter(
+      (candidate): candidate is BlockSlotDefinition =>
+        candidate.mode === 'blocks' && candidate.acceptedBlockKinds.includes(block.kind)
+    );
+    const assignedSlot = compatibleSlots.find((candidate) => candidate.id === assignments[block.id]);
+    return (assignedSlot ?? compatibleSlots[0])?.id === slot.id ? [block] : [];
   });
+}
+
+function structureSlotDropId(slotId: string) {
+  return `structure-slot:${slotId}`;
 }
 
 function slotCardinality(slot: BlockSlotDefinition, count: number): string {
@@ -297,12 +315,14 @@ function AssetImagePlaceholder({ label }: Readonly<{ label: string }>) {
 function RulebookPagePreview({
   page,
   blocksById,
+  blockSlotAssignments,
   pageNumber,
   target,
   directValues,
 }: Readonly<{
   page: EditorialPage;
   blocksById: ReadyResult['draft']['blocksById'];
+  blockSlotAssignments: BlockSlotAssignments;
   pageNumber: number;
   target: ControlTarget;
   directValues: DirectSlotValues;
@@ -333,7 +353,7 @@ function RulebookPagePreview({
           }
           return (
             <div className={styles.previewBlockSlot} data-slot={slot.id} key={slot.id}>
-              {blocksForSlot(page, slot, blocksById).map((block) => {
+              {blocksForSlot(page, slot, blocksById, blockSlotAssignments).map((block) => {
                 const selected = target.kind === 'block' && target.blockId === block.id;
                 if (block.kind === 'asset-figure') {
                   return (
@@ -439,7 +459,7 @@ function AddMenu<T extends string>({
 }: Readonly<{
   label: string;
   menuLabel: string;
-  choices: readonly { value: T; label: string; icon: ReactNode }[];
+  choices: readonly { value: T; label: string; icon: ReactNode; disabled?: boolean }[];
   collapsed: boolean;
   onPick: (value: T) => void;
 }>) {
@@ -466,12 +486,114 @@ function AddMenu<T extends string>({
       <Menu.Dropdown>
         <Menu.Label>{menuLabel}</Menu.Label>
         {choices.map((choice) => (
-          <Menu.Item key={choice.value} leftSection={choice.icon} onClick={() => onPick(choice.value)}>
+          <Menu.Item
+            key={choice.value}
+            leftSection={choice.icon}
+            disabled={choice.disabled}
+            onClick={() => onPick(choice.value)}
+          >
             {choice.label}
           </Menu.Item>
         ))}
       </Menu.Dropdown>
     </Menu>
+  );
+}
+
+function StructureBlockSlot({
+  slot,
+  blocks,
+  activeTarget,
+  dropAllowed,
+  onOpenSlot,
+  onOpenBlock,
+}: Readonly<{
+  slot: BlockSlotDefinition;
+  blocks: readonly EditorialBlock[];
+  activeTarget: ControlTarget;
+  dropAllowed: boolean;
+  onOpenSlot: () => void;
+  onOpenBlock: (block: EditorialBlock) => void;
+}>) {
+  const { isOver, setNodeRef } = useDroppable({ id: structureSlotDropId(slot.id) });
+  const slotActive =
+    activeTarget.kind === 'slot'
+      ? activeTarget.slotId === slot.id
+      : activeTarget.kind === 'block' && blocks.some((block) => block.id === activeTarget.blockId);
+  return (
+    <div className={styles.structureSlotGroup}>
+      <div className={styles.levelItem}>
+        <DrilldownTooltip
+          title={slot.label}
+          details={[
+            `Accepts: ${slot.acceptedBlockKinds.map((kind) => blockKindNames[kind]).join(', ')}`,
+            `Cardinality: ${slot.cardinality.minimum} to ${slot.cardinality.maximum ?? 'unlimited'}`,
+          ]}
+        >
+          <button
+            type="button"
+            className={styles.levelIcon}
+            aria-current={slotActive ? 'true' : undefined}
+            aria-label={`Open ${slot.label} slot`}
+            onClick={onOpenSlot}
+          >
+            <SlotIcon slot={slot} />
+          </button>
+        </DrilldownTooltip>
+        <DrilldownLevelChoice
+          title={slot.label}
+          metadata={`${slotCardinality(slot, blocks.length)} · ${slot.acceptedBlockKinds.length === 1 ? blockKindNames[slot.acceptedBlockKinds[0]!] : `${slot.acceptedBlockKinds.length} types`}`}
+          active={slotActive}
+          tabIndex={0}
+          onClick={onOpenSlot}
+        />
+      </div>
+      <div
+        ref={setNodeRef}
+        className={styles.structureBlockList}
+        data-structure-slot={slot.id}
+        data-drop-state={isOver ? (dropAllowed ? 'allowed' : 'blocked') : undefined}
+      >
+        <SortableContext items={blocks.map((block) => block.id)} strategy={verticalListSortingStrategy}>
+          {blocks.map((block) => (
+            <SortableItem className={`${styles.levelItem} ${styles.structureBlockItem}`} id={block.id} key={block.id}>
+              {({ setActivatorNodeRef, attributes, listeners }) => (
+                <>
+                  <DrilldownTooltip title={block.title} details={[blockKindNames[block.kind], slot.label]}>
+                    <button
+                      type="button"
+                      ref={setActivatorNodeRef}
+                      className={styles.levelIcon}
+                      aria-current={
+                        activeTarget.kind === 'block' && activeTarget.blockId === block.id ? 'true' : undefined
+                      }
+                      aria-label={`${block.title}. ${blockKindNames[block.kind]}. Drag between compatible slots or click to edit.`}
+                      onClick={() => onOpenBlock(block)}
+                      {...attributes}
+                      {...listeners}
+                    >
+                      <BlockKindIcon kind={block.kind} />
+                    </button>
+                  </DrilldownTooltip>
+                  <DrilldownLevelChoice
+                    title={block.title}
+                    metadata={blockKindNames[block.kind]}
+                    active={activeTarget.kind === 'block' && activeTarget.blockId === block.id}
+                    tabIndex={0}
+                    onClick={() => onOpenBlock(block)}
+                  />
+                </>
+              )}
+            </SortableItem>
+          ))}
+        </SortableContext>
+        {blocks.length === 0 ? (
+          <Text className={styles.structureEmptySlot} size="xs" c="dimmed">
+            Drop a compatible block here
+          </Text>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -627,21 +749,29 @@ function RulebookWorkspace({
 }>) {
   const [depth, setDepth] = useState<DrilldownDepth>('controls');
   const [activePageId, setActivePageId] = useState(result.draft.pageOrder[1] ?? result.draft.pageOrder[0]);
+  const [blockSlotAssignments, setBlockSlotAssignments] = useState<BlockSlotAssignments>({});
+  const [draggedBlockId, setDraggedBlockId] = useState<string>();
   const activePage = result.draft.pagesById[activePageId ?? ''] as EditorialPage | undefined;
   const initialSlot = activePage
     ? slotsForPage(activePage).find((slot): slot is BlockSlotDefinition => slot.mode === 'blocks')
     : undefined;
   const initialBlock =
-    activePage && initialSlot ? blocksForSlot(activePage, initialSlot, result.draft.blocksById)[0] : undefined;
+    activePage && initialSlot
+      ? blocksForSlot(activePage, initialSlot, result.draft.blocksById, blockSlotAssignments)[0]
+      : undefined;
   const [activeSlotId, setActiveSlotId] = useState(initialSlot?.id ?? '');
   const [target, setTarget] = useState<ControlTarget>(
     initialBlock ? { kind: 'block', blockId: initialBlock.id } : { kind: 'page' }
   );
   const activeSlot = activePage ? slotsForPage(activePage).find((slot) => slot.id === activeSlotId) : undefined;
   const blockSlot = activeSlot?.mode === 'blocks' ? activeSlot : undefined;
-  const slotBlocks = activePage && blockSlot ? blocksForSlot(activePage, blockSlot, result.draft.blocksById) : [];
+  const slotBlocks =
+    activePage && blockSlot ? blocksForSlot(activePage, blockSlot, result.draft.blocksById, blockSlotAssignments) : [];
   const slotBlockIds = slotBlocks.map((block) => block.id);
-  const selectedBlock = target.kind === 'block' ? slotBlocks.find((block) => block.id === target.blockId) : undefined;
+  const selectedBlock =
+    target.kind === 'block' && activePage?.slots.body.includes(target.blockId)
+      ? (result.draft.blocksById[target.blockId] as EditorialBlock | undefined)
+      : undefined;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -652,6 +782,21 @@ function RulebookWorkspace({
   }
 
   const pageNumber = result.draft.pageOrder.indexOf(activePage.id) + 1;
+  const pageBlockSlots = slotsForPage(activePage).filter((slot): slot is BlockSlotDefinition => slot.mode === 'blocks');
+  const slotHasRoom = (slot: BlockSlotDefinition) =>
+    slot.cardinality.maximum === null ||
+    blocksForSlot(activePage, slot, result.draft.blocksById, blockSlotAssignments).length < slot.cardinality.maximum;
+  const pageBlockChoices = blockKinds
+    .filter((kind) => pageBlockSlots.some((slot) => slot.acceptedBlockKinds.includes(kind)))
+    .map((kind) => ({
+      value: kind,
+      label: blockKindNames[kind],
+      icon: <BlockKindIcon kind={kind} />,
+      disabled: !pageBlockSlots.some((slot) => slot.acceptedBlockKinds.includes(kind) && slotHasRoom(slot)),
+    }));
+  const draggedBlock = draggedBlockId
+    ? (result.draft.blocksById[draggedBlockId] as EditorialBlock | undefined)
+    : undefined;
   const selectDefaultSlot = (page: EditorialPage) => {
     const slots = slotsForPage(page);
     const slot = slots.find((candidate): candidate is BlockSlotDefinition => candidate.mode === 'blocks') ?? slots[0];
@@ -689,7 +834,7 @@ function RulebookWorkspace({
       setDepth('controls');
       return;
     }
-    const firstBlock = blocksForSlot(activePage, slot, result.draft.blocksById)[0];
+    const firstBlock = blocksForSlot(activePage, slot, result.draft.blocksById, blockSlotAssignments)[0];
     setTarget(firstBlock ? { kind: 'block', blockId: firstBlock.id } : { kind: 'slot', slotId: slot.id });
     setDepth('blocks');
   };
@@ -723,10 +868,7 @@ function RulebookWorkspace({
     setTarget({ kind: 'page' });
     setDepth('controls');
   };
-  const addBlock = (kind: BlockKind) => {
-    if (!blockSlot) {
-      return;
-    }
+  const createBlockInSlot = (kind: BlockKind, slot: BlockSlotDefinition, nextDepth: DrilldownDepth) => {
     const blockId = `block-${globalThis.crypto.randomUUID()}`;
     dispatch({
       kind: 'create',
@@ -737,8 +879,23 @@ function RulebookWorkspace({
         beforeId: null,
       },
     });
+    setBlockSlotAssignments((current) => ({ ...current, [blockId]: slot.id }));
+    setActiveSlotId(slot.id);
     setTarget({ kind: 'block', blockId });
-    setDepth('controls');
+    setDepth(nextDepth);
+  };
+  const addBlock = (kind: BlockKind) => {
+    if (blockSlot) {
+      createBlockInSlot(kind, blockSlot, 'controls');
+    }
+  };
+  const addPageBlock = (kind: BlockKind) => {
+    const slot = pageBlockSlots.find(
+      (candidate) => candidate.acceptedBlockKinds.includes(kind) && slotHasRoom(candidate)
+    );
+    if (slot) {
+      createBlockInSlot(kind, slot, 'page');
+    }
   };
   const deletePage = () => {
     const pageIndex = result.draft.pageOrder.indexOf(activePage.id);
@@ -760,6 +917,11 @@ function RulebookWorkspace({
     const blockIndex = slotBlockIds.indexOf(selectedBlock.id);
     const nextBlock = slotBlocks[blockIndex + 1] ?? slotBlocks[blockIndex - 1];
     dispatch({ kind: 'delete', root: { kind: 'block', blockId: selectedBlock.id } });
+    setBlockSlotAssignments((current) => {
+      const next = { ...current };
+      delete next[selectedBlock.id];
+      return next;
+    });
     setTarget(nextBlock ? { kind: 'block', blockId: nextBlock.id } : { kind: 'slot', slotId: blockSlot.id });
     setDepth('blocks');
   };
@@ -794,6 +956,70 @@ function RulebookWorkspace({
       },
     });
   };
+  const onStructureBlockDragStart = ({ active }: DragStartEvent) => {
+    setDraggedBlockId(String(active.id));
+  };
+  const onStructureBlockDragEnd = ({ active, over }: DragEndEvent) => {
+    setDraggedBlockId(undefined);
+    if (!over) {
+      return;
+    }
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    const storedBlock = result.draft.blocksById[activeId];
+    if (!storedBlock || storedBlock.kind === 'text' || storedBlock.kind === 'repeated-text') {
+      return;
+    }
+    const block = storedBlock as EditorialBlock;
+    const slotContainingBlock = (blockId: string) =>
+      pageBlockSlots.find((slot) =>
+        blocksForSlot(activePage, slot, result.draft.blocksById, blockSlotAssignments).some(
+          (candidate) => candidate.id === blockId
+        )
+      );
+    const sourceSlot = slotContainingBlock(activeId);
+    const targetSlot = overId.startsWith('structure-slot:')
+      ? pageBlockSlots.find((slot) => structureSlotDropId(slot.id) === overId)
+      : slotContainingBlock(overId);
+    if (!sourceSlot || !targetSlot || !targetSlot.acceptedBlockKinds.includes(block.kind)) {
+      return;
+    }
+    const targetBlocks = blocksForSlot(activePage, targetSlot, result.draft.blocksById, blockSlotAssignments);
+    const targetWithoutActive = targetBlocks.filter((candidate) => candidate.id !== activeId);
+    if (targetSlot.cardinality.maximum !== null && targetWithoutActive.length >= targetSlot.cardinality.maximum) {
+      return;
+    }
+    let order: string[];
+    if (sourceSlot.id === targetSlot.id && !overId.startsWith('structure-slot:')) {
+      const sourceIndex = targetBlocks.findIndex((candidate) => candidate.id === activeId);
+      const targetIndex = targetBlocks.findIndex((candidate) => candidate.id === overId);
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+        return;
+      }
+      order = arrayMove(
+        targetBlocks.map((candidate) => candidate.id),
+        sourceIndex,
+        targetIndex
+      );
+    } else {
+      const targetIndex = targetWithoutActive.findIndex((candidate) => candidate.id === overId);
+      const insertionIndex = targetIndex < 0 ? targetWithoutActive.length : targetIndex;
+      order = targetWithoutActive.map((candidate) => candidate.id);
+      order.splice(insertionIndex, 0, activeId);
+    }
+    const index = order.indexOf(activeId);
+    dispatch({
+      kind: 'place',
+      target: { kind: 'block', blockId: activeId },
+      destination: {
+        container: { kind: 'page-slot', pageId: activePage.id, slotId: 'body' },
+        ...destinationForIndex(order, index),
+      },
+    });
+    setBlockSlotAssignments((current) => ({ ...current, [activeId]: targetSlot.id }));
+    setActiveSlotId(targetSlot.id);
+    setTarget({ kind: 'block', blockId: activeId });
+  };
   const slotIsFull =
     blockSlot?.cardinality.maximum !== null && slotBlocks.length >= (blockSlot?.cardinality.maximum ?? Infinity);
   const controlsHeading = (() => {
@@ -815,6 +1041,7 @@ function RulebookWorkspace({
           (slot): slot is FieldSlotDefinition => slot.id === target.slotId && slot.mode === 'fields'
         )
       : undefined;
+  const showBlocksLevel = Boolean(blockSlot) && (depth !== 'controls' || target.kind === 'block');
 
   return (
     <Box
@@ -829,7 +1056,7 @@ function RulebookWorkspace({
           padding="none"
           as="aside"
           aria-label="Rulebook outline and controls"
-          className={`${styles.drilldownSidebar} ${drilldownDepthClassNames[depth]} ${blockSlot ? '' : styles.drilldownSidebarWithoutBlocks}`}
+          className={`${styles.drilldownSidebar} ${drilldownDepthClassNames[depth]} ${showBlocksLevel ? '' : styles.drilldownSidebarWithoutBlocks}`}
         >
           <section
             className={`${styles.drilldownLevel} ${styles.pagesLevel} ${depth === 'pages' ? '' : styles.levelCollapsed}`}
@@ -924,83 +1151,109 @@ function RulebookWorkspace({
             aria-hidden={depth === 'pages'}
             inert={depth === 'pages'}
           >
-            <div className={styles.levelHeading}>
+            <div className={styles.levelHeading} aria-hidden={depth !== 'page'} inert={depth !== 'page'}>
               <Text fw={700} truncate>
                 {activePage.title}
               </Text>
-              <IconAction
-                label="About page structure"
-                tooltip="Page details belong to the page. Each named slot decides whether it contains blocks or fixed fields."
-                icon={<CircleHelp size={15} aria-hidden />}
-                size="sm"
-                variant="subtle"
-              />
-            </div>
-            <div className={styles.levelList}>
-              <div className={styles.levelItem}>
-                <button
-                  type="button"
-                  className={styles.levelIcon}
-                  aria-current={target.kind === 'page' ? 'true' : undefined}
-                  aria-label="Open page details"
-                  onClick={openPageDetails}
-                >
-                  <Link size={18} aria-hidden />
-                </button>
-                <DrilldownLevelChoice
-                  title="Page details"
-                  metadata="Title + URL"
-                  active={target.kind === 'page'}
-                  tabIndex={depth === 'page' ? 0 : -1}
-                  onClick={openPageDetails}
+              <Group gap={4} wrap="nowrap">
+                <AddMenu
+                  label="Add block to page"
+                  menuLabel="Choose a block allowed by this layout"
+                  choices={pageBlockChoices}
+                  collapsed
+                  onPick={addPageBlock}
                 />
-              </div>
-              <Text className={styles.slotListLabel} size="xs" fw={700} c="dimmed">
-                Slots in {pageLayoutNames[activePage.layoutId]}
-              </Text>
-              {slotsForPage(activePage).map((slot) => {
-                const slotBlocks =
-                  slot.mode === 'blocks' ? blocksForSlot(activePage, slot, result.draft.blocksById) : [];
-                const metadata =
-                  slot.mode === 'fields'
-                    ? 'Direct fields'
-                    : `${slotCardinality(slot, slotBlocks.length)} · ${slot.acceptedBlockKinds.length === 1 ? blockKindNames[slot.acceptedBlockKinds[0]!] : `${slot.acceptedBlockKinds.length} types`}`;
-                const active =
-                  activeSlotId === slot.id && (target.kind === 'slot' || target.kind === 'block' || depth === 'blocks');
-                return (
-                  <div className={styles.levelItem} key={slot.id}>
-                    <DrilldownTooltip
-                      title={slot.label}
-                      details={
-                        slot.mode === 'fields'
-                          ? ['Fixed fields defined by this layout', 'No blocks or block ordering']
-                          : [
-                              `Accepts: ${slot.acceptedBlockKinds.map((kind) => blockKindNames[kind]).join(', ')}`,
-                              `Cardinality: ${slot.cardinality.minimum} to ${slot.cardinality.maximum ?? 'unlimited'}`,
-                            ]
-                      }
-                    >
-                      <button
-                        type="button"
-                        className={styles.levelIcon}
-                        aria-current={active ? 'true' : undefined}
-                        aria-label={`Open ${slot.label} slot`}
-                        onClick={() => openSlot(slot)}
-                      >
-                        <SlotIcon slot={slot} />
-                      </button>
-                    </DrilldownTooltip>
-                    <DrilldownLevelChoice
-                      title={slot.label}
-                      metadata={metadata}
-                      active={active}
-                      tabIndex={depth === 'page' ? 0 : -1}
-                      onClick={() => openSlot(slot)}
-                    />
-                  </div>
-                );
-              })}
+                <IconAction
+                  label="About page structure"
+                  tooltip="This outline shows fixed fields, slots, and their blocks. Drag a block to another compatible slot."
+                  icon={<CircleHelp size={15} aria-hidden />}
+                  size="sm"
+                  variant="subtle"
+                />
+              </Group>
             </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={onStructureBlockDragStart}
+              onDragCancel={() => setDraggedBlockId(undefined)}
+              onDragEnd={onStructureBlockDragEnd}
+            >
+              <div className={styles.levelList}>
+                <div className={styles.levelItem}>
+                  <button
+                    type="button"
+                    className={styles.levelIcon}
+                    aria-current={target.kind === 'page' ? 'true' : undefined}
+                    aria-label="Open page details"
+                    onClick={openPageDetails}
+                  >
+                    <Link size={18} aria-hidden />
+                  </button>
+                  <DrilldownLevelChoice
+                    title="Page details"
+                    metadata="Title + URL"
+                    active={target.kind === 'page'}
+                    tabIndex={depth === 'page' ? 0 : -1}
+                    onClick={openPageDetails}
+                  />
+                </div>
+                <Text className={styles.slotListLabel} size="xs" fw={700} c="dimmed">
+                  Slots in {pageLayoutNames[activePage.layoutId]}
+                </Text>
+                {slotsForPage(activePage).map((slot) => {
+                  if (slot.mode === 'fields') {
+                    const active = target.kind === 'slot' && target.slotId === slot.id;
+                    return (
+                      <div className={styles.levelItem} key={slot.id}>
+                        <DrilldownTooltip
+                          title={slot.label}
+                          details={['Fixed fields defined by this layout', 'No blocks or block ordering']}
+                        >
+                          <button
+                            type="button"
+                            className={styles.levelIcon}
+                            aria-current={active ? 'true' : undefined}
+                            aria-label={`Open ${slot.label} slot`}
+                            onClick={() => openSlot(slot)}
+                          >
+                            <SlotIcon slot={slot} />
+                          </button>
+                        </DrilldownTooltip>
+                        <DrilldownLevelChoice
+                          title={slot.label}
+                          metadata="Direct fields"
+                          active={active}
+                          tabIndex={depth === 'page' ? 0 : -1}
+                          onClick={() => openSlot(slot)}
+                        />
+                      </div>
+                    );
+                  }
+                  const blocks = blocksForSlot(activePage, slot, result.draft.blocksById, blockSlotAssignments);
+                  const containsDraggedBlock = draggedBlock
+                    ? blocks.some((block) => block.id === draggedBlock.id)
+                    : false;
+                  const dropAllowed = draggedBlock
+                    ? slot.acceptedBlockKinds.includes(draggedBlock.kind) && (containsDraggedBlock || slotHasRoom(slot))
+                    : true;
+                  return (
+                    <StructureBlockSlot
+                      key={slot.id}
+                      slot={slot}
+                      blocks={blocks}
+                      activeTarget={target}
+                      dropAllowed={dropAllowed}
+                      onOpenSlot={() => openSlot(slot)}
+                      onOpenBlock={(block) => {
+                        setActiveSlotId(slot.id);
+                        openBlock(block.id);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </DndContext>
             <div className={styles.levelFooter} data-empty={depth === 'page'}>
               <button
                 type="button"
@@ -1011,13 +1264,24 @@ function RulebookWorkspace({
               >
                 <span>Page</span>
               </button>
+              {depth !== 'page' ? (
+                <div className={styles.addSlot}>
+                  <AddMenu
+                    label="Add block to page"
+                    menuLabel="Choose a block allowed by this layout"
+                    choices={pageBlockChoices}
+                    collapsed
+                    onPick={addPageBlock}
+                  />
+                </div>
+              ) : null}
             </div>
           </section>
           <section
-            className={`${styles.drilldownLevel} ${styles.blocksLevel} ${depth === 'controls' ? styles.levelCollapsed : ''} ${depth === 'pages' || depth === 'page' || !blockSlot ? styles.levelHidden : ''}`}
+            className={`${styles.drilldownLevel} ${styles.blocksLevel} ${depth === 'controls' ? styles.levelCollapsed : ''} ${depth === 'pages' || depth === 'page' || !showBlocksLevel ? styles.levelHidden : ''}`}
             aria-label="Blocks panel"
-            aria-hidden={depth === 'pages' || depth === 'page' || !blockSlot}
-            inert={depth === 'pages' || depth === 'page' || !blockSlot}
+            aria-hidden={depth === 'pages' || depth === 'page' || !showBlocksLevel}
+            inert={depth === 'pages' || depth === 'page' || !showBlocksLevel}
           >
             <div className={styles.levelHeading}>
               <Text fw={700} truncate>
@@ -1166,6 +1430,7 @@ function RulebookWorkspace({
         <RulebookPagePreview
           page={activePage}
           blocksById={result.draft.blocksById}
+          blockSlotAssignments={blockSlotAssignments}
           pageNumber={pageNumber}
           target={target}
           directValues={directValues}

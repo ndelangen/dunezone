@@ -165,6 +165,52 @@
   display: none;
 }
 
+.structureSlotGroup {
+  display: grid;
+  gap: var(--mantine-spacing-xs);
+  min-width: 0;
+}
+
+.structureBlockList {
+  display: grid;
+  gap: var(--mantine-spacing-xs);
+  min-width: 0;
+  min-height: 2.5rem;
+  margin-inline-start: calc(2.25rem + var(--mantine-spacing-sm));
+  padding: var(--mantine-spacing-xs);
+  border: 1px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.structureBlockList[data-drop-state="allowed"] {
+  background: color-mix(in srgb, var(--mantine-color-confirm-filled) 12%, transparent);
+  border-color: var(--mantine-color-confirm-filled);
+}
+
+.structureBlockList[data-drop-state="blocked"] {
+  background: color-mix(in srgb, var(--mantine-color-red-filled) 10%, transparent);
+  border-color: var(--mantine-color-red-filled);
+}
+
+.structureBlockItem {
+  min-height: 3.25rem;
+  background: var(--mantine-color-default-hover);
+}
+
+.structureEmptySlot {
+  align-self: center;
+  justify-self: center;
+  padding: var(--mantine-spacing-xs);
+}
+
+.levelCollapsed .structureBlockList,
+.levelHidden .structureBlockList {
+  display: none;
+}
+
 .levelItem {
   display: grid;
   grid-template-columns: 2.25rem minmax(0, 1fr);
