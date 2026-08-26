@@ -98,7 +98,7 @@ const SITE_ACCENT = 'var(--color-accent)';
    build, or an external site (opened in a new tab). */
 const footerLinks = [
   {
-    href: '/__storybook/',
+    href: 'https://storybook.dune.zone',
     icon: StorybookMark,
     size: BRAND_GLYPH,
     tint: STORYBOOK_CORAL,
