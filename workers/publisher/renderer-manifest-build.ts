@@ -144,6 +144,8 @@ export function isRendererManifestAsset(relativePath: string): boolean {
   return (
     normalizedPath !== '_shell.html' &&
     normalizedPath !== 'index.html' &&
+    // The favicon is app chrome; capture never loads it, so it must not reprice sheets.
+    normalizedPath !== 'dune-zone-favicon.svg' &&
     !normalizedPath.startsWith('__storybook/') &&
     !normalizedPath.startsWith('public/') &&
     // Generated image and vector output is identified by ingredients, never by bytes.
