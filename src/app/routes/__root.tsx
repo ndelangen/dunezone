@@ -36,6 +36,7 @@ export const Route = createRootRoute({
       },
     ],
     links: [
+      { rel: 'icon', type: 'image/svg+xml', href: '/dune-zone-favicon.svg' },
       // Train 1b (#255): the two LCP images and the primary text faces.
       { rel: 'preload', as: 'image', href: '/web/page-large.jpg', fetchPriority: 'high' },
       { rel: 'preload', as: 'image', href: '/video/band-poster.jpg', fetchPriority: 'high' },

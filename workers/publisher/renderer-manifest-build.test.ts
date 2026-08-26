@@ -8,6 +8,7 @@ import {
   assertExactSharpVersion,
   computeRendererManifestDigest,
   isRendererManifestAsset,
+  isRendererManifestInputPath,
   RENDERER_RUNTIME_CLOSURE_PATHS,
 } from './renderer-manifest-build';
 import type { RendererManifestEntry } from './renderer-manifest-build';
@@ -139,6 +140,7 @@ describe('current Renderer manifest digest', () => {
   test.each([
     '_shell.html',
     'index.html',
+    'dune-zone-favicon.svg',
     '__storybook/index.html',
     '__storybook/assets/Background.stories-hash.js',
     'public/FactionEditor-hash.js',
@@ -150,6 +152,10 @@ describe('current Renderer manifest digest', () => {
     'obj/troop/atreides.obj',
   ])('excludes application-only or generated release asset %s', (assetPath) => {
     expect(isRendererManifestAsset(assetPath)).toBe(false);
+  });
+
+  test('keeps the application favicon out of Renderer change detection', () => {
+    expect(isRendererManifestInputPath('public/dune-zone-favicon.svg')).toBe(false);
   });
 
   test('keeps application-only chunk changes out of the Renderer identity', () => {
