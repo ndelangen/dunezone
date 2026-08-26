@@ -54,6 +54,7 @@ export default defineConfig({
      * The global manual mock ignores this inert value when app database modules load.
      */
     'import.meta.env.VITE_CONVEX_URL': JSON.stringify('https://storybook.invalid'),
+    'import.meta.env.STORYBOOK': JSON.stringify(true),
   },
   publicDir: false,
   oxc: convexWorkerOxc,

@@ -41,7 +41,7 @@ function RuntimeProof() {
           });
           const scheduled = await client.runSchedulerProbe();
           expect(scheduled.after.users).toBe(1);
-          expect(scheduled.after.rulesets).toBe(0);
+          expect(scheduled.after.rulesets).toBe(1);
           expect(await client.query(convexStorybookReferences.migrationsAdminDashboard, { ids: [] })).toMatchObject({
             snapshots: [],
           });
@@ -50,7 +50,7 @@ function RuntimeProof() {
           });
           for (let count = 0; count < 20; count += 1) {
             const nextClient = await reset();
-            expect(await nextClient.query(convexStorybookReferences.rulesetsList, {})).toEqual([]);
+            expect(await nextClient.query(convexStorybookReferences.rulesetsList, {})).toHaveLength(1);
           }
           setStatus('Context, components, scheduling, rollback, network isolation, and 20 resets passed');
         }}

@@ -9,6 +9,11 @@ const wranglerConfig = path.join(repositoryRoot, 'workers/storybook/wrangler.jso
 const port = 6842;
 const origin = `http://127.0.0.1:${port}`;
 const PROCESS_SHUTDOWN_TIMEOUT_MS = 5000;
+const NETWORK_PROBE_TIMEOUT_MS = 5000;
+
+function progress(message: string) {
+  console.log(`[storybook-publication] ${message}`);
+}
 
 function invariant(condition: unknown, message: string): asserts condition {
   if (!condition) {
@@ -125,7 +130,11 @@ async function stopProcess(process: ReturnType<typeof Bun.spawn>) {
   }
 
   process.kill('SIGKILL');
-  await process.exited;
+  const killed = await Promise.race([
+    process.exited.then(() => true),
+    Bun.sleep(PROCESS_SHUTDOWN_TIMEOUT_MS).then(() => false),
+  ]);
+  invariant(killed, 'Wrangler did not stop after SIGKILL.');
 }
 
 function assertDocumentCsp(value: string | null) {
@@ -185,14 +194,18 @@ async function verifyBrowser(workerPath: string) {
     invariant(externalRequests.length === 0, `Storybook requested an external URL: ${externalRequests.join(', ')}`);
     invariant(consoleErrors.length === 0, `Storybook logged browser errors: ${consoleErrors.join('\n')}`);
 
-    const networkResult = await page.evaluate(async () => {
+    const networkResult = await page.evaluate(async (timeoutMs) => {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
       try {
-        await fetch('https://example.com');
+        await fetch('https://example.com', { signal: controller.signal });
         return 'connected';
       } catch (error) {
         return error instanceof Error ? error.message : String(error);
+      } finally {
+        window.clearTimeout(timeout);
       }
-    });
+    }, NETWORK_PROBE_TIMEOUT_MS);
     invariant(networkResult !== 'connected', 'The Storybook document connected to an external origin.');
 
     const subworkerResult = await page.evaluate(async (url) => {
@@ -263,8 +276,10 @@ async function verifyNonRootPath() {
   }
 }
 
+progress('Building the static Storybook.');
 await run([process.execPath, 'run', 'build-storybook'], buildEnvironment());
 const workerPath = inspectArtifact();
+progress('Checking the publication worker bundle.');
 await run([process.execPath, 'x', 'wrangler', 'deploy', '--dry-run', '--config', wranglerConfig], buildEnvironment());
 
 const wrangler = Bun.spawn(
@@ -289,13 +304,18 @@ const wrangler = Bun.spawn(
   }
 );
 try {
+  progress('Waiting for the publication worker.');
   await waitForServer(wrangler);
+  progress('Checking publication headers.');
   await verifyHeaders(workerPath);
+  progress('Checking the published story in Chromium.');
   await verifyBrowser(workerPath);
 } finally {
+  progress('Stopping the publication worker.');
   await stopProcess(wrangler);
 }
 
+progress('Checking publication from a non-root path.');
 await verifyNonRootPath();
 
 console.log(JSON.stringify({ ok: true, workerPath, origin }));

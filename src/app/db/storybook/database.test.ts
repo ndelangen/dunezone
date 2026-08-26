@@ -9,8 +9,8 @@ import type { StorybookDatabase, StorybookRow } from './index';
 describe('Storybook database authoring', () => {
   test('the accepted callback extends a fresh canonical baseline', () => {
     const scenario = db((baseline) => {
-      baseline.factions.push(faction({ name: 'House Atreides' }));
-      baseline.rulesets.push(ruleset({ name: 'ClassicRules' }));
+      baseline.factions.push(faction({ name: 'House Harkonnen' }));
+      baseline.rulesets.push(ruleset({ name: 'AdvancedRules' }));
     });
 
     const first = scenario.create();
@@ -20,8 +20,8 @@ describe('Storybook database authoring', () => {
     expect(first).not.toBe(second);
     expect(first.filter(({ table }) => table === 'users')).toHaveLength(1);
     expect(first.filter(({ table }) => table === 'profiles')).toHaveLength(1);
-    expect(first.filter(({ table }) => table === 'factions')).toHaveLength(1);
-    expect(first.filter(({ table }) => table === 'rulesets')).toHaveLength(1);
+    expect(first.filter(({ table }) => table === 'factions')).toHaveLength(2);
+    expect(first.filter(({ table }) => table === 'rulesets')).toHaveLength(2);
   });
 
   test('a story can replace the baseline with a valid empty database', () => {

@@ -13,6 +13,9 @@ export class ConvexReactClient {
 }
 
 export const useQuery = fn(() => undefined);
+export const usePaginatedQuery = fn(() => {
+  throw new Error('Unconfigured Storybook Convex paginated query');
+});
 export const useMutation = fn(() => unconfigured('mutation'));
 export const useAction = fn(() => unconfigured('action'));
 export const useConvex = fn(() => new ConvexReactClient());

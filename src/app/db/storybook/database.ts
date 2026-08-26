@@ -2,6 +2,11 @@ import type { WithoutSystemFields } from 'convex/server';
 
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 import schema from '../../../../convex/schema';
+import { publishingDeckCardback } from '../../../shared/assets/fixtures/publishingDeckCardback';
+import { publishingRectangleTokenFace } from '../../../shared/assets/fixtures/publishingRectangleTokenFace';
+import { publishingTokenFace } from '../../../shared/assets/fixtures/publishingTokenFace';
+import { publishingTreacheryCard } from '../../../shared/assets/fixtures/publishingTreacheryCard';
+import { parseAssetDataForWrite } from '../../../shared/assets/validation';
 import { assetPublishingFaction } from '../../../shared/factions/fixtures/assetPublishingFaction';
 import { FactionInputSchema, FactionRowSlugSchema } from '../../../shared/factions/schema';
 import type { FactionInput } from '../../../shared/factions/schema';
@@ -11,6 +16,9 @@ import type { SeedDocument, SeedReference, WithSeedReferences, WorkerIdentity } 
 
 const STORY_TIME = '2026-01-01T12:00:00.000Z';
 const VIEWER_KEY = 'storybook-viewer';
+const GROUP_KEY = 'group:arrakeen-rules-council';
+const RULESET_KEY = 'ruleset:classicrules';
+const FACTION_KEY = 'faction:house-atreides';
 
 export type StorybookRow<TableName extends TableNames> = WithSeedReferences<WithoutSystemFields<Doc<TableName>>> & {
   $key?: string;
@@ -40,7 +48,7 @@ export function emptyDatabase(): StorybookDatabase {
 }
 
 function viewerRow(): StorybookRow<'users'> {
-  return { $key: VIEWER_KEY, name: 'Storybook viewer' };
+  return { $key: VIEWER_KEY, name: 'Storybook viewer', isAdmin: true };
 }
 
 function viewerProfileRow(): StorybookRow<'profiles'> {
@@ -60,7 +68,118 @@ function baselineDatabase(): StorybookDatabase {
   const baseline = emptyTables();
   baseline.users.push(viewerRow());
   baseline.profiles.push(viewerProfileRow());
+  baseline.groups.push({
+    $key: GROUP_KEY,
+    name: 'Arrakeen Rules Council',
+    slug: 'arrakeen-rules-council',
+    created_at: STORY_TIME,
+    created_by: ref(VIEWER_KEY),
+    is_deleted: false,
+  });
+  baseline.group_members.push({
+    group_id: ref(GROUP_KEY),
+    user_id: ref(VIEWER_KEY),
+    status: 'active',
+    requested_at: STORY_TIME,
+    approved_at: STORY_TIME,
+    approved_by: ref(VIEWER_KEY),
+  });
+  baseline.rulesets.push({ ...ruleset({ name: 'ClassicRules' }), $key: RULESET_KEY, group_id: ref(GROUP_KEY) });
+  baseline.factions.push({ ...faction({ name: 'House Atreides' }), $key: FACTION_KEY, group_id: ref(GROUP_KEY) });
+  baseline.ruleset_factions.push({ ruleset_id: ref(RULESET_KEY), faction_id: ref(FACTION_KEY) });
+
+  const treachery = asset({ type: 'card-treachery', data: publishingTreacheryCard });
+  const deck = asset({
+    type: 'deck',
+    data: {
+      name: 'House Treachery',
+      about: 'The standard treachery deck for the page-story baseline.',
+      cardback: publishingDeckCardback,
+    },
+  });
+  const disc = asset({
+    type: 'token-disc',
+    data: { name: 'Karama', about: 'A representative disc token.', front: publishingTokenFace, back: { mode: 'same' } },
+  });
+  const enhance = asset({
+    type: 'token-enhance',
+    data: {
+      name: 'Kwisatz Haderach',
+      about: 'A representative enhance token.',
+      front: publishingRectangleTokenFace,
+      back: { mode: 'same' },
+    },
+  });
+  const bundle = asset({
+    type: 'bundle',
+    data: {
+      name: 'Atreides Tokens',
+      about: 'A representative bundle of house tokens.',
+      band: { background: publishingRectangleTokenFace.background, label: 'ATREIDES' },
+    },
+  });
+  baseline.assets.push(treachery, deck, disc, enhance, bundle);
+  baseline.asset_relations.push(
+    { from_asset_id: ref(deck.$key!), to_asset_id: ref(treachery.$key!), kind: 'deck-card', count: 3 },
+    { from_asset_id: ref(bundle.$key!), to_asset_id: ref(disc.$key!), kind: 'bundle-token', count: 1 },
+    { from_asset_id: ref(bundle.$key!), to_asset_id: ref(enhance.$key!), kind: 'bundle-token', count: 1 }
+  );
+  baseline.ruleset_asset_slots.push(
+    { ruleset_id: ref(RULESET_KEY), asset_id: ref(deck.$key!), slot: 'treachery' },
+    { ruleset_id: ref(RULESET_KEY), asset_id: ref(bundle.$key!), slot: 'customTokens' }
+  );
+
+  const questionKey = 'faq:when-does-the-storm-move';
+  const answerKey = 'faq-answer:storm-movement';
+  baseline.faq_items.push({
+    $key: questionKey,
+    ruleset_id: ref(RULESET_KEY),
+    slug: 'when-does-the-storm-move',
+    question: 'When does the storm move?',
+    tags: ['rules'],
+    asked_by: ref(VIEWER_KEY),
+    created_at: STORY_TIME,
+    updated_at: STORY_TIME,
+    accepted_answer_id: null,
+  });
+  baseline.faq_answers.push({
+    $key: answerKey,
+    faq_item_id: ref(questionKey),
+    answer: 'Move the storm marker at the start of the storm phase.',
+    answered_by: ref(VIEWER_KEY),
+    created_at: STORY_TIME,
+  });
+  baseline.admin_settings.push({
+    key: 'publication',
+    publication_pickup_enabled: true,
+    renderer_revisions: {},
+    updated_at: Date.parse(STORY_TIME),
+  });
+  baseline.publication_jobs.push({
+    asset_type: 'faction-sheet',
+    asset_id: 'house-atreides',
+    asset_data: assetPublishingFaction,
+    status: 'pending',
+    attempt_counter: 0,
+    created_at: Date.parse(STORY_TIME),
+    updated_at: Date.parse(STORY_TIME),
+  });
   return baseline;
+}
+
+function asset({ data, type }: Readonly<{ data: unknown; type: string }>): StorybookRow<'assets'> {
+  const parsed = parseAssetDataForWrite(type, data);
+  return {
+    $key: `asset:${type}:${slugify(parsed.name)}`,
+    owner_id: ref(VIEWER_KEY),
+    type,
+    data: parsed.data,
+    slug: slugify(parsed.name),
+    created_at: STORY_TIME,
+    updated_at: STORY_TIME,
+    is_deleted: false,
+    group_id: ref(GROUP_KEY),
+  };
 }
 
 export function ruleset({ about, name }: Readonly<{ about?: string; name: string }>): StorybookRow<'rulesets'> {
@@ -158,6 +277,9 @@ function validateDomainRows(database: StorybookDatabase) {
   }
   for (const row of database.rulesets) {
     rulesetInputSchema.parse({ name: row.name, about: row.about });
+  }
+  for (const row of database.assets) {
+    parseAssetDataForWrite(row.type, row.data);
   }
 }
 

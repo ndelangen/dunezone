@@ -1,17 +1,20 @@
-import { useMutation as convexUseMutation, useQuery as convexUseQuery } from 'convex/react';
-import { getFunctionName, makeFunctionReference } from 'convex/server';
-import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
-import { convexToJson } from 'convex/values';
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+  useMutation as convexUseMutation,
+  usePaginatedQuery as convexUsePaginatedQuery,
+  useQuery as convexUseQuery,
+} from 'convex/react';
+import type {
+  PaginatedQueryArgs,
+  PaginatedQueryItem,
+  PaginatedQueryReference,
+  PaginationStatus,
+  UsePaginatedQueryReturnType,
+} from 'convex/react';
+import { getFunctionName, makeFunctionReference } from 'convex/server';
+import type { FunctionArgs, FunctionReference, FunctionReturnType, PaginationResult } from 'convex/server';
+import { convexToJson, jsonToConvex } from 'convex/values';
+import type { Value as ConvexValue } from 'convex/values';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { api } from '../../../../convex/_generated/api';
 import type {
@@ -153,13 +156,9 @@ function useConvexStorybookWorkerSession() {
   return session;
 }
 
-function useStableConvexArgs<Query extends FunctionReference<'query'>>(args: FunctionArgs<Query>) {
-  const serialized = JSON.stringify(convexToJson(args));
-  const stable = useRef<{ serialized: string; value: FunctionArgs<Query> } | undefined>(undefined);
-  if (!stable.current || stable.current.serialized !== serialized) {
-    stable.current = { serialized, value: args };
-  }
-  return stable.current.value;
+function useStableConvexValue<Value>(value: Value) {
+  const serialized = JSON.stringify(convexToJson(value as ConvexValue));
+  return useMemo(() => jsonToConvex(JSON.parse(serialized)) as Value, [serialized]);
 }
 
 export function useConvexStorybookQuery<Query extends FunctionReference<'query'>>(
@@ -170,7 +169,7 @@ export function useConvexStorybookQuery<Query extends FunctionReference<'query'>
   const revision = useSyncExternalStore(client.subscribe, client.getRevision, client.getRevision);
   const name = getFunctionName(query);
   const stableQuery = useMemo(() => makeFunctionReference(name) as Query, [name]);
-  const stableArgs = useStableConvexArgs(args);
+  const stableArgs = useStableConvexValue(args);
   const [value, setValue] = useState<FunctionReturnType<Query>>();
   const [error, setError] = useState<Error | null>(null);
 
@@ -212,6 +211,81 @@ export function useConvexStorybookMutation<Mutation extends FunctionReference<'m
   );
 }
 
+type PageRequest = { cursor: string | null; numItems: number };
+
+export function useConvexStorybookPaginatedQuery<Query extends PaginatedQueryReference>(
+  query: Query,
+  args: PaginatedQueryArgs<Query> | 'skip',
+  options: { initialNumItems: number }
+): UsePaginatedQueryReturnType<Query> {
+  const { client, identity } = useConvexStorybookWorkerSession();
+  const revision = useSyncExternalStore(client.subscribe, client.getRevision, client.getRevision);
+  const name = getFunctionName(query);
+  const stableQuery = useMemo(() => makeFunctionReference(name) as Query, [name]);
+  const stableArgs = useStableConvexValue(args);
+  const [requests, setRequests] = useState<PageRequest[]>([{ cursor: null, numItems: options.initialNumItems }]);
+  const [pages, setPages] = useState<Array<PaginationResult<PaginatedQueryItem<Query>>>>([]);
+  const [status, setStatus] = useState<PaginationStatus>('LoadingFirstPage');
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    setRequests(stableArgs === 'skip' ? [] : [{ cursor: null, numItems: options.initialNumItems }]);
+    setPages([]);
+    setStatus(stableArgs === 'skip' ? 'Exhausted' : 'LoadingFirstPage');
+  }, [client, identity, options.initialNumItems, stableArgs, stableQuery]);
+
+  useEffect(() => {
+    if (stableArgs === 'skip' || requests.length === 0) {
+      return;
+    }
+    const queryArgsBase = stableArgs as Record<string, ConvexValue>;
+    let active = true;
+    setError(null);
+    void Promise.all(
+      requests.map(async (request) => {
+        const queryArgs = { ...queryArgsBase, paginationOpts: request } as FunctionArgs<Query>;
+        return (await client.query(stableQuery, queryArgs, identity)) as PaginationResult<PaginatedQueryItem<Query>>;
+      })
+    )
+      .then((nextPages) => {
+        if (active) {
+          setPages(nextPages);
+          setStatus(nextPages.at(-1)?.isDone === false ? 'CanLoadMore' : 'Exhausted');
+        }
+      })
+      .catch((queryError: unknown) => {
+        if (active) {
+          setError(queryError instanceof Error ? queryError : new Error(String(queryError)));
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [client, identity, requests, revision, stableArgs, stableQuery]);
+
+  const loadMore = useCallback(
+    (numItems: number) => {
+      const lastPage = pages.at(-1);
+      if (status !== 'CanLoadMore' || !lastPage) {
+        return;
+      }
+      setStatus('LoadingMore');
+      setRequests((current) => [...current, { cursor: lastPage.continueCursor, numItems }]);
+    },
+    [pages, status]
+  );
+
+  if (error) {
+    throw error;
+  }
+  return {
+    results: pages.flatMap((page) => page.page),
+    status,
+    isLoading: status === 'LoadingFirstPage' || status === 'LoadingMore',
+    loadMore,
+  } as UsePaginatedQueryReturnType<Query>;
+}
+
 export const convexStorybookReferences = {
   migrationsAdminDashboard: api.migrations.adminDashboard,
   migrationsSyncRuns: api.migrations.syncMigrationRuns,
@@ -219,5 +293,5 @@ export const convexStorybookReferences = {
   rulesetsList: api.rulesets.list,
 };
 
-export { convexUseMutation, convexUseQuery };
+export { convexUseMutation, convexUsePaginatedQuery, convexUseQuery };
 export type { FunctionArgs, FunctionReference, FunctionReturnType };

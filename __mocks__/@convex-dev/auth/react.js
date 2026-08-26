@@ -10,3 +10,7 @@ export const useAuthActions = fn(() => ({
   signIn: unconfigured('signIn'),
   signOut: unconfigured('signOut'),
 }));
+
+export function ConvexAuthProvider({ children }) {
+  return children;
+}

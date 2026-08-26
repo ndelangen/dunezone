@@ -9,8 +9,10 @@ import {
   ConvexStorybookWorkerClient,
   ConvexStorybookWorkerContext,
   convexUseMutation,
+  convexUsePaginatedQuery,
   convexUseQuery,
   useConvexStorybookMutation,
+  useConvexStorybookPaginatedQuery,
   useConvexStorybookQuery,
 } from './runtime';
 
@@ -95,6 +97,9 @@ export function StorybookDatabaseProvider({
     state.client.mutation(fn, args, identity)) as typeof applicationDb.mutation);
   mocked(convexUseQuery).mockImplementation(useConvexStorybookQuery as typeof convexUseQuery);
   mocked(convexUseMutation).mockImplementation(useConvexStorybookMutation as typeof convexUseMutation);
+  mocked(convexUsePaginatedQuery).mockImplementation(
+    useConvexStorybookPaginatedQuery as typeof convexUsePaginatedQuery
+  );
 
   return (
     <StorybookDatabaseContext.Provider value={{ client: state.client, reset }}>
