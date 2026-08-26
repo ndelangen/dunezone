@@ -26,12 +26,12 @@
 
 .workspaceViewport[data-fit="height"] .stickyFrame {
   grid-template-columns:
-    minmax(23rem, 1fr)
-    minmax(0, min(var(--page-width), calc(100% - 23rem - var(--mantine-spacing-lg))));
+    minmax(29rem, 1fr)
+    minmax(0, min(var(--page-width), calc(100% - 29rem - var(--mantine-spacing-lg))));
 }
 
 .workspaceViewport[data-fit="width"] .stickyFrame {
-  grid-template-columns: minmax(23rem, 0.85fr) minmax(28rem, 1.15fr);
+  grid-template-columns: minmax(29rem, 0.95fr) minmax(28rem, 1.05fr);
 }
 
 .stickyRunway {
@@ -51,6 +51,7 @@
 }
 
 .pagesLevel,
+.structureLevel,
 .blocksLevel,
 .controlsPanel {
   flex-basis: 0;
@@ -66,16 +67,25 @@
 }
 
 .drilldownSidebarPages .pagesLevel,
+.drilldownSidebarPage .structureLevel,
 .drilldownSidebarBlocks .blocksLevel,
 .drilldownSidebarControls .controlsPanel {
   flex-grow: 1;
 }
 
+.drilldownSidebarPage .pagesLevel,
 .drilldownSidebarBlocks .pagesLevel,
 .drilldownSidebarControls .pagesLevel,
+.drilldownSidebarBlocks .structureLevel,
+.drilldownSidebarControls .structureLevel,
 .drilldownSidebarControls .blocksLevel {
   flex-basis: 3rem;
   flex-shrink: 0;
+}
+
+.drilldownSidebarWithoutBlocks .blocksLevel {
+  flex-basis: 0;
+  flex-shrink: 1;
 }
 
 .drilldownLevel {
@@ -142,6 +152,17 @@
   gap: var(--mantine-spacing-xs);
   align-content: start;
   min-height: 0;
+}
+
+.slotListLabel {
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-xs) 0;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.levelCollapsed .slotListLabel,
+.levelHidden .slotListLabel {
+  display: none;
 }
 
 .levelItem {
@@ -412,6 +433,25 @@
   font-family: Caladea, Georgia, serif;
 }
 
+.previewPageDetails {
+  position: relative;
+}
+
+.documentPage[data-page-selected="true"] .previewPageDetails {
+  background: rgb(117 88 43 / 7%);
+}
+
+.documentPage[data-page-selected="true"] .previewPageDetails::before {
+  position: absolute;
+  top: 5cqi;
+  bottom: 2cqi;
+  left: 4.5cqi;
+  width: 0.7cqi;
+  background: var(--mantine-primary-color-filled);
+  border-radius: 999px;
+  content: "";
+}
+
 .workspaceViewport[data-fit="height"] .documentPage {
   width: min(var(--page-width), 100%);
 }
@@ -435,7 +475,7 @@
   text-transform: uppercase;
 }
 
-.documentPage > h1 {
+.previewPageDetails > h1 {
   margin: 0;
   padding: 1.5cqi 8cqi 3cqi;
   color: #3b2b18;
@@ -443,18 +483,48 @@
   line-height: 1;
 }
 
-.previewBlocks {
+.previewSlots {
   display: grid;
   gap: 3cqi;
   padding: 1cqi 8cqi 8cqi;
 }
 
-.previewBlocks > [data-selected="true"] {
+.previewDirectSlot,
+.previewBlockSlot {
+  position: relative;
+  display: grid;
+  gap: 3cqi;
+}
+
+.previewDirectSlot {
+  padding: 2.2cqi 0 2.8cqi;
+  border-bottom: 1px solid rgb(117 88 43 / 24%);
+}
+
+.previewDirectSlot > span {
+  color: #8b6634;
+  font-family: Lato, Arial, sans-serif;
+  font-size: 2cqi;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.previewDirectSlot p,
+.previewDirectSlot ul {
+  margin: 0;
+  font-size: 2.45cqi;
+  line-height: 1.4;
+}
+
+.previewDirectSlot[data-selected="true"],
+.previewBlockSlot > [data-selected="true"] {
   position: relative;
   background-color: rgb(117 88 43 / 7%);
 }
 
-.previewBlocks > [data-selected="true"]::before {
+.previewDirectSlot[data-selected="true"]::before,
+.previewBlockSlot > [data-selected="true"]::before {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -577,6 +647,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pagesLevel,
+  .structureLevel,
   .blocksLevel,
   .controlsPanel,
   .levelHeading,

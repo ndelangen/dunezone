@@ -9,7 +9,6 @@ import {
 import { ActionIcon, Alert, Badge, Box, Button, Group, Menu, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult } from '@shared/formattedText';
-import { rulebookLayoutCatalogue } from '@shared/rulebooks/contents';
 import type { RulebookBlockDraft, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { createFileRoute } from '@tanstack/react-router';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -18,7 +17,18 @@ import { SortableItem } from '@ui/control/SortableItem';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { BookOpenText, ChevronDown, CircleHelp, FileImage, ListTree, MessageSquareQuote, Plus } from 'lucide-react';
+import {
+  BookOpenText,
+  ChevronDown,
+  CircleHelp,
+  FileImage,
+  Link,
+  ListTree,
+  MessageSquareQuote,
+  PanelsTopLeft,
+  Plus,
+  TextCursorInput,
+} from 'lucide-react';
 import { Fragment, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 
@@ -28,12 +38,34 @@ import type { RulebookEditorResult, RulebookEditorStateManager } from './edit/-r
 import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.fixtures';
 
 type PreviewFit = 'height' | 'width';
-type DrilldownDepth = 'pages' | 'blocks' | 'controls';
+type DrilldownDepth = 'pages' | 'page' | 'blocks' | 'controls';
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 type EditorialPage = Extract<RulebookPageDraft, { layoutId: 'chapter-opener' | 'rules-page' | 'visual-reference' }>;
 type EditorialBlock = Extract<RulebookBlockDraft, { kind: 'rule-group' | 'worked-example' | 'asset-figure' }>;
 type PageLayoutId = EditorialPage['layoutId'];
 type BlockKind = EditorialBlock['kind'];
+type SlotFieldDefinition = {
+  id: string;
+  label: string;
+  defaultValue: string;
+  multiline?: boolean;
+};
+type BlockSlotDefinition = {
+  id: string;
+  label: string;
+  mode: 'blocks';
+  acceptedBlockKinds: readonly BlockKind[];
+  cardinality: { minimum: number; maximum: number | null };
+};
+type FieldSlotDefinition = {
+  id: string;
+  label: string;
+  mode: 'fields';
+  fields: readonly SlotFieldDefinition[];
+};
+type EditorialSlotDefinition = BlockSlotDefinition | FieldSlotDefinition;
+type ControlTarget = { kind: 'page' } | { kind: 'slot'; slotId: string } | { kind: 'block'; blockId: string };
+type DirectSlotValues = Record<string, Record<string, Record<string, string>>>;
 type FormattedBlock = FormattedTextParseResult['blocks'][number];
 type FormattedInline = Extract<FormattedBlock, { kind: 'paragraph' }>['children'][number];
 
@@ -50,8 +82,91 @@ const blockKindNames: Record<BlockKind, string> = {
 };
 
 const pageLayoutIds = ['chapter-opener', 'rules-page', 'visual-reference'] as const;
+const editorialSlotCatalogue: Record<PageLayoutId, readonly EditorialSlotDefinition[]> = {
+  'chapter-opener': [
+    {
+      id: 'title-band',
+      label: 'Title band',
+      mode: 'fields',
+      fields: [
+        { id: 'eyebrow', label: 'Eyebrow', defaultValue: 'Chapter opener' },
+        { id: 'subtitle', label: 'Subtitle', defaultValue: 'A first look at the world of Dune', multiline: true },
+      ],
+    },
+    {
+      id: 'hero',
+      label: 'Hero',
+      mode: 'blocks',
+      acceptedBlockKinds: ['asset-figure'],
+      cardinality: { minimum: 1, maximum: 1 },
+    },
+    {
+      id: 'introduction',
+      label: 'Introduction',
+      mode: 'blocks',
+      acceptedBlockKinds: ['rule-group'],
+      cardinality: { minimum: 0, maximum: 1 },
+    },
+  ],
+  'rules-page': [
+    {
+      id: 'running-header',
+      label: 'Running header',
+      mode: 'fields',
+      fields: [
+        { id: 'label', label: 'Section label', defaultValue: 'Core rules' },
+        { id: 'intro', label: 'Page introduction', defaultValue: 'Resolve these rules in order.', multiline: true },
+      ],
+    },
+    {
+      id: 'main-rules',
+      label: 'Main rules',
+      mode: 'blocks',
+      acceptedBlockKinds: ['rule-group', 'worked-example'],
+      cardinality: { minimum: 1, maximum: 4 },
+    },
+    {
+      id: 'figure',
+      label: 'Figure',
+      mode: 'blocks',
+      acceptedBlockKinds: ['asset-figure'],
+      cardinality: { minimum: 0, maximum: 1 },
+    },
+  ],
+  'visual-reference': [
+    {
+      id: 'legend',
+      label: 'Legend',
+      mode: 'fields',
+      fields: [
+        { id: 'label', label: 'Legend title', defaultValue: 'Marker guide' },
+        {
+          id: 'note',
+          label: 'Legend note',
+          defaultValue: 'Use the printed shapes to identify each marker.',
+          multiline: true,
+        },
+      ],
+    },
+    {
+      id: 'figures',
+      label: 'Figures',
+      mode: 'blocks',
+      acceptedBlockKinds: ['asset-figure'],
+      cardinality: { minimum: 1, maximum: 3 },
+    },
+    {
+      id: 'notes',
+      label: 'Notes',
+      mode: 'blocks',
+      acceptedBlockKinds: ['worked-example'],
+      cardinality: { minimum: 0, maximum: 2 },
+    },
+  ],
+};
 const drilldownDepthClassNames: Record<DrilldownDepth, string> = {
   pages: styles.drilldownSidebarPages,
+  page: styles.drilldownSidebarPage,
   blocks: styles.drilldownSidebarBlocks,
   controls: styles.drilldownSidebarControls,
 };
@@ -124,6 +239,51 @@ function BlockKindIcon({ kind, size = 18 }: Readonly<{ kind: BlockKind; size?: n
   return <FileImage size={size} aria-hidden />;
 }
 
+function SlotIcon({ slot, size = 18 }: Readonly<{ slot: EditorialSlotDefinition; size?: number }>) {
+  if (slot.mode === 'fields') {
+    return <TextCursorInput size={size} aria-hidden />;
+  }
+  return <PanelsTopLeft size={size} aria-hidden />;
+}
+
+function slotsForPage(page: EditorialPage): readonly EditorialSlotDefinition[] {
+  return editorialSlotCatalogue[page.layoutId];
+}
+
+function blocksForSlot(
+  page: EditorialPage,
+  slot: BlockSlotDefinition,
+  blocksById: ReadyResult['draft']['blocksById']
+): readonly EditorialBlock[] {
+  return page.slots.body.flatMap((id) => {
+    const block = blocksById[id];
+    return block &&
+      block.kind !== 'text' &&
+      block.kind !== 'repeated-text' &&
+      slot.acceptedBlockKinds.includes(block.kind)
+      ? [block]
+      : [];
+  });
+}
+
+function slotCardinality(slot: BlockSlotDefinition, count: number): string {
+  const maximum = slot.cardinality.maximum;
+  if (maximum === null) {
+    return `${count} blocks`;
+  }
+  return `${count} of ${maximum}`;
+}
+
+function slotFieldValues(
+  pageId: string,
+  slot: FieldSlotDefinition,
+  directValues: DirectSlotValues
+): Record<string, string> {
+  return Object.fromEntries(
+    slot.fields.map((field) => [field.id, directValues[pageId]?.[slot.id]?.[field.id] ?? field.defaultValue])
+  );
+}
+
 function AssetImagePlaceholder({ label }: Readonly<{ label: string }>) {
   return (
     <div className={styles.assetImagePlaceholder}>
@@ -135,46 +295,70 @@ function AssetImagePlaceholder({ label }: Readonly<{ label: string }>) {
 
 function RulebookPagePreview({
   page,
-  blocks,
+  blocksById,
   pageNumber,
-  selectedBlockId,
+  target,
+  directValues,
 }: Readonly<{
   page: EditorialPage;
-  blocks: readonly EditorialBlock[];
+  blocksById: ReadyResult['draft']['blocksById'];
   pageNumber: number;
-  selectedBlockId?: string;
+  target: ControlTarget;
+  directValues: DirectSlotValues;
 }>) {
+  const pageSelected = target.kind === 'page';
   return (
-    <article className={styles.documentPage} aria-label="Rulebook page preview">
-      <div className={styles.documentFolio}>
-        {pageLayoutNames[page.layoutId]} / {String(pageNumber).padStart(2, '0')}
+    <article className={styles.documentPage} aria-label="Rulebook page preview" data-page-selected={pageSelected}>
+      <div className={styles.previewPageDetails}>
+        <div className={styles.documentFolio}>
+          {pageLayoutNames[page.layoutId]} / {String(pageNumber).padStart(2, '0')}
+        </div>
+        <h1>{page.title}</h1>
       </div>
-      <h1>{page.title}</h1>
-      <div className={styles.previewBlocks}>
-        {blocks.map((block) => {
-          const selected = block.id === selectedBlockId;
-          if (block.kind === 'asset-figure') {
+      <div className={styles.previewSlots}>
+        {slotsForPage(page).map((slot) => {
+          if (slot.mode === 'fields') {
+            const values = slotFieldValues(page.id, slot, directValues);
             return (
-              <section className={styles.previewAssetBlock} data-selected={selected} key={block.id}>
-                <AssetImagePlaceholder label={block.title} />
-                <FormattedTextPreview value={block.text} />
+              <section
+                className={styles.previewDirectSlot}
+                data-selected={target.kind === 'slot' && target.slotId === slot.id}
+                key={slot.id}
+              >
+                <span>{values[slot.fields[0]!.id]}</span>
+                <FormattedTextPreview value={values[slot.fields[1]!.id] ?? ''} />
               </section>
             );
           }
-          if (block.kind === 'worked-example') {
-            return (
-              <aside className={styles.previewCallout} data-selected={selected} key={block.id}>
-                <strong>{block.title}</strong>
-                <FormattedTextPreview value={block.text} />
-              </aside>
-            );
-          }
           return (
-            <section className={styles.previewRuleGroup} data-selected={selected} key={block.id}>
-              <span>{blockKindNames[block.kind]}</span>
-              <h2>{block.title}</h2>
-              <FormattedTextPreview value={block.text} />
-            </section>
+            <div className={styles.previewBlockSlot} data-slot={slot.id} key={slot.id}>
+              {blocksForSlot(page, slot, blocksById).map((block) => {
+                const selected = target.kind === 'block' && target.blockId === block.id;
+                if (block.kind === 'asset-figure') {
+                  return (
+                    <section className={styles.previewAssetBlock} data-selected={selected} key={block.id}>
+                      <AssetImagePlaceholder label={block.title} />
+                      <FormattedTextPreview value={block.text} />
+                    </section>
+                  );
+                }
+                if (block.kind === 'worked-example') {
+                  return (
+                    <aside className={styles.previewCallout} data-selected={selected} key={block.id}>
+                      <strong>{block.title}</strong>
+                      <FormattedTextPreview value={block.text} />
+                    </aside>
+                  );
+                }
+                return (
+                  <section className={styles.previewRuleGroup} data-selected={selected} key={block.id}>
+                    <span>{blockKindNames[block.kind]}</span>
+                    <h2>{block.title}</h2>
+                    <FormattedTextPreview value={block.text} />
+                  </section>
+                );
+              })}
+            </div>
           );
         })}
       </div>
@@ -311,19 +495,17 @@ function createBlock(kind: BlockKind, id: string): EditorialBlock {
 }
 
 function defaultBlockKind(layoutId: PageLayoutId): BlockKind {
-  return layoutId === 'rules-page' ? 'rule-group' : 'asset-figure';
-}
-
-function acceptedBlockKinds(layoutId: PageLayoutId): readonly BlockKind[] {
-  const layout = rulebookLayoutCatalogue.find((candidate) => candidate.id === layoutId);
-  return (layout?.slots[0]?.acceptedBlockKinds ?? []) as readonly BlockKind[];
+  const firstBlockSlot = editorialSlotCatalogue[layoutId].find(
+    (slot): slot is BlockSlotDefinition => slot.mode === 'blocks'
+  );
+  return firstBlockSlot?.acceptedBlockKinds[0] ?? 'rule-group';
 }
 
 function destinationForIndex(ids: readonly string[], index: number) {
   return { afterId: ids[index - 1] ?? null, beforeId: ids[index + 1] ?? null };
 }
 
-function EditorControls({
+function BlockControls({
   block,
   dispatch,
 }: Readonly<{
@@ -356,25 +538,109 @@ function EditorControls({
   );
 }
 
+function PageControls({
+  page,
+  dispatch,
+}: Readonly<{
+  page: EditorialPage;
+  dispatch: RulebookEditorStateManager['dispatch'];
+}>) {
+  const target = { kind: 'page' as const, pageId: page.id };
+  return (
+    <Stack gap="md" className={styles.editorControls}>
+      <TextInput
+        label="Page title"
+        value={page.title}
+        onChange={(event) => dispatch({ kind: 'set', target, field: 'title', value: event.currentTarget.value })}
+      />
+      <TextInput
+        label="Page anchor"
+        description="Used after # in links. Reordering this page does not change it."
+        leftSection="#"
+        value={page.anchor}
+        onChange={(event) => dispatch({ kind: 'set', target, field: 'anchor', value: event.currentTarget.value })}
+      />
+      <TextInput label="Layout" value={pageLayoutNames[page.layoutId]} readOnly />
+      <Text size="xs" c="dimmed">
+        The layout is fixed after page creation because it defines this page's slots.
+      </Text>
+    </Stack>
+  );
+}
+
+function DirectSlotControls({
+  page,
+  slot,
+  directValues,
+  onChange,
+}: Readonly<{
+  page: EditorialPage;
+  slot: FieldSlotDefinition;
+  directValues: DirectSlotValues;
+  onChange: (pageId: string, slotId: string, fieldId: string, value: string) => void;
+}>) {
+  const values = slotFieldValues(page.id, slot, directValues);
+  return (
+    <Stack gap="md" className={styles.editorControls}>
+      <Badge variant="light" color="gray" w="fit-content">
+        Direct slot fields
+      </Badge>
+      {slot.fields.map((field) =>
+        field.multiline ? (
+          <FormattedTextInput
+            key={field.id}
+            label={field.label}
+            value={values[field.id] ?? ''}
+            autosize
+            minRows={4}
+            onChange={(value) => onChange(page.id, slot.id, field.id, value)}
+          />
+        ) : (
+          <TextInput
+            key={field.id}
+            label={field.label}
+            value={values[field.id] ?? ''}
+            onChange={(event) => onChange(page.id, slot.id, field.id, event.currentTarget.value)}
+          />
+        )
+      )}
+      <Text size="xs" c="dimmed">
+        This slot has no block list because its layout owns these fixed fields.
+      </Text>
+    </Stack>
+  );
+}
+
 function RulebookWorkspace({
   result,
   dispatch,
   fit,
+  directValues,
+  onDirectValueChange,
 }: Readonly<{
   result: ReadyResult;
   dispatch: RulebookEditorStateManager['dispatch'];
   fit: PreviewFit;
+  directValues: DirectSlotValues;
+  onDirectValueChange: (pageId: string, slotId: string, fieldId: string, value: string) => void;
 }>) {
   const [depth, setDepth] = useState<DrilldownDepth>('controls');
   const [activePageId, setActivePageId] = useState(result.draft.pageOrder[1] ?? result.draft.pageOrder[0]);
   const activePage = result.draft.pagesById[activePageId ?? ''] as EditorialPage | undefined;
-  const blockIds = activePage?.slots.body ?? [];
-  const blocks = blockIds.flatMap((id) => {
-    const block = result.draft.blocksById[id];
-    return block && block.kind !== 'text' && block.kind !== 'repeated-text' ? [block] : [];
-  });
-  const [selectedBlockId, setSelectedBlockId] = useState<string | undefined>(blocks[0]?.id);
-  const selectedBlock = blocks.find((block) => block.id === selectedBlockId) ?? blocks[0];
+  const initialSlot = activePage
+    ? slotsForPage(activePage).find((slot): slot is BlockSlotDefinition => slot.mode === 'blocks')
+    : undefined;
+  const initialBlock =
+    activePage && initialSlot ? blocksForSlot(activePage, initialSlot, result.draft.blocksById)[0] : undefined;
+  const [activeSlotId, setActiveSlotId] = useState(initialSlot?.id ?? '');
+  const [target, setTarget] = useState<ControlTarget>(
+    initialBlock ? { kind: 'block', blockId: initialBlock.id } : { kind: 'page' }
+  );
+  const activeSlot = activePage ? slotsForPage(activePage).find((slot) => slot.id === activeSlotId) : undefined;
+  const blockSlot = activeSlot?.mode === 'blocks' ? activeSlot : undefined;
+  const slotBlocks = activePage && blockSlot ? blocksForSlot(activePage, blockSlot, result.draft.blocksById) : [];
+  const slotBlockIds = slotBlocks.map((block) => block.id);
+  const selectedBlock = target.kind === 'block' ? slotBlocks.find((block) => block.id === target.blockId) : undefined;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -385,17 +651,49 @@ function RulebookWorkspace({
   }
 
   const pageNumber = result.draft.pageOrder.indexOf(activePage.id) + 1;
+  const selectDefaultSlot = (page: EditorialPage) => {
+    const slots = slotsForPage(page);
+    const slot = slots.find((candidate): candidate is BlockSlotDefinition => candidate.mode === 'blocks') ?? slots[0];
+    setActiveSlotId(slot?.id ?? '');
+    return slot;
+  };
   const selectPageInstantly = (pageId: string) => {
     const page = result.draft.pagesById[pageId] as EditorialPage | undefined;
+    if (!page) {
+      return;
+    }
     setActivePageId(pageId);
-    setSelectedBlockId(page?.slots.body[0]);
+    selectDefaultSlot(page);
+    setTarget({ kind: 'page' });
+    setDepth('controls');
   };
   const openPage = (pageId: string) => {
-    selectPageInstantly(pageId);
+    const page = result.draft.pagesById[pageId] as EditorialPage | undefined;
+    if (!page) {
+      return;
+    }
+    setActivePageId(pageId);
+    selectDefaultSlot(page);
+    setTarget({ kind: 'page' });
+    setDepth('page');
+  };
+  const openPageDetails = () => {
+    setTarget({ kind: 'page' });
+    setDepth('controls');
+  };
+  const openSlot = (slot: EditorialSlotDefinition) => {
+    setActiveSlotId(slot.id);
+    if (slot.mode === 'fields') {
+      setTarget({ kind: 'slot', slotId: slot.id });
+      setDepth('controls');
+      return;
+    }
+    const firstBlock = blocksForSlot(activePage, slot, result.draft.blocksById)[0];
+    setTarget(firstBlock ? { kind: 'block', blockId: firstBlock.id } : { kind: 'slot', slotId: slot.id });
     setDepth('blocks');
   };
   const openBlock = (blockId: string) => {
-    setSelectedBlockId(blockId);
+    setTarget({ kind: 'block', blockId });
     setDepth('controls');
   };
   const addPage = (layoutId: PageLayoutId) => {
@@ -419,21 +717,26 @@ function RulebookWorkspace({
       placement: { container: { kind: 'page-slot', pageId, slotId: 'body' }, afterId: null, beforeId: null },
     });
     setActivePageId(pageId);
-    setSelectedBlockId(blockId);
+    const slot = selectDefaultSlot(page);
+    setActiveSlotId(slot?.id ?? '');
+    setTarget({ kind: 'page' });
     setDepth('controls');
   };
   const addBlock = (kind: BlockKind) => {
+    if (!blockSlot) {
+      return;
+    }
     const blockId = `block-${globalThis.crypto.randomUUID()}`;
     dispatch({
       kind: 'create',
       entity: { kind: 'block', block: createBlock(kind, blockId) },
       placement: {
         container: { kind: 'page-slot', pageId: activePage.id, slotId: 'body' },
-        afterId: blockIds.at(-1) ?? null,
+        afterId: activePage.slots.body.at(-1) ?? null,
         beforeId: null,
       },
     });
-    setSelectedBlockId(blockId);
+    setTarget({ kind: 'block', blockId });
     setDepth('controls');
   };
   const onPageDragEnd = ({ active, over }: DragEndEvent) => {
@@ -451,12 +754,12 @@ function RulebookWorkspace({
     });
   };
   const onBlockDragEnd = ({ active, over }: DragEndEvent) => {
-    const sourceIndex = blockIds.indexOf(String(active.id));
-    const targetIndex = over ? blockIds.indexOf(String(over.id)) : -1;
+    const sourceIndex = slotBlockIds.indexOf(String(active.id));
+    const targetIndex = over ? slotBlockIds.indexOf(String(over.id)) : -1;
     if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
       return;
     }
-    const order = arrayMove(blockIds, sourceIndex, targetIndex);
+    const order = arrayMove(slotBlockIds, sourceIndex, targetIndex);
     const index = order.indexOf(String(active.id));
     dispatch({
       kind: 'place',
@@ -467,6 +770,27 @@ function RulebookWorkspace({
       },
     });
   };
+  const slotIsFull =
+    blockSlot?.cardinality.maximum !== null && slotBlocks.length >= (blockSlot?.cardinality.maximum ?? Infinity);
+  const controlsHeading = (() => {
+    if (target.kind === 'page') {
+      return { icon: <Link size={20} aria-hidden />, label: 'Page details' };
+    }
+    if (target.kind === 'slot') {
+      const slot = slotsForPage(activePage).find((candidate) => candidate.id === target.slotId);
+      return { icon: slot ? <SlotIcon slot={slot} size={20} /> : null, label: slot?.label ?? 'Slot' };
+    }
+    return {
+      icon: selectedBlock ? <BlockKindIcon kind={selectedBlock.kind} size={20} /> : null,
+      label: selectedBlock?.title ?? 'Select a block',
+    };
+  })();
+  const selectedDirectSlot =
+    target.kind === 'slot'
+      ? slotsForPage(activePage).find(
+          (slot): slot is FieldSlotDefinition => slot.id === target.slotId && slot.mode === 'fields'
+        )
+      : undefined;
 
   return (
     <Box
@@ -481,7 +805,7 @@ function RulebookWorkspace({
           padding="none"
           as="aside"
           aria-label="Rulebook outline and controls"
-          className={`${styles.drilldownSidebar} ${drilldownDepthClassNames[depth]}`}
+          className={`${styles.drilldownSidebar} ${drilldownDepthClassNames[depth]} ${blockSlot ? '' : styles.drilldownSidebarWithoutBlocks}`}
         >
           <section
             className={`${styles.drilldownLevel} ${styles.pagesLevel} ${depth === 'pages' ? '' : styles.levelCollapsed}`}
@@ -491,7 +815,7 @@ function RulebookWorkspace({
               <Text fw={700}>Pages</Text>
               <IconAction
                 label="About page ordering"
-                tooltip="Drag a page icon to reorder pages. Choose a page to open its blocks."
+                tooltip="Drag a page icon to reorder pages. Choose a page to open its details and slots."
                 icon={<CircleHelp size={15} aria-hidden />}
                 size="sm"
                 variant="subtle"
@@ -513,7 +837,7 @@ function RulebookWorkspace({
                               title={page.title}
                               details={[
                                 `Page ${index + 1} · ${pageLayoutNames[page.layoutId]}`,
-                                `${page.slots.body.length} ${page.slots.body.length === 1 ? 'block' : 'blocks'}`,
+                                `${slotsForPage(page).length} slots · #${page.anchor}`,
                               ]}
                             >
                               <button
@@ -571,8 +895,8 @@ function RulebookWorkspace({
             </div>
           </section>
           <section
-            className={`${styles.drilldownLevel} ${styles.blocksLevel} ${depth === 'controls' ? styles.levelCollapsed : ''} ${depth === 'pages' ? styles.levelHidden : ''}`}
-            aria-label="Blocks panel"
+            className={`${styles.drilldownLevel} ${styles.structureLevel} ${depth === 'blocks' || depth === 'controls' ? styles.levelCollapsed : ''} ${depth === 'pages' ? styles.levelHidden : ''}`}
+            aria-label="Page structure panel"
             aria-hidden={depth === 'pages'}
             inert={depth === 'pages'}
           >
@@ -580,12 +904,107 @@ function RulebookWorkspace({
               <Text fw={700} truncate>
                 {activePage.title}
               </Text>
+              <IconAction
+                label="About page structure"
+                tooltip="Page details belong to the page. Each named slot decides whether it contains blocks or fixed fields."
+                icon={<CircleHelp size={15} aria-hidden />}
+                size="sm"
+                variant="subtle"
+              />
+            </div>
+            <div className={styles.levelList}>
+              <div className={styles.levelItem}>
+                <button
+                  type="button"
+                  className={styles.levelIcon}
+                  aria-current={target.kind === 'page' ? 'true' : undefined}
+                  aria-label="Open page details"
+                  onClick={openPageDetails}
+                >
+                  <Link size={18} aria-hidden />
+                </button>
+                <DrilldownLevelChoice
+                  title="Page details"
+                  metadata="Title + URL"
+                  active={target.kind === 'page'}
+                  tabIndex={depth === 'page' ? 0 : -1}
+                  onClick={openPageDetails}
+                />
+              </div>
+              <Text className={styles.slotListLabel} size="xs" fw={700} c="dimmed">
+                Slots in {pageLayoutNames[activePage.layoutId]}
+              </Text>
+              {slotsForPage(activePage).map((slot) => {
+                const slotBlocks =
+                  slot.mode === 'blocks' ? blocksForSlot(activePage, slot, result.draft.blocksById) : [];
+                const metadata =
+                  slot.mode === 'fields'
+                    ? 'Direct fields'
+                    : `${slotCardinality(slot, slotBlocks.length)} · ${slot.acceptedBlockKinds.length === 1 ? blockKindNames[slot.acceptedBlockKinds[0]!] : `${slot.acceptedBlockKinds.length} types`}`;
+                const active =
+                  activeSlotId === slot.id && (target.kind === 'slot' || target.kind === 'block' || depth === 'blocks');
+                return (
+                  <div className={styles.levelItem} key={slot.id}>
+                    <DrilldownTooltip
+                      title={slot.label}
+                      details={
+                        slot.mode === 'fields'
+                          ? ['Fixed fields defined by this layout', 'No blocks or block ordering']
+                          : [
+                              `Accepts: ${slot.acceptedBlockKinds.map((kind) => blockKindNames[kind]).join(', ')}`,
+                              `Cardinality: ${slot.cardinality.minimum} to ${slot.cardinality.maximum ?? 'unlimited'}`,
+                            ]
+                      }
+                    >
+                      <button
+                        type="button"
+                        className={styles.levelIcon}
+                        aria-current={active ? 'true' : undefined}
+                        aria-label={`Open ${slot.label} slot`}
+                        onClick={() => openSlot(slot)}
+                      >
+                        <SlotIcon slot={slot} />
+                      </button>
+                    </DrilldownTooltip>
+                    <DrilldownLevelChoice
+                      title={slot.label}
+                      metadata={metadata}
+                      active={active}
+                      tabIndex={depth === 'page' ? 0 : -1}
+                      onClick={() => openSlot(slot)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className={styles.levelFooter} data-empty={depth === 'page'}>
+              <button
+                type="button"
+                className={styles.levelLabel}
+                aria-label="Open page structure"
+                tabIndex={depth === 'blocks' || depth === 'controls' ? 0 : -1}
+                onClick={() => setDepth('page')}
+              >
+                <span>Page</span>
+              </button>
+            </div>
+          </section>
+          <section
+            className={`${styles.drilldownLevel} ${styles.blocksLevel} ${depth === 'controls' ? styles.levelCollapsed : ''} ${depth === 'pages' || depth === 'page' || !blockSlot ? styles.levelHidden : ''}`}
+            aria-label="Blocks panel"
+            aria-hidden={depth === 'pages' || depth === 'page' || !blockSlot}
+            inert={depth === 'pages' || depth === 'page' || !blockSlot}
+          >
+            <div className={styles.levelHeading}>
+              <Text fw={700} truncate>
+                {blockSlot?.label ?? 'Blocks'}
+              </Text>
               <Group gap={4} wrap="nowrap">
-                {depth === 'blocks' ? (
+                {depth === 'blocks' && blockSlot && !slotIsFull ? (
                   <AddMenu
                     label="Add block"
-                    menuLabel="Choose a block type"
-                    choices={acceptedBlockKinds(activePage.layoutId).map((kind) => ({
+                    menuLabel={`Add to ${blockSlot.label}`}
+                    choices={blockSlot.acceptedBlockKinds.map((kind) => ({
                       value: kind,
                       label: blockKindNames[kind],
                       icon: <BlockKindIcon kind={kind} />,
@@ -595,8 +1014,12 @@ function RulebookWorkspace({
                   />
                 ) : null}
                 <IconAction
-                  label="About block ordering"
-                  tooltip="Drag a block icon to reorder blocks. Choose a block to edit it."
+                  label="About this slot"
+                  tooltip={
+                    blockSlot
+                      ? `${blockSlot.label} accepts ${blockSlot.acceptedBlockKinds.map((kind) => blockKindNames[kind]).join(' or ')} blocks. Drag to reorder within this slot.`
+                      : ''
+                  }
                   icon={<CircleHelp size={15} aria-hidden />}
                   size="sm"
                   variant="subtle"
@@ -604,9 +1027,9 @@ function RulebookWorkspace({
               </Group>
             </div>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBlockDragEnd}>
-              <SortableContext items={blockIds} strategy={verticalListSortingStrategy}>
+              <SortableContext items={slotBlockIds} strategy={verticalListSortingStrategy}>
                 <div className={styles.levelList}>
-                  {blocks.map((block) => (
+                  {slotBlocks.map((block) => (
                     <SortableItem className={styles.levelItem} id={block.id} key={block.id}>
                       {({ setActivatorNodeRef, attributes, listeners }) => (
                         <>
@@ -618,9 +1041,9 @@ function RulebookWorkspace({
                               type="button"
                               ref={setActivatorNodeRef}
                               className={styles.levelIcon}
-                              aria-current={block.id === selectedBlock?.id ? 'true' : undefined}
+                              aria-current={target.kind === 'block' && block.id === target.blockId ? 'true' : undefined}
                               aria-label={`${block.title}. ${blockKindNames[block.kind]}. Drag to reorder or click to select.`}
-                              onClick={() => (depth === 'blocks' ? openBlock(block.id) : setSelectedBlockId(block.id))}
+                              onClick={() => openBlock(block.id)}
                               {...attributes}
                               {...listeners}
                             >
@@ -630,7 +1053,7 @@ function RulebookWorkspace({
                           <DrilldownLevelChoice
                             title={block.title}
                             metadata={blockKindNames[block.kind]}
-                            active={block.id === selectedBlock?.id}
+                            active={target.kind === 'block' && block.id === target.blockId}
                             tabIndex={depth === 'blocks' ? 0 : -1}
                             onClick={() => openBlock(block.id)}
                           />
@@ -638,6 +1061,11 @@ function RulebookWorkspace({
                       )}
                     </SortableItem>
                   ))}
+                  {slotBlocks.length === 0 ? (
+                    <Text size="sm" c="dimmed" py="sm">
+                      This slot is empty.
+                    </Text>
+                  ) : null}
                 </div>
               </SortableContext>
             </DndContext>
@@ -651,12 +1079,12 @@ function RulebookWorkspace({
               >
                 <span>Blocks</span>
               </button>
-              {depth === 'controls' ? (
+              {depth === 'controls' && blockSlot && !slotIsFull ? (
                 <div className={styles.addSlot}>
                   <AddMenu
                     label="Add block"
-                    menuLabel="Choose a block type"
-                    choices={acceptedBlockKinds(activePage.layoutId).map((kind) => ({
+                    menuLabel={`Add to ${blockSlot.label}`}
+                    choices={blockSlot.acceptedBlockKinds.map((kind) => ({
                       value: kind,
                       label: blockKindNames[kind],
                       icon: <BlockKindIcon kind={kind} />,
@@ -675,17 +1103,27 @@ function RulebookWorkspace({
             inert={depth !== 'controls'}
           >
             <div className={styles.controlsHeading}>
-              {selectedBlock ? <BlockKindIcon kind={selectedBlock.kind} size={20} /> : null}
-              <Text fw={700}>{selectedBlock?.title ?? 'Select a block'}</Text>
+              {controlsHeading.icon}
+              <Text fw={700}>{controlsHeading.label}</Text>
             </div>
-            <EditorControls block={selectedBlock} dispatch={dispatch} />
+            {target.kind === 'page' ? <PageControls page={activePage} dispatch={dispatch} /> : null}
+            {selectedDirectSlot ? (
+              <DirectSlotControls
+                page={activePage}
+                slot={selectedDirectSlot}
+                directValues={directValues}
+                onChange={onDirectValueChange}
+              />
+            ) : null}
+            {target.kind === 'block' ? <BlockControls block={selectedBlock} dispatch={dispatch} /> : null}
           </section>
         </Surface>
         <RulebookPagePreview
           page={activePage}
-          blocks={blocks}
+          blocksById={result.draft.blocksById}
           pageNumber={pageNumber}
-          selectedBlockId={selectedBlock?.id}
+          target={target}
+          directValues={directValues}
         />
       </div>
       <div className={styles.stickyRunway} aria-hidden />
@@ -698,11 +1136,27 @@ function RulebookEditorPage() {
   const [result, setResult] = useState<RulebookEditorResult>(() => manager.result);
   const [fit, setFit] = useState<PreviewFit>('height');
   const [saveLabel, setSaveLabel] = useState('Save');
+  const [directValues, setDirectValues] = useState<DirectSlotValues>({});
+  const [directValuesDirty, setDirectValuesDirty] = useState(false);
   const dispatch: RulebookEditorStateManager['dispatch'] = (action) => {
     const next = manager.dispatch(action);
     setResult(next);
     setSaveLabel('Save');
     return next;
+  };
+  const updateDirectValue = (pageId: string, slotId: string, fieldId: string, value: string) => {
+    setDirectValues((current) => ({
+      ...current,
+      [pageId]: {
+        ...current[pageId],
+        [slotId]: {
+          ...current[pageId]?.[slotId],
+          [fieldId]: value,
+        },
+      },
+    }));
+    setDirectValuesDirty(true);
+    setSaveLabel('Save');
   };
 
   if (result.status !== 'ready') {
@@ -717,13 +1171,19 @@ function RulebookEditorPage() {
     );
   }
 
-  const hasLocalChanges =
+  const managerHasLocalChanges =
     result.rebasedPatch.creates.length > 0 ||
     result.rebasedPatch.deletes.length > 0 ||
     result.rebasedPatch.sets.length > 0 ||
     result.rebasedPatch.placements.length > 0 ||
     result.rebasedPatch.restorations.length > 0;
+  const hasLocalChanges = managerHasLocalChanges || directValuesDirty;
   const save = () => {
+    if (!managerHasLocalChanges && directValuesDirty) {
+      setDirectValuesDirty(false);
+      setSaveLabel('Saved');
+      return;
+    }
     const saving = manager.dispatch({ kind: 'begin-save' });
     if (saving.status !== 'ready' || !saving.saveRequest) {
       setResult(saving);
@@ -734,6 +1194,7 @@ function RulebookEditorPage() {
       saved: { revision: `local-${Date.now()}`, contents: saving.saveRequest.contents },
     });
     setResult(saved);
+    setDirectValuesDirty(false);
     setSaveLabel('Saved');
   };
 
@@ -755,7 +1216,7 @@ function RulebookEditorPage() {
               >
                 Fit {fit === 'height' ? 'width' : 'height'}
               </Button>
-              <Button size="xs" color="confirm" disabled={!result.canSave} onClick={save}>
+              <Button size="xs" color="confirm" disabled={!result.canSave && !directValuesDirty} onClick={save}>
                 {saveLabel}
               </Button>
             </Group>
@@ -764,7 +1225,13 @@ function RulebookEditorPage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <section className={styles.editorRoot} aria-label="Rulebook editing workspace">
-          <RulebookWorkspace result={result} dispatch={dispatch} fit={fit} />
+          <RulebookWorkspace
+            result={result}
+            dispatch={dispatch}
+            fit={fit}
+            directValues={directValues}
+            onDirectValueChange={updateDirectValue}
+          />
         </section>
       </PageLayout.Content>
     </PageLayout>
