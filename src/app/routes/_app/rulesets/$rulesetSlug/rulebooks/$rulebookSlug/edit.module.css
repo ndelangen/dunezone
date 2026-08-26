@@ -118,6 +118,8 @@
   justify-content: space-between;
   min-width: 0;
   max-height: 5rem;
+  margin-inline: calc(-1 * var(--mantine-spacing-lg));
+  padding-inline: var(--mantine-spacing-lg);
   padding-bottom: var(--mantine-spacing-sm);
   overflow: hidden;
   border-bottom: 1px solid var(--mantine-color-default-border);
@@ -145,7 +147,7 @@
 }
 
 .slotListLabel {
-  padding: var(--mantine-spacing-xs) var(--mantine-spacing-xs) 0;
+  padding: var(--mantine-spacing-md) var(--mantine-spacing-lg) var(--mantine-spacing-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -157,19 +159,19 @@
 
 .structureSlotGroup {
   display: grid;
-  gap: var(--mantine-spacing-xs);
+  gap: 0;
   min-width: 0;
+  border-top: 1px solid var(--mantine-color-default-border);
 }
 
 .structureBlockList {
   display: grid;
-  gap: var(--mantine-spacing-xs);
+  gap: 0;
   min-width: 0;
   min-height: 2.5rem;
-  margin-inline-start: calc(2.25rem + var(--mantine-spacing-sm));
-  padding: var(--mantine-spacing-xs);
-  border: 1px dashed var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
+  margin: 0;
+  padding: 0 var(--mantine-spacing-lg) var(--mantine-spacing-xs)
+    calc(var(--mantine-spacing-lg) + 2.25rem + var(--mantine-spacing-sm));
   transition:
     background-color 160ms ease,
     border-color 160ms ease;
@@ -187,7 +189,7 @@
 
 .structureBlockItem {
   min-height: 3.25rem;
-  background: var(--mantine-color-default-hover);
+  background: transparent;
 }
 
 .slotSeparatorIcon {
@@ -205,16 +207,18 @@
 }
 
 .levelCollapsed .structureSlotGroup {
+  width: 100%;
   gap: 0.2rem;
+  justify-items: center;
 }
 
 .levelCollapsed .structureBlockList {
   gap: 0.2rem;
   min-height: 0;
+  width: 100%;
   margin: 0;
   padding: 0.15rem 0 0.4rem;
   border: 0;
-  border-bottom: 1px solid var(--mantine-color-default-border);
   border-radius: 0;
   pointer-events: auto;
 }
@@ -252,6 +256,43 @@
     box-shadow 180ms ease;
 }
 
+.structureLevel:not(.levelCollapsed):not(.levelHidden) .levelList {
+  gap: 0;
+  margin-inline: calc(-1 * var(--mantine-spacing-lg));
+}
+
+.structureLevel:not(.levelCollapsed):not(.levelHidden) .levelItem {
+  min-height: 3.5rem;
+  padding: 0.35rem var(--mantine-spacing-lg);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  border-radius: 0;
+}
+
+.structureLevel:not(.levelCollapsed):not(.levelHidden) .structureSlotGroup > .levelItem {
+  border-bottom: 0;
+}
+
+.structureLevel:not(.levelCollapsed):not(.levelHidden) .structureBlockList .levelItem {
+  padding-inline: 0;
+  border-bottom: 0;
+}
+
+.structureLevel:not(.levelCollapsed):not(.levelHidden) .levelItem:has(.levelIcon[aria-current]) {
+  background: color-mix(in srgb, var(--mantine-primary-color-filled) 7%, transparent);
+  box-shadow: none;
+}
+
+.structureLevel:not(.levelCollapsed):not(.levelHidden) .levelIcon[aria-current] {
+  background: transparent;
+}
+
+.structureLevel:not(.levelCollapsed):not(.levelHidden) .structureBlockList .levelItem:hover,
+.structureLevel:not(.levelCollapsed):not(.levelHidden) .structureBlockList .levelItem:focus-within {
+  background: color-mix(in srgb, var(--mantine-primary-color-filled) 6%, transparent);
+}
+
 .levelItem:has(.levelIcon[aria-current]) {
   background: var(--mantine-color-default-hover);
   box-shadow: inset 3px 0 var(--mantine-primary-color-filled);
@@ -272,9 +313,8 @@
 }
 
 .levelCollapsed .slotSeparatorItem {
-  margin-top: 0.2rem;
+  margin-top: 0;
   padding-top: 0.2rem;
-  border-top: 1px solid var(--mantine-color-default-border);
 }
 
 .levelCollapsed .levelList {
@@ -300,23 +340,62 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+}
+
+.draggableLevelIcon {
   cursor: grab;
+}
+
+.iconDefault,
+.dragHandleIcon {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.dragHandleIcon {
+  opacity: 0;
+  transform: scale(0.75);
+}
+
+.draggableLevelIcon:hover .iconDefault,
+.draggableLevelIcon:focus-visible .iconDefault {
+  opacity: 0;
+  transform: scale(0.75);
+}
+
+.draggableLevelIcon:hover .dragHandleIcon,
+.draggableLevelIcon:focus-visible .dragHandleIcon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.structureBlockItem:hover .iconDefault {
+  opacity: 0;
+  transform: scale(0.75);
+}
+
+.structureBlockItem:hover .dragHandleIcon {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .levelCollapsed .levelIcon:hover,
 .levelCollapsed .levelIcon:focus-visible {
   color: var(--mantine-primary-color-filled);
-  background: var(--mantine-color-default-hover);
-  outline: 2px solid var(--mantine-primary-color-filled);
-  outline-offset: -2px;
+  background: color-mix(in srgb, var(--mantine-primary-color-filled) 8%, transparent);
+  outline: 0;
 }
 
 .drilldownLevel:not(.levelCollapsed) .levelItem:hover,
 .drilldownLevel:not(.levelCollapsed) .levelItem:focus-within {
   color: var(--mantine-primary-color-filled);
-  background: var(--mantine-color-default-hover);
-  outline: 2px solid var(--mantine-primary-color-filled);
-  outline-offset: -2px;
+  background: color-mix(in srgb, var(--mantine-primary-color-filled) 6%, transparent);
+  outline: 0;
 }
 
 .levelIcon[aria-current] {
@@ -325,16 +404,21 @@
 }
 
 .levelCollapsed .levelIcon[aria-current] {
-  color: var(--mantine-color-text);
-  background: color-mix(in srgb, var(--mantine-primary-color-filled) 18%, var(--mantine-color-body));
-  box-shadow: inset 0 0 0 1px var(--mantine-primary-color-filled);
+  color: var(--mantine-primary-color-filled);
+  background: transparent;
+  box-shadow: none;
+}
+
+.levelCollapsed .levelItem:has(.levelIcon[aria-current]) {
+  background: transparent;
+  box-shadow: inset 3px 0 var(--mantine-primary-color-filled);
 }
 
 .levelIcon:active {
   cursor: grabbing;
 }
 
-.levelIcon > span {
+.pageNumber {
   position: absolute;
   right: 0.1rem;
   bottom: 0;
@@ -345,6 +429,10 @@
   font-size: 0.55rem;
   font-weight: 800;
   line-height: 1.1;
+}
+
+.slotMetadata {
+  cursor: help;
 }
 
 .levelChoice {

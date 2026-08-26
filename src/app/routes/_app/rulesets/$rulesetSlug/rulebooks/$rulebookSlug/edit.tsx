@@ -31,6 +31,7 @@ import {
   ChevronDown,
   CircleHelp,
   FileImage,
+  GripVertical,
   Link,
   ListTree,
   MessageSquareQuote,
@@ -410,10 +411,12 @@ function DrilldownTooltip({
         </Stack>
       }
       position="right"
-      openDelay={250}
+      openDelay={400}
       withArrow
       multiline
-      maw={260}
+      maw={220}
+      p={6}
+      radius="sm"
     >
       {children}
     </Tooltip>
@@ -423,12 +426,14 @@ function DrilldownTooltip({
 function DrilldownLevelChoice({
   title,
   metadata,
+  ariaLabel,
   active,
   tabIndex,
   onClick,
 }: Readonly<{
   title: string;
-  metadata: string;
+  metadata: ReactNode;
+  ariaLabel?: string;
   active: boolean;
   tabIndex: number;
   onClick: () => void;
@@ -438,14 +443,49 @@ function DrilldownLevelChoice({
       type="button"
       className={styles.levelChoice}
       aria-current={active ? 'true' : undefined}
+      aria-label={ariaLabel}
       tabIndex={tabIndex}
       onClick={onClick}
     >
       <strong>{title}</strong>
-      <Badge color="gray" variant="outline" size="sm">
-        {metadata}
-      </Badge>
+      {typeof metadata === 'string' ? (
+        <Badge color="gray" variant="outline" size="sm">
+          {metadata}
+        </Badge>
+      ) : (
+        metadata
+      )}
     </button>
+  );
+}
+
+function SlotMetadata({ slot, count }: Readonly<{ slot: BlockSlotDefinition; count: number }>) {
+  const accepted = slot.acceptedBlockKinds.map((kind) => blockKindNames[kind]);
+  const rejected = blockKinds
+    .filter((kind) => !slot.acceptedBlockKinds.includes(kind))
+    .map((kind) => blockKindNames[kind]);
+  const capacity =
+    slot.cardinality.maximum === null
+      ? `${count} blocks used with no maximum.`
+      : `Capacity ${count} of ${slot.cardinality.maximum}.`;
+  const details = [
+    `Accepts ${accepted.join(' and ')}.`,
+    rejected.length > 0 ? `Does not accept ${rejected.join(' or ')}.` : 'Accepts every block type.',
+    capacity,
+  ].join(' ');
+
+  return (
+    <Tooltip label={details} position="top" openDelay={250} withArrow multiline maw={220} p={6} radius="sm">
+      <Badge
+        className={styles.slotMetadata}
+        color="gray"
+        variant="outline"
+        size="sm"
+        leftSection={<CircleHelp size={10} aria-hidden />}
+      >
+        {slotCardinality(slot, count)}
+      </Badge>
+    </Tooltip>
   );
 }
 
@@ -515,33 +555,23 @@ function StructureBlockSlot({
   onOpenBlock: (block: EditorialBlock) => void;
 }>) {
   const { isOver, setNodeRef } = useDroppable({ id: structureSlotDropId(slot.id) });
-  const slotActive =
-    activeTarget.kind === 'slot'
-      ? activeTarget.slotId === slot.id
-      : activeTarget.kind === 'block' && blocks.some((block) => block.id === activeTarget.blockId);
+  const slotActive = activeTarget.kind === 'slot' && activeTarget.slotId === slot.id;
   return (
     <div className={styles.structureSlotGroup}>
       <div className={`${styles.levelItem} ${styles.slotSeparatorItem}`}>
-        <DrilldownTooltip
-          title={slot.label}
-          details={[
-            `Accepts: ${slot.acceptedBlockKinds.map((kind) => blockKindNames[kind]).join(', ')}`,
-            `Cardinality: ${slot.cardinality.minimum} to ${slot.cardinality.maximum ?? 'unlimited'}`,
-          ]}
+        <button
+          type="button"
+          className={`${styles.levelIcon} ${styles.slotSeparatorIcon}`}
+          aria-current={slotActive ? 'true' : undefined}
+          aria-label={`Open ${slot.label} slot`}
+          onClick={onOpenSlot}
         >
-          <button
-            type="button"
-            className={`${styles.levelIcon} ${styles.slotSeparatorIcon}`}
-            aria-current={slotActive ? 'true' : undefined}
-            aria-label={`Open ${slot.label} slot`}
-            onClick={onOpenSlot}
-          >
-            <SlotIcon slot={slot} />
-          </button>
-        </DrilldownTooltip>
+          <SlotIcon slot={slot} />
+        </button>
         <DrilldownLevelChoice
           title={slot.label}
-          metadata={`${slotCardinality(slot, blocks.length)} · ${slot.acceptedBlockKinds.length === 1 ? blockKindNames[slot.acceptedBlockKinds[0]!] : `${slot.acceptedBlockKinds.length} types`}`}
+          metadata={<SlotMetadata slot={slot} count={blocks.length} />}
+          ariaLabel={`${slot.label}. Accepts ${slot.acceptedBlockKinds.map((kind) => blockKindNames[kind]).join(' and ')}. ${slotCardinality(slot, blocks.length)}.`}
           active={slotActive}
           tabIndex={0}
           onClick={onOpenSlot}
@@ -562,7 +592,7 @@ function StructureBlockSlot({
                     <button
                       type="button"
                       ref={setActivatorNodeRef}
-                      className={styles.levelIcon}
+                      className={`${styles.levelIcon} ${styles.draggableLevelIcon}`}
                       aria-current={
                         activeTarget.kind === 'block' && activeTarget.blockId === block.id ? 'true' : undefined
                       }
@@ -571,7 +601,10 @@ function StructureBlockSlot({
                       {...attributes}
                       {...listeners}
                     >
-                      <BlockKindIcon kind={block.kind} />
+                      <span className={styles.iconDefault}>
+                        <BlockKindIcon kind={block.kind} />
+                      </span>
+                      <GripVertical className={styles.dragHandleIcon} size={18} aria-hidden />
                     </button>
                   </DrilldownTooltip>
                   <DrilldownLevelChoice
@@ -1066,15 +1099,18 @@ function RulebookWorkspace({
                               <button
                                 type="button"
                                 ref={setActivatorNodeRef}
-                                className={styles.levelIcon}
+                                className={`${styles.levelIcon} ${styles.draggableLevelIcon}`}
                                 aria-current={page.id === activePage.id ? 'page' : undefined}
                                 aria-label={`${page.title}. Page ${index + 1}. Drag to reorder or click to select.`}
                                 onClick={() => (depth === 'pages' ? openPage(page.id) : selectPageInstantly(page.id))}
                                 {...attributes}
                                 {...listeners}
                               >
-                                <PageLayoutIcon layoutId={page.layoutId} />
-                                <span>{index + 1}</span>
+                                <span className={styles.iconDefault}>
+                                  <PageLayoutIcon layoutId={page.layoutId} />
+                                </span>
+                                <GripVertical className={styles.dragHandleIcon} size={18} aria-hidden />
+                                <span className={styles.pageNumber}>{index + 1}</span>
                               </button>
                             </DrilldownTooltip>
                             <DrilldownLevelChoice
@@ -1178,20 +1214,15 @@ function RulebookWorkspace({
                     const active = target.kind === 'slot' && target.slotId === slot.id;
                     return (
                       <div className={`${styles.levelItem} ${styles.slotSeparatorItem}`} key={slot.id}>
-                        <DrilldownTooltip
-                          title={slot.label}
-                          details={['Fixed fields defined by this layout', 'No blocks or block ordering']}
+                        <button
+                          type="button"
+                          className={`${styles.levelIcon} ${styles.slotSeparatorIcon}`}
+                          aria-current={active ? 'true' : undefined}
+                          aria-label={`Open ${slot.label} slot`}
+                          onClick={() => openSlot(slot)}
                         >
-                          <button
-                            type="button"
-                            className={`${styles.levelIcon} ${styles.slotSeparatorIcon}`}
-                            aria-current={active ? 'true' : undefined}
-                            aria-label={`Open ${slot.label} slot`}
-                            onClick={() => openSlot(slot)}
-                          >
-                            <SlotIcon slot={slot} />
-                          </button>
-                        </DrilldownTooltip>
+                          <SlotIcon slot={slot} />
+                        </button>
                         <DrilldownLevelChoice
                           title={slot.label}
                           metadata="Direct fields"
