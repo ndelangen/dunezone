@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 import { chromium } from 'playwright';
+import type { Page } from 'playwright';
 
 const repositoryRoot = path.resolve(import.meta.dir, '..');
 const artifactDirectory = path.join(repositoryRoot, 'storybook-static');
@@ -9,6 +10,7 @@ const wranglerConfig = path.join(repositoryRoot, 'workers/storybook/wrangler.jso
 const port = 6842;
 const origin = `http://127.0.0.1:${port}`;
 const PROCESS_SHUTDOWN_TIMEOUT_MS = 5000;
+const PAGE_CLEAR_TIMEOUT_MS = 5000;
 const NETWORK_PROBE_TIMEOUT_MS = 5000;
 
 function progress(message: string) {
@@ -254,8 +256,9 @@ async function verifyNonRootPath() {
     },
   });
   const browser = await chromium.launch({ headless: true });
+  let page: Page | undefined;
   try {
-    const page = await browser.newPage();
+    page = await browser.newPage();
     const externalRequests: string[] = [];
     page.on('request', (request) => {
       if (new URL(request.url()).origin !== nonRootOrigin) {
@@ -270,9 +273,21 @@ async function verifyNonRootPath() {
       externalRequests.length === 0,
       `Non-root Storybook requested an external URL: ${externalRequests.join(', ')}`
     );
+    progress('The non-root story rendered.');
   } finally {
-    await browser.close();
-    server.stop(true);
+    progress('Clearing the non-root story before Chromium shutdown.');
+    if (page && !page.isClosed()) {
+      await page
+        .goto('about:blank', { waitUntil: 'commit', timeout: PAGE_CLEAR_TIMEOUT_MS })
+        .catch((error) => progress(`The non-root story did not clear: ${String(error)}`));
+    }
+    progress('Stopping non-root Chromium.');
+    try {
+      await browser.close();
+    } finally {
+      progress('Stopping the non-root static server.');
+      server.stop(true);
+    }
   }
 }
 
