@@ -11,6 +11,7 @@ import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult } from '@shared/formattedText';
 import type { RulebookBlockDraft, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { createFileRoute } from '@tanstack/react-router';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
 import { SortableItem } from '@ui/control/SortableItem';
@@ -739,6 +740,29 @@ function RulebookWorkspace({
     setTarget({ kind: 'block', blockId });
     setDepth('controls');
   };
+  const deletePage = () => {
+    const pageIndex = result.draft.pageOrder.indexOf(activePage.id);
+    const nextPageId = result.draft.pageOrder[pageIndex + 1] ?? result.draft.pageOrder[pageIndex - 1];
+    const nextPage = nextPageId ? (result.draft.pagesById[nextPageId] as EditorialPage | undefined) : undefined;
+    if (!nextPage) {
+      return;
+    }
+    dispatch({ kind: 'delete', root: { kind: 'page', pageId: activePage.id } });
+    setActivePageId(nextPage.id);
+    selectDefaultSlot(nextPage);
+    setTarget({ kind: 'page' });
+    setDepth('pages');
+  };
+  const deleteBlock = () => {
+    if (!selectedBlock || !blockSlot) {
+      return;
+    }
+    const blockIndex = slotBlockIds.indexOf(selectedBlock.id);
+    const nextBlock = slotBlocks[blockIndex + 1] ?? slotBlocks[blockIndex - 1];
+    dispatch({ kind: 'delete', root: { kind: 'block', blockId: selectedBlock.id } });
+    setTarget(nextBlock ? { kind: 'block', blockId: nextBlock.id } : { kind: 'slot', slotId: blockSlot.id });
+    setDepth('blocks');
+  };
   const onPageDragEnd = ({ active, over }: DragEndEvent) => {
     const sourceIndex = result.draft.pageOrder.indexOf(String(active.id));
     const targetIndex = over ? result.draft.pageOrder.indexOf(String(over.id)) : -1;
@@ -1105,6 +1129,27 @@ function RulebookWorkspace({
             <div className={styles.controlsHeading}>
               {controlsHeading.icon}
               <Text fw={700}>{controlsHeading.label}</Text>
+              {target.kind === 'page' ? (
+                <Group ml="auto">
+                  <ConfirmDeleteAction
+                    label={`Delete ${activePage.title}`}
+                    pending={false}
+                    disabled={result.draft.pageOrder.length === 1}
+                    size="sm"
+                    onConfirm={deletePage}
+                  />
+                </Group>
+              ) : null}
+              {target.kind === 'block' && selectedBlock ? (
+                <Group ml="auto">
+                  <ConfirmDeleteAction
+                    label={`Delete ${selectedBlock.title}`}
+                    pending={false}
+                    size="sm"
+                    onConfirm={deleteBlock}
+                  />
+                </Group>
+              ) : null}
             </div>
             {target.kind === 'page' ? <PageControls page={activePage} dispatch={dispatch} /> : null}
             {selectedDirectSlot ? (
