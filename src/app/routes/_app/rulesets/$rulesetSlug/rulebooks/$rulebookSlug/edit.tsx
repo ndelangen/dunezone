@@ -12,6 +12,7 @@ import type { FormattedTextParseResult } from '@shared/formattedText';
 import { rulebookLayoutCatalogue } from '@shared/rulebooks/contents';
 import type { RulebookBlockDraft, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { createFileRoute } from '@tanstack/react-router';
+import { RulebookEntityGlyph } from '@ui/content/RulebookEntityGlyph';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
 import { SortableItem } from '@ui/control/SortableItem';
@@ -526,7 +527,7 @@ function RulebookWorkspace({
                                 {...attributes}
                                 {...listeners}
                               >
-                                <PageLayoutIcon layoutId={page.layoutId} />
+                                <RulebookEntityGlyph kind="page" icon={<PageLayoutIcon layoutId={page.layoutId} />} />
                                 <span>{index + 1}</span>
                               </button>
                             </DrilldownTooltip>
@@ -624,7 +625,7 @@ function RulebookWorkspace({
                               {...attributes}
                               {...listeners}
                             >
-                              <BlockKindIcon kind={block.kind} />
+                              <RulebookEntityGlyph kind="block" icon={<BlockKindIcon kind={block.kind} />} />
                             </button>
                           </DrilldownTooltip>
                           <DrilldownLevelChoice
