@@ -931,9 +931,6 @@ function SlidingDrilldownVariant({ treatment, fit }: { treatment: CatalogueVaria
                 <div className={styles.drilldownLevelHeading}>
                   <Text fw={700}>Pages</Text>
                   <Group gap={4} wrap="nowrap">
-                    <Badge color="gray" variant="outline">
-                      {model.pages.length}
-                    </Badge>
                     <IconAction
                       label="About page ordering"
                       tooltip="Drag a page icon to reorder pages. Choose a page to open its blocks."
@@ -1019,9 +1016,19 @@ function SlidingDrilldownVariant({ treatment, fit }: { treatment: CatalogueVaria
                     {model.activePage.title}
                   </Text>
                   <Group gap={4} wrap="nowrap">
-                    <Badge color="gray" variant="outline">
-                      {model.activePage.blocks.length}
-                    </Badge>
+                    {depth === 'blocks' ? (
+                      <PrototypeAddMenu
+                        label="Add block"
+                        menuLabel="Choose a block type"
+                        choices={blockKinds.map((kind) => ({
+                          value: kind,
+                          label: blockKindNames[kind],
+                          icon: <BlockKindIcon kind={kind} />,
+                        }))}
+                        collapsed
+                        onPick={addBlock}
+                      />
+                    ) : null}
                     <IconAction
                       label="About block ordering"
                       tooltip="Drag a block icon to reorder blocks. Choose a block to edit it."
@@ -1073,7 +1080,7 @@ function SlidingDrilldownVariant({ treatment, fit }: { treatment: CatalogueVaria
                     </div>
                   </SortableContext>
                 </DndContext>
-                <div className={styles.drilldownLevelFooter}>
+                <div className={styles.drilldownLevelFooter} data-empty={depth === 'blocks'}>
                   <button
                     className={styles.drilldownLevelLabel}
                     aria-label="Open blocks"
@@ -1082,19 +1089,21 @@ function SlidingDrilldownVariant({ treatment, fit }: { treatment: CatalogueVaria
                   >
                     <span>Blocks</span>
                   </button>
-                  <div className={styles.drilldownAddSlot}>
-                    <PrototypeAddMenu
-                      label="Add block"
-                      menuLabel="Choose a block type"
-                      choices={blockKinds.map((kind) => ({
-                        value: kind,
-                        label: blockKindNames[kind],
-                        icon: <BlockKindIcon kind={kind} />,
-                      }))}
-                      collapsed={depth === 'controls'}
-                      onPick={addBlock}
-                    />
-                  </div>
+                  {depth === 'controls' ? (
+                    <div className={styles.drilldownAddSlot}>
+                      <PrototypeAddMenu
+                        label="Add block"
+                        menuLabel="Choose a block type"
+                        choices={blockKinds.map((kind) => ({
+                          value: kind,
+                          label: blockKindNames[kind],
+                          icon: <BlockKindIcon kind={kind} />,
+                        }))}
+                        collapsed
+                        onPick={addBlock}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </section>
               <section
@@ -1107,11 +1116,6 @@ function SlidingDrilldownVariant({ treatment, fit }: { treatment: CatalogueVaria
                   <div className={styles.drawerEntityTitle}>
                     {model.selectedBlock ? <BlockKindIcon kind={model.selectedBlock.kind} size={20} /> : null}
                     <Text fw={700}>{model.selectedBlock?.title ?? 'Select a block'}</Text>
-                    {model.selectedBlock ? (
-                      <Badge color="gray" variant="outline" size="sm">
-                        {blockKindNames[model.selectedBlock.kind]}
-                      </Badge>
-                    ) : null}
                   </div>
                 </div>
                 <BlockEditor model={model} />

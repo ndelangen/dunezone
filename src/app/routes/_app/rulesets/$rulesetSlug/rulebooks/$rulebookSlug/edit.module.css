@@ -448,6 +448,7 @@
 
 .drilldownLevelList {
   position: relative;
+  z-index: 1;
   display: grid;
   gap: var(--mantine-spacing-xs);
   align-content: start;
@@ -578,14 +579,26 @@
   cursor: grab;
 }
 
-.drilldownLevelIcon:hover,
-.drilldownLevelIcon:focus-visible,
-.drilldownLevelChoice:hover,
-.drilldownLevelChoice:focus-visible {
+.drilldownLevelCollapsed .drilldownLevelIcon:hover,
+.drilldownLevelCollapsed .drilldownLevelIcon:focus-visible {
   color: var(--mantine-primary-color-filled);
   background: var(--mantine-color-default-hover);
   outline: 2px solid var(--mantine-primary-color-filled);
   outline-offset: -2px;
+}
+
+.drilldownLevel:not(.drilldownLevelCollapsed) .drilldownLevelItem:hover,
+.drilldownLevel:not(.drilldownLevelCollapsed) .drilldownLevelItem:focus-within {
+  background: var(--mantine-color-default-hover);
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}
+
+.drilldownLevel:not(.drilldownLevelCollapsed) .drilldownLevelItem:hover .drilldownLevelIcon,
+.drilldownLevel:not(.drilldownLevelCollapsed) .drilldownLevelItem:hover .drilldownLevelChoice,
+.drilldownLevel:not(.drilldownLevelCollapsed) .drilldownLevelItem:focus-within .drilldownLevelIcon,
+.drilldownLevel:not(.drilldownLevelCollapsed) .drilldownLevelItem:focus-within .drilldownLevelChoice {
+  color: var(--mantine-primary-color-filled);
 }
 
 .drilldownLevelLabel:hover {
@@ -667,6 +680,11 @@
   transition:
     gap 260ms cubic-bezier(0.22, 1, 0.36, 1),
     padding 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.drilldownLevelFooter[data-empty="true"] {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .drilldownLevelLabel {
@@ -771,10 +789,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.drawerEntityTitle > :global(.mantine-Badge-root) {
-  flex: 0 0 auto;
 }
 
 .drawerEntityTitle > svg {
