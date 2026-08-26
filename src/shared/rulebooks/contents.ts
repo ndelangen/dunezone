@@ -2,21 +2,45 @@ import { normalizeFormattedText } from '@shared/formattedText';
 import type { NormalizedFormattedText } from '@shared/formattedText';
 import { z } from 'zod';
 
-const rulebookBlockKinds = ['text', 'repeated-text'] as const;
+const rulebookBlockKinds = ['text', 'repeated-text', 'rule-group', 'worked-example', 'asset-figure'] as const;
+type RulebookBlockKind = (typeof rulebookBlockKinds)[number];
 
-const unboundedBootstrapSlot = {
-  acceptedBlockKinds: rulebookBlockKinds,
+const legacyBlockKinds = ['text', 'repeated-text'] as const satisfies readonly RulebookBlockKind[];
+const editorialBlockKinds = [
+  'rule-group',
+  'worked-example',
+  'asset-figure',
+] as const satisfies readonly RulebookBlockKind[];
+
+const unboundedLegacySlot = {
+  acceptedBlockKinds: legacyBlockKinds,
   cardinality: { minimum: 0, maximum: null },
 } as const;
 
+const editorialSlot = <const Accepted extends readonly (typeof editorialBlockKinds)[number][]>(
+  acceptedBlockKinds: Accepted
+) => ({ acceptedBlockKinds, cardinality: { minimum: 0, maximum: null } }) as const;
+
 export const rulebookLayoutCatalogue = [
-  { id: 'single-column', slots: [{ id: 'body', ...unboundedBootstrapSlot }] },
+  { id: 'single-column', slots: [{ id: 'body', ...unboundedLegacySlot }] },
   {
     id: 'two-columns',
     slots: [
-      { id: 'left', ...unboundedBootstrapSlot },
-      { id: 'right', ...unboundedBootstrapSlot },
+      { id: 'left', ...unboundedLegacySlot },
+      { id: 'right', ...unboundedLegacySlot },
     ],
+  },
+  {
+    id: 'chapter-opener',
+    slots: [{ id: 'body', ...editorialSlot(['asset-figure', 'rule-group']) }],
+  },
+  {
+    id: 'rules-page',
+    slots: [{ id: 'body', ...editorialSlot(editorialBlockKinds) }],
+  },
+  {
+    id: 'visual-reference',
+    slots: [{ id: 'body', ...editorialSlot(['asset-figure', 'worked-example']) }],
   },
 ] as const;
 
@@ -62,7 +86,27 @@ const repeatedTextBlockSchema = z.strictObject({
   itemsById: z.record(rulebookItemIdSchema, repeatedTextItemSchema),
 });
 
-const rulebookBlockSchema = z.discriminatedUnion('kind', [textBlockSchema, repeatedTextBlockSchema]);
+function editorialBlockSchema<const Kind extends (typeof editorialBlockKinds)[number]>(kind: Kind) {
+  return z.strictObject({
+    id: rulebookBlockIdSchema,
+    kind: z.literal(kind),
+    anchor: rulebookAnchorSchema.optional(),
+    title: z.string(),
+    text: normalizedFormattedTextSchema,
+  });
+}
+
+const ruleGroupBlockSchema = editorialBlockSchema('rule-group');
+const workedExampleBlockSchema = editorialBlockSchema('worked-example');
+const assetFigureBlockSchema = editorialBlockSchema('asset-figure');
+
+const rulebookBlockSchema = z.discriminatedUnion('kind', [
+  textBlockSchema,
+  repeatedTextBlockSchema,
+  ruleGroupBlockSchema,
+  workedExampleBlockSchema,
+  assetFigureBlockSchema,
+]);
 
 function slotSchema<const Slots extends readonly { readonly id: string }[]>(slotDefinitions: Slots) {
   const slots = Object.fromEntries(slotDefinitions.map(({ id }) => [id, z.array(rulebookBlockIdSchema)])) as {
@@ -84,7 +128,28 @@ const twoColumnsPageSchema = z.strictObject({
   slots: slotSchema(rulebookLayoutCatalogue[1].slots),
 });
 
-const rulebookPageSchema = z.discriminatedUnion('layoutId', [singleColumnPageSchema, twoColumnsPageSchema]);
+function editorialPageSchema<const Index extends 2 | 3 | 4>(index: Index) {
+  const layout = rulebookLayoutCatalogue[index];
+  return z.strictObject({
+    id: rulebookPageIdSchema,
+    anchor: rulebookAnchorSchema,
+    title: z.string(),
+    layoutId: z.literal(layout.id),
+    slots: slotSchema(layout.slots),
+  });
+}
+
+const chapterOpenerPageSchema = editorialPageSchema(2);
+const rulesPageSchema = editorialPageSchema(3);
+const visualReferencePageSchema = editorialPageSchema(4);
+
+const rulebookPageSchema = z.discriminatedUnion('layoutId', [
+  singleColumnPageSchema,
+  twoColumnsPageSchema,
+  chapterOpenerPageSchema,
+  rulesPageSchema,
+  visualReferencePageSchema,
+]);
 
 function duplicateValues(values: readonly string[]): readonly string[] {
   const seen = new Set<string>();
@@ -262,13 +327,31 @@ const repeatedTextBlockDraftSchema = repeatedTextBlockSchema.extend({
   anchor: z.string().optional(),
   itemsById: z.record(rulebookItemIdSchema, repeatedTextItemDraftSchema),
 });
+const ruleGroupBlockDraftSchema = ruleGroupBlockSchema.extend({ anchor: z.string().optional(), text: z.string() });
+const workedExampleBlockDraftSchema = workedExampleBlockSchema.extend({
+  anchor: z.string().optional(),
+  text: z.string(),
+});
+const assetFigureBlockDraftSchema = assetFigureBlockSchema.extend({
+  anchor: z.string().optional(),
+  text: z.string(),
+});
 
 /** Runtime structure authority for editor operation payloads whose direct fields may contain raw text. */
 export const rulebookDraftEntitySchemas = {
   page: z.discriminatedUnion('layoutId', [
     singleColumnPageSchema.extend({ anchor: z.string() }),
     twoColumnsPageSchema.extend({ anchor: z.string() }),
+    chapterOpenerPageSchema.extend({ anchor: z.string() }),
+    rulesPageSchema.extend({ anchor: z.string() }),
+    visualReferencePageSchema.extend({ anchor: z.string() }),
   ]),
-  block: z.discriminatedUnion('kind', [textBlockDraftSchema, repeatedTextBlockDraftSchema]),
+  block: z.discriminatedUnion('kind', [
+    textBlockDraftSchema,
+    repeatedTextBlockDraftSchema,
+    ruleGroupBlockDraftSchema,
+    workedExampleBlockDraftSchema,
+    assetFigureBlockDraftSchema,
+  ]),
   item: repeatedTextItemDraftSchema,
 } as const;
