@@ -1,14 +1,10 @@
 import preview from '@sb/preview';
 
-import { StorybookPage } from './-storybook';
-import { pageStoryArgs, pageStoryGlobals, pageStoryParameters } from './-storybookConfig';
+import { pageStoryMeta } from './-storybookConfig';
 
 const meta = preview.meta({
   title: 'Site',
-  component: StorybookPage,
-  args: pageStoryArgs,
-  parameters: pageStoryParameters,
-  globals: pageStoryGlobals,
+  ...pageStoryMeta,
 });
 
 export const NotFound = meta.story({ args: { path: '/a-page-that-does-not-exist' } });
