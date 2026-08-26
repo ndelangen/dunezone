@@ -570,6 +570,7 @@
 }
 
 .drilldownLevel {
+  box-sizing: border-box;
   display: grid;
   grid-template-rows: auto auto minmax(4rem, 1fr) auto;
   gap: var(--mantine-spacing-md);
@@ -594,7 +595,7 @@
 .drilldownLevelCollapsed {
   grid-template-rows: 0 auto minmax(4rem, 1fr) auto;
   gap: 0;
-  padding: 0.45rem 0.35rem 0;
+  padding: 0.45rem 0 0;
   background: var(--mantine-color-default-hover);
 }
 
@@ -656,6 +657,8 @@
 .drilldownLevelCollapsed .drilldownLevelItem {
   grid-template-columns: 2.25rem 0;
   gap: 0;
+  width: 2.25rem;
+  justify-self: center;
   background: transparent;
   border-color: transparent;
 }
@@ -779,6 +782,7 @@
 }
 
 .drilldownLevelCollapsed .drilldownLevelLabel {
+  padding-bottom: 0;
   opacity: 1;
   pointer-events: auto;
   transition-delay: 180ms;
