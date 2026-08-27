@@ -200,6 +200,7 @@ export const seedBaseline = mutation({
       group_id: groupId,
       is_deleted: false,
       image_cover: null,
+      cover: null,
     });
 
     return {

@@ -4,6 +4,7 @@ import { v } from 'convex/values';
 
 import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqTagValidator } from './lib/faqTags';
+import { rulesetCoverValidator } from './lib/rulesetCover';
 
 const accountStateValidator = v.union(v.literal('active'), v.literal('deletion_pending'), v.literal('deleted'));
 
@@ -159,7 +160,18 @@ export default defineSchema({
     owner_id: v.id('users'),
     group_id: v.union(v.id('groups'), v.null()),
     is_deleted: v.boolean(),
+    /**
+     * Legacy cover channel: a URL string any bundle generation may still write.
+     * During the rehost compatibility window it is dual-written with `cover.url`, so old bundles keep rendering;
+     * the retirement release removes it.
+     */
     image_cover: v.union(v.string(), v.null()),
+    /**
+     * The stored cover, written only by the rehost pipeline: our delivery URL over re-encoded bytes, plus the source the author pasted.
+     * Optional while pre-rehost rows exist;
+     * `rulesetCovers.backfillLegacyCovers` converts them.
+     */
+    cover: v.optional(v.union(rulesetCoverValidator, v.null())),
   })
     .index('by_name', ['name'])
     .index('by_slug', ['slug'])

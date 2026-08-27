@@ -23,12 +23,19 @@ function envelope(result: unknown, resultInfo?: unknown, status = 200): Response
 function liveBindings() {
   return [
     { name: 'ASSET_BUCKET', type: 'r2_bucket', bucket_name: 'tanstack-start-faction-sheet-assets' },
+    { name: 'USER_IMAGE_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-user-images' },
     { name: 'BROWSER', type: 'browser' },
     { name: 'IMAGES', type: 'images' },
     { name: 'ASSETS', type: 'assets' },
     { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
     { name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' },
     { name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' },
+    { name: 'USER_IMAGE_INGEST_SECRET', type: 'secret_text' },
+    {
+      name: 'USER_IMAGE_PUBLIC_BASE_URL',
+      type: 'plain_text',
+      text: 'https://dune.zone',
+    },
     {
       name: 'CAPTURE_BASE_URL',
       type: 'plain_text',
@@ -89,6 +96,7 @@ function liveFetcher(
       return envelope([
         { name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' },
         { name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' },
+        { name: 'USER_IMAGE_INGEST_SECRET', type: 'secret_text' },
         ...(options.extraSecret ? [{ name: 'ASSET_PUBLISHER_POLL_SECRET', type: 'secret_text' }] : []),
       ]);
     }
@@ -169,13 +177,13 @@ describe('Cloudflare live drift check', () => {
     ).resolves.toEqual({
       worker: WORKER,
       domainCount: 1,
-      bindingCount: 13,
-      secretCount: 2,
+      bindingCount: 15,
+      secretCount: 3,
       cronCount: 1,
       queueCount: 1,
-      bucketCount: 1,
+      bucketCount: 2,
     });
-    expect(live.requests).toHaveLength(8);
+    expect(live.requests).toHaveLength(11);
     expect(new Set(live.requests.map((request) => request.method))).toEqual(new Set(['GET']));
     expect(
       live.requests.find((request) => request.url.pathname.endsWith('/workers/domains'))?.url.searchParams

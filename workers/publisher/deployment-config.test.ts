@@ -31,18 +31,22 @@ describe('scheduled production deployment shape', () => {
     expect(config).not.toHaveProperty('migrations');
   });
 
-  test('keeps the stable object behind one private R2 binding', () => {
+  test('keeps the two private R2 bindings, one per audience', () => {
     expect(config.r2_buckets).toEqual([
       {
         binding: 'ASSET_BUCKET',
         bucket_name: 'tanstack-start-faction-sheet-assets',
       },
+      {
+        binding: 'USER_IMAGE_BUCKET',
+        bucket_name: 'dunezone-user-images',
+      },
     ]);
   });
 
-  test('declares only cache-token and executor secret bindings', () => {
+  test('declares only the cache-token, executor and user-image ingest secrets', () => {
     expect(config.secrets).toEqual({
-      required: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET', 'ASSET_PUBLISHER_EXECUTOR_SECRET'],
+      required: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET', 'ASSET_PUBLISHER_EXECUTOR_SECRET', 'USER_IMAGE_INGEST_SECRET'],
     });
   });
 
@@ -76,6 +80,10 @@ describe('scheduled production deployment shape', () => {
       '/publisher-capture',
       '/publisher-capture.html',
       '/publisher-capture/*',
+      '/user-images',
+      '/user-images/*',
+      '/__user-images',
+      '/__user-images/*',
     ]);
   });
 });

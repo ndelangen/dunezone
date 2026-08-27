@@ -25,7 +25,11 @@
       "/published/*",
       "/publisher-capture",
       "/publisher-capture.html",
-      "/publisher-capture/*"
+      "/publisher-capture/*",
+      "/user-images",
+      "/user-images/*",
+      "/__user-images",
+      "/__user-images/*"
     ]
   },
   "browser": { "binding": "BROWSER" },
@@ -35,14 +39,19 @@
     {
       "binding": "ASSET_BUCKET",
       "bucket_name": "tanstack-start-faction-sheet-assets"
+    },
+    {
+      "binding": "USER_IMAGE_BUCKET",
+      "bucket_name": "dunezone-user-images"
     }
   ],
   "triggers": { "crons": ["*/5 * * * *"] },
   "limits": { "cpu_ms": 30000 },
   "secrets": {
-    "required": ["ASSET_PUBLISHER_CACHE_TOKEN_SECRET", "ASSET_PUBLISHER_EXECUTOR_SECRET"]
+    "required": ["ASSET_PUBLISHER_CACHE_TOKEN_SECRET", "ASSET_PUBLISHER_EXECUTOR_SECRET", "USER_IMAGE_INGEST_SECRET"]
   },
   "vars": {
+    "USER_IMAGE_PUBLIC_BASE_URL": "https://dune.zone",
     "CAPTURE_BASE_URL": "https://faction-sheet-asset-publisher.ndelangen.workers.dev",
     "CONVEX_EXECUTOR_BASE_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor",
     "CONVEX_RENDER_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/render",

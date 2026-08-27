@@ -399,12 +399,9 @@ export async function requireAssetUpdate(ctx: MutationCtx, assetId: Id<'assets'>
 /**
  * Authorizes an edit to a ruleset's own content: its name, cover and About.
  * Group assignment is deliberately not among them: it is a different capability with a different audience, so it goes through `requireGroupReassignment` from `rulesets.setGroup` instead, the same route factions already take.
+ * A caller that cannot express a name, such as the cover rehost, omits `proposedChange` and the rename gate does not apply.
  */
-export async function requireRulesetUpdate(
-  ctx: MutationCtx,
-  rulesetId: Id<'rulesets'>,
-  proposedChange: { name: string }
-) {
+export async function requireRulesetUpdate(ctx: AnyCtx, rulesetId: Id<'rulesets'>, proposedChange?: { name: string }) {
   await requireAuthenticatedViewerId(ctx);
   const access = await loadCollaborativeAccess(ctx, { kind: 'ruleset', id: rulesetId });
   if (access.subject.is_deleted) {
@@ -413,7 +410,7 @@ export async function requireRulesetUpdate(
   if (!access.viewerAccess.capabilities.edit) {
     throw new Error('Not authorized');
   }
-  if (proposedChange.name !== access.subject.name && !access.viewerAccess.capabilities.rename) {
+  if (proposedChange && proposedChange.name !== access.subject.name && !access.viewerAccess.capabilities.rename) {
     throw new Error('Only the ruleset owner can rename this ruleset');
   }
   return access;

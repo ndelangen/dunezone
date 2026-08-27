@@ -1,8 +1,9 @@
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import { rulesetInputSchema } from '@shared/rulesets/validation';
 import type { RulesetInput } from '@shared/rulesets/validation';
-import { useQuery } from 'convex/react';
+import { useAction, useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
+import { ConvexError } from 'convex/values';
 
 import { db } from '@db/core';
 import { factionCatalogueRowsToEntries } from '@db/factions';
@@ -22,6 +23,13 @@ export type RulesetEntry = Omit<RulesetRow, 'name' | 'about'> & {
   name: Ruleset['name'];
   about: Ruleset['about'];
   id: RulesetRow['_id'];
+  /**
+   * The one URL a page renders for the cover: the stored cover when it exists, the legacy hot-link until the backfill converts it.
+   * Derived here so the legacy fallback lives in one place and the retirement release deletes it here alone.
+   */
+  coverUrl: string | null;
+  /** The thumb rendition for grids and chips, falling back like `coverUrl` where only a legacy or full URL exists. */
+  coverThumbUrl: string | null;
 };
 export type RulesetPageData = {
   ruleset: RulesetEntry;
@@ -81,6 +89,8 @@ function toRulesetEntry(entry: RulesetRow): RulesetEntry {
     id: entry._id,
     name: entry.name,
     about: entry.about,
+    coverUrl: entry.cover?.url ?? entry.image_cover,
+    coverThumbUrl: entry.cover?.thumb_url ?? entry.cover?.url ?? entry.image_cover,
   };
 }
 
@@ -214,6 +224,22 @@ export function useUpdateRuleset() {
       });
       return toRulesetEntry(entry);
     },
+  };
+}
+
+/**
+ * Rehosts a pasted cover URL: the Worker fetches it once, re-encodes it and stores it, and the ruleset ends up carrying our delivery URL.
+ * The document updates through the live subscription, so callers only need the promise to settle or throw the author-facing refusal.
+ */
+export function useRehostRulesetCover() {
+  const rehost = useAction(api.rulesetCovers.rehost);
+  return async ({ id, sourceUrl }: { id: RulesetRow['_id']; sourceUrl: string }) => {
+    try {
+      await rehost({ id, source_url: sourceUrl });
+    } catch (error) {
+      /* The action's refusals travel as ConvexError data; anything else is redacted server-side, so the caller gets the plain fallback. */
+      throw new Error(error instanceof ConvexError ? String(error.data) : 'The cover could not be stored');
+    }
   };
 }
 
