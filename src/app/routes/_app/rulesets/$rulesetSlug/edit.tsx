@@ -205,7 +205,7 @@ function RulesetEditPage() {
      case where there is nothing to name. The band itself is unchanged, and stays #451's to revisit. */
   const header = (
     <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
-      <Surface>
+      <Surface className={styles.rulesetHeadCover}>
         {r.image_cover ? (
           <Image
             src={r.image_cover}
