@@ -87,6 +87,19 @@ describe('ruleset cover rehosting', () => {
     expect(row?.image_cover).toBe(DELIVERY_URL);
   });
 
+  test('rehost refuses a cleartext ingest endpoint outside local development', async () => {
+    const { owner, ruleset } = await coverFixture();
+    vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', 'http://ingest.example');
+    vi.stubEnv('USER_IMAGE_INGEST_SECRET', 'test-ingest-secret');
+    const fetchMock = ingestSuccess();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(owner.action(api.rulesetCovers.rehost, { id: ruleset._id, source_url: SOURCE_URL })).rejects.toThrow(
+      'https'
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   test('rehost refuses a non-https source before any fetch', async () => {
     const { owner, ruleset } = await coverFixture();
     stubIngestEnvironment();

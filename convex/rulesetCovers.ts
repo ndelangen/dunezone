@@ -26,11 +26,24 @@ import type { MutationCtx } from './types';
 
 type IngestConfig = { baseUrl: string; secret: string };
 
+/** Hosts where a cleartext ingest endpoint is acceptable: local development terminates on the developer's own machine. */
+const LOCAL_INGEST_HOSTS = new Set(['localhost', '127.0.0.1', 'host.docker.internal']);
+
 function ingestConfig(): IngestConfig {
   const baseUrl = process.env.USER_IMAGE_INGEST_BASE_URL;
   const secret = process.env.USER_IMAGE_INGEST_SECRET;
   if (!baseUrl || !secret) {
     throw new Error('Cover storage is not configured for this deployment');
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    throw new Error('Cover storage is misconfigured: the ingest base URL does not parse');
+  }
+  /* Every ingest call carries the shared secret in a header, so a cleartext endpoint outside local development would leak it in transit. */
+  if (parsed.protocol !== 'https:' && !LOCAL_INGEST_HOSTS.has(parsed.hostname)) {
+    throw new Error('Cover storage is misconfigured: the ingest base URL must use https');
   }
   return { baseUrl: baseUrl.replace(/\/$/, ''), secret };
 }
