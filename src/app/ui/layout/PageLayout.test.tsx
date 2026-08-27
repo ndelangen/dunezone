@@ -56,4 +56,23 @@ describe('PageLayout', () => {
     expect(markup).toContain('<main');
     expect(markup).toContain('Minimal content');
   });
+
+  it('lets content opt into the viewport measure without widening the toolbar', () => {
+    const markup = renderToStaticMarkup(
+      <PageLayout>
+        <PageLayout.Toolbar>
+          <div>Page tools</div>
+        </PageLayout.Toolbar>
+        <PageLayout.Content width="viewport">
+          <p>Wide content</p>
+        </PageLayout.Content>
+      </PageLayout>
+    );
+
+    expect(markup).toContain('data-page-layout-toolbar="true"');
+    expect(markup).toContain('data-page-layout-content-width="viewport"');
+    expect(markup.indexOf('data-page-layout-toolbar')).toBeLessThan(
+      markup.indexOf('data-page-layout-content-width="viewport"')
+    );
+  });
 });

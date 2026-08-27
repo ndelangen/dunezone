@@ -20,13 +20,13 @@ function Triptych() {
   return (
     <TriptychLayout>
       <TriptychLayout.Left>
-        <LayoutSlotPlaceholder name="left" minHeight={320} />
+        <LayoutSlotPlaceholder name="left" tone="secondary" minHeight={320} />
       </TriptychLayout.Left>
       <TriptychLayout.Center>
-        <LayoutSlotPlaceholder name="center" minHeight={320} />
+        <LayoutSlotPlaceholder name="center" tone="primary" minHeight={320} />
       </TriptychLayout.Center>
       <TriptychLayout.Right>
-        <LayoutSlotPlaceholder name="right" minHeight={320} />
+        <LayoutSlotPlaceholder name="right" tone="tertiary" minHeight={320} />
       </TriptychLayout.Right>
     </TriptychLayout>
   );

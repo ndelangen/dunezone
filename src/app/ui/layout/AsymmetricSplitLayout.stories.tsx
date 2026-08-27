@@ -17,14 +17,14 @@ const meta = preview.meta({
   },
 });
 
-const narrow = <LayoutSlotPlaceholder name="narrow" minHeight={360} />;
+const narrow = <LayoutSlotPlaceholder name="narrow" tone="secondary" minHeight={360} />;
 
 /** Above the container breakpoint: unequal columns, wide leading. */
 export const TwoColumns = meta.story({
   render: () => (
     <AsymmetricSplitLayout>
       <AsymmetricSplitLayout.Wide>
-        <LayoutSlotPlaceholder name="wide" minHeight={360} />
+        <LayoutSlotPlaceholder name="wide" tone="primary" minHeight={360} />
       </AsymmetricSplitLayout.Wide>
       <AsymmetricSplitLayout.Narrow>{narrow}</AsymmetricSplitLayout.Narrow>
     </AsymmetricSplitLayout>
@@ -37,7 +37,7 @@ export const Stacked = meta.story({
   render: () => (
     <AsymmetricSplitLayout>
       <AsymmetricSplitLayout.Wide>
-        <LayoutSlotPlaceholder name="wide" minHeight={360} />
+        <LayoutSlotPlaceholder name="wide" tone="primary" minHeight={360} />
       </AsymmetricSplitLayout.Wide>
       <AsymmetricSplitLayout.Narrow>{narrow}</AsymmetricSplitLayout.Narrow>
     </AsymmetricSplitLayout>
@@ -66,10 +66,10 @@ export const SlimRail = meta.story({
   render: () => (
     <AsymmetricSplitLayout rail="slim">
       <AsymmetricSplitLayout.Wide>
-        <LayoutSlotPlaceholder name="wide" minHeight={280} />
+        <LayoutSlotPlaceholder name="wide" tone="primary" minHeight={280} />
       </AsymmetricSplitLayout.Wide>
       <AsymmetricSplitLayout.Narrow>
-        <LayoutSlotPlaceholder name="narrow" minHeight={280} />
+        <LayoutSlotPlaceholder name="narrow" tone="secondary" minHeight={280} />
       </AsymmetricSplitLayout.Narrow>
     </AsymmetricSplitLayout>
   ),

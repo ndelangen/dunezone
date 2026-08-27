@@ -17,19 +17,17 @@ const meta = preview.meta({
   },
 });
 
+const primary = <LayoutSlotPlaceholder name="primary" tone="primary" minHeight={420} />;
+const secondary = <LayoutSlotPlaceholder name="secondary" tone="secondary" minHeight={320} />;
+const rail = <LayoutSlotPlaceholder name="rail" tone="tertiary" minHeight={240} />;
+
 /** Widest: three columns, the rail last and narrowest. */
 export const ThreeColumns = meta.story({
   render: () => (
     <ColumnsWithRailLayout>
-      <ColumnsWithRailLayout.Primary>
-        <LayoutSlotPlaceholder name="primary" minHeight={420} />
-      </ColumnsWithRailLayout.Primary>
-      <ColumnsWithRailLayout.Secondary>
-        <LayoutSlotPlaceholder name="secondary" minHeight={320} />
-      </ColumnsWithRailLayout.Secondary>
-      <ColumnsWithRailLayout.Rail>
-        <LayoutSlotPlaceholder name="rail" minHeight={240} />
-      </ColumnsWithRailLayout.Rail>
+      <ColumnsWithRailLayout.Primary>{primary}</ColumnsWithRailLayout.Primary>
+      <ColumnsWithRailLayout.Secondary>{secondary}</ColumnsWithRailLayout.Secondary>
+      <ColumnsWithRailLayout.Rail>{rail}</ColumnsWithRailLayout.Rail>
     </ColumnsWithRailLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
@@ -39,15 +37,9 @@ export const ThreeColumns = meta.story({
 export const ReadingColumnsStacked = meta.story({
   render: () => (
     <ColumnsWithRailLayout>
-      <ColumnsWithRailLayout.Primary>
-        <LayoutSlotPlaceholder name="primary" minHeight={420} />
-      </ColumnsWithRailLayout.Primary>
-      <ColumnsWithRailLayout.Secondary>
-        <LayoutSlotPlaceholder name="secondary" minHeight={320} />
-      </ColumnsWithRailLayout.Secondary>
-      <ColumnsWithRailLayout.Rail>
-        <LayoutSlotPlaceholder name="rail" minHeight={240} />
-      </ColumnsWithRailLayout.Rail>
+      <ColumnsWithRailLayout.Primary>{primary}</ColumnsWithRailLayout.Primary>
+      <ColumnsWithRailLayout.Secondary>{secondary}</ColumnsWithRailLayout.Secondary>
+      <ColumnsWithRailLayout.Rail>{rail}</ColumnsWithRailLayout.Rail>
     </ColumnsWithRailLayout>
   ),
   globals: { viewport: { value: 'appConstrained' } },
@@ -57,15 +49,9 @@ export const ReadingColumnsStacked = meta.story({
 export const Stacked = meta.story({
   render: () => (
     <ColumnsWithRailLayout>
-      <ColumnsWithRailLayout.Primary>
-        <LayoutSlotPlaceholder name="primary" minHeight={420} />
-      </ColumnsWithRailLayout.Primary>
-      <ColumnsWithRailLayout.Secondary>
-        <LayoutSlotPlaceholder name="secondary" minHeight={320} />
-      </ColumnsWithRailLayout.Secondary>
-      <ColumnsWithRailLayout.Rail>
-        <LayoutSlotPlaceholder name="rail" minHeight={240} />
-      </ColumnsWithRailLayout.Rail>
+      <ColumnsWithRailLayout.Primary>{primary}</ColumnsWithRailLayout.Primary>
+      <ColumnsWithRailLayout.Secondary>{secondary}</ColumnsWithRailLayout.Secondary>
+      <ColumnsWithRailLayout.Rail>{rail}</ColumnsWithRailLayout.Rail>
     </ColumnsWithRailLayout>
   ),
   globals: { viewport: { value: 'appMobile' } },
@@ -81,12 +67,8 @@ export const IntrinsicSizingStress = meta.story({
           <Image alt="Intrinsic sizing test" mah={320} src="/web/tablet1.jpg" w={1400} />
         </Stack>
       </ColumnsWithRailLayout.Primary>
-      <ColumnsWithRailLayout.Secondary>
-        <LayoutSlotPlaceholder name="secondary" minHeight={320} />
-      </ColumnsWithRailLayout.Secondary>
-      <ColumnsWithRailLayout.Rail>
-        <LayoutSlotPlaceholder name="rail" minHeight={240} />
-      </ColumnsWithRailLayout.Rail>
+      <ColumnsWithRailLayout.Secondary>{secondary}</ColumnsWithRailLayout.Secondary>
+      <ColumnsWithRailLayout.Rail>{rail}</ColumnsWithRailLayout.Rail>
     </ColumnsWithRailLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
