@@ -9,7 +9,7 @@
  * Its slug stays reserved so the address survives, but the page renders the same body a slug that never existed would get, matching the ruleset detail page.
  * That is deliberately not a claim that nothing was ever here, and nothing of the deleted row reaches the client to leak.
  */
-import { Alert, Anchor, Group, Stack, Text, Title } from '@mantine/core';
+import { Alert, Group, Stack, Text } from '@mantine/core';
 import { ASSET_TYPES, holdsDeckMembership, isAssetType } from '@shared/assets/types';
 import { RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
@@ -19,6 +19,7 @@ import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { OpenableTile } from '@ui/block/OpenableTile';
+import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { AssetLink } from '@ui/content/AssetLink';
 import { formatRelativeDate } from '@ui/content/dates';
@@ -491,60 +492,55 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
     <PageLayout>
       <PageLayout.Header size="compact">
         {/* The identity pattern the faction and ruleset detail pages use: the media sits in its own column, so the breadcrumb, the title and the meta line share one left edge. */}
-        <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
-          <div className={styles.pageHeadMedia} role="img" aria-label={`${asset.name} face`}>
-            <AssetFace type={asset.type} data={asset.data} name={asset.name} />
-          </div>
-          <Stack gap={6} className={styles.pageHeadText}>
-            <Group gap="xs" wrap="wrap">
-              <Anchor
-                size="sm"
-                fw={600}
-                renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type: asset.type }} />}
-              >
-                {collectionLabel}
-              </Anchor>
-            </Group>
-            <Title order={1} className={styles.assetTitle}>
-              {asset.name}
-            </Title>
-            <Group gap="xs" wrap="wrap">
-              <Text size="sm" c="dimmed">
-                Made by
-              </Text>
-              {asset.owner ? <ProfileLink {...asset.owner} /> : <Text size="sm">Unknown</Text>}
-              {/* The band carries the page's statistics, the ruleset band's pattern (Norbert, 2026-08-21). */}
-              <Stats
-                orientation="row"
-                items={[
-                  {
-                    key: 'created',
-                    icon: <CalendarPlus size={17} aria-hidden />,
-                    value: formatRelativeDate(asset.created_at),
-                    label: `Created ${formatRelativeDate(asset.created_at)}`,
-                  },
-                  {
-                    key: 'updated',
-                    icon: <History size={17} aria-hidden />,
-                    value: formatRelativeDate(asset.updated_at),
-                    label: `Updated ${formatRelativeDate(asset.updated_at)}`,
-                  },
-                  /* Only for types a deck can hold; the payload already carries the list for the In-decks section. */
-                  ...(holdsDeckMembership(asset.type)
-                    ? [
-                        {
-                          key: 'decks',
-                          icon: <Layers3 size={17} aria-hidden />,
-                          value: inDecks.length,
-                          label: `In ${inDecks.length} ${inDecks.length === 1 ? 'deck' : 'decks'}`,
-                        },
-                      ]
-                    : []),
-                ]}
-              />
-            </Group>
-          </Stack>
-        </Group>
+        <PageIdentity
+          title={asset.name}
+          media={
+            <div role="img" aria-label={`${asset.name} face`} className={styles.pageHeadFace}>
+              <AssetFace type={asset.type} data={asset.data} name={asset.name} />
+            </div>
+          }
+          breadcrumb={
+            <PageIdentity.Breadcrumb to="/assets/$type" params={{ type: asset.type }}>
+              {collectionLabel}
+            </PageIdentity.Breadcrumb>
+          }
+        >
+          <Group gap="xs" wrap="wrap">
+            <Text size="sm" c="dimmed">
+              Made by
+            </Text>
+            {asset.owner ? <ProfileLink {...asset.owner} /> : <Text size="sm">Unknown</Text>}
+            {/* The band carries the page's statistics, the ruleset band's pattern (Norbert, 2026-08-21). */}
+            <Stats
+              orientation="row"
+              items={[
+                {
+                  key: 'created',
+                  icon: <CalendarPlus size={17} aria-hidden />,
+                  value: formatRelativeDate(asset.created_at),
+                  label: `Created ${formatRelativeDate(asset.created_at)}`,
+                },
+                {
+                  key: 'updated',
+                  icon: <History size={17} aria-hidden />,
+                  value: formatRelativeDate(asset.updated_at),
+                  label: `Updated ${formatRelativeDate(asset.updated_at)}`,
+                },
+                /* Only for types a deck can hold; the payload already carries the list for the In-decks section. */
+                ...(holdsDeckMembership(asset.type)
+                  ? [
+                      {
+                        key: 'decks',
+                        icon: <Layers3 size={17} aria-hidden />,
+                        value: inDecks.length,
+                        label: `In ${inDecks.length} ${inDecks.length === 1 ? 'deck' : 'decks'}`,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          </Group>
+        </PageIdentity>
       </PageLayout.Header>
 
       <PageLayout.Toolbar>

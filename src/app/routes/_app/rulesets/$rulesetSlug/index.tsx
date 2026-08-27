@@ -1,4 +1,4 @@
-import { Alert, Anchor, Avatar, Group, Menu, Popover, Select, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Avatar, Group, Menu, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { isRouteNoticeCode } from '@shared/routeNotices';
@@ -9,6 +9,7 @@ import { FactionCard } from '@ui/block/FactionCard';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageIdentity } from '@ui/block/PageIdentity';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
@@ -327,13 +328,9 @@ function RulesetDetailPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        {/*
-          The identity pattern the faction and profile detail pages already use: the media sits in its own column, so
-          the breadcrumb, the title and the meta line all share one left edge instead of the title starting indented.
-        */}
-        <Group wrap="nowrap" align="center" gap="md" className={styles.pageHead}>
-          {/* The media matches the text block's height rather than a fixed size, so the band reads as one unit. */}
-          <div className={styles.pageHeadMedia}>
+        <PageIdentity
+          title={r.name}
+          media={
             <Avatar
               src={r.coverThumbUrl}
               alt={`Cover for ${r.name}`}
@@ -342,40 +339,34 @@ function RulesetDetailPage() {
               size="100%"
               color="dune"
             />
-          </div>
-          <Stack gap={4} className={styles.pageHeadText}>
-            <Anchor size="sm" fw={600} renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
-              Rulesets
-            </Anchor>
-            <Title order={1} className={styles.rulesetTitle}>
-              {r.name}
-            </Title>
-            {/*
+          }
+          breadcrumb={<PageIdentity.Breadcrumb to="/rulesets">Rulesets</PageIdentity.Breadcrumb>}
+        >
+          {/*
             One line carrying everything the old "At a glance" and "Stewardship" cards said.
             The sizes are level on purpose: this row centres its children, and a 12px label among 14-16px text reads as
             misaligned even when every box is perfectly centred.
           */}
-            <Group gap="sm" wrap="wrap" align="center">
+          <Group gap="sm" wrap="wrap" align="center">
+            <Text size="sm" c="dimmed">
+              Maintained by
+            </Text>
+            {page.owner ? (
+              <ProfileLink slug={page.owner.slug} username={page.owner.username} avatar_url={page.owner.avatar_url} />
+            ) : (
+              <Text size="sm">Unknown</Text>
+            )}
+            {assignedGroup ? (
+              <GroupLink slug={assignedGroup.slug} name={assignedGroup.name} />
+            ) : (
               <Text size="sm" c="dimmed">
-                Maintained by
+                No maintaining group
               </Text>
-              {page.owner ? (
-                <ProfileLink slug={page.owner.slug} username={page.owner.username} avatar_url={page.owner.avatar_url} />
-              ) : (
-                <Text size="sm">Unknown</Text>
-              )}
-              {assignedGroup ? (
-                <GroupLink slug={assignedGroup.slug} name={assignedGroup.name} />
-              ) : (
-                <Text size="sm" c="dimmed">
-                  No maintaining group
-                </Text>
-              )}
-              {membershipBadge ? <StatusBadge tone={membershipBadge.tone}>{membershipBadge.label}</StatusBadge> : null}
-              <Stats items={headerStats} orientation="row" />
-            </Group>
-          </Stack>
-        </Group>
+            )}
+            {membershipBadge ? <StatusBadge tone={membershipBadge.tone}>{membershipBadge.label}</StatusBadge> : null}
+            <Stats items={headerStats} orientation="row" />
+          </Group>
+        </PageIdentity>
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>

@@ -3,8 +3,8 @@ import { createLink } from '@tanstack/react-router';
 import { forwardRef } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
-import { PageTitle } from './PageTitle';
 import styles from './PageIdentity.module.css';
+import { PageTitle } from './PageTitle';
 
 const BreadcrumbAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<'a'>>(
   function BreadcrumbAnchor(props, ref) {

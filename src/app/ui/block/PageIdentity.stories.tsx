@@ -1,13 +1,12 @@
-import preview from '@sb/preview';
 import { Avatar, Text } from '@mantine/core';
+import preview from '@sb/preview';
 
 import { PageLayout } from '../layout/PageLayout';
 import { PageIdentity } from './PageIdentity';
 import type { PageIdentityProps } from './PageIdentity';
 
 /**
- * The band's ink and treatment come from the header's scheme-pinned paper, so each story mounts the
- * real `PageLayout` and declares a compact header the way the five band pages do.
+ * The band's ink and treatment come from the header's scheme-pinned paper, so each story mounts the real `PageLayout` and declares a compact header the way the five band pages do.
  */
 function InHeader(props: PageIdentityProps) {
   return (

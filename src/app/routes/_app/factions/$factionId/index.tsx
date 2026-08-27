@@ -18,6 +18,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
+import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
@@ -137,27 +138,22 @@ function FactionDetailPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
-          <div className={styles.factionSymbol} role="img" aria-label={`${data.name} symbol`}>
-            <FactionToken logo={data.logo} background={data.background} />
-          </div>
-          <Stack gap={6} className={styles.pageHeadText}>
-            <Group gap="xs" wrap="wrap">
-              <Anchor size="sm" fw={600} renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>
-                Factions
-              </Anchor>
-            </Group>
-            <Title order={1} className={styles.factionTitle}>
-              {data.name}
-            </Title>
-            <Group gap="xs" wrap="wrap">
-              <Text size="sm" c="dimmed">
-                Maintained by
-              </Text>
-              {owner ? <ProfileLink {...owner} /> : <Text size="sm">Unknown</Text>}
-            </Group>
-          </Stack>
-        </Group>
+        <PageIdentity
+          title={data.name}
+          media={
+            <div className={styles.factionSymbol} role="img" aria-label={`${data.name} symbol`}>
+              <FactionToken logo={data.logo} background={data.background} />
+            </div>
+          }
+          breadcrumb={<PageIdentity.Breadcrumb to="/factions">Factions</PageIdentity.Breadcrumb>}
+        >
+          <Group gap="xs" wrap="wrap">
+            <Text size="sm" c="dimmed">
+              Maintained by
+            </Text>
+            {owner ? <ProfileLink {...owner} /> : <Text size="sm">Unknown</Text>}
+          </Group>
+        </PageIdentity>
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>

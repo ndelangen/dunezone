@@ -4,6 +4,7 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageIdentity } from '@ui/block/PageIdentity';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
@@ -265,20 +266,21 @@ function ProfileDetailPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <div className={styles.identityRow}>
-          {page.profile.avatar_url ? (
-            <img src={page.profile.avatar_url} alt={page.profile.username ?? 'Avatar'} className={styles.avatar} />
-          ) : (
-            <span className={styles.avatarPlaceholder}>{initials}</span>
-          )}
-          <Stack gap="xs">
-            <h1 className={styles.displayName}>{page.profile.username ?? 'Unknown'}</h1>
-            {isSelf && <p className={styles.selfHint}>This is you!</p>}
-            <p className={styles.profileSummary}>
-              <strong>Proposed bio:</strong> A short introduction describing this contributor's interests and work.
-            </p>
-          </Stack>
-        </div>
+        <PageIdentity
+          title={page.profile.username ?? 'Unknown'}
+          media={
+            page.profile.avatar_url ? (
+              <img src={page.profile.avatar_url} alt={page.profile.username ?? 'Avatar'} className={styles.avatar} />
+            ) : (
+              <span className={styles.avatarPlaceholder}>{initials}</span>
+            )
+          }
+        >
+          {isSelf && <p className={styles.selfHint}>This is you!</p>}
+          <p className={styles.profileSummary}>
+            <strong>Proposed bio:</strong> A short introduction describing this contributor's interests and work.
+          </p>
+        </PageIdentity>
       </PageLayout.Header>
       <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
       <PageLayout.Content>
