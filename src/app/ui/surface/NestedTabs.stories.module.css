@@ -35,11 +35,6 @@
   opacity: 0.58;
 }
 
-.withoutGroupEmphasis [data-contains-active-item="true"]::before,
-.withoutGroupEmphasis [data-contains-active-item="true"]::after {
-  background: color-mix(in srgb, currentColor 18%, transparent);
-}
-
 .fixedHeight {
   height: 42rem;
 }
