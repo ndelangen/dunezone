@@ -185,7 +185,7 @@ function ManyRootItemsFixture() {
   const [activePath, setActivePath] = useState<NestedTabsPath>(['root-2', NESTED_ONE]);
   const activeRoot = activePath[0] ?? 'root-2';
   return (
-    <NestedTabs activePath={activePath} ariaLabel="Overflowing nested navigation" className={styles.fixedHeight}>
+    <NestedTabs activePath={activePath} ariaLabel="Nested navigation with many root items">
       <NestedTabs.Level label="Root level">
         {Array.from({ length: 20 }, (_, index) => {
           const id = `root-${index + 1}`;
@@ -237,7 +237,10 @@ export const ManyRootItems = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const rootLevel = canvas.getByRole('navigation', { name: 'Root level' });
+    const rootItems = rootLevel.querySelector('ul');
     await expect(rootLevel.querySelectorAll('[data-nested-tabs-item]')).toHaveLength(20);
+    await expect(rootItems).not.toBeNull();
+    await expect(rootItems?.scrollHeight).toBe(rootItems?.clientHeight);
   },
 });
 

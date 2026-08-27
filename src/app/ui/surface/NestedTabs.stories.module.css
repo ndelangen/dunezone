@@ -5,15 +5,6 @@
   padding: var(--mantine-spacing-xl);
 }
 
-.fixedHeight {
-  height: 42rem;
-}
-
-.fixedHeight > div {
-  height: 100%;
-  min-height: 0;
-}
-
 @media (max-width: 34rem) {
   .stage {
     padding: var(--mantine-spacing-md);

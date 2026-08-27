@@ -21,7 +21,6 @@
   align-items: stretch;
   width: 100%;
   min-width: 0;
-  min-height: 38rem;
   overflow: visible;
   isolation: isolate;
 }
@@ -96,8 +95,8 @@
 .level {
   position: relative;
   z-index: 3;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   background: transparent;
@@ -120,10 +119,9 @@
 }
 
 .levelItems {
+  flex: 0 0 auto;
   min-height: 0;
   padding: 0.4rem 0.25rem;
-  overflow: auto;
-  scrollbar-width: thin;
 }
 
 .itemSlot {
@@ -240,6 +238,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.35rem;
+  margin-block-start: auto;
   padding: 0.4rem 0.25rem 0.75rem;
 }
 
@@ -267,7 +266,7 @@
   z-index: 4;
   min-width: 0;
   padding: clamp(var(--mantine-spacing-sm), 2cqi, var(--mantine-spacing-md));
-  overflow: auto;
+  overflow: visible;
   background: transparent;
 }
 
@@ -276,10 +275,6 @@
     --nested-tabs-level-width: 3.1rem;
     --nested-tabs-item-size: 2.4rem;
     --nested-tabs-gap: 0.25rem;
-  }
-
-  .root {
-    min-height: 32rem;
   }
 
   .levelItems {
