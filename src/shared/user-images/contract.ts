@@ -120,8 +120,10 @@ export const userImageIngestCompletionSchema = z.strictObject({
 });
 
 /**
- * A delivery URL the consuming mutation will accept: our public namespace over a content-addressed key, on an https origin or a local development host.
- * The consume endpoint is public, so this floor keeps a token holder from writing an arbitrary foreign URL into a document.
+ * A delivery URL the consuming mutation will accept: the user-image path shape over a content-addressed key, on an https origin or a local development host.
+ * The consume endpoint is public, so this floor bounds what a token holder could write into a document.
+ * It pins the protocol and the path shape, not the host;
+ * pinning the host would need the delivery origin configured on the Convex side and rides the hardening ticket.
  */
 const userImageDeliveryUrlSchema = z
   .string()

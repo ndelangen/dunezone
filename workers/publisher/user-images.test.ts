@@ -127,7 +127,7 @@ function ledgerFetch(options: { valid?: boolean; consume?: unknown; sourceBytes?
   const ledgerCalls: LedgerCall[] = [];
   const mock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
-    if (url.startsWith(CONVEX_BASE)) {
+    if (new URL(url).origin === CONVEX_BASE) {
       ledgerCalls.push({ url, body: JSON.parse(String(init?.body)) as LedgerCall['body'] });
       if (url.endsWith('/api/query')) {
         return Response.json({ status: 'success', value: { valid: options.valid ?? true } });
@@ -417,7 +417,7 @@ describe('user image ingest', () => {
 
   test('an unreachable ledger fails the ingest without spending a fetch', async () => {
     const mock = vi.fn(async (input: string | URL | Request) => {
-      if (String(input).startsWith(CONVEX_BASE)) {
+      if (new URL(String(input)).origin === CONVEX_BASE) {
         throw new TypeError('network down');
       }
       return sourceResponse(pngBytes(800, 600));
