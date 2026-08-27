@@ -29,6 +29,7 @@ export type NestedTabsPath = readonly string[];
 
 interface NestedTabsContextValue {
   activePath: NestedTabsPath;
+  isScrolling: boolean;
   levelIndex: number;
 }
 
@@ -195,7 +196,6 @@ function useNestedTabsLayerGeometry({
     }
 
     let animationFrame = 0;
-    let scrollingTimer = 0;
     const measure = () => {
       const rootRect = root.getBoundingClientRect();
       const itemsRect = items.getBoundingClientRect();
@@ -234,9 +234,6 @@ function useNestedTabsLayerGeometry({
       animationFrame = requestAnimationFrame(measure);
     };
     const handleScroll = () => {
-      items.setAttribute('data-scrolling', '');
-      window.clearTimeout(scrollingTimer);
-      scrollingTimer = window.setTimeout(() => items.removeAttribute('data-scrolling'), 650);
       scheduleMeasure();
     };
 
@@ -272,8 +269,6 @@ function useNestedTabsLayerGeometry({
 
     return () => {
       cancelAnimationFrame(animationFrame);
-      window.clearTimeout(scrollingTimer);
-      items.removeAttribute('data-scrolling');
       items.removeEventListener('scroll', handleScroll);
       mutationObserver.disconnect();
       resizeObserver?.disconnect();
@@ -344,6 +339,53 @@ function useNestedTabsContext(component: string) {
   return context;
 }
 
+function NestedTabsTooltip({
+  label,
+  isScrolling,
+  children,
+}: {
+  label: string;
+  isScrolling: boolean;
+  children: ReactElement;
+}) {
+  const [opened, setOpened] = useState(false);
+  const openTimer = useRef(0);
+
+  useLayoutEffect(() => {
+    if (isScrolling) {
+      window.clearTimeout(openTimer.current);
+      setOpened(false);
+    }
+    return () => window.clearTimeout(openTimer.current);
+  }, [isScrolling]);
+
+  const handleMouseEnter = () => {
+    if (isScrolling) {
+      return;
+    }
+    window.clearTimeout(openTimer.current);
+    openTimer.current = window.setTimeout(() => setOpened(true), 350);
+  };
+  const handleMouseLeave = () => {
+    window.clearTimeout(openTimer.current);
+    setOpened(false);
+  };
+
+  return (
+    <Tooltip
+      label={label}
+      position="right"
+      withArrow
+      opened={opened && !isScrolling}
+      events={{ hover: false, focus: false, touch: false }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {children}
+    </Tooltip>
+  );
+}
+
 function pathsEqual(left: NestedTabsPath, right: NestedTabsPath) {
   return left.length === right.length && left.every((part, index) => part === right[index]);
 }
@@ -404,7 +446,7 @@ function Item<Root extends ElementType>({
   className,
   ...rootProps
 }: NestedTabsItemProps<Root>) {
-  const { activePath } = useNestedTabsContext('Item');
+  const { activePath, isScrolling } = useNestedTabsContext('Item');
   const pathState = itemPathState(path, activePath);
   const itemRoot = createElement(
     Root,
@@ -423,9 +465,9 @@ function Item<Root extends ElementType>({
 
   return (
     <li className={styles.itemSlot}>
-      <Tooltip label={label} position="right" openDelay={350} withArrow>
+      <NestedTabsTooltip label={label} isScrolling={isScrolling}>
         {itemRoot}
-      </Tooltip>
+      </NestedTabsTooltip>
     </li>
   );
 }
@@ -453,16 +495,16 @@ function descendantItemPaths(children: ReactNode): NestedTabsPath[] {
 }
 
 function Group({ label, icon, children }: NestedTabsGroupProps) {
-  const { activePath } = useNestedTabsContext('Group');
+  const { activePath, isScrolling } = useNestedTabsContext('Group');
   const containsActiveItem = descendantItemPaths(children).some((path) => pathsEqual(path, activePath));
 
   return (
     <li className={styles.group} data-contains-active-item={containsActiveItem || undefined}>
-      <Tooltip label={label} position="right" openDelay={350} withArrow>
+      <NestedTabsTooltip label={label} isScrolling={isScrolling}>
         <span className={styles.groupAdornment} aria-hidden>
           {icon ?? <span className={styles.groupMarker} />}
         </span>
-      </Tooltip>
+      </NestedTabsTooltip>
       <ul className={styles.groupItems} aria-label={label}>
         {children}
       </ul>
@@ -518,11 +560,31 @@ function NestedTabsLevelView({
   children,
 }: NestedTabsLevelProps & { activePath: NestedTabsPath; levelIndex: number }) {
   const { entries, tools } = splitLevelChildren(children);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollingTimer = useRef(0);
+
+  useLayoutEffect(
+    () => () => {
+      window.clearTimeout(scrollingTimer.current);
+    },
+    []
+  );
+
+  const handleScroll = () => {
+    setIsScrolling(true);
+    window.clearTimeout(scrollingTimer.current);
+    scrollingTimer.current = window.setTimeout(() => setIsScrolling(false), 650);
+  };
 
   return (
-    <NestedTabsContext.Provider value={{ activePath, levelIndex }}>
+    <NestedTabsContext.Provider value={{ activePath, isScrolling, levelIndex }}>
       <nav className={styles.level} aria-label={label} data-nested-tabs-level={levelIndex + 1}>
-        <ul className={styles.levelItems} data-nested-tabs-items>
+        <ul
+          className={styles.levelItems}
+          data-nested-tabs-items
+          data-scrolling={isScrolling || undefined}
+          onScroll={handleScroll}
+        >
           {entries}
         </ul>
         <div className={styles.levelFooter}>

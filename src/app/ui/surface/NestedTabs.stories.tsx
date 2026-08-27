@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import type { Key, MouseEvent, ReactNode } from 'react';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { NestedTabs } from './NestedTabs';
 import type { NestedTabsPath } from './NestedTabs';
@@ -159,8 +159,10 @@ export const NestedItemActive = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    const storyDocument = within(canvasElement.ownerDocument.body);
     const levels = canvas.getAllByRole('navigation');
-    await expect(canvas.getByRole('link', { name: 'Root item B' })).toHaveAttribute('data-path-state', 'ancestor');
+    const rootItemB = canvas.getByRole('link', { name: 'Root item B' });
+    await expect(rootItemB).toHaveAttribute('data-path-state', 'ancestor');
     await expect(canvas.getByRole('link', { name: 'Nested item A' })).toHaveAttribute('aria-current', 'page');
     await expect(canvas.queryByRole('tab')).not.toBeInTheDocument();
     for (const level of levels) {
@@ -168,6 +170,12 @@ export const NestedItemActive = meta.story({
       await expect(items).not.toBeNull();
       await expect(getComputedStyle(items as HTMLElement).overflowX).toBe('hidden');
     }
+    await userEvent.hover(rootItemB);
+    await waitFor(() => expect(storyDocument.getByRole('tooltip')).toHaveTextContent('Root item B'));
+    levels[0]?.querySelector(':scope > ul')?.dispatchEvent(new Event('scroll'));
+    await waitFor(() => expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument());
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 700));
+    await expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument();
   },
 });
 
