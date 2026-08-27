@@ -64,6 +64,11 @@
   width: 100%;
 }
 
+.sidebarContent {
+  display: grid;
+  min-height: var(--document-editor-preview-height, 0px);
+}
+
 .sidebarContent[data-sticky],
 .previewFrame[data-sticky] {
   position: sticky;

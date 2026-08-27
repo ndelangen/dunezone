@@ -40,6 +40,16 @@ function expectPreviewFillToStayContained(canvasElement: HTMLElement) {
   expect(fillRect?.height).toBeCloseTo(frameRect?.height ?? Number.NaN, 0);
 }
 
+function expectSidebarToMatchPreviewMinimum(canvasElement: HTMLElement) {
+  const sidebarContent = canvasElement.querySelector<HTMLElement>('[data-document-editor-sidebar] > div');
+  const previewFrame = canvasElement.querySelector<HTMLElement>('[data-document-editor-preview] > div');
+  expect(sidebarContent).not.toBeNull();
+  expect(previewFrame).not.toBeNull();
+  expect(sidebarContent?.getBoundingClientRect().height).toBeGreaterThanOrEqual(
+    previewFrame?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY
+  );
+}
+
 const defaultArgs = {
   ratio: A4_RATIO,
   fit: 'height',
@@ -85,16 +95,17 @@ export const WideFitWidth = meta.story({
 
 /** The narrow track opens on Sidebar and leaves a visible piece of Preview. */
 export const NarrowSidebarFirst = meta.story({
-  args: { sidebarContentHeight: 520 },
+  args: { sidebarContentHeight: 340 },
   globals: { viewport: { value: 'appMobile' } },
   play: ({ canvasElement }) => {
     expectPreviewFillToStayContained(canvasElement);
+    expectSidebarToMatchPreviewMinimum(canvasElement);
   },
 });
 
 /** The same narrow track opens at its Preview snap position. */
 export const NarrowPreviewFirst = meta.story({
-  args: { sidebarContentHeight: 520 },
+  args: { sidebarContentHeight: 340 },
   globals: { viewport: { value: 'appMobile' } },
   play: ({ canvasElement }) => {
     const layout = canvasElement.querySelector<HTMLElement>('[data-document-editor-layout]');
@@ -102,6 +113,7 @@ export const NarrowPreviewFirst = meta.story({
       layout.scrollLeft = layout.scrollWidth;
     }
     expectPreviewFillToStayContained(canvasElement);
+    expectSidebarToMatchPreviewMinimum(canvasElement);
   },
 });
 
