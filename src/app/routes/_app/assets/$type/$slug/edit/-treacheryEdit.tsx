@@ -1,5 +1,7 @@
-import { Alert, Anchor, Text } from '@mantine/core';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Alert } from '@mantine/core';
+import { useNavigate } from '@tanstack/react-router';
+import { LoginGate } from '@ui/block/LoginGate';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -33,8 +35,8 @@ export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderDa
 
   if (data === null) {
     return (
-      <AssetEditorMessage type="card-treachery" title="Card not found">
-        <Text>No treachery card lives at this address.</Text>
+      <AssetEditorMessage type="card-treachery" title="Edit card">
+        <NotAvailable title="Card not found">No treachery card lives at this address.</NotAvailable>
       </AssetEditorMessage>
     );
   }
@@ -42,9 +44,7 @@ export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderDa
   if (data.viewerAccess.viewer.kind === 'anonymous') {
     return (
       <AssetEditorMessage type="card-treachery" title={`Edit ${data.asset.name}`}>
-        <Text>
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to edit cards.
-        </Text>
+        <LoginGate action="edit cards" />
       </AssetEditorMessage>
     );
   }
@@ -52,11 +52,11 @@ export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderDa
   if (!data.viewerAccess.capabilities.edit) {
     return (
       <AssetEditorMessage type="card-treachery" title={`Edit ${data.asset.name}`}>
-        <Text>
+        <NotAvailable title="You cannot edit this card">
           {data.viewerAccess.assignedGroup
             ? 'Only the card owner or an active member of its group can edit this card.'
             : 'Only the card owner can edit this card.'}
-        </Text>
+        </NotAvailable>
       </AssetEditorMessage>
     );
   }
@@ -65,7 +65,7 @@ export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderDa
   if (!parsed.success) {
     return (
       <DriftedAssetPage asset={data.asset} noun="card" canDelete={data.viewerAccess.capabilities.delete}>
-        <Text>This card's stored data no longer matches the treachery card schema, so it cannot be edited here.</Text>
+        {`This card's stored data no longer matches the treachery card schema, so it cannot be edited here.`}
       </DriftedAssetPage>
     );
   }

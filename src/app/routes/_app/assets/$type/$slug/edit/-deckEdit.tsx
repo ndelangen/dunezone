@@ -1,7 +1,9 @@
-import { Alert, Anchor, Popover, Text } from '@mantine/core';
+import { Alert, Popover } from '@mantine/core';
 import { DeckAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
+import { LoginGate } from '@ui/block/LoginGate';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -47,8 +49,8 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
 
   if (data === null) {
     return (
-      <AssetEditorMessage title="Deck not found" type="deck">
-        <Text>No deck lives at this address.</Text>
+      <AssetEditorMessage title="Edit deck" type="deck">
+        <NotAvailable title="Deck not found">No deck lives at this address.</NotAvailable>
       </AssetEditorMessage>
     );
   }
@@ -56,9 +58,7 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
   if (data.viewerAccess.viewer.kind === 'anonymous') {
     return (
       <AssetEditorMessage title={`Edit ${data.asset.name}`} type="deck">
-        <Text>
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to edit decks.
-        </Text>
+        <LoginGate action="edit decks" />
       </AssetEditorMessage>
     );
   }
@@ -66,11 +66,11 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
   if (!data.viewerAccess.capabilities.edit) {
     return (
       <AssetEditorMessage title={`Edit ${data.asset.name}`} type="deck">
-        <Text>
+        <NotAvailable title="You cannot edit this deck">
           {data.viewerAccess.assignedGroup
             ? 'Only the deck owner or an active member of its group can edit this deck.'
             : 'Only the deck owner can edit this deck.'}
-        </Text>
+        </NotAvailable>
       </AssetEditorMessage>
     );
   }
@@ -79,7 +79,7 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
   if (!parsed.success) {
     return (
       <DriftedAssetPage asset={data.asset} noun="deck" canDelete={data.viewerAccess.capabilities.delete}>
-        <Text>This deck's stored data no longer matches the deck schema, so it cannot be edited here.</Text>
+        {`This deck's stored data no longer matches the deck schema, so it cannot be edited here.`}
       </DriftedAssetPage>
     );
   }
