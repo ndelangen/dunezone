@@ -20,8 +20,10 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { OpenableTile } from '@ui/block/OpenableTile';
 import { Section } from '@ui/block/Section';
+import { AssetLink } from '@ui/content/AssetLink';
 import { formatRelativeDate } from '@ui/content/dates';
 import { FormattedTextSource } from '@ui/content/FormattedText';
+import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -201,19 +203,7 @@ function AssetFaces({ page }: { page: AssetPage }) {
           caption={
             backDeck ? (
               <>
-                Cardback from{' '}
-                <Anchor
-                  size="xs"
-                  renderRoot={(rootProps) => (
-                    <Link
-                      {...rootProps}
-                      to="/assets/$type/$slug"
-                      params={{ type: backDeck.type, slug: backDeck.slug }}
-                    />
-                  )}
-                >
-                  {backDeck.name}
-                </Anchor>
+                Cardback from <AssetLink type={backDeck.type} slug={backDeck.slug} name={backDeck.name} />
               </>
             ) : undefined
           }
@@ -267,19 +257,7 @@ function AssetFaces({ page }: { page: AssetPage }) {
         <FaceStage
           caption={
             <>
-              Back:{' '}
-              <Anchor
-                size="xs"
-                renderRoot={(rootProps) => (
-                  <Link
-                    {...rootProps}
-                    to="/assets/$type/$slug"
-                    params={{ type: backToken.type, slug: backToken.slug }}
-                  />
-                )}
-              >
-                {backToken.name}
-              </Anchor>
+              Back: <AssetLink type={backToken.type} slug={backToken.slug} name={backToken.name} />
             </>
           }
         >
@@ -680,7 +658,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
               {container ? <ShippedByCard rulesets={page.linkingRulesets} /> : null}
               {assignedGroup ? (
                 <Card title="Maintained by" icon={<UsersRound size={18} aria-hidden />}>
-                  <Text size="sm">{assignedGroup.name}</Text>
+                  <GroupLink slug={assignedGroup.slug} name={assignedGroup.name} />
                 </Card>
               ) : null}
             </Stack>

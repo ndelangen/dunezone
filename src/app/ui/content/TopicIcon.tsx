@@ -1,4 +1,4 @@
-import { BookOpen, Boxes, Image as ImageIcon, Info, Signature, Type } from 'lucide-react';
+import { BookOpen, Boxes, Image as ImageIcon, Info, Signature, Type, UsersRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const TOPIC_ICON_DEFINITIONS = {
@@ -28,6 +28,11 @@ const TOPIC_ICON_DEFINITIONS = {
   karama: { kind: 'mask', src: '/vector/icon/karama.svg' },
   rulesets: { kind: 'component', component: BookOpen },
   fate: { kind: 'mask', src: '/vector/icon/fate.svg' },
+  /* The entity-kind glyphs the mention chips wear. Factions reuse the hero pictogram and assets
+     reuse the contents glyph, the way decals reuses alliance: one drawing, two topics. */
+  factions: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
+  groups: { kind: 'component', component: UsersRound },
+  assets: { kind: 'component', component: Boxes },
 } as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;
 
 export type TopicIconTopic = keyof typeof TOPIC_ICON_DEFINITIONS;
