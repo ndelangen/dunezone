@@ -1,0 +1,48 @@
+.band {
+  width: min(100%, 48rem);
+  min-width: 0;
+  margin: 0 auto;
+  padding-inline: var(--mantine-spacing-sm);
+}
+
+/*
+ * A fixed width per breakpoint, sized to the three lines of text beside it.
+ * Width only: square media declares its own aspect ratio, and non-square media (a portrait card
+ * face) keeps its natural height instead of being cropped to a square it never had.
+ */
+.media {
+  flex: 0 0 6rem;
+  width: 6rem;
+}
+
+/* Everything in the text column shares this left edge. */
+.text {
+  min-width: 0;
+  text-align: left;
+}
+
+.text h1 {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 48em) {
+  .media {
+    flex-basis: 4.75rem;
+    width: 4.75rem;
+  }
+
+  .text h1 {
+    font-size: 1.35rem;
+  }
+}
+
+@media (max-width: 30em) {
+  .band {
+    padding-inline: 0;
+  }
+
+  .media {
+    flex-basis: 3.75rem;
+    width: 3.75rem;
+  }
+}

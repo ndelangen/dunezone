@@ -1,18 +1,9 @@
-.pageHead {
-  min-width: 0;
-  width: 100%;
-  max-width: 42rem;
-  margin: 0 auto;
-  padding-inline: var(--mantine-spacing-sm);
-}
-
 /* The cover's box must carry a size of its own: the image inside stretches to 100% of it, so an
-   unsized box hands layout to the image's intrinsic pixels, which overflow the header and squeeze
-   the title to wrapping (the regression behind the cover drawing over the nav). */
+   unsized box hands layout to the image's intrinsic pixels (the regression behind the cover once
+   drawing over the nav). The band's media column owns the outer size now; this fills and clips. */
 .rulesetHeadCover {
-  width: 5.5rem;
-  height: 5.5rem;
-  flex: 0 0 5.5rem;
+  width: 100%;
+  aspect-ratio: 1;
   overflow: hidden;
 }
 
@@ -20,14 +11,4 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.pageHeadText {
-  min-width: 0;
-  text-align: left;
-}
-
-.rulesetTitle {
-  overflow-wrap: anywhere;
-  color: var(--color-text, var(--mantine-color-dark-8));
 }

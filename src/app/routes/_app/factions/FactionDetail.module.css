@@ -1,15 +1,7 @@
-.pageHead {
-  width: min(100%, 48rem);
-  min-width: 0;
-  margin: 0 auto;
-  padding-inline: var(--mantine-spacing-sm);
-}
-
 .factionSymbol {
   position: relative;
-  flex: 0 0 5.5rem;
-  width: 5.5rem;
-  height: 5.5rem;
+  width: 100%;
+  aspect-ratio: 1;
 }
 
 .factionSymbol,
@@ -28,16 +20,6 @@
 .loreHeroToken > * {
   position: absolute;
   inset: 0;
-}
-
-.pageHeadText {
-  min-width: 0;
-  color: var(--color-text, var(--mantine-color-dark-8));
-}
-
-.factionTitle {
-  overflow-wrap: anywhere;
-  color: var(--color-text, var(--mantine-color-dark-8));
 }
 
 .horizontalLane {
@@ -102,35 +84,10 @@
 }
 
 @media (max-width: 48em) {
-  .pageHead {
-    align-items: flex-start;
-    gap: var(--mantine-spacing-md);
-  }
-
-  .factionSymbol {
-    flex-basis: 4.75rem;
-    width: 4.75rem;
-    height: 4.75rem;
-  }
-
-  .factionTitle {
-    font-size: 1.35rem;
-  }
-
   .loreHeroToken {
     width: min(100%, 12rem);
   }
 }
 
 @media (max-width: 30em) {
-  .pageHead {
-    padding-inline: 0;
-    gap: var(--mantine-spacing-sm);
-  }
-
-  .factionSymbol {
-    flex-basis: 3.75rem;
-    width: 3.75rem;
-    height: 3.75rem;
-  }
 }

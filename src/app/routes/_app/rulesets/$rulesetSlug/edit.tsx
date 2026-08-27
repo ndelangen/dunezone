@@ -8,6 +8,7 @@ import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageIdentity } from '@ui/block/PageIdentity';
 import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -239,32 +240,30 @@ function RulesetEditPage() {
   }
 
   /* Built here rather than above the guards: every path that lacked a ruleset now returns a
-     `PageMessage` before this point, so the band and the toolbar no longer need a shape for the
-     case where there is nothing to name. The band itself is unchanged, and stays #451's to revisit. */
+     `PageMessage` before this point, so the band no longer needs a shape for the case where there
+     is nothing to name. */
   const header = (
-    <Group wrap="nowrap" align="center" gap="lg" className={styles.pageHead}>
-      <Surface className={styles.rulesetHeadCover}>
-        {r.coverUrl ? (
-          <Image
-            src={r.coverUrl}
-            fallbackSrc="/image/background/card-large.jpg"
-            alt={`Cover for ${r.name}`}
-            className={styles.coverImage}
-          />
-        ) : (
-          <Center h="100%">
-            <Text size="xs" c="dimmed" ta="center">
-              No cover
-            </Text>
-          </Center>
-        )}
-      </Surface>
-      <Stack gap={6} className={styles.pageHeadText}>
-        <Title order={1} className={styles.rulesetTitle}>
-          Edit {r.name}
-        </Title>
-      </Stack>
-    </Group>
+    <PageIdentity
+      title={`Edit ${r.name}`}
+      media={
+        <Surface className={styles.rulesetHeadCover}>
+          {r.coverUrl ? (
+            <Image
+              src={r.coverUrl}
+              fallbackSrc="/image/background/card-large.jpg"
+              alt={`Cover for ${r.name}`}
+              className={styles.coverImage}
+            />
+          ) : (
+            <Center h="100%">
+              <Text size="xs" c="dimmed" ta="center">
+                No cover
+              </Text>
+            </Center>
+          )}
+        </Surface>
+      }
+    />
   );
   const toolbar = (
     <Surface padding="sm">
@@ -293,7 +292,8 @@ function RulesetEditPage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header>{header}</PageLayout.Header>
+      {/* Compact like every other identity band; the tall default was this page's private anomaly. */}
+      <PageLayout.Header size="compact">{header}</PageLayout.Header>
       <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="lg">
