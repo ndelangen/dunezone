@@ -26,6 +26,8 @@ import styles from './edit.module.css';
 import { createRulebookEditorStateManager } from './edit/-rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './edit/-rulebookEditorState';
 import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.fixtures';
+import { SortableHierarchyPrototype } from './edit/-sortableHierarchyPrototype';
+import type { SortableHierarchyPrototypeVariant } from './edit/-sortableHierarchyPrototype';
 
 type PreviewFit = 'height' | 'width';
 type DrilldownDepth = 'pages' | 'blocks' | 'controls';
@@ -56,7 +58,18 @@ const drilldownDepthClassNames: Record<DrilldownDepth, string> = {
   controls: styles.drilldownSidebarControls,
 };
 
+function parsePrototypeSearch(params: Record<string, unknown>): {
+  variant?: SortableHierarchyPrototypeVariant;
+} {
+  if (!import.meta.env.DEV) {
+    return {};
+  }
+  const variant = params.variant;
+  return variant === 'A' || variant === 'B' || variant === 'C' ? { variant } : {};
+}
+
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit')({
+  validateSearch: parsePrototypeSearch,
   component: RulebookEditorPage,
 });
 
@@ -694,6 +707,8 @@ function RulebookWorkspace({
 }
 
 function RulebookEditorPage() {
+  const { variant } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [manager] = useState(() => createRulebookEditorStateManager(createEditorialRulebookEditorInput()));
   const [result, setResult] = useState<RulebookEditorResult>(() => manager.result);
   const [fit, setFit] = useState<PreviewFit>('height');
@@ -704,6 +719,43 @@ function RulebookEditorPage() {
     setSaveLabel('Save');
     return next;
   };
+
+  if (variant && import.meta.env.DEV) {
+    return (
+      <PageLayout>
+        <PageLayout.Toolbar>
+          <Toolbar>
+            <Toolbar.Left>
+              <Badge variant="light" color="yellow">
+                Sorting prototype {variant}
+              </Badge>
+            </Toolbar.Left>
+            <Toolbar.Right>
+              <Button
+                size="xs"
+                variant="default"
+                onClick={() => setFit((value) => (value === 'height' ? 'width' : 'height'))}
+              >
+                Fit {fit === 'height' ? 'width' : 'height'}
+              </Button>
+            </Toolbar.Right>
+          </Toolbar>
+        </PageLayout.Toolbar>
+        <PageLayout.Content width="viewport">
+          <SortableHierarchyPrototype
+            variant={variant}
+            fit={fit}
+            onVariantChange={(nextVariant) => {
+              void navigate({
+                search: { variant: nextVariant },
+                replace: true,
+              });
+            }}
+          />
+        </PageLayout.Content>
+      </PageLayout>
+    );
+  }
 
   if (result.status !== 'ready') {
     return (

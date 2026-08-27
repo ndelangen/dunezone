@@ -17,10 +17,10 @@ function DocumentEditorLayoutFixture({ ratio, fit, sidebarContentHeight }: Story
   return (
     <DocumentEditorLayout ratio={ratio} fit={fit}>
       <DocumentEditorLayout.Sidebar>
-        <LayoutSlotPlaceholder name="Sidebar" minHeight={sidebarContentHeight} />
+        <LayoutSlotPlaceholder name="Sidebar" tone="secondary" minHeight={sidebarContentHeight} />
       </DocumentEditorLayout.Sidebar>
       <DocumentEditorLayout.Preview>
-        <LayoutSlotPlaceholder name="Preview" minHeight={0} />
+        <LayoutSlotPlaceholder name="Preview" tone="primary" minHeight={0} />
       </DocumentEditorLayout.Preview>
     </DocumentEditorLayout>
   );
@@ -123,9 +123,9 @@ export const TallerSidebar = meta.story({
   globals: { viewport: { value: 'appAuthoringWide' } },
   render: (args) => (
     <>
-      <LayoutSlotPlaceholder name="Document before Layout" minHeight={420} />
+      <LayoutSlotPlaceholder name="Document before Layout" tone="tertiary" minHeight={420} />
       <DocumentEditorLayoutFixture {...args} />
-      <LayoutSlotPlaceholder name="Document after Layout" minHeight={720} />
+      <LayoutSlotPlaceholder name="Document after Layout" tone="tertiary" minHeight={720} />
     </>
   ),
 });
@@ -136,9 +136,9 @@ export const TallerPreview = meta.story({
   globals: { viewport: { value: 'appAuthoringWide' } },
   render: (args) => (
     <>
-      <LayoutSlotPlaceholder name="Document before Layout" minHeight={420} />
+      <LayoutSlotPlaceholder name="Document before Layout" tone="tertiary" minHeight={420} />
       <DocumentEditorLayoutFixture {...args} />
-      <LayoutSlotPlaceholder name="Document after Layout" minHeight={720} />
+      <LayoutSlotPlaceholder name="Document after Layout" tone="tertiary" minHeight={720} />
     </>
   ),
 });
@@ -149,9 +149,9 @@ export const BothTallerThanViewport = meta.story({
   globals: { viewport: { value: 'appAuthoringWide' } },
   render: (args) => (
     <>
-      <LayoutSlotPlaceholder name="Document before Layout" minHeight={420} />
+      <LayoutSlotPlaceholder name="Document before Layout" tone="tertiary" minHeight={420} />
       <DocumentEditorLayoutFixture {...args} />
-      <LayoutSlotPlaceholder name="Document after Layout" minHeight={720} />
+      <LayoutSlotPlaceholder name="Document after Layout" tone="tertiary" minHeight={720} />
     </>
   ),
 });

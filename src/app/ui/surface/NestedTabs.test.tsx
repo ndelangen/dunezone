@@ -3,6 +3,7 @@
 import { MantineProvider } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { act } from 'react';
+import type { ComponentPropsWithoutRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -26,6 +27,10 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
 let container: HTMLDivElement | undefined;
 let root: Root | undefined;
 
+function DroppableGroupRoot({ dropId, ...props }: ComponentPropsWithoutRef<'li'> & { dropId: string }) {
+  return <li {...props} data-drop-id={dropId} />;
+}
+
 function Fixture({ activePath = ['page-2', 'block-b'] }: { activePath?: readonly string[] }) {
   return (
     <MantineProvider theme={appContentTheme}>
@@ -39,7 +44,7 @@ function Fixture({ activePath = ['page-2', 'block-b'] }: { activePath?: readonly
         </NestedTabs.Level>
         <NestedTabs.Level label="Page">
           <NestedTabs.Item as="a" href="#details" path={['page-2', 'details']} label="Details" icon={<span>D</span>} />
-          <NestedTabs.Group label="Main content" icon={<span>G</span>}>
+          <NestedTabs.Group as={DroppableGroupRoot} dropId="main-content" label="Main content" icon={<span>G</span>}>
             <NestedTabs.Item
               as="a"
               href="#block-a"
@@ -152,7 +157,9 @@ describe('NestedTabs', () => {
   });
 
   it('derives containing Group state from its active descendant', () => {
-    expect(container?.querySelector('[data-contains-active-item="true"]')).not.toBeNull();
+    expect(container?.querySelector('[data-contains-active-item="true"]')?.getAttribute('data-drop-id')).toBe(
+      'main-content'
+    );
     expect(container?.querySelector('[data-contains-active-item="true"]')?.hasAttribute('aria-current')).toBe(false);
   });
 
