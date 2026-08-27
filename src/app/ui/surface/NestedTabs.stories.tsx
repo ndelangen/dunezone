@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import type { Key, MouseEvent, ReactNode } from 'react';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { NestedTabs } from './NestedTabs';
 import type { NestedTabsPath } from './NestedTabs';
@@ -182,8 +182,8 @@ export const GroupedItemActive = meta.story({
 });
 
 function ManyRootItemsFixture() {
-  const [activePath, setActivePath] = useState<NestedTabsPath>(['root-2', NESTED_ONE]);
-  const activeRoot = activePath[0] ?? 'root-2';
+  const [activePath, setActivePath] = useState<NestedTabsPath>(['root-19', NESTED_ONE]);
+  const activeRoot = activePath[0] ?? 'root-19';
   return (
     <NestedTabs activePath={activePath} ariaLabel="Nested navigation with many root items">
       <NestedTabs.Level label="Root level">
@@ -240,7 +240,11 @@ export const ManyRootItems = meta.story({
     const rootItems = rootLevel.querySelector('ul');
     await expect(rootLevel.querySelectorAll('[data-nested-tabs-item]')).toHaveLength(20);
     await expect(rootItems).not.toBeNull();
-    await expect(rootItems?.scrollHeight).toBe(rootItems?.clientHeight);
+    await expect(rootItems?.scrollHeight).toBeGreaterThan(rootItems?.clientHeight ?? 0);
+    await expect(rootItems?.scrollTop).toBeGreaterThan(0);
+    await userEvent.click(canvas.getByRole('link', { name: 'Root item 20' }));
+    await expect(canvas.getByRole('link', { name: 'Root item 20' })).toHaveAttribute('data-path-state', 'ancestor');
+    await expect(canvas.getByRole('link', { name: 'Nested item A' })).toHaveAttribute('aria-current', 'page');
   },
 });
 

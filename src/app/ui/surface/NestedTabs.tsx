@@ -53,14 +53,27 @@ function buildNestedTabsLayerPath({
   startX: number;
   endX: number;
   tabLeft: number;
-  tabTop: number;
-  tabBottom: number;
+  tabTop: number | null;
+  tabBottom: number | null;
   radius: number;
   roundEndCorners: boolean;
 }) {
+  const endRadius = roundEndCorners ? radius : 0;
+  if (tabTop === null || tabBottom === null) {
+    return [
+      `M ${startX} 0`,
+      `H ${endX - endRadius}`,
+      `Q ${endX} 0 ${endX} ${endRadius}`,
+      `V ${height - endRadius}`,
+      `Q ${endX} ${height} ${endX - endRadius} ${height}`,
+      `H ${startX}`,
+      'V 0',
+      'Z',
+    ].join(' ');
+  }
+
   const joinRadius = Math.min(3, radius);
   const tabRadius = Math.min(radius, (tabBottom - tabTop) / 2, (startX - tabLeft) / 2);
-  const endRadius = roundEndCorners ? radius : 0;
   const touchesTop = tabTop <= 0.5;
   const touchesBottom = tabBottom >= height - 0.5;
 
@@ -138,6 +151,7 @@ function useNestedTabsLayerGeometry({
     void pathKey;
     const root = rootRef.current;
     const level = root?.querySelector<HTMLElement>(`[data-nested-tabs-level="${levelIndex + 1}"]`);
+    const items = level?.querySelector<HTMLElement>('[data-nested-tabs-items]');
     const target = root?.querySelector<HTMLElement>(
       levelIndex === 0 ? '[data-nested-tabs-level="2"]' : '[data-nested-tabs-content]'
     );
@@ -146,7 +160,7 @@ function useNestedTabsLayerGeometry({
         ? '[data-nested-tabs-item][data-path-state="ancestor"], [data-nested-tabs-item][data-path-state="active"]'
         : '[data-nested-tabs-item][data-path-state="active"]'
     );
-    if (!root || !level || !target || !activeItem) {
+    if (!root || !level || !items || !target || !activeItem) {
       setGeometry(null);
       return;
     }
@@ -154,6 +168,7 @@ function useNestedTabsLayerGeometry({
     let animationFrame = 0;
     const measure = () => {
       const rootRect = root.getBoundingClientRect();
+      const itemsRect = items.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
       const tabRect = activeItem.getBoundingClientRect();
       const devicePixelRatio = window.devicePixelRatio || 1;
@@ -163,8 +178,9 @@ function useNestedTabsLayerGeometry({
       const startX = round(targetRect.left - rootRect.left);
       const endX = round((levelIndex === 0 ? targetRect.right : rootRect.right) - rootRect.left);
       const tabLeft = round(tabRect.left - rootRect.left);
-      const tabTop = round(tabRect.top - rootRect.top);
-      const tabBottom = round(tabRect.bottom - rootRect.top);
+      const tabIsVisible = tabRect.top >= itemsRect.top - 0.5 && tabRect.bottom <= itemsRect.bottom + 0.5;
+      const tabTop = tabIsVisible ? round(tabRect.top - rootRect.top) : null;
+      const tabBottom = tabIsVisible ? round(tabRect.bottom - rootRect.top) : null;
       const configuredRadius = Number.parseFloat(getComputedStyle(root).getPropertyValue('--nested-tabs-radius'));
       const radius = Number.isFinite(configuredRadius) ? configuredRadius : 8;
       const path = buildNestedTabsLayerPath({
@@ -185,19 +201,34 @@ function useNestedTabsLayerGeometry({
       animationFrame = requestAnimationFrame(measure);
     };
 
+    const revealActiveItem = () => {
+      const itemsRect = items.getBoundingClientRect();
+      const tabRect = activeItem.getBoundingClientRect();
+      const neighborSpace = Math.min(tabRect.height + 6, Math.max(0, (itemsRect.height - tabRect.height) / 2));
+      const revealTop = itemsRect.top + neighborSpace;
+      const revealBottom = itemsRect.bottom - neighborSpace;
+      if (tabRect.top < revealTop) {
+        items.scrollTop -= revealTop - tabRect.top;
+      } else if (tabRect.bottom > revealBottom) {
+        items.scrollTop += tabRect.bottom - revealBottom;
+      }
+    };
+
+    revealActiveItem();
     measure();
-    level.addEventListener('scroll', scheduleMeasure, { passive: true });
+    items.addEventListener('scroll', scheduleMeasure, { passive: true });
     const mutationObserver = new MutationObserver(scheduleMeasure);
     mutationObserver.observe(level, { childList: true, subtree: true });
 
     const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(scheduleMeasure);
     resizeObserver?.observe(root);
+    resizeObserver?.observe(items);
     resizeObserver?.observe(target);
     resizeObserver?.observe(activeItem);
 
     return () => {
       cancelAnimationFrame(animationFrame);
-      level.removeEventListener('scroll', scheduleMeasure);
+      items.removeEventListener('scroll', scheduleMeasure);
       mutationObserver.disconnect();
       resizeObserver?.disconnect();
     };
@@ -445,7 +476,9 @@ function NestedTabsLevelView({
   return (
     <NestedTabsContext.Provider value={{ activePath, levelIndex }}>
       <nav className={styles.level} aria-label={label} data-nested-tabs-level={levelIndex + 1}>
-        <ul className={styles.levelItems}>{entries}</ul>
+        <ul className={styles.levelItems} data-nested-tabs-items>
+          {entries}
+        </ul>
         <div className={styles.levelFooter}>
           {tools ? <div className={styles.levelTools}>{tools}</div> : null}
           <span className={styles.levelLabel} aria-hidden>
