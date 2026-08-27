@@ -67,7 +67,7 @@
 .sidebarContent[data-sticky],
 .previewFrame[data-sticky] {
   position: sticky;
-  top: var(--document-editor-sticky-inset);
+  top: var(--document-editor-pane-sticky-top, var(--document-editor-sticky-inset));
 }
 
 .previewFrame {
