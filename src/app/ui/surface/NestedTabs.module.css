@@ -280,6 +280,8 @@
   line-height: 1;
   text-overflow: ellipsis;
   text-transform: none;
+  cursor: default;
+  user-select: none;
   white-space: nowrap;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
