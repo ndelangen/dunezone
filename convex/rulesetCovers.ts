@@ -187,11 +187,7 @@ export const backfillLegacyCovers = internalAction({
         rehosted += 1;
       } catch (error) {
         const message =
-          error instanceof ConvexError
-            ? String(error.data)
-            : error instanceof Error
-              ? error.message
-              : 'Rehost failed';
+          error instanceof ConvexError ? String(error.data) : error instanceof Error ? error.message : 'Rehost failed';
         failed.push({ slug: row.slug, message });
       }
     }

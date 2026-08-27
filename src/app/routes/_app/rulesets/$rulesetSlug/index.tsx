@@ -334,14 +334,7 @@ function RulesetDetailPage() {
         <Group wrap="nowrap" align="center" gap="md" className={styles.pageHead}>
           {/* The media matches the text block's height rather than a fixed size, so the band reads as one unit. */}
           <div className={styles.pageHeadMedia}>
-            <Avatar
-              src={r.coverUrl}
-              alt={`Cover for ${r.name}`}
-              name={r.name}
-              radius="md"
-              size="100%"
-              color="dune"
-            />
+            <Avatar src={r.coverUrl} alt={`Cover for ${r.name}`} name={r.name} radius="md" size="100%" color="dune" />
           </div>
           <Stack gap={4} className={styles.pageHeadText}>
             <Anchor size="sm" fw={600} renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}>
