@@ -1,19 +1,3 @@
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useDroppable,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import preview from '@sb/preview';
 import {
   Circle,
@@ -30,25 +14,23 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import type { Key, MouseEvent, ReactNode } from 'react';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
-import { SortableItem } from '../control/SortableItem';
-import { SortableReorderHandle } from '../control/SortableReorderHandle';
 import { NestedTabs } from './NestedTabs';
 import type { NestedTabsPath } from './NestedTabs';
 import styles from './NestedTabs.stories.module.css';
 import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
 
-const PAGE_ONE = 'p-a7';
-const PAGE_TWO = 'p-k4';
-const PAGE_THREE = 'p-r9';
+const ROOT_ONE = 'r-a7';
+const ROOT_TWO = 'r-k4';
+const ROOT_THREE = 'r-r9';
 
-const DETAILS = 'details';
-const CONTROL_SEO = 'c-n3';
-const CONTROL_RULES = 'c-t8';
-const BLOCK_INTRO = 'b-h2';
-const BLOCK_IMAGE = 'b-q5';
-const BLOCK_LIST = 'b-w7';
+const NESTED_ONE = 'n-m2';
+const NESTED_TWO = 'n-n3';
+const NESTED_THREE = 'n-t8';
+const GROUPED_ONE = 'g-h2';
+const GROUPED_TWO = 'g-q5';
+const GROUPED_THREE = 'g-w7';
 
 interface PathItemProps {
   key?: Key;
@@ -69,7 +51,7 @@ function pathItem({ key, path, label, icon, onNavigate }: PathItemProps) {
       icon={icon}
       onClick={(event: MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
-        onNavigate(path.length === 1 ? [path[0] ?? PAGE_ONE, DETAILS] : path);
+        onNavigate(path.length === 1 ? [path[0] ?? ROOT_ONE, NESTED_ONE] : path);
       }}
     />
   );
@@ -78,9 +60,9 @@ function pathItem({ key, path, label, icon, onNavigate }: PathItemProps) {
 function rootLevel({ onNavigate }: { onNavigate: PathItemProps['onNavigate'] }) {
   return (
     <NestedTabs.Level label="Root level">
-      {pathItem({ path: [PAGE_ONE], label: 'Root item A', icon: <Triangle />, onNavigate })}
-      {pathItem({ path: [PAGE_TWO], label: 'Root item B', icon: <Hexagon />, onNavigate })}
-      {pathItem({ path: [PAGE_THREE], label: 'Root item C', icon: <Square />, onNavigate })}
+      {pathItem({ path: [ROOT_ONE], label: 'Root item A', icon: <Triangle />, onNavigate })}
+      {pathItem({ path: [ROOT_TWO], label: 'Root item B', icon: <Hexagon />, onNavigate })}
+      {pathItem({ path: [ROOT_THREE], label: 'Root item C', icon: <Square />, onNavigate })}
       <NestedTabs.Tools>
         <SurfaceFiller height={24} width={24} />
       </NestedTabs.Tools>
@@ -91,28 +73,28 @@ function rootLevel({ onNavigate }: { onNavigate: PathItemProps['onNavigate'] }) 
 function nestedLevel({ onNavigate }: { onNavigate: PathItemProps['onNavigate'] }) {
   return (
     <NestedTabs.Level label="Nested Level">
-      {pathItem({ path: [PAGE_TWO, DETAILS], label: 'Nested item A', icon: <FileText />, onNavigate })}
+      {pathItem({ path: [ROOT_TWO, NESTED_ONE], label: 'Nested item A', icon: <FileText />, onNavigate })}
       {pathItem({
-        path: [PAGE_TWO, CONTROL_SEO],
+        path: [ROOT_TWO, NESTED_TWO],
         label: 'Nested item B',
         icon: <SlidersHorizontal />,
         onNavigate,
       })}
       {pathItem({
-        path: [PAGE_TWO, CONTROL_RULES],
+        path: [ROOT_TWO, NESTED_THREE],
         label: 'Nested item C',
         icon: <Settings2 />,
         onNavigate,
       })}
       <NestedTabs.Group label="Group A" icon={<Rows3 />}>
         {pathItem({
-          path: [PAGE_TWO, BLOCK_INTRO],
+          path: [ROOT_TWO, GROUPED_ONE],
           label: 'Grouped item A',
           icon: <Type />,
           onNavigate,
         })}
         {pathItem({
-          path: [PAGE_TWO, BLOCK_IMAGE],
+          path: [ROOT_TWO, GROUPED_TWO],
           label: 'Grouped item B',
           icon: <Image />,
           onNavigate,
@@ -120,7 +102,7 @@ function nestedLevel({ onNavigate }: { onNavigate: PathItemProps['onNavigate'] }
       </NestedTabs.Group>
       <NestedTabs.Group label="Group B" icon={<List />}>
         {pathItem({
-          path: [PAGE_TWO, BLOCK_LIST],
+          path: [ROOT_TWO, GROUPED_THREE],
           label: 'Grouped item C',
           icon: <List />,
           onNavigate,
@@ -134,295 +116,22 @@ function PanelFixture() {
   return <SurfaceFiller height={420} />;
 }
 
-function HierarchyFixture({
-  initialPath,
-  className,
-  tools = true,
-}: {
-  initialPath: NestedTabsPath;
-  className?: string;
-  tools?: boolean;
-}) {
+function HierarchyFixture({ initialPath, tools = true }: { initialPath: NestedTabsPath; tools?: boolean }) {
   const [activePath, setActivePath] = useState<NestedTabsPath>(initialPath);
   return (
-    <NestedTabs activePath={activePath} ariaLabel="Nested navigation" className={className}>
+    <NestedTabs activePath={activePath} ariaLabel="Nested navigation">
       {tools ? (
         rootLevel({ onNavigate: setActivePath })
       ) : (
         <NestedTabs.Level label="Root level">
-          {pathItem({ path: [PAGE_ONE], label: 'Root item A', icon: <Triangle />, onNavigate: setActivePath })}
-          {pathItem({ path: [PAGE_TWO], label: 'Root item B', icon: <Hexagon />, onNavigate: setActivePath })}
-          {pathItem({ path: [PAGE_THREE], label: 'Root item C', icon: <Square />, onNavigate: setActivePath })}
+          {pathItem({ path: [ROOT_ONE], label: 'Root item A', icon: <Triangle />, onNavigate: setActivePath })}
+          {pathItem({ path: [ROOT_TWO], label: 'Root item B', icon: <Hexagon />, onNavigate: setActivePath })}
+          {pathItem({ path: [ROOT_THREE], label: 'Root item C', icon: <Square />, onNavigate: setActivePath })}
         </NestedTabs.Level>
       )}
       {nestedLevel({ onNavigate: setActivePath })}
       <NestedTabs.ContentPanel aria-label="Example content">
         <PanelFixture />
-      </NestedTabs.ContentPanel>
-    </NestedTabs>
-  );
-}
-
-type DemoBlockKind = 'text' | 'image' | 'list';
-type DemoRegionId = 'opening' | 'aside' | 'references' | 'notes';
-
-interface DemoBlock {
-  id: string;
-  label: string;
-  kind: DemoBlockKind;
-}
-
-interface DemoRegionDefinition {
-  id: DemoRegionId;
-  label: string;
-  accepts: readonly DemoBlockKind[];
-  capacity: number;
-}
-
-const demoRegions: readonly DemoRegionDefinition[] = [
-  {
-    id: 'opening',
-    label: 'Group A',
-    accepts: ['text', 'image'],
-    capacity: 4,
-  },
-  { id: 'notes', label: 'Group B', accepts: ['text'], capacity: 2 },
-  { id: 'aside', label: 'Group C', accepts: ['image'], capacity: 1 },
-  {
-    id: 'references',
-    label: 'Group D',
-    accepts: ['list'],
-    capacity: 3,
-  },
-];
-
-const initialRegionBlocks: Record<DemoRegionId, DemoBlock[]> = {
-  opening: [
-    { id: BLOCK_INTRO, label: 'Grouped item A', kind: 'text' },
-    { id: BLOCK_IMAGE, label: 'Grouped item B', kind: 'image' },
-  ],
-  aside: [{ id: 'b-z4', label: 'Grouped item D', kind: 'image' }],
-  references: [{ id: BLOCK_LIST, label: 'Grouped item C', kind: 'list' }],
-  notes: [],
-};
-
-function blockIcon(kind: DemoBlockKind) {
-  if (kind === 'image') {
-    return <Image />;
-  }
-  if (kind === 'list') {
-    return <List />;
-  }
-  return <Type />;
-}
-
-function findBlockRegion(regions: Record<DemoRegionId, DemoBlock[]>, blockId: string): DemoRegionId | undefined {
-  return demoRegions.find((region) => regions[region.id].some((block) => block.id === blockId))?.id;
-}
-
-function canRegionAccept(
-  definition: DemoRegionDefinition,
-  blocks: readonly DemoBlock[],
-  block: DemoBlock,
-  sourceRegion: DemoRegionId
-) {
-  const keepsSameCount = sourceRegion === definition.id;
-  return definition.accepts.includes(block.kind) && (keepsSameCount || blocks.length < definition.capacity);
-}
-
-function sortingNestedLevel({
-  regions,
-  onNavigate,
-}: {
-  regions: Record<DemoRegionId, DemoBlock[]>;
-  onNavigate: PathItemProps['onNavigate'];
-}) {
-  return (
-    <NestedTabs.Level label="Nested Level">
-      {pathItem({ path: [PAGE_TWO, DETAILS], label: 'Nested item A', icon: <FileText />, onNavigate })}
-      {pathItem({
-        path: [PAGE_TWO, CONTROL_RULES],
-        label: 'Nested item B',
-        icon: <Settings2 />,
-        onNavigate,
-      })}
-      {demoRegions.map((region) => (
-        <NestedTabs.Group key={region.id} label={region.label} icon={<Rows3 />}>
-          {regions[region.id].map((block) =>
-            pathItem({
-              key: block.id,
-              path: [PAGE_TWO, block.id],
-              label: block.label,
-              icon: blockIcon(block.kind),
-              onNavigate,
-            })
-          )}
-        </NestedTabs.Group>
-      ))}
-    </NestedTabs.Level>
-  );
-}
-
-function SortableBlockCard({ block }: { block: DemoBlock }) {
-  return (
-    <SortableItem id={block.id}>
-      {({ setActivatorNodeRef, attributes, listeners }) => (
-        <div className={styles.sortableBlock} data-block-id={block.id}>
-          <SortableReorderHandle
-            label={`Reorder ${block.label}`}
-            setActivatorNodeRef={setActivatorNodeRef}
-            attributes={attributes}
-            listeners={listeners}
-          />
-          <SurfaceFiller className={styles.sortableBlockContent} height={32} />
-        </div>
-      )}
-    </SortableItem>
-  );
-}
-
-function SortableRegion({
-  definition,
-  blocks,
-  activeBlock,
-  sourceRegion,
-}: {
-  definition: DemoRegionDefinition;
-  blocks: DemoBlock[];
-  activeBlock: DemoBlock | null;
-  sourceRegion: DemoRegionId | undefined;
-}) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `region:${definition.id}`,
-  });
-  const canAccept =
-    activeBlock && sourceRegion ? canRegionAccept(definition, blocks, activeBlock, sourceRegion) : undefined;
-  const dropState =
-    activeBlock && (isOver || definition.id !== sourceRegion) ? (canAccept ? 'valid' : 'invalid') : undefined;
-
-  return (
-    <section
-      ref={setNodeRef}
-      className={styles.dragRegion}
-      data-region={definition.id}
-      data-drop-state={dropState}
-      aria-label={definition.label}
-    >
-      <SortableContext items={blocks.map((block) => block.id)} strategy={verticalListSortingStrategy}>
-        <div className={styles.sortableBlocks}>
-          {blocks.map((block) => (
-            <SortableBlockCard key={block.id} block={block} />
-          ))}
-          {blocks.length === 0 ? <div className={styles.emptyTarget} aria-hidden /> : null}
-        </div>
-      </SortableContext>
-    </section>
-  );
-}
-
-function SortingFixture() {
-  const [activePath, setActivePath] = useState<NestedTabsPath>([PAGE_TWO, BLOCK_INTRO]);
-  const [regions, setRegions] = useState<Record<DemoRegionId, DemoBlock[]>>(initialRegionBlocks);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [outcome, setOutcome] = useState('Ready');
-  const draggedBlock = draggedId
-    ? (demoRegions.flatMap((region) => regions[region.id]).find((block) => block.id === draggedId) ?? null)
-    : null;
-  const sourceRegion = draggedId ? findBlockRegion(regions, draggedId) : undefined;
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  function handleDragStart({ active }: DragStartEvent) {
-    setDraggedId(String(active.id));
-    setOutcome('Dragging does not change the active path.');
-  }
-
-  function handleDragEnd({ active, over }: DragEndEvent) {
-    const blockId = String(active.id);
-    const from = findBlockRegion(regions, blockId);
-    const overId = over ? String(over.id) : undefined;
-    const to = overId?.startsWith('region:')
-      ? (overId.slice('region:'.length) as DemoRegionId)
-      : overId
-        ? findBlockRegion(regions, overId)
-        : undefined;
-    const block = from ? regions[from].find((candidate) => candidate.id === blockId) : undefined;
-
-    setDraggedId(null);
-    if (!from || !to || !block || !overId) {
-      setOutcome('No compatible Group accepted that drop.');
-      return;
-    }
-
-    const definition = demoRegions.find((region) => region.id === to);
-    if (!definition || !canRegionAccept(definition, regions[to], block, from)) {
-      setOutcome(`${definition?.label ?? 'That target'} does not accept ${block.kind} items here.`);
-      return;
-    }
-
-    if (from === to) {
-      const fromIndex = regions[from].findIndex((candidate) => candidate.id === blockId);
-      const toIndex = overId.startsWith('region:')
-        ? regions[to].length - 1
-        : regions[to].findIndex((candidate) => candidate.id === overId);
-      if (fromIndex !== toIndex && toIndex >= 0) {
-        setRegions((current) => ({
-          ...current,
-          [from]: arrayMove(current[from], fromIndex, toIndex),
-        }));
-        setOutcome(`${block.label} reordered inside ${definition.label}.`);
-      }
-      return;
-    }
-
-    const insertAt = overId.startsWith('region:')
-      ? regions[to].length
-      : Math.max(
-          0,
-          regions[to].findIndex((candidate) => candidate.id === overId)
-        );
-    setRegions((current) => {
-      const nextSource = current[from].filter((candidate) => candidate.id !== blockId);
-      const nextTarget = [...current[to]];
-      nextTarget.splice(insertAt, 0, block);
-      return { ...current, [from]: nextSource, [to]: nextTarget };
-    });
-    setOutcome(`${block.label} moved to ${definition.label}. The active path stayed on the Item.`);
-  }
-
-  return (
-    <NestedTabs activePath={activePath} ariaLabel="Sortable nested navigation" className={styles.fixedHeight}>
-      {rootLevel({ onNavigate: setActivePath })}
-      {sortingNestedLevel({ regions, onNavigate: setActivePath })}
-      <NestedTabs.ContentPanel aria-label="Sorting fixture">
-        <div className={styles.panel}>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragCancel={() => setDraggedId(null)}
-            onDragEnd={handleDragEnd}
-          >
-            <div className={styles.dragRegions}>
-              {demoRegions.map((definition) => (
-                <SortableRegion
-                  key={definition.id}
-                  definition={definition}
-                  blocks={regions[definition.id]}
-                  activeBlock={draggedBlock}
-                  sourceRegion={sourceRegion}
-                />
-              ))}
-            </div>
-          </DndContext>
-          <p className={styles.visuallyHidden} role="status">
-            {outcome}
-          </p>
-        </div>
       </NestedTabs.ContentPanel>
     </NestedTabs>
   );
@@ -445,7 +154,7 @@ const meta = preview.meta({
 export const NestedItemActive = meta.story({
   render: () => (
     <main className={styles.stage}>
-      <HierarchyFixture initialPath={[PAGE_TWO, DETAILS]} />
+      <HierarchyFixture initialPath={[ROOT_TWO, NESTED_ONE]} />
     </main>
   ),
   play: async ({ canvasElement }) => {
@@ -456,18 +165,10 @@ export const NestedItemActive = meta.story({
   },
 });
 
-export const DirectNestedItemActive = meta.story({
-  render: () => (
-    <main className={styles.stage}>
-      <HierarchyFixture initialPath={[PAGE_TWO, CONTROL_RULES]} />
-    </main>
-  ),
-});
-
 export const GroupedItemActive = meta.story({
   render: () => (
     <main className={styles.stage}>
-      <HierarchyFixture initialPath={[PAGE_TWO, BLOCK_IMAGE]} />
+      <HierarchyFixture initialPath={[ROOT_TWO, GROUPED_TWO]} />
     </main>
   ),
   play: async ({ canvasElement }) => {
@@ -480,47 +181,18 @@ export const GroupedItemActive = meta.story({
   },
 });
 
-export const CallerOwnedSorting = meta.story({
-  render: () => (
-    <main className={styles.stage}>
-      <SortingFixture />
-    </main>
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByRole('link', { name: 'Grouped item A' })).toHaveAttribute('aria-current', 'page');
-    await expect(canvas.getByRole('button', { name: 'Reorder Grouped item A' })).toBeVisible();
-    await expect(canvasElement.querySelectorAll('[data-region]')).toHaveLength(4);
-    await expect(canvasElement.querySelector('[data-nested-tabs-level] [data-region]')).toBeNull();
-  },
-});
-
-export const GroupContainmentComparison = meta.story({
-  render: () => (
-    <main className={styles.comparison}>
-      <section className={styles.comparisonCase}>
-        <p className={styles.caseLabel}>Derived Group emphasis</p>
-        <HierarchyFixture initialPath={[PAGE_TWO, BLOCK_IMAGE]} tools={false} />
-      </section>
-      <section className={styles.comparisonCase}>
-        <p className={styles.caseLabel}>Uniform Group emphasis</p>
-        <HierarchyFixture initialPath={[PAGE_TWO, BLOCK_IMAGE]} className={styles.withoutGroupEmphasis} tools={false} />
-      </section>
-    </main>
-  ),
-});
-
-function OverflowFixture() {
-  const [activePath, setActivePath] = useState<NestedTabsPath>(['root-10', 'nested-12']);
+function ManyRootItemsFixture() {
+  const [activePath, setActivePath] = useState<NestedTabsPath>(['root-2', NESTED_ONE]);
+  const activeRoot = activePath[0] ?? 'root-2';
   return (
     <NestedTabs activePath={activePath} ariaLabel="Overflowing nested navigation" className={styles.fixedHeight}>
       <NestedTabs.Level label="Root level">
-        {Array.from({ length: 14 }, (_, index) => {
+        {Array.from({ length: 20 }, (_, index) => {
           const id = `root-${index + 1}`;
           return pathItem({
             key: id,
             path: [id],
-            label: `Root item ${index + 1}: deliberately long label`,
+            label: `Root item ${index + 1}`,
             icon: index % 3 === 0 ? <Circle /> : index % 3 === 1 ? <Triangle /> : <Hexagon />,
             onNavigate: setActivePath,
           });
@@ -531,44 +203,49 @@ function OverflowFixture() {
       </NestedTabs.Level>
       <NestedTabs.Level label="Nested Level">
         {pathItem({
-          path: ['root-10', DETAILS],
-          label: 'A direct nested Item with a deliberately long label',
+          path: [activeRoot, NESTED_ONE],
+          label: 'Nested item A',
           icon: <FileText />,
           onNavigate: setActivePath,
         })}
-        <NestedTabs.Group label="A Group with a deliberately long label" icon={<Rows3 />}>
-          {Array.from({ length: 16 }, (_, index) => {
-            const id = `nested-${index + 1}`;
-            return pathItem({
-              key: id,
-              path: ['root-10', id],
-              label: `Grouped item ${index + 1}: long descriptive name`,
-              icon: index % 2 === 0 ? <Type /> : <Image />,
-              onNavigate: setActivePath,
-            });
-          })}
-        </NestedTabs.Group>
+        {pathItem({
+          path: [activeRoot, NESTED_TWO],
+          label: 'Nested item B',
+          icon: <SlidersHorizontal />,
+          onNavigate: setActivePath,
+        })}
+        {pathItem({
+          path: [activeRoot, NESTED_THREE],
+          label: 'Nested item C',
+          icon: <Settings2 />,
+          onNavigate: setActivePath,
+        })}
       </NestedTabs.Level>
-      <NestedTabs.ContentPanel aria-label="Tall content">
-        <SurfaceFiller height={1200} />
+      <NestedTabs.ContentPanel aria-label="Example content">
+        <PanelFixture />
       </NestedTabs.ContentPanel>
     </NestedTabs>
   );
 }
 
-export const OverflowAndLongLabels = meta.story({
+export const ManyRootItems = meta.story({
   render: () => (
     <main className={styles.stage}>
-      <OverflowFixture />
+      <ManyRootItemsFixture />
     </main>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const rootLevel = canvas.getByRole('navigation', { name: 'Root level' });
+    await expect(rootLevel.querySelectorAll('[data-nested-tabs-item]')).toHaveLength(20);
+  },
 });
 
 export const NarrowContainer = meta.story({
   globals: { viewport: { value: 'appMobile' } },
   render: () => (
     <main className={styles.stage}>
-      <HierarchyFixture initialPath={[PAGE_TWO, BLOCK_LIST]} />
+      <HierarchyFixture initialPath={[ROOT_TWO, GROUPED_THREE]} />
     </main>
   ),
 });
@@ -576,20 +253,7 @@ export const NarrowContainer = meta.story({
 export const LevelWithoutTools = meta.story({
   render: () => (
     <main className={styles.stage}>
-      <HierarchyFixture initialPath={[PAGE_TWO, DETAILS]} tools={false} />
+      <HierarchyFixture initialPath={[ROOT_TWO, NESTED_ONE]} tools={false} />
     </main>
   ),
-});
-
-export const ReducedMotion = meta.story({
-  render: () => (
-    <main className={styles.stage}>
-      <HierarchyFixture initialPath={[PAGE_TWO, DETAILS]} className={styles.reducedMotion} />
-    </main>
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole('link', { name: 'Nested item B' }));
-    await expect(canvas.getByRole('link', { name: 'Nested item B' })).toHaveAttribute('aria-current', 'page');
-  },
 });
