@@ -1,0 +1,52 @@
+.band {
+  width: min(100%, 48rem);
+  min-width: 0;
+  margin: 0 auto;
+  padding-inline: var(--mantine-spacing-sm);
+}
+
+/*
+ * A fixed square per breakpoint, sized to the three lines of text beside it.
+ * Deliberately not computed from the text: stretching with an aspect ratio is circular, since the
+ * square's width would come from the row height while the row height comes from its tallest item.
+ * Matching by design is what the hand-rolled bands already did.
+ */
+.media {
+  flex: 0 0 6rem;
+  width: 6rem;
+  height: 6rem;
+}
+
+/* Everything in the text column shares this left edge. */
+.text {
+  min-width: 0;
+  text-align: left;
+}
+
+.text h1 {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 48em) {
+  .media {
+    flex-basis: 4.75rem;
+    width: 4.75rem;
+    height: 4.75rem;
+  }
+
+  .text h1 {
+    font-size: 1.35rem;
+  }
+}
+
+@media (max-width: 30em) {
+  .band {
+    padding-inline: 0;
+  }
+
+  .media {
+    flex-basis: 3.75rem;
+    width: 3.75rem;
+    height: 3.75rem;
+  }
+}
