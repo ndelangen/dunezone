@@ -1,4 +1,6 @@
 import preview from '@sb/preview';
+import { NestedTabs } from '@ui/surface';
+import type { NestedTabsPath } from '@ui/surface';
 import {
   Circle,
   FileText,
@@ -16,8 +18,6 @@ import { useState } from 'react';
 import type { Key, MouseEvent, ReactNode } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { NestedTabs } from './NestedTabs';
-import type { NestedTabsPath } from './NestedTabs';
 import styles from './NestedTabs.stories.module.css';
 import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
 

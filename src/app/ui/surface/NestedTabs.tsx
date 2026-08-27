@@ -413,12 +413,12 @@ interface NestedTabsItemOwnProps {
   className?: string;
 }
 
-export type NestedTabsItemProps<Root extends ElementType> = NestedTabsItemOwnProps &
+type NestedTabsItemProps<Root extends ElementType> = NestedTabsItemOwnProps &
   Omit<ComponentPropsWithoutRef<Root>, keyof NestedTabsItemOwnProps | 'as' | 'children' | 'aria-label' | 'title'> & {
     as: Root;
   };
 
-export type NestedTabsRouterItemProps<
+type NestedTabsRouterItemProps<
   TFrom extends string = string,
   TTo extends string | undefined = undefined,
   TMaskFrom extends string = TFrom,
@@ -472,7 +472,7 @@ function Item<Root extends ElementType>({
   );
 }
 
-export interface NestedTabsGroupProps extends PropsWithChildren {
+interface NestedTabsGroupProps extends PropsWithChildren {
   label: string;
   icon?: ReactNode;
 }
@@ -512,13 +512,13 @@ function Group({ label, icon, children }: NestedTabsGroupProps) {
   );
 }
 
-export interface NestedTabsToolsProps extends PropsWithChildren {}
+interface NestedTabsToolsProps extends PropsWithChildren {}
 
 function Tools(_: NestedTabsToolsProps): null {
   return null;
 }
 
-export interface NestedTabsLevelProps extends PropsWithChildren {
+interface NestedTabsLevelProps extends PropsWithChildren {
   label: string;
 }
 
@@ -526,7 +526,7 @@ function Level(_: NestedTabsLevelProps): null {
   return null;
 }
 
-export interface NestedTabsContentPanelProps extends PropsWithChildren {
+interface NestedTabsContentPanelProps extends PropsWithChildren {
   'aria-label'?: string;
   'aria-labelledby'?: string;
 }
