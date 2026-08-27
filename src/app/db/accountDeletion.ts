@@ -8,7 +8,7 @@ import { api } from '../../../convex/_generated/api';
 export type ReplacementProfile = FunctionReturnType<typeof api.accountDeletion.listReplacementProfiles>['page'][number];
 
 export function useAccountDeletionPage(profileSlug: string) {
-  return toLiveQueryResult(useQuery(api.accountDeletion.page, { profileSlug }), true);
+  return toLiveQueryResult(useQuery(api.accountDeletion.page, { profileSlug }));
 }
 
 export function useReplacementProfiles(search: string) {

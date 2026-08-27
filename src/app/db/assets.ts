@@ -15,7 +15,7 @@ export async function loadAssetCataloguePage(): Promise<AssetCataloguePageData> 
 
 export function useAssetCataloguePage(options?: { initialData?: AssetCataloguePageData }) {
   const liveData = useQuery(api.assets.cataloguePage, {});
-  return toLiveQueryResult(liveData, true, () => options?.initialData);
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
 export type AssetsByTypesData = FunctionReturnType<typeof api.assets.listByTypes>;
@@ -26,7 +26,7 @@ export type AssetsByTypesData = FunctionReturnType<typeof api.assets.listByTypes
  */
 export function useAssetsByTypes(types: string[], options?: { initialData?: AssetsByTypesData }) {
   const liveData = useQuery(api.assets.listByTypes, { types });
-  return toLiveQueryResult(liveData, true, () => options?.initialData);
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
 export type AssetBrowsePageData = FunctionReturnType<typeof api.assets.browsePage>;
@@ -39,7 +39,7 @@ export async function loadAssetBrowsePage(type: string): Promise<AssetBrowsePage
 /** The browse route's one page query. Search and sort are URL state applied to what this returns, so neither re-fetches. */
 export function useAssetBrowsePage(type: string, options?: { initialData?: AssetBrowsePageData }) {
   const liveData = useQuery(api.assets.browsePage, { type });
-  return toLiveQueryResult(liveData, true, () => options?.initialData);
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
 /**
@@ -62,7 +62,7 @@ export async function loadAssetPage(type: string, slug: string): Promise<AssetPa
 
 export function useAssetPage(type: string, slug: string, options?: { initialData?: AssetPageData }) {
   const liveData = useQuery(api.assets.getPage, { type, slug });
-  return toLiveQueryResult(liveData, true, () => options?.initialData);
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
 export function useUpdateAsset() {

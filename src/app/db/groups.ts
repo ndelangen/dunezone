@@ -64,7 +64,7 @@ function normalizeGroupDetailFromConvex(raw: GroupDetailPageRaw): GroupDetailPag
 export function useGroupDetailBySlug(slug: string, options?: { initialData?: GroupDetailPageData }) {
   const liveData = useQuery(api.groups.detailBySlug, { slug });
   const normalizedLive = liveData ? normalizeGroupDetailFromConvex(liveData) : undefined;
-  const result = toLiveQueryResult<GroupDetailPageData | undefined>(normalizedLive, true, () => options?.initialData);
+  const result = toLiveQueryResult<GroupDetailPageData | undefined>(normalizedLive, () => options?.initialData);
   return result;
 }
 
@@ -74,7 +74,7 @@ export function useGroupEditBySlug(slug: string, options?: { initialData?: Group
   const editData = normalizedLive
     ? { group: normalizedLive.group, viewerAccess: normalizedLive.viewerAccess }
     : undefined;
-  const result = toLiveQueryResult<GroupEditPageData | undefined>(editData, true, () => options?.initialData);
+  const result = toLiveQueryResult<GroupEditPageData | undefined>(editData, () => options?.initialData);
   return result;
 }
 

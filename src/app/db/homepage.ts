@@ -14,5 +14,5 @@ export async function loadHomepage(): Promise<HomepageData> {
 
 export function useHomepage(options?: { initialData?: HomepageData }) {
   const liveData = useQuery(api.homepage.get, {});
-  return toLiveQueryResult(liveData, true, () => options?.initialData);
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }

@@ -14,7 +14,7 @@ export async function loadAdminMigrationDashboard(ids?: string[]): Promise<Admin
 export function useAdminMigrationDashboard(options?: { initialData?: AdminMigrationDashboardData; ids?: string[] }) {
   const args = options?.ids ? { ids: options.ids } : {};
   const liveData = useQuery(api.migrations.adminDashboard, args) as AdminMigrationDashboardData | undefined;
-  const result = toLiveQueryResult(liveData, true, () => options?.initialData);
+  const result = toLiveQueryResult(liveData, () => options?.initialData);
   return result;
 }
 
