@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { expect } from 'storybook/test';
 
 import { DocumentEditorLayout } from './DocumentEditorLayout';
 import type { DocumentEditorFit } from './DocumentEditorLayout';
@@ -23,6 +24,20 @@ function DocumentEditorLayoutFixture({ ratio, fit, sidebarContentHeight }: Story
       </DocumentEditorLayout.Preview>
     </DocumentEditorLayout>
   );
+}
+
+function expectPreviewFillToStayContained(canvasElement: HTMLElement) {
+  const previewFrame = canvasElement.querySelector<HTMLElement>('[data-document-editor-preview] > div');
+  const previewFill = previewFrame?.firstElementChild;
+  expect(previewFrame).not.toBeNull();
+  expect(previewFill).not.toBeNull();
+
+  const frameRect = previewFrame?.getBoundingClientRect();
+  const fillRect = previewFill?.getBoundingClientRect();
+  expect(fillRect?.x).toBeCloseTo(frameRect?.x ?? Number.NaN, 0);
+  expect(fillRect?.y).toBeCloseTo(frameRect?.y ?? Number.NaN, 0);
+  expect(fillRect?.width).toBeCloseTo(frameRect?.width ?? Number.NaN, 0);
+  expect(fillRect?.height).toBeCloseTo(frameRect?.height ?? Number.NaN, 0);
 }
 
 const defaultArgs = {
@@ -72,6 +87,9 @@ export const WideFitWidth = meta.story({
 export const NarrowSidebarFirst = meta.story({
   args: { sidebarContentHeight: 520 },
   globals: { viewport: { value: 'appMobile' } },
+  play: ({ canvasElement }) => {
+    expectPreviewFillToStayContained(canvasElement);
+  },
 });
 
 /** The same narrow track opens at its Preview snap position. */
@@ -83,6 +101,7 @@ export const NarrowPreviewFirst = meta.story({
     if (layout) {
       layout.scrollLeft = layout.scrollWidth;
     }
+    expectPreviewFillToStayContained(canvasElement);
   },
 });
 
