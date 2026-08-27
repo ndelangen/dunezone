@@ -14,7 +14,6 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ActionIcon } from '@mantine/core';
 import preview from '@sb/preview';
 import {
   Circle,
@@ -22,7 +21,6 @@ import {
   Hexagon,
   Image,
   List,
-  Plus,
   Rows3,
   Settings2,
   SlidersHorizontal,
@@ -84,9 +82,7 @@ function pageLevel({ onNavigate }: { onNavigate: PathItemProps['onNavigate'] }) 
       {pathItem({ path: [PAGE_TWO], label: 'Article layout', icon: <Hexagon />, onNavigate })}
       {pathItem({ path: [PAGE_THREE], label: 'Reference layout', icon: <Square />, onNavigate })}
       <NestedTabs.Tools>
-        <ActionIcon variant="subtle" aria-label="Add page">
-          <Plus aria-hidden />
-        </ActionIcon>
+        <SurfaceFiller height={24} width={24} />
       </NestedTabs.Tools>
     </NestedTabs.Level>
   );
@@ -530,9 +526,7 @@ function OverflowFixture() {
           });
         })}
         <NestedTabs.Tools>
-          <ActionIcon variant="subtle" aria-label="Add page">
-            <Plus aria-hidden />
-          </ActionIcon>
+          <SurfaceFiller height={24} width={24} />
         </NestedTabs.Tools>
       </NestedTabs.Level>
       <NestedTabs.Level label="Current Page">
