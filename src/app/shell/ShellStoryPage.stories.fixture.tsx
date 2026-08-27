@@ -35,11 +35,11 @@ function ShellStoryPage({ headerSize }: { headerSize?: 'default' | 'compact' }) 
     <PageLayout>
       {headerSize && (
         <PageLayout.Header size={headerSize}>
-          <LayoutSlotPlaceholder name="header slot" minHeight={0} />
+          <LayoutSlotPlaceholder name="header slot" tone="header" minHeight={0} />
         </PageLayout.Header>
       )}
       <PageLayout.Content>
-        <LayoutSlotPlaceholder name="children slot" minHeight={1400} />
+        <LayoutSlotPlaceholder name="children slot" tone="primary" minHeight={1400} />
       </PageLayout.Content>
     </PageLayout>
   );

@@ -16,7 +16,7 @@ const meta = preview.meta({
   },
 });
 
-const sidebar = <LayoutSlotPlaceholder name="sidebar" minHeight={240} />;
+const sidebar = <LayoutSlotPlaceholder name="sidebar" tone="secondary" minHeight={240} />;
 
 /** Above the container breakpoint: sidebar beside the content. */
 export const WithSidebar = meta.story({
@@ -24,7 +24,7 @@ export const WithSidebar = meta.story({
     <AtlasLayout>
       <AtlasLayout.Sidebar>{sidebar}</AtlasLayout.Sidebar>
       <AtlasLayout.Content>
-        <LayoutSlotPlaceholder name="children" minHeight={720} />
+        <LayoutSlotPlaceholder name="children" tone="primary" minHeight={720} />
       </AtlasLayout.Content>
     </AtlasLayout>
   ),
@@ -37,7 +37,7 @@ export const Stacked = meta.story({
     <AtlasLayout>
       <AtlasLayout.Sidebar>{sidebar}</AtlasLayout.Sidebar>
       <AtlasLayout.Content>
-        <LayoutSlotPlaceholder name="children" minHeight={720} />
+        <LayoutSlotPlaceholder name="children" tone="primary" minHeight={720} />
       </AtlasLayout.Content>
     </AtlasLayout>
   ),
@@ -50,7 +50,7 @@ export const StickySidebarWhileScrolling = meta.story({
     <AtlasLayout>
       <AtlasLayout.Sidebar>{sidebar}</AtlasLayout.Sidebar>
       <AtlasLayout.Content>
-        <LayoutSlotPlaceholder name="scrolling children" minHeight={1600} />
+        <LayoutSlotPlaceholder name="scrolling children" tone="primary" minHeight={1600} />
       </AtlasLayout.Content>
     </AtlasLayout>
   ),

@@ -20,8 +20,8 @@ const meta = preview.meta({
 export const ReadingColumn = meta.story({
   render: () => (
     <WorkbenchLayout>
-      <LayoutSlotPlaceholder name="toolbar" minHeight={56} />
-      <LayoutSlotPlaceholder name="editor" minHeight={360} />
+      <LayoutSlotPlaceholder name="toolbar" tone="toolbar" minHeight={56} />
+      <LayoutSlotPlaceholder name="editor" tone="primary" minHeight={360} />
     </WorkbenchLayout>
   ),
 });
@@ -32,10 +32,10 @@ export const ChaptersBesideRail = meta.story({
     <WorkbenchLayout gap="sm">
       <WorkbenchLayout.Workbench>
         <WorkbenchLayout.Chapters>
-          <LayoutSlotPlaceholder name="chapters" minHeight={480} />
+          <LayoutSlotPlaceholder name="chapters" tone="secondary" minHeight={480} />
         </WorkbenchLayout.Chapters>
         <WorkbenchLayout.Rail>
-          <LayoutSlotPlaceholder name="rail" minHeight={240} />
+          <LayoutSlotPlaceholder name="rail" tone="tertiary" minHeight={240} />
         </WorkbenchLayout.Rail>
       </WorkbenchLayout.Workbench>
     </WorkbenchLayout>

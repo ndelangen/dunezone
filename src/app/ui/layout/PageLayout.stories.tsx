@@ -55,8 +55,8 @@ const meta = preview.meta({
   ],
 });
 
-const headerSlot = <LayoutSlotPlaceholder name="header slot" minHeight={0} />;
-const contentSlot = <LayoutSlotPlaceholder name="children slot" minHeight={320} />;
+const headerSlot = <LayoutSlotPlaceholder name="header slot" tone="header" minHeight={0} />;
+const contentSlot = <LayoutSlotPlaceholder name="children slot" tone="primary" minHeight={320} />;
 
 /** The header sits in the band's row, aligned to its lower edge. */
 export const WithHeader = meta.story({
@@ -101,7 +101,7 @@ export const WithToolbar = meta.story({
     <PageLayout>
       <PageLayout.Header>{headerSlot}</PageLayout.Header>
       <PageLayout.Toolbar>
-        <LayoutSlotPlaceholder name="toolbar slot" minHeight={72} />
+        <LayoutSlotPlaceholder name="toolbar slot" tone="toolbar" minHeight={72} />
       </PageLayout.Toolbar>
       <PageLayout.Content>{contentSlot}</PageLayout.Content>
     </PageLayout>
@@ -118,10 +118,10 @@ export const ViewportContent = meta.story({
     <PageLayout>
       <PageLayout.Header>{headerSlot}</PageLayout.Header>
       <PageLayout.Toolbar>
-        <LayoutSlotPlaceholder name="toolbar slot" minHeight={72} />
+        <LayoutSlotPlaceholder name="toolbar slot" tone="toolbar" minHeight={72} />
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
-        <LayoutSlotPlaceholder name="content slot" minHeight={420} />
+        <LayoutSlotPlaceholder name="content slot" tone="primary" minHeight={420} />
       </PageLayout.Content>
     </PageLayout>
   ),

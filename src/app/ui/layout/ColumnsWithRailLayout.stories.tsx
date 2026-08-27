@@ -22,13 +22,13 @@ export const ThreeColumns = meta.story({
   render: () => (
     <ColumnsWithRailLayout>
       <ColumnsWithRailLayout.Primary>
-        <LayoutSlotPlaceholder name="primary" minHeight={420} />
+        <LayoutSlotPlaceholder name="primary" tone="primary" minHeight={420} />
       </ColumnsWithRailLayout.Primary>
       <ColumnsWithRailLayout.Secondary>
-        <LayoutSlotPlaceholder name="secondary" minHeight={320} />
+        <LayoutSlotPlaceholder name="secondary" tone="secondary" minHeight={320} />
       </ColumnsWithRailLayout.Secondary>
       <ColumnsWithRailLayout.Rail>
-        <LayoutSlotPlaceholder name="rail" minHeight={240} />
+        <LayoutSlotPlaceholder name="rail" tone="tertiary" minHeight={240} />
       </ColumnsWithRailLayout.Rail>
     </ColumnsWithRailLayout>
   ),
@@ -40,13 +40,13 @@ export const ReadingColumnsStacked = meta.story({
   render: () => (
     <ColumnsWithRailLayout>
       <ColumnsWithRailLayout.Primary>
-        <LayoutSlotPlaceholder name="primary" minHeight={420} />
+        <LayoutSlotPlaceholder name="primary" tone="primary" minHeight={420} />
       </ColumnsWithRailLayout.Primary>
       <ColumnsWithRailLayout.Secondary>
-        <LayoutSlotPlaceholder name="secondary" minHeight={320} />
+        <LayoutSlotPlaceholder name="secondary" tone="secondary" minHeight={320} />
       </ColumnsWithRailLayout.Secondary>
       <ColumnsWithRailLayout.Rail>
-        <LayoutSlotPlaceholder name="rail" minHeight={240} />
+        <LayoutSlotPlaceholder name="rail" tone="tertiary" minHeight={240} />
       </ColumnsWithRailLayout.Rail>
     </ColumnsWithRailLayout>
   ),
@@ -58,13 +58,13 @@ export const Stacked = meta.story({
   render: () => (
     <ColumnsWithRailLayout>
       <ColumnsWithRailLayout.Primary>
-        <LayoutSlotPlaceholder name="primary" minHeight={420} />
+        <LayoutSlotPlaceholder name="primary" tone="primary" minHeight={420} />
       </ColumnsWithRailLayout.Primary>
       <ColumnsWithRailLayout.Secondary>
-        <LayoutSlotPlaceholder name="secondary" minHeight={320} />
+        <LayoutSlotPlaceholder name="secondary" tone="secondary" minHeight={320} />
       </ColumnsWithRailLayout.Secondary>
       <ColumnsWithRailLayout.Rail>
-        <LayoutSlotPlaceholder name="rail" minHeight={240} />
+        <LayoutSlotPlaceholder name="rail" tone="tertiary" minHeight={240} />
       </ColumnsWithRailLayout.Rail>
     </ColumnsWithRailLayout>
   ),
@@ -82,10 +82,10 @@ export const IntrinsicSizingStress = meta.story({
         </Stack>
       </ColumnsWithRailLayout.Primary>
       <ColumnsWithRailLayout.Secondary>
-        <LayoutSlotPlaceholder name="secondary" minHeight={320} />
+        <LayoutSlotPlaceholder name="secondary" tone="secondary" minHeight={320} />
       </ColumnsWithRailLayout.Secondary>
       <ColumnsWithRailLayout.Rail>
-        <LayoutSlotPlaceholder name="rail" minHeight={240} />
+        <LayoutSlotPlaceholder name="rail" tone="tertiary" minHeight={240} />
       </ColumnsWithRailLayout.Rail>
     </ColumnsWithRailLayout>
   ),

@@ -96,11 +96,7 @@ function PageLayoutBase({ children }: PropsWithChildren) {
             {toolbar}
           </div>
         )}
-        <div
-          className={styles.pageContent}
-          data-page-layout-content
-          data-page-layout-content-width={contentWidth}
-        >
+        <div className={styles.pageContent} data-page-layout-content data-page-layout-content-width={contentWidth}>
           {content}
         </div>
       </main>
