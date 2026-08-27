@@ -165,14 +165,14 @@ export function useFaction(
 ) {
   const liveData = useQuery(api.factions.getBySlug, { slug });
   const normalized = liveData ? toFactionDetailPageData(liveData) : undefined;
-  const result = toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
+  const result = toLiveQueryResult(normalized, () => options?.initialData ?? undefined);
   return result;
 }
 
 export function useFactionCataloguePage(options?: { initialData?: FactionCataloguePageData }) {
   const liveData = useQuery(api.factions.cataloguePage, {});
   const normalized = liveData ? toFactionCataloguePageData(liveData) : undefined;
-  return toLiveQueryResult(normalized, true, () => options?.initialData);
+  return toLiveQueryResult(normalized, () => options?.initialData);
 }
 
 /** Normalized row from `api.factions.listForLoadPicker` (group label + owner username resolved server-side). */
@@ -202,7 +202,7 @@ export function useFactionLoadPicker(options?: { initialData?: FactionLoadPicker
         memberGroupIds: liveData.memberGroupIds,
       }
     : undefined;
-  return toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
+  return toLiveQueryResult(normalized, () => options?.initialData ?? undefined);
 }
 
 export function useCreateFaction() {
@@ -320,5 +320,5 @@ export async function loadFaction(slug: string): Promise<FactionDetailPageData> 
 /** Factions the viewer owns, for the Group detail page's "add a faction" picker. */
 export function useFactionsOwnedForGroupAssign() {
   const liveData = useQuery(api.factions.listOwnedForGroupAssign, {});
-  return toLiveQueryResult(liveData, true);
+  return toLiveQueryResult(liveData);
 }

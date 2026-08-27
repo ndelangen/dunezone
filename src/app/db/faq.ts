@@ -82,7 +82,7 @@ export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<
 
 export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPage }) {
   const livePage = useQuery(api.faq.questionPage, locator);
-  const query = toLiveQueryResult(livePage, true, () => options?.initialPage);
+  const query = toLiveQueryResult(livePage, () => options?.initialPage);
   const questionId = query.data?.question.id;
 
   const editQuestionMutation = useLiveMutation<

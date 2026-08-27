@@ -24,16 +24,24 @@ export type LiveMutationResult<TVariables, TResult> = {
   reset: () => void;
 };
 
+/**
+ * A Convex subscription's value in the shape the pages read.
+ *
+ * Waiting is the only state it reports, because it is the only one it can: a live query that fails throws to the route's catch boundary rather than returning, which is why `isError` and `error` were struck from the result type (#732).
+ * `isPending` and `isLoading` are the same answer under two names, kept because callers read both.
+ *
+ * There is no `enabled` argument and there was never a caller for one: every one of the twenty-two call sites passed the literal `true`, so the flag only ever ANDed with a constant.
+ * A subscription that should not run is not disabled here, it is not mounted, which is the contract Pickers already follow.
+ */
 export function toLiveQueryResult<TData>(
   liveData: TData | undefined,
-  enabled = true,
   initialData?: () => TData | undefined
 ): LiveQueryResult<TData> {
   const data = liveData ?? initialData?.();
   return {
     data,
-    isPending: enabled && liveData === undefined,
-    isLoading: enabled && liveData === undefined,
+    isPending: liveData === undefined,
+    isLoading: liveData === undefined,
   };
 }
 

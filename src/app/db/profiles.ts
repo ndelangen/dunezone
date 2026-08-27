@@ -52,13 +52,13 @@ export function useProfileBySlug(
 ) {
   const liveData = useQuery(api.profiles.getBySlug, { slug });
   const normalized = liveData ? normalizeProfilePage(liveData) : undefined;
-  const result = toLiveQueryResult(normalized, true, () => options?.initialData);
+  const result = toLiveQueryResult(normalized, () => options?.initialData);
   return result;
 }
 
 export function useProfilesAll(options?: { initialData?: ProfileListEntry[] }) {
   const liveData = useQuery(api.profiles.list, {});
-  const result = toLiveQueryResult(liveData, true, () => options?.initialData ?? undefined);
+  const result = toLiveQueryResult(liveData, () => options?.initialData ?? undefined);
   return {
     ...result,
   };
@@ -91,7 +91,7 @@ export function useCurrentProfile() {
 
   /* Unresolved and signed-out are different states and must stay so: `session.profile` is null for a
      signed-out viewer, and collapsing that to undefined would leave every page reading as pending. */
-  const current = toLiveQueryResult(session === undefined ? undefined : session.profile, true);
+  const current = toLiveQueryResult(session === undefined ? undefined : session.profile);
 
   return {
     ...current,
@@ -101,7 +101,7 @@ export function useCurrentProfile() {
 /** The viewer's Groups, held by the page that offers them rather than by the shell. */
 export function useDefaultGroupPreference() {
   const liveData = useQuery(api.profiles.defaultGroupPreference, {});
-  return toLiveQueryResult(liveData, true);
+  return toLiveQueryResult(liveData);
 }
 
 export function useUpdateCurrentProfile() {

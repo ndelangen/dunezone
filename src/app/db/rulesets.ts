@@ -116,13 +116,13 @@ export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetail
 export function useRulesetsAll(options?: { initialData?: RulesetEntry[] }) {
   const liveData = useQuery(api.rulesets.list, {});
   const normalized = liveData?.map(toRulesetEntry);
-  return toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
+  return toLiveQueryResult(normalized, () => options?.initialData ?? undefined);
 }
 
 export function useRulesetBySlug(slug: string, options?: { initialData?: RulesetPageData }) {
   const liveData = useQuery(api.rulesets.getBySlug, { slug });
   const normalized = liveData ? toRulesetPageData(liveData) : undefined;
-  const result = toLiveQueryResult(normalized, true, () => options?.initialData);
+  const result = toLiveQueryResult(normalized, () => options?.initialData);
   return result;
 }
 
@@ -132,7 +132,7 @@ export function useRulesetDetailPage(slug: string, options?: { initialData?: Rul
   });
   const normalized: RulesetDetailPageData | null | undefined =
     liveData === undefined ? undefined : liveData === null ? null : normalizeRulesetDetailPage(liveData);
-  const result = toLiveQueryResult(normalized, true, () => options?.initialData);
+  const result = toLiveQueryResult(normalized, () => options?.initialData);
   return result;
 }
 
@@ -347,5 +347,5 @@ export function useDeleteRuleset() {
 /** Rulesets the viewer owns, for the Group detail page's "add a ruleset" picker. */
 export function useRulesetsOwnedForGroupAssign() {
   const liveData = useQuery(api.rulesets.listOwnedForGroupAssign, {});
-  return toLiveQueryResult(liveData, true);
+  return toLiveQueryResult(liveData);
 }
