@@ -6,15 +6,13 @@
 }
 
 /*
- * A fixed square per breakpoint, sized to the three lines of text beside it.
- * Deliberately not computed from the text: stretching with an aspect ratio is circular, since the
- * square's width would come from the row height while the row height comes from its tallest item.
- * Matching by design is what the hand-rolled bands already did.
+ * A fixed width per breakpoint, sized to the three lines of text beside it.
+ * Width only: square media declares its own aspect ratio, and non-square media (a portrait card
+ * face) keeps its natural height instead of being cropped to a square it never had.
  */
 .media {
   flex: 0 0 6rem;
   width: 6rem;
-  height: 6rem;
 }
 
 /* Everything in the text column shares this left edge. */
@@ -31,7 +29,6 @@
   .media {
     flex-basis: 4.75rem;
     width: 4.75rem;
-    height: 4.75rem;
   }
 
   .text h1 {
@@ -47,6 +44,5 @@
   .media {
     flex-basis: 3.75rem;
     width: 3.75rem;
-    height: 3.75rem;
   }
 }

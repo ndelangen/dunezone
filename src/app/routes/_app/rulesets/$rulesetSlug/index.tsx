@@ -338,6 +338,7 @@ function RulesetDetailPage() {
               radius="md"
               size="100%"
               color="dune"
+              className={styles.coverAvatar}
             />
           }
           breadcrumb={<PageIdentity.Breadcrumb to="/rulesets">Rulesets</PageIdentity.Breadcrumb>}

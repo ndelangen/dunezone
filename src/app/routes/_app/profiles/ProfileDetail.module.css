@@ -1,6 +1,7 @@
 .avatar {
   width: 100%;
-  height: 100%;
+  aspect-ratio: 1;
+  height: auto;
   border-radius: 50%;
   object-fit: cover;
   display: block;
@@ -10,7 +11,8 @@
 
 .avatarPlaceholder {
   width: 100%;
-  height: 100%;
+  aspect-ratio: 1;
+  height: auto;
   border-radius: 50%;
   background: color-mix(in srgb, var(--panel-border, #b8ad9b) 40%, transparent);
   display: flex;
