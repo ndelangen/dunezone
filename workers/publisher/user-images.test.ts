@@ -25,14 +25,18 @@ function memoryBucket(): UserImageBucket & { objects: Map<string, StoredEntry> }
         throw new Error('missing test stream');
       }
       const base = fakeR2Object({ key, etag: `etag-${key.slice(0, 8)}`, size: entry.bytes.byteLength, uploaded: NOW });
+      /* The spread drops class-modeled methods from the type, so the method rides along explicitly. */
       return {
         ...base,
+        writeHttpMetadata: (headers: Headers) => base.writeHttpMetadata(headers),
         body,
         bodyUsed: false,
         arrayBuffer: async () => entry.bytes.buffer as ArrayBuffer,
         bytes: async () => entry.bytes,
         text: async () => '',
-        json: async () => ({}),
+        json: async <T>(): Promise<T> => {
+          throw new Error('json is never read from a stored image');
+        },
         blob: async () => new Blob([entry.bytes]),
       };
     },

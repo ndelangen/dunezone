@@ -155,7 +155,11 @@ async function readWithLimit(body: ReadableStream<Uint8Array> | null, limit: num
 type EncodedRendition = { bytes: Uint8Array; widthPx: number; heightPx: number };
 
 /** Decodes the source, scales it into the given box and encodes one JPEG rendition. */
-async function encodeRendition(images: ImagesBinding, source: Uint8Array, maxEdgePx: number): Promise<EncodedRendition> {
+async function encodeRendition(
+  images: ImagesBinding,
+  source: Uint8Array,
+  maxEdgePx: number
+): Promise<EncodedRendition> {
   const input = new Response(source).body;
   if (!input) {
     throw new Error('Source image produced no readable stream');
