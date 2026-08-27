@@ -112,9 +112,9 @@ export const TallerPreview = meta.story({
   ),
 });
 
-/** Neither pane sticks when both are taller than the viewport. */
+/** The shorter pane stays bottom-pinned when both panes are taller than the viewport. */
 export const BothTallerThanViewport = meta.story({
-  args: { ratio: 0.5, fit: 'width', sidebarContentHeight: 1480 },
+  args: { ratio: A4_RATIO, fit: 'width', sidebarContentHeight: 1480 },
   globals: { viewport: { value: 'appAuthoringWide' } },
   render: (args) => (
     <>

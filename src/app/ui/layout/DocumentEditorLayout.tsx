@@ -71,8 +71,17 @@ function DocumentEditorLayoutBase({ ratio, fit, children }: DocumentEditorLayout
       const sidebarHeight = paneHeight(sidebarContent);
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
       const stickyInset = Number.parseFloat(getComputedStyle(root).getPropertyValue('--document-editor-sticky-inset'));
-      const availableHeight = viewportHeight - 2 * (Number.isFinite(stickyInset) ? stickyInset : 16);
+      const resolvedStickyInset = Number.isFinite(stickyInset) ? stickyInset : 16;
       const difference = sidebarHeight - previewHeight;
+
+      sidebarContent.style.setProperty(
+        '--document-editor-pane-sticky-top',
+        `${Math.min(resolvedStickyInset, viewportHeight - resolvedStickyInset - sidebarHeight)}px`
+      );
+      previewFrame.style.setProperty(
+        '--document-editor-pane-sticky-top',
+        `${Math.min(resolvedStickyInset, viewportHeight - resolvedStickyInset - previewHeight)}px`
+      );
 
       const previewHeightValue = `${previewHeight}px`;
       if (root.style.getPropertyValue('--document-editor-preview-height') !== previewHeightValue) {
@@ -80,9 +89,9 @@ function DocumentEditorLayoutBase({ ratio, fit, children }: DocumentEditorLayout
       }
 
       let nextStickyPane: StickyPane = null;
-      if (difference < -1 && sidebarHeight <= availableHeight) {
+      if (difference < -1) {
         nextStickyPane = 'sidebar';
-      } else if (difference > 1 && previewHeight <= availableHeight) {
+      } else if (difference > 1) {
         nextStickyPane = 'preview';
       }
       setStickyPane((current) => (current === nextStickyPane ? current : nextStickyPane));
