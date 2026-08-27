@@ -101,13 +101,21 @@ export const commit = internalMutation({
   },
 });
 
-/** Commits a stored cover on the operator path, where no viewer identity exists; only the backfill action calls it. */
+/**
+ * Commits a stored cover on the operator path, where no viewer identity exists;
+ * only the backfill action calls it.
+ * The row must still be in the state the scan saw: an author who rehosted or cleared the cover while the backfill was fetching wins, and the stale commit reports itself skipped instead of landing over their change.
+ */
 export const commitBackfill = internalMutation({
-  args: { id: v.id('rulesets'), cover: rulesetCoverValidator },
-  returns: v.null(),
+  args: { id: v.id('rulesets'), cover: rulesetCoverValidator, expected_image_cover: v.string() },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
+    const row = await ctx.db.get(args.id);
+    if (!row || row.cover != null || row.image_cover !== args.expected_image_cover) {
+      return false;
+    }
     await patchStoredCover(ctx, args.id, args.cover);
-    return null;
+    return true;
   },
 });
 
@@ -146,7 +154,8 @@ export const listLegacyCovers = internalQuery({
     const rows = window
       .slice(0, 500)
       .filter(
-        (row): row is typeof row & { image_cover: string } => typeof row.image_cover === 'string' && row.cover == null
+        (row): row is typeof row & { image_cover: string } =>
+          typeof row.image_cover === 'string' && row.cover == null && !row.is_deleted
       )
       .map((row) => ({ id: row._id, slug: row.slug, image_cover: row.image_cover }));
     return { rows, truncated };
@@ -163,6 +172,7 @@ export const backfillLegacyCovers = internalAction({
   args: {},
   returns: v.object({
     rehosted: v.number(),
+    skipped: v.number(),
     failed: v.array(v.object({ slug: v.string(), message: v.string() })),
     truncated: v.boolean(),
   }),
@@ -174,6 +184,7 @@ export const backfillLegacyCovers = internalAction({
     } = await ctx.runQuery(internal.rulesetCovers.listLegacyCovers, {});
     const rows = legacy.rows;
     let rehosted = 0;
+    let skipped = 0;
     const failed: { slug: string; message: string }[] = [];
     for (const row of rows) {
       const parsedSource = userImageSourceUrlSchema.safeParse(row.image_cover);
@@ -183,14 +194,22 @@ export const backfillLegacyCovers = internalAction({
       }
       try {
         const cover = await ingestSourceUrl(config, parsedSource.data);
-        await ctx.runMutation(internal.rulesetCovers.commitBackfill, { id: row.id, cover });
-        rehosted += 1;
+        const committed: boolean = await ctx.runMutation(internal.rulesetCovers.commitBackfill, {
+          id: row.id,
+          cover,
+          expected_image_cover: row.image_cover,
+        });
+        if (committed) {
+          rehosted += 1;
+        } else {
+          skipped += 1;
+        }
       } catch (error) {
         const message =
           error instanceof ConvexError ? String(error.data) : error instanceof Error ? error.message : 'Rehost failed';
         failed.push({ slug: row.slug, message });
       }
     }
-    return { rehosted, failed, truncated: legacy.truncated };
+    return { rehosted, skipped, failed, truncated: legacy.truncated };
   },
 });

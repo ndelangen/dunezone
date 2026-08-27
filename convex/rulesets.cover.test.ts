@@ -207,6 +207,7 @@ describe('ruleset cover rehosting', () => {
     const summary = await t.action(internal.rulesetCovers.backfillLegacyCovers, {});
 
     expect(summary.rehosted).toBe(1);
+    expect(summary.skipped).toBe(0);
     expect(summary.failed).toEqual([
       { slug: 'failingcoverruleset', message: 'The image host answered with status 404' },
     ]);
@@ -216,5 +217,35 @@ describe('ruleset cover rehosting', () => {
     const untouched = await t.run(async (ctx) => await ctx.db.get(failing._id));
     expect(untouched?.cover).toBeNull();
     expect(untouched?.image_cover).toBe('https://gone.example/dead.png');
+  });
+
+  test('the backfill skips a row the author changed while it was fetching', async () => {
+    const { t, ruleset } = await coverFixture();
+    stubIngestEnvironment();
+    await t.run(async (ctx) => {
+      await ctx.db.patch(ruleset._id, { image_cover: SOURCE_URL });
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        /* The author edits while the backfill is fetching, so the scan's snapshot is stale by commit time. */
+        await t.run(async (ctx) => {
+          await ctx.db.patch(ruleset._id, { image_cover: 'https://elsewhere.example/new.png' });
+        });
+        return new Response(
+          JSON.stringify({ url: DELIVERY_URL, key: `${'a'.repeat(64)}.jpg`, width: 800, height: 600 }),
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+      })
+    );
+
+    const summary = await t.action(internal.rulesetCovers.backfillLegacyCovers, {});
+
+    expect(summary.rehosted).toBe(0);
+    expect(summary.skipped).toBe(1);
+    expect(summary.failed).toEqual([]);
+    const row = await t.run(async (ctx) => await ctx.db.get(ruleset._id));
+    expect(row?.cover).toBeNull();
+    expect(row?.image_cover).toBe('https://elsewhere.example/new.png');
   });
 });
