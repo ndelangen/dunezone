@@ -762,7 +762,7 @@ function RulebookEditorPage() {
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
-      <PageLayout.Content>
+      <PageLayout.Content width="viewport">
         <section className={styles.editorRoot} aria-label="Rulebook editing workspace">
           <RulebookWorkspace result={result} dispatch={dispatch} fit={fit} />
         </section>

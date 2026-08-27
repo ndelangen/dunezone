@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
-import { Toolbar } from '@ui/surface/Toolbar';
+import type { CSSProperties, ReactNode } from 'react';
+import { expect, waitFor } from 'storybook/test';
 
 import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 import { PageLayout } from './PageLayout';
@@ -12,18 +13,21 @@ import { PageLayout } from './PageLayout';
  * that negotiation belongs to
  * `Shell/AppHeader`'s stories, not here.
  */
-function ShellFrame({ children }: { children: React.ReactNode }) {
+function ShellFrame({ children }: { children: ReactNode }) {
   return (
     <div
-      style={{
-        display: 'grid',
-        gridTemplateAreas: '"hero" "content"',
-        gridTemplateColumns: 'minmax(0, 1fr)',
-        gap: 40,
-        padding: 20,
-        maxWidth: 1200,
-        marginInline: 'auto',
-      }}
+      style={
+        {
+          '--app-shell-inline-gutter': '20px',
+          display: 'grid',
+          gridTemplateAreas: '"hero" "content"',
+          gridTemplateColumns: 'minmax(0, 1fr)',
+          gap: 40,
+          padding: 20,
+          maxWidth: 1200,
+          marginInline: 'auto',
+        } as CSSProperties
+      }
     >
       <div
         aria-hidden
@@ -98,24 +102,56 @@ export const NoHeader = meta.story({
 });
 
 /**
- * The toolbar slot adds nothing around what it is given, so anything passed brings its own pane;
- * `Toolbar` is a surface and does.
+ * The toolbar slot adds nothing around what it is given.
  */
 export const WithToolbar = meta.story({
   render: () => (
     <PageLayout>
       <PageLayout.Header>{headerSlot}</PageLayout.Header>
       <PageLayout.Toolbar>
-        <Toolbar>
-          <Toolbar.Left>
-            <LayoutSlotPlaceholder name="toolbar controls" minHeight={0} />
-          </Toolbar.Left>
-        </Toolbar>
+        <LayoutSlotPlaceholder name="toolbar slot" minHeight={72} />
       </PageLayout.Toolbar>
       <PageLayout.Content>{contentSlot}</PageLayout.Content>
     </PageLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
+});
+
+/**
+ * The header and toolbar keep the shell's normal measure.
+ * Only the content reaches from one shell gutter to the other.
+ */
+export const ViewportContent = meta.story({
+  render: () => (
+    <PageLayout>
+      <PageLayout.Header>{headerSlot}</PageLayout.Header>
+      <PageLayout.Toolbar>
+        <LayoutSlotPlaceholder name="toolbar slot" minHeight={72} />
+      </PageLayout.Toolbar>
+      <PageLayout.Content width="viewport">
+        <LayoutSlotPlaceholder name="content slot" minHeight={420} />
+      </PageLayout.Content>
+    </PageLayout>
+  ),
+  globals: { viewport: { value: 'appLarge' } },
+  play: async ({ canvasElement }) => {
+    const toolbar = canvasElement.querySelector<HTMLElement>('[data-page-layout-toolbar]');
+    const content = canvasElement.querySelector<HTMLElement>('[data-page-layout-content]');
+
+    await waitFor(() => {
+      expect(toolbar).not.toBeNull();
+      expect(content).not.toBeNull();
+
+      const toolbarRect = toolbar?.getBoundingClientRect();
+      const contentRect = content?.getBoundingClientRect();
+      const viewportWidth = canvasElement.ownerDocument.documentElement.clientWidth;
+
+      expect(contentRect?.width).toBeCloseTo(viewportWidth - 40, 0);
+      expect(contentRect?.width).toBeGreaterThan(toolbarRect?.width ?? Number.POSITIVE_INFINITY);
+      expect(contentRect?.left).toBeCloseTo(20, 0);
+      expect(contentRect?.right).toBeCloseTo(viewportWidth - 20, 0);
+    });
+  },
 });
 
 export const Mobile = meta.story({

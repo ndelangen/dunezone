@@ -10,6 +10,9 @@ import styles from './PageLayout.module.css';
  */
 export type PageHeaderSize = 'default' | 'compact' | 'hero';
 
+/** How much horizontal room the page content may claim. */
+export type PageContentWidth = 'default' | 'viewport';
+
 const InsidePageHeader = createContext(false);
 
 /**
@@ -30,7 +33,7 @@ function Toolbar(_: PropsWithChildren): null {
   return null;
 }
 
-function Content(_: PropsWithChildren): null {
+function Content(_: PropsWithChildren<{ width?: PageContentWidth }>): null {
   return null;
 }
 
@@ -42,7 +45,7 @@ function Content(_: PropsWithChildren): null {
  *
  * Slots: `Header` (omit it to mark the page intentionally compact;
  * `size="compact"` shrinks the band, and `size="hero"` declares a page whose title takes the display treatment), `Toolbar`, and
- * `Content`.
+ * `Content` (`width="viewport"` lets the content use the viewport between the shell gutters).
  */
 function PageLayoutBase({ children }: PropsWithChildren) {
   let hasHeader = false;
@@ -50,6 +53,7 @@ function PageLayoutBase({ children }: PropsWithChildren) {
   let headerSize: PageHeaderSize = 'default';
   let toolbar: ReactNode = null;
   let content: ReactNode = null;
+  let contentWidth: PageContentWidth = 'default';
 
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) {
@@ -67,7 +71,9 @@ function PageLayoutBase({ children }: PropsWithChildren) {
       return;
     }
     if (child.type === Content) {
-      content = (child.props as PropsWithChildren).children;
+      const props = child.props as PropsWithChildren<{ width?: PageContentWidth }>;
+      content = props.children;
+      contentWidth = props.width ?? 'default';
     }
   });
 
@@ -85,8 +91,18 @@ function PageLayoutBase({ children }: PropsWithChildren) {
         </div>
       )}
       <main className={styles.content}>
-        {toolbar}
-        {content}
+        {toolbar != null && (
+          <div className={styles.toolbar} data-page-layout-toolbar>
+            {toolbar}
+          </div>
+        )}
+        <div
+          className={styles.pageContent}
+          data-page-layout-content
+          data-page-layout-content-width={contentWidth}
+        >
+          {content}
+        </div>
       </main>
     </div>
   );

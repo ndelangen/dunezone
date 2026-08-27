@@ -30,6 +30,17 @@
   gap: var(--space-4);
 }
 
+.toolbar,
+.pageContent {
+  width: 100%;
+  min-width: 0;
+}
+
+.pageContent[data-page-layout-content-width="viewport"] {
+  width: calc(100vw - 2 * var(--app-shell-inline-gutter, 20px));
+  margin-inline: calc(50% - 50vw + var(--app-shell-inline-gutter, 20px));
+}
+
 @media (max-width: 900px) {
   .headerContent {
     aspect-ratio: auto;
