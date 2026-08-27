@@ -447,10 +447,10 @@ function NestedTabsLevelView({
       <nav className={styles.level} aria-label={label} data-nested-tabs-level={levelIndex + 1}>
         <ul className={styles.levelItems}>{entries}</ul>
         <div className={styles.levelFooter}>
+          {tools ? <div className={styles.levelTools}>{tools}</div> : null}
           <span className={styles.levelLabel} aria-hidden>
             {label}
           </span>
-          {tools ? <div className={styles.levelTools}>{tools}</div> : null}
         </div>
       </nav>
     </NestedTabsContext.Provider>
