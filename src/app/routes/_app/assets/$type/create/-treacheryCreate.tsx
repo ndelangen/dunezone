@@ -1,5 +1,5 @@
-import { Anchor, Text } from '@mantine/core';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
+import { LoginGate } from '@ui/block/LoginGate';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -56,9 +56,7 @@ export function TreacheryCreatePage() {
   if (profile.data === null) {
     return (
       <AssetEditorMessage title="New treachery card" type="card-treachery">
-        <Text>
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to create cards.
-        </Text>
+        <LoginGate action="create cards" />
       </AssetEditorMessage>
     );
   }

@@ -1,6 +1,8 @@
-import { Alert, Anchor, Popover, Text } from '@mantine/core';
+import { Alert, Popover } from '@mantine/core';
 import { BundleAsset } from '@shared/assets/schema';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
+import { LoginGate } from '@ui/block/LoginGate';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { AddAction } from '@ui/control/ListLengthActions';
@@ -38,8 +40,8 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
 
   if (data === null) {
     return (
-      <AssetEditorMessage title="Bundle not found" type="bundle">
-        <Text>No bundle lives at this address.</Text>
+      <AssetEditorMessage title="Edit bundle" type="bundle">
+        <NotAvailable title="Bundle not found">No bundle lives at this address.</NotAvailable>
       </AssetEditorMessage>
     );
   }
@@ -47,9 +49,7 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
   if (data.viewerAccess.viewer.kind === 'anonymous') {
     return (
       <AssetEditorMessage title={`Edit ${data.asset.name}`} type="bundle">
-        <Text>
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to edit bundles.
-        </Text>
+        <LoginGate action="edit bundles" />
       </AssetEditorMessage>
     );
   }
@@ -57,11 +57,11 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
   if (!data.viewerAccess.capabilities.edit) {
     return (
       <AssetEditorMessage title={`Edit ${data.asset.name}`} type="bundle">
-        <Text>
+        <NotAvailable title="You cannot edit this bundle">
           {data.viewerAccess.assignedGroup
             ? 'Only the bundle owner or an active member of its group can edit this bundle.'
             : 'Only the bundle owner can edit this bundle.'}
-        </Text>
+        </NotAvailable>
       </AssetEditorMessage>
     );
   }
@@ -70,7 +70,7 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
   if (!parsed.success) {
     return (
       <DriftedAssetPage asset={data.asset} noun="bundle" canDelete={data.viewerAccess.capabilities.delete}>
-        <Text>This bundle's stored data no longer matches the bundle schema, so it cannot be edited here.</Text>
+        {`This bundle's stored data no longer matches the bundle schema, so it cannot be edited here.`}
       </DriftedAssetPage>
     );
   }

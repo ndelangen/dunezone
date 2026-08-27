@@ -1,12 +1,10 @@
-import { Alert, Anchor, Group, Stack, Text } from '@mantine/core';
+import { Alert, Group, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
-import { Link, useNavigate } from '@tanstack/react-router';
-import { PageTitle } from '@ui/block/PageTitle';
+import { useNavigate } from '@tanstack/react-router';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
-import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -17,10 +15,14 @@ import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetNameInput } from '@app/pickers/AssetNameInput';
 import { nameConflictComplaint } from '@app/pickers/UniqueNameInput';
 import type { NameConflict } from '@app/pickers/UniqueNameInput';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 /**
- * The states an asset editor route reaches instead of an editor: no such asset, not signed in, not allowed, no editor built yet.
- * Shared by the create and edit routes because both reach most of them, and a message that differs between the two would read as a bug rather than a distinction.
+ * The words `PageMessage` wears on an asset editor route, and the destination its way back points at.
+ *
+ * It used to be the frame itself, built independently of the widget and predating it: its own `PageLayout`, its own compact header, its own `Surface`, its own anchor below the words.
+ * The frame is `PageMessage`'s now, so what is left here is the part that is genuinely this feature's: a known type goes back to its own browse page and anything else to the landing, which is a fact about the asset registry rather than about message frames.
+ * `AssetDetailMessage` on the detail route is the same shape for the same reason, so the two siblings now differ only in which browse page they name.
  */
 export function AssetEditorMessage({
   title,
@@ -33,25 +35,21 @@ export function AssetEditorMessage({
   children: ReactNode;
 }) {
   return (
-    <PageLayout>
-      <PageLayout.Header size="compact">
-        <PageTitle title={title} />
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <Surface padding="xl">
-          <Stack gap="sm">
-            {children}
-            {isAssetType(type) ? (
-              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type }} />}>
-                Back to {ASSET_TYPES[type].label.toLowerCase()}
-              </Anchor>
-            ) : (
-              <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/assets" />}>Back to assets</Anchor>
-            )}
-          </Stack>
-        </Surface>
-      </PageLayout.Content>
-    </PageLayout>
+    <PageMessage
+      size="compact"
+      title={title}
+      back={
+        isAssetType(type) ? (
+          <PageMessage.Back to="/assets/$type" params={{ type }}>
+            Back to {ASSET_TYPES[type].label.toLowerCase()}
+          </PageMessage.Back>
+        ) : (
+          <PageMessage.Back to="/assets">Back to assets</PageMessage.Back>
+        )
+      }
+    >
+      {children}
+    </PageMessage>
   );
 }
 
@@ -78,8 +76,10 @@ export function useAssetDeletion(asset: Pick<NonNullable<AssetPageData>['asset']
 /**
  * An asset whose stored data no longer satisfies its type's schema, reachable whenever a schema tightens ahead of a backfill.
  * The editor cannot open it, but deletion never reads the data, so the owner keeps the one action that still applies rather than needing the database to be rid of it.
- * The message stays the caller's, because each editor names its own schema;
- * the delete affordance is what every drifted asset shares.
+ * The message stays the caller's, because each editor names its own schema, and they are not interchangeable: four of the five say "the token schema" or "the deck schema" after their own noun, while the treachery editor says "the treachery card schema" after "card".
+ * The delete affordance is what every drifted asset shares.
+ *
+ * This is the one state here that is not one of the four bodies, because it ends in an action rather than in words: the heading and sentence are a `NotAvailable`, and the offer to delete sits beside it in the same slot.
  */
 export function DriftedAssetPage({
   asset,
@@ -88,16 +88,17 @@ export function DriftedAssetPage({
   children,
 }: {
   asset: NonNullable<AssetPageData>['asset'];
-  /** The word on the delete control: "Delete card", "Delete token". */
+  /** The word on the delete control and in the heading: "Delete card", "This card cannot be edited". */
   noun: string;
   canDelete: boolean;
-  children: ReactNode;
+  /** Why this one cannot open, naming the schema the editor actually parses against. */
+  children: string;
 }) {
   const deletion = useAssetDeletion(asset);
 
   return (
     <AssetEditorMessage title={`Edit ${asset.name}`} type={asset.type}>
-      {children}
+      <NotAvailable title={`This ${noun} cannot be edited`}>{children}</NotAvailable>
       {canDelete ? (
         <>
           <Text size="sm" c="dimmed">
@@ -124,8 +125,10 @@ export function DriftedAssetPage({
 export function NoEditorYet({ type }: { type: string }) {
   const label = isAssetType(type) ? ASSET_TYPES[type].label.toLowerCase() : 'assets of this type';
   return (
-    <AssetEditorMessage title="No editor yet" type={type}>
-      <Text>There is no editor for {label} yet. This type is on the roadmap and cannot hold assets so far.</Text>
+    <AssetEditorMessage title={isAssetType(type) ? ASSET_TYPES[type].label : 'Assets'} type={type}>
+      <NotAvailable title="No editor yet">
+        {`There is no editor for ${label} yet. This type is on the roadmap and cannot hold assets so far.`}
+      </NotAvailable>
     </AssetEditorMessage>
   );
 }

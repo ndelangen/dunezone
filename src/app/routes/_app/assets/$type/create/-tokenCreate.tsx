@@ -1,6 +1,7 @@
-import { Alert, Anchor, Text } from '@mantine/core';
+import { Alert, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
+import { LoginGate } from '@ui/block/LoginGate';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -61,9 +62,7 @@ export function TokenCreatePage({ type }: { type: string }) {
   if (profile.data === null) {
     return (
       <AssetEditorMessage title={`New ${label} token`} type={type}>
-        <Text>
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to create tokens.
-        </Text>
+        <LoginGate action="create tokens" />
       </AssetEditorMessage>
     );
   }

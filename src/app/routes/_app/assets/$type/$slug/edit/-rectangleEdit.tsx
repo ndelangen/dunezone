@@ -1,6 +1,8 @@
-import { Alert, Anchor, Button, Group, Popover, Stack, Text } from '@mantine/core';
+import { Alert, Button, Group, Popover, Stack, Text } from '@mantine/core';
 import { RectangleTokenAsset } from '@shared/assets/schema';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
+import { LoginGate } from '@ui/block/LoginGate';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -51,8 +53,8 @@ export function RectangleEditPage({
 
   if (data === null) {
     return (
-      <AssetEditorMessage title="Token not found" type={type}>
-        <Text>No {label} token lives at this address.</Text>
+      <AssetEditorMessage title="Edit token" type={type}>
+        <NotAvailable title="Token not found">{`No ${label} token lives at this address.`}</NotAvailable>
       </AssetEditorMessage>
     );
   }
@@ -60,9 +62,7 @@ export function RectangleEditPage({
   if (data.viewerAccess.viewer.kind === 'anonymous') {
     return (
       <AssetEditorMessage title={`Edit ${data.asset.name}`} type={type}>
-        <Text>
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to edit tokens.
-        </Text>
+        <LoginGate action="edit tokens" />
       </AssetEditorMessage>
     );
   }
@@ -70,11 +70,11 @@ export function RectangleEditPage({
   if (!data.viewerAccess.capabilities.edit) {
     return (
       <AssetEditorMessage title={`Edit ${data.asset.name}`} type={type}>
-        <Text>
+        <NotAvailable title="You cannot edit this token">
           {data.viewerAccess.assignedGroup
             ? 'Only the token owner or an active member of its group can edit this token.'
             : 'Only the token owner can edit this token.'}
-        </Text>
+        </NotAvailable>
       </AssetEditorMessage>
     );
   }
@@ -83,7 +83,7 @@ export function RectangleEditPage({
   if (!parsed.success) {
     return (
       <DriftedAssetPage asset={data.asset} noun="token" canDelete={data.viewerAccess.capabilities.delete}>
-        <Text>This token's stored data no longer matches the token schema, so it cannot be edited here.</Text>
+        {`This token's stored data no longer matches the token schema, so it cannot be edited here.`}
       </DriftedAssetPage>
     );
   }
