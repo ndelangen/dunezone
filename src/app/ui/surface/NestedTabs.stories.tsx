@@ -503,7 +503,7 @@ export const GroupContainmentComparison = meta.story({
         <HierarchyFixture initialPath={[PAGE_TWO, BLOCK_IMAGE]} tools={false} />
       </section>
       <section className={styles.comparisonCase}>
-        <p className={styles.caseLabel}>State exposed, no visual emphasis</p>
+        <p className={styles.caseLabel}>Uniform Group emphasis</p>
         <HierarchyFixture initialPath={[PAGE_TWO, BLOCK_IMAGE]} className={styles.withoutGroupEmphasis} tools={false} />
       </section>
     </main>

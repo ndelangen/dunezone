@@ -188,9 +188,24 @@
   position: relative;
   display: grid;
   flex: 0 0 auto;
+  isolation: isolate;
   justify-items: center;
   width: 100%;
-  padding-block: 0.25rem;
+  padding: 0.25rem 0.15rem 0.35rem;
+}
+
+.group::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0.1rem;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  border-radius: calc(var(--nested-tabs-radius) + 0.1rem);
+  content: "";
+  transition: background-color var(--transition-fast);
+}
+
+.group[data-contains-active-item="true"]::before {
+  background: color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .groupAdornment {
@@ -219,19 +234,8 @@
 }
 
 .groupItems {
-  position: relative;
   width: 100%;
   padding-block: 0.15rem;
-}
-
-.groupItems::before {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0.18rem;
-  width: 1px;
-  background: currentColor;
-  content: "";
-  opacity: 0.2;
 }
 
 .levelFooter {
@@ -301,6 +305,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .item,
+  .group::before,
   .groupAdornment {
     transition: none;
   }

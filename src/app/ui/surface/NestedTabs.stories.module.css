@@ -32,7 +32,11 @@
 }
 
 .withoutGroupEmphasis [data-contains-active-item="true"] > :first-child {
-  opacity: 0.44;
+  opacity: 0.58;
+}
+
+.withoutGroupEmphasis [data-contains-active-item="true"]::before {
+  background: color-mix(in srgb, currentColor 10%, transparent);
 }
 
 .fixedHeight {
