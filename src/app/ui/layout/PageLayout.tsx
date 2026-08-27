@@ -77,6 +77,8 @@ function PageLayoutBase({ children }: PropsWithChildren) {
     }
   });
 
+  const hasToolbarContent = Children.toArray(toolbar).length > 0;
+
   return (
     <div
       className={styles.layout}
@@ -91,7 +93,7 @@ function PageLayoutBase({ children }: PropsWithChildren) {
         </div>
       )}
       <main className={styles.content}>
-        {toolbar != null && (
+        {hasToolbarContent && (
           <div className={styles.toolbar} data-page-layout-toolbar>
             {toolbar}
           </div>
