@@ -44,8 +44,8 @@ function RulesetsPage() {
                 )}
               >
                 <div className={styles.cover}>
-                  {r.coverUrl ? (
-                    <img src={r.coverUrl} alt="" className={styles.coverImage} />
+                  {r.coverThumbUrl ? (
+                    <img src={r.coverThumbUrl} alt="" className={styles.coverImage} />
                   ) : (
                     <span className={styles.coverPlaceholder}>No cover</span>
                   )}

@@ -66,6 +66,7 @@ async function ingestSourceUrl(config: IngestConfig, sourceUrl: string): Promise
   }
   return {
     url: payload.data.url,
+    thumb_url: payload.data.thumb_url,
     source_url: sourceUrl,
     width: payload.data.width,
     height: payload.data.height,

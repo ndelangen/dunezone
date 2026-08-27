@@ -22,10 +22,17 @@ export const USER_IMAGE_FETCH_TIMEOUT_MS = 10_000;
 export const USER_IMAGE_MAX_REDIRECTS = 3;
 
 /**
- * Covers are scaled down to fit this box before encoding.
+ * The full rendition is scaled down to fit this box before encoding.
  * It sits under the 3000px ceiling past which Cloudflare's encoder falls back to baseline JPEG, so the progressive assertion can hold.
  */
 export const USER_IMAGE_MAX_EDGE_PX = 1600;
+
+/**
+ * The thumb rendition's box, sized for grid tiles and chips so list pages stop paying for full-size bytes.
+ * Every ingest stores both renditions;
+ * a render site picks the one that fits its frame.
+ */
+export const USER_IMAGE_THUMB_EDGE_PX = 320;
 
 /**
  * Images smaller than this on either axis are refused.
@@ -70,6 +77,8 @@ export const userImageIngestRequestSchema = z.strictObject({
 export const userImageIngestResponseSchema = z.strictObject({
   url: z.string(),
   key: z.string().regex(USER_IMAGE_KEY_PATTERN),
+  thumb_url: z.string(),
+  thumb_key: z.string().regex(USER_IMAGE_KEY_PATTERN),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
 });

@@ -28,6 +28,8 @@ export type RulesetEntry = Omit<RulesetRow, 'name' | 'about'> & {
    * Derived here so the legacy fallback lives in one place and the retirement release deletes it here alone.
    */
   coverUrl: string | null;
+  /** The thumb rendition for grids and chips, falling back like `coverUrl` where only a legacy or full URL exists. */
+  coverThumbUrl: string | null;
 };
 export type RulesetPageData = {
   ruleset: RulesetEntry;
@@ -88,6 +90,7 @@ function toRulesetEntry(entry: RulesetRow): RulesetEntry {
     name: entry.name,
     about: entry.about,
     coverUrl: entry.cover?.url ?? entry.image_cover,
+    coverThumbUrl: entry.cover?.thumb_url ?? entry.cover?.url ?? entry.image_cover,
   };
 }
 

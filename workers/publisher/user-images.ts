@@ -8,6 +8,7 @@ import {
   USER_IMAGE_MAX_SOURCE_BYTES,
   USER_IMAGE_MIN_EDGE_PX,
   USER_IMAGE_PUBLIC_PREFIX,
+  USER_IMAGE_THUMB_EDGE_PX,
   userImageIngestRequestSchema,
   userImagePublicPath,
 } from '../../src/shared/user-images/contract';
@@ -151,14 +152,10 @@ async function readWithLimit(body: ReadableStream<Uint8Array> | null, limit: num
   return joined;
 }
 
-/**
- * Decodes whatever was fetched, scales it into the progressive-safe box and encodes the JPEG the delivery path promises.
- * The binding's progressive output is asserted rather than assumed, the same stance `assertPublishedJpeg` takes for published cards.
- */
-async function encodeCoverJpeg(
-  images: ImagesBinding,
-  source: Uint8Array
-): Promise<{ bytes: Uint8Array; widthPx: number; heightPx: number }> {
+type EncodedRendition = { bytes: Uint8Array; widthPx: number; heightPx: number };
+
+/** Decodes the source, scales it into the given box and encodes one JPEG rendition. */
+async function encodeRendition(images: ImagesBinding, source: Uint8Array, maxEdgePx: number): Promise<EncodedRendition> {
   const input = new Response(source).body;
   if (!input) {
     throw new Error('Source image produced no readable stream');
@@ -167,7 +164,7 @@ async function encodeCoverJpeg(
   try {
     const result = await images
       .input(input)
-      .transform({ width: USER_IMAGE_MAX_EDGE_PX, height: USER_IMAGE_MAX_EDGE_PX, fit: 'scale-down' })
+      .transform({ width: maxEdgePx, height: maxEdgePx, fit: 'scale-down' })
       .output({ format: 'image/jpeg', quality: USER_IMAGE_JPEG_QUALITY });
     encoded = new Uint8Array(await new Response(result.image()).arrayBuffer());
   } catch {
@@ -182,13 +179,28 @@ async function encodeCoverJpeg(
     }
     throw error;
   }
-  if (profile.widthPx < USER_IMAGE_MIN_EDGE_PX || profile.heightPx < USER_IMAGE_MIN_EDGE_PX) {
+  return { bytes: encoded, widthPx: profile.widthPx, heightPx: profile.heightPx };
+}
+
+/**
+ * Encodes the two renditions every stored image carries: a full one for detail frames and a thumb for grids and chips.
+ * The full rendition asserts the progressive output the delivery path promises, the same stance `assertPublishedJpeg` takes for published cards.
+ * The thumb does not: scaling a wide or tall image into the thumb box can legally leave one edge under the encoder's 50px progressive floor, and a baseline thumb costs nothing at that size.
+ */
+async function encodeCoverRenditions(
+  images: ImagesBinding,
+  source: Uint8Array
+): Promise<{ full: EncodedRendition; thumb: EncodedRendition }> {
+  const full = await encodeRendition(images, source, USER_IMAGE_MAX_EDGE_PX);
+  if (full.widthPx < USER_IMAGE_MIN_EDGE_PX || full.heightPx < USER_IMAGE_MIN_EDGE_PX) {
     throw new IngestRefusal(`The image must be at least ${USER_IMAGE_MIN_EDGE_PX}px on each side`);
   }
-  if (!profile.progressive) {
-    throw new Error(`Encoded cover JPEG is not progressive: start-of-frame ${profile.startOfFrame}`);
+  const fullProfile = jpegProfile(full.bytes);
+  if (!fullProfile.progressive) {
+    throw new Error(`Encoded cover JPEG is not progressive: start-of-frame ${fullProfile.startOfFrame}`);
   }
-  return { bytes: encoded, widthPx: profile.widthPx, heightPx: profile.heightPx };
+  const thumb = await encodeRendition(images, source, USER_IMAGE_THUMB_EDGE_PX);
+  return { full, thumb };
 }
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
@@ -242,9 +254,9 @@ export async function handleUserImageIngest(request: Request, env: IngestEnv): P
   if (!fetched.ok) {
     return jsonError(422, fetched.message);
   }
-  let encoded: Awaited<ReturnType<typeof encodeCoverJpeg>>;
+  let renditions: Awaited<ReturnType<typeof encodeCoverRenditions>>;
   try {
-    encoded = await encodeCoverJpeg(env.IMAGES, fetched.bytes);
+    renditions = await encodeCoverRenditions(env.IMAGES, fetched.bytes);
   } catch (error) {
     if (error instanceof IngestRefusal) {
       return jsonError(422, error.message);
@@ -252,21 +264,28 @@ export async function handleUserImageIngest(request: Request, env: IngestEnv): P
     throw error;
   }
 
-  const key = `${await sha256Hex(encoded.bytes)}.jpg`;
-  const written = await env.USER_IMAGE_BUCKET.put(key, encoded.bytes, {
-    httpMetadata: { contentType: 'image/jpeg', cacheControl: IMMUTABLE_CACHE_CONTROL },
-    customMetadata: { sourceUrl: parsedRequest.data.source_url },
-  });
-  if (!written) {
-    throw new Error('User image was not written');
-  }
+  const storeRendition = async (rendition: EncodedRendition): Promise<string> => {
+    const key = `${await sha256Hex(rendition.bytes)}.jpg`;
+    const written = await env.USER_IMAGE_BUCKET.put(key, rendition.bytes, {
+      httpMetadata: { contentType: 'image/jpeg', cacheControl: IMMUTABLE_CACHE_CONTROL },
+      customMetadata: { sourceUrl: parsedRequest.data.source_url },
+    });
+    if (!written) {
+      throw new Error('User image was not written');
+    }
+    return key;
+  };
+  const key = await storeRendition(renditions.full);
+  const thumbKey = await storeRendition(renditions.thumb);
 
   const publicOrigin = (env.USER_IMAGE_PUBLIC_BASE_URL ?? url.origin).replace(/\/$/, '');
   const payload: UserImageIngestResponse = {
     url: `${publicOrigin}${userImagePublicPath(key)}`,
     key,
-    width: encoded.widthPx,
-    height: encoded.heightPx,
+    thumb_url: `${publicOrigin}${userImagePublicPath(thumbKey)}`,
+    thumb_key: thumbKey,
+    width: renditions.full.widthPx,
+    height: renditions.full.heightPx,
   };
   return Response.json(payload, { headers: { 'Cache-Control': 'no-store' } });
 }

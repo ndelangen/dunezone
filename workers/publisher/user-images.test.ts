@@ -66,15 +66,21 @@ function pendingContext(): Pick<ExecutionContext, 'waitUntil'> & { pending: Prom
   };
 }
 
-/** The chained fragment of the Images binding the handler touches, recording what it was asked for. */
-function imagesStub(encoded: Uint8Array, seen: { transform?: unknown; output?: unknown }): ImagesBinding {
+type ImagesStubSeen = { transforms: unknown[]; outputs: unknown[] };
+
+/** The chained fragment of the Images binding the handler touches, recording each request and dealing encodes from a queue, one per rendition. */
+function imagesStub(encodedQueue: Uint8Array[], seen: ImagesStubSeen = { transforms: [], outputs: [] }): ImagesBinding {
   const transformer = {
     transform(options: unknown) {
-      seen.transform = options;
+      seen.transforms.push(options);
       return transformer;
     },
     async output(options: unknown) {
-      seen.output = options;
+      seen.outputs.push(options);
+      const encoded = encodedQueue.shift();
+      if (!encoded) {
+        throw new Error('imagesStub queue is empty');
+      }
       return {
         image: () => new Response(encoded).body,
         contentType: () => 'image/jpeg',
@@ -116,34 +122,67 @@ afterEach(() => {
 });
 
 describe('user image ingest', () => {
-  test('stores the re-encoded progressive JPEG under its content hash and answers with the delivery URL', async () => {
+  test('stores both renditions under their content hashes and answers with the delivery URLs', async () => {
     const fetchMock = vi.fn(async () => sourceResponse(pngBytes(800, 600)));
     vi.stubGlobal('fetch', fetchMock);
     const bucket = memoryBucket();
-    const seen: { transform?: unknown; output?: unknown } = {};
-    const encoded = jpegBytes({ widthPx: 800, heightPx: 600, progressive: true });
+    const seen: ImagesStubSeen = { transforms: [], outputs: [] };
+    const fullEncoded = jpegBytes({ widthPx: 800, heightPx: 600, progressive: true });
+    const thumbEncoded = jpegBytes({ widthPx: 320, heightPx: 240, progressive: true });
 
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: bucket,
       USER_IMAGE_INGEST_SECRET: SECRET,
-      IMAGES: imagesStub(encoded, seen),
+      IMAGES: imagesStub([fullEncoded, thumbEncoded], seen),
     });
 
     expect(response?.status).toBe(200);
     if (!response) {
       throw new Error('expected a response');
     }
-    const payload = (await response.json()) as { url: string; key: string; width: number; height: number };
+    const payload = (await response.json()) as {
+      url: string;
+      key: string;
+      thumb_url: string;
+      thumb_key: string;
+      width: number;
+      height: number;
+    };
     expect(payload.key).toMatch(/^[0-9a-f]{64}\.jpg$/);
     expect(payload.url).toBe(`https://dune.zone/user-images/${payload.key}`);
+    expect(payload.thumb_key).toMatch(/^[0-9a-f]{64}\.jpg$/);
+    expect(payload.thumb_key).not.toBe(payload.key);
+    expect(payload.thumb_url).toBe(`https://dune.zone/user-images/${payload.thumb_key}`);
     expect(payload.width).toBe(800);
     expect(payload.height).toBe(600);
-    expect(seen.transform).toMatchObject({ fit: 'scale-down' });
-    expect(seen.output).toMatchObject({ format: 'image/jpeg' });
+    expect(seen.transforms).toEqual([
+      { width: 1600, height: 1600, fit: 'scale-down' },
+      { width: 320, height: 320, fit: 'scale-down' },
+    ]);
+    expect(seen.outputs).toMatchObject([{ format: 'image/jpeg' }, { format: 'image/jpeg' }]);
+    expect(bucket.objects.size).toBe(2);
     const stored = bucket.objects.get(payload.key);
     expect(stored?.options.httpMetadata).toMatchObject({ contentType: 'image/jpeg' });
     expect(stored?.options.customMetadata).toMatchObject({ sourceUrl: SOURCE_URL });
+    const storedThumb = bucket.objects.get(payload.thumb_key);
+    expect(storedThumb?.options.customMetadata).toMatchObject({ sourceUrl: SOURCE_URL });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('tolerates a baseline thumb when the thumb box squeezes one edge under the progressive floor', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => sourceResponse(pngBytes(1600, 60)))
+    );
+    const response = await handleUserImageIngest(ingestRequest(), {
+      USER_IMAGE_BUCKET: memoryBucket(),
+      USER_IMAGE_INGEST_SECRET: SECRET,
+      IMAGES: imagesStub([
+        jpegBytes({ widthPx: 1600, heightPx: 60, progressive: true }),
+        jpegBytes({ widthPx: 320, heightPx: 12, progressive: false }),
+      ]),
+    });
+    expect(response?.status).toBe(200);
   });
 
   test('mints the delivery URL on the pinned public origin even when ingest arrives on another hostname', async () => {
@@ -157,15 +196,19 @@ describe('user image ingest', () => {
         USER_IMAGE_BUCKET: memoryBucket(),
         USER_IMAGE_INGEST_SECRET: SECRET,
         USER_IMAGE_PUBLIC_BASE_URL: 'https://dune.zone',
-        IMAGES: imagesStub(jpegBytes({ widthPx: 800, heightPx: 600, progressive: true }), {}),
+        IMAGES: imagesStub([
+          jpegBytes({ widthPx: 800, heightPx: 600, progressive: true }),
+          jpegBytes({ widthPx: 320, heightPx: 240, progressive: true }),
+        ]),
       }
     );
     expect(response?.status).toBe(200);
     if (!response) {
       throw new Error('expected a response');
     }
-    const payload = (await response.json()) as { url: string; key: string };
+    const payload = (await response.json()) as { url: string; key: string; thumb_url: string; thumb_key: string };
     expect(payload.url).toBe(`https://dune.zone/user-images/${payload.key}`);
+    expect(payload.thumb_url).toBe(`https://dune.zone/user-images/${payload.thumb_key}`);
   });
 
   test('refuses a wrong bearer token without fetching anything', async () => {
@@ -174,7 +217,7 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest({ token: 'wrong' }), {
       USER_IMAGE_BUCKET: memoryBucket(),
       USER_IMAGE_INGEST_SECRET: SECRET,
-      IMAGES: imagesStub(jpegBytes({ widthPx: 80, heightPx: 80, progressive: true }), {}),
+      IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
     });
     expect(response?.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -188,7 +231,7 @@ describe('user image ingest', () => {
       {
         USER_IMAGE_BUCKET: memoryBucket(),
         USER_IMAGE_INGEST_SECRET: SECRET,
-        IMAGES: imagesStub(jpegBytes({ widthPx: 80, heightPx: 80, progressive: true }), {}),
+        IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
       }
     );
     expect(response?.status).toBe(400);
@@ -203,7 +246,7 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
       USER_IMAGE_INGEST_SECRET: SECRET,
-      IMAGES: imagesStub(jpegBytes({ widthPx: 80, heightPx: 80, progressive: true }), {}),
+      IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
     });
     expect(response?.status).toBe(422);
     expect(await refusalMessage(response)).toContain('https');
@@ -218,7 +261,7 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
       USER_IMAGE_INGEST_SECRET: SECRET,
-      IMAGES: imagesStub(jpegBytes({ widthPx: 80, heightPx: 80, progressive: true }), {}),
+      IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
     });
     expect(response?.status).toBe(422);
     expect(await refusalMessage(response)).toBe('The URL did not return an image');
@@ -233,7 +276,7 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
       USER_IMAGE_INGEST_SECRET: SECRET,
-      IMAGES: imagesStub(jpegBytes({ widthPx: 80, heightPx: 80, progressive: true }), {}),
+      IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
     });
     expect(response?.status).toBe(422);
     expect(await refusalMessage(response)).toContain('10 MB');
@@ -247,7 +290,7 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
       USER_IMAGE_INGEST_SECRET: SECRET,
-      IMAGES: imagesStub(jpegBytes({ widthPx: 32, heightPx: 32, progressive: true }), {}),
+      IMAGES: imagesStub([jpegBytes({ widthPx: 32, heightPx: 32, progressive: true })]),
     });
     expect(response?.status).toBe(422);
     expect(await refusalMessage(response)).toContain('50px');
@@ -262,7 +305,7 @@ describe('user image ingest', () => {
       handleUserImageIngest(ingestRequest(), {
         USER_IMAGE_BUCKET: memoryBucket(),
         USER_IMAGE_INGEST_SECRET: SECRET,
-        IMAGES: imagesStub(jpegBytes({ widthPx: 800, heightPx: 600, progressive: false }), {}),
+        IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: false })]),
       })
     ).rejects.toThrow('not progressive');
   });

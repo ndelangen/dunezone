@@ -13,7 +13,14 @@ const modules = import.meta.glob('./**/*.ts');
 const ABOUT = 'A test ruleset with a description long enough to satisfy the fifty character floor.';
 const SOURCE_URL = 'https://images.example/cover.png';
 const DELIVERY_URL = `https://dune.zone/user-images/${'a'.repeat(64)}.jpg`;
-const STORED_COVER = { url: DELIVERY_URL, source_url: SOURCE_URL, width: 800, height: 600 };
+const DELIVERY_THUMB_URL = `https://dune.zone/user-images/${'b'.repeat(64)}.jpg`;
+const STORED_COVER = {
+  url: DELIVERY_URL,
+  thumb_url: DELIVERY_THUMB_URL,
+  source_url: SOURCE_URL,
+  width: 800,
+  height: 600,
+};
 
 async function coverFixture() {
   const t = convexTest(schema, modules);
@@ -43,9 +50,17 @@ function stubIngestEnvironment() {
 function ingestSuccess() {
   return vi.fn(
     async (_input: string | URL | Request, _init?: RequestInit) =>
-      new Response(JSON.stringify({ url: DELIVERY_URL, key: `${'a'.repeat(64)}.jpg`, width: 800, height: 600 }), {
-        headers: { 'Content-Type': 'application/json' },
-      })
+      new Response(
+        JSON.stringify({
+          url: DELIVERY_URL,
+          key: `${'a'.repeat(64)}.jpg`,
+          thumb_url: DELIVERY_THUMB_URL,
+          thumb_key: `${'b'.repeat(64)}.jpg`,
+          width: 800,
+          height: 600,
+        }),
+        { headers: { 'Content-Type': 'application/json' } }
+      )
   );
 }
 
@@ -193,7 +208,14 @@ describe('ruleset cover rehosting', () => {
         const body = JSON.parse(String(init?.body)) as { source_url: string };
         if (body.source_url === SOURCE_URL) {
           return new Response(
-            JSON.stringify({ url: DELIVERY_URL, key: `${'a'.repeat(64)}.jpg`, width: 800, height: 600 }),
+            JSON.stringify({
+              url: DELIVERY_URL,
+              key: `${'a'.repeat(64)}.jpg`,
+              thumb_url: DELIVERY_THUMB_URL,
+              thumb_key: `${'b'.repeat(64)}.jpg`,
+              width: 800,
+              height: 600,
+            }),
             { headers: { 'Content-Type': 'application/json' } }
           );
         }
@@ -233,7 +255,14 @@ describe('ruleset cover rehosting', () => {
           await ctx.db.patch(ruleset._id, { image_cover: 'https://elsewhere.example/new.png' });
         });
         return new Response(
-          JSON.stringify({ url: DELIVERY_URL, key: `${'a'.repeat(64)}.jpg`, width: 800, height: 600 }),
+          JSON.stringify({
+            url: DELIVERY_URL,
+            key: `${'a'.repeat(64)}.jpg`,
+            thumb_url: DELIVERY_THUMB_URL,
+            thumb_key: `${'b'.repeat(64)}.jpg`,
+            width: 800,
+            height: 600,
+          }),
           { headers: { 'Content-Type': 'application/json' } }
         );
       })
