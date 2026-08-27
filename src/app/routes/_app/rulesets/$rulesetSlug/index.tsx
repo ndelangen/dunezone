@@ -13,6 +13,7 @@ import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
+import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -364,21 +365,7 @@ function RulesetDetailPage() {
                 <Text size="sm">Unknown</Text>
               )}
               {assignedGroup ? (
-                <Group gap={6} wrap="nowrap" align="center">
-                  {/* A glyph, not an avatar: the `groups` table carries no image, and this only has to say "a group". */}
-                  <UsersRound size={15} aria-hidden />
-                  <Anchor
-                    size="sm"
-                    fw={600}
-                    /* White, not the accent: this line sits on artwork, where the accent loses against the sand. */
-                    c="white"
-                    renderRoot={(rootProps) => (
-                      <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: assignedGroup.slug }} />
-                    )}
-                  >
-                    {assignedGroup.name}
-                  </Anchor>
-                </Group>
+                <GroupLink slug={assignedGroup.slug} name={assignedGroup.name} />
               ) : (
                 <Text size="sm" c="dimmed">
                   No maintaining group

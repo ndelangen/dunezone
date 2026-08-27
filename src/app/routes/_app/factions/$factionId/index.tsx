@@ -24,6 +24,7 @@ import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/con
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
+import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -431,14 +432,7 @@ function FactionDetailPage() {
                   <Box>
                     <Eyebrow>Maintaining group</Eyebrow>
                     {assignedGroup.slug ? (
-                      <Anchor
-                        fw={600}
-                        renderRoot={(rootProps) => (
-                          <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: assignedGroup.slug }} />
-                        )}
-                      >
-                        {assignedGroup.name}
-                      </Anchor>
+                      <GroupLink slug={assignedGroup.slug} name={assignedGroup.name} />
                     ) : (
                       <Text fw={600}>{assignedGroup.name}</Text>
                     )}

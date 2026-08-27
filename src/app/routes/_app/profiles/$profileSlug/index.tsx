@@ -9,6 +9,7 @@ import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { RulesetLink } from '@ui/content/RulesetLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -105,13 +106,7 @@ function FaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] }) {
       {items.map((item) => (
         <SectionedSurface.Row key={item._id}>
           <div className={styles.contextStrip}>
-            <Link
-              to="/rulesets/$rulesetSlug"
-              params={{ rulesetSlug: item.ruleset.slug }}
-              className={styles.rulesetLink}
-            >
-              {item.ruleset.name}
-            </Link>
+            <RulesetLink slug={item.ruleset.slug} name={item.ruleset.name} />
             <span aria-hidden>·</span>
             <time dateTime={item.created_at}>{formatRelativeDate(item.created_at)}</time>
           </div>
@@ -148,13 +143,7 @@ function FaqAnswersGiven({ items, viewedProfileId }: { items: FaqAnswerGiven[]; 
         return (
           <SectionedSurface.Row key={row._id}>
             <div className={styles.contextStrip}>
-              <Link
-                to="/rulesets/$rulesetSlug"
-                params={{ rulesetSlug: row.ruleset.slug }}
-                className={styles.rulesetLink}
-              >
-                {row.ruleset.name}
-              </Link>
+              <RulesetLink slug={row.ruleset.slug} name={row.ruleset.name} />
               <span aria-hidden>·</span>
               {row.asker_profile ? (
                 <AskerChip profile={row.asker_profile} viewedProfileId={viewedProfileId} />

@@ -83,16 +83,6 @@
   color: var(--color-muted, #666);
 }
 
-.rulesetLink {
-  font-weight: 600;
-  color: var(--color-accent-strong, #8b5a2b);
-  text-decoration: none;
-}
-
-.rulesetLink:hover {
-  text-decoration: underline;
-}
-
 .selfNote {
   font-style: italic;
   color: var(--color-muted, #735c47);

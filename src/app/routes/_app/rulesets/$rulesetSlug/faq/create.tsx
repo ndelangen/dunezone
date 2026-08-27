@@ -3,6 +3,7 @@ import type { FaqTag } from '@shared/faq/tags';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
+import { RulesetLink } from '@ui/content/RulesetLink';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -36,7 +37,11 @@ function FaqCreatePage() {
     <div>
       <h1>Ask a question</h1>
       <p>
-        {rulesetRow ? `For ${rulesetRow.name} · ` : null}
+        {rulesetRow ? (
+          <>
+            For <RulesetLink slug={rulesetSlug} name={rulesetRow.name} /> ·{' '}
+          </>
+        ) : null}
         <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
           Back to ruleset
         </Link>
