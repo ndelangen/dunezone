@@ -159,9 +159,15 @@ export const NestedItemActive = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    const levels = canvas.getAllByRole('navigation');
     await expect(canvas.getByRole('link', { name: 'Root item B' })).toHaveAttribute('data-path-state', 'ancestor');
     await expect(canvas.getByRole('link', { name: 'Nested item A' })).toHaveAttribute('aria-current', 'page');
     await expect(canvas.queryByRole('tab')).not.toBeInTheDocument();
+    for (const level of levels) {
+      const items = level.querySelector(':scope > ul');
+      await expect(items).not.toBeNull();
+      await expect(getComputedStyle(items as HTMLElement).overflowX).toBe('hidden');
+    }
   },
 });
 

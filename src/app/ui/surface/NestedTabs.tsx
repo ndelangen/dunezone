@@ -14,6 +14,7 @@ import {
 } from 'react';
 import type {
   ComponentPropsWithoutRef,
+  Context,
   ElementType,
   PropsWithChildren,
   ReactElement,
@@ -31,7 +32,35 @@ interface NestedTabsContextValue {
   levelIndex: number;
 }
 
-const NestedTabsContext = createContext<NestedTabsContextValue | null>(null);
+const NESTED_TABS_CONTEXT_KEY = Symbol.for('dunezone.nested-tabs-context');
+
+type NestedTabsGlobal = typeof globalThis & {
+  [NESTED_TABS_CONTEXT_KEY]?: Context<NestedTabsContextValue | null>;
+};
+
+const nestedTabsGlobal = globalThis as NestedTabsGlobal;
+const NestedTabsContext =
+  nestedTabsGlobal[NESTED_TABS_CONTEXT_KEY] ?? createContext<NestedTabsContextValue | null>(null);
+nestedTabsGlobal[NESTED_TABS_CONTEXT_KEY] = NestedTabsContext;
+
+const NESTED_TABS_CHILD_KIND = Symbol.for('dunezone.nested-tabs-child-kind');
+
+type NestedTabsChildKind = 'item' | 'group' | 'tools' | 'level' | 'content-panel';
+
+type NestedTabsChildComponent = {
+  [NESTED_TABS_CHILD_KIND]?: NestedTabsChildKind;
+};
+
+function markNestedTabsChild(component: object, kind: NestedTabsChildKind) {
+  Object.defineProperty(component, NESTED_TABS_CHILD_KIND, { value: kind });
+}
+
+function nestedTabsChildKind(child: ReactElement): NestedTabsChildKind | null {
+  if ((typeof child.type !== 'function' && typeof child.type !== 'object') || child.type === null) {
+    return null;
+  }
+  return (child.type as NestedTabsChildComponent)[NESTED_TABS_CHILD_KIND] ?? null;
+}
 
 interface NestedTabsLayerGeometry {
   width: number;
@@ -166,6 +195,7 @@ function useNestedTabsLayerGeometry({
     }
 
     let animationFrame = 0;
+    let scrollingTimer = 0;
     const measure = () => {
       const rootRect = root.getBoundingClientRect();
       const itemsRect = items.getBoundingClientRect();
@@ -203,6 +233,12 @@ function useNestedTabsLayerGeometry({
       cancelAnimationFrame(animationFrame);
       animationFrame = requestAnimationFrame(measure);
     };
+    const handleScroll = () => {
+      items.setAttribute('data-scrolling', '');
+      window.clearTimeout(scrollingTimer);
+      scrollingTimer = window.setTimeout(() => items.removeAttribute('data-scrolling'), 650);
+      scheduleMeasure();
+    };
 
     const revealActiveItem = () => {
       const itemsRect = items.getBoundingClientRect();
@@ -216,14 +252,19 @@ function useNestedTabsLayerGeometry({
         items.scrollTop += tabRect.bottom - revealBottom;
       }
     };
+    const revealActiveItemAfterResize = () => {
+      revealActiveItem();
+      scheduleMeasure();
+    };
 
     revealActiveItem();
     measure();
-    items.addEventListener('scroll', scheduleMeasure, { passive: true });
+    items.addEventListener('scroll', handleScroll, { passive: true });
     const mutationObserver = new MutationObserver(scheduleMeasure);
     mutationObserver.observe(level, { childList: true, subtree: true });
 
-    const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(scheduleMeasure);
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(revealActiveItemAfterResize);
     resizeObserver?.observe(root);
     resizeObserver?.observe(items);
     resizeObserver?.observe(target);
@@ -231,7 +272,9 @@ function useNestedTabsLayerGeometry({
 
     return () => {
       cancelAnimationFrame(animationFrame);
-      items.removeEventListener('scroll', scheduleMeasure);
+      window.clearTimeout(scrollingTimer);
+      items.removeAttribute('data-scrolling');
+      items.removeEventListener('scroll', handleScroll);
       mutationObserver.disconnect();
       resizeObserver?.disconnect();
     };
@@ -398,11 +441,11 @@ function descendantItemPaths(children: ReactNode): NestedTabsPath[] {
     if (!isValidElement(child)) {
       return;
     }
-    if (child.type === Item) {
+    if (nestedTabsChildKind(child) === 'item') {
       paths.push((child.props as NestedTabsItemOwnProps).path);
       return;
     }
-    if (child.type === Group) {
+    if (nestedTabsChildKind(child) === 'group') {
       paths.push(...descendantItemPaths((child.props as NestedTabsGroupProps).children));
     }
   });
@@ -455,7 +498,7 @@ function splitLevelChildren(children: ReactNode) {
   let tools: ReactNode = null;
 
   Children.forEach(children, (child) => {
-    if (isValidElement<NestedTabsToolsProps>(child) && child.type === Tools) {
+    if (isValidElement<NestedTabsToolsProps>(child) && nestedTabsChildKind(child) === 'tools') {
       if (tools !== null) {
         throw new Error('[NestedTabs.Level] accepts at most one direct NestedTabs.Tools child.');
       }
@@ -507,11 +550,11 @@ function splitRootChildren(children: ReactNode) {
     if (!isValidElement(child)) {
       return;
     }
-    if (child.type === Level) {
+    if (nestedTabsChildKind(child) === 'level') {
       levels.push(child as ReactElement<NestedTabsLevelProps>);
       return;
     }
-    if (child.type === ContentPanel) {
+    if (nestedTabsChildKind(child) === 'content-panel') {
       panels.push(child as ReactElement<NestedTabsContentPanelProps>);
       return;
     }
@@ -570,6 +613,12 @@ type NestedTabsComponent = ((props: NestedTabsProps) => ReactNode) & {
   Tools: typeof Tools;
   ContentPanel: typeof ContentPanel;
 };
+
+markNestedTabsChild(Item, 'item');
+markNestedTabsChild(Group, 'group');
+markNestedTabsChild(Tools, 'tools');
+markNestedTabsChild(Level, 'level');
+markNestedTabsChild(ContentPanel, 'content-panel');
 
 export const NestedTabs = Object.assign(NestedTabsBase, {
   Level,

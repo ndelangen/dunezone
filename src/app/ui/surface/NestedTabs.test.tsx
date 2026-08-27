@@ -89,6 +89,42 @@ afterEach(async () => {
 });
 
 describe('NestedTabs', () => {
+  it('accepts compound children retained across a module refresh', async () => {
+    vi.resetModules();
+    const { NestedTabs: ReloadedNestedTabs } = await import('./NestedTabs');
+
+    expect(ReloadedNestedTabs.Level).not.toBe(NestedTabs.Level);
+
+    await act(async () =>
+      root?.render(
+        <MantineProvider theme={appContentTheme}>
+          <ReloadedNestedTabs activePath={['root', 'nested']} ariaLabel="Refreshed navigator">
+            <NestedTabs.Level label="Root level">
+              <NestedTabs.Item as="a" href="#root" path={['root']} label="Root item" icon={<span>R</span>} />
+              <NestedTabs.Tools>
+                <button type="button">Root tool</button>
+              </NestedTabs.Tools>
+            </NestedTabs.Level>
+            <NestedTabs.Level label="Nested level">
+              <ReloadedNestedTabs.Group label="Refreshed group">
+                <NestedTabs.Item
+                  as="a"
+                  href="#nested"
+                  path={['root', 'nested']}
+                  label="Nested item"
+                  icon={<span>N</span>}
+                />
+              </ReloadedNestedTabs.Group>
+            </NestedTabs.Level>
+            <NestedTabs.ContentPanel aria-label="Refreshed content">Content</NestedTabs.ContentPanel>
+          </ReloadedNestedTabs>
+        </MantineProvider>
+      )
+    );
+
+    expect(container?.querySelector('[aria-label="Refreshed navigator"]')).not.toBeNull();
+  });
+
   it('preserves typed TanStack Link destination props', () => {
     const typedItem = (
       <NestedTabs.Item
