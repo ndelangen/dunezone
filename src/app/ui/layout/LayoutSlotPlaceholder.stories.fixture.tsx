@@ -14,11 +14,11 @@ export function LayoutSlotPlaceholder({
   name,
   tone,
   minHeight = 240,
-}: {
+}: Readonly<{
   name: string;
   tone: LayoutSlotPlaceholderTone;
   minHeight?: number;
-}) {
+}>) {
   const color = toneColors[tone];
 
   return (

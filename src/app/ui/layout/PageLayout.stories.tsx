@@ -13,7 +13,7 @@ import { PageLayout } from './PageLayout';
  * that negotiation belongs to
  * `Shell/AppHeader`'s stories, not here.
  */
-function ShellFrame({ children }: { children: ReactNode }) {
+function ShellFrame({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <div
       style={

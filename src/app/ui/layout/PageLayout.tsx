@@ -11,7 +11,7 @@ import styles from './PageLayout.module.css';
 export type PageHeaderSize = 'default' | 'compact' | 'hero';
 
 /** How much horizontal room the page content may claim. */
-export type PageContentWidth = 'default' | 'viewport';
+type PageContentWidth = 'default' | 'viewport';
 
 const InsidePageHeader = createContext(false);
 
