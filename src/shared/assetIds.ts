@@ -1,6 +1,11 @@
+
 import { z } from 'zod';
 
-export const BACKGROUND = z.enum(['/vector/background/map.svg', '/vector/background/moon.svg']);
+
+export const BACKGROUND = z.enum([
+  '/vector/background/map.svg',
+  '/vector/background/moon.svg'
+]);
 
 export const GENERIC = z.enum([
   '/vector/generic/6star.svg',
@@ -251,7 +256,7 @@ export const GENERIC = z.enum([
   '/vector/generic/why.svg',
   '/vector/generic/wuurm.svg',
   '/vector/generic/x.svg',
-  '/vector/generic/zap.svg',
+  '/vector/generic/zap.svg'
 ]);
 
 export const LOGO = z.enum([
@@ -269,7 +274,7 @@ export const LOGO = z.enum([
   '/vector/logo/iduali.svg',
   '/vector/logo/ixian.svg',
   '/vector/logo/moritani.svg',
-  '/vector/logo/richese.svg',
+  '/vector/logo/richese.svg'
 ]);
 
 export const DECAL = z.enum([
@@ -432,7 +437,7 @@ export const DECAL = z.enum([
   '/vector/decal/weirding-way-plus.svg',
   '/vector/decal/weirding-way.svg',
   '/vector/decal/wire.svg',
-  '/vector/decal/zenobia.svg',
+  '/vector/decal/zenobia.svg'
 ]);
 
 export const ICON = z.enum([
@@ -497,7 +502,7 @@ export const ICON = z.enum([
   '/vector/icon/water.svg',
   '/vector/icon/waves.svg',
   '/vector/icon/worthless.svg',
-  '/vector/icon/wreath.svg',
+  '/vector/icon/wreath.svg'
 ]);
 
 export const LEADERS = z.enum([
@@ -746,7 +751,7 @@ export const LEADERS = z.enum([
   '/image/leader/official/whitmore.jpg',
   '/image/leader/official/wykk.png',
   '/image/leader/official/zaaf.png',
-  '/image/leader/official/zoal.png',
+  '/image/leader/official/zoal.png'
 ]);
 
 export const PLANET = z.enum([
@@ -762,7 +767,7 @@ export const PLANET = z.enum([
   '/image/planet/10.png',
   '/image/planet/11.png',
   '/image/planet/12.png',
-  '/image/planet/13.png',
+  '/image/planet/13.png'
 ]);
 
 export const TEXTURE = z.enum([
@@ -838,7 +843,7 @@ export const TEXTURE = z.enum([
   '/image/texture/079.jpg',
   '/image/texture/080.jpg',
   '/image/texture/081.jpg',
-  '/image/texture/082.jpg',
+  '/image/texture/082.jpg'
 ]);
 
 export const TROOP = z.enum([
@@ -865,14 +870,20 @@ export const TROOP = z.enum([
   '/vector/troop/peddler.svg',
   '/vector/troop/pewpew.svg',
   '/vector/troop/richese.svg',
-  '/vector/troop/smuggler.svg',
+  '/vector/troop/smuggler.svg'
 ]);
 
 export const TROOP_MODIFIER = z.enum([
   '/vector/troop_modifier/star-left-red.svg',
   '/vector/troop_modifier/star-left.svg',
   '/vector/troop_modifier/star-right-red.svg',
-  '/vector/troop_modifier/star-right.svg',
+  '/vector/troop_modifier/star-right.svg'
 ]);
 
-export const ALL = z.union([GENERIC, LOGO, DECAL, ICON, TROOP]);
+export const ALL = z.union([
+  GENERIC,
+  LOGO,
+  DECAL,
+  ICON,
+  TROOP
+]);

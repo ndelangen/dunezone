@@ -14,6 +14,7 @@ import {
 import { canSetDefaultGroup, loadDefaultGroupPreferenceProjection } from './lib/defaultGroupPreference';
 import { requireAuthUserId } from './lib/policy';
 import { loadProfileActivityCounts } from './lib/profileActivity';
+import { scheduleAvatarRehostIfPending } from './lib/profileAvatar';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { loadProfileDetailBySlug } from './lib/profileDetail';
 import { discoverableProfileValidator, loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
@@ -188,6 +189,13 @@ export const updateCurrent = mutation({
     }
     const normalizedUsername = parsed.data.username;
     const normalizedAvatarUrl = parsed.data.avatar_url;
+    /*
+     * The echo guard: the edit form round-trips `avatar_url`, which after a rehost is our own delivery URL.
+     * A submission equal to the stored avatar's delivery URL, or to the current `avatar_url`, is not a new source and must not mint a token or disturb the stored avatar.
+     * A genuinely new external URL clears `avatar` so the page renders the submitted URL until the rehost callback flips it.
+     */
+    const avatarChanged =
+      normalizedAvatarUrl !== profile.avatar?.url && normalizedAvatarUrl !== profile.avatar_url;
     const requestedDefaultGroupId = args.default_group_id;
     const defaultGroupId =
       requestedDefaultGroupId === undefined
@@ -216,7 +224,7 @@ export const updateCurrent = mutation({
 
     await ctx.db.patch(profile._id, {
       username: normalizedUsername,
-      avatar_url: normalizedAvatarUrl,
+      ...(avatarChanged ? { avatar_url: normalizedAvatarUrl, avatar: null } : {}),
       ...(defaultGroupId === undefined ? {} : { default_group_id: defaultGroupId }),
       slug: nextSlug,
       updated_at: nowIso(),
@@ -225,6 +233,9 @@ export const updateCurrent = mutation({
     const updated = await ctx.db.get(profile._id);
     if (!updated) {
       throw new Error('Failed to update profile');
+    }
+    if (avatarChanged) {
+      await scheduleAvatarRehostIfPending(ctx, updated);
     }
     return {
       profile: updated,

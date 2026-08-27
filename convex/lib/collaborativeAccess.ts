@@ -653,7 +653,7 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
           id: profile._id,
           slug: profile.slug,
           username: profile.username,
-          avatar_url: profile.avatar_url,
+          avatar_url: profile.avatar?.url ?? profile.avatar_url,
         },
         status: membership.status,
         requestedAt: membership.requested_at,
@@ -673,7 +673,7 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
           id: ownerProfile._id,
           slug: ownerProfile.slug,
           username: ownerProfile.username,
-          avatar_url: ownerProfile.avatar_url,
+          avatar_url: ownerProfile.avatar?.url ?? ownerProfile.avatar_url,
         }
       : null;
 

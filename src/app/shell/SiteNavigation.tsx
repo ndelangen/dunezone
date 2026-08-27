@@ -6,7 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useCurrentProfile } from '@db/profiles';
+import { profileAvatarUrl, useCurrentProfile } from '@db/profiles';
 
 import styles from './SiteNavigation.module.css';
 
@@ -59,6 +59,7 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
   const overflow = links.slice(visibleCount);
   /* Captured so the menu's `renderRoot` callbacks keep the narrowing that a property access would lose inside them. */
   const account = profile.data;
+  const accountAvatarUrl = account ? profileAvatarUrl(account) : null;
 
   return (
     <nav className={styles.root} aria-label="Primary navigation">
@@ -114,8 +115,8 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
             <Menu position="bottom-end" shadow="md" withinPortal>
               <Menu.Target>
                 <button type="button" className={styles.avatarButton} aria-label={account.username ?? 'Account'}>
-                  {account.avatar_url ? (
-                    <img src={account.avatar_url} alt="" className={styles.avatarImage} />
+                  {accountAvatarUrl ? (
+                    <img src={accountAvatarUrl} alt="" className={styles.avatarImage} />
                   ) : (
                     <span className={styles.avatarInitials}>{account.username?.slice(0, 2).toUpperCase() ?? '??'}</span>
                   )}

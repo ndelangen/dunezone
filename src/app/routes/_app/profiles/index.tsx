@@ -7,7 +7,7 @@ import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { CircleHelp, MessageCircleReply, Shield, UsersRound } from 'lucide-react';
 
-import { loadProfilesAll, useProfilesAll } from '@db/profiles';
+import { loadProfilesAll, profileAvatarUrl, useProfilesAll } from '@db/profiles';
 
 import styles from './ProfilesIndex.module.css';
 
@@ -41,7 +41,7 @@ function ProfilesPage() {
                 return (
                   <li key={profile._id}>
                     <Group justify="space-between" wrap="nowrap" gap="md">
-                      <ProfileLink slug={profile.slug} username={profile.username} avatar_url={profile.avatar_url} />
+                      <ProfileLink slug={profile.slug} username={profile.username} avatar_url={profileAvatarUrl(profile)} />
 
                       <Stats
                         items={[
