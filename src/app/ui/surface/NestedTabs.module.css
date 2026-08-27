@@ -140,9 +140,9 @@
   color: currentColor;
   text-decoration: none;
   background: transparent;
-  border: 1px solid currentColor;
+  border: 0;
   border-radius: calc(var(--nested-tabs-radius) + 0.15rem);
-  opacity: 0.44;
+  opacity: 0.58;
   cursor: pointer;
   place-items: center;
   transition:
@@ -154,7 +154,6 @@
 .item[data-path-state="active"],
 .item[data-path-state="ancestor"] {
   background: transparent;
-  border-color: transparent;
   opacity: 1;
 }
 
@@ -202,7 +201,7 @@
   height: 1.8rem;
   margin-block-end: 0.15rem;
   color: currentColor;
-  opacity: 0.44;
+  opacity: 0.58;
   place-items: center;
   transition: opacity var(--transition-fast);
 }
