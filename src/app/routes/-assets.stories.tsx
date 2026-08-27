@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from './-storybookConfig';
 
@@ -84,5 +84,60 @@ export const CreateStormCardNoEditor = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'Storm cards' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('heading', { name: 'No editor yet' }, { timeout: 30_000 })).resolves.toBeVisible();
+  },
+});
+
+/**
+ * Creating a card saves it and hands the author to its editor at the slug the server minted.
+ *
+ * The navigation is the proof rather than the badge: a resolved promise alone would let the toolbar read "Saved", but the route cannot reach the edit page without a real id and slug coming back.
+ * "Delete card" is what tells the two pages apart, since only the editor carries a destructive action.
+ */
+export const CreateTreacheryCardSaves = meta.story({
+  args: { path: '/assets/card-treachery/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
+    await userEvent.type(name, 'Storybook Lasgun');
+    await userEvent.click(page.getByRole('button', { name: 'Save card' }));
+    await expect(page.findByRole('button', { name: 'Delete card' }, { timeout: 30_000 })).resolves.toBeVisible();
+  },
+});
+
+/**
+ * A validation chip moves the editor to the chapter that warning belongs to.
+ *
+ * The routing is the route's own: `ValidationHeader` reports which warning was chosen and this page decides `setChapter(warning.chapter)`, so the chapter key travels from the draft's warnings through the header and back into route state.
+ * Asserting the Body field is absent first is what stops this passing whatever the chip does.
+ */
+export const CreateTreacheryCardChapterJump = meta.story({
+  args: { path: '/assets/card-treachery/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
+    expect(page.queryByRole('textbox', { name: 'Body' })).toBeNull();
+    const chip = await page.findByRole('button', { name: /Body/ }, { timeout: 30_000 });
+    await userEvent.click(chip);
+    await expect(page.findByRole('textbox', { name: 'Body' }, { timeout: 30_000 })).resolves.toBeVisible();
+  },
+});
+
+/**
+ * A deck's composition counts are server state, written on commit rather than held until Save.
+ *
+ * The rail's total is the proof and the count field is not: `MemberCountInput` keeps what you typed in its own state and reclaims it on commit, so the field would read the new number whether or not anything was written.
+ * The total is reduced from the members the page query returns, so it can only move once the mutation has landed and the query has re-run.
+ */
+export const EditDeckMemberCountWrites = meta.story({
+  args: { path: '/assets/deck/house-treachery/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('3 cards across 1 title', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await userEvent.click(await page.findByRole('tab', { name: 'Cards' }, { timeout: 30_000 }));
+    const copies = await page.findByRole('textbox', { name: /^Copies of / }, { timeout: 30_000 });
+    await userEvent.clear(copies);
+    await userEvent.type(copies, '2');
+    await userEvent.tab();
+    await expect(page.findByText('2 cards across 1 title', {}, { timeout: 30_000 })).resolves.toBeVisible();
   },
 });
