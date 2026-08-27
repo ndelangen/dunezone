@@ -188,24 +188,32 @@
   position: relative;
   display: grid;
   flex: 0 0 auto;
-  isolation: isolate;
   justify-items: center;
   width: 100%;
   padding: 0.25rem 0.15rem 0.35rem;
 }
 
-.group::before {
+.group::before,
+.group::after {
   position: absolute;
-  z-index: -1;
-  inset: 0 0.1rem;
-  background: color-mix(in srgb, currentColor 10%, transparent);
-  border-radius: calc(var(--nested-tabs-radius) + 0.1rem);
+  inset-inline: 0.35rem;
+  height: 1px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
   content: "";
   transition: background-color var(--transition-fast);
 }
 
-.group[data-contains-active-item="true"]::before {
-  background: color-mix(in srgb, currentColor 18%, transparent);
+.group::before {
+  inset-block-start: 0;
+}
+
+.group::after {
+  inset-block-end: 0;
+}
+
+.group[data-contains-active-item="true"]::before,
+.group[data-contains-active-item="true"]::after {
+  background: color-mix(in srgb, currentColor 32%, transparent);
 }
 
 .groupAdornment {
@@ -306,6 +314,7 @@
 @media (prefers-reduced-motion: reduce) {
   .item,
   .group::before,
+  .group::after,
   .groupAdornment {
     transition: none;
   }
