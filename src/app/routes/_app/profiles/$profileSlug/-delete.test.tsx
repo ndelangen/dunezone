@@ -21,6 +21,12 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
     ...actual,
     createFileRoute: () => (options: unknown) => ({ options, useParams: () => ({ profileSlug: 'source' }) }),
     Link: ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
+    /* `PageMessage.Back` is built with `createLink`, whose `useLinkProps` reads router context and
+       throws without a `RouterProvider`. Mocking it to the same plain anchor `Link` already gets
+       keeps this a unit test of the page rather than of the router. */
+    createLink:
+      () =>
+      ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
   };
 });
 
@@ -154,7 +160,9 @@ describe('account deletion page', () => {
   });
 
   it.each([
-    [{ kind: 'denied', reason: 'signed_out' }, 'Account deletion is unavailable'],
+    /* The marker moved with the words: a signed-out reader now gets the login gate rather than the
+       sentence that used to serve both denial reasons, so "Log in" is what identifies this state. */
+    [{ kind: 'denied', reason: 'signed_out' }, 'Log in'],
     [
       {
         kind: 'pending',
