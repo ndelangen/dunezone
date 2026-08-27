@@ -29,15 +29,7 @@ function ShellFrame({ children }: { children: ReactNode }) {
         } as CSSProperties
       }
     >
-      <div
-        aria-hidden
-        style={{
-          gridArea: 'hero',
-          minHeight: 180,
-          borderRadius: 6,
-          background: 'linear-gradient(180deg, rgba(120,90,50,0.55), rgba(40,30,20,0.75))',
-        }}
-      />
+      <div aria-hidden style={{ gridArea: 'hero', minHeight: 180 }} />
       {children}
     </div>
   );
@@ -50,7 +42,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          "The frame every terminal route composes: a header that overlays the shell's artwork band, an optional toolbar, and the content. It claims grid areas from its parent rather than creating any, so these stories supply a stand-in frame — the band behind the header here is a placeholder, not the real one.",
+          "The frame every terminal route composes: a header that overlays the shell's artwork band, an optional toolbar, and the content. It claims grid areas from its parent rather than creating any, so these stories reserve unpainted shell grid rows without imitating the application artwork.",
       },
     },
   },
