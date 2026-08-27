@@ -2,6 +2,7 @@ html {
   background-color: rgba(0, 0, 0);
   min-height: 100vh;
   width: 100vw;
+  scrollbar-gutter: stable both-edges;
   background-image: url("/web/page-large.jpg");
   background-size: cover;
   background-repeat: no-repeat;

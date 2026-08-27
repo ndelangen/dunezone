@@ -114,6 +114,15 @@ export const WithToolbar = meta.story({
  * Only the content reaches from one shell gutter to the other.
  */
 export const ViewportContent = meta.story({
+  beforeEach: () => {
+    const documentElement = document.documentElement;
+    const previousScrollbarGutter = documentElement.style.scrollbarGutter;
+    documentElement.style.scrollbarGutter = 'stable both-edges';
+
+    return () => {
+      documentElement.style.scrollbarGutter = previousScrollbarGutter;
+    };
+  },
   render: () => (
     <PageLayout>
       <PageLayout.Header>{headerSlot}</PageLayout.Header>
@@ -121,7 +130,7 @@ export const ViewportContent = meta.story({
         <LayoutSlotPlaceholder name="toolbar slot" tone="toolbar" minHeight={72} />
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
-        <LayoutSlotPlaceholder name="content slot" tone="primary" minHeight={420} />
+        <LayoutSlotPlaceholder name="content slot" tone="primary" minHeight={1200} />
       </PageLayout.Content>
     </PageLayout>
   ),
@@ -136,8 +145,11 @@ export const ViewportContent = meta.story({
 
       const toolbarRect = toolbar?.getBoundingClientRect();
       const contentRect = content?.getBoundingClientRect();
-      const viewportWidth = canvasElement.ownerDocument.documentElement.clientWidth;
+      const documentElement = canvasElement.ownerDocument.documentElement;
+      const viewportWidth = documentElement.clientWidth;
 
+      expect(getComputedStyle(documentElement).scrollbarGutter).toBe('stable both-edges');
+      expect(documentElement.scrollHeight).toBeGreaterThan(documentElement.clientHeight);
       expect(contentRect?.width).toBeCloseTo(viewportWidth - 40, 0);
       expect(contentRect?.width).toBeGreaterThan(toolbarRect?.width ?? Number.POSITIVE_INFINITY);
       expect(contentRect?.left).toBeCloseTo(20, 0);

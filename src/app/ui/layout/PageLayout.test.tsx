@@ -75,4 +75,18 @@ describe('PageLayout', () => {
       markup.indexOf('data-page-layout-content-width="viewport"')
     );
   });
+
+  it('omits the toolbar wrapper when the toolbar slot contains a Boolean child', () => {
+    const markup = renderToStaticMarkup(
+      <PageLayout>
+        <PageLayout.Toolbar>{false}</PageLayout.Toolbar>
+        <PageLayout.Content>
+          <p>Page content</p>
+        </PageLayout.Content>
+      </PageLayout>
+    );
+
+    expect(markup).not.toContain('data-page-layout-toolbar');
+    expect(markup).toContain('Page content');
+  });
 });
