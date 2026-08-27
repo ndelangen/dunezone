@@ -47,10 +47,23 @@ An ordered set of fixed-size pages belonging to a Ruleset, maintained collaborat
 The versioned authored substance of a Rulebook: its Rulebook Pages, Rulebook Blocks, Repeated text items, and their ordering and placement. Rulebook identity, ownership, name, and other metadata remain outside its Contents.
 
 **Rulebook Page**:
-One fixed-size unit of Rulebook Contents whose chosen layout owns named slots for Rulebook Blocks.
+One fixed-size unit of Rulebook Contents whose chosen layout defines common properties and named Page regions. A Page owns its Blocks; they may move among its compatible Block regions but never to another Page.
+
+**Rulebook Page region**:
+One layout-defined grouping within a Rulebook Page, identified by a stable key but never authored or visited as an independent entity. Every Page region is either a Control region or a Block region.
+_Avoid_: Slot, direct-field slot, field region
+
+**Rulebook Control region**:
+A navigable Page region that exposes one or more layout-specific controls for Page-owned values. It contains no Blocks.
+
+**Rulebook Block region**:
+A non-navigable Page region that orders the compatible Rulebook Blocks placed within it. It has no controls and acts as the boundary for adding, reordering, and moving Blocks on that Page.
 
 **Rulebook Block**:
-A stable, structured unit of authored content placed in one Rulebook Page slot.
+A stable, structured unit of authored content owned by one Rulebook Page and placed in exactly one of its compatible Block regions.
+
+**Rulebook active path**:
+The editor location addressed by the URL: a Page alone, a Page and Control region, or a Page and Block. Its leaf is the active target and determines the controls, previewed Page, and preview highlight.
 
 **Repeated text Block**:
 A Rulebook Block that owns an ordered collection of Repeated text items.
