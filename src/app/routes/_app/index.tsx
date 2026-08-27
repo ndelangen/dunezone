@@ -1,22 +1,10 @@
-import {
-  Anchor,
-  Avatar,
-  Badge,
-  Box,
-  Button,
-  Group,
-  Loader,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-} from '@mantine/core';
+import { Anchor, Avatar, Badge, Box, Button, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { useReducedMotion } from '@mantine/hooks';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { LoadError } from '@ui/block/LoadError';
+import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
@@ -34,6 +22,7 @@ import { SiBoardgamegeek, SiDiscord } from 'react-icons/si';
 
 import { loadHomepage, useHomepage } from '@db/homepage';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
@@ -398,37 +387,30 @@ function AnimatedLeaderToken() {
   );
 }
 
+/*
+ * No way back on either: the landing page is the top of every branch, so a link here would point at
+ * the page the reader is already on.
+ *
+ * These were half-converted before, which is the failure mode the widget's own doc warns about: the
+ * error frame used the body and not the frame, so its alert sat straight on the page background
+ * while every other caller's sat on a pane, and the pending frame used neither, hand-rolling a
+ * `Surface` whose missing padding prop resolved to none against the frame's xl.
+ */
 function HomepagePending() {
   return (
-    <PageLayout>
-      <PageLayout.Header size="hero">
-        <PageTitle title="Make Dune your own" />
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <Surface>
-          <Stack align="center" gap="sm">
-            <Loader size="sm" />
-            <Title order={2}>Setting the table</Title>
-            <Text c="dimmed">The latest work from the community is loading.</Text>
-          </Stack>
-        </Surface>
-      </PageLayout.Content>
-    </PageLayout>
+    <PageMessage size="hero" title="Make Dune your own">
+      <LoadPending title="Setting the table">The latest work from the community is loading.</LoadPending>
+    </PageMessage>
   );
 }
 
 function HomepageError({ error }: ErrorComponentProps) {
   return (
-    <PageLayout>
-      <PageLayout.Header size="hero">
-        <PageTitle title="Make Dune your own" />
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <LoadError title="The homepage could not be loaded" stale={isStaleClientData(error)}>
-          {error.message}
-        </LoadError>
-      </PageLayout.Content>
-    </PageLayout>
+    <PageMessage size="hero" title="Make Dune your own">
+      <LoadError title="The homepage could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
+    </PageMessage>
   );
 }
 

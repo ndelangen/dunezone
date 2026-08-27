@@ -1,6 +1,10 @@
-import { Alert, Anchor, Button, Checkbox, Group, List, Loader, Popover, Stack, Text, Title } from '@mantine/core';
+import { Alert, Button, Checkbox, Group, List, Popover, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { LoadError } from '@ui/block/LoadError';
+import { LoadPending } from '@ui/block/LoadPending';
+import { LoginGate } from '@ui/block/LoginGate';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { ConfirmDeleteButton } from '@ui/control/ConfirmDeleteButton';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -12,6 +16,7 @@ import { useState } from 'react';
 import { useAccountDeletionPage, useConfirmAccountDeletion } from '@db/accountDeletion';
 import type { ReplacementProfile } from '@db/accountDeletion';
 import { ProfilePicker } from '@app/pickers/ProfilePicker';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 const kindLabels = { group: 'Groups', faction: 'Factions', ruleset: 'Rulesets' } as const;
 
@@ -42,70 +47,67 @@ function AccountDeletionPage() {
     </Toolbar>
   );
 
+  const backToSettings = (
+    <PageMessage.Back to="/profiles/$profileSlug/edit" params={{ profileSlug }}>
+      Back to profile settings
+    </PageMessage.Back>
+  );
+
   if (page.isPending) {
     return (
-      <PageLayout>
-        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Loader aria-label="Loading account deletion" />
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Delete account" back={backToSettings}>
+        <LoadPending title="Loading">Checking what deleting this account would affect.</LoadPending>
+      </PageMessage>
     );
   }
 
   const data = page.data;
-  if (!data || data.kind === 'denied') {
+  /* The server already tells these two apart, sending `reason: 'signed_out'` or `'wrong_profile'`;
+     this page used to collapse both into one sentence that offered a login link to a reader who was
+     already logged in. The vocabulary makes keeping the distinction cheaper than losing it. */
+  if (!data || (data.kind === 'denied' && data.reason === 'signed_out')) {
     return (
-      <PageLayout>
-        <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Stack gap="sm">
-              <Title order={1}>Account deletion is unavailable</Title>
-              <Text>You must be signed in to the profile named in this address.</Text>
-              <Anchor component={Link} to="/auth/login">
-                Log in
-              </Anchor>
-            </Stack>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Delete account" back={backToSettings}>
+        <LoginGate action="delete your account" />
+      </PageMessage>
+    );
+  }
+
+  if (data.kind === 'denied') {
+    return (
+      <PageMessage title="Delete account" back={backToSettings}>
+        <NotAvailable title="This is not your account">
+          You must be signed in to the profile named in this address.
+        </NotAvailable>
+      </PageMessage>
     );
   }
 
   if (data.kind === 'pending') {
+    const failed = data.operation?.state === 'failed';
     return (
-      <PageLayout>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Alert color={data.operation?.state === 'failed' ? 'red' : 'blue'} title="Account deletion is in progress">
-              {data.operation?.state === 'failed'
-                ? (data.operation.error ?? 'The operation needs administrative repair before it can continue.')
-                : `Current phase: ${data.operation?.phase ?? 'starting'}. This page updates automatically.`}
-            </Alert>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Delete account" back={backToSettings}>
+        {failed ? (
+          <LoadError title="Account deletion did not finish" stale={false}>
+            {data.operation?.error ?? 'The operation needs administrative repair before it can continue.'}
+          </LoadError>
+        ) : (
+          <LoadPending title="Account deletion is in progress">
+            {`Current phase: ${data.operation?.phase ?? 'starting'}. This page updates automatically.`}
+          </LoadPending>
+        )}
+      </PageMessage>
     );
   }
 
   if (data.kind === 'deleted') {
+    /* The one state here with no block: a finished action is neither absent, pending nor failed, and
+       the four bodies are all ways of saying a page has nothing to show. The frame still carries the
+       name and the way out, which is what it was missing before. */
     return (
-      <PageLayout>
-        <PageLayout.Content>
-          <Surface padding="xl">
-            <Stack gap="md">
-              <Title order={1}>Account deleted</Title>
-              <Text>Your account and direct ownership have been disposed according to your choice.</Text>
-              <Anchor component={Link} to="/">
-                Return to Dune Zone
-              </Anchor>
-            </Stack>
-          </Surface>
-        </PageLayout.Content>
-      </PageLayout>
+      <PageMessage title="Account deleted" back={<PageMessage.Back to="/">Return to Dune Zone</PageMessage.Back>}>
+        <Text>Your account and direct ownership have been disposed according to your choice.</Text>
+      </PageMessage>
     );
   }
 
