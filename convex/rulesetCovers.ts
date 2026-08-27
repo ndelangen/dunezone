@@ -2,6 +2,8 @@ import { ConvexError, v } from 'convex/values';
 
 import {
   USER_IMAGE_INGEST_PATH,
+  USER_IMAGE_LOCAL_HOSTS,
+  userImageIngestCompletionSchema,
   userImageIngestErrorSchema,
   userImageIngestResponseSchema,
   userImageSourceUrlSchema,
@@ -11,28 +13,26 @@ import type { Doc } from './_generated/dataModel';
 import { action, internalAction, internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
 import { requireRulesetUpdate } from './lib/collaborativeAccess';
-import { rulesetCoverValidator } from './lib/rulesetCover';
+import { patchStoredCover, rulesetCoverValidator } from './lib/rulesetCover';
 import type { RulesetCover } from './lib/rulesetCover';
-import { nowIso } from './lib/utils';
-import type { MutationCtx } from './types';
 
 /**
  * The cover rehost pipeline.
  *
- * `rehost` is the only way a cover enters the system: it sends the author's URL to the Worker's ingest endpoint, which fetches it once, re-encodes it as a progressive JPEG and stores it in the user-image bucket.
+ * `rehost` is the only way a cover enters the system: it mints a single-use ledger token, then sends the author's URL to the Worker's ingest endpoint, which fetches it once, re-encodes it as a progressive JPEG and stores it in the user-image bucket.
+ * The stored result comes back through the Worker's consuming mutation on `ingestTokens`, not through the HTTP response, which is only a completion signal for the waiting save.
  * The document then carries our delivery URL, so readers never contact the host the author chose.
  * The legacy `image_cover` string is dual-written with the delivery URL until the retirement release, so a pre-rehost bundle keeps rendering covers during the deploy window.
+ * The operator backfill still rides the legacy shared-secret path;
+ * that path retires with the secret.
  */
 
 type IngestConfig = { baseUrl: string; secret: string };
 
-/** Hosts where a cleartext ingest endpoint is acceptable: local development terminates on the developer's own machine. */
-const LOCAL_INGEST_HOSTS = new Set(['localhost', '127.0.0.1', 'host.docker.internal']);
-
-function ingestConfig(): IngestConfig {
+/** The Worker's ingest origin, refused outside https because every ingest call carries a credential: a minted token in the body on the author path, the shared secret in a header on the legacy one. */
+function ingestBaseUrl(): string {
   const baseUrl = process.env.USER_IMAGE_INGEST_BASE_URL;
-  const secret = process.env.USER_IMAGE_INGEST_SECRET;
-  if (!baseUrl || !secret) {
+  if (!baseUrl) {
     throw new Error('Cover storage is not configured for this deployment');
   }
   let parsed: URL;
@@ -41,16 +41,32 @@ function ingestConfig(): IngestConfig {
   } catch {
     throw new Error('Cover storage is misconfigured: the ingest base URL does not parse');
   }
-  /* Every ingest call carries the shared secret in a header, so a cleartext endpoint outside local development would leak it in transit. */
-  if (parsed.protocol !== 'https:' && !LOCAL_INGEST_HOSTS.has(parsed.hostname)) {
+  if (parsed.protocol !== 'https:' && !USER_IMAGE_LOCAL_HOSTS.has(parsed.hostname)) {
     throw new Error('Cover storage is misconfigured: the ingest base URL must use https');
   }
-  return { baseUrl: baseUrl.replace(/\/$/, ''), secret };
+  return baseUrl.replace(/\/$/, '');
+}
+
+function ingestConfig(): IngestConfig {
+  const secret = process.env.USER_IMAGE_INGEST_SECRET;
+  if (!secret) {
+    throw new Error('Cover storage is not configured for this deployment');
+  }
+  return { baseUrl: ingestBaseUrl(), secret };
+}
+
+/** Reads a refusal or failure response into the `ConvexError` the author sees; refusals travel as `ConvexError` because a plain error's message is redacted to "Server Error" outside dev, and these messages exist to be read. */
+async function throwIngestFailure(response: Response): Promise<never> {
+  const refusal = userImageIngestErrorSchema.safeParse(await response.json().catch(() => null));
+  if (response.status >= 400 && response.status < 500 && refusal.success) {
+    throw new ConvexError(refusal.data.error);
+  }
+  throw new ConvexError('The cover could not be stored');
 }
 
 /**
- * Posts one source URL to the Worker and returns the stored cover, or throws the author-facing refusal the Worker answered with.
- * Refusals travel as `ConvexError` because a plain error's message is redacted to "Server Error" outside dev, and these messages exist to be read by the author.
+ * Posts one source URL to the Worker with the shared secret and returns the stored cover from the response body.
+ * This is the legacy write path, kept alive for the operator backfill until the secret retires.
  */
 async function ingestSourceUrl(config: IngestConfig, sourceUrl: string): Promise<RulesetCover> {
   let response: Response;
@@ -67,11 +83,7 @@ async function ingestSourceUrl(config: IngestConfig, sourceUrl: string): Promise
     throw new ConvexError('Cover storage is unreachable');
   }
   if (!response.ok) {
-    const refusal = userImageIngestErrorSchema.safeParse(await response.json().catch(() => null));
-    if (response.status >= 400 && response.status < 500 && refusal.success) {
-      throw new ConvexError(refusal.data.error);
-    }
-    throw new ConvexError('The cover could not be stored');
+    await throwIngestFailure(response);
   }
   const payload = userImageIngestResponseSchema.safeParse(await response.json().catch(() => null));
   if (!payload.success) {
@@ -86,12 +98,28 @@ async function ingestSourceUrl(config: IngestConfig, sourceUrl: string): Promise
   };
 }
 
-async function patchStoredCover(ctx: MutationCtx, id: Doc<'rulesets'>['_id'], cover: RulesetCover): Promise<void> {
-  await ctx.db.patch(id, {
-    cover,
-    image_cover: cover.url,
-    updated_at: nowIso(),
-  });
+/**
+ * Posts one source URL to the Worker with a minted ledger token and awaits the completion signal.
+ * No secret rides this path and the response carries no result: by the time a 200 arrives, the Worker's consuming mutation has already committed the cover, so this function only turns failure into the author-facing error.
+ */
+async function ingestWithToken(baseUrl: string, sourceUrl: string, token: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}${USER_IMAGE_INGEST_PATH}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source_url: sourceUrl, token }),
+    });
+  } catch {
+    throw new ConvexError('Cover storage is unreachable');
+  }
+  if (!response.ok) {
+    await throwIngestFailure(response);
+  }
+  const completion = userImageIngestCompletionSchema.safeParse(await response.json().catch(() => null));
+  if (!completion.success) {
+    throw new ConvexError('Cover storage answered with an unexpected shape');
+  }
 }
 
 /** The pre-fetch gate, so an unauthorized caller is refused before the Worker spends a fetch on their URL. */
@@ -100,17 +128,6 @@ export const assertEditable = internalQuery({
   returns: v.null(),
   handler: async (ctx, args) => {
     await requireRulesetUpdate(ctx, args.id);
-    return null;
-  },
-});
-
-/** Commits a stored cover on the author path, re-checking access at write time. */
-export const commit = internalMutation({
-  args: { id: v.id('rulesets'), cover: rulesetCoverValidator },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await requireRulesetUpdate(ctx, args.id);
-    await patchStoredCover(ctx, args.id, args.cover);
     return null;
   },
 });
@@ -135,7 +152,10 @@ export const commitBackfill = internalMutation({
 
 /**
  * Rehosts one cover for the signed-in author.
- * Validation, access, fetch and commit run in that order, so the cheap refusals come first and the URL is fetched at most once.
+ * Validation, access, config, mint and fetch run in that order, so the cheap refusals come first, no token is minted for a save that cannot proceed, and the URL is fetched at most once.
+ * Access is checked once, at mint time;
+ * from there the token's capability is the authorization, and the Worker's consuming mutation performs the write.
+ * The await is deliberate: the save-and-wait UX is unchanged, and the response is the author's success or failure signal even though it carries no data.
  */
 export const rehost = action({
   args: { id: v.id('rulesets'), source_url: v.string() },
@@ -146,8 +166,12 @@ export const rehost = action({
       throw new ConvexError(parsedSource.error.issues[0]?.message ?? 'Invalid cover image URL');
     }
     await ctx.runQuery(internal.rulesetCovers.assertEditable, { id: args.id });
-    const cover: RulesetCover = await ingestSourceUrl(ingestConfig(), parsedSource.data);
-    await ctx.runMutation(internal.rulesetCovers.commit, { id: args.id, cover });
+    const baseUrl = ingestBaseUrl();
+    const minted: { token: string } = await ctx.runMutation(internal.ingestTokens.mint, {
+      capability: { kind: 'ruleset_cover', ruleset_id: args.id },
+      source_url: parsedSource.data,
+    });
+    await ingestWithToken(baseUrl, parsedSource.data, minted.token);
     return null;
   },
 });

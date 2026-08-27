@@ -64,27 +64,69 @@ function ingestSuccess() {
   );
 }
 
+/**
+ * Plays the Worker's side of the token flow: reads the token out of the ingest request, stores the result through the public consuming mutation, and answers with the completion signal only.
+ * The response body deliberately carries no image data, because the callback is the write path under test.
+ */
+function ingestWorkerSimulation(t: ReturnType<typeof convexTest>) {
+  return vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body)) as { source_url: string; token: string };
+    await t.mutation(api.ingestTokens.consume, {
+      token: body.token,
+      result: { url: DELIVERY_URL, thumb_url: DELIVERY_THUMB_URL, width: 800, height: 600 },
+      r2_keys: [`${'a'.repeat(64)}.jpg`, `${'b'.repeat(64)}.jpg`],
+    });
+    return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
+  });
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
 
 describe('ruleset cover rehosting', () => {
-  test('rehost stores the cover and dual-writes the legacy channel', async () => {
+  test('rehost mints a token, carries no secret, and the cover arrives through the consuming callback', async () => {
     const { t, owner, ruleset } = await coverFixture();
     stubIngestEnvironment();
-    const fetchMock = ingestSuccess();
+    const fetchMock = ingestWorkerSimulation(t);
     vi.stubGlobal('fetch', fetchMock);
 
     await owner.action(api.rulesetCovers.rehost, { id: ruleset._id, source_url: SOURCE_URL });
 
     const [request, init] = fetchMock.mock.calls[0] ?? [];
     expect(request).toBe('https://worker.test/__user-images/ingest');
-    expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-ingest-secret');
+    expect(new Headers(init?.headers).get('Authorization')).toBeNull();
+    const sent = JSON.parse(String(init?.body)) as { source_url: string; token: string };
+    expect(sent.source_url).toBe(SOURCE_URL);
+    expect(sent.token).toMatch(/^[0-9a-f]{64}$/);
 
     const row = await t.run(async (ctx) => await ctx.db.get(ruleset._id));
     expect(row?.cover).toEqual(STORED_COVER);
     expect(row?.image_cover).toBe(DELIVERY_URL);
+    const tombstone = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('user_image_ingest_tokens')
+          .withIndex('by_token_id', (q) => q.eq('token_id', sent.token))
+          .unique()
+    );
+    expect(tombstone?.consumed).toBe(true);
+  });
+
+  test('the ingest response body alone writes nothing', async () => {
+    const { t, owner, ruleset } = await coverFixture();
+    stubIngestEnvironment();
+    /* A Worker answering the retired result shape without consuming proves the response stopped being a write path. */
+    vi.stubGlobal('fetch', ingestSuccess());
+
+    await expect(owner.action(api.rulesetCovers.rehost, { id: ruleset._id, source_url: SOURCE_URL })).rejects.toThrow(
+      'unexpected shape'
+    );
+
+    const row = await t.run(async (ctx) => await ctx.db.get(ruleset._id));
+    expect(row?.cover).toBeNull();
+    expect(row?.image_cover).toBeNull();
   });
 
   test('rehost refuses a cleartext ingest endpoint outside local development', async () => {
@@ -112,8 +154,8 @@ describe('ruleset cover rehosting', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  test('rehost refuses a viewer without edit before any fetch', async () => {
-    const { stranger, ruleset } = await coverFixture();
+  test('rehost refuses a viewer without edit before any fetch or mint', async () => {
+    const { t, stranger, ruleset } = await coverFixture();
     stubIngestEnvironment();
     const fetchMock = ingestSuccess();
     vi.stubGlobal('fetch', fetchMock);
@@ -122,6 +164,8 @@ describe('ruleset cover rehosting', () => {
       stranger.action(api.rulesetCovers.rehost, { id: ruleset._id, source_url: SOURCE_URL })
     ).rejects.toThrow('Not authorized');
     expect(fetchMock).not.toHaveBeenCalled();
+    const tokens = await t.run(async (ctx) => await ctx.db.query('user_image_ingest_tokens').collect());
+    expect(tokens).toEqual([]);
   });
 
   test('the author sees the ingest refusal as the error message', async () => {
