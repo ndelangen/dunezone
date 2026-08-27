@@ -8,6 +8,8 @@ import type { UserImageBucket, UserImageCache } from './user-images';
 const NOW = new Date('2026-08-25T12:00:00.000Z');
 const SECRET = 'user-image-ingest-secret-for-tests-0001';
 const SOURCE_URL = 'https://images.example/cover.png';
+const CONVEX_BASE = 'https://ledger.test';
+const TOKEN = 'c'.repeat(64);
 
 type StoredEntry = { bytes: Uint8Array; options: R2PutOptions };
 
@@ -109,6 +111,34 @@ function sourceResponse(bytes: Uint8Array, headers: Record<string, string> = {})
   return new Response(bytes, { headers: { 'Content-Type': 'image/png', ...headers } });
 }
 
+/** An ingest request on the token path: the credential rides in the body and no bearer header is present. */
+function tokenIngestRequest(body: unknown = { source_url: SOURCE_URL, token: TOKEN }): Request {
+  return new Request(`https://dune.zone${USER_IMAGE_INGEST_PATH}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+type LedgerCall = { url: string; body: { path: string; args: Record<string, unknown>; format: string } };
+
+/** Answers the two ledger calls and the source image from one fetch stub, recording the ledger bodies for assertion. */
+function ledgerFetch(options: { valid?: boolean; consume?: unknown; sourceBytes?: Uint8Array } = {}) {
+  const ledgerCalls: LedgerCall[] = [];
+  const mock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    const url = String(input);
+    if (url.startsWith(CONVEX_BASE)) {
+      ledgerCalls.push({ url, body: JSON.parse(String(init?.body)) as LedgerCall['body'] });
+      if (url.endsWith('/api/query')) {
+        return Response.json({ status: 'success', value: { valid: options.valid ?? true } });
+      }
+      return Response.json({ status: 'success', value: options.consume ?? { ok: true } });
+    }
+    return sourceResponse(options.sourceBytes ?? pngBytes(800, 600));
+  });
+  return { mock, ledgerCalls };
+}
+
 /** Reads the `error` field a refusal carries, failing plainly when the response or the field is missing. */
 async function refusalMessage(response: Response | null): Promise<string> {
   if (!response) {
@@ -137,6 +167,7 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: bucket,
       USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([fullEncoded, thumbEncoded], seen),
     });
 
@@ -181,6 +212,7 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
       USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([
         jpegBytes({ widthPx: 1600, heightPx: 60, progressive: true }),
         jpegBytes({ widthPx: 320, heightPx: 12, progressive: false }),
@@ -199,6 +231,7 @@ describe('user image ingest', () => {
       {
         USER_IMAGE_BUCKET: memoryBucket(),
         USER_IMAGE_INGEST_SECRET: SECRET,
+        CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
         USER_IMAGE_PUBLIC_BASE_URL: 'https://dune.zone',
         IMAGES: imagesStub([
           jpegBytes({ widthPx: 800, heightPx: 600, progressive: true }),
@@ -221,6 +254,7 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest({ token: 'wrong' }), {
       USER_IMAGE_BUCKET: memoryBucket(),
       USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
     });
     expect(response?.status).toBe(401);
@@ -235,6 +269,7 @@ describe('user image ingest', () => {
       {
         USER_IMAGE_BUCKET: memoryBucket(),
         USER_IMAGE_INGEST_SECRET: SECRET,
+        CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
         IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
       }
     );
@@ -250,6 +285,7 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
       USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
     });
     expect(response?.status).toBe(422);
@@ -265,6 +301,7 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
       USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
     });
     expect(response?.status).toBe(422);
@@ -280,6 +317,7 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
       USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
     });
     expect(response?.status).toBe(422);
@@ -294,10 +332,137 @@ describe('user image ingest', () => {
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
       USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 32, heightPx: 32, progressive: true })]),
     });
     expect(response?.status).toBe(422);
     expect(await refusalMessage(response)).toContain('50px');
+  });
+
+  test('a live token unlocks the work and the result arrives through the consuming mutation', async () => {
+    const { mock, ledgerCalls } = ledgerFetch();
+    vi.stubGlobal('fetch', mock);
+    const bucket = memoryBucket();
+
+    const response = await handleUserImageIngest(tokenIngestRequest(), {
+      USER_IMAGE_BUCKET: bucket,
+      USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([
+        jpegBytes({ widthPx: 800, heightPx: 600, progressive: true }),
+        jpegBytes({ widthPx: 320, heightPx: 240, progressive: true }),
+      ]),
+    });
+
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({ ok: true });
+
+    /* Check first, source fetch second, consume last: the ledger frames the expensive work on both sides. */
+    expect(mock).toHaveBeenCalledTimes(3);
+    expect(ledgerCalls).toHaveLength(2);
+    const [check, consume] = ledgerCalls;
+    if (!check || !consume) {
+      throw new Error('expected a check and a consume call');
+    }
+    expect(check.url).toBe(`${CONVEX_BASE}/api/query`);
+    expect(check.body.path).toBe('ingestTokens:check');
+    expect(check.body.args.token).toBe(TOKEN);
+    expect(typeof check.body.args.now).toBe('number');
+    expect(consume.url).toBe(`${CONVEX_BASE}/api/mutation`);
+    expect(consume.body.path).toBe('ingestTokens:consume');
+    expect(consume.body.args.token).toBe(TOKEN);
+    const storedKeys = [...bucket.objects.keys()];
+    expect(storedKeys).toHaveLength(2);
+    expect([...(consume.body.args.r2_keys as string[])].sort()).toEqual([...storedKeys].sort());
+    const result = consume.body.args.result as { url: string; thumb_url: string; width: number; height: number };
+    expect(result.width).toBe(800);
+    expect(result.height).toBe(600);
+    expect(result.url.startsWith('https://dune.zone/user-images/')).toBe(true);
+  });
+
+  test('a dead token is refused before any source fetch or store', async () => {
+    const { mock } = ledgerFetch({ valid: false });
+    vi.stubGlobal('fetch', mock);
+    const bucket = memoryBucket();
+
+    const response = await handleUserImageIngest(tokenIngestRequest(), {
+      USER_IMAGE_BUCKET: bucket,
+      USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: true })]),
+    });
+
+    expect(response?.status).toBe(403);
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(bucket.objects.size).toBe(0);
+  });
+
+  test('a bounced consume surfaces as the author-facing refusal', async () => {
+    const { mock } = ledgerFetch({ consume: { ok: false, reason: 'consumed' } });
+    vi.stubGlobal('fetch', mock);
+
+    const response = await handleUserImageIngest(tokenIngestRequest(), {
+      USER_IMAGE_BUCKET: memoryBucket(),
+      USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([
+        jpegBytes({ widthPx: 800, heightPx: 600, progressive: true }),
+        jpegBytes({ widthPx: 320, heightPx: 240, progressive: true }),
+      ]),
+    });
+
+    expect(response?.status).toBe(409);
+    expect(await refusalMessage(response)).toBe('This save was already recorded');
+  });
+
+  test('an unreachable ledger fails the ingest without spending a fetch', async () => {
+    const mock = vi.fn(async (input: string | URL | Request) => {
+      if (String(input).startsWith(CONVEX_BASE)) {
+        throw new TypeError('network down');
+      }
+      return sourceResponse(pngBytes(800, 600));
+    });
+    vi.stubGlobal('fetch', mock);
+
+    const response = await handleUserImageIngest(tokenIngestRequest(), {
+      USER_IMAGE_BUCKET: memoryBucket(),
+      USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: true })]),
+    });
+
+    expect(response?.status).toBe(503);
+    expect(mock).toHaveBeenCalledTimes(1);
+  });
+
+  test('a request with neither bearer nor token is refused without touching anything', async () => {
+    const mock = vi.fn();
+    vi.stubGlobal('fetch', mock);
+
+    const response = await handleUserImageIngest(tokenIngestRequest({ source_url: SOURCE_URL }), {
+      USER_IMAGE_BUCKET: memoryBucket(),
+      USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: true })]),
+    });
+
+    expect(response?.status).toBe(401);
+    expect(mock).not.toHaveBeenCalled();
+  });
+
+  test('a malformed token is refused by the request schema before the ledger is asked', async () => {
+    const mock = vi.fn();
+    vi.stubGlobal('fetch', mock);
+
+    const response = await handleUserImageIngest(tokenIngestRequest({ source_url: SOURCE_URL, token: 'short' }), {
+      USER_IMAGE_BUCKET: memoryBucket(),
+      USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: true })]),
+    });
+
+    expect(response?.status).toBe(400);
+    expect(mock).not.toHaveBeenCalled();
   });
 
   test('fails loudly when the encoder falls back to baseline', async () => {
@@ -309,6 +474,7 @@ describe('user image ingest', () => {
       handleUserImageIngest(ingestRequest(), {
         USER_IMAGE_BUCKET: memoryBucket(),
         USER_IMAGE_INGEST_SECRET: SECRET,
+        CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
         IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: false })]),
       })
     ).rejects.toThrow('not progressive');

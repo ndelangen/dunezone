@@ -9,6 +9,8 @@ import {
   USER_IMAGE_MIN_EDGE_PX,
   USER_IMAGE_PUBLIC_PREFIX,
   USER_IMAGE_THUMB_EDGE_PX,
+  USER_IMAGE_TOKEN_CHECK_FUNCTION,
+  USER_IMAGE_TOKEN_CONSUME_FUNCTION,
   userImageIngestRequestSchema,
   userImagePublicPath,
 } from '../../src/shared/user-images/contract';
@@ -18,7 +20,11 @@ import { ImageInspectionError, jpegProfile } from './image-inspection';
 /**
  * Ingest and delivery for user-supplied images, currently the ruleset covers.
  *
- * Ingest is the one place the system fetches a URL an author chose: it runs behind a shared secret, re-encodes whatever it fetched into a progressive JPEG, and stores the result under a content-addressed key.
+ * Ingest is the one place the system fetches a URL an author chose: it re-encodes whatever it fetched into a progressive JPEG and stores the result under a content-addressed key.
+ * Commanding that work is the guarded privilege, and there are two gates during the migration window.
+ * The token path holds no secret at all: the request carries a single-use token minted by Convex, the Worker asks the Convex ledger whether it is live before spending anything, and after storing it hands the result back through the ledger's consuming mutation, which is the one write path.
+ * The legacy path authenticates with the shared bearer secret and returns the result in the response body;
+ * it retires with the secret.
  * Re-encoding is a security boundary as much as a format choice: the stored bytes are our encoder's output, so metadata and polyglot tricks in the source file do not survive into what readers download.
  * Delivery serves the bucket read-only;
  * a key is a sha-256 of the bytes it names, so responses are immutable and cacheable forever.
@@ -44,6 +50,8 @@ export type UserImageCache = {
 type IngestEnv = {
   USER_IMAGE_BUCKET: UserImageBucket;
   USER_IMAGE_INGEST_SECRET: string;
+  /** The Convex deployment origin whose built-in HTTP API answers the token check and consume calls; configuration, never derived from the request, so a caller cannot point the Worker at a ledger that always says yes. */
+  CONVEX_CLOUD_BASE_URL: string;
   /**
    * The origin stored URLs are minted on, https://dune.zone in deployment.
    * The Worker answers on its workers.dev hostname too, so without the pin the bucket's URLs could split across two origins and defeat a one-origin CSP.
@@ -223,8 +231,81 @@ function authorizedIngest(request: Request, secret: string): boolean {
   return token.length > 0 && token === secret;
 }
 
+/** How long the Worker waits for the Convex ledger before failing the ingest; the ledger is an indexed point read, so a slow answer means trouble, not load. */
+const CONVEX_LEDGER_TIMEOUT_MS = 10_000;
+
 /**
- * Handles the authenticated ingest POST, or returns null for every other path.
+ * Calls one public Convex function over the deployment's built-in HTTP API and unwraps the response envelope.
+ * No credential rides along: the functions are public by design and the token inside `args` is the only thing being presented.
+ */
+async function callConvex(
+  baseUrl: string,
+  kind: 'query' | 'mutation',
+  path: string,
+  args: Record<string, unknown>
+): Promise<unknown> {
+  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/${kind}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, args, format: 'json' }),
+    signal: AbortSignal.timeout(CONVEX_LEDGER_TIMEOUT_MS),
+  });
+  const payload: unknown = await response.json().catch(() => null);
+  if (!response.ok || typeof payload !== 'object' || payload === null) {
+    throw new Error(`Convex ${path} answered with status ${response.status}`);
+  }
+  const envelope = payload as { status?: unknown; value?: unknown; errorMessage?: unknown };
+  if (envelope.status !== 'success') {
+    throw new Error(`Convex ${path} failed: ${String(envelope.errorMessage ?? 'unknown error')}`);
+  }
+  return envelope.value;
+}
+
+/** Asks the ledger whether the presented token is live; only a definite yes unlocks the expensive work. */
+async function ingestTokenIsLive(baseUrl: string, token: string): Promise<boolean> {
+  const value = await callConvex(baseUrl, 'query', USER_IMAGE_TOKEN_CHECK_FUNCTION, { token, now: Date.now() });
+  return typeof value === 'object' && value !== null && (value as { valid?: unknown }).valid === true;
+}
+
+type ConsumeAnswer = { ok: true } | { ok: false; reason: string };
+
+/** Hands the stored result and its R2 keys to the consuming mutation, the single write path of the token flow. */
+async function consumeIngestToken(
+  baseUrl: string,
+  token: string,
+  result: { url: string; thumb_url: string; width: number; height: number },
+  r2Keys: string[]
+): Promise<ConsumeAnswer> {
+  const value = await callConvex(baseUrl, 'mutation', USER_IMAGE_TOKEN_CONSUME_FUNCTION, {
+    token,
+    result,
+    r2_keys: r2Keys,
+  });
+  if (typeof value !== 'object' || value === null || typeof (value as { ok?: unknown }).ok !== 'boolean') {
+    throw new Error('Convex consume answered with an unexpected shape');
+  }
+  const answer = value as { ok: boolean; reason?: unknown };
+  return answer.ok ? { ok: true } : { ok: false, reason: String(answer.reason ?? 'unknown') };
+}
+
+/** Turns a ledger refusal into the author-facing message the waiting save reports. */
+function consumeRefusalMessage(reason: string): string {
+  switch (reason) {
+    case 'consumed':
+      return 'This save was already recorded';
+    case 'expired':
+      return 'The save took too long and its ticket expired';
+    case 'entity_gone':
+      return 'The page this image was saved for no longer exists';
+    default:
+      return 'The stored image could not be recorded';
+  }
+}
+
+/**
+ * Handles the ingest POST, or returns null for every other path.
+ * A request with a bearer header takes the legacy shared-secret path unchanged;
+ * anything else must carry a minted ledger token in the body and takes the introspection path.
  * Refusals come back as 4xx with an author-facing message;
  * anything else is a 500 the caller reports as a plain failure.
  */
@@ -236,7 +317,9 @@ export async function handleUserImageIngest(request: Request, env: IngestEnv): P
   if (request.method !== 'POST') {
     return jsonError(405, 'Method not allowed');
   }
-  if (!authorizedIngest(request, env.USER_IMAGE_INGEST_SECRET)) {
+  /* The legacy path keeps its refuse-before-reading order; the token path must read the body to see its credential, so a stranger costs one bounded body read plus one indexed ledger lookup. */
+  const usesBearer = (request.headers.get('Authorization') ?? '').startsWith('Bearer ');
+  if (usesBearer && !authorizedIngest(request, env.USER_IMAGE_INGEST_SECRET)) {
     return jsonError(401, 'Not authorized');
   }
   const rawBody = await readWithLimit(request.body, MAX_INGEST_BODY_BYTES);
@@ -252,6 +335,21 @@ export async function handleUserImageIngest(request: Request, env: IngestEnv): P
   const parsedRequest = userImageIngestRequestSchema.safeParse(parsedBody);
   if (!parsedRequest.success) {
     return jsonError(400, parsedRequest.error.issues[0]?.message ?? 'Invalid ingest request');
+  }
+  const ingestToken = usesBearer ? undefined : parsedRequest.data.token;
+  if (!usesBearer) {
+    if (!ingestToken) {
+      return jsonError(401, 'Not authorized');
+    }
+    let live: boolean;
+    try {
+      live = await ingestTokenIsLive(env.CONVEX_CLOUD_BASE_URL, ingestToken);
+    } catch {
+      return jsonError(503, 'The ingest ledger did not answer');
+    }
+    if (!live) {
+      return jsonError(403, 'Not authorized');
+    }
   }
 
   const fetched = await fetchSourceImage(parsedRequest.data.source_url);
@@ -291,6 +389,24 @@ export async function handleUserImageIngest(request: Request, env: IngestEnv): P
     width: renditions.full.widthPx,
     height: renditions.full.heightPx,
   };
+  if (ingestToken) {
+    /* The write path of the token flow: the ledger records the result and the R2 keys and burns the token in one transaction, then this response shrinks to a completion signal. */
+    let answer: ConsumeAnswer;
+    try {
+      answer = await consumeIngestToken(
+        env.CONVEX_CLOUD_BASE_URL,
+        ingestToken,
+        { url: payload.url, thumb_url: payload.thumb_url, width: payload.width, height: payload.height },
+        [key, thumbKey]
+      );
+    } catch {
+      return jsonError(502, 'The stored image could not be recorded');
+    }
+    if (!answer.ok) {
+      return jsonError(409, consumeRefusalMessage(answer.reason));
+    }
+    return Response.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
+  }
   return Response.json(payload, { headers: { 'Cache-Control': 'no-store' } });
 }
 

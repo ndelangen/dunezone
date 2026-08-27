@@ -119,6 +119,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
       CAPTURE_BASE_URL: PUBLISHER_ORIGIN,
       CONVEX_EXECUTOR_BASE_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/executor`,
       CONVEX_RENDER_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/render`,
+      CONVEX_CLOUD_BASE_URL: PUBLISHER_PRODUCTION_CONVEX_URL,
       GIT_SHA: 'development',
       WORK_WINDOW_MS: '240000',
       BROWSER_CAPTURE_TIMEOUT_MS: '45000',

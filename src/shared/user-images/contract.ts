@@ -6,8 +6,28 @@ import { z } from 'zod';
  * Everything both sides of that exchange must agree on lives here: paths, limits and the wire shapes.
  */
 
-/** The Worker endpoint the Convex rehost action posts a source URL to, authenticated with the ingest secret. */
+/** The Worker endpoint the Convex rehost action posts a source URL to, authenticated with a minted ingest token or the legacy shared secret. */
 export const USER_IMAGE_INGEST_PATH = '/__user-images/ingest';
+
+/**
+ * Hosts where a cleartext endpoint is acceptable on either side of the ingest exchange: local development terminates on the developer's own machine.
+ * Everywhere else the ingest call carries a credential (token or legacy secret) and the delivery URL is written into documents, so both must ride https.
+ */
+export const USER_IMAGE_LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', 'host.docker.internal']);
+
+/**
+ * The Convex function paths the Worker calls over the deployment's built-in HTTP API.
+ * The check is a public query that answers whether a token is live without consuming it;
+ * the consume is the public mutation that records the ingest result and burns the token in one transaction.
+ */
+export const USER_IMAGE_TOKEN_CHECK_FUNCTION = 'ingestTokens:check';
+export const USER_IMAGE_TOKEN_CONSUME_FUNCTION = 'ingestTokens:consume';
+
+/**
+ * An ingest token is 32 bytes of crypto randomness as lowercase hex, 256 bits, so possession is the credential and guessing is hopeless.
+ * The same schema gates the Worker's request parse and the Convex ledger functions.
+ */
+export const userImageIngestTokenSchema = z.string().regex(/^[0-9a-f]{64}$/, 'Invalid ingest token');
 
 /** The public namespace rehosted images are served under, keyed by the content hash of the encoded bytes. */
 export const USER_IMAGE_PUBLIC_PREFIX = '/user-images/';
@@ -72,6 +92,12 @@ export const userImageSourceUrlSchema = z
 
 export const userImageIngestRequestSchema = z.strictObject({
   source_url: userImageSourceUrlSchema,
+  /**
+   * The minted ledger token selecting the introspection path.
+   * Absent on the legacy path, where the bearer header authenticates instead;
+   * that path retires with the shared secret.
+   */
+  token: userImageIngestTokenSchema.optional(),
 });
 
 export const userImageIngestResponseSchema = z.strictObject({
@@ -84,6 +110,46 @@ export const userImageIngestResponseSchema = z.strictObject({
 });
 
 export type UserImageIngestResponse = z.infer<typeof userImageIngestResponseSchema>;
+
+/**
+ * What the token path answers the caller with: a completion signal only.
+ * The stored result reaches Convex through the Worker's consuming mutation, never through this response body.
+ */
+export const userImageIngestCompletionSchema = z.strictObject({
+  ok: z.literal(true),
+});
+
+/**
+ * A delivery URL the consuming mutation will accept: our public namespace over a content-addressed key, on an https origin or a local development host.
+ * The consume endpoint is public, so this floor keeps a token holder from writing an arbitrary foreign URL into a document.
+ */
+const userImageDeliveryUrlSchema = z
+  .string()
+  .max(2048)
+  .refine((value) => {
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      return false;
+    }
+    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && USER_IMAGE_LOCAL_HOSTS.has(url.hostname))) {
+      return false;
+    }
+    return matchUserImagePath(url.pathname) !== null;
+  }, 'Not a user-image delivery URL');
+
+/**
+ * The semantic floor for the Worker's consuming callback, parsed inside the consume mutation.
+ * The mutation is public, so every field is bounded: two delivery URLs in our namespace, dimensions inside the encoder's box, and at most four content-addressed R2 keys.
+ */
+export const userImageIngestCallbackSchema = z.strictObject({
+  url: userImageDeliveryUrlSchema,
+  thumb_url: userImageDeliveryUrlSchema,
+  width: z.number().int().min(1).max(USER_IMAGE_MAX_EDGE_PX),
+  height: z.number().int().min(1).max(USER_IMAGE_MAX_EDGE_PX),
+  r2_keys: z.array(z.string().regex(USER_IMAGE_KEY_PATTERN)).min(1).max(4),
+});
 
 /** The error body every ingest failure carries, so the author sees why their URL was refused rather than a bare status. */
 export const userImageIngestErrorSchema = z.strictObject({

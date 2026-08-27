@@ -4,6 +4,7 @@ import { v } from 'convex/values';
 
 import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqTagValidator } from './lib/faqTags';
+import { ingestTokenCapabilityValidator } from './lib/ingestTokens';
 import { rulesetCoverValidator } from './lib/rulesetCover';
 
 const accountStateValidator = v.union(v.literal('active'), v.literal('deletion_pending'), v.literal('deleted'));
@@ -178,6 +179,23 @@ export default defineSchema({
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted'])
     .index('by_deleted_name', ['is_deleted', 'name']),
+  /**
+   * The user-image ingest ledger: one row per minted ingest token, the credential the Worker introspects instead of holding a shared secret.
+   * `token_id` is 256 bits of crypto randomness as hex, so possession is the whole credential;
+   * `capability` names the one entity and field the token may write;
+   * `source_url` is pinned at mint so a token holder cannot rewrite the cover's provenance;
+   * `expires` is authoritative on every read regardless of whether the scheduled deletion has run yet.
+   * An unconsumed row is deleted by its own mint-scheduled expiry job.
+   * A consumed row is kept as a tombstone carrying `r2_keys`, the queryable record of which bucket objects the ingest produced, for the future GC pass.
+   */
+  user_image_ingest_tokens: defineTable({
+    token_id: v.string(),
+    capability: ingestTokenCapabilityValidator,
+    source_url: v.string(),
+    expires: v.number(),
+    consumed: v.boolean(),
+    r2_keys: v.optional(v.array(v.string())),
+  }).index('by_token_id', ['token_id']),
   migration_runs: defineTable({
     migration_id: v.string(),
     state: v.union(
