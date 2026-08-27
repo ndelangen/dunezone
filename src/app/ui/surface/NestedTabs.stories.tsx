@@ -245,6 +245,8 @@ export const ManyRootItems = meta.story({
     await userEvent.click(canvas.getByRole('link', { name: 'Root item 20' }));
     await expect(canvas.getByRole('link', { name: 'Root item 20' })).toHaveAttribute('data-path-state', 'ancestor');
     await expect(canvas.getByRole('link', { name: 'Nested item A' })).toHaveAttribute('aria-current', 'page');
+    await expect(rootItems).toHaveAttribute('data-scroll-before');
+    await expect(rootItems).not.toHaveAttribute('data-scroll-after');
   },
 });
 

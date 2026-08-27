@@ -171,6 +171,9 @@ function useNestedTabsLayerGeometry({
       const itemsRect = items.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
       const tabRect = activeItem.getBoundingClientRect();
+      const scrollEnd = items.scrollHeight - items.clientHeight;
+      items.toggleAttribute('data-scroll-before', items.scrollTop > 1);
+      items.toggleAttribute('data-scroll-after', items.scrollTop < scrollEnd - 1);
       const devicePixelRatio = window.devicePixelRatio || 1;
       const round = (number: number) => Math.round(number * devicePixelRatio) / devicePixelRatio;
       const width = round(rootRect.width);

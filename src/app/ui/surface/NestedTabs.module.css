@@ -120,10 +120,39 @@
 }
 
 .levelItems {
+  --nested-tabs-scroll-fade: 1.35rem;
+
   min-height: 0;
   padding: 0.4rem 0.25rem;
   overflow: auto;
   scrollbar-width: thin;
+}
+
+.levelItems[data-scroll-before] {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--nested-tabs-scroll-fade), #000 100%);
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--nested-tabs-scroll-fade), #000 100%);
+}
+
+.levelItems[data-scroll-after] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - var(--nested-tabs-scroll-fade)), transparent);
+  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - var(--nested-tabs-scroll-fade)), transparent);
+}
+
+.levelItems[data-scroll-before][data-scroll-after] {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--nested-tabs-scroll-fade),
+    #000 calc(100% - var(--nested-tabs-scroll-fade)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--nested-tabs-scroll-fade),
+    #000 calc(100% - var(--nested-tabs-scroll-fade)),
+    transparent
+  );
 }
 
 .itemSlot {
