@@ -117,6 +117,7 @@
 
   .sidebarContent[data-sticky],
   .previewFrame[data-sticky] {
-    position: static;
+    position: relative;
+    top: auto;
   }
 }
