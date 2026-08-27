@@ -1,8 +1,5 @@
 .editorRoot {
-  --editor-side-space: clamp(1rem, calc((100vw - 64rem) * 1.25 + 1rem), 2.5rem);
   container: rulebook-editor / inline-size;
-  width: min(116rem, calc(100vw - var(--editor-side-space) - var(--editor-side-space)));
-  margin-inline-start: max(calc(50% - 58rem), calc(50% - 50vw + var(--editor-side-space)));
   padding-bottom: 3rem;
 }
 
