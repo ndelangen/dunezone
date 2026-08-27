@@ -1,6 +1,8 @@
 import { Button, Group, Stack } from '@mantine/core';
 import type { FaqTag } from '@shared/faq/tags';
+import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { RulesetLink } from '@ui/content/RulesetLink';
@@ -13,14 +15,34 @@ import { useState } from 'react';
 import { useAskFaqQuestion } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug, useRulesetBySlug } from '@db/rulesets';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './create.module.css';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/create')({
   loader: async ({ params }) => ({ ruleset: await loadRulesetBySlug(params.rulesetSlug) }),
+  errorComponent: FaqCreateError,
   component: FaqCreatePage,
 });
+
+/**
+ * The frame for a load that failed, which on this route is most often a slug naming no ruleset: the loader awaits `loadRulesetBySlug` unguarded and the query throws rather than returning nothing.
+ * Without this the reader met the router's default, which is styled only for the stale-client case and otherwise renders the error raw.
+ *
+ * The way back is the catalogue rather than the ruleset, which is where this route's sibling points.
+ * The distinction is which thing is missing: on the question page the ruleset exists and only the question is absent, so "back to ruleset" leads somewhere;
+ * here the ruleset is the thing that is not there, so the same link would offer the reader the page that just failed.
+ */
+function FaqCreateError({ error }: ErrorComponentProps) {
+  return (
+    <PageMessage title="Ask a question" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
+      <LoadError title="This ruleset could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
+    </PageMessage>
+  );
+}
 
 function FaqCreatePage() {
   const { rulesetSlug } = Route.useParams();
