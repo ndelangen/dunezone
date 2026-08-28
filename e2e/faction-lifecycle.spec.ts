@@ -8,8 +8,15 @@ function factionCard(catalogue: Locator, factionName: string) {
 
 async function createFaction(page: Page, name: string, factionLeaderName: string) {
   await page.goto('/factions/create');
+  /*
+   * The form is proven present before its missing control is read as missing.
+   * The app is served as an SPA, so the arriving document is an empty shell and a zero count is satisfied
+   * before anything has rendered; this helper runs twice per test, so the unanchored version could never fail.
+   */
+  const nameField = page.getByRole('textbox', { name: 'Faction name' });
+  await expect(nameField).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Group' })).toHaveCount(0);
-  await page.getByRole('textbox', { name: 'Faction name' }).fill(name);
+  await nameField.fill(name);
   await page.getByRole('tab', { name: /^Faction leader/ }).click();
   await page.getByRole('textbox', { name: 'Faction leader name' }).fill(factionLeaderName);
   await page.getByRole('button', { name: 'Save faction' }).click();
@@ -189,7 +196,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await search.fill(importedLeaderName);
     await expect(updatedFaction).toBeVisible();
     await expect(otherFaction).toBeHidden();
-    expect(new URL(page.url()).searchParams.get('q')).toBeNull();
+    /* Polled like its positive twin below: a bare read passes on any URL write that has not landed yet, which is the same failure the draft/committed split is here to catch. */
+    await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBeNull();
 
     await search.press('Enter');
     await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(importedLeaderName);
