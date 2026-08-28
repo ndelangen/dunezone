@@ -284,11 +284,12 @@ function acceptedKindsLabel(kinds: readonly RulebookBlockKind[]) {
 }
 
 function capacityLabel(region: RulebookPageDetailsBlockRegion) {
+  const blockCountLabel = (count: number) => `${count} Block${count === 1 ? '' : 's'}`;
   const minimum = region.minimum > 0 ? ` Minimum ${region.minimum}.` : '';
   if (region.maximum === null) {
-    return `${region.blocks.length} Blocks.${minimum}`;
+    return `${blockCountLabel(region.blocks.length)}.${minimum}`;
   }
-  return `${region.blocks.length} of ${region.maximum} Blocks.${minimum}`;
+  return `${region.blocks.length} of ${blockCountLabel(region.maximum)}.${minimum}`;
 }
 
 const pageDetailsCollision: CollisionDetection = (args) => {

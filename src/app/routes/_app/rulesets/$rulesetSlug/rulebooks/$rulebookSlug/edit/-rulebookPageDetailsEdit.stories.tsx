@@ -388,7 +388,9 @@ export const PopulatedRulesPage = meta.story({
     await expect(rulesHeader!.querySelector('svg')?.getBoundingClientRect().left).toBe(
       rulesHeader!.getBoundingClientRect().left
     );
-    const addButtons = canvas.getAllByRole('button', { name: /^Add a Block to/ });
+    const addButtons = canvas.getAllByRole('button', {
+      name: /^Add a Block to/,
+    });
     const addButtonRightEdges = addButtons.map((button) => button.getBoundingClientRect().right);
     await expect(new Set(addButtonRightEdges).size).toBe(1);
     await expect(addButtonRightEdges[0]).toBe(rulesHeader!.getBoundingClientRect().right);
@@ -637,6 +639,9 @@ export const IncompatibleAndFullDragPresentation = meta.story({
     ).toBeLessThan(1);
     await expect(canvas.getByLabelText('Figures')).toHaveAttribute('data-drop-eligibility', 'incompatible');
     await expect(canvas.getByLabelText('Full examples')).toHaveAttribute('data-drop-eligibility', 'incompatible');
+    await expect(canvas.getByLabelText('Full examples')).toHaveAccessibleDescription(
+      'Accepts Text. 1 of 1 Block. Minimum 1.'
+    );
   },
 });
 

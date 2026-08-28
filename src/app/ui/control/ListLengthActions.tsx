@@ -13,9 +13,7 @@ import { IconAction } from './IconAction';
  */
 export function AddAction({
   label,
-  disabled = false,
-  onClick,
-  ref,
+  ...iconActionProps
 }: {
   label: string;
   disabled?: boolean;
@@ -24,13 +22,11 @@ export function AddAction({
 }) {
   return (
     <IconAction
-      ref={ref}
+      {...iconActionProps}
       label={label}
       variant="light"
       color="green"
       size="sm"
-      disabled={disabled}
-      onClick={onClick}
       icon={<Plus size={15} aria-hidden />}
     />
   );
