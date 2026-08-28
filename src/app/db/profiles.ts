@@ -114,8 +114,10 @@ export type SessionViewer =
 
 /**
  * The session tri-state a login gate switches over: the answer is still on its way, the viewer is settled signed-out, or a profile is present.
- * Pending must never render as either settled state; a gate that conflates them shows the wrong page for the length of the resolve.
- * Derived here, the `profileAvatarUrl` precedent, so no page probes profile fields to ask "is there a viewer"; three sites once probed three different fields for the same question.
+ * Pending must never render as either settled state;
+ * a gate that conflates them shows the wrong page for the length of the resolve.
+ * Derived here, the `profileAvatarUrl` precedent, so no page probes profile fields to ask "is there a viewer";
+ * three sites once probed three different fields for the same question.
  */
 export function useSessionViewer(): SessionViewer {
   const current = useCurrentProfile();

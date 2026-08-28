@@ -77,7 +77,9 @@ export const CreateTreacheryCardSignedOut = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.findByRole('link', { name: 'Back to treachery cards' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(
+      page.findByRole('link', { name: 'Back to treachery cards' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
     expect(page.queryByRole('button', { name: 'Save card' })).toBeNull();
   },
 });
@@ -110,7 +112,9 @@ export const CreateEnhanceTokenSignedOut = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.findByRole('link', { name: 'Back to enhance tokens' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(
+      page.findByRole('link', { name: 'Back to enhance tokens' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
     expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
   },
 });
