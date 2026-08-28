@@ -46,6 +46,12 @@ const AssetFigureBlockStory = createBlockEditorStory(rulebookBlockEditors['asset
 
 type StoryCanvas = ReturnType<typeof within>;
 
+function latestRepeatedTextValue() {
+  const value = repeatedTextOnChange.mock.calls.at(-1)?.[0] as RulebookBlockEditorValue<'repeated-text'> | undefined;
+  expect(value).toBeDefined();
+  return value as RulebookBlockEditorValue<'repeated-text'>;
+}
+
 async function verifyRepeatedTextEditing(canvas: StoryCanvas) {
   const firstItem = canvas.getByRole('textbox', { name: 'Item 1' });
   const firstReorder = canvas.getByRole('button', { name: 'Reorder item 1' });
@@ -65,19 +71,25 @@ async function verifyRepeatedTextEditing(canvas: StoryCanvas) {
   });
 }
 
-async function verifyRepeatedTextItemLifecycle(canvas: StoryCanvas) {
+async function addRepeatedTextItem(canvas: StoryCanvas) {
   await userEvent.click(canvas.getByRole('button', { name: 'Add item' }));
-  const afterAdd = repeatedTextOnChange.mock.calls.at(-1)?.[0] as RulebookBlockEditorValue<'repeated-text'> | undefined;
-  expect(afterAdd?.itemOrder).toHaveLength(3);
-  expect(afterAdd && afterAdd.itemsById[afterAdd.itemOrder[2]]?.text).toBe('');
+  const afterAdd = latestRepeatedTextValue();
+  expect(afterAdd.itemOrder).toHaveLength(3);
+  const addedItemId = afterAdd.itemOrder[2];
+  expect(afterAdd.itemsById[addedItemId]?.text).toBe('');
+  return addedItemId;
+}
 
-  const addedItemId = afterAdd?.itemOrder[2];
+async function removeRepeatedTextItem(canvas: StoryCanvas, addedItemId: string) {
   await userEvent.click(canvas.getByRole('button', { name: 'Remove item 3' }));
-  const afterRemove = repeatedTextOnChange.mock.calls.at(-1)?.[0] as
-    | RulebookBlockEditorValue<'repeated-text'>
-    | undefined;
-  expect(afterRemove?.itemOrder).toEqual(['ABCD', 'EFGH']);
-  expect(addedItemId && afterRemove?.itemsById[addedItemId]).toBeUndefined();
+  const afterRemove = latestRepeatedTextValue();
+  expect(afterRemove.itemOrder).toEqual(['ABCD', 'EFGH']);
+  expect(afterRemove.itemsById[addedItemId]).toBeUndefined();
+}
+
+async function verifyRepeatedTextItemLifecycle(canvas: StoryCanvas) {
+  const addedItemId = await addRepeatedTextItem(canvas);
+  await removeRepeatedTextItem(canvas, addedItemId);
 }
 
 async function verifyRepeatedTextReorder(canvas: StoryCanvas) {
@@ -85,10 +97,7 @@ async function verifyRepeatedTextReorder(canvas: StoryCanvas) {
   await userEvent.click(firstReorder);
   await userEvent.keyboard('[Space][ArrowDown][Space]');
   await waitFor(() => {
-    const afterReorder = repeatedTextOnChange.mock.calls.at(-1)?.[0] as
-      | RulebookBlockEditorValue<'repeated-text'>
-      | undefined;
-    expect(afterReorder?.itemOrder[1]).toBe('ABCD');
+    expect(latestRepeatedTextValue().itemOrder[1]).toBe('ABCD');
   });
   firstReorder.blur();
   await userEvent.unhover(firstReorder);
