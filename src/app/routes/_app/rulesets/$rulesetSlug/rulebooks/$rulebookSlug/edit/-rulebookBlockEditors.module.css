@@ -1,0 +1,31 @@
+.itemList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item + .item {
+  padding-top: var(--mantine-spacing-sm);
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.itemRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--mantine-spacing-xs);
+  align-items: start;
+}
+
+.itemInput {
+  min-width: 0;
+}
+
+.itemActions {
+  display: flex;
+  gap: var(--mantine-spacing-xs);
+  padding-top: 1.75rem;
+}
+
+.addAction {
+  align-self: flex-start;
+}
