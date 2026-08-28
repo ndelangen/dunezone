@@ -9,7 +9,6 @@ import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useAuthoringEnvelope, useAuthoringSession } from '@app/widgets/authoring/useAuthoringSession';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import {
   INITIAL_TREACHERY_DRAFT,
   INITIAL_TREACHERY_MEMORY,
@@ -46,12 +45,10 @@ export function TreacheryCreatePage() {
     envelope,
     warnings,
     schema: TreacheryAsset,
-    persistence: {
-      save: (payload) => createAsset.mutateAsync({ type: 'card-treachery', data: payload }),
-      isPending: createAsset.isPending,
-      error: createAsset.error,
-      hasSaved: createAsset.data !== undefined,
-    },
+    mutation: createAsset,
+    variables: (payload) => ({ type: 'card-treachery', data: payload }),
+    validationHeaderId: VALIDATION_HEADER_ID,
+    onFocusWarning: (warning) => setChapter(warning.chapter),
     onSaved: ({ slug }) =>
       void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'card-treachery', slug }, replace: true }),
   });
@@ -75,15 +72,7 @@ export function TreacheryCreatePage() {
 
   return (
     <PageLayout>
-      {session.header.open ? (
-        <PageLayout.Header size="compact">
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={warnings}
-            onFocusWarning={(warning) => setChapter(warning.chapter)}
-          />
-        </PageLayout.Header>
-      ) : null}
+      {session.band}
       <PageLayout.Toolbar>
         <AuthoringToolbar
           status={session.status}
@@ -103,13 +92,9 @@ export function TreacheryCreatePage() {
           <SaveErrorAlert error={createAsset.error} />
           <TreacheryCardEditor
             nameField={nameField}
-            draft={envelope.draft}
-            patch={envelope.patch}
-            memory={envelope.memory}
-            remember={envelope.remember}
+            {...session.editorProps}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={session.header.settle}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

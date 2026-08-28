@@ -1,10 +1,13 @@
 import { useForm, useStore } from '@tanstack/react-form';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { useCallback, useRef, useState } from 'react';
 
 import { postedPayload } from './authoringEnvelope';
 import type { AuthoringEnvelope, StoredShape } from './authoringEnvelope';
 import { useValidationHeader } from './useValidationHeader';
+import { ValidationHeader } from './ValidationHeader';
+import type { ValidationHeaderWarning } from './ValidationHeader';
 
 /**
  * The foundation is two hooks rather than one, and the split is forced rather than chosen.
@@ -36,12 +39,15 @@ function opaque(data: object, memory: object): OpaqueEnvelope {
   };
 }
 
-/** The save lifecycle an editor's mutation exposes; the mutation object stays the error channel. */
-export type AuthoringPersistence<Saved> = {
-  save: (payload: unknown) => Promise<Saved>;
+/**
+ * The mutation an editor saves through, taken whole rather than unpacked field by field.
+ * It stays the error channel, which is why nothing here carries an error of its own.
+ */
+export type AuthoringMutation<Variables, Saved> = {
+  mutateAsync: (variables: Variables) => Promise<Saved>;
   isPending: boolean;
   error: Error | null;
-  hasSaved: boolean;
+  data: unknown;
 };
 
 /**
@@ -99,20 +105,33 @@ export function useAuthoringEnvelope<Data extends object, Memory extends object>
  *
  * What it deliberately does not own: the chapter, the navigation a save leads to, and the words a toolbar says, all of which differ per editor and belong to the page.
  */
-export function useAuthoringSession<Data extends { name: string }, Memory, Saved>({
+export function useAuthoringSession<
+  Data extends { name: string },
+  Memory,
+  Warning extends ValidationHeaderWarning,
+  Variables,
+  Saved,
+>({
   envelope,
   warnings,
   schema,
-  persistence,
+  mutation,
+  variables,
   onSaved,
+  validationHeaderId,
+  onFocusWarning,
 }: {
   envelope: AuthoringEnvelopeState<Data, Memory>;
   /** The finished list, the editor's own warnings and its name conflict together, because the header opens on the count of what it will show. */
-  warnings: readonly unknown[];
+  warnings: Warning[];
   /** The stored schema, read for its keys at save so memory can never ride along. */
   schema: StoredShape;
-  persistence: AuthoringPersistence<Saved>;
+  mutation: AuthoringMutation<Variables, Saved>;
+  /** What this editor's mutation wants around the payload: a type for a create, an id for an edit. */
+  variables: (payload: Data) => Variables;
   onSaved: (saved: Saved) => void;
+  validationHeaderId: string;
+  onFocusWarning: (warning: Warning) => void;
 }) {
   /* The values a reset returns to, replaced by what each successful save actually posted. */
   const [baseline, setBaseline] = useState<Data>(() => structuredClone(envelope.draft));
@@ -125,11 +144,11 @@ export function useAuthoringSession<Data extends { name: string }, Memory, Saved
    */
   const isDirty = JSON.stringify(envelope.draft) !== JSON.stringify(baseline);
 
-  const saveState: AuthoringSaveState = persistence.isPending
+  const saveState: AuthoringSaveState = mutation.isPending
     ? 'saving'
-    : persistence.error
+    : mutation.error
       ? 'error'
-      : persistence.hasSaved
+      : mutation.data !== undefined
         ? 'saved'
         : 'idle';
 
@@ -138,7 +157,7 @@ export function useAuthoringSession<Data extends { name: string }, Memory, Saved
   const save = () => {
     const payload = postedPayload(schema, envelope.draft);
     /* The mutation object carries failures, the way every other save on this stack does, so nothing is lost by leaving the rejection here. */
-    void persistence.save(payload).then(
+    void mutation.mutateAsync(variables(payload)).then(
       (saved) => {
         setBaseline(payload);
         onSaved(saved);
@@ -147,9 +166,31 @@ export function useAuthoringSession<Data extends { name: string }, Memory, Saved
     );
   };
 
+  /*
+   * The band is an element rather than a component because `PageLayout` matches its slots by `child.type === Header`
+   * over its own direct children, so anything wrapping the header would stop being the slot.
+   */
+  const band = header.open ? (
+    <PageLayout.Header size="compact">
+      <ValidationHeader id={validationHeaderId} warnings={warnings} onFocusWarning={onFocusWarning} />
+    </PageLayout.Header>
+  ) : null;
+
   return {
+    band,
     header,
     status: { isDirty, isNameBlank: !envelope.draft.name.trim(), saveState },
     actions: { save, reset },
+    /*
+     * The editor widget's five props, bundled for the call site.
+     * This is spelling and not a membrane change: the widget's contract is still exactly draft, patch, memory, remember and onSettle, and nothing else crosses.
+     */
+    editorProps: {
+      draft: envelope.draft,
+      patch: envelope.patch,
+      memory: envelope.memory,
+      remember: envelope.remember,
+      onSettle: header.settle,
+    },
   };
 }

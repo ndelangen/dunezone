@@ -65,7 +65,10 @@ function session(save = vi.fn().mockResolvedValue({ slug: 'lasgun' })) {
         envelope: held,
         warnings: [],
         schema,
-        persistence: { save, isPending: false, error: null, hasSaved: false },
+        mutation: { mutateAsync: save, isPending: false, error: null, data: undefined },
+        variables: (payload) => payload,
+        validationHeaderId: 'authoring-test-header',
+        onFocusWarning: () => undefined,
         onSaved,
       }),
     };
