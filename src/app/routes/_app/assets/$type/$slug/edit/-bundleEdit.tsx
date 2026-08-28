@@ -3,7 +3,6 @@ import { BundleAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -15,10 +14,10 @@ import type { AssetPageData } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
-import { bundleDraftWarnings, BundleEditor } from '@app/widgets/bundle-editor/BundleEditor';
+import { useAuthoringEnvelope, useAuthoringSession } from '@app/widgets/authoring/useAuthoringSession';
+import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_MEMORY } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
+import { BundleAsset as BundleAssetSchema } from '@game/data/objects';
 
 import {
   AssetEditorMessage,
@@ -105,69 +104,42 @@ function BundleEditSession({
   const updateAsset = useUpdateAsset();
   const deletion = useAssetDeletion(asset);
   const setCount = useSetMemberCount();
-  const [draft, setDraft] = useState<BundleDraft>(initialDraft);
-  const [baseline, setBaseline] = useState<BundleDraft>(initialDraft);
   const [chapter, setChapter] = useState<BundleChapter>('identity');
   const [pickerOpen, setPickerOpen] = useState(false);
-  const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
+  const envelope = useAuthoringEnvelope({ initialData: initialDraft, initialMemory: INITIAL_BUNDLE_MEMORY });
   const tokens = members.map((entry) => ({ token: entry.member, count: entry.count }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
     type: 'bundle',
-    name: draft.name,
-    onName: (name) => patch({ name }),
+    name: envelope.draft.name,
+    onName: (name) => envelope.patch({ name }),
     currentSlug: asset.slug,
     source: 'Identity',
     chapter: 'identity' as BundleChapter,
   });
-  const warnings: (
-    | ReturnType<typeof bundleDraftWarnings>[number]
-    | { source: string; complaint: string; chapter: BundleChapter }
-  )[] = [...bundleDraftWarnings(draft, tokens), ...conflictWarnings];
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
-  const isNameBlank = !draft.name.trim();
-  const saveState: AuthoringSaveState = updateAsset.isPending
-    ? 'saving'
-    : updateAsset.error
-      ? 'error'
-      : updateAsset.data !== undefined
-        ? 'saved'
-        : 'idle';
-  const validationHeader = useValidationHeader(warnings.length);
-
-  const save = () => {
-    const saved = draft;
-    updateAsset.mutate(
-      { id: asset.id, data: saved },
-      {
-        onSuccess: ({ slug: nextSlug }) => {
-          setBaseline(saved);
-          if (nextSlug !== asset.slug) {
-            void navigate({
-              to: '/assets/$type/$slug/edit',
-              params: { type: 'bundle', slug: nextSlug },
-              replace: true,
-            });
-          }
-        },
+  const warnings = [...bundleDraftWarnings(envelope.draft, tokens), ...conflictWarnings];
+  const session = useAuthoringSession({
+    envelope,
+    warnings,
+    schema: BundleAssetSchema,
+    mutation: updateAsset,
+    variables: (payload) => ({ id: asset.id, data: payload }),
+    /* Renames re-slug: follow the bundle to its new URL so a reload keeps editing it. */
+    validationHeaderId: VALIDATION_HEADER_ID,
+    onFocusWarning: (warning) => setChapter(warning.chapter),
+    onSaved: ({ slug: nextSlug }) => {
+      if (nextSlug !== asset.slug) {
+        void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'bundle', slug: nextSlug }, replace: true });
       }
-    );
-  };
+    },
+  });
 
   return (
     <PageLayout>
-      {validationHeader.open ? (
-        <PageLayout.Header size="compact">
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={warnings}
-            onFocusWarning={(warning) => setChapter(warning.chapter)}
-          />
-        </PageLayout.Header>
-      ) : null}
+      {session.band}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, saveState }}
+          status={session.status}
           copy={{
             saveLabel: 'Save bundle',
             nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
@@ -178,8 +150,8 @@ function BundleEditSession({
              */
           }}
           actions={{
-            onSave: save,
-            onReset: validationHeader.releasing(() => setDraft(baseline)),
+            onSave: session.actions.save,
+            onReset: session.actions.reset,
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
@@ -207,14 +179,12 @@ function BundleEditSession({
           ) : null}
           <BundleEditor
             nameField={nameField}
-            draft={draft}
-            patch={patch}
+            {...session.editorProps}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={validationHeader.settle}
             members={tokens}
             countPending={setCount.isPending}
-            onCountChange={validationHeader.releasing((tokenId: string, count: number) =>
+            onCountChange={session.header.releasing((tokenId: string, count: number) =>
               setCount.mutate({ container_id: asset.id, member_id: tokenId as typeof asset.id, count })
             )}
             tokenPicker={

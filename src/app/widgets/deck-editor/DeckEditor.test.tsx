@@ -6,7 +6,8 @@ import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 
-import { DeckEditor, INITIAL_DECK_DRAFT } from './DeckEditor';
+import { DeckEditor, INITIAL_DECK_DRAFT, initialDeckMemory } from './DeckEditor';
+import type { DeckMemory } from './DeckEditor';
 import type { DeckChapter, DeckDraft } from './DeckEditor';
 import { STOCK_CARDBACKS } from './stockCardbacks';
 
@@ -34,6 +35,7 @@ afterEach(cleanup);
 /** The draft is real state, because the defect this guards was the control failing to survive a re-render. */
 function Harness() {
   const [draft, setDraft] = useState<DeckDraft>(INITIAL_DECK_DRAFT);
+  const [memory, setMemory] = useState<DeckMemory>(() => initialDeckMemory(INITIAL_DECK_DRAFT.cardback));
   const [chapter, setChapter] = useState<DeckChapter>('identity');
   return (
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
@@ -41,6 +43,8 @@ function Harness() {
         nameField={<input aria-label="Name" readOnly value="" />}
         draft={draft}
         patch={(update) => setDraft((previous) => ({ ...previous, ...update }))}
+        memory={memory}
+        remember={(update) => setMemory((previous) => ({ ...previous, ...update }))}
         chapter={chapter}
         onChapterChange={setChapter}
         onSettle={() => {}}
@@ -128,6 +132,8 @@ it('draws the cardback proof while a colour is still being typed', () => {
           nameField={<input aria-label="Name" readOnly value="" />}
           draft={draft}
           patch={() => {}}
+          memory={initialDeckMemory(draft.cardback)}
+          remember={() => {}}
           chapter="identity"
           onChapterChange={() => {}}
           onSettle={() => {}}

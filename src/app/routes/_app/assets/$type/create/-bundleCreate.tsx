@@ -2,7 +2,6 @@ import { Text } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
-import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
@@ -10,10 +9,15 @@ import { useState } from 'react';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
-import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_DRAFT } from '@app/widgets/bundle-editor/BundleEditor';
-import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
+import { useAuthoringEnvelope, useAuthoringSession } from '@app/widgets/authoring/useAuthoringSession';
+import {
+  bundleDraftWarnings,
+  BundleEditor,
+  INITIAL_BUNDLE_DRAFT,
+  INITIAL_BUNDLE_MEMORY,
+} from '@app/widgets/bundle-editor/BundleEditor';
+import type { BundleChapter } from '@app/widgets/bundle-editor/BundleEditor';
+import { BundleAsset } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
@@ -28,31 +32,31 @@ export function BundleCreatePage() {
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
-  const [draft, setDraft] = useState<BundleDraft>(INITIAL_BUNDLE_DRAFT);
   const [chapter, setChapter] = useState<BundleChapter>('identity');
-  const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
+  const envelope = useAuthoringEnvelope({ initialData: INITIAL_BUNDLE_DRAFT, initialMemory: INITIAL_BUNDLE_MEMORY });
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
     type: 'bundle',
-    name: draft.name,
-    onName: (name) => patch({ name }),
+    name: envelope.draft.name,
+    onName: (name) => envelope.patch({ name }),
     source: 'Identity',
     chapter: 'identity' as BundleChapter,
   });
-  const warnings: (
-    | ReturnType<typeof bundleDraftWarnings>[number]
-    | { source: string; complaint: string; chapter: BundleChapter }
-  )[] = [...bundleDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'tokens'), ...conflictWarnings];
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_BUNDLE_DRAFT);
-  const isNameBlank = !draft.name.trim();
-  const saveState: AuthoringSaveState = createAsset.isPending
-    ? 'saving'
-    : createAsset.error
-      ? 'error'
-      : createAsset.data !== undefined
-        ? 'saved'
-        : 'idle';
-  const validationHeader = useValidationHeader(warnings.length);
+  const warnings = [
+    ...bundleDraftWarnings(envelope.draft, []).filter((warning) => warning.chapter !== 'tokens'),
+    ...conflictWarnings,
+  ];
+  const session = useAuthoringSession({
+    envelope,
+    warnings,
+    schema: BundleAsset,
+    mutation: createAsset,
+    variables: (payload) => ({ type: 'bundle', data: payload }),
+    validationHeaderId: VALIDATION_HEADER_ID,
+    onFocusWarning: (warning) => setChapter(warning.chapter),
+    onSaved: ({ slug }) =>
+      void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'bundle', slug }, replace: true }),
+  });
 
   switch (viewer.kind) {
     case 'pending':
@@ -71,38 +75,20 @@ export function BundleCreatePage() {
       break;
   }
 
-  const save = () => {
-    createAsset.mutate(
-      { type: 'bundle', data: draft },
-      {
-        onSuccess: ({ slug }) =>
-          void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'bundle', slug }, replace: true }),
-      }
-    );
-  };
-
   return (
     <PageLayout>
-      {validationHeader.open ? (
-        <PageLayout.Header size="compact">
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={warnings}
-            onFocusWarning={(warning) => setChapter(warning.chapter)}
-          />
-        </PageLayout.Header>
-      ) : null}
+      {session.band}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, saveState }}
+          status={session.status}
           copy={{
             saveLabel: 'Save bundle',
             nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
             /* No publication copy anywhere on this page: a bundle publishes nothing, and its members publish themselves. */
           }}
           actions={{
-            onSave: save,
-            onReset: validationHeader.releasing(() => setDraft(INITIAL_BUNDLE_DRAFT)),
+            onSave: session.actions.save,
+            onReset: session.actions.reset,
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
           }}
         />
@@ -112,11 +98,9 @@ export function BundleCreatePage() {
           <SaveErrorAlert error={createAsset.error} />
           <BundleEditor
             nameField={nameField}
-            draft={draft}
-            patch={patch}
+            {...session.editorProps}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={validationHeader.settle}
             members={[]}
             onCountChange={null}
             tokenPicker={

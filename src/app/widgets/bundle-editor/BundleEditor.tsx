@@ -15,6 +15,7 @@ import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { BundleContainer } from '@app/widgets/asset-face/BundleContainer';
 import type { BundleBandData } from '@app/widgets/asset-face/BundleContainer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
+import { CUSTOM_PRESET, presetSelection } from '@app/widgets/background-composer/presetChoice';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 import { STOCK_BANDS, stockBandKeyFor } from './stockBands';
@@ -39,9 +40,29 @@ export const INITIAL_BUNDLE_DRAFT: BundleDraft = {
   band: STOCK_BANDS[0]!.band,
 };
 
-const CUSTOM = 'custom';
+const CUSTOM = CUSTOM_PRESET;
 
-function BandFields({ band, onChange }: { band: BundleBandData; onChange: (next: BundleBandData) => void }) {
+/**
+ * What this editor's session needs and a stored bundle has no room for.
+ *
+ * Two declared Custom intents, one per stock-or-custom control: the band's own, and the background inside the band's fields.
+ * They live in the route's envelope rather than in component state because a Reset the controls cannot see has to discard them (#587, D3 and D4 on «Work the editors wave»).
+ */
+export type BundleMemory = { bandCustom: boolean; backgroundCustom: boolean };
+
+export const INITIAL_BUNDLE_MEMORY: BundleMemory = { bandCustom: false, backgroundCustom: false };
+
+function BandFields({
+  band,
+  onChange,
+  declaredCustom,
+  onDeclaredCustomChange,
+}: {
+  band: BundleBandData;
+  onChange: (next: BundleBandData) => void;
+  declaredCustom: boolean;
+  onDeclaredCustomChange: (next: boolean) => void;
+}) {
   return (
     <>
       <ControlBlock
@@ -61,6 +82,8 @@ function BandFields({ band, onChange }: { band: BundleBandData; onChange: (next:
         usedOn="this bundle's band"
         presets={BAND_PRESETS}
         value={band.background}
+        declaredCustom={declaredCustom}
+        onDeclaredCustomChange={onDeclaredCustomChange}
         onChange={(background) => onChange({ ...band, background })}
       />
     </>
@@ -97,6 +120,8 @@ export function BundleEditor({
   nameField,
   draft,
   patch,
+  memory,
+  remember,
   chapter,
   onChapterChange,
   onSettle,
@@ -106,6 +131,9 @@ export function BundleEditor({
   tokenPicker,
 }: {
   draft: BundleDraft;
+  /** The session's memory and its setter, the same value plus onChange membrane the draft crosses on. */
+  memory: BundleMemory;
+  remember: (update: Partial<BundleMemory>) => void;
   /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
   nameField: ReactNode;
   patch: (update: Partial<BundleDraft>) => void;
@@ -127,15 +155,11 @@ export function BundleEditor({
   }
   const stockKey = stockBandKeyFor(draft.band);
   /*
-   * Whether Custom was picked, held here because it cannot be derived.
-   * `stockKey` answers "does this composition match a stock one", which is not the same question as
-   * "did the author ask to compose their own": a stock composition matches a stock key, so deriving
-   * `selected` from it alone made Custom unselectable. The control snapped back and the fields never
-   * mounted, so a stock deck or bundle could never become an authored one (#571).
-   * `BackgroundPresetControl` already holds the same flag for the same reason.
+   * The two halves of stock-or-custom, per D4: `stockKey` derives whether the band equals a stock one,
+   * and the author's declared intent is the half no value can express, so it rides in the session's memory.
+   * Deriving `selected` from the key alone made Custom unselectable, since a stock composition matches a stock key (#571).
    */
-  const [customChosen, setCustomChosen] = useState(stockKey === null);
-  const selected = customChosen || stockKey === null ? CUSTOM : stockKey;
+  const selected = presetSelection(stockKey, memory.bandCustom);
   const totalTokens = members.reduce((sum, member) => sum + member.count, 0);
 
   return (
@@ -173,19 +197,26 @@ export function BundleEditor({
                           onChange={(next) => {
                             if (next === CUSTOM) {
                               /* Custom keeps the current composition and reveals the fields below. */
-                              setCustomChosen(true);
+                              remember({ bandCustom: true });
                               return;
                             }
                             const stock = STOCK_BANDS.find((candidate) => candidate.key === next);
                             if (stock) {
-                              setCustomChosen(false);
+                              remember({ bandCustom: false });
                               patch({ band: stock.band });
                             }
                           }}
                         />
                       }
                     />
-                    {selected === CUSTOM ? <BandFields band={draft.band} onChange={(band) => patch({ band })} /> : null}
+                    {selected === CUSTOM ? (
+                      <BandFields
+                        band={draft.band}
+                        onChange={(band) => patch({ band })}
+                        declaredCustom={memory.backgroundCustom}
+                        onDeclaredCustomChange={(backgroundCustom) => remember({ backgroundCustom })}
+                      />
+                    ) : null}
                   </>
                 ),
               },

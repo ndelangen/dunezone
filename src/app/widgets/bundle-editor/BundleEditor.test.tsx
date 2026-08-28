@@ -6,8 +6,8 @@ import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 
-import { BundleEditor, INITIAL_BUNDLE_DRAFT } from './BundleEditor';
-import type { BundleChapter, BundleDraft } from './BundleEditor';
+import { BundleEditor, INITIAL_BUNDLE_DRAFT, INITIAL_BUNDLE_MEMORY } from './BundleEditor';
+import type { BundleChapter, BundleDraft, BundleMemory } from './BundleEditor';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -35,6 +35,7 @@ afterEach(cleanup);
 /** The draft is real state, because the defect this guards was the control failing to survive a re-render. */
 function Harness() {
   const [draft, setDraft] = useState<BundleDraft>(INITIAL_BUNDLE_DRAFT);
+  const [memory, setMemory] = useState<BundleMemory>(INITIAL_BUNDLE_MEMORY);
   const [chapter, setChapter] = useState<BundleChapter>('identity');
   return (
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
@@ -42,6 +43,8 @@ function Harness() {
         nameField={<input aria-label="Name" readOnly value="" />}
         draft={draft}
         patch={(update) => setDraft((previous) => ({ ...previous, ...update }))}
+        memory={memory}
+        remember={(update) => setMemory((previous) => ({ ...previous, ...update }))}
         chapter={chapter}
         onChapterChange={setChapter}
         onSettle={() => {}}
