@@ -2,7 +2,6 @@ import { Alert } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -11,9 +10,13 @@ import { useState } from 'react';
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
+import { useAuthoringEnvelope, useAuthoringSession } from '@app/widgets/authoring/useAuthoringSession';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
-import { TreacheryCardEditor, treacheryDraftWarnings } from '@app/widgets/card-editor/TreacheryCardEditor';
+import {
+  INITIAL_TREACHERY_MEMORY,
+  TreacheryCardEditor,
+  treacheryDraftWarnings,
+} from '@app/widgets/card-editor/TreacheryCardEditor';
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { TreacheryAsset } from '@game/data/objects';
 
@@ -100,57 +103,43 @@ function CardEditSession({
   const deletion = useAssetDeletion(asset);
   const groupActions = useAssetGroupActions({ asset, access });
   const { capabilities } = access.viewerAccess;
-  const [draft, setDraft] = useState<TreacheryDraft>(initialDraft);
-  const [baseline, setBaseline] = useState<TreacheryDraft>(initialDraft);
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
-  const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
+  const envelope = useAuthoringEnvelope({ initialData: initialDraft, initialMemory: INITIAL_TREACHERY_MEMORY });
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
     type: 'card-treachery',
-    name: draft.name,
-    onName: (name) => patch({ name }),
+    name: envelope.draft.name,
+    onName: (name) => envelope.patch({ name }),
     currentSlug: asset.slug,
     source: 'Head',
     chapter: 'head' as TreacheryChapter,
   });
-  const warnings: (
-    | ReturnType<typeof treacheryDraftWarnings>[number]
-    | { source: string; complaint: string; chapter: TreacheryChapter }
-  )[] = [...treacheryDraftWarnings(draft), ...conflictWarnings];
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
-  const isNameBlank = !draft.name.trim();
-  const saveState: AuthoringSaveState = updateAsset.isPending
-    ? 'saving'
-    : updateAsset.error
-      ? 'error'
-      : updateAsset.data !== undefined
-        ? 'saved'
-        : 'idle';
-  const validationHeader = useValidationHeader(warnings.length);
-
-  const save = () => {
-    const saved = draft;
-    updateAsset.mutate(
-      { id: asset.id, data: saved },
-      {
-        onSuccess: ({ slug: nextSlug }) => {
-          setBaseline(saved);
-          /* Renames re-slug: follow the card to its new URL so a reload keeps editing it. */
-          if (nextSlug !== asset.slug) {
-            void navigate({
-              to: '/assets/$type/$slug/edit',
-              params: { type: 'card-treachery', slug: nextSlug },
-              replace: true,
-            });
-          }
-        },
+  const warnings = [...treacheryDraftWarnings(envelope.draft), ...conflictWarnings];
+  const session = useAuthoringSession({
+    envelope,
+    warnings,
+    schema: TreacheryAsset,
+    persistence: {
+      save: (payload) => updateAsset.mutateAsync({ id: asset.id, data: payload }),
+      isPending: updateAsset.isPending,
+      error: updateAsset.error,
+      hasSaved: updateAsset.data !== undefined,
+    },
+    /* Renames re-slug: follow the card to its new URL so a reload keeps editing it. */
+    onSaved: ({ slug: nextSlug }) => {
+      if (nextSlug !== asset.slug) {
+        void navigate({
+          to: '/assets/$type/$slug/edit',
+          params: { type: 'card-treachery', slug: nextSlug },
+          replace: true,
+        });
       }
-    );
-  };
+    },
+  });
 
   return (
     <PageLayout>
-      {validationHeader.open ? (
+      {session.header.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -161,14 +150,14 @@ function CardEditSession({
       ) : null}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, saveState }}
+          status={session.status}
           copy={{
             saveLabel: 'Save card',
             nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
           }}
           actions={{
-            onSave: save,
-            onReset: validationHeader.releasing(() => setDraft(baseline)),
+            onSave: session.actions.save,
+            onReset: session.actions.reset,
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
@@ -191,11 +180,13 @@ function CardEditSession({
           {groupActions.error}
           <TreacheryCardEditor
             nameField={nameField}
-            draft={draft}
-            patch={patch}
+            draft={envelope.draft}
+            patch={envelope.patch}
+            memory={envelope.memory}
+            remember={envelope.remember}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={validationHeader.settle}
+            onSettle={session.header.settle}
           />
         </WorkbenchLayout>
       </PageLayout.Content>
