@@ -2,14 +2,25 @@ import {
   closestCenter,
   DndContext,
   KeyboardSensor,
+  MeasuringStrategy,
   PointerSensor,
+  pointerWithin,
+  rectIntersection,
   useDndContext,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import type { DragCancelEvent, DragEndEvent, DragOverEvent, DragStartEvent, Modifier, Modifiers } from '@dnd-kit/core';
+import type {
+  CollisionDetection,
+  DragCancelEvent,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  Modifier,
+  Modifiers,
+} from '@dnd-kit/core';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -22,6 +33,8 @@ import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import { NestedTabs } from '@ui/surface';
 import {
   Circle,
+  ChevronDown,
+  ChevronRight,
   FileImage,
   FileText,
   Hexagon,
@@ -36,7 +49,7 @@ import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
 
 import styles from './-sortableHierarchyPrototype.module.css';
 
-export type SortableHierarchyPrototypeVariant = 'A' | 'B' | 'C';
+export type SortableHierarchyPrototypeVariant = 'A' | 'B' | 'C' | 'D';
 
 type BlockKind = 'text' | 'figure' | 'callout';
 
@@ -95,6 +108,10 @@ const variantDescriptions: Record<SortableHierarchyPrototypeVariant, { name: str
   C: {
     name: 'Explained pass-through',
     description: 'The invalid item is struck through and the region states why it cannot accept the Block.',
+  },
+  D: {
+    name: 'Dynamic zones',
+    description: 'A compatible region reveals exact positions on entry. Incompatible regions fade and never become positions.',
   },
 };
 
@@ -466,6 +483,10 @@ function summaryRegionId(regionId: string) {
   return `summary:region:${regionId}`;
 }
 
+function dynamicInsertionId(regionId: string, index: number) {
+  return `summary:insertion:${regionId}:${index}`;
+}
+
 function idSuffix(id: string | number, prefix: string) {
   const value = String(id);
   return value.startsWith(prefix) ? value.slice(prefix.length) : null;
@@ -487,6 +508,26 @@ function targetPlacementFromSummaryOver(regions: readonly PrototypeRegion[], ove
   const placement = findBlockPlacement(regions, targetBlock);
   return placement;
 }
+
+function targetPlacementFromDynamicOver(over: DragOverEvent['over']): Placement | null {
+  if (!over) {
+    return null;
+  }
+  const insertion = idSuffix(over.id, 'summary:insertion:');
+  if (!insertion) {
+    return null;
+  }
+  const separatorIndex = insertion.lastIndexOf(':');
+  const regionId = insertion.slice(0, separatorIndex);
+  const index = Number(insertion.slice(separatorIndex + 1));
+  return regionId && Number.isInteger(index) ? { regionId, index } : null;
+}
+
+const preciseDynamicCollision: CollisionDetection = (args) => {
+  const collisions = args.pointerCoordinates ? pointerWithin(args) : rectIntersection(args);
+  const insertionCollisions = collisions.filter(({ id }) => String(id).startsWith('summary:insertion:'));
+  return insertionCollisions.length > 0 ? insertionCollisions : collisions;
+};
 
 function RegionDropMessage({
   variant,
@@ -553,7 +594,7 @@ function SummaryRegionDropTarget({
   );
 }
 
-function PageDetailsSummaries({
+function LegacyPageDetailsSummaries({
   regions,
   setRegions,
   blocks,
@@ -729,6 +770,301 @@ function PageDetailsSummaries({
       </DndContext>
     </div>
   );
+}
+
+function DynamicSummaryItem({
+  block,
+  onSelect,
+}: {
+  block: PrototypeBlock;
+  onSelect: () => void;
+}) {
+  const draggable = useDraggable({ id: summaryBlockId(block.id) });
+  const style: CSSProperties = {
+    transform: draggable.transform ? `translate3d(0, ${draggable.transform.y}px, 0)` : undefined,
+  };
+
+  return (
+    <li
+      ref={draggable.setNodeRef}
+      className={styles.summaryItem}
+      style={style}
+      data-dynamic-dragging={draggable.isDragging || undefined}
+    >
+      <a
+        href={`#${block.id}`}
+        className={styles.summaryLink}
+        onClick={(event) => {
+          event.preventDefault();
+          onSelect();
+        }}
+      >
+        <span className={styles.summaryIcon}>{blockIcon(block.kind)}</span>
+        <span>
+          <strong>{block.label}</strong>
+          <small>{block.kind}</small>
+        </span>
+      </a>
+      <SortableReorderHandle
+        label={`Move ${block.label}`}
+        setActivatorNodeRef={draggable.setActivatorNodeRef}
+        attributes={draggable.attributes}
+        listeners={draggable.listeners}
+      />
+    </li>
+  );
+}
+
+function DynamicInsertionZone({ regionId, index }: Placement) {
+  const droppable = useDroppable({ id: dynamicInsertionId(regionId, index) });
+  return (
+    <li
+      className={styles.dynamicDropZone}
+      data-active={droppable.isOver || undefined}
+      aria-hidden={!droppable.isOver}
+    >
+      <div ref={droppable.setNodeRef} className={styles.dynamicDropZoneHit}>
+        {droppable.isOver ? <span role="status">Can drop here</span> : null}
+      </div>
+    </li>
+  );
+}
+
+function DynamicSummaryRegion({
+  region,
+  regions,
+  blocks,
+  activeBlockId,
+  activeRegionId,
+  collapsed,
+  onToggleCollapsed,
+  onSelectBlock,
+}: {
+  region: PrototypeRegion;
+  regions: readonly PrototypeRegion[];
+  blocks: Readonly<Record<string, PrototypeBlock>>;
+  activeBlockId: string | null;
+  activeRegionId: string | null;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  onSelectBlock: (blockId: string) => void;
+}) {
+  const droppable = useDroppable({
+    id: summaryRegionId(region.id),
+    disabled: activeBlockId === null,
+  });
+  const validity = activeBlockId
+    ? placementValidity({ regions, blocks, blockId: activeBlockId, targetRegionId: region.id })
+    : null;
+  const eligibility = validity ? (validity.valid ? 'compatible' : 'incompatible') : undefined;
+  const open = activeRegionId === region.id && validity?.valid === true;
+  const contentId = `${region.id}-dynamic-summary-content`;
+
+  return (
+    <section
+      ref={droppable.setNodeRef}
+      className={styles.summaryRegion}
+      data-drop-eligibility={eligibility}
+      data-drop-open={open || undefined}
+      data-prototype-over={droppable.isOver || undefined}
+      aria-labelledby={`${region.id}-dynamic-summary-heading`}
+    >
+      <header className={styles.summaryRegionHeader}>
+        <div>
+          <h3 id={`${region.id}-dynamic-summary-heading`}>{region.label}</h3>
+          <p>
+            Accepts {region.accepts.join(', ')}. {region.blockIds.length}/{region.capacity} Blocks.
+          </p>
+        </div>
+        <div className={styles.regionActions}>
+          <button
+            type="button"
+            className={styles.regionCollapseButton}
+            aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${region.label}`}
+            aria-expanded={!collapsed}
+            aria-controls={contentId}
+            onClick={onToggleCollapsed}
+          >
+            {collapsed ? <ChevronRight aria-hidden /> : <ChevronDown aria-hidden />}
+          </button>
+          <button type="button" className={styles.regionAddButton} aria-label={`Add a Block to ${region.label}`}>
+            <Plus aria-hidden />
+          </button>
+        </div>
+      </header>
+      {collapsed ? (
+        droppable.isOver && validity?.valid ? (
+          <div id={contentId} className={styles.collapsedDropTarget} role="status">
+            Can drop here
+          </div>
+        ) : null
+      ) : (
+        <ul id={contentId} className={`${styles.summaryList} ${styles.dynamicSummaryList}`}>
+          {open ? <DynamicInsertionZone regionId={region.id} index={0} /> : null}
+          {region.blockIds.map((blockId, index) => (
+            <Fragment key={blockId}>
+              <DynamicSummaryItem
+                block={blocks[blockId]}
+                onSelect={() => onSelectBlock(blockId)}
+              />
+              {open ? <DynamicInsertionZone regionId={region.id} index={index + 1} /> : null}
+            </Fragment>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function DynamicPageDetailsSummaries({
+  regions,
+  setRegions,
+  blocks,
+  onSelectBlock,
+}: Omit<Parameters<typeof LegacyPageDetailsSummaries>[0], 'variant'>) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
+    useSensor(KeyboardSensor)
+  );
+  const candidatePlacement = useRef<Placement | null>(null);
+  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [activeRegionId, setActiveRegionId] = useState<string | null>(null);
+  const [lastValid, setLastValid] = useState<Placement | null>(null);
+  const [collapsedRegionIds, setCollapsedRegionIds] = useState<ReadonlySet<string>>(() => new Set());
+
+  const recordCandidate = (blockId: string, placement: Placement) => {
+    const normalizedPlacement = normalizePlacement(regions, blockId, placement);
+    const validity = placementValidity({
+      regions,
+      blocks,
+      blockId,
+      targetRegionId: normalizedPlacement.regionId,
+    });
+    if (!validity.valid) {
+      return false;
+    }
+    candidatePlacement.current = normalizedPlacement;
+    setLastValid(normalizedPlacement);
+    return true;
+  };
+
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    const blockId = idSuffix(active.id, 'summary:block:');
+    if (!blockId) {
+      return;
+    }
+    const placement = findBlockPlacement(regions, blockId);
+    candidatePlacement.current = placement;
+    setLastValid(placement);
+    setActiveBlockId(blockId);
+    setActiveRegionId(null);
+  };
+
+  const handleDragOver = ({ active, over }: DragOverEvent) => {
+    const blockId = idSuffix(active.id, 'summary:block:');
+    if (!blockId) {
+      return;
+    }
+    const insertionPlacement = targetPlacementFromDynamicOver(over);
+    if (insertionPlacement) {
+      if (recordCandidate(blockId, insertionPlacement)) {
+        setActiveRegionId(insertionPlacement.regionId);
+      }
+      return;
+    }
+    const regionId = over ? idSuffix(over.id, 'summary:region:') : null;
+    if (!regionId) {
+      setActiveRegionId(null);
+      return;
+    }
+    const region = regions.find((candidate) => candidate.id === regionId);
+    if (!region) {
+      setActiveRegionId(null);
+      return;
+    }
+    const validity = placementValidity({ regions, blocks, blockId, targetRegionId: regionId });
+    if (!validity.valid) {
+      setActiveRegionId(null);
+      return;
+    }
+    setActiveRegionId(regionId);
+    if (collapsedRegionIds.has(regionId)) {
+      recordCandidate(blockId, { regionId, index: region.blockIds.length });
+    }
+  };
+
+  const finishDrag = () => {
+    candidatePlacement.current = null;
+    setActiveBlockId(null);
+    setActiveRegionId(null);
+  };
+
+  const handleDragEnd = ({ active }: DragEndEvent) => {
+    const blockId = idSuffix(active.id, 'summary:block:');
+    const placement = candidatePlacement.current;
+    if (blockId && placement) {
+      setRegions(moveBlock(regions, blockId, placement.regionId, placement.index));
+    }
+    finishDrag();
+  };
+
+  return (
+    <div className={styles.detailsRoot} data-variant="D">
+      <header className={styles.detailsHeading}>
+        <div>
+          <h2>Page details</h2>
+          <p>Enter a compatible Block region to reveal its exact positions. Reordering commits on drop.</p>
+        </div>
+        <div className={styles.dragReadout} aria-live="polite">
+          <span>Last valid</span>
+          <strong>{placementLabel(regions, lastValid)}</strong>
+        </div>
+      </header>
+      <DndContext
+        sensors={sensors}
+        modifiers={verticalDragModifiers}
+        collisionDetection={preciseDynamicCollision}
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        onDragCancel={finishDrag}
+      >
+        <div className={styles.summaryRegions}>
+          {regions.map((region) => (
+            <DynamicSummaryRegion
+              region={region}
+              regions={regions}
+              blocks={blocks}
+              activeBlockId={activeBlockId}
+              activeRegionId={activeRegionId}
+              collapsed={collapsedRegionIds.has(region.id)}
+              onToggleCollapsed={() => {
+                setCollapsedRegionIds((current) => {
+                  const next = new Set(current);
+                  if (next.has(region.id)) {
+                    next.delete(region.id);
+                  } else {
+                    next.add(region.id);
+                  }
+                  return next;
+                });
+              }}
+              onSelectBlock={onSelectBlock}
+              key={region.id}
+            />
+          ))}
+        </div>
+      </DndContext>
+    </div>
+  );
+}
+
+function PageDetailsSummaries(props: Parameters<typeof LegacyPageDetailsSummaries>[0]) {
+  if (props.variant === 'D') {
+    return <DynamicPageDetailsSummaries {...props} />;
+  }
+  return <LegacyPageDetailsSummaries {...props} />;
 }
 
 function PreviewPlaceholder({
@@ -967,7 +1303,11 @@ export function SortableHierarchyPrototype({
     <>
       <div className={styles.prototypeNotice}>
         <strong>Throwaway sorting prototype</strong>
-        <span>Fixture state only. Valid placements commit during drag; Escape restores the drag origin.</span>
+        <span>
+          {variant === 'D'
+            ? 'Fixture state only. Page-detail positions appear on region entry and commit on drop.'
+            : 'Fixture state only. Valid placements commit during drag; Escape restores the drag origin.'}
+        </span>
       </div>
       <DocumentEditorLayout ratio={210 / 297} fit={fit}>
         <DocumentEditorLayout.Sidebar>
@@ -1017,6 +1357,17 @@ export function SortableHierarchyPrototype({
                 {regions.map((region) => {
                   const regionStatus =
                     feedback?.regionId === region.id ? (feedback.valid ? 'valid' : 'invalid') : undefined;
+                  const dynamicEligibility =
+                    variant === 'D' && activeDrag?.kind === 'block'
+                      ? placementValidity({
+                          regions,
+                          blocks,
+                          blockId: activeDrag.id,
+                          targetRegionId: region.id,
+                        }).valid
+                        ? 'compatible'
+                        : 'incompatible'
+                      : undefined;
                   return (
                     <NestedTabs.Group
                       as={PrototypeRailGroupRoot}
@@ -1027,6 +1378,7 @@ export function SortableHierarchyPrototype({
                       sortableIds={region.blockIds.map((blockId) => `rail:block:${blockId}`)}
                       className={styles.railGroup}
                       data-drop-status={regionStatus}
+                      data-drop-eligibility={dynamicEligibility}
                       data-variant={variant}
                       data-drop-reason={feedback?.regionId === region.id ? feedback.reason : undefined}
                       key={region.id}

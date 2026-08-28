@@ -52,6 +52,10 @@
     opacity var(--transition-fast);
 }
 
+.railGroup[data-variant="D"][data-drop-eligibility="incompatible"] {
+  opacity: 0.28;
+}
+
 .railGroup[data-drop-status="invalid"][data-variant="A"] {
   cursor: not-allowed;
   box-shadow: inset 0 2px 0 var(--mantine-color-red-7);
@@ -91,7 +95,8 @@
 }
 
 .railTool,
-.regionAddButton {
+.regionAddButton,
+.regionCollapseButton {
   display: grid;
   width: 2rem;
   height: 2rem;
@@ -107,12 +112,15 @@
 .railTool:hover,
 .railTool:focus-visible,
 .regionAddButton:hover,
-.regionAddButton:focus-visible {
+.regionAddButton:focus-visible,
+.regionCollapseButton:hover,
+.regionCollapseButton:focus-visible {
   background: color-mix(in srgb, currentColor 10%, transparent);
 }
 
 .railTool svg,
-.regionAddButton svg {
+.regionAddButton svg,
+.regionCollapseButton svg {
   width: 1rem;
   height: 1rem;
 }
@@ -168,7 +176,12 @@
   background: transparent;
   transition:
     background-color var(--transition-fast),
-    box-shadow var(--transition-fast);
+    box-shadow var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.summaryRegion[data-drop-eligibility="incompatible"] {
+  opacity: 0.28;
 }
 
 .summaryRegion + .summaryRegion {
@@ -202,6 +215,12 @@
 
 .summaryRegionHeader h3 {
   font-size: var(--mantine-font-size-sm);
+}
+
+.regionActions {
+  display: flex;
+  gap: 0.1rem;
+  align-items: center;
 }
 
 .dropReason {
@@ -241,6 +260,62 @@
   border-color: color-mix(in srgb, var(--mantine-color-red-7) 58%, transparent);
 }
 
+.dynamicSummaryList {
+  gap: 0;
+}
+
+.dynamicSummaryList > .summaryItem {
+  margin-block: 0.14rem;
+}
+
+.dynamicDropZone {
+  position: relative;
+  z-index: 2;
+  height: 0;
+  min-height: 0;
+  overflow: visible;
+  transition: height 120ms ease-out;
+}
+
+.dynamicDropZoneHit {
+  position: absolute;
+  inset-inline: 0;
+  top: -0.25rem;
+  display: grid;
+  height: 0.5rem;
+  color: currentColor;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 700;
+  text-align: center;
+  border-block: 0 solid color-mix(in srgb, currentColor 28%, transparent);
+  place-items: center;
+  transition:
+    top 120ms ease-out,
+    height 120ms ease-out,
+    border-width 120ms ease-out;
+}
+
+.dynamicDropZone[data-active] {
+  height: 2.35rem;
+}
+
+.dynamicDropZone[data-active] .dynamicDropZoneHit {
+  top: 0;
+  height: 2.35rem;
+  border-block-width: 1px;
+}
+
+.collapsedDropTarget {
+  display: grid;
+  min-height: 2.35rem;
+  margin-block-start: var(--mantine-spacing-xs);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 700;
+  text-align: center;
+  border-block: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  place-items: center;
+}
+
 @keyframes open-drop-placeholder {
   from {
     min-height: 0;
@@ -267,6 +342,13 @@
 
 .summaryItem.invalidDragging {
   opacity: 0.62;
+}
+
+.summaryItem[data-dynamic-dragging] {
+  z-index: 10;
+  opacity: 0.54;
+  pointer-events: none;
+  box-shadow: var(--mantine-shadow-sm);
 }
 
 .detailsRoot[data-variant="C"] .summaryItem.invalidDragging {
@@ -437,7 +519,8 @@
   .railGroup,
   .summaryRegion,
   .summaryItem,
-  .dropPlaceholder {
+  .dropPlaceholder,
+  .dynamicDropZone {
     transition: none;
     animation: none;
   }

@@ -65,7 +65,7 @@ function parsePrototypeSearch(params: Record<string, unknown>): {
     return {};
   }
   const variant = params.variant;
-  return variant === 'A' || variant === 'B' || variant === 'C' ? { variant } : {};
+  return variant === 'A' || variant === 'B' || variant === 'C' || variant === 'D' ? { variant } : {};
 }
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit')({
