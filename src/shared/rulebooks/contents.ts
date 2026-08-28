@@ -2,58 +2,36 @@ import { normalizeFormattedText } from '@shared/formattedText';
 import type { NormalizedFormattedText } from '@shared/formattedText';
 import { z } from 'zod';
 
-const rulebookBlockKinds = ['text', 'repeated-text', 'rule-group', 'worked-example', 'asset-figure'] as const;
-type RulebookBlockKind = (typeof rulebookBlockKinds)[number];
+export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
+const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
 
-const legacyBlockKinds = ['text', 'repeated-text'] as const satisfies readonly RulebookBlockKind[];
-const editorialBlockKinds = [
-  'rule-group',
-  'worked-example',
-  'asset-figure',
-] as const satisfies readonly RulebookBlockKind[];
-
-const unboundedLegacySlot = {
-  acceptedBlockKinds: legacyBlockKinds,
-  cardinality: { minimum: 0, maximum: null },
-} as const;
-
-const editorialSlot = <const Accepted extends readonly (typeof editorialBlockKinds)[number][]>(
-  acceptedBlockKinds: Accepted
-) => ({ acceptedBlockKinds, cardinality: { minimum: 0, maximum: null } }) as const;
-
-export const rulebookLayoutCatalogue = [
-  { id: 'single-column', slots: [{ id: 'body', ...unboundedLegacySlot }] },
-  {
-    id: 'two-columns',
-    slots: [
-      { id: 'left', ...unboundedLegacySlot },
-      { id: 'right', ...unboundedLegacySlot },
-    ],
-  },
-  {
-    id: 'chapter-opener',
-    slots: [{ id: 'body', ...editorialSlot(['asset-figure', 'rule-group']) }],
-  },
-  {
-    id: 'rules-page',
-    slots: [{ id: 'body', ...editorialSlot(editorialBlockKinds) }],
-  },
-  {
-    id: 'visual-reference',
-    slots: [{ id: 'body', ...editorialSlot(['asset-figure', 'worked-example']) }],
-  },
-] as const;
-
-type RulebookLayoutDefinition = (typeof rulebookLayoutCatalogue)[number];
-export type RulebookSlotId = RulebookLayoutDefinition['slots'][number]['id'];
-
-const rulebookPageIdSchema = z.string().min(1);
-const rulebookBlockIdSchema = z.string().min(1);
-const rulebookItemIdSchema = z.string().min(1);
-export const rulebookAnchorSchema = z
+export const rulebookLocalIdSchema = z
   .string()
-  .min(1, 'An anchor is required')
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lowercase letters, numbers, and single hyphens');
+  .length(4, 'Use a four-character ID')
+  .regex(rulebookLocalIdPattern, 'Use the unambiguous Rulebook ID alphabet');
+export type RulebookLocalId = z.infer<typeof rulebookLocalIdSchema>;
+
+type RandomBytes = () => Uint8Array;
+const secureRandomBytes: RandomBytes = () => globalThis.crypto.getRandomValues(new Uint8Array(4));
+
+/** Issues one opaque local ID, retrying collisions within the caller-owned identity scope. */
+export function createRulebookLocalId(existingIds: Iterable<string>, randomBytes: RandomBytes = secureRandomBytes) {
+  const existing = new Set(existingIds);
+  for (let attempt = 0; attempt < 128; attempt += 1) {
+    const bytes = randomBytes();
+    if (bytes.length < 4) {
+      throw new Error('Rulebook ID randomness must provide four bytes');
+    }
+    const id = Array.from(bytes.slice(0, 4), (byte) => rulebookLocalIdAlphabet[byte & 31]).join('');
+    if (!existing.has(id)) {
+      return id;
+    }
+  }
+  throw new Error('Could not issue a unique Rulebook ID');
+}
+
+export const rulebookBlockKinds = ['text', 'repeated-text', 'rule-group', 'asset-figure'] as const;
+export type RulebookBlockKind = (typeof rulebookBlockKinds)[number];
 
 const normalizedFormattedTextSchema = z
   .string()
@@ -66,86 +44,160 @@ const normalizedFormattedTextSchema = z
   )
   .transform((value) => value as NormalizedFormattedText);
 
+export const rulebookAnchorSchema = z
+  .string()
+  .min(1, 'An anchor is required')
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lowercase letters, numbers, and single hyphens');
+
+const rulebookItemIdSchema = z.string().min(1);
+
 const textBlockSchema = z.strictObject({
-  id: rulebookBlockIdSchema,
-  kind: z.literal(rulebookBlockKinds[0]),
+  id: rulebookLocalIdSchema,
+  kind: z.literal('text'),
   anchor: rulebookAnchorSchema.optional(),
   text: normalizedFormattedTextSchema,
 });
 
-const repeatedTextItemSchema = z.strictObject({
-  id: rulebookItemIdSchema,
-  text: normalizedFormattedTextSchema,
-});
+const repeatedTextItemSchema = z.strictObject({ id: rulebookItemIdSchema, text: normalizedFormattedTextSchema });
 
 const repeatedTextBlockSchema = z.strictObject({
-  id: rulebookBlockIdSchema,
-  kind: z.literal(rulebookBlockKinds[1]),
+  id: rulebookLocalIdSchema,
+  kind: z.literal('repeated-text'),
   anchor: rulebookAnchorSchema.optional(),
   itemOrder: z.array(rulebookItemIdSchema),
   itemsById: z.record(rulebookItemIdSchema, repeatedTextItemSchema),
 });
 
-function editorialBlockSchema<const Kind extends (typeof editorialBlockKinds)[number]>(kind: Kind) {
-  return z.strictObject({
-    id: rulebookBlockIdSchema,
-    kind: z.literal(kind),
-    anchor: rulebookAnchorSchema.optional(),
-    title: z.string(),
-    text: normalizedFormattedTextSchema,
-  });
-}
+const ruleGroupBlockSchema = z.strictObject({
+  id: rulebookLocalIdSchema,
+  kind: z.literal('rule-group'),
+  anchor: rulebookAnchorSchema.optional(),
+  title: z.string(),
+  text: normalizedFormattedTextSchema,
+});
 
-const ruleGroupBlockSchema = editorialBlockSchema('rule-group');
-const workedExampleBlockSchema = editorialBlockSchema('worked-example');
-const assetFigureBlockSchema = editorialBlockSchema('asset-figure');
+const assetFigureBlockSchema = z.strictObject({
+  id: rulebookLocalIdSchema,
+  kind: z.literal('asset-figure'),
+  anchor: rulebookAnchorSchema.optional(),
+  assetId: z.string().min(1).optional(),
+  text: normalizedFormattedTextSchema,
+});
 
 const rulebookBlockSchema = z.discriminatedUnion('kind', [
   textBlockSchema,
   repeatedTextBlockSchema,
   ruleGroupBlockSchema,
-  workedExampleBlockSchema,
   assetFigureBlockSchema,
 ]);
 
-function slotSchema<const Slots extends readonly { readonly id: string }[]>(slotDefinitions: Slots) {
-  const slots = Object.fromEntries(slotDefinitions.map(({ id }) => [id, z.array(rulebookBlockIdSchema)])) as {
-    [Slot in Slots[number] as Slot['id']]: z.ZodArray<typeof rulebookBlockIdSchema>;
-  };
-  return z.strictObject(slots);
+type Cardinality = Readonly<{ minimum: number; maximum: number | null }>;
+
+function controlRegion<const Key extends string, Schema extends z.ZodType>(
+  key: Key,
+  label: string,
+  valueSchema: Schema,
+  initialValue: z.input<Schema>
+) {
+  return { kind: 'control' as const, key, label, valueSchema, initialValue };
 }
 
-const singleColumnPageSchema = z.strictObject({
-  id: rulebookPageIdSchema,
-  anchor: rulebookAnchorSchema,
-  layoutId: z.literal(rulebookLayoutCatalogue[0].id),
-  slots: slotSchema(rulebookLayoutCatalogue[0].slots),
+function blockRegion<const Key extends string, const Accepted extends readonly RulebookBlockKind[]>(
+  key: Key,
+  label: string,
+  acceptedBlockKinds: Accepted,
+  cardinality: Cardinality
+) {
+  return { kind: 'block' as const, key, label, acceptedBlockKinds, cardinality };
+}
+
+const chapterLabelSchema = z.string();
+const pageGuidanceSchema = z.strictObject({ eyebrow: z.string(), introduction: normalizedFormattedTextSchema });
+
+/** The capability-test Page layouts. Region order and constraints belong to this application-owned catalogue. */
+export const rulebookLayoutCatalogue = [
+  {
+    id: 'chapter-opener',
+    label: 'Chapter opener',
+    regions: [
+      controlRegion('chapter-label', 'Chapter label', chapterLabelSchema, ''),
+      blockRegion('feature', 'Feature', ['asset-figure', 'rule-group'], { minimum: 0, maximum: 2 }),
+    ],
+  },
+  {
+    id: 'rules-page',
+    label: 'Rules page',
+    regions: [
+      controlRegion('guidance', 'Page guidance', pageGuidanceSchema, { eyebrow: '', introduction: '' }),
+      blockRegion('rules', 'Rules', ['text', 'rule-group'], { minimum: 0, maximum: 6 }),
+      blockRegion('examples', 'Examples', ['text', 'repeated-text', 'asset-figure'], { minimum: 0, maximum: 3 }),
+    ],
+  },
+  {
+    id: 'visual-reference',
+    label: 'Visual reference',
+    regions: [
+      blockRegion('figures', 'Figures', ['asset-figure'], { minimum: 0, maximum: 2 }),
+      blockRegion('notes', 'Notes', ['text', 'repeated-text'], { minimum: 0, maximum: 4 }),
+    ],
+  },
+] as const;
+
+export type RulebookLayoutDefinition = (typeof rulebookLayoutCatalogue)[number];
+export type RulebookPageLayoutId = RulebookLayoutDefinition['id'];
+export type RulebookPageRegionDefinition = RulebookLayoutDefinition['regions'][number];
+export type RulebookControlRegionDefinition = Extract<RulebookPageRegionDefinition, { kind: 'control' }>;
+export type RulebookBlockRegionDefinition = Extract<RulebookPageRegionDefinition, { kind: 'block' }>;
+export type RulebookControlRegionKey = RulebookControlRegionDefinition['key'];
+export type RulebookBlockRegionKey = RulebookBlockRegionDefinition['key'];
+
+export function getRulebookLayout(layoutId: RulebookPageLayoutId) {
+  return rulebookLayoutCatalogue.find((layout) => layout.id === layoutId)!;
+}
+
+export function getRulebookBlockRegion(layoutId: RulebookPageLayoutId, regionKey: RulebookBlockRegionKey) {
+  return getRulebookLayout(layoutId).regions.find(
+    (region): region is RulebookBlockRegionDefinition => region.kind === 'block' && region.key === regionKey
+  );
+}
+
+const chapterControlValuesSchema = z.strictObject({ 'chapter-label': chapterLabelSchema });
+const chapterBlockOrderSchema = z.strictObject({ feature: z.array(rulebookLocalIdSchema) });
+const rulesControlValuesSchema = z.strictObject({ guidance: pageGuidanceSchema });
+const rulesBlockOrderSchema = z.strictObject({
+  rules: z.array(rulebookLocalIdSchema),
+  examples: z.array(rulebookLocalIdSchema),
 });
-const twoColumnsPageSchema = z.strictObject({
-  id: rulebookPageIdSchema,
-  anchor: rulebookAnchorSchema,
-  layoutId: z.literal(rulebookLayoutCatalogue[1].id),
-  slots: slotSchema(rulebookLayoutCatalogue[1].slots),
+const referenceControlValuesSchema = z.strictObject({});
+const referenceBlockOrderSchema = z.strictObject({
+  figures: z.array(rulebookLocalIdSchema),
+  notes: z.array(rulebookLocalIdSchema),
 });
 
-function editorialPageSchema<const Index extends 2 | 3 | 4>(index: Index) {
-  const layout = rulebookLayoutCatalogue[index];
+function pageSchema<
+  const LayoutId extends RulebookPageLayoutId,
+  ControlValues extends z.ZodRawShape,
+  BlockOrder extends z.ZodRawShape,
+>(layoutId: LayoutId, controlValues: z.ZodObject<ControlValues>, blockOrderByRegion: z.ZodObject<BlockOrder>) {
   return z.strictObject({
-    id: rulebookPageIdSchema,
+    id: rulebookLocalIdSchema,
     anchor: rulebookAnchorSchema,
     title: z.string(),
-    layoutId: z.literal(layout.id),
-    slots: slotSchema(layout.slots),
+    layoutId: z.literal(layoutId),
+    controlValues,
+    blockOrderByRegion,
+    blocksById: z.record(rulebookLocalIdSchema, rulebookBlockSchema),
   });
 }
 
-const chapterOpenerPageSchema = editorialPageSchema(2);
-const rulesPageSchema = editorialPageSchema(3);
-const visualReferencePageSchema = editorialPageSchema(4);
-
+const chapterOpenerPageSchema = pageSchema('chapter-opener', chapterControlValuesSchema, chapterBlockOrderSchema);
+const rulesPageSchema = pageSchema('rules-page', rulesControlValuesSchema, rulesBlockOrderSchema);
+const visualReferencePageSchema = pageSchema(
+  'visual-reference',
+  referenceControlValuesSchema,
+  referenceBlockOrderSchema
+);
 const rulebookPageSchema = z.discriminatedUnion('layoutId', [
-  singleColumnPageSchema,
-  twoColumnsPageSchema,
   chapterOpenerPageSchema,
   rulesPageSchema,
   visualReferencePageSchema,
@@ -171,16 +223,13 @@ function sameMembers(left: readonly string[], right: readonly string[]): boolean
 
 const rulebookContentsV1BaseSchema = z.strictObject({
   schemaVersion: z.literal(1),
-  pageOrder: z.array(rulebookPageIdSchema),
-  pagesById: z.record(rulebookPageIdSchema, rulebookPageSchema),
-  blocksById: z.record(rulebookBlockIdSchema, rulebookBlockSchema),
+  pageOrder: z.array(rulebookLocalIdSchema),
+  pagesById: z.record(rulebookLocalIdSchema, rulebookPageSchema),
 });
 
 /** The sole runtime and type authority for persisted Rulebook Contents version 1. */
 export const rulebookContentsV1Schema = rulebookContentsV1BaseSchema.superRefine((contents, context) => {
   const pageIds = Object.keys(contents.pagesById);
-  const blockIds = Object.keys(contents.blocksById);
-
   for (const duplicate of duplicateValues(contents.pageOrder)) {
     context.addIssue({ code: 'custom', path: ['pageOrder'], message: `Page ${duplicate} appears more than once` });
   }
@@ -192,7 +241,6 @@ export const rulebookContentsV1Schema = rulebookContentsV1BaseSchema.superRefine
     });
   }
 
-  const placedBlockIds: string[] = [];
   const anchors = new Map<string, string>();
   const registerAnchor = (anchor: string, path: string) => {
     const existing = anchors.get(anchor);
@@ -207,102 +255,105 @@ export const rulebookContentsV1Schema = rulebookContentsV1BaseSchema.superRefine
     }
   };
 
-  for (const [key, page] of Object.entries(contents.pagesById)) {
-    if (key !== page.id) {
-      context.addIssue({ code: 'custom', path: ['pagesById', key, 'id'], message: 'Page map key and ID must agree' });
+  for (const [pageKey, page] of Object.entries(contents.pagesById)) {
+    if (pageKey !== page.id) {
+      context.addIssue({
+        code: 'custom',
+        path: ['pagesById', pageKey, 'id'],
+        message: 'Page map key and ID must agree',
+      });
     }
-    registerAnchor(page.anchor, `pagesById.${key}.anchor`);
-    const layout = rulebookLayoutCatalogue.find(({ id }) => id === page.layoutId)!;
-    for (const [slotId, ids] of Object.entries(page.slots)) {
+    registerAnchor(page.anchor, `pagesById.${pageKey}.anchor`);
+    const layout = getRulebookLayout(page.layoutId);
+    const placedBlockIds: string[] = [];
+
+    for (const [regionKey, ids] of Object.entries(page.blockOrderByRegion)) {
       placedBlockIds.push(...ids);
-      const slot = layout.slots.find((candidate) => candidate.id === slotId)!;
-      if (ids.length < slot.cardinality.minimum) {
+      const region = layout.regions.find(
+        (candidate): candidate is RulebookBlockRegionDefinition =>
+          candidate.kind === 'block' && candidate.key === regionKey
+      )!;
+      if (ids.length < region.cardinality.minimum) {
         context.addIssue({
           code: 'custom',
-          path: ['pagesById', key, 'slots', slotId],
-          message: `Slot ${slotId} requires at least ${slot.cardinality.minimum} Blocks`,
+          path: ['pagesById', pageKey, 'blockOrderByRegion', regionKey],
+          message: `Block region ${regionKey} requires at least ${region.cardinality.minimum} Blocks`,
         });
       }
-      if (slot.cardinality.maximum !== null && ids.length > slot.cardinality.maximum) {
+      if (region.cardinality.maximum !== null && ids.length > region.cardinality.maximum) {
         context.addIssue({
           code: 'custom',
-          path: ['pagesById', key, 'slots', slotId],
-          message: `Slot ${slotId} accepts at most ${slot.cardinality.maximum} Blocks`,
+          path: ['pagesById', pageKey, 'blockOrderByRegion', regionKey],
+          message: `Block region ${regionKey} accepts at most ${region.cardinality.maximum} Blocks`,
         });
       }
       for (const blockId of ids) {
-        const block = contents.blocksById[blockId];
-        if (block && !slot.acceptedBlockKinds.some((kind) => kind === block.kind)) {
+        const block = page.blocksById[blockId];
+        if (block && !region.acceptedBlockKinds.some((kind) => kind === block.kind)) {
           context.addIssue({
             code: 'custom',
-            path: ['pagesById', key, 'slots', slotId],
-            message: `Slot ${slotId} does not accept ${block.kind} Blocks`,
+            path: ['pagesById', pageKey, 'blockOrderByRegion', regionKey],
+            message: `Block region ${regionKey} does not accept ${block.kind} Blocks`,
           });
         }
       }
     }
-  }
 
-  for (const duplicate of duplicateValues(placedBlockIds)) {
-    context.addIssue({
-      code: 'custom',
-      path: ['pagesById'],
-      message: `Block ${duplicate} is placed more than once`,
-    });
-  }
-  if (!sameMembers(placedBlockIds, blockIds)) {
-    context.addIssue({
-      code: 'custom',
-      path: ['blocksById'],
-      message: 'Every Block must appear exactly once in a Page slot',
-    });
-  }
-
-  const allItemIds: string[] = [];
-  for (const [key, block] of Object.entries(contents.blocksById)) {
-    if (key !== block.id) {
-      context.addIssue({ code: 'custom', path: ['blocksById', key, 'id'], message: 'Block map key and ID must agree' });
-    }
-    if (block.anchor) {
-      registerAnchor(block.anchor, `blocksById.${key}.anchor`);
-    }
-    if (block.kind !== 'repeated-text') {
-      continue;
-    }
-
-    const itemIds = Object.keys(block.itemsById);
-    for (const duplicate of duplicateValues(block.itemOrder)) {
+    for (const duplicate of duplicateValues(placedBlockIds)) {
       context.addIssue({
         code: 'custom',
-        path: ['blocksById', key, 'itemOrder'],
-        message: `Repeated item ${duplicate} appears more than once`,
+        path: ['pagesById', pageKey, 'blockOrderByRegion'],
+        message: `Block ${duplicate} is placed more than once on Page ${page.id}`,
       });
     }
-    if (!sameMembers(block.itemOrder, itemIds)) {
+    if (!sameMembers(placedBlockIds, Object.keys(page.blocksById))) {
       context.addIssue({
         code: 'custom',
-        path: ['blocksById', key, 'itemOrder'],
-        message: 'Every repeated item must appear exactly once in itemOrder',
+        path: ['pagesById', pageKey, 'blocksById'],
+        message: 'Every Block must appear exactly once in a Block region on its Page',
       });
     }
-    for (const [itemKey, item] of Object.entries(block.itemsById)) {
-      if (itemKey !== item.id) {
+
+    for (const [blockKey, block] of Object.entries(page.blocksById)) {
+      if (blockKey !== block.id) {
         context.addIssue({
           code: 'custom',
-          path: ['blocksById', key, 'itemsById', itemKey, 'id'],
-          message: 'Repeated-item map key and ID must agree',
+          path: ['pagesById', pageKey, 'blocksById', blockKey, 'id'],
+          message: 'Block map key and ID must agree',
         });
       }
-      allItemIds.push(item.id);
-    }
-  }
+      if (block.anchor) {
+        registerAnchor(block.anchor, `pagesById.${pageKey}.blocksById.${blockKey}.anchor`);
+      }
+      if (block.kind !== 'repeated-text') {
+        continue;
+      }
 
-  for (const duplicate of duplicateValues(allItemIds)) {
-    context.addIssue({
-      code: 'custom',
-      path: ['blocksById'],
-      message: `Repeated-item ID ${duplicate} is used by more than one Block`,
-    });
+      const itemIds = Object.keys(block.itemsById);
+      for (const duplicate of duplicateValues(block.itemOrder)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['pagesById', pageKey, 'blocksById', blockKey, 'itemOrder'],
+          message: `Repeated item ${duplicate} appears more than once`,
+        });
+      }
+      if (!sameMembers(block.itemOrder, itemIds)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['pagesById', pageKey, 'blocksById', blockKey, 'itemOrder'],
+          message: 'Every repeated item must appear exactly once in itemOrder',
+        });
+      }
+      for (const [itemKey, item] of Object.entries(block.itemsById)) {
+        if (itemKey !== item.id) {
+          context.addIssue({
+            code: 'custom',
+            path: ['pagesById', pageKey, 'blocksById', blockKey, 'itemsById', itemKey, 'id'],
+            message: 'Repeated-item map key and ID must agree',
+          });
+        }
+      }
+    }
   }
 });
 
@@ -319,7 +370,7 @@ type EditableValue<Value> = Value extends NormalizedFormattedText
 /** Canonical structure with normalized formatted-text values widened to raw editor strings. */
 export type RulebookContentsDraftV1 = EditableValue<RulebookContentsV1>;
 export type RulebookPageDraft = RulebookContentsDraftV1['pagesById'][string];
-export type RulebookBlockDraft = RulebookContentsDraftV1['blocksById'][string];
+export type RulebookBlockDraft = RulebookPageDraft['blocksById'][string];
 
 const repeatedTextItemDraftSchema = repeatedTextItemSchema.extend({ text: z.string() });
 const textBlockDraftSchema = textBlockSchema.extend({ anchor: z.string().optional(), text: z.string() });
@@ -328,30 +379,35 @@ const repeatedTextBlockDraftSchema = repeatedTextBlockSchema.extend({
   itemsById: z.record(rulebookItemIdSchema, repeatedTextItemDraftSchema),
 });
 const ruleGroupBlockDraftSchema = ruleGroupBlockSchema.extend({ anchor: z.string().optional(), text: z.string() });
-const workedExampleBlockDraftSchema = workedExampleBlockSchema.extend({
-  anchor: z.string().optional(),
-  text: z.string(),
-});
-const assetFigureBlockDraftSchema = assetFigureBlockSchema.extend({
-  anchor: z.string().optional(),
-  text: z.string(),
-});
+const assetFigureBlockDraftSchema = assetFigureBlockSchema.extend({ anchor: z.string().optional(), text: z.string() });
+const rulebookBlockDraftSchema = z.discriminatedUnion('kind', [
+  textBlockDraftSchema,
+  repeatedTextBlockDraftSchema,
+  ruleGroupBlockDraftSchema,
+  assetFigureBlockDraftSchema,
+]);
+
+function draftPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.ZodRawShape>(
+  saved: z.ZodObject<Schema>,
+  controlValues: z.ZodObject<ControlShape>
+) {
+  return saved.extend({
+    anchor: z.string(),
+    controlValues,
+    blocksById: z.record(rulebookLocalIdSchema, rulebookBlockDraftSchema),
+  });
+}
 
 /** Runtime structure authority for editor operation payloads whose direct fields may contain raw text. */
 export const rulebookDraftEntitySchemas = {
   page: z.discriminatedUnion('layoutId', [
-    singleColumnPageSchema.extend({ anchor: z.string() }),
-    twoColumnsPageSchema.extend({ anchor: z.string() }),
-    chapterOpenerPageSchema.extend({ anchor: z.string() }),
-    rulesPageSchema.extend({ anchor: z.string() }),
-    visualReferencePageSchema.extend({ anchor: z.string() }),
+    draftPageSchema(chapterOpenerPageSchema, chapterControlValuesSchema),
+    draftPageSchema(
+      rulesPageSchema,
+      z.strictObject({ guidance: pageGuidanceSchema.extend({ introduction: z.string() }) })
+    ),
+    draftPageSchema(visualReferencePageSchema, referenceControlValuesSchema),
   ]),
-  block: z.discriminatedUnion('kind', [
-    textBlockDraftSchema,
-    repeatedTextBlockDraftSchema,
-    ruleGroupBlockDraftSchema,
-    workedExampleBlockDraftSchema,
-    assetFigureBlockDraftSchema,
-  ]),
+  block: rulebookBlockDraftSchema,
   item: repeatedTextItemDraftSchema,
 } as const;

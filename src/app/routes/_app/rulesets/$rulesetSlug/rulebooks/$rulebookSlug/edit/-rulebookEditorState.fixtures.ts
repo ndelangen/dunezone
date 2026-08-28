@@ -57,12 +57,12 @@ export function createCleanRebaseInput(): RulebookEditorInput {
   const local = createRulebookEditorStateManager(input);
   local.dispatch({
     kind: 'set',
-    target: { kind: 'block', blockId: 'block-introduction' },
+    target: { kind: 'block', pageId: 'RULE', blockId: 'TEXT' },
     field: 'text',
     value: 'A local introduction.',
   });
   const latest = createRulebookSavedRevision('revision-2', (contents) => {
-    contents.pagesById['page-reference']!.anchor = 'quick-reference';
+    contents.pagesById.REFS!.anchor = 'quick-reference';
   });
   if (local.result.status !== 'ready') {
     throw new Error('Starter fixture must be supported');
@@ -75,12 +75,12 @@ export function createFieldConflictInput(): RulebookEditorInput {
   const local = createRulebookEditorStateManager(input);
   local.dispatch({
     kind: 'set',
-    target: { kind: 'block', blockId: 'block-introduction' },
+    target: { kind: 'block', pageId: 'RULE', blockId: 'TEXT' },
     field: 'text',
     value: 'The local opening.',
   });
   const latest = createRulebookSavedRevision('revision-2', (contents) => {
-    const block = contents.blocksById['block-introduction'];
+    const block = contents.pagesById.RULE?.blocksById.TEXT;
     if (block?.kind !== 'text') {
       throw new Error('Starter introduction must be a text Block');
     }
@@ -97,7 +97,7 @@ export function createStaleSaveInput(): RulebookEditorInput {
   const local = createRulebookEditorStateManager(input);
   local.dispatch({
     kind: 'set',
-    target: { kind: 'block', blockId: 'block-introduction' },
+    target: { kind: 'block', pageId: 'RULE', blockId: 'TEXT' },
     field: 'text',
     value: 'Ready to save.',
   });

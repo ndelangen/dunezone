@@ -7,10 +7,10 @@ import {
 } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
+  RulebookBlockRegionKey,
   RulebookContentsDraftV1,
   RulebookContentsV1,
   RulebookPageDraft,
-  RulebookSlotId,
 } from '@shared/rulebooks/contents';
 import { graphemeSegments } from 'unicode-segmenter/grapheme';
 import { z } from 'zod';
@@ -24,27 +24,31 @@ type SavedRulebookRevision = {
 
 const entityIdSchema = z.string().min(1);
 const pageRefSchema = z.strictObject({ kind: z.literal('page'), pageId: entityIdSchema });
-const blockRefSchema = z.strictObject({ kind: z.literal('block'), blockId: entityIdSchema });
+const blockRefSchema = z.strictObject({
+  kind: z.literal('block'),
+  pageId: entityIdSchema,
+  blockId: entityIdSchema,
+});
 const itemRefSchema = z.strictObject({
   kind: z.literal('item'),
+  pageId: entityIdSchema,
   blockId: entityIdSchema,
   itemId: entityIdSchema,
 });
 const entityRefSchema = z.discriminatedUnion('kind', [pageRefSchema, blockRefSchema, itemRefSchema]);
 type RulebookEntityRef = z.infer<typeof entityRefSchema>;
 
-const slotIds = rulebookLayoutCatalogue.flatMap(({ slots }) => slots.map(({ id }) => id)) as [
-  RulebookSlotId,
-  ...RulebookSlotId[],
-];
+const blockRegionKeys = rulebookLayoutCatalogue.flatMap(({ regions }) =>
+  regions.filter((region) => region.kind === 'block').map(({ key }) => key)
+) as [RulebookBlockRegionKey, ...RulebookBlockRegionKey[]];
 const orderedContainerSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('page-order') }),
   z.strictObject({
-    kind: z.literal('page-slot'),
+    kind: z.literal('block-region'),
     pageId: entityIdSchema,
-    slotId: z.enum(slotIds),
+    regionKey: z.enum(blockRegionKeys),
   }),
-  z.strictObject({ kind: z.literal('item-order'), blockId: entityIdSchema }),
+  z.strictObject({ kind: z.literal('item-order'), pageId: entityIdSchema, blockId: entityIdSchema }),
 ]);
 type RulebookOrderedContainerRef = z.infer<typeof orderedContainerSchema>;
 
@@ -57,9 +61,10 @@ type RulebookPlacement = z.infer<typeof placementSchema>;
 
 const newEntitySchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('page'), page: rulebookDraftEntitySchemas.page }),
-  z.strictObject({ kind: z.literal('block'), block: rulebookDraftEntitySchemas.block }),
+  z.strictObject({ kind: z.literal('block'), pageId: entityIdSchema, block: rulebookDraftEntitySchemas.block }),
   z.strictObject({
     kind: z.literal('item'),
+    pageId: entityIdSchema,
     blockId: entityIdSchema,
     item: rulebookDraftEntitySchemas.item,
   }),
@@ -70,11 +75,15 @@ const draftSubtreeSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('page'),
     page: rulebookDraftEntitySchemas.page,
-    blocksById: z.record(entityIdSchema, rulebookDraftEntitySchemas.block),
   }),
-  z.strictObject({ kind: z.literal('block'), block: rulebookDraftEntitySchemas.block }),
+  z.strictObject({
+    kind: z.literal('block'),
+    pageId: entityIdSchema,
+    block: rulebookDraftEntitySchemas.block,
+  }),
   z.strictObject({
     kind: z.literal('item'),
+    pageId: entityIdSchema,
     blockId: entityIdSchema,
     item: rulebookDraftEntitySchemas.item,
   }),
@@ -98,6 +107,12 @@ type RulebookDeleteIntent = z.infer<typeof deleteIntentSchema>;
 const setIntentSchema = z.union([
   z.strictObject({ kind: z.literal('set'), target: pageRefSchema, field: z.literal('anchor'), value: z.string() }),
   z.strictObject({ kind: z.literal('set'), target: pageRefSchema, field: z.literal('title'), value: z.string() }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: pageRefSchema,
+    field: z.literal('control-values'),
+    value: z.record(z.string(), z.unknown()),
+  }),
   z.strictObject({
     kind: z.literal('set'),
     target: blockRefSchema,
@@ -293,9 +308,9 @@ type RulebookFieldIncompatibility = RulebookIncompatibilityBase & {
   readonly kind: 'field';
   readonly target: RulebookEntityRef;
   readonly field: RulebookFieldName;
-  readonly baselineValue?: string;
-  readonly latestValue?: string;
-  readonly localValue?: string;
+  readonly baselineValue?: unknown;
+  readonly latestValue?: unknown;
+  readonly localValue?: unknown;
   readonly combinedText?: string;
 };
 
@@ -341,6 +356,7 @@ type RulebookIncompatibility =
 type RulebookResolutionOutcome =
   | { readonly kind: 'anchor'; readonly value?: string }
   | { readonly kind: 'text'; readonly value: string }
+  | { readonly kind: 'control-values'; readonly value: Readonly<Record<string, unknown>> }
   | { readonly kind: 'placement'; readonly destination: RulebookPlacement }
   | {
       readonly kind: 'collection-order';
@@ -417,7 +433,7 @@ type ReadyState = {
   draft: RulebookContentsDraftV1;
   patch: RulebookEditPatchV1;
   ledger: RulebookResolutionApproval[];
-  knownPageLayouts: Record<string, { layoutId: string; slotIds: string[] }>;
+  knownPageLayouts: Record<string, { layoutId: string; controlRegionKeys: string[]; blockRegionKeys: string[] }>;
   isSaving: boolean;
   saveInFlight?: {
     revision: string;
@@ -430,7 +446,11 @@ function pageLayoutMemory(contents: RulebookContentsDraftV1): ReadyState['knownP
   return Object.fromEntries(
     Object.values(contents.pagesById).map((page) => [
       page.id,
-      { layoutId: page.layoutId, slotIds: Object.keys(page.slots).sort(compareCanonicalText) },
+      {
+        layoutId: page.layoutId,
+        controlRegionKeys: Object.keys(page.controlValues).sort(compareCanonicalText),
+        blockRegionKeys: Object.keys(page.blockOrderByRegion).sort(compareCanonicalText),
+      },
     ])
   );
 }
@@ -445,9 +465,15 @@ function immutableLayoutError(
 ): string | undefined {
   for (const page of Object.values(contents.pagesById)) {
     const known = knownLayouts[page.id];
-    const slotIds = Object.keys(page.slots).sort(compareCanonicalText);
-    if (known && (known.layoutId !== page.layoutId || known.slotIds.join('\u0000') !== slotIds.join('\u0000'))) {
-      return `Page ${page.id} cannot change its issued layout or slot shape`;
+    const controlRegionKeys = Object.keys(page.controlValues).sort(compareCanonicalText);
+    const blockRegionKeys = Object.keys(page.blockOrderByRegion).sort(compareCanonicalText);
+    if (
+      known &&
+      (known.layoutId !== page.layoutId ||
+        known.controlRegionKeys.join('\u0000') !== controlRegionKeys.join('\u0000') ||
+        known.blockRegionKeys.join('\u0000') !== blockRegionKeys.join('\u0000'))
+    ) {
+      return `Page ${page.id} cannot change its issued layout or region shape`;
     }
   }
   return undefined;
@@ -456,7 +482,7 @@ function immutableLayoutError(
 type FieldRecord = {
   target: RulebookEntityRef;
   field: RulebookFieldName;
-  value?: string;
+  value?: unknown;
 };
 
 type PlacementRequest = {
@@ -493,9 +519,9 @@ function entityRefKey(ref: RulebookEntityRef): string {
     case 'page':
       return `page:${ref.pageId}`;
     case 'block':
-      return `block:${ref.blockId}`;
+      return `block:${ref.pageId}:${ref.blockId}`;
     case 'item':
-      return `item:${ref.blockId}:${ref.itemId}`;
+      return `item:${ref.pageId}:${ref.blockId}:${ref.itemId}`;
   }
 }
 
@@ -511,10 +537,10 @@ function containerKey(container: RulebookOrderedContainerRef): string {
   switch (container.kind) {
     case 'page-order':
       return 'page-order';
-    case 'page-slot':
-      return `page-slot:${container.pageId}:${container.slotId}`;
+    case 'block-region':
+      return `block-region:${container.pageId}:${container.regionKey}`;
     case 'item-order':
-      return `item-order:${container.blockId}`;
+      return `item-order:${container.pageId}:${container.blockId}`;
   }
 }
 
@@ -541,17 +567,35 @@ function stableFingerprint(value: unknown): string {
   });
 }
 
-function pageSlotEntries(page: RulebookPageDraft): Array<[RulebookSlotId, string[]]> {
-  return Object.entries(page.slots) as Array<[RulebookSlotId, string[]]>;
+function blockRegionEntries(page: RulebookPageDraft): Array<[RulebookBlockRegionKey, string[]]> {
+  return Object.entries(page.blockOrderByRegion) as Array<[RulebookBlockRegionKey, string[]]>;
+}
+
+function blockForRef(
+  contents: RulebookContentsDraftV1,
+  ref: Pick<Extract<RulebookEntityRef, { kind: 'block' | 'item' }>, 'pageId' | 'blockId'>
+) {
+  return contents.pagesById[ref.pageId]?.blocksById[ref.blockId];
+}
+
+function allBlockEntries(contents: RulebookContentsDraftV1) {
+  return Object.values(contents.pagesById).flatMap((page) =>
+    Object.values(page.blocksById).map((block) => ({ pageId: page.id, block }))
+  );
 }
 
 function allEntityRefs(contents: RulebookContentsDraftV1): RulebookEntityRef[] {
   const refs: RulebookEntityRef[] = Object.keys(contents.pagesById).map((pageId) => ({ kind: 'page', pageId }));
-  for (const block of Object.values(contents.blocksById)) {
-    refs.push({ kind: 'block', blockId: block.id });
+  for (const { pageId, block } of allBlockEntries(contents)) {
+    refs.push({ kind: 'block', pageId, blockId: block.id });
     if (block.kind === 'repeated-text') {
       refs.push(
-        ...Object.keys(block.itemsById).map((itemId) => ({ kind: 'item' as const, blockId: block.id, itemId }))
+        ...Object.keys(block.itemsById).map((itemId) => ({
+          kind: 'item' as const,
+          pageId,
+          blockId: block.id,
+          itemId,
+        }))
       );
     }
   }
@@ -563,9 +607,9 @@ function entityExists(contents: RulebookContentsDraftV1, ref: RulebookEntityRef)
     case 'page':
       return contents.pagesById[ref.pageId] !== undefined;
     case 'block':
-      return contents.blocksById[ref.blockId] !== undefined;
+      return blockForRef(contents, ref) !== undefined;
     case 'item': {
-      const block = contents.blocksById[ref.blockId];
+      const block = blockForRef(contents, ref);
       return block?.kind === 'repeated-text' && block.itemsById[ref.itemId] !== undefined;
     }
   }
@@ -575,15 +619,15 @@ function getOrder(contents: RulebookContentsDraftV1, container: RulebookOrderedC
   switch (container.kind) {
     case 'page-order':
       return contents.pageOrder;
-    case 'page-slot': {
+    case 'block-region': {
       const page = contents.pagesById[container.pageId];
-      if (!page || !(container.slotId in page.slots)) {
+      if (!page || !(container.regionKey in page.blockOrderByRegion)) {
         return undefined;
       }
-      return (page.slots as Record<string, string[]>)[container.slotId];
+      return (page.blockOrderByRegion as Record<string, string[]>)[container.regionKey];
     }
     case 'item-order': {
-      const block = contents.blocksById[container.blockId];
+      const block = blockForRef(contents, container);
       return block?.kind === 'repeated-text' ? block.itemOrder : undefined;
     }
   }
@@ -592,13 +636,13 @@ function getOrder(contents: RulebookContentsDraftV1, container: RulebookOrderedC
 function allContainers(contents: RulebookContentsDraftV1): RulebookOrderedContainerRef[] {
   const containers: RulebookOrderedContainerRef[] = [{ kind: 'page-order' }];
   for (const page of Object.values(contents.pagesById)) {
-    for (const [slotId] of pageSlotEntries(page)) {
-      containers.push({ kind: 'page-slot', pageId: page.id, slotId });
+    for (const [regionKey] of blockRegionEntries(page)) {
+      containers.push({ kind: 'block-region', pageId: page.id, regionKey });
     }
-  }
-  for (const block of Object.values(contents.blocksById)) {
-    if (block.kind === 'repeated-text') {
-      containers.push({ kind: 'item-order', blockId: block.id });
+    for (const block of Object.values(page.blocksById)) {
+      if (block.kind === 'repeated-text') {
+        containers.push({ kind: 'item-order', pageId: page.id, blockId: block.id });
+      }
     }
   }
   return containers;
@@ -608,18 +652,21 @@ function targetForContainer(container: RulebookOrderedContainerRef, id: string):
   switch (container.kind) {
     case 'page-order':
       return { kind: 'page', pageId: id };
-    case 'page-slot':
-      return { kind: 'block', blockId: id };
+    case 'block-region':
+      return { kind: 'block', pageId: container.pageId, blockId: id };
     case 'item-order':
-      return { kind: 'item', blockId: container.blockId, itemId: id };
+      return { kind: 'item', pageId: container.pageId, blockId: container.blockId, itemId: id };
   }
 }
 
 function containerAccepts(container: RulebookOrderedContainerRef, target: RulebookEntityRef): boolean {
   return (
     (container.kind === 'page-order' && target.kind === 'page') ||
-    (container.kind === 'page-slot' && target.kind === 'block') ||
-    (container.kind === 'item-order' && target.kind === 'item' && container.blockId === target.blockId)
+    (container.kind === 'block-region' && target.kind === 'block' && container.pageId === target.pageId) ||
+    (container.kind === 'item-order' &&
+      target.kind === 'item' &&
+      container.pageId === target.pageId &&
+      container.blockId === target.blockId)
   );
 }
 
@@ -654,11 +701,11 @@ function parentRef(contents: RulebookContentsDraftV1, ref: RulebookEntityRef): R
   if (!placement) {
     return undefined;
   }
-  if (placement.container.kind === 'page-slot') {
+  if (placement.container.kind === 'block-region') {
     return { kind: 'page', pageId: placement.container.pageId };
   }
   if (placement.container.kind === 'item-order') {
-    return { kind: 'block', blockId: placement.container.blockId };
+    return { kind: 'block', pageId: placement.container.pageId, blockId: placement.container.blockId };
   }
   return undefined;
 }
@@ -671,15 +718,23 @@ function ownedClosure(contents: RulebookContentsDraftV1, root: RulebookEntityRef
     return [root];
   }
   if (root.kind === 'block') {
-    const block = contents.blocksById[root.blockId]!;
+    const block = blockForRef(contents, root)!;
     return block.kind === 'repeated-text'
-      ? [root, ...block.itemOrder.map((itemId) => ({ kind: 'item' as const, blockId: block.id, itemId }))]
+      ? [
+          root,
+          ...block.itemOrder.map((itemId) => ({
+            kind: 'item' as const,
+            pageId: root.pageId,
+            blockId: block.id,
+            itemId,
+          })),
+        ]
       : [root];
   }
 
   const page = contents.pagesById[root.pageId]!;
-  const blockIds = pageSlotEntries(page).flatMap(([, ids]) => ids);
-  return [root, ...blockIds.flatMap((blockId) => ownedClosure(contents, { kind: 'block', blockId }))];
+  const blockIds = blockRegionEntries(page).flatMap(([, ids]) => ids);
+  return [root, ...blockIds.flatMap((blockId) => ownedClosure(contents, { kind: 'block', pageId: page.id, blockId }))];
 }
 
 function reviewedDeletionSet(
@@ -710,39 +765,42 @@ function snapshotSubtree(contents: RulebookContentsDraftV1, root: RulebookEntity
     if (!page) {
       throw new Error(`Page ${root.pageId} does not exist`);
     }
-    const blocksById = Object.fromEntries(
-      pageSlotEntries(page)
-        .flatMap(([, ids]) => ids)
-        .map((blockId) => [blockId, clone(contents.blocksById[blockId]!)])
-    );
-    return { kind: 'page', page: clone(page), blocksById };
+    return { kind: 'page', page: clone(page) };
   }
   if (root.kind === 'block') {
-    const block = contents.blocksById[root.blockId];
+    const block = blockForRef(contents, root);
     if (!block) {
       throw new Error(`Block ${root.blockId} does not exist`);
     }
-    return { kind: 'block', block: clone(block) };
+    return { kind: 'block', pageId: root.pageId, block: clone(block) };
   }
-  const block = contents.blocksById[root.blockId];
+  const block = blockForRef(contents, root);
   const item = block?.kind === 'repeated-text' ? block.itemsById[root.itemId] : undefined;
   if (!item) {
     throw new Error(`Repeated item ${root.itemId} does not exist in Block ${root.blockId}`);
   }
-  return { kind: 'item', blockId: root.blockId, item: clone(item) };
+  return { kind: 'item', pageId: root.pageId, blockId: root.blockId, item: clone(item) };
 }
 
 function snapshotRefs(snapshot: RulebookDraftSubtree): RulebookEntityRef[] {
   if (snapshot.kind === 'item') {
-    return [{ kind: 'item', blockId: snapshot.blockId, itemId: snapshot.item.id }];
+    return [
+      {
+        kind: 'item',
+        pageId: snapshot.pageId,
+        blockId: snapshot.blockId,
+        itemId: snapshot.item.id,
+      },
+    ];
   }
   if (snapshot.kind === 'block') {
-    const root = { kind: 'block' as const, blockId: snapshot.block.id };
+    const root = { kind: 'block' as const, pageId: snapshot.pageId, blockId: snapshot.block.id };
     return snapshot.block.kind === 'repeated-text'
       ? [
           root,
           ...snapshot.block.itemOrder.map((itemId) => ({
             kind: 'item' as const,
+            pageId: snapshot.pageId,
             blockId: snapshot.block.id,
             itemId,
           })),
@@ -750,7 +808,9 @@ function snapshotRefs(snapshot: RulebookDraftSubtree): RulebookEntityRef[] {
       : [root];
   }
   const root = { kind: 'page' as const, pageId: snapshot.page.id };
-  const blocks = Object.values(snapshot.blocksById).flatMap((block) => snapshotRefs({ kind: 'block', block }));
+  const blocks = Object.values(snapshot.page.blocksById).flatMap((block) =>
+    snapshotRefs({ kind: 'block', pageId: snapshot.page.id, block })
+  );
   return [root, ...blocks];
 }
 
@@ -777,17 +837,21 @@ function restorationIntentsForAffectedRefs(
 
 function removeFromPlacements(contents: RulebookContentsDraftV1, refs: readonly RulebookEntityRef[]): void {
   const pageIds = new Set(refs.filter((ref) => ref.kind === 'page').map((ref) => ref.pageId));
-  const blockIds = new Set(refs.filter((ref) => ref.kind === 'block').map((ref) => ref.blockId));
-  const itemIds = new Set(refs.filter((ref) => ref.kind === 'item').map((ref) => ref.itemId));
+  const blockKeys = new Set(refs.filter((ref) => ref.kind === 'block').map((ref) => `${ref.pageId}:${ref.blockId}`));
+  const itemKeys = new Set(
+    refs.filter((ref) => ref.kind === 'item').map((ref) => `${ref.pageId}:${ref.blockId}:${ref.itemId}`)
+  );
   contents.pageOrder = contents.pageOrder.filter((id) => !pageIds.has(id));
   for (const page of Object.values(contents.pagesById)) {
-    for (const [slotId, order] of pageSlotEntries(page)) {
-      (page.slots as Record<string, string[]>)[slotId] = order.filter((id) => !blockIds.has(id));
+    for (const [regionKey, order] of blockRegionEntries(page)) {
+      (page.blockOrderByRegion as Record<string, string[]>)[regionKey] = order.filter(
+        (id) => !blockKeys.has(`${page.id}:${id}`)
+      );
     }
-  }
-  for (const block of Object.values(contents.blocksById)) {
-    if (block.kind === 'repeated-text') {
-      block.itemOrder = block.itemOrder.filter((id) => !itemIds.has(id));
+    for (const block of Object.values(page.blocksById)) {
+      if (block.kind === 'repeated-text') {
+        block.itemOrder = block.itemOrder.filter((id) => !itemKeys.has(`${page.id}:${block.id}:${id}`));
+      }
     }
   }
 }
@@ -796,12 +860,12 @@ function deleteExact(contents: RulebookContentsDraftV1, refs: readonly RulebookE
   removeFromPlacements(contents, refs);
   for (const ref of [...refs].sort((left, right) => compareCanonicalText(entityRefKey(right), entityRefKey(left)))) {
     if (ref.kind === 'item') {
-      const block = contents.blocksById[ref.blockId];
+      const block = blockForRef(contents, ref);
       if (block?.kind === 'repeated-text') {
         delete block.itemsById[ref.itemId];
       }
     } else if (ref.kind === 'block') {
-      delete contents.blocksById[ref.blockId];
+      delete contents.pagesById[ref.pageId]?.blocksById[ref.blockId];
     } else {
       delete contents.pagesById[ref.pageId];
     }
@@ -813,14 +877,21 @@ function addEntityData(contents: RulebookContentsDraftV1, entity: RulebookNewEnt
     if (contents.pagesById[entity.page.id]) {
       throw new Error(`Page ${entity.page.id} already exists`);
     }
-    if (pageSlotEntries(entity.page).some(([, ids]) => ids.length > 0)) {
-      throw new Error('A new Page must start with empty layout slots');
+    if (
+      blockRegionEntries(entity.page).some(([, ids]) => ids.length > 0) ||
+      Object.keys(entity.page.blocksById).length > 0
+    ) {
+      throw new Error('A new Page must start with empty Block regions');
     }
     contents.pagesById[entity.page.id] = clone(entity.page);
     return { kind: 'page', pageId: entity.page.id };
   }
   if (entity.kind === 'block') {
-    if (contents.blocksById[entity.block.id]) {
+    const page = contents.pagesById[entity.pageId];
+    if (!page) {
+      throw new Error(`Page ${entity.pageId} cannot own a new Block`);
+    }
+    if (page.blocksById[entity.block.id]) {
       throw new Error(`Block ${entity.block.id} already exists`);
     }
     if (
@@ -829,11 +900,11 @@ function addEntityData(contents: RulebookContentsDraftV1, entity: RulebookNewEnt
     ) {
       throw new Error('A new Repeated text Block must start with no items');
     }
-    contents.blocksById[entity.block.id] = clone(entity.block);
-    return { kind: 'block', blockId: entity.block.id };
+    page.blocksById[entity.block.id] = clone(entity.block);
+    return { kind: 'block', pageId: entity.pageId, blockId: entity.block.id };
   }
 
-  const block = contents.blocksById[entity.blockId];
+  const block = blockForRef(contents, entity);
   if (block?.kind !== 'repeated-text') {
     throw new Error(`Block ${entity.blockId} cannot own repeated items`);
   }
@@ -841,7 +912,7 @@ function addEntityData(contents: RulebookContentsDraftV1, entity: RulebookNewEnt
     throw new Error(`Repeated item ${entity.item.id} already exists`);
   }
   block.itemsById[entity.item.id] = clone(entity.item);
-  return { kind: 'item', blockId: entity.blockId, itemId: entity.item.id };
+  return { kind: 'item', pageId: entity.pageId, blockId: entity.blockId, itemId: entity.item.id };
 }
 
 function restoreSnapshot(
@@ -855,21 +926,29 @@ function restoreSnapshot(
       throw new Error(`Page ${snapshot.page.id} already exists`);
     }
     contents.pagesById[snapshot.page.id] = clone(snapshot.page);
-    Object.assign(contents.blocksById, clone(snapshot.blocksById));
     root = { kind: 'page', pageId: snapshot.page.id };
   } else if (snapshot.kind === 'block') {
-    if (contents.blocksById[snapshot.block.id]) {
+    const page = contents.pagesById[snapshot.pageId];
+    if (!page) {
+      throw new Error(`Page ${snapshot.pageId} cannot restore a Block`);
+    }
+    if (page.blocksById[snapshot.block.id]) {
       throw new Error(`Block ${snapshot.block.id} already exists`);
     }
-    contents.blocksById[snapshot.block.id] = clone(snapshot.block);
-    root = { kind: 'block', blockId: snapshot.block.id };
+    page.blocksById[snapshot.block.id] = clone(snapshot.block);
+    root = { kind: 'block', pageId: snapshot.pageId, blockId: snapshot.block.id };
   } else {
-    const block = contents.blocksById[snapshot.blockId];
+    const block = blockForRef(contents, snapshot);
     if (block?.kind !== 'repeated-text') {
       throw new Error(`Block ${snapshot.blockId} cannot restore repeated items`);
     }
     block.itemsById[snapshot.item.id] = clone(snapshot.item);
-    root = { kind: 'item', blockId: snapshot.blockId, itemId: snapshot.item.id };
+    root = {
+      kind: 'item',
+      pageId: snapshot.pageId,
+      blockId: snapshot.blockId,
+      itemId: snapshot.item.id,
+    };
   }
   const failures = applyPlacementBatch(contents, [{ target: root, destination: placement }]);
   if (failures.length > 0) {
@@ -880,33 +959,36 @@ function restoreSnapshot(
 function setPageField(
   page: RulebookContentsDraftV1['pagesById'][string],
   field: RulebookFieldName,
-  value: string | undefined
+  value: unknown
 ): void {
-  if (field === 'anchor' && value !== undefined) {
+  if (field === 'anchor' && typeof value === 'string') {
     page.anchor = value;
     return;
   }
-  if (field === 'title' && value !== undefined && 'title' in page) {
+  if (field === 'title' && typeof value === 'string' && 'title' in page) {
     page.title = value;
     return;
+  }
+  if (field === 'control-values' && value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    const parsed = rulebookDraftEntitySchemas.page.safeParse({ ...page, controlValues: value });
+    if (parsed.success) {
+      Object.assign(page, { controlValues: clone(parsed.data.controlValues) });
+      return;
+    }
   }
   throw new Error('That field does not belong to this Page layout');
 }
 
-function setBlockField(
-  block: RulebookContentsDraftV1['blocksById'][string],
-  field: RulebookFieldName,
-  value: string | undefined
-): void {
+function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, value: unknown): void {
   if (field === 'anchor') {
-    block.anchor = value;
+    block.anchor = typeof value === 'string' ? value : undefined;
     return;
   }
-  if (field === 'title' && value !== undefined && 'title' in block) {
+  if (field === 'title' && typeof value === 'string' && 'title' in block) {
     block.title = value;
     return;
   }
-  if (field === 'text' && value !== undefined && block.kind !== 'repeated-text') {
+  if (field === 'text' && typeof value === 'string' && block.kind !== 'repeated-text') {
     block.text = value;
     return;
   }
@@ -917,11 +999,11 @@ function setItemField(
   contents: RulebookContentsDraftV1,
   target: Extract<RulebookEntityRef, { kind: 'item' }>,
   field: RulebookFieldName,
-  value: string | undefined
+  value: unknown
 ): void {
-  const block = contents.blocksById[target.blockId];
+  const block = blockForRef(contents, target);
   const item = block?.kind === 'repeated-text' ? block.itemsById[target.itemId] : undefined;
-  if (!item || field !== 'text' || value === undefined) {
+  if (!item || field !== 'text' || typeof value !== 'string') {
     throw new Error('The repeated-item field target is not available');
   }
   item.text = value;
@@ -937,7 +1019,7 @@ function setField(contents: RulebookContentsDraftV1, intent: RulebookSetIntent):
     return;
   }
   if (intent.target.kind === 'block') {
-    const block = contents.blocksById[intent.target.blockId];
+    const block = blockForRef(contents, intent.target);
     if (!block) {
       throw new Error('The Block field target is not available');
     }
@@ -958,6 +1040,13 @@ function anchorFieldIntent(target: RulebookEntityRef, value: string | undefined)
     return { kind: 'set', target, field: 'anchor', value };
   }
   throw new Error('A repeated item cannot own an anchor');
+}
+
+function controlValuesFieldIntent(target: RulebookEntityRef, value: unknown): RulebookSetIntent {
+  if (target.kind !== 'page' || value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('A control-values resolution needs a Page value');
+  }
+  return { kind: 'set', target, field: 'control-values', value: value as Record<string, unknown> };
 }
 
 function titleFieldIntent(target: RulebookEntityRef, value: string | undefined): RulebookSetIntent {
@@ -983,18 +1072,17 @@ function textFieldIntent(target: RulebookEntityRef, value: string | undefined): 
   return { kind: 'set', target, field: 'text', value };
 }
 
-function fieldIntent(
-  target: RulebookEntityRef,
-  field: RulebookFieldName,
-  value: string | undefined
-): RulebookSetIntent {
+function fieldIntent(target: RulebookEntityRef, field: RulebookFieldName, value: unknown): RulebookSetIntent {
+  if (field === 'control-values') {
+    return controlValuesFieldIntent(target, value);
+  }
   if (field === 'anchor') {
-    return anchorFieldIntent(target, value);
+    return anchorFieldIntent(target, typeof value === 'string' ? value : undefined);
   }
   if (field === 'title') {
-    return titleFieldIntent(target, value);
+    return titleFieldIntent(target, typeof value === 'string' ? value : undefined);
   }
-  return textFieldIntent(target, value);
+  return textFieldIntent(target, typeof value === 'string' ? value : undefined);
 }
 
 function resolveGap(
@@ -1054,12 +1142,11 @@ function unresolvedGapReason(
     if (placement.container.kind === 'page-order') {
       return contents.pagesById[id] !== undefined;
     }
-    if (placement.container.kind === 'page-slot') {
-      return contents.blocksById[id] !== undefined;
+    if (placement.container.kind === 'block-region') {
+      return contents.pagesById[placement.container.pageId]?.blocksById[id] !== undefined;
     }
-    return Object.values(contents.blocksById).some(
-      (block) => block.kind === 'repeated-text' && block.itemsById[id] !== undefined
-    );
+    const block = blockForRef(contents, placement.container);
+    return block?.kind === 'repeated-text' && block.itemsById[id] !== undefined;
   });
   return existsElsewhere ? 'cross-container-neighbor' : 'missing-neighbor';
 }
@@ -1147,16 +1234,16 @@ function applyPlacementBatch(
   contents.pageOrder = [...candidate.pageOrder];
   for (const page of Object.values(contents.pagesById)) {
     const candidatePage = candidate.pagesById[page.id]!;
-    for (const [slotId] of pageSlotEntries(page)) {
-      (page.slots as Record<string, string[]>)[slotId] = [
-        ...(candidatePage.slots as Record<string, string[]>)[slotId]!,
+    for (const [regionKey] of blockRegionEntries(page)) {
+      (page.blockOrderByRegion as Record<string, string[]>)[regionKey] = [
+        ...(candidatePage.blockOrderByRegion as Record<string, string[]>)[regionKey]!,
       ];
     }
-  }
-  for (const block of Object.values(contents.blocksById)) {
-    const candidateBlock = candidate.blocksById[block.id];
-    if (block.kind === 'repeated-text' && candidateBlock?.kind === 'repeated-text') {
-      block.itemOrder = [...candidateBlock.itemOrder];
+    for (const block of Object.values(page.blocksById)) {
+      const candidateBlock = candidatePage.blocksById[block.id];
+      if (block.kind === 'repeated-text' && candidateBlock?.kind === 'repeated-text') {
+        block.itemOrder = [...candidateBlock.itemOrder];
+      }
     }
   }
   return [];
@@ -1193,9 +1280,14 @@ function patchValidationError(baseline: RulebookContentsV1, patch: RulebookEditP
         restoration.snapshot.kind === 'page'
           ? { kind: 'page' as const, pageId: restoration.snapshot.page.id }
           : restoration.snapshot.kind === 'block'
-            ? { kind: 'block' as const, blockId: restoration.snapshot.block.id }
+            ? {
+                kind: 'block' as const,
+                pageId: restoration.snapshot.pageId,
+                blockId: restoration.snapshot.block.id,
+              }
             : {
                 kind: 'item' as const,
+                pageId: restoration.snapshot.pageId,
                 blockId: restoration.snapshot.blockId,
                 itemId: restoration.snapshot.item.id,
               };
@@ -1273,18 +1365,23 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     if ('title' in page) {
       records.push({ target: { kind: 'page', pageId: page.id }, field: 'title', value: page.title });
     }
+    records.push({
+      target: { kind: 'page', pageId: page.id },
+      field: 'control-values',
+      value: clone(page.controlValues),
+    });
   }
-  for (const block of Object.values(contents.blocksById)) {
-    records.push({ target: { kind: 'block', blockId: block.id }, field: 'anchor', value: block.anchor });
+  for (const { pageId, block } of allBlockEntries(contents)) {
+    records.push({ target: { kind: 'block', pageId, blockId: block.id }, field: 'anchor', value: block.anchor });
     if ('title' in block) {
-      records.push({ target: { kind: 'block', blockId: block.id }, field: 'title', value: block.title });
+      records.push({ target: { kind: 'block', pageId, blockId: block.id }, field: 'title', value: block.title });
     }
     if (block.kind !== 'repeated-text') {
-      records.push({ target: { kind: 'block', blockId: block.id }, field: 'text', value: block.text });
+      records.push({ target: { kind: 'block', pageId, blockId: block.id }, field: 'text', value: block.text });
     } else {
       for (const item of Object.values(block.itemsById)) {
         records.push({
-          target: { kind: 'item', blockId: block.id, itemId: item.id },
+          target: { kind: 'item', pageId, blockId: block.id, itemId: item.id },
           field: 'text',
           value: item.text,
         });
@@ -1298,16 +1395,19 @@ function fieldKey(record: Pick<FieldRecord, 'target' | 'field'>): string {
   return `${entityRefKey(record.target)}:${record.field}`;
 }
 
-function comparableFieldValue(field: RulebookFieldName, value: string | undefined): string | undefined {
+function comparableFieldValue(field: RulebookFieldName, value: unknown): unknown {
   if (field !== 'text' || value === undefined) {
+    return value;
+  }
+  if (typeof value !== 'string') {
     return value;
   }
   const normalized = normalizeFormattedText(value);
   return normalized.ok ? normalized.value : value;
 }
 
-function fieldsEqual(field: RulebookFieldName, left: string | undefined, right: string | undefined): boolean {
-  return comparableFieldValue(field, left) === comparableFieldValue(field, right);
+function fieldsEqual(field: RulebookFieldName, left: unknown, right: unknown): boolean {
+  return stableFingerprint(comparableFieldValue(field, left)) === stableFingerprint(comparableFieldValue(field, right));
 }
 
 function lexicographicallySmaller(left: readonly string[], right: readonly string[]): readonly string[] {
@@ -1347,21 +1447,27 @@ function longestCommonSubsequence(left: readonly string[], right: readonly strin
 function createEntityFromDraft(contents: RulebookContentsDraftV1, ref: RulebookEntityRef): RulebookNewEntity {
   if (ref.kind === 'page') {
     const page = clone(contents.pagesById[ref.pageId]!);
-    for (const [slotId] of pageSlotEntries(page)) {
-      (page.slots as Record<string, string[]>)[slotId] = [];
+    for (const [regionKey] of blockRegionEntries(page)) {
+      (page.blockOrderByRegion as Record<string, string[]>)[regionKey] = [];
     }
+    page.blocksById = {};
     return { kind: 'page', page };
   }
   if (ref.kind === 'block') {
-    const block = clone(contents.blocksById[ref.blockId]!);
+    const block = clone(blockForRef(contents, ref)!);
     if (block.kind === 'repeated-text') {
       block.itemOrder = [];
       block.itemsById = {};
     }
-    return { kind: 'block', block };
+    return { kind: 'block', pageId: ref.pageId, block };
   }
-  const block = contents.blocksById[ref.blockId] as Extract<RulebookBlockDraft, { kind: 'repeated-text' }>;
-  return { kind: 'item', blockId: ref.blockId, item: clone(block.itemsById[ref.itemId]!) };
+  const block = blockForRef(contents, ref) as Extract<RulebookBlockDraft, { kind: 'repeated-text' }>;
+  return {
+    kind: 'item',
+    pageId: ref.pageId,
+    blockId: ref.blockId,
+    item: clone(block.itemsById[ref.itemId]!),
+  };
 }
 
 function placementDiff(
@@ -1488,9 +1594,9 @@ function entityForNew(entity: RulebookNewEntity): RulebookEntityRef {
     return { kind: 'page', pageId: entity.page.id };
   }
   if (entity.kind === 'block') {
-    return { kind: 'block', blockId: entity.block.id };
+    return { kind: 'block', pageId: entity.pageId, blockId: entity.block.id };
   }
-  return { kind: 'item', blockId: entity.blockId, itemId: entity.item.id };
+  return { kind: 'item', pageId: entity.pageId, blockId: entity.blockId, itemId: entity.item.id };
 }
 
 function validateDraft(draft: RulebookContentsDraftV1): {
@@ -1510,13 +1616,31 @@ function validateDraft(draft: RulebookContentsDraftV1): {
         message: parsed.error.issues[0]?.message ?? 'The Page anchor is invalid',
       });
     }
+    if (page.layoutId === 'rules-page') {
+      const normalized = normalizeFormattedText(page.controlValues.guidance.introduction);
+      if (!normalized.ok) {
+        diagnostics.push(
+          ...normalized.diagnostics.map((diagnostic) => ({
+            target: { kind: 'page' as const, pageId: page.id },
+            field: 'control-values' as const,
+            code: diagnostic.code,
+            message: diagnostic.message,
+            line: diagnostic.line,
+            column: diagnostic.column,
+            offset: diagnostic.offset,
+          }))
+        );
+      } else {
+        page.controlValues.guidance.introduction = normalized.value;
+      }
+    }
   }
-  for (const block of Object.values(candidate.blocksById)) {
+  for (const { pageId, block } of allBlockEntries(candidate)) {
     if (block.anchor !== undefined) {
       const parsed = rulebookAnchorSchema.safeParse(block.anchor);
       if (!parsed.success) {
         diagnostics.push({
-          target: { kind: 'block', blockId: block.id },
+          target: { kind: 'block', pageId, blockId: block.id },
           field: 'anchor',
           code: 'invalid-anchor',
           message: parsed.error.issues[0]?.message ?? 'The Block anchor is invalid',
@@ -1525,9 +1649,9 @@ function validateDraft(draft: RulebookContentsDraftV1): {
     }
     const textFields =
       block.kind !== 'repeated-text'
-        ? [{ target: { kind: 'block' as const, blockId: block.id }, value: block.text }]
+        ? [{ target: { kind: 'block' as const, pageId, blockId: block.id }, value: block.text }]
         : Object.values(block.itemsById).map((item) => ({
-            target: { kind: 'item' as const, blockId: block.id, itemId: item.id },
+            target: { kind: 'item' as const, pageId, blockId: block.id, itemId: item.id },
             value: item.text,
           }));
     for (const textField of textFields) {
@@ -1545,11 +1669,10 @@ function validateDraft(draft: RulebookContentsDraftV1): {
           }))
         );
       } else if (textField.target.kind === 'block') {
-        (
-          candidate.blocksById[textField.target.blockId] as Exclude<RulebookBlockDraft, { kind: 'repeated-text' }>
-        ).text = normalized.value;
+        (blockForRef(candidate, textField.target) as Exclude<RulebookBlockDraft, { kind: 'repeated-text' }>).text =
+          normalized.value;
       } else {
-        const repeated = candidate.blocksById[textField.target.blockId] as Extract<
+        const repeated = blockForRef(candidate, textField.target) as Extract<
           RulebookBlockDraft,
           { kind: 'repeated-text' }
         >;
@@ -1595,7 +1718,7 @@ function validateDraft(draft: RulebookContentsDraftV1): {
       occupiedAnchors.add(page.anchor);
     }
   }
-  for (const block of Object.values(structuralCandidate.blocksById)) {
+  for (const { block } of allBlockEntries(structuralCandidate)) {
     if (block.anchor !== undefined) {
       if (!rulebookAnchorSchema.safeParse(block.anchor).success || occupiedAnchors.has(block.anchor)) {
         block.anchor = undefined;
@@ -1728,9 +1851,9 @@ function placementChanged(
 function fieldIncompatibility(
   target: RulebookEntityRef,
   field: RulebookFieldName,
-  baselineValue: string | undefined,
-  latestValue: string | undefined,
-  localValue: string | undefined
+  baselineValue: unknown,
+  latestValue: unknown,
+  localValue: unknown
 ): RulebookFieldIncompatibility {
   const id = `field:${entityRefKey(target)}:${field}`;
   const dependencyFingerprint = stableFingerprint({ target, field, baselineValue, latestValue, localValue });
@@ -1742,7 +1865,13 @@ function fieldIncompatibility(
     baselineValue,
     latestValue,
     localValue,
-    combinedText: field === 'text' ? textCombination(baselineValue, latestValue, localValue) : undefined,
+    combinedText:
+      field === 'text' &&
+      (baselineValue === undefined || typeof baselineValue === 'string') &&
+      (latestValue === undefined || typeof latestValue === 'string') &&
+      (localValue === undefined || typeof localValue === 'string')
+        ? textCombination(baselineValue, latestValue, localValue)
+        : undefined,
     dependencyFingerprint,
   };
 }
@@ -1772,10 +1901,10 @@ function refsChanged(
 }
 
 function containerOwner(container: RulebookOrderedContainerRef): RulebookEntityRef | undefined {
-  return container.kind === 'page-slot'
+  return container.kind === 'block-region'
     ? { kind: 'page', pageId: container.pageId }
     : container.kind === 'item-order'
-      ? { kind: 'block', blockId: container.blockId }
+      ? { kind: 'block', pageId: container.pageId, blockId: container.blockId }
       : undefined;
 }
 
@@ -1797,9 +1926,12 @@ function anchorEntries(contents: RulebookContentsDraftV1): Array<{ ref: Rulebook
       ref: { kind: 'page' as const, pageId: page.id },
       anchor: page.anchor,
     })),
-    ...Object.values(contents.blocksById)
-      .filter((block) => block.anchor !== undefined)
-      .map((block) => ({ ref: { kind: 'block' as const, blockId: block.id }, anchor: block.anchor! })),
+    ...allBlockEntries(contents)
+      .filter(({ block }) => block.anchor !== undefined)
+      .map(({ pageId, block }) => ({
+        ref: { kind: 'block' as const, pageId, blockId: block.id },
+        anchor: block.anchor!,
+      })),
   ];
 }
 
@@ -2101,7 +2233,8 @@ function reconcile(state: ReadyState): Reconciliation {
     if (
       incompatibility.kind === 'field' &&
       ((incompatibility.field === 'anchor' && outcome.kind === 'anchor') ||
-        ((incompatibility.field === 'title' || incompatibility.field === 'text') && outcome.kind === 'text'))
+        ((incompatibility.field === 'title' || incompatibility.field === 'text') && outcome.kind === 'text') ||
+        (incompatibility.field === 'control-values' && outcome.kind === 'control-values'))
     ) {
       setField(comparisonDraft, fieldIntent(incompatibility.target, incompatibility.field, outcome.value));
     } else if (incompatibility.kind === 'anchor' && outcome.kind === 'anchor') {
@@ -2209,6 +2342,9 @@ function outcomeFits(
   if (incompatibility.kind === 'field') {
     if (incompatibility.field === 'title' || incompatibility.field === 'text') {
       return outcome.kind === 'text' && typeof outcome.value === 'string';
+    }
+    if (incompatibility.field === 'control-values') {
+      return outcome.kind === 'control-values' && outcome.value !== null && typeof outcome.value === 'object';
     }
     return outcome.kind === 'anchor' && (incompatibility.target.kind === 'block' || typeof outcome.value === 'string');
   }
