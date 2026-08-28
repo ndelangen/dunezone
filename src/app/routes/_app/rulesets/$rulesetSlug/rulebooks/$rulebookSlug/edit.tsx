@@ -9,8 +9,8 @@ import {
 import { ActionIcon, Alert, Badge, Box, Button, Group, Menu, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult } from '@shared/formattedText';
-import { rulebookLayoutCatalogue } from '@shared/rulebooks/contents';
-import type { RulebookBlockDraft, RulebookPageDraft } from '@shared/rulebooks/contents';
+import { createRulebookLocalId, getRulebookLayout } from '@shared/rulebooks/contents';
+import type { RulebookBlockDraft, RulebookBlockRegionKey, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { createFileRoute } from '@tanstack/react-router';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
@@ -32,7 +32,7 @@ import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.
 type DrilldownDepth = 'pages' | 'blocks' | 'controls';
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 type EditorialPage = Extract<RulebookPageDraft, { layoutId: 'chapter-opener' | 'rules-page' | 'visual-reference' }>;
-type EditorialBlock = Extract<RulebookBlockDraft, { kind: 'rule-group' | 'worked-example' | 'asset-figure' }>;
+type EditorialBlock = RulebookBlockDraft;
 type PageLayoutId = EditorialPage['layoutId'];
 type BlockKind = EditorialBlock['kind'];
 type FormattedBlock = FormattedTextParseResult['blocks'][number];
@@ -45,8 +45,9 @@ const pageLayoutNames: Record<PageLayoutId, string> = {
 };
 
 const blockKindNames: Record<BlockKind, string> = {
+  text: 'Text',
+  'repeated-text': 'Repeated text',
   'rule-group': 'Rule group',
-  'worked-example': 'Worked example',
   'asset-figure': 'Asset figure',
 };
 
@@ -119,7 +120,7 @@ function BlockKindIcon({ kind, size = 18 }: Readonly<{ kind: BlockKind; size?: n
   if (kind === 'rule-group') {
     return <ListTree size={size} aria-hidden />;
   }
-  if (kind === 'worked-example') {
+  if (kind === 'repeated-text') {
     return <MessageSquareQuote size={size} aria-hidden />;
   }
   return <FileImage size={size} aria-hidden />;
@@ -157,18 +158,13 @@ function RulebookPagePreview({
           if (block.kind === 'asset-figure') {
             return (
               <section className={styles.previewAssetBlock} data-selected={selected} key={block.id}>
-                <AssetImagePlaceholder label={block.title} />
+                <AssetImagePlaceholder label={block.assetId ?? 'No asset selected'} />
                 <FormattedTextPreview value={block.text} />
               </section>
             );
           }
-          if (block.kind === 'worked-example') {
-            return (
-              <aside className={styles.previewCallout} data-selected={selected} key={block.id}>
-                <strong>{block.title}</strong>
-                <FormattedTextPreview value={block.text} />
-              </aside>
-            );
+          if (block.kind !== 'rule-group') {
+            return null;
           }
           return (
             <section className={styles.previewRuleGroup} data-selected={selected} key={block.id}>
@@ -298,7 +294,37 @@ function createPage(layoutId: PageLayoutId, id: string, anchor: string): Editori
   } else if (layoutId === 'visual-reference') {
     title = 'New reference';
   }
-  return { id, anchor, title, layoutId, slots: { body: [] } } as EditorialPage;
+  if (layoutId === 'chapter-opener') {
+    return {
+      id,
+      anchor,
+      title,
+      layoutId,
+      controlValues: { 'chapter-label': 'Chapter' },
+      blockOrderByRegion: { feature: [] },
+      blocksById: {},
+    };
+  }
+  if (layoutId === 'rules-page') {
+    return {
+      id,
+      anchor,
+      title,
+      layoutId,
+      controlValues: { guidance: { eyebrow: 'Rules', introduction: '' } },
+      blockOrderByRegion: { rules: [], examples: [] },
+      blocksById: {},
+    };
+  }
+  return {
+    id,
+    anchor,
+    title,
+    layoutId,
+    controlValues: {},
+    blockOrderByRegion: { figures: [], notes: [] },
+    blocksById: {},
+  };
 }
 
 function createBlock(kind: BlockKind, id: string): EditorialBlock {
@@ -310,29 +336,58 @@ function createBlock(kind: BlockKind, id: string): EditorialBlock {
       text: 'Replace this starter content with the rule text.',
     };
   }
-  if (kind === 'worked-example') {
+  if (kind === 'repeated-text') {
     return {
       id,
       kind,
-      title: 'Worked example',
-      text: 'Explain one example step by step.',
+      itemOrder: [],
+      itemsById: {},
     };
   }
-  return {
-    id,
-    kind,
-    title: 'Selected Asset',
-    text: 'Add a short caption for this figure.',
-  };
-}
-
-function defaultBlockKind(layoutId: PageLayoutId): BlockKind {
-  return layoutId === 'rules-page' ? 'rule-group' : 'asset-figure';
+  if (kind === 'text') {
+    return { id, kind, text: 'Replace this starter content with your text.' };
+  }
+  return { id, kind, text: 'Add a short caption for this figure.' };
 }
 
 function acceptedBlockKinds(layoutId: PageLayoutId): readonly BlockKind[] {
-  const layout = rulebookLayoutCatalogue.find((candidate) => candidate.id === layoutId);
-  return (layout?.slots[0]?.acceptedBlockKinds ?? []) as readonly BlockKind[];
+  return [
+    ...new Set(
+      getRulebookLayout(layoutId).regions.flatMap((region) =>
+        region.kind === 'block' ? [...region.acceptedBlockKinds] : []
+      )
+    ),
+  ];
+}
+
+function blockLabel(block: EditorialBlock): string {
+  if (block.kind === 'rule-group') {
+    return block.title;
+  }
+  if (block.kind === 'asset-figure' && block.assetId) {
+    return block.assetId;
+  }
+  return blockKindNames[block.kind];
+}
+
+function pageBlockIds(page: EditorialPage): string[] {
+  return Object.values(page.blockOrderByRegion).flat();
+}
+
+function blockOrders(page: EditorialPage): Record<RulebookBlockRegionKey, string[]> {
+  return page.blockOrderByRegion as Record<RulebookBlockRegionKey, string[]>;
+}
+
+function regionForBlock(page: EditorialPage, blockId: string): RulebookBlockRegionKey | undefined {
+  return Object.entries(blockOrders(page)).find(([, ids]) => ids.includes(blockId))?.[0] as
+    | RulebookBlockRegionKey
+    | undefined;
+}
+
+function firstRegionAccepting(page: EditorialPage, kind: BlockKind) {
+  return getRulebookLayout(page.layoutId).regions.find(
+    (region) => region.kind === 'block' && (region.acceptedBlockKinds as readonly BlockKind[]).includes(kind)
+  );
 }
 
 function destinationForIndex(ids: readonly string[], index: number) {
@@ -340,9 +395,11 @@ function destinationForIndex(ids: readonly string[], index: number) {
 }
 
 function EditorControls({
+  pageId,
   block,
   dispatch,
 }: Readonly<{
+  pageId: string;
   block?: EditorialBlock;
   dispatch: RulebookEditorStateManager['dispatch'];
 }>) {
@@ -353,21 +410,30 @@ function EditorControls({
       </Text>
     );
   }
-  const target = { kind: 'block' as const, blockId: block.id };
+  const target = { kind: 'block' as const, pageId, blockId: block.id };
+  if (block.kind === 'repeated-text') {
+    return (
+      <Text size="sm" c="dimmed">
+        Repeated item controls follow in the next editor layer.
+      </Text>
+    );
+  }
   return (
     <Stack gap="md" className={styles.editorControls}>
-      <TextInput
-        label="Title"
-        value={block.title}
-        onChange={(event) =>
-          dispatch({
-            kind: 'set',
-            target,
-            field: 'title',
-            value: event.currentTarget.value,
-          })
-        }
-      />
+      {block.kind === 'rule-group' ? (
+        <TextInput
+          label="Title"
+          value={block.title}
+          onChange={(event) =>
+            dispatch({
+              kind: 'set',
+              target,
+              field: 'title',
+              value: event.currentTarget.value,
+            })
+          }
+        />
+      ) : null}
       <FormattedTextInput
         label="Content"
         value={block.text}
@@ -391,10 +457,10 @@ function RulebookWorkspace({
   const [depth, setDepth] = useState<DrilldownDepth>('controls');
   const [activePageId, setActivePageId] = useState(result.draft.pageOrder[1] ?? result.draft.pageOrder[0]);
   const activePage = result.draft.pagesById[activePageId ?? ''] as EditorialPage | undefined;
-  const blockIds = activePage?.slots.body ?? [];
+  const blockIds = activePage ? pageBlockIds(activePage) : [];
   const blocks = blockIds.flatMap((id) => {
-    const block = result.draft.blocksById[id];
-    return block && block.kind !== 'text' && block.kind !== 'repeated-text' ? [block] : [];
+    const block = activePage?.blocksById[id];
+    return block ? [block] : [];
   });
   const [selectedBlockId, setSelectedBlockId] = useState<string | undefined>(blocks[0]?.id);
   const selectedBlock = blocks.find((block) => block.id === selectedBlockId) ?? blocks[0];
@@ -413,7 +479,7 @@ function RulebookWorkspace({
   const selectPageInstantly = (pageId: string) => {
     const page = result.draft.pagesById[pageId] as EditorialPage | undefined;
     setActivePageId(pageId);
-    setSelectedBlockId(page?.slots.body[0]);
+    setSelectedBlockId(page ? pageBlockIds(page)[0] : undefined);
   };
   const openPage = (pageId: string) => {
     selectPageInstantly(pageId);
@@ -424,11 +490,8 @@ function RulebookWorkspace({
     setDepth('controls');
   };
   const addPage = (layoutId: PageLayoutId) => {
-    const suffix = globalThis.crypto.randomUUID();
-    const pageId = `page-${suffix}`;
-    const blockId = `block-${globalThis.crypto.randomUUID()}`;
-    const page = createPage(layoutId, pageId, `new-${layoutId}-${suffix.slice(0, 8)}`);
-    const block = createBlock(defaultBlockKind(layoutId), blockId);
+    const pageId = createRulebookLocalId(result.draft.pageOrder);
+    const page = createPage(layoutId, pageId, `new-${layoutId}-${pageId.toLowerCase()}`);
     dispatch({
       kind: 'create',
       entity: { kind: 'page', page },
@@ -438,27 +501,23 @@ function RulebookWorkspace({
         beforeId: null,
       },
     });
-    dispatch({
-      kind: 'create',
-      entity: { kind: 'block', block },
-      placement: {
-        container: { kind: 'page-slot', pageId, slotId: 'body' },
-        afterId: null,
-        beforeId: null,
-      },
-    });
     setActivePageId(pageId);
-    setSelectedBlockId(blockId);
-    setDepth('controls');
+    setSelectedBlockId(undefined);
+    setDepth('blocks');
   };
   const addBlock = (kind: BlockKind) => {
-    const blockId = `block-${globalThis.crypto.randomUUID()}`;
+    const region = firstRegionAccepting(activePage, kind);
+    if (!region || region.kind !== 'block') {
+      return;
+    }
+    const regionIds = blockOrders(activePage)[region.key] ?? [];
+    const blockId = createRulebookLocalId(Object.keys(activePage.blocksById));
     dispatch({
       kind: 'create',
-      entity: { kind: 'block', block: createBlock(kind, blockId) },
+      entity: { kind: 'block', pageId: activePage.id, block: createBlock(kind, blockId) },
       placement: {
-        container: { kind: 'page-slot', pageId: activePage.id, slotId: 'body' },
-        afterId: blockIds.at(-1) ?? null,
+        container: { kind: 'block-region', pageId: activePage.id, regionKey: region.key },
+        afterId: regionIds.at(-1) ?? null,
         beforeId: null,
       },
     });
@@ -483,18 +542,31 @@ function RulebookWorkspace({
     });
   };
   const onBlockDragEnd = ({ active, over }: DragEndEvent) => {
-    const sourceIndex = blockIds.indexOf(String(active.id));
-    const targetIndex = over ? blockIds.indexOf(String(over.id)) : -1;
-    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+    const activeId = String(active.id);
+    const overId = over ? String(over.id) : undefined;
+    const sourceRegionKey = regionForBlock(activePage, activeId);
+    const targetRegionKey = overId ? regionForBlock(activePage, overId) : undefined;
+    if (!sourceRegionKey || !targetRegionKey) {
       return;
     }
-    const order = arrayMove(blockIds, sourceIndex, targetIndex);
-    const index = order.indexOf(String(active.id));
+    const sourceIds = blockOrders(activePage)[sourceRegionKey] ?? [];
+    const targetIds = blockOrders(activePage)[targetRegionKey] ?? [];
+    const sourceIndex = sourceIds.indexOf(activeId);
+    const targetIndex = overId ? targetIds.indexOf(overId) : -1;
+    if (sourceIndex < 0 || targetIndex < 0 || (sourceRegionKey === targetRegionKey && sourceIndex === targetIndex)) {
+      return;
+    }
+    const withoutActive = targetIds.filter((id) => id !== activeId);
+    const insertionIndex =
+      sourceRegionKey === targetRegionKey ? targetIndex : Math.min(targetIndex, withoutActive.length);
+    const order = [...withoutActive];
+    order.splice(insertionIndex, 0, activeId);
+    const index = order.indexOf(activeId);
     dispatch({
       kind: 'place',
-      target: { kind: 'block', blockId: String(active.id) },
+      target: { kind: 'block', pageId: activePage.id, blockId: activeId },
       destination: {
-        container: { kind: 'page-slot', pageId: activePage.id, slotId: 'body' },
+        container: { kind: 'block-region', pageId: activePage.id, regionKey: targetRegionKey },
         ...destinationForIndex(order, index),
       },
     });
@@ -556,7 +628,7 @@ function RulebookWorkspace({
                                 title={page.title}
                                 details={[
                                   `Page ${index + 1} · ${pageLayoutNames[page.layoutId]}`,
-                                  `${page.slots.body.length} ${page.slots.body.length === 1 ? 'block' : 'blocks'}`,
+                                  `${pageBlockIds(page).length} ${pageBlockIds(page).length === 1 ? 'block' : 'blocks'}`,
                                 ]}
                               >
                                 <button
@@ -654,7 +726,7 @@ function RulebookWorkspace({
                         {({ setActivatorNodeRef, attributes, listeners }) => (
                           <>
                             <DrilldownTooltip
-                              title={block.title}
+                              title={blockLabel(block)}
                               details={[blockKindNames[block.kind], activePage.title]}
                             >
                               <button
@@ -662,7 +734,7 @@ function RulebookWorkspace({
                                 ref={setActivatorNodeRef}
                                 className={styles.levelIcon}
                                 aria-current={block.id === selectedBlock?.id ? 'true' : undefined}
-                                aria-label={`${block.title}. ${blockKindNames[block.kind]}. Drag to reorder or click to select.`}
+                                aria-label={`${blockLabel(block)}. ${blockKindNames[block.kind]}. Drag to reorder or click to select.`}
                                 onClick={() =>
                                   depth === 'blocks' ? openBlock(block.id) : setSelectedBlockId(block.id)
                                 }
@@ -673,7 +745,7 @@ function RulebookWorkspace({
                               </button>
                             </DrilldownTooltip>
                             <DrilldownLevelChoice
-                              title={block.title}
+                              title={blockLabel(block)}
                               metadata={blockKindNames[block.kind]}
                               active={block.id === selectedBlock?.id}
                               tabIndex={depth === 'blocks' ? 0 : -1}
@@ -721,9 +793,9 @@ function RulebookWorkspace({
             >
               <div className={styles.controlsHeading}>
                 {selectedBlock ? <BlockKindIcon kind={selectedBlock.kind} size={20} /> : null}
-                <Text fw={700}>{selectedBlock?.title ?? 'Select a block'}</Text>
+                <Text fw={700}>{selectedBlock ? blockLabel(selectedBlock) : 'Select a block'}</Text>
               </div>
-              <EditorControls block={selectedBlock} dispatch={dispatch} />
+              <EditorControls pageId={activePage.id} block={selectedBlock} dispatch={dispatch} />
             </section>
           </Surface>
         </DocumentEditorLayout.Sidebar>

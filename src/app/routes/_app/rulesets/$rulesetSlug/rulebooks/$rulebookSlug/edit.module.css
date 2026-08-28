@@ -443,9 +443,7 @@
 .previewRuleGroup p,
 .previewRuleGroup ul,
 .previewAssetBlock p,
-.previewAssetBlock ul,
-.previewCallout p,
-.previewCallout ul {
+.previewAssetBlock ul {
   margin: 0;
   font-size: 2.45cqi;
   line-height: 1.4;
@@ -478,23 +476,6 @@
   width: 5cqi;
   height: 5cqi;
   margin-bottom: 1cqi;
-}
-
-.previewCallout {
-  display: grid;
-  gap: 1cqi;
-  margin-top: 4cqi;
-  padding: 3cqi;
-  color: #4c351d;
-  background: rgb(139 102 52 / 12%);
-  border-inline-start: 0.8cqi solid #8b6634;
-}
-
-.previewCallout strong {
-  font-family: Lato, Arial, sans-serif;
-  font-size: 2.1cqi;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .underline {
