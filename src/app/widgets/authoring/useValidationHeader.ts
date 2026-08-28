@@ -28,7 +28,12 @@ export function useValidationHeader(count: number): ValidationHeaderState {
   const [settleTick, setSettleTick] = useState(0);
   /* A release that arrived while warnings still stood, waiting for the count it was about to reach zero.
      Discrete draft replacements are the asynchronous case: a membership mutation releases now and the warning it clears
-     only disappears once the server's next result lands, which is one or more renders later («Reset leaves the validation header open»). */
+     only disappears once the server's next result lands, which is one or more renders later («Reset leaves the validation header open»).
+     The residual, known and accepted: a release that clears nothing stays armed, so the next time the count reaches zero
+     the band closes without waiting for a settle, one render earlier than the hold would otherwise allow.
+     Reset onto a baseline that carries its own warnings is the way in, which stored rows can do while read tolerance stands,
+     and the trigger is whatever clears the last of those warnings afterwards, typing included.
+     It costs one early close, it is cosmetic, and it is self-limiting because the close spends the arm. */
   const releasedRef = useRef(false);
 
   /* The ref syncs inside the committed effect; a render-phase write could survive from a
