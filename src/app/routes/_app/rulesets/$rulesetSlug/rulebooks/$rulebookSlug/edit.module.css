@@ -1,43 +1,5 @@
 .editorRoot {
-  container: rulebook-editor / inline-size;
   padding-bottom: 3rem;
-}
-
-.workspaceViewport {
-  position: relative;
-  min-width: 0;
-}
-
-.stickyFrame {
-  --sticky-top: calc(var(--app-shell-header-offset, 0px) + 0.75rem);
-  --frame-height: min(52rem, calc(100dvh - var(--app-shell-header-offset, 0px) - 13rem));
-  --page-width: calc(var(--frame-height) * 210 / 297);
-  position: sticky;
-  z-index: 3;
-  top: var(--sticky-top);
-  display: grid;
-  gap: var(--mantine-spacing-lg);
-  align-items: stretch;
-  min-height: var(--frame-height);
-}
-
-.workspaceViewport[data-fit="height"] .stickyFrame {
-  grid-template-columns:
-    minmax(23rem, 1fr)
-    minmax(0, min(var(--page-width), calc(100% - 23rem - var(--mantine-spacing-lg))));
-}
-
-.workspaceViewport[data-fit="width"] .stickyFrame {
-  grid-template-columns: minmax(23rem, 0.85fr) minmax(28rem, 1.15fr);
-}
-
-.stickyRunway {
-  display: none;
-}
-
-.workspaceViewport[data-fit="height"] .stickyRunway {
-  display: block;
-  height: 65dvh;
 }
 
 .drilldownSidebar {
@@ -409,10 +371,6 @@
   font-family: Caladea, Georgia, serif;
 }
 
-.workspaceViewport[data-fit="height"] .documentPage {
-  width: min(var(--page-width), 100%);
-}
-
 .documentPage::before {
   position: absolute;
   z-index: 2;
@@ -552,24 +510,6 @@
 .literalText {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
-}
-
-@container rulebook-editor (max-width: 50rem) {
-  .workspaceViewport {
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-  }
-
-  .stickyFrame {
-    position: relative;
-    top: auto;
-    grid-template-columns: 24rem 28rem !important;
-    min-width: calc(52rem + var(--mantine-spacing-lg));
-  }
-
-  .stickyRunway {
-    display: none !important;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

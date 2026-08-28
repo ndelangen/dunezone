@@ -93,8 +93,10 @@ test('the A4 preview and Sidebar stay aligned without nested scroll traps', asyn
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(editorPath);
 
+  const layout = page.locator('[data-document-editor-layout]');
   const sidebar = page.getByRole('complementary', { name: 'Rulebook outline and controls' });
   const preview = page.getByRole('article', { name: 'Rulebook page preview' });
+  await expect(layout).toHaveAttribute('data-fit', 'height');
   const fitHeightBox = await preview.boundingBox();
   const sidebarBox = await sidebar.boundingBox();
   expect(fitHeightBox).not.toBeNull();
@@ -105,28 +107,16 @@ test('the A4 preview and Sidebar stay aligned without nested scroll traps', asyn
   expect(fitHeightBox.width / fitHeightBox.height).toBeCloseTo(210 / 297, 2);
   expect(Math.abs(sidebarBox.y - fitHeightBox.y)).toBeLessThanOrEqual(1);
   expect(sidebarBox.height).toBeGreaterThanOrEqual(fitHeightBox.height - 1);
-  expect(fitHeightBox.y + fitHeightBox.height).toBeLessThanOrEqual(901);
+  expect(fitHeightBox.height).toBeLessThanOrEqual(833);
   expect(await sidebar.evaluate((element) => getComputedStyle(element).overflowY)).not.toMatch(/auto|scroll/);
 
-  let pinnedY: number | undefined;
-  let previousY = fitHeightBox.y;
-  for (let step = 0; step < 30; step += 1) {
-    await page.mouse.wheel(0, 30);
-    const box = await preview.boundingBox();
-    if (!box) {
-      throw new Error('The A4 preview lost its rendered bounds while scrolling.');
-    }
-    if (Math.abs(box.y - previousY) <= 1) {
-      pinnedY = box.y;
-      break;
-    }
-    previousY = box.y;
-  }
-  expect(pinnedY).toBeDefined();
+  await page.mouse.wheel(0, 300);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   expect(await sidebar.evaluate((element) => element.scrollTop)).toBe(0);
 
   await page.getByRole('button', { name: 'Fit width' }).click();
   await expect(page.getByRole('button', { name: 'Fit height' })).toBeVisible();
+  await expect(layout).toHaveAttribute('data-fit', 'width');
   const fitWidthBox = await preview.boundingBox();
   expect(fitWidthBox).not.toBeNull();
   if (!fitWidthBox) {
@@ -141,8 +131,9 @@ test('only the narrow editor workspace scrolls horizontally', async ({ page }) =
   await page.goto(editorPath);
 
   const workspace = page.getByRole('region', { name: 'Rulebook editor and preview' });
+  const layout = page.locator('[data-document-editor-layout]');
   await expect(workspace).toBeVisible();
-  await expect.poll(() => workspace.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  await expect.poll(() => layout.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
   await expect
     .poll(() =>
       page.evaluate(
@@ -154,6 +145,7 @@ test('only the narrow editor workspace scrolls horizontally', async ({ page }) =
     .toBe(true);
 
   await workspace.focus();
+  await expect(workspace).toBeFocused();
   await page.keyboard.press('ArrowRight');
-  await expect.poll(() => workspace.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+  await expect.poll(() => layout.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
 });

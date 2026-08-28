@@ -15,19 +15,20 @@ import { createFileRoute } from '@tanstack/react-router';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
 import { SortableItem } from '@ui/control/SortableItem';
+import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
+import type { DocumentEditorFit } from '@ui/layout/DocumentEditorLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { BookOpenText, ChevronDown, CircleHelp, FileImage, ListTree, MessageSquareQuote, Plus } from 'lucide-react';
 import { Fragment, useState } from 'react';
-import type { ReactElement, ReactNode } from 'react';
+import type { KeyboardEvent, ReactElement, ReactNode } from 'react';
 
 import styles from './edit.module.css';
 import { createRulebookEditorStateManager } from './edit/-rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './edit/-rulebookEditorState';
 import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.fixtures';
 
-type PreviewFit = 'height' | 'width';
 type DrilldownDepth = 'pages' | 'blocks' | 'controls';
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 type EditorialPage = Extract<RulebookPageDraft, { layoutId: 'chapter-opener' | 'rules-page' | 'visual-reference' }>;
@@ -302,12 +303,27 @@ function createPage(layoutId: PageLayoutId, id: string, anchor: string): Editori
 
 function createBlock(kind: BlockKind, id: string): EditorialBlock {
   if (kind === 'rule-group') {
-    return { id, kind, title: 'Untitled rule group', text: 'Replace this starter content with the rule text.' };
+    return {
+      id,
+      kind,
+      title: 'Untitled rule group',
+      text: 'Replace this starter content with the rule text.',
+    };
   }
   if (kind === 'worked-example') {
-    return { id, kind, title: 'Worked example', text: 'Explain one example step by step.' };
+    return {
+      id,
+      kind,
+      title: 'Worked example',
+      text: 'Explain one example step by step.',
+    };
   }
-  return { id, kind, title: 'Selected Asset', text: 'Add a short caption for this figure.' };
+  return {
+    id,
+    kind,
+    title: 'Selected Asset',
+    text: 'Add a short caption for this figure.',
+  };
 }
 
 function defaultBlockKind(layoutId: PageLayoutId): BlockKind {
@@ -343,7 +359,14 @@ function EditorControls({
       <TextInput
         label="Title"
         value={block.title}
-        onChange={(event) => dispatch({ kind: 'set', target, field: 'title', value: event.currentTarget.value })}
+        onChange={(event) =>
+          dispatch({
+            kind: 'set',
+            target,
+            field: 'title',
+            value: event.currentTarget.value,
+          })
+        }
       />
       <FormattedTextInput
         label="Content"
@@ -363,7 +386,7 @@ function RulebookWorkspace({
 }: Readonly<{
   result: ReadyResult;
   dispatch: RulebookEditorStateManager['dispatch'];
-  fit: PreviewFit;
+  fit: DocumentEditorFit;
 }>) {
   const [depth, setDepth] = useState<DrilldownDepth>('controls');
   const [activePageId, setActivePageId] = useState(result.draft.pageOrder[1] ?? result.draft.pageOrder[0]);
@@ -377,7 +400,9 @@ function RulebookWorkspace({
   const selectedBlock = blocks.find((block) => block.id === selectedBlockId) ?? blocks[0];
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
 
   if (!activePage) {
@@ -416,7 +441,11 @@ function RulebookWorkspace({
     dispatch({
       kind: 'create',
       entity: { kind: 'block', block },
-      placement: { container: { kind: 'page-slot', pageId, slotId: 'body' }, afterId: null, beforeId: null },
+      placement: {
+        container: { kind: 'page-slot', pageId, slotId: 'body' },
+        afterId: null,
+        beforeId: null,
+      },
     });
     setActivePageId(pageId);
     setSelectedBlockId(blockId);
@@ -447,7 +476,10 @@ function RulebookWorkspace({
     dispatch({
       kind: 'place',
       target: { kind: 'page', pageId: String(active.id) },
-      destination: { container: { kind: 'page-order' }, ...destinationForIndex(order, index) },
+      destination: {
+        container: { kind: 'page-order' },
+        ...destinationForIndex(order, index),
+      },
     });
   };
   const onBlockDragEnd = ({ active, over }: DragEndEvent) => {
@@ -467,228 +499,243 @@ function RulebookWorkspace({
       },
     });
   };
+  const onWorkspaceKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+      return;
+    }
+
+    const scrollTrack = event.currentTarget.querySelector<HTMLElement>('[data-document-editor-layout]');
+    if (!scrollTrack || scrollTrack.scrollWidth <= scrollTrack.clientWidth) {
+      return;
+    }
+
+    event.preventDefault();
+    scrollTrack.scrollBy({ left: event.key === 'ArrowLeft' ? -48 : 48 });
+  };
 
   return (
-    <Box
-      className={styles.workspaceViewport}
-      data-fit={fit}
-      role="region"
-      aria-label="Rulebook editor and preview"
-      tabIndex={0}
-    >
-      <div className={styles.stickyFrame}>
-        <Surface
-          padding="none"
-          as="aside"
-          aria-label="Rulebook outline and controls"
-          className={`${styles.drilldownSidebar} ${drilldownDepthClassNames[depth]}`}
-        >
-          <section
-            className={`${styles.drilldownLevel} ${styles.pagesLevel} ${depth === 'pages' ? '' : styles.levelCollapsed}`}
-            aria-label="Pages panel"
+    <Box role="region" aria-label="Rulebook editor and preview" tabIndex={0} onKeyDown={onWorkspaceKeyDown}>
+      <DocumentEditorLayout ratio={210 / 297} fit={fit}>
+        <DocumentEditorLayout.Sidebar>
+          <Surface
+            padding="none"
+            as="aside"
+            aria-label="Rulebook outline and controls"
+            className={`${styles.drilldownSidebar} ${drilldownDepthClassNames[depth]}`}
           >
-            <div className={styles.levelHeading}>
-              <Text fw={700}>Pages</Text>
-              <IconAction
-                label="About page ordering"
-                tooltip="Drag a page icon to reorder pages. Choose a page to open its blocks."
-                icon={<CircleHelp size={15} aria-hidden />}
-                size="sm"
-                variant="subtle"
-              />
-            </div>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onPageDragEnd}>
-              <SortableContext items={result.draft.pageOrder} strategy={verticalListSortingStrategy}>
-                <div className={styles.levelList}>
-                  {result.draft.pageOrder.map((pageId, index) => {
-                    const page = result.draft.pagesById[pageId] as EditorialPage | undefined;
-                    if (!page) {
-                      return null;
-                    }
-                    return (
-                      <SortableItem className={styles.levelItem} id={page.id} key={page.id}>
+            <section
+              className={`${styles.drilldownLevel} ${styles.pagesLevel} ${depth === 'pages' ? '' : styles.levelCollapsed}`}
+              aria-label="Pages panel"
+            >
+              <div className={styles.levelHeading}>
+                <Text fw={700}>Pages</Text>
+                <IconAction
+                  label="About page ordering"
+                  tooltip="Drag a page icon to reorder pages. Choose a page to open its blocks."
+                  icon={<CircleHelp size={15} aria-hidden />}
+                  size="sm"
+                  variant="subtle"
+                />
+              </div>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onPageDragEnd}>
+                <SortableContext items={result.draft.pageOrder} strategy={verticalListSortingStrategy}>
+                  <div className={styles.levelList}>
+                    {result.draft.pageOrder.map((pageId, index) => {
+                      const page = result.draft.pagesById[pageId] as EditorialPage | undefined;
+                      if (!page) {
+                        return null;
+                      }
+                      return (
+                        <SortableItem className={styles.levelItem} id={page.id} key={page.id}>
+                          {({ setActivatorNodeRef, attributes, listeners }) => (
+                            <>
+                              <DrilldownTooltip
+                                title={page.title}
+                                details={[
+                                  `Page ${index + 1} · ${pageLayoutNames[page.layoutId]}`,
+                                  `${page.slots.body.length} ${page.slots.body.length === 1 ? 'block' : 'blocks'}`,
+                                ]}
+                              >
+                                <button
+                                  type="button"
+                                  ref={setActivatorNodeRef}
+                                  className={styles.levelIcon}
+                                  aria-current={page.id === activePage.id ? 'page' : undefined}
+                                  aria-label={`${page.title}. Page ${index + 1}. Drag to reorder or click to select.`}
+                                  onClick={() => (depth === 'pages' ? openPage(page.id) : selectPageInstantly(page.id))}
+                                  {...attributes}
+                                  {...listeners}
+                                >
+                                  <PageLayoutIcon layoutId={page.layoutId} />
+                                  <span>{index + 1}</span>
+                                </button>
+                              </DrilldownTooltip>
+                              <DrilldownLevelChoice
+                                title={page.title}
+                                metadata={pageLayoutNames[page.layoutId]}
+                                active={page.id === activePage.id}
+                                tabIndex={depth === 'pages' ? 0 : -1}
+                                onClick={() => openPage(page.id)}
+                              />
+                            </>
+                          )}
+                        </SortableItem>
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
+              <div className={styles.levelFooter}>
+                <button
+                  type="button"
+                  className={styles.levelLabel}
+                  aria-label="Open pages"
+                  tabIndex={depth === 'pages' ? -1 : 0}
+                  onClick={() => setDepth('pages')}
+                >
+                  <span>Pages</span>
+                </button>
+                <div className={styles.addSlot}>
+                  <AddMenu
+                    label="Add page"
+                    menuLabel="Choose a page layout"
+                    choices={pageLayoutIds.map((layoutId) => ({
+                      value: layoutId,
+                      label: pageLayoutNames[layoutId],
+                      icon: <PageLayoutIcon layoutId={layoutId} />,
+                    }))}
+                    collapsed={depth !== 'pages'}
+                    onPick={addPage}
+                  />
+                </div>
+              </div>
+            </section>
+            <section
+              className={`${styles.drilldownLevel} ${styles.blocksLevel} ${depth === 'controls' ? styles.levelCollapsed : ''} ${depth === 'pages' ? styles.levelHidden : ''}`}
+              aria-label="Blocks panel"
+              aria-hidden={depth === 'pages'}
+              inert={depth === 'pages'}
+            >
+              <div className={styles.levelHeading}>
+                <Text fw={700} truncate>
+                  {activePage.title}
+                </Text>
+                <Group gap={4} wrap="nowrap">
+                  {depth === 'blocks' ? (
+                    <AddMenu
+                      label="Add block"
+                      menuLabel="Choose a block type"
+                      choices={acceptedBlockKinds(activePage.layoutId).map((kind) => ({
+                        value: kind,
+                        label: blockKindNames[kind],
+                        icon: <BlockKindIcon kind={kind} />,
+                      }))}
+                      collapsed
+                      onPick={addBlock}
+                    />
+                  ) : null}
+                  <IconAction
+                    label="About block ordering"
+                    tooltip="Drag a block icon to reorder blocks. Choose a block to edit it."
+                    icon={<CircleHelp size={15} aria-hidden />}
+                    size="sm"
+                    variant="subtle"
+                  />
+                </Group>
+              </div>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBlockDragEnd}>
+                <SortableContext items={blockIds} strategy={verticalListSortingStrategy}>
+                  <div className={styles.levelList}>
+                    {blocks.map((block) => (
+                      <SortableItem className={styles.levelItem} id={block.id} key={block.id}>
                         {({ setActivatorNodeRef, attributes, listeners }) => (
                           <>
                             <DrilldownTooltip
-                              title={page.title}
-                              details={[
-                                `Page ${index + 1} · ${pageLayoutNames[page.layoutId]}`,
-                                `${page.slots.body.length} ${page.slots.body.length === 1 ? 'block' : 'blocks'}`,
-                              ]}
+                              title={block.title}
+                              details={[blockKindNames[block.kind], activePage.title]}
                             >
                               <button
                                 type="button"
                                 ref={setActivatorNodeRef}
                                 className={styles.levelIcon}
-                                aria-current={page.id === activePage.id ? 'page' : undefined}
-                                aria-label={`${page.title}. Page ${index + 1}. Drag to reorder or click to select.`}
-                                onClick={() => (depth === 'pages' ? openPage(page.id) : selectPageInstantly(page.id))}
+                                aria-current={block.id === selectedBlock?.id ? 'true' : undefined}
+                                aria-label={`${block.title}. ${blockKindNames[block.kind]}. Drag to reorder or click to select.`}
+                                onClick={() =>
+                                  depth === 'blocks' ? openBlock(block.id) : setSelectedBlockId(block.id)
+                                }
                                 {...attributes}
                                 {...listeners}
                               >
-                                <PageLayoutIcon layoutId={page.layoutId} />
-                                <span>{index + 1}</span>
+                                <BlockKindIcon kind={block.kind} />
                               </button>
                             </DrilldownTooltip>
                             <DrilldownLevelChoice
-                              title={page.title}
-                              metadata={pageLayoutNames[page.layoutId]}
-                              active={page.id === activePage.id}
-                              tabIndex={depth === 'pages' ? 0 : -1}
-                              onClick={() => openPage(page.id)}
+                              title={block.title}
+                              metadata={blockKindNames[block.kind]}
+                              active={block.id === selectedBlock?.id}
+                              tabIndex={depth === 'blocks' ? 0 : -1}
+                              onClick={() => openBlock(block.id)}
                             />
                           </>
                         )}
                       </SortableItem>
-                    );
-                  })}
-                </div>
-              </SortableContext>
-            </DndContext>
-            <div className={styles.levelFooter}>
-              <button
-                type="button"
-                className={styles.levelLabel}
-                aria-label="Open pages"
-                tabIndex={depth === 'pages' ? -1 : 0}
-                onClick={() => setDepth('pages')}
-              >
-                <span>Pages</span>
-              </button>
-              <div className={styles.addSlot}>
-                <AddMenu
-                  label="Add page"
-                  menuLabel="Choose a page layout"
-                  choices={pageLayoutIds.map((layoutId) => ({
-                    value: layoutId,
-                    label: pageLayoutNames[layoutId],
-                    icon: <PageLayoutIcon layoutId={layoutId} />,
-                  }))}
-                  collapsed={depth !== 'pages'}
-                  onPick={addPage}
-                />
-              </div>
-            </div>
-          </section>
-          <section
-            className={`${styles.drilldownLevel} ${styles.blocksLevel} ${depth === 'controls' ? styles.levelCollapsed : ''} ${depth === 'pages' ? styles.levelHidden : ''}`}
-            aria-label="Blocks panel"
-            aria-hidden={depth === 'pages'}
-            inert={depth === 'pages'}
-          >
-            <div className={styles.levelHeading}>
-              <Text fw={700} truncate>
-                {activePage.title}
-              </Text>
-              <Group gap={4} wrap="nowrap">
-                {depth === 'blocks' ? (
-                  <AddMenu
-                    label="Add block"
-                    menuLabel="Choose a block type"
-                    choices={acceptedBlockKinds(activePage.layoutId).map((kind) => ({
-                      value: kind,
-                      label: blockKindNames[kind],
-                      icon: <BlockKindIcon kind={kind} />,
-                    }))}
-                    collapsed
-                    onPick={addBlock}
-                  />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+              <div className={styles.levelFooter} data-empty={depth === 'blocks'}>
+                <button
+                  type="button"
+                  className={styles.levelLabel}
+                  aria-label="Open blocks"
+                  tabIndex={depth === 'controls' ? 0 : -1}
+                  onClick={() => setDepth('blocks')}
+                >
+                  <span>Blocks</span>
+                </button>
+                {depth === 'controls' ? (
+                  <div className={styles.addSlot}>
+                    <AddMenu
+                      label="Add block"
+                      menuLabel="Choose a block type"
+                      choices={acceptedBlockKinds(activePage.layoutId).map((kind) => ({
+                        value: kind,
+                        label: blockKindNames[kind],
+                        icon: <BlockKindIcon kind={kind} />,
+                      }))}
+                      collapsed
+                      onPick={addBlock}
+                    />
+                  </div>
                 ) : null}
-                <IconAction
-                  label="About block ordering"
-                  tooltip="Drag a block icon to reorder blocks. Choose a block to edit it."
-                  icon={<CircleHelp size={15} aria-hidden />}
-                  size="sm"
-                  variant="subtle"
-                />
-              </Group>
-            </div>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onBlockDragEnd}>
-              <SortableContext items={blockIds} strategy={verticalListSortingStrategy}>
-                <div className={styles.levelList}>
-                  {blocks.map((block) => (
-                    <SortableItem className={styles.levelItem} id={block.id} key={block.id}>
-                      {({ setActivatorNodeRef, attributes, listeners }) => (
-                        <>
-                          <DrilldownTooltip
-                            title={block.title}
-                            details={[blockKindNames[block.kind], activePage.title]}
-                          >
-                            <button
-                              type="button"
-                              ref={setActivatorNodeRef}
-                              className={styles.levelIcon}
-                              aria-current={block.id === selectedBlock?.id ? 'true' : undefined}
-                              aria-label={`${block.title}. ${blockKindNames[block.kind]}. Drag to reorder or click to select.`}
-                              onClick={() => (depth === 'blocks' ? openBlock(block.id) : setSelectedBlockId(block.id))}
-                              {...attributes}
-                              {...listeners}
-                            >
-                              <BlockKindIcon kind={block.kind} />
-                            </button>
-                          </DrilldownTooltip>
-                          <DrilldownLevelChoice
-                            title={block.title}
-                            metadata={blockKindNames[block.kind]}
-                            active={block.id === selectedBlock?.id}
-                            tabIndex={depth === 'blocks' ? 0 : -1}
-                            onClick={() => openBlock(block.id)}
-                          />
-                        </>
-                      )}
-                    </SortableItem>
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-            <div className={styles.levelFooter} data-empty={depth === 'blocks'}>
-              <button
-                type="button"
-                className={styles.levelLabel}
-                aria-label="Open blocks"
-                tabIndex={depth === 'controls' ? 0 : -1}
-                onClick={() => setDepth('blocks')}
-              >
-                <span>Blocks</span>
-              </button>
-              {depth === 'controls' ? (
-                <div className={styles.addSlot}>
-                  <AddMenu
-                    label="Add block"
-                    menuLabel="Choose a block type"
-                    choices={acceptedBlockKinds(activePage.layoutId).map((kind) => ({
-                      value: kind,
-                      label: blockKindNames[kind],
-                      icon: <BlockKindIcon kind={kind} />,
-                    }))}
-                    collapsed
-                    onPick={addBlock}
-                  />
-                </div>
-              ) : null}
-            </div>
-          </section>
-          <section
-            className={`${styles.controlsPanel} ${depth === 'controls' ? '' : styles.controlsHidden}`}
-            aria-label="Controls panel"
-            aria-hidden={depth !== 'controls'}
-            inert={depth !== 'controls'}
-          >
-            <div className={styles.controlsHeading}>
-              {selectedBlock ? <BlockKindIcon kind={selectedBlock.kind} size={20} /> : null}
-              <Text fw={700}>{selectedBlock?.title ?? 'Select a block'}</Text>
-            </div>
-            <EditorControls block={selectedBlock} dispatch={dispatch} />
-          </section>
-        </Surface>
-        <RulebookPagePreview
-          page={activePage}
-          blocks={blocks}
-          pageNumber={pageNumber}
-          selectedBlockId={selectedBlock?.id}
-        />
-      </div>
-      <div className={styles.stickyRunway} aria-hidden />
+              </div>
+            </section>
+            <section
+              className={`${styles.controlsPanel} ${depth === 'controls' ? '' : styles.controlsHidden}`}
+              aria-label="Controls panel"
+              aria-hidden={depth !== 'controls'}
+              inert={depth !== 'controls'}
+            >
+              <div className={styles.controlsHeading}>
+                {selectedBlock ? <BlockKindIcon kind={selectedBlock.kind} size={20} /> : null}
+                <Text fw={700}>{selectedBlock?.title ?? 'Select a block'}</Text>
+              </div>
+              <EditorControls block={selectedBlock} dispatch={dispatch} />
+            </section>
+          </Surface>
+        </DocumentEditorLayout.Sidebar>
+        <DocumentEditorLayout.Preview>
+          <RulebookPagePreview
+            page={activePage}
+            blocks={blocks}
+            pageNumber={pageNumber}
+            selectedBlockId={selectedBlock?.id}
+          />
+        </DocumentEditorLayout.Preview>
+      </DocumentEditorLayout>
     </Box>
   );
 }
@@ -696,7 +743,7 @@ function RulebookWorkspace({
 function RulebookEditorPage() {
   const [manager] = useState(() => createRulebookEditorStateManager(createEditorialRulebookEditorInput()));
   const [result, setResult] = useState<RulebookEditorResult>(() => manager.result);
-  const [fit, setFit] = useState<PreviewFit>('height');
+  const [fit, setFit] = useState<DocumentEditorFit>('height');
   const [saveLabel, setSaveLabel] = useState('Save');
   const dispatch: RulebookEditorStateManager['dispatch'] = (action) => {
     const next = manager.dispatch(action);
@@ -731,7 +778,10 @@ function RulebookEditorPage() {
     }
     const saved = manager.dispatch({
       kind: 'save-succeeded',
-      saved: { revision: `local-${Date.now()}`, contents: saving.saveRequest.contents },
+      saved: {
+        revision: `local-${Date.now()}`,
+        contents: saving.saveRequest.contents,
+      },
     });
     setResult(saved);
     setSaveLabel('Saved');
