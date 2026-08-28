@@ -165,6 +165,15 @@ export const consume = mutation({
         if (!target) {
           return { ok: false as const, reason: 'entity_gone' as const };
         }
+        /*
+         * The expected-echo recheck, enforced only for a mint that carried an expectation.
+         * The operator backfill pins the legacy string its scan saw, so a result landing after an author rehosted bounces here rather than overwriting the newer cover.
+         * An author's own save pins nothing, because the rehost runs before the update and the document has never held the pasted URL; the avatar arm compares against `source_url` instead, which its mutation writes first.
+         * The tombstone above still records the keys this ingest produced for the GC pass.
+         */
+        if (row.capability.expected_echo !== undefined && target.image_cover !== row.capability.expected_echo) {
+          return { ok: false as const, reason: 'superseded' as const };
+        }
         await patchStoredCover(ctx, row.capability.ruleset_id, {
           url: payload.data.url,
           thumb_url: payload.data.thumb_url,

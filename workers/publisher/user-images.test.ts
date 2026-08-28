@@ -6,7 +6,6 @@ import { handleUserImageIngest, handleUserImageRequest } from './user-images';
 import type { UserImageBucket, UserImageCache } from './user-images';
 
 const NOW = new Date('2026-08-25T12:00:00.000Z');
-const SECRET = 'user-image-ingest-secret-for-tests-0001';
 const SOURCE_URL = 'https://images.example/cover.png';
 const CONVEX_BASE = 'https://ledger.test';
 const TOKEN = 'c'.repeat(64);
@@ -96,14 +95,12 @@ function imagesStub(encodedQueue: Uint8Array[], seen: ImagesStubSeen = { transfo
   return { input: () => transformer } as unknown as ImagesBinding;
 }
 
-function ingestRequest(options: { body?: string; token?: string; origin?: string } = {}): Request {
+/** An ingest request. The minted token rides in the body and is the only credential the endpoint accepts. */
+function ingestRequest(options: { body?: unknown; token?: string; origin?: string } = {}): Request {
   return new Request(`${options.origin ?? 'https://dune.zone'}${USER_IMAGE_INGEST_PATH}`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${options.token ?? SECRET}`,
-      'Content-Type': 'application/json',
-    },
-    body: options.body ?? JSON.stringify({ source_url: SOURCE_URL }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(options.body ?? { source_url: SOURCE_URL, token: options.token ?? TOKEN }),
   });
 }
 
@@ -111,19 +108,19 @@ function sourceResponse(bytes: Uint8Array, headers: Record<string, string> = {})
   return new Response(bytes, { headers: { 'Content-Type': 'image/png', ...headers } });
 }
 
-/** An ingest request on the token path: the credential rides in the body and no bearer header is present. */
-function tokenIngestRequest(body: unknown = { source_url: SOURCE_URL, token: TOKEN }): Request {
-  return new Request(`https://dune.zone${USER_IMAGE_INGEST_PATH}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-}
-
 type LedgerCall = { url: string; body: { path: string; args: Record<string, unknown>; format: string } };
 
 /** Answers the two ledger calls and the source image from one fetch stub, recording the ledger bodies for assertion. */
-function ledgerFetch(options: { valid?: boolean; kind?: string; consume?: unknown; sourceBytes?: Uint8Array } = {}) {
+function ledgerFetch(
+  options: {
+    valid?: boolean;
+    kind?: string;
+    consume?: unknown;
+    sourceBytes?: Uint8Array;
+    /** For the refusal tests, whose subject is what the source answers rather than what the ledger says. */
+    source?: () => Response;
+  } = {}
+) {
   const ledgerCalls: LedgerCall[] = [];
   const mock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
@@ -137,7 +134,7 @@ function ledgerFetch(options: { valid?: boolean; kind?: string; consume?: unknow
       }
       return Response.json({ status: 'success', value: options.consume ?? { ok: true } });
     }
-    return sourceResponse(options.sourceBytes ?? pngBytes(800, 600));
+    return options.source ? options.source() : sourceResponse(options.sourceBytes ?? pngBytes(800, 600));
   });
   return { mock, ledgerCalls };
 }
@@ -159,8 +156,8 @@ afterEach(() => {
 });
 
 describe('user image ingest', () => {
-  test('stores both renditions under their content hashes and answers with the delivery URLs', async () => {
-    const fetchMock = vi.fn(async () => sourceResponse(pngBytes(800, 600)));
+  test('stores both renditions under their content hashes and hands the delivery URLs to the ledger', async () => {
+    const { mock: fetchMock, ledgerCalls } = ledgerFetch();
     vi.stubGlobal('fetch', fetchMock);
     const bucket = memoryBucket();
     const seen: ImagesStubSeen = { transforms: [], outputs: [] };
@@ -169,52 +166,49 @@ describe('user image ingest', () => {
 
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: bucket,
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([fullEncoded, thumbEncoded], seen),
     });
 
     expect(response?.status).toBe(200);
-    if (!response) {
-      throw new Error('expected a response');
+    expect(await response?.json()).toEqual({ ok: true });
+    /* The result is asserted where it actually travels: the response carries none of it. */
+    const consume = ledgerCalls.at(-1);
+    if (!consume) {
+      throw new Error('expected a consume call');
     }
-    const payload = (await response.json()) as {
-      url: string;
-      key: string;
-      thumb_url: string;
-      thumb_key: string;
-      width: number;
-      height: number;
-    };
-    expect(payload.key).toMatch(/^[0-9a-f]{64}\.jpg$/);
-    expect(payload.url).toBe(`https://dune.zone/user-images/${payload.key}`);
-    expect(payload.thumb_key).toMatch(/^[0-9a-f]{64}\.jpg$/);
-    expect(payload.thumb_key).not.toBe(payload.key);
-    expect(payload.thumb_url).toBe(`https://dune.zone/user-images/${payload.thumb_key}`);
-    expect(payload.width).toBe(800);
-    expect(payload.height).toBe(600);
+    const result = consume.body.args.result as { url: string; thumb_url: string; width: number; height: number };
+    const keys = consume.body.args.r2_keys as string[];
+    const [key, thumbKey] = keys;
+    if (!key || !thumbKey) {
+      throw new Error('expected a full and a thumb key');
+    }
+    expect(key).toMatch(/^[0-9a-f]{64}\.jpg$/);
+    expect(thumbKey).toMatch(/^[0-9a-f]{64}\.jpg$/);
+    expect(thumbKey).not.toBe(key);
+    expect(result.url).toBe(`https://dune.zone/user-images/${key}`);
+    expect(result.thumb_url).toBe(`https://dune.zone/user-images/${thumbKey}`);
+    expect(result.width).toBe(800);
+    expect(result.height).toBe(600);
     expect(seen.transforms).toEqual([
       { width: 1600, height: 1600, fit: 'scale-down' },
       { width: 320, height: 320, fit: 'scale-down' },
     ]);
     expect(seen.outputs).toMatchObject([{ format: 'image/jpeg' }, { format: 'image/jpeg' }]);
     expect(bucket.objects.size).toBe(2);
-    const stored = bucket.objects.get(payload.key);
+    const stored = bucket.objects.get(key);
     expect(stored?.options.httpMetadata).toMatchObject({ contentType: 'image/jpeg' });
     expect(stored?.options.customMetadata).toMatchObject({ sourceUrl: SOURCE_URL });
-    const storedThumb = bucket.objects.get(payload.thumb_key);
+    const storedThumb = bucket.objects.get(thumbKey);
     expect(storedThumb?.options.customMetadata).toMatchObject({ sourceUrl: SOURCE_URL });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    /* Check, source, consume: the source is fetched exactly once and the ledger frames it. */
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   test('tolerates a baseline thumb when the thumb box squeezes one edge under the progressive floor', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => sourceResponse(pngBytes(1600, 60)))
-    );
+    vi.stubGlobal('fetch', ledgerFetch({ sourceBytes: pngBytes(1600, 60) }).mock);
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([
         jpegBytes({ widthPx: 1600, heightPx: 60, progressive: true }),
@@ -225,15 +219,12 @@ describe('user image ingest', () => {
   });
 
   test('mints the delivery URL on the pinned public origin even when ingest arrives on another hostname', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => sourceResponse(pngBytes(800, 600)))
-    );
+    const { mock, ledgerCalls } = ledgerFetch();
+    vi.stubGlobal('fetch', mock);
     const response = await handleUserImageIngest(
       ingestRequest({ origin: 'https://faction-sheet-asset-publisher.ndelangen.workers.dev' }),
       {
         USER_IMAGE_BUCKET: memoryBucket(),
-        USER_IMAGE_INGEST_SECRET: SECRET,
         CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
         USER_IMAGE_PUBLIC_BASE_URL: 'https://dune.zone',
         IMAGES: imagesStub([
@@ -243,35 +234,23 @@ describe('user image ingest', () => {
       }
     );
     expect(response?.status).toBe(200);
-    if (!response) {
-      throw new Error('expected a response');
+    const consume = ledgerCalls.at(-1);
+    if (!consume) {
+      throw new Error('expected a consume call');
     }
-    const payload = (await response.json()) as { url: string; key: string; thumb_url: string; thumb_key: string };
-    expect(payload.url).toBe(`https://dune.zone/user-images/${payload.key}`);
-    expect(payload.thumb_url).toBe(`https://dune.zone/user-images/${payload.thumb_key}`);
-  });
-
-  test('refuses a wrong bearer token without fetching anything', async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-    const response = await handleUserImageIngest(ingestRequest({ token: 'wrong' }), {
-      USER_IMAGE_BUCKET: memoryBucket(),
-      USER_IMAGE_INGEST_SECRET: SECRET,
-      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
-      IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
-    });
-    expect(response?.status).toBe(401);
-    expect(fetchMock).not.toHaveBeenCalled();
+    const result = consume.body.args.result as { url: string; thumb_url: string };
+    const [key, thumbKey] = consume.body.args.r2_keys as string[];
+    expect(result.url).toBe(`https://dune.zone/user-images/${key}`);
+    expect(result.thumb_url).toBe(`https://dune.zone/user-images/${thumbKey}`);
   });
 
   test('refuses a non-https source before fetching', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     const response = await handleUserImageIngest(
-      ingestRequest({ body: JSON.stringify({ source_url: 'http://images.example/cover.png' }) }),
+      ingestRequest({ body: { source_url: 'http://images.example/cover.png', token: TOKEN } }),
       {
         USER_IMAGE_BUCKET: memoryBucket(),
-        USER_IMAGE_INGEST_SECRET: SECRET,
         CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
         IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
       }
@@ -281,29 +260,28 @@ describe('user image ingest', () => {
   });
 
   test('refuses a redirect that leaves https', async () => {
-    const fetchMock = vi.fn(
-      async () => new Response(null, { status: 302, headers: { Location: 'http://images.example/cover.png' } })
-    );
+    const { mock: fetchMock } = ledgerFetch({
+      source: () => new Response(null, { status: 302, headers: { Location: 'http://images.example/cover.png' } }),
+    });
     vi.stubGlobal('fetch', fetchMock);
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
     });
     expect(response?.status).toBe(422);
     expect(await refusalMessage(response)).toContain('https');
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    /* The ledger check is the first call and the refused source is the second; nothing follows. */
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   test('refuses a response that is not an image', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => new Response('<html></html>', { headers: { 'Content-Type': 'text/html' } }))
+      ledgerFetch({ source: () => new Response('<html></html>', { headers: { 'Content-Type': 'text/html' } }) }).mock
     );
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
     });
@@ -313,13 +291,9 @@ describe('user image ingest', () => {
 
   test('refuses a source larger than the byte limit even without a Content-Length header', async () => {
     const oversized = new Uint8Array(10 * 1024 * 1024 + 1);
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => sourceResponse(oversized))
-    );
+    vi.stubGlobal('fetch', ledgerFetch({ sourceBytes: oversized }).mock);
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 80, heightPx: 80, progressive: true })]),
     });
@@ -328,13 +302,9 @@ describe('user image ingest', () => {
   });
 
   test('refuses an image smaller than the minimum edge', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => sourceResponse(pngBytes(32, 32)))
-    );
+    vi.stubGlobal('fetch', ledgerFetch({ sourceBytes: pngBytes(32, 32) }).mock);
     const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 32, heightPx: 32, progressive: true })]),
     });
@@ -347,9 +317,8 @@ describe('user image ingest', () => {
     vi.stubGlobal('fetch', mock);
     const bucket = memoryBucket();
 
-    const response = await handleUserImageIngest(tokenIngestRequest(), {
+    const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: bucket,
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([
         jpegBytes({ widthPx: 800, heightPx: 600, progressive: true }),
@@ -389,9 +358,8 @@ describe('user image ingest', () => {
     const bucket = memoryBucket();
     const seen: ImagesStubSeen = { transforms: [], outputs: [] };
 
-    const response = await handleUserImageIngest(tokenIngestRequest(), {
+    const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: bucket,
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 320, heightPx: 320, progressive: true })], seen),
     });
@@ -418,9 +386,8 @@ describe('user image ingest', () => {
     vi.stubGlobal('fetch', mock);
     const bucket = memoryBucket();
 
-    const response = await handleUserImageIngest(tokenIngestRequest(), {
+    const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: bucket,
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 320, heightPx: 240, progressive: true })]),
     });
@@ -436,9 +403,8 @@ describe('user image ingest', () => {
     vi.stubGlobal('fetch', mock);
     const bucket = memoryBucket();
 
-    const response = await handleUserImageIngest(tokenIngestRequest(), {
+    const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: bucket,
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: true })]),
     });
@@ -452,9 +418,8 @@ describe('user image ingest', () => {
     const { mock } = ledgerFetch({ consume: { ok: false, reason: 'consumed' } });
     vi.stubGlobal('fetch', mock);
 
-    const response = await handleUserImageIngest(tokenIngestRequest(), {
+    const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([
         jpegBytes({ widthPx: 800, heightPx: 600, progressive: true }),
@@ -475,9 +440,8 @@ describe('user image ingest', () => {
     });
     vi.stubGlobal('fetch', mock);
 
-    const response = await handleUserImageIngest(tokenIngestRequest(), {
+    const response = await handleUserImageIngest(ingestRequest(), {
       USER_IMAGE_BUCKET: memoryBucket(),
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: true })]),
     });
@@ -486,18 +450,17 @@ describe('user image ingest', () => {
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
-  test('a request with neither bearer nor token is refused without touching anything', async () => {
+  test('a request with no token is refused by the request schema before the ledger is asked', async () => {
     const mock = vi.fn();
     vi.stubGlobal('fetch', mock);
 
-    const response = await handleUserImageIngest(tokenIngestRequest({ source_url: SOURCE_URL }), {
+    const response = await handleUserImageIngest(ingestRequest({ body: { source_url: SOURCE_URL } }), {
       USER_IMAGE_BUCKET: memoryBucket(),
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: true })]),
     });
 
-    expect(response?.status).toBe(401);
+    expect(response?.status).toBe(400);
     expect(mock).not.toHaveBeenCalled();
   });
 
@@ -505,9 +468,8 @@ describe('user image ingest', () => {
     const mock = vi.fn();
     vi.stubGlobal('fetch', mock);
 
-    const response = await handleUserImageIngest(tokenIngestRequest({ source_url: SOURCE_URL, token: 'short' }), {
+    const response = await handleUserImageIngest(ingestRequest({ body: { source_url: SOURCE_URL, token: 'short' } }), {
       USER_IMAGE_BUCKET: memoryBucket(),
-      USER_IMAGE_INGEST_SECRET: SECRET,
       CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
       IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: true })]),
     });
@@ -517,14 +479,10 @@ describe('user image ingest', () => {
   });
 
   test('fails loudly when the encoder falls back to baseline', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => sourceResponse(pngBytes(800, 600)))
-    );
+    vi.stubGlobal('fetch', ledgerFetch().mock);
     await expect(
       handleUserImageIngest(ingestRequest(), {
         USER_IMAGE_BUCKET: memoryBucket(),
-        USER_IMAGE_INGEST_SECRET: SECRET,
         CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
         IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: false })]),
       })

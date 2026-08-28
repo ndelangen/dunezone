@@ -6,7 +6,7 @@ import { z } from 'zod';
  * Everything both sides of that exchange must agree on lives here: paths, limits and the wire shapes.
  */
 
-/** The Worker endpoint the Convex rehost action posts a source URL to, authenticated with a minted ingest token or the legacy shared secret. */
+/** The Worker endpoint the Convex rehost action posts a source URL to, authenticated with a minted ingest token. */
 export const USER_IMAGE_INGEST_PATH = '/__user-images/ingest';
 
 /**
@@ -132,24 +132,9 @@ export const userAvatarSourceUrlSchema = makeUserImageSourceUrlSchema('Avatar im
 
 export const userImageIngestRequestSchema = z.strictObject({
   source_url: userImageSourceUrlSchema,
-  /**
-   * The minted ledger token selecting the introspection path.
-   * Absent on the legacy path, where the bearer header authenticates instead;
-   * that path retires with the shared secret.
-   */
-  token: userImageIngestTokenSchema.optional(),
+  /** The minted ledger token, which is the entire credential: there is no other way to command an ingest. */
+  token: userImageIngestTokenSchema,
 });
-
-export const userImageIngestResponseSchema = z.strictObject({
-  url: z.string(),
-  key: z.string().regex(USER_IMAGE_KEY_PATTERN),
-  thumb_url: z.string(),
-  thumb_key: z.string().regex(USER_IMAGE_KEY_PATTERN),
-  width: z.number().int().positive(),
-  height: z.number().int().positive(),
-});
-
-export type UserImageIngestResponse = z.infer<typeof userImageIngestResponseSchema>;
 
 /**
  * What the token path answers the caller with: a completion signal only.

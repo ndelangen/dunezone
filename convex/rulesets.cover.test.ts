@@ -44,7 +44,6 @@ async function coverFixture() {
 
 function stubIngestEnvironment() {
   vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', 'https://worker.test');
-  vi.stubEnv('USER_IMAGE_INGEST_SECRET', 'test-ingest-secret');
 }
 
 function ingestSuccess() {
@@ -71,11 +70,18 @@ function ingestSuccess() {
 function ingestWorkerSimulation(t: ReturnType<typeof convexTest>) {
   return vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
     const body = JSON.parse(String(init?.body)) as { source_url: string; token: string };
-    await t.mutation(api.ingestTokens.consume, {
+    const answer = await t.mutation(api.ingestTokens.consume, {
       token: body.token,
       result: { url: DELIVERY_URL, thumb_url: DELIVERY_THUMB_URL, width: 800, height: 600 },
       r2_keys: [`${'a'.repeat(64)}.jpg`, `${'b'.repeat(64)}.jpg`],
     });
+    /* The real Worker relays a bounced consume as a 409 rather than answering success; a simulation that swallowed it would let a refused write pass for a stored one. */
+    if (!answer.ok) {
+      return new Response(JSON.stringify({ error: `Consume refused: ${answer.reason}` }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
     return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
   });
 }
@@ -114,6 +120,26 @@ describe('ruleset cover rehosting', () => {
     expect(tombstone?.consumed).toBe(true);
   });
 
+  /*
+   * The other half of the expected-echo guard, and the reason it is optional rather than always on.
+   * An author's rehost mints against a URL the document does not carry: the row still holds the previous cover, and the update that would record the new source runs after this action returns.
+   * A guard that compared the stored echo to the mint's source unconditionally would refuse every save of this shape, which is exactly what the backfill's guard must not do.
+   */
+  test('an author rehost over an existing cover is not read as a stale backfill', async () => {
+    const { t, owner, ruleset } = await coverFixture();
+    stubIngestEnvironment();
+    await t.run(async (ctx) => {
+      await ctx.db.patch(ruleset._id, { image_cover: `https://dune.zone/user-images/${'c'.repeat(64)}.jpg` });
+    });
+    vi.stubGlobal('fetch', ingestWorkerSimulation(t));
+
+    await owner.action(api.rulesetCovers.rehost, { id: ruleset._id, source_url: SOURCE_URL });
+
+    const row = await t.run(async (ctx) => await ctx.db.get(ruleset._id));
+    expect(row?.cover).toEqual(STORED_COVER);
+    expect(row?.image_cover).toBe(DELIVERY_URL);
+  });
+
   test('the ingest response body alone writes nothing', async () => {
     const { t, owner, ruleset } = await coverFixture();
     stubIngestEnvironment();
@@ -132,7 +158,6 @@ describe('ruleset cover rehosting', () => {
   test('rehost refuses a cleartext ingest endpoint outside local development', async () => {
     const { owner, ruleset } = await coverFixture();
     vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', 'http://ingest.example');
-    vi.stubEnv('USER_IMAGE_INGEST_SECRET', 'test-ingest-secret');
     const fetchMock = ingestSuccess();
     vi.stubGlobal('fetch', fetchMock);
 
@@ -262,19 +287,14 @@ describe('ruleset cover rehosting', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-        const body = JSON.parse(String(init?.body)) as { source_url: string };
+        const body = JSON.parse(String(init?.body)) as { source_url: string; token: string };
         if (body.source_url === SOURCE_URL) {
-          return new Response(
-            JSON.stringify({
-              url: DELIVERY_URL,
-              key: `${'a'.repeat(64)}.jpg`,
-              thumb_url: DELIVERY_THUMB_URL,
-              thumb_key: `${'b'.repeat(64)}.jpg`,
-              width: 800,
-              height: 600,
-            }),
-            { headers: { 'Content-Type': 'application/json' } }
-          );
+          await t.mutation(api.ingestTokens.consume, {
+            token: body.token,
+            result: { url: DELIVERY_URL, thumb_url: DELIVERY_THUMB_URL, width: 800, height: 600 },
+            r2_keys: [`${'a'.repeat(64)}.jpg`, `${'b'.repeat(64)}.jpg`],
+          });
+          return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
         }
         return new Response(JSON.stringify({ error: 'The image host answered with status 404' }), {
           status: 422,
@@ -306,22 +326,23 @@ describe('ruleset cover rehosting', () => {
     });
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => {
-        /* The author edits while the backfill is fetching, so the scan's snapshot is stale by commit time. */
+      vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body)) as { token: string };
+        /* The author edits while the backfill is fetching, so the scan's snapshot is stale by the time the callback lands. */
         await t.run(async (ctx) => {
           await ctx.db.patch(ruleset._id, { image_cover: 'https://elsewhere.example/new.png' });
         });
-        return new Response(
-          JSON.stringify({
-            url: DELIVERY_URL,
-            key: `${'a'.repeat(64)}.jpg`,
-            thumb_url: DELIVERY_THUMB_URL,
-            thumb_key: `${'b'.repeat(64)}.jpg`,
-            width: 800,
-            height: 600,
-          }),
-          { headers: { 'Content-Type': 'application/json' } }
-        );
+        const answer = await t.mutation(api.ingestTokens.consume, {
+          token: body.token,
+          result: { url: DELIVERY_URL, thumb_url: DELIVERY_THUMB_URL, width: 800, height: 600 },
+          r2_keys: [`${'a'.repeat(64)}.jpg`, `${'b'.repeat(64)}.jpg`],
+        });
+        /* The Worker relays a bounced consume as a 409, which is what turns this into a skip rather than a failure. */
+        expect(answer).toEqual({ ok: false, reason: 'superseded' });
+        return new Response(JSON.stringify({ error: 'The image was replaced while it was being stored' }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' },
+        });
       })
     );
 

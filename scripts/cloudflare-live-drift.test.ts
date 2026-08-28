@@ -30,7 +30,6 @@ function liveBindings() {
     { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
     { name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' },
     { name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' },
-    { name: 'USER_IMAGE_INGEST_SECRET', type: 'secret_text' },
     {
       name: 'USER_IMAGE_PUBLIC_BASE_URL',
       type: 'plain_text',
@@ -101,7 +100,6 @@ function liveFetcher(
       return envelope([
         { name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' },
         { name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' },
-        { name: 'USER_IMAGE_INGEST_SECRET', type: 'secret_text' },
         ...(options.extraSecret ? [{ name: 'ASSET_PUBLISHER_POLL_SECRET', type: 'secret_text' }] : []),
       ]);
     }
@@ -183,7 +181,7 @@ describe('Cloudflare live drift check', () => {
       worker: WORKER,
       domainCount: 1,
       bindingCount: 16,
-      secretCount: 3,
+      secretCount: 2,
       cronCount: 1,
       queueCount: 1,
       bucketCount: 2,
