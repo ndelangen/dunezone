@@ -24,7 +24,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Group, Menu, Stack, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
+import { Box, Menu, Stack, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
 import type {
   RulebookBlockDraft,
   RulebookBlockKind,
@@ -41,6 +41,7 @@ import {
   FileImage,
   FileText,
   Layers3,
+  Link2,
   ListTree,
   MessageSquareQuote,
 } from 'lucide-react';
@@ -376,26 +377,24 @@ function BlockSummary({
           <Text component="span" fw={700} truncate>
             {label}
           </Text>
-          <Text component="span" size="xs" c="dimmed">
-            {blockKindLabels[block.kind]}
-          </Text>
         </span>
       </UnstyledButton>
     </li>
   );
 }
 
-function BlockDragPreview({ block }: Readonly<{ block: RulebookBlockDraft }>) {
+function BlockDragPreview({ block, width }: Readonly<{ block: RulebookBlockDraft; width: number | null }>) {
   return (
-    <div className={`${styles.blockSummary} ${styles.blockDragPreview}`}>
+    <div
+      className={`${styles.blockSummary} ${styles.blockDragPreview}`}
+      style={{ inlineSize: width ?? undefined }}
+      data-block-drag-preview
+    >
       <div className={styles.blockNavigate}>
         <span className={styles.blockIcon}>{blockIcon(block.kind)}</span>
         <span className={styles.blockWords}>
           <Text component="span" fw={700} truncate>
             {blockLabel(block)}
-          </Text>
-          <Text component="span" size="xs" c="dimmed">
-            {blockKindLabels[block.kind]}
           </Text>
         </span>
       </div>
@@ -443,7 +442,7 @@ function BlockRegionSummary({
       data-drop-eligibility={activeBlockId ? (dropEnabled ? 'compatible' : 'incompatible') : undefined}
       data-drop-target={droppable.isOver || undefined}
     >
-      <div className={styles.blockRegionHeader}>
+      <div className={styles.blockRegionHeader} data-region-header>
         <span className={styles.regionIcon}>
           <Layers3 aria-hidden />
         </span>
@@ -458,7 +457,7 @@ function BlockRegionSummary({
             </Text>
           ) : null}
         </span>
-        <Group gap={4} wrap="nowrap">
+        <div className={styles.regionActions}>
           <IconAction
             label={`${region.collapsed ? 'Expand' : 'Collapse'} ${region.label}`}
             icon={region.collapsed ? <ChevronRight size={15} aria-hidden /> : <ChevronDown size={15} aria-hidden />}
@@ -481,7 +480,7 @@ function BlockRegionSummary({
               ))}
             </Menu.Dropdown>
           </Menu>
-        </Group>
+        </div>
       </div>
       {region.diagnostic ? (
         <Text component="div" size="xs" c="red" className={styles.regionDiagnostic}>
@@ -559,6 +558,7 @@ export function PageDetailsEdit({
   const dragOrigin = useRef<BlockPlacement | null>(null);
   const lastValidPlacement = useRef<BlockPlacement | null>(null);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
+  const [draggedBlockWidth, setDraggedBlockWidth] = useState<number | null>(null);
 
   const validPlacement = (blockId: string, placement: BlockPlacement) => {
     const normalized = normalizePlacement(regions, blockId, placement);
@@ -579,6 +579,7 @@ export function PageDetailsEdit({
     dragOrigin.current = null;
     lastValidPlacement.current = null;
     setDraggedBlockId(null);
+    setDraggedBlockWidth(null);
   };
 
   const handleDragStart = ({ active }: DragStartEvent) => {
@@ -590,6 +591,7 @@ export function PageDetailsEdit({
     dragOrigin.current = placement;
     lastValidPlacement.current = placement;
     setDraggedBlockId(blockId);
+    setDraggedBlockWidth(active.rect.current.initial?.width ?? null);
   };
 
   const handleDragOver = ({ active, over }: DragOverEvent) => {
@@ -632,6 +634,8 @@ export function PageDetailsEdit({
           input={
             <TextInput
               aria-label="Anchor"
+              leftSection={<Link2 size={16} aria-hidden />}
+              leftSectionPointerEvents="none"
               value={value.anchor}
               error={diagnostics?.anchor}
               onChange={(event) => onChange({ ...value, anchor: event.currentTarget.value })}
@@ -682,7 +686,7 @@ export function PageDetailsEdit({
           ))}
         </Stack>
         <DragOverlay modifiers={[restrictDragToVerticalAxis]}>
-          {draggedBlock ? <BlockDragPreview block={draggedBlock} /> : null}
+          {draggedBlock ? <BlockDragPreview block={draggedBlock} width={draggedBlockWidth} /> : null}
         </DragOverlay>
       </DndContext>
     </Stack>

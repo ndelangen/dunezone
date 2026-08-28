@@ -366,6 +366,7 @@ export const PopulatedRulesPage = meta.story({
     const title = canvas.getByRole('textbox', { name: 'Title' });
     const anchor = canvas.getByRole('textbox', { name: 'Anchor' });
     await expect(canvas.getAllByRole('textbox').slice(0, 2)).toEqual([anchor, title]);
+    await expect(anchor.parentElement?.querySelector('svg')).not.toBeNull();
     await expect(canvas.getAllByRole('img', { name: 'Help' })).toHaveLength(2);
     await userEvent.clear(title);
     await userEvent.type(title, 'Advanced movement');
@@ -375,7 +376,24 @@ export const PopulatedRulesPage = meta.story({
     });
     anchor.focus();
     await expect(anchor).toHaveFocus();
-    const movementButton = canvas.getByRole('button', { name: 'Edit Movement sequence' });
+    const movementButton = canvas.getByRole('button', {
+      name: 'Edit Movement sequence',
+    });
+    await expect(within(movementButton).queryByText('Rule group')).not.toBeInTheDocument();
+    const rules = canvas.getByLabelText('Rules');
+    const rulesHeader = rules.querySelector<HTMLElement>('[data-region-header]');
+    await expect(rulesHeader).not.toBeNull();
+    await expect(rulesHeader!.getBoundingClientRect().right).toBeLessThanOrEqual(rules.getBoundingClientRect().right);
+    const regionIcon = rulesHeader!.querySelector('svg');
+    const blockIcon = movementButton.querySelector('svg');
+    await expect(regionIcon).not.toBeNull();
+    await expect(blockIcon).not.toBeNull();
+    await expect(
+      Math.abs(regionIcon!.getBoundingClientRect().left - blockIcon!.getBoundingClientRect().left)
+    ).toBeLessThan(1);
+    const addButtons = canvas.getAllByRole('button', { name: /^Add a Block to/ });
+    const addButtonRightEdges = addButtons.map((button) => button.getBoundingClientRect().right);
+    await expect(new Set(addButtonRightEdges).size).toBe(1);
     movementButton.focus();
     await expect(onNavigateBlock).not.toHaveBeenCalled();
     await userEvent.keyboard('[Enter]');
@@ -469,10 +487,16 @@ export const BoundedAndCollapsedRegions = meta.story({
     await expect(canvas.getByRole('button', { name: 'Add a Block to Rules' })).toBeDisabled();
     await expect(canvas.getByText('Rules has reached its two-Block limit.')).toBeVisible();
     await expect(
-      canvas.queryByRole('button', { name: 'Edit Confirm that the destination is adjacent.' })
+      canvas.queryByRole('button', {
+        name: 'Edit Confirm that the destination is adjacent.',
+      })
     ).not.toBeInTheDocument();
     await userEvent.click(canvas.getByRole('button', { name: 'Expand Examples' }));
-    await expect(canvas.getByRole('button', { name: 'Edit Confirm that the destination is adjacent.' })).toBeVisible();
+    await expect(
+      canvas.getByRole('button', {
+        name: 'Edit Confirm that the destination is adjacent.',
+      })
+    ).toBeVisible();
   },
 });
 
@@ -606,6 +630,13 @@ export const IncompatibleAndFullDragPresentation = meta.story({
     });
     handle.focus();
     await userEvent.keyboard('[Space]');
+    const sourceRow = handle.closest<HTMLElement>('li');
+    const preview = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-block-drag-preview]');
+    await expect(sourceRow).not.toBeNull();
+    await expect(preview).not.toBeNull();
+    await expect(
+      Math.abs(preview!.getBoundingClientRect().width - sourceRow!.getBoundingClientRect().width)
+    ).toBeLessThan(1);
     await expect(canvas.getByLabelText('Figures')).toHaveAttribute('data-drop-eligibility', 'incompatible');
     await expect(canvas.getByLabelText('Full examples')).toHaveAttribute('data-drop-eligibility', 'incompatible');
   },
