@@ -1,0 +1,203 @@
+.root {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.regions {
+  min-width: 0;
+  padding-block-start: var(--mantine-spacing-sm);
+  border-block-start: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.region {
+  position: relative;
+  min-width: 0;
+  padding-block: var(--mantine-spacing-xs);
+  transition: opacity var(--transition-fast);
+}
+
+.region + .region {
+  margin-block-start: var(--mantine-spacing-xs);
+  padding-block-start: var(--mantine-spacing-sm);
+  border-block-start: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.region[data-drop-eligibility="incompatible"] {
+  opacity: 0.32;
+}
+
+.blockRegionHeader {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--mantine-spacing-sm);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding-inline: 0;
+  opacity: 0.86;
+}
+
+.blockNavigate:hover,
+.blockNavigate:focus-visible {
+  background: var(--mantine-color-default-hover);
+}
+
+.blockNavigate:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.regionIcon,
+.blockIcon {
+  display: grid;
+  place-items: center;
+  color: currentColor;
+}
+
+.regionIcon > svg,
+.blockIcon > svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.regionWords,
+.blockWords {
+  display: grid;
+  min-width: 0;
+}
+
+.regionWords {
+  display: flex;
+  gap: 0.38rem;
+  align-items: center;
+  overflow: hidden;
+}
+
+.regionTitle {
+  flex-shrink: 0;
+}
+
+.regionDescription {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
+}
+
+.regionDescriptionText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.regionDescriptionMeasurement {
+  position: absolute;
+  width: max-content;
+  font-size: var(--mantine-font-size-xs);
+  line-height: var(--mantine-line-height-xs);
+  visibility: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.regionHelp {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  color: var(--mantine-color-dimmed);
+  cursor: help;
+}
+
+.regionActions {
+  display: grid;
+  grid-template-columns: 1.375rem 1.375rem;
+  gap: 4px;
+  align-items: center;
+  justify-items: center;
+  justify-self: end;
+}
+
+.regionDiagnostic {
+  margin-block-start: 0.25rem;
+  padding-inline: calc(1.1rem + 2 * var(--mantine-spacing-xs));
+}
+
+.blockList {
+  display: grid;
+  gap: 0.28rem;
+  min-height: 1.25rem;
+  margin: var(--mantine-spacing-xs) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blockSummary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  color: var(--mantine-color-text);
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: var(--mantine-radius-xs);
+  background: color-mix(in srgb, var(--mantine-color-body) 88%, transparent);
+}
+
+.blockSummary[data-dragging] {
+  opacity: 0.22;
+}
+
+.blockSummary[data-drop-target] {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.blockNavigate {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--mantine-spacing-sm);
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+  padding: 0.38rem var(--mantine-spacing-xs);
+  text-align: start;
+  border-radius: var(--mantine-radius-sm);
+  cursor: grab;
+  touch-action: none;
+}
+
+.blockSummary[data-dragging] .blockNavigate {
+  cursor: grabbing;
+}
+
+.blockDragPreview {
+  box-sizing: border-box;
+  max-width: 100%;
+  opacity: 0.94;
+  background: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-md);
+}
+
+.emptyRegion {
+  padding: var(--mantine-spacing-sm);
+  border: 1px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .region {
+    transition: none;
+  }
+}
