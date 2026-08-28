@@ -5,12 +5,10 @@ import { z } from 'zod';
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
 
-export const rulebookLocalIdSchema = z
+const rulebookLocalIdSchema = z
   .string()
   .length(4, 'Use a four-character ID')
   .regex(rulebookLocalIdPattern, 'Use the unambiguous Rulebook ID alphabet');
-export type RulebookLocalId = z.infer<typeof rulebookLocalIdSchema>;
-
 type RandomBytes = () => Uint8Array;
 const secureRandomBytes: RandomBytes = () => globalThis.crypto.getRandomValues(new Uint8Array(4));
 
@@ -143,22 +141,14 @@ export const rulebookLayoutCatalogue = [
   },
 ] as const;
 
-export type RulebookLayoutDefinition = (typeof rulebookLayoutCatalogue)[number];
+type RulebookLayoutDefinition = (typeof rulebookLayoutCatalogue)[number];
 export type RulebookPageLayoutId = RulebookLayoutDefinition['id'];
-export type RulebookPageRegionDefinition = RulebookLayoutDefinition['regions'][number];
-export type RulebookControlRegionDefinition = Extract<RulebookPageRegionDefinition, { kind: 'control' }>;
+type RulebookPageRegionDefinition = RulebookLayoutDefinition['regions'][number];
 export type RulebookBlockRegionDefinition = Extract<RulebookPageRegionDefinition, { kind: 'block' }>;
-export type RulebookControlRegionKey = RulebookControlRegionDefinition['key'];
 export type RulebookBlockRegionKey = RulebookBlockRegionDefinition['key'];
 
 export function getRulebookLayout(layoutId: RulebookPageLayoutId) {
   return rulebookLayoutCatalogue.find((layout) => layout.id === layoutId)!;
-}
-
-export function getRulebookBlockRegion(layoutId: RulebookPageLayoutId, regionKey: RulebookBlockRegionKey) {
-  return getRulebookLayout(layoutId).regions.find(
-    (region): region is RulebookBlockRegionDefinition => region.kind === 'block' && region.key === regionKey
-  );
 }
 
 const chapterControlValuesSchema = z.strictObject({ 'chapter-label': chapterLabelSchema });
