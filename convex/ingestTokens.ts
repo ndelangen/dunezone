@@ -1,10 +1,19 @@
 import { v } from 'convex/values';
 
-import { userImageIngestCallbackSchema, userImageIngestTokenSchema } from '../src/shared/user-images/contract';
+import {
+  userImageAvatarIngestCallbackSchema,
+  userImageIngestCallbackSchema,
+  userImageIngestTokenSchema,
+} from '../src/shared/user-images/contract';
 import { internal } from './_generated/api';
 import { query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
-import { INGEST_TOKEN_TTL_MS, ingestTokenCapabilityValidator } from './lib/ingestTokens';
+import {
+  INGEST_TOKEN_TTL_MS,
+  ingestTokenCapabilityKindValidator,
+  ingestTokenCapabilityValidator,
+} from './lib/ingestTokens';
+import { patchStoredAvatar } from './lib/profileAvatar';
 import { patchStoredCover } from './lib/rulesetCover';
 import type { QueryCtx } from './types';
 
@@ -12,7 +21,7 @@ import type { QueryCtx } from './types';
  * The user-image ingest token ledger.
  *
  * The Worker does expensive work on command (fetch, encode, store), so commanding it is the guarded privilege.
- * Instead of a shared secret, each cover save mints a single-use token here;
+ * Instead of a shared secret, each cover or avatar save mints a single-use token here;
  * the Worker holds nothing and asks this ledger two questions over Convex's built-in HTTP API.
  * `check` is the cheap pre-flight that unlocks the expensive work, and `consume` is the one write path for the result, burning the token in the same transaction.
  * Both are public and assume hostile callers: possession of an unguessable token id is the entire credential, and a stranger's knock costs one indexed point read answering no.
@@ -72,8 +81,10 @@ export const expire = internalMutation({
 });
 
 /**
- * The public pre-flight: is this token live?
- * Never consumes and reveals nothing but the boolean, so replaying it is free and useless.
+ * The public pre-flight: is this token live, and what recipe was it minted for?
+ * Never consumes, and a dead token reveals nothing but the boolean, so replaying it is free and useless.
+ * `kind` rides along on a live answer so the Worker's rendition recipe comes from the ledger rather than the request body;
+ * it names a recipe, not an entity, so a stranger presenting a stolen live token learns nothing they could aim.
  * `expires` is authoritative regardless of whether the scheduled deletion has run yet.
  * `now` comes from the caller because queries must not read the wall clock;
  * a hostile caller lying about the time only lies to itself, since this answer gates nothing.
@@ -81,7 +92,7 @@ export const expire = internalMutation({
  */
 export const check = query({
   args: { token: v.string(), now: v.number() },
-  returns: v.object({ valid: v.boolean() }),
+  returns: v.object({ valid: v.boolean(), kind: v.optional(ingestTokenCapabilityKindValidator) }),
   handler: async (ctx, args) => {
     if (!userImageIngestTokenSchema.safeParse(args.token).success || !Number.isFinite(args.now)) {
       return { valid: false };
@@ -90,7 +101,7 @@ export const check = query({
     if (!row || row.consumed || args.now > row.expires) {
       return { valid: false };
     }
-    return { valid: true };
+    return { valid: true, kind: row.capability.kind };
   },
 });
 
@@ -99,11 +110,14 @@ const consumeRefusalReasons = v.union(
   v.literal('unknown_token'),
   v.literal('expired'),
   v.literal('consumed'),
-  v.literal('entity_gone')
+  v.literal('entity_gone'),
+  v.literal('superseded')
 );
 
 /**
- * The one write path for an ingest result: validate, write where the capability points, record the R2 keys and burn the token, all in one transaction.
+ * The one write path for an ingest result: validate against the capability's own floor, write where the capability points, record the R2 keys and burn the token, all in one transaction.
+ * The token row is read before the payload parse because the row's capability decides which floor applies;
+ * a refused payload still does not burn the token.
  * Convex mutations are serializable, so two racing consume calls cannot both pass the `consumed` read;
  * the loser is retried, sees the tombstone and bounces.
  * That serializability is the whole double-consume defense, deliberately with no locks beside it.
@@ -114,7 +128,8 @@ export const consume = mutation({
     token: v.string(),
     result: v.object({
       url: v.string(),
-      thumb_url: v.string(),
+      /** Present on a cover callback, absent on an avatar one; each arm's Zod floor holds the distinction strictly. */
+      thumb_url: v.optional(v.string()),
       width: v.number(),
       height: v.number(),
     }),
@@ -128,10 +143,6 @@ export const consume = mutation({
     if (!userImageIngestTokenSchema.safeParse(args.token).success) {
       return { ok: false as const, reason: 'unknown_token' as const };
     }
-    const payload = userImageIngestCallbackSchema.safeParse({ ...args.result, r2_keys: args.r2_keys });
-    if (!payload.success) {
-      return { ok: false as const, reason: 'invalid_payload' as const };
-    }
     const row = await tokenRow(ctx, args.token);
     if (!row) {
       return { ok: false as const, reason: 'unknown_token' as const };
@@ -142,10 +153,14 @@ export const consume = mutation({
     if (Date.now() > row.expires) {
       return { ok: false as const, reason: 'expired' as const };
     }
-    /* The tombstone lands even when the target row is gone, so the bucket objects this ingest produced stay on the GC record either way. */
-    await ctx.db.patch(row._id, { consumed: true, r2_keys: payload.data.r2_keys });
     switch (row.capability.kind) {
       case 'ruleset_cover': {
+        const payload = userImageIngestCallbackSchema.safeParse({ ...args.result, r2_keys: args.r2_keys });
+        if (!payload.success) {
+          return { ok: false as const, reason: 'invalid_payload' as const };
+        }
+        /* The tombstone lands even when the target row is gone, so the bucket objects this ingest produced stay on the GC record either way. */
+        await ctx.db.patch(row._id, { consumed: true, r2_keys: payload.data.r2_keys });
         const target = await ctx.db.get(row.capability.ruleset_id);
         if (!target) {
           return { ok: false as const, reason: 'entity_gone' as const };
@@ -153,6 +168,32 @@ export const consume = mutation({
         await patchStoredCover(ctx, row.capability.ruleset_id, {
           url: payload.data.url,
           thumb_url: payload.data.thumb_url,
+          source_url: row.source_url,
+          width: payload.data.width,
+          height: payload.data.height,
+        });
+        return { ok: true as const };
+      }
+      case 'profile_avatar': {
+        const payload = userImageAvatarIngestCallbackSchema.safeParse({ ...args.result, r2_keys: args.r2_keys });
+        if (!payload.success) {
+          return { ok: false as const, reason: 'invalid_payload' as const };
+        }
+        await ctx.db.patch(row._id, { consumed: true, r2_keys: payload.data.r2_keys });
+        const target = await ctx.db.get(row.capability.profile_id);
+        if (!target) {
+          return { ok: false as const, reason: 'entity_gone' as const };
+        }
+        /*
+         * The expected-echo recheck: the avatar path is async, so by the time this callback lands the profile may carry a newer external URL, or a newer rehost's delivery URL.
+         * The mint pinned the source, so a mismatch means this result is stale and the newer write wins.
+         * The tombstone above still records the keys this ingest produced for the GC pass.
+         */
+        if (target.avatar_url !== row.source_url) {
+          return { ok: false as const, reason: 'superseded' as const };
+        }
+        await patchStoredAvatar(ctx, row.capability.profile_id, {
+          url: payload.data.url,
           source_url: row.source_url,
           width: payload.data.width,
           height: payload.data.height,

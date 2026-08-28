@@ -1,6 +1,7 @@
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { accountStateOf } from './accountLifecycle';
+import { scheduleAvatarRehostIfPending } from './profileAvatar';
 import { nowIso, slugify } from './utils';
 
 export type ProfileBootstrapSources = {
@@ -105,7 +106,10 @@ export async function ensureProfileForUser(
   }
 
   if (existing) {
-    return await refreshExistingProfile(ctx, existing, userId, displayName, imageUrl);
+    const refreshed = await refreshExistingProfile(ctx, existing, userId, displayName, imageUrl);
+    /* The seed funnels through the ledger too: a refresh that filled `avatar_url` from the provider, or a legacy row without a stored avatar, gets its rehost scheduled here. */
+    await scheduleAvatarRehostIfPending(ctx, refreshed);
+    return refreshed;
   }
 
   const username = displayName ?? 'nameless';
@@ -128,5 +132,6 @@ export async function ensureProfileForUser(
   if (!created) {
     throw new Error('Failed to read profile after insert');
   }
+  await scheduleAvatarRehostIfPending(ctx, created);
   return created;
 }

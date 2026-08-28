@@ -1,5 +1,6 @@
 import {
   matchUserImagePath,
+  USER_IMAGE_AVATAR_EDGE_PX,
   USER_IMAGE_FETCH_TIMEOUT_MS,
   USER_IMAGE_INGEST_PATH,
   USER_IMAGE_JPEG_QUALITY,
@@ -13,12 +14,13 @@ import {
   USER_IMAGE_TOKEN_CONSUME_FUNCTION,
   userImageIngestRequestSchema,
   userImagePublicPath,
+  userImageTokenCheckAnswerSchema,
 } from '../../src/shared/user-images/contract';
-import type { UserImageIngestResponse } from '../../src/shared/user-images/contract';
+import type { UserImageIngestKind, UserImageIngestResponse } from '../../src/shared/user-images/contract';
 import { ImageInspectionError, jpegProfile } from './image-inspection';
 
 /**
- * Ingest and delivery for user-supplied images, currently the ruleset covers.
+ * Ingest and delivery for user-supplied images: ruleset covers and profile avatars.
  *
  * Ingest is the one place the system fetches a URL an author chose: it re-encodes whatever it fetched into a progressive JPEG and stores the result under a content-addressed key.
  * Commanding that work is the guarded privilege, and there are two gates during the migration window.
@@ -162,11 +164,11 @@ async function readWithLimit(body: ReadableStream<Uint8Array> | null, limit: num
 
 type EncodedRendition = { bytes: Uint8Array; widthPx: number; heightPx: number };
 
-/** Decodes the source, scales it into the given box and encodes one JPEG rendition. */
+/** Decodes the source, fits it into the given box and encodes one JPEG rendition. `scale-down` letterboxes covers; `cover` center-crops avatars. */
 async function encodeRendition(
   images: ImagesBinding,
   source: Uint8Array,
-  maxEdgePx: number
+  box: { edgePx: number; fit: 'scale-down' | 'cover' }
 ): Promise<EncodedRendition> {
   const input = new Response(source).body;
   if (!input) {
@@ -176,7 +178,7 @@ async function encodeRendition(
   try {
     const result = await images
       .input(input)
-      .transform({ width: maxEdgePx, height: maxEdgePx, fit: 'scale-down' })
+      .transform({ width: box.edgePx, height: box.edgePx, fit: box.fit })
       .output({ format: 'image/jpeg', quality: USER_IMAGE_JPEG_QUALITY });
     encoded = new Uint8Array(await new Response(result.image()).arrayBuffer());
   } catch {
@@ -203,7 +205,7 @@ async function encodeCoverRenditions(
   images: ImagesBinding,
   source: Uint8Array
 ): Promise<{ full: EncodedRendition; thumb: EncodedRendition }> {
-  const full = await encodeRendition(images, source, USER_IMAGE_MAX_EDGE_PX);
+  const full = await encodeRendition(images, source, { edgePx: USER_IMAGE_MAX_EDGE_PX, fit: 'scale-down' });
   if (full.widthPx < USER_IMAGE_MIN_EDGE_PX || full.heightPx < USER_IMAGE_MIN_EDGE_PX) {
     throw new IngestRefusal(`The image must be at least ${USER_IMAGE_MIN_EDGE_PX}px on each side`);
   }
@@ -211,8 +213,29 @@ async function encodeCoverRenditions(
   if (!fullProfile.progressive) {
     throw new Error(`Encoded cover JPEG is not progressive: start-of-frame ${fullProfile.startOfFrame}`);
   }
-  const thumb = await encodeRendition(images, source, USER_IMAGE_THUMB_EDGE_PX);
+  const thumb = await encodeRendition(images, source, { edgePx: USER_IMAGE_THUMB_EDGE_PX, fit: 'scale-down' });
   return { full, thumb };
+}
+
+/**
+ * Encodes the one square avatar rendition, center-cropped into the avatar box by the encoder's `cover` fit.
+ * The minimum-edge refusal mirrors covers, and a non-square result means the encoder could not fill the box, so it is refused rather than stored;
+ * the consume floor would bounce it anyway, and this refusal reaches the operator with a readable message instead.
+ * The progressive assertion holds because the avatar box sits far above the encoder's 50px baseline fallback.
+ */
+async function encodeAvatarRendition(images: ImagesBinding, source: Uint8Array): Promise<EncodedRendition> {
+  const avatar = await encodeRendition(images, source, { edgePx: USER_IMAGE_AVATAR_EDGE_PX, fit: 'cover' });
+  if (avatar.widthPx < USER_IMAGE_MIN_EDGE_PX || avatar.heightPx < USER_IMAGE_MIN_EDGE_PX) {
+    throw new IngestRefusal(`The image must be at least ${USER_IMAGE_MIN_EDGE_PX}px on each side`);
+  }
+  if (avatar.widthPx !== avatar.heightPx) {
+    throw new IngestRefusal('The image could not be cropped to a square avatar');
+  }
+  const avatarProfile = jpegProfile(avatar.bytes);
+  if (!avatarProfile.progressive) {
+    throw new Error(`Encoded avatar JPEG is not progressive: start-of-frame ${avatarProfile.startOfFrame}`);
+  }
+  return avatar;
 }
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
@@ -261,10 +284,21 @@ async function callConvex(
   return envelope.value;
 }
 
-/** Asks the ledger whether the presented token is live; only a definite yes unlocks the expensive work. */
-async function ingestTokenIsLive(baseUrl: string, token: string): Promise<boolean> {
+type TokenIntrospection = { live: false } | { live: true; kind: UserImageIngestKind };
+
+/**
+ * Asks the ledger whether the presented token is live;
+ * only a definite yes unlocks the expensive work.
+ * A live answer also names the rendition recipe the token was minted for, so the recipe comes from the ledger rather than the request body.
+ * A live answer without a kind defaults to the cover recipe, which keeps the deploy window safe: a ledger predating kinds only ever minted cover tokens.
+ */
+async function introspectIngestToken(baseUrl: string, token: string): Promise<TokenIntrospection> {
   const value = await callConvex(baseUrl, 'query', USER_IMAGE_TOKEN_CHECK_FUNCTION, { token, now: Date.now() });
-  return typeof value === 'object' && value !== null && (value as { valid?: unknown }).valid === true;
+  const answer = userImageTokenCheckAnswerSchema.safeParse(value);
+  if (!answer.success || !answer.data.valid) {
+    return { live: false };
+  }
+  return { live: true, kind: answer.data.kind ?? 'ruleset_cover' };
 }
 
 type ConsumeAnswer = { ok: true } | { ok: false; reason: string };
@@ -273,7 +307,7 @@ type ConsumeAnswer = { ok: true } | { ok: false; reason: string };
 async function consumeIngestToken(
   baseUrl: string,
   token: string,
-  result: { url: string; thumb_url: string; width: number; height: number },
+  result: { url: string; thumb_url?: string; width: number; height: number },
   r2Keys: string[]
 ): Promise<ConsumeAnswer> {
   const value = await callConvex(baseUrl, 'mutation', USER_IMAGE_TOKEN_CONSUME_FUNCTION, {
@@ -297,6 +331,8 @@ function consumeRefusalMessage(reason: string): string {
       return 'The save took too long and its ticket expired';
     case 'entity_gone':
       return 'The page this image was saved for no longer exists';
+    case 'superseded':
+      return 'A newer save replaced this image before it was stored';
     default:
       return 'The stored image could not be recorded';
   }
@@ -337,33 +373,27 @@ export async function handleUserImageIngest(request: Request, env: IngestEnv): P
     return jsonError(400, parsedRequest.error.issues[0]?.message ?? 'Invalid ingest request');
   }
   const ingestToken = usesBearer ? undefined : parsedRequest.data.token;
+  /* The bearer path predates capabilities and only ever ingested covers; a token's recipe comes from the ledger's introspection answer. */
+  let recipe: UserImageIngestKind = 'ruleset_cover';
   if (!usesBearer) {
     if (!ingestToken) {
       return jsonError(401, 'Not authorized');
     }
-    let live: boolean;
+    let introspection: TokenIntrospection;
     try {
-      live = await ingestTokenIsLive(env.CONVEX_CLOUD_BASE_URL, ingestToken);
+      introspection = await introspectIngestToken(env.CONVEX_CLOUD_BASE_URL, ingestToken);
     } catch {
       return jsonError(503, 'The ingest ledger did not answer');
     }
-    if (!live) {
+    if (!introspection.live) {
       return jsonError(403, 'Not authorized');
     }
+    recipe = introspection.kind;
   }
 
   const fetched = await fetchSourceImage(parsedRequest.data.source_url);
   if (!fetched.ok) {
     return jsonError(422, fetched.message);
-  }
-  let renditions: Awaited<ReturnType<typeof encodeCoverRenditions>>;
-  try {
-    renditions = await encodeCoverRenditions(env.IMAGES, fetched.bytes);
-  } catch (error) {
-    if (error instanceof IngestRefusal) {
-      return jsonError(422, error.message);
-    }
-    throw error;
   }
 
   const storeRendition = async (rendition: EncodedRendition): Promise<string> => {
@@ -377,10 +407,56 @@ export async function handleUserImageIngest(request: Request, env: IngestEnv): P
     }
     return key;
   };
+  const publicOrigin = (env.USER_IMAGE_PUBLIC_BASE_URL ?? url.origin).replace(/\/$/, '');
+
+  if (recipe === 'profile_avatar') {
+    /* Reaching here implies a live avatar token: the bearer path and the kindless default both stay on the cover recipe. */
+    if (!ingestToken) {
+      return jsonError(401, 'Not authorized');
+    }
+    let avatar: EncodedRendition;
+    try {
+      avatar = await encodeAvatarRendition(env.IMAGES, fetched.bytes);
+    } catch (error) {
+      if (error instanceof IngestRefusal) {
+        return jsonError(422, error.message);
+      }
+      throw error;
+    }
+    const avatarKey = await storeRendition(avatar);
+    let answer: ConsumeAnswer;
+    try {
+      answer = await consumeIngestToken(
+        env.CONVEX_CLOUD_BASE_URL,
+        ingestToken,
+        {
+          url: `${publicOrigin}${userImagePublicPath(avatarKey)}`,
+          width: avatar.widthPx,
+          height: avatar.heightPx,
+        },
+        [avatarKey]
+      );
+    } catch {
+      return jsonError(502, 'The stored image could not be recorded');
+    }
+    if (!answer.ok) {
+      return jsonError(409, consumeRefusalMessage(answer.reason));
+    }
+    return Response.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
+  }
+
+  let renditions: Awaited<ReturnType<typeof encodeCoverRenditions>>;
+  try {
+    renditions = await encodeCoverRenditions(env.IMAGES, fetched.bytes);
+  } catch (error) {
+    if (error instanceof IngestRefusal) {
+      return jsonError(422, error.message);
+    }
+    throw error;
+  }
   const key = await storeRendition(renditions.full);
   const thumbKey = await storeRendition(renditions.thumb);
 
-  const publicOrigin = (env.USER_IMAGE_PUBLIC_BASE_URL ?? url.origin).replace(/\/$/, '');
   const payload: UserImageIngestResponse = {
     url: `${publicOrigin}${userImagePublicPath(key)}`,
     key,

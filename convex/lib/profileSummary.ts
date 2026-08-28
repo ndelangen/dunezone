@@ -15,6 +15,7 @@ export async function profileSummary(ctx: QueryCtx | MutationCtx, userId: Id<'us
     id: profile._id,
     slug: profile.slug,
     username: profile.username ?? null,
-    avatar_url: profile.avatar_url ?? null,
+    /* The stored rendition when it exists, the external URL until its rehost callback lands. */
+    avatar_url: profile.avatar?.url ?? profile.avatar_url ?? null,
   };
 }

@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 
 import type { ProfilePageData } from '@db/profiles';
-import { loadProfileBySlug, useCurrentProfile, useProfileBySlug } from '@db/profiles';
+import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -199,6 +199,7 @@ function ProfileDetailPage() {
   }
 
   const isSelf = currentProfile.data?._id === page.profile._id;
+  const bandAvatarUrl = profileAvatarUrl(page.profile);
   const initials =
     page.profile.username
       ?.slice(0, 2)
@@ -269,8 +270,8 @@ function ProfileDetailPage() {
         <PageIdentity
           title={page.profile.username ?? 'Unknown'}
           media={
-            page.profile.avatar_url ? (
-              <img src={page.profile.avatar_url} alt={page.profile.username ?? 'Avatar'} className={styles.avatar} />
+            bandAvatarUrl ? (
+              <img src={bandAvatarUrl} alt={page.profile.username ?? 'Avatar'} className={styles.avatar} />
             ) : (
               <span className={styles.avatarPlaceholder}>{initials}</span>
             )

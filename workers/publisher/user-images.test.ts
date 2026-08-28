@@ -123,14 +123,17 @@ function tokenIngestRequest(body: unknown = { source_url: SOURCE_URL, token: TOK
 type LedgerCall = { url: string; body: { path: string; args: Record<string, unknown>; format: string } };
 
 /** Answers the two ledger calls and the source image from one fetch stub, recording the ledger bodies for assertion. */
-function ledgerFetch(options: { valid?: boolean; consume?: unknown; sourceBytes?: Uint8Array } = {}) {
+function ledgerFetch(options: { valid?: boolean; kind?: string; consume?: unknown; sourceBytes?: Uint8Array } = {}) {
   const ledgerCalls: LedgerCall[] = [];
   const mock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
     if (new URL(url).origin === CONVEX_BASE) {
       ledgerCalls.push({ url, body: JSON.parse(String(init?.body)) as LedgerCall['body'] });
       if (url.endsWith('/api/query')) {
-        return Response.json({ status: 'success', value: { valid: options.valid ?? true } });
+        return Response.json({
+          status: 'success',
+          value: { valid: options.valid ?? true, ...(options.kind ? { kind: options.kind } : {}) },
+        });
       }
       return Response.json({ status: 'success', value: options.consume ?? { ok: true } });
     }
@@ -378,6 +381,54 @@ describe('user image ingest', () => {
     expect(result.width).toBe(800);
     expect(result.height).toBe(600);
     expect(result.url.startsWith('https://dune.zone/user-images/')).toBe(true);
+  });
+
+  test('an avatar token selects the square center-crop recipe and consumes one key with no thumb fields', async () => {
+    const { mock, ledgerCalls } = ledgerFetch({ kind: 'profile_avatar' });
+    vi.stubGlobal('fetch', mock);
+    const bucket = memoryBucket();
+    const seen: ImagesStubSeen = { transforms: [], outputs: [] };
+
+    const response = await handleUserImageIngest(tokenIngestRequest(), {
+      USER_IMAGE_BUCKET: bucket,
+      USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([jpegBytes({ widthPx: 320, heightPx: 320, progressive: true })], seen),
+    });
+
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({ ok: true });
+    expect(seen.transforms).toEqual([{ width: 320, height: 320, fit: 'cover' }]);
+    expect(bucket.objects.size).toBe(1);
+    const consume = ledgerCalls.at(-1);
+    if (!consume) {
+      throw new Error('expected a consume call');
+    }
+    expect(consume.body.path).toBe('ingestTokens:consume');
+    expect(consume.body.args.result).toEqual({
+      url: `https://dune.zone/user-images/${[...bucket.objects.keys()][0]}`,
+      width: 320,
+      height: 320,
+    });
+    expect(consume.body.args.r2_keys).toEqual([...bucket.objects.keys()]);
+  });
+
+  test('an avatar encode the encoder could not fill square is refused before storing or consuming', async () => {
+    const { mock, ledgerCalls } = ledgerFetch({ kind: 'profile_avatar' });
+    vi.stubGlobal('fetch', mock);
+    const bucket = memoryBucket();
+
+    const response = await handleUserImageIngest(tokenIngestRequest(), {
+      USER_IMAGE_BUCKET: bucket,
+      USER_IMAGE_INGEST_SECRET: SECRET,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([jpegBytes({ widthPx: 320, heightPx: 240, progressive: true })]),
+    });
+
+    expect(response?.status).toBe(422);
+    expect(await refusalMessage(response)).toContain('square');
+    expect(bucket.objects.size).toBe(0);
+    expect(ledgerCalls).toHaveLength(1);
   });
 
   test('a dead token is refused before any source fetch or store', async () => {
