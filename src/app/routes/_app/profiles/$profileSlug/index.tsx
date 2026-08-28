@@ -11,6 +11,7 @@ import { formatRelativeDate } from '@ui/content/dates';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -21,7 +22,6 @@ import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import clsx from 'clsx';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -171,7 +171,7 @@ function FaqAnswersGiven({ items, viewedProfileId }: { items: FaqAnswerGiven[]; 
 
             {isPicked ? (
               <div className={styles.answerFooter}>
-                <span className={clsx(styles.badge, styles.badgeAnswered)}>Picked answer</span>
+                <StatusBadge tone="positive">Picked answer</StatusBadge>
               </div>
             ) : null}
           </SectionedSurface.Row>
