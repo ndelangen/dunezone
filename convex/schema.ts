@@ -5,6 +5,7 @@ import { v } from 'convex/values';
 import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqTagValidator } from './lib/faqTags';
 import { ingestTokenCapabilityValidator } from './lib/ingestTokens';
+import { profileAvatarValidator } from './lib/profileAvatar';
 import { rulesetCoverValidator } from './lib/rulesetCover';
 
 const accountStateValidator = v.union(v.literal('active'), v.literal('deletion_pending'), v.literal('deleted'));
@@ -33,7 +34,18 @@ export default defineSchema({
   profiles: defineTable({
     user_id: v.id('users'),
     username: v.union(v.string(), v.null()),
+    /**
+     * Legacy avatar channel: a URL string, external until the row's rehost lands.
+     * During the rehost compatibility window it is dual-written with `avatar.url`, so old readers keep rendering;
+     * the retirement release removes it.
+     */
     avatar_url: v.union(v.string(), v.null()),
+    /**
+     * The stored avatar, written only by the rehost pipeline: our delivery URL over one square re-encoded rendition, plus the source it was fetched from.
+     * Optional while pre-rehost rows exist, and nulled when a save writes a new external URL so the page renders that URL until the rehost callback lands;
+     * `profileAvatars.backfillLegacyAvatars` converts old rows.
+     */
+    avatar: v.optional(v.union(profileAvatarValidator, v.null())),
     default_group_id: v.optional(v.union(v.id('groups'), v.null())),
     account_state: accountStateValidator,
     deleted_at: v.optional(v.string()),

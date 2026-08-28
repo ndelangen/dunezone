@@ -13,6 +13,14 @@ import type { Doc } from '../../../convex/_generated/dataModel';
 
 type ProfileRow = Doc<'profiles'>;
 export type ProfileEntry = ProfileRow;
+
+/**
+ * The one URL a page renders for an avatar: the stored rendition when it exists, the external URL until its rehost callback lands.
+ * Derived here so the legacy fallback lives in one place and the retirement release deletes it here alone.
+ */
+export function profileAvatarUrl(profile: Pick<ProfileRow, 'avatar' | 'avatar_url'>): string | null {
+  return profile.avatar?.url ?? profile.avatar_url;
+}
 export type CurrentProfileEntry = NonNullable<FunctionReturnType<typeof api.profiles.session>['profile']>;
 export type ProfileUpdateResult = FunctionReturnType<typeof api.profiles.updateCurrent>;
 export type ProfileListEntry = FunctionReturnType<typeof api.profiles.list>[number];

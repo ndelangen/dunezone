@@ -115,7 +115,7 @@ export async function loadNewestDiscoverableProfiles(ctx: QueryCtx, limit: numbe
       id: profile._id,
       slug: profile.slug,
       username: profile.username,
-      avatarUrl: profile.avatar_url,
+      avatarUrl: profile.avatar?.url ?? profile.avatar_url,
       createdAt: profile.created_at,
     }));
 }

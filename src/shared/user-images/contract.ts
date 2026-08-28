@@ -24,6 +24,25 @@ export const USER_IMAGE_TOKEN_CHECK_FUNCTION = 'ingestTokens:check';
 export const USER_IMAGE_TOKEN_CONSUME_FUNCTION = 'ingestTokens:consume';
 
 /**
+ * What a minted token may write, and therefore which rendition recipe the Worker runs.
+ * The recipe comes from the ledger's own capability record rather than from the request body, so a token holder cannot pick a recipe the mint never authorized.
+ */
+const USER_IMAGE_INGEST_KINDS = ['ruleset_cover', 'profile_avatar'] as const;
+
+export type UserImageIngestKind = (typeof USER_IMAGE_INGEST_KINDS)[number];
+
+/**
+ * What the ledger's check query answers the Worker.
+ * `kind` rides along only on a live token;
+ * a dead token reveals nothing beyond the boolean.
+ * Parsed loose on purpose: a checker that predates a new kind must keep refusing nothing but the boolean.
+ */
+export const userImageTokenCheckAnswerSchema = z.object({
+  valid: z.boolean(),
+  kind: z.enum(USER_IMAGE_INGEST_KINDS).optional(),
+});
+
+/**
  * An ingest token is 32 bytes of crypto randomness as lowercase hex, 256 bits, so possession is the credential and guessing is hopeless.
  * The same schema gates the Worker's request parse and the Convex ledger functions.
  */
@@ -49,10 +68,16 @@ export const USER_IMAGE_MAX_EDGE_PX = 1600;
 
 /**
  * The thumb rendition's box, sized for grid tiles and chips so list pages stop paying for full-size bytes.
- * Every ingest stores both renditions;
+ * Every cover ingest stores both renditions;
  * a render site picks the one that fits its frame.
  */
 export const USER_IMAGE_THUMB_EDGE_PX = 320;
+
+/**
+ * The avatar rendition's square box, center-cropped at encode time.
+ * One rendition only: the largest avatar render is the profile band at 96px CSS, so 320 covers every site at 2x DPR with headroom, and squareness becomes a property of the stored asset instead of every consumer's problem.
+ */
+export const USER_IMAGE_AVATAR_EDGE_PX = 320;
 
 /**
  * Images smaller than this on either axis are refused.
@@ -67,28 +92,43 @@ export const USER_IMAGE_JPEG_QUALITY = 82;
 const USER_IMAGE_KEY_PATTERN = /^[0-9a-f]{64}\.jpg$/;
 
 /**
- * What an author may paste as a cover source: a full https URL with no embedded credentials.
+ * What an author may supply as an image source: a full https URL with no embedded credentials.
+ * The noun only changes the messages, so both pipelines share one floor while each edit form speaks about its own field.
+ */
+function makeUserImageSourceUrlSchema(noun: string) {
+  return z
+    .string()
+    .trim()
+    .min(1, `${noun} URL is required`)
+    .max(2048, `${noun} URL is too long`)
+    .superRefine((value, ctx) => {
+      try {
+        const url = new URL(value);
+        if (url.protocol !== 'https:') {
+          ctx.addIssue({ code: 'custom', message: `${noun} must use a full https:// URL` });
+          return;
+        }
+        if (url.username !== '' || url.password !== '') {
+          ctx.addIssue({ code: 'custom', message: `${noun} URL must not carry credentials` });
+        }
+      } catch {
+        ctx.addIssue({ code: 'custom', message: `${noun} must be a full https:// URL` });
+      }
+    });
+}
+
+/**
+ * The cover source floor.
  * The same schema runs in the edit form for feedback and in the Convex action as the authoritative gate.
  */
-export const userImageSourceUrlSchema = z
-  .string()
-  .trim()
-  .min(1, 'Cover image URL is required')
-  .max(2048, 'Cover image URL is too long')
-  .superRefine((value, ctx) => {
-    try {
-      const url = new URL(value);
-      if (url.protocol !== 'https:') {
-        ctx.addIssue({ code: 'custom', message: 'Cover image must use a full https:// URL' });
-        return;
-      }
-      if (url.username !== '' || url.password !== '') {
-        ctx.addIssue({ code: 'custom', message: 'Cover image URL must not carry credentials' });
-      }
-    } catch {
-      ctx.addIssue({ code: 'custom', message: 'Cover image must be a full https:// URL' });
-    }
-  });
+export const userImageSourceUrlSchema = makeUserImageSourceUrlSchema('Cover image');
+
+/**
+ * The avatar source floor, gating the async rehost action and the operator backfill.
+ * Stricter than the profile edit form's own https check (it adds the length cap and the credentials ban);
+ * a seeded provider URL that fails it keeps rendering externally until the backfill reports it.
+ */
+export const userAvatarSourceUrlSchema = makeUserImageSourceUrlSchema('Avatar image');
 
 export const userImageIngestRequestSchema = z.strictObject({
   source_url: userImageSourceUrlSchema,
@@ -142,7 +182,7 @@ const userImageDeliveryUrlSchema = z
   }, 'Not a user-image delivery URL');
 
 /**
- * The semantic floor for the Worker's consuming callback, parsed inside the consume mutation.
+ * The semantic floor for the Worker's consuming callback on a cover token, parsed inside the consume mutation.
  * The mutation is public, so every field is bounded: two delivery URLs in our namespace, dimensions inside the encoder's box, and at most four content-addressed R2 keys.
  */
 export const userImageIngestCallbackSchema = z.strictObject({
@@ -152,6 +192,20 @@ export const userImageIngestCallbackSchema = z.strictObject({
   height: z.number().int().min(1).max(USER_IMAGE_MAX_EDGE_PX),
   r2_keys: z.array(z.string().regex(USER_IMAGE_KEY_PATTERN)).min(1).max(4),
 });
+
+/**
+ * The floor for the callback on an avatar token: exactly one delivery URL, square dimensions inside the avatar box, exactly one key.
+ * Strict on purpose;
+ * a payload carrying the cover shape's thumb fields is refused rather than trimmed, so a mixed-up recipe cannot land half an avatar.
+ */
+export const userImageAvatarIngestCallbackSchema = z
+  .strictObject({
+    url: userImageDeliveryUrlSchema,
+    width: z.number().int().min(1).max(USER_IMAGE_AVATAR_EDGE_PX),
+    height: z.number().int().min(1).max(USER_IMAGE_AVATAR_EDGE_PX),
+    r2_keys: z.array(z.string().regex(USER_IMAGE_KEY_PATTERN)).length(1),
+  })
+  .refine((value) => value.width === value.height, 'Avatar rendition must be square');
 
 /** The error body every ingest failure carries, so the author sees why their URL was refused rather than a bare status. */
 export const userImageIngestErrorSchema = z.strictObject({

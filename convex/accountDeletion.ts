@@ -192,7 +192,7 @@ export const listReplacementProfiles = query({
         userId: profile.user_id,
         slug: profile.slug,
         username: profile.username,
-        avatarUrl: profile.avatar_url,
+        avatarUrl: profile.avatar?.url ?? profile.avatar_url,
       });
     }
     return { ...result, page };

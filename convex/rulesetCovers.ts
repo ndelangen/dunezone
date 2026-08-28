@@ -2,9 +2,6 @@ import { ConvexError, v } from 'convex/values';
 
 import {
   USER_IMAGE_INGEST_PATH,
-  USER_IMAGE_LOCAL_HOSTS,
-  userImageIngestCompletionSchema,
-  userImageIngestErrorSchema,
   userImageIngestResponseSchema,
   userImageSourceUrlSchema,
 } from '../src/shared/user-images/contract';
@@ -15,6 +12,7 @@ import { internalMutation } from './functions';
 import { requireRulesetUpdate } from './lib/collaborativeAccess';
 import { patchStoredCover, rulesetCoverValidator } from './lib/rulesetCover';
 import type { RulesetCover } from './lib/rulesetCover';
+import { ingestBaseUrl, ingestWithToken, throwIngestFailure } from './lib/userImageIngest';
 
 /**
  * The cover rehost pipeline.
@@ -29,39 +27,12 @@ import type { RulesetCover } from './lib/rulesetCover';
 
 type IngestConfig = { baseUrl: string; secret: string };
 
-/** The Worker's ingest origin, refused outside https because every ingest call carries a credential: a minted token in the body on the author path, the shared secret in a header on the legacy one. */
-function ingestBaseUrl(): string {
-  const baseUrl = process.env.USER_IMAGE_INGEST_BASE_URL;
-  if (!baseUrl) {
-    throw new Error('Cover storage is not configured for this deployment');
-  }
-  let parsed: URL;
-  try {
-    parsed = new URL(baseUrl);
-  } catch {
-    throw new Error('Cover storage is misconfigured: the ingest base URL does not parse');
-  }
-  if (parsed.protocol !== 'https:' && !USER_IMAGE_LOCAL_HOSTS.has(parsed.hostname)) {
-    throw new Error('Cover storage is misconfigured: the ingest base URL must use https');
-  }
-  return baseUrl.replace(/\/$/, '');
-}
-
 function ingestConfig(): IngestConfig {
   const secret = process.env.USER_IMAGE_INGEST_SECRET;
   if (!secret) {
     throw new Error('Cover storage is not configured for this deployment');
   }
   return { baseUrl: ingestBaseUrl(), secret };
-}
-
-/** Reads a refusal or failure response into the `ConvexError` the author sees; refusals travel as `ConvexError` because a plain error's message is redacted to "Server Error" outside dev, and these messages exist to be read. */
-async function throwIngestFailure(response: Response): Promise<never> {
-  const refusal = userImageIngestErrorSchema.safeParse(await response.json().catch(() => null));
-  if (response.status >= 400 && response.status < 500 && refusal.success) {
-    throw new ConvexError(refusal.data.error);
-  }
-  throw new ConvexError('The cover could not be stored');
 }
 
 /**
@@ -96,30 +67,6 @@ async function ingestSourceUrl(config: IngestConfig, sourceUrl: string): Promise
     width: payload.data.width,
     height: payload.data.height,
   };
-}
-
-/**
- * Posts one source URL to the Worker with a minted ledger token and awaits the completion signal.
- * No secret rides this path and the response carries no result: by the time a 200 arrives, the Worker's consuming mutation has already committed the cover, so this function only turns failure into the author-facing error.
- */
-async function ingestWithToken(baseUrl: string, sourceUrl: string, token: string): Promise<void> {
-  let response: Response;
-  try {
-    response = await fetch(`${baseUrl}${USER_IMAGE_INGEST_PATH}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source_url: sourceUrl, token }),
-    });
-  } catch {
-    throw new ConvexError('Cover storage is unreachable');
-  }
-  if (!response.ok) {
-    await throwIngestFailure(response);
-  }
-  const completion = userImageIngestCompletionSchema.safeParse(await response.json().catch(() => null));
-  if (!completion.success) {
-    throw new ConvexError('Cover storage answered with an unexpected shape');
-  }
 }
 
 /** The pre-fetch gate, so an unauthorized caller is refused before the Worker spends a fetch on their URL. */

@@ -41,6 +41,7 @@ import { ArrowLeft, Download, Eye, FileText, MapPin, Pencil, UserPlus, UsersRoun
 import { loadFaction, useFaction } from '@db/factions';
 import type { FactionData } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
+import { profileAvatarUrl } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -151,7 +152,11 @@ function FactionDetailPage() {
             <Text size="sm" c="dimmed">
               Maintained by
             </Text>
-            {owner ? <ProfileLink {...owner} /> : <Text size="sm">Unknown</Text>}
+            {owner ? (
+              <ProfileLink slug={owner.slug} username={owner.username} avatar_url={profileAvatarUrl(owner)} />
+            ) : (
+              <Text size="sm">Unknown</Text>
+            )}
           </Group>
         </PageIdentity>
       </PageLayout.Header>
