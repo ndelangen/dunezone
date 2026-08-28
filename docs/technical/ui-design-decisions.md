@@ -162,7 +162,7 @@ Mutations don't count.
 A screen whose state sits in a row of `useState` calls has no single place that says what a
 transition does, and Reset is where that shows: it has to remember every setter, so the piece added
 last is the one it forgets, and the repair arrives as an effect resyncing what a rebuild would have
-handled. So once a component holds more than one `useState` of a primitive, that state becomes a
+handled. So once a component holds more than one `useState` of a primitive in one cohesive state machine, that state becomes a
 `useReducer` in the file that owns it, with named events instead of loose setters, and the events
 that replace state rebuild it whole rather than assigning a field at a time.
 
