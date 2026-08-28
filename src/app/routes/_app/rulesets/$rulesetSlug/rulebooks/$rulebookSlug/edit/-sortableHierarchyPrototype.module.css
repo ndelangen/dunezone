@@ -165,40 +165,41 @@
 
 .summaryRegions {
   display: grid;
-  gap: var(--mantine-spacing-sm);
 }
 
 .summaryRegion {
   min-width: 0;
-  padding: var(--mantine-spacing-xs);
-  background: color-mix(in srgb, currentColor 3%, transparent);
-  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
-  border-radius: var(--mantine-radius-sm);
+  padding-block: var(--mantine-spacing-xs);
+  background: transparent;
   transition:
     background-color var(--transition-fast),
-    border-color var(--transition-fast),
     box-shadow var(--transition-fast);
+}
+
+.summaryRegion + .summaryRegion {
+  margin-block-start: var(--mantine-spacing-xs);
+  padding-block-start: var(--mantine-spacing-sm);
+  border-block-start: 1px solid color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .summaryRegion[data-drop-status="valid"] {
   background: color-mix(in srgb, var(--mantine-color-green-6) 9%, transparent);
-  border-color: var(--mantine-color-green-7);
+  box-shadow: inset 0.18rem 0 var(--mantine-color-green-7);
 }
 
 .summaryRegion[data-drop-status="invalid"][data-variant="A"] {
   cursor: not-allowed;
-  border-block-start: 3px solid var(--mantine-color-red-7);
+  box-shadow: inset 0 3px var(--mantine-color-red-7);
 }
 
 .summaryRegion[data-drop-status="invalid"][data-variant="B"] {
   background: color-mix(in srgb, var(--mantine-color-orange-6) 15%, transparent);
-  border-color: var(--mantine-color-orange-7);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mantine-color-orange-6) 16%, transparent);
+  box-shadow: inset 0.18rem 0 var(--mantine-color-orange-7);
 }
 
 .summaryRegion[data-drop-status="invalid"][data-variant="C"] {
   background: color-mix(in srgb, var(--mantine-color-red-6) 8%, transparent);
-  border-color: var(--mantine-color-red-7);
+  box-shadow: inset 0.18rem 0 var(--mantine-color-red-7);
 }
 
 .summaryRegionHeader {
