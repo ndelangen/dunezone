@@ -1,5 +1,5 @@
 import type { BundleBandData } from '@app/widgets/asset-face/BundleContainer';
-import { sameBackground } from '@app/widgets/background-composer/BackgroundPresetControl';
+import { sameBackground } from '@app/widgets/background-composer/presetChoice';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 /**
