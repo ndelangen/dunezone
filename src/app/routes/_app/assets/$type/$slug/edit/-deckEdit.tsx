@@ -11,7 +11,7 @@ import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { FilePlus2 } from 'lucide-react';
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
 
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
@@ -19,11 +19,19 @@ import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
+import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
-import { DeckEditor, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
-import type { DeckChapter, DeckDraft, DeckDraftCardback, DeckWarning } from '@app/widgets/deck-editor/DeckEditor';
+import { DeckEditor, deckDraftWarnings, initialDeckMemory } from '@app/widgets/deck-editor/DeckEditor';
+import type {
+  DeckChapter,
+  DeckDraft,
+  DeckDraftCardback,
+  DeckMemory,
+  DeckWarning,
+} from '@app/widgets/deck-editor/DeckEditor';
+import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import {
   AssetEditorMessage,
@@ -106,6 +114,45 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
   );
 }
 
+/**
+ * This page's authoring state, and the four things that happen to it.
+ *
+ * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design, because the generic version cost more than the duplication it removed.
+ * `memory` is what the session needs and the stored deck has no room for (D3): the declared Custom intents, the composition kept across mode flips, the picked deck the tile draws, and whether a save has already complained.
+ * `baseline` is what a reset returns to.
+ */
+type DeckPageMemory = DeckMemory & { pickedBackDeck: PickedBackDeck | null; pickBlocked: boolean };
+
+type DeckState = { data: DeckDraft; memory: DeckPageMemory; baseline: DeckDraft };
+
+type DeckEvent =
+  | { kind: 'patch'; update: Partial<DeckDraft> }
+  | { kind: 'remember'; update: Partial<DeckPageMemory> }
+  | { kind: 'replace'; data: DeckDraft; pick: PickedBackDeck | null }
+  | { kind: 'saved'; data: DeckDraft };
+
+function openingState(data: DeckDraft, baseline: DeckDraft, pick: PickedBackDeck | null): DeckState {
+  return {
+    data,
+    memory: { ...initialDeckMemory(data.cardback), pickedBackDeck: pick, pickBlocked: false },
+    baseline,
+  };
+}
+
+function reduce(state: DeckState, event: DeckEvent): DeckState {
+  switch (event.kind) {
+    case 'patch':
+      return { ...state, data: { ...state.data, ...event.update } };
+    case 'remember':
+      return { ...state, memory: { ...state.memory, ...event.update } };
+    /* A reset rebuilds the whole state rather than assigning a field at a time, so a piece added here later cannot be the one a reset forgets; the seed pick rides on the event because the reducer holds no closure. */
+    case 'replace':
+      return openingState(event.data, state.baseline, event.pick);
+    case 'saved':
+      return { ...state, baseline: event.data };
+  }
+}
+
 function DeckEditSession({
   access,
   asset,
@@ -130,18 +177,14 @@ function DeckEditSession({
   const updateAsset = useUpdateAsset();
   const deletion = useAssetDeletion(asset);
   const setCount = useSetMemberCount();
-  const [draft, setDraft] = useState<DeckDraft>(initialDraft);
-  const [baseline, setBaseline] = useState<DeckDraft>(initialDraft);
   const [chapter, setChapter] = useState<DeckChapter>('identity');
   const [pickerOpen, setPickerOpen] = useState(false);
   /*
-   * The deck whose cardback the draft references, for the label and the proof.
-   * Server truth seeds it and a pick replaces it; the draft holds only the id.
+   * Server truth seeds the picked deck and a pick replaces it; the draft holds only the id, and this holds the name and face the tile draws.
+   * A reset returns it to that same server truth, which is why the seed rides on the replace event.
    */
-  const [pickedBackDeck, setPickedBackDeck] = useState<PickedBackDeck | null>(backDeck);
-  /* Armed by a save attempt while the reference has no target; disarmed the moment the state resolves. */
-  const [pickBlocked, setPickBlocked] = useState(false);
-  const patch = (update: Partial<DeckDraft>) => setDraft((prev) => ({ ...prev, ...update }));
+  const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft, backDeck));
+  const patch = (update: Partial<DeckDraft>) => dispatch({ kind: 'patch', update });
   const cards = members.map((entry) => ({ card: entry.member, count: entry.count }));
   /*
    * The dangling complaint rides the widened validation header beside the widget's own warnings
@@ -150,22 +193,23 @@ function DeckEditSession({
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
     type: 'deck',
-    name: draft.name,
+    name: state.data.name,
     onName: (name) => patch({ name }),
     currentSlug: asset.slug,
     source: 'Identity',
     chapter: 'identity' as DeckChapter,
   });
   const warnings: (DeckWarning | { source: string; complaint: string; chapter: DeckChapter })[] = [
-    ...deckDraftWarnings(draft, cards),
+    ...deckDraftWarnings(state.data, cards),
     ...conflictWarnings,
-    ...(danglingBack && draft.cardback.mode === 'reference'
+    ...(danglingBack && state.data.cardback.mode === 'reference'
       ? [{ source: 'Cardback', complaint: 'its referenced cardback is gone', chapter: 'identity' as DeckChapter }]
       : []),
   ];
-  const pickless = draft.cardback.mode === 'reference' && draft.cardback.asset_id === null;
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
-  const isNameBlank = !draft.name.trim();
+  const pickless = state.data.cardback.mode === 'reference' && state.data.cardback.asset_id === null;
+  /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
+  const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
+  const isNameBlank = !state.data.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
     ? 'saving'
     : updateAsset.error
@@ -173,22 +217,22 @@ function DeckEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeader = useValidationHeader(warnings.length);
+  const header = useValidationHeader(warnings.length);
 
   const save = () => {
     /* A pickless reference is blocked here with words, rather than letting the strict stored union answer with a Zod error. */
+    dispatch({ kind: 'remember', update: { pickBlocked: pickless } });
     if (pickless) {
-      setPickBlocked(true);
       return;
     }
-    setPickBlocked(false);
-    const saved = draft;
+    /* The stored schema's own keys decide what is posted, so the session's memory can never ride along (D3). */
+    const saved = postedPayload(DeckAssetSchema, state.data);
     updateAsset.mutate(
       /* The draft carries its mode, so the save writes it through; the strict stored union is the one truth («The stored shape of three back modes»). */
       { id: asset.id, data: saved },
       {
         onSuccess: ({ slug: nextSlug }) => {
-          setBaseline(saved);
+          dispatch({ kind: 'saved', data: saved });
           if (nextSlug !== asset.slug) {
             void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'deck', slug: nextSlug }, replace: true });
           }
@@ -199,7 +243,7 @@ function DeckEditSession({
 
   return (
     <PageLayout>
-      {validationHeader.open ? (
+      {header.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -217,12 +261,7 @@ function DeckEditSession({
           }}
           actions={{
             onSave: save,
-            onReset: validationHeader.releasing(() => {
-              setDraft(baseline);
-              /* The pick lives in the draft, so discarding the draft discards the pick with it. */
-              setPickedBackDeck(backDeck);
-              setPickBlocked(false);
-            }),
+            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backDeck })),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}
           auxiliaryActions={
@@ -272,21 +311,23 @@ function DeckEditSession({
               {mutationErrorMessage(setCount.error)}
             </Alert>
           ) : null}
-          {pickBlocked && pickless ? (
+          {state.memory.pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No deck picked">
               Pick a deck whose cardback this one wears, or choose another back mode.
             </Alert>
           ) : null}
           <DeckEditor
             nameField={nameField}
-            draft={draft}
+            draft={state.data}
             patch={patch}
+            memory={state.memory}
+            remember={(update) => dispatch({ kind: 'remember', update })}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={validationHeader.settle}
+            onSettle={header.settle}
             members={cards}
             countPending={setCount.isPending}
-            onCountChange={validationHeader.releasing((cardId: string, count: number) =>
+            onCountChange={header.releasing((cardId: string, count: number) =>
               setCount.mutate({ container_id: asset.id, member_id: cardId as typeof asset.id, count })
             )}
             cardPicker={
@@ -316,15 +357,15 @@ function DeckEditSession({
             backPicker={
               <DeckBackPicker
                 excludeId={asset.id}
-                picked={pickedBackDeck}
+                picked={state.memory.pickedBackDeck}
                 onPick={(deck) => {
                   /* A pick is a draft edit, not a write; the reference reaches storage when the deck is saved. */
-                  setPickedBackDeck(deck);
+                  dispatch({ kind: 'remember', update: { pickedBackDeck: deck } });
                   patch({ cardback: { mode: 'reference', asset_id: deck.id } });
                 }}
               />
             }
-            backProof={<DeckBackProof picked={pickedBackDeck} />}
+            backProof={<DeckBackProof picked={state.memory.pickedBackDeck} />}
           />
         </WorkbenchLayout>
       </PageLayout.Content>
