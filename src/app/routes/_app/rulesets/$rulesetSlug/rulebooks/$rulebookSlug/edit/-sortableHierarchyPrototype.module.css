@@ -171,6 +171,7 @@
 }
 
 .summaryRegion {
+  position: relative;
   min-width: 0;
   padding-block: var(--mantine-spacing-xs);
   background: transparent;
@@ -268,52 +269,54 @@
   margin-block: 0.14rem;
 }
 
-.dynamicDropZone {
+.dynamicDropIndicator {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   height: 0;
   min-height: 0;
   overflow: visible;
-  transition: height 120ms ease-out;
+  pointer-events: none;
 }
 
-.dynamicDropZoneHit {
+.dynamicDropIndicator span {
   position: absolute;
   inset-inline: 0;
-  top: -0.25rem;
+  top: 0;
   display: grid;
-  height: 0.5rem;
+  height: 1.7rem;
   color: currentColor;
   font-size: var(--mantine-font-size-xs);
   font-weight: 700;
   text-align: center;
-  border-block: 0 solid color-mix(in srgb, currentColor 28%, transparent);
+  background: color-mix(in srgb, var(--mantine-color-body) 94%, currentColor);
+  border-block: 1px solid color-mix(in srgb, currentColor 28%, transparent);
   place-items: center;
-  transition:
-    top 120ms ease-out,
-    height 120ms ease-out,
-    border-width 120ms ease-out;
-}
-
-.dynamicDropZone[data-active] {
-  height: 2.35rem;
-}
-
-.dynamicDropZone[data-active] .dynamicDropZoneHit {
-  top: 0;
-  height: 2.35rem;
-  border-block-width: 1px;
+  transform: translateY(-50%);
+  animation: reveal-drop-indicator 100ms ease-out;
 }
 
 .collapsedDropTarget {
+  position: absolute;
+  z-index: 3;
+  inset-inline: 0;
+  bottom: 0;
   display: grid;
-  min-height: 2.35rem;
-  margin-block-start: var(--mantine-spacing-xs);
+  height: 1.7rem;
   font-size: var(--mantine-font-size-xs);
   font-weight: 700;
   text-align: center;
+  background: color-mix(in srgb, var(--mantine-color-body) 94%, currentColor);
   border-block: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  pointer-events: none;
   place-items: center;
+  transform: translateY(50%);
+  animation: reveal-drop-indicator 100ms ease-out;
+}
+
+@keyframes reveal-drop-indicator {
+  from {
+    opacity: 0;
+  }
 }
 
 @keyframes open-drop-placeholder {
@@ -520,7 +523,8 @@
   .summaryRegion,
   .summaryItem,
   .dropPlaceholder,
-  .dynamicDropZone {
+  .dynamicDropIndicator,
+  .collapsedDropTarget {
     transition: none;
     animation: none;
   }
