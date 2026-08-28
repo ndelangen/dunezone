@@ -32,6 +32,13 @@ import { ImageInspectionError, jpegProfile } from './image-inspection';
 
 const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const MAX_INGEST_BODY_BYTES = 16 * 1024;
+/*
+ * R2 bounds the whole customMetadata map, and the source floor admits 2048 characters of possibly
+ * multi-byte text, so an author-supplied URL can exceed the budget on its own.
+ * The note is provenance rather than data anything reads back, so it is truncated to fit instead of
+ * being allowed to fail a save whose image is fine.
+ */
+const MAX_SOURCE_METADATA_BYTES = 1024;
 
 /** The namespace without its trailing slash, so the bare path is owned by the handler instead of falling through to static assets. */
 const USER_IMAGE_NAMESPACE_ROOT = USER_IMAGE_PUBLIC_PREFIX.slice(0, -1);
@@ -117,7 +124,18 @@ async function fetchSourceImage(sourceUrl: string): Promise<FetchedSource> {
       await response.body?.cancel();
       return { ok: false, message: 'The image is larger than the 10 MB limit' };
     }
-    const bytes = await readWithLimit(response.body, USER_IMAGE_MAX_SOURCE_BYTES);
+    /*
+     * The body read carries the fetch's own abort signal, so a host that answers headers promptly and
+     * then stalls mid-stream errors here rather than at the fetch.
+     * Without this catch that rejection leaves the handler as a 500 and the author is told nothing,
+     * while every other source failure on this path is a 422 they can act on.
+     */
+    let bytes: Uint8Array | null;
+    try {
+      bytes = await readWithLimit(response.body, USER_IMAGE_MAX_SOURCE_BYTES);
+    } catch {
+      return { ok: false, message: 'The image host did not finish sending in time' };
+    }
     if (bytes === null) {
       return { ok: false, message: 'The image is larger than the 10 MB limit' };
     }
@@ -232,6 +250,16 @@ async function encodeAvatarRendition(images: ImagesBinding, source: Uint8Array):
     throw new Error(`Encoded avatar JPEG is not progressive: start-of-frame ${avatarProfile.startOfFrame}`);
   }
   return avatar;
+}
+
+/** Cuts a string to a byte budget on a character boundary, since a UTF-8 sequence split in half is not a string R2 will take. */
+function boundedSourceMetadata(sourceUrl: string): string {
+  const encoded = new TextEncoder().encode(sourceUrl);
+  if (encoded.byteLength <= MAX_SOURCE_METADATA_BYTES) {
+    return sourceUrl;
+  }
+  /* A cut through a multi-byte sequence decodes to a trailing replacement character; dropping it is what keeps the result a clean prefix. */
+  return new TextDecoder().decode(encoded.slice(0, MAX_SOURCE_METADATA_BYTES)).replace(/\uFFFD+$/, '');
 }
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
@@ -376,7 +404,7 @@ export async function handleUserImageIngest(request: Request, env: IngestEnv): P
     const key = `${await sha256Hex(rendition.bytes)}.jpg`;
     const written = await env.USER_IMAGE_BUCKET.put(key, rendition.bytes, {
       httpMetadata: { contentType: 'image/jpeg', cacheControl: IMMUTABLE_CACHE_CONTROL },
-      customMetadata: { sourceUrl: parsedRequest.data.source_url },
+      customMetadata: { sourceUrl: boundedSourceMetadata(parsedRequest.data.source_url) },
     });
     if (!written) {
       throw new Error('User image was not written');

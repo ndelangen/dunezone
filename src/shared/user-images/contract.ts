@@ -11,7 +11,7 @@ export const USER_IMAGE_INGEST_PATH = '/__user-images/ingest';
 
 /**
  * Hosts where a cleartext endpoint is acceptable on either side of the ingest exchange: local development terminates on the developer's own machine.
- * Everywhere else the ingest call carries a credential (token or legacy secret) and the delivery URL is written into documents, so both must ride https.
+ * Everywhere else the ingest call carries a minted token and the delivery URL is written into documents, so both must ride https.
  */
 export const USER_IMAGE_LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', 'host.docker.internal']);
 
@@ -56,6 +56,13 @@ export const USER_IMAGE_MAX_SOURCE_BYTES = 10 * 1024 * 1024;
 
 /** How long the ingest fetch waits for the source host before failing the save with an honest error. */
 export const USER_IMAGE_FETCH_TIMEOUT_MS = 10_000;
+
+/**
+ * How long the Convex side waits for the Worker before giving up on one ingest call.
+ * Generous against the Worker's own budget, which is a 10s source fetch plus encode and store, so this only fires when the Worker itself has stopped answering.
+ * Without it a hung Worker holds the cover action open to the platform ceiling and the author watches a spinner with no refusal at the end of it.
+ */
+export const USER_IMAGE_INGEST_TIMEOUT_MS = 25_000;
 
 /** How many redirect hops the ingest fetch follows, each one re-checked to be https. */
 export const USER_IMAGE_MAX_REDIRECTS = 3;

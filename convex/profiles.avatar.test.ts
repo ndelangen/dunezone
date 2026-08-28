@@ -177,7 +177,8 @@ describe('profile avatar rehosting', () => {
     expect(summary.rehosted).toBe(1);
     expect(summary.skipped).toBe(0);
     expect(summary.failed).toEqual([{ slug: 'deadrow', message: 'The image host answered with status 404' }]);
-    expect(summary.truncated).toBe(false);
+    /* Null rather than false: the scan walked to the end of the table, so there is nothing to resume from. */
+    expect(summary.next_cursor).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const rehosted = await t.run(async (ctx) => await ctx.db.get(ids.legacy));
     expect(rehosted?.avatar).toEqual(STORED_AVATAR);

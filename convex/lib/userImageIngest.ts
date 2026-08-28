@@ -2,6 +2,7 @@ import { ConvexError } from 'convex/values';
 
 import {
   USER_IMAGE_INGEST_PATH,
+  USER_IMAGE_INGEST_TIMEOUT_MS,
   USER_IMAGE_LOCAL_HOSTS,
   userImageIngestCompletionSchema,
   userImageIngestErrorSchema,
@@ -50,6 +51,8 @@ export async function ingestWithToken(baseUrl: string, sourceUrl: string, token:
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ source_url: sourceUrl, token }),
+      /* The Worker bounds its own work, so this bounds the wait for a Worker that has stopped answering at all; without it the cover save holds an author's spinner open to the action ceiling. */
+      signal: AbortSignal.timeout(USER_IMAGE_INGEST_TIMEOUT_MS),
     });
   } catch {
     throw new ConvexError('Image storage is unreachable');
