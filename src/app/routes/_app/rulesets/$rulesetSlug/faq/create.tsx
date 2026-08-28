@@ -2,9 +2,11 @@ import { Button, Group, Stack } from '@mantine/core';
 import type { FaqTag } from '@shared/faq/tags';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
+import { PageTitle } from '@ui/block/PageTitle';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -17,8 +19,6 @@ import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug, useRulesetBySlug } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
-
-import styles from './create.module.css';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/create')({
   loader: async ({ params }) => ({ ruleset: await loadRulesetBySlug(params.rulesetSlug) }),
@@ -57,7 +57,7 @@ function FaqCreatePage() {
 
   const header = (
     <div>
-      <h1>Ask a question</h1>
+      <PageTitle title="Ask a question" />
       <p>
         {rulesetRow ? (
           <>
@@ -157,11 +157,13 @@ function FaqCreatePage() {
               onChange={setAnswer}
             />
             <FaqTagFieldset />
+            {askQuestion.error ? (
+              <FormError title="Question could not be asked">{askQuestion.error.message}</FormError>
+            ) : null}
             <Group gap="xs" wrap="nowrap">
               <Button variant="filled" color="confirm" type="submit" disabled={askQuestion.isPending}>
                 {askQuestion.isPending ? 'Asking…' : 'Ask'}
               </Button>
-              {askQuestion.isError && <span className={styles.error}>{askQuestion.error?.message}</span>}
             </Group>
           </Stack>
         </Surface>

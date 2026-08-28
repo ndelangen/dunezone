@@ -10,6 +10,7 @@ import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { Links } from '@ui/list/Links';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, BookOpen, Check, Crown, Pencil, Plus, UserPlus, UserRoundMinus, UsersRound, X } from 'lucide-react';
@@ -578,19 +579,13 @@ function FactionList({ factions }: { factions: FactionEntry[] }) {
       No factions in this group yet.
     </Text>
   ) : (
-    <Stack gap={6}>
+    <Links>
       {factions.map((faction) => (
-        <Anchor
-          key={faction._id}
-          fw={600}
-          renderRoot={(rootProps) => (
-            <Link {...rootProps} to="/factions/$factionId" params={{ factionId: faction.slug }} />
-          )}
-        >
+        <Links.Item key={faction._id} to="/factions/$factionId" params={{ factionId: faction.slug }}>
           {faction.data.name}
-        </Anchor>
+        </Links.Item>
       ))}
-    </Stack>
+    </Links>
   );
 }
 
@@ -600,18 +595,12 @@ function RulesetList({ rulesets }: { rulesets: RulesetEntry[] }) {
       No rulesets in this group yet.
     </Text>
   ) : (
-    <Stack gap={6}>
+    <Links>
       {rulesets.map((ruleset) => (
-        <Anchor
-          key={ruleset._id}
-          fw={600}
-          renderRoot={(rootProps) => (
-            <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }} />
-          )}
-        >
+        <Links.Item key={ruleset._id} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
           {ruleset.name}
-        </Anchor>
+        </Links.Item>
       ))}
-    </Stack>
+    </Links>
   );
 }
