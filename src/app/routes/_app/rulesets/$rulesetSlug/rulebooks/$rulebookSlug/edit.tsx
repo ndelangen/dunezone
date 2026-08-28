@@ -729,34 +729,45 @@ function RulebookWorkspace({
     window.requestAnimationFrame(finishRailDrag);
   };
 
+  const requestRailPagePlacement = (pageId: string, over: DragEndEvent['over']) => {
+    const overData = railDragData(over);
+    if (overData?.kind !== 'page') {
+      return;
+    }
+    const from = result.draft.pageOrder.indexOf(pageId);
+    const to = result.draft.pageOrder.indexOf(overData.pageId);
+    if (from === -1 || to === -1 || from === to) {
+      return;
+    }
+    const nextOrder = [...result.draft.pageOrder];
+    nextOrder.splice(from, 1);
+    nextOrder.splice(to, 0, pageId);
+    dispatch({
+      kind: 'place',
+      target: { kind: 'page', pageId },
+      destination: { container: { kind: 'page-order' }, ...destinationForOrder(nextOrder, to) },
+    });
+  };
+
+  const requestRailBlockPlacement = (blockId: string, over: DragEndEvent['over']) => {
+    const placement = targetPlacementFromRailOver(page, over);
+    const normalized = placement ? normalizeBlockPlacement(page, blockId, placement) : null;
+    const finalPlacement =
+      normalized && blockDropStatus(page, blockId, normalized.regionKey).allowed
+        ? normalized
+        : lastValidBlockPlacement.current;
+    if (finalPlacement) {
+      requestBlockPlacement(blockId, finalPlacement);
+    }
+  };
+
   const handleRailDragEnd = ({ active: dragActive, over }: DragEndEvent) => {
     const activeData = railDragData(dragActive);
     if (activeData?.kind === 'page') {
-      const overData = railDragData(over);
-      if (overData?.kind === 'page') {
-        const from = result.draft.pageOrder.indexOf(activeData.pageId);
-        const to = result.draft.pageOrder.indexOf(overData.pageId);
-        if (from !== -1 && to !== -1 && from !== to) {
-          const nextOrder = [...result.draft.pageOrder];
-          nextOrder.splice(from, 1);
-          nextOrder.splice(to, 0, activeData.pageId);
-          dispatch({
-            kind: 'place',
-            target: { kind: 'page', pageId: activeData.pageId },
-            destination: { container: { kind: 'page-order' }, ...destinationForOrder(nextOrder, to) },
-          });
-        }
-      }
-    } else if (activeData?.kind === 'block') {
-      const placement = targetPlacementFromRailOver(page, over);
-      const normalized = placement ? normalizeBlockPlacement(page, activeData.blockId, placement) : null;
-      const finalPlacement =
-        normalized && blockDropStatus(page, activeData.blockId, normalized.regionKey).allowed
-          ? normalized
-          : lastValidBlockPlacement.current;
-      if (finalPlacement) {
-        requestBlockPlacement(activeData.blockId, finalPlacement);
-      }
+      requestRailPagePlacement(activeData.pageId, over);
+    }
+    if (activeData?.kind === 'block') {
+      requestRailBlockPlacement(activeData.blockId, over);
     }
     finishRailDragAfterClick();
   };
