@@ -205,3 +205,22 @@ export const EditDeckMemberCountWrites = meta.story({
     await expect(page.findByText('2 cards across 1 title', {}, { timeout: 30_000 })).resolves.toBeVisible();
   },
 });
+
+/**
+ * Declaring Custom is not an unsaved change, which is D6 on «Work the editors wave».
+ *
+ * The declared intent lives in the session's memory beside the draft, and memory is never posted, so a Save armed by it would write an identical payload and then report success over an unchanged row.
+ * The assertion is the toolbar rather than the reducer, because the reducers are local to their pages by D7 and this is the behaviour the ruling is actually about.
+ * It also states the accepted cost from the other side: this intent changes what a later head pick does, and the page still calls itself unchanged.
+ */
+export const EditTreacheryCardDeclaringCustomIsNotAChange = meta.story({
+  args: { path: '/assets/card-treachery/lasgun/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('No unsaved changes', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    const row = within(await page.findByRole('radiogroup', { name: 'Head background' }, { timeout: 30_000 }));
+    await userEvent.click(row.getByRole('radio', { name: 'Custom' }));
+    /* The composer opening is the declaration, so this is the state the ruling had to answer for. */
+    await expect(page.findByText('No unsaved changes', {}, { timeout: 30_000 })).resolves.toBeVisible();
+  },
+});
