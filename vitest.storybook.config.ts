@@ -52,7 +52,12 @@ export default defineConfig({
   },
   test: {
     name: 'storybook',
-    testTimeout: 45_000,
+    /*
+     * Sized for the browser-local Convex conformance story, which starts and retires 21 workers and costs 48 to 54 seconds in a full run against 4 seconds alone.
+     * At 45_000 that story was inside the kill by itself and outside it in a suite, and its own assertion carried the same 45_000, so the kill and the report fell due together and a failure could not say what it was waiting for.
+     * The next slowest story here takes 21 seconds, so this is the heavy one's headroom rather than a budget the rest spend.
+     */
+    testTimeout: 120_000,
     browser: {
       enabled: true,
       provider: playwright(),
