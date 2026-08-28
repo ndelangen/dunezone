@@ -14,7 +14,7 @@ import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenWarning, TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
@@ -126,7 +126,6 @@ function TokenEditSession({
   const [pickBlocked, setPickBlocked] = useState(false);
   const [baseline, setBaseline] = useState<TokenDraft>(initialDraft);
   const [chapter, setChapter] = useState<TokenChapter>('identity');
-  const [settleTick, setSettleTick] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const patch = (update: Partial<TokenDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   /*
@@ -161,7 +160,7 @@ function TokenEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
+  const validationHeader = useValidationHeader(warnings.length);
 
   const pickless = draft.back.mode === 'reference' && draft.back.asset_id === null;
 
@@ -189,7 +188,7 @@ function TokenEditSession({
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {validationHeader.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -207,12 +206,12 @@ function TokenEditSession({
           }}
           actions={{
             onSave: save,
-            onReset: () => {
+            onReset: validationHeader.releasing(() => {
               setDraft(baseline);
               /* The pick lives in the draft now, so discarding the draft discards the pick with it. */
               setPickedBack(backToken);
               setPickBlocked(false);
-            },
+            }),
             onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
@@ -245,7 +244,7 @@ function TokenEditSession({
             type={type}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={validationHeader.settle}
             backPicker={(disabled) => (
               <Group gap="xs" wrap="nowrap">
                 <Text size="sm" truncate style={{ minWidth: 0, flex: 1 }} title={pickedBack?.name}>

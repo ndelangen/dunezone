@@ -15,7 +15,7 @@ import type { AssetPageData } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { bundleDraftWarnings, BundleEditor } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
@@ -108,7 +108,6 @@ function BundleEditSession({
   const [draft, setDraft] = useState<BundleDraft>(initialDraft);
   const [baseline, setBaseline] = useState<BundleDraft>(initialDraft);
   const [chapter, setChapter] = useState<BundleChapter>('identity');
-  const [settleTick, setSettleTick] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   const tokens = members.map((entry) => ({ token: entry.member, count: entry.count }));
@@ -134,7 +133,7 @@ function BundleEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
+  const validationHeader = useValidationHeader(warnings.length);
 
   const save = () => {
     const saved = draft;
@@ -157,7 +156,7 @@ function BundleEditSession({
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {validationHeader.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -180,7 +179,7 @@ function BundleEditSession({
           }}
           actions={{
             onSave: save,
-            onReset: () => setDraft(baseline),
+            onReset: validationHeader.releasing(() => setDraft(baseline)),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
@@ -212,12 +211,12 @@ function BundleEditSession({
             patch={patch}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={validationHeader.settle}
             members={tokens}
             countPending={setCount.isPending}
-            onCountChange={(tokenId, count) =>
+            onCountChange={validationHeader.releasing((tokenId: string, count: number) =>
               setCount.mutate({ container_id: asset.id, member_id: tokenId as typeof asset.id, count })
-            }
+            )}
             tokenPicker={
               <Popover opened={pickerOpen} onChange={setPickerOpen} width={360} position="bottom-start" withinPortal>
                 <Popover.Target>

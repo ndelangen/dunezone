@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { TreacheryCardEditor, treacheryDraftWarnings } from '@app/widgets/card-editor/TreacheryCardEditor';
 import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
@@ -103,7 +103,6 @@ function CardEditSession({
   const [draft, setDraft] = useState<TreacheryDraft>(initialDraft);
   const [baseline, setBaseline] = useState<TreacheryDraft>(initialDraft);
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
-  const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
@@ -127,7 +126,7 @@ function CardEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
+  const validationHeader = useValidationHeader(warnings.length);
 
   const save = () => {
     const saved = draft;
@@ -151,7 +150,7 @@ function CardEditSession({
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {validationHeader.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -169,7 +168,7 @@ function CardEditSession({
           }}
           actions={{
             onSave: save,
-            onReset: () => setDraft(baseline),
+            onReset: validationHeader.releasing(() => setDraft(baseline)),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
@@ -196,7 +195,7 @@ function CardEditSession({
             patch={patch}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={validationHeader.settle}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

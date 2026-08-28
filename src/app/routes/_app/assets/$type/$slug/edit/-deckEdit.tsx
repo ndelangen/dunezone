@@ -20,7 +20,7 @@ import { AssetPicker } from '@app/pickers/AssetPicker';
 import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { DeckEditor, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
 import type { DeckChapter, DeckDraft, DeckDraftCardback, DeckWarning } from '@app/widgets/deck-editor/DeckEditor';
@@ -133,7 +133,6 @@ function DeckEditSession({
   const [draft, setDraft] = useState<DeckDraft>(initialDraft);
   const [baseline, setBaseline] = useState<DeckDraft>(initialDraft);
   const [chapter, setChapter] = useState<DeckChapter>('identity');
-  const [settleTick, setSettleTick] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   /*
    * The deck whose cardback the draft references, for the label and the proof.
@@ -174,7 +173,7 @@ function DeckEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
+  const validationHeader = useValidationHeader(warnings.length);
 
   const save = () => {
     /* A pickless reference is blocked here with words, rather than letting the strict stored union answer with a Zod error. */
@@ -200,7 +199,7 @@ function DeckEditSession({
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {validationHeader.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -218,12 +217,12 @@ function DeckEditSession({
           }}
           actions={{
             onSave: save,
-            onReset: () => {
+            onReset: validationHeader.releasing(() => {
               setDraft(baseline);
               /* The pick lives in the draft, so discarding the draft discards the pick with it. */
               setPickedBackDeck(backDeck);
               setPickBlocked(false);
-            },
+            }),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}
           auxiliaryActions={
@@ -284,12 +283,12 @@ function DeckEditSession({
             patch={patch}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={validationHeader.settle}
             members={cards}
             countPending={setCount.isPending}
-            onCountChange={(cardId, count) =>
+            onCountChange={validationHeader.releasing((cardId: string, count: number) =>
               setCount.mutate({ container_id: asset.id, member_id: cardId as typeof asset.id, count })
-            }
+            )}
             cardPicker={
               <Popover opened={pickerOpen} onChange={setPickerOpen} width={360} position="bottom-start" withinPortal>
                 <Popover.Target>

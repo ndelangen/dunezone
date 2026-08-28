@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { initialTokenDraft, TokenEditor, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft } from '@app/widgets/token-editor/TokenEditor';
@@ -31,7 +31,6 @@ export function TokenCreatePage({ type }: { type: string }) {
   const initialDraft = initialTokenDraft(type);
   const [draft, setDraft] = useState<TokenDraft>(initialDraft);
   const [chapter, setChapter] = useState<TokenChapter>('identity');
-  const [settleTick, setSettleTick] = useState(0);
   const label = isAssetType(type) ? ASSET_TYPES[type].shortLabel.toLowerCase() : 'token';
   /* Armed by a save attempt while the reference has no target; disarmed the moment the state resolves. */
   const [pickBlocked, setPickBlocked] = useState(false);
@@ -58,7 +57,7 @@ export function TokenCreatePage({ type }: { type: string }) {
       : createAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
+  const validationHeader = useValidationHeader(warnings.length);
 
   switch (viewer.kind) {
     case 'pending':
@@ -95,7 +94,7 @@ export function TokenCreatePage({ type }: { type: string }) {
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {validationHeader.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -113,7 +112,7 @@ export function TokenCreatePage({ type }: { type: string }) {
           }}
           actions={{
             onSave: save,
-            onReset: () => setDraft(initialDraft),
+            onReset: validationHeader.releasing(() => setDraft(initialDraft)),
             onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
           }}
         />
@@ -133,7 +132,7 @@ export function TokenCreatePage({ type }: { type: string }) {
             type={type}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={validationHeader.settle}
             backPicker={() => (
               <Text size="xs" c="dimmed">
                 A token can point at an existing token only once it has been saved.

@@ -12,7 +12,7 @@ import { useCreateAsset } from '@app/db/assets';
 import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { DeckEditor, INITIAL_DECK_DRAFT, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
 import type { DeckChapter, DeckDraft } from '@app/widgets/deck-editor/DeckEditor';
@@ -34,7 +34,6 @@ export function DeckCreatePage() {
   /* The chosen deck, kept beside the draft: the draft carries the id that reaches storage; this carries the name and face the tile draws. */
   const [pickedBackDeck, setPickedBackDeck] = useState<PickedBackDeck | null>(null);
   const [chapter, setChapter] = useState<DeckChapter>('identity');
-  const [settleTick, setSettleTick] = useState(0);
   /* Armed by a save attempt while the reference has no target; disarmed the moment the state resolves. */
   const [pickBlocked, setPickBlocked] = useState(false);
   const patch = (update: Partial<DeckDraft>) => setDraft((prev) => ({ ...prev, ...update }));
@@ -60,7 +59,7 @@ export function DeckCreatePage() {
       : createAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
+  const validationHeader = useValidationHeader(warnings.length);
 
   switch (viewer.kind) {
     case 'pending':
@@ -98,7 +97,7 @@ export function DeckCreatePage() {
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {validationHeader.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -116,12 +115,12 @@ export function DeckCreatePage() {
           }}
           actions={{
             onSave: save,
-            onReset: () => {
+            onReset: validationHeader.releasing(() => {
               setDraft(INITIAL_DECK_DRAFT);
               /* The pick and the armed alert ride beside the draft, so a reset drops all three, the way the edit page's does. */
               setPickedBackDeck(null);
               setPickBlocked(false);
-            },
+            }),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}
         />
@@ -140,7 +139,7 @@ export function DeckCreatePage() {
             patch={patch}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={validationHeader.settle}
             members={[]}
             onCountChange={null}
             cardPicker={

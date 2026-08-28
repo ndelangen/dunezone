@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import {
   INITIAL_TREACHERY_DRAFT,
@@ -29,7 +29,6 @@ export function TreacheryCreatePage() {
   const createAsset = useCreateAsset();
   const [draft, setDraft] = useState<TreacheryDraft>(INITIAL_TREACHERY_DRAFT);
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
-  const [settleTick, setSettleTick] = useState(0);
   const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
@@ -52,7 +51,7 @@ export function TreacheryCreatePage() {
       : createAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
+  const validationHeader = useValidationHeader(warnings.length);
 
   switch (viewer.kind) {
     case 'pending':
@@ -83,7 +82,7 @@ export function TreacheryCreatePage() {
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {validationHeader.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -101,7 +100,7 @@ export function TreacheryCreatePage() {
           }}
           actions={{
             onSave: save,
-            onReset: () => setDraft(INITIAL_TREACHERY_DRAFT),
+            onReset: validationHeader.releasing(() => setDraft(INITIAL_TREACHERY_DRAFT)),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
           }}
         />
@@ -115,7 +114,7 @@ export function TreacheryCreatePage() {
             patch={patch}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={validationHeader.settle}
           />
         </WorkbenchLayout>
       </PageLayout.Content>
