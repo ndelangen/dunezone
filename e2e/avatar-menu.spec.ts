@@ -41,4 +41,12 @@ test('the avatar menu offers the profile routes and signs out', async ({ page })
 
   await choose('Sign out');
   await expect(nav.getByRole('link', { name: 'Login' })).toBeVisible();
+  /*
+   * Login alone does not say the session ended. The slot renders it whenever the profile is falsy, which is
+   * equally true while the session is still resolving, so the assertion above passes on a transient state.
+   * A reload re-resolves from storage: a sign-out that only cleared the client would put the avatar back here.
+   */
+  await page.reload();
+  await expect(nav.getByRole('link', { name: 'Login' })).toBeVisible();
+  await expect(nav.getByRole('button', { name: userA.username })).toHaveCount(0);
 });

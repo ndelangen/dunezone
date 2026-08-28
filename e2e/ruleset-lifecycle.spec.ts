@@ -11,8 +11,15 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   const uniqueName = `E2ERuleset${uniqueSuffix}`;
   const expectedSlug = uniqueName.toLowerCase();
   await page.goto('/rulesets/create');
+  /*
+   * The form has to be proven present before its missing control means anything.
+   * The app is served as an SPA, so the document that arrives is an empty shell: a zero count is satisfied
+   * before React has rendered anything at all, and the assertion passes whether or not the combobox exists.
+   */
+  const nameField = page.getByRole('textbox', { name: 'Name' });
+  await expect(nameField).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Group' })).toHaveCount(0);
-  await page.getByRole('textbox', { name: 'Name' }).fill(uniqueName);
+  await nameField.fill(uniqueName);
   /* Creation requires an About of at least 50 characters, with no exemption, so the button stays disabled without one. */
   await page
     .getByRole('textbox', { name: 'About' })
@@ -26,6 +33,8 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   await page.goto(`${createdUrl}?notice=default-group-unavailable`);
   await expect(page.getByRole('alert')).toContainText('Saved without its default Group');
   await page.goto(`${createdUrl}?notice=not-a-route-notice`);
+  /* Same anchoring: the page has to have rendered before "no alert" is a statement about the notice. */
+  await expect(page.getByText(uniqueName).first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('alert')).toHaveCount(0);
 
   const userB = await newUserPage({ storageState: '.playwright/user-b.json' });
@@ -41,5 +50,11 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   await page.waitForTimeout(5200);
   await page.mouse.up();
   await expect(page).toHaveURL(/\/rulesets\/?$/);
+  /*
+   * Precautionary rather than a repair: unlike the two above, this absence was measured biting on its own,
+   * because the delete navigates client side and the index has painted by the time the URL settles.
+   * The anchor costs one assertion and removes the dependence on that timing holding on a slower runner.
+   */
+  await expect(page.getByRole('heading', { name: 'Rulesets' })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('link', { name: uniqueName })).toHaveCount(0);
 });
