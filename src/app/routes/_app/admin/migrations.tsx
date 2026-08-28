@@ -1,5 +1,6 @@
 import { Group, Stack } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import { IconAction } from '@ui/control/IconAction';
@@ -8,7 +9,7 @@ import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
 import { loadAdminMigrationDashboard, useAdminMigrationDashboard, useSyncMigrationRuns } from '@db/migrations';
-import { useCurrentProfile } from '@db/profiles';
+import { useSessionViewer } from '@db/profiles';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/admin/migrations')({
@@ -27,7 +28,7 @@ const migrationsHeader = <PageTitle title="Migration activity" />;
 
 function AdminMigrationsPage() {
   const loaderData = Route.useLoaderData();
-  const profile = useCurrentProfile();
+  const viewer = useSessionViewer();
   const dashboardQuery = useAdminMigrationDashboard({ initialData: loaderData.dashboard });
   const dashboard = dashboardQuery.data;
   const syncRuns = useSyncMigrationRuns();
@@ -35,12 +36,21 @@ function AdminMigrationsPage() {
   /* The one gate with no way back, because this route has no parent in the navigation and today's
      version offers none either. Where an admin page sends a signed-out reader is a question about
      admin navigation rather than about this frame, so it is left as it was rather than invented. */
-  if (!profile.data?._id) {
-    return (
-      <PageMessage title="Migration activity">
-        <LoginGate action="view migration activity" />
-      </PageMessage>
-    );
+  switch (viewer.kind) {
+    case 'pending':
+      return (
+        <PageMessage title="Migration activity">
+          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+        </PageMessage>
+      );
+    case 'signed-out':
+      return (
+        <PageMessage title="Migration activity">
+          <LoginGate action="view migration activity" />
+        </PageMessage>
+      );
+    default:
+      break;
   }
 
   return (

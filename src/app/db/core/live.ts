@@ -37,7 +37,10 @@ export function toLiveQueryResult<TData>(
   liveData: TData | undefined,
   initialData?: () => TData | undefined
 ): LiveQueryResult<TData> {
-  const data = liveData ?? initialData?.();
+  /* Strictly undefined, never `??`: a query that answers null has settled, and collapsing that null
+     would report "settled with no data", which is the state every session gate reads as signed-in.
+     Only the not-yet-answered subscription may fall back to the loader's seed. */
+  const data = liveData === undefined ? initialData?.() : liveData;
   return {
     data,
     isPending: liveData === undefined,

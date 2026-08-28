@@ -1,13 +1,14 @@
 import { Alert, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
+import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 
-import { useCurrentProfile } from '@db/profiles';
+import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
@@ -25,7 +26,7 @@ const VALIDATION_HEADER_ID = 'token-validation-header';
  */
 export function TokenCreatePage({ type }: { type: string }) {
   const navigate = useNavigate();
-  const profile = useCurrentProfile();
+  const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
   const initialDraft = initialTokenDraft(type);
   const [draft, setDraft] = useState<TokenDraft>(initialDraft);
@@ -59,12 +60,21 @@ export function TokenCreatePage({ type }: { type: string }) {
         : 'idle';
   const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
 
-  if (profile.data === null) {
-    return (
-      <AssetEditorMessage title={`New ${label} token`} type={type}>
-        <LoginGate action="create tokens" />
-      </AssetEditorMessage>
-    );
+  switch (viewer.kind) {
+    case 'pending':
+      return (
+        <AssetEditorMessage title={`New ${label} token`} type={type}>
+          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+        </AssetEditorMessage>
+      );
+    case 'signed-out':
+      return (
+        <AssetEditorMessage title={`New ${label} token`} type={type}>
+          <LoginGate action="create tokens" />
+        </AssetEditorMessage>
+      );
+    default:
+      break;
   }
 
   const save = () => {

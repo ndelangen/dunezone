@@ -13,7 +13,9 @@ vi.mock('convex/react', () => ({
   useMutation: vi.fn(),
 }));
 
-import { loadProfileBySlug } from './profiles';
+import { renderHook } from '@testing-library/react';
+
+import { loadProfileBySlug, useSessionViewer } from './profiles';
 
 const profile = {
   _id: 'profile-1',
@@ -68,5 +70,31 @@ describe('profile page interface', () => {
     const loaded = await loadProfileBySlug('chani');
 
     expect(loaded.acceptedAnswerCount).toBe(1);
+  });
+});
+
+describe('the session tri-state', () => {
+  test('an unanswered session reads as pending, never as either settled state', () => {
+    mocks.useQuery.mockReturnValue(undefined);
+
+    const { result } = renderHook(() => useSessionViewer());
+
+    expect(result.current).toEqual({ kind: 'pending' });
+  });
+
+  test('a session that answers null reads as settled signed-out, not as pending', () => {
+    mocks.useQuery.mockReturnValue({ userId: null, profile: null });
+
+    const { result } = renderHook(() => useSessionViewer());
+
+    expect(result.current).toEqual({ kind: 'signed-out' });
+  });
+
+  test('a session with a profile hands that profile through', () => {
+    mocks.useQuery.mockReturnValue({ userId: 'user-1', profile });
+
+    const { result } = renderHook(() => useSessionViewer());
+
+    expect(result.current).toEqual({ kind: 'profile', profile });
   });
 });
