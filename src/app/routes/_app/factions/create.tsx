@@ -5,12 +5,12 @@ import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { defaultFaction } from '@app/widgets/faction-editor/defaultFaction';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
@@ -57,10 +57,9 @@ function CreateFactionPage() {
       });
     },
   });
-  const [settleTick, setSettleTick] = useState(0);
   const { nameField, conflictWarnings } = useFactionNameField();
   const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
-  const validationHeaderOpen = useValidationHeaderOpen(allWarnings.length, settleTick);
+  const validationHeader = useValidationHeader(allWarnings.length);
 
   const header = (
     <Stack align="center" gap={4}>
@@ -87,7 +86,15 @@ function CreateFactionPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        {validationHeaderOpen ? (
+        {/*
+         * The band is occupied either way here, by the strip or by the page's own masthead, so this
+         * is the one editor whose header slot never changes height.
+         * The open latch exists to stop that height changing mid-keystroke, which means it has
+         * nothing to protect on this page, and holding it open past the last warning would trade a
+         * jump the page cannot make for a masthead replaced by an empty strip.
+         * So the strip answers for its own contents too: no warnings, no strip.
+         */}
+        {validationHeader.open && allWarnings.length > 0 ? (
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
             warnings={allWarnings}
@@ -111,13 +118,16 @@ function CreateFactionPage() {
           }}
           actions={{
             onSave: authoring.actions.submit,
-            onReset: authoring.actions.reset,
+            onReset: validationHeader.releasing(authoring.actions.reset),
             onBack: () => navigate({ to: '/factions' }),
           }}
           review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
           centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
           auxiliaryActions={
-            <FactionLoadPopover disabled={createFaction.isPending} onLoaded={authoring.actions.loadDraft} />
+            <FactionLoadPopover
+              disabled={createFaction.isPending}
+              onLoaded={validationHeader.releasing(authoring.actions.loadDraft)}
+            />
           }
           context={
             <Text size="xs" c="dimmed">
@@ -135,7 +145,7 @@ function CreateFactionPage() {
           errors={authoring.persistence.errors}
           isNameBlank={authoring.editing.isNameBlank}
           warnings={allWarnings}
-          onSettle={() => setSettleTick((tick) => tick + 1)}
+          onSettle={validationHeader.settle}
         />
       </PageLayout.Content>
     </PageLayout>

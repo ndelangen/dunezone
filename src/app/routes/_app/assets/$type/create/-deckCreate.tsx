@@ -5,21 +5,67 @@ import { LoginGate } from '@ui/block/LoginGate';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
+import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
-import { DeckEditor, INITIAL_DECK_DRAFT, deckDraftWarnings } from '@app/widgets/deck-editor/DeckEditor';
-import type { DeckChapter, DeckDraft } from '@app/widgets/deck-editor/DeckEditor';
+import {
+  DeckEditor,
+  INITIAL_DECK_DRAFT,
+  deckDraftWarnings,
+  initialDeckMemory,
+} from '@app/widgets/deck-editor/DeckEditor';
+import type { DeckChapter, DeckDraft, DeckMemory } from '@app/widgets/deck-editor/DeckEditor';
+import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
 const VALIDATION_HEADER_ID = 'deck-validation-header';
+
+/**
+ * This page's authoring state, and the four things that happen to it.
+ *
+ * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design, because the generic version cost more than the duplication it removed.
+ * `memory` is what the session needs and the stored deck has no room for (D3): the declared Custom intents, the composition kept across mode flips, the picked deck the tile draws, and whether a save has already complained.
+ * `baseline` is what a reset returns to.
+ */
+type DeckPageMemory = DeckMemory & { pickedBackDeck: PickedBackDeck | null; pickBlocked: boolean };
+
+type DeckState = { data: DeckDraft; memory: DeckPageMemory; baseline: DeckDraft };
+
+type DeckEvent =
+  | { kind: 'patch'; update: Partial<DeckDraft> }
+  | { kind: 'remember'; update: Partial<DeckPageMemory> }
+  | { kind: 'replace'; data: DeckDraft; pick: PickedBackDeck | null }
+  | { kind: 'saved'; data: DeckDraft };
+
+function openingState(data: DeckDraft, baseline: DeckDraft, pick: PickedBackDeck | null): DeckState {
+  return {
+    data,
+    memory: { ...initialDeckMemory(data.cardback), pickedBackDeck: pick, pickBlocked: false },
+    baseline,
+  };
+}
+
+function reduce(state: DeckState, event: DeckEvent): DeckState {
+  switch (event.kind) {
+    case 'patch':
+      return { ...state, data: { ...state.data, ...event.update } };
+    case 'remember':
+      return { ...state, memory: { ...state.memory, ...event.update } };
+    /* A reset rebuilds the whole state rather than assigning a field at a time, so a piece added here later cannot be the one a reset forgets; the seed pick rides on the event because the reducer holds no closure. */
+    case 'replace':
+      return openingState(event.data, state.baseline, event.pick);
+    case 'saved':
+      return { ...state, baseline: event.data };
+  }
+}
 
 /**
  * The deck create page.
@@ -30,19 +76,16 @@ export function DeckCreatePage() {
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
-  const [draft, setDraft] = useState<DeckDraft>(INITIAL_DECK_DRAFT);
-  /* The chosen deck, kept beside the draft: the draft carries the id that reaches storage; this carries the name and face the tile draws. */
-  const [pickedBackDeck, setPickedBackDeck] = useState<PickedBackDeck | null>(null);
   const [chapter, setChapter] = useState<DeckChapter>('identity');
-  const [settleTick, setSettleTick] = useState(0);
-  /* Armed by a save attempt while the reference has no target; disarmed the moment the state resolves. */
-  const [pickBlocked, setPickBlocked] = useState(false);
-  const patch = (update: Partial<DeckDraft>) => setDraft((prev) => ({ ...prev, ...update }));
-  const pickless = draft.cardback.mode === 'reference' && draft.cardback.asset_id === null;
+  const [state, dispatch] = useReducer(reduce, undefined, () =>
+    openingState(INITIAL_DECK_DRAFT, INITIAL_DECK_DRAFT, null)
+  );
+  const patch = (update: Partial<DeckDraft>) => dispatch({ kind: 'patch', update });
+  const pickless = state.data.cardback.mode === 'reference' && state.data.cardback.asset_id === null;
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
     type: 'deck',
-    name: draft.name,
+    name: state.data.name,
     onName: (name) => patch({ name }),
     source: 'Identity',
     chapter: 'identity' as DeckChapter,
@@ -50,9 +93,10 @@ export function DeckCreatePage() {
   const warnings: (
     | ReturnType<typeof deckDraftWarnings>[number]
     | { source: string; complaint: string; chapter: DeckChapter }
-  )[] = [...deckDraftWarnings(draft, []).filter((warning) => warning.chapter !== 'cards'), ...conflictWarnings];
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_DECK_DRAFT);
-  const isNameBlank = !draft.name.trim();
+  )[] = [...deckDraftWarnings(state.data, []).filter((warning) => warning.chapter !== 'cards'), ...conflictWarnings];
+  /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
+  const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
+  const isNameBlank = !state.data.name.trim();
   const saveState: AuthoringSaveState = createAsset.isPending
     ? 'saving'
     : createAsset.error
@@ -60,7 +104,7 @@ export function DeckCreatePage() {
       : createAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
+  const header = useValidationHeader(warnings.length);
 
   switch (viewer.kind) {
     case 'pending':
@@ -81,24 +125,27 @@ export function DeckCreatePage() {
 
   const save = () => {
     /* Reference mode with nothing picked has no target to store, so the save says so with words rather than a Zod error. */
+    dispatch({ kind: 'remember', update: { pickBlocked: pickless } });
     if (pickless) {
-      setPickBlocked(true);
       return;
     }
-    setPickBlocked(false);
+    /* The stored schema's own keys decide what is posted, so the session's memory can never ride along (D3). */
+    const payload = postedPayload(DeckAssetSchema, state.data);
     createAsset.mutate(
       /* The draft carries its mode, so the save writes it through; the strict stored union is the one truth («The stored shape of three back modes»). */
-      { type: 'deck', data: draft },
+      { type: 'deck', data: payload },
       {
-        onSuccess: ({ slug }) =>
-          void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'deck', slug }, replace: true }),
+        onSuccess: ({ slug }) => {
+          dispatch({ kind: 'saved', data: payload });
+          void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'deck', slug }, replace: true });
+        },
       }
     );
   };
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {header.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -116,12 +163,7 @@ export function DeckCreatePage() {
           }}
           actions={{
             onSave: save,
-            onReset: () => {
-              setDraft(INITIAL_DECK_DRAFT);
-              /* The pick and the armed alert ride beside the draft, so a reset drops all three, the way the edit page's does. */
-              setPickedBackDeck(null);
-              setPickBlocked(false);
-            },
+            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: null })),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
           }}
         />
@@ -129,18 +171,20 @@ export function DeckCreatePage() {
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
           <SaveErrorAlert error={createAsset.error} />
-          {pickBlocked && pickless ? (
+          {state.memory.pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No deck picked">
               Pick a deck whose cardback this one wears, or choose another back mode.
             </Alert>
           ) : null}
           <DeckEditor
             nameField={nameField}
-            draft={draft}
+            draft={state.data}
             patch={patch}
+            memory={state.memory}
+            remember={(update) => dispatch({ kind: 'remember', update })}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={header.settle}
             members={[]}
             onCountChange={null}
             cardPicker={
@@ -155,15 +199,15 @@ export function DeckCreatePage() {
                * written against a deck that does not exist yet, which is why that slot still waits.
                */
               <DeckBackPicker
-                picked={pickedBackDeck}
+                picked={state.memory.pickedBackDeck}
                 onPick={(deck) => {
                   /* A pick is a draft edit, not a write; the reference reaches storage when the deck is saved. */
-                  setPickedBackDeck(deck);
+                  dispatch({ kind: 'remember', update: { pickedBackDeck: deck } });
                   patch({ cardback: { mode: 'reference', asset_id: deck.id } });
                 }}
               />
             }
-            backProof={<DeckBackProof picked={pickedBackDeck} />}
+            backProof={<DeckBackProof picked={state.memory.pickedBackDeck} />}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

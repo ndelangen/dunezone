@@ -8,17 +8,19 @@ import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
 
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
+import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
-import { bundleDraftWarnings, BundleEditor } from '@app/widgets/bundle-editor/BundleEditor';
-import type { BundleChapter, BundleDraft } from '@app/widgets/bundle-editor/BundleEditor';
+import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_MEMORY } from '@app/widgets/bundle-editor/BundleEditor';
+import type { BundleChapter, BundleDraft, BundleMemory } from '@app/widgets/bundle-editor/BundleEditor';
+import { BundleAsset as BundleAssetSchema } from '@game/data/objects';
 
 import {
   AssetEditorMessage,
@@ -86,6 +88,38 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
   );
 }
 
+/**
+ * This page's authoring state, and the four things that happen to it.
+ *
+ * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design, because the generic version cost more than the duplication it removed.
+ * `memory` is what the session needs and the stored bundle has no room for (D3), and `baseline` is what a reset returns to.
+ */
+type BundleState = { data: BundleDraft; memory: BundleMemory; baseline: BundleDraft };
+
+type BundleEvent =
+  | { kind: 'patch'; update: Partial<BundleDraft> }
+  | { kind: 'remember'; update: Partial<BundleMemory> }
+  | { kind: 'replace'; data: BundleDraft }
+  | { kind: 'saved'; data: BundleDraft };
+
+function openingState(data: BundleDraft, baseline: BundleDraft): BundleState {
+  return { data, memory: INITIAL_BUNDLE_MEMORY, baseline };
+}
+
+function reduce(state: BundleState, event: BundleEvent): BundleState {
+  switch (event.kind) {
+    case 'patch':
+      return { ...state, data: { ...state.data, ...event.update } };
+    case 'remember':
+      return { ...state, memory: { ...state.memory, ...event.update } };
+    /* A reset rebuilds the whole state rather than assigning a field at a time, so a piece added here later cannot be the one a reset forgets. */
+    case 'replace':
+      return openingState(event.data, state.baseline);
+    case 'saved':
+      return { ...state, baseline: event.data };
+  }
+}
+
 function BundleEditSession({
   access,
   asset,
@@ -105,17 +139,15 @@ function BundleEditSession({
   const updateAsset = useUpdateAsset();
   const deletion = useAssetDeletion(asset);
   const setCount = useSetMemberCount();
-  const [draft, setDraft] = useState<BundleDraft>(initialDraft);
-  const [baseline, setBaseline] = useState<BundleDraft>(initialDraft);
   const [chapter, setChapter] = useState<BundleChapter>('identity');
-  const [settleTick, setSettleTick] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const patch = (update: Partial<BundleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
+  const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft));
+  const patch = (update: Partial<BundleDraft>) => dispatch({ kind: 'patch', update });
   const tokens = members.map((entry) => ({ token: entry.member, count: entry.count }));
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
     type: 'bundle',
-    name: draft.name,
+    name: state.data.name,
     onName: (name) => patch({ name }),
     currentSlug: asset.slug,
     source: 'Identity',
@@ -124,9 +156,10 @@ function BundleEditSession({
   const warnings: (
     | ReturnType<typeof bundleDraftWarnings>[number]
     | { source: string; complaint: string; chapter: BundleChapter }
-  )[] = [...bundleDraftWarnings(draft, tokens), ...conflictWarnings];
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
-  const isNameBlank = !draft.name.trim();
+  )[] = [...bundleDraftWarnings(state.data, tokens), ...conflictWarnings];
+  /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
+  const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
+  const isNameBlank = !state.data.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
     ? 'saving'
     : updateAsset.error
@@ -134,15 +167,16 @@ function BundleEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
+  const header = useValidationHeader(warnings.length);
 
   const save = () => {
-    const saved = draft;
+    /* The stored schema's own keys decide what is posted, so the session's memory can never ride along (D3). */
+    const saved = postedPayload(BundleAssetSchema, state.data);
     updateAsset.mutate(
       { id: asset.id, data: saved },
       {
         onSuccess: ({ slug: nextSlug }) => {
-          setBaseline(saved);
+          dispatch({ kind: 'saved', data: saved });
           if (nextSlug !== asset.slug) {
             void navigate({
               to: '/assets/$type/$slug/edit',
@@ -157,7 +191,7 @@ function BundleEditSession({
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {header.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -180,7 +214,7 @@ function BundleEditSession({
           }}
           actions={{
             onSave: save,
-            onReset: () => setDraft(baseline),
+            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline })),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
@@ -208,16 +242,18 @@ function BundleEditSession({
           ) : null}
           <BundleEditor
             nameField={nameField}
-            draft={draft}
+            draft={state.data}
             patch={patch}
+            memory={state.memory}
+            remember={(update) => dispatch({ kind: 'remember', update })}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={header.settle}
             members={tokens}
             countPending={setCount.isPending}
-            onCountChange={(tokenId, count) =>
+            onCountChange={header.releasing((tokenId: string, count: number) =>
               setCount.mutate({ container_id: asset.id, member_id: tokenId as typeof asset.id, count })
-            }
+            )}
             tokenPicker={
               <Popover opened={pickerOpen} onChange={setPickerOpen} width={360} position="bottom-start" withinPortal>
                 <Popover.Target>

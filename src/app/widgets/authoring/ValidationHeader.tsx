@@ -28,7 +28,7 @@ function formatMissingList(missing: string[]): string {
 
 /**
  * A lower-third caption strip on an edit page's masthead band: one chip per warning source, each a focus jump into the editor.
- * Mount it inside the band (it positions absolutely to the band's bottom edge) and gate the band itself with `useValidationHeaderOpen`.
+ * Mount it inside the band (it positions absolutely to the band's bottom edge) and gate the band itself with `useValidationHeader`.
  */
 export function ValidationHeader<W extends ValidationHeaderWarning>({
   id,

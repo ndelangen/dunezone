@@ -6,15 +6,20 @@ import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
+import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
-import { TreacheryCardEditor, treacheryDraftWarnings } from '@app/widgets/card-editor/TreacheryCardEditor';
-import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
+import {
+  INITIAL_TREACHERY_MEMORY,
+  TreacheryCardEditor,
+  treacheryDraftWarnings,
+} from '@app/widgets/card-editor/TreacheryCardEditor';
+import type { TreacheryChapter, TreacheryDraft, TreacheryMemory } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { TreacheryAsset } from '@game/data/objects';
 
 import {
@@ -86,6 +91,38 @@ type CardEditAccess = {
   assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
 };
 
+/**
+ * This page's authoring state, and the four things that happen to it.
+ *
+ * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design, because the generic version cost more than the duplication it removed.
+ * `memory` is what the session needs and the stored card has no room for (D3), and `baseline` is what a reset returns to.
+ */
+type TreacheryState = { data: TreacheryDraft; memory: TreacheryMemory; baseline: TreacheryDraft };
+
+type TreacheryEvent =
+  | { kind: 'patch'; update: Partial<TreacheryDraft> }
+  | { kind: 'remember'; update: Partial<TreacheryMemory> }
+  | { kind: 'replace'; data: TreacheryDraft }
+  | { kind: 'saved'; data: TreacheryDraft };
+
+function openingState(data: TreacheryDraft, baseline: TreacheryDraft): TreacheryState {
+  return { data, memory: INITIAL_TREACHERY_MEMORY, baseline };
+}
+
+function reduce(state: TreacheryState, event: TreacheryEvent): TreacheryState {
+  switch (event.kind) {
+    case 'patch':
+      return { ...state, data: { ...state.data, ...event.update } };
+    case 'remember':
+      return { ...state, memory: { ...state.memory, ...event.update } };
+    /* A reset rebuilds the whole state rather than assigning a field at a time, so a piece added here later cannot be the one a reset forgets. */
+    case 'replace':
+      return openingState(event.data, state.baseline);
+    case 'saved':
+      return { ...state, baseline: event.data };
+  }
+}
+
 function CardEditSession({
   asset,
   initialDraft,
@@ -100,26 +137,22 @@ function CardEditSession({
   const deletion = useAssetDeletion(asset);
   const groupActions = useAssetGroupActions({ asset, access });
   const { capabilities } = access.viewerAccess;
-  const [draft, setDraft] = useState<TreacheryDraft>(initialDraft);
-  const [baseline, setBaseline] = useState<TreacheryDraft>(initialDraft);
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
-  const [settleTick, setSettleTick] = useState(0);
-  const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
+  const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft));
+  const patch = (update: Partial<TreacheryDraft>) => dispatch({ kind: 'patch', update });
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
     type: 'card-treachery',
-    name: draft.name,
+    name: state.data.name,
     onName: (name) => patch({ name }),
     currentSlug: asset.slug,
     source: 'Head',
     chapter: 'head' as TreacheryChapter,
   });
-  const warnings: (
-    | ReturnType<typeof treacheryDraftWarnings>[number]
-    | { source: string; complaint: string; chapter: TreacheryChapter }
-  )[] = [...treacheryDraftWarnings(draft), ...conflictWarnings];
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
-  const isNameBlank = !draft.name.trim();
+  const warnings = [...treacheryDraftWarnings(state.data), ...conflictWarnings];
+  const header = useValidationHeader(warnings.length);
+  /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
+  const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const saveState: AuthoringSaveState = updateAsset.isPending
     ? 'saving'
     : updateAsset.error
@@ -127,15 +160,15 @@ function CardEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
 
   const save = () => {
-    const saved = draft;
+    /* The stored schema's own keys decide what is posted, so the session's memory can never ride along (D3). */
+    const payload = postedPayload(TreacheryAsset, state.data);
     updateAsset.mutate(
-      { id: asset.id, data: saved },
+      { id: asset.id, data: payload },
       {
         onSuccess: ({ slug: nextSlug }) => {
-          setBaseline(saved);
+          dispatch({ kind: 'saved', data: payload });
           /* Renames re-slug: follow the card to its new URL so a reload keeps editing it. */
           if (nextSlug !== asset.slug) {
             void navigate({
@@ -151,7 +184,7 @@ function CardEditSession({
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {header.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -162,14 +195,14 @@ function CardEditSession({
       ) : null}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, saveState }}
+          status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState }}
           copy={{
             saveLabel: 'Save card',
             nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
           }}
           actions={{
             onSave: save,
-            onReset: () => setDraft(baseline),
+            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline })),
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
@@ -192,11 +225,13 @@ function CardEditSession({
           {groupActions.error}
           <TreacheryCardEditor
             nameField={nameField}
-            draft={draft}
+            draft={state.data}
             patch={patch}
+            memory={state.memory}
+            remember={(update) => dispatch({ kind: 'remember', update })}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={header.settle}
           />
         </WorkbenchLayout>
       </PageLayout.Content>
