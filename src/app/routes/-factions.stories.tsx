@@ -44,7 +44,8 @@ export const EditResetClosesTheValidationBand = meta.story({
 /**
  * Reset gives the create page its masthead back, because this is the one editor whose band carries the page title.
  *
- * The other eleven gate the header slot, so a stale band costs an empty strip; here it costs the breadcrumb, the title and the description.
+ * The other eleven gate the header slot, so a stale band costs an empty strip;
+ * here it costs the breadcrumb, the title and the description.
  * The title returning is the assertion rather than the band's absence, since on this page the band is occupied either way.
  */
 export const CreateResetRestoresTheMasthead = meta.story({
@@ -61,10 +62,13 @@ export const CreateResetRestoresTheMasthead = meta.story({
 });
 
 /**
- * Loading a draft over the current one releases the header too, which Reset alone would not have covered.
+ * Loading a draft over the current one clears the band as well, which Reset alone would not have covered.
  *
  * Load replaces the draft from the toolbar, outside the editor's blur capture entirely, so no settle reaches the header on its own.
  * It is the second release the browser pass found, and the reason the release belongs to the settle counter rather than to twelve reset handlers.
+ *
+ * This runs on the create page because the story database holds one faction and the edit page's picker excludes the faction being edited, so there is nothing to load there.
+ * That makes it an end-to-end check rather than an isolating one: this page's own masthead gate would clear the strip even if the release did not fire, so the release itself is pinned by `useValidationHeader.test.tsx`.
  */
 export const CreateLoadRestoresTheMasthead = meta.story({
   args: { path: '/factions/create' },
@@ -72,7 +76,7 @@ export const CreateLoadRestoresTheMasthead = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await raiseAWarning(page);
     await userEvent.click(page.getByRole('button', { name: 'Load existing faction' }));
-    await userEvent.click(await page.findByRole('option', { name: /Atreides/ }, { timeout: 30_000 }));
+    await userEvent.click((await page.findAllByRole('option', {}, { timeout: 30_000 }))[0]!);
     await userEvent.click(await page.findByRole('button', { name: 'Load faction' }, { timeout: 30_000 }));
     await waitFor(() => expect(page.queryByText('Needs attention')).toBeNull(), { timeout: 30_000 });
     await expect(page.findByText('Create faction', {}, { timeout: 30_000 })).resolves.toBeVisible();
