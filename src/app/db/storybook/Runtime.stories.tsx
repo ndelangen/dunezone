@@ -81,6 +81,7 @@ export const Conformance = meta.story({
      * Both numbers this assertion used to sit between were 45_000: its own budget, and `testTimeout` in `vitest.storybook.config.ts`.
      * So the work was over its budget and over the kill at the same time, and the kill was due first, which is why a failure arrived as a bare timeout that never named the text it was waiting for.
      * The budget is now larger than the measured cost and the kill is larger than everything before it: the boot may spend its full 30s above, and 30 plus 75 lands at 105, fifteen seconds clear of the 120s kill.
+     * That fifteen also has to cover the story's own mount, because the kill spans the whole test and not just the two waits inside it. For the ordering to fail, the mount alone would have to run past 15s, which is a quarter of the slowest whole run measured here and three times the bound on everything the play function does before the assertion.
      * The boot's own wait is left alone, since it already expires before the kill and its message names the role and the name it wanted.
      */
     await expect(
