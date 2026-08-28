@@ -9,7 +9,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import type { DragCancelEvent, DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core';
+import type { DragCancelEvent, DragEndEvent, DragOverEvent, DragStartEvent, Modifier, Modifiers } from '@dnd-kit/core';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -31,7 +31,7 @@ import {
   SlidersHorizontal,
   Triangle,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
 
 import styles from './-sortableHierarchyPrototype.module.css';
@@ -67,6 +67,7 @@ interface Placement {
 
 interface DropFeedback {
   regionId: string;
+  index: number;
   valid: boolean;
   reason: string;
 }
@@ -149,6 +150,13 @@ function createPrototypeFixture() {
 }
 
 const prototypeFixture = createPrototypeFixture();
+
+const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
+  ...transform,
+  x: 0,
+});
+
+const verticalDragModifiers: Modifiers = [restrictDragToVerticalAxis];
 
 function cloneRegions(regions: readonly PrototypeRegion[]) {
   return regions.map((region) => ({
@@ -495,6 +503,14 @@ function RegionDropMessage({
   return <p className={styles.dropReason}>{feedback.reason}</p>;
 }
 
+function SummaryDropPlaceholder({ feedback }: { feedback: DropFeedback }) {
+  return (
+    <li className={styles.dropPlaceholder} data-valid={feedback.valid} role="status">
+      {feedback.valid ? 'Can drop here' : 'Cannot drop here'}
+    </li>
+  );
+}
+
 function SummaryRegionDropTarget({
   region,
   feedback,
@@ -551,7 +567,7 @@ function PageDetailsSummaries({
   onSelectBlock: (blockId: string) => void;
 }) {
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -587,7 +603,7 @@ function PageDetailsSummaries({
       blockId,
       targetRegionId: normalizedPlacement.regionId,
     });
-    setFeedback({ regionId: normalizedPlacement.regionId, ...validity });
+    setFeedback({ ...normalizedPlacement, ...validity });
     if (!validity.valid) {
       return;
     }
@@ -653,6 +669,7 @@ function PageDetailsSummaries({
       </header>
       <DndContext
         sensors={sensors}
+        modifiers={verticalDragModifiers}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -664,38 +681,46 @@ function PageDetailsSummaries({
             <SummaryRegionDropTarget region={region} feedback={feedback} variant={variant} key={region.id}>
               <SortableContext items={region.blockIds.map(summaryBlockId)} strategy={verticalListSortingStrategy}>
                 <ul className={styles.summaryList}>
-                  {region.blockIds.map((blockId) => {
+                  {region.blockIds.map((blockId, index) => {
                     const block = blocks[blockId];
                     const invalidDragging = activeBlockId === blockId && activeInvalid;
                     return (
-                      <SortableItem
-                        as="li"
-                        id={summaryBlockId(blockId)}
-                        className={`${styles.summaryItem} ${invalidDragging ? styles.invalidDragging : ''}`}
-                        key={blockId}
-                      >
-                        {(handle) => (
-                          <>
-                            <a
-                              href={`#${blockId}`}
-                              className={styles.summaryLink}
-                              onClick={(event) => {
-                                event.preventDefault();
-                                onSelectBlock(blockId);
-                              }}
-                            >
-                              <span className={styles.summaryIcon}>{blockIcon(block.kind)}</span>
-                              <span>
-                                <strong>{block.label}</strong>
-                                <small>{block.kind}</small>
-                              </span>
-                            </a>
-                            <SortableReorderHandle label={`Move ${block.label}`} {...handle} />
-                          </>
-                        )}
-                      </SortableItem>
+                      <Fragment key={blockId}>
+                        {feedback?.regionId === region.id && feedback.index === index ? (
+                          <SummaryDropPlaceholder feedback={feedback} />
+                        ) : null}
+                        <SortableItem
+                          as="li"
+                          id={summaryBlockId(blockId)}
+                          className={`${styles.summaryItem} ${invalidDragging ? styles.invalidDragging : ''}`}
+                          key={blockId}
+                        >
+                          {(handle) => (
+                            <>
+                              <a
+                                href={`#${blockId}`}
+                                className={styles.summaryLink}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  onSelectBlock(blockId);
+                                }}
+                              >
+                                <span className={styles.summaryIcon}>{blockIcon(block.kind)}</span>
+                                <span>
+                                  <strong>{block.label}</strong>
+                                  <small>{block.kind}</small>
+                                </span>
+                              </a>
+                              <SortableReorderHandle label={`Move ${block.label}`} {...handle} />
+                            </>
+                          )}
+                        </SortableItem>
+                      </Fragment>
                     );
                   })}
+                  {feedback?.regionId === region.id && feedback.index >= region.blockIds.length ? (
+                    <SummaryDropPlaceholder feedback={feedback} key={`${region.id}-drop-end`} />
+                  ) : null}
                 </ul>
               </SortableContext>
             </SummaryRegionDropTarget>
@@ -808,7 +833,7 @@ export function SortableHierarchyPrototype({
   const originalRegions = useRef<PrototypeRegion[] | null>(null);
   const lastValidPlacement = useRef<Placement | null>(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -873,7 +898,7 @@ export function SortableHierarchyPrototype({
       blockId: activeData.entityId,
       targetRegionId: normalizedPlacement.regionId,
     });
-    setFeedback({ regionId: normalizedPlacement.regionId, ...validity });
+    setFeedback({ ...normalizedPlacement, ...validity });
     if (!validity.valid) {
       return;
     }
@@ -948,6 +973,7 @@ export function SortableHierarchyPrototype({
         <DocumentEditorLayout.Sidebar>
           <DndContext
             sensors={sensors}
+            modifiers={verticalDragModifiers}
             collisionDetection={closestCenter}
             onDragStart={handleRailDragStart}
             onDragOver={handleRailDragOver}
