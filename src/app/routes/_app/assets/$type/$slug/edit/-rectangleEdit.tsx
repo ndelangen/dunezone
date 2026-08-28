@@ -13,7 +13,7 @@ import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import {
   RectangleTokenEditor,
@@ -141,7 +141,6 @@ function RectangleEditSession({
   const [pickBlocked, setPickBlocked] = useState(false);
   const [baseline, setBaseline] = useState<RectangleDraft>(initialDraft);
   const [chapter, setChapter] = useState<RectangleChapter>('identity');
-  const [settleTick, setSettleTick] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const patch = (update: Partial<RectangleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
   /*
@@ -176,7 +175,7 @@ function RectangleEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
+  const validationHeader = useValidationHeader(warnings.length);
 
   const pickless = draft.back.mode === 'reference' && draft.back.asset_id === null;
 
@@ -204,7 +203,7 @@ function RectangleEditSession({
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {validationHeader.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -222,12 +221,12 @@ function RectangleEditSession({
           }}
           actions={{
             onSave: save,
-            onReset: () => {
+            onReset: validationHeader.releasing(() => {
               setDraft(baseline);
               /* The pick lives in the draft now, so discarding the draft discards the pick with it. */
               setPickedBack(backToken);
               setPickBlocked(false);
-            },
+            }),
             onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
@@ -259,7 +258,7 @@ function RectangleEditSession({
             patch={patch}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={validationHeader.settle}
             backPicker={(disabled) => (
               <Group gap="xs" wrap="nowrap">
                 <Text size="sm" truncate style={{ minWidth: 0, flex: 1 }} title={pickedBack?.name}>

@@ -12,14 +12,14 @@ import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { UserRoundMinus } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { resolveRouteNotice } from '@app/routes/-routeNotices';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
+import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
@@ -72,7 +72,6 @@ function FactionEditPage() {
   const updateFaction = useUpdateFaction();
   const deleteFaction = useDeleteFaction();
   const setFactionGroup = useSetFactionGroup();
-  const [settleTick, setSettleTick] = useState(0);
 
   const factionQuery = useFaction(factionId, {
     initialData: loaderData,
@@ -101,7 +100,7 @@ function FactionEditPage() {
   });
   const { nameField, conflictWarnings } = useFactionNameField({ currentSlug: faction.slug });
   const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
-  const validationHeaderOpen = useValidationHeaderOpen(allWarnings.length, settleTick);
+  const validationHeader = useValidationHeader(allWarnings.length);
   const backToFaction = (
     <PageMessage.Back to="/factions/$factionId" params={{ factionId }}>
       Back to faction
@@ -151,7 +150,7 @@ function FactionEditPage() {
 
   return (
     <PageLayout>
-      {validationHeaderOpen ? (
+      {validationHeader.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -175,7 +174,7 @@ function FactionEditPage() {
           }}
           actions={{
             onSave: authoring.actions.submit,
-            onReset: authoring.actions.reset,
+            onReset: validationHeader.releasing(authoring.actions.reset),
             onBack: () =>
               navigate({
                 to: '/factions/$factionId',
@@ -189,7 +188,7 @@ function FactionEditPage() {
               <FactionLoadPopover
                 disabled={updateFaction.isPending}
                 currentPublicSlug={faction.slug}
-                onLoaded={authoring.actions.loadDraft}
+                onLoaded={validationHeader.releasing(authoring.actions.loadDraft)}
               />
               {canAssignGroup && !assignedGroup ? (
                 <FactionGroupPopover
@@ -262,7 +261,7 @@ function FactionEditPage() {
             errors={authoring.persistence.errors}
             isNameBlank={authoring.editing.isNameBlank}
             warnings={allWarnings}
-            onSettle={() => setSettleTick((tick) => tick + 1)}
+            onSettle={validationHeader.settle}
           />
         </Stack>
       </PageLayout.Content>
