@@ -65,6 +65,53 @@
   min-width: 0;
 }
 
+.regionWords {
+  display: flex;
+  gap: 0.38rem;
+  align-items: center;
+  overflow: hidden;
+}
+
+.regionTitle {
+  flex-shrink: 0;
+}
+
+.regionDescription {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
+}
+
+.regionDescriptionText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.regionDescriptionMeasurement {
+  position: absolute;
+  width: max-content;
+  visibility: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.regionHelp {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  color: var(--mantine-color-dimmed);
+  cursor: help;
+}
+
+.regionDiagnostic {
+  margin-block-start: 0.25rem;
+  padding-inline: calc(1.1rem + 2 * var(--mantine-spacing-xs));
+}
+
 .blockList {
   display: grid;
   gap: 0.28rem;
@@ -133,17 +180,6 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-@container (max-width: 25rem) {
-  .blockRegionHeader {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .blockRegionHeader > :last-child {
-    grid-column: 2;
-    justify-self: start;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

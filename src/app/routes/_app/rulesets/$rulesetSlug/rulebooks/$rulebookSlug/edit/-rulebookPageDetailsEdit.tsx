@@ -24,7 +24,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Group, Menu, Stack, Text, TextInput, UnstyledButton } from '@mantine/core';
+import { Box, Group, Menu, Stack, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
 import type {
   RulebookBlockDraft,
   RulebookBlockKind,
@@ -34,8 +34,17 @@ import type {
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
-import { ChevronDown, ChevronRight, FileImage, FileText, Layers3, ListTree, MessageSquareQuote } from 'lucide-react';
-import { useRef, useState } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  CircleHelp,
+  FileImage,
+  FileText,
+  Layers3,
+  ListTree,
+  MessageSquareQuote,
+} from 'lucide-react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import styles from './-rulebookPageDetailsEdit.module.css';
@@ -116,6 +125,71 @@ const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
 
 function blockDragId(blockId: string) {
   return `page-details:block:${blockId}`;
+}
+
+function ResponsiveRegionDescription({ id, label, text }: { id: string; label: string; text: string }) {
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const measurementRef = useRef<HTMLSpanElement>(null);
+  const [usesHelp, setUsesHelp] = useState(false);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const measurement = measurementRef.current;
+    if (!container || !measurement) {
+      return;
+    }
+
+    const update = () => setUsesHelp(measurement.getBoundingClientRect().width > container.clientWidth);
+    update();
+
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(update);
+    observer.observe(container);
+    observer.observe(measurement);
+    return () => observer.disconnect();
+  }, [text]);
+
+  return (
+    <span ref={containerRef} className={styles.regionDescription}>
+      <VisuallyHidden id={id}>{text}</VisuallyHidden>
+      <Text
+        component="span"
+        size="xs"
+        c="dimmed"
+        aria-hidden
+        hidden={usesHelp}
+        className={styles.regionDescriptionText}
+      >
+        {text}
+      </Text>
+      <span ref={measurementRef} aria-hidden className={styles.regionDescriptionMeasurement}>
+        {text}
+      </span>
+      {usesHelp ? (
+        <Tooltip
+          label={text}
+          multiline
+          maw={360}
+          position="top-start"
+          withArrow
+          events={{ hover: true, focus: true, touch: true }}
+        >
+          <Box
+            component="span"
+            role="img"
+            aria-label={`${label} details`}
+            aria-describedby={id}
+            tabIndex={0}
+            className={styles.regionHelp}
+          >
+            <CircleHelp size={14} aria-hidden />
+          </Box>
+        </Tooltip>
+      ) : null}
+    </span>
+  );
 }
 
 function regionDropId(regionKey: RulebookBlockRegionKey) {
@@ -357,6 +431,7 @@ function BlockRegionSummary({
     disabled: activeBlockId === null,
   });
   const contentId = `page-details-region-${region.key}`;
+  const description = `Accepts ${acceptedKindsLabel(region.acceptedBlockKinds)}. ${capacityLabel(region)}`;
 
   return (
     <section
@@ -373,17 +448,10 @@ function BlockRegionSummary({
           <Layers3 aria-hidden />
         </span>
         <span className={styles.regionWords}>
-          <Text component="span" fw={700}>
+          <Text component="span" fw={700} className={styles.regionTitle}>
             {region.label}
           </Text>
-          <Text component="span" size="xs" c="dimmed" id={`${contentId}-description`}>
-            Accepts {acceptedKindsLabel(region.acceptedBlockKinds)}. {capacityLabel(region)}
-          </Text>
-          {region.diagnostic ? (
-            <Text component="span" size="xs" c="red">
-              {region.diagnostic}
-            </Text>
-          ) : null}
+          <ResponsiveRegionDescription id={`${contentId}-description`} label={region.label} text={description} />
           {activeBlockId && dropStatus && !dropStatus.allowed ? (
             <Text component="span" size="xs" className={styles.visuallyHidden} aria-live="polite">
               {dropStatus.reason}
@@ -415,6 +483,11 @@ function BlockRegionSummary({
           </Menu>
         </Group>
       </div>
+      {region.diagnostic ? (
+        <Text component="div" size="xs" c="red" className={styles.regionDiagnostic}>
+          {region.diagnostic}
+        </Text>
+      ) : null}
 
       <SortableContext
         items={region.blocks.map((block) => blockDragId(block.id))}
@@ -554,18 +627,6 @@ export function PageDetailsEdit({
     <Stack className={styles.root} gap="lg" aria-label="Page details">
       <Stack component="section" aria-label="Common Page controls" gap="md">
         <ControlBlock
-          title="Title"
-          description="Name this Page in the editor and Rulebook."
-          input={
-            <TextInput
-              aria-label="Title"
-              value={value.title}
-              error={diagnostics?.title}
-              onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
-            />
-          }
-        />
-        <ControlBlock
           title="Anchor"
           description="Set the stable public anchor used in links to this Page."
           input={
@@ -574,6 +635,18 @@ export function PageDetailsEdit({
               value={value.anchor}
               error={diagnostics?.anchor}
               onChange={(event) => onChange({ ...value, anchor: event.currentTarget.value })}
+            />
+          }
+        />
+        <ControlBlock
+          title="Title"
+          description="Name this Page in the editor and Rulebook."
+          input={
+            <TextInput
+              aria-label="Title"
+              value={value.title}
+              error={diagnostics?.title}
+              onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
             />
           }
         />

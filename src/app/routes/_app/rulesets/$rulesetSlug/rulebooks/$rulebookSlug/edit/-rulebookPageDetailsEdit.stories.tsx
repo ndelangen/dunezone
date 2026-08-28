@@ -365,6 +365,7 @@ export const PopulatedRulesPage = meta.story({
     const canvas = pageDetailsCanvas(canvasElement);
     const title = canvas.getByRole('textbox', { name: 'Title' });
     const anchor = canvas.getByRole('textbox', { name: 'Anchor' });
+    await expect(canvas.getAllByRole('textbox').slice(0, 2)).toEqual([anchor, title]);
     await expect(canvas.getAllByRole('img', { name: 'Help' })).toHaveLength(2);
     await userEvent.clear(title);
     await userEvent.type(title, 'Advanced movement');
@@ -634,7 +635,18 @@ export const NarrowContainer = meta.story({
     <PageDetailsStory
       initialValue={{ title: 'Movement', anchor: 'movement' }}
       initialRegions={populatedRulesRegions}
-      width="34rem"
+      width="28rem"
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = pageDetailsCanvas(canvasElement);
+    const rules = within(canvas.getByLabelText('Rules'));
+    const help = await rules.findByRole('img', { name: 'Rules details' });
+    await expect(help).toBeVisible();
+    await userEvent.hover(help);
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() =>
+      expect(page.getByRole('tooltip')).toHaveTextContent('Accepts Text, Rule group. 4 of 6 Blocks.')
+    );
+  },
 });
