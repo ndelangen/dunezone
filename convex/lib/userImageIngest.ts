@@ -9,11 +9,10 @@ import {
 
 /**
  * The ingest-call plumbing both rehost pipelines share: covers and avatars post the same request shape to the same Worker endpoint and differ only in capability.
- * The cover-only bearer path keeps its helpers in `rulesetCovers.ts`;
- * it retires with the shared secret.
+ * There is one way in, and the minted token is the whole credential.
  */
 
-/** The Worker's ingest origin, refused outside https because every ingest call carries a credential: a minted token in the body, or the legacy secret in a header on the cover backfill path. */
+/** The Worker's ingest origin, refused outside https because every ingest call carries a credential: the minted token rides in the body. */
 export function ingestBaseUrl(): string {
   const baseUrl = process.env.USER_IMAGE_INGEST_BASE_URL;
   if (!baseUrl) {
@@ -32,7 +31,7 @@ export function ingestBaseUrl(): string {
 }
 
 /** Reads a refusal or failure response into the `ConvexError` the caller sees; refusals travel as `ConvexError` because a plain error's message is redacted to "Server Error" outside dev, and these messages exist to be read. */
-export async function throwIngestFailure(response: Response): Promise<never> {
+async function throwIngestFailure(response: Response): Promise<never> {
   const refusal = userImageIngestErrorSchema.safeParse(await response.json().catch(() => null));
   if (response.status >= 400 && response.status < 500 && refusal.success) {
     throw new ConvexError(refusal.data.error);

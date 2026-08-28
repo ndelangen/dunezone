@@ -9,6 +9,13 @@ export const ingestTokenCapabilityValidator = v.union(
   v.object({
     kind: v.literal('ruleset_cover'),
     ruleset_id: v.id('rulesets'),
+    /**
+     * What `image_cover` must still read at consume time, present only on a mint that has an expectation to defend.
+     * The operator backfill sets it to the legacy string its scan saw, so a result that lands after an author rehosted bounces as superseded instead of overwriting them.
+     * The author path omits it: a save mints against a URL the document does not carry yet, since the rehost runs before the update and the document only ever holds our delivery URL.
+     * The avatar arm needs no such field because its mutation writes the source first, so the pinned `source_url` is already the echo.
+     */
+    expected_echo: v.optional(v.string()),
   }),
   v.object({
     kind: v.literal('profile_avatar'),

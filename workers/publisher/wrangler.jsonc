@@ -48,7 +48,7 @@
   "triggers": { "crons": ["*/5 * * * *"] },
   "limits": { "cpu_ms": 30000 },
   "secrets": {
-    "required": ["ASSET_PUBLISHER_CACHE_TOKEN_SECRET", "ASSET_PUBLISHER_EXECUTOR_SECRET", "USER_IMAGE_INGEST_SECRET"]
+    "required": ["ASSET_PUBLISHER_CACHE_TOKEN_SECRET", "ASSET_PUBLISHER_EXECUTOR_SECRET"]
   },
   "vars": {
     "USER_IMAGE_PUBLIC_BASE_URL": "https://dune.zone",
