@@ -289,6 +289,56 @@ describe('user image ingest', () => {
     expect(await refusalMessage(response)).toBe('The URL did not return an image');
   });
 
+  /*
+   * The deadline can expire after the headers arrive, which errors the body stream rather than the fetch.
+   * Before this was caught, that rejection left the handler as a 500 and the author was told nothing.
+   */
+  test('a source that stalls after its headers is refused rather than thrown', async () => {
+    const stalled = () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.error(new DOMException('The operation was aborted', 'TimeoutError'));
+          },
+        }),
+        { headers: { 'Content-Type': 'image/png' } }
+      );
+    vi.stubGlobal('fetch', ledgerFetch({ source: stalled }).mock);
+    const response = await handleUserImageIngest(ingestRequest(), {
+      USER_IMAGE_BUCKET: memoryBucket(),
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([jpegBytes({ widthPx: 800, heightPx: 600, progressive: true })]),
+    });
+
+    expect(response?.status).toBe(422);
+    expect(await refusalMessage(response)).toContain('did not finish sending');
+  });
+
+  /* The provenance note is bounded so a legal but enormous URL cannot fail a save whose image is fine. */
+  test('a long source URL is truncated in the stored provenance metadata', async () => {
+    const longSource = `https://images.example/${'a'.repeat(1500)}.png`;
+    expect(longSource.length).toBeLessThanOrEqual(2048);
+    const bucket = memoryBucket();
+    vi.stubGlobal('fetch', ledgerFetch().mock);
+
+    const response = await handleUserImageIngest(ingestRequest({ body: { source_url: longSource, token: TOKEN } }), {
+      USER_IMAGE_BUCKET: bucket,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([
+        jpegBytes({ widthPx: 800, heightPx: 600, progressive: true }),
+        jpegBytes({ widthPx: 320, heightPx: 240, progressive: true }),
+      ]),
+    });
+
+    expect(response?.status).toBe(200);
+    const stored = [...bucket.objects.values()][0];
+    const note = stored?.options.customMetadata?.sourceUrl ?? '';
+    expect(new TextEncoder().encode(note).byteLength).toBeLessThanOrEqual(1024);
+    /* A prefix rather than a placeholder, so the note still says where the image came from. */
+    expect(longSource.startsWith(note)).toBe(true);
+    expect(note.length).toBeGreaterThan(0);
+  });
+
   test('refuses a source larger than the byte limit even without a Content-Length header', async () => {
     const oversized = new Uint8Array(10 * 1024 * 1024 + 1);
     vi.stubGlobal('fetch', ledgerFetch({ sourceBytes: oversized }).mock);

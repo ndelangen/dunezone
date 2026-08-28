@@ -2,6 +2,7 @@ import { ConvexError } from 'convex/values';
 
 import {
   USER_IMAGE_INGEST_PATH,
+  USER_IMAGE_INGEST_TIMEOUT_MS,
   USER_IMAGE_LOCAL_HOSTS,
   userImageIngestCompletionSchema,
   userImageIngestErrorSchema,
@@ -11,6 +12,23 @@ import {
  * The ingest-call plumbing both rehost pipelines share: covers and avatars post the same request shape to the same Worker endpoint and differ only in capability.
  * There is one way in, and the minted token is the whole credential.
  */
+
+/**
+ * What one legacy row's rehost came to, as the backfill summaries count it.
+ * A skip is a race the consume guard won rather than a failure, so the two are counted apart and only one of them is worth an operator's attention.
+ */
+export type LegacyRowOutcome = { kind: 'rehosted' } | { kind: 'skipped' } | { kind: 'failed'; message: string };
+
+/** Turns whatever a rehost threw into the sentence the summary reports, since a refusal and a crash reach the caller by different routes. */
+export function rehostFailureMessage(error: unknown): string {
+  if (error instanceof ConvexError) {
+    return String(error.data);
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Rehost failed';
+}
 
 /** The Worker's ingest origin, refused outside https because every ingest call carries a credential: the minted token rides in the body. */
 export function ingestBaseUrl(): string {
@@ -50,6 +68,8 @@ export async function ingestWithToken(baseUrl: string, sourceUrl: string, token:
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ source_url: sourceUrl, token }),
+      /* The Worker bounds its own work, so this bounds the wait for a Worker that has stopped answering at all; without it the cover save holds an author's spinner open to the action ceiling. */
+      signal: AbortSignal.timeout(USER_IMAGE_INGEST_TIMEOUT_MS),
     });
   } catch {
     throw new ConvexError('Image storage is unreachable');

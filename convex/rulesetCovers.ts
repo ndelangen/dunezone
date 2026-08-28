@@ -1,11 +1,14 @@
+import { paginationOptsValidator } from 'convex/server';
 import { ConvexError, v } from 'convex/values';
 
 import { userImageSourceUrlSchema } from '../src/shared/user-images/contract';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
+import type { ActionCtx } from './_generated/server';
 import { action, internalAction, internalQuery } from './_generated/server';
 import { requireRulesetUpdate } from './lib/collaborativeAccess';
-import { ingestBaseUrl, ingestWithToken } from './lib/userImageIngest';
+import { ingestBaseUrl, ingestWithToken, rehostFailureMessage } from './lib/userImageIngest';
+import type { LegacyRowOutcome } from './lib/userImageIngest';
 
 /**
  * The cover rehost pipeline.
@@ -17,6 +20,17 @@ import { ingestBaseUrl, ingestWithToken } from './lib/userImageIngest';
  * The operator backfill rides the same token path as the author save;
  * it differs only in pinning an expected echo, so a row an author changed mid-fetch is left alone.
  */
+
+/** Rows read per scan page. */
+const BACKFILL_SCAN_PAGE = 100;
+
+/**
+ * Rows attempted before one invocation stops and hands back its cursor.
+ * The check runs after a whole page rather than mid-page, because a cursor only points cleanly past rows that were all processed: breaking mid-page would hand back a cursor past rows nothing had touched.
+ * So this is a floor rather than a cap, and the ceiling it implies is exact: at most `BACKFILL_SCAN_PAGE + BACKFILL_WORK_BUDGET - 1` rows are attempted per invocation, which is 199 at these sizes.
+ * The two constants are equal so that ceiling stays close to the number the name says.
+ */
+const BACKFILL_WORK_BUDGET = 100;
 
 /** The pre-fetch gate, so an unauthorized caller is refused before the Worker spends a fetch on their URL. */
 export const assertEditable = internalQuery({
@@ -55,26 +69,25 @@ export const rehost = action({
 });
 
 /**
- * Rows still on the legacy channel: a hot-linked string with no stored cover.
- * The scan reads the oldest 500 rulesets and says so: `truncated` reports whether the table extends past the window, because a rerun re-reads the same window and would otherwise look exhaustive.
+ * One page of rows still on the legacy channel: a hot-linked string with no stored cover.
+ * Paginated rather than a fixed head window, because converted rows keep their position: a scan that always read the first 500 rulesets would re-read the same rows on every rerun and could never reach the ones behind them.
+ * The returned cursor is null once the table is exhausted, which is the only honest way to say the scan is complete.
  */
 export const listLegacyCovers = internalQuery({
-  args: {},
+  args: { paginationOpts: paginationOptsValidator },
   returns: v.object({
     rows: v.array(v.object({ id: v.id('rulesets'), slug: v.string(), image_cover: v.string() })),
-    truncated: v.boolean(),
+    cursor: v.union(v.string(), v.null()),
   }),
-  handler: async (ctx) => {
-    const window = await ctx.db.query('rulesets').take(501);
-    const truncated = window.length === 501;
-    const rows = window
-      .slice(0, 500)
+  handler: async (ctx, args) => {
+    const page = await ctx.db.query('rulesets').paginate(args.paginationOpts);
+    const rows = page.page
       .filter(
         (row): row is typeof row & { image_cover: string } =>
           typeof row.image_cover === 'string' && row.cover == null && !row.is_deleted
       )
       .map((row) => ({ id: row._id, slug: row.slug, image_cover: row.image_cover }));
-    return { rows, truncated };
+    return { rows, cursor: page.isDone ? null : page.continueCursor };
   },
 });
 
@@ -90,54 +103,85 @@ export const currentCoverEcho = internalQuery({
 });
 
 /**
- * Rehosts every legacy hot-linked cover, run once by an operator after the rehost release ships.
+ * Converts one legacy row and answers with which of the three things happened, rather than reaching into the walk's counters.
+ * Split out so the action reads as "page through the table and tally", which is all the cursor arithmetic is about.
+ */
+async function rehostLegacyCover(
+  ctx: ActionCtx,
+  baseUrl: string,
+  row: { id: Doc<'rulesets'>['_id']; slug: string; image_cover: string }
+): Promise<LegacyRowOutcome> {
+  const parsedSource = userImageSourceUrlSchema.safeParse(row.image_cover);
+  if (!parsedSource.success) {
+    return { kind: 'failed', message: parsedSource.error.issues[0]?.message ?? 'Invalid legacy URL' };
+  }
+  const minted: { token: string } = await ctx.runMutation(internal.ingestTokens.mint, {
+    capability: { kind: 'ruleset_cover', ruleset_id: row.id, expected_echo: row.image_cover },
+    source_url: parsedSource.data,
+  });
+  try {
+    await ingestWithToken(baseUrl, parsedSource.data, minted.token);
+    return { kind: 'rehosted' };
+  } catch (error) {
+    /* An echo that moved since the scan means the consume guard bounced a stale result, not that the source failed; the newer write already owns the row. */
+    const echo: string | null = await ctx.runQuery(internal.rulesetCovers.currentCoverEcho, { id: row.id });
+    if (echo !== row.image_cover) {
+      return { kind: 'skipped' };
+    }
+    return { kind: 'failed', message: rehostFailureMessage(error) };
+  }
+}
+
+/**
+ * Rehosts legacy hot-linked covers, run by an operator after the rehost release ships.
  * Rides the token path like the author save, differing only in the expected echo it pins: the mint records the legacy string the scan saw, so a row an author rehosted while the Worker was fetching bounces in the consume mutation and counts as skipped.
  * A row whose source cannot be fetched is reported and left untouched, so a flaky host degrades to a rerun rather than data loss.
- * `truncated` passes the scan window's own report through;
- * a true value means rows past the first 500 rulesets were not seen.
+ *
+ * The scan walks the table by cursor, so a rerun makes progress instead of re-reading the same head.
+ * One invocation stops after the page that spends the work budget and hands back `next_cursor`;
+ * the operator reruns with it until it comes back null, which is what makes an arbitrarily large table reachable without one call carrying every ingest.
+ * A page is never abandoned half-done, so the cursor always points past rows that were fully processed.
  */
 export const backfillLegacyCovers = internalAction({
-  args: {},
+  args: { cursor: v.optional(v.union(v.string(), v.null())) },
   returns: v.object({
     rehosted: v.number(),
     skipped: v.number(),
     failed: v.array(v.object({ slug: v.string(), message: v.string() })),
-    truncated: v.boolean(),
+    next_cursor: v.union(v.string(), v.null()),
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const baseUrl = ingestBaseUrl();
-    const legacy: {
-      rows: { id: Doc<'rulesets'>['_id']; slug: string; image_cover: string }[];
-      truncated: boolean;
-    } = await ctx.runQuery(internal.rulesetCovers.listLegacyCovers, {});
+    let cursor: string | null = args.cursor ?? null;
     let rehosted = 0;
     let skipped = 0;
     const failed: { slug: string; message: string }[] = [];
-    for (const row of legacy.rows) {
-      const parsedSource = userImageSourceUrlSchema.safeParse(row.image_cover);
-      if (!parsedSource.success) {
-        failed.push({ slug: row.slug, message: parsedSource.error.issues[0]?.message ?? 'Invalid legacy URL' });
-        continue;
-      }
-      const minted: { token: string } = await ctx.runMutation(internal.ingestTokens.mint, {
-        capability: { kind: 'ruleset_cover', ruleset_id: row.id, expected_echo: row.image_cover },
-        source_url: parsedSource.data,
+    for (;;) {
+      const legacy: {
+        rows: { id: Doc<'rulesets'>['_id']; slug: string; image_cover: string }[];
+        cursor: string | null;
+      } = await ctx.runQuery(internal.rulesetCovers.listLegacyCovers, {
+        paginationOpts: { cursor, numItems: BACKFILL_SCAN_PAGE },
       });
-      try {
-        await ingestWithToken(baseUrl, parsedSource.data, minted.token);
-        rehosted += 1;
-      } catch (error) {
-        /* An echo that moved since the scan means the consume guard bounced a stale result, not that the source failed; the newer write already owns the row. */
-        const echo: string | null = await ctx.runQuery(internal.rulesetCovers.currentCoverEcho, { id: row.id });
-        if (echo !== row.image_cover) {
-          skipped += 1;
-          continue;
+      for (const row of legacy.rows) {
+        const outcome = await rehostLegacyCover(ctx, baseUrl, row);
+        switch (outcome.kind) {
+          case 'rehosted':
+            rehosted += 1;
+            break;
+          case 'skipped':
+            skipped += 1;
+            break;
+          case 'failed':
+            failed.push({ slug: row.slug, message: outcome.message });
+            break;
         }
-        const message =
-          error instanceof ConvexError ? String(error.data) : error instanceof Error ? error.message : 'Rehost failed';
-        failed.push({ slug: row.slug, message });
+      }
+      cursor = legacy.cursor;
+      if (cursor === null || rehosted + skipped + failed.length >= BACKFILL_WORK_BUDGET) {
+        break;
       }
     }
-    return { rehosted, skipped, failed, truncated: legacy.truncated };
+    return { rehosted, skipped, failed, next_cursor: cursor };
   },
 });

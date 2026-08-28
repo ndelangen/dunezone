@@ -67,6 +67,55 @@ afterEach(() => {
 });
 
 describe('profile avatar rehosting', () => {
+  /*
+   * A rehost begins on an active account and finishes whenever the Worker finishes, so deletion can start in between.
+   * The scan that finds backfill work already refuses non-active rows; without the same rule on the write path, a
+   * callback landing after the request would store a fresh avatar object against an account on its way out.
+   */
+  test('a callback that lands after deletion starts does not store an avatar', async () => {
+    vi.useFakeTimers();
+    const t = avatarFixture();
+    stubIngestEnvironment();
+    const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Leaving author' }));
+    const owner = t.withIdentity({ subject: userId });
+    await owner.mutation(api.profiles.bootstrapCurrent, {});
+
+    const saved = await owner.mutation(api.profiles.updateCurrent, {
+      username: 'LeavingAuthor',
+      avatar_url: SOURCE_URL,
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body)) as { token: string };
+        /* The account starts deleting while the Worker is fetching. */
+        await t.run(async (ctx) => {
+          await ctx.db.patch(saved.profile._id, { account_state: 'deletion_pending' });
+        });
+        const answer = await t.mutation(api.ingestTokens.consume, {
+          token: body.token,
+          result: { url: DELIVERY_URL, width: 320, height: 320 },
+          r2_keys: [AVATAR_KEY],
+        });
+        expect(answer).toEqual({ ok: false, reason: 'entity_gone' });
+        return new Response(JSON.stringify({ error: 'Consume refused' }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      })
+    );
+
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+    const row = await t.run(async (ctx) => await ctx.db.get(saved.profile._id));
+    expect(row?.avatar).toBeNull();
+    /* The tombstone still records what the ingest produced, so the objects stay collectable. */
+    const tombstone = await t.run(async (ctx) => await ctx.db.query('user_image_ingest_tokens').collect());
+    expect(tombstone.every((token) => token.consumed)).toBe(true);
+    expect(tombstone.flatMap((token) => token.r2_keys ?? [])).toContain(AVATAR_KEY);
+  });
+
   test('a save with a new external URL renders it at once, and the scheduled callback flips it to the stored avatar', async () => {
     vi.useFakeTimers();
     const t = avatarFixture();
@@ -177,7 +226,8 @@ describe('profile avatar rehosting', () => {
     expect(summary.rehosted).toBe(1);
     expect(summary.skipped).toBe(0);
     expect(summary.failed).toEqual([{ slug: 'deadrow', message: 'The image host answered with status 404' }]);
-    expect(summary.truncated).toBe(false);
+    /* Null rather than false: the scan walked to the end of the table, so there is nothing to resume from. */
+    expect(summary.next_cursor).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const rehosted = await t.run(async (ctx) => await ctx.db.get(ids.legacy));
     expect(rehosted?.avatar).toEqual(STORED_AVATAR);

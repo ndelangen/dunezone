@@ -140,6 +140,36 @@ describe('ruleset cover rehosting', () => {
     expect(row?.image_cover).toBe(DELIVERY_URL);
   });
 
+  /* The cover arm has the same window: a ruleset deleted while the Worker was fetching must not gain a stored cover afterwards. */
+  test('a callback that lands after the ruleset is deleted does not store a cover', async () => {
+    const { t, owner, ruleset } = await coverFixture();
+    stubIngestEnvironment();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body)) as { token: string };
+        await t.run(async (ctx) => {
+          await ctx.db.patch(ruleset._id, { is_deleted: true });
+        });
+        const answer = await t.mutation(api.ingestTokens.consume, {
+          token: body.token,
+          result: { url: DELIVERY_URL, thumb_url: DELIVERY_THUMB_URL, width: 800, height: 600 },
+          r2_keys: [`${'a'.repeat(64)}.jpg`, `${'b'.repeat(64)}.jpg`],
+        });
+        expect(answer).toEqual({ ok: false, reason: 'entity_gone' });
+        return new Response(JSON.stringify({ error: 'Consume refused' }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      })
+    );
+
+    await expect(owner.action(api.rulesetCovers.rehost, { id: ruleset._id, source_url: SOURCE_URL })).rejects.toThrow();
+
+    const row = await t.run(async (ctx) => await ctx.db.get(ruleset._id));
+    expect(row?.cover).toBeNull();
+  });
+
   test('the ingest response body alone writes nothing', async () => {
     const { t, owner, ruleset } = await coverFixture();
     stubIngestEnvironment();
@@ -270,6 +300,58 @@ describe('ruleset cover rehosting', () => {
     expect(row?.image_cover).toBe(DELIVERY_URL);
   });
 
+  /*
+   * The scan used to read a fixed head window, so converted rows kept their slots and anything behind
+   * them was unreachable no matter how often the backfill was rerun.
+   * This asserts the property that fixes it: a page hands back a cursor, and the next page is the rows
+   * behind the first rather than the same ones again.
+   */
+  test('the legacy scan walks past its first page instead of re-reading the head', async () => {
+    const { t, owner, ruleset } = await coverFixture();
+    const second = await owner.mutation(api.rulesets.create, { name: 'SecondCover', about: ABOUT, image_cover: null });
+    const third = await owner.mutation(api.rulesets.create, { name: 'ThirdCover', about: ABOUT, image_cover: null });
+    await t.run(async (ctx) => {
+      for (const id of [ruleset._id, second._id, third._id]) {
+        await ctx.db.patch(id, { image_cover: SOURCE_URL });
+      }
+    });
+
+    const firstPage = await t.query(internal.rulesetCovers.listLegacyCovers, {
+      paginationOpts: { cursor: null, numItems: 2 },
+    });
+    expect(firstPage.cursor).not.toBeNull();
+
+    const secondPage = await t.query(internal.rulesetCovers.listLegacyCovers, {
+      paginationOpts: { cursor: firstPage.cursor, numItems: 2 },
+    });
+    expect(secondPage.cursor).toBeNull();
+
+    const firstIds = firstPage.rows.map((row) => row.id);
+    const secondIds = secondPage.rows.map((row) => row.id);
+    /* No overlap is the whole point: a head window would return the same rows twice. */
+    expect(firstIds.some((id) => secondIds.includes(id))).toBe(false);
+    expect([...firstIds, ...secondIds].sort()).toEqual([ruleset._id, second._id, third._id].sort());
+  });
+
+  /*
+   * The Convex side bounds its own wait, so a Worker that has stopped answering cannot hold an author's
+   * save open to the platform ceiling.
+   * This asserts the wiring rather than the elapsed time: the deadline is real but waiting it out in a
+   * unit test would cost the deadline itself.
+   */
+  test('the ingest call carries its own deadline', async () => {
+    const { t, owner, ruleset } = await coverFixture();
+    stubIngestEnvironment();
+    const fetchMock = ingestWorkerSimulation(t);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await owner.action(api.rulesetCovers.rehost, { id: ruleset._id, source_url: SOURCE_URL });
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+    expect(init?.signal?.aborted).toBe(false);
+  });
+
   test('the backfill rehosts legacy rows and reports rows whose source fails', async () => {
     const { t, owner, ruleset } = await coverFixture();
     stubIngestEnvironment();
@@ -310,7 +392,8 @@ describe('ruleset cover rehosting', () => {
     expect(summary.failed).toEqual([
       { slug: 'failingcoverruleset', message: 'The image host answered with status 404' },
     ]);
-    expect(summary.truncated).toBe(false);
+    /* Null rather than false: the scan walked to the end of the table, so there is nothing to resume from. */
+    expect(summary.next_cursor).toBeNull();
     const rehosted = await t.run(async (ctx) => await ctx.db.get(ruleset._id));
     expect(rehosted?.cover).toEqual(STORED_COVER);
     const untouched = await t.run(async (ctx) => await ctx.db.get(failing._id));
