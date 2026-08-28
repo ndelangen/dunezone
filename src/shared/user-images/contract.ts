@@ -27,7 +27,7 @@ export const USER_IMAGE_TOKEN_CONSUME_FUNCTION = 'ingestTokens:consume';
  * What a minted token may write, and therefore which rendition recipe the Worker runs.
  * The recipe comes from the ledger's own capability record rather than from the request body, so a token holder cannot pick a recipe the mint never authorized.
  */
-export const USER_IMAGE_INGEST_KINDS = ['ruleset_cover', 'profile_avatar'] as const;
+const USER_IMAGE_INGEST_KINDS = ['ruleset_cover', 'profile_avatar'] as const;
 
 export type UserImageIngestKind = (typeof USER_IMAGE_INGEST_KINDS)[number];
 
