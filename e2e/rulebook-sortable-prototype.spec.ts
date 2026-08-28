@@ -105,3 +105,30 @@ test('an incompatible Block stays in its current Block region', async ({ page })
   await expect(openingRegion.getByRole('link', { name: 'Block 2 callout', exact: true })).toBeVisible();
   await expect(rulesRegion.getByRole('link', { name: 'Block 2 callout', exact: true })).toHaveCount(0);
 });
+
+test('the final Block stays last when dragged below its Block region', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1400 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(prototypePath);
+
+  const sourceHandle = page.getByRole('button', { name: 'Move Block 6', exact: true });
+  const incompatibleTarget = page.getByRole('button', { name: 'Move Block 7', exact: true });
+  const sourceBox = await sourceHandle.boundingBox();
+  const targetBox = await incompatibleTarget.boundingBox();
+
+  if (!sourceBox || !targetBox) {
+    throw new Error('The bottom-boundary drag handles have no rendered bounds.');
+  }
+
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
+    steps: 20,
+  });
+  await page.mouse.up();
+
+  const openingLinks = page
+    .getByRole('region', { name: 'Opening', exact: true })
+    .getByRole('link');
+  await expect(openingLinks.last()).toHaveAccessibleName('Block 6 callout');
+});

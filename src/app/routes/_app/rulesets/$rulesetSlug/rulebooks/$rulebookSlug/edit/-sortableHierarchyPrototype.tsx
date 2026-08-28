@@ -489,7 +489,6 @@ const summaryCollision: CollisionDetection = (args) => {
   }
   const rowContainers = args.droppableContainers.filter(
     (container) =>
-      container.id !== args.active.id &&
       container.data.current?.kind === 'summary-block' &&
       container.data.current.regionId === regionData.regionId
   );
