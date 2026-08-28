@@ -12,7 +12,8 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
-import { BackgroundPresetControl, sameBackground } from '@app/widgets/background-composer/BackgroundPresetControl';
+import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
+import { hasWorkToLose, sameBackground } from '@app/widgets/background-composer/presetChoice';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
 import {
   assetOptionToPreviewSrc,
@@ -89,8 +90,35 @@ function FillCard({ draft }: { draft: TreacheryDraft }) {
 
 type Patch = (update: Partial<TreacheryDraft>) => void;
 
+/**
+ * What this editor's session needs and a stored card has no room for.
+ *
+ * Each bit is one background control's declared Custom intent: the author said "I will compose my own", which the value cannot say once it happens to equal a preset.
+ * It lives here rather than inside the controls because a Reset the controls cannot see must discard it («Reset leaves the validation header open», #587).
+ */
+export type TreacheryMemory = {
+  headCustom: boolean;
+  iconCustom: boolean;
+};
+
+export const INITIAL_TREACHERY_MEMORY: TreacheryMemory = { headCustom: false, iconCustom: false };
+
+type Remember = (update: Partial<TreacheryMemory>) => void;
+
 /* The card's head: its name, type, and the Background behind them. */
-function HeadFields({ draft, patch, nameField }: { draft: TreacheryDraft; patch: Patch; nameField: ReactNode }) {
+function HeadFields({
+  draft,
+  patch,
+  memory,
+  remember,
+  nameField,
+}: {
+  draft: TreacheryDraft;
+  patch: Patch;
+  memory: TreacheryMemory;
+  remember: Remember;
+  nameField: ReactNode;
+}) {
   return (
     <Stack gap="md">
       <ControlBlock title="Name" description="Names the card and determines its URL." input={nameField} />
@@ -111,8 +139,10 @@ function HeadFields({ draft, patch, nameField }: { draft: TreacheryDraft; patch:
         usedOn="this card's head"
         presets={HEAD_PRESETS}
         value={draft.head}
+        declaredCustom={memory.headCustom}
+        onDeclaredCustomChange={(headCustom) => remember({ headCustom })}
         onChange={(head, presetKey) => {
-          patch({ head, ...matchingStripes(presetKey, draft) });
+          patch({ head, ...matchingStripes(presetKey, draft, memory) });
         }}
       />
     </Stack>
@@ -128,18 +158,37 @@ function HeadFields({ draft, patch, nameField }: { draft: TreacheryDraft; patch:
  *
  * So the stripes still follow the head, and only while there is nothing to lose.
  */
-function matchingStripes(presetKey: string | null, draft: TreacheryDraft): Pick<TreacheryDraft, 'icon'> | undefined {
+function matchingStripes(
+  presetKey: string | null,
+  draft: TreacheryDraft,
+  memory: TreacheryMemory
+): Pick<TreacheryDraft, 'icon'> | undefined {
   const preset = CARD_PRESETS.find((candidate) => candidate.key === presetKey);
   if (!preset) {
     return undefined;
   }
   const wornHead = CARD_PRESETS.find((candidate) => sameBackground(candidate.head, draft.head));
   const iconIsStillItsStripes = wornHead ? sameBackground(wornHead.striped, draft.icon[0]) : false;
-  return iconIsStillItsStripes ? { icon: [preset.striped, draft.icon[1]] } : undefined;
+  /*
+   * Value equality alone could not see an author who had opened the icon's composer and not yet typed.
+   * D5 on «Work the editors wave» widened the test to the declared intent as well, since opening the composer is the declaration.
+   */
+  const lose = hasWorkToLose({ stillWearsExpected: iconIsStillItsStripes, declaredCustom: memory.iconCustom });
+  return lose ? undefined : { icon: [preset.striped, draft.icon[1]] };
 }
 
 /* The card's icon: the vector in the top-right disc, its Background, and its scale. */
-function IconFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
+function IconFields({
+  draft,
+  patch,
+  memory,
+  remember,
+}: {
+  draft: TreacheryDraft;
+  patch: Patch;
+  memory: TreacheryMemory;
+  remember: Remember;
+}) {
   return (
     <Stack gap="md">
       <ControlBlock
@@ -200,6 +249,8 @@ function IconFields({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
         usedOn="this card's icon"
         presets={ICON_BACKGROUND_PRESETS}
         value={draft.icon[0]}
+        declaredCustom={memory.iconCustom}
+        onDeclaredCustomChange={(iconCustom) => remember({ iconCustom })}
         onChange={(background) => patch({ icon: [background, draft.icon[1]] })}
       />
       <ControlBlock
@@ -401,6 +452,8 @@ export function TreacheryCardEditor({
   nameField,
   draft,
   patch,
+  memory,
+  remember,
   chapter,
   onChapterChange,
   onSettle,
@@ -409,6 +462,9 @@ export function TreacheryCardEditor({
   /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
   nameField: ReactNode;
   patch: Patch;
+  /** The session's memory and its setter, the same value-plus-onChange membrane the draft crosses on. */
+  memory: TreacheryMemory;
+  remember: Remember;
   chapter: TreacheryChapter;
   onChapterChange: (chapter: TreacheryChapter) => void;
   /** Fired on field blur and chapter switches, the signals that let an emptied warning list close the validation header. */
@@ -431,13 +487,15 @@ export function TreacheryCardEditor({
                 value: 'head',
                 label: 'Head',
                 icon: <TopicIcon topic="text" size={21} />,
-                panel: panel(<HeadFields draft={draft} patch={patch} nameField={nameField} />),
+                panel: panel(
+                  <HeadFields draft={draft} patch={patch} memory={memory} remember={remember} nameField={nameField} />
+                ),
               },
               {
                 value: 'icon',
                 label: 'Symbol',
                 icon: <Stamp size={21} aria-hidden />,
-                panel: panel(<IconFields draft={draft} patch={patch} />),
+                panel: panel(<IconFields draft={draft} patch={patch} memory={memory} remember={remember} />),
               },
               {
                 value: 'decals',

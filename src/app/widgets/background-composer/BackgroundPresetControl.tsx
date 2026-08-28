@@ -6,41 +6,7 @@ import type { BackgroundData } from '@game/data/backgrounds';
 
 import { BackgroundComposer } from './BackgroundComposer';
 import { BackgroundPresetPicker } from './BackgroundPresetPicker';
-
-/*
- * Object keys sort before stringifying, so a gradient clone the schema re-emits in shape key order
- * still equals the preset literal whatever order its author wrote.
- * Arrays keep their order: colour order and stop order are the contract.
- */
-function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(canonical);
-  }
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.keys(value)
-        .sort()
-        .map((key) => [key, canonical((value as Record<string, unknown>)[key])])
-    );
-  }
-  return value;
-}
-
-/**
- * Value equality for a background, since a preset is only "selected" while the stored value still matches it exactly.
- * Scalars compare field by field;
- * `colors` alone compares by canonical stringify, because a colour element may be a gradient object and a round-tripped clone never satisfies reference equality or, once the schema re-emits it, key order.
- * Every stock matcher that embeds a background (`sameCardback`, `sameBand`) delegates here rather than restating the split.
- */
-export function sameBackground(a: BackgroundData, b: BackgroundData): boolean {
-  return (
-    a.image === b.image &&
-    a.invert === b.invert &&
-    a.definition === b.definition &&
-    a.influence === b.influence &&
-    JSON.stringify(canonical(a.colors)) === JSON.stringify(canonical(b.colors))
-  );
-}
+import { CUSTOM_PRESET, presetKeyFor, presetSelection } from './presetChoice';
 
 /* A background chosen from named presets, with the composer behind a Custom option.
    "Custom" stays selected while the value still equals a preset; the choice itself opens the composer. */
@@ -51,6 +17,8 @@ export function BackgroundPresetControl({
   presets,
   value,
   onChange,
+  declaredCustom,
+  onDeclaredCustomChange,
 }: {
   title: string;
   description: string;
@@ -58,10 +26,23 @@ export function BackgroundPresetControl({
   presets: readonly { key: string; label: string; background: BackgroundData }[];
   value: BackgroundData;
   onChange: (background: BackgroundData, presetKey: string | null) => void;
+  /**
+   * The author's declared Custom intent, which the value cannot express once it happens to equal a preset.
+   * Controlled by the editors migrated onto the authoring session, where it lives in the session's memory and so resets with the draft.
+   */
+  declaredCustom?: boolean;
+  onDeclaredCustomChange?: (next: boolean) => void;
 }) {
-  const presetKey = presets.find((preset) => sameBackground(preset.background, value))?.key ?? null;
-  const [customChosen, setCustomChosen] = useState(presetKey === null);
-  const selected = customChosen || presetKey === null ? 'custom' : presetKey;
+  const presetKey = presetKeyFor(presets, value);
+  /*
+   * The uncontrolled half is the pre-migration latch, kept only for the mounts that have not moved yet.
+   * It is the shape «Reset leaves the validation header open» and #587 both indict: component state whose correctness depends on a draft the caller owns, wrong after a Reset it cannot see.
+   * Delete this state and make both props required once the remaining editors are migrated; nothing else here changes when it goes.
+   */
+  const [latchedCustom, setLatchedCustom] = useState(presetKey === null);
+  const customChosen = declaredCustom ?? latchedCustom;
+  const setCustomChosen = onDeclaredCustomChange ?? setLatchedCustom;
+  const selected = presetSelection(presetKey, customChosen);
   return (
     <ControlBlock
       title={title}
@@ -74,7 +55,7 @@ export function BackgroundPresetControl({
             selected={selected}
             customBackground={value}
             onSelect={(next) => {
-              if (next === 'custom') {
+              if (next === CUSTOM_PRESET) {
                 setCustomChosen(true);
                 return;
               }
@@ -85,7 +66,7 @@ export function BackgroundPresetControl({
               }
             }}
           />
-          {selected === 'custom' ? (
+          {selected === CUSTOM_PRESET ? (
             <BackgroundComposer value={value} onChange={(background) => onChange(background, null)} usedOn={usedOn} />
           ) : null}
         </Stack>

@@ -1,7 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
-import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
@@ -9,14 +8,16 @@ import { useState } from 'react';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
+import { useAuthoringEnvelope, useAuthoringSession } from '@app/widgets/authoring/useAuthoringSession';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import {
   INITIAL_TREACHERY_DRAFT,
+  INITIAL_TREACHERY_MEMORY,
   TreacheryCardEditor,
   treacheryDraftWarnings,
 } from '@app/widgets/card-editor/TreacheryCardEditor';
-import type { TreacheryChapter, TreacheryDraft } from '@app/widgets/card-editor/TreacheryCardEditor';
+import type { TreacheryChapter } from '@app/widgets/card-editor/TreacheryCardEditor';
+import { TreacheryAsset } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
@@ -27,31 +28,33 @@ export function TreacheryCreatePage() {
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
-  const [draft, setDraft] = useState<TreacheryDraft>(INITIAL_TREACHERY_DRAFT);
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
-  const patch = (update: Partial<TreacheryDraft>) => setDraft((prev) => ({ ...prev, ...update }));
+  const envelope = useAuthoringEnvelope({
+    initialData: INITIAL_TREACHERY_DRAFT,
+    initialMemory: INITIAL_TREACHERY_MEMORY,
+  });
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
     type: 'card-treachery',
-    name: draft.name,
-    onName: (name) => patch({ name }),
+    name: envelope.draft.name,
+    onName: (name) => envelope.patch({ name }),
     source: 'Head',
     chapter: 'head' as TreacheryChapter,
   });
-  const warnings: (
-    | ReturnType<typeof treacheryDraftWarnings>[number]
-    | { source: string; complaint: string; chapter: TreacheryChapter }
-  )[] = [...treacheryDraftWarnings(draft), ...conflictWarnings];
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(INITIAL_TREACHERY_DRAFT);
-  const isNameBlank = !draft.name.trim();
-  const saveState: AuthoringSaveState = createAsset.isPending
-    ? 'saving'
-    : createAsset.error
-      ? 'error'
-      : createAsset.data !== undefined
-        ? 'saved'
-        : 'idle';
-  const validationHeader = useValidationHeader(warnings.length);
+  const warnings = [...treacheryDraftWarnings(envelope.draft), ...conflictWarnings];
+  const session = useAuthoringSession({
+    envelope,
+    warnings,
+    schema: TreacheryAsset,
+    persistence: {
+      save: (payload) => createAsset.mutateAsync({ type: 'card-treachery', data: payload }),
+      isPending: createAsset.isPending,
+      error: createAsset.error,
+      hasSaved: createAsset.data !== undefined,
+    },
+    onSaved: ({ slug }) =>
+      void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'card-treachery', slug }, replace: true }),
+  });
 
   switch (viewer.kind) {
     case 'pending':
@@ -70,19 +73,9 @@ export function TreacheryCreatePage() {
       break;
   }
 
-  const save = () => {
-    createAsset.mutate(
-      { type: 'card-treachery', data: draft },
-      {
-        onSuccess: ({ slug }) =>
-          void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'card-treachery', slug }, replace: true }),
-      }
-    );
-  };
-
   return (
     <PageLayout>
-      {validationHeader.open ? (
+      {session.header.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -93,14 +86,14 @@ export function TreacheryCreatePage() {
       ) : null}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          status={{ isDirty, isNameBlank, saveState }}
+          status={session.status}
           copy={{
             saveLabel: 'Save card',
             nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
           }}
           actions={{
-            onSave: save,
-            onReset: validationHeader.releasing(() => setDraft(INITIAL_TREACHERY_DRAFT)),
+            onSave: session.actions.save,
+            onReset: session.actions.reset,
             onBack: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
           }}
         />
@@ -110,11 +103,13 @@ export function TreacheryCreatePage() {
           <SaveErrorAlert error={createAsset.error} />
           <TreacheryCardEditor
             nameField={nameField}
-            draft={draft}
-            patch={patch}
+            draft={envelope.draft}
+            patch={envelope.patch}
+            memory={envelope.memory}
+            remember={envelope.remember}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={validationHeader.settle}
+            onSettle={session.header.settle}
           />
         </WorkbenchLayout>
       </PageLayout.Content>

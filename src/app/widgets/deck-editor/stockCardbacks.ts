@@ -1,7 +1,7 @@
 import type { CardBack } from '@shared/assets/schema';
 import type { z } from 'zod';
 
-import { sameBackground } from '@app/widgets/background-composer/BackgroundPresetControl';
+import { sameBackground } from '@app/widgets/background-composer/presetChoice';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 export type CardbackData = z.infer<typeof CardBack>;
