@@ -123,10 +123,7 @@ function DocumentEditorLayoutBase({ ratio, fit, children }: DocumentEditorLayout
   }, [fit, ratio, preview, sidebar]);
 
   return (
-    <div
-      className={styles.container}
-      style={{ '--document-editor-ratio': ratio } as CSSProperties}
-    >
+    <div className={styles.container} style={{ '--document-editor-ratio': ratio } as CSSProperties}>
       <div
         ref={rootRef}
         className={styles.root}
