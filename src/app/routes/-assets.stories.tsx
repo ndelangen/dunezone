@@ -224,3 +224,43 @@ export const EditTreacheryCardDeclaringCustomIsNotAChange = meta.story({
     await expect(page.findByText('No unsaved changes', {}, { timeout: 30_000 })).resolves.toBeVisible();
   },
 });
+
+/**
+ * A Reset discards the face the editor was keeping for you, which is D3's first unlocked finding on «Work the editors wave».
+ *
+ * The composed face and the referenced target used to be refs inside the token editor, so a Reset the widget could not see left them standing.
+ * Flipping back to a mode afterwards restored work the author had already discarded, and for the reference half a save would then write a token the page never showed.
+ * They live in the page's reducer memory now, and `replace` rebuilds the whole state, so the keep dies with the draft.
+ *
+ * The assertion is the face rather than the toolbar, because both outcomes leave the page dirty;
+ * only the content tells them apart.
+ * With the keep discarded, returning to Composed starts from the editor's own opening face.
+ * With the keep surviving, it would restore the word typed before the Reset.
+ */
+export const EditDiscTokenResetDiscardsTheKeptFace = meta.story({
+  args: { path: '/assets/token-disc/karama/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const backside = async () => within(await page.findByRole('radiogroup', { name: 'Backside' }, { timeout: 30_000 }));
+
+    /* The stored back is "same as front", so composing one is what gives the editor a face to keep. */
+    await userEvent.click((await backside()).getByRole('radio', { name: 'Composed here' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Back rim' }, { timeout: 30_000 }));
+    const top = await page.findByRole('textbox', { name: 'Top label' }, { timeout: 30_000 });
+    await userEvent.clear(top);
+    await userEvent.type(top, 'KEPT');
+
+    /* Flipping away is what captures that face, and the reference tile is the way out that still leaves the draft dirty, so Reset is armed. */
+    await userEvent.click(await page.findByRole('tab', { name: 'Identity' }, { timeout: 30_000 }));
+    await userEvent.click((await backside()).getByRole('radio', { name: "Another token's back" }));
+
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await expect(page.findByText('No unsaved changes', {}, { timeout: 30_000 })).resolves.toBeVisible();
+
+    await userEvent.click((await backside()).getByRole('radio', { name: 'Composed here' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Back rim' }, { timeout: 30_000 }));
+    await expect(page.findByRole('textbox', { name: 'Top label' }, { timeout: 30_000 })).resolves.not.toHaveValue(
+      'KEPT'
+    );
+  },
+});
