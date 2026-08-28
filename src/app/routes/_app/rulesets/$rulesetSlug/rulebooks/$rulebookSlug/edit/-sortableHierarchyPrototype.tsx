@@ -689,8 +689,11 @@ function PageDetailsSummaries({
   };
 
   const placementFromOver = (blockId: string, over: DragOverEvent['over']) => {
-    if (!over || over.id === summaryBlockId(blockId)) {
+    if (!over) {
       return null;
+    }
+    if (over.id === summaryBlockId(blockId)) {
+      return findBlockPlacement(regions, blockId);
     }
     const targetBlockId = idSuffix(over.id, 'summary:block:');
     if (targetBlockId) {

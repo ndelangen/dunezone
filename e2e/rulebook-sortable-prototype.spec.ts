@@ -132,3 +132,30 @@ test('the final Block stays last when dragged below its Block region', async ({ 
     .getByRole('link');
   await expect(openingLinks.last()).toHaveAccessibleName('Block 6 callout');
 });
+
+test('the final Block can return to its own slot before release', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1400 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(prototypePath);
+
+  const sourceHandle = page.getByRole('button', { name: 'Move Block 6', exact: true });
+  const previousHandle = page.getByRole('button', { name: 'Move Block 5', exact: true });
+  const sourceBox = await sourceHandle.boundingBox();
+  const previousBox = await previousHandle.boundingBox();
+
+  if (!sourceBox || !previousBox) {
+    throw new Error('The return-to-origin drag handles have no rendered bounds.');
+  }
+
+  const pointerX = sourceBox.x + sourceBox.width / 2;
+  await page.mouse.move(pointerX, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(pointerX, previousBox.y + previousBox.height / 2, { steps: 12 });
+  await page.mouse.move(pointerX, sourceBox.y + sourceBox.height / 2, { steps: 12 });
+  await page.mouse.up();
+
+  const openingLinks = page
+    .getByRole('region', { name: 'Opening', exact: true })
+    .getByRole('link');
+  await expect(openingLinks.last()).toHaveAccessibleName('Block 6 callout');
+});
