@@ -162,9 +162,18 @@ Mutations don't count.
 A screen whose state sits in a row of `useState` calls has no single place that says what a
 transition does, and Reset is where that shows: it has to remember every setter, so the piece added
 last is the one it forgets, and the repair arrives as an effect resyncing what a rebuild would have
-handled. So once a component holds more than one `useState` of a primitive in one cohesive state machine, that state becomes a
-`useReducer` in the file that owns it, with named events instead of loose setters, and the events
-that replace state rebuild it whole rather than assigning a field at a time.
+handled. So once a component holds more than one `useState` of a primitive in one cohesive state
+machine, that state becomes a `useReducer` in the file that owns it, with named events instead of
+loose setters, and the events that replace state rebuild it whole rather than assigning a field at a
+time.
+
+A chapter selection and a picker's open flag are not that machine. They are their own concerns and
+stay their own `useState` beside the reducer, which is why the representative file below has two of
+them sitting next to one. And a single `patch` merging an author's edits into the draft is already a
+named event, because every field edit means the same thing and it can reach nothing outside the
+draft. The names this rule exists to force into the open are the transitions: replacing the whole
+state, moving the baseline after a save, whatever a Reset or a Load performs. Those get their own
+event, and never hide inside a setter or inside a patch.
 
 The reducers this produces come out near-identical across sites, and that repetition is the design
 rather than something to remove later. A generic stateful hook standing over them takes explicit
