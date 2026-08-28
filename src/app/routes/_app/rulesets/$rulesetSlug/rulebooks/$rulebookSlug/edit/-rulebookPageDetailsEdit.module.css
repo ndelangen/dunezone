@@ -34,7 +34,7 @@
   align-items: center;
   width: 100%;
   min-width: 0;
-  padding-inline: calc(var(--mantine-spacing-xs) + 1px);
+  padding-inline: 0;
   opacity: 0.86;
 }
 

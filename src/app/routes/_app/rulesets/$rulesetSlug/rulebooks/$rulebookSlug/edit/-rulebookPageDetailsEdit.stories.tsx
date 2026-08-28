@@ -384,16 +384,14 @@ export const PopulatedRulesPage = meta.story({
     const rulesHeader = rules.querySelector<HTMLElement>('[data-region-header]');
     await expect(rulesHeader).not.toBeNull();
     await expect(rulesHeader!.getBoundingClientRect().right).toBeLessThanOrEqual(rules.getBoundingClientRect().right);
-    const regionIcon = rulesHeader!.querySelector('svg');
-    const blockIcon = movementButton.querySelector('svg');
-    await expect(regionIcon).not.toBeNull();
-    await expect(blockIcon).not.toBeNull();
-    await expect(
-      Math.abs(regionIcon!.getBoundingClientRect().left - blockIcon!.getBoundingClientRect().left)
-    ).toBeLessThan(1);
+    await expect(rulesHeader!.getBoundingClientRect().left).toBe(rules.getBoundingClientRect().left);
+    await expect(rulesHeader!.querySelector('svg')?.getBoundingClientRect().left).toBe(
+      rulesHeader!.getBoundingClientRect().left
+    );
     const addButtons = canvas.getAllByRole('button', { name: /^Add a Block to/ });
     const addButtonRightEdges = addButtons.map((button) => button.getBoundingClientRect().right);
     await expect(new Set(addButtonRightEdges).size).toBe(1);
+    await expect(addButtonRightEdges[0]).toBe(rulesHeader!.getBoundingClientRect().right);
     movementButton.focus();
     await expect(onNavigateBlock).not.toHaveBeenCalled();
     await userEvent.keyboard('[Enter]');
