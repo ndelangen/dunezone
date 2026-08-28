@@ -51,7 +51,7 @@ test('Page and Block add menus expose only layout-compatible choices', async ({ 
   await page.getByRole('button', { name: 'Add block' }).click();
   const blockMenu = page.getByRole('menu', { name: 'Add block' });
   await expect(blockMenu.getByRole('menuitem', { name: 'Asset figure' })).toBeVisible();
-  await expect(blockMenu.getByRole('menuitem', { name: 'Text' })).toBeVisible();
+  await expect(blockMenu.getByRole('menuitem', { name: 'Text', exact: true })).toBeVisible();
   await expect(blockMenu.getByRole('menuitem', { name: 'Repeated text' })).toBeVisible();
   await expect(blockMenu.getByRole('menuitem', { name: 'Rule group' })).toHaveCount(0);
   await blockMenu.getByRole('menuitem', { name: 'Asset figure' }).click();
