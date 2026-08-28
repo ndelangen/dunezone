@@ -12,7 +12,11 @@ test('collapsed icons select Blocks directly and formatted edits reach the previ
   await expect(preview).toContainText('Movement sequence');
 
   await page.getByRole('button', { name: /Storm marker\. Asset figure/ }).click();
-  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Storm marker');
+  await expect(page.getByRole('textbox', { name: 'Content' })).toHaveValue(
+    'The storm closes the boundary between its two sectors.'
+  );
+  await page.getByRole('button', { name: /Movement sequence\. Rule group/ }).click();
+  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Movement sequence');
   await page.getByRole('textbox', { name: 'Title' }).fill('Storm sector marker');
   await expect(preview).toContainText('Storm sector marker');
 
@@ -42,16 +46,17 @@ test('Page and Block add menus expose only layout-compatible choices', async ({ 
 
   const preview = page.getByRole('article', { name: 'Rulebook page preview' });
   await expect(preview).toContainText('Visual reference / 04');
-  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Selected Asset');
+  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Add block' }).click();
   const blockMenu = page.getByRole('menu', { name: 'Add block' });
   await expect(blockMenu.getByRole('menuitem', { name: 'Asset figure' })).toBeVisible();
-  await expect(blockMenu.getByRole('menuitem', { name: 'Worked example' })).toBeVisible();
+  await expect(blockMenu.getByRole('menuitem', { name: 'Text' })).toBeVisible();
+  await expect(blockMenu.getByRole('menuitem', { name: 'Repeated text' })).toBeVisible();
   await expect(blockMenu.getByRole('menuitem', { name: 'Rule group' })).toHaveCount(0);
-  await blockMenu.getByRole('menuitem', { name: 'Worked example' }).click();
-  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Worked example');
-  await expect(preview).toContainText('Explain one example step by step.');
+  await blockMenu.getByRole('menuitem', { name: 'Asset figure' }).click();
+  await expect(page.getByRole('textbox', { name: 'Content' })).toHaveValue('Add a short caption for this figure.');
+  await expect(preview).toContainText('Add a short caption for this figure.');
 });
 
 test('Page and Block icon rails reorder their current draft', async ({ page }) => {
@@ -78,15 +83,21 @@ test('Page and Block icon rails reorder their current draft', async ({ page }) =
 
   const blocks = page.getByRole('region', { name: 'Blocks panel' });
   await drag(
-    blocks.getByRole('button', { name: /Storm marker\. Asset figure/ }),
-    blocks.getByRole('button', { name: /Movement sequence\. Rule group/ })
+    blocks.getByRole('button', { name: /Repeated text\. Repeated text/ }),
+    blocks.getByRole('button', { name: /Storm marker\. Asset figure/ })
   );
   const blockButtons = blocks.getByRole('button', { name: /Drag to reorder or click to select/ });
-  await expect.poll(() => blockButtons.first().getAttribute('aria-label')).toContain('Storm marker');
-  const blockLabels = await blockButtons.evaluateAll((buttons) =>
-    buttons.map((button) => button.getAttribute('aria-label'))
-  );
-  expect(blockLabels[0]).toContain('Storm marker');
+  await expect
+    .poll(async () => {
+      const blockLabels = await blockButtons.evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute('aria-label') ?? '')
+      );
+      return (
+        blockLabels.findIndex((label) => label.startsWith('Repeated text')) <
+        blockLabels.findIndex((label) => label.startsWith('Storm marker'))
+      );
+    })
+    .toBe(true);
 });
 
 test('the A4 preview and Sidebar stay aligned without nested scroll traps', async ({ page }) => {
