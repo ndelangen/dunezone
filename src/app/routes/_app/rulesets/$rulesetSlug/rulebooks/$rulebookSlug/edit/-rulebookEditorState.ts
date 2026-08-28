@@ -1296,7 +1296,7 @@ function patchValidationError(baseline: RulebookContentsV1, patch: RulebookEditP
       }
       restoreSnapshot(draft, restoration.snapshot, restoration.placement);
     }
-    for (const creation of patch.creates) {
+    for (const creation of creationsInMaterializationOrder(patch.creates)) {
       const target = addEntityData(draft, creation.entity);
       placementRequests.push({ target, destination: creation.placement });
     }
@@ -1340,7 +1340,7 @@ function applyPatch(baseline: RulebookContentsV1, patch: RulebookEditPatchV1): R
   for (const restoration of patch.restorations) {
     restoreSnapshot(draft, restoration.snapshot, restoration.placement);
   }
-  for (const creation of patch.creates) {
+  for (const creation of creationsInMaterializationOrder(patch.creates)) {
     const target = addEntityData(draft, creation.entity);
     requests.push({ target, destination: creation.placement });
   }
@@ -1597,6 +1597,18 @@ function entityForNew(entity: RulebookNewEntity): RulebookEntityRef {
     return { kind: 'block', pageId: entity.pageId, blockId: entity.block.id };
   }
   return { kind: 'item', pageId: entity.pageId, blockId: entity.blockId, itemId: entity.item.id };
+}
+
+function creationsInMaterializationOrder(creations: readonly RulebookCreateIntent[]): RulebookCreateIntent[] {
+  const depth = (creation: RulebookCreateIntent) => {
+    const ref = entityForNew(creation.entity);
+    return ref.kind === 'page' ? 0 : ref.kind === 'block' ? 1 : 2;
+  };
+  return [...creations].sort(
+    (left, right) =>
+      depth(left) - depth(right) ||
+      compareCanonicalText(entityRefKey(entityForNew(left.entity)), entityRefKey(entityForNew(right.entity)))
+  );
 }
 
 function validateDraft(draft: RulebookContentsDraftV1): {
@@ -2099,7 +2111,7 @@ function reconcile(state: ReadyState): Reconciliation {
 
   const placementDraft = clone(proposed);
   const placementRequests: PlacementRequest[] = [];
-  for (const creation of state.patch.creates) {
+  for (const creation of creationsInMaterializationOrder(state.patch.creates)) {
     const target = entityForNew(creation.entity);
     const owner = containerOwner(creation.placement.container);
     if (owner && blockedRefs.has(entityRefKey(owner))) {

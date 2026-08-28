@@ -123,6 +123,55 @@ describe('Rulebook editor state manager', () => {
     expect(result.rebasedPatch.deletes).toHaveLength(0);
   });
 
+  it('materializes child creations after a newly created parent Page', () => {
+    const input = createCleanRulebookEditorInput();
+    const manager = createRulebookEditorStateManager(input);
+    manager.dispatch({
+      kind: 'create',
+      entity: {
+        kind: 'page',
+        page: {
+          id: 'NEWW',
+          anchor: 'new-reference',
+          title: 'New reference',
+          layoutId: 'visual-reference',
+          controlValues: {},
+          blockOrderByRegion: { figures: [], notes: [] },
+          blocksById: {},
+        },
+      },
+      placement: {
+        container: { kind: 'page-order' },
+        afterId: 'REFS',
+        beforeId: null,
+      },
+    });
+    const created = ready(
+      manager.dispatch({
+        kind: 'create',
+        entity: {
+          kind: 'block',
+          pageId: 'NEWW',
+          block: { id: 'FGRR', kind: 'asset-figure', text: 'A new figure.' },
+        },
+        placement: {
+          container: { kind: 'block-region', pageId: 'NEWW', regionKey: 'figures' },
+          afterId: null,
+          beforeId: null,
+        },
+      })
+    );
+
+    expect(created.operationError).toBeUndefined();
+    expect(created.draft.pagesById.NEWW?.blocksById.FGRR).toMatchObject({ text: 'A new figure.' });
+
+    const replayed = ready(
+      createRulebookEditorStateManager({ ...input, patch: created.rebasedPatch, resolutionLedger: [] })
+    );
+    expect(replayed.operationError).toBeUndefined();
+    expect(replayed.draft.pagesById.NEWW?.blocksById.FGRR).toMatchObject({ text: 'A new figure.' });
+  });
+
   it('reorders Blocks inside a region and moves a compatible Block between regions', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     let result = ready(
