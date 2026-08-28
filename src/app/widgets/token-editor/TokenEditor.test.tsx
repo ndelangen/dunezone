@@ -6,8 +6,8 @@ import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 
-import { initialTokenDraft, TokenEditor, tokenDraftWarnings } from './TokenEditor';
-import type { TokenChapter, TokenDraft } from './TokenEditor';
+import { initialTokenDraft, initialTokenMemory, TokenEditor, tokenDraftWarnings } from './TokenEditor';
+import type { TokenChapter, TokenDraft, TokenMemory } from './TokenEditor';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -41,6 +41,7 @@ function Harness({
   onSettle?: () => void;
 }) {
   const [draft, setDraft] = useState<TokenDraft>(initialTokenDraft(TYPE));
+  const [memory, setMemory] = useState<TokenMemory>(() => initialTokenMemory(initialTokenDraft(TYPE).back));
   const [chapter, setChapter] = useState<TokenChapter>('identity');
   expose({ draft, setDraft });
   return (
@@ -49,6 +50,8 @@ function Harness({
         nameField={<input aria-label="Name" readOnly value="" />}
         draft={draft}
         patch={(update) => setDraft((previous) => ({ ...previous, ...update }))}
+        memory={memory}
+        remember={(update) => setMemory((previous) => ({ ...previous, ...update }))}
         type={TYPE}
         chapter={chapter}
         onChapterChange={setChapter}

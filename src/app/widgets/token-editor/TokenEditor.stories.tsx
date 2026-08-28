@@ -2,7 +2,7 @@ import { Text } from '@mantine/core';
 import preview from '@sb/preview';
 import { fn } from 'storybook/test';
 
-import { initialTokenDraft, TokenEditor, TokenProof } from './TokenEditor';
+import { initialTokenDraft, initialTokenMemory, TokenEditor, TokenProof } from './TokenEditor';
 import type { TokenDraft } from './TokenEditor';
 
 const TYPE = 'token-disc';
@@ -24,6 +24,8 @@ const meta = preview.meta({
     onChapterChange: fn(),
     onSettle: fn(),
     patch: fn(),
+    memory: initialTokenMemory(composedBack),
+    remember: fn(),
     backPicker: () => <Text size="xs">Choose a token…</Text>,
     backProof: <TokenProof face={initialTokenDraft(TYPE).front} type={TYPE} />,
     draft: draftWith(composedBack),

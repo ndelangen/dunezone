@@ -7,23 +7,26 @@ import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
+import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
 import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
 import {
   RectangleTokenEditor,
   RectangleProof,
+  initialRectangleMemory,
   rectangleDraftWarnings,
 } from '@app/widgets/token-editor/RectangleTokenEditor';
 import type {
   RectangleWarning,
   RectangleChapter,
   RectangleDraft,
+  RectangleMemory,
 } from '@app/widgets/token-editor/RectangleTokenEditor';
 
 import {
@@ -107,6 +110,45 @@ export function RectangleEditPage({
   );
 }
 
+/**
+ * This page's authoring state, and the four things that happen to it.
+ *
+ * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design.
+ * `memory` is what the session needs and the stored token has no room for (D3): the face and target kept across mode flips, the declared Custom intents, the picked token the label and proof draw, and whether a save has already complained.
+ * Rebuilding the whole state on `replace` is what makes a discarded pick actually discarded: while the face and target were refs in the widget, a Reset left them standing and the next save could write a reference the page never showed.
+ */
+type PageMemory = RectangleMemory & { pickedBack: { name: string; data: unknown } | null; pickBlocked: boolean };
+
+type PageState = { data: RectangleDraft; memory: PageMemory; baseline: RectangleDraft };
+
+type PageEvent =
+  | { kind: 'patch'; update: Partial<RectangleDraft> }
+  | { kind: 'remember'; update: Partial<PageMemory> }
+  | { kind: 'replace'; data: RectangleDraft; pick: { name: string; data: unknown } | null }
+  | { kind: 'saved'; data: RectangleDraft };
+
+function openingState(
+  data: RectangleDraft,
+  baseline: RectangleDraft,
+  pick: { name: string; data: unknown } | null
+): PageState {
+  return { data, memory: { ...initialRectangleMemory(data.back), pickedBack: pick, pickBlocked: false }, baseline };
+}
+
+function reduce(state: PageState, event: PageEvent): PageState {
+  switch (event.kind) {
+    case 'patch':
+      return { ...state, data: { ...state.data, ...event.update } };
+    case 'remember':
+      return { ...state, memory: { ...state.memory, ...event.update } };
+    /* A reset rebuilds the whole state rather than assigning a field at a time, so a piece added here later cannot be the one a reset forgets; the seed pick rides on the event because the reducer holds no closure. */
+    case 'replace':
+      return openingState(event.data, state.baseline, event.pick);
+    case 'saved':
+      return { ...state, baseline: event.data };
+  }
+}
+
 function RectangleEditSession({
   access,
   type,
@@ -130,19 +172,14 @@ function RectangleEditSession({
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
   const deletion = useAssetDeletion(asset);
-  const [draft, setDraft] = useState<RectangleDraft>(initialDraft);
-  /*
-   * The token whose back the draft references, for the label and the proof.
-   * Server truth seeds it and a pick replaces it; the draft holds only the id, and demanding the
-   * entry back from the server before save would make the pick a write, which it no longer is.
-   */
-  const [pickedBack, setPickedBack] = useState<{ name: string; data: unknown } | null>(backToken);
-  /* Armed by a save attempt while the reference has no target; disarmed the moment the state resolves. */
-  const [pickBlocked, setPickBlocked] = useState(false);
-  const [baseline, setBaseline] = useState<RectangleDraft>(initialDraft);
   const [chapter, setChapter] = useState<RectangleChapter>('identity');
   const [pickerOpen, setPickerOpen] = useState(false);
-  const patch = (update: Partial<RectangleDraft>) => setDraft((prev) => ({ ...prev, ...update }));
+  /*
+   * Server truth seeds the picked token and a pick replaces it; the draft holds only the id, and this holds the name and face the label and proof draw.
+   * A reset returns it to that same server truth, which is why the seed rides on the replace event.
+   */
+  const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft, backToken));
+  const patch = (update: Partial<RectangleDraft>) => dispatch({ kind: 'patch', update });
   /*
    * The dangling complaint rides the widened validation header beside the widget's own warnings
    * («How a dangling back reference presents»): a signpost, never a second set of mode controls.
@@ -151,23 +188,24 @@ function RectangleEditSession({
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
     type,
-    name: draft.name,
+    name: state.data.name,
     onName: (name) => patch({ name }),
     currentSlug: asset.slug,
     source: 'Identity',
     chapter: 'identity' as RectangleChapter,
   });
   const warnings: (RectangleWarning | { source: string; complaint: string; chapter: RectangleChapter })[] = [
-    ...rectangleDraftWarnings(draft),
+    ...rectangleDraftWarnings(state.data),
     ...conflictWarnings,
-    ...(danglingBack && draft.back.mode === 'reference'
+    ...(danglingBack && state.data.back.mode === 'reference'
       ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as RectangleChapter }]
       : []),
   ];
   /* The proof draws what was picked, which is the target's authored back, never its front; the shared reader carries the distrust. */
-  const referencedBack = pickedBack ? referencedRectangleBackFace(pickedBack.data) : null;
-  const isDirty = JSON.stringify(draft) !== JSON.stringify(baseline);
-  const isNameBlank = !draft.name.trim();
+  const referencedBack = state.memory.pickedBack ? referencedRectangleBackFace(state.memory.pickedBack.data) : null;
+  /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
+  const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
+  const isNameBlank = !state.data.name.trim();
   const saveState: AuthoringSaveState = updateAsset.isPending
     ? 'saving'
     : updateAsset.error
@@ -175,23 +213,23 @@ function RectangleEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const validationHeader = useValidationHeader(warnings.length);
+  const header = useValidationHeader(warnings.length);
 
-  const pickless = draft.back.mode === 'reference' && draft.back.asset_id === null;
+  const pickless = state.data.back.mode === 'reference' && state.data.back.asset_id === null;
 
   const save = () => {
     /* A pickless reference is blocked here with words, rather than letting the stored schema answer with a Zod error. */
+    dispatch({ kind: 'remember', update: { pickBlocked: pickless } });
     if (pickless) {
-      setPickBlocked(true);
       return;
     }
-    setPickBlocked(false);
-    const saved = draft;
+    /* The stored schema's own keys decide what is posted, so the session's memory can never ride along (D3). */
+    const saved = postedPayload(RectangleTokenAsset, state.data);
     updateAsset.mutate(
       { id: asset.id, data: saved },
       {
         onSuccess: ({ slug: nextSlug }) => {
-          setBaseline(saved);
+          dispatch({ kind: 'saved', data: saved });
           /* Renames re-slug: follow the token to its new URL so a reload keeps editing it. */
           if (nextSlug !== asset.slug) {
             void navigate({ to: '/assets/$type/$slug/edit', params: { type, slug: nextSlug }, replace: true });
@@ -203,7 +241,7 @@ function RectangleEditSession({
 
   return (
     <PageLayout>
-      {validationHeader.open ? (
+      {header.open ? (
         <PageLayout.Header size="compact">
           <ValidationHeader
             id={VALIDATION_HEADER_ID}
@@ -221,12 +259,7 @@ function RectangleEditSession({
           }}
           actions={{
             onSave: save,
-            onReset: validationHeader.releasing(() => {
-              setDraft(baseline);
-              /* The pick lives in the draft now, so discarding the draft discards the pick with it. */
-              setPickedBack(backToken);
-              setPickBlocked(false);
-            }),
+            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backToken })),
             onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
@@ -247,22 +280,24 @@ function RectangleEditSession({
             </Alert>
           ) : null}
           {groupActions.error}
-          {pickBlocked && pickless ? (
+          {state.memory.pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No token picked">
               Pick a token whose back this one wears, or choose another back mode.
             </Alert>
           ) : null}
           <RectangleTokenEditor
             nameField={nameField}
-            draft={draft}
+            draft={state.data}
             patch={patch}
+            memory={state.memory}
+            remember={(update) => dispatch({ kind: 'remember', update })}
             chapter={chapter}
             onChapterChange={setChapter}
-            onSettle={validationHeader.settle}
+            onSettle={header.settle}
             backPicker={(disabled) => (
               <Group gap="xs" wrap="nowrap">
-                <Text size="sm" truncate style={{ minWidth: 0, flex: 1 }} title={pickedBack?.name}>
-                  {pickedBack ? pickedBack.name : 'No token chosen yet'}
+                <Text size="sm" truncate style={{ minWidth: 0, flex: 1 }} title={state.memory.pickedBack?.name}>
+                  {state.memory.pickedBack ? state.memory.pickedBack.name : 'No token chosen yet'}
                 </Text>
                 {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
                 <Popover opened={pickerOpen} onChange={setPickerOpen} width={340} position="bottom-start" withinPortal>
@@ -274,7 +309,7 @@ function RectangleEditSession({
                       disabled={disabled}
                       onClick={() => setPickerOpen((open) => !open)}
                     >
-                      {pickedBack ? 'Change' : 'Choose'}
+                      {state.memory.pickedBack ? 'Change' : 'Choose'}
                     </Button>
                   </Popover.Target>
                   <Popover.Dropdown>
@@ -292,7 +327,7 @@ function RectangleEditSession({
                       onPick={(picked) => {
                         setPickerOpen(false);
                         /* A pick is a draft edit, not a write; the reference reaches storage when the token is saved («The stored shape of three back modes»: one field, one writer). */
-                        setPickedBack(picked);
+                        dispatch({ kind: 'remember', update: { pickedBack: picked } });
                         patch({ back: { mode: 'reference', asset_id: picked.id } });
                       }}
                       onCancel={() => setPickerOpen(false)}
@@ -302,7 +337,7 @@ function RectangleEditSession({
               </Group>
             )}
             backProof={
-              pickedBack ? (
+              state.memory.pickedBack ? (
                 <Stack gap={4} align="center" w="100%">
                   {referencedBack ? (
                     <RectangleProof face={referencedBack} />
@@ -312,7 +347,7 @@ function RectangleEditSession({
                     </Text>
                   )}
                   <Text size="xs" c="dimmed">
-                    Back, from {pickedBack.name}
+                    Back, from {state.memory.pickedBack.name}
                   </Text>
                 </Stack>
               ) : null

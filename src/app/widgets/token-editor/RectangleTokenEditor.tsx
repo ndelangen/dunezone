@@ -7,7 +7,6 @@ import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -149,7 +148,17 @@ function PlacementControl({
 
 type FacePatch = (update: Partial<RectangleFaceDraft>) => void;
 
-function SurfaceFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePatch }) {
+function SurfaceFields({
+  face,
+  patch,
+  declaredCustom,
+  onDeclaredCustomChange,
+}: {
+  face: RectangleFaceDraft;
+  patch: FacePatch;
+  declaredCustom: boolean;
+  onDeclaredCustomChange: (next: boolean) => void;
+}) {
   return (
     <Stack gap="lg">
       {/*
@@ -164,6 +173,8 @@ function SurfaceFields({ face, patch }: { face: RectangleFaceDraft; patch: FaceP
         usedOn="this token's face"
         presets={BACKGROUND_PRESETS}
         value={face.background}
+        declaredCustom={declaredCustom}
+        onDeclaredCustomChange={onDeclaredCustomChange}
         onChange={(background) => patch({ background })}
       />
       <ControlBlock
@@ -432,10 +443,36 @@ function backForMode(
   }
 }
 
+/**
+ * What this editor's session needs and a stored token has no room for, the rectangle twin of `TokenMemory`.
+ *
+ * The face and the target the author last had, kept across mode flips, plus the declared Custom intent for the background control.
+ * In the route's reducer rather than in refs here, so a Reset discards them with the draft (D3's first unlocked finding on «Work the editors wave»).
+ */
+export type RectangleMemory = {
+  composedFace: RectangleFaceDraft | null;
+  referencedTarget: string | null;
+  /**
+   * One declared Custom intent per background control, and there are two: the front face's and the back's.
+   * `SurfaceFields` is one component serving both faces, so a single bit here would let a declaration on one face open the composer on the other.
+   */
+  backgroundCustom: { front: boolean; back: boolean };
+};
+
+export function initialRectangleMemory(back: RectangleDraft['back']): RectangleMemory {
+  return {
+    composedFace: back.mode === 'custom' ? back.face : null,
+    referencedTarget: back.mode === 'reference' ? (back.asset_id ?? null) : null,
+    backgroundCustom: { front: false, back: false },
+  };
+}
+
 export function RectangleTokenEditor({
   nameField,
   draft,
   patch,
+  memory,
+  remember,
   chapter,
   onChapterChange,
   onSettle,
@@ -443,6 +480,9 @@ export function RectangleTokenEditor({
   backProof,
 }: {
   draft: RectangleDraft;
+  /** The session's memory and its setter, the same value plus onChange membrane the draft crosses on. */
+  memory: RectangleMemory;
+  remember: (update: Partial<RectangleMemory>) => void;
   /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
   nameField: ReactNode;
   patch: (update: Partial<RectangleDraft>) => void;
@@ -454,13 +494,6 @@ export function RectangleTokenEditor({
   /** The referenced token's front, drawn in the rail in place of an authored back. */
   backProof: ReactNode;
 }) {
-  /* The composition the author last had, kept across mode flips; the stored union cannot hold it. */
-  const composedFace = useRef<RectangleFaceDraft | null>(draft.back.mode === 'custom' ? draft.back.face : null);
-  /* The target the author last picked, kept across mode flips for the same reason the face is. */
-  const referencedTarget = useRef<string | null>(
-    draft.back.mode === 'reference' ? (draft.back.asset_id ?? null) : null
-  );
-
   const patchFace = (key: 'front' | 'back'): FacePatch =>
     key === 'front'
       ? (update) => patch({ front: { ...draft.front, ...update } })
@@ -474,7 +507,14 @@ export function RectangleTokenEditor({
       value: key as RectangleChapter,
       label,
       icon: <TopicIcon topic="face" size={21} />,
-      panel: panel(<SurfaceFields face={face} patch={facePatch} />),
+      panel: panel(
+        <SurfaceFields
+          face={face}
+          patch={facePatch}
+          declaredCustom={memory.backgroundCustom[key]}
+          onDeclaredCustomChange={(next) => remember({ backgroundCustom: { ...memory.backgroundCustom, [key]: next } })}
+        />
+      ),
     },
     {
       value: `${key}-decals` as RectangleChapter,
@@ -508,13 +548,13 @@ export function RectangleTokenEditor({
                 aspectRatio={String(1 / assetFaceAspect('token-enhance'))}
                 onChange={(mode) => {
                   /* Captured on the way out, so returning to Composed finds the face as it was left. */
-                  if (draft.back.mode === 'custom') {
-                    composedFace.current = draft.back.face;
-                  }
-                  if (draft.back.mode === 'reference' && draft.back.asset_id) {
-                    referencedTarget.current = draft.back.asset_id;
-                  }
-                  patch({ back: backForMode(mode, draft, composedFace.current, referencedTarget.current) });
+                  const keptFace = draft.back.mode === 'custom' ? draft.back.face : memory.composedFace;
+                  const keptTarget =
+                    draft.back.mode === 'reference' && draft.back.asset_id
+                      ? draft.back.asset_id
+                      : memory.referencedTarget;
+                  remember({ composedFace: keptFace, referencedTarget: keptTarget });
+                  patch({ back: backForMode(mode, draft, keptFace, keptTarget) });
                 }}
                 options={[
                   {
@@ -523,7 +563,7 @@ export function RectangleTokenEditor({
                     /* Always drawable, the deck's stock tile's rule: the composed face, the one the author left behind, or the composer's own starting point. Never a dashed nothing (Norbert, 2026-08-21). */
                     preview: (
                       <RectangleProof
-                        face={draft.back.mode === 'custom' ? draft.back.face : (composedFace.current ?? INITIAL_FACE)}
+                        face={draft.back.mode === 'custom' ? draft.back.face : (memory.composedFace ?? INITIAL_FACE)}
                       />
                     ),
                     canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('token-enhance') },
