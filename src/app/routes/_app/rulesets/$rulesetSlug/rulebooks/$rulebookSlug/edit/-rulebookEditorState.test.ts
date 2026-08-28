@@ -421,6 +421,41 @@ describe('Rulebook editor state manager', () => {
     expect(result.canSave).toBe(false);
   });
 
+  it('clears a Page control-value edit after Save returns its normalized formatted text', () => {
+    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const introduction = '  leading\r\n\r\n*-_nested_-*\r\n';
+    let result = ready(
+      manager.dispatch({
+        kind: 'set',
+        target: { kind: 'page', pageId: 'RULE' },
+        field: 'control-values',
+        value: {
+          guidance: {
+            eyebrow: 'How to play',
+            introduction,
+          },
+        },
+      })
+    );
+    const requested = result.saveRequest;
+    expect(requested).toBeDefined();
+    const requestedPage = requested?.contents.pagesById.RULE;
+    if (requestedPage?.layoutId !== 'rules-page') {
+      throw new Error('Expected the RULE fixture Page');
+    }
+    expect(requestedPage.controlValues.guidance.introduction).not.toBe(introduction);
+
+    result = ready(manager.dispatch({ kind: 'begin-save' }));
+    result = ready(
+      manager.dispatch({
+        kind: 'save-succeeded',
+        saved: { revision: 'revision-2', contents: requested!.contents },
+      })
+    );
+    expect(result.rebasedPatch.sets).toHaveLength(0);
+    expect(result.canSave).toBe(false);
+  });
+
   it('preserves edits made while a Save request is in flight', () => {
     const manager = createRulebookEditorStateManager(createStaleSaveInput());
     const requested = ready(manager).saveRequest!;

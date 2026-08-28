@@ -1395,7 +1395,36 @@ function fieldKey(record: Pick<FieldRecord, 'target' | 'field'>): string {
   return `${entityRefKey(record.target)}:${record.field}`;
 }
 
+function comparableControlValues(value: unknown): unknown {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return value;
+  }
+  const controlValues = value as Record<string, unknown>;
+  const guidance = controlValues.guidance;
+  if (guidance === null || typeof guidance !== 'object' || Array.isArray(guidance)) {
+    return value;
+  }
+  const guidanceValues = guidance as Record<string, unknown>;
+  if (typeof guidanceValues.introduction !== 'string') {
+    return value;
+  }
+  const normalized = normalizeFormattedText(guidanceValues.introduction);
+  if (!normalized.ok) {
+    return value;
+  }
+  return {
+    ...controlValues,
+    guidance: {
+      ...guidanceValues,
+      introduction: normalized.value,
+    },
+  };
+}
+
 function comparableFieldValue(field: RulebookFieldName, value: unknown): unknown {
+  if (field === 'control-values') {
+    return comparableControlValues(value);
+  }
   if (field !== 'text' || value === undefined) {
     return value;
   }
