@@ -5,6 +5,7 @@ import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
+import { FactionLink } from '@ui/content/FactionLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -573,19 +574,24 @@ function PendingRequestsPanel({
   );
 }
 
+/**
+ * The group's factions, each cited the way a faction is cited everywhere else.
+ *
+ * The page owns the collection and what to say when it is empty.
+ * `FactionLink` owns the citation, so a faction here wears the same glyph and leads to the same place as a faction named on any other screen, and this file no longer spells the route out by hand.
+ * Its sibling `RulesetList` stays on `Links`, so the two lists in this card deliberately do not match.
+ */
 function FactionList({ factions }: { factions: FactionEntry[] }) {
   return factions.length === 0 ? (
     <Text size="sm" c="dimmed">
       No factions in this group yet.
     </Text>
   ) : (
-    <Links>
+    <Stack gap="xs" align="flex-start">
       {factions.map((faction) => (
-        <Links.Item key={faction._id} to="/factions/$factionId" params={{ factionId: faction.slug }}>
-          {faction.data.name}
-        </Links.Item>
+        <FactionLink key={faction._id} factionId={faction.slug} name={faction.data.name} />
       ))}
-    </Links>
+    </Stack>
   );
 }
 
