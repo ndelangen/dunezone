@@ -157,6 +157,26 @@ Mutations don't count.
 `src/app/db`, a separate, adjacent rule.) Stated here; [`AGENTS.md`](../../AGENTS.md) and
 [`state-management.md`](../state-management.md) cite it.*
 
+### State past one primitive is a local reducer
+
+A screen whose state sits in a row of `useState` calls has no single place that says what a
+transition does, and Reset is where that shows: it has to remember every setter, so the piece added
+last is the one it forgets, and the repair arrives as an effect resyncing what a rebuild would have
+handled. So once a component holds more than one `useState` of a primitive, that state becomes a
+`useReducer` in the file that owns it, with named events instead of loose setters, and the events
+that replace state rebuild it whole rather than assigning a field at a time.
+
+The reducers this produces come out near-identical across sites, and that repetition is the design
+rather than something to remove later. A generic stateful hook standing over them takes explicit
+sign-off, with its costs written out: what a call site can no longer read in one file, what a new
+event has to negotiate with every other caller, and what the abstraction is worth against the lines
+it saves. Pure functions lifted out of a reducer are exempt, and so is a hook that owns one concern
+rather than a screen's state.
+
+*Convention, with no automated guard. The asset editors under
+[`src/app/routes/_app/assets/`](../../src/app/routes/_app/assets/) each carry their own copy;
+`-tokenEdit.tsx` is representative. Stated here.*
+
 ## Visual semantics
 
 ### Action semantics: colour by intent, one primary
