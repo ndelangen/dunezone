@@ -3,32 +3,29 @@
   min-width: 0;
 }
 
-.introduction {
-  display: grid;
-  gap: 0.15rem;
-}
-
 .regions {
   min-width: 0;
-  border-top: 1px solid var(--mantine-color-default-border);
+  padding-block-start: var(--mantine-spacing-sm);
+  border-block-start: 1px solid color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .region {
+  position: relative;
   min-width: 0;
-  padding-block: var(--mantine-spacing-md);
-  border-bottom: 1px solid var(--mantine-color-default-border);
+  padding-block: var(--mantine-spacing-xs);
   transition: opacity var(--transition-fast);
 }
 
-.region[data-active] {
-  box-shadow: inset 2px 0 currentColor;
+.region + .region {
+  margin-block-start: var(--mantine-spacing-xs);
+  padding-block-start: var(--mantine-spacing-sm);
+  border-block-start: 1px solid color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .region[data-drop-eligibility="incompatible"] {
   opacity: 0.32;
 }
 
-.controlRegionNavigate,
 .blockRegionHeader {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -39,20 +36,11 @@
   padding-inline: var(--mantine-spacing-xs);
 }
 
-.controlRegionNavigate {
-  padding-block: var(--mantine-spacing-xs);
-  text-align: start;
-  border-radius: var(--mantine-radius-sm);
-}
-
-.controlRegionNavigate:hover,
-.controlRegionNavigate:focus-visible,
 .blockNavigate:hover,
 .blockNavigate:focus-visible {
   background: var(--mantine-color-default-hover);
 }
 
-.controlRegionNavigate:focus-visible,
 .blockNavigate:focus-visible {
   outline: 2px solid var(--mantine-primary-color-filled);
   outline-offset: 2px;
@@ -79,22 +67,22 @@
 
 .blockList {
   display: grid;
-  gap: var(--mantine-spacing-xs);
-  margin: var(--mantine-spacing-sm) 0 0;
+  gap: 0.28rem;
+  min-height: 1.25rem;
+  margin: var(--mantine-spacing-xs) 0 0;
   padding: 0;
   list-style: none;
 }
 
 .blockSummary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--mantine-spacing-xs);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   min-width: 0;
   color: var(--mantine-color-text);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
-  background: transparent;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: var(--mantine-radius-xs);
+  background: color-mix(in srgb, var(--mantine-color-body) 88%, transparent);
 }
 
 .blockSummary[data-dragging] {
@@ -111,17 +99,20 @@
   gap: var(--mantine-spacing-sm);
   align-items: center;
   min-width: 0;
-  padding: var(--mantine-spacing-sm);
+  width: 100%;
+  padding: 0.38rem var(--mantine-spacing-xs);
   text-align: start;
   border-radius: var(--mantine-radius-sm);
+  cursor: grab;
+  touch-action: none;
 }
 
-.blockNavigate[aria-current] {
-  box-shadow: inset 2px 0 var(--mantine-primary-color-filled);
+.blockSummary[data-dragging] .blockNavigate {
+  cursor: grabbing;
 }
 
 .blockDragPreview {
-  width: min(22rem, calc(100vw - 2rem));
+  width: 100%;
   opacity: 0.94;
   background: var(--mantine-color-body);
   box-shadow: var(--mantine-shadow-md);

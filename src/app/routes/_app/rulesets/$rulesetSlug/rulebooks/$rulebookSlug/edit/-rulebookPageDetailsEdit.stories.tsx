@@ -1,10 +1,21 @@
-import { Box } from '@mantine/core';
+import { Box, Menu } from '@mantine/core';
 import preview from '@sb/preview';
 import type { RulebookBlockDraft, RulebookBlockRegionKey } from '@shared/rulebooks/contents';
+import { AddAction } from '@ui/control/ListLengthActions';
 import { NestedTabs } from '@ui/surface';
-import { Circle, FileText, ListTree, SlidersHorizontal, Square } from 'lucide-react';
+import {
+  Circle,
+  FileImage,
+  FileText,
+  Layers3,
+  ListTree,
+  MessageSquareQuote,
+  SlidersHorizontal,
+  Square,
+} from 'lucide-react';
 import { useState } from 'react';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import type { ReactNode } from 'react';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { PageDetailsEdit } from './-rulebookPageDetailsEdit';
 import type {
@@ -12,12 +23,10 @@ import type {
   RulebookPageDetailsBlockRegion,
   RulebookPageDetailsDiagnostics,
   RulebookPageDetailsDropStatus,
-  RulebookPageDetailsRegion,
   RulebookPageDetailsValue,
 } from './-rulebookPageDetailsEdit';
 
 const onPageChange = fn();
-const onNavigateControlRegion = fn();
 const onNavigateBlock = fn();
 const onAddBlock = fn();
 const onToggleBlockRegion = fn();
@@ -36,6 +45,20 @@ const stormTiming: RulebookBlockDraft = {
   text: 'The storm closes the boundary between its two sectors.',
 };
 
+const terrainSequence: RulebookBlockDraft = {
+  id: 'TRRN',
+  kind: 'rule-group',
+  title: 'Terrain costs',
+  text: 'Pay the terrain cost before entering the destination sector.',
+};
+
+const retreatSequence: RulebookBlockDraft = {
+  id: 'RTRT',
+  kind: 'rule-group',
+  title: 'Retreat movement',
+  text: 'Resolve retreat movement after combat losses are assigned.',
+};
+
 const exampleList: RulebookBlockDraft = {
   id: 'L5ST',
   kind: 'repeated-text',
@@ -48,6 +71,22 @@ const exampleList: RulebookBlockDraft = {
   },
 };
 
+const retreatExamples: RulebookBlockDraft = {
+  id: 'RPTS',
+  kind: 'repeated-text',
+  itemOrder: ['retreat-one', 'retreat-two'],
+  itemsById: {
+    'retreat-one': {
+      id: 'retreat-one',
+      text: 'Retreat through an unoccupied adjacent sector.',
+    },
+    'retreat-two': {
+      id: 'retreat-two',
+      text: 'Do not retreat across the storm boundary.',
+    },
+  },
+};
+
 const stormFigure: RulebookBlockDraft = {
   id: 'ASST',
   kind: 'asset-figure',
@@ -55,15 +94,76 @@ const stormFigure: RulebookBlockDraft = {
   text: 'The storm marker advances one sector.',
 };
 
+const terrainFigure: RulebookBlockDraft = {
+  id: 'TRFG',
+  kind: 'asset-figure',
+  assetId: 'Terrain cost chart',
+  text: 'A compact reference for the terrain movement costs.',
+};
+
+const retreatFigure: RulebookBlockDraft = {
+  id: 'RTFG',
+  kind: 'asset-figure',
+  assetId: 'Retreat diagram',
+  text: 'A legal retreat path around an occupied sector.',
+};
+
+function storyBlockLabel(block: RulebookBlockDraft) {
+  if (block.kind === 'rule-group') {
+    return block.title;
+  }
+  if (block.kind === 'asset-figure') {
+    return block.assetId ?? 'Asset figure Block';
+  }
+  if (block.kind === 'repeated-text') {
+    const firstItemId = block.itemOrder[0];
+    return (firstItemId ? block.itemsById[firstItemId]?.text : undefined) ?? 'Repeated text Block';
+  }
+  return block.text || 'Text Block';
+}
+
+function storyBlockIcon(block: RulebookBlockDraft) {
+  if (block.kind === 'rule-group') {
+    return <ListTree />;
+  }
+  if (block.kind === 'asset-figure') {
+    return <FileImage />;
+  }
+  if (block.kind === 'repeated-text') {
+    return <MessageSquareQuote />;
+  }
+  return <FileText />;
+}
+
+function StoryRailAddMenu({
+  label,
+  choices,
+}: Readonly<{
+  label: string;
+  choices: readonly { label: string; icon: ReactNode }[];
+}>) {
+  return (
+    <Menu position="right-end" withArrow>
+      <Menu.Target>
+        <AddAction label={label} />
+      </Menu.Target>
+      <Menu.Dropdown>
+        {choices.map((choice) => (
+          <Menu.Item key={choice.label} leftSection={choice.icon}>
+            {choice.label}
+          </Menu.Item>
+        ))}
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
+
 function moveBlock(
-  regions: readonly RulebookPageDetailsRegion[],
+  regions: readonly RulebookPageDetailsBlockRegion[],
   intent: RulebookPageDetailsBlockMoveIntent
-): RulebookPageDetailsRegion[] {
+): RulebookPageDetailsBlockRegion[] {
   let movedBlock: RulebookBlockDraft | undefined;
   const withoutBlock = regions.map((region) => {
-    if (region.kind === 'control') {
-      return region;
-    }
     const block = region.blocks.find((candidate) => candidate.id === intent.blockId);
     movedBlock ??= block;
     return {
@@ -76,7 +176,7 @@ function moveBlock(
   }
   const blockToMove = movedBlock;
   return withoutBlock.map((region) => {
-    if (region.kind === 'control' || region.key !== intent.regionKey) {
+    if (region.key !== intent.regionKey) {
       return region;
     }
     const blocks = [...region.blocks];
@@ -86,18 +186,13 @@ function moveBlock(
 }
 
 function blockDropStatus(
-  regions: readonly RulebookPageDetailsRegion[],
+  regions: readonly RulebookPageDetailsBlockRegion[],
   blockId: string,
   regionKey: RulebookBlockRegionKey
 ): RulebookPageDetailsDropStatus {
-  const source = regions.find(
-    (region): region is RulebookPageDetailsBlockRegion =>
-      region.kind === 'block' && region.blocks.some((block) => block.id === blockId)
-  );
+  const source = regions.find((region) => region.blocks.some((block) => block.id === blockId));
   const block = source?.blocks.find((candidate) => candidate.id === blockId);
-  const target = regions.find(
-    (region): region is RulebookPageDetailsBlockRegion => region.kind === 'block' && region.key === regionKey
-  );
+  const target = regions.find((region) => region.key === regionKey);
   if (!source || !block || !target) {
     return { allowed: false, reason: 'The Block placement no longer exists.' };
   }
@@ -117,13 +212,11 @@ function blockDropStatus(
 function PageDetailsStory({
   initialValue,
   initialRegions,
-  activeBlockId,
   diagnostics,
   width = 'min(64rem, calc(100vw - 2rem))',
 }: Readonly<{
   initialValue: RulebookPageDetailsValue;
-  initialRegions: readonly RulebookPageDetailsRegion[];
-  activeBlockId?: string;
+  initialRegions: readonly RulebookPageDetailsBlockRegion[];
   diagnostics?: RulebookPageDetailsDiagnostics;
   width?: string;
 }>) {
@@ -135,6 +228,15 @@ function PageDetailsStory({
         <NestedTabs.Level label="Pages">
           <NestedTabs.Item as="a" href="#page-a" path={['page-a']} label="Page A" icon={<Circle />} />
           <NestedTabs.Item as="a" href="#page-b" path={['page-b']} label="Page B" icon={<Square />} />
+          <NestedTabs.Tools>
+            <StoryRailAddMenu
+              label="Add Page"
+              choices={[
+                { label: 'Rules Page', icon: <ListTree /> },
+                { label: 'Figure Page', icon: <FileImage /> },
+              ]}
+            />
+          </NestedTabs.Tools>
         </NestedTabs.Level>
         <NestedTabs.Level label="Page">
           <NestedTabs.Item
@@ -151,35 +253,45 @@ function PageDetailsStory({
             label="Control region"
             icon={<SlidersHorizontal />}
           />
-          <NestedTabs.Group label="Block region" icon={<ListTree />}>
-            <NestedTabs.Item
-              as="a"
-              href="#page-a/block-a"
-              path={['page-a', 'block-a']}
-              label="Block A"
-              icon={<FileText />}
+          {regions.map((region) => (
+            <NestedTabs.Group key={region.key} label={region.label} icon={<Layers3 />}>
+              {region.blocks.map((block) => (
+                <NestedTabs.Item
+                  key={block.id}
+                  as="a"
+                  href={`#page-a/${block.id}`}
+                  path={['page-a', block.id]}
+                  label={storyBlockLabel(block)}
+                  icon={storyBlockIcon(block)}
+                />
+              ))}
+            </NestedTabs.Group>
+          ))}
+          <NestedTabs.Tools>
+            <StoryRailAddMenu
+              label="Add Page region"
+              choices={[
+                { label: 'Control region', icon: <SlidersHorizontal /> },
+                { label: 'Block region', icon: <Layers3 /> },
+              ]}
             />
-          </NestedTabs.Group>
+          </NestedTabs.Tools>
         </NestedTabs.Level>
         <NestedTabs.ContentPanel aria-label="Page details destination">
           <PageDetailsEdit
             value={value}
             diagnostics={diagnostics}
             regions={regions}
-            activeBlockId={activeBlockId}
             onChange={(nextValue) => {
               onPageChange(nextValue);
               setValue(nextValue);
             }}
-            onNavigateControlRegion={onNavigateControlRegion}
             onNavigateBlock={onNavigateBlock}
             onAddBlock={onAddBlock}
             onToggleBlockRegion={(regionKey, collapsed) => {
               onToggleBlockRegion(regionKey, collapsed);
               setRegions((current) =>
-                current.map((region) =>
-                  region.kind === 'block' && region.key === regionKey ? { ...region, collapsed } : region
-                )
+                current.map((region) => (region.key === regionKey ? { ...region, collapsed } : region))
               );
             }}
             getBlockDropStatus={(blockId, regionKey) => blockDropStatus(regions, blockId, regionKey)}
@@ -199,36 +311,36 @@ function pageDetailsCanvas(canvasElement: HTMLElement) {
   return within(within(destination).getByLabelText('Page details'));
 }
 
-const guidanceRegion = {
-  kind: 'control',
-  key: 'guidance',
-  label: 'Page guidance',
-  summary: ['Rules page', 'Resolve movement before starting combat.'],
-  active: false,
-} as const;
-
-const populatedRulesRegions: readonly RulebookPageDetailsRegion[] = [
-  guidanceRegion,
+const populatedRulesRegions: readonly RulebookPageDetailsBlockRegion[] = [
   {
-    kind: 'block',
     key: 'rules',
     label: 'Rules',
     acceptedBlockKinds: ['text', 'rule-group'],
     minimum: 0,
     maximum: 6,
-    blocks: [movement, stormTiming],
+    blocks: [movement, terrainSequence, stormTiming, retreatSequence],
     collapsed: false,
-    containsActiveBlock: true,
+    containsActiveBlock: false,
     canAddBlock: true,
   },
   {
-    kind: 'block',
     key: 'examples',
     label: 'Examples',
     acceptedBlockKinds: ['text', 'repeated-text', 'asset-figure'],
     minimum: 0,
+    maximum: 6,
+    blocks: [exampleList, stormFigure, retreatExamples],
+    collapsed: false,
+    containsActiveBlock: false,
+    canAddBlock: true,
+  },
+  {
+    key: 'figures',
+    label: 'Figures',
+    acceptedBlockKinds: ['asset-figure'],
+    minimum: 0,
     maximum: 3,
-    blocks: [exampleList, stormFigure],
+    blocks: [terrainFigure, retreatFigure],
     collapsed: false,
     containsActiveBlock: false,
     canAddBlock: true,
@@ -243,44 +355,38 @@ const meta = preview.meta({
 
 export const PopulatedRulesPage = meta.story({
   render: () => (
-    <PageDetailsStory
-      initialValue={{ title: 'Movement', anchor: 'movement' }}
-      initialRegions={populatedRulesRegions}
-      activeBlockId="TEXT"
-    />
+    <PageDetailsStory initialValue={{ title: 'Movement', anchor: 'movement' }} initialRegions={populatedRulesRegions} />
   ),
   play: async ({ canvasElement }) => {
     onPageChange.mockClear();
-    onNavigateControlRegion.mockClear();
     onNavigateBlock.mockClear();
     onAddBlock.mockClear();
     onToggleBlockRegion.mockClear();
     const canvas = pageDetailsCanvas(canvasElement);
     const title = canvas.getByRole('textbox', { name: 'Title' });
     const anchor = canvas.getByRole('textbox', { name: 'Anchor' });
-    await expect(title).toHaveAccessibleDescription('Name this Page in the editor and Rulebook.');
+    await expect(canvas.getAllByRole('img', { name: 'Help' })).toHaveLength(2);
     await userEvent.clear(title);
     await userEvent.type(title, 'Advanced movement');
     await expect(onPageChange).toHaveBeenLastCalledWith({
       title: 'Advanced movement',
       anchor: 'movement',
     });
-    await userEvent.tab();
+    anchor.focus();
     await expect(anchor).toHaveFocus();
-    await userEvent.tab();
-    const guidance = canvas.getByRole('button', { name: /Page guidance/ });
-    await expect(guidance).toHaveFocus();
-    await expect(onNavigateControlRegion).not.toHaveBeenCalled();
+    const movementButton = canvas.getByRole('button', { name: 'Edit Movement sequence' });
+    movementButton.focus();
+    await expect(onNavigateBlock).not.toHaveBeenCalled();
     await userEvent.keyboard('[Enter]');
-    await expect(onNavigateControlRegion).toHaveBeenCalledWith('guidance');
-    await userEvent.click(canvas.getByRole('button', { name: 'Edit Movement sequence' }));
     await expect(onNavigateBlock).toHaveBeenCalledWith('MVVE');
     await userEvent.click(canvas.getByRole('button', { name: 'Add a Block to Rules' }));
-    await expect(onAddBlock).toHaveBeenCalledWith('rules');
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('menuitem', { name: 'Text' })).toBeVisible());
+    await userEvent.click(page.getByRole('menuitem', { name: 'Text' }));
+    await expect(onAddBlock).toHaveBeenCalledWith('rules', 'text');
     await userEvent.click(canvas.getByRole('button', { name: 'Collapse Examples' }));
     await expect(onToggleBlockRegion).toHaveBeenCalledWith('examples', true);
     await expect(canvas.getByRole('button', { name: 'Expand Examples' })).toBeVisible();
-    await expect(canvas.getByLabelText('Rules')).toHaveAttribute('data-contains-active-block', 'true');
     await userEvent.clear(title);
     await userEvent.type(title, 'Movement');
   },
@@ -295,7 +401,6 @@ export const EmptyVisualReference = meta.story({
       }}
       initialRegions={[
         {
-          kind: 'block',
           key: 'figures',
           label: 'Figures',
           acceptedBlockKinds: ['asset-figure'],
@@ -307,7 +412,6 @@ export const EmptyVisualReference = meta.story({
           canAddBlock: true,
         },
         {
-          kind: 'block',
           key: 'notes',
           label: 'Notes',
           acceptedBlockKinds: ['text', 'repeated-text'],
@@ -325,40 +429,7 @@ export const EmptyVisualReference = meta.story({
     const canvas = pageDetailsCanvas(canvasElement);
     await expect(canvas.getAllByText('No Blocks in this region.')).toHaveLength(2);
     await expect(canvas.getByRole('button', { name: 'Add a Block to Figures' })).toBeEnabled();
-    await expect(canvas.queryByRole('button', { name: /Page guidance/ })).not.toBeInTheDocument();
   },
-});
-
-export const SimpleControlRegion = meta.story({
-  render: () => (
-    <PageDetailsStory
-      initialValue={{
-        title: 'Welcome to Arrakis',
-        anchor: 'welcome-to-arrakis',
-      }}
-      initialRegions={[
-        {
-          kind: 'control',
-          key: 'chapter-label',
-          label: 'Chapter label',
-          summary: ['Chapter one'],
-          active: true,
-        },
-        {
-          kind: 'block',
-          key: 'feature',
-          label: 'Feature',
-          acceptedBlockKinds: ['asset-figure', 'rule-group'],
-          minimum: 0,
-          maximum: 2,
-          blocks: [stormFigure],
-          collapsed: false,
-          containsActiveBlock: false,
-          canAddBlock: true,
-        },
-      ]}
-    />
-  ),
 });
 
 export const BoundedAndCollapsedRegions = meta.story({
@@ -366,9 +437,7 @@ export const BoundedAndCollapsedRegions = meta.story({
     <PageDetailsStory
       initialValue={{ title: 'Movement', anchor: 'movement' }}
       initialRegions={[
-        guidanceRegion,
         {
-          kind: 'block',
           key: 'rules',
           label: 'Rules',
           acceptedBlockKinds: ['text', 'rule-group'],
@@ -381,7 +450,6 @@ export const BoundedAndCollapsedRegions = meta.story({
           diagnostic: 'Rules has reached its two-Block limit.',
         },
         {
-          kind: 'block',
           key: 'examples',
           label: 'Examples',
           acceptedBlockKinds: ['text', 'repeated-text', 'asset-figure'],
@@ -399,9 +467,11 @@ export const BoundedAndCollapsedRegions = meta.story({
     const canvas = pageDetailsCanvas(canvasElement);
     await expect(canvas.getByRole('button', { name: 'Add a Block to Rules' })).toBeDisabled();
     await expect(canvas.getByText('Rules has reached its two-Block limit.')).toBeVisible();
-    await expect(canvas.queryByRole('button', { name: 'Edit Repeated text Block' })).not.toBeInTheDocument();
+    await expect(
+      canvas.queryByRole('button', { name: 'Edit Confirm that the destination is adjacent.' })
+    ).not.toBeInTheDocument();
     await userEvent.click(canvas.getByRole('button', { name: 'Expand Examples' }));
-    await expect(canvas.getByRole('button', { name: 'Edit Repeated text Block' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Edit Confirm that the destination is adjacent.' })).toBeVisible();
   },
 });
 
@@ -411,7 +481,6 @@ export const DragBetweenCompatibleRegions = meta.story({
       initialValue={{ title: 'Movement', anchor: 'movement' }}
       initialRegions={[
         {
-          kind: 'block',
           key: 'rules',
           label: 'Rules',
           acceptedBlockKinds: ['text', 'rule-group'],
@@ -423,7 +492,6 @@ export const DragBetweenCompatibleRegions = meta.story({
           canAddBlock: true,
         },
         {
-          kind: 'block',
           key: 'examples',
           label: 'Examples',
           acceptedBlockKinds: ['text', 'repeated-text', 'asset-figure'],
@@ -441,12 +509,51 @@ export const DragBetweenCompatibleRegions = meta.story({
     onMoveBlock.mockClear();
     const canvas = pageDetailsCanvas(canvasElement);
     const handle = within(canvas.getByLabelText('Rules')).getByRole('button', {
-      name: 'Move Text Block',
+      name: 'Edit The storm closes the boundary between its two sectors.',
     });
     handle.focus();
     await userEvent.keyboard('[Space][ArrowDown][Space]');
     await expect(onMoveBlock).toHaveBeenCalled();
-    await expect(canvas.getByLabelText('Examples')).toHaveTextContent('Text Block');
+    await expect(canvas.getByLabelText('Examples')).toHaveTextContent(
+      'The storm closes the boundary between its two sectors.'
+    );
+  },
+});
+
+export const SameRegionDragCommitsOnDrop = meta.story({
+  render: () => (
+    <PageDetailsStory
+      initialValue={{ title: 'Movement', anchor: 'movement' }}
+      initialRegions={[
+        {
+          key: 'rules',
+          label: 'Rules',
+          acceptedBlockKinds: ['text', 'rule-group'],
+          minimum: 0,
+          maximum: 6,
+          blocks: [movement, terrainSequence, retreatSequence],
+          collapsed: false,
+          containsActiveBlock: false,
+          canAddBlock: true,
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    onMoveBlock.mockClear();
+    const canvas = pageDetailsCanvas(canvasElement);
+    const row = canvas.getByRole('button', { name: 'Edit Movement sequence' });
+    row.focus();
+    await userEvent.keyboard('[Space][ArrowDown]');
+    await expect(onMoveBlock).not.toHaveBeenCalled();
+    await userEvent.keyboard('[Space]');
+    await expect(onMoveBlock).toHaveBeenCalledTimes(1);
+    await expect(onMoveBlock).toHaveBeenLastCalledWith({
+      blockId: 'MVVE',
+      regionKey: 'rules',
+      index: 1,
+      reason: 'drag',
+    });
   },
 });
 
@@ -456,7 +563,6 @@ export const IncompatibleAndFullDragPresentation = meta.story({
       initialValue={{ title: 'Movement', anchor: 'movement' }}
       initialRegions={[
         {
-          kind: 'block',
           key: 'rules',
           label: 'Rules',
           acceptedBlockKinds: ['text', 'rule-group'],
@@ -468,7 +574,6 @@ export const IncompatibleAndFullDragPresentation = meta.story({
           canAddBlock: true,
         },
         {
-          kind: 'block',
           key: 'figures',
           label: 'Figures',
           acceptedBlockKinds: ['asset-figure'],
@@ -480,7 +585,6 @@ export const IncompatibleAndFullDragPresentation = meta.story({
           canAddBlock: true,
         },
         {
-          kind: 'block',
           key: 'examples',
           label: 'Full examples',
           acceptedBlockKinds: ['text'],
@@ -497,7 +601,7 @@ export const IncompatibleAndFullDragPresentation = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = pageDetailsCanvas(canvasElement);
     const handle = within(canvas.getByLabelText('Rules')).getByRole('button', {
-      name: 'Move Text Block',
+      name: 'Edit The storm closes the boundary between its two sectors.',
     });
     handle.focus();
     await userEvent.keyboard('[Space]');
@@ -530,7 +634,6 @@ export const NarrowContainer = meta.story({
     <PageDetailsStory
       initialValue={{ title: 'Movement', anchor: 'movement' }}
       initialRegions={populatedRulesRegions}
-      activeBlockId="TEXT"
       width="34rem"
     />
   ),

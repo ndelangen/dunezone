@@ -24,26 +24,17 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Group, Stack, Text, TextInput, UnstyledButton } from '@mantine/core';
+import { Group, Menu, Stack, Text, TextInput, UnstyledButton } from '@mantine/core';
 import type {
   RulebookBlockDraft,
   RulebookBlockKind,
   RulebookBlockRegionKey,
   RulebookPageDraft,
 } from '@shared/rulebooks/contents';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
-import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
-import {
-  ChevronDown,
-  ChevronRight,
-  FileImage,
-  FileText,
-  Layers3,
-  ListTree,
-  MessageSquareQuote,
-  Plus,
-  SlidersHorizontal,
-} from 'lucide-react';
+import { AddAction } from '@ui/control/ListLengthActions';
+import { ChevronDown, ChevronRight, FileImage, FileText, Layers3, ListTree, MessageSquareQuote } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
@@ -56,17 +47,7 @@ export type RulebookPageDetailsDiagnostics = Readonly<{
   anchor?: string;
 }>;
 
-export type RulebookPageDetailsControlRegion = Readonly<{
-  kind: 'control';
-  key: string;
-  label: string;
-  summary: readonly string[];
-  active: boolean;
-  diagnostic?: string;
-}>;
-
 export type RulebookPageDetailsBlockRegion = Readonly<{
-  kind: 'block';
   key: RulebookBlockRegionKey;
   label: string;
   acceptedBlockKinds: readonly RulebookBlockKind[];
@@ -78,8 +59,6 @@ export type RulebookPageDetailsBlockRegion = Readonly<{
   canAddBlock: boolean;
   diagnostic?: string;
 }>;
-
-export type RulebookPageDetailsRegion = RulebookPageDetailsControlRegion | RulebookPageDetailsBlockRegion;
 
 export type RulebookPageDetailsDropStatus = Readonly<{
   allowed: boolean;
@@ -96,12 +75,10 @@ export type RulebookPageDetailsBlockMoveIntent = Readonly<{
 export type RulebookPageDetailsEditProps = Readonly<{
   value: RulebookPageDetailsValue;
   diagnostics?: RulebookPageDetailsDiagnostics;
-  regions: readonly RulebookPageDetailsRegion[];
-  activeBlockId?: string;
+  regions: readonly RulebookPageDetailsBlockRegion[];
   onChange: (nextValue: RulebookPageDetailsValue) => void;
-  onNavigateControlRegion: (regionKey: string) => void;
   onNavigateBlock: (blockId: string) => void;
-  onAddBlock: (regionKey: RulebookBlockRegionKey) => void;
+  onAddBlock: (regionKey: RulebookBlockRegionKey, kind: RulebookBlockKind) => void;
   onToggleBlockRegion: (regionKey: RulebookBlockRegionKey, collapsed: boolean) => void;
   getBlockDropStatus: (blockId: string, regionKey: RulebookBlockRegionKey) => RulebookPageDetailsDropStatus;
   onMoveBlock: (intent: RulebookPageDetailsBlockMoveIntent) => void;
@@ -150,12 +127,11 @@ function idSuffix(id: string | number, prefix: string) {
   return value.startsWith(prefix) ? value.slice(prefix.length) : null;
 }
 
-function blockRegions(regions: readonly RulebookPageDetailsRegion[]) {
-  return regions.filter((region): region is RulebookPageDetailsBlockRegion => region.kind === 'block');
-}
-
-function findBlockPlacement(regions: readonly RulebookPageDetailsRegion[], blockId: string): BlockPlacement | null {
-  for (const region of blockRegions(regions)) {
+function findBlockPlacement(
+  regions: readonly RulebookPageDetailsBlockRegion[],
+  blockId: string
+): BlockPlacement | null {
+  for (const region of regions) {
     const index = region.blocks.findIndex((block) => block.id === blockId);
     if (index !== -1) {
       return { regionKey: region.key, index };
@@ -164,8 +140,8 @@ function findBlockPlacement(regions: readonly RulebookPageDetailsRegion[], block
   return null;
 }
 
-function findBlock(regions: readonly RulebookPageDetailsRegion[], blockId: string) {
-  for (const region of blockRegions(regions)) {
+function findBlock(regions: readonly RulebookPageDetailsBlockRegion[], blockId: string) {
+  for (const region of regions) {
     const block = region.blocks.find((candidate) => candidate.id === blockId);
     if (block) {
       return block;
@@ -179,12 +155,12 @@ function samePlacement(left: BlockPlacement | null, right: BlockPlacement | null
 }
 
 function normalizePlacement(
-  regions: readonly RulebookPageDetailsRegion[],
+  regions: readonly RulebookPageDetailsBlockRegion[],
   blockId: string,
   placement: BlockPlacement
 ): BlockPlacement {
   const source = findBlockPlacement(regions, blockId);
-  const target = blockRegions(regions).find((region) => region.key === placement.regionKey);
+  const target = regions.find((region) => region.key === placement.regionKey);
   if (!source || !target) {
     return placement;
   }
@@ -201,6 +177,16 @@ function blockLabel(block: RulebookBlockDraft) {
   }
   if (block.kind === 'asset-figure' && block.assetId?.trim()) {
     return block.assetId;
+  }
+  if (block.kind === 'repeated-text') {
+    const firstItemId = block.itemOrder[0];
+    const firstItem = firstItemId ? block.itemsById[firstItemId] : undefined;
+    if (firstItem?.text.trim()) {
+      return firstItem.text;
+    }
+  }
+  if (block.kind === 'text' && block.text.trim()) {
+    return block.text;
   }
   return `${blockKindLabels[block.kind]} Block`;
 }
@@ -267,13 +253,11 @@ function BlockSummary({
   block,
   regionKey,
   dropEnabled,
-  active,
   onNavigate,
 }: Readonly<{
   block: RulebookBlockDraft;
   regionKey: RulebookBlockRegionKey;
   dropEnabled: boolean;
-  active: boolean;
   onNavigate: () => void;
 }>) {
   const sortable = useSortable({
@@ -300,10 +284,18 @@ function BlockSummary({
       data-drop-target={sortable.isOver || undefined}
     >
       <UnstyledButton
+        ref={sortable.setActivatorNodeRef}
         className={styles.blockNavigate}
+        {...sortable.attributes}
+        {...sortable.listeners}
         aria-label={`Edit ${label}`}
-        aria-current={active ? 'page' : undefined}
-        onClick={onNavigate}
+        onClick={(event) => {
+          if (sortable.isDragging) {
+            event.preventDefault();
+            return;
+          }
+          onNavigate();
+        }}
       >
         <span className={styles.blockIcon}>{blockIcon(block.kind)}</span>
         <span className={styles.blockWords}>
@@ -315,12 +307,6 @@ function BlockSummary({
           </Text>
         </span>
       </UnstyledButton>
-      <SortableReorderHandle
-        label={`Move ${label}`}
-        setActivatorNodeRef={sortable.setActivatorNodeRef}
-        attributes={sortable.attributes}
-        listeners={sortable.listeners}
-      />
     </li>
   );
 }
@@ -343,44 +329,9 @@ function BlockDragPreview({ block }: Readonly<{ block: RulebookBlockDraft }>) {
   );
 }
 
-function ControlRegionSummary({
-  region,
-  onNavigate,
-}: Readonly<{
-  region: RulebookPageDetailsControlRegion;
-  onNavigate: () => void;
-}>) {
-  return (
-    <section className={styles.region} aria-label={region.label} data-active={region.active || undefined}>
-      <UnstyledButton className={styles.controlRegionNavigate} onClick={onNavigate}>
-        <span className={styles.regionIcon}>
-          <SlidersHorizontal aria-hidden />
-        </span>
-        <span className={styles.regionWords}>
-          <Text component="span" fw={700}>
-            {region.label}
-          </Text>
-          {region.summary.map((line) => (
-            <Text component="span" size="sm" c="dimmed" key={line}>
-              {line}
-            </Text>
-          ))}
-          {region.diagnostic ? (
-            <Text component="span" size="xs" c="red">
-              {region.diagnostic}
-            </Text>
-          ) : null}
-        </span>
-        <ChevronRight aria-hidden />
-      </UnstyledButton>
-    </section>
-  );
-}
-
 function BlockRegionSummary({
   region,
   activeBlockId,
-  selectedBlockId,
   getBlockDropStatus,
   onNavigateBlock,
   onAddBlock,
@@ -388,7 +339,6 @@ function BlockRegionSummary({
 }: Readonly<{
   region: RulebookPageDetailsBlockRegion;
   activeBlockId: string | null;
-  selectedBlockId?: string;
   getBlockDropStatus: RulebookPageDetailsEditProps['getBlockDropStatus'];
   onNavigateBlock: RulebookPageDetailsEditProps['onNavigateBlock'];
   onAddBlock: RulebookPageDetailsEditProps['onAddBlock'];
@@ -442,20 +392,27 @@ function BlockRegionSummary({
         </span>
         <Group gap={4} wrap="nowrap">
           <IconAction
-            label={`Add a Block to ${region.label}`}
-            icon={<Plus aria-hidden />}
-            variant="subtle"
-            disabled={!region.canAddBlock}
-            onClick={() => onAddBlock(region.key)}
-          />
-          <IconAction
             label={`${region.collapsed ? 'Expand' : 'Collapse'} ${region.label}`}
-            icon={region.collapsed ? <ChevronRight aria-hidden /> : <ChevronDown aria-hidden />}
+            icon={region.collapsed ? <ChevronRight size={15} aria-hidden /> : <ChevronDown size={15} aria-hidden />}
             variant="subtle"
+            size="sm"
             aria-expanded={!region.collapsed}
             aria-controls={contentId}
             onClick={() => onToggle(region.key, !region.collapsed)}
           />
+          <Menu position="bottom-end" withArrow>
+            <Menu.Target>
+              <AddAction label={`Add a Block to ${region.label}`} disabled={!region.canAddBlock} />
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Label>Block type</Menu.Label>
+              {region.acceptedBlockKinds.map((kind) => (
+                <Menu.Item key={kind} leftSection={blockIcon(kind)} onClick={() => onAddBlock(region.key, kind)}>
+                  {blockKindLabels[kind]}
+                </Menu.Item>
+              ))}
+            </Menu.Dropdown>
+          </Menu>
         </Group>
       </div>
 
@@ -470,7 +427,6 @@ function BlockRegionSummary({
               block={block}
               regionKey={region.key}
               dropEnabled={activeBlockId === null || dropEnabled}
-              active={block.id === selectedBlockId}
               onNavigate={() => onNavigateBlock(block.id)}
             />
           ))}
@@ -486,7 +442,7 @@ function BlockRegionSummary({
 }
 
 function placementFromOver(
-  regions: readonly RulebookPageDetailsRegion[],
+  regions: readonly RulebookPageDetailsBlockRegion[],
   blockId: string,
   over: DragOverEvent['over']
 ): BlockPlacement | null {
@@ -501,7 +457,7 @@ function placementFromOver(
     return findBlockPlacement(regions, targetBlockId);
   }
   const regionKey = idSuffix(over.id, 'page-details:region:') as RulebookBlockRegionKey | null;
-  const region = blockRegions(regions).find((candidate) => candidate.key === regionKey);
+  const region = regions.find((candidate) => candidate.key === regionKey);
   return region ? { regionKey: region.key, index: region.blocks.length } : null;
 }
 
@@ -509,9 +465,7 @@ export function PageDetailsEdit({
   value,
   diagnostics,
   regions,
-  activeBlockId: selectedBlockId,
   onChange,
-  onNavigateControlRegion,
   onNavigateBlock,
   onAddBlock,
   onToggleBlockRegion,
@@ -533,18 +487,19 @@ export function PageDetailsEdit({
   const lastValidPlacement = useRef<BlockPlacement | null>(null);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
 
-  const requestPlacement = (blockId: string, placement: BlockPlacement, reason: 'drag' | 'cancel') => {
+  const validPlacement = (blockId: string, placement: BlockPlacement) => {
     const normalized = normalizePlacement(regions, blockId, placement);
-    if (reason === 'drag' && !getBlockDropStatus(blockId, normalized.regionKey).allowed) {
+    if (!getBlockDropStatus(blockId, normalized.regionKey).allowed) {
       return null;
     }
-    if (reason === 'drag') {
-      lastValidPlacement.current = normalized;
-    }
-    if (!samePlacement(findBlockPlacement(regions, blockId), normalized)) {
-      onMoveBlock({ blockId, ...normalized, reason });
-    }
+    lastValidPlacement.current = normalized;
     return normalized;
+  };
+
+  const requestPlacement = (blockId: string, placement: BlockPlacement, reason: 'drag' | 'cancel') => {
+    if (!samePlacement(findBlockPlacement(regions, blockId), placement)) {
+      onMoveBlock({ blockId, ...placement, reason });
+    }
   };
 
   const finishDrag = () => {
@@ -567,16 +522,21 @@ export function PageDetailsEdit({
   const handleDragOver = ({ active, over }: DragOverEvent) => {
     const blockId = idSuffix(active.id, 'page-details:block:');
     const placement = blockId ? placementFromOver(regions, blockId, over) : null;
-    if (blockId && placement) {
-      requestPlacement(blockId, placement, 'drag');
+    const normalized = blockId && placement ? validPlacement(blockId, placement) : null;
+    const source = blockId ? findBlockPlacement(regions, blockId) : null;
+    if (!blockId || !normalized || !source || source.regionKey === normalized.regionKey) {
+      return;
     }
+    requestPlacement(blockId, normalized, 'drag');
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     const blockId = idSuffix(active.id, 'page-details:block:');
     const placement = blockId ? placementFromOver(regions, blockId, over) : null;
-    if (blockId && placement) {
-      requestPlacement(blockId, placement, 'drag');
+    const normalized = blockId && placement ? validPlacement(blockId, placement) : null;
+    const finalPlacement = normalized ?? lastValidPlacement.current;
+    if (blockId && finalPlacement) {
+      requestPlacement(blockId, finalPlacement, 'drag');
     }
     finishDrag();
   };
@@ -592,29 +552,30 @@ export function PageDetailsEdit({
 
   return (
     <Stack className={styles.root} gap="lg" aria-label="Page details">
-      <div className={styles.introduction}>
-        <Text component="span" fw={800} size="xl">
-          Page details
-        </Text>
-        <Text size="sm" c="dimmed">
-          Edit this Page and arrange its Blocks. Open a Control region or Block to edit its own values.
-        </Text>
-      </div>
-
       <Stack component="section" aria-label="Common Page controls" gap="md">
-        <TextInput
-          label="Title"
+        <ControlBlock
+          title="Title"
           description="Name this Page in the editor and Rulebook."
-          value={value.title}
-          error={diagnostics?.title}
-          onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
+          input={
+            <TextInput
+              aria-label="Title"
+              value={value.title}
+              error={diagnostics?.title}
+              onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
+            />
+          }
         />
-        <TextInput
-          label="Anchor"
+        <ControlBlock
+          title="Anchor"
           description="Set the stable public anchor used in links to this Page."
-          value={value.anchor}
-          error={diagnostics?.anchor}
-          onChange={(event) => onChange({ ...value, anchor: event.currentTarget.value })}
+          input={
+            <TextInput
+              aria-label="Anchor"
+              value={value.anchor}
+              error={diagnostics?.anchor}
+              onChange={(event) => onChange({ ...value, anchor: event.currentTarget.value })}
+            />
+          }
         />
       </Stack>
 
@@ -635,26 +596,17 @@ export function PageDetailsEdit({
         onDragCancel={handleDragCancel}
       >
         <Stack component="section" aria-label="Page regions" gap={0} className={styles.regions}>
-          {regions.map((region) =>
-            region.kind === 'control' ? (
-              <ControlRegionSummary
-                key={`control:${region.key}`}
-                region={region}
-                onNavigate={() => onNavigateControlRegion(region.key)}
-              />
-            ) : (
-              <BlockRegionSummary
-                key={`block:${region.key}`}
-                region={region}
-                activeBlockId={draggedBlockId}
-                selectedBlockId={selectedBlockId}
-                getBlockDropStatus={getBlockDropStatus}
-                onNavigateBlock={onNavigateBlock}
-                onAddBlock={onAddBlock}
-                onToggle={onToggleBlockRegion}
-              />
-            )
-          )}
+          {regions.map((region) => (
+            <BlockRegionSummary
+              key={region.key}
+              region={region}
+              activeBlockId={draggedBlockId}
+              getBlockDropStatus={getBlockDropStatus}
+              onNavigateBlock={onNavigateBlock}
+              onAddBlock={onAddBlock}
+              onToggle={onToggleBlockRegion}
+            />
+          ))}
         </Stack>
         <DragOverlay modifiers={[restrictDragToVerticalAxis]}>
           {draggedBlock ? <BlockDragPreview block={draggedBlock} /> : null}
