@@ -1,6 +1,5 @@
 import { Stack } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { useState } from 'react';
 
 import type { BackgroundData } from '@game/data/backgrounds';
 
@@ -28,21 +27,13 @@ export function BackgroundPresetControl({
   onChange: (background: BackgroundData, presetKey: string | null) => void;
   /**
    * The author's declared Custom intent, which the value cannot express once it happens to equal a preset.
-   * Controlled by the editors migrated onto the authoring session, where it lives in the session's memory and so resets with the draft.
+   * It lives in the owning page's reducer memory, so a Reset this control cannot see discards it (D3 and D4 on «Work the editors wave»).
    */
-  declaredCustom?: boolean;
-  onDeclaredCustomChange?: (next: boolean) => void;
+  declaredCustom: boolean;
+  onDeclaredCustomChange: (next: boolean) => void;
 }) {
   const presetKey = presetKeyFor(presets, value);
-  /*
-   * The uncontrolled half is the pre-migration latch, kept only for the mounts that have not moved yet.
-   * It is the shape «Reset leaves the validation header open» and #587 both indict: component state whose correctness depends on a draft the caller owns, wrong after a Reset it cannot see.
-   * Delete this state and make both props required once the remaining editors are migrated; nothing else here changes when it goes.
-   */
-  const [latchedCustom, setLatchedCustom] = useState(presetKey === null);
-  const customChosen = declaredCustom ?? latchedCustom;
-  const setCustomChosen = onDeclaredCustomChange ?? setLatchedCustom;
-  const selected = presetSelection(presetKey, customChosen);
+  const selected = presetSelection(presetKey, declaredCustom);
   return (
     <ControlBlock
       title={title}
@@ -56,12 +47,12 @@ export function BackgroundPresetControl({
             customBackground={value}
             onSelect={(next) => {
               if (next === CUSTOM_PRESET) {
-                setCustomChosen(true);
+                onDeclaredCustomChange(true);
                 return;
               }
               const preset = presets.find((candidate) => candidate.key === next);
               if (preset) {
-                setCustomChosen(false);
+                onDeclaredCustomChange(false);
                 onChange(preset.background, preset.key);
               }
             }}
