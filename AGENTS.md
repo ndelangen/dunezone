@@ -175,7 +175,9 @@ Outside the kit:
     anything not derivable (a stock-or-custom mode) belongs in the draft itself and arrives as
     value plus onChange like every other field. Remounting is an escape hatch for bad design, and
     resync effects are worse. The reviewer's test is one line: if this useState's correctness
-    depends on the draft, it belongs in the draft.
+    depends on the draft, it belongs in the draft. What shape the *owning page's* own state then
+    takes is a separate rule: see *State past one primitive is a local reducer* in
+    [`docs/technical/ui-design-decisions.md`](docs/technical/ui-design-decisions.md#state-past-one-primitive-is-a-local-reducer).
   - **Kit all the way down.** A widget adds no new visual vocabulary; anything novel inside gets
     extracted to the kit first.
   - **Organs allowed.** A widget may split its body into private files; nothing outside the
