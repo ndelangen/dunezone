@@ -13,6 +13,23 @@ import {
  * There is one way in, and the minted token is the whole credential.
  */
 
+/**
+ * What one legacy row's rehost came to, as the backfill summaries count it.
+ * A skip is a race the consume guard won rather than a failure, so the two are counted apart and only one of them is worth an operator's attention.
+ */
+export type LegacyRowOutcome = { kind: 'rehosted' } | { kind: 'skipped' } | { kind: 'failed'; message: string };
+
+/** Turns whatever a rehost threw into the sentence the summary reports, since a refusal and a crash reach the caller by different routes. */
+export function rehostFailureMessage(error: unknown): string {
+  if (error instanceof ConvexError) {
+    return String(error.data);
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Rehost failed';
+}
+
 /** The Worker's ingest origin, refused outside https because every ingest call carries a credential: the minted token rides in the body. */
 export function ingestBaseUrl(): string {
   const baseUrl = process.env.USER_IMAGE_INGEST_BASE_URL;

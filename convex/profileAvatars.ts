@@ -1,12 +1,14 @@
 import { paginationOptsValidator } from 'convex/server';
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 
 import { userAvatarSourceUrlSchema } from '../src/shared/user-images/contract';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
+import type { ActionCtx } from './_generated/server';
 import { internalAction, internalQuery } from './_generated/server';
 import { isActiveProfile } from './lib/accountLifecycle';
-import { ingestBaseUrl, ingestWithToken } from './lib/userImageIngest';
+import { ingestBaseUrl, ingestWithToken, rehostFailureMessage } from './lib/userImageIngest';
+import type { LegacyRowOutcome } from './lib/userImageIngest';
 
 /**
  * The avatar rehost pipeline, the ledger path's second capability.
@@ -16,8 +18,11 @@ import { ingestBaseUrl, ingestWithToken } from './lib/userImageIngest';
  * Everything here is internal: authorization happened in the mutation that scheduled the work, and from mint onward the token's capability is the authorization.
  */
 
-/** Rows read per scan page, and rows attempted before one invocation hands back its cursor. Mirrors the cover arm, which walks the same shape against a different table. */
-const BACKFILL_SCAN_PAGE = 200;
+/**
+ * Rows read per scan page, and rows attempted before one invocation stops and hands back its cursor.
+ * Mirrors the cover arm, including why the budget is checked between pages rather than inside one: at most `BACKFILL_SCAN_PAGE + BACKFILL_WORK_BUDGET - 1` rows are attempted per invocation, 199 at these sizes.
+ */
+const BACKFILL_SCAN_PAGE = 100;
 const BACKFILL_WORK_BUDGET = 100;
 
 /**
@@ -85,6 +90,36 @@ export const currentAvatarEcho = internalQuery({
 });
 
 /**
+ * Converts one legacy row and answers with which of the three things happened.
+ * Mirrors the cover arm's split for the same reason: the walk should read as paging and tallying, nothing else.
+ */
+async function rehostLegacyAvatar(
+  ctx: ActionCtx,
+  baseUrl: string,
+  row: { id: Doc<'profiles'>['_id']; slug: string; avatar_url: string }
+): Promise<LegacyRowOutcome> {
+  const parsedSource = userAvatarSourceUrlSchema.safeParse(row.avatar_url);
+  if (!parsedSource.success) {
+    return { kind: 'failed', message: parsedSource.error.issues[0]?.message ?? 'Invalid legacy URL' };
+  }
+  const minted: { token: string } = await ctx.runMutation(internal.ingestTokens.mint, {
+    capability: { kind: 'profile_avatar', profile_id: row.id },
+    source_url: parsedSource.data,
+  });
+  try {
+    await ingestWithToken(baseUrl, parsedSource.data, minted.token);
+    return { kind: 'rehosted' };
+  } catch (error) {
+    /* An echo that moved since the scan means the consume guard bounced a stale result, not that the source failed; the newer write already owns the row. */
+    const echo: string | null = await ctx.runQuery(internal.profileAvatars.currentAvatarEcho, { id: row.id });
+    if (echo !== row.avatar_url) {
+      return { kind: 'skipped' };
+    }
+    return { kind: 'failed', message: rehostFailureMessage(error) };
+  }
+}
+
+/**
  * Rehosts legacy external avatars, run by an operator after the rehost release ships.
  * Rides the token path like the save flow, so the consume mutation's expected-echo recheck is the race guard: a row the user changed while the Worker was fetching bounces there and counts as skipped.
  * A row whose source cannot be fetched is reported and left untouched, so a flaky host degrades to a rerun rather than data loss.
@@ -116,32 +151,17 @@ export const backfillLegacyAvatars = internalAction({
         paginationOpts: { cursor, numItems: BACKFILL_SCAN_PAGE },
       });
       for (const row of legacy.rows) {
-        const parsedSource = userAvatarSourceUrlSchema.safeParse(row.avatar_url);
-        if (!parsedSource.success) {
-          failed.push({ slug: row.slug, message: parsedSource.error.issues[0]?.message ?? 'Invalid legacy URL' });
-          continue;
-        }
-        const minted: { token: string } = await ctx.runMutation(internal.ingestTokens.mint, {
-          capability: { kind: 'profile_avatar', profile_id: row.id },
-          source_url: parsedSource.data,
-        });
-        try {
-          await ingestWithToken(baseUrl, parsedSource.data, minted.token);
-          rehosted += 1;
-        } catch (error) {
-          /* An echo that moved since the scan means the consume guard bounced a stale result, not that the source failed; the newer write already owns the row. */
-          const echo: string | null = await ctx.runQuery(internal.profileAvatars.currentAvatarEcho, { id: row.id });
-          if (echo !== row.avatar_url) {
+        const outcome = await rehostLegacyAvatar(ctx, baseUrl, row);
+        switch (outcome.kind) {
+          case 'rehosted':
+            rehosted += 1;
+            break;
+          case 'skipped':
             skipped += 1;
-            continue;
-          }
-          const message =
-            error instanceof ConvexError
-              ? String(error.data)
-              : error instanceof Error
-                ? error.message
-                : 'Rehost failed';
-          failed.push({ slug: row.slug, message });
+            break;
+          case 'failed':
+            failed.push({ slug: row.slug, message: outcome.message });
+            break;
         }
       }
       cursor = legacy.cursor;

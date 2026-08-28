@@ -8,6 +8,7 @@ import {
 import { internal } from './_generated/api';
 import { query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
+import { isActiveProfile } from './lib/accountLifecycle';
 import {
   INGEST_TOKEN_TTL_MS,
   ingestTokenCapabilityKindValidator,
@@ -162,7 +163,8 @@ export const consume = mutation({
         /* The tombstone lands even when the target row is gone, so the bucket objects this ingest produced stay on the GC record either way. */
         await ctx.db.patch(row._id, { consumed: true, r2_keys: payload.data.r2_keys });
         const target = await ctx.db.get(row.capability.ruleset_id);
-        if (!target) {
+        /* A row that was deleted while the Worker was fetching is not a row to write to, and from this path a soft-deleted ruleset and a missing one are the same answer. */
+        if (!target || target.is_deleted) {
           return { ok: false as const, reason: 'entity_gone' as const };
         }
         /*
@@ -190,7 +192,12 @@ export const consume = mutation({
         }
         await ctx.db.patch(row._id, { consumed: true, r2_keys: payload.data.r2_keys });
         const target = await ctx.db.get(row.capability.profile_id);
-        if (!target) {
+        /*
+         * An account that started deleting while the Worker was fetching must not gain a freshly stored avatar afterwards.
+         * The scan that finds backfill work already refuses non-active rows; this is the same rule on the write path, which the save flow reaches without passing that scan.
+         * The tombstone above is already written, so the objects this ingest produced stay on the GC record even though nothing points at them.
+         */
+        if (!target || !isActiveProfile(target)) {
           return { ok: false as const, reason: 'entity_gone' as const };
         }
         /*

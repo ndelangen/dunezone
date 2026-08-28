@@ -140,6 +140,36 @@ describe('ruleset cover rehosting', () => {
     expect(row?.image_cover).toBe(DELIVERY_URL);
   });
 
+  /* The cover arm has the same window: a ruleset deleted while the Worker was fetching must not gain a stored cover afterwards. */
+  test('a callback that lands after the ruleset is deleted does not store a cover', async () => {
+    const { t, owner, ruleset } = await coverFixture();
+    stubIngestEnvironment();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body)) as { token: string };
+        await t.run(async (ctx) => {
+          await ctx.db.patch(ruleset._id, { is_deleted: true });
+        });
+        const answer = await t.mutation(api.ingestTokens.consume, {
+          token: body.token,
+          result: { url: DELIVERY_URL, thumb_url: DELIVERY_THUMB_URL, width: 800, height: 600 },
+          r2_keys: [`${'a'.repeat(64)}.jpg`, `${'b'.repeat(64)}.jpg`],
+        });
+        expect(answer).toEqual({ ok: false, reason: 'entity_gone' });
+        return new Response(JSON.stringify({ error: 'Consume refused' }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      })
+    );
+
+    await expect(owner.action(api.rulesetCovers.rehost, { id: ruleset._id, source_url: SOURCE_URL })).rejects.toThrow();
+
+    const row = await t.run(async (ctx) => await ctx.db.get(ruleset._id));
+    expect(row?.cover).toBeNull();
+  });
+
   test('the ingest response body alone writes nothing', async () => {
     const { t, owner, ruleset } = await coverFixture();
     stubIngestEnvironment();
