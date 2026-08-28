@@ -40,16 +40,56 @@ async function ledgerFixture() {
   return { t, ruleset, token: minted.token };
 }
 
+const AVATAR_SOURCE_URL = 'https://images.example/avatar.png';
+const AVATAR_KEY = `${'f'.repeat(64)}.jpg`;
+const AVATAR_RESULT = {
+  url: `https://dune.zone/user-images/${AVATAR_KEY}`,
+  width: 320,
+  height: 320,
+};
+
+/** A profile still carrying its external URL, plus a minted avatar token pinned to that source. */
+async function avatarLedgerFixture() {
+  const t = convexTest(schema, modules);
+  aggregateTest.register(t, 'statistics');
+  aggregateTest.register(t, 'profileActivity');
+  aggregateTest.register(t, 'profileDiscovery');
+  const now = new Date().toISOString();
+  const profileId = await t.run(async (ctx) => {
+    const userId = await ctx.db.insert('users', { name: 'Avatar owner' });
+    return await ctx.db.insert('profiles', {
+      user_id: userId,
+      username: 'AvatarOwner',
+      avatar_url: AVATAR_SOURCE_URL,
+      account_state: 'active',
+      slug: 'avatarowner',
+      created_at: now,
+      updated_at: now,
+    });
+  });
+  const minted = await t.mutation(internal.ingestTokens.mint, {
+    capability: { kind: 'profile_avatar', profile_id: profileId },
+    source_url: AVATAR_SOURCE_URL,
+  });
+  return { t, profileId, token: minted.token };
+}
+
 afterEach(() => {
   vi.useRealTimers();
 });
 
 describe('ingest token ledger', () => {
-  test('a minted token checks valid, the check never consumes, and consume still works after any number of checks', async () => {
+  test('a minted token checks valid with its recipe kind, the check never consumes, and consume still works after any number of checks', async () => {
     const { t, ruleset, token } = await ledgerFixture();
 
-    expect(await t.query(api.ingestTokens.check, { token, now: Date.now() })).toEqual({ valid: true });
-    expect(await t.query(api.ingestTokens.check, { token, now: Date.now() })).toEqual({ valid: true });
+    expect(await t.query(api.ingestTokens.check, { token, now: Date.now() })).toEqual({
+      valid: true,
+      kind: 'ruleset_cover',
+    });
+    expect(await t.query(api.ingestTokens.check, { token, now: Date.now() })).toEqual({
+      valid: true,
+      kind: 'ruleset_cover',
+    });
 
     const answer = await t.mutation(api.ingestTokens.consume, {
       token,
@@ -165,6 +205,87 @@ describe('ingest token ledger', () => {
     expect(
       await t.mutation(api.ingestTokens.consume, { token, result: RESULT, r2_keys: [FULL_KEY, THUMB_KEY] })
     ).toEqual({ ok: true });
+  });
+
+  test('an avatar token checks with its own kind and its consume lands the avatar and the legacy echo', async () => {
+    const { t, profileId, token } = await avatarLedgerFixture();
+
+    expect(await t.query(api.ingestTokens.check, { token, now: Date.now() })).toEqual({
+      valid: true,
+      kind: 'profile_avatar',
+    });
+
+    const answer = await t.mutation(api.ingestTokens.consume, {
+      token,
+      result: AVATAR_RESULT,
+      r2_keys: [AVATAR_KEY],
+    });
+    expect(answer).toEqual({ ok: true });
+    const row = await t.run(async (ctx) => await ctx.db.get(profileId));
+    expect(row?.avatar).toEqual({ ...AVATAR_RESULT, source_url: AVATAR_SOURCE_URL });
+    expect(row?.avatar_url).toBe(AVATAR_RESULT.url);
+  });
+
+  test('the avatar consume floor holds square dims, the single key and the shape, and a refusal does not burn the token', async () => {
+    const { t, profileId, token } = await avatarLedgerFixture();
+
+    const rectangular = await t.mutation(api.ingestTokens.consume, {
+      token,
+      result: { ...AVATAR_RESULT, height: 240 },
+      r2_keys: [AVATAR_KEY],
+    });
+    expect(rectangular).toEqual({ ok: false, reason: 'invalid_payload' });
+    const oversized = await t.mutation(api.ingestTokens.consume, {
+      token,
+      result: { ...AVATAR_RESULT, width: 640, height: 640 },
+      r2_keys: [AVATAR_KEY],
+    });
+    expect(oversized).toEqual({ ok: false, reason: 'invalid_payload' });
+    const twoKeys = await t.mutation(api.ingestTokens.consume, {
+      token,
+      result: AVATAR_RESULT,
+      r2_keys: [AVATAR_KEY, `${'e'.repeat(64)}.jpg`],
+    });
+    expect(twoKeys).toEqual({ ok: false, reason: 'invalid_payload' });
+    const coverShaped = await t.mutation(api.ingestTokens.consume, {
+      token,
+      result: { ...AVATAR_RESULT, thumb_url: `https://dune.zone/user-images/${'e'.repeat(64)}.jpg` },
+      r2_keys: [AVATAR_KEY],
+    });
+    expect(coverShaped).toEqual({ ok: false, reason: 'invalid_payload' });
+
+    const untouched = await t.run(async (ctx) => await ctx.db.get(profileId));
+    expect(untouched?.avatar).toBeUndefined();
+    expect(await t.mutation(api.ingestTokens.consume, { token, result: AVATAR_RESULT, r2_keys: [AVATAR_KEY] })).toEqual(
+      { ok: true }
+    );
+  });
+
+  test('an avatar consume whose row moved on is superseded, burning the token without touching the row', async () => {
+    const { t, profileId, token } = await avatarLedgerFixture();
+    await t.run(async (ctx) => {
+      await ctx.db.patch(profileId, { avatar_url: 'https://elsewhere.example/newer.png' });
+    });
+
+    const answer = await t.mutation(api.ingestTokens.consume, {
+      token,
+      result: AVATAR_RESULT,
+      r2_keys: [AVATAR_KEY],
+    });
+
+    expect(answer).toEqual({ ok: false, reason: 'superseded' });
+    const row = await t.run(async (ctx) => await ctx.db.get(profileId));
+    expect(row?.avatar).toBeUndefined();
+    expect(row?.avatar_url).toBe('https://elsewhere.example/newer.png');
+    const tombstone = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('user_image_ingest_tokens')
+          .withIndex('by_token_id', (q) => q.eq('token_id', token))
+          .unique()
+    );
+    expect(tombstone?.consumed).toBe(true);
+    expect(tombstone?.r2_keys).toEqual([AVATAR_KEY]);
   });
 
   test('a consume for a deleted target still records the keys on the tombstone', async () => {

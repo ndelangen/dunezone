@@ -194,8 +194,7 @@ export const updateCurrent = mutation({
      * A submission equal to the stored avatar's delivery URL, or to the current `avatar_url`, is not a new source and must not mint a token or disturb the stored avatar.
      * A genuinely new external URL clears `avatar` so the page renders the submitted URL until the rehost callback flips it.
      */
-    const avatarChanged =
-      normalizedAvatarUrl !== profile.avatar?.url && normalizedAvatarUrl !== profile.avatar_url;
+    const avatarChanged = normalizedAvatarUrl !== profile.avatar?.url && normalizedAvatarUrl !== profile.avatar_url;
     const requestedDefaultGroupId = args.default_group_id;
     const defaultGroupId =
       requestedDefaultGroupId === undefined

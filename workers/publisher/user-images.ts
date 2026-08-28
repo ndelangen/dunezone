@@ -287,7 +287,8 @@ async function callConvex(
 type TokenIntrospection = { live: false } | { live: true; kind: UserImageIngestKind };
 
 /**
- * Asks the ledger whether the presented token is live; only a definite yes unlocks the expensive work.
+ * Asks the ledger whether the presented token is live;
+ * only a definite yes unlocks the expensive work.
  * A live answer also names the rendition recipe the token was minted for, so the recipe comes from the ledger rather than the request body.
  * A live answer without a kind defaults to the cover recipe, which keeps the deploy window safe: a ledger predating kinds only ever minted cover tokens.
  */

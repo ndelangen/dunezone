@@ -126,7 +126,7 @@ export const userImageSourceUrlSchema = makeUserImageSourceUrlSchema('Cover imag
 /**
  * The avatar source floor, gating the async rehost action and the operator backfill.
  * Stricter than the profile edit form's own https check (it adds the length cap and the credentials ban);
- * a seeded provider URL that fails it simply keeps rendering externally until the backfill reports it.
+ * a seeded provider URL that fails it keeps rendering externally until the backfill reports it.
  */
 export const userAvatarSourceUrlSchema = makeUserImageSourceUrlSchema('Avatar image');
 

@@ -8,7 +8,11 @@ import {
 import { internal } from './_generated/api';
 import { query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
-import { INGEST_TOKEN_TTL_MS, ingestTokenCapabilityKindValidator, ingestTokenCapabilityValidator } from './lib/ingestTokens';
+import {
+  INGEST_TOKEN_TTL_MS,
+  ingestTokenCapabilityKindValidator,
+  ingestTokenCapabilityValidator,
+} from './lib/ingestTokens';
 import { patchStoredAvatar } from './lib/profileAvatar';
 import { patchStoredCover } from './lib/rulesetCover';
 import type { QueryCtx } from './types';
