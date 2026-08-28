@@ -59,8 +59,3 @@
   font-size: 0.9em;
   color: var(--color-muted, #666);
 }
-
-.error {
-  font-size: 0.9rem;
-  color: var(--color-error, #c33);
-}

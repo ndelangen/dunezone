@@ -1,7 +1,9 @@
 import { Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { OpenableTile } from '@ui/block/OpenableTile';
+import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
+import { TileGrid } from '@ui/list/TileGrid';
 
 import { loadRulesetsAll, useRulesetsAll } from '@db/rulesets';
 
@@ -20,7 +22,7 @@ function RulesetsPage() {
     <PageLayout>
       <PageLayout.Header>
         <div>
-          <h1>Rulesets</h1>
+          <PageTitle title="Rulesets" />
           <p>
             <Link to="/rulesets/create" activeProps={{ style: { fontWeight: 'bold' } }}>
               Create a new ruleset
@@ -30,17 +32,13 @@ function RulesetsPage() {
       </PageLayout.Header>
       <PageLayout.Content>
         {rulesets.data && rulesets.data.length > 0 ? (
-          <div className={styles.grid}>
+          <TileGrid>
             {rulesets.data.map((r) => (
-              <Surface
+              <OpenableTile
                 key={r.id}
-                interactive
-                padding="sm"
-                className={styles.card}
-                renderRoot={({ className, children }) => (
-                  <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug: r.slug }} className={className}>
-                    {children}
-                  </Link>
+                caption={r.name}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: r.slug }} />
                 )}
               >
                 <div className={styles.cover}>
@@ -50,10 +48,9 @@ function RulesetsPage() {
                     <span className={styles.coverPlaceholder}>No cover</span>
                   )}
                 </div>
-                <span className={styles.name}>{r.name}</span>
-              </Surface>
+              </OpenableTile>
             ))}
-          </div>
+          </TileGrid>
         ) : (
           <Text size="sm" c="dimmed">
             No rulesets yet.
