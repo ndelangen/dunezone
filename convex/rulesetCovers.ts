@@ -1,18 +1,11 @@
 import { ConvexError, v } from 'convex/values';
 
-import {
-  USER_IMAGE_INGEST_PATH,
-  userImageIngestResponseSchema,
-  userImageSourceUrlSchema,
-} from '../src/shared/user-images/contract';
+import { userImageSourceUrlSchema } from '../src/shared/user-images/contract';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { action, internalAction, internalQuery } from './_generated/server';
-import { internalMutation } from './functions';
 import { requireRulesetUpdate } from './lib/collaborativeAccess';
-import { patchStoredCover, rulesetCoverValidator } from './lib/rulesetCover';
-import type { RulesetCover } from './lib/rulesetCover';
-import { ingestBaseUrl, ingestWithToken, throwIngestFailure } from './lib/userImageIngest';
+import { ingestBaseUrl, ingestWithToken } from './lib/userImageIngest';
 
 /**
  * The cover rehost pipeline.
@@ -21,53 +14,9 @@ import { ingestBaseUrl, ingestWithToken, throwIngestFailure } from './lib/userIm
  * The stored result comes back through the Worker's consuming mutation on `ingestTokens`, not through the HTTP response, which is only a completion signal for the waiting save.
  * The document then carries our delivery URL, so readers never contact the host the author chose.
  * The legacy `image_cover` string is dual-written with the delivery URL until the retirement release, so a pre-rehost bundle keeps rendering covers during the deploy window.
- * The operator backfill still rides the legacy shared-secret path;
- * that path retires with the secret.
+ * The operator backfill rides the same token path as the author save;
+ * it differs only in pinning an expected echo, so a row an author changed mid-fetch is left alone.
  */
-
-type IngestConfig = { baseUrl: string; secret: string };
-
-function ingestConfig(): IngestConfig {
-  const secret = process.env.USER_IMAGE_INGEST_SECRET;
-  if (!secret) {
-    throw new Error('Cover storage is not configured for this deployment');
-  }
-  return { baseUrl: ingestBaseUrl(), secret };
-}
-
-/**
- * Posts one source URL to the Worker with the shared secret and returns the stored cover from the response body.
- * This is the legacy write path, kept alive for the operator backfill until the secret retires.
- */
-async function ingestSourceUrl(config: IngestConfig, sourceUrl: string): Promise<RulesetCover> {
-  let response: Response;
-  try {
-    response = await fetch(`${config.baseUrl}${USER_IMAGE_INGEST_PATH}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${config.secret}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ source_url: sourceUrl }),
-    });
-  } catch {
-    throw new ConvexError('Cover storage is unreachable');
-  }
-  if (!response.ok) {
-    await throwIngestFailure(response);
-  }
-  const payload = userImageIngestResponseSchema.safeParse(await response.json().catch(() => null));
-  if (!payload.success) {
-    throw new ConvexError('Cover storage answered with an unexpected shape');
-  }
-  return {
-    url: payload.data.url,
-    thumb_url: payload.data.thumb_url,
-    source_url: sourceUrl,
-    width: payload.data.width,
-    height: payload.data.height,
-  };
-}
 
 /** The pre-fetch gate, so an unauthorized caller is refused before the Worker spends a fetch on their URL. */
 export const assertEditable = internalQuery({
@@ -76,24 +25,6 @@ export const assertEditable = internalQuery({
   handler: async (ctx, args) => {
     await requireRulesetUpdate(ctx, args.id);
     return null;
-  },
-});
-
-/**
- * Commits a stored cover on the operator path, where no viewer identity exists;
- * only the backfill action calls it.
- * The row must still be in the state the scan saw: an author who rehosted or cleared the cover while the backfill was fetching wins, and the stale commit reports itself skipped instead of landing over their change.
- */
-export const commitBackfill = internalMutation({
-  args: { id: v.id('rulesets'), cover: rulesetCoverValidator, expected_image_cover: v.string() },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const row = await ctx.db.get(args.id);
-    if (!row || row.cover != null || row.image_cover !== args.expected_image_cover) {
-      return false;
-    }
-    await patchStoredCover(ctx, args.id, args.cover);
-    return true;
   },
 });
 
@@ -148,7 +79,19 @@ export const listLegacyCovers = internalQuery({
 });
 
 /**
+ * The echo a failed backfill row is rechecked against, to tell a race from a genuine failure.
+ * The write-time guard lives in the consume mutation;
+ * this read only classifies its refusal after the fact.
+ */
+export const currentCoverEcho = internalQuery({
+  args: { id: v.id('rulesets') },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => (await ctx.db.get(args.id))?.image_cover ?? null,
+});
+
+/**
  * Rehosts every legacy hot-linked cover, run once by an operator after the rehost release ships.
+ * Rides the token path like the author save, differing only in the expected echo it pins: the mint records the legacy string the scan saw, so a row an author rehosted while the Worker was fetching bounces in the consume mutation and counts as skipped.
  * A row whose source cannot be fetched is reported and left untouched, so a flaky host degrades to a rerun rather than data loss.
  * `truncated` passes the scan window's own report through;
  * a true value means rows past the first 500 rulesets were not seen.
@@ -162,34 +105,34 @@ export const backfillLegacyCovers = internalAction({
     truncated: v.boolean(),
   }),
   handler: async (ctx) => {
-    const config = ingestConfig();
+    const baseUrl = ingestBaseUrl();
     const legacy: {
       rows: { id: Doc<'rulesets'>['_id']; slug: string; image_cover: string }[];
       truncated: boolean;
     } = await ctx.runQuery(internal.rulesetCovers.listLegacyCovers, {});
-    const rows = legacy.rows;
     let rehosted = 0;
     let skipped = 0;
     const failed: { slug: string; message: string }[] = [];
-    for (const row of rows) {
+    for (const row of legacy.rows) {
       const parsedSource = userImageSourceUrlSchema.safeParse(row.image_cover);
       if (!parsedSource.success) {
         failed.push({ slug: row.slug, message: parsedSource.error.issues[0]?.message ?? 'Invalid legacy URL' });
         continue;
       }
+      const minted: { token: string } = await ctx.runMutation(internal.ingestTokens.mint, {
+        capability: { kind: 'ruleset_cover', ruleset_id: row.id, expected_echo: row.image_cover },
+        source_url: parsedSource.data,
+      });
       try {
-        const cover = await ingestSourceUrl(config, parsedSource.data);
-        const committed: boolean = await ctx.runMutation(internal.rulesetCovers.commitBackfill, {
-          id: row.id,
-          cover,
-          expected_image_cover: row.image_cover,
-        });
-        if (committed) {
-          rehosted += 1;
-        } else {
-          skipped += 1;
-        }
+        await ingestWithToken(baseUrl, parsedSource.data, minted.token);
+        rehosted += 1;
       } catch (error) {
+        /* An echo that moved since the scan means the consume guard bounced a stale result, not that the source failed; the newer write already owns the row. */
+        const echo: string | null = await ctx.runQuery(internal.rulesetCovers.currentCoverEcho, { id: row.id });
+        if (echo !== row.image_cover) {
+          skipped += 1;
+          continue;
+        }
         const message =
           error instanceof ConvexError ? String(error.data) : error instanceof Error ? error.message : 'Rehost failed';
         failed.push({ slug: row.slug, message });
