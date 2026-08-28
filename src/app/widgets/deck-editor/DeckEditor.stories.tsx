@@ -2,7 +2,7 @@ import { Text } from '@mantine/core';
 import preview from '@sb/preview';
 import { fn } from 'storybook/test';
 
-import { DeckEditor, INITIAL_DECK_DRAFT } from './DeckEditor';
+import { DeckEditor, INITIAL_DECK_DRAFT, initialDeckMemory } from './DeckEditor';
 import type { DeckDraft } from './DeckEditor';
 import { STOCK_CARDBACKS } from './stockCardbacks';
 
@@ -19,6 +19,8 @@ const meta = preview.meta({
     onChapterChange: fn(),
     onSettle: fn(),
     patch: fn(),
+    memory: initialDeckMemory(INITIAL_DECK_DRAFT.cardback),
+    remember: fn(),
     members: [],
     onCountChange: null,
     cardPicker: null,

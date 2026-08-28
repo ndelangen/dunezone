@@ -9,7 +9,6 @@ import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { useState } from 'react';
-import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -17,6 +16,7 @@ import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { AssetFace, CardFrame } from '@app/widgets/asset-face/AssetFace';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
+import { CUSTOM_PRESET } from '@app/widgets/background-composer/presetChoice';
 import {
   assetOptionToPreviewSrc,
   decalAssetOptionToLabel,
@@ -70,7 +70,23 @@ export const INITIAL_DECK_DRAFT: DeckDraft = {
   cardback: { mode: 'custom', ...STOCK_CARDBACKS[0]!.cardback },
 };
 
-const CUSTOM = 'custom';
+const CUSTOM = CUSTOM_PRESET;
+
+/**
+ * What this editor's session needs and a stored deck has no room for.
+ *
+ * The declared Custom intent for the cardback tiles and for the background inside them, plus the composition the author last had, which the stored union cannot hold.
+ * All three sit in the route's state so a Reset discards them with the draft rather than leaving them to outlive it (D3 and D4 on «Work the editors wave»).
+ */
+export type DeckMemory = {
+  cardbackCustom: boolean;
+  backgroundCustom: boolean;
+  composedCardback: CardbackData | null;
+};
+
+export function initialDeckMemory(cardback: DeckDraftCardback): DeckMemory {
+  return { cardbackCustom: false, backgroundCustom: false, composedCardback: draftCardbackComposition(cardback) };
+}
 
 /** The composition this draft holds, or null when the cardback is worn from another deck. */
 function draftCardbackComposition(cardback: DeckDraftCardback): CardbackData | null {
@@ -97,7 +113,17 @@ function CardbackProof({ cardback }: { cardback: CardbackData }) {
   );
 }
 
-function CardbackFields({ cardback, onChange }: { cardback: CardbackData; onChange: (next: CardbackData) => void }) {
+function CardbackFields({
+  cardback,
+  onChange,
+  declaredCustom,
+  onDeclaredCustomChange,
+}: {
+  cardback: CardbackData;
+  onChange: (next: CardbackData) => void;
+  declaredCustom: boolean;
+  onDeclaredCustomChange: (next: boolean) => void;
+}) {
   return (
     <>
       <ControlBlock
@@ -117,6 +143,8 @@ function CardbackFields({ cardback, onChange }: { cardback: CardbackData; onChan
         usedOn="this deck's back"
         presets={BACK_PRESETS}
         value={cardback.background}
+        declaredCustom={declaredCustom}
+        onDeclaredCustomChange={onDeclaredCustomChange}
         onChange={(background) => onChange({ ...cardback, background })}
       />
       <ControlBlock
@@ -195,13 +223,14 @@ type CardbackTile = 'stock' | 'custom' | 'reference';
  * A deck's are not: the stored union has two members, composed and reference, and **stock is not a mode**.
  * A stock back is a composition that happens to equal one of the three stock ones, which `stockKeyFor` decides by value.
  * So Stock and Composed are the same member wearing different tiles, and which of the two is lit cannot be read off the value alone: a freshly composed back that happens to match a stock one still matches.
- * That is what `customChosen` is for and why it cannot be derived, recorded on issue #571.
+ * That is what the declared intent is for, recorded on issue #571.
+ * Only that half is stored: the preset match is derived from the value on every render, which is D4's split of #587's premise.
  */
-function tileFor(cardback: DeckDraftCardback, stockKey: string | null, customChosen: boolean): CardbackTile {
+function tileFor(cardback: DeckDraftCardback, stockKey: string | null, declaredCustom: boolean): CardbackTile {
   switch (true) {
     case cardback.mode === 'reference':
       return 'reference';
-    case customChosen || stockKey === null:
+    case declaredCustom || stockKey === null:
       return 'custom';
     default:
       return 'stock';
@@ -254,6 +283,8 @@ export function DeckEditor({
   nameField,
   draft,
   patch,
+  memory,
+  remember,
   chapter,
   onChapterChange,
   onSettle,
@@ -265,6 +296,9 @@ export function DeckEditor({
   backProof,
 }: {
   draft: DeckDraft;
+  /** The session's memory and its setter, the same value plus onChange membrane the draft crosses on. */
+  memory: DeckMemory;
+  remember: (update: Partial<DeckMemory>) => void;
   /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
   nameField: ReactNode;
   patch: (update: Partial<DeckDraft>) => void;
@@ -285,19 +319,13 @@ export function DeckEditor({
 }) {
   const composition = draftCardbackComposition(draft.cardback);
   const stockKey = composition ? stockKeyFor(composition) : null;
-  /* The composition the author last had, kept across mode flips; the stored union cannot hold it. */
-  const composedCardback = useRef<CardbackData | null>(composition);
   /* The stock tile shows the stock look this deck wears; with none chosen yet it stands in with the first. */
   const stockPreview = (STOCK_CARDBACKS.find((stock) => stock.key === stockKey) ?? STOCK_CARDBACKS[0]!).cardback;
   /*
-   * Whether Custom was picked, held here because it cannot be derived.
-   * `stockKey` answers "does this composition match a stock one", which is not the same question as
-   * "did the author ask to compose their own": a stock composition matches a stock key, so deriving
-   * `selected` from it alone made Custom unselectable. The control snapped back and the fields never
-   * mounted, so a stock deck or bundle could never become an authored one (#571).
-   * `BackgroundPresetControl` already holds the same flag for the same reason.
+   * The two halves of stock-or-custom per D4: `stockKey` derives whether the composition equals a stock one,
+   * and the author's declared intent is the half no value can express, so it rides in the route's memory.
+   * Deriving the tile from the key alone made Custom unselectable, since a stock composition matches a stock key (#571).
    */
-  const [customChosen, setCustomChosen] = useState(stockKey === null);
   /* Which member's removal is in flight, so only the held row reads as busy; cleared during render when the round trip ends, the search box's pattern. */
   const [removingId, setRemovingId] = useState<string | null>(null);
   if (!countPending && removingId !== null) {
@@ -332,15 +360,13 @@ export function DeckEditor({
                       input={
                         <PreviewChoice
                           label="Card back"
-                          value={tileFor(draft.cardback, stockKey, customChosen)}
+                          value={tileFor(draft.cardback, stockKey, memory.cardbackCustom)}
                           aspectRatio={String(1 / assetFaceAspect('deck'))}
                           onChange={(tile) => {
-                            setCustomChosen(tile === CUSTOM);
                             /* Captured on the way out, so returning to Composed finds the composition as it was left. */
-                            if (composition) {
-                              composedCardback.current = composition;
-                            }
-                            const next = cardbackForTile(tile, draft.cardback, stockKey, composedCardback.current);
+                            const kept = composition ?? memory.composedCardback;
+                            remember({ cardbackCustom: tile === CUSTOM, composedCardback: kept });
+                            const next = cardbackForTile(tile, draft.cardback, stockKey, kept);
                             if (next) {
                               patch({ cardback: next });
                             }
@@ -374,7 +400,7 @@ export function DeckEditor({
                               /* Always drawable, the stock tile's own rule: the live composition, the one the author left behind, or the first stock look standing in. Never a dashed nothing (Norbert, 2026-08-21). */
                               preview: (
                                 <CardbackProof
-                                  cardback={composition ?? composedCardback.current ?? STOCK_CARDBACKS[0]!.cardback}
+                                  cardback={composition ?? memory.composedCardback ?? STOCK_CARDBACKS[0]!.cardback}
                                 />
                               ),
                               canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
@@ -390,10 +416,12 @@ export function DeckEditor({
                         />
                       }
                     />
-                    {composition && customChosen ? (
+                    {composition && memory.cardbackCustom ? (
                       <CardbackFields
                         cardback={composition}
                         onChange={(next) => patch({ cardback: { mode: 'custom', ...next } })}
+                        declaredCustom={memory.backgroundCustom}
+                        onDeclaredCustomChange={(backgroundCustom) => remember({ backgroundCustom })}
                       />
                     ) : null}
                   </>
