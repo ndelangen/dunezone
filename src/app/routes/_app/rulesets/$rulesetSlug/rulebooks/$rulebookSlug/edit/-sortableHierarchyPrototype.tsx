@@ -483,21 +483,65 @@ function dynamicRowTarget(over: DragOverEvent['over']) {
 const stableDynamicCollision: CollisionDetection = (args) => {
   const collisions = args.pointerCoordinates ? pointerWithin(args) : rectIntersection(args);
   const activeBlockId = idSuffix(args.active.id, 'summary:block:');
-  const rowCollisions = collisions.filter(
-    ({ id }) => String(id).startsWith('summary:row:') && !String(id).endsWith(`:${activeBlockId}`)
-  );
-  return rowCollisions.length > 0 ? rowCollisions : collisions;
+  const availableCollisions = collisions.filter(({ id }) => !String(id).endsWith(`:${activeBlockId}`));
+  const rowCollisions = availableCollisions.filter(({ id }) => String(id).startsWith('summary:row:'));
+  return rowCollisions.length > 0 ? rowCollisions : availableCollisions;
 };
+
+function previewShift({
+  regions,
+  activeBlockId,
+  placement,
+  regionId,
+  blockId,
+}: {
+  regions: readonly PrototypeRegion[];
+  activeBlockId: string | null;
+  placement: Placement | null;
+  regionId: string;
+  blockId: string;
+}) {
+  if (!activeBlockId || !placement || blockId === activeBlockId) {
+    return 0;
+  }
+  const source = findBlockPlacement(regions, activeBlockId);
+  const region = regions.find((candidate) => candidate.id === regionId);
+  const blockIndex = region?.blockIds.indexOf(blockId) ?? -1;
+  if (!source || blockIndex === -1) {
+    return 0;
+  }
+  if (source.regionId === placement.regionId) {
+    if (regionId !== source.regionId) {
+      return 0;
+    }
+    if (placement.index < source.index && blockIndex >= placement.index && blockIndex < source.index) {
+      return 1;
+    }
+    if (placement.index > source.index && blockIndex > source.index && blockIndex <= placement.index) {
+      return -1;
+    }
+    return 0;
+  }
+  if (regionId === source.regionId && blockIndex > source.index) {
+    return -1;
+  }
+  if (regionId === placement.regionId && blockIndex >= placement.index) {
+    return 1;
+  }
+  return 0;
+}
 
 function DynamicSummaryItem({
   block,
   regionId,
   dropEnabled,
+  previewShiftDirection,
   onSelect,
 }: {
   block: PrototypeBlock;
   regionId: string;
   dropEnabled: boolean;
+  previewShiftDirection: -1 | 0 | 1;
   onSelect: () => void;
 }) {
   const draggable = useDraggable({ id: summaryBlockId(block.id) });
@@ -509,8 +553,14 @@ function DynamicSummaryItem({
     draggable.setNodeRef(node);
     droppable.setNodeRef(node);
   };
+  const previewTransform =
+    previewShiftDirection === 1
+      ? 'translate3d(0, calc(100% + 0.28rem), 0)'
+      : previewShiftDirection === -1
+        ? 'translate3d(0, calc(-100% - 0.28rem), 0)'
+        : undefined;
   const style: CSSProperties = {
-    transform: draggable.transform ? `translate3d(0, ${draggable.transform.y}px, 0)` : undefined,
+    transform: draggable.transform ? `translate3d(0, ${draggable.transform.y}px, 0)` : previewTransform,
   };
 
   return (
@@ -550,6 +600,7 @@ function DynamicSummaryRegion({
   regions,
   blocks,
   activeBlockId,
+  previewPlacement,
   collapsed,
   onToggleCollapsed,
   onSelectBlock,
@@ -558,6 +609,7 @@ function DynamicSummaryRegion({
   regions: readonly PrototypeRegion[];
   blocks: Readonly<Record<string, PrototypeBlock>>;
   activeBlockId: string | null;
+  previewPlacement: Placement | null;
   collapsed: boolean;
   onToggleCollapsed: () => void;
   onSelectBlock: (blockId: string) => void;
@@ -610,6 +662,13 @@ function DynamicSummaryRegion({
             block={blocks[blockId]}
             regionId={region.id}
             dropEnabled={dropEnabled}
+            previewShiftDirection={previewShift({
+              regions,
+              activeBlockId,
+              placement: previewPlacement,
+              regionId: region.id,
+              blockId,
+            })}
             onSelect={() => onSelectBlock(blockId)}
             key={blockId}
           />
@@ -636,6 +695,7 @@ function PageDetailsSummaries({
   );
   const candidatePlacement = useRef<Placement | null>(null);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [previewPlacement, setPreviewPlacement] = useState<Placement | null>(null);
   const [lastValid, setLastValid] = useState<Placement | null>(null);
   const [collapsedRegionIds, setCollapsedRegionIds] = useState<ReadonlySet<string>>(() => new Set());
 
@@ -651,6 +711,11 @@ function PageDetailsSummaries({
       return false;
     }
     candidatePlacement.current = normalizedPlacement;
+    setPreviewPlacement((current) =>
+      current?.regionId === normalizedPlacement.regionId && current.index === normalizedPlacement.index
+        ? current
+        : normalizedPlacement
+    );
     setLastValid((current) =>
       current?.regionId === normalizedPlacement.regionId && current.index === normalizedPlacement.index
         ? current
@@ -666,6 +731,7 @@ function PageDetailsSummaries({
     }
     const placement = findBlockPlacement(regions, blockId);
     candidatePlacement.current = placement;
+    setPreviewPlacement(placement);
     setLastValid(placement);
     setActiveBlockId(blockId);
   };
@@ -708,13 +774,15 @@ function PageDetailsSummaries({
     if (!validity.valid) {
       return;
     }
-    if (collapsedRegionIds.has(regionId) || region.blockIds.length === 0) {
-      recordCandidate(blockId, { regionId, index: region.blockIds.length });
-    }
+    recordCandidate(blockId, {
+      regionId,
+      index: collapsedRegionIds.has(regionId) || region.blockIds.length === 0 ? region.blockIds.length : 0,
+    });
   };
 
   const finishDrag = () => {
     candidatePlacement.current = null;
+    setPreviewPlacement(null);
     setActiveBlockId(null);
   };
 
@@ -744,6 +812,7 @@ function PageDetailsSummaries({
         modifiers={verticalDragModifiers}
         collisionDetection={stableDynamicCollision}
         onDragStart={handleDragStart}
+        onDragMove={handleDragOver}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
         onDragCancel={finishDrag}
@@ -755,6 +824,7 @@ function PageDetailsSummaries({
               regions={regions}
               blocks={blocks}
               activeBlockId={activeBlockId}
+              previewPlacement={previewPlacement}
               collapsed={collapsedRegionIds.has(region.id)}
               onToggleCollapsed={() => {
                 setCollapsedRegionIds((current) => {
