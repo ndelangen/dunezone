@@ -187,9 +187,14 @@
 
 .summaryItem[data-dynamic-dragging] {
   z-index: 10;
-  opacity: 0.54;
+  opacity: 0.2;
   pointer-events: none;
   box-shadow: var(--mantine-shadow-sm);
+}
+
+.summaryDragPreview {
+  width: 100%;
+  box-shadow: var(--mantine-shadow-md);
 }
 
 .summaryLink {

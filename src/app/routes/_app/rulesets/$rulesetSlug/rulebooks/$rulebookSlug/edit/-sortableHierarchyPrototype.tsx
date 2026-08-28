@@ -1,10 +1,10 @@
 import {
   closestCenter,
   DndContext,
+  DragOverlay,
   KeyboardSensor,
+  MeasuringStrategy,
   PointerSensor,
-  pointerWithin,
-  rectIntersection,
   useDndContext,
   useDraggable,
   useDroppable,
@@ -460,116 +460,73 @@ function summaryRegionId(regionId: string) {
   return `summary:region:${regionId}`;
 }
 
-function dynamicRowId(regionId: string, blockId: string) {
-  return `summary:row:${regionId}:${blockId}`;
-}
-
 function idSuffix(id: string | number, prefix: string) {
   const value = String(id);
   return value.startsWith(prefix) ? value.slice(prefix.length) : null;
 }
 
-function dynamicRowTarget(over: DragOverEvent['over']) {
-  const value = over ? idSuffix(over.id, 'summary:row:') : null;
-  if (!value) {
-    return null;
+const summaryCollision: CollisionDetection = (args) => {
+  const regionContainers = args.droppableContainers.filter(
+    (container) => container.data.current?.kind === 'summary-region'
+  );
+  const centerY = args.collisionRect.top + args.collisionRect.height / 2;
+  const containingRegion = regionContainers.find((container) => {
+    const rect = args.droppableRects.get(container.id);
+    return rect ? centerY >= rect.top && centerY <= rect.bottom : false;
+  });
+  const nearestRegionCollision = containingRegion
+    ? null
+    : closestCenter({ ...args, droppableContainers: regionContainers })[0];
+  const regionContainer =
+    containingRegion ??
+    regionContainers.find((container) => container.id === nearestRegionCollision?.id);
+  const regionData = regionContainer?.data.current;
+  if (!regionContainer || regionData?.dropEnabled !== true) {
+    return [];
   }
-  const separatorIndex = value.indexOf(':');
-  const regionId = value.slice(0, separatorIndex);
-  const blockId = value.slice(separatorIndex + 1);
-  return regionId && blockId ? { regionId, blockId } : null;
-}
-
-const stableDynamicCollision: CollisionDetection = (args) => {
-  const collisions = args.pointerCoordinates ? pointerWithin(args) : rectIntersection(args);
-  const activeBlockId = idSuffix(args.active.id, 'summary:block:');
-  const availableCollisions = collisions.filter(({ id }) => !String(id).endsWith(`:${activeBlockId}`));
-  const rowCollisions = availableCollisions.filter(({ id }) => String(id).startsWith('summary:row:'));
-  return rowCollisions.length > 0 ? rowCollisions : availableCollisions;
+  if (regionData.directTarget === true) {
+    return closestCenter({ ...args, droppableContainers: [regionContainer] });
+  }
+  const rowContainers = args.droppableContainers.filter(
+    (container) =>
+      container.id !== args.active.id &&
+      container.data.current?.kind === 'summary-block' &&
+      container.data.current.regionId === regionData.regionId
+  );
+  return closestCenter({
+    ...args,
+    droppableContainers: rowContainers.length > 0 ? rowContainers : [regionContainer],
+  });
 };
-
-function previewShift({
-  regions,
-  activeBlockId,
-  placement,
-  regionId,
-  blockId,
-}: {
-  regions: readonly PrototypeRegion[];
-  activeBlockId: string | null;
-  placement: Placement | null;
-  regionId: string;
-  blockId: string;
-}) {
-  if (!activeBlockId || !placement || blockId === activeBlockId) {
-    return 0;
-  }
-  const source = findBlockPlacement(regions, activeBlockId);
-  const region = regions.find((candidate) => candidate.id === regionId);
-  const blockIndex = region?.blockIds.indexOf(blockId) ?? -1;
-  if (!source || blockIndex === -1) {
-    return 0;
-  }
-  if (source.regionId === placement.regionId) {
-    if (regionId !== source.regionId) {
-      return 0;
-    }
-    if (placement.index < source.index && blockIndex >= placement.index && blockIndex < source.index) {
-      return 1;
-    }
-    if (placement.index > source.index && blockIndex > source.index && blockIndex <= placement.index) {
-      return -1;
-    }
-    return 0;
-  }
-  if (regionId === source.regionId && blockIndex > source.index) {
-    return -1;
-  }
-  if (regionId === placement.regionId && blockIndex >= placement.index) {
-    return 1;
-  }
-  return 0;
-}
 
 function DynamicSummaryItem({
   block,
   regionId,
   dropEnabled,
-  previewShiftDirection,
   onSelect,
 }: {
   block: PrototypeBlock;
   regionId: string;
   dropEnabled: boolean;
-  previewShiftDirection: -1 | 0 | 1;
   onSelect: () => void;
 }) {
-  const draggable = useDraggable({ id: summaryBlockId(block.id) });
-  const droppable = useDroppable({
-    id: dynamicRowId(regionId, block.id),
-    disabled: !dropEnabled,
+  const sortable = useSortable({
+    id: summaryBlockId(block.id),
+    data: { kind: 'summary-block', blockId: block.id, regionId },
+    disabled: { droppable: !dropEnabled },
   });
-  const setNodeRef = (node: HTMLLIElement | null) => {
-    draggable.setNodeRef(node);
-    droppable.setNodeRef(node);
-  };
-  const previewTransform =
-    previewShiftDirection === 1
-      ? 'translate3d(0, calc(100% + 0.28rem), 0)'
-      : previewShiftDirection === -1
-        ? 'translate3d(0, calc(-100% - 0.28rem), 0)'
-        : undefined;
   const style: CSSProperties = {
-    transform: draggable.transform ? `translate3d(0, ${draggable.transform.y}px, 0)` : previewTransform,
+    transform: sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
+    transition: sortable.transition,
   };
 
   return (
     <li
-      ref={setNodeRef}
+      ref={sortable.setNodeRef}
       className={styles.summaryItem}
       style={style}
-      data-dynamic-dragging={draggable.isDragging || undefined}
-      data-prototype-over={droppable.isOver || undefined}
+      data-dynamic-dragging={sortable.isDragging || undefined}
+      data-prototype-over={sortable.isOver || undefined}
     >
       <a
         href={`#${block.id}`}
@@ -587,11 +544,25 @@ function DynamicSummaryItem({
       </a>
       <SortableReorderHandle
         label={`Move ${block.label}`}
-        setActivatorNodeRef={draggable.setActivatorNodeRef}
-        attributes={draggable.attributes}
-        listeners={draggable.listeners}
+        setActivatorNodeRef={sortable.setActivatorNodeRef}
+        attributes={sortable.attributes}
+        listeners={sortable.listeners}
       />
     </li>
+  );
+}
+
+function SummaryDragPreview({ block }: { block: PrototypeBlock }) {
+  return (
+    <div className={`${styles.summaryItem} ${styles.summaryDragPreview}`} data-testid="summary-drag-preview">
+      <div className={styles.summaryLink}>
+        <span className={styles.summaryIcon}>{blockIcon(block.kind)}</span>
+        <span>
+          <strong>{block.label}</strong>
+          <small>{block.kind}</small>
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -600,7 +571,6 @@ function DynamicSummaryRegion({
   regions,
   blocks,
   activeBlockId,
-  previewPlacement,
   collapsed,
   onToggleCollapsed,
   onSelectBlock,
@@ -609,7 +579,6 @@ function DynamicSummaryRegion({
   regions: readonly PrototypeRegion[];
   blocks: Readonly<Record<string, PrototypeBlock>>;
   activeBlockId: string | null;
-  previewPlacement: Placement | null;
   collapsed: boolean;
   onToggleCollapsed: () => void;
   onSelectBlock: (blockId: string) => void;
@@ -619,7 +588,13 @@ function DynamicSummaryRegion({
     : null;
   const droppable = useDroppable({
     id: summaryRegionId(region.id),
-    disabled: activeBlockId === null || validity?.valid !== true,
+    data: {
+      kind: 'summary-region',
+      regionId: region.id,
+      dropEnabled: validity?.valid === true,
+      directTarget: collapsed || region.blockIds.length === 0,
+    },
+    disabled: activeBlockId === null,
   });
   const eligibility = validity ? (validity.valid ? 'compatible' : 'incompatible') : undefined;
   const dropEnabled = activeBlockId !== null && validity?.valid === true;
@@ -656,24 +631,19 @@ function DynamicSummaryRegion({
           </button>
         </div>
       </header>
-      <ul id={contentId} className={styles.summaryList} hidden={collapsed}>
-        {region.blockIds.map((blockId) => (
-          <DynamicSummaryItem
-            block={blocks[blockId]}
-            regionId={region.id}
-            dropEnabled={dropEnabled}
-            previewShiftDirection={previewShift({
-              regions,
-              activeBlockId,
-              placement: previewPlacement,
-              regionId: region.id,
-              blockId,
-            })}
-            onSelect={() => onSelectBlock(blockId)}
-            key={blockId}
-          />
-        ))}
-      </ul>
+      <SortableContext items={region.blockIds.map(summaryBlockId)} strategy={verticalListSortingStrategy}>
+        <ul id={contentId} className={styles.summaryList} hidden={collapsed}>
+          {region.blockIds.map((blockId) => (
+            <DynamicSummaryItem
+              block={blocks[blockId]}
+              regionId={region.id}
+              dropEnabled={dropEnabled}
+              onSelect={() => onSelectBlock(blockId)}
+              key={blockId}
+            />
+          ))}
+        </ul>
+      </SortableContext>
     </section>
   );
 }
@@ -693,13 +663,13 @@ function PageDetailsSummaries({
     useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
     useSensor(KeyboardSensor)
   );
-  const candidatePlacement = useRef<Placement | null>(null);
+  const dragOriginRegions = useRef<PrototypeRegion[] | null>(null);
+  const lastValidPlacement = useRef<Placement | null>(null);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
-  const [previewPlacement, setPreviewPlacement] = useState<Placement | null>(null);
   const [lastValid, setLastValid] = useState<Placement | null>(null);
   const [collapsedRegionIds, setCollapsedRegionIds] = useState<ReadonlySet<string>>(() => new Set());
 
-  const recordCandidate = (blockId: string, placement: Placement) => {
+  const validPlacement = (blockId: string, placement: Placement) => {
     const normalizedPlacement = normalizePlacement(regions, blockId, placement);
     const validity = placementValidity({
       regions,
@@ -708,20 +678,29 @@ function PageDetailsSummaries({
       targetRegionId: normalizedPlacement.regionId,
     });
     if (!validity.valid) {
-      return false;
+      return null;
     }
-    candidatePlacement.current = normalizedPlacement;
-    setPreviewPlacement((current) =>
-      current?.regionId === normalizedPlacement.regionId && current.index === normalizedPlacement.index
-        ? current
-        : normalizedPlacement
-    );
+    lastValidPlacement.current = normalizedPlacement;
     setLastValid((current) =>
       current?.regionId === normalizedPlacement.regionId && current.index === normalizedPlacement.index
         ? current
         : normalizedPlacement
     );
-    return true;
+    return normalizedPlacement;
+  };
+
+  const placementFromOver = (blockId: string, over: DragOverEvent['over']) => {
+    if (!over || over.id === summaryBlockId(blockId)) {
+      return null;
+    }
+    const targetBlockId = idSuffix(over.id, 'summary:block:');
+    if (targetBlockId) {
+      const target = findBlockPlacement(regions, targetBlockId);
+      return target ? { regionId: target.regionId, index: target.index } : null;
+    }
+    const regionId = idSuffix(over.id, 'summary:region:');
+    const region = regions.find((candidate) => candidate.id === regionId);
+    return region ? { regionId: region.id, index: region.blockIds.length } : null;
   };
 
   const handleDragStart = ({ active }: DragStartEvent) => {
@@ -730,8 +709,8 @@ function PageDetailsSummaries({
       return;
     }
     const placement = findBlockPlacement(regions, blockId);
-    candidatePlacement.current = placement;
-    setPreviewPlacement(placement);
+    dragOriginRegions.current = cloneRegions(regions);
+    lastValidPlacement.current = placement;
     setLastValid(placement);
     setActiveBlockId(blockId);
   };
@@ -741,56 +720,35 @@ function PageDetailsSummaries({
     if (!blockId) {
       return;
     }
-    const rowTarget = dynamicRowTarget(over);
-    if (rowTarget && over) {
-      const region = regions.find((candidate) => candidate.id === rowTarget.regionId);
-      const draggedRect = active.rect.current.translated ?? active.rect.current.initial;
-      if (!region || !draggedRect) {
-        return;
-      }
-      const targetBlockIds = region.blockIds.filter((candidate) => candidate !== blockId);
-      const targetIndex = targetBlockIds.indexOf(rowTarget.blockId);
-      if (targetIndex === -1) {
-        return;
-      }
-      const draggedCenter = draggedRect.top + draggedRect.height / 2;
-      const targetCenter = over.rect.top + over.rect.height / 2;
-      const side = draggedCenter > targetCenter ? 'after' : 'before';
-      recordCandidate(blockId, {
-        regionId: region.id,
-        index: targetIndex + (side === 'after' ? 1 : 0),
-      });
+    const placement = placementFromOver(blockId, over);
+    const normalizedPlacement = placement ? validPlacement(blockId, placement) : null;
+    const source = findBlockPlacement(regions, blockId);
+    if (!normalizedPlacement || !source || source.regionId === normalizedPlacement.regionId) {
       return;
     }
-    const regionId = over ? idSuffix(over.id, 'summary:region:') : null;
-    if (!regionId) {
-      return;
-    }
-    const region = regions.find((candidate) => candidate.id === regionId);
-    if (!region) {
-      return;
-    }
-    const validity = placementValidity({ regions, blocks, blockId, targetRegionId: regionId });
-    if (!validity.valid) {
-      return;
-    }
-    recordCandidate(blockId, {
-      regionId,
-      index: collapsedRegionIds.has(regionId) || region.blockIds.length === 0 ? region.blockIds.length : 0,
-    });
+    setRegions(moveBlock(regions, blockId, normalizedPlacement.regionId, normalizedPlacement.index));
   };
 
   const finishDrag = () => {
-    candidatePlacement.current = null;
-    setPreviewPlacement(null);
+    dragOriginRegions.current = null;
+    lastValidPlacement.current = null;
     setActiveBlockId(null);
   };
 
-  const handleDragEnd = ({ active }: DragEndEvent) => {
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
     const blockId = idSuffix(active.id, 'summary:block:');
-    const placement = candidatePlacement.current;
-    if (blockId && placement) {
-      setRegions(moveBlock(regions, blockId, placement.regionId, placement.index));
+    const placement = blockId ? placementFromOver(blockId, over) : null;
+    const normalizedPlacement = blockId && placement ? validPlacement(blockId, placement) : null;
+    const finalPlacement = normalizedPlacement ?? lastValidPlacement.current;
+    if (blockId && finalPlacement) {
+      setRegions(moveBlock(regions, blockId, finalPlacement.regionId, finalPlacement.index));
+    }
+    finishDrag();
+  };
+
+  const handleDragCancel = () => {
+    if (dragOriginRegions.current) {
+      setRegions(dragOriginRegions.current);
     }
     finishDrag();
   };
@@ -810,12 +768,12 @@ function PageDetailsSummaries({
       <DndContext
         sensors={sensors}
         modifiers={verticalDragModifiers}
-        collisionDetection={stableDynamicCollision}
+        collisionDetection={summaryCollision}
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
         onDragStart={handleDragStart}
-        onDragMove={handleDragOver}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-        onDragCancel={finishDrag}
+        onDragCancel={handleDragCancel}
       >
         <div className={styles.summaryRegions}>
           {regions.map((region) => (
@@ -824,7 +782,6 @@ function PageDetailsSummaries({
               regions={regions}
               blocks={blocks}
               activeBlockId={activeBlockId}
-              previewPlacement={previewPlacement}
               collapsed={collapsedRegionIds.has(region.id)}
               onToggleCollapsed={() => {
                 setCollapsedRegionIds((current) => {
@@ -842,6 +799,9 @@ function PageDetailsSummaries({
             />
           ))}
         </div>
+        <DragOverlay>
+          {activeBlockId ? <SummaryDragPreview block={blocks[activeBlockId]} /> : null}
+        </DragOverlay>
       </DndContext>
     </div>
   );
